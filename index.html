@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Health Endeavors — Manual Order Entry</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --ground:#F4F6F1; --surface:#FFFFFF; --surface-2:#EDF1EA;
+    --ink:#1E2A22; --ink-muted:#5C6A5F; --border:#DCE3D8;
+    --accent:#3E6B52; --accent-ink:#FFFFFF; --accent-soft:#E4EDE3;
+    --rose:#8C4A3E; --rose-soft:#F1E1DD;
+    --shadow: 0 1px 2px rgba(30,42,34,0.06), 0 8px 24px -12px rgba(30,42,34,0.18);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --ground:#161C17; --surface:#1E2620; --surface-2:#212B23;
+      --ink:#E7EEE7; --ink-muted:#9AAA9C; --border:#2C362E;
+      --accent:#8AC4A4; --accent-ink:#12201A; --accent-soft:#243B30;
+      --rose:#D8988A; --rose-soft:#3A241F;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px -12px rgba(0,0,0,0.5);
+    }
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--ground); color:var(--ink);
+    font-family:'Public Sans', -apple-system, sans-serif; line-height:1.5;
+    min-height:100vh; padding:24px 16px 60px;
+  }
+  .wrap{ max-width:640px; margin:0 auto; }
+  h1{ font-family:'Fraunces', Georgia, serif; font-size:26px; font-weight:600; margin:0 0 4px; }
+  .eyebrow{ font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--accent); }
+  .subtitle{ color:var(--ink-muted); font-size:14.5px; margin:6px 0 28px; }
+  .card{ background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:24px; box-shadow:var(--shadow); margin-bottom:16px; }
+  label{ display:block; font-size:13px; font-weight:600; margin-bottom:6px; color:var(--ink); }
+  input, select, textarea{
+    width:100%; font-family:inherit; font-size:15px; padding:10px 12px;
+    border:1px solid var(--border); border-radius:8px; background:var(--surface-2); color:var(--ink);
+  }
+  input:focus, select:focus, textarea:focus{ outline:2px solid var(--accent); outline-offset:1px; }
+  .field{ margin-bottom:16px; }
+  .row2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  button{
+    font-family:inherit; font-weight:600; font-size:15px; border:none; border-radius:9px;
+    padding:11px 18px; cursor:pointer;
+  }
+  .btn-primary{ background:var(--accent); color:var(--accent-ink); width:100%; }
+  .btn-primary:disabled{ opacity:.5; cursor:not-allowed; }
+  .btn-secondary{ background:var(--surface-2); color:var(--ink); border:1px solid var(--border); }
+  .btn-text{ background:none; color:var(--accent); padding:6px 4px; font-size:13.5px; }
+  .btn-remove{ background:none; color:var(--rose); padding:4px 8px; font-size:18px; line-height:1; }
+  .item-row{ display:grid; grid-template-columns:2fr 1fr 1fr auto; gap:8px; align-items:end; margin-bottom:10px; }
+  .item-row label{ font-size:11px; margin-bottom:4px; color:var(--ink-muted); }
+  .totals{ margin-top:16px; padding-top:16px; border-top:1px dashed var(--border); }
+  .totals-row{ display:flex; justify-content:space-between; font-size:14px; padding:3px 0; color:var(--ink-muted); }
+  .totals-row.grand{ color:var(--ink); font-weight:700; font-size:17px; font-family:'IBM Plex Mono',monospace; }
+  .msg{ padding:12px 14px; border-radius:9px; font-size:14px; margin-bottom:16px; }
+  .msg.error{ background:var(--rose-soft); color:var(--rose); }
+  .msg.success{ background:var(--accent-soft); color:var(--accent); }
+  .topbar{ display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; }
+  .who{ font-size:13px; color:var(--ink-muted); }
+  .who button{ margin-left:10px; }
+  [hidden]{ display:none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div id="loginView" class="card" style="max-width:400px;margin:80px auto;">
+    <span class="eyebrow">Health Endeavors</span>
+    <h1>Sign in</h1>
+    <p class="subtitle">Use your owner/employee account to add an order.</p>
+    <div id="loginError" class="msg error" hidden></div>
+    <div class="field">
+      <label for="loginEmail">Email</label>
+      <input id="loginEmail" type="email" autocomplete="email" />
+    </div>
+    <div class="field">
+      <label for="loginPassword">Password</label>
+      <input id="loginPassword" type="password" autocomplete="current-password" />
+    </div>
+    <button id="loginBtn" class="btn-primary">Sign in</button>
+  </div>
+
+  <div id="appView" hidden>
+    <div class="topbar">
+      <div>
+        <span class="eyebrow">Health Endeavors</span>
+        <h1>New manual order</h1>
+      </div>
+      <div class="who">
+        <span id="whoEmail"></span>
+        <button id="signOutBtn" class="btn-secondary" style="padding:6px 12px;font-size:13px;">Sign out</button>
+      </div>
+    </div>
+    <p class="subtitle">For wholesale, physical/in-person, or other sales that don't come through Shopify.</p>
+
+    <div id="formMsg" class="msg error" hidden></div>
+    <div id="successMsg" class="msg success" hidden></div>
+
+    <form id="orderForm">
+      <div class="card">
+        <div class="row2">
+          <div class="field">
+            <label for="channel">Sale type</label>
+            <select id="channel" required>
+              <option value="wholesale">Wholesale</option>
+              <option value="physical">Physical / in-person</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="orderDate">Date</label>
+            <input id="orderDate" type="date" required />
+          </div>
+        </div>
+        <div class="field">
+          <label for="customerName">Customer / store name</label>
+          <input id="customerName" type="text" required placeholder="e.g. Aroma Paradise, or a walk-in customer's name" />
+        </div>
+        <div class="field">
+          <label for="customerEmail">Customer email (optional)</label>
+          <input id="customerEmail" type="email" placeholder="optional" />
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label for="status">Status</label>
+            <select id="status">
+              <option value="paid">Paid</option>
+              <option value="pending">Pending payment</option>
+              <option value="refunded">Refunded</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="currency">Currency</label>
+            <select id="currency">
+              <option value="USD">USD</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <label style="margin-bottom:12px;">Items</label>
+        <div id="itemsContainer"></div>
+        <button type="button" id="addItemBtn" class="btn-text">+ Add another item</button>
+
+        <div class="totals">
+          <div class="totals-row"><span>Subtotal</span><span id="subtotalOut">$0.00</span></div>
+          <div class="totals-row">
+            <span>Shipping</span>
+            <input id="shippingTotal" type="number" step="0.01" min="0" value="0" style="width:100px;text-align:right;padding:4px 8px;" />
+          </div>
+          <div class="totals-row">
+            <span>Tax</span>
+            <input id="taxTotal" type="number" step="0.01" min="0" value="0" style="width:100px;text-align:right;padding:4px 8px;" />
+          </div>
+          <div class="totals-row grand"><span>Total</span><span id="totalOut">$0.00</span></div>
+        </div>
+      </div>
+
+      <button id="submitBtn" type="submit" class="btn-primary">Save order</button>
+    </form>
+  </div>
+
+</div>
+
+<script>
+  const SUPABASE_URL = 'https://uizrazyehilyzmwttsrn.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_n0sEzZK0JMtwgk280a3YXA_zxtnheqj';
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const loginView = document.getElementById('loginView');
+  const appView = document.getElementById('appView');
+  const loginEmail = document.getElementById('loginEmail');
+  const loginPassword = document.getElementById('loginPassword');
+  const loginBtn = document.getElementById('loginBtn');
+  const loginError = document.getElementById('loginError');
+  const whoEmail = document.getElementById('whoEmail');
+  const signOutBtn = document.getElementById('signOutBtn');
+  const itemsContainer = document.getElementById('itemsContainer');
+  const addItemBtn = document.getElementById('addItemBtn');
+  const orderForm = document.getElementById('orderForm');
+  const submitBtn = document.getElementById('submitBtn');
+  const formMsg = document.getElementById('formMsg');
+  const successMsg = document.getElementById('successMsg');
+  const subtotalOut = document.getElementById('subtotalOut');
+  const totalOut = document.getElementById('totalOut');
+  const shippingTotal = document.getElementById('shippingTotal');
+  const taxTotal = document.getElementById('taxTotal');
+  const orderDate = document.getElementById('orderDate');
+
+  function showError(el, text){ el.textContent = text; el.hidden = false; }
+  function hideError(el){ el.hidden = true; }
+  function money(n){ return '$' + (Math.round(n * 100) / 100).toFixed(2); }
+
+  function makeItemRow(){
+    const row = document.createElement('div');
+    row.className = 'item-row';
+    row.innerHTML = `
+      <div><label>Product</label><input type="text" class="item-name" required placeholder="e.g. Lavender Body Lotion 8oz" /></div>
+      <div><label>Qty</label><input type="number" class="item-qty" min="1" step="1" value="1" required /></div>
+      <div><label>Unit price</label><input type="number" class="item-price" min="0" step="0.01" value="0.00" required /></div>
+      <button type="button" class="btn-remove" title="Remove item">&times;</button>
+    `;
+    row.querySelector('.btn-remove').addEventListener('click', () => { row.remove(); recalcTotals(); });
+    row.querySelector('.item-qty').addEventListener('input', recalcTotals);
+    row.querySelector('.item-price').addEventListener('input', recalcTotals);
+    itemsContainer.appendChild(row);
+  }
+
+  function getItems(){
+    return Array.from(itemsContainer.querySelectorAll('.item-row')).map(row => {
+      const name = row.querySelector('.item-name').value.trim();
+      const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
+      const price = parseFloat(row.querySelector('.item-price').value) || 0;
+      return { product_name: name, quantity: qty, unit_price: price, line_total: Math.round(qty * price * 100) / 100 };
+    });
+  }
+
+  function recalcTotals(){
+    const items = getItems();
+    const subtotal = items.reduce((sum, i) => sum + i.line_total, 0);
+    const ship = parseFloat(shippingTotal.value) || 0;
+    const tax = parseFloat(taxTotal.value) || 0;
+    subtotalOut.textContent = money(subtotal);
+    totalOut.textContent = money(subtotal + ship + tax);
+  }
+
+  shippingTotal.addEventListener('input', recalcTotals);
+  taxTotal.addEventListener('input', recalcTotals);
+  addItemBtn.addEventListener('click', () => { makeItemRow(); recalcTotals(); });
+
+  function resetForm(){
+    orderForm.reset();
+    itemsContainer.innerHTML = '';
+    makeItemRow();
+    orderDate.valueAsDate = new Date();
+    recalcTotals();
+  }
+
+  function generateOrderNumber(){
+    const d = new Date();
+    const pad = n => String(n).padStart(2,'0');
+    return `M-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+  }
+
+  async function showApp(user){
+    loginView.hidden = true;
+    appView.hidden = false;
+    whoEmail.textContent = user.email;
+    resetForm();
+  }
+
+  function showLogin(){
+    appView.hidden = true;
+    loginView.hidden = false;
+  }
+
+  loginBtn.addEventListener('click', async () => {
+    hideError(loginError);
+    loginBtn.disabled = true;
+    const { data, error } = await sb.auth.signInWithPassword({
+      email: loginEmail.value.trim(),
+      password: loginPassword.value
+    });
+    loginBtn.disabled = false;
+    if (error){ showError(loginError, error.message); return; }
+    showApp(data.user);
+  });
+
+  signOutBtn.addEventListener('click', async () => {
+    await sb.auth.signOut();
+    showLogin();
+  });
+
+  orderForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    hideError(formMsg);
+    successMsg.hidden = true;
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Saving…';
+
+    try {
+      const { data: { user } } = await sb.auth.getUser();
+      if (!user) throw new Error('You have been signed out — please sign in again.');
+
+      const items = getItems().filter(i => i.product_name && i.quantity > 0);
+      if (items.length === 0) throw new Error('Add at least one item with a name and quantity.');
+
+      const subtotal = items.reduce((sum, i) => sum + i.line_total, 0);
+      const ship = parseFloat(shippingTotal.value) || 0;
+      const tax = parseFloat(taxTotal.value) || 0;
+      const total = Math.round((subtotal + ship + tax) * 100) / 100;
+
+      const orderPayload = {
+        source: 'manual',
+        channel: document.getElementById('channel').value,
+        order_number: generateOrderNumber(),
+        customer_name: document.getElementById('customerName').value.trim(),
+        customer_email: document.getElementById('customerEmail').value.trim() || null,
+        status: document.getElementById('status').value,
+        currency: document.getElementById('currency').value,
+        subtotal: subtotal,
+        shipping_total: ship,
+        tax_total: tax,
+        total: total,
+        placed_at: new Date(orderDate.value).toISOString(),
+        entered_by: user.id
+      };
+
+      const { data: newOrder, error: orderErr } = await sb
+        .from('orders')
+        .insert(orderPayload)
+        .select()
+        .single();
+      if (orderErr) throw orderErr;
+
+      const itemsPayload = items.map(i => ({
+        order_id: newOrder.id,
+        product_name: i.product_name,
+        quantity: i.quantity,
+        unit_price: i.unit_price,
+        line_total: i.line_total
+      }));
+      const { error: itemsErr } = await sb.from('order_items').insert(itemsPayload);
+      if (itemsErr) throw itemsErr;
+
+      successMsg.textContent = `Saved — order ${orderPayload.order_number} for ${money(total)}.`;
+      successMsg.hidden = false;
+      resetForm();
+    } catch (err) {
+      showError(formMsg, err.message || 'Something went wrong saving this order.');
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Save order';
+    }
+  });
+
+  // On load: check if already signed in
+  sb.auth.getSession().then(({ data: { session } }) => {
+    if (session && session.user) showApp(session.user);
+    else showLogin();
+  });
+</script>
+</body>
+</html>
