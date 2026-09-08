@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Health Endeavors — Search</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --ground: #F4F6F1;
+    --surface: #FFFFFF;
+    --text: #1E2A22;
+    --accent: #3E6B52;
+    --border: #DCE3D8;
+    --muted: #6B7A70;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground: #161C17;
+      --surface: #1E2620;
+      --text: #E8EFE9;
+      --accent: #8AC4A4;
+      --border: #2C362F;
+      --muted: #93A399;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--text);
+    font-family: 'Public Sans', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 680px; margin: 0 auto; padding: 32px 20px 80px; }
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24px;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 4px;
+  }
+  h1 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 600;
+    font-size: 28px;
+    margin: 0;
+  }
+  .header-right { display: flex; align-items: center; gap: 12px; font-size: 14px; color: var(--muted); flex-wrap: wrap; }
+  .btn {
+    font-family: inherit;
+    font-size: 14px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+  }
+  .btn:hover { border-color: var(--accent); }
+  .search-box {
+    width: 100%;
+    font-family: inherit;
+    font-size: 16px;
+    padding: 14px 16px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    margin-bottom: 20px;
+  }
+  .search-box:focus { outline: none; border-color: var(--accent); }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 8px 20px;
+  }
+  .result-row {
+    display: grid;
+    grid-template-columns: 110px 1fr;
+    gap: 12px;
+    align-items: center;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+  }
+  .result-row:last-child { border-bottom: none; }
+  .badge {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 3px 8px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    text-align: center;
+  }
+  .result-label { font-weight: 600; }
+  .result-subtitle { color: var(--muted); font-size: 13px; margin-top: 2px; }
+  .empty, .loading, .error {
+    color: var(--muted);
+    font-size: 14px;
+    padding: 16px 0;
+  }
+  .error { color: #B0473E; }
+  #app { display: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="loading" class="loading">Loading…</div>
+  <div id="signed-out" style="display:none;">
+    <p>You need to be signed in to view this page.</p>
+    <a class="btn" href="./">Go to sign in</a>
+  </div>
+
+  <div id="app">
+    <header>
+      <div>
+        <p class="eyebrow">Health Endeavors</p>
+        <h1>Search</h1>
+      </div>
+      <div class="header-right">
+        <a class="btn" href="./">New manual order</a>
+        <a class="btn" href="./dashboard.html">Dashboard</a>
+      </div>
+    </header>
+
+    <input type="text" class="search-box" id="search-input" placeholder="Search by customer, order number, supplier, or product…" autocomplete="off" />
+
+    <div class="card">
+      <div id="results">
+        <div class="empty">Start typing to search across customers, orders, suppliers, and inventory.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const SUPABASE_URL = "https://uizrazyehilyzmwttsrn.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_n0sEzZK0JMtwgk280a3YXA_zxtnheqj";
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const typeLabels = {
+    customer: 'Customer',
+    order: 'Order',
+    supplier: 'Supplier',
+    inventory_item: 'Inventory'
+  };
+
+  function renderResults(rows, term) {
+    const box = document.getElementById('results');
+    if (!term) {
+      box.innerHTML = '<div class="empty">Start typing to search across customers, orders, suppliers, and inventory.</div>';
+      return;
+    }
+    if (!rows || rows.length === 0) {
+      box.innerHTML = `<div class="empty">No matches for "${term}".</div>`;
+      return;
+    }
+    box.innerHTML = rows.map(r => `
+      <div class="result-row">
+        <span class="badge">${typeLabels[r.result_type] || r.result_type}</span>
+        <div>
+          <div class="result-label">${r.label ?? ''}</div>
+          ${r.subtitle ? `<div class="result-subtitle">${r.subtitle}</div>` : ''}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  let debounceTimer;
+  function onSearchInput(e) {
+    const term = e.target.value.trim();
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(async () => {
+      if (!term) {
+        renderResults([], '');
+        return;
+      }
+      const { data, error } = await sb.rpc('global_search', { search_term: term });
+      if (error) {
+        document.getElementById('results').innerHTML = `<div class="error">Search failed: ${error.message}</div>`;
+        return;
+      }
+      renderResults(data, term);
+    }, 300);
+  }
+
+  async function init() {
+    const { data: { session } } = await sb.auth.getSession();
+    document.getElementById('loading').style.display = 'none';
+
+    if (!session || !session.user) {
+      document.getElementById('signed-out').style.display = 'block';
+      return;
+    }
+
+    document.getElementById('app').style.display = 'block';
+    document.getElementById('search-input').addEventListener('input', onSearchInput);
+  }
+
+  init();
+</script>
+</body>
+</html>
