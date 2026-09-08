@@ -1,0 +1,671 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Health Endeavors — Owner Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onerror="window.__sbLoadFailed=true"></script>
+<style>
+  :root{
+    --navy:#0b3d4c;
+    --teal:#1f7a8c;
+    --cream:#faf6ef;
+    --copper:#b8734a;
+    --danger:#b3261e;
+    --good:#2f7d4f;
+    --warn:#b8860b;
+    --line:#e1e6e4;
+  }
+  *{box-sizing:border-box;}
+  html,body{ margin:0; padding:0; }
+  body{
+    min-height:100vh;
+    background:#eef2f1;
+    font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    color:#1f2b2a;
+  }
+
+  /* ---------- Login screen ---------- */
+  #loginScreen{
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:linear-gradient(160deg, var(--navy), var(--teal));
+  }
+  .card{
+    background:var(--cream);
+    border-radius:16px;
+    padding:40px 36px;
+    width:100%;
+    max-width:380px;
+    box-shadow:0 20px 60px rgba(0,0,0,0.35);
+  }
+  .card h1{ margin:0 0 4px; font-size:22px; color:var(--navy); }
+  .card p.sub{ margin:0 0 28px; color:#5c6b6f; font-size:14px; }
+  label{ display:block; font-size:13px; font-weight:600; color:var(--navy); margin-bottom:6px; }
+  input[type=email], input[type=password], input[type=text]{
+    width:100%;
+    padding:11px 12px;
+    margin-bottom:18px;
+    border:1px solid #cfd8d6;
+    border-radius:8px;
+    font-size:15px;
+  }
+  button{
+    padding:11px 16px;
+    background:var(--copper);
+    color:white;
+    border:none;
+    border-radius:8px;
+    font-size:14px;
+    font-weight:600;
+    cursor:pointer;
+  }
+  button:disabled{ opacity:0.55; cursor:default; }
+  button.secondary{ background:transparent; color:var(--navy); border:1px solid var(--navy); }
+  button.approve{ background:var(--good); }
+  button.deny{ background:var(--danger); }
+  button.small{ padding:6px 10px; font-size:13px; }
+  #loginScreen button[type=submit]{ width:100%; }
+  .msg{ margin-top:16px; font-size:13px; text-align:center; }
+  .msg.error{ color:var(--danger); }
+  .bannerBox{
+    display:none; text-align:left; white-space:pre-wrap; margin-bottom:16px;
+    border:1px solid var(--danger); border-radius:8px; padding:10px 12px;
+    background:#fdecea; color:var(--danger); font-size:13px;
+  }
+
+  /* ---------- Dashboard shell ---------- */
+  #dash{ display:none; }
+  header.topbar{
+    background:var(--navy);
+    color:white;
+    padding:14px 24px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:10px;
+    position:sticky; top:0; z-index:10;
+  }
+  header.topbar h1{ font-size:17px; margin:0; font-weight:700; }
+  header.topbar .who{ font-size:13px; opacity:0.85; }
+  header.topbar nav{ display:flex; gap:14px; flex-wrap:wrap; }
+  header.topbar nav a{ color:#dfeef0; font-size:13px; text-decoration:none; opacity:0.9; }
+  header.topbar nav a:hover{ text-decoration:underline; }
+  header.topbar .right{ display:flex; align-items:center; gap:10px; }
+  #signout{ background:transparent; border:1px solid rgba(255,255,255,0.5); color:white; padding:7px 12px; font-size:13px; }
+
+  .shortcutHint{
+    background:#dff0ee; color:#0b3d4c; font-size:12px; text-align:center;
+    padding:6px; border-bottom:1px solid var(--line);
+  }
+
+  main{ max-width:1080px; margin:0 auto; padding:20px 20px 60px; }
+  #dashError{ margin-bottom:16px; }
+
+  section.panel{
+    background:white;
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:18px 20px;
+    margin-bottom:20px;
+    scroll-margin-top:70px;
+  }
+  section.panel h2{ margin:0 0 4px; font-size:16px; color:var(--navy); }
+  section.panel p.hint{ margin:0 0 14px; font-size:12.5px; color:#6b7877; }
+
+  .statRow{ display:flex; gap:14px; flex-wrap:wrap; margin-bottom:14px; }
+  .stat{
+    background:#f5f8f7; border:1px solid var(--line); border-radius:10px;
+    padding:10px 16px; min-width:130px;
+  }
+  .stat .num{ font-size:20px; font-weight:700; color:var(--navy); }
+  .stat .lbl{ font-size:11.5px; color:#6b7877; text-transform:uppercase; letter-spacing:0.03em; }
+
+  table{ width:100%; border-collapse:collapse; font-size:13px; }
+  th, td{ text-align:left; padding:7px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th{ color:#5c6b6f; font-weight:600; font-size:11.5px; text-transform:uppercase; letter-spacing:0.02em; }
+  tr.overdue td{ background:#fdecea; }
+  .badge{
+    display:inline-block; padding:2px 8px; border-radius:20px; font-size:11px; font-weight:600;
+    background:#e6eeec; color:var(--navy);
+  }
+  .badge.sev-high, .badge.sev-critical{ background:#fdecea; color:var(--danger); }
+  .badge.sev-medium{ background:#fff4dc; color:var(--warn); }
+  .badge.sev-low{ background:#e6f4ea; color:var(--good); }
+  .empty{ color:#8a9694; font-size:13px; padding:10px 0; }
+
+  .flagRow, .approvalRow, .deletedRow{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:10px 0; border-bottom:1px solid var(--line);
+  }
+  .flagRow:last-child, .approvalRow:last-child, .deletedRow:last-child{ border-bottom:none; }
+  .flagInfo .k{ font-weight:600; font-size:13.5px; color:var(--navy); }
+  .flagInfo .d{ font-size:12px; color:#6b7877; }
+  .switch{ position:relative; width:44px; height:24px; flex:none; }
+  .switch input{ opacity:0; width:0; height:0; }
+  .slider{
+    position:absolute; cursor:pointer; inset:0; background:#c7d1cf; border-radius:24px; transition:0.15s;
+  }
+  .slider:before{
+    content:""; position:absolute; height:18px; width:18px; left:3px; bottom:3px;
+    background:white; border-radius:50%; transition:0.15s;
+  }
+  input:checked + .slider{ background:var(--good); }
+  input:checked + .slider:before{ transform:translateX(20px); }
+  .approvalRow .info, .deletedRow .info{ flex:1; min-width:0; }
+  .approvalRow .actions{ display:flex; gap:8px; flex:none; }
+  .small-btn-row{ display:flex; gap:8px; }
+  #refreshBtn{ background:var(--teal); }
+  .sectionHeadRow{ display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; }
+</style>
+</head>
+<body>
+
+  <!-- ================= LOGIN SCREEN ================= -->
+  <div id="loginScreen">
+    <div class="card" id="loginCard">
+      <h1>Health Endeavors</h1>
+      <p class="sub">Owner sign-in</p>
+      <div id="scriptError" class="bannerBox"></div>
+      <form id="loginForm">
+        <label for="email">Email</label>
+        <input type="email" id="email" autocomplete="username" required>
+        <label for="password">Password</label>
+        <input type="password" id="password" autocomplete="current-password" required>
+        <button type="submit" id="loginBtn">Log In</button>
+      </form>
+      <div id="loginMsg" class="msg"></div>
+    </div>
+  </div>
+
+  <!-- ================= DASHBOARD ================= -->
+  <div id="dash">
+    <header class="topbar">
+      <h1>Health Endeavors — Owner Dashboard</h1>
+      <nav>
+        <a href="#ordersPanel">Orders</a>
+        <a href="#tasksPanel">Tasks &amp; Incidents</a>
+        <a href="#aiPanel">AI Activity</a>
+        <a href="#controlsPanel">Owner Controls</a>
+      </nav>
+      <div class="right">
+        <span class="who" id="whoAmI"></span>
+        <button id="refreshBtn" class="small">Refresh</button>
+        <button id="signout" class="small">Sign out</button>
+      </div>
+    </header>
+    <div class="shortcutHint">Keyboard shortcuts: <b>r</b> refresh &nbsp;·&nbsp; <b>1</b> Orders &nbsp;·&nbsp; <b>2</b> Tasks &amp; Incidents &nbsp;·&nbsp; <b>3</b> AI Activity &nbsp;·&nbsp; <b>4</b> Owner Controls</div>
+
+    <main>
+      <div id="dashError" class="bannerBox"></div>
+
+      <!-- Orders / Revenue -->
+      <section class="panel" id="ordersPanel">
+        <div class="sectionHeadRow"><h2>Orders &amp; Revenue</h2></div>
+        <p class="hint">Live totals from every order that hasn't been deleted.</p>
+        <div class="statRow" id="orderStats"></div>
+        <h3 style="font-size:13px;color:var(--navy);margin:14px 0 6px;">Most recent orders</h3>
+        <div id="ordersTableWrap"><p class="empty">Loading…</p></div>
+
+        <h3 style="font-size:13px;color:var(--navy);margin:20px 0 6px;">Recycle bin (deleted orders)</h3>
+        <p class="hint">These were deleted, not destroyed — restore puts them right back.</p>
+        <div id="deletedOrdersWrap"><p class="empty">Loading…</p></div>
+      </section>
+
+      <!-- Tasks & Incidents -->
+      <section class="panel" id="tasksPanel">
+        <h2>Tasks</h2>
+        <p class="hint">Sorted by due date. Rows in red are overdue.</p>
+        <div id="tasksTableWrap"><p class="empty">Loading…</p></div>
+      </section>
+
+      <section class="panel" id="incidentsPanel">
+        <h2>Incidents</h2>
+        <p class="hint">Sorted by due date. Rows in red are overdue.</p>
+        <div id="incidentsTableWrap"><p class="empty">Loading…</p></div>
+      </section>
+
+      <!-- AI Activity -->
+      <section class="panel" id="aiPanel">
+        <h2>AI Agent Activity</h2>
+        <p class="hint">Every decision an AI agent has logged, most recent first.</p>
+        <div class="statRow" id="aiStats"></div>
+        <div id="aiTableWrap"><p class="empty">Loading…</p></div>
+      </section>
+
+      <!-- Owner Controls -->
+      <section class="panel" id="controlsPanel">
+        <h2>Owner Controls</h2>
+        <p class="hint">Feature switches and the approval queue. Only the Owner role can change these.</p>
+
+        <h3 style="font-size:13px;color:var(--navy);margin:6px 0;">Feature flags</h3>
+        <div id="flagsWrap"><p class="empty">Loading…</p></div>
+
+        <h3 style="font-size:13px;color:var(--navy);margin:20px 0 6px;">Approval queue</h3>
+        <div id="approvalsWrap"><p class="empty">Loading…</p></div>
+      </section>
+    </main>
+  </div>
+
+<script>
+  const SUPABASE_URL = "https://uizrazyehilyzmwttsrn.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_n0sEzZK0JMtwgk280a3YXA_zxtnheqj";
+
+  const scriptErrorEl = document.getElementById('scriptError');
+  function showBanner(text){
+    if (!scriptErrorEl) return;
+    scriptErrorEl.textContent = text;
+    scriptErrorEl.style.display = 'block';
+  }
+  window.addEventListener('error', function(e){
+    showBanner('Something went wrong loading this page: ' + e.message);
+  });
+  window.addEventListener('unhandledrejection', function(e){
+    var m = (e.reason && e.reason.message) ? e.reason.message : e.reason;
+    showBanner('Something went wrong: ' + m);
+  });
+
+  if (window.__sbLoadFailed || typeof window.supabase === 'undefined') {
+    showBanner('The sign-in helper library did not load from the internet, so this page cannot work yet. Check that your Mac is online, then fully reload this page (press Cmd+R). If this keeps happening, a content blocker or ad blocker extension in Safari may be blocking cdn.jsdelivr.net — try turning it off for this page and reloading.');
+  } else {
+    initApp();
+  }
+
+  function initApp(){
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const loginScreen = document.getElementById('loginScreen');
+    const dash = document.getElementById('dash');
+    const loginForm = document.getElementById('loginForm');
+    const loginMsg = document.getElementById('loginMsg');
+    const loginBtn = document.getElementById('loginBtn');
+    const whoAmI = document.getElementById('whoAmI');
+    const dashErrorEl = document.getElementById('dashError');
+
+    function showLoginError(text){
+      loginMsg.textContent = text;
+      loginMsg.className = 'msg error';
+    }
+    function showDashError(text){
+      dashErrorEl.textContent = text;
+      dashErrorEl.style.display = 'block';
+    }
+    function clearDashError(){
+      dashErrorEl.style.display = 'none';
+      dashErrorEl.textContent = '';
+    }
+
+    // ---------- small helpers ----------
+    function esc(s){
+      if (s === null || s === undefined) return '';
+      return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+    function fmtMoney(amount, currency){
+      const n = Number(amount || 0);
+      try {
+        return new Intl.NumberFormat('en-US', { style: 'currency', currency: currency || 'USD' }).format(n);
+      } catch (e) {
+        return '$' + n.toFixed(2);
+      }
+    }
+    function fmtDate(iso){
+      if (!iso) return '—';
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return '—';
+      return d.toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' }) +
+             ' ' + d.toLocaleTimeString(undefined, { hour:'numeric', minute:'2-digit' });
+    }
+    const CLOSED_WORDS = ['done','complete','completed','resolved','closed','cancelled','canceled','denied','approved','fulfilled'];
+    function isClosedStatus(status){
+      if (!status) return false;
+      return CLOSED_WORDS.includes(String(status).toLowerCase());
+    }
+    function isOverdue(due_at, status){
+      if (!due_at) return false;
+      if (isClosedStatus(status)) return false;
+      return new Date(due_at).getTime() < Date.now();
+    }
+
+    // ---------- login ----------
+    async function showDashboardFor(user){
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('role, is_active, display_name')
+        .eq('id', user.id)
+        .single();
+
+      if (error || !profile || !profile.is_active) {
+        showLoginError("This login isn't an active account on this system. Contact the owner.");
+        await supabase.auth.signOut();
+        return;
+      }
+
+      loginScreen.style.display = 'none';
+      dash.style.display = 'block';
+      whoAmI.textContent = `${profile.display_name || user.email} — role: ${profile.role}`;
+      loadDashboard();
+    }
+
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      loginBtn.disabled = true;
+      loginMsg.textContent = '';
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        loginBtn.disabled = false;
+        if (error) { showLoginError(error.message); return; }
+        await showDashboardFor(data.user);
+      } catch (err) {
+        loginBtn.disabled = false;
+        showBanner('Sign-in failed: ' + (err && err.message ? err.message : err));
+      }
+    });
+
+    document.getElementById('signout').addEventListener('click', async () => {
+      await supabase.auth.signOut();
+      dash.style.display = 'none';
+      loginScreen.style.display = 'flex';
+      loginForm.reset();
+    });
+
+    document.getElementById('refreshBtn').addEventListener('click', loadDashboard);
+
+    // ---------- keyboard shortcuts ----------
+    window.addEventListener('keydown', (e) => {
+      if (dash.style.display !== 'block') return;
+      const tag = (document.activeElement && document.activeElement.tagName) || '';
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      if (e.key === 'r') { loadDashboard(); }
+      else if (e.key === '1') { document.getElementById('ordersPanel').scrollIntoView({behavior:'smooth'}); }
+      else if (e.key === '2') { document.getElementById('tasksPanel').scrollIntoView({behavior:'smooth'}); }
+      else if (e.key === '3') { document.getElementById('aiPanel').scrollIntoView({behavior:'smooth'}); }
+      else if (e.key === '4') { document.getElementById('controlsPanel').scrollIntoView({behavior:'smooth'}); }
+    });
+
+    // ---------- dashboard data ----------
+    async function loadDashboard(){
+      clearDashError();
+      await Promise.all([
+        loadOrders(),
+        loadTasks(),
+        loadIncidents(),
+        loadAI(),
+        loadFlags(),
+        loadApprovals(),
+      ]);
+    }
+
+    async function loadOrders(){
+      try {
+        const { data: orders, error } = await supabase
+          .from('orders')
+          .select('id, order_number, customer_name, status, currency, total, placed_at, deleted_at')
+          .is('deleted_at', null)
+          .order('placed_at', { ascending: false })
+          .limit(300);
+        if (error) throw error;
+
+        const totalRevenue = orders.reduce((sum, o) => sum + Number(o.total || 0), 0);
+        const currency = (orders[0] && orders[0].currency) || 'USD';
+        document.getElementById('orderStats').innerHTML = `
+          <div class="stat"><div class="num">${orders.length}</div><div class="lbl">Orders on file</div></div>
+          <div class="stat"><div class="num">${esc(fmtMoney(totalRevenue, currency))}</div><div class="lbl">Total revenue</div></div>
+        `;
+
+        const recent = orders.slice(0, 15);
+        if (!recent.length) {
+          document.getElementById('ordersTableWrap').innerHTML = '<p class="empty">No orders yet.</p>';
+        } else {
+          document.getElementById('ordersTableWrap').innerHTML = `
+            <table><thead><tr><th>Order #</th><th>Customer</th><th>Status</th><th>Total</th><th>Placed</th></tr></thead>
+            <tbody>${recent.map(o => `
+              <tr>
+                <td>${esc(o.order_number || o.id)}</td>
+                <td>${esc(o.customer_name || '—')}</td>
+                <td><span class="badge">${esc(o.status || '—')}</span></td>
+                <td>${esc(fmtMoney(o.total, o.currency))}</td>
+                <td>${esc(fmtDate(o.placed_at))}</td>
+              </tr>`).join('')}</tbody></table>`;
+        }
+
+        // deleted / recycle bin
+        const { data: deleted, error: delErr } = await supabase
+          .from('orders')
+          .select('id, order_number, customer_name, total, currency, deleted_at')
+          .not('deleted_at', 'is', null)
+          .order('deleted_at', { ascending: false })
+          .limit(50);
+        if (delErr) throw delErr;
+
+        if (!deleted.length) {
+          document.getElementById('deletedOrdersWrap').innerHTML = '<p class="empty">Recycle bin is empty.</p>';
+        } else {
+          document.getElementById('deletedOrdersWrap').innerHTML = deleted.map(o => `
+            <div class="deletedRow" data-id="${esc(o.id)}">
+              <div class="info"><b>${esc(o.order_number || o.id)}</b> — ${esc(o.customer_name || '—')} — ${esc(fmtMoney(o.total, o.currency))}<br>
+              <span style="font-size:11px;color:#8a9694;">Deleted ${esc(fmtDate(o.deleted_at))}</span></div>
+              <button class="small restoreOrderBtn">Restore</button>
+            </div>`).join('');
+          document.querySelectorAll('.restoreOrderBtn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+              const row = btn.closest('.deletedRow');
+              const id = row.getAttribute('data-id');
+              btn.disabled = true;
+              try {
+                const { error } = await supabase.from('orders').update({ deleted_at: null }).eq('id', id);
+                if (error) throw error;
+                loadOrders();
+              } catch (err) {
+                btn.disabled = false;
+                showDashError('Could not restore that order: ' + (err && err.message ? err.message : err));
+              }
+            });
+          });
+        }
+      } catch (err) {
+        showDashError('Could not load orders: ' + (err && err.message ? err.message : err));
+      }
+    }
+
+    async function loadTasks(){
+      try {
+        const { data: tasks, error } = await supabase
+          .from('tasks')
+          .select('id, title, priority, status, due_at')
+          .order('due_at', { ascending: true, nullsFirst: false })
+          .limit(100);
+        if (error) throw error;
+
+        const open = tasks.filter(t => !isClosedStatus(t.status));
+        if (!open.length) {
+          document.getElementById('tasksTableWrap').innerHTML = '<p class="empty">No open tasks.</p>';
+        } else {
+          document.getElementById('tasksTableWrap').innerHTML = `
+            <table><thead><tr><th>Title</th><th>Priority</th><th>Status</th><th>Due</th></tr></thead>
+            <tbody>${open.map(t => `
+              <tr class="${isOverdue(t.due_at, t.status) ? 'overdue' : ''}">
+                <td>${esc(t.title)}</td>
+                <td><span class="badge">${esc(t.priority || '—')}</span></td>
+                <td>${esc(t.status || '—')}</td>
+                <td>${esc(fmtDate(t.due_at))}</td>
+              </tr>`).join('')}</tbody></table>`;
+        }
+      } catch (err) {
+        showDashError('Could not load tasks: ' + (err && err.message ? err.message : err));
+      }
+    }
+
+    async function loadIncidents(){
+      try {
+        const { data: incidents, error } = await supabase
+          .from('incidents')
+          .select('id, incident_number, title, severity, status, due_at')
+          .order('due_at', { ascending: true, nullsFirst: false })
+          .limit(100);
+        if (error) throw error;
+
+        const open = incidents.filter(i => !isClosedStatus(i.status));
+        if (!open.length) {
+          document.getElementById('incidentsTableWrap').innerHTML = '<p class="empty">No open incidents.</p>';
+        } else {
+          document.getElementById('incidentsTableWrap').innerHTML = `
+            <table><thead><tr><th>#</th><th>Title</th><th>Severity</th><th>Status</th><th>Due</th></tr></thead>
+            <tbody>${open.map(i => `
+              <tr class="${isOverdue(i.due_at, i.status) ? 'overdue' : ''}">
+                <td>${esc(i.incident_number || '—')}</td>
+                <td>${esc(i.title)}</td>
+                <td><span class="badge sev-${esc((i.severity||'').toLowerCase())}">${esc(i.severity || '—')}</span></td>
+                <td>${esc(i.status || '—')}</td>
+                <td>${esc(fmtDate(i.due_at))}</td>
+              </tr>`).join('')}</tbody></table>`;
+        }
+      } catch (err) {
+        showDashError('Could not load incidents: ' + (err && err.message ? err.message : err));
+      }
+    }
+
+    async function loadAI(){
+      try {
+        const { data: logs, error } = await supabase
+          .from('ai_decision_log')
+          .select('id, agent_key, output_summary, confidence, escalated_to_human, cost_usd, created_at')
+          .order('created_at', { ascending: false })
+          .limit(50);
+        if (error) throw error;
+
+        const totalCost = logs.reduce((s, l) => s + Number(l.cost_usd || 0), 0);
+        const escalated = logs.filter(l => l.escalated_to_human).length;
+        document.getElementById('aiStats').innerHTML = `
+          <div class="stat"><div class="num">${logs.length}</div><div class="lbl">Recent decisions</div></div>
+          <div class="stat"><div class="num">${esc(fmtMoney(totalCost, 'USD'))}</div><div class="lbl">AI cost (recent)</div></div>
+          <div class="stat"><div class="num">${escalated}</div><div class="lbl">Escalated to human</div></div>
+        `;
+
+        if (!logs.length) {
+          document.getElementById('aiTableWrap').innerHTML = '<p class="empty">No AI activity logged yet.</p>';
+        } else {
+          document.getElementById('aiTableWrap').innerHTML = `
+            <table><thead><tr><th>Agent</th><th>Summary</th><th>Confidence</th><th>Escalated?</th><th>When</th></tr></thead>
+            <tbody>${logs.slice(0, 25).map(l => `
+              <tr>
+                <td>${esc(l.agent_key)}</td>
+                <td>${esc(l.output_summary || '—')}</td>
+                <td>${l.confidence != null ? esc(Math.round(l.confidence * 100) + '%') : '—'}</td>
+                <td>${l.escalated_to_human ? '<span class="badge sev-medium">Yes</span>' : '—'}</td>
+                <td>${esc(fmtDate(l.created_at))}</td>
+              </tr>`).join('')}</tbody></table>`;
+        }
+      } catch (err) {
+        showDashError('Could not load AI activity: ' + (err && err.message ? err.message : err));
+      }
+    }
+
+    async function loadFlags(){
+      try {
+        const { data: flags, error } = await supabase
+          .from('feature_flags')
+          .select('id, flag_key, label, description, enabled')
+          .order('label', { ascending: true });
+        if (error) throw error;
+
+        if (!flags.length) {
+          document.getElementById('flagsWrap').innerHTML = '<p class="empty">No feature flags exist yet.</p>';
+        } else {
+          document.getElementById('flagsWrap').innerHTML = flags.map(f => `
+            <div class="flagRow" data-id="${esc(f.id)}">
+              <div class="flagInfo">
+                <div class="k">${esc(f.label || f.flag_key)}</div>
+                <div class="d">${esc(f.description || f.flag_key)}</div>
+              </div>
+              <label class="switch">
+                <input type="checkbox" class="flagToggle" ${f.enabled ? 'checked' : ''}>
+                <span class="slider"></span>
+              </label>
+            </div>`).join('');
+          document.querySelectorAll('.flagToggle').forEach(cb => {
+            cb.addEventListener('change', async () => {
+              const row = cb.closest('.flagRow');
+              const id = row.getAttribute('data-id');
+              const newVal = cb.checked;
+              cb.disabled = true;
+              try {
+                const { error } = await supabase.from('feature_flags').update({ enabled: newVal }).eq('id', id);
+                if (error) throw error;
+              } catch (err) {
+                cb.checked = !newVal;
+                showDashError('Could not change that flag: ' + (err && err.message ? err.message : err));
+              } finally {
+                cb.disabled = false;
+              }
+            });
+          });
+        }
+      } catch (err) {
+        showDashError('Could not load feature flags: ' + (err && err.message ? err.message : err));
+      }
+    }
+
+    async function loadApprovals(){
+      try {
+        const { data: reqs, error } = await supabase
+          .from('approval_requests')
+          .select('id, action_type, summary, status, created_at')
+          .order('created_at', { ascending: false })
+          .limit(100);
+        if (error) throw error;
+
+        const pending = reqs.filter(r => !isClosedStatus(r.status));
+        if (!pending.length) {
+          document.getElementById('approvalsWrap').innerHTML = '<p class="empty">Nothing waiting for approval.</p>';
+        } else {
+          document.getElementById('approvalsWrap').innerHTML = pending.map(r => `
+            <div class="approvalRow" data-id="${esc(r.id)}">
+              <div class="info">
+                <b>${esc(r.action_type)}</b> — ${esc(r.summary || '')}
+                <br><span style="font-size:11px;color:#8a9694;">Requested ${esc(fmtDate(r.created_at))}</span>
+              </div>
+              <div class="actions">
+                <button class="small approve approveBtn">Approve</button>
+                <button class="small deny denyBtn">Deny</button>
+              </div>
+            </div>`).join('');
+          document.querySelectorAll('.approveBtn').forEach(btn => btn.addEventListener('click', () => decideApproval(btn, 'approved')));
+          document.querySelectorAll('.denyBtn').forEach(btn => btn.addEventListener('click', () => decideApproval(btn, 'denied')));
+        }
+      } catch (err) {
+        showDashError('Could not load the approval queue: ' + (err && err.message ? err.message : err));
+      }
+    }
+
+    async function decideApproval(btn, decision){
+      const row = btn.closest('.approvalRow');
+      const id = row.getAttribute('data-id');
+      row.querySelectorAll('button').forEach(b => b.disabled = true);
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const uid = sessionData && sessionData.session ? sessionData.session.user.id : null;
+        const { error } = await supabase
+          .from('approval_requests')
+          .update({ status: decision, reviewed_by: uid, reviewed_at: new Date().toISOString() })
+          .eq('id', id);
+        if (error) throw error;
+        loadApprovals();
+      } catch (err) {
+        row.querySelectorAll('button').forEach(b => b.disabled = false);
+        showDashError(`Could not mark that request "${decision}": ` + (err && err.message ? err.message : err) + ' — if this mentions an invalid status value, send me the exact message and I\'ll fix the wording in one step.');
+      }
+    }
+
+    // If already logged in from a previous visit, skip straight to the dashboard.
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) showDashboardFor(data.session.user);
+    });
+  }
+</script>
+</body>
+</html>
