@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Health Endeavors — Owner Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --ground: #F4F6F1;
+    --surface: #FFFFFF;
+    --text: #1E2A22;
+    --accent: #3E6B52;
+    --border: #DCE3D8;
+    --muted: #6B7A70;
+    --danger: #B0473E;
+    --warn: #B08A2E;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground: #161C17;
+      --surface: #1E2620;
+      --text: #E8EFE9;
+      --accent: #8AC4A4;
+      --border: #2C362F;
+      --muted: #93A399;
+      --danger: #E08277;
+      --warn: #E0BE6E;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--text);
+    font-family: 'Public Sans', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 780px; margin: 0 auto; padding: 32px 20px 80px; }
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 28px;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 4px;
+  }
+  h1 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 600;
+    font-size: 28px;
+    margin: 0;
+  }
+  .header-right { display: flex; align-items: center; gap: 12px; font-size: 14px; color: var(--muted); }
+  .btn {
+    font-family: inherit;
+    font-size: 14px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+  }
+  .btn:hover { border-color: var(--accent); }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+  .stat {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+  }
+  .stat-label {
+    font-size: 12px;
+    color: var(--muted);
+    margin: 0 0 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .stat-value {
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 30px;
+    font-weight: 600;
+    margin: 0;
+  }
+  .stat-value.warn { color: var(--warn); }
+  .stat-value.danger { color: var(--danger); }
+  .section-title {
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0 0 12px;
+  }
+  .activity-row {
+    display: grid;
+    grid-template-columns: 90px 1fr auto auto;
+    gap: 12px;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+  }
+  .activity-row:last-child { border-bottom: none; }
+  .badge {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 3px 8px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    text-align: center;
+  }
+  .activity-status {
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .activity-time {
+    font-size: 12px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .empty, .loading, .error {
+    color: var(--muted);
+    font-size: 14px;
+    padding: 12px 0;
+  }
+  .error { color: var(--danger); }
+  #app { display: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="loading" class="loading">Loading dashboard…</div>
+  <div id="signed-out" style="display:none;">
+    <p>You need to be signed in to view this page.</p>
+    <a class="btn" href="./">Go to sign in</a>
+  </div>
+
+  <div id="app">
+    <header>
+      <div>
+        <p class="eyebrow">Health Endeavors</p>
+        <h1>Owner Dashboard</h1>
+      </div>
+      <div class="header-right">
+        <span id="user-email"></span>
+        <a class="btn" href="./">New manual order</a>
+        <button class="btn" id="sign-out-btn">Sign out</button>
+      </div>
+    </header>
+
+    <div class="stat-grid" id="stat-grid"></div>
+
+    <div class="card">
+      <p class="section-title">Recent activity</p>
+      <div id="activity-list">
+        <div class="loading">Loading…</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const SUPABASE_URL = "https://uizrazyehilyzmwttsrn.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_n0sEzZK0JMtwgk280a3YXA_zxtnheqj";
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  function fmtTime(iso) {
+    const d = new Date(iso);
+    return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  }
+
+  function statClass(value, warnAt, dangerAt) {
+    if (dangerAt !== undefined && value >= dangerAt) return 'danger';
+    if (warnAt !== undefined && value >= warnAt) return 'warn';
+    return '';
+  }
+
+  function renderStats(row) {
+    const stats = [
+      { label: 'System mode', value: row.system_mode ?? '—' },
+      { label: 'Open incidents', value: row.open_incidents ?? 0, cls: statClass(row.open_incidents ?? 0, 1, 3) },
+      { label: 'Critical incidents', value: row.critical_incidents ?? 0, cls: statClass(row.critical_incidents ?? 0, 1, 1) },
+      { label: 'Open tasks', value: row.open_tasks ?? 0 },
+      { label: 'Overdue tasks', value: row.overdue_tasks ?? 0, cls: statClass(row.overdue_tasks ?? 0, 1, 3) },
+      { label: 'Open alerts', value: row.open_alerts ?? 0, cls: statClass(row.open_alerts ?? 0, 1, 3) },
+      { label: 'Security changes (24h)', value: row.security_changes_last_24h ?? 0 },
+      { label: 'Profile changes (7d)', value: row.profile_changes_last_7d ?? 0 },
+    ];
+    const grid = document.getElementById('stat-grid');
+    grid.innerHTML = stats.map(s => `
+      <div class="stat">
+        <p class="stat-label">${s.label}</p>
+        <p class="stat-value ${s.cls || ''}">${s.value}</p>
+      </div>
+    `).join('');
+  }
+
+  function renderActivity(rows) {
+    const list = document.getElementById('activity-list');
+    if (!rows || rows.length === 0) {
+      list.innerHTML = '<div class="empty">Nothing yet — this fills in as incidents, tasks, and alerts happen.</div>';
+      return;
+    }
+    list.innerHTML = rows.map(r => `
+      <div class="activity-row">
+        <span class="badge">${r.item_type}</span>
+        <span>${r.label ?? ''}</span>
+        <span class="activity-status">${r.status ?? ''}</span>
+        <span class="activity-time">${fmtTime(r.created_at)}</span>
+      </div>
+    `).join('');
+  }
+
+  async function loadDashboard() {
+    const { data: summaryRows, error: summaryErr } = await sb
+      .from('owner_dashboard_summary')
+      .select('*')
+      .single();
+
+    if (summaryErr) {
+      document.getElementById('stat-grid').innerHTML = `<div class="error">Couldn't load summary: ${summaryErr.message}</div>`;
+    } else {
+      renderStats(summaryRows);
+    }
+
+    const { data: activityRows, error: activityErr } = await sb
+      .from('owner_dashboard_recent_activity')
+      .select('*');
+
+    if (activityErr) {
+      document.getElementById('activity-list').innerHTML = `<div class="error">Couldn't load activity: ${activityErr.message}</div>`;
+    } else {
+      renderActivity(activityRows);
+    }
+  }
+
+  async function init() {
+    const { data: { session } } = await sb.auth.getSession();
+    document.getElementById('loading').style.display = 'none';
+
+    if (!session || !session.user) {
+      document.getElementById('signed-out').style.display = 'block';
+      return;
+    }
+
+    document.getElementById('app').style.display = 'block';
+    document.getElementById('user-email').textContent = session.user.email || '';
+    document.getElementById('sign-out-btn').addEventListener('click', async () => {
+      await sb.auth.signOut();
+      window.location.href = './';
+    });
+
+    loadDashboard();
+  }
+
+  init();
+</script>
+</body>
+</html>
