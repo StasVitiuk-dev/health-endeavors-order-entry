@@ -151,7 +151,30 @@
     padding: 12px 0;
   }
   .error { color: var(--danger); }
-  #app { display: none; }
+    .ai-spend-card { margin-bottom: 28px; }
+  .ai-spend-numbers {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 10px;
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .ai-spend-bar-track {
+    background: var(--ground);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    height: 10px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+  .ai-spend-bar-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 100px;
+  }
+  .ai-spend-bar-fill.warn { background: var(--warn); }
+  .ai-spend-bar-fill.danger { background: var(--danger); }#app { display: none; }
 </style>
 </head>
 <body>
@@ -177,11 +200,19 @@
 
     <div class="stat-grid" id="stat-grid"></div>
 
-    <div class="card">
+        <div class="card">
       <p class="section-title">Recent activity</p>
       <div id="activity-list">
         <div class="loading">Loading…</div>
       </div>
+    </div>
+
+    <div class="card ai-spend-card">
+      <p class="section-title">AI spending this month</p>
+      <div id="ai-spend-summary">
+        <div class="loading">Loading…</div>
+      </div>
+      <div id="ai-spend-list"></div>
     </div>
   </div>
 </div>
@@ -260,6 +291,71 @@
       renderActivity(activityRows);
     }
   }
+  function startOfMonthISO() {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), 1).toISOString();
+  }
+
+  async function fetchAiSpendCap() {
+    const { data } = await sb
+      .from('business_rules')
+      .select('config')
+      .eq('rule_key', 'ai_monthly_spend_cap_usd')
+      .eq('is_active', true)
+      .maybeSingle();
+    if (data && data.config && data.config.cap_usd) {
+      return Number(data.config.cap_usd);
+    }
+    return 30;
+  }
+
+  async function fetchAiSpendRows() {
+    const { data, error } = await sb
+      .from('ai_decision_log')
+      .select('*')
+      .gte('created_at', startOfMonthISO())
+      .gt('cost_usd', 0)
+      .order('created_at', { ascending: false });
+    if (error) return [];
+    return data || [];
+  }
+
+  function renderAiSpend(rows, cap) {
+    const total = rows.reduce((sum, r) => sum + Number(r.cost_usd || 0), 0);
+    const pct = cap > 0 ? Math.min((total / cap) * 100, 100) : 0;
+    let barClass = '';
+    if (total >= cap) barClass = 'danger';
+    else if (pct >= 70) barClass = 'warn';
+
+    document.getElementById('ai-spend-summary').innerHTML = `
+      <div class="ai-spend-numbers">
+        <span>$${total.toFixed(2)} spent this month</span>
+        <span>$${cap.toFixed(2)} cap</span>
+      </div>
+      <div class="ai-spend-bar-track">
+        <div class="ai-spend-bar-fill ${barClass}" style="width:${pct}%"></div>
+      </div>
+    `;
+
+    const list = document.getElementById('ai-spend-list');
+    if (!rows || rows.length === 0) {
+      list.innerHTML = '<div class="empty">No AI costs recorded yet this month.</div>';
+      return;
+    }
+    list.innerHTML = rows.slice(0, 10).map(r => `
+      <div class="activity-row">
+        <span class="badge">${r.agent_key ?? ''}</span>
+        <span>${r.output_summary ?? ''}</span>
+        <span class="activity-status">$${Number(r.cost_usd).toFixed(2)}</span>
+        <span class="activity-time">${fmtTime(r.created_at)}</span>
+      </div>
+    `).join('');
+  }
+
+  async function loadAiSpend() {
+    const [cap, rows] = await Promise.all([fetchAiSpendCap(), fetchAiSpendRows()]);
+    renderAiSpend(rows, cap);
+  }
 
   async function init() {
     const { data: { session } } = await sb.auth.getSession();
@@ -277,7 +373,7 @@
       window.location.href = './';
     });
 
-    loadDashboard();
+    loadDashboard();    loadAiSpend();
   }
 
   init();
