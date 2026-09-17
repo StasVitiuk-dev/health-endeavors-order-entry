@@ -1,8 +1,11 @@
-#<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Health Endeavors — Owner Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onerror="window.__sbLoadFailed=true"></script>
 <style>
@@ -160,6 +163,81 @@
   .small-btn-row{ display:flex; gap:8px; }
   #refreshBtn{ background:var(--teal); }
   .sectionHeadRow{ display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; }
+
+  /* ---------- Re-authentication prompt ---------- */
+  #reauthOverlay{
+    display:none;
+    position:fixed; inset:0; z-index:100;
+    background:rgba(11,61,76,0.55);
+    align-items:center; justify-content:center;
+  }
+  #reauthOverlay .card{ max-width:340px; padding:28px 26px; }
+  #reauthOverlay h3{ margin:0 0 4px; font-size:16px; color:var(--navy); }
+  #reauthOverlay p.sub{ margin:0 0 18px; font-size:13px; color:#5c6b6f; }
+  #reauthOverlay input[type=password]{ margin-bottom:10px; }
+  #reauthOverlay .msg{ min-height:16px; margin:0 0 12px; text-align:left; }
+  #reauthOverlay .btnRow{ display:flex; gap:10px; }
+  #reauthOverlay .btnRow button{ flex:1; }
+
+  /* ---------- Needs Your Attention ---------- */
+  .attentionRow{
+    display:flex; align-items:center; gap:12px;
+    padding:10px 0; border-bottom:1px solid var(--line);
+  }
+  .attentionRow:last-child{ border-bottom:none; }
+  .attentionRow .info{ flex:1; min-width:0; }
+  .attentionRow .aTitle{ font-weight:600; font-size:13.5px; color:var(--navy); }
+  .attentionRow .aDetail{ font-size:12px; color:#6b7877; margin-top:2px; }
+  .attentionRow .aWhen{ font-size:12px; color:#6b7877; white-space:nowrap; flex:none; }
+  .priorityPill{
+    display:inline-block; padding:2px 8px; border-radius:20px; font-size:11px; font-weight:600; flex:none;
+  }
+  .priorityPill.high{ background:#fdecea; color:var(--danger); }
+  .priorityPill.normal{ background:#e6eeec; color:var(--navy); }
+  .dismissBtn{
+    padding:5px 10px; font-size:12px; background:transparent; color:#6b7877; border:1px solid var(--line); flex:none;
+  }
+  .dismissBtn:hover{ border-color:var(--danger); color:var(--danger); }
+  .reminderForm{
+    display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; padding-top:16px; border-top:1px solid var(--line);
+  }
+  .reminderForm input, .reminderForm select{
+    font-family:inherit; font-size:14px; padding:9px 10px; border-radius:8px; border:1px solid #cfd8d6;
+  }
+  .reminderForm input[type=text]{ flex:1 1 200px; }
+  .reminderForm input[type=datetime-local]{ flex:0 1 200px; }
+
+  /* ---------- Calendar month grid ---------- */
+  .calNav{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px; flex-wrap:wrap; }
+  .calNav .calMonthLabel{ font-weight:700; color:var(--navy); font-size:16px; min-width:160px; text-align:center; }
+  .calNav .calBtns{ display:flex; gap:6px; }
+  .calGrid{ display:grid; grid-template-columns:repeat(7, 1fr); gap:6px; }
+  .calDow{ font-size:11px; font-weight:600; color:#6b7877; text-transform:uppercase; letter-spacing:0.03em; text-align:center; padding-bottom:4px; }
+  .calCell{
+    min-height:78px; border:1px solid var(--line); border-radius:8px; padding:5px;
+    background:#fafcfb; cursor:pointer; transition:border-color 0.1s;
+  }
+  .calCell:hover{ border-color:var(--teal); }
+  .calCell.otherMonth{ opacity:0.35; }
+  .calCell.today{ border-color:var(--copper); border-width:2px; }
+  .calCell.selected{ background:#eaf3f1; border-color:var(--teal); }
+  .calCell .dNum{ font-size:11.5px; font-weight:600; color:var(--navy); margin-bottom:3px; }
+  .calChip{
+    display:block; font-size:10px; line-height:1.5; padding:1px 5px; border-radius:5px; margin-bottom:2px;
+    color:white; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .calMore{ font-size:10px; color:#6b7877; }
+  .calDetailWrap{ margin-top:16px; padding-top:14px; border-top:1px solid var(--line); }
+  .calDetailWrap h3{ font-size:13px; color:var(--navy); margin:0 0 8px; }
+  .calEventRow{ padding:8px 0; border-bottom:1px solid var(--line); font-size:13px; }
+  .calEventRow:last-child{ border-bottom:none; }
+  .calEventRow .ceTitle{ font-weight:600; color:var(--navy); }
+  .calEventRow .ceMeta{ font-size:12px; color:#6b7877; margin-top:2px; }
+  .calSwatch{ display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:6px; }
+  @media (max-width:640px){
+    .calCell{ min-height:56px; }
+    .calChip{ font-size:9px; }
+  }
 </style>
 </head>
 <body>
@@ -186,6 +264,8 @@
     <header class="topbar">
       <h1>Health Endeavors — Owner Dashboard</h1>
       <nav>
+        <a href="#attentionPanel">Attention</a>
+        <a href="#calendarPanel">Calendar</a>
         <a href="#ordersPanel">Orders</a>
         <a href="#tasksPanel">Tasks &amp; Incidents</a>
         <a href="#aiPanel">AI Activity</a>
@@ -197,10 +277,46 @@
         <button id="signout" class="small">Sign out</button>
       </div>
     </header>
-    <div class="shortcutHint">Keyboard shortcuts: <b>r</b> refresh &nbsp;·&nbsp; <b>1</b> Orders &nbsp;·&nbsp; <b>2</b> Tasks &amp; Incidents &nbsp;·&nbsp; <b>3</b> AI Activity &nbsp;·&nbsp; <b>4</b> Owner Controls</div>
+    <div class="shortcutHint">Keyboard shortcuts: <b>r</b> refresh &nbsp;·&nbsp; <b>0</b> Attention &nbsp;·&nbsp; <b>5</b> Calendar &nbsp;·&nbsp; <b>1</b> Orders &nbsp;·&nbsp; <b>2</b> Tasks &amp; Incidents &nbsp;·&nbsp; <b>3</b> AI Activity &nbsp;·&nbsp; <b>4</b> Owner Controls</div>
 
     <main>
       <div id="dashError" class="bannerBox"></div>
+
+      <!-- Needs Your Attention -->
+      <section class="panel" id="attentionPanel">
+        <h2>Needs your attention</h2>
+        <p class="hint">Tasks, approvals, compliance items, incidents, calendar events, and your own reminders — soonest due first.</p>
+        <div id="attentionWrap"><p class="empty">Loading…</p></div>
+        <form class="reminderForm" id="addReminderForm">
+          <input type="text" id="reminderTitle" placeholder="Add a reminder…" required>
+          <input type="datetime-local" id="reminderDue">
+          <select id="reminderPriority">
+            <option value="normal">Normal</option>
+            <option value="high">High</option>
+          </select>
+          <button type="submit" class="small">Add</button>
+        </form>
+      </section>
+
+      <!-- Calendar -->
+      <section class="panel" id="calendarPanel">
+        <h2>Calendar</h2>
+        <p class="hint">Your synced Apple Calendar, past and future (your husband's shared calendars are excluded).</p>
+        <div class="calNav">
+          <div class="calBtns"><button class="small" id="calPrevBtn">&larr; Prev</button></div>
+          <div class="calMonthLabel" id="calMonthLabel">—</div>
+          <div class="calBtns">
+            <button class="small secondary" id="calTodayBtn">Today</button>
+            <button class="small" id="calNextBtn">Next &rarr;</button>
+          </div>
+        </div>
+        <div class="calGrid" id="calDowRow"></div>
+        <div class="calGrid" id="calGridWrap" style="margin-top:6px;"><p class="empty">Loading…</p></div>
+        <div class="calDetailWrap" id="calDetailWrap" style="display:none;">
+          <h3 id="calDetailTitle"></h3>
+          <div id="calDetailList"></div>
+        </div>
+      </section>
 
       <!-- Orders / Revenue -->
       <section class="panel" id="ordersPanel">
@@ -250,6 +366,24 @@
     </main>
   </div>
 
+  <!-- Re-authentication prompt: shown before any sensitive action (restoring an
+       order, flipping a feature flag, approving/denying a request) actually
+       goes through. Confirms it's really you by re-checking your password
+       against Supabase, the same account system as the login screen — it
+       doesn't store or compare the password itself anywhere. -->
+  <div id="reauthOverlay">
+    <div class="card">
+      <h3>Confirm it's you</h3>
+      <p class="sub">Re-enter your password to <span id="reauthActionLabel">continue</span>.</p>
+      <input type="password" id="reauthPassword" placeholder="Password" autocomplete="current-password">
+      <p class="msg" id="reauthMsg"></p>
+      <div class="btnRow">
+        <button type="button" class="secondary" id="reauthCancelBtn">Cancel</button>
+        <button type="button" id="reauthConfirmBtn">Confirm</button>
+      </div>
+    </div>
+  </div>
+
 <script>
   const SUPABASE_URL = "https://uizrazyehilyzmwttsrn.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_n0sEzZK0JMtwgk280a3YXA_zxtnheqj";
@@ -284,6 +418,7 @@
     const loginBtn = document.getElementById('loginBtn');
     const whoAmI = document.getElementById('whoAmI');
     const dashErrorEl = document.getElementById('dashError');
+    let currentUserEmail = null; // set on login, used to re-check your password before sensitive actions
 
     function showLoginError(text){
       loginMsg.textContent = text;
@@ -343,10 +478,70 @@
         return;
       }
 
+      currentUserEmail = user.email;
       loginScreen.style.display = 'none';
       dash.style.display = 'block';
       whoAmI.textContent = `${profile.display_name || user.email} — role: ${profile.role}`;
       loadDashboard();
+    }
+
+    // ---------- re-authentication for sensitive actions ----------
+    // Shows the password-confirm popup and resolves to true only once Supabase
+    // has actually re-verified that password against your account (the same
+    // check the login screen does) — false if you cancel or get it wrong.
+    // Nothing is stored; it just asks Supabase "does this password still work
+    // for this email" every single time, so a browser left open on your desk
+    // can't be used to restore an order, flip a feature switch, or approve/deny
+    // a request without you personally typing your password again.
+    function requireReauth(actionLabel){
+      const overlay = document.getElementById('reauthOverlay');
+      const label = document.getElementById('reauthActionLabel');
+      const input = document.getElementById('reauthPassword');
+      const msg = document.getElementById('reauthMsg');
+      const confirmBtn = document.getElementById('reauthConfirmBtn');
+      const cancelBtn = document.getElementById('reauthCancelBtn');
+
+      return new Promise((resolve) => {
+        label.textContent = actionLabel;
+        input.value = '';
+        msg.textContent = '';
+        msg.className = 'msg';
+        overlay.style.display = 'flex';
+        input.focus();
+
+        function close(result){
+          overlay.style.display = 'none';
+          confirmBtn.removeEventListener('click', onConfirm);
+          cancelBtn.removeEventListener('click', onCancel);
+          input.removeEventListener('keydown', onKeydown);
+          resolve(result);
+        }
+        async function onConfirm(){
+          const password = input.value;
+          if (!password) { msg.textContent = 'Enter your password.'; msg.className = 'msg error'; return; }
+          confirmBtn.disabled = true;
+          msg.textContent = 'Checking…';
+          msg.className = 'msg';
+          try {
+            const { error } = await supabase.auth.signInWithPassword({ email: currentUserEmail, password });
+            confirmBtn.disabled = false;
+            if (error) { msg.textContent = "That password didn't work — try again."; msg.className = 'msg error'; return; }
+            close(true);
+          } catch (err) {
+            confirmBtn.disabled = false;
+            msg.textContent = 'Could not check that just now — try again.';
+            msg.className = 'msg error';
+          }
+        }
+        function onCancel(){ close(false); }
+        function onKeydown(e){
+          if (e.key === 'Enter') onConfirm();
+          else if (e.key === 'Escape') onCancel();
+        }
+        confirmBtn.addEventListener('click', onConfirm);
+        cancelBtn.addEventListener('click', onCancel);
+        input.addEventListener('keydown', onKeydown);
+      });
     }
 
     loginForm.addEventListener('submit', async (e) => {
@@ -381,16 +576,247 @@
       const tag = (document.activeElement && document.activeElement.tagName) || '';
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
       if (e.key === 'r') { loadDashboard(); }
+      else if (e.key === '0') { document.getElementById('attentionPanel').scrollIntoView({behavior:'smooth'}); }
+      else if (e.key === '5') { document.getElementById('calendarPanel').scrollIntoView({behavior:'smooth'}); }
       else if (e.key === '1') { document.getElementById('ordersPanel').scrollIntoView({behavior:'smooth'}); }
       else if (e.key === '2') { document.getElementById('tasksPanel').scrollIntoView({behavior:'smooth'}); }
       else if (e.key === '3') { document.getElementById('aiPanel').scrollIntoView({behavior:'smooth'}); }
       else if (e.key === '4') { document.getElementById('controlsPanel').scrollIntoView({behavior:'smooth'}); }
     });
 
+    // ---------- needs your attention ----------
+    const ITEM_TYPE_LABELS = {
+      task: 'Task',
+      approval: 'Approval',
+      compliance: 'Compliance',
+      privacy_deletion: 'Privacy',
+      incident: 'Incident',
+      calendar_event: 'Calendar',
+      manual: 'Reminder',
+    };
+
+    function renderAttention(rows){
+      if (!rows || !rows.length) {
+        document.getElementById('attentionWrap').innerHTML = '<p class="empty">Nothing needs your attention right now.</p>';
+        return;
+      }
+      document.getElementById('attentionWrap').innerHTML = rows.map(r => `
+        <div class="attentionRow" data-id="${esc(r.source_id)}">
+          <span class="badge">${esc(ITEM_TYPE_LABELS[r.item_type] || r.item_type)}</span>
+          <div class="info">
+            <div class="aTitle">${esc(r.title)}</div>
+            ${r.detail ? `<div class="aDetail">${esc(r.detail)}</div>` : ''}
+          </div>
+          <span class="aWhen">${esc(fmtDate(r.due_at))}</span>
+          <span class="priorityPill ${r.priority === 'high' ? 'high' : 'normal'}">${esc(r.priority || 'normal')}</span>
+          ${r.item_type === 'manual'
+            ? `<button class="small dismissBtn" data-dismiss-id="${esc(r.source_id)}">Dismiss</button>`
+            : '<span></span>'}
+        </div>`).join('');
+
+      document.querySelectorAll('[data-dismiss-id]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.getAttribute('data-dismiss-id');
+          btn.disabled = true;
+          try {
+            const { error } = await supabase.from('manual_attention_items').update({ dismissed: true }).eq('id', id);
+            if (error) throw error;
+            loadAttention();
+          } catch (err) {
+            btn.disabled = false;
+            showDashError('Could not dismiss that reminder: ' + (err && err.message ? err.message : err));
+          }
+        });
+      });
+    }
+
+    async function loadAttention(){
+      try {
+        const { data, error } = await supabase
+          .from('needs_attention')
+          .select('*')
+          .order('due_at', { ascending: true, nullsFirst: false });
+        if (error) throw error;
+        renderAttention(data);
+      } catch (err) {
+        showDashError('Could not load your attention list: ' + (err && err.message ? err.message : err));
+      }
+    }
+
+    document.getElementById('addReminderForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const titleInput = document.getElementById('reminderTitle');
+      const dueInput = document.getElementById('reminderDue');
+      const priorityInput = document.getElementById('reminderPriority');
+      const title = titleInput.value.trim();
+      if (!title) return;
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const uid = sessionData && sessionData.session ? sessionData.session.user.id : null;
+        const { error } = await supabase.from('manual_attention_items').insert({
+          title,
+          due_at: dueInput.value ? new Date(dueInput.value).toISOString() : null,
+          priority: priorityInput.value,
+          created_by: uid,
+        });
+        if (error) throw error;
+        titleInput.value = '';
+        dueInput.value = '';
+        priorityInput.value = 'normal';
+        loadAttention();
+      } catch (err) {
+        showDashError('Could not add that reminder: ' + (err && err.message ? err.message : err));
+      }
+    });
+
+    // ---------- calendar month grid ----------
+    const CAL_COLORS = ['#3E6B52','#1f7a8c','#b8734a','#7a5c9e','#2f7d4f','#b8860b','#4a7fb8','#a04a6f'];
+    function colorForCalendar(name){
+      const s = String(name || 'Calendar');
+      let h = 0;
+      for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+      return CAL_COLORS[h % CAL_COLORS.length];
+    }
+    function dateKey(d){
+      return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+    function eventDateKey(ev){
+      // All-day events: use the date exactly as stored (avoids timezone shifting them a day off).
+      if (ev.all_day && ev.starts_at) return ev.starts_at.slice(0, 10);
+      return dateKey(new Date(ev.starts_at));
+    }
+    function fmtEventTime(ev){
+      if (ev.all_day) return 'All day';
+      const d = new Date(ev.starts_at);
+      if (isNaN(d.getTime())) return '';
+      return d.toLocaleTimeString(undefined, { hour:'numeric', minute:'2-digit' });
+    }
+
+    let calMonth = new Date(); calMonth.setDate(1); calMonth.setHours(0,0,0,0);
+    let calEventsByDay = {};
+    let calSelectedKey = null;
+
+    function showDayDetail(key, cellLabel){
+      calSelectedKey = key;
+      document.querySelectorAll('.calCell').forEach(c => c.classList.toggle('selected', c.getAttribute('data-key') === key));
+      const wrap = document.getElementById('calDetailWrap');
+      const list = document.getElementById('calDetailList');
+      const evs = (calEventsByDay[key] || []).slice().sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
+      document.getElementById('calDetailTitle').textContent = cellLabel;
+      wrap.style.display = 'block';
+      if (!evs.length) {
+        list.innerHTML = '<p class="empty">Nothing on the calendar this day.</p>';
+        return;
+      }
+      list.innerHTML = evs.map(ev => `
+        <div class="calEventRow">
+          <div class="ceTitle"><span class="calSwatch" style="background:${colorForCalendar(ev.calendar_name)}"></span>${esc(ev.summary || 'Untitled event')}</div>
+          <div class="ceMeta">${esc(fmtEventTime(ev))}${ev.location ? ' · ' + esc(ev.location) : ''} · ${esc(ev.calendar_name || '')}</div>
+        </div>`).join('');
+    }
+
+    function renderCalendarGrid(){
+      const year = calMonth.getFullYear();
+      const month = calMonth.getMonth();
+      document.getElementById('calMonthLabel').textContent = calMonth.toLocaleDateString(undefined, { month:'long', year:'numeric' });
+
+      const dowRow = document.getElementById('calDowRow');
+      dowRow.innerHTML = ['S','M','T','W','T','F','S'].map(d => `<div class="calDow">${d}</div>`).join('');
+
+      const firstOfMonth = new Date(year, month, 1);
+      const gridStart = new Date(firstOfMonth);
+      gridStart.setDate(gridStart.getDate() - gridStart.getDay());
+      const todayKey = dateKey(new Date());
+
+      let html = '';
+      for (let i = 0; i < 42; i++) {
+        const d = new Date(gridStart);
+        d.setDate(gridStart.getDate() + i);
+        const key = dateKey(d);
+        const isOtherMonth = d.getMonth() !== month;
+        const isToday = key === todayKey;
+        const dayEvents = (calEventsByDay[key] || []).slice().sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
+        const shown = dayEvents.slice(0, 3);
+        const extra = dayEvents.length - shown.length;
+        html += `
+          <div class="calCell${isOtherMonth ? ' otherMonth' : ''}${isToday ? ' today' : ''}" data-key="${key}">
+            <div class="dNum">${d.getDate()}</div>
+            ${shown.map(ev => `<span class="calChip" style="background:${colorForCalendar(ev.calendar_name)}">${esc(ev.summary || 'Event')}</span>`).join('')}
+            ${extra > 0 ? `<div class="calMore">+${extra} more</div>` : ''}
+          </div>`;
+      }
+      document.getElementById('calGridWrap').innerHTML = html;
+
+      document.querySelectorAll('.calCell').forEach(cell => {
+        cell.addEventListener('click', () => {
+          const key = cell.getAttribute('data-key');
+          const d = new Date(key + 'T00:00:00');
+          const label = d.toLocaleDateString(undefined, { weekday:'long', month:'long', day:'numeric', year:'numeric' });
+          showDayDetail(key, label);
+        });
+      });
+
+      if (calSelectedKey) {
+        const stillVisible = document.querySelector(`.calCell[data-key="${calSelectedKey}"]`);
+        if (stillVisible) stillVisible.classList.add('selected');
+      }
+    }
+
+    async function loadCalendarMonth(){
+      try {
+        const year = calMonth.getFullYear();
+        const month = calMonth.getMonth();
+        const gridStart = new Date(year, month, 1);
+        gridStart.setDate(gridStart.getDate() - gridStart.getDay());
+        const gridEnd = new Date(gridStart);
+        gridEnd.setDate(gridStart.getDate() + 42);
+
+        const { data: events, error } = await supabase
+          .from('calendar_events')
+          .select('id, uid, calendar_name, summary, location, starts_at, ends_at, all_day')
+          .gte('starts_at', gridStart.toISOString())
+          .lt('starts_at', gridEnd.toISOString())
+          .order('starts_at', { ascending: true });
+        if (error) throw error;
+
+        calEventsByDay = {};
+        (events || []).forEach(ev => {
+          const key = eventDateKey(ev);
+          if (!calEventsByDay[key]) calEventsByDay[key] = [];
+          calEventsByDay[key].push(ev);
+        });
+        renderCalendarGrid();
+      } catch (err) {
+        document.getElementById('calGridWrap').innerHTML = '';
+        showDashError('Could not load the calendar: ' + (err && err.message ? err.message : err));
+      }
+    }
+
+    document.getElementById('calPrevBtn').addEventListener('click', () => {
+      calMonth.setMonth(calMonth.getMonth() - 1);
+      calSelectedKey = null;
+      document.getElementById('calDetailWrap').style.display = 'none';
+      loadCalendarMonth();
+    });
+    document.getElementById('calNextBtn').addEventListener('click', () => {
+      calMonth.setMonth(calMonth.getMonth() + 1);
+      calSelectedKey = null;
+      document.getElementById('calDetailWrap').style.display = 'none';
+      loadCalendarMonth();
+    });
+    document.getElementById('calTodayBtn').addEventListener('click', () => {
+      calMonth = new Date(); calMonth.setDate(1); calMonth.setHours(0,0,0,0);
+      calSelectedKey = null;
+      document.getElementById('calDetailWrap').style.display = 'none';
+      loadCalendarMonth();
+    });
+
     // ---------- dashboard data ----------
     async function loadDashboard(){
       clearDashError();
       await Promise.all([
+        loadAttention(),
+        loadCalendarMonth(),
         loadOrders(),
         loadTasks(),
         loadIncidents(),
@@ -400,11 +826,26 @@
       ]);
     }
 
+    // Privacy Access Logging: records that customer personal info (name/email) was
+    // displayed in the dashboard, so there's an audit trail of who viewed what and when.
+    // Best-effort — if the log call fails, we don't want that to break order viewing.
+    function logCustomerAccess(rows, reason) {
+      try {
+        const emails = [...new Set((rows || []).map(o => o.customer_email).filter(Boolean))];
+        emails.forEach(email => {
+          supabase.rpc('log_customer_data_access', { p_customer_email: email, p_reason: reason })
+            .then(({ error }) => { if (error) console.warn('Privacy log failed:', error.message); });
+        });
+      } catch (err) {
+        console.warn('Privacy log failed:', err);
+      }
+    }
+
     async function loadOrders(){
       try {
         const { data: orders, error } = await supabase
           .from('orders')
-          .select('id, order_number, customer_name, status, currency, total, placed_at, deleted_at')
+          .select('id, order_number, customer_name, customer_email, status, currency, total, placed_at, deleted_at')
           .is('deleted_at', null)
           .order('placed_at', { ascending: false })
           .limit(300);
@@ -432,11 +873,12 @@
                 <td>${esc(fmtDate(o.placed_at))}</td>
               </tr>`).join('')}</tbody></table>`;
         }
+        logCustomerAccess(recent, 'Viewed in Owner Dashboard – Orders panel');
 
         // deleted / recycle bin
         const { data: deleted, error: delErr } = await supabase
           .from('orders')
-          .select('id, order_number, customer_name, total, currency, deleted_at')
+          .select('id, order_number, customer_name, customer_email, total, currency, deleted_at')
           .not('deleted_at', 'is', null)
           .order('deleted_at', { ascending: false })
           .limit(50);
@@ -451,10 +893,13 @@
               <span style="font-size:11px;color:#8a9694;">Deleted ${esc(fmtDate(o.deleted_at))}</span></div>
               <button class="small restoreOrderBtn">Restore</button>
             </div>`).join('');
+          logCustomerAccess(deleted, 'Viewed in Owner Dashboard – Recycle bin');
           document.querySelectorAll('.restoreOrderBtn').forEach(btn => {
             btn.addEventListener('click', async () => {
               const row = btn.closest('.deletedRow');
               const id = row.getAttribute('data-id');
+              const ok = await requireReauth('restore this order');
+              if (!ok) return;
               btn.disabled = true;
               try {
                 const { error } = await supabase.from('orders').update({ deleted_at: null }).eq('id', id);
@@ -592,6 +1037,12 @@
               const row = cb.closest('.flagRow');
               const id = row.getAttribute('data-id');
               const newVal = cb.checked;
+              // Flip the switch back to how it was while we ask for your
+              // password, so it doesn't visually take effect until confirmed.
+              cb.checked = !newVal;
+              const ok = await requireReauth(newVal ? 'turn this feature ON' : 'turn this feature OFF');
+              if (!ok) return;
+              cb.checked = newVal;
               cb.disabled = true;
               try {
                 const { error } = await supabase.from('feature_flags').update({ enabled: newVal }).eq('id', id);
@@ -645,6 +1096,8 @@
     async function decideApproval(btn, decision){
       const row = btn.closest('.approvalRow');
       const id = row.getAttribute('data-id');
+      const ok = await requireReauth(decision === 'approved' ? 'approve this request' : 'deny this request');
+      if (!ok) return;
       row.querySelectorAll('button').forEach(b => b.disabled = true);
       try {
         const { data: sessionData } = await supabase.auth.getSession();
