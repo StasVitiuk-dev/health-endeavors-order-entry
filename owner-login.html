@@ -366,6 +366,16 @@
         <h3 style="font-size:13px;color:var(--navy);margin:20px 0 6px;">Active sessions</h3>
         <p class="hint" style="margin-top:-2px;">Every device currently logged into this account. If anything here looks unfamiliar, log it out.</p>
         <div id="sessionsWrap"><p class="empty">Loading…</p></div>
+
+        <h3 style="font-size:13px;color:var(--navy);margin:20px 0 6px;">Procedures (SOPs)</h3>
+        <p class="hint" style="margin-top:-2px;">Your own written step-by-step procedures — useful for your reference now, and ready the moment you bring anyone else into the business.</p>
+        <div id="sopsWrap"><p class="empty">Loading…</p></div>
+        <form id="addSopForm" style="display:flex;flex-direction:column;gap:8px;margin-top:14px;padding-top:16px;border-top:1px solid var(--line);">
+          <input type="text" id="sopTitle" placeholder="Procedure title (e.g. How to process a return)" required>
+          <input type="text" id="sopCategory" placeholder="Category (optional, e.g. Orders, Shipping)">
+          <textarea id="sopContent" placeholder="Write the steps here…" rows="4" required style="width:100%;padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;resize:vertical;"></textarea>
+          <button type="submit" class="small" style="align-self:flex-start;">Add procedure</button>
+        </form>
       </section>
     </main>
   </div>
@@ -828,6 +838,7 @@
         loadFlags(),
         loadApprovals(),
         loadSessions(),
+        loadSops(),
       ]);
     }
 
@@ -1180,6 +1191,61 @@
         showDashError('Could not log out that device: ' + (err && err.message ? err.message : err));
       }
     }
+
+    // SOP / Procedure Center: your own written step-by-step procedures, stored
+    // so they live in the system instead of your head — useful for your own
+    // reference now, and ready the moment anyone else needs to follow them.
+    async function loadSops(){
+      try {
+        const { data: sops, error } = await supabase
+          .from('sop_documents')
+          .select('id, title, category, content, updated_at')
+          .order('category', { ascending: true, nullsFirst: false })
+          .order('title', { ascending: true });
+        if (error) throw error;
+        if (!sops || !sops.length) {
+          document.getElementById('sopsWrap').innerHTML = '<p class="empty">No procedures written yet — add your first one below.</p>';
+          return;
+        }
+        document.getElementById('sopsWrap').innerHTML = sops.map(s => `
+          <details style="border-bottom:1px solid var(--line);padding:8px 0;">
+            <summary style="cursor:pointer;font-weight:600;font-size:13.5px;color:var(--navy);">
+              ${esc(s.title)}${s.category ? ` <span style="font-weight:400;color:#6b7877;font-size:12px;">&middot; ${esc(s.category)}</span>` : ''}
+            </summary>
+            <div style="white-space:pre-wrap;font-size:13px;color:#33403e;margin:8px 0 4px;">${esc(s.content)}</div>
+            <div style="font-size:11px;color:#8a9694;">Last updated ${esc(fmtDate(s.updated_at))}</div>
+          </details>`).join('');
+      } catch (err) {
+        showDashError('Could not load procedures: ' + (err && err.message ? err.message : err));
+      }
+    }
+
+    document.getElementById('addSopForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const titleInput = document.getElementById('sopTitle');
+      const categoryInput = document.getElementById('sopCategory');
+      const contentInput = document.getElementById('sopContent');
+      const title = titleInput.value.trim();
+      const content = contentInput.value.trim();
+      if (!title || !content) return;
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const uid = sessionData && sessionData.session ? sessionData.session.user.id : null;
+        const { error } = await supabase.from('sop_documents').insert({
+          title,
+          category: categoryInput.value.trim() || null,
+          content,
+          created_by: uid,
+        });
+        if (error) throw error;
+        titleInput.value = '';
+        categoryInput.value = '';
+        contentInput.value = '';
+        loadSops();
+      } catch (err) {
+        showDashError('Could not add that procedure: ' + (err && err.message ? err.message : err));
+      }
+    });
 
     // If already logged in from a previous visit, skip straight to the dashboard.
     supabase.auth.getSession().then(({ data }) => {
