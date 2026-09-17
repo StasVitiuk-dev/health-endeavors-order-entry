@@ -379,6 +379,7 @@
 
         <h3 style="font-size:13px;color:var(--navy);margin:20px 0 6px;">Feature Requests</h3>
         <p class="hint" style="margin-top:-2px;">Things you want added or changed to this system — track them here instead of only in chat, and watch each one move from requested to in progress to done.</p>
+        <div class="statRow" id="frStats"></div>
         <div id="featureRequestsWrap"><p class="empty">Loading…</p></div>
         <form id="addFeatureRequestForm" style="display:flex;flex-direction:column;gap:8px;margin-top:14px;padding-top:16px;border-top:1px solid var(--line);">
           <input type="text" id="frTitle" placeholder="What do you want added or changed?" required>
@@ -389,6 +390,10 @@
           </select>
           <button type="submit" class="small" style="align-self:flex-start;">Add request</button>
         </form>
+
+        <h4 style="font-size:12px;color:#6b7877;margin:18px 0 6px;">Recently deleted requests</h4>
+        <p class="hint" style="margin-top:-2px;">Deleted requests land here instead of disappearing for good — restore puts them right back.</p>
+        <div id="deletedFeatureRequestsWrap"><p class="empty">Loading…</p></div>
       </section>
     </main>
   </div>
@@ -853,6 +858,7 @@
         loadSessions(),
         loadSops(),
         loadFeatureRequests(),
+        loadDeletedFeatureRequests(),
       ]);
     }
 
@@ -1273,13 +1279,34 @@
         const { data: reqs, error } = await supabase
           .from('feature_requests')
           .select('id, title, description, status, priority, requested_at, updated_at, resolution_notes')
+          .is('deleted_at', null)
           .order('requested_at', { ascending: false });
         if (error) throw error;
+
+        const counts = { requested: 0, in_progress: 0, done: 0 };
+        (reqs || []).forEach(r => { if (counts[r.status] !== undefined) counts[r.status]++; });
+        document.getElementById('frStats').innerHTML = `
+          <div class="stat"><div class="num">${counts.requested}</div><div class="lbl">Requested</div></div>
+          <div class="stat"><div class="num">${counts.in_progress}</div><div class="lbl">In progress</div></div>
+          <div class="stat"><div class="num">${counts.done}</div><div class="lbl">Done</div></div>
+        `;
+
         if (!reqs || !reqs.length) {
           document.getElementById('featureRequestsWrap').innerHTML = '<p class="empty">No feature requests yet — add your first one below.</p>';
           return;
         }
-        document.getElementById('featureRequestsWrap').innerHTML = reqs.map(r => `
+
+        // Keep open requests (requested / in progress) above done ones, so the
+        // list stays useful as a running queue instead of getting cluttered
+        // with finished items once you have a lot of history.
+        const sorted = reqs.slice().sort((a, b) => {
+          const aDone = a.status === 'done' ? 1 : 0;
+          const bDone = b.status === 'done' ? 1 : 0;
+          if (aDone !== bDone) return aDone - bDone;
+          return new Date(b.requested_at) - new Date(a.requested_at);
+        });
+
+        document.getElementById('featureRequestsWrap').innerHTML = sorted.map(r => `
           <div class="approvalRow" data-id="${esc(r.id)}">
             <div class="info">
               <b>${esc(r.title)}</b>
@@ -1290,9 +1317,11 @@
             </div>
             <div class="actions">
               ${FR_NEXT_STATUS[r.status] ? `<button class="small frAdvanceBtn">${esc(FR_NEXT_LABEL[r.status])}</button>` : ''}
+              <button class="small deny frDeleteBtn">Delete</button>
             </div>
           </div>`).join('');
         document.querySelectorAll('.frAdvanceBtn').forEach(btn => btn.addEventListener('click', () => advanceFeatureRequest(btn)));
+        document.querySelectorAll('.frDeleteBtn').forEach(btn => btn.addEventListener('click', () => deleteFeatureRequest(btn)));
       } catch (err) {
         showDashError('Could not load feature requests: ' + (err && err.message ? err.message : err));
       }
@@ -1313,6 +1342,64 @@
       } catch (err) {
         btn.disabled = false;
         showDashError('Could not update that request: ' + (err && err.message ? err.message : err));
+      }
+    }
+
+    async function deleteFeatureRequest(btn){
+      const row = btn.closest('.approvalRow');
+      const id = row.getAttribute('data-id');
+      row.querySelectorAll('button').forEach(b => b.disabled = true);
+      try {
+        // Soft delete: just stamps deleted_at instead of removing the row, so
+        // it drops out of the main list but can still be restored below.
+        const { error } = await supabase.from('feature_requests').update({ deleted_at: new Date().toISOString() }).eq('id', id);
+        if (error) throw error;
+        loadFeatureRequests();
+        loadDeletedFeatureRequests();
+      } catch (err) {
+        row.querySelectorAll('button').forEach(b => b.disabled = false);
+        showDashError('Could not delete that request: ' + (err && err.message ? err.message : err));
+      }
+    }
+
+    async function loadDeletedFeatureRequests(){
+      try {
+        const { data: deleted, error } = await supabase
+          .from('feature_requests')
+          .select('id, title, deleted_at')
+          .not('deleted_at', 'is', null)
+          .order('deleted_at', { ascending: false })
+          .limit(50);
+        if (error) throw error;
+
+        if (!deleted || !deleted.length) {
+          document.getElementById('deletedFeatureRequestsWrap').innerHTML = '<p class="empty">Recycle bin is empty.</p>';
+          return;
+        }
+        document.getElementById('deletedFeatureRequestsWrap').innerHTML = deleted.map(r => `
+          <div class="deletedRow" data-id="${esc(r.id)}">
+            <div class="info"><b>${esc(r.title)}</b><br>
+            <span style="font-size:11px;color:#8a9694;">Deleted ${esc(fmtDate(r.deleted_at))}</span></div>
+            <button class="small restoreFeatureRequestBtn">Restore</button>
+          </div>`).join('');
+        document.querySelectorAll('.restoreFeatureRequestBtn').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const row = btn.closest('.deletedRow');
+            const id = row.getAttribute('data-id');
+            btn.disabled = true;
+            try {
+              const { error } = await supabase.from('feature_requests').update({ deleted_at: null }).eq('id', id);
+              if (error) throw error;
+              loadFeatureRequests();
+              loadDeletedFeatureRequests();
+            } catch (err) {
+              btn.disabled = false;
+              showDashError('Could not restore that request: ' + (err && err.message ? err.message : err));
+            }
+          });
+        });
+      } catch (err) {
+        showDashError('Could not load recently deleted requests: ' + (err && err.message ? err.message : err));
       }
     }
 
