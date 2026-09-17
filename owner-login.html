@@ -376,6 +376,19 @@
           <textarea id="sopContent" placeholder="Write the steps here…" rows="4" required style="width:100%;padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;resize:vertical;"></textarea>
           <button type="submit" class="small" style="align-self:flex-start;">Add procedure</button>
         </form>
+
+        <h3 style="font-size:13px;color:var(--navy);margin:20px 0 6px;">Feature Requests</h3>
+        <p class="hint" style="margin-top:-2px;">Things you want added or changed to this system — track them here instead of only in chat, and watch each one move from requested to in progress to done.</p>
+        <div id="featureRequestsWrap"><p class="empty">Loading…</p></div>
+        <form id="addFeatureRequestForm" style="display:flex;flex-direction:column;gap:8px;margin-top:14px;padding-top:16px;border-top:1px solid var(--line);">
+          <input type="text" id="frTitle" placeholder="What do you want added or changed?" required>
+          <textarea id="frDescription" placeholder="More detail (optional)…" rows="3" style="width:100%;padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;resize:vertical;"></textarea>
+          <select id="frPriority" style="padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;">
+            <option value="normal">Normal priority</option>
+            <option value="high">High priority</option>
+          </select>
+          <button type="submit" class="small" style="align-self:flex-start;">Add request</button>
+        </form>
       </section>
     </main>
   </div>
@@ -839,6 +852,7 @@
         loadApprovals(),
         loadSessions(),
         loadSops(),
+        loadFeatureRequests(),
       ]);
     }
 
@@ -1244,6 +1258,87 @@
         loadSops();
       } catch (err) {
         showDashError('Could not add that procedure: ' + (err && err.message ? err.message : err));
+      }
+    });
+
+    // Feature Requests: a running, trackable list of things you've asked for or
+    // want added/changed — so it lives in the system (with a status you can watch
+    // move along) instead of only in a chat conversation.
+    const FR_STATUS_LABELS = { requested: 'Requested', in_progress: 'In progress', done: 'Done' };
+    const FR_NEXT_STATUS = { requested: 'in_progress', in_progress: 'done' };
+    const FR_NEXT_LABEL = { requested: 'Mark in progress', in_progress: 'Mark done' };
+
+    async function loadFeatureRequests(){
+      try {
+        const { data: reqs, error } = await supabase
+          .from('feature_requests')
+          .select('id, title, description, status, priority, requested_at, updated_at, resolution_notes')
+          .order('requested_at', { ascending: false });
+        if (error) throw error;
+        if (!reqs || !reqs.length) {
+          document.getElementById('featureRequestsWrap').innerHTML = '<p class="empty">No feature requests yet — add your first one below.</p>';
+          return;
+        }
+        document.getElementById('featureRequestsWrap').innerHTML = reqs.map(r => `
+          <div class="approvalRow" data-id="${esc(r.id)}">
+            <div class="info">
+              <b>${esc(r.title)}</b>
+              ${r.priority === 'high' ? '<span class="priorityPill high">high</span>' : ''}
+              <span class="badge${r.status === 'done' ? ' sev-low' : ''}">${esc(FR_STATUS_LABELS[r.status] || r.status)}</span>
+              ${r.description ? `<div style="font-size:12px;color:#6b7877;margin-top:3px;">${esc(r.description)}</div>` : ''}
+              <br><span style="font-size:11px;color:#8a9694;">Requested ${esc(fmtDate(r.requested_at))}</span>
+            </div>
+            <div class="actions">
+              ${FR_NEXT_STATUS[r.status] ? `<button class="small frAdvanceBtn">${esc(FR_NEXT_LABEL[r.status])}</button>` : ''}
+            </div>
+          </div>`).join('');
+        document.querySelectorAll('.frAdvanceBtn').forEach(btn => btn.addEventListener('click', () => advanceFeatureRequest(btn)));
+      } catch (err) {
+        showDashError('Could not load feature requests: ' + (err && err.message ? err.message : err));
+      }
+    }
+
+    async function advanceFeatureRequest(btn){
+      const row = btn.closest('.approvalRow');
+      const id = row.getAttribute('data-id');
+      btn.disabled = true;
+      try {
+        const { data: current, error: fetchErr } = await supabase.from('feature_requests').select('status').eq('id', id).single();
+        if (fetchErr) throw fetchErr;
+        const nextStatus = FR_NEXT_STATUS[current.status];
+        if (!nextStatus) return;
+        const { error } = await supabase.from('feature_requests').update({ status: nextStatus, updated_at: new Date().toISOString() }).eq('id', id);
+        if (error) throw error;
+        loadFeatureRequests();
+      } catch (err) {
+        btn.disabled = false;
+        showDashError('Could not update that request: ' + (err && err.message ? err.message : err));
+      }
+    }
+
+    document.getElementById('addFeatureRequestForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const titleInput = document.getElementById('frTitle');
+      const descInput = document.getElementById('frDescription');
+      const priorityInput = document.getElementById('frPriority');
+      const title = titleInput.value.trim();
+      if (!title) return;
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const uid = sessionData && sessionData.session ? sessionData.session.user.id : null;
+        const { error } = await supabase.from('feature_requests').insert({
+          title,
+          description: descInput.value.trim() || null,
+          priority: priorityInput.value,
+          created_by: uid,
+        });
+        if (error) throw error;
+        titleInput.value = '';
+        descInput.value = '';
+        priorityInput.value = 'normal';
+        loadFeatureRequests();
+      } catch (err) {
+        showDashError('Could not add that request: ' + (err && err.message ? err.message : err));
       }
     });
 
