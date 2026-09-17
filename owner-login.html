@@ -140,11 +140,11 @@
   .badge.sev-low{ background:#e6f4ea; color:var(--good); }
   .empty{ color:#8a9694; font-size:13px; padding:10px 0; }
 
-  .flagRow, .approvalRow, .deletedRow{
+  .flagRow, .approvalRow, .deletedRow, .sessionRow{
     display:flex; align-items:center; justify-content:space-between; gap:12px;
     padding:10px 0; border-bottom:1px solid var(--line);
   }
-  .flagRow:last-child, .approvalRow:last-child, .deletedRow:last-child{ border-bottom:none; }
+  .flagRow:last-child, .approvalRow:last-child, .deletedRow:last-child, .sessionRow:last-child{ border-bottom:none; }
   .flagInfo .k{ font-weight:600; font-size:13.5px; color:var(--navy); }
   .flagInfo .d{ font-size:12px; color:#6b7877; }
   .switch{ position:relative; width:44px; height:24px; flex:none; }
@@ -158,8 +158,8 @@
   }
   input:checked + .slider{ background:var(--good); }
   input:checked + .slider:before{ transform:translateX(20px); }
-  .approvalRow .info, .deletedRow .info{ flex:1; min-width:0; }
-  .approvalRow .actions{ display:flex; gap:8px; flex:none; }
+  .approvalRow .info, .deletedRow .info, .sessionRow .info{ flex:1; min-width:0; }
+  .approvalRow .actions, .sessionRow .actions{ display:flex; gap:8px; flex:none; }
   .small-btn-row{ display:flex; gap:8px; }
   #refreshBtn{ background:var(--teal); }
   .sectionHeadRow{ display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; }
@@ -362,6 +362,10 @@
 
         <h3 style="font-size:13px;color:var(--navy);margin:20px 0 6px;">Approval queue</h3>
         <div id="approvalsWrap"><p class="empty">Loading…</p></div>
+
+        <h3 style="font-size:13px;color:var(--navy);margin:20px 0 6px;">Active sessions</h3>
+        <p class="hint" style="margin-top:-2px;">Every device currently logged into this account. If anything here looks unfamiliar, log it out.</p>
+        <div id="sessionsWrap"><p class="empty">Loading…</p></div>
       </section>
     </main>
   </div>
@@ -823,6 +827,7 @@
         loadAI(),
         loadFlags(),
         loadApprovals(),
+        loadSessions(),
       ]);
     }
 
@@ -1111,6 +1116,68 @@
       } catch (err) {
         row.querySelectorAll('button').forEach(b => b.disabled = false);
         showDashError(`Could not mark that request "${decision}": ` + (err && err.message ? err.message : err) + ' — if this mentions an invalid status value, send me the exact message and I\'ll fix the wording in one step.');
+      }
+    }
+
+    // Session & Device Management: turns Supabase's own built-in login-session
+    // tracking into something visible and controllable in the dashboard, so a
+    // login you don't recognize can be spotted and logged out remotely.
+    // Reads a friendly guess at the device/browser from the raw user-agent string
+    // Supabase already records — this is a simple heuristic, not exact for every
+    // possible browser, but good enough to recognize your own devices at a glance.
+    function deviceLabel(ua){
+      if (!ua) return 'Unknown device';
+      const device = /iPhone/i.test(ua) ? 'iPhone'
+        : /iPad/i.test(ua) ? 'iPad'
+        : /Android/i.test(ua) ? 'Android device'
+        : /Macintosh/i.test(ua) ? 'Mac'
+        : /Windows/i.test(ua) ? 'Windows PC'
+        : 'Device';
+      const browser = /Edg\//.test(ua) ? 'Edge'
+        : (/Chrome\//.test(ua) && !/Chromium/.test(ua)) ? 'Chrome'
+        : (/Safari\//.test(ua) && !/Chrome\//.test(ua)) ? 'Safari'
+        : /Firefox\//.test(ua) ? 'Firefox'
+        : '';
+      return browser ? `${device} · ${browser}` : device;
+    }
+
+    async function loadSessions(){
+      try {
+        const { data: sessions, error } = await supabase.rpc('list_my_sessions');
+        if (error) throw error;
+        if (!sessions || !sessions.length) {
+          document.getElementById('sessionsWrap').innerHTML = '<p class="empty">No active sessions found.</p>';
+          return;
+        }
+        document.getElementById('sessionsWrap').innerHTML = sessions.map(s => `
+          <div class="sessionRow" data-id="${esc(s.session_id)}">
+            <div class="info">
+              <b>${esc(deviceLabel(s.user_agent))}</b>${s.is_current ? ' <span style="color:var(--good);font-size:11px;">· This device</span>' : ''}
+              <br><span style="font-size:11px;color:#8a9694;">Signed in ${esc(fmtDate(s.created_at))} &middot; Last active ${esc(fmtDate(s.last_active))}${s.ip_address ? ' &middot; ' + esc(s.ip_address) : ''}</span>
+            </div>
+            <div class="actions">
+              ${s.is_current ? '' : '<button class="small deny logoutSessionBtn">Log out</button>'}
+            </div>
+          </div>`).join('');
+        document.querySelectorAll('.logoutSessionBtn').forEach(btn => btn.addEventListener('click', () => revokeSession(btn)));
+      } catch (err) {
+        showDashError('Could not load active sessions: ' + (err && err.message ? err.message : err));
+      }
+    }
+
+    async function revokeSession(btn){
+      const row = btn.closest('.sessionRow');
+      const id = row.getAttribute('data-id');
+      const ok = await requireReauth('log out that device');
+      if (!ok) return;
+      btn.disabled = true;
+      try {
+        const { error } = await supabase.rpc('revoke_my_session', { target_session_id: id });
+        if (error) throw error;
+        loadSessions();
+      } catch (err) {
+        btn.disabled = false;
+        showDashError('Could not log out that device: ' + (err && err.message ? err.message : err));
       }
     }
 
