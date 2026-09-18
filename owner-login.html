@@ -372,6 +372,33 @@
         </form>
       </section>
 
+      <!-- Adverse Event Reports (MoCRA) -->
+      <section class="panel" id="adverseEventsPanel">
+        <h2>Adverse Event Reports (FDA / MoCRA)</h2>
+        <p class="hint">Log any report of a serious reaction to the product here. This calculates the FDA's 15-business-day reporting deadline automatically and opens a high-priority task so it can't be missed. This is a tracking tool, not legal advice — always confirm actual reporting decisions with a qualified regulatory professional.</p>
+        <div id="adverseEventsWrap"><p class="empty">Loading…</p></div>
+        <form id="addAdverseEventForm" style="display:flex;flex-direction:column;gap:8px;margin-top:14px;padding-top:16px;border-top:1px solid var(--line);">
+          <input type="text" id="aeProduct" placeholder="Product name (e.g. Cocoa Body Lotion)" required>
+          <label style="font-size:12px;color:#6b7877;">Date the report was received
+            <input type="date" id="aeDateReceived" required style="display:block;margin-top:4px;padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;">
+          </label>
+          <textarea id="aeDescription" placeholder="What was reported?" rows="3" required style="width:100%;padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;resize:vertical;"></textarea>
+          <select id="aeOutcomeType" style="padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;">
+            <option value="">Outcome type (optional)</option>
+            <option value="death">Death</option>
+            <option value="hospitalization">Hospitalization</option>
+            <option value="disability">Persistent or significant disability</option>
+            <option value="birth_defect">Congenital anomaly / birth defect</option>
+            <option value="disfigurement">Significant disfigurement</option>
+            <option value="medical_intervention">Required medical intervention to prevent the above</option>
+            <option value="other">Other</option>
+          </select>
+          <input type="text" id="aeReporterName" placeholder="Reporter name (optional)">
+          <input type="text" id="aeReporterContact" placeholder="Reporter contact (optional)">
+          <button type="submit" class="small" style="align-self:flex-start;">Log adverse event report</button>
+        </form>
+      </section>
+
       <!-- AI Activity -->
       <section class="panel" id="aiPanel">
         <h2>AI Agent Activity</h2>
@@ -888,6 +915,7 @@
         loadFeatureRequests(),
         loadDeletedFeatureRequests(),
         loadEvidenceLocker(),
+        loadAdverseEvents(),
       ]);
     }
 
@@ -1595,6 +1623,136 @@
         loadEvidenceLocker();
       } catch (err) {
         showDashError('Could not add that evidence: ' + (err && err.message ? err.message : err));
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalBtnText;
+      }
+    });
+
+    // Adverse Event Reports (FDA / MoCRA)
+    function fmtDateOnly(dateStr){
+      if (!dateStr) return '—';
+      const d = new Date(dateStr + 'T00:00:00');
+      if (isNaN(d.getTime())) return '—';
+      return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+
+    (function initAdverseEventDateField(){
+      const dateInput = document.getElementById('aeDateReceived');
+      if (dateInput && !dateInput.value) {
+        const today = new Date();
+        dateInput.value = today.toISOString().slice(0, 10);
+      }
+    })();
+
+    async function loadAdverseEvents(){
+      try {
+        const { data: events, error } = await supabase
+          .from('adverse_event_reports')
+          .select('id, product_name, date_received, description, outcome_type, fda_report_deadline, fda_reported, fda_reported_at, reporter_name, reporter_contact, created_at')
+          .order('fda_report_deadline', { ascending: true });
+        if (error) throw error;
+
+        if (!events || !events.length) {
+          document.getElementById('adverseEventsWrap').innerHTML = '<p class="empty">No adverse event reports on file — hopefully it stays that way.</p>';
+          return;
+        }
+
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+
+        document.getElementById('adverseEventsWrap').innerHTML = events.map(ev => {
+          const deadline = new Date(ev.fda_report_deadline + 'T00:00:00');
+          const daysLeft = Math.round((deadline - today) / 86400000);
+          let statusLabel, statusClass;
+          if (ev.fda_reported) {
+            statusLabel = 'Reported to FDA';
+            statusClass = 'sev-low';
+          } else if (daysLeft < 0) {
+            statusLabel = `OVERDUE by ${Math.abs(daysLeft)} day(s)`;
+            statusClass = 'sev-high';
+          } else {
+            statusLabel = `Due ${esc(fmtDateOnly(ev.fda_report_deadline))} (${daysLeft} day${daysLeft === 1 ? '' : 's'} left)`;
+            statusClass = daysLeft <= 3 ? 'sev-high' : 'sev-medium';
+          }
+          return `
+          <div class="approvalRow" data-id="${esc(ev.id)}">
+            <div class="info">
+              <b>${esc(ev.product_name)}</b>
+              <span class="badge ${statusClass}">${statusLabel}</span>
+              ${ev.outcome_type ? `<span class="badge">${esc(ev.outcome_type.replace(/_/g, ' '))}</span>` : ''}
+              <div style="font-size:12px;color:#6b7877;margin-top:3px;">${esc(ev.description)}</div>
+              ${ev.reporter_name ? `<div style="font-size:11px;color:#8a9694;margin-top:3px;">Reported by: ${esc(ev.reporter_name)}${ev.reporter_contact ? ' — ' + esc(ev.reporter_contact) : ''}</div>` : ''}
+              <br><span style="font-size:11px;color:#8a9694;">Received ${esc(fmtDateOnly(ev.date_received))}</span>
+            </div>
+            <div class="actions">
+              ${!ev.fda_reported ? `<button class="small aeMarkReportedBtn">Mark reported to FDA</button>` : ''}
+            </div>
+          </div>`;
+        }).join('');
+
+        document.querySelectorAll('.aeMarkReportedBtn').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const row = btn.closest('.approvalRow');
+            const id = row.getAttribute('data-id');
+            btn.disabled = true;
+            try {
+              const { error: updErr } = await supabase.from('adverse_event_reports')
+                .update({ fda_reported: true, fda_reported_at: new Date().toISOString() })
+                .eq('id', id);
+              if (updErr) throw updErr;
+              loadAdverseEvents();
+            } catch (err) {
+              btn.disabled = false;
+              showDashError('Could not update that report: ' + (err && err.message ? err.message : err));
+            }
+          });
+        });
+      } catch (err) {
+        showDashError('Could not load adverse event reports: ' + (err && err.message ? err.message : err));
+      }
+    }
+
+    document.getElementById('addAdverseEventForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const productInput = document.getElementById('aeProduct');
+      const dateInput = document.getElementById('aeDateReceived');
+      const descriptionInput = document.getElementById('aeDescription');
+      const outcomeInput = document.getElementById('aeOutcomeType');
+      const reporterNameInput = document.getElementById('aeReporterName');
+      const reporterContactInput = document.getElementById('aeReporterContact');
+      const product = productInput.value.trim();
+      const description = descriptionInput.value.trim();
+      if (!product || !dateInput.value || !description) {
+        showDashError('Fill in the product name, date received, and what was reported.');
+        return;
+      }
+      const submitBtn = e.target.querySelector('button[type="submit"]');
+      const originalBtnText = submitBtn.textContent;
+      submitBtn.disabled = true;
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const uid = sessionData && sessionData.session ? sessionData.session.user.id : null;
+        const { error } = await supabase.from('adverse_event_reports').insert({
+          product_name: product,
+          date_received: dateInput.value,
+          description,
+          outcome_type: outcomeInput.value || null,
+          reporter_name: reporterNameInput.value.trim() || null,
+          reporter_contact: reporterContactInput.value.trim() || null,
+          created_by: uid,
+        });
+        if (error) throw error;
+        productInput.value = '';
+        descriptionInput.value = '';
+        outcomeInput.value = '';
+        reporterNameInput.value = '';
+        reporterContactInput.value = '';
+        dateInput.value = new Date().toISOString().slice(0, 10);
+        loadAdverseEvents();
+        loadIncidents();
+        loadTasks();
+      } catch (err) {
+        showDashError('Could not log that report: ' + (err && err.message ? err.message : err));
       } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = originalBtnText;
