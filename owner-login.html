@@ -429,6 +429,10 @@
           <input type="text" id="sopTitle" placeholder="Procedure title (e.g. How to process a return)" required>
           <input type="text" id="sopCategory" placeholder="Category (optional, e.g. Orders, Shipping)">
           <textarea id="sopContent" placeholder="Write the steps here…" rows="4" required style="width:100%;padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;resize:vertical;"></textarea>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:#33403e;">
+            <input type="checkbox" id="sopAgentVisible">
+            Let the Customer Service Agent reference this when drafting customer replies
+          </label>
           <button type="submit" class="small" style="align-self:flex-start;">Add procedure</button>
         </form>
 
@@ -1300,7 +1304,7 @@
       try {
         const { data: sops, error } = await supabase
           .from('sop_documents')
-          .select('id, title, category, content, updated_at')
+          .select('id, title, category, content, updated_at, agent_visible')
           .order('category', { ascending: true, nullsFirst: false })
           .order('title', { ascending: true });
         if (error) throw error;
@@ -1314,8 +1318,33 @@
               ${esc(s.title)}${s.category ? ` <span style="font-weight:400;color:#6b7877;font-size:12px;">&middot; ${esc(s.category)}</span>` : ''}
             </summary>
             <div style="white-space:pre-wrap;font-size:13px;color:#33403e;margin:8px 0 4px;">${esc(s.content)}</div>
-            <div style="font-size:11px;color:#8a9694;">Last updated ${esc(fmtDate(s.updated_at))}</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:6px;">
+              <div style="font-size:11px;color:#8a9694;">Last updated ${esc(fmtDate(s.updated_at))}</div>
+              <label style="display:flex;align-items:center;gap:8px;font-size:11.5px;color:#33403e;cursor:pointer;">
+                Customer Service Agent may reference this
+                <span class="switch">
+                  <input type="checkbox" class="sopAgentToggle" data-id="${esc(s.id)}" ${s.agent_visible ? 'checked' : ''}>
+                  <span class="slider"></span>
+                </span>
+              </label>
+            </div>
           </details>`).join('');
+        document.querySelectorAll('.sopAgentToggle').forEach(cb => {
+          cb.addEventListener('change', async () => {
+            const id = cb.getAttribute('data-id');
+            const newVal = cb.checked;
+            cb.disabled = true;
+            try {
+              const { error } = await supabase.from('sop_documents').update({ agent_visible: newVal }).eq('id', id);
+              if (error) throw error;
+            } catch (err) {
+              cb.checked = !newVal;
+              showDashError('Could not update that procedure: ' + (err && err.message ? err.message : err));
+            } finally {
+              cb.disabled = false;
+            }
+          });
+        });
       } catch (err) {
         showDashError('Could not load procedures: ' + (err && err.message ? err.message : err));
       }
@@ -1326,6 +1355,7 @@
       const titleInput = document.getElementById('sopTitle');
       const categoryInput = document.getElementById('sopCategory');
       const contentInput = document.getElementById('sopContent');
+      const agentVisibleInput = document.getElementById('sopAgentVisible');
       const title = titleInput.value.trim();
       const content = contentInput.value.trim();
       if (!title || !content) return;
@@ -1336,12 +1366,14 @@
           title,
           category: categoryInput.value.trim() || null,
           content,
+          agent_visible: agentVisibleInput.checked,
           created_by: uid,
         });
         if (error) throw error;
         titleInput.value = '';
         categoryInput.value = '';
         contentInput.value = '';
+        agentVisibleInput.checked = false;
         loadSops();
       } catch (err) {
         showDashError('Could not add that procedure: ' + (err && err.message ? err.message : err));
