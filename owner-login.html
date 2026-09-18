@@ -449,6 +449,28 @@
         <h4 style="font-size:12px;color:#6b7877;margin:18px 0 6px;">Recently deleted requests</h4>
         <p class="hint" style="margin-top:-2px;">Deleted requests land here instead of disappearing for good — restore puts them right back.</p>
         <div id="deletedFeatureRequestsWrap"><p class="empty">Loading…</p></div>
+
+        <h3 style="font-size:13px;color:var(--navy);margin:20px 0 6px;">Legal Holds</h3>
+        <p class="hint" style="margin-top:-2px;">If a dispute or investigation ever requires it, flag what needs to be preserved here so nothing gets edited or deleted while it's under hold.</p>
+        <div id="legalHoldsWrap"><p class="empty">Loading…</p></div>
+        <form id="addLegalHoldForm" style="display:flex;flex-direction:column;gap:8px;margin-top:14px;padding-top:16px;border-top:1px solid var(--line);">
+          <input type="text" id="lhTitle" placeholder="What's on hold (e.g. Order #1234, Customer Jane Doe's records)" required>
+          <textarea id="lhDescription" placeholder="Why is it on hold? (optional)" rows="3" style="width:100%;padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;resize:vertical;"></textarea>
+          <select id="lhRelatedType" style="padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;">
+            <option value="">Type (optional)</option>
+            <option value="order">Order</option>
+            <option value="customer">Customer</option>
+            <option value="incident">Incident</option>
+            <option value="supplier">Supplier</option>
+            <option value="other">Other</option>
+          </select>
+          <input type="text" id="lhRelatedReference" placeholder="Reference (optional — order #, customer name, etc.)">
+          <button type="submit" class="small" style="align-self:flex-start;">Place legal hold</button>
+        </form>
+
+        <h4 style="font-size:12px;color:#6b7877;margin:18px 0 6px;">Recently released holds</h4>
+        <p class="hint" style="margin-top:-2px;">Holds you've released, kept here for reference.</p>
+        <div id="releasedLegalHoldsWrap"><p class="empty">Loading…</p></div>
       </section>
     </main>
   </div>
@@ -916,6 +938,8 @@
         loadDeletedFeatureRequests(),
         loadEvidenceLocker(),
         loadAdverseEvents(),
+        loadLegalHolds(),
+        loadReleasedLegalHolds(),
       ]);
     }
 
@@ -1753,6 +1777,122 @@
         loadTasks();
       } catch (err) {
         showDashError('Could not log that report: ' + (err && err.message ? err.message : err));
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalBtnText;
+      }
+    });
+
+    // Legal Holds
+    async function loadLegalHolds(){
+      try {
+        const { data: holds, error } = await supabase
+          .from('legal_holds')
+          .select('id, title, description, related_type, related_reference, placed_at')
+          .eq('status', 'active')
+          .order('placed_at', { ascending: false });
+        if (error) throw error;
+
+        if (!holds || !holds.length) {
+          document.getElementById('legalHoldsWrap').innerHTML = '<p class="empty">No active legal holds.</p>';
+          return;
+        }
+
+        document.getElementById('legalHoldsWrap').innerHTML = holds.map(h => `
+          <div class="approvalRow" data-id="${esc(h.id)}">
+            <div class="info">
+              <b>${esc(h.title)}</b>
+              ${h.related_type ? `<span class="badge">${esc(h.related_type)}</span>` : ''}
+              ${h.related_reference ? `<div style="font-size:12px;color:#6b7877;margin-top:3px;">Reference: ${esc(h.related_reference)}</div>` : ''}
+              ${h.description ? `<div style="font-size:12px;color:#6b7877;margin-top:3px;">${esc(h.description)}</div>` : ''}
+              <br><span style="font-size:11px;color:#8a9694;">Placed ${esc(fmtDate(h.placed_at))}</span>
+            </div>
+            <div class="actions">
+              <button class="small lhReleaseBtn">Release hold</button>
+            </div>
+          </div>`).join('');
+
+        document.querySelectorAll('.lhReleaseBtn').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const row = btn.closest('.approvalRow');
+            const id = row.getAttribute('data-id');
+            btn.disabled = true;
+            try {
+              const { data: sessionData } = await supabase.auth.getSession();
+              const uid = sessionData && sessionData.session ? sessionData.session.user.id : null;
+              const { error: relErr } = await supabase.from('legal_holds')
+                .update({ status: 'released', released_at: new Date().toISOString(), released_by: uid })
+                .eq('id', id);
+              if (relErr) throw relErr;
+              loadLegalHolds();
+              loadReleasedLegalHolds();
+            } catch (err) {
+              btn.disabled = false;
+              showDashError('Could not release that hold: ' + (err && err.message ? err.message : err));
+            }
+          });
+        });
+      } catch (err) {
+        showDashError('Could not load legal holds: ' + (err && err.message ? err.message : err));
+      }
+    }
+
+    async function loadReleasedLegalHolds(){
+      try {
+        const { data: holds, error } = await supabase
+          .from('legal_holds')
+          .select('id, title, released_at')
+          .eq('status', 'released')
+          .order('released_at', { ascending: false })
+          .limit(50);
+        if (error) throw error;
+
+        if (!holds || !holds.length) {
+          document.getElementById('releasedLegalHoldsWrap').innerHTML = '<p class="empty">No released holds yet.</p>';
+          return;
+        }
+        document.getElementById('releasedLegalHoldsWrap').innerHTML = holds.map(h => `
+          <div class="deletedRow">
+            <div class="info"><b>${esc(h.title)}</b><br>
+            <span style="font-size:11px;color:#8a9694;">Released ${esc(fmtDate(h.released_at))}</span></div>
+          </div>`).join('');
+      } catch (err) {
+        showDashError('Could not load released holds: ' + (err && err.message ? err.message : err));
+      }
+    }
+
+    document.getElementById('addLegalHoldForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const titleInput = document.getElementById('lhTitle');
+      const descriptionInput = document.getElementById('lhDescription');
+      const relatedTypeInput = document.getElementById('lhRelatedType');
+      const relatedReferenceInput = document.getElementById('lhRelatedReference');
+      const title = titleInput.value.trim();
+      if (!title) {
+        showDashError('Say what needs to be placed on hold.');
+        return;
+      }
+      const submitBtn = e.target.querySelector('button[type="submit"]');
+      const originalBtnText = submitBtn.textContent;
+      submitBtn.disabled = true;
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const uid = sessionData && sessionData.session ? sessionData.session.user.id : null;
+        const { error } = await supabase.from('legal_holds').insert({
+          title,
+          description: descriptionInput.value.trim() || null,
+          related_type: relatedTypeInput.value || null,
+          related_reference: relatedReferenceInput.value.trim() || null,
+          placed_by: uid,
+        });
+        if (error) throw error;
+        titleInput.value = '';
+        descriptionInput.value = '';
+        relatedTypeInput.value = '';
+        relatedReferenceInput.value = '';
+        loadLegalHolds();
+      } catch (err) {
+        showDashError('Could not place that hold: ' + (err && err.message ? err.message : err));
       } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = originalBtnText;
