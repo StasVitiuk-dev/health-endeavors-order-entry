@@ -344,6 +344,29 @@
         <div id="incidentsTableWrap"><p class="empty">Loading…</p></div>
       </section>
 
+      <!-- Evidence Locker -->
+      <section class="panel" id="evidenceLockerPanel">
+        <h2>Evidence Locker</h2>
+        <p class="hint">A record of evidence tied to a specific incident — photos, documents, emails, whatever backs up what happened — with a link to where the actual file lives.</p>
+        <div id="evidenceWrap"><p class="empty">Loading…</p></div>
+        <form id="addEvidenceForm" style="display:flex;flex-direction:column;gap:8px;margin-top:14px;padding-top:16px;border-top:1px solid var(--line);">
+          <select id="evidenceIncident" required style="padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;">
+            <option value="">Which incident is this evidence for?</option>
+          </select>
+          <input type="text" id="evidenceTitle" placeholder="Title (e.g. Customer complaint email)" required>
+          <textarea id="evidenceDescription" placeholder="More detail (optional)…" rows="3" style="width:100%;padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;resize:vertical;"></textarea>
+          <select id="evidenceType" style="padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;">
+            <option value="">Type (optional)</option>
+            <option value="Email">Email</option>
+            <option value="Photo">Photo</option>
+            <option value="Document">Document</option>
+            <option value="Other">Other</option>
+          </select>
+          <input type="text" id="evidenceLink" placeholder="Link to the file (optional — e.g. a link to the email, photo, or document)">
+          <button type="submit" class="small" style="align-self:flex-start;">Add evidence</button>
+        </form>
+      </section>
+
       <!-- AI Activity -->
       <section class="panel" id="aiPanel">
         <h2>AI Agent Activity</h2>
@@ -859,6 +882,7 @@
         loadSops(),
         loadFeatureRequests(),
         loadDeletedFeatureRequests(),
+        loadEvidenceLocker(),
       ]);
     }
 
@@ -1426,6 +1450,95 @@
         loadFeatureRequests();
       } catch (err) {
         showDashError('Could not add that request: ' + (err && err.message ? err.message : err));
+      }
+    });
+
+    // Evidence Locker: a record of evidence tied to a specific incident (photos,
+    // documents, emails, whatever backs up what happened), with a link to where
+    // the actual file lives rather than storing the file itself.
+    async function loadEvidenceLocker(){
+      try {
+        const { data: incidents, error: incErr } = await supabase
+          .from('incidents')
+          .select('id, incident_number, title')
+          .order('created_at', { ascending: false })
+          .limit(200);
+        if (incErr) throw incErr;
+
+        const incidentSelect = document.getElementById('evidenceIncident');
+        const currentVal = incidentSelect.value;
+        incidentSelect.innerHTML = '<option value="">Which incident is this evidence for?</option>' +
+          (incidents || []).map(i => `<option value="${esc(i.id)}">${esc(i.incident_number || 'Incident')} — ${esc(i.title)}</option>`).join('');
+        incidentSelect.value = currentVal;
+
+        const incidentById = {};
+        (incidents || []).forEach(i => { incidentById[i.id] = i; });
+
+        const { data: evidence, error } = await supabase
+          .from('evidence_locker')
+          .select('id, incident_id, title, description, evidence_type, external_link, created_at')
+          .order('created_at', { ascending: false })
+          .limit(200);
+        if (error) throw error;
+
+        if (!evidence || !evidence.length) {
+          document.getElementById('evidenceWrap').innerHTML = '<p class="empty">No evidence recorded yet — add your first entry below.</p>';
+          return;
+        }
+
+        document.getElementById('evidenceWrap').innerHTML = evidence.map(e => {
+          const inc = incidentById[e.incident_id];
+          const incLabel = inc ? `${esc(inc.incident_number || 'Incident')} — ${esc(inc.title)}` : 'Incident no longer on file';
+          return `
+          <div class="approvalRow">
+            <div class="info">
+              <b>${esc(e.title)}</b>
+              ${e.evidence_type ? `<span class="badge">${esc(e.evidence_type)}</span>` : ''}
+              <div style="font-size:12px;color:#6b7877;margin-top:3px;">Tied to: ${incLabel}</div>
+              ${e.description ? `<div style="font-size:12px;color:#6b7877;margin-top:3px;">${esc(e.description)}</div>` : ''}
+              ${e.external_link ? `<div style="font-size:12px;margin-top:3px;"><a href="${esc(e.external_link)}" target="_blank" rel="noopener noreferrer">Open linked file</a></div>` : ''}
+              <br><span style="font-size:11px;color:#8a9694;">Added ${esc(fmtDate(e.created_at))}</span>
+            </div>
+          </div>`;
+        }).join('');
+      } catch (err) {
+        showDashError('Could not load the evidence locker: ' + (err && err.message ? err.message : err));
+      }
+    }
+
+    document.getElementById('addEvidenceForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const incidentInput = document.getElementById('evidenceIncident');
+      const titleInput = document.getElementById('evidenceTitle');
+      const descriptionInput = document.getElementById('evidenceDescription');
+      const typeInput = document.getElementById('evidenceType');
+      const linkInput = document.getElementById('evidenceLink');
+      const incidentId = incidentInput.value;
+      const title = titleInput.value.trim();
+      if (!incidentId || !title) {
+        showDashError('Pick which incident this evidence belongs to, and give it a title.');
+        return;
+      }
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const uid = sessionData && sessionData.session ? sessionData.session.user.id : null;
+        const { error } = await supabase.from('evidence_locker').insert({
+          incident_id: incidentId,
+          title,
+          description: descriptionInput.value.trim() || null,
+          evidence_type: typeInput.value || null,
+          external_link: linkInput.value.trim() || null,
+          added_by: uid,
+        });
+        if (error) throw error;
+        titleInput.value = '';
+        descriptionInput.value = '';
+        typeInput.value = '';
+        linkInput.value = '';
+        incidentInput.value = '';
+        loadEvidenceLocker();
+      } catch (err) {
+        showDashError('Could not add that evidence: ' + (err && err.message ? err.message : err));
       }
     });
 
