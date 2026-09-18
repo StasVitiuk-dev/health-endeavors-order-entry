@@ -347,7 +347,10 @@
       <!-- Evidence Locker -->
       <section class="panel" id="evidenceLockerPanel">
         <h2>Evidence Locker</h2>
-        <p class="hint">A record of evidence tied to a specific incident — photos, documents, emails, whatever backs up what happened — with a link to where the actual file lives.</p>
+        <p class="hint">A record of evidence tied to a specific incident — photos, documents, emails, whatever backs up what happened. Upload the file itself, or paste a link to where it lives.</p>
+        <select id="evidenceFilter" style="padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;margin-bottom:10px;">
+          <option value="">Show evidence for: all incidents</option>
+        </select>
         <div id="evidenceWrap"><p class="empty">Loading…</p></div>
         <form id="addEvidenceForm" style="display:flex;flex-direction:column;gap:8px;margin-top:14px;padding-top:16px;border-top:1px solid var(--line);">
           <select id="evidenceIncident" required style="padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;">
@@ -362,6 +365,8 @@
             <option value="Document">Document</option>
             <option value="Other">Other</option>
           </select>
+          <input type="file" id="evidenceFile" style="font-size:13px;">
+          <p class="hint" style="margin:-4px 0 0;">Upload a file here, or paste a link below — you don't need both.</p>
           <input type="text" id="evidenceLink" placeholder="Link to the file (optional — e.g. a link to the email, photo, or document)">
           <button type="submit" class="small" style="align-self:flex-start;">Add evidence</button>
         </form>
@@ -1465,24 +1470,34 @@
           .limit(200);
         if (incErr) throw incErr;
 
+        const incidentOptionsHtml = (incidents || []).map(i => `<option value="${esc(i.id)}">${esc(i.incident_number || 'Incident')} — ${esc(i.title)}</option>`).join('');
+
         const incidentSelect = document.getElementById('evidenceIncident');
         const currentVal = incidentSelect.value;
-        incidentSelect.innerHTML = '<option value="">Which incident is this evidence for?</option>' +
-          (incidents || []).map(i => `<option value="${esc(i.id)}">${esc(i.incident_number || 'Incident')} — ${esc(i.title)}</option>`).join('');
+        incidentSelect.innerHTML = '<option value="">Which incident is this evidence for?</option>' + incidentOptionsHtml;
         incidentSelect.value = currentVal;
+
+        const filterSelect = document.getElementById('evidenceFilter');
+        const currentFilter = filterSelect.value;
+        filterSelect.innerHTML = '<option value="">Show evidence for: all incidents</option>' + incidentOptionsHtml;
+        filterSelect.value = currentFilter;
 
         const incidentById = {};
         (incidents || []).forEach(i => { incidentById[i.id] = i; });
 
-        const { data: evidence, error } = await supabase
+        let evidenceQuery = supabase
           .from('evidence_locker')
-          .select('id, incident_id, title, description, evidence_type, external_link, created_at')
+          .select('id, incident_id, title, description, evidence_type, external_link, file_path, created_at')
           .order('created_at', { ascending: false })
           .limit(200);
+        if (currentFilter) evidenceQuery = evidenceQuery.eq('incident_id', currentFilter);
+        const { data: evidence, error } = await evidenceQuery;
         if (error) throw error;
 
         if (!evidence || !evidence.length) {
-          document.getElementById('evidenceWrap').innerHTML = '<p class="empty">No evidence recorded yet — add your first entry below.</p>';
+          document.getElementById('evidenceWrap').innerHTML = currentFilter
+            ? '<p class="empty">No evidence recorded yet for this incident.</p>'
+            : '<p class="empty">No evidence recorded yet — add your first entry below.</p>';
           return;
         }
 
@@ -1490,21 +1505,44 @@
           const inc = incidentById[e.incident_id];
           const incLabel = inc ? `${esc(inc.incident_number || 'Incident')} — ${esc(inc.title)}` : 'Incident no longer on file';
           return `
-          <div class="approvalRow">
+          <div class="approvalRow" data-file-path="${esc(e.file_path || '')}">
             <div class="info">
               <b>${esc(e.title)}</b>
               ${e.evidence_type ? `<span class="badge">${esc(e.evidence_type)}</span>` : ''}
               <div style="font-size:12px;color:#6b7877;margin-top:3px;">Tied to: ${incLabel}</div>
               ${e.description ? `<div style="font-size:12px;color:#6b7877;margin-top:3px;">${esc(e.description)}</div>` : ''}
+              ${e.file_path ? `<div style="font-size:12px;margin-top:3px;"><a href="#" class="evidenceFileLink">Download uploaded file</a></div>` : ''}
               ${e.external_link ? `<div style="font-size:12px;margin-top:3px;"><a href="${esc(e.external_link)}" target="_blank" rel="noopener noreferrer">Open linked file</a></div>` : ''}
               <br><span style="font-size:11px;color:#8a9694;">Added ${esc(fmtDate(e.created_at))}</span>
             </div>
           </div>`;
         }).join('');
+
+        document.querySelectorAll('.evidenceFileLink').forEach(link => {
+          link.addEventListener('click', async (ev) => {
+            ev.preventDefault();
+            const row = link.closest('.approvalRow');
+            const path = row.getAttribute('data-file-path');
+            if (!path) return;
+            const originalText = link.textContent;
+            link.textContent = 'Preparing download…';
+            try {
+              const { data, error: signErr } = await supabase.storage.from('evidence-files').createSignedUrl(path, 60);
+              if (signErr) throw signErr;
+              window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
+            } catch (err) {
+              showDashError('Could not open that file: ' + (err && err.message ? err.message : err));
+            } finally {
+              link.textContent = originalText;
+            }
+          });
+        });
       } catch (err) {
         showDashError('Could not load the evidence locker: ' + (err && err.message ? err.message : err));
       }
     }
+
+    document.getElementById('evidenceFilter').addEventListener('change', () => loadEvidenceLocker());
 
     document.getElementById('addEvidenceForm').addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -1512,6 +1550,7 @@
       const titleInput = document.getElementById('evidenceTitle');
       const descriptionInput = document.getElementById('evidenceDescription');
       const typeInput = document.getElementById('evidenceType');
+      const fileInput = document.getElementById('evidenceFile');
       const linkInput = document.getElementById('evidenceLink');
       const incidentId = incidentInput.value;
       const title = titleInput.value.trim();
@@ -1519,15 +1558,31 @@
         showDashError('Pick which incident this evidence belongs to, and give it a title.');
         return;
       }
+      const submitBtn = e.target.querySelector('button[type="submit"]');
+      const originalBtnText = submitBtn.textContent;
+      submitBtn.disabled = true;
       try {
         const { data: sessionData } = await supabase.auth.getSession();
         const uid = sessionData && sessionData.session ? sessionData.session.user.id : null;
+
+        let filePath = null;
+        const file = fileInput.files && fileInput.files[0];
+        if (file) {
+          submitBtn.textContent = 'Uploading file…';
+          const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+          const path = `${incidentId}/${Date.now()}_${safeName}`;
+          const { error: uploadErr } = await supabase.storage.from('evidence-files').upload(path, file);
+          if (uploadErr) throw uploadErr;
+          filePath = path;
+        }
+
         const { error } = await supabase.from('evidence_locker').insert({
           incident_id: incidentId,
           title,
           description: descriptionInput.value.trim() || null,
           evidence_type: typeInput.value || null,
           external_link: linkInput.value.trim() || null,
+          file_path: filePath,
           added_by: uid,
         });
         if (error) throw error;
@@ -1535,10 +1590,14 @@
         descriptionInput.value = '';
         typeInput.value = '';
         linkInput.value = '';
+        fileInput.value = '';
         incidentInput.value = '';
         loadEvidenceLocker();
       } catch (err) {
         showDashError('Could not add that evidence: ' + (err && err.message ? err.message : err));
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalBtnText;
       }
     });
 
