@@ -130,6 +130,14 @@
     border-radius:10px; padding:1px 7px; min-width:16px; text-align:center; flex:none;
   }
   .sidebarLink.active .sidebarBadge{ background:white; color:var(--navy); }
+  .linkLabelRow{ display:flex; align-items:center; gap:6px; min-width:0; }
+  .pinBtn{
+    background:none; border:none; padding:0; margin:0; font-size:13px; line-height:1;
+    color:#c3ccca; cursor:pointer; flex:none;
+  }
+  .pinBtn.pinned{ color:var(--copper); }
+  .sidebarLink.active .pinBtn{ color:#cfe3e0; }
+  .sidebarLink.active .pinBtn.pinned{ color:#ffd9a8; }
   .sidebarLink.searchResultLink{ display:block; line-height:1.35; }
   .sidebarLink.searchResultLink .resultType{
     font-size:10px; text-transform:uppercase; letter-spacing:0.03em; color:#8a9694;
@@ -901,10 +909,56 @@
       return results.slice(0, 30);
     }
 
+    const PAGE_LABEL_BY_ID = {};
+    SIDEBAR_GROUPS.forEach(g => g.pages.forEach(p => { PAGE_LABEL_BY_ID[p.id] = p.label; }));
+
+    // Pinned favorites: your own shortlist of pages, saved in this browser
+    // (like "remember last page") and pinned to the very top of the sidebar
+    // so your most-used pages are always one click away.
+    function getPinnedPages(){
+      try {
+        const raw = localStorage.getItem('he_pinned_pages');
+        const arr = raw ? JSON.parse(raw) : [];
+        return Array.isArray(arr) ? arr.filter(id => allPageIds().includes(id)) : [];
+      } catch (e) { return []; }
+    }
+    function setPinnedPages(arr){
+      try { localStorage.setItem('he_pinned_pages', JSON.stringify(arr)); } catch (e) { /* not critical */ }
+    }
+    function togglePinnedPage(pageId){
+      const pinned = getPinnedPages();
+      const idx = pinned.indexOf(pageId);
+      if (idx === -1) pinned.push(pageId); else pinned.splice(idx, 1);
+      setPinnedPages(pinned);
+      renderSidebar(document.getElementById('sidebarSearch').value);
+    }
+
+    function pageLinkHtml(p, pinnedSet){
+      const badge = getPageBadgeCount(p.id);
+      const isPinned = pinnedSet.has(p.id);
+      return `<a class="sidebarLink${p.id === currentPageId ? ' active' : ''}" data-page="${esc(p.id)}">
+        <span class="linkLabelRow">
+          <button type="button" class="pinBtn${isPinned ? ' pinned' : ''}" data-pin-page="${esc(p.id)}" title="${isPinned ? 'Unpin' : 'Pin to top'}">${isPinned ? '★' : '☆'}</button>
+          <span>${esc(p.label)}</span>
+        </span>${badge > 0 ? `<span class="sidebarBadge">${badge}</span>` : ''}
+      </a>`;
+    }
+
     function renderSidebar(filterText){
       const q = (filterText || '').trim().toLowerCase();
       const wrap = document.getElementById('sidebarGroups');
+      const pinnedIds = getPinnedPages();
+      const pinnedSet = new Set(pinnedIds);
       let html = '';
+
+      if (pinnedIds.length) {
+        html += `<div class="sidebarGroup"><div class="groupLabel">Pinned</div>`;
+        pinnedIds.forEach(id => {
+          if (!PAGE_LABEL_BY_ID[id]) return;
+          html += pageLinkHtml({ id, label: PAGE_LABEL_BY_ID[id] }, pinnedSet);
+        });
+        html += `</div>`;
+      }
 
       if (q) {
         const dataResults = searchEverything(q);
@@ -919,18 +973,11 @@
         }
       }
 
-      let anyPageMatch = false;
       SIDEBAR_GROUPS.forEach(group => {
         const pages = group.pages.filter(p => !q || p.label.toLowerCase().includes(q));
         if (!pages.length) return;
-        anyPageMatch = true;
         html += `<div class="sidebarGroup"><div class="groupLabel">${esc(group.label)}</div>`;
-        pages.forEach(p => {
-          const badge = getPageBadgeCount(p.id);
-          html += `<a class="sidebarLink${p.id === currentPageId ? ' active' : ''}" data-page="${esc(p.id)}">
-            <span>${esc(p.label)}</span>${badge > 0 ? `<span class="sidebarBadge">${badge}</span>` : ''}
-          </a>`;
-        });
+        pages.forEach(p => { html += pageLinkHtml(p, pinnedSet); });
         html += `</div>`;
       });
 
@@ -938,6 +985,12 @@
       wrap.innerHTML = html;
       wrap.querySelectorAll('.sidebarLink').forEach(link => {
         link.addEventListener('click', () => showPage(link.getAttribute('data-page')));
+      });
+      wrap.querySelectorAll('.pinBtn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          togglePinnedPage(btn.getAttribute('data-pin-page'));
+        });
       });
     }
 
