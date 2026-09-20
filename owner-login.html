@@ -270,6 +270,7 @@
         <a href="#tasksPanel">Tasks &amp; Incidents</a>
         <a href="#aiPanel">AI Activity</a>
         <a href="#inquiriesPanel">Customer Inquiries</a>
+        <a href="#continuityPanel">Continuity</a>
         <a href="#controlsPanel">Owner Controls</a>
       </nav>
       <div class="right">
@@ -278,7 +279,7 @@
         <button id="signout" class="small">Sign out</button>
       </div>
     </header>
-    <div class="shortcutHint">Keyboard shortcuts: <b>r</b> refresh &nbsp;·&nbsp; <b>0</b> Attention &nbsp;·&nbsp; <b>5</b> Calendar &nbsp;·&nbsp; <b>1</b> Orders &nbsp;·&nbsp; <b>2</b> Tasks &amp; Incidents &nbsp;·&nbsp; <b>3</b> AI Activity &nbsp;·&nbsp; <b>6</b> Customer Inquiries &nbsp;·&nbsp; <b>4</b> Owner Controls</div>
+    <div class="shortcutHint">Keyboard shortcuts: <b>r</b> refresh &nbsp;·&nbsp; <b>0</b> Attention &nbsp;·&nbsp; <b>5</b> Calendar &nbsp;·&nbsp; <b>1</b> Orders &nbsp;·&nbsp; <b>2</b> Tasks &amp; Incidents &nbsp;·&nbsp; <b>3</b> AI Activity &nbsp;·&nbsp; <b>6</b> Customer Inquiries &nbsp;·&nbsp; <b>7</b> Continuity &nbsp;·&nbsp; <b>4</b> Owner Controls</div>
 
     <main>
       <div id="dashError" class="bannerBox"></div>
@@ -421,6 +422,14 @@
           <option value="answered">Show: answered</option>
         </select>
         <div id="inquiriesWrap"><p class="empty">Loading…</p></div>
+      </section>
+
+      <!-- Business Continuity -->
+      <section class="panel" id="continuityPanel">
+        <h2>Business Continuity</h2>
+        <p class="hint">The health of every outside service this system depends on, in one place. Status is yours to set — change it the moment you notice something's wrong. Two rows also show a real "last seen" timestamp pulled live from actual activity, not just your own memory.</p>
+        <div class="statRow" id="continuityStats"></div>
+        <div id="continuityWrap"><p class="empty">Loading…</p></div>
       </section>
 
       <!-- Owner Controls -->
@@ -711,6 +720,7 @@
       else if (e.key === '2') { document.getElementById('tasksPanel').scrollIntoView({behavior:'smooth'}); }
       else if (e.key === '3') { document.getElementById('aiPanel').scrollIntoView({behavior:'smooth'}); }
       else if (e.key === '6') { document.getElementById('inquiriesPanel').scrollIntoView({behavior:'smooth'}); }
+      else if (e.key === '7') { document.getElementById('continuityPanel').scrollIntoView({behavior:'smooth'}); }
       else if (e.key === '4') { document.getElementById('controlsPanel').scrollIntoView({behavior:'smooth'}); }
     });
 
@@ -952,6 +962,7 @@
         loadIncidents(),
         loadAI(),
         loadInquiries(),
+        loadContinuity(),
         loadFlags(),
         loadApprovals(),
         loadSessions(),
@@ -1340,6 +1351,127 @@
       } catch (err) {
         showDashError('Could not mark that as answered: ' + (err && err.message ? err.message : err));
         btn.disabled = false;
+      }
+    }
+
+    // Business Continuity: the health of every outside service this system
+    // depends on. Status is manually set by the owner; a couple of rows also
+    // get a real "last seen" signal pulled live from actual activity.
+    function continuityBadgeClass(status){
+      if (status === 'operational') return 'sev-low';
+      if (status === 'degraded') return 'sev-medium';
+      if (status === 'down') return 'sev-high';
+      return '';
+    }
+    function timeAgo(iso){
+      if (!iso) return null;
+      const ms = Date.now() - new Date(iso).getTime();
+      const mins = Math.round(ms / 60000);
+      if (mins < 1) return 'just now';
+      if (mins < 60) return `${mins} minute${mins === 1 ? '' : 's'} ago`;
+      const hours = Math.round(mins / 60);
+      if (hours < 48) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+      const days = Math.round(hours / 24);
+      return `${days} day${days === 1 ? '' : 's'} ago`;
+    }
+
+    async function loadContinuity(){
+      try {
+        const { data: services, error } = await supabase
+          .from('service_status')
+          .select('id, service_name, category, status, notes, updated_at')
+          .order('service_name', { ascending: true });
+        if (error) throw error;
+
+        // Two real, live signals — not just manual status — pulled from
+        // activity that already exists elsewhere in the system.
+        let lastCalendarSync = null;
+        try {
+          const { data: calRow } = await supabase
+            .from('calendar_events')
+            .select('synced_at')
+            .order('synced_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          lastCalendarSync = calRow ? calRow.synced_at : null;
+        } catch (e) { /* calendar_events may be empty — that's fine, just no signal */ }
+
+        let lastAiCall = null;
+        try {
+          const { data: aiRow } = await supabase
+            .from('ai_decision_log')
+            .select('created_at')
+            .eq('agent_key', 'customer_service_agent')
+            .neq('model_used', 'rules-only')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          lastAiCall = aiRow ? aiRow.created_at : null;
+        } catch (e) { /* no real AI calls logged yet — that's fine, just no signal */ }
+
+        const counts = { operational: 0, degraded: 0, down: 0 };
+        (services || []).forEach(s => { if (counts[s.status] !== undefined) counts[s.status]++; });
+        document.getElementById('continuityStats').innerHTML = `
+          <div class="stat"><div class="num">${counts.operational}</div><div class="lbl">Operational</div></div>
+          <div class="stat"><div class="num">${counts.degraded}</div><div class="lbl">Degraded</div></div>
+          <div class="stat"><div class="num">${counts.down}</div><div class="lbl">Down</div></div>
+        `;
+
+        if (!services || !services.length) {
+          document.getElementById('continuityWrap').innerHTML = '<p class="empty">No services tracked yet.</p>';
+          return;
+        }
+
+        document.getElementById('continuityWrap').innerHTML = services.map(s => {
+          let liveSignal = '';
+          if (s.service_name === 'Apple Calendar Sync') {
+            liveSignal = lastCalendarSync
+              ? `<div style="font-size:11.5px;color:#6b7877;margin-top:3px;">Last real sync: ${esc(timeAgo(lastCalendarSync))} (${esc(fmtDate(lastCalendarSync))})</div>`
+              : `<div style="font-size:11.5px;color:#6b7877;margin-top:3px;">No sync recorded yet.</div>`;
+          } else if (s.service_name === 'Anthropic AI API') {
+            liveSignal = lastAiCall
+              ? `<div style="font-size:11.5px;color:#6b7877;margin-top:3px;">Last real AI call: ${esc(timeAgo(lastAiCall))} (${esc(fmtDate(lastAiCall))})</div>`
+              : `<div style="font-size:11.5px;color:#6b7877;margin-top:3px;">No AI call logged yet.</div>`;
+          }
+          return `
+          <div class="approvalRow" style="align-items:flex-start;" data-id="${esc(s.id)}">
+            <div class="info">
+              <b>${esc(s.service_name)}</b>
+              ${s.category ? `<span class="badge">${esc(s.category)}</span>` : ''}
+              <span class="badge ${continuityBadgeClass(s.status)}">${esc(s.status)}</span>
+              ${s.notes ? `<div style="font-size:12px;color:#6b7877;margin-top:3px;">${esc(s.notes)}</div>` : ''}
+              ${liveSignal}
+              <div style="font-size:11px;color:#8a9694;margin-top:3px;">Status last set ${esc(fmtDate(s.updated_at))}</div>
+            </div>
+            <div class="actions">
+              <label style="font-size:11.5px;color:#6b7877;">
+                <select class="continuityStatusSelect" data-id="${esc(s.id)}" style="padding:4px 7px;border-radius:6px;border:1px solid #cfd8d6;font-family:inherit;font-size:12.5px;">
+                  <option value="operational" ${s.status === 'operational' ? 'selected' : ''}>Operational</option>
+                  <option value="degraded" ${s.status === 'degraded' ? 'selected' : ''}>Degraded</option>
+                  <option value="down" ${s.status === 'down' ? 'selected' : ''}>Down</option>
+                </select>
+              </label>
+            </div>
+          </div>`;
+        }).join('');
+
+        document.querySelectorAll('.continuityStatusSelect').forEach(sel => sel.addEventListener('change', () => setServiceStatus(sel)));
+      } catch (err) {
+        showDashError('Could not load Business Continuity: ' + (err && err.message ? err.message : err));
+      }
+    }
+
+    async function setServiceStatus(sel){
+      const id = sel.getAttribute('data-id');
+      const newVal = sel.value;
+      sel.disabled = true;
+      try {
+        const { error } = await supabase.from('service_status').update({ status: newVal, updated_at: new Date().toISOString() }).eq('id', id);
+        if (error) throw error;
+        loadContinuity();
+      } catch (err) {
+        showDashError('Could not update that service status: ' + (err && err.message ? err.message : err));
+        sel.disabled = false;
       }
     }
 
