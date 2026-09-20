@@ -93,6 +93,12 @@
     flex:none;
   }
   header.topbar h1{ font-size:17px; margin:0; font-weight:700; }
+  .headerLeft{ display:flex; align-items:center; gap:12px; }
+  .menuToggleBtn{
+    display:none; background:transparent; border:1px solid rgba(255,255,255,0.5);
+    color:white; width:34px; height:34px; border-radius:8px; font-size:15px;
+    align-items:center; justify-content:center; padding:0; cursor:pointer; flex:none;
+  }
   header.topbar .who{ font-size:13px; opacity:0.85; }
   header.topbar nav{ display:flex; gap:14px; flex-wrap:wrap; }
   header.topbar nav a{ color:#dfeef0; font-size:13px; text-decoration:none; opacity:0.9; }
@@ -279,6 +285,27 @@
     .calCell{ min-height:56px; }
     .calChip{ font-size:9px; }
   }
+
+  /* ---------- Phone-friendly sidebar ---------- */
+  @media (max-width:800px){
+    .menuToggleBtn{ display:flex; }
+    header.topbar h1{ font-size:15px; }
+    .sidebar{
+      position:fixed; top:0; left:0; bottom:0; height:100vh;
+      width:260px; max-width:80vw;
+      transform:translateX(-100%);
+      transition:transform 0.2s ease;
+      box-shadow:2px 0 16px rgba(0,0,0,0.3);
+      z-index:50;
+    }
+    .sidebar.mobileOpen{ transform:translateX(0); }
+    .sidebarOverlay{
+      display:none; position:fixed; inset:0; background:rgba(11,61,76,0.4); z-index:40;
+    }
+    .sidebarOverlay.visible{ display:block; }
+    .contentArea{ padding:16px 16px 60px; }
+    .contentArea > section.panel{ max-width:none; }
+  }
 </style>
 </head>
 <body>
@@ -303,7 +330,10 @@
   <!-- ================= DASHBOARD ================= -->
   <div id="dash">
     <header class="topbar">
-      <h1>Health Endeavors — Owner Dashboard</h1>
+      <div class="headerLeft">
+        <button type="button" id="menuToggleBtn" class="menuToggleBtn" aria-label="Open menu">☰</button>
+        <h1>Health Endeavors — Owner Dashboard</h1>
+      </div>
       <div class="right">
         <span class="who" id="whoAmI"></span>
         <button id="refreshBtn" class="small">Refresh</button>
@@ -312,6 +342,7 @@
     </header>
 
     <div class="dashBody">
+      <div class="sidebarOverlay" id="sidebarOverlay"></div>
       <nav class="sidebar" id="sidebarNav">
         <input type="text" id="sidebarSearch" class="sidebarSearch" placeholder="Search pages…">
         <div id="sidebarGroups"></div>
@@ -1017,6 +1048,11 @@
       try { localStorage.setItem('he_last_page', pageId); } catch (e) { /* not critical */ }
     }
 
+    function closeMobileSidebar(){
+      document.getElementById('sidebarNav').classList.remove('mobileOpen');
+      document.getElementById('sidebarOverlay').classList.remove('visible');
+    }
+
     function showPage(pageId){
       document.querySelectorAll('main.contentArea > section.panel').forEach(sec => {
         sec.classList.toggle('activePage', sec.id === pageId);
@@ -1024,6 +1060,7 @@
       currentPageId = pageId;
       saveLastPage(pageId);
       renderSidebar(document.getElementById('sidebarSearch').value);
+      closeMobileSidebar();
       document.querySelector('main.contentArea').scrollTop = 0;
       window.scrollTo(0, 0);
     }
@@ -1040,6 +1077,15 @@
         if (match) { showPage(match.id); return; }
       }
     });
+
+    // On a phone/narrow screen, the sidebar is hidden by default; this menu
+    // button slides it in, and tapping the darkened background (or picking a
+    // page, handled in showPage above) closes it again.
+    document.getElementById('menuToggleBtn').addEventListener('click', () => {
+      document.getElementById('sidebarNav').classList.toggle('mobileOpen');
+      document.getElementById('sidebarOverlay').classList.toggle('visible');
+    });
+    document.getElementById('sidebarOverlay').addEventListener('click', closeMobileSidebar);
 
     // ---------- needs your attention ----------
     const ITEM_TYPE_LABELS = {
