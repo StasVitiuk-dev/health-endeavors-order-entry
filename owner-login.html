@@ -1167,7 +1167,7 @@
       try {
         const { data: inquiries, error } = await supabase
           .from('customer_inquiries')
-          .select('id, order_id, customer_name, customer_email, channel, question_text, status, ai_draft_reply, ai_confidence, sensitive, sensitive_reasons, created_at, drafted_at, answered_at')
+          .select('id, order_id, customer_name, customer_email, channel, question_text, status, ai_draft_reply, ai_confidence, sensitive, sensitive_reasons, severity, created_at, drafted_at, answered_at')
           .order('created_at', { ascending: false })
           .limit(200);
         if (error) throw error;
@@ -1198,7 +1198,17 @@
       `;
 
       const filterVal = document.getElementById('inqFilter').value;
-      const list = filterVal ? ALL_INQUIRIES.filter(i => i.status === filterVal) : ALL_INQUIRIES;
+      const filtered = filterVal ? ALL_INQUIRIES.filter(i => i.status === filterVal) : ALL_INQUIRIES;
+
+      // Worst-first ordering: highest severity floats to the top so the most
+      // urgent questions are the first thing you see, with newest-first as
+      // the tiebreaker within the same severity.
+      const SEVERITY_RANK = { high: 3, medium: 2, low: 1 };
+      const list = filtered.slice().sort((a, b) => {
+        const rankDiff = (SEVERITY_RANK[b.severity] || 0) - (SEVERITY_RANK[a.severity] || 0);
+        if (rankDiff !== 0) return rankDiff;
+        return new Date(b.created_at) - new Date(a.created_at);
+      });
 
       if (!list.length) {
         document.getElementById('inquiriesWrap').innerHTML = ALL_INQUIRIES.length
@@ -1215,10 +1225,21 @@
             <b>${esc(i.customer_name || 'Unknown customer')}</b>
             ${i.channel ? `<span class="badge">${esc(i.channel)}</span>` : ''}
             <span class="badge ${inqStatusBadgeClass(i.status)}">${esc(INQ_STATUS_LABELS[i.status] || i.status)}</span>
+            ${i.severity ? `<span class="badge sev-${esc(i.severity)}">${esc(i.severity)} severity</span>` : ''}
             <div style="font-size:12px;color:#6b7877;margin-top:3px;">
               ${esc(i.customer_email || 'No email on file')}${order ? ' · Order ' + esc(order.order_number) : ''}
             </div>
             <div style="font-size:11px;color:#8a9694;margin-top:2px;">Asked ${esc(fmtDate(i.created_at))}</div>
+            <div style="margin-top:6px;">
+              <label style="font-size:11.5px;color:#6b7877;">Severity:
+                <select class="inqSeveritySelect" data-id="${esc(i.id)}" style="margin-left:4px;padding:3px 6px;border-radius:6px;border:1px solid #cfd8d6;font-family:inherit;font-size:12px;">
+                  <option value="" ${!i.severity ? 'selected' : ''}>Not classified</option>
+                  <option value="low" ${i.severity === 'low' ? 'selected' : ''}>Low</option>
+                  <option value="medium" ${i.severity === 'medium' ? 'selected' : ''}>Medium</option>
+                  <option value="high" ${i.severity === 'high' ? 'selected' : ''}>High</option>
+                </select>
+              </label>
+            </div>
 
             <div style="margin-top:8px;padding:8px 10px;background:#f4f7f6;border-radius:8px;font-size:13px;">
               <b style="font-size:11px;color:#6b7877;text-transform:uppercase;">Question</b><br>
@@ -1252,9 +1273,26 @@
       document.querySelectorAll('.inqSaveBtn').forEach(btn => btn.addEventListener('click', () => saveInquiryDraft(btn)));
       document.querySelectorAll('.inqCopyBtn').forEach(btn => btn.addEventListener('click', () => copyInquiryReply(btn)));
       document.querySelectorAll('.inqAnsweredBtn').forEach(btn => btn.addEventListener('click', () => markInquiryAnswered(btn)));
+      document.querySelectorAll('.inqSeveritySelect').forEach(sel => sel.addEventListener('change', () => setInquirySeverity(sel)));
     }
 
     document.getElementById('inqFilter').addEventListener('change', () => renderInquiries());
+
+    async function setInquirySeverity(sel){
+      const id = sel.getAttribute('data-id');
+      const newVal = sel.value || null;
+      sel.disabled = true;
+      try {
+        const { error } = await supabase.from('customer_inquiries').update({ severity: newVal }).eq('id', id);
+        if (error) throw error;
+        const rec = ALL_INQUIRIES.find(i => i.id === id);
+        if (rec) rec.severity = newVal;
+        renderInquiries();
+      } catch (err) {
+        showDashError('Could not update severity: ' + (err && err.message ? err.message : err));
+        sel.disabled = false;
+      }
+    }
 
     async function saveInquiryDraft(btn){
       const id = btn.getAttribute('data-id');
