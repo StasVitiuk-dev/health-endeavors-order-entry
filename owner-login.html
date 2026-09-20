@@ -118,13 +118,19 @@
     color:#8a9694; font-weight:700; margin:0 0 6px 8px;
   }
   .sidebarLink{
-    display:block; padding:8px 10px; border-radius:8px; font-size:13.5px;
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    padding:8px 10px; border-radius:8px; font-size:13.5px;
     color:#33403e; cursor:pointer; margin-bottom:2px; line-height:1.3;
   }
   .sidebarLink:hover{ background:#eef2f1; }
   .sidebarLink.active{ background:var(--navy); color:white; font-weight:600; }
   .sidebarEmpty{ font-size:12.5px; color:#8a9694; padding:8px 10px; }
-  .sidebarLink.searchResultLink{ line-height:1.35; }
+  .sidebarBadge{
+    background:var(--copper); color:white; font-size:11px; font-weight:700;
+    border-radius:10px; padding:1px 7px; min-width:16px; text-align:center; flex:none;
+  }
+  .sidebarLink.active .sidebarBadge{ background:white; color:var(--navy); }
+  .sidebarLink.searchResultLink{ display:block; line-height:1.35; }
   .sidebarLink.searchResultLink .resultType{
     font-size:10px; text-transform:uppercase; letter-spacing:0.03em; color:#8a9694;
   }
@@ -818,7 +824,22 @@
     const SEARCH_INDEX = {
       orders: [], tasks: [], incidents: [], approvals: [], sops: [],
       featureRequests: [], evidence: [], adverseEvents: [], legalHolds: [],
+      attention: [],
     };
+
+    // Sidebar badge counts: a small number next to a page name showing
+    // something's waiting there, computed live from data already loaded —
+    // no extra database calls. Add a case here for any page worth flagging.
+    function getPageBadgeCount(pageId){
+      switch (pageId) {
+        case 'attentionPanel': return (SEARCH_INDEX.attention || []).length;
+        case 'approvalsPanel': return (SEARCH_INDEX.approvals || []).filter(r => !isClosedStatus(r.status)).length;
+        case 'inquiriesPanel': return (ALL_INQUIRIES || []).filter(i => i.status === 'needs_review').length;
+        case 'tasksPanel': return (SEARCH_INDEX.tasks || []).filter(t => !isClosedStatus(t.status)).length;
+        case 'incidentsPanel': return (SEARCH_INDEX.incidents || []).filter(i => !isClosedStatus(i.status)).length;
+        default: return 0;
+      }
+    }
 
     function searchEverything(query){
       const q = query.trim().toLowerCase();
@@ -905,7 +926,10 @@
         anyPageMatch = true;
         html += `<div class="sidebarGroup"><div class="groupLabel">${esc(group.label)}</div>`;
         pages.forEach(p => {
-          html += `<a class="sidebarLink${p.id === currentPageId ? ' active' : ''}" data-page="${esc(p.id)}">${esc(p.label)}</a>`;
+          const badge = getPageBadgeCount(p.id);
+          html += `<a class="sidebarLink${p.id === currentPageId ? ' active' : ''}" data-page="${esc(p.id)}">
+            <span>${esc(p.label)}</span>${badge > 0 ? `<span class="sidebarBadge">${badge}</span>` : ''}
+          </a>`;
         });
         html += `</div>`;
       });
@@ -1017,6 +1041,7 @@
           .select('*')
           .order('due_at', { ascending: true, nullsFirst: false });
         if (error) throw error;
+        SEARCH_INDEX.attention = data;
         renderAttention(data);
       } catch (err) {
         showDashError('Could not load your attention list: ' + (err && err.message ? err.message : err));
@@ -1215,6 +1240,8 @@
         loadLegalHolds(),
         loadReleasedLegalHolds(),
       ]);
+      // Refresh the sidebar now that every page's data (and badge counts) is in.
+      renderSidebar(document.getElementById('sidebarSearch').value);
     }
 
     // Privacy Access Logging: records that customer personal info (name/email) was
