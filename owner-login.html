@@ -3017,7 +3017,7 @@
       try {
         const { data: deleted, error } = await supabase
           .from('expenses')
-          .select('id, category, amount, deleted_at')
+          .select('id, category, amount, deleted_at, receipt_path')
           .not('deleted_at', 'is', null)
           .order('deleted_at', { ascending: false })
           .limit(50);
