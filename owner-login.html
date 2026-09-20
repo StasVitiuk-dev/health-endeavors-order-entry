@@ -271,6 +271,7 @@
         <a href="#aiPanel">AI Activity</a>
         <a href="#inquiriesPanel">Customer Inquiries</a>
         <a href="#continuityPanel">Continuity</a>
+        <a href="#dailySummaryPanel">Daily Summary</a>
         <a href="#controlsPanel">Owner Controls</a>
       </nav>
       <div class="right">
@@ -279,7 +280,7 @@
         <button id="signout" class="small">Sign out</button>
       </div>
     </header>
-    <div class="shortcutHint">Keyboard shortcuts: <b>r</b> refresh &nbsp;·&nbsp; <b>0</b> Attention &nbsp;·&nbsp; <b>5</b> Calendar &nbsp;·&nbsp; <b>1</b> Orders &nbsp;·&nbsp; <b>2</b> Tasks &amp; Incidents &nbsp;·&nbsp; <b>3</b> AI Activity &nbsp;·&nbsp; <b>6</b> Customer Inquiries &nbsp;·&nbsp; <b>7</b> Continuity &nbsp;·&nbsp; <b>4</b> Owner Controls</div>
+    <div class="shortcutHint">Keyboard shortcuts: <b>r</b> refresh &nbsp;·&nbsp; <b>0</b> Attention &nbsp;·&nbsp; <b>5</b> Calendar &nbsp;·&nbsp; <b>1</b> Orders &nbsp;·&nbsp; <b>2</b> Tasks &amp; Incidents &nbsp;·&nbsp; <b>3</b> AI Activity &nbsp;·&nbsp; <b>6</b> Customer Inquiries &nbsp;·&nbsp; <b>7</b> Continuity &nbsp;·&nbsp; <b>8</b> Daily Summary &nbsp;·&nbsp; <b>4</b> Owner Controls</div>
 
     <main>
       <div id="dashError" class="bannerBox"></div>
@@ -430,6 +431,13 @@
         <p class="hint">The health of every outside service this system depends on, in one place. Status is yours to set — change it the moment you notice something's wrong. Two rows also show a real "last seen" timestamp pulled live from actual activity, not just your own memory.</p>
         <div class="statRow" id="continuityStats"></div>
         <div id="continuityWrap"><p class="empty">Loading…</p></div>
+      </section>
+
+      <!-- Daily Owner Business Health Summary -->
+      <section class="panel" id="dailySummaryPanel">
+        <h2>Daily Summary</h2>
+        <p class="hint">What happened yesterday (<span id="dailySummaryDateLabel">—</span>), across orders, customer questions, tasks, incidents, and AI activity — computed live, nothing stored.</p>
+        <div class="statRow" id="dailySummaryStats"></div>
       </section>
 
       <!-- Owner Controls -->
@@ -721,6 +729,7 @@
       else if (e.key === '3') { document.getElementById('aiPanel').scrollIntoView({behavior:'smooth'}); }
       else if (e.key === '6') { document.getElementById('inquiriesPanel').scrollIntoView({behavior:'smooth'}); }
       else if (e.key === '7') { document.getElementById('continuityPanel').scrollIntoView({behavior:'smooth'}); }
+      else if (e.key === '8') { document.getElementById('dailySummaryPanel').scrollIntoView({behavior:'smooth'}); }
       else if (e.key === '4') { document.getElementById('controlsPanel').scrollIntoView({behavior:'smooth'}); }
     });
 
@@ -963,6 +972,7 @@
         loadAI(),
         loadInquiries(),
         loadContinuity(),
+        loadDailySummary(),
         loadFlags(),
         loadApprovals(),
         loadSessions(),
@@ -1472,6 +1482,68 @@
       } catch (err) {
         showDashError('Could not update that service status: ' + (err && err.message ? err.message : err));
         sel.disabled = false;
+      }
+    }
+
+    // Daily Owner Business Health Summary: a live snapshot of yesterday
+    // (midnight to midnight, your browser's local time) — nothing new is
+    // tracked here, it just totals up what's already in orders, customer
+    // inquiries, tasks, incidents, and the AI decision log.
+    function getYesterdayRange(){
+      const now = new Date();
+      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const startOfYesterday = new Date(startOfToday);
+      startOfYesterday.setDate(startOfYesterday.getDate() - 1);
+      return { start: startOfYesterday, end: startOfToday };
+    }
+
+    async function loadDailySummary(){
+      try {
+        const { start, end } = getYesterdayRange();
+        const startIso = start.toISOString();
+        const endIso = end.toISOString();
+        document.getElementById('dailySummaryDateLabel').textContent =
+          start.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+
+        const [ordersRes, inquiriesRes, tasksRes, incidentsRes, aiRes] = await Promise.all([
+          supabase.from('orders').select('id, total, currency, status, deleted_at, placed_at')
+            .gte('placed_at', startIso).lt('placed_at', endIso),
+          supabase.from('customer_inquiries').select('id, created_at')
+            .gte('created_at', startIso).lt('created_at', endIso),
+          supabase.from('tasks').select('id, created_at')
+            .gte('created_at', startIso).lt('created_at', endIso),
+          supabase.from('incidents').select('id, created_at')
+            .gte('created_at', startIso).lt('created_at', endIso),
+          supabase.from('ai_decision_log').select('id, cost_usd, model_used, created_at')
+            .gte('created_at', startIso).lt('created_at', endIso),
+        ]);
+
+        if (ordersRes.error) throw ordersRes.error;
+        if (inquiriesRes.error) throw inquiriesRes.error;
+        if (tasksRes.error) throw tasksRes.error;
+        if (incidentsRes.error) throw incidentsRes.error;
+        if (aiRes.error) throw aiRes.error;
+
+        const orders = (ordersRes.data || []).filter(o => !o.deleted_at);
+        const revenueOrders = orders.filter(o => o.status !== 'cancelled');
+        const revenue = revenueOrders.reduce((sum, o) => sum + Number(o.total || 0), 0);
+        const currency = (orders[0] && orders[0].currency) || 'USD';
+
+        const aiLogs = aiRes.data || [];
+        const aiCost = aiLogs.reduce((sum, l) => sum + Number(l.cost_usd || 0), 0);
+        const realAiCalls = aiLogs.filter(l => l.model_used !== 'rules-only').length;
+
+        document.getElementById('dailySummaryStats').innerHTML = `
+          <div class="stat"><div class="num">${orders.length}</div><div class="lbl">Orders placed</div></div>
+          <div class="stat"><div class="num">${esc(fmtMoney(revenue, currency))}</div><div class="lbl">Revenue</div></div>
+          <div class="stat"><div class="num">${(inquiriesRes.data || []).length}</div><div class="lbl">New customer questions</div></div>
+          <div class="stat"><div class="num">${(tasksRes.data || []).length}</div><div class="lbl">Tasks opened</div></div>
+          <div class="stat"><div class="num">${(incidentsRes.data || []).length}</div><div class="lbl">Incidents opened</div></div>
+          <div class="stat"><div class="num">${realAiCalls}</div><div class="lbl">Real AI calls</div></div>
+          <div class="stat"><div class="num">${esc(fmtMoney(aiCost, 'USD'))}</div><div class="lbl">AI cost</div></div>
+        `;
+      } catch (err) {
+        showDashError('Could not load Daily Summary: ' + (err && err.message ? err.message : err));
       }
     }
 
