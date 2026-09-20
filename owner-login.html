@@ -434,6 +434,23 @@
         <div id="deletedExpensesWrap"><p class="empty">Loading…</p></div>
       </section>
 
+      <!-- Accounting (live rollup — no data of its own, just combines Orders + Expenses) -->
+      <section class="panel" id="accountingPanel">
+        <h2>Accounting</h2>
+        <p class="hint">A live profit picture, calculated fresh every time you open this page — nothing is stored separately here. Orders that are cancelled or fully refunded are left out of revenue entirely. Partial refunds are still counted in full (the exact amount refunded isn't tracked yet), so they're listed below for you to double-check by eye.</p>
+        <div class="viewToggle" id="acctToggle">
+          <button type="button" class="small" data-range="today">Today</button>
+          <button type="button" class="small secondary" data-range="week">This Week</button>
+          <button type="button" class="small secondary" data-range="month">This Month</button>
+          <button type="button" class="small secondary" data-range="all">All Time</button>
+        </div>
+        <div class="statRow" id="acctStats"></div>
+
+        <h3 style="font-size:13px;color:var(--navy);margin:18px 0 6px;">Orders needing refund review</h3>
+        <p class="hint" style="margin-top:-2px;">These have a partial-refund status but no exact refunded amount on file, so they're counted at full value above — check Shopify if the real number matters for this period.</p>
+        <div id="acctReviewWrap"><p class="empty">Loading…</p></div>
+      </section>
+
       <!-- Tasks & Incidents -->
       <section class="panel" id="tasksPanel">
         <h2>Tasks</h2>
@@ -883,6 +900,7 @@
       ]},
       { label: 'Finance', pages: [
         { id: 'expensesPanel', label: 'Expenses' },
+        { id: 'accountingPanel', label: 'Accounting' },
       ]},
       { label: 'Operations', pages: [
         { id: 'tasksPanel', label: 'Tasks' },
@@ -1391,6 +1409,9 @@
         loadAttention(),
         loadCalendarMonth(),
         loadOrders(),
+        loadExpenses(),
+        loadDeletedExpenses(),
+        loadAccounting(),
         loadTasks(),
         loadIncidents(),
         loadAI(),
@@ -1408,8 +1429,6 @@
         loadAdverseEvents(),
         loadLegalHolds(),
         loadReleasedLegalHolds(),
-        loadExpenses(),
-        loadDeletedExpenses(),
       ]);
       // Refresh the sidebar now that every page's data (and badge counts) is in.
       renderSidebar(document.getElementById('sidebarSearch').value);
@@ -3110,6 +3129,100 @@
         submitBtn.disabled = false;
         submitBtn.textContent = originalBtnText;
       }
+    });
+
+    // ---------- Accounting Agent (Agent #9) ----------
+    // Live rollup only — no table of its own. Combines real order revenue
+    // (from `orders`) with logged spending (from `expenses`) into one profit
+    // picture, recalculated fresh every time this panel loads or the date
+    // range changes.
+    let acctRange = 'today';
+
+    function acctRangeStart(range){
+      const now = new Date();
+      if (range === 'today') return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      if (range === 'week') { const d = new Date(now); d.setDate(d.getDate() - 7); return d; }
+      if (range === 'month') return new Date(now.getFullYear(), now.getMonth(), 1);
+      return null; // all time
+    }
+
+    // Looks for keywords in the status text instead of one exact hardcoded
+    // string — safer than guessing exactly how Shopify's sync will spell a
+    // status, since no real orders exist yet to check against.
+    function classifyOrderStatus(status){
+      const s = (status || '').toLowerCase();
+      const isCancelled = s.includes('cancel');
+      const isRefund = s.includes('refund');
+      const isPartialRefund = isRefund && s.includes('partial');
+      return { isCancelled, isRefund, isPartialRefund };
+    }
+
+    async function loadAccounting(){
+      try {
+        const start = acctRangeStart(acctRange);
+
+        let orderQuery = supabase.from('orders')
+          .select('id, order_number, total, currency, status, placed_at, deleted_at')
+          .is('deleted_at', null);
+        if (start) orderQuery = orderQuery.gte('placed_at', start.toISOString());
+        const { data: orders, error: ordersErr } = await orderQuery;
+        if (ordersErr) throw ordersErr;
+
+        let expenseQuery = supabase.from('expenses')
+          .select('id, amount, expense_date, deleted_at')
+          .is('deleted_at', null);
+        if (start) expenseQuery = expenseQuery.gte('expense_date', start.toISOString().slice(0, 10));
+        const { data: expenses, error: expErr } = await expenseQuery;
+        if (expErr) throw expErr;
+
+        const currency = (orders[0] && orders[0].currency) || 'USD';
+        let revenue = 0;
+        let excluded = 0;
+        const needsReview = [];
+
+        orders.forEach(o => {
+          const amt = Number(o.total || 0);
+          const { isCancelled, isRefund, isPartialRefund } = classifyOrderStatus(o.status);
+          if (isCancelled || (isRefund && !isPartialRefund)) {
+            excluded += amt;
+            return;
+          }
+          revenue += amt;
+          if (isPartialRefund) needsReview.push(o);
+        });
+
+        const totalExpenses = expenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
+        const netProfit = revenue - totalExpenses;
+
+        document.getElementById('acctStats').innerHTML = `
+          <div class="stat"><div class="num">${esc(fmtMoney(revenue, currency))}</div><div class="lbl">Revenue</div></div>
+          <div class="stat"><div class="num">${esc(fmtMoney(totalExpenses, currency))}</div><div class="lbl">Expenses</div></div>
+          <div class="stat"><div class="num">${esc(fmtMoney(netProfit, currency))}</div><div class="lbl">Net profit</div></div>
+          <div class="stat"><div class="num">${esc(fmtMoney(excluded, currency))}</div><div class="lbl">Cancelled / refunded (excluded)</div></div>
+        `;
+
+        if (!needsReview.length) {
+          document.getElementById('acctReviewWrap').innerHTML = '<p class="empty">Nothing needs review right now.</p>';
+        } else {
+          document.getElementById('acctReviewWrap').innerHTML = needsReview.map(o => `
+            <div class="deletedRow">
+              <div class="info"><b>${esc(o.order_number || o.id)}</b> — ${esc(fmtMoney(o.total, o.currency))}<br>
+              <span style="font-size:11px;color:#8a9694;">Status: ${esc(o.status)} — Placed ${esc(fmtDate(o.placed_at))}</span></div>
+            </div>`).join('');
+        }
+      } catch (err) {
+        showDashError('Could not load Accounting: ' + (err && err.message ? err.message : err));
+      }
+    }
+
+    document.getElementById('acctToggle').addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-range]');
+      if (!btn) return;
+      acctRange = btn.getAttribute('data-range');
+      document.querySelectorAll('#acctToggle button').forEach(b => {
+        b.classList.toggle('secondary', b !== btn);
+      });
+      loadAccounting();
     });
 
     // If already logged in from a previous visit, skip straight to the dashboard.
