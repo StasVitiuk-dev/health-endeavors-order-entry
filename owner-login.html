@@ -70,6 +70,8 @@
   button.approve{ background:var(--good); }
   button.deny{ background:var(--danger); }
   button.small{ padding:6px 10px; font-size:13px; }
+  .viewToggle{ display:flex; gap:8px; margin-bottom:14px; }
+  .viewToggle button.secondary{ background:transparent; }
   #loginScreen button[type=submit]{ width:100%; }
   .msg{ margin-top:16px; font-size:13px; text-align:center; }
   .msg.error{ color:var(--danger); }
@@ -400,6 +402,36 @@
         <div id="deletedOrdersWrap"><p class="empty">Loading…</p></div>
       </section>
 
+      <!-- Expenses (manual entry, feeds the Accounting Agent) -->
+      <section class="panel" id="expensesPanel">
+        <h2>Expenses</h2>
+        <p class="hint">Log what the business spends money on here — packaging, ingredients, ads, anything. Nothing happens automatically; this is just a record, the same way Procedures or Legal Holds work. The Accounting Agent will combine these with real order revenue to show a running profit picture.</p>
+        <div class="statRow" id="expenseStats"></div>
+        <div id="expensesWrap"><p class="empty">Loading…</p></div>
+
+        <form id="addExpenseForm" style="display:flex;flex-direction:column;gap:8px;margin-top:14px;padding-top:16px;border-top:1px solid var(--line);">
+          <select id="expCategory" required style="padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;">
+            <option value="">Category…</option>
+            <option value="packaging">Packaging</option>
+            <option value="ingredients">Ingredients / Raw Materials</option>
+            <option value="shipping_supplies">Shipping Supplies</option>
+            <option value="advertising">Advertising / Marketing</option>
+            <option value="software">Software / Subscriptions</option>
+            <option value="manufacturing">Manufacturing</option>
+            <option value="other">Other</option>
+          </select>
+          <input type="number" id="expAmount" placeholder="Amount ($)" step="0.01" min="0.01" required>
+          <input type="date" id="expDate" required>
+          <input type="text" id="expVendor" placeholder="Vendor (optional — e.g. Uline, Meta Ads)">
+          <textarea id="expNote" placeholder="Note (optional)" rows="2" style="width:100%;padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;resize:vertical;"></textarea>
+          <button type="submit" class="small" style="align-self:flex-start;">Add expense</button>
+        </form>
+
+        <h4 style="font-size:12px;color:#6b7877;margin:18px 0 6px;">Recently deleted expenses</h4>
+        <p class="hint" style="margin-top:-2px;">Deleted expenses land here instead of disappearing for good — restore puts them right back.</p>
+        <div id="deletedExpensesWrap"><p class="empty">Loading…</p></div>
+      </section>
+
       <!-- Tasks & Incidents -->
       <section class="panel" id="tasksPanel">
         <h2>Tasks</h2>
@@ -509,7 +541,12 @@
       <!-- Report History (saved nightly snapshots) -->
       <section class="panel" id="reportHistoryPanel">
         <h2>Report History</h2>
-        <p class="hint">Every night, the system automatically saves a snapshot just like the Daily Summary above — so you can look back at any past day, even ones you weren't around to check live. "Emailed" will start showing once automatic email delivery is turned on.</p>
+        <p class="hint">Every night, the system automatically saves a snapshot just like the Daily Summary above — so you can look back at any past day, even ones you weren't around to check live. "Emailed" will start showing once automatic email delivery is turned on. Switch to Weekly or Monthly to see totals added up over time instead of one day at a time.</p>
+        <div class="viewToggle" id="reportHistoryToggle">
+          <button type="button" class="small" data-view="daily">Daily</button>
+          <button type="button" class="small secondary" data-view="weekly">Weekly</button>
+          <button type="button" class="small secondary" data-view="monthly">Monthly</button>
+        </div>
         <div id="reportHistoryWrap"><p class="empty">Loading…</p></div>
       </section>
 
@@ -719,6 +756,8 @@
       renderSidebar('');
       showPage(getLastPage());
       loadDashboard();
+      const expDateInput = document.getElementById('expDate');
+      if (expDateInput && !expDateInput.value) expDateInput.valueAsDate = new Date();
     }
 
     // ---------- re-authentication for sensitive actions ----------
@@ -840,6 +879,9 @@
       { label: 'Sales', pages: [
         { id: 'ordersPanel', label: 'Orders & Revenue' },
       ]},
+      { label: 'Finance', pages: [
+        { id: 'expensesPanel', label: 'Expenses' },
+      ]},
       { label: 'Operations', pages: [
         { id: 'tasksPanel', label: 'Tasks' },
         { id: 'incidentsPanel', label: 'Incidents' },
@@ -871,7 +913,19 @@
     const SEARCH_INDEX = {
       orders: [], tasks: [], incidents: [], approvals: [], sops: [],
       featureRequests: [], evidence: [], adverseEvents: [], legalHolds: [],
-      attention: [],
+      attention: [], expenses: [],
+    };
+
+    // Expense category values (must match the database check constraint) mapped
+    // to the friendly labels shown in the dropdown and everywhere else.
+    const EXPENSE_CATEGORY_LABELS = {
+      packaging: 'Packaging',
+      ingredients: 'Ingredients / Raw Materials',
+      shipping_supplies: 'Shipping Supplies',
+      advertising: 'Advertising / Marketing',
+      software: 'Software / Subscriptions',
+      manufacturing: 'Manufacturing',
+      other: 'Other',
     };
 
     // Sidebar badge counts: a small number next to a page name showing
@@ -942,6 +996,11 @@
       (SEARCH_INDEX.legalHolds || []).forEach(l => {
         if (hit([l.title, l.description, l.related_reference])) {
           results.push({ pageId: 'legalHoldsPanel', type: 'Legal Hold', label: l.title });
+        }
+      });
+      (SEARCH_INDEX.expenses || []).forEach(x => {
+        if (hit([EXPENSE_CATEGORY_LABELS[x.category], x.vendor, x.note])) {
+          results.push({ pageId: 'expensesPanel', type: 'Expense', label: `${EXPENSE_CATEGORY_LABELS[x.category] || x.category} — ${fmtMoney(x.amount, 'USD')}${x.vendor ? ' — ' + x.vendor : ''}` });
         }
       });
 
@@ -1347,6 +1406,8 @@
         loadAdverseEvents(),
         loadLegalHolds(),
         loadReleasedLegalHolds(),
+        loadExpenses(),
+        loadDeletedExpenses(),
       ]);
       // Refresh the sidebar now that every page's data (and badge counts) is in.
       renderSidebar(document.getElementById('sidebarSearch').value);
@@ -1919,38 +1980,124 @@
     // Report History: browse the nightly automatic snapshots saved into
     // daily_reports by the scheduled database job (separate from the live
     // Daily Summary above, which is always computed fresh on page load).
+    // Holds the raw daily rows once fetched, so switching between Daily/Weekly/
+    // Monthly just re-groups data already in memory — no extra database calls.
+    let REPORT_HISTORY_DATA = [];
+    let reportHistoryView = 'daily';
+
+    function startOfWeekMonday(d){
+      const day = d.getDay(); // 0=Sun..6=Sat
+      const diff = (day === 0 ? -6 : 1) - day; // shift back to Monday
+      const monday = new Date(d);
+      monday.setDate(d.getDate() + diff);
+      monday.setHours(0, 0, 0, 0);
+      return monday;
+    }
+    function weekGroupLabel(monday){
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
+      const start = monday.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+      const end = sunday.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+      return `${start} – ${end}`;
+    }
+    function monthGroupLabel(d){
+      return d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+    }
+
+    // Adds up daily_reports rows into weekly or monthly buckets. Reused for
+    // both views — only the grouping key/label functions differ.
+    function rollupReports(reports, keyFn, labelFn){
+      const groups = new Map();
+      reports.forEach(r => {
+        const d = new Date(r.report_date + 'T00:00:00');
+        const key = keyFn(d);
+        if (!groups.has(key)) {
+          groups.set(key, {
+            sortKey: key, label: labelFn(d), currency: r.currency || 'USD',
+            orders_count: 0, revenue: 0, new_inquiries_count: 0,
+            tasks_opened_count: 0, incidents_opened_count: 0,
+            ai_calls_count: 0, ai_cost: 0,
+          });
+        }
+        const g = groups.get(key);
+        g.orders_count += Number(r.orders_count || 0);
+        g.revenue += Number(r.revenue || 0);
+        g.new_inquiries_count += Number(r.new_inquiries_count || 0);
+        g.tasks_opened_count += Number(r.tasks_opened_count || 0);
+        g.incidents_opened_count += Number(r.incidents_opened_count || 0);
+        g.ai_calls_count += Number(r.ai_calls_count || 0);
+        g.ai_cost += Number(r.ai_cost || 0);
+      });
+      return Array.from(groups.values()).sort((a, b) => b.sortKey.localeCompare(a.sortKey));
+    }
+
+    function renderReportHistoryView(){
+      const wrap = document.getElementById('reportHistoryWrap');
+      if (!REPORT_HISTORY_DATA.length) {
+        wrap.innerHTML = '<p class="empty">No saved reports yet — the first one will appear after tonight\'s automatic run.</p>';
+        return;
+      }
+
+      let rows, firstColLabel;
+      if (reportHistoryView === 'daily') {
+        firstColLabel = 'Date';
+        rows = REPORT_HISTORY_DATA.map(r => ({
+          label: fmtDateOnly(r.report_date), currency: r.currency || 'USD',
+          orders_count: r.orders_count, revenue: r.revenue,
+          new_inquiries_count: r.new_inquiries_count, tasks_opened_count: r.tasks_opened_count,
+          incidents_opened_count: r.incidents_opened_count, ai_calls_count: r.ai_calls_count,
+          ai_cost: r.ai_cost, emailed: r.emailed_at ? '✓' : '—',
+        }));
+      } else if (reportHistoryView === 'weekly') {
+        firstColLabel = 'Week';
+        rows = rollupReports(REPORT_HISTORY_DATA, d => startOfWeekMonday(d).toISOString().slice(0, 10), d => weekGroupLabel(startOfWeekMonday(d)))
+          .map(g => ({ ...g, emailed: '—' }));
+      } else {
+        firstColLabel = 'Month';
+        rows = rollupReports(REPORT_HISTORY_DATA, d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`, monthGroupLabel)
+          .map(g => ({ ...g, emailed: '—' }));
+      }
+
+      wrap.innerHTML = `
+        <table><thead><tr>
+          <th>${esc(firstColLabel)}</th><th>Orders</th><th>Revenue</th><th>New questions</th>
+          <th>Tasks opened</th><th>Incidents opened</th><th>AI calls</th><th>AI cost</th><th>Emailed</th>
+        </tr></thead>
+        <tbody>${rows.map(r => `
+          <tr>
+            <td>${esc(r.label)}</td>
+            <td>${Number(r.orders_count || 0)}</td>
+            <td>${esc(fmtMoney(r.revenue, r.currency || 'USD'))}</td>
+            <td>${Number(r.new_inquiries_count || 0)}</td>
+            <td>${Number(r.tasks_opened_count || 0)}</td>
+            <td>${Number(r.incidents_opened_count || 0)}</td>
+            <td>${Number(r.ai_calls_count || 0)}</td>
+            <td>${esc(fmtMoney(r.ai_cost, 'USD'))}</td>
+            <td>${esc(r.emailed)}</td>
+          </tr>`).join('')}</tbody></table>`;
+    }
+
+    document.getElementById('reportHistoryToggle').addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-view]');
+      if (!btn) return;
+      reportHistoryView = btn.getAttribute('data-view');
+      document.querySelectorAll('#reportHistoryToggle button').forEach(b => {
+        b.classList.toggle('secondary', b !== btn);
+      });
+      renderReportHistoryView();
+    });
+
     async function loadReportHistory(){
       try {
         const { data: reports, error } = await supabase
           .from('daily_reports')
           .select('*')
           .order('report_date', { ascending: false })
-          .limit(90);
+          .limit(366);
         if (error) throw error;
 
-        if (!reports.length) {
-          document.getElementById('reportHistoryWrap').innerHTML =
-            '<p class="empty">No saved reports yet — the first one will appear after tonight\'s automatic run.</p>';
-          return;
-        }
-
-        document.getElementById('reportHistoryWrap').innerHTML = `
-          <table><thead><tr>
-            <th>Date</th><th>Orders</th><th>Revenue</th><th>New questions</th>
-            <th>Tasks opened</th><th>Incidents opened</th><th>AI calls</th><th>AI cost</th><th>Emailed</th>
-          </tr></thead>
-          <tbody>${reports.map(r => `
-            <tr>
-              <td>${esc(fmtDateOnly(r.report_date))}</td>
-              <td>${Number(r.orders_count || 0)}</td>
-              <td>${esc(fmtMoney(r.revenue, r.currency || 'USD'))}</td>
-              <td>${Number(r.new_inquiries_count || 0)}</td>
-              <td>${Number(r.tasks_opened_count || 0)}</td>
-              <td>${Number(r.incidents_opened_count || 0)}</td>
-              <td>${Number(r.ai_calls_count || 0)}</td>
-              <td>${esc(fmtMoney(r.ai_cost, 'USD'))}</td>
-              <td>${r.emailed_at ? '✓' : '—'}</td>
-            </tr>`).join('')}</tbody></table>`;
+        REPORT_HISTORY_DATA = reports || [];
+        renderReportHistoryView();
       } catch (err) {
         showDashError('Could not load Report History: ' + (err && err.message ? err.message : err));
       }
@@ -2756,6 +2903,149 @@
         loadLegalHolds();
       } catch (err) {
         showDashError('Could not place that hold: ' + (err && err.message ? err.message : err));
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalBtnText;
+      }
+    });
+
+    // Expenses (manual entry — feeds the Accounting Agent's rollup)
+    async function loadExpenses(){
+      try {
+        const { data: rows, error } = await supabase
+          .from('expenses')
+          .select('id, category, amount, expense_date, vendor, note')
+          .is('deleted_at', null)
+          .order('expense_date', { ascending: false })
+          .limit(200);
+        if (error) throw error;
+        SEARCH_INDEX.expenses = rows;
+
+        const total = (rows || []).reduce((sum, r) => sum + Number(r.amount || 0), 0);
+        document.getElementById('expenseStats').innerHTML = `
+          <div class="stat"><div class="num">${(rows || []).length}</div><div class="lbl">Expenses on file</div></div>
+          <div class="stat"><div class="num">${esc(fmtMoney(total, 'USD'))}</div><div class="lbl">Total logged</div></div>
+        `;
+
+        if (!rows || !rows.length) {
+          document.getElementById('expensesWrap').innerHTML = '<p class="empty">No expenses logged yet — add your first one below.</p>';
+          return;
+        }
+
+        document.getElementById('expensesWrap').innerHTML = rows.map(r => `
+          <div class="approvalRow" data-id="${esc(r.id)}">
+            <div class="info">
+              <b>${esc(EXPENSE_CATEGORY_LABELS[r.category] || r.category)}</b>
+              <span class="badge">${esc(fmtMoney(r.amount, 'USD'))}</span>
+              ${r.vendor ? `<div style="font-size:12px;color:#6b7877;margin-top:3px;">Vendor: ${esc(r.vendor)}</div>` : ''}
+              ${r.note ? `<div style="font-size:12px;color:#6b7877;margin-top:3px;">${esc(r.note)}</div>` : ''}
+              <br><span style="font-size:11px;color:#8a9694;">${esc(fmtDateOnly(r.expense_date))}</span>
+            </div>
+            <div class="actions">
+              <button class="small deny expDeleteBtn">Delete</button>
+            </div>
+          </div>`).join('');
+        document.querySelectorAll('.expDeleteBtn').forEach(btn => btn.addEventListener('click', () => deleteExpense(btn)));
+      } catch (err) {
+        showDashError('Could not load expenses: ' + (err && err.message ? err.message : err));
+      }
+    }
+
+    async function deleteExpense(btn){
+      const row = btn.closest('.approvalRow');
+      const id = row.getAttribute('data-id');
+      row.querySelectorAll('button').forEach(b => b.disabled = true);
+      try {
+        // Soft delete, same as Feature Requests and Orders: stamps deleted_at
+        // instead of removing the row, so it's recoverable from the recycle bin.
+        const { error } = await supabase.from('expenses').update({ deleted_at: new Date().toISOString() }).eq('id', id);
+        if (error) throw error;
+        loadExpenses();
+        loadDeletedExpenses();
+      } catch (err) {
+        row.querySelectorAll('button').forEach(b => b.disabled = false);
+        showDashError('Could not delete that expense: ' + (err && err.message ? err.message : err));
+      }
+    }
+
+    async function loadDeletedExpenses(){
+      try {
+        const { data: deleted, error } = await supabase
+          .from('expenses')
+          .select('id, category, amount, deleted_at')
+          .not('deleted_at', 'is', null)
+          .order('deleted_at', { ascending: false })
+          .limit(50);
+        if (error) throw error;
+
+        if (!deleted || !deleted.length) {
+          document.getElementById('deletedExpensesWrap').innerHTML = '<p class="empty">Recycle bin is empty.</p>';
+          return;
+        }
+        document.getElementById('deletedExpensesWrap').innerHTML = deleted.map(r => `
+          <div class="deletedRow" data-id="${esc(r.id)}">
+            <div class="info"><b>${esc(EXPENSE_CATEGORY_LABELS[r.category] || r.category)} — ${esc(fmtMoney(r.amount, 'USD'))}</b><br>
+            <span style="font-size:11px;color:#8a9694;">Deleted ${esc(fmtDate(r.deleted_at))}</span></div>
+            <button class="small restoreExpenseBtn">Restore</button>
+          </div>`).join('');
+        document.querySelectorAll('.restoreExpenseBtn').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const row = btn.closest('.deletedRow');
+            const id = row.getAttribute('data-id');
+            btn.disabled = true;
+            try {
+              const { error } = await supabase.from('expenses').update({ deleted_at: null }).eq('id', id);
+              if (error) throw error;
+              loadExpenses();
+              loadDeletedExpenses();
+            } catch (err) {
+              btn.disabled = false;
+              showDashError('Could not restore that expense: ' + (err && err.message ? err.message : err));
+            }
+          });
+        });
+      } catch (err) {
+        showDashError('Could not load recently deleted expenses: ' + (err && err.message ? err.message : err));
+      }
+    }
+
+    document.getElementById('addExpenseForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const categoryInput = document.getElementById('expCategory');
+      const amountInput = document.getElementById('expAmount');
+      const dateInput = document.getElementById('expDate');
+      const vendorInput = document.getElementById('expVendor');
+      const noteInput = document.getElementById('expNote');
+      const category = categoryInput.value;
+      const amount = parseFloat(amountInput.value);
+      if (!category) {
+        showDashError('Pick a category for this expense.');
+        return;
+      }
+      if (!amount || amount <= 0) {
+        showDashError('Enter an amount greater than $0.');
+        return;
+      }
+      const submitBtn = e.target.querySelector('button[type="submit"]');
+      const originalBtnText = submitBtn.textContent;
+      submitBtn.disabled = true;
+      try {
+        const { error } = await supabase.from('expenses').insert({
+          category,
+          amount,
+          expense_date: dateInput.value || new Date().toISOString().slice(0, 10),
+          vendor: vendorInput.value.trim() || null,
+          note: noteInput.value.trim() || null,
+        });
+        if (error) throw error;
+        categoryInput.value = '';
+        amountInput.value = '';
+        vendorInput.value = '';
+        noteInput.value = '';
+        dateInput.valueAsDate = new Date();
+        loadExpenses();
+      } catch (err) {
+        showDashError('Could not save that expense: ' + (err && err.message ? err.message : err));
       } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = originalBtnText;
