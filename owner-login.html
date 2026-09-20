@@ -424,6 +424,8 @@
           <input type="date" id="expDate" required>
           <input type="text" id="expVendor" placeholder="Vendor (optional — e.g. Uline, Meta Ads)">
           <textarea id="expNote" placeholder="Note (optional)" rows="2" style="width:100%;padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;resize:vertical;"></textarea>
+          <label style="font-size:12px;color:#6b7877;">Receipt (optional) — photo, screenshot, or PDF</label>
+          <input type="file" id="expReceipt" accept="image/*,.pdf">
           <button type="submit" class="small" style="align-self:flex-start;">Add expense</button>
         </form>
 
@@ -2914,7 +2916,7 @@
       try {
         const { data: rows, error } = await supabase
           .from('expenses')
-          .select('id, category, amount, expense_date, vendor, note')
+          .select('id, category, amount, expense_date, vendor, note, receipt_path')
           .is('deleted_at', null)
           .order('expense_date', { ascending: false })
           .limit(200);
@@ -2933,21 +2935,64 @@
         }
 
         document.getElementById('expensesWrap').innerHTML = rows.map(r => `
-          <div class="approvalRow" data-id="${esc(r.id)}">
+          <div class="approvalRow" data-id="${esc(r.id)}" data-file-path="${esc(r.receipt_path || '')}">
             <div class="info">
               <b>${esc(EXPENSE_CATEGORY_LABELS[r.category] || r.category)}</b>
               <span class="badge">${esc(fmtMoney(r.amount, 'USD'))}</span>
               ${r.vendor ? `<div style="font-size:12px;color:#6b7877;margin-top:3px;">Vendor: ${esc(r.vendor)}</div>` : ''}
               ${r.note ? `<div style="font-size:12px;color:#6b7877;margin-top:3px;">${esc(r.note)}</div>` : ''}
+              ${r.receipt_path ? `<div style="font-size:12px;margin-top:3px;"><a href="#" class="expFileLink">View receipt</a></div>` : ''}
               <br><span style="font-size:11px;color:#8a9694;">${esc(fmtDateOnly(r.expense_date))}</span>
             </div>
             <div class="actions">
+              ${r.receipt_path ? `<button class="small expRemoveReceiptBtn">Remove receipt</button>` : ''}
               <button class="small deny expDeleteBtn">Delete</button>
             </div>
           </div>`).join('');
         document.querySelectorAll('.expDeleteBtn').forEach(btn => btn.addEventListener('click', () => deleteExpense(btn)));
+        document.querySelectorAll('.expRemoveReceiptBtn').forEach(btn => btn.addEventListener('click', () => removeExpenseReceipt(btn)));
+        document.querySelectorAll('.expFileLink').forEach(link => {
+          link.addEventListener('click', async (ev) => {
+            ev.preventDefault();
+            const row = link.closest('.approvalRow');
+            const path = row.getAttribute('data-file-path');
+            if (!path) return;
+            const originalText = link.textContent;
+            link.textContent = 'Preparing…';
+            try {
+              const { data, error: signErr } = await supabase.storage.from('expense-receipts').createSignedUrl(path, 60);
+              if (signErr) throw signErr;
+              window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
+            } catch (err) {
+              showDashError('Could not open that receipt: ' + (err && err.message ? err.message : err));
+            } finally {
+              link.textContent = originalText;
+            }
+          });
+        });
       } catch (err) {
         showDashError('Could not load expenses: ' + (err && err.message ? err.message : err));
+      }
+    }
+
+    async function removeExpenseReceipt(btn){
+      const row = btn.closest('.approvalRow');
+      const id = row.getAttribute('data-id');
+      const path = row.getAttribute('data-file-path');
+      if (!path) return;
+      btn.disabled = true;
+      try {
+        // Remove the file from storage, then clear the column pointing to it.
+        // Owner-only page, so no extra confirmation step here — same reasoning
+        // as every other control on this page.
+        const { error: removeErr } = await supabase.storage.from('expense-receipts').remove([path]);
+        if (removeErr) throw removeErr;
+        const { error } = await supabase.from('expenses').update({ receipt_path: null }).eq('id', id);
+        if (error) throw error;
+        loadExpenses();
+      } catch (err) {
+        btn.disabled = false;
+        showDashError('Could not remove that receipt: ' + (err && err.message ? err.message : err));
       }
     }
 
@@ -3016,6 +3061,7 @@
       const dateInput = document.getElementById('expDate');
       const vendorInput = document.getElementById('expVendor');
       const noteInput = document.getElementById('expNote');
+      const receiptInput = document.getElementById('expReceipt');
       const category = categoryInput.value;
       const amount = parseFloat(amountInput.value);
       if (!category) {
@@ -3030,18 +3076,32 @@
       const originalBtnText = submitBtn.textContent;
       submitBtn.disabled = true;
       try {
+        let receiptPath = null;
+        const file = receiptInput.files && receiptInput.files[0];
+        if (file) {
+          submitBtn.textContent = 'Uploading receipt…';
+          const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+          const path = `${Date.now()}_${safeName}`;
+          const { error: uploadErr } = await supabase.storage.from('expense-receipts').upload(path, file);
+          if (uploadErr) throw uploadErr;
+          receiptPath = path;
+          submitBtn.textContent = 'Saving…';
+        }
+
         const { error } = await supabase.from('expenses').insert({
           category,
           amount,
           expense_date: dateInput.value || new Date().toISOString().slice(0, 10),
           vendor: vendorInput.value.trim() || null,
           note: noteInput.value.trim() || null,
+          receipt_path: receiptPath,
         });
         if (error) throw error;
         categoryInput.value = '';
         amountInput.value = '';
         vendorInput.value = '';
         noteInput.value = '';
+        receiptInput.value = '';
         dateInput.valueAsDate = new Date();
         loadExpenses();
       } catch (err) {
