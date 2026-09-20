@@ -665,7 +665,7 @@
       dash.style.display = 'flex';
       whoAmI.textContent = `${profile.display_name || user.email} — role: ${profile.role}`;
       renderSidebar('');
-      showPage('attentionPanel');
+      showPage(getLastPage());
       loadDashboard();
     }
 
@@ -917,11 +917,35 @@
       });
     }
 
+    // All known page ids, used to make sure a remembered page still actually
+    // exists before we try to jump to it (e.g. if a page were ever renamed).
+    function allPageIds(){
+      const ids = [];
+      SIDEBAR_GROUPS.forEach(g => g.pages.forEach(p => ids.push(p.id)));
+      return ids;
+    }
+
+    // Remembers which page you were on so refreshing (or closing and
+    // reopening the dashboard) brings you back to it instead of always
+    // starting over at "Needs Your Attention". Stored only in this browser,
+    // on this device — never sent anywhere, never stored in the database.
+    function getLastPage(){
+      try {
+        const saved = localStorage.getItem('he_last_page');
+        if (saved && allPageIds().includes(saved)) return saved;
+      } catch (e) { /* private browsing or blocked storage — fine, just default */ }
+      return 'attentionPanel';
+    }
+    function saveLastPage(pageId){
+      try { localStorage.setItem('he_last_page', pageId); } catch (e) { /* not critical */ }
+    }
+
     function showPage(pageId){
       document.querySelectorAll('main.contentArea > section.panel').forEach(sec => {
         sec.classList.toggle('activePage', sec.id === pageId);
       });
       currentPageId = pageId;
+      saveLastPage(pageId);
       renderSidebar(document.getElementById('sidebarSearch').value);
       document.querySelector('main.contentArea').scrollTop = 0;
       window.scrollTo(0, 0);
