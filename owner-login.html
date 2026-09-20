@@ -269,6 +269,7 @@
         <a href="#ordersPanel">Orders</a>
         <a href="#tasksPanel">Tasks &amp; Incidents</a>
         <a href="#aiPanel">AI Activity</a>
+        <a href="#inquiriesPanel">Customer Inquiries</a>
         <a href="#controlsPanel">Owner Controls</a>
       </nav>
       <div class="right">
@@ -277,7 +278,7 @@
         <button id="signout" class="small">Sign out</button>
       </div>
     </header>
-    <div class="shortcutHint">Keyboard shortcuts: <b>r</b> refresh &nbsp;·&nbsp; <b>0</b> Attention &nbsp;·&nbsp; <b>5</b> Calendar &nbsp;·&nbsp; <b>1</b> Orders &nbsp;·&nbsp; <b>2</b> Tasks &amp; Incidents &nbsp;·&nbsp; <b>3</b> AI Activity &nbsp;·&nbsp; <b>4</b> Owner Controls</div>
+    <div class="shortcutHint">Keyboard shortcuts: <b>r</b> refresh &nbsp;·&nbsp; <b>0</b> Attention &nbsp;·&nbsp; <b>5</b> Calendar &nbsp;·&nbsp; <b>1</b> Orders &nbsp;·&nbsp; <b>2</b> Tasks &amp; Incidents &nbsp;·&nbsp; <b>3</b> AI Activity &nbsp;·&nbsp; <b>6</b> Customer Inquiries &nbsp;·&nbsp; <b>4</b> Owner Controls</div>
 
     <main>
       <div id="dashError" class="bannerBox"></div>
@@ -405,6 +406,21 @@
         <p class="hint">Every decision an AI agent has logged, most recent first.</p>
         <div class="statRow" id="aiStats"></div>
         <div id="aiTableWrap"><p class="empty">Loading…</p></div>
+      </section>
+
+      <!-- Customer Inquiries -->
+      <section class="panel" id="inquiriesPanel">
+        <h2>Customer Inquiries</h2>
+        <p class="hint">Every customer question, and the reply the Customer Service Agent drafted for it. Review the draft (edit it if needed), then mark it answered once you've sent it. Anything flagged sensitive needs your judgment before it goes out.</p>
+        <div class="statRow" id="inqStats"></div>
+        <select id="inqFilter" style="margin-bottom:14px;padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:13.5px;">
+          <option value="">Show: all inquiries</option>
+          <option value="needs_review">Show: needs review</option>
+          <option value="drafted">Show: drafted, not yet reviewed</option>
+          <option value="new">Show: new, no draft yet</option>
+          <option value="answered">Show: answered</option>
+        </select>
+        <div id="inquiriesWrap"><p class="empty">Loading…</p></div>
       </section>
 
       <!-- Owner Controls -->
@@ -694,6 +710,7 @@
       else if (e.key === '1') { document.getElementById('ordersPanel').scrollIntoView({behavior:'smooth'}); }
       else if (e.key === '2') { document.getElementById('tasksPanel').scrollIntoView({behavior:'smooth'}); }
       else if (e.key === '3') { document.getElementById('aiPanel').scrollIntoView({behavior:'smooth'}); }
+      else if (e.key === '6') { document.getElementById('inquiriesPanel').scrollIntoView({behavior:'smooth'}); }
       else if (e.key === '4') { document.getElementById('controlsPanel').scrollIntoView({behavior:'smooth'}); }
     });
 
@@ -934,6 +951,7 @@
         loadTasks(),
         loadIncidents(),
         loadAI(),
+        loadInquiries(),
         loadFlags(),
         loadApprovals(),
         loadSessions(),
@@ -1128,6 +1146,162 @@
         }
       } catch (err) {
         showDashError('Could not load AI activity: ' + (err && err.message ? err.message : err));
+      }
+    }
+
+    // Customer Inquiries: every question a customer has asked, and the reply
+    // the Customer Service Agent (Agent #7) drafted for it, if any. Kept as
+    // one fetch, filtered on the page, so switching the dropdown doesn't hit
+    // the database again.
+    const INQ_STATUS_LABELS = { new: 'New', drafted: 'Drafted', needs_review: 'Needs Review', answered: 'Answered' };
+    function inqStatusBadgeClass(status){
+      if (status === 'needs_review') return 'sev-high';
+      if (status === 'drafted') return 'sev-medium';
+      if (status === 'answered') return 'sev-low';
+      return '';
+    }
+    let ALL_INQUIRIES = [];
+    let INQUIRY_ORDER_BY_ID = {};
+
+    async function loadInquiries(){
+      try {
+        const { data: inquiries, error } = await supabase
+          .from('customer_inquiries')
+          .select('id, order_id, customer_name, customer_email, channel, question_text, status, ai_draft_reply, ai_confidence, sensitive, sensitive_reasons, created_at, drafted_at, answered_at')
+          .order('created_at', { ascending: false })
+          .limit(200);
+        if (error) throw error;
+        ALL_INQUIRIES = inquiries || [];
+
+        const orderIds = [...new Set(ALL_INQUIRIES.map(i => i.order_id).filter(Boolean))];
+        INQUIRY_ORDER_BY_ID = {};
+        if (orderIds.length) {
+          const { data: orders, error: ordersErr } = await supabase.from('orders').select('id, order_number').in('id', orderIds);
+          if (ordersErr) throw ordersErr;
+          (orders || []).forEach(o => { INQUIRY_ORDER_BY_ID[o.id] = o; });
+        }
+
+        renderInquiries();
+      } catch (err) {
+        showDashError('Could not load customer inquiries: ' + (err && err.message ? err.message : err));
+      }
+    }
+
+    function renderInquiries(){
+      const counts = { new: 0, drafted: 0, needs_review: 0, answered: 0 };
+      ALL_INQUIRIES.forEach(i => { if (counts[i.status] !== undefined) counts[i.status]++; });
+      document.getElementById('inqStats').innerHTML = `
+        <div class="stat"><div class="num">${counts.needs_review}</div><div class="lbl">Needs review</div></div>
+        <div class="stat"><div class="num">${counts.drafted}</div><div class="lbl">Drafted</div></div>
+        <div class="stat"><div class="num">${counts.new}</div><div class="lbl">New, no draft</div></div>
+        <div class="stat"><div class="num">${counts.answered}</div><div class="lbl">Answered</div></div>
+      `;
+
+      const filterVal = document.getElementById('inqFilter').value;
+      const list = filterVal ? ALL_INQUIRIES.filter(i => i.status === filterVal) : ALL_INQUIRIES;
+
+      if (!list.length) {
+        document.getElementById('inquiriesWrap').innerHTML = ALL_INQUIRIES.length
+          ? '<p class="empty">Nothing matches that filter.</p>'
+          : '<p class="empty">No customer questions yet.</p>';
+        return;
+      }
+
+      document.getElementById('inquiriesWrap').innerHTML = list.map(i => {
+        const order = i.order_id ? INQUIRY_ORDER_BY_ID[i.order_id] : null;
+        return `
+        <div class="approvalRow" style="align-items:flex-start;" data-id="${esc(i.id)}">
+          <div class="info">
+            <b>${esc(i.customer_name || 'Unknown customer')}</b>
+            ${i.channel ? `<span class="badge">${esc(i.channel)}</span>` : ''}
+            <span class="badge ${inqStatusBadgeClass(i.status)}">${esc(INQ_STATUS_LABELS[i.status] || i.status)}</span>
+            <div style="font-size:12px;color:#6b7877;margin-top:3px;">
+              ${esc(i.customer_email || 'No email on file')}${order ? ' · Order ' + esc(order.order_number) : ''}
+            </div>
+            <div style="font-size:11px;color:#8a9694;margin-top:2px;">Asked ${esc(fmtDate(i.created_at))}</div>
+
+            <div style="margin-top:8px;padding:8px 10px;background:#f4f7f6;border-radius:8px;font-size:13px;">
+              <b style="font-size:11px;color:#6b7877;text-transform:uppercase;">Question</b><br>
+              ${esc(i.question_text)}
+            </div>
+
+            ${i.sensitive ? `
+              <div style="margin-top:8px;padding:8px 10px;background:#fdecea;border-radius:8px;font-size:12.5px;color:#8a2f24;">
+                <b>Flagged for review:</b> ${esc(i.sensitive_reasons || 'No reason given.')}
+              </div>` : ''}
+
+            ${i.ai_draft_reply ? `
+              <div style="margin-top:8px;">
+                <b style="font-size:11px;color:#6b7877;text-transform:uppercase;">AI draft reply${i.ai_confidence != null ? ' · ' + Math.round(i.ai_confidence * 100) + '% confidence' : ''}</b>
+                <textarea class="inqDraftText" data-id="${esc(i.id)}" rows="4" style="width:100%;margin-top:4px;padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:13.5px;resize:vertical;">${esc(i.ai_draft_reply)}</textarea>
+              </div>
+            ` : '<p class="empty" style="padding:6px 0;">No draft yet — the agent hasn\'t answered this one.</p>'}
+          </div>
+          <div class="actions" style="flex-direction:column;align-items:stretch;">
+            ${i.ai_draft_reply ? `
+              <button class="small inqSaveBtn" data-id="${esc(i.id)}">Save edits</button>
+              <button class="small inqCopyBtn" data-id="${esc(i.id)}">Copy reply</button>
+            ` : ''}
+            ${i.status !== 'answered'
+              ? `<button class="small inqAnsweredBtn" data-id="${esc(i.id)}">Mark as answered</button>`
+              : `<span class="badge sev-low">Answered ${esc(fmtDate(i.answered_at))}</span>`}
+          </div>
+        </div>`;
+      }).join('');
+
+      document.querySelectorAll('.inqSaveBtn').forEach(btn => btn.addEventListener('click', () => saveInquiryDraft(btn)));
+      document.querySelectorAll('.inqCopyBtn').forEach(btn => btn.addEventListener('click', () => copyInquiryReply(btn)));
+      document.querySelectorAll('.inqAnsweredBtn').forEach(btn => btn.addEventListener('click', () => markInquiryAnswered(btn)));
+    }
+
+    document.getElementById('inqFilter').addEventListener('change', () => renderInquiries());
+
+    async function saveInquiryDraft(btn){
+      const id = btn.getAttribute('data-id');
+      const textarea = document.querySelector(`.inqDraftText[data-id="${id}"]`);
+      if (!textarea) return;
+      const originalText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Saving…';
+      try {
+        const { error } = await supabase.from('customer_inquiries').update({ ai_draft_reply: textarea.value }).eq('id', id);
+        if (error) throw error;
+        const rec = ALL_INQUIRIES.find(i => i.id === id);
+        if (rec) rec.ai_draft_reply = textarea.value;
+        btn.textContent = 'Saved';
+        setTimeout(() => { btn.textContent = originalText; btn.disabled = false; }, 1200);
+      } catch (err) {
+        showDashError('Could not save that edit: ' + (err && err.message ? err.message : err));
+        btn.textContent = originalText;
+        btn.disabled = false;
+      }
+    }
+
+    async function copyInquiryReply(btn){
+      const id = btn.getAttribute('data-id');
+      const textarea = document.querySelector(`.inqDraftText[data-id="${id}"]`);
+      if (!textarea) return;
+      const originalText = btn.textContent;
+      try {
+        await navigator.clipboard.writeText(textarea.value);
+        btn.textContent = 'Copied!';
+      } catch (err) {
+        showDashError('Could not copy to clipboard — you can select and copy the text by hand instead.');
+      } finally {
+        setTimeout(() => { btn.textContent = originalText; }, 1200);
+      }
+    }
+
+    async function markInquiryAnswered(btn){
+      const id = btn.getAttribute('data-id');
+      btn.disabled = true;
+      try {
+        const { error } = await supabase.from('customer_inquiries').update({ status: 'answered', answered_at: new Date().toISOString() }).eq('id', id);
+        if (error) throw error;
+        loadInquiries();
+      } catch (err) {
+        showDashError('Could not mark that as answered: ' + (err && err.message ? err.message : err));
+        btn.disabled = false;
       }
     }
 
