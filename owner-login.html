@@ -402,6 +402,40 @@
         <div id="deletedOrdersWrap"><p class="empty">Loading…</p></div>
       </section>
 
+      <!-- Inventory (manual stock tracking, per product) -->
+      <section class="panel" id="inventoryPanel">
+        <h2>Inventory</h2>
+        <p class="hint">Tracks how much stock you have of each product, split into Available, Reserved, Damaged, Sample, Wholesale, Promotional, and Returned. Nothing updates automatically yet — adjust counts by hand below, same as Expenses. Every change is logged with who made it, when, and why.</p>
+        <div class="statRow" id="inventoryStats"></div>
+
+        <form id="adjustInventoryForm" style="display:flex;flex-direction:column;gap:8px;margin-top:14px;padding-top:16px;border-top:1px solid var(--line);">
+          <h3 style="font-size:13px;color:var(--navy);margin:0 0 2px;">Adjust stock</h3>
+          <select id="invProduct" required style="padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;">
+            <option value="">Product…</option>
+          </select>
+          <select id="invBucket" required style="padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;">
+            <option value="">Bucket…</option>
+            <option value="available">Available</option>
+            <option value="reserved">Reserved</option>
+            <option value="damaged">Damaged</option>
+            <option value="sample">Sample</option>
+            <option value="wholesale">Wholesale</option>
+            <option value="promotional">Promotional</option>
+            <option value="returned">Returned</option>
+          </select>
+          <input type="number" id="invAmount" placeholder="Change amount (e.g. 10 to add, -10 to remove)" step="1" required>
+          <input type="text" id="invReason" placeholder="Reason (optional — e.g. new batch received, damaged in shipping)">
+          <button type="submit" class="small" style="align-self:flex-start;">Save adjustment</button>
+        </form>
+
+        <h3 style="font-size:13px;color:var(--navy);margin:20px 0 6px;">Stock by product</h3>
+        <div id="inventoryWrap"><p class="empty">Loading…</p></div>
+
+        <h3 style="font-size:13px;color:var(--navy);margin:20px 0 6px;">Recent adjustments</h3>
+        <p class="hint" style="margin-top:-2px;">A permanent log — never edited or deleted, so it always shows the true history of every change.</p>
+        <div id="inventoryAdjustmentsWrap"><p class="empty">Loading…</p></div>
+      </section>
+
       <!-- Expenses (manual entry, feeds the Accounting Agent) -->
       <section class="panel" id="expensesPanel">
         <h2>Expenses</h2>
@@ -898,6 +932,9 @@
       { label: 'Sales', pages: [
         { id: 'ordersPanel', label: 'Orders & Revenue' },
       ]},
+      { label: 'Inventory', pages: [
+        { id: 'inventoryPanel', label: 'Inventory' },
+      ]},
       { label: 'Finance', pages: [
         { id: 'expensesPanel', label: 'Expenses' },
         { id: 'accountingPanel', label: 'Accounting' },
@@ -933,7 +970,19 @@
     const SEARCH_INDEX = {
       orders: [], tasks: [], incidents: [], approvals: [], sops: [],
       featureRequests: [], evidence: [], adverseEvents: [], legalHolds: [],
-      attention: [], expenses: [],
+      attention: [], expenses: [], inventory: [],
+    };
+
+    // Inventory bucket values (must match the database check constraint on
+    // inventory_adjustments.bucket) mapped to friendly labels.
+    const INVENTORY_BUCKET_LABELS = {
+      available: 'Available',
+      reserved: 'Reserved',
+      damaged: 'Damaged',
+      sample: 'Sample',
+      wholesale: 'Wholesale',
+      promotional: 'Promotional',
+      returned: 'Returned',
     };
 
     // Expense category values (must match the database check constraint) mapped
@@ -1021,6 +1070,11 @@
       (SEARCH_INDEX.expenses || []).forEach(x => {
         if (hit([EXPENSE_CATEGORY_LABELS[x.category], x.vendor, x.note])) {
           results.push({ pageId: 'expensesPanel', type: 'Expense', label: `${EXPENSE_CATEGORY_LABELS[x.category] || x.category} — ${fmtMoney(x.amount, 'USD')}${x.vendor ? ' — ' + x.vendor : ''}` });
+        }
+      });
+      (SEARCH_INDEX.inventory || []).forEach(p => {
+        if (hit([p.sku, p.name])) {
+          results.push({ pageId: 'inventoryPanel', type: 'Inventory', label: `${p.name}${p.sku ? ' (' + p.sku + ')' : ''}` });
         }
       });
 
@@ -1409,6 +1463,8 @@
         loadAttention(),
         loadCalendarMonth(),
         loadOrders(),
+        loadInventory(),
+        loadInventoryAdjustments(),
         loadExpenses(),
         loadDeletedExpenses(),
         loadAccounting(),
@@ -2924,6 +2980,180 @@
         loadLegalHolds();
       } catch (err) {
         showDashError('Could not place that hold: ' + (err && err.message ? err.message : err));
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalBtnText;
+      }
+    });
+
+    // ---------- Inventory (manual stock tracking, per product) ----------
+    async function currentUserId(){
+      const { data } = await supabase.auth.getSession();
+      return data && data.session ? data.session.user.id : null;
+    }
+
+    async function loadInventory(){
+      try {
+        // Embedded select: pulls each product's matching inventory row (if any)
+        // in one round trip, using the foreign key link between the two tables.
+        const { data: products, error } = await supabase
+          .from('products')
+          .select('id, sku, name, is_active, inventory(available, reserved, damaged, sample, wholesale, promotional, returned, low_stock_threshold)')
+          .order('name', { ascending: true });
+        if (error) throw error;
+
+        SEARCH_INDEX.inventory = products;
+
+        // Populate the "Adjust stock" product dropdown
+        const productSelect = document.getElementById('invProduct');
+        const previousValue = productSelect.value;
+        productSelect.innerHTML = '<option value="">Product…</option>' +
+          products.map(p => `<option value="${esc(p.id)}">${esc(p.name)}${p.sku ? ' (' + esc(p.sku) + ')' : ''}</option>`).join('');
+        if (previousValue) productSelect.value = previousValue;
+
+        let lowStockCount = 0;
+        const rowsHtml = products.map(p => {
+          const inv = (p.inventory && p.inventory[0]) || {};
+          const available = Number(inv.available || 0);
+          const threshold = inv.low_stock_threshold;
+          const isLow = threshold !== null && threshold !== undefined && available < Number(threshold);
+          if (isLow) lowStockCount++;
+          const bucketBadges = ['available', 'reserved', 'damaged', 'sample', 'wholesale', 'promotional', 'returned']
+            .map(b => `<span class="badge" style="margin-right:4px;">${esc(INVENTORY_BUCKET_LABELS[b])}: ${Number(inv[b] || 0)}</span>`)
+            .join('');
+          return `
+            <div class="deletedRow" data-product-id="${esc(p.id)}" style="align-items:flex-start;">
+              <div class="info" style="flex:1;">
+                <b>${esc(p.name)}</b>${p.sku ? ' <span style="color:#8a9694;font-size:12px;">(' + esc(p.sku) + ')</span>' : ''}
+                ${isLow ? ' <span class="badge sev-high">Low stock</span>' : ''}
+                ${!p.is_active ? ' <span class="badge">Inactive</span>' : ''}
+                <br><div style="margin-top:6px;">${bucketBadges}</div>
+                <div style="margin-top:8px;display:flex;align-items:center;gap:6px;">
+                  <label style="font-size:12px;color:#6b7877;">Low-stock alert when Available drops below:</label>
+                  <input type="number" class="invThresholdInput" min="0" step="1" style="width:80px;padding:5px 7px;border-radius:6px;border:1px solid #cfd8d6;font-family:inherit;font-size:13px;" value="${threshold !== null && threshold !== undefined ? Number(threshold) : ''}" placeholder="none">
+                  <button type="button" class="small saveThresholdBtn">Save</button>
+                </div>
+              </div>
+            </div>`;
+        }).join('');
+
+        document.getElementById('inventoryWrap').innerHTML = products.length
+          ? rowsHtml
+          : '<p class="empty">No products in your catalog yet.</p>';
+
+        document.getElementById('inventoryStats').innerHTML = `
+          <div class="stat"><div class="num">${products.length}</div><div class="lbl">Products tracked</div></div>
+          <div class="stat"><div class="num">${lowStockCount}</div><div class="lbl">Low-stock alerts</div></div>
+        `;
+
+        document.querySelectorAll('.saveThresholdBtn').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const row = btn.closest('[data-product-id]');
+            const productId = row.getAttribute('data-product-id');
+            const input = row.querySelector('.invThresholdInput');
+            const raw = input.value.trim();
+            const value = raw === '' ? null : parseInt(raw, 10);
+            btn.disabled = true;
+            try {
+              const uid = await currentUserId();
+              const { error: upErr } = await supabase
+                .from('inventory')
+                .upsert({ product_id: productId, low_stock_threshold: value, updated_at: new Date().toISOString(), updated_by: uid }, { onConflict: 'product_id' });
+              if (upErr) throw upErr;
+              loadInventory();
+            } catch (err) {
+              btn.disabled = false;
+              showDashError('Could not save that threshold: ' + (err && err.message ? err.message : err));
+            }
+          });
+        });
+      } catch (err) {
+        showDashError('Could not load Inventory: ' + (err && err.message ? err.message : err));
+      }
+    }
+
+    async function loadInventoryAdjustments(){
+      try {
+        const { data: adjustments, error } = await supabase
+          .from('inventory_adjustments')
+          .select('id, product_id, bucket, change_amount, reason, adjusted_at, products(name, sku)')
+          .order('adjusted_at', { ascending: false })
+          .limit(50);
+        if (error) throw error;
+
+        if (!adjustments.length) {
+          document.getElementById('inventoryAdjustmentsWrap').innerHTML = '<p class="empty">No adjustments logged yet.</p>';
+          return;
+        }
+        document.getElementById('inventoryAdjustmentsWrap').innerHTML = adjustments.map(a => {
+          const productLabel = a.products ? (a.products.name + (a.products.sku ? ' (' + a.products.sku + ')' : '')) : 'Unknown product';
+          const sign = Number(a.change_amount) > 0 ? '+' : '';
+          return `
+            <div class="deletedRow">
+              <div class="info">
+                <b>${esc(productLabel)}</b> — ${esc(INVENTORY_BUCKET_LABELS[a.bucket] || a.bucket)}: ${sign}${Number(a.change_amount)}
+                ${a.reason ? '<br><span style="font-size:12px;color:#6b7877;">' + esc(a.reason) + '</span>' : ''}
+                <br><span style="font-size:11px;color:#8a9694;">${esc(fmtDate(a.adjusted_at))}</span>
+              </div>
+            </div>`;
+        }).join('');
+      } catch (err) {
+        showDashError('Could not load inventory adjustments: ' + (err && err.message ? err.message : err));
+      }
+    }
+
+    document.getElementById('adjustInventoryForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const productSelect = document.getElementById('invProduct');
+      const bucketSelect = document.getElementById('invBucket');
+      const amountInput = document.getElementById('invAmount');
+      const reasonInput = document.getElementById('invReason');
+      const productId = productSelect.value;
+      const bucket = bucketSelect.value;
+      const changeAmount = parseInt(amountInput.value, 10);
+
+      if (!productId) { showDashError('Pick a product to adjust.'); return; }
+      if (!bucket) { showDashError('Pick which bucket this adjustment applies to.'); return; }
+      if (!changeAmount) { showDashError('Enter a non-zero amount (positive to add, negative to remove).'); return; }
+
+      const submitBtn = e.target.querySelector('button[type="submit"]');
+      const originalBtnText = submitBtn.textContent;
+      submitBtn.disabled = true;
+      try {
+        // Read the current count for this product/bucket first, so we can
+        // compute the new total and refuse to let it go negative.
+        const { data: existing, error: readErr } = await supabase
+          .from('inventory')
+          .select('*')
+          .eq('product_id', productId)
+          .maybeSingle();
+        if (readErr) throw readErr;
+
+        const current = existing ? Number(existing[bucket] || 0) : 0;
+        const newValue = current + changeAmount;
+        if (newValue < 0) {
+          showDashError(`That would leave ${INVENTORY_BUCKET_LABELS[bucket]} at ${newValue}, which isn't allowed — only ${current} available in that bucket right now.`);
+          return;
+        }
+
+        const uid = await currentUserId();
+        const { error: upErr } = await supabase
+          .from('inventory')
+          .upsert({ product_id: productId, [bucket]: newValue, updated_at: new Date().toISOString(), updated_by: uid }, { onConflict: 'product_id' });
+        if (upErr) throw upErr;
+
+        const { error: logErr } = await supabase
+          .from('inventory_adjustments')
+          .insert({ product_id: productId, bucket, change_amount: changeAmount, reason: reasonInput.value.trim() || null, adjusted_by: uid });
+        if (logErr) throw logErr;
+
+        bucketSelect.value = '';
+        amountInput.value = '';
+        reasonInput.value = '';
+        loadInventory();
+        loadInventoryAdjustments();
+      } catch (err) {
+        showDashError('Could not save that adjustment: ' + (err && err.message ? err.message : err));
       } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = originalBtnText;
