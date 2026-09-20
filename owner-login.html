@@ -80,7 +80,7 @@
   }
 
   /* ---------- Dashboard shell ---------- */
-  #dash{ display:none; }
+  #dash{ display:none; flex-direction:column; height:100vh; }
   header.topbar{
     background:var(--navy);
     color:white;
@@ -90,7 +90,7 @@
     justify-content:space-between;
     flex-wrap:wrap;
     gap:10px;
-    position:sticky; top:0; z-index:10;
+    flex:none;
   }
   header.topbar h1{ font-size:17px; margin:0; font-weight:700; }
   header.topbar .who{ font-size:13px; opacity:0.85; }
@@ -100,22 +100,49 @@
   header.topbar .right{ display:flex; align-items:center; gap:10px; }
   #signout{ background:transparent; border:1px solid rgba(255,255,255,0.5); color:white; padding:7px 12px; font-size:13px; }
 
-  .shortcutHint{
-    background:#dff0ee; color:#0b3d4c; font-size:12px; text-align:center;
-    padding:6px; border-bottom:1px solid var(--line);
+  /* ---------- Sidebar + page layout ---------- */
+  .dashBody{ display:flex; align-items:stretch; flex:1; min-height:0; }
+  .sidebar{
+    width:220px; flex:none;
+    background:white; border-right:1px solid var(--line);
+    padding:16px 12px;
+    height:100%; overflow-y:auto; min-height:0;
   }
+  .sidebarSearch{
+    width:100%; padding:8px 10px; margin-bottom:0; border:1px solid #cfd8d6;
+    border-radius:8px; font-size:13px;
+  }
+  .sidebarGroup{ margin-top:16px; }
+  .sidebarGroup .groupLabel{
+    font-size:10.5px; text-transform:uppercase; letter-spacing:0.05em;
+    color:#8a9694; font-weight:700; margin:0 0 6px 8px;
+  }
+  .sidebarLink{
+    display:block; padding:8px 10px; border-radius:8px; font-size:13.5px;
+    color:#33403e; cursor:pointer; margin-bottom:2px; line-height:1.3;
+  }
+  .sidebarLink:hover{ background:#eef2f1; }
+  .sidebarLink.active{ background:var(--navy); color:white; font-weight:600; }
+  .sidebarEmpty{ font-size:12.5px; color:#8a9694; padding:8px 10px; }
+  .sidebarLink.searchResultLink{ line-height:1.35; }
+  .sidebarLink.searchResultLink .resultType{
+    font-size:10px; text-transform:uppercase; letter-spacing:0.03em; color:#8a9694;
+  }
+  .sidebarLink.searchResultLink.active .resultType{ color:#cfe3e0; }
 
-  main{ max-width:1080px; margin:0 auto; padding:20px 20px 60px; }
+  .contentArea{ flex:1; min-width:0; min-height:0; height:100%; overflow-y:auto; padding:20px 24px 60px; }
+  .contentArea > section.panel{ max-width:900px; margin-left:auto; margin-right:auto; }
   #dashError{ margin-bottom:16px; }
 
   section.panel{
+    display:none;
     background:white;
     border:1px solid var(--line);
     border-radius:12px;
     padding:18px 20px;
     margin-bottom:20px;
-    scroll-margin-top:70px;
   }
+  section.panel.activePage{ display:block; }
   section.panel h2{ margin:0 0 4px; font-size:16px; color:var(--navy); }
   section.panel p.hint{ margin:0 0 14px; font-size:12.5px; color:#6b7877; }
 
@@ -263,26 +290,20 @@
   <div id="dash">
     <header class="topbar">
       <h1>Health Endeavors — Owner Dashboard</h1>
-      <nav>
-        <a href="#attentionPanel">Attention</a>
-        <a href="#calendarPanel">Calendar</a>
-        <a href="#ordersPanel">Orders</a>
-        <a href="#tasksPanel">Tasks &amp; Incidents</a>
-        <a href="#aiPanel">AI Activity</a>
-        <a href="#inquiriesPanel">Customer Inquiries</a>
-        <a href="#continuityPanel">Continuity</a>
-        <a href="#dailySummaryPanel">Daily Summary</a>
-        <a href="#controlsPanel">Owner Controls</a>
-      </nav>
       <div class="right">
         <span class="who" id="whoAmI"></span>
         <button id="refreshBtn" class="small">Refresh</button>
         <button id="signout" class="small">Sign out</button>
       </div>
     </header>
-    <div class="shortcutHint">Keyboard shortcuts: <b>r</b> refresh &nbsp;·&nbsp; <b>0</b> Attention &nbsp;·&nbsp; <b>5</b> Calendar &nbsp;·&nbsp; <b>1</b> Orders &nbsp;·&nbsp; <b>2</b> Tasks &amp; Incidents &nbsp;·&nbsp; <b>3</b> AI Activity &nbsp;·&nbsp; <b>6</b> Customer Inquiries &nbsp;·&nbsp; <b>7</b> Continuity &nbsp;·&nbsp; <b>8</b> Daily Summary &nbsp;·&nbsp; <b>4</b> Owner Controls</div>
 
-    <main>
+    <div class="dashBody">
+      <nav class="sidebar" id="sidebarNav">
+        <input type="text" id="sidebarSearch" class="sidebarSearch" placeholder="Search pages…">
+        <div id="sidebarGroups"></div>
+      </nav>
+
+      <main class="contentArea">
       <div id="dashError" class="bannerBox"></div>
 
       <!-- Needs Your Attention -->
@@ -440,23 +461,31 @@
         <div class="statRow" id="dailySummaryStats"></div>
       </section>
 
-      <!-- Owner Controls -->
-      <section class="panel" id="controlsPanel">
-        <h2>Owner Controls</h2>
-        <p class="hint">Feature switches and the approval queue. Only the Owner role can change these.</p>
-
-        <h3 style="font-size:13px;color:var(--navy);margin:6px 0;">Feature flags</h3>
+      <!-- Feature Flags -->
+      <section class="panel" id="flagsPanel">
+        <h2>Feature Flags</h2>
+        <p class="hint">Switches for what's turned on in your system. Only the Owner role can change these.</p>
         <div id="flagsWrap"><p class="empty">Loading…</p></div>
+      </section>
 
-        <h3 style="font-size:13px;color:var(--navy);margin:20px 0 6px;">Approval queue</h3>
+      <!-- Approval Queue -->
+      <section class="panel" id="approvalsPanel">
+        <h2>Approval Queue</h2>
+        <p class="hint">Requests waiting on your sign-off.</p>
         <div id="approvalsWrap"><p class="empty">Loading…</p></div>
+      </section>
 
-        <h3 style="font-size:13px;color:var(--navy);margin:20px 0 6px;">Active sessions</h3>
-        <p class="hint" style="margin-top:-2px;">Every device currently logged into this account. If anything here looks unfamiliar, log it out.</p>
+      <!-- Active Sessions -->
+      <section class="panel" id="sessionsPanel">
+        <h2>Active Sessions</h2>
+        <p class="hint">Every device currently logged into this account. If anything here looks unfamiliar, log it out.</p>
         <div id="sessionsWrap"><p class="empty">Loading…</p></div>
+      </section>
 
-        <h3 style="font-size:13px;color:var(--navy);margin:20px 0 6px;">Procedures (SOPs)</h3>
-        <p class="hint" style="margin-top:-2px;">Your own written step-by-step procedures — useful for your reference now, and ready the moment you bring anyone else into the business.</p>
+      <!-- Procedures (SOPs) -->
+      <section class="panel" id="sopsPanel">
+        <h2>Procedures (SOPs)</h2>
+        <p class="hint">Your own written step-by-step procedures — useful for your reference now, and ready the moment you bring anyone else into the business.</p>
         <div id="sopsWrap"><p class="empty">Loading…</p></div>
         <form id="addSopForm" style="display:flex;flex-direction:column;gap:8px;margin-top:14px;padding-top:16px;border-top:1px solid var(--line);">
           <input type="text" id="sopTitle" placeholder="Procedure title (e.g. How to process a return)" required>
@@ -468,9 +497,12 @@
           </label>
           <button type="submit" class="small" style="align-self:flex-start;">Add procedure</button>
         </form>
+      </section>
 
-        <h3 style="font-size:13px;color:var(--navy);margin:20px 0 6px;">Feature Requests</h3>
-        <p class="hint" style="margin-top:-2px;">Things you want added or changed to this system — track them here instead of only in chat, and watch each one move from requested to in progress to done.</p>
+      <!-- Feature Requests -->
+      <section class="panel" id="featureRequestsPanel">
+        <h2>Feature Requests</h2>
+        <p class="hint">Things you want added or changed to this system — track them here instead of only in chat, and watch each one move from requested to in progress to done.</p>
         <div class="statRow" id="frStats"></div>
         <div id="featureRequestsWrap"><p class="empty">Loading…</p></div>
         <form id="addFeatureRequestForm" style="display:flex;flex-direction:column;gap:8px;margin-top:14px;padding-top:16px;border-top:1px solid var(--line);">
@@ -486,9 +518,12 @@
         <h4 style="font-size:12px;color:#6b7877;margin:18px 0 6px;">Recently deleted requests</h4>
         <p class="hint" style="margin-top:-2px;">Deleted requests land here instead of disappearing for good — restore puts them right back.</p>
         <div id="deletedFeatureRequestsWrap"><p class="empty">Loading…</p></div>
+      </section>
 
-        <h3 style="font-size:13px;color:var(--navy);margin:20px 0 6px;">Legal Holds</h3>
-        <p class="hint" style="margin-top:-2px;">If a dispute or investigation ever requires it, flag what needs to be preserved here so nothing gets edited or deleted while it's under hold.</p>
+      <!-- Legal Holds -->
+      <section class="panel" id="legalHoldsPanel">
+        <h2>Legal Holds</h2>
+        <p class="hint">If a dispute or investigation ever requires it, flag what needs to be preserved here so nothing gets edited or deleted while it's under hold.</p>
         <div id="legalHoldsWrap"><p class="empty">Loading…</p></div>
         <form id="addLegalHoldForm" style="display:flex;flex-direction:column;gap:8px;margin-top:14px;padding-top:16px;border-top:1px solid var(--line);">
           <input type="text" id="lhTitle" placeholder="What's on hold (e.g. Order #1234, Customer Jane Doe's records)" required>
@@ -509,7 +544,8 @@
         <p class="hint" style="margin-top:-2px;">Holds you've released, kept here for reference.</p>
         <div id="releasedLegalHoldsWrap"><p class="empty">Loading…</p></div>
       </section>
-    </main>
+      </main>
+    </div>
   </div>
 
   <!-- Re-authentication prompt: shown before any sensitive action (restoring an
@@ -626,8 +662,10 @@
 
       currentUserEmail = user.email;
       loginScreen.style.display = 'none';
-      dash.style.display = 'block';
+      dash.style.display = 'flex';
       whoAmI.textContent = `${profile.display_name || user.email} — role: ${profile.role}`;
+      renderSidebar('');
+      showPage('attentionPanel');
       loadDashboard();
     }
 
@@ -717,20 +755,189 @@
     document.getElementById('refreshBtn').addEventListener('click', loadDashboard);
 
     // ---------- keyboard shortcuts ----------
+    // With 17 pages now, per-page number shortcuts stopped making sense —
+    // use the sidebar or the search box to jump to a page instead.
     window.addEventListener('keydown', (e) => {
-      if (dash.style.display !== 'block') return;
+      if (dash.style.display !== 'flex') return;
       const tag = (document.activeElement && document.activeElement.tagName) || '';
-      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') {
+        if (e.key === 'Escape' && document.activeElement.id === 'sidebarSearch') {
+          document.activeElement.value = '';
+          renderSidebar('');
+          document.activeElement.blur();
+        }
+        return;
+      }
       if (e.key === 'r') { loadDashboard(); }
-      else if (e.key === '0') { document.getElementById('attentionPanel').scrollIntoView({behavior:'smooth'}); }
-      else if (e.key === '5') { document.getElementById('calendarPanel').scrollIntoView({behavior:'smooth'}); }
-      else if (e.key === '1') { document.getElementById('ordersPanel').scrollIntoView({behavior:'smooth'}); }
-      else if (e.key === '2') { document.getElementById('tasksPanel').scrollIntoView({behavior:'smooth'}); }
-      else if (e.key === '3') { document.getElementById('aiPanel').scrollIntoView({behavior:'smooth'}); }
-      else if (e.key === '6') { document.getElementById('inquiriesPanel').scrollIntoView({behavior:'smooth'}); }
-      else if (e.key === '7') { document.getElementById('continuityPanel').scrollIntoView({behavior:'smooth'}); }
-      else if (e.key === '8') { document.getElementById('dailySummaryPanel').scrollIntoView({behavior:'smooth'}); }
-      else if (e.key === '4') { document.getElementById('controlsPanel').scrollIntoView({behavior:'smooth'}); }
+      else if (e.key === '/') {
+        e.preventDefault();
+        document.getElementById('sidebarSearch').focus();
+      }
+    });
+
+    // ---------- sidebar navigation + search ----------
+    // Every page we've built, grouped by topic. Add a new panel's id/label
+    // here and it shows up in the sidebar automatically — nothing else to wire up.
+    const SIDEBAR_GROUPS = [
+      { label: 'Overview', pages: [
+        { id: 'attentionPanel', label: 'Needs Your Attention' },
+        { id: 'dailySummaryPanel', label: 'Daily Summary' },
+        { id: 'calendarPanel', label: 'Calendar' },
+      ]},
+      { label: 'Sales', pages: [
+        { id: 'ordersPanel', label: 'Orders & Revenue' },
+      ]},
+      { label: 'Operations', pages: [
+        { id: 'tasksPanel', label: 'Tasks' },
+        { id: 'incidentsPanel', label: 'Incidents' },
+        { id: 'evidenceLockerPanel', label: 'Evidence Locker' },
+        { id: 'adverseEventsPanel', label: 'Adverse Event Reports' },
+      ]},
+      { label: 'Customers & AI', pages: [
+        { id: 'inquiriesPanel', label: 'Customer Inquiries' },
+        { id: 'aiPanel', label: 'AI Agent Activity' },
+        { id: 'continuityPanel', label: 'Business Continuity' },
+      ]},
+      { label: 'Admin', pages: [
+        { id: 'flagsPanel', label: 'Feature Flags' },
+        { id: 'approvalsPanel', label: 'Approval Queue' },
+        { id: 'sessionsPanel', label: 'Active Sessions' },
+        { id: 'sopsPanel', label: 'Procedures (SOPs)' },
+        { id: 'featureRequestsPanel', label: 'Feature Requests' },
+        { id: 'legalHoldsPanel', label: 'Legal Holds' },
+      ]},
+    ];
+    let currentPageId = null;
+
+    // Smart Universal Search: every load function that fetches real records
+    // (orders, tasks, incidents, etc.) also drops its rows in here, so typing
+    // in the sidebar search box can find "Jane Doe" or "order 1042" no matter
+    // which page it actually lives on. Scoped strictly to data already inside
+    // this dashboard — it has nothing to do with the future public website
+    // or buyer-login idea, which is a separate, later project.
+    const SEARCH_INDEX = {
+      orders: [], tasks: [], incidents: [], approvals: [], sops: [],
+      featureRequests: [], evidence: [], adverseEvents: [], legalHolds: [],
+    };
+
+    function searchEverything(query){
+      const q = query.trim().toLowerCase();
+      if (!q) return [];
+      const results = [];
+      const hit = (fields) => fields.filter(Boolean).join(' ').toLowerCase().includes(q);
+
+      (SEARCH_INDEX.orders || []).forEach(o => {
+        if (hit([o.order_number, o.id, o.customer_name, o.customer_email, o.status])) {
+          results.push({ pageId: 'ordersPanel', type: 'Order', label: `${o.order_number || o.id} — ${o.customer_name || o.customer_email || '—'}` });
+        }
+      });
+      (ALL_INQUIRIES || []).forEach(i => {
+        if (hit([i.customer_name, i.customer_email, i.question_text, i.order_id])) {
+          results.push({ pageId: 'inquiriesPanel', type: 'Customer Inquiry', label: `${i.customer_name || i.customer_email || '—'} — ${(i.question_text || '').slice(0, 50)}` });
+        }
+      });
+      (SEARCH_INDEX.tasks || []).forEach(t => {
+        if (hit([t.title, t.priority, t.status])) {
+          results.push({ pageId: 'tasksPanel', type: 'Task', label: t.title });
+        }
+      });
+      (SEARCH_INDEX.incidents || []).forEach(inc => {
+        if (hit([inc.incident_number, inc.title, inc.severity, inc.status])) {
+          results.push({ pageId: 'incidentsPanel', type: 'Incident', label: `${inc.incident_number || ''} — ${inc.title}` });
+        }
+      });
+      (SEARCH_INDEX.approvals || []).forEach(a => {
+        if (hit([a.action_type, a.summary, a.status])) {
+          results.push({ pageId: 'approvalsPanel', type: 'Approval', label: a.summary || a.action_type });
+        }
+      });
+      (SEARCH_INDEX.sops || []).forEach(s => {
+        if (hit([s.title, s.category])) {
+          results.push({ pageId: 'sopsPanel', type: 'Procedure', label: s.title });
+        }
+      });
+      (SEARCH_INDEX.featureRequests || []).forEach(f => {
+        if (hit([f.title, f.description, f.status])) {
+          results.push({ pageId: 'featureRequestsPanel', type: 'Feature Request', label: f.title });
+        }
+      });
+      (SEARCH_INDEX.evidence || []).forEach(e => {
+        if (hit([e.title, e.description, e.evidence_type])) {
+          results.push({ pageId: 'evidenceLockerPanel', type: 'Evidence', label: e.title });
+        }
+      });
+      (SEARCH_INDEX.adverseEvents || []).forEach(a => {
+        if (hit([a.product_name, a.description, a.reporter_name])) {
+          results.push({ pageId: 'adverseEventsPanel', type: 'Adverse Event', label: `${a.product_name} — ${(a.description || '').slice(0, 40)}` });
+        }
+      });
+      (SEARCH_INDEX.legalHolds || []).forEach(l => {
+        if (hit([l.title, l.description, l.related_reference])) {
+          results.push({ pageId: 'legalHoldsPanel', type: 'Legal Hold', label: l.title });
+        }
+      });
+
+      return results.slice(0, 30);
+    }
+
+    function renderSidebar(filterText){
+      const q = (filterText || '').trim().toLowerCase();
+      const wrap = document.getElementById('sidebarGroups');
+      let html = '';
+
+      if (q) {
+        const dataResults = searchEverything(q);
+        if (dataResults.length) {
+          html += `<div class="sidebarGroup"><div class="groupLabel">Search results</div>`;
+          dataResults.forEach((r, idx) => {
+            html += `<a class="sidebarLink searchResultLink" data-page="${esc(r.pageId)}" data-result-index="${idx}">
+              <span class="resultType">${esc(r.type)}</span><br>${esc(r.label)}
+            </a>`;
+          });
+          html += `</div>`;
+        }
+      }
+
+      let anyPageMatch = false;
+      SIDEBAR_GROUPS.forEach(group => {
+        const pages = group.pages.filter(p => !q || p.label.toLowerCase().includes(q));
+        if (!pages.length) return;
+        anyPageMatch = true;
+        html += `<div class="sidebarGroup"><div class="groupLabel">${esc(group.label)}</div>`;
+        pages.forEach(p => {
+          html += `<a class="sidebarLink${p.id === currentPageId ? ' active' : ''}" data-page="${esc(p.id)}">${esc(p.label)}</a>`;
+        });
+        html += `</div>`;
+      });
+
+      if (!html) html = '<p class="sidebarEmpty">No pages or records match your search.</p>';
+      wrap.innerHTML = html;
+      wrap.querySelectorAll('.sidebarLink').forEach(link => {
+        link.addEventListener('click', () => showPage(link.getAttribute('data-page')));
+      });
+    }
+
+    function showPage(pageId){
+      document.querySelectorAll('main.contentArea > section.panel').forEach(sec => {
+        sec.classList.toggle('activePage', sec.id === pageId);
+      });
+      currentPageId = pageId;
+      renderSidebar(document.getElementById('sidebarSearch').value);
+      document.querySelector('main.contentArea').scrollTop = 0;
+      window.scrollTo(0, 0);
+    }
+
+    document.getElementById('sidebarSearch').addEventListener('input', (e) => renderSidebar(e.target.value));
+    document.getElementById('sidebarSearch').addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter') return;
+      const q = e.target.value.trim().toLowerCase();
+      if (!q) return;
+      const dataResults = searchEverything(q);
+      if (dataResults.length) { showPage(dataResults[0].pageId); return; }
+      for (const group of SIDEBAR_GROUPS) {
+        const match = group.pages.find(p => p.label.toLowerCase().includes(q));
+        if (match) { showPage(match.id); return; }
+      }
     });
 
     // ---------- needs your attention ----------
@@ -1010,6 +1217,7 @@
           .order('placed_at', { ascending: false })
           .limit(300);
         if (error) throw error;
+        SEARCH_INDEX.orders = orders;
 
         const totalRevenue = orders.reduce((sum, o) => sum + Number(o.total || 0), 0);
         const currency = (orders[0] && orders[0].currency) || 'USD';
@@ -1085,6 +1293,7 @@
           .order('due_at', { ascending: true, nullsFirst: false })
           .limit(100);
         if (error) throw error;
+        SEARCH_INDEX.tasks = tasks;
 
         const open = tasks.filter(t => !isClosedStatus(t.status));
         if (!open.length) {
@@ -1113,6 +1322,7 @@
           .order('due_at', { ascending: true, nullsFirst: false })
           .limit(100);
         if (error) throw error;
+        SEARCH_INDEX.incidents = incidents;
 
         const open = incidents.filter(i => !isClosedStatus(i.status));
         if (!open.length) {
@@ -1606,6 +1816,7 @@
           .order('created_at', { ascending: false })
           .limit(100);
         if (error) throw error;
+        SEARCH_INDEX.approvals = reqs;
 
         const pending = reqs.filter(r => !isClosedStatus(r.status));
         if (!pending.length) {
@@ -1724,6 +1935,7 @@
           .order('category', { ascending: true, nullsFirst: false })
           .order('title', { ascending: true });
         if (error) throw error;
+        SEARCH_INDEX.sops = sops;
         if (!sops || !sops.length) {
           document.getElementById('sopsWrap').innerHTML = '<p class="empty">No procedures written yet — add your first one below.</p>';
           return;
@@ -1811,6 +2023,7 @@
           .is('deleted_at', null)
           .order('requested_at', { ascending: false });
         if (error) throw error;
+        SEARCH_INDEX.featureRequests = reqs;
 
         const counts = { requested: 0, in_progress: 0, done: 0 };
         (reqs || []).forEach(r => { if (counts[r.status] !== undefined) counts[r.status]++; });
@@ -1993,6 +2206,7 @@
         if (currentFilter) evidenceQuery = evidenceQuery.eq('incident_id', currentFilter);
         const { data: evidence, error } = await evidenceQuery;
         if (error) throw error;
+        if (!currentFilter) SEARCH_INDEX.evidence = evidence;
 
         if (!evidence || !evidence.length) {
           document.getElementById('evidenceWrap').innerHTML = currentFilter
@@ -2124,6 +2338,7 @@
           .select('id, product_name, date_received, description, outcome_type, fda_report_deadline, fda_reported, fda_reported_at, reporter_name, reporter_contact, created_at')
           .order('fda_report_deadline', { ascending: true });
         if (error) throw error;
+        SEARCH_INDEX.adverseEvents = events;
 
         if (!events || !events.length) {
           document.getElementById('adverseEventsWrap').innerHTML = '<p class="empty">No adverse event reports on file — hopefully it stays that way.</p>';
@@ -2240,6 +2455,7 @@
           .eq('status', 'active')
           .order('placed_at', { ascending: false });
         if (error) throw error;
+        SEARCH_INDEX.legalHolds = holds;
 
         if (!holds || !holds.length) {
           document.getElementById('legalHoldsWrap').innerHTML = '<p class="empty">No active legal holds.</p>';
