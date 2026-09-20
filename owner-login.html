@@ -506,6 +506,13 @@
         <div class="statRow" id="dailySummaryStats"></div>
       </section>
 
+      <!-- Report History (saved nightly snapshots) -->
+      <section class="panel" id="reportHistoryPanel">
+        <h2>Report History</h2>
+        <p class="hint">Every night, the system automatically saves a snapshot just like the Daily Summary above — so you can look back at any past day, even ones you weren't around to check live. "Emailed" will start showing once automatic email delivery is turned on.</p>
+        <div id="reportHistoryWrap"><p class="empty">Loading…</p></div>
+      </section>
+
       <!-- Feature Flags -->
       <section class="panel" id="flagsPanel">
         <h2>Feature Flags</h2>
@@ -827,6 +834,7 @@
       { label: 'Overview', pages: [
         { id: 'attentionPanel', label: 'Needs Your Attention' },
         { id: 'dailySummaryPanel', label: 'Daily Summary' },
+        { id: 'reportHistoryPanel', label: 'Report History' },
         { id: 'calendarPanel', label: 'Calendar' },
       ]},
       { label: 'Sales', pages: [
@@ -1328,6 +1336,7 @@
         loadInquiries(),
         loadContinuity(),
         loadDailySummary(),
+        loadReportHistory(),
         loadFlags(),
         loadApprovals(),
         loadSessions(),
@@ -1904,6 +1913,46 @@
         `;
       } catch (err) {
         showDashError('Could not load Daily Summary: ' + (err && err.message ? err.message : err));
+      }
+    }
+
+    // Report History: browse the nightly automatic snapshots saved into
+    // daily_reports by the scheduled database job (separate from the live
+    // Daily Summary above, which is always computed fresh on page load).
+    async function loadReportHistory(){
+      try {
+        const { data: reports, error } = await supabase
+          .from('daily_reports')
+          .select('*')
+          .order('report_date', { ascending: false })
+          .limit(90);
+        if (error) throw error;
+
+        if (!reports.length) {
+          document.getElementById('reportHistoryWrap').innerHTML =
+            '<p class="empty">No saved reports yet — the first one will appear after tonight\'s automatic run.</p>';
+          return;
+        }
+
+        document.getElementById('reportHistoryWrap').innerHTML = `
+          <table><thead><tr>
+            <th>Date</th><th>Orders</th><th>Revenue</th><th>New questions</th>
+            <th>Tasks opened</th><th>Incidents opened</th><th>AI calls</th><th>AI cost</th><th>Emailed</th>
+          </tr></thead>
+          <tbody>${reports.map(r => `
+            <tr>
+              <td>${esc(fmtDateOnly(r.report_date))}</td>
+              <td>${Number(r.orders_count || 0)}</td>
+              <td>${esc(fmtMoney(r.revenue, r.currency || 'USD'))}</td>
+              <td>${Number(r.new_inquiries_count || 0)}</td>
+              <td>${Number(r.tasks_opened_count || 0)}</td>
+              <td>${Number(r.incidents_opened_count || 0)}</td>
+              <td>${Number(r.ai_calls_count || 0)}</td>
+              <td>${esc(fmtMoney(r.ai_cost, 'USD'))}</td>
+              <td>${r.emailed_at ? '✓' : '—'}</td>
+            </tr>`).join('')}</tbody></table>`;
+      } catch (err) {
+        showDashError('Could not load Report History: ' + (err && err.message ? err.message : err));
       }
     }
 
