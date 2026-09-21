@@ -3013,7 +3013,12 @@
 
         let lowStockCount = 0;
         const rowsHtml = products.map(p => {
-          const inv = (p.inventory && p.inventory[0]) || {};
+          // PostgREST can return this embed as either an array (one-to-many
+          // shape) or a single object (one-to-one shape, since product_id is
+          // unique on inventory) depending on how it detects the relationship.
+          // Handle both so this doesn't silently show blank data if that
+          // detection ever flips.
+          const inv = Array.isArray(p.inventory) ? (p.inventory[0] || {}) : (p.inventory || {});
           const available = Number(inv.available || 0);
           const threshold = inv.low_stock_threshold;
           const isLow = threshold !== null && threshold !== undefined && available < Number(threshold);
