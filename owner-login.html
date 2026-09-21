@@ -649,6 +649,13 @@
         <div id="flagsWrap"><p class="empty">Loading…</p></div>
       </section>
 
+      <!-- Business Rules -->
+      <section class="panel" id="businessRulesPanel">
+        <h2>Business Rules</h2>
+        <p class="hint">The thresholds your AI agents watch for — like how many days an order can sit unfulfilled before it gets flagged. Changing a number here changes what the agents actually do, with no code or deploy needed.</p>
+        <div id="businessRulesWrap"><p class="empty">Loading…</p></div>
+      </section>
+
       <!-- Approval Queue -->
       <section class="panel" id="approvalsPanel">
         <h2>Approval Queue</h2>
@@ -992,6 +999,7 @@
       ]},
       { label: 'Admin', pages: [
         { id: 'flagsPanel', label: 'Feature Flags' },
+        { id: 'businessRulesPanel', label: 'Business Rules' },
         { id: 'approvalsPanel', label: 'Approval Queue' },
         { id: 'sessionsPanel', label: 'Active Sessions' },
         { id: 'sopsPanel', label: 'Procedures (SOPs)' },
@@ -1011,6 +1019,30 @@
       orders: [], tasks: [], incidents: [], approvals: [], sops: [],
       featureRequests: [], evidence: [], adverseEvents: [], legalHolds: [],
       attention: [], expenses: [], inventory: [], returns: [],
+    };
+
+    // Business Rules: each row's `config` is a small jsonb object whose one
+    // key varies per rule (e.g. {"days":5} vs {"cap_usd":30}). These two maps
+    // tell the page which key inside `config` holds the editable number for a
+    // known rule_key, and what unit to show next to it. Any rule_key added
+    // later that isn't listed here still works — it just falls back to a
+    // plain "edit as JSON" box instead of a friendly number field, so this
+    // page never breaks when a new rule is added straight in SQL.
+    const BUSINESS_RULE_CONFIG_KEY = {
+      ai_monthly_spend_cap_usd: 'cap_usd',
+      invoice_missing_threshold_hours: 'hours',
+      order_stuck_unfulfilled_days: 'days',
+      refund_review_threshold_usd: 'amount',
+      shipping_delay_threshold_days: 'days',
+      stuck_task_threshold_days: 'days',
+    };
+    const BUSINESS_RULE_UNIT_LABELS = {
+      ai_monthly_spend_cap_usd: '$ / month',
+      invoice_missing_threshold_hours: 'hours',
+      order_stuck_unfulfilled_days: 'days',
+      refund_review_threshold_usd: '$',
+      shipping_delay_threshold_days: 'days',
+      stuck_task_threshold_days: 'days',
     };
 
     // Inventory bucket values (must match the database check constraint on
@@ -1554,6 +1586,7 @@
         loadDailySummary(),
         loadReportHistory(),
         loadFlags(),
+        loadBusinessRules(),
         loadApprovals(),
         loadSessions(),
         loadSops(),
@@ -2306,6 +2339,133 @@
         }
       } catch (err) {
         showDashError('Could not load feature flags: ' + (err && err.message ? err.message : err));
+      }
+    }
+
+    async function loadBusinessRules(){
+      try {
+        const { data: rules, error } = await supabase
+          .from('business_rules')
+          .select('id, rule_key, label, description, config, is_active')
+          .order('label', { ascending: true });
+        if (error) throw error;
+
+        if (!rules.length) {
+          document.getElementById('businessRulesWrap').innerHTML = '<p class="empty">No business rules exist yet.</p>';
+          return;
+        }
+
+        document.getElementById('businessRulesWrap').innerHTML = rules.map(r => {
+          const configKey = BUSINESS_RULE_CONFIG_KEY[r.rule_key];
+          const unit = BUSINESS_RULE_UNIT_LABELS[r.rule_key] || '';
+          const knownShape = configKey && r.config && typeof r.config === 'object'
+            && Object.prototype.hasOwnProperty.call(r.config, configKey);
+          const currentValue = knownShape ? r.config[configKey] : null;
+
+          return `
+            <div class="flagRow" data-id="${esc(r.id)}" data-rule-key="${esc(r.rule_key)}" data-config-key="${esc(configKey || '')}" style="align-items:flex-start;">
+              <div class="flagInfo" style="flex:1;min-width:0;">
+                <div class="k">${esc(r.label || r.rule_key)}</div>
+                <div class="d">${esc(r.description || r.rule_key)}</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;flex:none;">
+                ${knownShape ? `
+                  <input type="number" class="ruleValueInput" value="${esc(String(currentValue))}" step="any" style="width:90px;padding:7px 8px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:13.5px;">
+                  <span style="font-size:12px;color:#6b7877;min-width:60px;">${esc(unit)}</span>
+                ` : `
+                  <textarea class="ruleConfigJson" rows="2" style="width:180px;padding:7px 8px;border-radius:8px;border:1px solid #cfd8d6;font-family:monospace;font-size:12px;resize:vertical;">${esc(JSON.stringify(r.config))}</textarea>
+                `}
+                <button type="button" class="small ruleSaveBtn" style="display:none;">Save</button>
+                <label class="switch">
+                  <input type="checkbox" class="ruleActiveToggle" ${r.is_active ? 'checked' : ''}>
+                  <span class="slider"></span>
+                </label>
+              </div>
+            </div>`;
+        }).join('');
+
+        // The Save button only appears once a value has actually changed, so
+        // this page doesn't nag with a Save button sitting there by default.
+        document.querySelectorAll('.ruleValueInput, .ruleConfigJson').forEach(el => {
+          el.addEventListener('input', () => {
+            el.closest('.flagRow').querySelector('.ruleSaveBtn').style.display = 'inline-block';
+          });
+        });
+
+        document.querySelectorAll('.ruleSaveBtn').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const row = btn.closest('.flagRow');
+            const id = row.getAttribute('data-id');
+            const configKey = row.getAttribute('data-config-key');
+            const label = row.querySelector('.flagInfo .k').textContent;
+
+            let newConfig;
+            const jsonBox = row.querySelector('.ruleConfigJson');
+            if (jsonBox) {
+              try {
+                newConfig = JSON.parse(jsonBox.value);
+              } catch (e) {
+                showDashError('That config isn\'t valid JSON — fix the formatting and try again.');
+                return;
+              }
+            } else {
+              const valueInput = row.querySelector('.ruleValueInput');
+              const num = Number(valueInput.value);
+              if (Number.isNaN(num)) {
+                showDashError('Enter a valid number for "' + label + '".');
+                return;
+              }
+              newConfig = { [configKey]: num };
+            }
+
+            const ok = await requireReauth(`change the "${label}" threshold`);
+            if (!ok) return;
+
+            btn.disabled = true;
+            try {
+              const uid = await currentUserId();
+              const { error } = await supabase
+                .from('business_rules')
+                .update({ config: newConfig, updated_by: uid })
+                .eq('id', id);
+              if (error) throw error;
+              btn.style.display = 'none';
+            } catch (err) {
+              showDashError('Could not save that rule: ' + (err && err.message ? err.message : err));
+            } finally {
+              btn.disabled = false;
+            }
+          });
+        });
+
+        document.querySelectorAll('.ruleActiveToggle').forEach(cb => {
+          cb.addEventListener('change', async () => {
+            const row = cb.closest('.flagRow');
+            const id = row.getAttribute('data-id');
+            const newVal = cb.checked;
+            // Flip back while we ask for your password, same pattern as Feature Flags.
+            cb.checked = !newVal;
+            const ok = await requireReauth(newVal ? 'turn this rule back ON' : 'turn this rule OFF');
+            if (!ok) return;
+            cb.checked = newVal;
+            cb.disabled = true;
+            try {
+              const uid = await currentUserId();
+              const { error } = await supabase
+                .from('business_rules')
+                .update({ is_active: newVal, updated_by: uid })
+                .eq('id', id);
+              if (error) throw error;
+            } catch (err) {
+              cb.checked = !newVal;
+              showDashError('Could not change that rule: ' + (err && err.message ? err.message : err));
+            } finally {
+              cb.disabled = false;
+            }
+          });
+        });
+      } catch (err) {
+        showDashError('Could not load business rules: ' + (err && err.message ? err.message : err));
       }
     }
 
