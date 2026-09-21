@@ -439,7 +439,7 @@
       <!-- Returns (tied to Orders + Inventory) -->
       <section class="panel" id="returnsPanel">
         <h2>Returns</h2>
-        <p class="hint">Track items customers send back, from request through refund. Status moves one way: Requested → Pending Approval → Received → Closed. Marking a return Received also records what happens to the stock — restocked, moved to Damaged, or discarded — and logs that change to Inventory automatically, so you never enter it twice.</p>
+        <p class="hint">Track items customers send back, from request through refund. Status moves through: Requested → Approved or Rejected → Received → Refunded → Closed. Marking a return Received also records what happens to the stock — restocked, moved to Damaged, or discarded — and logs that change to Inventory automatically, so you never enter it twice. Each return is for one specific line item on an order (its full quantity), not a partial amount.</p>
         <div class="statRow" id="returnsStats"></div>
 
         <form id="logReturnForm" style="display:flex;flex-direction:column;gap:8px;margin-top:14px;padding-top:16px;border-top:1px solid var(--line);">
@@ -447,11 +447,10 @@
           <select id="retOrder" required style="padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;">
             <option value="">Order…</option>
           </select>
-          <select id="retProduct" required style="padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;">
-            <option value="">Product…</option>
+          <select id="retOrderItem" required disabled style="padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;">
+            <option value="">Pick an order first…</option>
           </select>
-          <input type="number" id="retQuantity" placeholder="Quantity" min="1" step="1" value="1" required>
-          <select id="retReason" style="padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;">
+          <select id="retReason" required style="padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;">
             <option value="">Reason…</option>
             <option value="wrong_item">Wrong item sent</option>
             <option value="damaged_in_transit">Damaged in transit</option>
@@ -461,11 +460,10 @@
           </select>
           <select id="retCondition" style="padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;">
             <option value="">Condition reported by customer…</option>
-            <option value="resellable">Resellable / unopened</option>
+            <option value="resalable">Resalable / unopened</option>
             <option value="damaged">Damaged</option>
-            <option value="defective">Defective</option>
-            <option value="wrong_item">Wrong item (not what we sent)</option>
-            <option value="other">Other</option>
+            <option value="used">Used but functional</option>
+            <option value="unknown">Unknown / not yet inspected</option>
           </select>
           <input type="text" id="retNotes" placeholder="Notes (optional)">
           <button type="submit" class="small" style="align-self:flex-start;">Log return</button>
@@ -1057,13 +1055,20 @@
       returned: 'Returned',
     };
 
-    // Return status/reason/condition/disposition values (must match the database
-    // check constraints on the returns table) mapped to friendly labels. Status
-    // moves in one direction only: Requested -> Pending Approval -> Received -> Closed.
+    // Return status/condition values below must match the real database check
+    // constraints on the returns table (verified directly against pg_constraint,
+    // not assumed) — status: requested/approved/rejected/received/refunded/closed,
+    // product_condition: resalable/damaged/used/unknown. Reason has no check
+    // constraint (plain text), so its list here is just a UI convenience.
+    // Disposition is a dashboard-added column (see September 21, 2026 fix note)
+    // used only to drive the automatic Inventory restock when a return is
+    // marked Received — it isn't part of the original returns table.
     const RETURN_STATUS_LABELS = {
       requested: 'Requested',
-      pending_approval: 'Pending Approval',
+      approved: 'Approved',
+      rejected: 'Rejected',
       received: 'Received',
+      refunded: 'Refunded',
       closed: 'Closed',
     };
     const RETURN_REASON_LABELS = {
@@ -1074,11 +1079,10 @@
       other: 'Other',
     };
     const RETURN_CONDITION_LABELS = {
-      resellable: 'Resellable / unopened',
+      resalable: 'Resalable / unopened',
       damaged: 'Damaged',
-      defective: 'Defective',
-      wrong_item: 'Wrong item (not what we sent)',
-      other: 'Other',
+      used: 'Used but functional',
+      unknown: 'Unknown / not yet inspected',
     };
     const RETURN_DISPOSITION_LABELS = {
       restock_available: 'Restocked to Available',
@@ -1181,9 +1185,9 @@
       });
       (SEARCH_INDEX.returns || []).forEach(r => {
         const order = r.orders || {};
-        const product = r.products || {};
-        if (hit([order.order_number, order.customer_name, product.name, product.sku, r.reason, r.status])) {
-          results.push({ pageId: 'returnsPanel', type: 'Return', label: `${product.name || 'Return'} — ${order.order_number || r.order_id || ''}` });
+        const item = r.order_items || {};
+        if (hit([order.order_number, order.customer_name, item.product_name, item.sku, r.reason, r.status])) {
+          results.push({ pageId: 'returnsPanel', type: 'Return', label: `${item.product_name || 'Return'} — ${order.order_number || r.order_id || ''}` });
         }
       });
 
@@ -3403,20 +3407,32 @@
       }
     });
 
-    // ---------- Returns (tied to Orders + Inventory) ----------
+    // ---------- Returns (tied to Orders, Order Items, and Inventory) ----------
+    // Schema note (verified directly against the real table on September 21,
+    // 2026, after the first version of this page was found to be built
+    // against an assumed schema that didn't match reality): returns links to
+    // a specific order_item (its full quantity — no partial-quantity
+    // returns), not directly to a product. Its real status flow is
+    // requested -> approved/rejected -> received -> refunded -> closed.
+    // order_items has no product_id (only sku/product_name copied in at the
+    // time of the order), so the automatic Inventory restock below looks up
+    // the matching product by SKU. `disposition` is a small additive column
+    // added purely to drive that restock — it isn't otherwise part of the
+    // original table.
     async function loadReturns(){
       try {
         const { data: returns, error } = await supabase
           .from('returns')
-          .select('id, order_id, product_id, quantity, reason, condition_reported, status, disposition, refunded, refunded_at, refund_amount, notes, requested_at, received_at, closed_at, orders(order_number, customer_name), products(name, sku)')
-          .order('requested_at', { ascending: false })
+          .select('id, order_id, order_item_id, reason, status, product_condition, disposition, refund_amount, approved_at, received_at, refunded_at, notes, created_at, orders(order_number, customer_name), order_items(product_name, sku, quantity)')
+          .order('created_at', { ascending: false })
           .limit(200);
         if (error) throw error;
 
         SEARCH_INDEX.returns = returns;
 
-        // Populate the "Order" and "Product" dropdowns on the log-return form
-        // once — no need to re-fetch them on every refresh.
+        // Populate the "Order" dropdown on the log-return form once — no need
+        // to re-fetch it on every refresh. Its matching line items load on
+        // demand when an order is picked (see the change listener below).
         const orderSelect = document.getElementById('retOrder');
         if (orderSelect && !orderSelect.dataset.loaded) {
           const { data: recentOrders, error: ordersErr } = await supabase
@@ -3430,20 +3446,9 @@
             (recentOrders || []).map(o => `<option value="${esc(o.id)}">${esc(o.order_number || o.id)}${o.customer_name ? ' — ' + esc(o.customer_name) : ''}</option>`).join('');
           orderSelect.dataset.loaded = '1';
         }
-        const productSelect = document.getElementById('retProduct');
-        if (productSelect && !productSelect.dataset.loaded) {
-          const { data: allProducts, error: productsErr } = await supabase
-            .from('products')
-            .select('id, name, sku')
-            .order('name', { ascending: true });
-          if (productsErr) throw productsErr;
-          productSelect.innerHTML = '<option value="">Product…</option>' +
-            (allProducts || []).map(p => `<option value="${esc(p.id)}">${esc(p.name)}${p.sku ? ' (' + esc(p.sku) + ')' : ''}</option>`).join('');
-          productSelect.dataset.loaded = '1';
-        }
 
         const openCount = returns.filter(r => r.status !== 'closed').length;
-        const refundedCount = returns.filter(r => r.refunded).length;
+        const refundedCount = returns.filter(r => r.refunded_at).length;
         document.getElementById('returnsStats').innerHTML = `
           <div class="stat"><div class="num">${returns.length}</div><div class="lbl">Total returns</div></div>
           <div class="stat"><div class="num">${openCount}</div><div class="lbl">Open</div></div>
@@ -3457,14 +3462,16 @@
 
         document.getElementById('returnsWrap').innerHTML = returns.map(r => {
           const order = r.orders || {};
-          const product = r.products || {};
+          const item = r.order_items || {};
           const statusLabel = RETURN_STATUS_LABELS[r.status] || r.status;
-          const statusClass = r.status === 'pending_approval' ? 'sev-medium' : (r.status === 'received' ? 'sev-low' : '');
+          const statusClass = r.status === 'approved' ? 'sev-medium' : (r.status === 'rejected' ? 'sev-high' : ((r.status === 'received' || r.status === 'refunded') ? 'sev-low' : ''));
 
           let actionHtml = '';
           if (r.status === 'requested') {
-            actionHtml = `<button type="button" class="small advanceReturnBtn" data-next="pending_approval">Move to Pending Approval</button>`;
-          } else if (r.status === 'pending_approval') {
+            actionHtml = `
+              <button type="button" class="small decideReturnBtn" data-next="approved">Approve</button>
+              <button type="button" class="small decideReturnBtn" data-next="rejected">Reject</button>`;
+          } else if (r.status === 'approved') {
             actionHtml = `
               <select class="dispositionSelect" style="padding:6px 8px;border-radius:6px;border:1px solid #cfd8d6;font-family:inherit;font-size:12px;">
                 <option value="">If restocking…</option>
@@ -3473,38 +3480,41 @@
                 <option value="discard">Discard (no restock)</option>
               </select>
               <button type="button" class="small markReceivedBtn">Mark Received</button>`;
+          } else if (r.status === 'rejected') {
+            actionHtml = `<button type="button" class="small advanceReturnBtn" data-next="closed">Close</button>`;
           } else if (r.status === 'received') {
+            actionHtml = `
+              <input type="number" class="refundAmountInput" min="0" step="0.01" placeholder="Refund $ (optional)" style="width:130px;padding:5px 7px;border-radius:6px;border:1px solid #cfd8d6;font-family:inherit;font-size:12px;">
+              <button type="button" class="small markRefundedBtn">Mark Refunded</button>
+              <button type="button" class="small advanceReturnBtn" data-next="closed">Close without refund</button>`;
+          } else if (r.status === 'refunded') {
             actionHtml = `<button type="button" class="small advanceReturnBtn" data-next="closed">Close</button>`;
           }
-          const refundHtml = (!r.refunded && r.status !== 'requested')
-            ? `<input type="number" class="refundAmountInput" min="0" step="0.01" placeholder="Refund $ (optional)" style="width:130px;padding:5px 7px;border-radius:6px;border:1px solid #cfd8d6;font-family:inherit;font-size:12px;">
-               <button type="button" class="small markRefundedBtn">Mark refunded</button>`
-            : '';
 
           const detailLine = [
             r.reason ? 'Reason: ' + esc(RETURN_REASON_LABELS[r.reason] || r.reason) : '',
-            r.condition_reported ? 'Condition: ' + esc(RETURN_CONDITION_LABELS[r.condition_reported] || r.condition_reported) : '',
+            r.product_condition ? 'Condition: ' + esc(RETURN_CONDITION_LABELS[r.product_condition] || r.product_condition) : '',
             r.disposition ? 'Outcome: ' + esc(RETURN_DISPOSITION_LABELS[r.disposition] || r.disposition) : '',
           ].filter(Boolean).join(' · ');
 
           return `
-            <div class="deletedRow" data-return-id="${esc(r.id)}" data-product-id="${esc(r.product_id)}" data-quantity="${esc(r.quantity)}" data-order-label="${esc(order.order_number || r.order_id)}" style="align-items:flex-start;flex-wrap:wrap;">
+            <div class="deletedRow" data-return-id="${esc(r.id)}" data-item-sku="${esc(item.sku || '')}" data-quantity="${esc(item.quantity || 0)}" data-order-label="${esc(order.order_number || r.order_id)}" style="align-items:flex-start;flex-wrap:wrap;">
               <div class="info" style="flex:1;min-width:220px;">
-                <b>${esc(product.name || 'Unknown product')}</b>${product.sku ? ' <span style="color:#8a9694;font-size:12px;">(' + esc(product.sku) + ')</span>' : ''}
-                — Qty ${esc(r.quantity)}
+                <b>${esc(item.product_name || 'Unknown item')}</b>${item.sku ? ' <span style="color:#8a9694;font-size:12px;">(' + esc(item.sku) + ')</span>' : ''}
+                — Qty ${esc(item.quantity !== undefined && item.quantity !== null ? item.quantity : '—')}
                 <span class="badge ${statusClass}" style="margin-left:6px;">${esc(statusLabel)}</span>
-                ${r.refunded ? '<span class="badge" style="margin-left:4px;">Refunded' + (r.refund_amount !== null && r.refund_amount !== undefined ? ' $' + Number(r.refund_amount).toFixed(2) : '') + '</span>' : ''}
+                ${(r.refund_amount !== null && r.refund_amount !== undefined) ? '<span class="badge" style="margin-left:4px;">Refunded $' + Number(r.refund_amount).toFixed(2) + '</span>' : ''}
                 <br><span style="font-size:12px;color:#6b7877;">Order ${esc(order.order_number || r.order_id)}${order.customer_name ? ' — ' + esc(order.customer_name) : ''}</span>
                 ${detailLine ? '<br><span style="font-size:12px;color:#6b7877;">' + detailLine + '</span>' : ''}
                 ${r.notes ? '<br><span style="font-size:12px;color:#6b7877;">Notes: ' + esc(r.notes) + '</span>' : ''}
-                <br><span style="font-size:11px;color:#8a9694;">Requested ${esc(fmtDate(r.requested_at))}</span>
+                <br><span style="font-size:11px;color:#8a9694;">Requested ${esc(fmtDate(r.created_at))}</span>
               </div>
-              <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">${actionHtml}${refundHtml}</div>
+              <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">${actionHtml}</div>
             </div>`;
         }).join('');
 
-        // Simple status advance: Requested -> Pending Approval, or Received -> Closed.
-        document.querySelectorAll('.advanceReturnBtn').forEach(btn => {
+        // Approve or Reject a fresh request.
+        document.querySelectorAll('.decideReturnBtn').forEach(btn => {
           btn.addEventListener('click', async () => {
             const row = btn.closest('[data-return-id]');
             const id = row.getAttribute('data-return-id');
@@ -3512,8 +3522,8 @@
             btn.disabled = true;
             try {
               const uid = await currentUserId();
-              const patch = { status: next, updated_at: new Date().toISOString(), updated_by: uid };
-              if (next === 'closed') patch.closed_at = new Date().toISOString();
+              const patch = { status: next, updated_at: new Date().toISOString() };
+              if (next === 'approved') { patch.approved_by = uid; patch.approved_at = new Date().toISOString(); }
               const { error: updErr } = await supabase.from('returns').update(patch).eq('id', id);
               if (updErr) throw updErr;
               loadReturns();
@@ -3524,14 +3534,38 @@
           });
         });
 
-        // Mark Received: records the disposition, and if it's a restock, adds
-        // the quantity back into Inventory and logs it — same as an Inventory
-        // adjustment, so the count only has to be entered once.
+        // Simple status advance: Rejected -> Closed, Refunded -> Closed, or
+        // Received -> Closed directly when there's no refund to issue (e.g.
+        // an exchange rather than a refund).
+        document.querySelectorAll('.advanceReturnBtn').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const row = btn.closest('[data-return-id]');
+            const id = row.getAttribute('data-return-id');
+            const next = btn.getAttribute('data-next');
+            btn.disabled = true;
+            try {
+              const { error: updErr } = await supabase.from('returns').update({ status: next, updated_at: new Date().toISOString() }).eq('id', id);
+              if (updErr) throw updErr;
+              loadReturns();
+            } catch (err) {
+              btn.disabled = false;
+              showDashError('Could not update that return: ' + (err && err.message ? err.message : err));
+            }
+          });
+        });
+
+        // Mark Received: records the disposition, and if it's a restock,
+        // looks up the matching product by SKU (order_items only stores the
+        // SKU as text, not a product id) and adds the quantity back into
+        // Inventory, logging it exactly like a manual Inventory adjustment —
+        // so the count only has to be entered once. If no product currently
+        // matches that SKU, the return still gets marked Received, but
+        // you'll be told to adjust Inventory by hand.
         document.querySelectorAll('.markReceivedBtn').forEach(btn => {
           btn.addEventListener('click', async () => {
             const row = btn.closest('[data-return-id]');
             const id = row.getAttribute('data-return-id');
-            const productId = row.getAttribute('data-product-id');
+            const sku = row.getAttribute('data-item-sku');
             const quantity = Number(row.getAttribute('data-quantity') || 0);
             const orderLabel = row.getAttribute('data-order-label');
             const dispositionSelect = row.querySelector('.dispositionSelect');
@@ -3540,28 +3574,43 @@
             btn.disabled = true;
             try {
               const uid = await currentUserId();
-              if (disposition === 'restock_available' || disposition === 'restock_damaged') {
-                const bucket = disposition === 'restock_available' ? 'available' : 'damaged';
-                const { data: currentInv, error: readErr } = await supabase
-                  .from('inventory')
-                  .select('*')
-                  .eq('product_id', productId)
-                  .maybeSingle();
-                if (readErr) throw readErr;
-                const currentValue = Number((currentInv && currentInv[bucket]) || 0);
-                const newValue = currentValue + quantity;
-                const { error: invErr } = await supabase
-                  .from('inventory')
-                  .upsert({ product_id: productId, [bucket]: newValue, updated_at: new Date().toISOString(), updated_by: uid }, { onConflict: 'product_id' });
-                if (invErr) throw invErr;
-                const { error: adjErr } = await supabase
-                  .from('inventory_adjustments')
-                  .insert({ product_id: productId, bucket, change_amount: quantity, reason: `Return received (order ${orderLabel})`, adjusted_by: uid });
-                if (adjErr) throw adjErr;
+              if ((disposition === 'restock_available' || disposition === 'restock_damaged') && quantity > 0) {
+                if (!sku) {
+                  showDashError('This return has no SKU on file, so it was marked Received without an automatic restock — please adjust Inventory manually.');
+                } else {
+                  const { data: matchedProduct, error: prodErr } = await supabase
+                    .from('products')
+                    .select('id')
+                    .eq('sku', sku)
+                    .maybeSingle();
+                  if (prodErr) throw prodErr;
+                  if (!matchedProduct) {
+                    showDashError(`No product currently has SKU "${sku}" — this return was marked Received, but you'll need to adjust Inventory by hand.`);
+                  } else {
+                    const productId = matchedProduct.id;
+                    const bucket = disposition === 'restock_available' ? 'available' : 'damaged';
+                    const { data: currentInv, error: readErr } = await supabase
+                      .from('inventory')
+                      .select('*')
+                      .eq('product_id', productId)
+                      .maybeSingle();
+                    if (readErr) throw readErr;
+                    const currentValue = Number((currentInv && currentInv[bucket]) || 0);
+                    const newValue = currentValue + quantity;
+                    const { error: invErr } = await supabase
+                      .from('inventory')
+                      .upsert({ product_id: productId, [bucket]: newValue, updated_at: new Date().toISOString(), updated_by: uid }, { onConflict: 'product_id' });
+                    if (invErr) throw invErr;
+                    const { error: adjErr } = await supabase
+                      .from('inventory_adjustments')
+                      .insert({ product_id: productId, bucket, change_amount: quantity, reason: `Return received (order ${orderLabel})`, adjusted_by: uid });
+                    if (adjErr) throw adjErr;
+                  }
+                }
               }
               const { error: updErr } = await supabase
                 .from('returns')
-                .update({ status: 'received', disposition, received_at: new Date().toISOString(), updated_at: new Date().toISOString(), updated_by: uid })
+                .update({ status: 'received', disposition, received_at: new Date().toISOString(), updated_at: new Date().toISOString() })
                 .eq('id', id);
               if (updErr) throw updErr;
               loadReturns();
@@ -3574,8 +3623,10 @@
           });
         });
 
-        // Mark refunded: a record-only flag — it never moves money itself,
-        // it just notes that a refund was processed outside the system.
+        // Mark Refunded: moves the return into its own Refunded stage and
+        // records the amount. This never moves money itself — it just notes
+        // that a refund was processed outside the system, consistent with
+        // this project's "AI/dashboard can flag, never authorize alone" rule.
         document.querySelectorAll('.markRefundedBtn').forEach(btn => {
           btn.addEventListener('click', async () => {
             const row = btn.closest('[data-return-id]');
@@ -3589,10 +3640,9 @@
             }
             btn.disabled = true;
             try {
-              const uid = await currentUserId();
               const { error: updErr } = await supabase
                 .from('returns')
-                .update({ refunded: true, refunded_at: new Date().toISOString(), refund_amount: amount, updated_at: new Date().toISOString(), updated_by: uid })
+                .update({ status: 'refunded', refunded_at: new Date().toISOString(), refund_amount: amount, updated_at: new Date().toISOString() })
                 .eq('id', id);
               if (updErr) throw updErr;
               loadReturns();
@@ -3607,22 +3657,55 @@
       }
     }
 
+    // When an order is picked on the log-return form, load that order's line
+    // items into the second dropdown on demand — a return is always for one
+    // specific line item (its full quantity), never a raw product pick,
+    // since that's how the real returns table links back to what was
+    // actually sold.
+    document.getElementById('retOrder').addEventListener('change', async (e) => {
+      const orderItemSelect = document.getElementById('retOrderItem');
+      const orderId = e.target.value;
+      if (!orderId) {
+        orderItemSelect.innerHTML = '<option value="">Pick an order first…</option>';
+        orderItemSelect.disabled = true;
+        return;
+      }
+      orderItemSelect.disabled = true;
+      orderItemSelect.innerHTML = '<option value="">Loading…</option>';
+      try {
+        const { data: items, error } = await supabase
+          .from('order_items')
+          .select('id, product_name, sku, quantity')
+          .eq('order_id', orderId)
+          .order('product_name', { ascending: true });
+        if (error) throw error;
+        if (!items || !items.length) {
+          orderItemSelect.innerHTML = '<option value="">No line items found on this order</option>';
+          return;
+        }
+        orderItemSelect.innerHTML = '<option value="">Which item…</option>' +
+          items.map(it => `<option value="${esc(it.id)}">${esc(it.product_name || it.sku || it.id)}${it.sku ? ' (' + esc(it.sku) + ')' : ''} — Qty ${esc(it.quantity)}</option>`).join('');
+        orderItemSelect.disabled = false;
+      } catch (err) {
+        showDashError("Could not load that order's items: " + (err && err.message ? err.message : err));
+        orderItemSelect.innerHTML = '<option value="">Pick an order first…</option>';
+      }
+    });
+
     document.getElementById('logReturnForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const orderSelect = document.getElementById('retOrder');
-      const productSelect = document.getElementById('retProduct');
-      const quantityInput = document.getElementById('retQuantity');
+      const orderItemSelect = document.getElementById('retOrderItem');
       const reasonSelect = document.getElementById('retReason');
       const conditionSelect = document.getElementById('retCondition');
       const notesInput = document.getElementById('retNotes');
 
       const orderId = orderSelect.value;
-      const productId = productSelect.value;
-      const quantity = parseInt(quantityInput.value, 10);
+      const orderItemId = orderItemSelect.value;
 
       if (!orderId) { showDashError('Pick which order this return is for.'); return; }
-      if (!productId) { showDashError('Pick which product is being returned.'); return; }
-      if (!quantity || quantity < 1) { showDashError('Enter a quantity of at least 1.'); return; }
+      if (!orderItemId) { showDashError('Pick which item on that order is being returned.'); return; }
+      if (!reasonSelect.value) { showDashError('Pick a reason for the return.'); return; }
 
       const submitBtn = e.target.querySelector('button[type="submit"]');
       const originalBtnText = submitBtn.textContent;
@@ -3633,17 +3716,17 @@
           .from('returns')
           .insert({
             order_id: orderId,
-            product_id: productId,
-            quantity,
-            reason: reasonSelect.value || null,
-            condition_reported: conditionSelect.value || null,
+            order_item_id: orderItemId,
+            reason: reasonSelect.value,
+            product_condition: conditionSelect.value || null,
             notes: notesInput.value.trim() || null,
             created_by: uid,
           });
         if (insErr) throw insErr;
 
-        productSelect.value = '';
-        quantityInput.value = '1';
+        orderSelect.value = '';
+        orderItemSelect.innerHTML = '<option value="">Pick an order first…</option>';
+        orderItemSelect.disabled = true;
         reasonSelect.value = '';
         conditionSelect.value = '';
         notesInput.value = '';
