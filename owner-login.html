@@ -436,6 +436,45 @@
         <div id="inventoryAdjustmentsWrap"><p class="empty">Loading…</p></div>
       </section>
 
+      <!-- Returns (tied to Orders + Inventory) -->
+      <section class="panel" id="returnsPanel">
+        <h2>Returns</h2>
+        <p class="hint">Track items customers send back, from request through refund. Status moves one way: Requested → Pending Approval → Received → Closed. Marking a return Received also records what happens to the stock — restocked, moved to Damaged, or discarded — and logs that change to Inventory automatically, so you never enter it twice.</p>
+        <div class="statRow" id="returnsStats"></div>
+
+        <form id="logReturnForm" style="display:flex;flex-direction:column;gap:8px;margin-top:14px;padding-top:16px;border-top:1px solid var(--line);">
+          <h3 style="font-size:13px;color:var(--navy);margin:0 0 2px;">Log a new return</h3>
+          <select id="retOrder" required style="padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;">
+            <option value="">Order…</option>
+          </select>
+          <select id="retProduct" required style="padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;">
+            <option value="">Product…</option>
+          </select>
+          <input type="number" id="retQuantity" placeholder="Quantity" min="1" step="1" value="1" required>
+          <select id="retReason" style="padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;">
+            <option value="">Reason…</option>
+            <option value="wrong_item">Wrong item sent</option>
+            <option value="damaged_in_transit">Damaged in transit</option>
+            <option value="changed_mind">Customer changed their mind</option>
+            <option value="defective">Defective / didn't work as expected</option>
+            <option value="other">Other</option>
+          </select>
+          <select id="retCondition" style="padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;">
+            <option value="">Condition reported by customer…</option>
+            <option value="resellable">Resellable / unopened</option>
+            <option value="damaged">Damaged</option>
+            <option value="defective">Defective</option>
+            <option value="wrong_item">Wrong item (not what we sent)</option>
+            <option value="other">Other</option>
+          </select>
+          <input type="text" id="retNotes" placeholder="Notes (optional)">
+          <button type="submit" class="small" style="align-self:flex-start;">Log return</button>
+        </form>
+
+        <h3 style="font-size:13px;color:var(--navy);margin:20px 0 6px;">Return requests</h3>
+        <div id="returnsWrap"><p class="empty">Loading…</p></div>
+      </section>
+
       <!-- Expenses (manual entry, feeds the Accounting Agent) -->
       <section class="panel" id="expensesPanel">
         <h2>Expenses</h2>
@@ -934,6 +973,7 @@
       ]},
       { label: 'Inventory', pages: [
         { id: 'inventoryPanel', label: 'Inventory' },
+        { id: 'returnsPanel', label: 'Returns' },
       ]},
       { label: 'Finance', pages: [
         { id: 'expensesPanel', label: 'Expenses' },
@@ -970,7 +1010,7 @@
     const SEARCH_INDEX = {
       orders: [], tasks: [], incidents: [], approvals: [], sops: [],
       featureRequests: [], evidence: [], adverseEvents: [], legalHolds: [],
-      attention: [], expenses: [], inventory: [],
+      attention: [], expenses: [], inventory: [], returns: [],
     };
 
     // Inventory bucket values (must match the database check constraint on
@@ -983,6 +1023,35 @@
       wholesale: 'Wholesale',
       promotional: 'Promotional',
       returned: 'Returned',
+    };
+
+    // Return status/reason/condition/disposition values (must match the database
+    // check constraints on the returns table) mapped to friendly labels. Status
+    // moves in one direction only: Requested -> Pending Approval -> Received -> Closed.
+    const RETURN_STATUS_LABELS = {
+      requested: 'Requested',
+      pending_approval: 'Pending Approval',
+      received: 'Received',
+      closed: 'Closed',
+    };
+    const RETURN_REASON_LABELS = {
+      wrong_item: 'Wrong item sent',
+      damaged_in_transit: 'Damaged in transit',
+      changed_mind: 'Customer changed their mind',
+      defective: "Defective / didn't work as expected",
+      other: 'Other',
+    };
+    const RETURN_CONDITION_LABELS = {
+      resellable: 'Resellable / unopened',
+      damaged: 'Damaged',
+      defective: 'Defective',
+      wrong_item: 'Wrong item (not what we sent)',
+      other: 'Other',
+    };
+    const RETURN_DISPOSITION_LABELS = {
+      restock_available: 'Restocked to Available',
+      restock_damaged: 'Moved to Damaged',
+      discard: 'Discarded (no restock)',
     };
 
     // Expense category values (must match the database check constraint) mapped
@@ -1007,6 +1076,7 @@
         case 'inquiriesPanel': return (ALL_INQUIRIES || []).filter(i => i.status === 'needs_review').length;
         case 'tasksPanel': return (SEARCH_INDEX.tasks || []).filter(t => !isClosedStatus(t.status)).length;
         case 'incidentsPanel': return (SEARCH_INDEX.incidents || []).filter(i => !isClosedStatus(i.status)).length;
+        case 'returnsPanel': return (SEARCH_INDEX.returns || []).filter(r => r.status !== 'closed').length;
         default: return 0;
       }
     }
@@ -1075,6 +1145,13 @@
       (SEARCH_INDEX.inventory || []).forEach(p => {
         if (hit([p.sku, p.name])) {
           results.push({ pageId: 'inventoryPanel', type: 'Inventory', label: `${p.name}${p.sku ? ' (' + p.sku + ')' : ''}` });
+        }
+      });
+      (SEARCH_INDEX.returns || []).forEach(r => {
+        const order = r.orders || {};
+        const product = r.products || {};
+        if (hit([order.order_number, order.customer_name, product.name, product.sku, r.reason, r.status])) {
+          results.push({ pageId: 'returnsPanel', type: 'Return', label: `${product.name || 'Return'} — ${order.order_number || r.order_id || ''}` });
         }
       });
 
@@ -1465,6 +1542,7 @@
         loadOrders(),
         loadInventory(),
         loadInventoryAdjustments(),
+        loadReturns(),
         loadExpenses(),
         loadDeletedExpenses(),
         loadAccounting(),
@@ -3159,6 +3237,259 @@
         loadInventoryAdjustments();
       } catch (err) {
         showDashError('Could not save that adjustment: ' + (err && err.message ? err.message : err));
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalBtnText;
+      }
+    });
+
+    // ---------- Returns (tied to Orders + Inventory) ----------
+    async function loadReturns(){
+      try {
+        const { data: returns, error } = await supabase
+          .from('returns')
+          .select('id, order_id, product_id, quantity, reason, condition_reported, status, disposition, refunded, refunded_at, refund_amount, notes, requested_at, received_at, closed_at, orders(order_number, customer_name), products(name, sku)')
+          .order('requested_at', { ascending: false })
+          .limit(200);
+        if (error) throw error;
+
+        SEARCH_INDEX.returns = returns;
+
+        // Populate the "Order" and "Product" dropdowns on the log-return form
+        // once — no need to re-fetch them on every refresh.
+        const orderSelect = document.getElementById('retOrder');
+        if (orderSelect && !orderSelect.dataset.loaded) {
+          const { data: recentOrders, error: ordersErr } = await supabase
+            .from('orders')
+            .select('id, order_number, customer_name')
+            .is('deleted_at', null)
+            .order('placed_at', { ascending: false })
+            .limit(200);
+          if (ordersErr) throw ordersErr;
+          orderSelect.innerHTML = '<option value="">Order…</option>' +
+            (recentOrders || []).map(o => `<option value="${esc(o.id)}">${esc(o.order_number || o.id)}${o.customer_name ? ' — ' + esc(o.customer_name) : ''}</option>`).join('');
+          orderSelect.dataset.loaded = '1';
+        }
+        const productSelect = document.getElementById('retProduct');
+        if (productSelect && !productSelect.dataset.loaded) {
+          const { data: allProducts, error: productsErr } = await supabase
+            .from('products')
+            .select('id, name, sku')
+            .order('name', { ascending: true });
+          if (productsErr) throw productsErr;
+          productSelect.innerHTML = '<option value="">Product…</option>' +
+            (allProducts || []).map(p => `<option value="${esc(p.id)}">${esc(p.name)}${p.sku ? ' (' + esc(p.sku) + ')' : ''}</option>`).join('');
+          productSelect.dataset.loaded = '1';
+        }
+
+        const openCount = returns.filter(r => r.status !== 'closed').length;
+        const refundedCount = returns.filter(r => r.refunded).length;
+        document.getElementById('returnsStats').innerHTML = `
+          <div class="stat"><div class="num">${returns.length}</div><div class="lbl">Total returns</div></div>
+          <div class="stat"><div class="num">${openCount}</div><div class="lbl">Open</div></div>
+          <div class="stat"><div class="num">${refundedCount}</div><div class="lbl">Refunded</div></div>
+        `;
+
+        if (!returns.length) {
+          document.getElementById('returnsWrap').innerHTML = '<p class="empty">No returns logged yet.</p>';
+          return;
+        }
+
+        document.getElementById('returnsWrap').innerHTML = returns.map(r => {
+          const order = r.orders || {};
+          const product = r.products || {};
+          const statusLabel = RETURN_STATUS_LABELS[r.status] || r.status;
+          const statusClass = r.status === 'pending_approval' ? 'sev-medium' : (r.status === 'received' ? 'sev-low' : '');
+
+          let actionHtml = '';
+          if (r.status === 'requested') {
+            actionHtml = `<button type="button" class="small advanceReturnBtn" data-next="pending_approval">Move to Pending Approval</button>`;
+          } else if (r.status === 'pending_approval') {
+            actionHtml = `
+              <select class="dispositionSelect" style="padding:6px 8px;border-radius:6px;border:1px solid #cfd8d6;font-family:inherit;font-size:12px;">
+                <option value="">If restocking…</option>
+                <option value="restock_available">Restock to Available</option>
+                <option value="restock_damaged">Move to Damaged</option>
+                <option value="discard">Discard (no restock)</option>
+              </select>
+              <button type="button" class="small markReceivedBtn">Mark Received</button>`;
+          } else if (r.status === 'received') {
+            actionHtml = `<button type="button" class="small advanceReturnBtn" data-next="closed">Close</button>`;
+          }
+          const refundHtml = (!r.refunded && r.status !== 'requested')
+            ? `<input type="number" class="refundAmountInput" min="0" step="0.01" placeholder="Refund $ (optional)" style="width:130px;padding:5px 7px;border-radius:6px;border:1px solid #cfd8d6;font-family:inherit;font-size:12px;">
+               <button type="button" class="small markRefundedBtn">Mark refunded</button>`
+            : '';
+
+          const detailLine = [
+            r.reason ? 'Reason: ' + esc(RETURN_REASON_LABELS[r.reason] || r.reason) : '',
+            r.condition_reported ? 'Condition: ' + esc(RETURN_CONDITION_LABELS[r.condition_reported] || r.condition_reported) : '',
+            r.disposition ? 'Outcome: ' + esc(RETURN_DISPOSITION_LABELS[r.disposition] || r.disposition) : '',
+          ].filter(Boolean).join(' · ');
+
+          return `
+            <div class="deletedRow" data-return-id="${esc(r.id)}" data-product-id="${esc(r.product_id)}" data-quantity="${esc(r.quantity)}" data-order-label="${esc(order.order_number || r.order_id)}" style="align-items:flex-start;flex-wrap:wrap;">
+              <div class="info" style="flex:1;min-width:220px;">
+                <b>${esc(product.name || 'Unknown product')}</b>${product.sku ? ' <span style="color:#8a9694;font-size:12px;">(' + esc(product.sku) + ')</span>' : ''}
+                — Qty ${esc(r.quantity)}
+                <span class="badge ${statusClass}" style="margin-left:6px;">${esc(statusLabel)}</span>
+                ${r.refunded ? '<span class="badge" style="margin-left:4px;">Refunded' + (r.refund_amount !== null && r.refund_amount !== undefined ? ' $' + Number(r.refund_amount).toFixed(2) : '') + '</span>' : ''}
+                <br><span style="font-size:12px;color:#6b7877;">Order ${esc(order.order_number || r.order_id)}${order.customer_name ? ' — ' + esc(order.customer_name) : ''}</span>
+                ${detailLine ? '<br><span style="font-size:12px;color:#6b7877;">' + detailLine + '</span>' : ''}
+                ${r.notes ? '<br><span style="font-size:12px;color:#6b7877;">Notes: ' + esc(r.notes) + '</span>' : ''}
+                <br><span style="font-size:11px;color:#8a9694;">Requested ${esc(fmtDate(r.requested_at))}</span>
+              </div>
+              <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">${actionHtml}${refundHtml}</div>
+            </div>`;
+        }).join('');
+
+        // Simple status advance: Requested -> Pending Approval, or Received -> Closed.
+        document.querySelectorAll('.advanceReturnBtn').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const row = btn.closest('[data-return-id]');
+            const id = row.getAttribute('data-return-id');
+            const next = btn.getAttribute('data-next');
+            btn.disabled = true;
+            try {
+              const uid = await currentUserId();
+              const patch = { status: next, updated_at: new Date().toISOString(), updated_by: uid };
+              if (next === 'closed') patch.closed_at = new Date().toISOString();
+              const { error: updErr } = await supabase.from('returns').update(patch).eq('id', id);
+              if (updErr) throw updErr;
+              loadReturns();
+            } catch (err) {
+              btn.disabled = false;
+              showDashError('Could not update that return: ' + (err && err.message ? err.message : err));
+            }
+          });
+        });
+
+        // Mark Received: records the disposition, and if it's a restock, adds
+        // the quantity back into Inventory and logs it — same as an Inventory
+        // adjustment, so the count only has to be entered once.
+        document.querySelectorAll('.markReceivedBtn').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const row = btn.closest('[data-return-id]');
+            const id = row.getAttribute('data-return-id');
+            const productId = row.getAttribute('data-product-id');
+            const quantity = Number(row.getAttribute('data-quantity') || 0);
+            const orderLabel = row.getAttribute('data-order-label');
+            const dispositionSelect = row.querySelector('.dispositionSelect');
+            const disposition = dispositionSelect ? dispositionSelect.value : '';
+            if (!disposition) { showDashError('Pick what happens to the stock before marking this Received.'); return; }
+            btn.disabled = true;
+            try {
+              const uid = await currentUserId();
+              if (disposition === 'restock_available' || disposition === 'restock_damaged') {
+                const bucket = disposition === 'restock_available' ? 'available' : 'damaged';
+                const { data: currentInv, error: readErr } = await supabase
+                  .from('inventory')
+                  .select('*')
+                  .eq('product_id', productId)
+                  .maybeSingle();
+                if (readErr) throw readErr;
+                const currentValue = Number((currentInv && currentInv[bucket]) || 0);
+                const newValue = currentValue + quantity;
+                const { error: invErr } = await supabase
+                  .from('inventory')
+                  .upsert({ product_id: productId, [bucket]: newValue, updated_at: new Date().toISOString(), updated_by: uid }, { onConflict: 'product_id' });
+                if (invErr) throw invErr;
+                const { error: adjErr } = await supabase
+                  .from('inventory_adjustments')
+                  .insert({ product_id: productId, bucket, change_amount: quantity, reason: `Return received (order ${orderLabel})`, adjusted_by: uid });
+                if (adjErr) throw adjErr;
+              }
+              const { error: updErr } = await supabase
+                .from('returns')
+                .update({ status: 'received', disposition, received_at: new Date().toISOString(), updated_at: new Date().toISOString(), updated_by: uid })
+                .eq('id', id);
+              if (updErr) throw updErr;
+              loadReturns();
+              loadInventory();
+              loadInventoryAdjustments();
+            } catch (err) {
+              btn.disabled = false;
+              showDashError('Could not mark that return Received: ' + (err && err.message ? err.message : err));
+            }
+          });
+        });
+
+        // Mark refunded: a record-only flag — it never moves money itself,
+        // it just notes that a refund was processed outside the system.
+        document.querySelectorAll('.markRefundedBtn').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const row = btn.closest('[data-return-id]');
+            const id = row.getAttribute('data-return-id');
+            const amountInput = row.querySelector('.refundAmountInput');
+            const raw = amountInput ? amountInput.value.trim() : '';
+            const amount = raw === '' ? null : Number(raw);
+            if (raw !== '' && (isNaN(amount) || amount < 0)) {
+              showDashError("That refund amount doesn't look like a valid number.");
+              return;
+            }
+            btn.disabled = true;
+            try {
+              const uid = await currentUserId();
+              const { error: updErr } = await supabase
+                .from('returns')
+                .update({ refunded: true, refunded_at: new Date().toISOString(), refund_amount: amount, updated_at: new Date().toISOString(), updated_by: uid })
+                .eq('id', id);
+              if (updErr) throw updErr;
+              loadReturns();
+            } catch (err) {
+              btn.disabled = false;
+              showDashError('Could not mark that return as refunded: ' + (err && err.message ? err.message : err));
+            }
+          });
+        });
+      } catch (err) {
+        showDashError('Could not load Returns: ' + (err && err.message ? err.message : err));
+      }
+    }
+
+    document.getElementById('logReturnForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const orderSelect = document.getElementById('retOrder');
+      const productSelect = document.getElementById('retProduct');
+      const quantityInput = document.getElementById('retQuantity');
+      const reasonSelect = document.getElementById('retReason');
+      const conditionSelect = document.getElementById('retCondition');
+      const notesInput = document.getElementById('retNotes');
+
+      const orderId = orderSelect.value;
+      const productId = productSelect.value;
+      const quantity = parseInt(quantityInput.value, 10);
+
+      if (!orderId) { showDashError('Pick which order this return is for.'); return; }
+      if (!productId) { showDashError('Pick which product is being returned.'); return; }
+      if (!quantity || quantity < 1) { showDashError('Enter a quantity of at least 1.'); return; }
+
+      const submitBtn = e.target.querySelector('button[type="submit"]');
+      const originalBtnText = submitBtn.textContent;
+      submitBtn.disabled = true;
+      try {
+        const uid = await currentUserId();
+        const { error: insErr } = await supabase
+          .from('returns')
+          .insert({
+            order_id: orderId,
+            product_id: productId,
+            quantity,
+            reason: reasonSelect.value || null,
+            condition_reported: conditionSelect.value || null,
+            notes: notesInput.value.trim() || null,
+            created_by: uid,
+          });
+        if (insErr) throw insErr;
+
+        productSelect.value = '';
+        quantityInput.value = '1';
+        reasonSelect.value = '';
+        conditionSelect.value = '';
+        notesInput.value = '';
+        loadReturns();
+      } catch (err) {
+        showDashError('Could not log that return: ' + (err && err.message ? err.message : err));
       } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = originalBtnText;
