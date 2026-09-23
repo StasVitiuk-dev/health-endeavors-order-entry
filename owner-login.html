@@ -10,22 +10,96 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onerror="window.__sbLoadFailed=true"></script>
 <style>
   :root{
-    --navy:#0b3d4c;
+    /* Brand tones that stay constant in both themes — used where white text sits on top */
+    --brand-solid:#0f4552;
+    --teal-solid:#1f7a8c;
+
+    /* Warm, cozy light theme */
+    --page:#f7f0e5;
+    --panel:#fffdf9;
+    --panel-2:#f6efe4;
+    --sel:#eaf1ee;
+    --chip:#ece3d4;
+    --ink:#2f2924;
+    --muted:#867a6c;
+    --muted-2:#a3978a;
+    --line:#e8ddcd;
+    --field-border:#dbcfbe;
+    --navy:#12505c;
     --teal:#1f7a8c;
-    --cream:#faf6ef;
+    --cream:#fffdf9;
     --copper:#b8734a;
-    --danger:#b3261e;
+    --danger:#b3392e;
     --good:#2f7d4f;
-    --warn:#b8860b;
-    --line:#e1e6e4;
+    --warn:#a97a1a;
+    --danger-bg:#fbeae7;
+    --warn-bg:#fdf1da;
+    --good-bg:#e7f3ea;
+    --shadow:0 2px 6px rgba(90,70,45,0.05), 0 14px 32px rgba(90,70,45,0.07);
+    --shadow-sm:0 1px 3px rgba(90,70,45,0.08);
+
+    --radius:18px;
+    --radius-sm:11px;
+    --serif: ui-serif, Georgia, "Iowan Old Style", "Palatino Linotype", Palatino, serif;
+  }
+  /* Dark mode: follows the Mac automatically unless the header toggle overrides it */
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+    --page:#17140f;
+    --panel:#211d18;
+    --panel-2:#2a251f;
+    --sel:#2b3330;
+    --chip:#332c24;
+    --ink:#ece3d6;
+    --muted:#a39687;
+    --muted-2:#8b7f70;
+    --line:#352e26;
+    --field-border:#413930;
+    --navy:#7fd0dd;
+    --teal:#5fb3bd;
+    --cream:#211d18;
+    --copper:#d99666;
+    --danger:#e0796c;
+    --good:#6fc48f;
+    --warn:#d6a94a;
+    --danger-bg:#3a2320;
+    --warn-bg:#3a2f1c;
+    --good-bg:#1f3227;
+    --shadow:0 2px 6px rgba(0,0,0,0.30), 0 14px 32px rgba(0,0,0,0.38);
+    --shadow-sm:0 1px 3px rgba(0,0,0,0.35);
+    }
+  }
+  :root[data-theme="dark"]{
+    --page:#17140f;
+    --panel:#211d18;
+    --panel-2:#2a251f;
+    --sel:#2b3330;
+    --chip:#332c24;
+    --ink:#ece3d6;
+    --muted:#a39687;
+    --muted-2:#8b7f70;
+    --line:#352e26;
+    --field-border:#413930;
+    --navy:#7fd0dd;
+    --teal:#5fb3bd;
+    --cream:#211d18;
+    --copper:#d99666;
+    --danger:#e0796c;
+    --good:#6fc48f;
+    --warn:#d6a94a;
+    --danger-bg:#3a2320;
+    --warn-bg:#3a2f1c;
+    --good-bg:#1f3227;
+    --shadow:0 2px 6px rgba(0,0,0,0.30), 0 14px 32px rgba(0,0,0,0.38);
+    --shadow-sm:0 1px 3px rgba(0,0,0,0.35);
   }
   *{box-sizing:border-box;}
   html,body{ margin:0; padding:0; }
   body{
     min-height:100vh;
-    background:#eef2f1;
+    background:var(--page);
     font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-    color:#1f2b2a;
+    color:var(--ink);
   }
 
   /* ---------- Login screen ---------- */
@@ -45,13 +119,13 @@
     box-shadow:0 20px 60px rgba(0,0,0,0.35);
   }
   .card h1{ margin:0 0 4px; font-size:22px; color:var(--navy); }
-  .card p.sub{ margin:0 0 28px; color:#5c6b6f; font-size:14px; }
+  .card p.sub{ margin:0 0 28px; color:var(--muted); font-size:14px; }
   label{ display:block; font-size:13px; font-weight:600; color:var(--navy); margin-bottom:6px; }
   input[type=email], input[type=password], input[type=text]{
     width:100%;
     padding:11px 12px;
     margin-bottom:18px;
-    border:1px solid #cfd8d6;
+    border:1px solid var(--field-border);
     border-radius:8px;
     font-size:15px;
   }
@@ -78,7 +152,7 @@
   .bannerBox{
     display:none; text-align:left; white-space:pre-wrap; margin-bottom:16px;
     border:1px solid var(--danger); border-radius:8px; padding:10px 12px;
-    background:#fdecea; color:var(--danger); font-size:13px;
+    background:var(--danger-bg); color:var(--danger); font-size:13px;
   }
 
   /* ---------- Dashboard shell ---------- */
@@ -103,7 +177,7 @@
   }
   header.topbar .who{ font-size:13px; opacity:0.85; }
   header.topbar nav{ display:flex; gap:14px; flex-wrap:wrap; }
-  header.topbar nav a{ color:#dfeef0; font-size:13px; text-decoration:none; opacity:0.9; }
+  header.topbar nav a{ color:var(--panel-2); font-size:13px; text-decoration:none; opacity:0.9; }
   header.topbar nav a:hover{ text-decoration:underline; }
   header.topbar .right{ display:flex; align-items:center; gap:10px; }
   #signout{ background:transparent; border:1px solid rgba(255,255,255,0.5); color:white; padding:7px 12px; font-size:13px; }
@@ -112,45 +186,45 @@
   .dashBody{ display:flex; align-items:stretch; flex:1; min-height:0; }
   .sidebar{
     width:220px; flex:none;
-    background:white; border-right:1px solid var(--line);
+    background:var(--panel); border-right:1px solid var(--line);
     padding:16px 12px;
     height:100%; overflow-y:auto; min-height:0;
   }
   .sidebarSearch{
-    width:100%; padding:8px 10px; margin-bottom:0; border:1px solid #cfd8d6;
+    width:100%; padding:8px 10px; margin-bottom:0; border:1px solid var(--field-border);
     border-radius:8px; font-size:13px;
   }
   .sidebarGroup{ margin-top:16px; }
   .sidebarGroup .groupLabel{
     font-size:10.5px; text-transform:uppercase; letter-spacing:0.05em;
-    color:#8a9694; font-weight:700; margin:0 0 6px 8px;
+    color:var(--muted-2); font-weight:700; margin:0 0 6px 8px;
   }
   .sidebarLink{
     display:flex; align-items:center; justify-content:space-between; gap:8px;
     padding:8px 10px; border-radius:8px; font-size:13.5px;
-    color:#33403e; cursor:pointer; margin-bottom:2px; line-height:1.3;
+    color:var(--ink); cursor:pointer; margin-bottom:2px; line-height:1.3;
   }
-  .sidebarLink:hover{ background:#eef2f1; }
-  .sidebarLink.active{ background:var(--navy); color:white; font-weight:600; }
-  .sidebarEmpty{ font-size:12.5px; color:#8a9694; padding:8px 10px; }
+  .sidebarLink:hover{ background:var(--page); }
+  .sidebarLink.active{ background:var(--brand-solid); color:white; font-weight:600; }
+  .sidebarEmpty{ font-size:12.5px; color:var(--muted-2); padding:8px 10px; }
   .sidebarBadge{
     background:var(--copper); color:white; font-size:11px; font-weight:700;
     border-radius:10px; padding:1px 7px; min-width:16px; text-align:center; flex:none;
   }
-  .sidebarLink.active .sidebarBadge{ background:white; color:var(--navy); }
+  .sidebarLink.active .sidebarBadge{ background:white; color:var(--brand-solid); }
   .linkLabelRow{ display:flex; align-items:center; gap:6px; min-width:0; }
   .pinBtn{
     background:none; border:none; padding:0; margin:0; font-size:13px; line-height:1;
-    color:#c3ccca; cursor:pointer; flex:none;
+    color:var(--muted-2); cursor:pointer; flex:none;
   }
   .pinBtn.pinned{ color:var(--copper); }
-  .sidebarLink.active .pinBtn{ color:#cfe3e0; }
-  .sidebarLink.active .pinBtn.pinned{ color:#ffd9a8; }
+  .sidebarLink.active .pinBtn{ color:var(--line); }
+  .sidebarLink.active .pinBtn.pinned{ color:var(--warn-bg); }
   .sidebarLink.searchResultLink{ display:block; line-height:1.35; }
   .sidebarLink.searchResultLink .resultType{
-    font-size:10px; text-transform:uppercase; letter-spacing:0.03em; color:#8a9694;
+    font-size:10px; text-transform:uppercase; letter-spacing:0.03em; color:var(--muted-2);
   }
-  .sidebarLink.searchResultLink.active .resultType{ color:#cfe3e0; }
+  .sidebarLink.searchResultLink.active .resultType{ color:var(--line); }
 
   .contentArea{ flex:1; min-width:0; min-height:0; height:100%; overflow-y:auto; padding:20px 24px 60px; }
   .contentArea > section.panel{ max-width:900px; margin-left:auto; margin-right:auto; }
@@ -158,7 +232,7 @@
 
   section.panel{
     display:none;
-    background:white;
+    background:var(--panel);
     border:1px solid var(--line);
     border-radius:12px;
     padding:18px 20px;
@@ -166,28 +240,28 @@
   }
   section.panel.activePage{ display:block; }
   section.panel h2{ margin:0 0 4px; font-size:16px; color:var(--navy); }
-  section.panel p.hint{ margin:0 0 14px; font-size:12.5px; color:#6b7877; }
+  section.panel p.hint{ margin:0 0 14px; font-size:12.5px; color:var(--muted); }
 
   .statRow{ display:flex; gap:14px; flex-wrap:wrap; margin-bottom:14px; }
   .stat{
-    background:#f5f8f7; border:1px solid var(--line); border-radius:10px;
+    background:var(--panel-2); border:1px solid var(--line); border-radius:10px;
     padding:10px 16px; min-width:130px;
   }
   .stat .num{ font-size:20px; font-weight:700; color:var(--navy); }
-  .stat .lbl{ font-size:11.5px; color:#6b7877; text-transform:uppercase; letter-spacing:0.03em; }
+  .stat .lbl{ font-size:11.5px; color:var(--muted); text-transform:uppercase; letter-spacing:0.03em; }
 
   table{ width:100%; border-collapse:collapse; font-size:13px; }
   th, td{ text-align:left; padding:7px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
-  th{ color:#5c6b6f; font-weight:600; font-size:11.5px; text-transform:uppercase; letter-spacing:0.02em; }
-  tr.overdue td{ background:#fdecea; }
+  th{ color:var(--muted); font-weight:600; font-size:11.5px; text-transform:uppercase; letter-spacing:0.02em; }
+  tr.overdue td{ background:var(--danger-bg); }
   .badge{
     display:inline-block; padding:2px 8px; border-radius:20px; font-size:11px; font-weight:600;
-    background:#e6eeec; color:var(--navy);
+    background:var(--chip); color:var(--navy);
   }
-  .badge.sev-high, .badge.sev-critical{ background:#fdecea; color:var(--danger); }
-  .badge.sev-medium{ background:#fff4dc; color:var(--warn); }
-  .badge.sev-low{ background:#e6f4ea; color:var(--good); }
-  .empty{ color:#8a9694; font-size:13px; padding:10px 0; }
+  .badge.sev-high, .badge.sev-critical{ background:var(--danger-bg); color:var(--danger); }
+  .badge.sev-medium{ background:var(--warn-bg); color:var(--warn); }
+  .badge.sev-low{ background:var(--good-bg); color:var(--good); }
+  .empty{ color:var(--muted-2); font-size:13px; padding:10px 0; }
 
   .flagRow, .approvalRow, .deletedRow, .sessionRow{
     display:flex; align-items:center; justify-content:space-between; gap:12px;
@@ -195,11 +269,11 @@
   }
   .flagRow:last-child, .approvalRow:last-child, .deletedRow:last-child, .sessionRow:last-child{ border-bottom:none; }
   .flagInfo .k{ font-weight:600; font-size:13.5px; color:var(--navy); }
-  .flagInfo .d{ font-size:12px; color:#6b7877; }
+  .flagInfo .d{ font-size:12px; color:var(--muted); }
   .switch{ position:relative; width:44px; height:24px; flex:none; }
   .switch input{ opacity:0; width:0; height:0; }
   .slider{
-    position:absolute; cursor:pointer; inset:0; background:#c7d1cf; border-radius:24px; transition:0.15s;
+    position:absolute; cursor:pointer; inset:0; background:var(--field-border); border-radius:24px; transition:0.15s;
   }
   .slider:before{
     content:""; position:absolute; height:18px; width:18px; left:3px; bottom:3px;
@@ -217,14 +291,14 @@
   .activityControls{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
   .activityControls input[type=text]{
     flex:1 1 260px; margin-bottom:0; padding:9px 10px; font-size:14px;
-    border-radius:8px; border:1px solid #cfd8d6;
+    border-radius:8px; border:1px solid var(--field-border);
   }
   .peopleStrip{ display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-bottom:14px; }
   .peopleStrip .peopleLbl{
-    font-size:11.5px; color:#6b7877; text-transform:uppercase; letter-spacing:0.03em;
+    font-size:11.5px; color:var(--muted); text-transform:uppercase; letter-spacing:0.03em;
   }
   .personChip{
-    padding:4px 10px; font-size:12px; background:#eef3f2; color:var(--navy);
+    padding:4px 10px; font-size:12px; background:var(--panel-2); color:var(--navy);
     border:1px solid var(--line); border-radius:20px; font-weight:600;
   }
   .personChip:hover{ border-color:var(--teal); }
@@ -234,27 +308,27 @@
   .actRow .actMain{ flex:1; min-width:0; }
   .actHead{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-bottom:2px; }
   .actWho{ font-weight:600; font-size:13.5px; color:var(--navy); }
-  .actNum{ font-size:11.5px; color:#6b7877; font-variant-numeric:tabular-nums; }
-  .actWhat{ font-size:12.5px; color:#6b7877; }
+  .actNum{ font-size:11.5px; color:var(--muted); font-variant-numeric:tabular-nums; }
+  .actWhat{ font-size:12.5px; color:var(--muted); }
   .actSide{ flex:none; display:flex; flex-direction:column; align-items:flex-end; gap:6px; }
-  .actWhen{ font-size:12px; color:#6b7877; white-space:nowrap; }
-  .actDetail{ padding:0 0 12px; font-size:12.5px; color:#44545a; }
+  .actWhen{ font-size:12px; color:var(--muted); white-space:nowrap; }
+  .actDetail{ padding:0 0 12px; font-size:12.5px; color:var(--ink); }
   .actDetail table{ font-size:12px; }
-  .actNote{ color:#6b7877; font-style:italic; margin-top:4px; }
-  .badge.role-owner{ background:#e6f4ea; color:var(--good); }
-  .badge.role-administrator{ background:#fff4dc; color:var(--warn); }
-  .badge.role-system{ background:#eef1f0; color:#6b7877; }
+  .actNote{ color:var(--muted); font-style:italic; margin-top:4px; }
+  .badge.role-owner{ background:var(--good-bg); color:var(--good); }
+  .badge.role-administrator{ background:var(--warn-bg); color:var(--warn); }
+  .badge.role-system{ background:var(--panel-2); color:var(--muted); }
   .activityFilters{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:12px; }
   .activityFilters select{
-    font-family:inherit; font-size:13px; padding:8px 10px; border-radius:8px; border:1px solid #cfd8d6; background:white;
+    font-family:inherit; font-size:13px; padding:8px 10px; border-radius:8px; border:1px solid var(--field-border); background:var(--panel);
   }
-  .personChip.active{ background:var(--navy); color:white; border-color:var(--navy); }
-  .actItem.isDelete{ background:#fdf6f5; }
+  .personChip.active{ background:var(--brand-solid); color:white; border-color:var(--brand-solid); }
+  .actItem.isDelete{ background:var(--danger-bg); }
   .actItem.isDelete .actWhat b:first-child{ color:var(--danger); }
-  .actItem.hovered{ background:#f2f7f6; }
-  .actHint{ font-size:11px; color:#8a9694; margin-left:4px; }
+  .actItem.hovered{ background:var(--panel-2); }
+  .actHint{ font-size:11px; color:var(--muted-2); margin-left:4px; }
   .digestLine{
-    background:#f5f8f7; border:1px solid var(--line); border-radius:10px;
+    background:var(--panel-2); border:1px solid var(--line); border-radius:10px;
     padding:9px 13px; font-size:12.5px; color:var(--navy); margin-bottom:12px;
   }
 
@@ -270,7 +344,7 @@
   }
   .insHead{ padding:18px 22px 12px; border-bottom:1px solid var(--line); }
   .insHead h3{ margin:0 0 3px; font-size:16px; color:var(--navy); }
-  .insHead .insSub{ font-size:12.5px; color:#6b7877; }
+  .insHead .insSub{ font-size:12.5px; color:var(--muted); }
   .insTabs{ display:flex; gap:8px; padding:12px 22px 0; }
   .insTabs button{ padding:6px 12px; font-size:12.5px; }
   .insBody{ padding:14px 22px 20px; overflow:auto; flex:1; }
@@ -280,7 +354,7 @@
   .insEvent.isDelete{ border-left-color:var(--danger); }
   .insEvent.isInsert{ border-left-color:var(--good); }
   .insEvent.isUpdate{ border-left-color:var(--teal); }
-  .insEvent .insWhen{ font-size:11.5px; color:#8a9694; }
+  .insEvent .insWhen{ font-size:11.5px; color:var(--muted-2); }
   .insEvent .insWho{ font-size:13px; font-weight:600; color:var(--navy); margin:1px 0 6px; }
   .codeBlock{
     background:#0f2d38; border-radius:8px; padding:10px 12px; overflow-x:auto;
@@ -294,18 +368,76 @@
   .jNum{ color:#f0a880; }
   .jBool{ color:#c9a6f0; }
   .jNull{ color:#8fa3a8; font-style:italic; }
-  .insNote{ font-size:12px; color:#6b7877; font-style:italic; margin-top:6px; }
+  .insNote{ font-size:12px; color:var(--muted); font-style:italic; margin-top:6px; }
   .inspectHover{ outline:2px solid var(--teal); outline-offset:1px; border-radius:6px; }
   tr.inspectHover{ outline-offset:-2px; }
   #inspectHint{
     display:none; position:fixed; right:18px; bottom:18px; z-index:90;
-    background:var(--navy); color:white; border-radius:20px;
+    background:var(--brand-solid); color:white; border-radius:20px;
     padding:7px 14px; font-size:12px; font-weight:600; box-shadow:0 6px 18px rgba(0,0,0,0.25);
     pointer-events:none;
   }
   #inspectHint.show{ display:block; }
   #inspectHint kbd{
     background:rgba(255,255,255,0.18); border-radius:4px; padding:1px 6px; font-family:inherit; font-size:11px;
+  }
+
+  /* ================= Cozy pass =================
+     Warmer surfaces, rounder corners, softer shadows, a serif for headings,
+     colour-coded sidebar groups and friendlier empty states. Everything here
+     reads from the theme tokens above, so it works in light and dark. */
+  body{ background:var(--page); color:var(--ink); }
+  h1, h2, h3, .card h1, .stat .num, .calNav .calMonthLabel{
+    font-family:var(--serif); letter-spacing:-0.01em;
+  }
+  section.panel{
+    border-radius:var(--radius); border:1px solid var(--line);
+    box-shadow:var(--shadow); padding:22px 24px;
+  }
+  .card{ border-radius:var(--radius); box-shadow:var(--shadow); }
+  button{ border-radius:var(--radius-sm); transition:transform .08s ease, filter .12s ease, background .12s ease; }
+  button:hover:not(:disabled){ filter:brightness(1.06); }
+  button:active:not(:disabled){ transform:translateY(1px); }
+  input[type=email], input[type=password], input[type=text], input[type=number],
+  input[type=datetime-local], input[type=date], select, textarea{
+    border-radius:var(--radius-sm); background:var(--panel); color:var(--ink);
+    border-color:var(--field-border);
+  }
+  input::placeholder, textarea::placeholder{ color:var(--muted-2); }
+  .stat{ border-radius:15px; background:var(--panel-2); border-color:var(--line); box-shadow:var(--shadow-sm); }
+  .badge, .priorityPill{ border-radius:20px; }
+  table th{ color:var(--muted); }
+  tr.overdue td{ background:var(--danger-bg); }
+  .bannerBox{ border-radius:var(--radius-sm); }
+  .calCell{ border-radius:12px; background:var(--panel-2); }
+
+  /* Empty states: a soft card instead of a bare line of grey text */
+  .empty{
+    text-align:center; padding:22px 16px; margin:4px 0;
+    border:1px dashed var(--line); border-radius:15px;
+    background:var(--panel-2); color:var(--muted); font-size:13px;
+  }
+  .empty .emptyIcon{ display:block; font-size:22px; margin-bottom:6px; opacity:0.8; }
+
+  /* Sidebar: a colour and an icon per area, so you navigate by eye */
+  .sidebar{ background:var(--panel); }
+  .sidebarLink{ border-radius:var(--radius-sm); }
+  .sidebarLink:hover{ background:var(--panel-2); }
+  .sidebarGroup{ --groupColor:var(--teal); }
+  .groupLabel{ display:flex; align-items:center; gap:6px; }
+  .groupLabel::before{
+    content:""; width:7px; height:7px; border-radius:50%;
+    background:var(--groupColor); flex:none;
+  }
+  .pageIcon{ width:17px; display:inline-block; text-align:center; flex:none; font-size:13px; }
+  .sidebarLink.active{ box-shadow:var(--shadow-sm); }
+  .sidebarLink:not(.active) .pageIcon{ filter:saturate(0.85); }
+  .sidebarGroup .sidebarLink:not(.active):hover{ box-shadow:inset 3px 0 0 var(--groupColor); }
+
+  /* Header theme button */
+  #themeBtn{
+    background:transparent; border:1px solid rgba(255,255,255,0.45); color:white;
+    padding:6px 10px; font-size:14px; line-height:1;
   }
 
   /* ---------- Re-authentication prompt ---------- */
@@ -317,7 +449,7 @@
   }
   #reauthOverlay .card{ max-width:340px; padding:28px 26px; }
   #reauthOverlay h3{ margin:0 0 4px; font-size:16px; color:var(--navy); }
-  #reauthOverlay p.sub{ margin:0 0 18px; font-size:13px; color:#5c6b6f; }
+  #reauthOverlay p.sub{ margin:0 0 18px; font-size:13px; color:var(--muted); }
   #reauthOverlay input[type=password]{ margin-bottom:10px; }
   #reauthOverlay .msg{ min-height:16px; margin:0 0 12px; text-align:left; }
   #reauthOverlay .btnRow{ display:flex; gap:10px; }
@@ -331,22 +463,22 @@
   .attentionRow:last-child{ border-bottom:none; }
   .attentionRow .info{ flex:1; min-width:0; }
   .attentionRow .aTitle{ font-weight:600; font-size:13.5px; color:var(--navy); }
-  .attentionRow .aDetail{ font-size:12px; color:#6b7877; margin-top:2px; }
-  .attentionRow .aWhen{ font-size:12px; color:#6b7877; white-space:nowrap; flex:none; }
+  .attentionRow .aDetail{ font-size:12px; color:var(--muted); margin-top:2px; }
+  .attentionRow .aWhen{ font-size:12px; color:var(--muted); white-space:nowrap; flex:none; }
   .priorityPill{
     display:inline-block; padding:2px 8px; border-radius:20px; font-size:11px; font-weight:600; flex:none;
   }
-  .priorityPill.high{ background:#fdecea; color:var(--danger); }
-  .priorityPill.normal{ background:#e6eeec; color:var(--navy); }
+  .priorityPill.high{ background:var(--danger-bg); color:var(--danger); }
+  .priorityPill.normal{ background:var(--chip); color:var(--navy); }
   .dismissBtn{
-    padding:5px 10px; font-size:12px; background:transparent; color:#6b7877; border:1px solid var(--line); flex:none;
+    padding:5px 10px; font-size:12px; background:transparent; color:var(--muted); border:1px solid var(--line); flex:none;
   }
   .dismissBtn:hover{ border-color:var(--danger); color:var(--danger); }
   .reminderForm{
     display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; padding-top:16px; border-top:1px solid var(--line);
   }
   .reminderForm input, .reminderForm select{
-    font-family:inherit; font-size:14px; padding:9px 10px; border-radius:8px; border:1px solid #cfd8d6;
+    font-family:inherit; font-size:14px; padding:9px 10px; border-radius:8px; border:1px solid var(--field-border);
   }
   .reminderForm input[type=text]{ flex:1 1 200px; }
   .reminderForm input[type=datetime-local]{ flex:0 1 200px; }
@@ -356,27 +488,27 @@
   .calNav .calMonthLabel{ font-weight:700; color:var(--navy); font-size:16px; min-width:160px; text-align:center; }
   .calNav .calBtns{ display:flex; gap:6px; }
   .calGrid{ display:grid; grid-template-columns:repeat(7, 1fr); gap:6px; }
-  .calDow{ font-size:11px; font-weight:600; color:#6b7877; text-transform:uppercase; letter-spacing:0.03em; text-align:center; padding-bottom:4px; }
+  .calDow{ font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.03em; text-align:center; padding-bottom:4px; }
   .calCell{
     min-height:78px; border:1px solid var(--line); border-radius:8px; padding:5px;
-    background:#fafcfb; cursor:pointer; transition:border-color 0.1s;
+    background:var(--panel-2); cursor:pointer; transition:border-color 0.1s;
   }
   .calCell:hover{ border-color:var(--teal); }
   .calCell.otherMonth{ opacity:0.35; }
   .calCell.today{ border-color:var(--copper); border-width:2px; }
-  .calCell.selected{ background:#eaf3f1; border-color:var(--teal); }
+  .calCell.selected{ background:var(--sel); border-color:var(--teal); }
   .calCell .dNum{ font-size:11.5px; font-weight:600; color:var(--navy); margin-bottom:3px; }
   .calChip{
     display:block; font-size:10px; line-height:1.5; padding:1px 5px; border-radius:5px; margin-bottom:2px;
     color:white; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
   }
-  .calMore{ font-size:10px; color:#6b7877; }
+  .calMore{ font-size:10px; color:var(--muted); }
   .calDetailWrap{ margin-top:16px; padding-top:14px; border-top:1px solid var(--line); }
   .calDetailWrap h3{ font-size:13px; color:var(--navy); margin:0 0 8px; }
   .calEventRow{ padding:8px 0; border-bottom:1px solid var(--line); font-size:13px; }
   .calEventRow:last-child{ border-bottom:none; }
   .calEventRow .ceTitle{ font-weight:600; color:var(--navy); }
-  .calEventRow .ceMeta{ font-size:12px; color:#6b7877; margin-top:2px; }
+  .calEventRow .ceMeta{ font-size:12px; color:var(--muted); margin-top:2px; }
   .calSwatch{ display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:6px; }
   @media (max-width:640px){
     .calCell{ min-height:56px; }
@@ -404,6 +536,15 @@
     .contentArea > section.panel{ max-width:none; }
   }
 </style>
+<script>
+  // Applied before anything renders so there's no flash of the wrong theme.
+  (function(){
+    try {
+      var t = localStorage.getItem('he_theme');
+      if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+    } catch (e) { /* private browsing — just follow the system setting */ }
+  })();
+</script>
 </head>
 <body>
 
@@ -433,6 +574,7 @@
       </div>
       <div class="right">
         <span class="who" id="whoAmI"></span>
+        <button id="themeBtn" type="button" class="small" aria-label="Change theme">🌗</button>
         <button id="refreshBtn" class="small">Refresh</button>
         <button id="signout" class="small">Sign out</button>
       </div>
@@ -964,6 +1106,55 @@
       return d.toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' }) +
              ' ' + d.toLocaleTimeString(undefined, { hour:'numeric', minute:'2-digit' });
     }
+    // ---------- theme ----------
+    // Three settings, cycled by the header button: Auto (follows your Mac),
+    // Light, Dark. The choice is remembered in this browser only.
+    const THEME_ORDER = ['auto', 'light', 'dark'];
+    const THEME_FACE = { auto: '🌗', light: '☀️', dark: '🌙' };
+    const THEME_NAME = { auto: 'Follows your Mac', light: 'Light', dark: 'Dark' };
+    function getTheme(){
+      try { const t = localStorage.getItem('he_theme'); return THEME_ORDER.includes(t) ? t : 'auto'; }
+      catch (e) { return 'auto'; }
+    }
+    function applyTheme(t){
+      if (t === 'auto') document.documentElement.removeAttribute('data-theme');
+      else document.documentElement.setAttribute('data-theme', t);
+      const btn = document.getElementById('themeBtn');
+      if (btn) {
+        btn.textContent = THEME_FACE[t];
+        btn.title = 'Theme: ' + THEME_NAME[t] + ' — click to change';
+      }
+    }
+    applyTheme(getTheme());
+    document.getElementById('themeBtn').addEventListener('click', () => {
+      const next = THEME_ORDER[(THEME_ORDER.indexOf(getTheme()) + 1) % THEME_ORDER.length];
+      try { localStorage.setItem('he_theme', next); } catch (e) { /* not critical */ }
+      applyTheme(next);
+    });
+
+    // Gives every "nothing here yet" message a small icon, without touching the
+    // dozens of places that write those messages. Loading messages are skipped.
+    const EMPTY_ICONS = [
+      [/order/i, '🧾'], [/product|inventory|stock/i, '📦'], [/return/i, '↩️'],
+      [/expense/i, '💳'], [/task/i, '✅'], [/incident/i, '🚨'], [/approval/i, '✋'],
+      [/question|inquir/i, '💬'], [/procedure|sop/i, '📘'], [/hold/i, '⚖️'],
+      [/evidence/i, '🗄️'], [/recycle|deleted/i, '🗑️'], [/activity|history/i, '👣'],
+      [/calendar|event/i, '📅'], [/report/i, '📈'], [/rule|flag/i, '🎛️'],
+    ];
+    function decorateEmptyStates(){
+      document.querySelectorAll('main.contentArea .empty').forEach(el => {
+        if (el.querySelector('.emptyIcon')) return;
+        const text = (el.textContent || '').trim();
+        if (!text || /^loading/i.test(text)) return;
+        let icon = '🌿';
+        for (const [re, ic] of EMPTY_ICONS) { if (re.test(text)) { icon = ic; break; } }
+        const span = document.createElement('span');
+        span.className = 'emptyIcon';
+        span.textContent = icon;
+        el.insertBefore(span, el.firstChild);
+      });
+    }
+
     const CLOSED_WORDS = ['done','complete','completed','resolved','closed','cancelled','canceled','denied','approved','fulfilled'];
     function isClosedStatus(status){
       if (!status) return false;
@@ -1109,46 +1300,51 @@
     // ---------- sidebar navigation + search ----------
     // Every page we've built, grouped by topic. Add a new panel's id/label
     // here and it shows up in the sidebar automatically — nothing else to wire up.
+    // Each group carries a colour and each page a small icon, so the sidebar
+    // can be navigated by eye rather than by reading every label.
     const SIDEBAR_GROUPS = [
-      { label: 'Overview', pages: [
-        { id: 'attentionPanel', label: 'Needs Your Attention' },
-        { id: 'dailySummaryPanel', label: 'Daily Summary' },
-        { id: 'reportHistoryPanel', label: 'Report History' },
-        { id: 'calendarPanel', label: 'Calendar' },
+      { label: 'Overview', color: '#1f7a8c', pages: [
+        { id: 'attentionPanel', label: 'Needs Your Attention', icon: '🔔' },
+        { id: 'dailySummaryPanel', label: 'Daily Summary', icon: '☀️' },
+        { id: 'reportHistoryPanel', label: 'Report History', icon: '📈' },
+        { id: 'calendarPanel', label: 'Calendar', icon: '📅' },
       ]},
-      { label: 'Sales', pages: [
-        { id: 'ordersPanel', label: 'Orders & Revenue' },
+      { label: 'Sales', color: '#b8734a', pages: [
+        { id: 'ordersPanel', label: 'Orders & Revenue', icon: '🧾' },
       ]},
-      { label: 'Inventory', pages: [
-        { id: 'inventoryPanel', label: 'Inventory' },
-        { id: 'returnsPanel', label: 'Returns' },
+      { label: 'Inventory', color: '#8a6d3b', pages: [
+        { id: 'inventoryPanel', label: 'Inventory', icon: '📦' },
+        { id: 'returnsPanel', label: 'Returns', icon: '↩️' },
       ]},
-      { label: 'Finance', pages: [
-        { id: 'expensesPanel', label: 'Expenses' },
-        { id: 'accountingPanel', label: 'Accounting' },
+      { label: 'Finance', color: '#2f7d4f', pages: [
+        { id: 'expensesPanel', label: 'Expenses', icon: '💳' },
+        { id: 'accountingPanel', label: 'Accounting', icon: '🧮' },
       ]},
-      { label: 'Operations', pages: [
-        { id: 'tasksPanel', label: 'Tasks' },
-        { id: 'incidentsPanel', label: 'Incidents' },
-        { id: 'evidenceLockerPanel', label: 'Evidence Locker' },
-        { id: 'adverseEventsPanel', label: 'Adverse Event Reports' },
+      { label: 'Operations', color: '#3f6fa8', pages: [
+        { id: 'tasksPanel', label: 'Tasks', icon: '✅' },
+        { id: 'incidentsPanel', label: 'Incidents', icon: '🚨' },
+        { id: 'evidenceLockerPanel', label: 'Evidence Locker', icon: '🗄️' },
+        { id: 'adverseEventsPanel', label: 'Adverse Event Reports', icon: '🩹' },
       ]},
-      { label: 'Customers & AI', pages: [
-        { id: 'inquiriesPanel', label: 'Customer Inquiries' },
-        { id: 'aiPanel', label: 'AI Agent Activity' },
-        { id: 'continuityPanel', label: 'Business Continuity' },
+      { label: 'Customers & AI', color: '#7a5aa8', pages: [
+        { id: 'inquiriesPanel', label: 'Customer Inquiries', icon: '💬' },
+        { id: 'aiPanel', label: 'AI Agent Activity', icon: '🤖' },
+        { id: 'continuityPanel', label: 'Business Continuity', icon: '🛟' },
       ]},
-      { label: 'Admin', pages: [
-        { id: 'flagsPanel', label: 'Feature Flags' },
-        { id: 'businessRulesPanel', label: 'Business Rules' },
-        { id: 'approvalsPanel', label: 'Approval Queue' },
-        { id: 'sessionsPanel', label: 'Active Sessions' },
-        { id: 'activityPanel', label: 'Employee Activity' },
-        { id: 'sopsPanel', label: 'Procedures (SOPs)' },
-        { id: 'featureRequestsPanel', label: 'Feature Requests' },
-        { id: 'legalHoldsPanel', label: 'Legal Holds' },
+      { label: 'Admin', color: '#9c5a72', pages: [
+        { id: 'flagsPanel', label: 'Feature Flags', icon: '🎛️' },
+        { id: 'businessRulesPanel', label: 'Business Rules', icon: '📐' },
+        { id: 'approvalsPanel', label: 'Approval Queue', icon: '✋' },
+        { id: 'sessionsPanel', label: 'Active Sessions', icon: '💻' },
+        { id: 'activityPanel', label: 'Employee Activity', icon: '👣' },
+        { id: 'sopsPanel', label: 'Procedures (SOPs)', icon: '📘' },
+        { id: 'featureRequestsPanel', label: 'Feature Requests', icon: '💡' },
+        { id: 'legalHoldsPanel', label: 'Legal Holds', icon: '⚖️' },
       ]},
     ];
+    // Icon lookup by page id, so pinned pages and search results show it too.
+    const PAGE_ICON_BY_ID = {};
+    SIDEBAR_GROUPS.forEach(g => g.pages.forEach(p => { PAGE_ICON_BY_ID[p.id] = p.icon || '•'; }));
     let currentPageId = null;
     // The most recent set of sidebar search results, kept so a click can carry
     // extra behaviour with it (e.g. a person result also runs that person's
@@ -1384,9 +1580,11 @@
     function pageLinkHtml(p, pinnedSet){
       const badge = getPageBadgeCount(p.id);
       const isPinned = pinnedSet.has(p.id);
+      const icon = p.icon || PAGE_ICON_BY_ID[p.id] || '•';
       return `<a class="sidebarLink${p.id === currentPageId ? ' active' : ''}" data-page="${esc(p.id)}">
         <span class="linkLabelRow">
           <button type="button" class="pinBtn${isPinned ? ' pinned' : ''}" data-pin-page="${esc(p.id)}" title="${isPinned ? 'Unpin' : 'Pin to top'}">${isPinned ? '★' : '☆'}</button>
+          <span class="pageIcon">${esc(icon)}</span>
           <span>${esc(p.label)}</span>
         </span>${badge > 0 ? `<span class="sidebarBadge">${badge}</span>` : ''}
       </a>`;
@@ -1400,7 +1598,7 @@
       let html = '';
 
       if (pinnedIds.length) {
-        html += `<div class="sidebarGroup"><div class="groupLabel">Pinned</div>`;
+        html += `<div class="sidebarGroup" style="--groupColor:var(--copper);"><div class="groupLabel">Pinned</div>`;
         pinnedIds.forEach(id => {
           if (!PAGE_LABEL_BY_ID[id]) return;
           html += pageLinkHtml({ id, label: PAGE_LABEL_BY_ID[id] }, pinnedSet);
@@ -1413,7 +1611,7 @@
         const dataResults = searchEverything(q);
         LAST_SEARCH_RESULTS = dataResults;
         if (dataResults.length) {
-          html += `<div class="sidebarGroup"><div class="groupLabel">Search results</div>`;
+          html += `<div class="sidebarGroup" style="--groupColor:var(--teal);"><div class="groupLabel">Search results</div>`;
           dataResults.forEach((r, idx) => {
             html += `<a class="sidebarLink searchResultLink" data-page="${esc(r.pageId)}" data-result-index="${idx}">
               <span class="resultType">${esc(r.type)}</span><br>${esc(r.label)}
@@ -1426,7 +1624,7 @@
       SIDEBAR_GROUPS.forEach(group => {
         const pages = group.pages.filter(p => !q || p.label.toLowerCase().includes(q));
         if (!pages.length) return;
-        html += `<div class="sidebarGroup"><div class="groupLabel">${esc(group.label)}</div>`;
+        html += `<div class="sidebarGroup" style="--groupColor:${esc(group.color || '#1f7a8c')};"><div class="groupLabel">${esc(group.label)}</div>`;
         pages.forEach(p => { html += pageLinkHtml(p, pinnedSet); });
         html += `</div>`;
       });
@@ -2380,6 +2578,7 @@
       ]);
       // Refresh the sidebar now that every page's data (and badge counts) is in.
       renderSidebar(document.getElementById('sidebarSearch').value);
+      decorateEmptyStates();
     }
 
     // Privacy Access Logging: records that customer personal info (name/email) was
