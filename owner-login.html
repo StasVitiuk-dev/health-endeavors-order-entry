@@ -244,6 +244,57 @@
   .badge.role-owner{ background:#e6f4ea; color:var(--good); }
   .badge.role-administrator{ background:#fff4dc; color:var(--warn); }
   .badge.role-system{ background:#eef1f0; color:#6b7877; }
+  .activityFilters{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:12px; }
+  .activityFilters select{
+    font-family:inherit; font-size:13px; padding:8px 10px; border-radius:8px; border:1px solid #cfd8d6; background:white;
+  }
+  .personChip.active{ background:var(--navy); color:white; border-color:var(--navy); }
+  .actItem.isDelete{ background:#fdf6f5; }
+  .actItem.isDelete .actWhat b:first-child{ color:var(--danger); }
+  .actItem.hovered{ background:#f2f7f6; }
+  .actHint{ font-size:11px; color:#8a9694; margin-left:4px; }
+  .digestLine{
+    background:#f5f8f7; border:1px solid var(--line); border-radius:10px;
+    padding:9px 13px; font-size:12.5px; color:var(--navy); margin-bottom:12px;
+  }
+
+  /* ---------- Record Inspector (Quick Look) ---------- */
+  #inspectorOverlay{
+    display:none; position:fixed; inset:0; z-index:120;
+    background:rgba(11,61,76,0.6); align-items:center; justify-content:center; padding:24px;
+  }
+  #inspectorOverlay.open{ display:flex; }
+  #inspectorOverlay .insCard{
+    background:var(--cream); border-radius:14px; width:100%; max-width:780px;
+    max-height:88vh; display:flex; flex-direction:column; box-shadow:0 20px 60px rgba(0,0,0,0.35);
+  }
+  .insHead{ padding:18px 22px 12px; border-bottom:1px solid var(--line); }
+  .insHead h3{ margin:0 0 3px; font-size:16px; color:var(--navy); }
+  .insHead .insSub{ font-size:12.5px; color:#6b7877; }
+  .insTabs{ display:flex; gap:8px; padding:12px 22px 0; }
+  .insTabs button{ padding:6px 12px; font-size:12.5px; }
+  .insBody{ padding:14px 22px 20px; overflow:auto; flex:1; }
+  .insFoot{ padding:10px 22px 16px; border-top:1px solid var(--line); display:flex; justify-content:flex-end; }
+  .insEvent{ border-left:3px solid var(--line); padding:0 0 14px 12px; margin-left:4px; }
+  .insEvent:last-child{ padding-bottom:0; }
+  .insEvent.isDelete{ border-left-color:var(--danger); }
+  .insEvent.isInsert{ border-left-color:var(--good); }
+  .insEvent.isUpdate{ border-left-color:var(--teal); }
+  .insEvent .insWhen{ font-size:11.5px; color:#8a9694; }
+  .insEvent .insWho{ font-size:13px; font-weight:600; color:var(--navy); margin:1px 0 6px; }
+  .codeBlock{
+    background:#0f2d38; border-radius:8px; padding:10px 12px; overflow-x:auto;
+    font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:11.5px; line-height:1.65;
+  }
+  .cLine{ white-space:pre-wrap; word-break:break-word; color:#cfe3e6; }
+  .cLine.cAdd{ color:#9ee6b4; }
+  .cLine.cRemove{ color:#f5a9a0; }
+  .jKey{ color:#7fd0e0; }
+  .jStr{ color:#e8c98a; }
+  .jNum{ color:#f0a880; }
+  .jBool{ color:#c9a6f0; }
+  .jNull{ color:#8fa3a8; font-style:italic; }
+  .insNote{ font-size:12px; color:#6b7877; font-style:italic; margin-top:6px; }
 
   /* ---------- Re-authentication prompt ---------- */
   #reauthOverlay{
@@ -704,11 +755,23 @@
       <section class="panel" id="activityPanel">
         <h2>Employee Activity</h2>
         <p class="hint">Every change made in your system — who did it, when, and exactly what changed. Search by name, account number, area, or anything inside a change (an order number, a customer name). Changes made by automatic jobs show as "System / automatic" because no person was signed in. For areas holding customer personal information or your formula, only the field names are recorded, never the values.</p>
+        <div id="activityDigest" class="digestLine" style="display:none;"></div>
         <div id="activityPeople" class="peopleStrip"></div>
         <div class="activityControls">
           <input type="text" id="activitySearch" placeholder="Search people, account numbers, areas, order numbers…">
           <button class="small" id="activitySearchBtn">Search</button>
-          <button class="small secondary" id="activityClearBtn">Clear</button>
+          <button class="small secondary" id="activityClearBtn">Clear all</button>
+        </div>
+        <div class="activityFilters">
+          <select id="activityRange">
+            <option value="all">Any time</option>
+            <option value="today">Today</option>
+            <option value="7">Last 7 days</option>
+            <option value="30">Last 30 days</option>
+          </select>
+          <select id="activityArea"><option value="">All areas</option></select>
+          <button class="small secondary" id="activityExportBtn">Export to spreadsheet</button>
+          <span class="actHint">Hover an entry and press Space to inspect it</span>
         </div>
         <div class="statRow" id="activityStats"></div>
         <div id="activityWrap"><p class="empty">Loading…</p></div>
@@ -788,6 +851,23 @@
        goes through. Confirms it's really you by re-checking your password
        against Supabase, the same account system as the login screen — it
        doesn't store or compare the password itself anywhere. -->
+  <div id="inspectorOverlay">
+    <div class="insCard">
+      <div class="insHead">
+        <h3 id="insTitle">Record</h3>
+        <div class="insSub" id="insSub"></div>
+      </div>
+      <div class="insTabs">
+        <button type="button" id="insTabHistory">History</button>
+        <button type="button" class="secondary" id="insTabRaw">Current data</button>
+      </div>
+      <div class="insBody" id="insBody"></div>
+      <div class="insFoot">
+        <button type="button" class="secondary small" id="insCloseBtn">Close (Esc)</button>
+      </div>
+    </div>
+  </div>
+
   <div id="reauthOverlay">
     <div class="card">
       <h3>Confirm it's you</h3>
@@ -1434,6 +1514,28 @@
     const ACTIVITY_PAGE_SIZE = 50;
     let ACTIVITY_OFFSET = 0;
     let ACTIVITY_ROWS = [];
+    let ACTIVITY_PERSON = null;   // null = everyone
+    let ACTIVITY_HOVERED = -1;    // which entry the mouse is over, for the Space shortcut
+
+    // Fields worth showing as a record's name, in order of preference, so an
+    // entry reads "Orders · TEST-0001" instead of "record 6eaf9306".
+    const RECORD_TITLE_KEYS = [
+      'order_number','incident_number','title','name','display_name','product_name',
+      'label','sku','rule_key','flag_key','email','vendor','question_text',
+    ];
+    function recordTitle(r){
+      const nd = r.new_data || {};
+      const od = r.old_data || {};
+      const src = Object.keys(nd).length ? nd : od;
+      for (const k of RECORD_TITLE_KEYS) {
+        const v = src[k];
+        if (v !== undefined && v !== null && String(v).trim() !== '') {
+          const s = String(v);
+          return s.length > 48 ? s.slice(0, 48) + '…' : s;
+        }
+      }
+      return r.record_id ? String(r.record_id).slice(0, 8) : '—';
+    }
 
     const ROLE_LABELS = {
       owner: 'Owner',
@@ -1536,7 +1638,7 @@
         const roleLabel = r.person_role ? (ROLE_LABELS[r.person_role] || r.person_role) : 'System';
         const acct = r.person_account_number ? `<span class="actNum">#${esc(fmtAccountNumber(r.person_account_number))}</span>` : '';
         return `
-        <div class="actItem">
+        <div class="actItem${r.action === 'DELETE' ? ' isDelete' : ''}" data-index="${i}">
           <div class="actRow">
             <div class="actMain">
               <div class="actHead">
@@ -1544,7 +1646,7 @@
                 ${acct}
                 <span class="badge role-${esc(roleKey)}">${esc(roleLabel)}</span>
               </div>
-              <div class="actWhat"><b>${esc(r.action_label)}</b> in <b>${esc(area)}</b>${r.record_id ? ' · record ' + esc(String(r.record_id).slice(0, 8)) : ''}</div>
+              <div class="actWhat"><b>${esc(r.action_label)}</b> in <b>${esc(area)}</b> · ${esc(recordTitle(r))}</div>
             </div>
             <div class="actSide">
               <div class="actWhen">${esc(fmtDate(r.happened_at))}</div>
@@ -1556,7 +1658,8 @@
       }).join('');
 
       wrap.querySelectorAll('.actToggle').forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
           const i = Number(btn.getAttribute('data-index'));
           const box = document.getElementById('actDetail' + i);
           if (!box) return;
@@ -1570,6 +1673,33 @@
           }
         });
       });
+
+      // Quick Look: hovering an entry arms the Space shortcut; clicking the
+      // entry itself opens the same inspector, so the shortcut is optional.
+      wrap.querySelectorAll('.actItem').forEach(item => {
+        const i = Number(item.getAttribute('data-index'));
+        item.addEventListener('mouseenter', () => {
+          ACTIVITY_HOVERED = i;
+          item.classList.add('hovered');
+        });
+        item.addEventListener('mouseleave', () => {
+          if (ACTIVITY_HOVERED === i) ACTIVITY_HOVERED = -1;
+          item.classList.remove('hovered');
+        });
+        item.querySelector('.actRow').addEventListener('click', () => openInspector(ACTIVITY_ROWS[i]));
+      });
+    }
+
+    // Turns the "Any time / Today / Last 7 days / Last 30 days" picker into an
+    // actual start date the database can filter on.
+    function activityFromDate(){
+      const v = document.getElementById('activityRange').value;
+      if (v === 'all') return null;
+      const d = new Date();
+      d.setHours(0, 0, 0, 0);
+      if (v === '7') d.setDate(d.getDate() - 6);
+      if (v === '30') d.setDate(d.getDate() - 29);
+      return d.toISOString();
     }
 
     async function loadActivity(reset){
@@ -1583,6 +1713,9 @@
       try {
         const { data, error } = await supabase.rpc('employee_activity', {
           p_search: q || null,
+          p_person: ACTIVITY_PERSON,
+          p_area: document.getElementById('activityArea').value || null,
+          p_from: activityFromDate(),
           p_limit: ACTIVITY_PAGE_SIZE,
           p_offset: ACTIVITY_OFFSET,
         });
@@ -1610,13 +1743,17 @@
         SEARCH_INDEX.people = people;
         const strip = document.getElementById('activityPeople');
         if (!people.length) { strip.innerHTML = ''; return; }
-        strip.innerHTML = '<span class="peopleLbl">People</span>' + people.map(p => `
-          <button type="button" class="personChip" data-acct="${esc(p.account_number || '')}">
+        strip.innerHTML = '<span class="peopleLbl">People</span>' +
+          `<button type="button" class="personChip${ACTIVITY_PERSON ? '' : ' active'}" data-person="">Everyone</button>` +
+          people.map(p => `
+          <button type="button" class="personChip${ACTIVITY_PERSON === p.id ? ' active' : ''}" data-person="${esc(p.id)}">
             ${esc(p.display_name || p.email)} · #${esc(fmtAccountNumber(p.account_number))} · ${esc(ROLE_LABELS[p.role] || p.role)}
           </button>`).join('');
         strip.querySelectorAll('.personChip').forEach(chip => {
           chip.addEventListener('click', () => {
-            document.getElementById('activitySearch').value = chip.getAttribute('data-acct') || '';
+            ACTIVITY_PERSON = chip.getAttribute('data-person') || null;
+            strip.querySelectorAll('.personChip').forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
             loadActivity(true);
           });
         });
@@ -1626,15 +1763,238 @@
       }
     }
 
+    // The area dropdown, built from what's actually in the log and already
+    // filtered to what this person is allowed to see.
+    async function loadActivityAreas(){
+      try {
+        const { data, error } = await supabase.rpc('employee_activity_areas');
+        if (error) throw error;
+        const sel = document.getElementById('activityArea');
+        const current = sel.value;
+        sel.innerHTML = '<option value="">All areas</option>' + (data || []).map(a =>
+          `<option value="${esc(a.table_name)}">${esc(ACTIVITY_AREA_LABELS[a.table_name] || a.area)} (${Number(a.entries)})</option>`
+        ).join('');
+        sel.value = current;
+      } catch (err) { /* dropdown just stays as "All areas" */ }
+    }
+
+    // A one-line "what happened today" summary across everyone.
+    async function loadActivityDigest(){
+      try {
+        const start = new Date(); start.setHours(0, 0, 0, 0);
+        const { data, error } = await supabase.rpc('employee_activity', {
+          p_from: start.toISOString(), p_limit: 500, p_offset: 0,
+        });
+        if (error) throw error;
+        const rows = data || [];
+        const el = document.getElementById('activityDigest');
+        if (!rows.length) {
+          el.style.display = 'block';
+          el.innerHTML = '<b>Today:</b> no changes recorded yet.';
+          return;
+        }
+        const people = new Set(rows.filter(r => r.person_account_number).map(r => r.person_account_number));
+        const areaCount = {};
+        rows.forEach(r => {
+          const a = ACTIVITY_AREA_LABELS[r.table_name] || r.area;
+          areaCount[a] = (areaCount[a] || 0) + 1;
+        });
+        const top = Object.keys(areaCount).sort((a, b) => areaCount[b] - areaCount[a]).slice(0, 3)
+          .map(a => `${esc(a)} (${areaCount[a]})`).join(', ');
+        const deletes = rows.filter(r => r.action === 'DELETE').length;
+        el.style.display = 'block';
+        el.innerHTML = `<b>Today:</b> ${rows.length} change${rows.length === 1 ? '' : 's'}` +
+          ` · ${people.size} ${people.size === 1 ? 'person' : 'people'} signed in` +
+          (deletes ? ` · <span style="color:var(--danger);font-weight:600;">${deletes} deletion${deletes === 1 ? '' : 's'}</span>` : '') +
+          (top ? ` · busiest: ${top}` : '');
+      } catch (err) { /* the digest is a nicety, never block the page on it */ }
+    }
+
+    // ---- Record Inspector (Quick Look) ----
+    // Opens one record's complete history — every change ever recorded for it —
+    // through the same protected function, so it can never show more than the
+    // list itself would.
+    let INSPECTOR_HISTORY = [];
+    let INSPECTOR_ROW = null;
+    let INSPECTOR_TAB = 'history';
+
+    function hlValue(v){
+      if (v === null || v === undefined) return '<span class="jNull">empty</span>';
+      if (typeof v === 'number') return `<span class="jNum">${esc(String(v))}</span>`;
+      if (typeof v === 'boolean') return `<span class="jBool">${v}</span>`;
+      if (typeof v === 'object') return `<span class="jStr">${esc(JSON.stringify(v))}</span>`;
+      return `<span class="jStr">"${esc(String(v))}"</span>`;
+    }
+    function codeDiff(r){
+      const nd = r.new_data || {};
+      const od = r.old_data || {};
+      if (!r.values_stored) {
+        const fields = Array.isArray(nd.changed_fields) ? nd.changed_fields : [];
+        const body = fields.length
+          ? fields.map(f => `<div class="cLine"><span class="jKey">${esc(f)}</span> <span class="jNull">changed</span></div>`).join('')
+          : `<div class="cLine"><span class="jNull">${esc(r.action_label)}</span></div>`;
+        return `<div class="codeBlock">${body}</div>
+                <div class="insNote">Values aren't recorded for this area, to keep personal data and formula details out of the log.</div>`;
+      }
+      if (r.action === 'UPDATE') {
+        let keys = Object.keys(nd).filter(k => JSON.stringify(od[k]) !== JSON.stringify(nd[k]));
+        if (keys.length > 1) keys = keys.filter(k => k !== 'updated_at');
+        if (!keys.length) return '<div class="insNote">Nothing visible changed on this record.</div>';
+        return `<div class="codeBlock">` + keys.map(k =>
+          `<div class="cLine cRemove">− <span class="jKey">${esc(k)}</span>: ${hlValue(od[k])}</div>` +
+          `<div class="cLine cAdd">+ <span class="jKey">${esc(k)}</span>: ${hlValue(nd[k])}</div>`
+        ).join('') + `</div>`;
+      }
+      const src = r.action === 'DELETE' ? od : nd;
+      const cls = r.action === 'DELETE' ? 'cRemove' : 'cAdd';
+      const sign = r.action === 'DELETE' ? '−' : '+';
+      const keys = Object.keys(src).filter(k => src[k] !== null && src[k] !== '');
+      if (!keys.length) return '<div class="insNote">No details recorded.</div>';
+      return `<div class="codeBlock">` + keys.map(k =>
+        `<div class="cLine ${cls}">${sign} <span class="jKey">${esc(k)}</span>: ${hlValue(src[k])}</div>`
+      ).join('') + `</div>`;
+    }
+    function renderInspector(){
+      const body = document.getElementById('insBody');
+      if (INSPECTOR_TAB === 'raw') {
+        const latest = INSPECTOR_HISTORY.find(h => h.values_stored && h.new_data && Object.keys(h.new_data).length);
+        if (!latest) {
+          body.innerHTML = '<div class="insNote">No stored values for this record — this area only records which fields changed.</div>';
+          return;
+        }
+        const nd = latest.new_data;
+        body.innerHTML = `<div class="codeBlock">` + Object.keys(nd).map(k =>
+          `<div class="cLine"><span class="jKey">${esc(k)}</span>: ${hlValue(nd[k])}</div>`
+        ).join('') + `</div>
+        <div class="insNote">As of ${esc(fmtDate(latest.happened_at))} — the most recent recorded state, not necessarily the record's live value today.</div>`;
+        return;
+      }
+      if (!INSPECTOR_HISTORY.length) {
+        body.innerHTML = '<p class="empty">No history found for this record.</p>';
+        return;
+      }
+      body.innerHTML = INSPECTOR_HISTORY.map(h => {
+        const cls = h.action === 'DELETE' ? 'isDelete' : h.action === 'INSERT' ? 'isInsert' : 'isUpdate';
+        const acct = h.person_account_number ? ` · #${esc(fmtAccountNumber(h.person_account_number))}` : '';
+        return `<div class="insEvent ${cls}">
+          <div class="insWhen">${esc(fmtDate(h.happened_at))}</div>
+          <div class="insWho">${esc(h.person_name)}${acct} — ${esc(h.action_label)}</div>
+          ${codeDiff(h)}
+        </div>`;
+      }).join('');
+    }
+    async function openInspector(row){
+      if (!row) return;
+      INSPECTOR_ROW = row;
+      INSPECTOR_TAB = 'history';
+      INSPECTOR_HISTORY = [];
+      const area = ACTIVITY_AREA_LABELS[row.table_name] || row.area || row.table_name;
+      document.getElementById('insTitle').textContent = `${area} · ${recordTitle(row)}`;
+      document.getElementById('insSub').textContent = `Full change history · record ${row.record_id || '—'}`;
+      document.getElementById('insTabHistory').className = '';
+      document.getElementById('insTabRaw').className = 'secondary';
+      document.getElementById('insBody').innerHTML = '<p class="empty">Loading history…</p>';
+      document.getElementById('inspectorOverlay').classList.add('open');
+      try {
+        const { data, error } = await supabase.rpc('employee_activity', {
+          p_search: row.record_id, p_area: row.table_name, p_limit: 200, p_offset: 0,
+        });
+        if (error) throw error;
+        INSPECTOR_HISTORY = (data || []).filter(h => h.record_id === row.record_id);
+        renderInspector();
+      } catch (err) {
+        document.getElementById('insBody').innerHTML =
+          '<p class="empty">Could not load this record\'s history: ' + esc(err && err.message ? err.message : String(err)) + '</p>';
+      }
+    }
+    function closeInspector(){
+      document.getElementById('inspectorOverlay').classList.remove('open');
+    }
+
+    function plainChange(r){
+      const nd = r.new_data || {}, od = r.old_data || {};
+      if (!r.values_stored) {
+        const f = Array.isArray(nd.changed_fields) ? nd.changed_fields : [];
+        return f.length ? 'Fields changed: ' + f.join(', ') : r.action_label;
+      }
+      if (r.action !== 'UPDATE') return r.action_label;
+      let keys = Object.keys(nd).filter(k => JSON.stringify(od[k]) !== JSON.stringify(nd[k]));
+      if (keys.length > 1) keys = keys.filter(k => k !== 'updated_at');
+      return keys.map(k => `${k}: ${jsonPreview(od[k])} → ${jsonPreview(nd[k])}`).join('; ');
+    }
+    function exportActivityCsv(){
+      if (!ACTIVITY_ROWS.length) { showDashError('Nothing to export — the list is empty.'); return; }
+      const head = ['When','Person','Account number','Role','Area','Action','Record','What changed'];
+      const lines = [head].concat(ACTIVITY_ROWS.map(r => [
+        fmtDate(r.happened_at),
+        r.person_name,
+        r.person_account_number || '',
+        r.person_role || 'system',
+        ACTIVITY_AREA_LABELS[r.table_name] || r.area,
+        r.action_label,
+        recordTitle(r),
+        plainChange(r),
+      ]));
+      const csv = lines.map(l => l.map(c => '"' + String(c === null || c === undefined ? '' : c).replace(/"/g, '""') + '"').join(',')).join('\r\n');
+      const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'employee-activity-' + new Date().toISOString().slice(0, 10) + '.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
     document.getElementById('activitySearchBtn').addEventListener('click', () => loadActivity(true));
     document.getElementById('activitySearch').addEventListener('keydown', (e) => {
       if (e.key === 'Enter') { e.preventDefault(); loadActivity(true); }
     });
     document.getElementById('activityClearBtn').addEventListener('click', () => {
       document.getElementById('activitySearch').value = '';
+      document.getElementById('activityRange').value = 'all';
+      document.getElementById('activityArea').value = '';
+      ACTIVITY_PERSON = null;
+      document.querySelectorAll('#activityPeople .personChip').forEach(c => {
+        c.classList.toggle('active', !c.getAttribute('data-person'));
+      });
       loadActivity(true);
     });
+    document.getElementById('activityRange').addEventListener('change', () => loadActivity(true));
+    document.getElementById('activityArea').addEventListener('change', () => loadActivity(true));
+    document.getElementById('activityExportBtn').addEventListener('click', exportActivityCsv);
     document.getElementById('activityMoreBtn').addEventListener('click', () => loadActivity(false));
+    document.getElementById('insCloseBtn').addEventListener('click', closeInspector);
+    document.getElementById('inspectorOverlay').addEventListener('click', (e) => {
+      if (e.target.id === 'inspectorOverlay') closeInspector();
+    });
+    document.getElementById('insTabHistory').addEventListener('click', () => {
+      INSPECTOR_TAB = 'history';
+      document.getElementById('insTabHistory').className = '';
+      document.getElementById('insTabRaw').className = 'secondary';
+      renderInspector();
+    });
+    document.getElementById('insTabRaw').addEventListener('click', () => {
+      INSPECTOR_TAB = 'raw';
+      document.getElementById('insTabRaw').className = '';
+      document.getElementById('insTabHistory').className = 'secondary';
+      renderInspector();
+    });
+    // Space bar opens the inspector for whichever entry the mouse is over —
+    // same gesture as Quick Look in Finder. Escape closes it.
+    document.addEventListener('keydown', (e) => {
+      const overlayOpen = document.getElementById('inspectorOverlay').classList.contains('open');
+      if (e.key === 'Escape' && overlayOpen) { closeInspector(); return; }
+      if (e.code !== 'Space' && e.key !== ' ') return;
+      if (overlayOpen) return;
+      const tag = (e.target && e.target.tagName ? e.target.tagName : '').toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || tag === 'select' || tag === 'button') return;
+      if (currentPageId !== 'activityPanel') return;
+      if (ACTIVITY_HOVERED < 0 || !ACTIVITY_ROWS[ACTIVITY_HOVERED]) return;
+      e.preventDefault();
+      openInspector(ACTIVITY_ROWS[ACTIVITY_HOVERED]);
+    });
 
     // ---------- needs your attention ----------
     const ITEM_TYPE_LABELS = {
@@ -1889,6 +2249,8 @@
         loadApprovals(),
         loadSessions(),
         loadActivityPeople(),
+        loadActivityAreas(),
+        loadActivityDigest(),
         loadActivity(true),
         loadSops(),
         loadFeatureRequests(),
