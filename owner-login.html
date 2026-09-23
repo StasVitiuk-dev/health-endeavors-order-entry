@@ -213,6 +213,38 @@
   #refreshBtn{ background:var(--teal); }
   .sectionHeadRow{ display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; }
 
+  /* ---------- Employee Activity ---------- */
+  .activityControls{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
+  .activityControls input[type=text]{
+    flex:1 1 260px; margin-bottom:0; padding:9px 10px; font-size:14px;
+    border-radius:8px; border:1px solid #cfd8d6;
+  }
+  .peopleStrip{ display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-bottom:14px; }
+  .peopleStrip .peopleLbl{
+    font-size:11.5px; color:#6b7877; text-transform:uppercase; letter-spacing:0.03em;
+  }
+  .personChip{
+    padding:4px 10px; font-size:12px; background:#eef3f2; color:var(--navy);
+    border:1px solid var(--line); border-radius:20px; font-weight:600;
+  }
+  .personChip:hover{ border-color:var(--teal); }
+  .actItem{ border-bottom:1px solid var(--line); }
+  .actItem:last-child{ border-bottom:none; }
+  .actRow{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; padding:10px 0; }
+  .actRow .actMain{ flex:1; min-width:0; }
+  .actHead{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-bottom:2px; }
+  .actWho{ font-weight:600; font-size:13.5px; color:var(--navy); }
+  .actNum{ font-size:11.5px; color:#6b7877; font-variant-numeric:tabular-nums; }
+  .actWhat{ font-size:12.5px; color:#6b7877; }
+  .actSide{ flex:none; display:flex; flex-direction:column; align-items:flex-end; gap:6px; }
+  .actWhen{ font-size:12px; color:#6b7877; white-space:nowrap; }
+  .actDetail{ padding:0 0 12px; font-size:12.5px; color:#44545a; }
+  .actDetail table{ font-size:12px; }
+  .actNote{ color:#6b7877; font-style:italic; margin-top:4px; }
+  .badge.role-owner{ background:#e6f4ea; color:var(--good); }
+  .badge.role-administrator{ background:#fff4dc; color:var(--warn); }
+  .badge.role-system{ background:#eef1f0; color:#6b7877; }
+
   /* ---------- Re-authentication prompt ---------- */
   #reauthOverlay{
     display:none;
@@ -668,6 +700,23 @@
         <div id="sessionsWrap"><p class="empty">Loading…</p></div>
       </section>
 
+      <!-- Employee Activity -->
+      <section class="panel" id="activityPanel">
+        <h2>Employee Activity</h2>
+        <p class="hint">Every change made in your system — who did it, when, and exactly what changed. Search by name, account number, area, or anything inside a change (an order number, a customer name). Changes made by automatic jobs show as "System / automatic" because no person was signed in. For areas holding customer personal information or your formula, only the field names are recorded, never the values.</p>
+        <div id="activityPeople" class="peopleStrip"></div>
+        <div class="activityControls">
+          <input type="text" id="activitySearch" placeholder="Search people, account numbers, areas, order numbers…">
+          <button class="small" id="activitySearchBtn">Search</button>
+          <button class="small secondary" id="activityClearBtn">Clear</button>
+        </div>
+        <div class="statRow" id="activityStats"></div>
+        <div id="activityWrap"><p class="empty">Loading…</p></div>
+        <div id="activityMoreWrap" style="display:none; margin-top:12px;">
+          <button class="small secondary" id="activityMoreBtn">Load more</button>
+        </div>
+      </section>
+
       <!-- Procedures (SOPs) -->
       <section class="panel" id="sopsPanel">
         <h2>Procedures (SOPs)</h2>
@@ -1000,12 +1049,17 @@
         { id: 'businessRulesPanel', label: 'Business Rules' },
         { id: 'approvalsPanel', label: 'Approval Queue' },
         { id: 'sessionsPanel', label: 'Active Sessions' },
+        { id: 'activityPanel', label: 'Employee Activity' },
         { id: 'sopsPanel', label: 'Procedures (SOPs)' },
         { id: 'featureRequestsPanel', label: 'Feature Requests' },
         { id: 'legalHoldsPanel', label: 'Legal Holds' },
       ]},
     ];
     let currentPageId = null;
+    // The most recent set of sidebar search results, kept so a click can carry
+    // extra behaviour with it (e.g. a person result also runs that person's
+    // account number through the Employee Activity search).
+    let LAST_SEARCH_RESULTS = [];
 
     // Smart Universal Search: every load function that fetches real records
     // (orders, tasks, incidents, etc.) also drops its rows in here, so typing
@@ -1016,7 +1070,7 @@
     const SEARCH_INDEX = {
       orders: [], tasks: [], incidents: [], approvals: [], sops: [],
       featureRequests: [], evidence: [], adverseEvents: [], legalHolds: [],
-      attention: [], expenses: [], inventory: [], returns: [],
+      attention: [], expenses: [], inventory: [], returns: [], people: [],
     };
 
     // Business Rules: each row's `config` is a small jsonb object whose one
@@ -1183,6 +1237,21 @@
           results.push({ pageId: 'inventoryPanel', type: 'Inventory', label: `${p.name}${p.sku ? ' (' + p.sku + ')' : ''}` });
         }
       });
+      // People: typing a 9-digit account number, a name, or an email here finds
+      // the person and opens their history in Employee Activity.
+      (SEARCH_INDEX.people || []).forEach(p => {
+        const acct = p.account_number || '';
+        const qDigits = q.replace(/[^0-9]/g, '');
+        const acctHit = qDigits.length >= 3 && acct.includes(qDigits);
+        if (acctHit || hit([p.display_name, p.email, p.role])) {
+          results.push({
+            pageId: 'activityPanel',
+            type: 'Person',
+            label: `${p.display_name || p.email} — #${fmtAccountNumber(acct)} (${ROLE_LABELS[p.role] || p.role})`,
+            activitySearch: acct || p.email,
+          });
+        }
+      });
       (SEARCH_INDEX.returns || []).forEach(r => {
         const order = r.orders || {};
         const item = r.order_items || {};
@@ -1245,8 +1314,10 @@
         html += `</div>`;
       }
 
+      LAST_SEARCH_RESULTS = [];
       if (q) {
         const dataResults = searchEverything(q);
+        LAST_SEARCH_RESULTS = dataResults;
         if (dataResults.length) {
           html += `<div class="sidebarGroup"><div class="groupLabel">Search results</div>`;
           dataResults.forEach((r, idx) => {
@@ -1275,6 +1346,18 @@
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
           togglePinnedPage(btn.getAttribute('data-pin-page'));
+        });
+      });
+      // A "Person" search result also drops that person's account number into
+      // the Employee Activity search, so clicking it lands on their history.
+      wrap.querySelectorAll('.searchResultLink').forEach(link => {
+        link.addEventListener('click', () => {
+          const r = LAST_SEARCH_RESULTS[Number(link.getAttribute('data-result-index'))];
+          if (!r || !r.activitySearch) return;
+          const box = document.getElementById('activitySearch');
+          if (!box) return;
+          box.value = r.activitySearch;
+          loadActivity(true);
         });
       });
     }
@@ -1340,6 +1423,218 @@
       document.getElementById('sidebarOverlay').classList.toggle('visible');
     });
     document.getElementById('sidebarOverlay').addEventListener('click', closeMobileSidebar);
+
+    // ---------- Employee Activity ----------
+    // Reads from the protected `employee_activity` database function rather than
+    // from the raw activity log. That function decides what the signed-in person
+    // is allowed to see: the Owner sees everything; an Administrator sees other
+    // people's activity but never the Owner's, and only in areas they already
+    // have access to. Those rules live in the database, so they hold no matter
+    // how the data is requested — this page can't widen them.
+    const ACTIVITY_PAGE_SIZE = 50;
+    let ACTIVITY_OFFSET = 0;
+    let ACTIVITY_ROWS = [];
+
+    const ROLE_LABELS = {
+      owner: 'Owner',
+      administrator: 'Administrator',
+      employee: 'Employee',
+      ai_agent: 'AI Agent',
+    };
+
+    // Friendlier names for a few areas whose table name doesn't read well on
+    // its own. Anything not listed here falls back to the label the database
+    // already builds, so a new table never breaks this page.
+    const ACTIVITY_AREA_LABELS = {
+      profiles: 'Accounts',
+      sop_documents: 'Procedures (SOPs)',
+      ai_model_config: 'AI Model Config',
+      prompt_versions: 'AI Prompt Versions',
+      approval_requests: 'Approval Queue',
+      calendar_events: 'Calendar',
+      product_price_history: 'Price History',
+      manual_attention_items: 'Manual Reminders',
+      privacy_deletion_requests: 'Privacy Deletion Requests',
+      adverse_event_reports: 'Adverse Event Reports',
+    };
+
+    function fmtAccountNumber(n){
+      const s = String(n || '');
+      return s.length === 9 ? `${s.slice(0,3)}-${s.slice(3,6)}-${s.slice(6)}` : s;
+    }
+    function prettyField(f){
+      return String(f).replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    }
+    function jsonPreview(v){
+      if (v === null || v === undefined) return '—';
+      let s;
+      if (typeof v === 'object') { try { s = JSON.stringify(v); } catch (e) { s = '…'; } }
+      else s = String(v);
+      if (s === '') return '(empty)';
+      return s.length > 80 ? s.slice(0, 80) + '…' : s;
+    }
+
+    // Turns one log entry into a readable "what actually changed" block. Entries
+    // from the privacy-protected areas carry only field names, never values.
+    function describeChange(r){
+      const nd = r.new_data || {};
+      const od = r.old_data || {};
+      const privacyNote = "Actual values aren't recorded for this area, to keep personal data and formula details out of the log.";
+
+      if (!r.values_stored) {
+        const fields = Array.isArray(nd.changed_fields) ? nd.changed_fields : [];
+        if (r.action === 'UPDATE' && fields.length) {
+          return `<div><b>Fields changed:</b> ${fields.map(f => esc(prettyField(f))).join(', ')}</div>
+                  <div class="actNote">${privacyNote}</div>`;
+        }
+        const what = r.action === 'INSERT' ? 'A record was created.'
+                   : r.action === 'DELETE' ? 'A record was deleted.'
+                   : 'A record was changed.';
+        return `<div>${what}</div><div class="actNote">${privacyNote}</div>`;
+      }
+
+      if (r.action === 'UPDATE') {
+        let keys = Object.keys(nd).filter(k => JSON.stringify(od[k]) !== JSON.stringify(nd[k]));
+        if (keys.length > 1) keys = keys.filter(k => k !== 'updated_at');
+        if (!keys.length) return '<div class="actNote">Nothing visible changed on this record.</div>';
+        return `<table><tr><th>Field</th><th>Before</th><th>After</th></tr>` +
+          keys.map(k => `<tr><td>${esc(prettyField(k))}</td><td>${esc(jsonPreview(od[k]))}</td><td>${esc(jsonPreview(nd[k]))}</td></tr>`).join('') +
+          `</table>`;
+      }
+
+      const src = r.action === 'DELETE' ? od : nd;
+      const keys = Object.keys(src)
+        .filter(k => src[k] !== null && src[k] !== undefined && src[k] !== '')
+        .slice(0, 10);
+      if (!keys.length) return '<div class="actNote">No details recorded.</div>';
+      return `<table><tr><th>Field</th><th>Value</th></tr>` +
+        keys.map(k => `<tr><td>${esc(prettyField(k))}</td><td>${esc(jsonPreview(src[k]))}</td></tr>`).join('') +
+        `</table>`;
+    }
+
+    function renderActivity(){
+      const wrap = document.getElementById('activityWrap');
+      const rows = ACTIVITY_ROWS;
+
+      if (!rows.length) {
+        document.getElementById('activityStats').innerHTML = '';
+        wrap.innerHTML = '<p class="empty">No activity matches that search.</p>';
+        return;
+      }
+
+      const dayAgo = Date.now() - 24 * 60 * 60 * 1000;
+      const todayCount = rows.filter(r => new Date(r.happened_at).getTime() >= dayAgo).length;
+      const peopleCount = new Set(rows.filter(r => r.person_account_number).map(r => r.person_account_number)).size;
+      document.getElementById('activityStats').innerHTML = `
+        <div class="stat"><div class="num">${rows.length}</div><div class="lbl">Entries loaded</div></div>
+        <div class="stat"><div class="num">${todayCount}</div><div class="lbl">Last 24 hours</div></div>
+        <div class="stat"><div class="num">${peopleCount}</div><div class="lbl">People in this list</div></div>`;
+
+      wrap.innerHTML = rows.map((r, i) => {
+        const area = ACTIVITY_AREA_LABELS[r.table_name] || r.area || r.table_name;
+        const roleKey = r.person_role || 'system';
+        const roleLabel = r.person_role ? (ROLE_LABELS[r.person_role] || r.person_role) : 'System';
+        const acct = r.person_account_number ? `<span class="actNum">#${esc(fmtAccountNumber(r.person_account_number))}</span>` : '';
+        return `
+        <div class="actItem">
+          <div class="actRow">
+            <div class="actMain">
+              <div class="actHead">
+                <span class="actWho">${esc(r.person_name)}</span>
+                ${acct}
+                <span class="badge role-${esc(roleKey)}">${esc(roleLabel)}</span>
+              </div>
+              <div class="actWhat"><b>${esc(r.action_label)}</b> in <b>${esc(area)}</b>${r.record_id ? ' · record ' + esc(String(r.record_id).slice(0, 8)) : ''}</div>
+            </div>
+            <div class="actSide">
+              <div class="actWhen">${esc(fmtDate(r.happened_at))}</div>
+              <button type="button" class="small secondary actToggle" data-index="${i}">Details</button>
+            </div>
+          </div>
+          <div class="actDetail" id="actDetail${i}" style="display:none;"></div>
+        </div>`;
+      }).join('');
+
+      wrap.querySelectorAll('.actToggle').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const i = Number(btn.getAttribute('data-index'));
+          const box = document.getElementById('actDetail' + i);
+          if (!box) return;
+          if (box.style.display === 'none') {
+            if (!box.innerHTML) box.innerHTML = describeChange(ACTIVITY_ROWS[i]);
+            box.style.display = 'block';
+            btn.textContent = 'Hide';
+          } else {
+            box.style.display = 'none';
+            btn.textContent = 'Details';
+          }
+        });
+      });
+    }
+
+    async function loadActivity(reset){
+      const box = document.getElementById('activitySearch');
+      const q = box ? (box.value || '').trim() : '';
+      if (reset) {
+        ACTIVITY_OFFSET = 0;
+        ACTIVITY_ROWS = [];
+        document.getElementById('activityWrap').innerHTML = '<p class="empty">Loading…</p>';
+      }
+      try {
+        const { data, error } = await supabase.rpc('employee_activity', {
+          p_search: q || null,
+          p_limit: ACTIVITY_PAGE_SIZE,
+          p_offset: ACTIVITY_OFFSET,
+        });
+        if (error) throw error;
+        const rows = data || [];
+        ACTIVITY_ROWS = ACTIVITY_ROWS.concat(rows);
+        ACTIVITY_OFFSET += rows.length;
+        document.getElementById('activityMoreWrap').style.display =
+          rows.length === ACTIVITY_PAGE_SIZE ? 'block' : 'none';
+        renderActivity();
+      } catch (err) {
+        document.getElementById('activityWrap').innerHTML = '';
+        showDashError('Could not load Employee Activity: ' + (err && err.message ? err.message : err));
+      }
+    }
+
+    // The people strip along the top of the page, which doubles as the "who is
+    // account #X" lookup. It comes from its own protected function, so an
+    // Administrator's copy of this list never includes the Owner.
+    async function loadActivityPeople(){
+      try {
+        const { data, error } = await supabase.rpc('employee_activity_people');
+        if (error) throw error;
+        const people = data || [];
+        SEARCH_INDEX.people = people;
+        const strip = document.getElementById('activityPeople');
+        if (!people.length) { strip.innerHTML = ''; return; }
+        strip.innerHTML = '<span class="peopleLbl">People</span>' + people.map(p => `
+          <button type="button" class="personChip" data-acct="${esc(p.account_number || '')}">
+            ${esc(p.display_name || p.email)} · #${esc(fmtAccountNumber(p.account_number))} · ${esc(ROLE_LABELS[p.role] || p.role)}
+          </button>`).join('');
+        strip.querySelectorAll('.personChip').forEach(chip => {
+          chip.addEventListener('click', () => {
+            document.getElementById('activitySearch').value = chip.getAttribute('data-acct') || '';
+            loadActivity(true);
+          });
+        });
+      } catch (err) {
+        // Not critical — the search box still works without the people strip.
+        document.getElementById('activityPeople').innerHTML = '';
+      }
+    }
+
+    document.getElementById('activitySearchBtn').addEventListener('click', () => loadActivity(true));
+    document.getElementById('activitySearch').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); loadActivity(true); }
+    });
+    document.getElementById('activityClearBtn').addEventListener('click', () => {
+      document.getElementById('activitySearch').value = '';
+      loadActivity(true);
+    });
+    document.getElementById('activityMoreBtn').addEventListener('click', () => loadActivity(false));
 
     // ---------- needs your attention ----------
     const ITEM_TYPE_LABELS = {
@@ -1593,6 +1888,8 @@
         loadBusinessRules(),
         loadApprovals(),
         loadSessions(),
+        loadActivityPeople(),
+        loadActivity(true),
         loadSops(),
         loadFeatureRequests(),
         loadDeletedFeatureRequests(),
