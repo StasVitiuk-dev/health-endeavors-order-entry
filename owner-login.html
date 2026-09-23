@@ -836,6 +836,35 @@
     .calCell > .calChip{ display:inline-block; }
     .calMore{ display:none; }
   }
+
+  /* Quick add + connection banner + pull to refresh */
+  #quickAddOverlay{
+    display:none; position:fixed; inset:0; z-index:214; background:rgba(0,0,0,0.32);
+    backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px);
+    align-items:flex-start; justify-content:center; padding:16vh 16px 16px;
+  }
+  #quickAddOverlay.open{ display:flex; }
+  .quickAddCard{
+    width:100%; max-width:520px; background:var(--panel); border:1px solid var(--line);
+    border-radius:16px; box-shadow:0 24px 70px rgba(0,0,0,0.3); padding:18px;
+  }
+  .quickAddCard h4{ margin:0 0 10px; font-size:12px; text-transform:uppercase; letter-spacing:0.03em; color:var(--muted-2); }
+  #quickAddInput{ width:100%; font-size:16px; padding:12px 13px; margin:0; }
+  .quickAddRow{ display:flex; gap:9px; align-items:center; margin-top:11px; }
+  .quickAddRow .grow{ flex:1; }
+  #offlineBar{
+    display:none; position:fixed; left:0; right:0; top:0; z-index:220;
+    background:var(--warn-bg); color:var(--warn); text-align:center;
+    font-size:12.5px; font-weight:500; padding:7px 12px;
+    padding-top:max(7px, env(safe-area-inset-top));
+  }
+  #offlineBar.show{ display:block; }
+  #ptrIndicator{
+    position:fixed; left:0; right:0; top:0; z-index:150; height:0; overflow:hidden;
+    display:flex; align-items:flex-end; justify-content:center;
+    color:var(--muted); font-size:12px; pointer-events:none;
+  }
+  .rowCursor{ outline:2px solid var(--accent); outline-offset:1px; border-radius:8px; }
 </style>
 <script>
   // Applied before anything renders so there's no flash of the wrong theme.
@@ -1374,6 +1403,9 @@
         autoRefreshToken: false,
         detectSessionInUrl: false,
         storageKey: 'he_password_check_only',
+        // Skip the shared cross-tab lock entirely. This client has no session
+        // to protect, and waiting on that lock is what made the prompt hang.
+        lock: (name, acquireTimeout, fn) => fn(),
       },
     });
 
@@ -1546,7 +1578,7 @@
             // Never let this sit there spinning — if the check can't answer in
             // 12 seconds, say so and give the buttons back.
             const check = verifyOnly.auth.signInWithPassword({ email: currentUserEmail, password });
-            const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 12000));
+            const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000));
             const { error } = await Promise.race([check, timeout]);
             confirmBtn.disabled = false;
             if (error) { msg.textContent = "That password didn't work — try again."; msg.className = 'msg error'; return; }
@@ -1817,6 +1849,14 @@
       const q = query.trim().toLowerCase();
       if (!q) return [];
       const results = [];
+
+      // The guide answers here as well as in the command palette, so asking
+      // "how do returns work" in the sidebar works the same way.
+      if (typeof helpMatches === 'function') {
+        helpMatches(q).forEach(e => results.push({
+          pageId: e.page, type: 'Guide', label: e.title, help: e,
+        }));
+      }
       const hit = (fields) => fields.filter(Boolean).join(' ').toLowerCase().includes(q);
 
       (SEARCH_INDEX.orders || []).forEach(o => {
@@ -1996,6 +2036,7 @@
       wrap.querySelectorAll('.searchResultLink').forEach(link => {
         link.addEventListener('click', () => {
           const r = LAST_SEARCH_RESULTS[Number(link.getAttribute('data-result-index'))];
+          if (r && r.help) { openHelp(r.help); return; }
           if (!r || !r.activitySearch) return;
           const box = document.getElementById('activitySearch');
           if (!box) return;
@@ -2219,6 +2260,27 @@
         body:'A legal hold marks records that must be preserved — during a dispute, a claim, or an investigation. While a hold is active, routine clean-up must leave those records alone.|Releasing a hold is recorded in the activity log, with who released it and when.' },
     ];
 
+    // One matcher, used by both the command palette and the sidebar search.
+    function helpMatches(query){
+      const stop = ['how','the','and','for','you','can','what','where','does','with','use','about','when','why'];
+      const words = query.split(/[^a-z0-9]+/).filter(w => w.length > 2 && !stop.includes(w));
+      const scored = [];
+      HELP.forEach(e => {
+        const hay = (e.title + ' ' + e.keys + ' ' + e.body).toLowerCase();
+        let score = 0;
+        if (e.title.toLowerCase().includes(query)) score += 6;
+        words.forEach(w => {
+          const stem = w.endsWith('s') ? w.slice(0, -1) : w;
+          if (e.title.toLowerCase().includes(stem)) score += 3;
+          else if (e.keys.includes(stem)) score += 2;
+          else if (hay.includes(stem)) score += 1;
+        });
+        if (!words.length && hay.includes(query)) score += 1;
+        if (score > 0) scored.push({ score: score, e: e });
+      });
+      return scored.sort((a, b) => b.score - a.score).slice(0, 5).map(s => s.e);
+    }
+
     const helpOverlay = document.createElement('div');
     helpOverlay.id = 'helpOverlay';
     helpOverlay.innerHTML = '<div class="helpCard"><h3 id="helpTitle"></h3>' +
@@ -2266,29 +2328,12 @@
         }
       }));
       if (query) {
-        // Match the way a person actually types: whole question, plural or
-        // singular, any word that lands anywhere in the entry.
-        const stop = ['how','the','and','for','you','can','what','where','does','with','use','about','when','why'];
-        const words = query.split(/[^a-z0-9]+/).filter(w => w.length > 2 && !stop.includes(w));
-        const scored = [];
-        HELP.forEach(e => {
-          const hay = (e.title + ' ' + e.keys + ' ' + e.body).toLowerCase();
-          let score = 0;
-          if (e.title.toLowerCase().includes(query)) score += 6;
-          words.forEach(w => {
-            const stem = w.endsWith('s') ? w.slice(0, -1) : w;
-            if (e.title.toLowerCase().includes(stem)) score += 3;
-            else if (e.keys.includes(stem)) score += 2;
-            else if (hay.includes(stem)) score += 1;
-          });
-          if (!words.length && hay.includes(query)) score += 1;
-          if (score > 0) scored.push({ score: score, e: e });
-        });
-        scored.sort((a, b) => b.score - a.score).slice(0, 5).forEach(s => {
-          items.push({ kind: 'Guide', label: s.e.title, pageId: s.e.page, help: s.e, icon: pageIconSvg(s.e.page) });
-        });
+        helpMatches(query).forEach(e => items.push({
+          kind: 'Guide', label: e.title, pageId: e.page, help: e, icon: pageIconSvg(e.page),
+        }));
         items.push.apply(items, pages);
-        searchEverything(query).forEach(r => items.push({
+        // Guides were added above; skip the copies the record search returns.
+        searchEverything(query).filter(r => r.type !== 'Guide').forEach(r => items.push({
           kind: r.type, label: r.label, pageId: r.pageId,
           icon: pageIconSvg(r.pageId), activitySearch: r.activitySearch,
         }));
@@ -2361,6 +2406,11 @@
         '<div class="scRow"><span>This list</span><span><kbd>?</kbd></span></div>' +
         '<div class="scRow"><span>Refresh data</span><span><kbd>\u2318</kbd><kbd>\u21E7</kbd><kbd>R</kbd></span></div>' +
         '<div class="scRow"><span>Close anything</span><span><kbd>esc</kbd></span></div>' +
+        '<div class="scRow"><span>Back / forward</span><span><kbd>\u2318</kbd><kbd>[</kbd> <kbd>\u2318</kbd><kbd>]</kbd></span></div>' +
+        '<div class="scRow"><span>New reminder</span><span><kbd>\u2318</kbd><kbd>N</kbd></span></div>' +
+        '<div class="scRow"><span>Jump to pinned page</span><span><kbd>\u2318</kbd><kbd>1</kbd>\u2013<kbd>9</kbd></span></div>' +
+        '<div class="scRow"><span>Move through rows</span><span><kbd>J</kbd><kbd>K</kbd></span></div>' +
+        '<div class="scRow"><span>Open the row</span><span><kbd>\u21A9</kbd></span></div>' +
         '<div class="scRow"><span>Inspect a record</span><span><kbd>space</kbd></span></div>' +
         '<div class="scRow"><span>Ask the guide</span><span><kbd>\u2318</kbd><kbd>K</kbd> then type</span></div></div>' +
       '<div class="scGroup"><h4>On the calendar</h4>' +
@@ -3163,6 +3213,199 @@
       if (isNaN(d.getTime())) return '';
       return d.toLocaleTimeString(undefined, { hour:'numeric', minute:'2-digit' });
     }
+
+
+    // ================= Faster to drive =================
+
+    // ---- Where you've been: ⌘[ and ⌘] ----
+    const NAV_BACK = [], NAV_FWD = [];
+    let navSuppress = false;
+    const _showPage = showPage;
+    showPage = function(pageId){
+      if (!navSuppress && currentPageId && currentPageId !== pageId) {
+        NAV_BACK.push(currentPageId);
+        NAV_FWD.length = 0;
+        if (NAV_BACK.length > 50) NAV_BACK.shift();
+      }
+      _showPage(pageId);
+    };
+    function navBack(){
+      if (!NAV_BACK.length) return;
+      const to = NAV_BACK.pop();
+      NAV_FWD.push(currentPageId);
+      navSuppress = true; _showPage(to); navSuppress = false;
+    }
+    function navForward(){
+      if (!NAV_FWD.length) return;
+      const to = NAV_FWD.pop();
+      NAV_BACK.push(currentPageId);
+      navSuppress = true; _showPage(to); navSuppress = false;
+    }
+
+    // ---- j / k through rows, Return to inspect ----
+    let rowCursorEl = null;
+    function rowsOnPage(){
+      const panel = document.querySelector('main.contentArea > section.panel.activePage');
+      if (!panel) return [];
+      return Array.from(panel.querySelectorAll('.actItem, tr[data-id], [data-product-id], [data-return-id], .approvalRow[data-id], .flagRow[data-id], .calEvent'));
+    }
+    function moveRowCursor(dir){
+      const rows = rowsOnPage();
+      if (!rows.length) return;
+      let i = rowCursorEl ? rows.indexOf(rowCursorEl) : -1;
+      i = (i === -1) ? (dir > 0 ? 0 : rows.length - 1) : Math.min(rows.length - 1, Math.max(0, i + dir));
+      if (rowCursorEl) rowCursorEl.classList.remove('rowCursor');
+      rowCursorEl = rows[i];
+      rowCursorEl.classList.add('rowCursor');
+      rowCursorEl.scrollIntoView({ block: 'nearest', behavior: reduceMotion.matches ? 'auto' : 'smooth' });
+      const t = resolveInspectTarget(rowCursorEl);
+      if (t) setInspectTarget(t);
+    }
+    function openRowCursor(){
+      if (!rowCursorEl) return;
+      if (rowCursorEl.classList.contains('calEvent')) { rowCursorEl.click(); return; }
+      if (rowCursorEl.classList.contains('actItem')) {
+        const i = Number(rowCursorEl.getAttribute('data-index'));
+        if (ACTIVITY_ROWS[i]) openInspector(ACTIVITY_ROWS[i]);
+        return;
+      }
+      const t = resolveInspectTarget(rowCursorEl);
+      if (t) openInspectorFor(t.table, t.id, t.label);
+    }
+
+    // ---- ⌘N: jot a reminder from anywhere ----
+    const quickAdd = document.createElement('div');
+    quickAdd.id = 'quickAddOverlay';
+    quickAdd.innerHTML = '<div class="quickAddCard"><h4>New reminder</h4>' +
+      '<input type="text" id="quickAddInput" placeholder="What do you need to remember?" autocomplete="off">' +
+      '<div class="quickAddRow"><select id="quickAddPriority">' +
+        '<option value="normal">Normal</option><option value="high">High</option></select>' +
+      '<span class="grow"></span>' +
+      '<button type="button" class="small secondary" id="quickAddCancel">Cancel</button>' +
+      '<button type="button" class="small" id="quickAddSave">Add</button></div></div>';
+    document.body.appendChild(quickAdd);
+    function openQuickAdd(){
+      quickAdd.classList.add('open');
+      const i = document.getElementById('quickAddInput');
+      i.value = '';
+      setTimeout(() => i.focus(), 10);
+    }
+    function closeQuickAdd(){ quickAdd.classList.remove('open'); }
+    async function saveQuickAdd(){
+      const title = (document.getElementById('quickAddInput').value || '').trim();
+      if (!title) { closeQuickAdd(); return; }
+      const priority = document.getElementById('quickAddPriority').value;
+      const btn = document.getElementById('quickAddSave');
+      btn.disabled = true;
+      try {
+        const uid = await currentUserId();
+        const { error } = await supabase.from('manual_attention_items')
+          .insert({ title: title, priority: priority, created_by: uid });
+        if (error) throw error;
+        closeQuickAdd();
+        toastOk('Reminder added.');
+        safeRun(loadAttention).then(refreshChrome);
+      } catch (err) {
+        showDashError('Could not add that reminder: ' + (err && err.message ? err.message : err));
+      } finally { btn.disabled = false; }
+    }
+    document.getElementById('quickAddSave').addEventListener('click', saveQuickAdd);
+    document.getElementById('quickAddCancel').addEventListener('click', closeQuickAdd);
+    document.getElementById('quickAddInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); saveQuickAdd(); }
+      if (e.key === 'Escape') { e.preventDefault(); closeQuickAdd(); }
+    });
+    quickAdd.addEventListener('click', (e) => { if (e.target === quickAdd) closeQuickAdd(); });
+
+    // ---- Connection banner ----
+    const offlineBar = document.createElement('div');
+    offlineBar.id = 'offlineBar';
+    offlineBar.textContent = 'You are offline — showing the last data loaded.';
+    document.body.appendChild(offlineBar);
+    window.addEventListener('offline', () => offlineBar.classList.add('show'));
+    window.addEventListener('online', () => {
+      offlineBar.classList.remove('show');
+      toastOk('Back online — refreshing.');
+      loadDashboard();
+    });
+    if (!navigator.onLine) offlineBar.classList.add('show');
+
+    // ---- Quiet background refresh ----
+    // Keeps the numbers honest without you pressing anything. Skips the refresh
+    // while you're typing, offline, or have something open.
+    setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
+      if (!navigator.onLine) return;
+      if (anyOverlayOpen() || quickAdd.classList.contains('open')) return;
+      const a = document.activeElement;
+      if (a && ['INPUT','TEXTAREA','SELECT'].includes(a.tagName)) return;
+      const fns = PANEL_LOADERS[currentPageId] || [];
+      Promise.all(fns.map(safeRun)).then(refreshChrome);
+    }, 5 * 60 * 1000);
+
+    // ---- iPhone: pull down to refresh, swipe to change page ----
+    const ptr = document.createElement('div');
+    ptr.id = 'ptrIndicator';
+    ptr.innerHTML = '<span style="padding-bottom:6px;">Release to refresh</span>';
+    document.body.appendChild(ptr);
+    (function(){
+      const area = document.querySelector('main.contentArea');
+      let startY = 0, startX = 0, pulling = false, dy = 0, dx = 0;
+      area.addEventListener('touchstart', (e) => {
+        if (e.touches.length !== 1) return;
+        startY = e.touches[0].clientY; startX = e.touches[0].clientX;
+        pulling = area.scrollTop <= 0;
+        dy = 0; dx = 0;
+      }, { passive: true });
+      area.addEventListener('touchmove', (e) => {
+        if (e.touches.length !== 1) return;
+        dy = e.touches[0].clientY - startY;
+        dx = e.touches[0].clientX - startX;
+        if (pulling && dy > 0 && Math.abs(dy) > Math.abs(dx)) {
+          ptr.style.height = Math.min(64, dy * 0.45) + 'px';
+        }
+      }, { passive: true });
+      area.addEventListener('touchend', () => {
+        if (pulling && dy > 110) { toast('Refreshing…'); loadDashboard(); }
+        ptr.style.height = '0px';
+        // A clear sideways swipe moves to the next or previous page
+        if (Math.abs(dx) > 80 && Math.abs(dx) > Math.abs(dy) * 2 && !anyOverlayOpen()) {
+          const ids = allPageIds();
+          const i = ids.indexOf(currentPageId);
+          if (i !== -1) {
+            const next = dx < 0 ? i + 1 : i - 1;
+            if (next >= 0 && next < ids.length) showPage(ids[next]);
+          }
+        }
+        pulling = false; dy = 0; dx = 0;
+      }, { passive: true });
+    })();
+
+    // ---- The extra keys ----
+    document.addEventListener('keydown', (e) => {
+      const meta = e.metaKey || e.ctrlKey;
+      if (meta && e.key === '[') { e.preventDefault(); navBack(); return; }
+      if (meta && e.key === ']') { e.preventDefault(); navForward(); return; }
+      if (meta && (e.key === 'n' || e.key === 'N')) { e.preventDefault(); openQuickAdd(); return; }
+      if (meta && e.key >= '1' && e.key <= '9') {
+        const ids = allPageIds();
+        const pinned = getPinnedPages();
+        const list = pinned.length ? pinned : ids;
+        const target = list[Number(e.key) - 1];
+        if (target) { e.preventDefault(); showPage(target); }
+        return;
+      }
+      if (e.key === 'Escape' && quickAdd.classList.contains('open')) { closeQuickAdd(); return; }
+
+      const t = e.target;
+      const tag = (t && t.tagName ? t.tagName : '').toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || tag === 'select' || meta || e.altKey) return;
+      if (anyOverlayOpen() || quickAdd.classList.contains('open')) return;
+
+      if (e.key === 'j') { e.preventDefault(); moveRowCursor(1); return; }
+      if (e.key === 'k') { e.preventDefault(); moveRowCursor(-1); return; }
+      if (e.key === 'Enter' && rowCursorEl) { e.preventDefault(); openRowCursor(); return; }
+    });
 
     // ---------- Calendar ----------
     // Three ways to look at the same data: Day and Week list every appointment
