@@ -295,6 +295,18 @@
   .jBool{ color:#c9a6f0; }
   .jNull{ color:#8fa3a8; font-style:italic; }
   .insNote{ font-size:12px; color:#6b7877; font-style:italic; margin-top:6px; }
+  .inspectHover{ outline:2px solid var(--teal); outline-offset:1px; border-radius:6px; }
+  tr.inspectHover{ outline-offset:-2px; }
+  #inspectHint{
+    display:none; position:fixed; right:18px; bottom:18px; z-index:90;
+    background:var(--navy); color:white; border-radius:20px;
+    padding:7px 14px; font-size:12px; font-weight:600; box-shadow:0 6px 18px rgba(0,0,0,0.25);
+    pointer-events:none;
+  }
+  #inspectHint.show{ display:block; }
+  #inspectHint kbd{
+    background:rgba(255,255,255,0.18); border-radius:4px; padding:1px 6px; font-family:inherit; font-size:11px;
+  }
 
   /* ---------- Re-authentication prompt ---------- */
   #reauthOverlay{
@@ -851,6 +863,8 @@
        goes through. Confirms it's really you by re-checking your password
        against Supabase, the same account system as the login screen — it
        doesn't store or compare the password itself anywhere. -->
+  <div id="inspectHint">Press <kbd>Space</kbd> to inspect this record</div>
+
   <div id="inspectorOverlay">
     <div class="insCard">
       <div class="insHead">
@@ -1681,10 +1695,12 @@
         item.addEventListener('mouseenter', () => {
           ACTIVITY_HOVERED = i;
           item.classList.add('hovered');
+          document.getElementById('inspectHint').classList.add('show');
         });
         item.addEventListener('mouseleave', () => {
           if (ACTIVITY_HOVERED === i) ACTIVITY_HOVERED = -1;
           item.classList.remove('hovered');
+          document.getElementById('inspectHint').classList.remove('show');
         });
         item.querySelector('.actRow').addEventListener('click', () => openInspector(ACTIVITY_ROWS[i]));
       });
@@ -1883,32 +1899,128 @@
         </div>`;
       }).join('');
     }
-    async function openInspector(row){
-      if (!row) return;
-      INSPECTOR_ROW = row;
+    // Opens the inspector for any record anywhere in the dashboard, given the
+    // area it belongs to and its id. Everything it shows comes back through the
+    // same protected function as the Employee Activity list, so this can never
+    // reveal more than that list already would.
+    async function openInspectorFor(tableName, recordId, titleHint){
+      if (!tableName || !recordId) return;
       INSPECTOR_TAB = 'history';
       INSPECTOR_HISTORY = [];
-      const area = ACTIVITY_AREA_LABELS[row.table_name] || row.area || row.table_name;
-      document.getElementById('insTitle').textContent = `${area} · ${recordTitle(row)}`;
-      document.getElementById('insSub').textContent = `Full change history · record ${row.record_id || '—'}`;
+      const area = ACTIVITY_AREA_LABELS[tableName] ||
+        String(tableName).replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      document.getElementById('insTitle').textContent = titleHint ? `${area} · ${titleHint}` : area;
+      document.getElementById('insSub').textContent = `Full change history · record ${recordId}`;
       document.getElementById('insTabHistory').className = '';
       document.getElementById('insTabRaw').className = 'secondary';
       document.getElementById('insBody').innerHTML = '<p class="empty">Loading history…</p>';
       document.getElementById('inspectorOverlay').classList.add('open');
       try {
         const { data, error } = await supabase.rpc('employee_activity', {
-          p_search: row.record_id, p_area: row.table_name, p_limit: 200, p_offset: 0,
+          p_search: recordId, p_area: tableName, p_limit: 200, p_offset: 0,
         });
         if (error) throw error;
-        INSPECTOR_HISTORY = (data || []).filter(h => h.record_id === row.record_id);
+        INSPECTOR_HISTORY = (data || []).filter(h => h.record_id === recordId);
+        if (!INSPECTOR_HISTORY.length) {
+          document.getElementById('insBody').innerHTML =
+            '<p class="empty">No recorded history for this record yet.</p>' +
+            '<div class="insNote">Either nothing has changed since activity recording was switched on, or this area isn\'t recorded.</div>';
+          return;
+        }
         renderInspector();
       } catch (err) {
         document.getElementById('insBody').innerHTML =
           '<p class="empty">Could not load this record\'s history: ' + esc(err && err.message ? err.message : String(err)) + '</p>';
       }
     }
+    async function openInspector(row){
+      if (!row) return;
+      INSPECTOR_ROW = row;
+      await openInspectorFor(row.table_name, row.record_id, recordTitle(row));
+    }
+
+    // ---- Quick Look everywhere ----
+    // Most pages already tag their rows with the record's id. This map says
+    // which table each page's rows belong to, so hovering a row anywhere and
+    // pressing Space can look that exact record up. Rows that carry their own
+    // table name (data-rec-table) or a more specific id attribute win over it.
+    const PANEL_RECORD_TABLE = {
+      ordersPanel: 'orders',
+      tasksPanel: 'tasks',
+      incidentsPanel: 'incidents',
+      inventoryPanel: 'products',
+      returnsPanel: 'returns',
+      expensesPanel: 'expenses',
+      approvalsPanel: 'approval_requests',
+      sopsPanel: 'sop_documents',
+      featureRequestsPanel: 'feature_requests',
+      evidenceLockerPanel: 'evidence_locker',
+      adverseEventsPanel: 'adverse_event_reports',
+      legalHoldsPanel: 'legal_holds',
+      inquiriesPanel: 'customer_inquiries',
+      flagsPanel: 'feature_flags',
+      businessRulesPanel: 'business_rules',
+      continuityPanel: 'service_status',
+      calendarPanel: 'calendar_events',
+      aiPanel: 'ai_decision_log',
+    };
+    // Row-level id attributes that already exist in the dashboard, mapped to
+    // the table they belong to.
+    const RECORD_ID_ATTRS = [
+      { attr: 'data-rec-id', table: null },        // table comes from data-rec-table
+      { attr: 'data-product-id', table: 'products' },
+      { attr: 'data-return-id', table: 'returns' },
+      { attr: 'data-id', table: null },            // table comes from the panel
+    ];
+    let INSPECT_TARGET = null;
+
+    function resolveInspectTarget(el){
+      if (!el || !el.closest) return null;
+      for (const spec of RECORD_ID_ATTRS) {
+        const host = el.closest('[' + spec.attr + ']');
+        if (!host) continue;
+        const id = host.getAttribute(spec.attr);
+        if (!id) continue;
+        let table = spec.table;
+        if (!table) {
+          table = host.getAttribute('data-rec-table');
+          if (!table) {
+            const panel = host.closest('section.panel');
+            table = panel ? PANEL_RECORD_TABLE[panel.id] : null;
+          }
+        }
+        if (!table) continue;
+        const label = (host.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 48);
+        return { table, id, el: host, label };
+      }
+      return null;
+    }
+    function setInspectTarget(t){
+      if (INSPECT_TARGET && INSPECT_TARGET.el) INSPECT_TARGET.el.classList.remove('inspectHover');
+      INSPECT_TARGET = t;
+      const hint = document.getElementById('inspectHint');
+      if (t && t.el) {
+        t.el.classList.add('inspectHover');
+        hint.classList.add('show');
+      } else {
+        hint.classList.remove('show');
+      }
+    }
+    document.querySelector('main.contentArea').addEventListener('mouseover', (e) => {
+      if (document.getElementById('inspectorOverlay').classList.contains('open')) return;
+      const t = resolveInspectTarget(e.target);
+      if (!t) { if (INSPECT_TARGET) setInspectTarget(null); return; }
+      if (INSPECT_TARGET && INSPECT_TARGET.el === t.el) return;
+      setInspectTarget(t);
+    });
+    document.querySelector('main.contentArea').addEventListener('mouseleave', () => setInspectTarget(null));
     function closeInspector(){
       document.getElementById('inspectorOverlay').classList.remove('open');
+      document.getElementById('inspectHint').classList.remove('show');
+      if (typeof INSPECT_TARGET !== 'undefined' && INSPECT_TARGET && INSPECT_TARGET.el) {
+        INSPECT_TARGET.el.classList.remove('inspectHover');
+        INSPECT_TARGET = null;
+      }
     }
 
     function plainChange(r){
@@ -1990,10 +2102,16 @@
       if (overlayOpen) return;
       const tag = (e.target && e.target.tagName ? e.target.tagName : '').toLowerCase();
       if (tag === 'input' || tag === 'textarea' || tag === 'select' || tag === 'button') return;
-      if (currentPageId !== 'activityPanel') return;
-      if (ACTIVITY_HOVERED < 0 || !ACTIVITY_ROWS[ACTIVITY_HOVERED]) return;
+      // On the Employee Activity page the hovered entry already knows its own
+      // record; everywhere else we work it out from the row under the mouse.
+      if (currentPageId === 'activityPanel' && ACTIVITY_HOVERED >= 0 && ACTIVITY_ROWS[ACTIVITY_HOVERED]) {
+        e.preventDefault();
+        openInspector(ACTIVITY_ROWS[ACTIVITY_HOVERED]);
+        return;
+      }
+      if (!INSPECT_TARGET) return;
       e.preventDefault();
-      openInspector(ACTIVITY_ROWS[ACTIVITY_HOVERED]);
+      openInspectorFor(INSPECT_TARGET.table, INSPECT_TARGET.id, INSPECT_TARGET.label);
     });
 
     // ---------- needs your attention ----------
@@ -2304,7 +2422,7 @@
           document.getElementById('ordersTableWrap').innerHTML = `
             <table><thead><tr><th>Order #</th><th>Customer</th><th>Status</th><th>Total</th><th>Placed</th></tr></thead>
             <tbody>${recent.map(o => `
-              <tr>
+              <tr data-id="${esc(o.id)}">
                 <td>${esc(o.order_number || o.id)}</td>
                 <td>${esc(o.customer_name || '—')}</td>
                 <td><span class="badge">${esc(o.status || '—')}</span></td>
@@ -2373,7 +2491,7 @@
           document.getElementById('tasksTableWrap').innerHTML = `
             <table><thead><tr><th>Title</th><th>Priority</th><th>Status</th><th>Due</th></tr></thead>
             <tbody>${open.map(t => `
-              <tr class="${isOverdue(t.due_at, t.status) ? 'overdue' : ''}">
+              <tr class="${isOverdue(t.due_at, t.status) ? 'overdue' : ''}" data-id="${esc(t.id)}">
                 <td>${esc(t.title)}</td>
                 <td><span class="badge">${esc(t.priority || '—')}</span></td>
                 <td>${esc(t.status || '—')}</td>
@@ -2402,7 +2520,7 @@
           document.getElementById('incidentsTableWrap').innerHTML = `
             <table><thead><tr><th>#</th><th>Title</th><th>Severity</th><th>Status</th><th>Due</th></tr></thead>
             <tbody>${open.map(i => `
-              <tr class="${isOverdue(i.due_at, i.status) ? 'overdue' : ''}">
+              <tr class="${isOverdue(i.due_at, i.status) ? 'overdue' : ''}" data-id="${esc(i.id)}">
                 <td>${esc(i.incident_number || '—')}</td>
                 <td>${esc(i.title)}</td>
                 <td><span class="badge sev-${esc((i.severity||'').toLowerCase())}">${esc(i.severity || '—')}</span></td>
@@ -2438,7 +2556,7 @@
           document.getElementById('aiTableWrap').innerHTML = `
             <table><thead><tr><th>Agent</th><th>Summary</th><th>Confidence</th><th>Escalated?</th><th>When</th></tr></thead>
             <tbody>${logs.slice(0, 25).map(l => `
-              <tr>
+              <tr data-id="${esc(l.id)}">
                 <td>${esc(l.agent_key)}</td>
                 <td>${esc(l.output_summary || '—')}</td>
                 <td>${l.confidence != null ? esc(Math.round(l.confidence * 100) + '%') : '—'}</td>
