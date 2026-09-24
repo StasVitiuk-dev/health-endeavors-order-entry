@@ -2195,6 +2195,14 @@
     }
 
     function showPage(pageId){
+      // If a password prompt is still open, leaving the page cancels it.
+      // Otherwise it floats over whatever you navigate to, looking like it
+      // appeared out of nowhere.
+      const reauth = document.getElementById('reauthOverlay');
+      if (reauth && reauth.style.display === 'flex') {
+        const cancel = document.getElementById('reauthCancelBtn');
+        if (cancel) cancel.click();
+      }
       document.querySelectorAll('main.contentArea > section.panel').forEach(sec => {
         sec.classList.toggle('activePage', sec.id === pageId);
       });
@@ -6057,6 +6065,7 @@
                     <button type="button" class="small saveProductBtn">Save changes</button>
                     <button type="button" class="small secondary cancelProductBtn">Cancel</button>
                     <button type="button" class="small secondary toggleProductBtn" style="margin-left:auto;">${p.is_active ? 'Deactivate' : 'Reactivate'}</button>
+                    <button type="button" class="small deny deleteProductBtn">Delete</button>
                   </div>
                 </div>
               </div>
@@ -6140,6 +6149,48 @@
             } catch (err) {
               btn.disabled = false;
               showDashError('Could not update that product: ' + (err && err.message ? err.message : err));
+            }
+          });
+        });
+
+        // Deleting is only for products that were never used. Anything with
+        // stock, an order line or price history is held by the database, and we
+        // say so plainly and point at Deactivate instead — losing the history
+        // behind a real product would be worse than keeping a dead row.
+        document.querySelectorAll('.deleteProductBtn').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const row = btn.closest('[data-product-id]');
+            const id = row.getAttribute('data-product-id');
+            const name = (row.querySelector('.peName') || {}).value || 'this product';
+            if (btn.dataset.armed !== '1') {
+              btn.dataset.armed = '1';
+              btn.textContent = 'Really delete?';
+              setTimeout(() => {
+                if (btn.dataset.armed === '1') { btn.dataset.armed = '0'; btn.textContent = 'Delete'; }
+              }, 4000);
+              return;
+            }
+            btn.disabled = true;
+            try {
+              // clear its inventory row first, which exists for every product
+              await supabase.from('inventory').delete().eq('product_id', id);
+              const { error } = await supabase.from('products').delete().eq('id', id);
+              if (error) {
+                if (String(error.code) === '23503') {
+                  showDashError('"' + name + '" can\'t be deleted because it\'s already used somewhere — a purchase order, a return or a stock adjustment. Use Deactivate instead, which hides it without losing that history.');
+                  return;
+                }
+                throw error;
+              }
+              toastOk('Product deleted.');
+              loadInventory();
+              safeRun(loadPurchaseOrders);
+            } catch (err) {
+              showDashError('Could not delete that product: ' + (err && err.message ? err.message : err));
+            } finally {
+              btn.disabled = false;
+              btn.dataset.armed = '0';
+              btn.textContent = 'Delete';
             }
           });
         });
