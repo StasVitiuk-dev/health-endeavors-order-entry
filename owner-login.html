@@ -962,6 +962,7 @@
 
       <main class="contentArea">
       <div id="systemModeBanner" style="display:none;padding:10px 14px;border-radius:8px;margin-bottom:14px;font-size:14px;font-weight:600;"></div>
+      <div id="pausedAgentsBanner" style="display:none;padding:10px 14px;border-radius:8px;margin-bottom:14px;font-size:14px;font-weight:600;background:#fff4dd;color:#8a5b00;border:1px solid #f2d999;"></div>
       <div id="dashError" class="bannerBox"></div>
 
       <!-- Needs Your Attention -->
@@ -1329,7 +1330,7 @@
           </select>
           <button type="button" id="systemModeChangeBtn" class="small">Change mode</button>
         </div>
-        <p class="hint" style="margin-top:10px;">Honest limits: this is enforced everywhere the dashboard itself checks it, and Emergency mode also switches off the Shopify Order Sync flag below. It does not (yet) force-disable logins or revoke other people's sessions — that would need a server-side change beyond this dashboard. See the guide entry for what's actually enforced today.</p>
+        <p class="hint" style="margin-top:10px;">Honest limits: choosing No AI or Emergency also best-effort pauses Agent #7 (Customer Service) on the AI Agent Activity page, since that's the only agent that calls a paid AI model — and Emergency also switches off the Shopify Order Sync flag below. It does not (yet) force-disable logins or revoke other people's sessions — that would need a server-side change beyond this dashboard. See the guide entry for what's actually enforced today.</p>
 
         <h3 style="margin:18px 0 6px;font-size:15px;">Other switches</h3>
         <p class="hint" style="margin-top:0;">Only the Owner role can change these.</p>
@@ -2563,7 +2564,7 @@
         body:'A central place for paperwork that isn’t tied to one specific incident — contracts, certifications, insurance, tax documents, packaging specs, wholesale agreements, and so on. That’s the difference from Evidence Locker, which only holds evidence for a specific incident.|Upload the file itself, or just paste a link to where it already lives — you don’t need both.|Optionally link a document to a supplier, an incident, or a purchase order so it shows up in context.|Set an expiration date and it’ll show a color-coded warning here as it approaches or passes, and once it’s within 30 days (or already expired) it also shows up in Needs Your Attention.|Only the Owner or an Administrator can delete a document; any active team member can add or view one.' },
       { id:'systemmode', page:'flagsPanel', title:'System mode',
         keys:'system mode emergency ai kill switch limited no-ai pause banner',
-        body:'One master switch for the whole system, with four settings: Normal (everything runs as usual), Limited AI (only high-confidence, low-risk AI actions run), No AI (every AI agent is paused, but rule-based automation like alerts and inventory math keeps running), and Emergency (AI paused and the Shopify Order Sync flag switched off too).|Changing it away from Normal shows a colored banner at the top of every page for every team member, until it’s changed back to Normal.|Honest limits: this is enforced everywhere the dashboard itself checks the mode — today that’s the AI agents’ own logic and the Shopify Order Sync flag. It does not force-disable anyone’s login or revoke sessions that are already active — that would need a server-side change beyond what a dashboard can do. Use the Active Sessions page if you need to end a specific session right now — switching to Emergency mode will remind you to go check it.|Every change is recorded with who changed it and when.' },
+        body:'One master switch for the whole system, with four settings: Normal (everything runs as usual), Limited AI (only high-confidence, low-risk AI actions run), No AI (every AI agent is paused, but rule-based automation like alerts and inventory math keeps running), and Emergency (AI paused and the Shopify Order Sync flag switched off too).|Changing it away from Normal shows a colored banner at the top of every page for every team member, until it’s changed back to Normal.|Choosing No AI or Emergency also best-effort pauses Agent #7 (Customer Service) — the only one of the 9 agents that calls a paid AI model — over on the AI Agent Activity page, using the same per-agent switch described there.|Honest limits: this is enforced everywhere the dashboard itself checks the mode — today that’s the Customer Service Agent’s pause switch and the Shopify Order Sync flag. It does not force-disable anyone’s login or revoke sessions that are already active — that would need a server-side change beyond what a dashboard can do. Use the Active Sessions page if you need to end a specific session right now — switching to Emergency mode will remind you to go check it.|Every change is recorded with who changed it and when.' },
     ];
 
     // One matcher, used by both the command palette and the sidebar search.
@@ -5259,10 +5260,30 @@
 
         agentControlsByNum = byId;
         renderAgentRegistry();
+        renderPausedAgentsBanner();
       } catch (err) {
         // Not fatal — the registry still renders with everything shown as on.
         console.warn('Could not load agent controls:', err && err.message ? err.message : err);
       }
+    }
+
+    // A paused agent is easy to forget once you've left the AI Agent Activity
+    // page — this puts a quiet reminder at the top of every page, the same
+    // way the System Mode banner does, so it can't get lost.
+    function renderPausedAgentsBanner(){
+      const banner = document.getElementById('pausedAgentsBanner');
+      if (!banner) return;
+      const pausedNames = AGENT_REGISTRY
+        .filter(a => agentControlsByNum[a.num] && agentControlsByNum[a.num].enabled === false)
+        .map(a => `#${a.num} ${a.name}`);
+      if (!pausedNames.length) {
+        banner.style.display = 'none';
+        return;
+      }
+      banner.style.display = 'block';
+      banner.textContent = pausedNames.length === 1
+        ? `Agent paused: ${pausedNames[0]} — recorded, but see AI Agent Activity for what that does and doesn't stop today.`
+        : `${pausedNames.length} agents paused: ${pausedNames.join(', ')} — see AI Agent Activity for what that does and doesn't stop today.`;
     }
 
     async function loadAI(){
@@ -5987,8 +6008,20 @@
             if (flagErr) console.warn('Could not auto-disable Shopify Order Sync:', flagErr.message);
           }
 
+          // No AI and Emergency both also best-effort pause Agent #7
+          // (Customer Service) — the only one of the 9 agents that calls a
+          // paid AI model. Same convenience logic as the Shopify flag above:
+          // this doesn't get undone automatically when you switch back to
+          // Normal, since you may have paused it for an unrelated reason.
+          if (newMode === 'NO_AI' || newMode === 'EMERGENCY') {
+            const { error: agentErr } = await supabase.from('agent_controls')
+              .update({ enabled: false, updated_by: uid, updated_at: new Date().toISOString() })
+              .eq('agent_num', 7);
+            if (agentErr) console.warn('Could not auto-pause Customer Service Agent:', agentErr.message);
+          }
+
           toast('System mode changed to ' + info.label);
-          await Promise.all([loadSystemMode(), loadFlags()]);
+          await Promise.all([loadSystemMode(), loadFlags(), loadAgentControls()]);
         } catch (err) {
           const msg = (err && err.message) || String(err);
           if (/row-level security|permission/i.test(msg)) {
