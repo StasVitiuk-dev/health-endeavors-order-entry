@@ -5391,10 +5391,10 @@
         desc: 'Syncs Shopify tracking and flags failed or delayed deliveries, using your own Business Rules thresholds.',
         touches: ['shipments (read)', 'business_rules (read)', 'tasks (write)'],
         limit: 'Fully automatic. Only opens a task — never contacts a carrier or a customer.', enforced: false },
-      { num: 6, name: 'Customer Notification Agent', ai: false, status: 'Built — waiting on GitHub Actions minutes (resets Oct 1, 2026); dry-run only even once running, no email service connected yet',
+      { num: 6, name: 'Customer Notification Agent', ai: false, status: 'Migrated to Supabase pg_cron (runs hourly inside the database — no longer waits on GitHub Actions minutes); synthetically verified only, live A/B check against the old workflow still pending. Still dry-run only, no email service connected yet.',
         desc: 'Logs what it would email a customer for each order event (received / shipped / delivered / delayed / cancelled / refunded).',
         touches: ['customer_notifications (write)'],
-        limit: 'Cannot actually send anything — no email service is connected yet. Right now it can only write a log entry of what it would have sent.', enforced: false },
+        limit: 'Cannot actually send anything — no email service is connected yet. Right now it can only write a log entry of what it would have sent.', enforced: true, cronJobName: 'agent_6_customer_notifications' },
       { num: 7, name: 'Customer Service Agent', ai: true, status: 'Built — waiting on GitHub Actions minutes (resets Oct 1, 2026)',
         desc: "Drafts a reply to a customer question using that order's context and any procedures you've marked visible to it.",
         touches: ['customer_inquiries (read/write)', 'orders (read)', 'sop_documents (read — opt-in per procedure only)', 'ai_decision_log (write)'],
@@ -5414,6 +5414,40 @@
     ];
 
     let agentControlsByNum = {};
+    // Populated from the get_agent_cron_status() RPC — jobname -> {jobname, schedule, active}.
+    // Only ever has entries for agents actually migrated to pg_cron.
+    let cronJobStatusByName = {};
+
+    // One line of honest job-health text for an agent migrated to pg_cron.
+    // Built from agent_controls' last_run_* columns (written by the agent's
+    // own function on every run) plus whether the scheduled job itself is
+    // still active in Supabase (from get_agent_cron_status()). Returns ''
+    // for any agent that hasn't been migrated yet — nothing to show there.
+    function agentJobHealthHtml(a, ctrl){
+      if (!a.cronJobName) return '';
+      const cronInfo = cronJobStatusByName[a.cronJobName];
+      const parts = [];
+      if (cronInfo) {
+        parts.push(cronInfo.active
+          ? `<span style="color:var(--good);">Scheduled job active</span> (${esc(cronInfo.schedule)})`
+          : `<span style="color:var(--danger);">Scheduled job is NOT active</span> — it won't run until re-scheduled`);
+      } else {
+        parts.push('<span style="color:var(--warn);">Could not confirm the scheduled job exists</span>');
+      }
+      if (ctrl && ctrl.last_run_at) {
+        const statusColor = ctrl.last_run_status === 'failed' ? 'var(--danger)'
+          : (ctrl.last_run_status === 'partial' ? 'var(--warn)' : 'var(--muted)');
+        parts.push(`Last run ${esc(fmtDate(ctrl.last_run_at))} — <span style="color:${statusColor};">${esc(ctrl.last_run_status || 'unknown')}</span>`);
+        if (ctrl.last_run_summary) parts.push(esc(ctrl.last_run_summary));
+      } else {
+        parts.push('<span style="color:var(--muted-2);">No run recorded yet</span>');
+      }
+      if (ctrl && ctrl.last_error) parts.push(`<span style="color:var(--danger);">Last error: ${esc(ctrl.last_error)}</span>`);
+      return `<div style="margin-top:6px;font-size:12px;padding:8px 10px;background:var(--panel-2);border-radius:8px;">
+        <b style="font-size:11px;text-transform:uppercase;letter-spacing:0.02em;color:var(--muted-2);">Job health</b><br>
+        ${parts.join(' &middot; ')}
+      </div>`;
+    }
 
     function renderAgentRegistry(){
       document.getElementById('agentRegistryWrap').innerHTML = AGENT_REGISTRY.map(a => {
@@ -5430,6 +5464,7 @@
             <div style="margin-top:6px;font-size:12.5px;color:#5b6664;"><b>Touches:</b> ${a.touches.map(esc).join(', ')}</div>
             <div style="margin-top:6px;font-size:12.5px;"><b>Can't do alone:</b> ${esc(a.limit)}</div>
             ${ctrl && ctrl.updated_at ? `<div style="margin-top:6px;font-size:12px;color:#8a9694;">Last changed ${ctrl.who ? 'by ' + esc(ctrl.who) + ' ' : ''}on ${new Date(ctrl.updated_at).toLocaleString()}</div>` : ''}
+            ${agentJobHealthHtml(a, ctrl)}
           </div>
           <label class="switch" title="${enabled ? 'On — click to pause this agent' : 'Off — click to turn this agent back on'}">
             <input type="checkbox" class="agentToggle" data-num="${a.num}" data-name="${esc(a.name)}" ${enabled ? 'checked' : ''}>
@@ -5476,7 +5511,8 @@
     async function loadAgentControls(){
       try {
         const { data: rows, error } = await supabase
-          .from('agent_controls').select('agent_num, enabled, updated_by, updated_at');
+          .from('agent_controls')
+          .select('agent_num, enabled, updated_by, updated_at, last_run_at, last_run_status, last_run_summary, last_error');
         if (error) throw error;
 
         const byId = {};
@@ -5488,6 +5524,21 @@
           const nameById = {};
           (people || []).forEach(p => { nameById[p.id] = p.full_name; });
           Object.values(byId).forEach(r => { r.who = r.updated_by ? nameById[r.updated_by] : null; });
+        }
+
+        // Job health for agents migrated to pg_cron: whether the scheduled
+        // job itself is still active in Supabase, alongside the last-run
+        // columns above (which every migrated agent's own function writes
+        // on every run). Best-effort — an agent still on GitHub Actions has
+        // no cron job to find, and that's expected, not an error.
+        try {
+          const { data: cronRows, error: cronErr } = await supabase.rpc('get_agent_cron_status');
+          if (!cronErr && cronRows) {
+            cronJobStatusByName = {};
+            cronRows.forEach(j => { cronJobStatusByName[j.jobname] = j; });
+          }
+        } catch (cronCatchErr) {
+          console.warn('Could not load cron job status:', cronCatchErr && cronCatchErr.message ? cronCatchErr.message : cronCatchErr);
         }
 
         agentControlsByNum = byId;
