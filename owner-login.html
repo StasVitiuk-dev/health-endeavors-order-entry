@@ -898,6 +898,16 @@
   .badge.pay-unpaid{ background:var(--danger-bg); color:var(--danger); }
   .badge.pay-partial{ background:var(--warn-bg); color:var(--warn); }
   .badge.pay-paid{ background:var(--good-bg); color:var(--good); }
+  /* Editing a product */
+  .prodEdit{ margin-top:12px; padding:14px; background:var(--panel-2); border-radius:12px; }
+  .prodEditGrid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:10px 12px; }
+  .prodEditGrid label{
+    display:flex; flex-direction:column; gap:4px; font-size:11.5px;
+    color:var(--muted-2); font-weight:500; margin:0;
+  }
+  .prodEditGrid label.wide{ grid-column:1 / -1; }
+  .prodEditGrid input, .prodEditGrid select{ font-size:13.5px; padding:7px 9px; margin:0; }
+  .prodEditRow{ display:flex; gap:8px; align-items:center; margin-top:12px; }
 </style>
 <script>
   // Applied before anything renders so there's no flash of the wrong theme.
@@ -5989,7 +5999,7 @@
         // in one round trip, using the foreign key link between the two tables.
         const { data: products, error } = await supabase
           .from('products')
-          .select('id, sku, name, is_active, inventory(available, reserved, damaged, sample, wholesale, promotional, returned, low_stock_threshold)')
+          .select('id, sku, name, is_active, status, cost, retail_price, wholesale_price, packaging_info, inventory(available, reserved, damaged, sample, wholesale, promotional, returned, low_stock_threshold)')
           .order('name', { ascending: true });
         if (error) throw error;
 
@@ -6028,6 +6038,26 @@
                   <label style="font-size:12px;color:#6b7877;">Low-stock alert when Available drops below:</label>
                   <input type="number" class="invThresholdInput" min="0" step="1" style="width:80px;padding:5px 7px;border-radius:6px;border:1px solid #cfd8d6;font-family:inherit;font-size:13px;" value="${threshold !== null && threshold !== undefined ? Number(threshold) : ''}" placeholder="none">
                   <button type="button" class="small saveThresholdBtn">Save</button>
+                  <button type="button" class="small secondary editProductBtn" style="margin-left:auto;">Edit product</button>
+                </div>
+                <div class="prodEdit" style="display:none;">
+                  <div class="prodEditGrid">
+                    <label>Name<input type="text" class="peName" value="${esc(p.name)}"></label>
+                    <label>SKU<input type="text" class="peSku" value="${esc(p.sku || '')}" placeholder="none"></label>
+                    <label>Status<select class="peStatus">
+                      ${['draft','active','discontinued'].map(s =>
+                        `<option value="${s}"${p.status === s ? ' selected' : ''}>${s.charAt(0).toUpperCase() + s.slice(1)}</option>`).join('')}
+                    </select></label>
+                    <label>Cost<input type="number" class="peCost" step="0.01" min="0" value="${p.cost != null ? Number(p.cost) : ''}" placeholder="—"></label>
+                    <label>Retail<input type="number" class="peRetail" step="0.01" min="0" value="${p.retail_price != null ? Number(p.retail_price) : ''}" placeholder="—"></label>
+                    <label>Wholesale<input type="number" class="peWholesale" step="0.01" min="0" value="${p.wholesale_price != null ? Number(p.wholesale_price) : ''}" placeholder="—"></label>
+                    <label class="wide">Packaging<input type="text" class="pePackaging" value="${esc(p.packaging_info || '')}" placeholder="—"></label>
+                  </div>
+                  <div class="prodEditRow">
+                    <button type="button" class="small saveProductBtn">Save changes</button>
+                    <button type="button" class="small secondary cancelProductBtn">Cancel</button>
+                    <button type="button" class="small secondary toggleProductBtn" style="margin-left:auto;">${p.is_active ? 'Deactivate' : 'Reactivate'}</button>
+                  </div>
                 </div>
               </div>
             </div>`;
@@ -6041,6 +6071,78 @@
           <div class="stat"><div class="num">${products.length}</div><div class="lbl">Products tracked</div></div>
           <div class="stat"><div class="num">${lowStockCount}</div><div class="lbl">Low-stock alerts</div></div>
         `;
+
+        // Editing a product: prices change, names get corrected, SKUs get
+        // typos. Doing any of that through SQL is not a real answer.
+        document.querySelectorAll('.editProductBtn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const box = btn.closest('[data-product-id]').querySelector('.prodEdit');
+            const open = box.style.display !== 'none';
+            box.style.display = open ? 'none' : 'block';
+            btn.textContent = open ? 'Edit product' : 'Close';
+          });
+        });
+        document.querySelectorAll('.cancelProductBtn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const row = btn.closest('[data-product-id]');
+            row.querySelector('.prodEdit').style.display = 'none';
+            row.querySelector('.editProductBtn').textContent = 'Edit product';
+            loadInventory();
+          });
+        });
+        document.querySelectorAll('.saveProductBtn').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const row = btn.closest('[data-product-id]');
+            const id = row.getAttribute('data-product-id');
+            const val = (cls) => row.querySelector(cls).value;
+            const num = (cls) => { const v = val(cls); return v === '' ? null : Number(v); };
+            const name = val('.peName').trim();
+            if (!name) { toast('A product needs a name.'); return; }
+            btn.disabled = true;
+            try {
+              const { error } = await supabase.from('products').update({
+                name: name,
+                sku: val('.peSku').trim() || null,
+                status: val('.peStatus'),
+                cost: num('.peCost'),
+                retail_price: num('.peRetail'),
+                wholesale_price: num('.peWholesale'),
+                packaging_info: val('.pePackaging').trim() || null,
+                updated_at: new Date().toISOString(),
+              }).eq('id', id);
+              if (error) {
+                if (String(error.message || '').includes('products_sku_unique')) {
+                  showDashError('Another product already uses that SKU. SKUs have to be unique, because deliveries and returns find products by them.');
+                  return;
+                }
+                throw error;
+              }
+              toastOk('Product updated.');
+              loadInventory();
+              safeRun(loadPurchaseOrders);
+            } catch (err) {
+              showDashError('Could not save that product: ' + (err && err.message ? err.message : err));
+            } finally { btn.disabled = false; }
+          });
+        });
+        document.querySelectorAll('.toggleProductBtn').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const row = btn.closest('[data-product-id]');
+            const id = row.getAttribute('data-product-id');
+            const makeActive = btn.textContent.trim() === 'Reactivate';
+            btn.disabled = true;
+            try {
+              const { error } = await supabase.from('products')
+                .update({ is_active: makeActive, updated_at: new Date().toISOString() }).eq('id', id);
+              if (error) throw error;
+              toastOk(makeActive ? 'Product reactivated.' : 'Product deactivated.');
+              loadInventory();
+            } catch (err) {
+              btn.disabled = false;
+              showDashError('Could not update that product: ' + (err && err.message ? err.message : err));
+            }
+          });
+        });
 
         document.querySelectorAll('.saveThresholdBtn').forEach(btn => {
           btn.addEventListener('click', async () => {
