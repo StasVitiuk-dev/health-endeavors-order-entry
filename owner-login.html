@@ -3020,6 +3020,18 @@
       setInspectTarget(t);
     });
     document.querySelector('main.contentArea').addEventListener('mouseleave', () => setInspectTarget(null));
+
+    // A phone has no hover and no Space key, so a tap opens the record instead.
+    // Taps on anything interactive are left alone so buttons still behave.
+    if (window.matchMedia('(hover: none)').matches) {
+      document.querySelector('main.contentArea').addEventListener('click', (e) => {
+        if (e.target.closest('button, a, input, select, textarea, label, .calNoteBox')) return;
+        if (anyOverlayOpen()) return;
+        const t = resolveInspectTarget(e.target);
+        if (!t) return;
+        openInspectorFor(t.table, t.id, t.label);
+      });
+    }
     function closeInspector(){
       document.getElementById('inspectorOverlay').classList.remove('open');
       document.getElementById('inspectHint').classList.remove('show');
