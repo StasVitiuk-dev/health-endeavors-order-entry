@@ -272,6 +272,17 @@
   .stat .num{ font-size:20px; font-weight:700; color:var(--navy); }
   .stat .lbl{ font-size:11.5px; color:var(--muted); text-transform:uppercase; letter-spacing:0.03em; }
 
+  /* Business Health strip: a value colored to say "this needs a look" without
+     needing to read the label first — same danger/warn/good tokens used for
+     incident severity and badges everywhere else, so it stays consistent
+     with the rest of the dashboard instead of introducing new colors. */
+  .stat.statCritical{ background:var(--danger-bg); border-color:var(--danger); }
+  .stat.statCritical .num{ color:var(--danger); }
+  .stat.statWarn{ background:var(--warn-bg); border-color:var(--warn); }
+  .stat.statWarn .num{ color:var(--warn); }
+  .stat.statGood{ background:var(--good-bg); border-color:var(--good); }
+  .stat.statGood .num{ color:var(--good); }
+
   table{ width:100%; border-collapse:collapse; font-size:13px; }
   th, td{ text-align:left; padding:7px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
   th{ color:var(--muted); font-weight:600; font-size:11.5px; text-transform:uppercase; letter-spacing:0.02em; }
@@ -599,6 +610,32 @@
     }
     /* No hover or keyboard on a phone — the hint would just be noise */
     #inspectHint{ display:none !important; }
+
+    /* Mobile sidebar drawer. The JS above already toggles `.mobileOpen` on
+       the sidebar and `.visible` on the overlay, and already closes both
+       whenever a page is picked (see showPage/closeMobileSidebar) — but no
+       CSS anywhere ever defined what those classes should actually do, and
+       the ☰ button's own base rule was permanently `display:none` with no
+       override. The net effect on a real phone: the button never appeared,
+       and the sidebar just sat in the flex row at its full desktop width,
+       squeezing the page content into a thin sliver instead of hiding
+       off-screen like the code's own comments say it should. This makes
+       the sidebar a slide-in drawer, hidden by default, revealed by the
+       button and closed by the dark overlay or by picking a page. */
+    .menuToggleBtn{ display:inline-flex; }
+    .sidebar{
+      position:fixed; top:0; left:0; bottom:0; z-index:250;
+      width:min(78vw, 300px);
+      transform:translateX(-100%);
+      transition:transform .22s ease;
+      box-shadow:0 10px 40px rgba(0,0,0,0.28);
+    }
+    .sidebar.mobileOpen{ transform:translateX(0); }
+    .sidebarOverlay{
+      display:none; position:fixed; inset:0; z-index:240;
+      background:rgba(0,0,0,0.42);
+    }
+    .sidebarOverlay.visible{ display:block; }
   }
 
   /* On a phone the record inspector opens by tapping, so make rows feel tappable */
@@ -977,7 +1014,11 @@
 
       <!-- Needs Your Attention -->
       <section class="panel" id="attentionPanel">
-        <h2>Needs your attention</h2>
+        <h2>Business health — right now</h2>
+        <p class="hint" style="margin-bottom:10px;">A 30-second read on the business, computed fresh every time this page loads. A colored tile means it's worth a look; a plain one is normal.</p>
+        <div class="statRow" id="businessHealthStats"></div>
+
+        <h2 style="margin-top:22px;">Needs your attention</h2>
         <p class="hint">Tasks, approvals, compliance items, incidents, calendar events, and your own reminders — soonest due first.</p>
         <div id="attentionWrap"><p class="empty">Loading…</p></div>
         <form class="reminderForm" id="addReminderForm">
@@ -1298,7 +1339,7 @@
         <p class="hint">What each of your 10 agents is allowed to do, what it's actually done, and what it's spent — all in one place.</p>
 
         <h3 style="margin:18px 0 6px;font-size:15px;">Agent registry — what each one can touch, and what it can't do alone</h3>
-        <p class="hint" style="margin-top:0;">Of these 9, only Agent #7 (Customer Service) calls a paid AI model at all — the rest are rule-based checks with no AI model involved, so there's nothing for them to "get wrong" the way an AI reply could.</p>
+        <p class="hint" style="margin-top:0;">Of these 10, only Agent #7 (Customer Service) calls a paid AI model at all — the rest are rule-based checks with no AI model involved, so there's nothing for them to "get wrong" the way an AI reply could.</p>
         <p class="hint" style="margin-top:0;">Each agent has its own On/Off switch below, separate from System Mode — so if one agent is misbehaving you can pause just that one without stopping everything else. Only the Owner or an Administrator can change these; the switch is recorded with who changed it and when. <b>Honest limit:</b> Agent #1 (Invoice) is fully wired up — its own code checks the switch before doing anything. The rest still just record your decision for now; their own code doesn't check it yet, and that's being added one agent at a time. Until an agent says "Switch enforced" below, switching it off is a record of intent, not a guaranteed stop.</p>
         <div id="agentRegistryWrap"><p class="empty">Loading…</p></div>
 
@@ -2501,7 +2542,7 @@
     // everything else fills in behind it, a few at a time. Before this, nothing
     // appeared until all ~30 queries had finished.
     const PANEL_LOADERS = {
-      attentionPanel: [loadAttention],
+      attentionPanel: [loadAttention, loadBusinessHealth],
       calendarPanel: [loadCalendarMonth],
       dailySummaryPanel: [loadDailySummary],
       reportHistoryPanel: [loadReportHistory],
@@ -3545,6 +3586,95 @@
         renderAttention(data);
       } catch (err) {
         showDashError('Could not load your attention list: ' + (err && err.message ? err.message : err));
+      }
+    }
+
+    // Business Health strip: a handful of numbers you'd otherwise have to
+    // visit 5-6 separate pages to piece together, computed fresh on every
+    // landing-page load. Deliberately its own small set of direct queries
+    // (rather than waiting on other panels' loaders, which run staggered in
+    // the background and might not have populated yet) so these numbers are
+    // right the moment the page opens, not a few seconds later. No new
+    // tables, no AI calls — same tables every other panel already reads.
+    function getTodayRange(){
+      const now = new Date();
+      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      return { start, end: now };
+    }
+
+    async function loadBusinessHealth(){
+      const wrap = document.getElementById('businessHealthStats');
+      try {
+        const { start } = getTodayRange();
+        const startIso = start.toISOString();
+        const AI_SPEND_CAP = 30; // matches the cap shown on the AI Agent Activity page
+        const startOfMonth = new Date();
+        startOfMonth.setUTCDate(1);
+        startOfMonth.setUTCHours(0, 0, 0, 0);
+
+        const [
+          ordersRes, approvalsRes, tasksRes, incidentsRes, monthAiRes, sessionsRes,
+        ] = await Promise.all([
+          supabase.from('orders').select('id, total, currency, status, deleted_at, placed_at')
+            .gte('placed_at', startIso),
+          supabase.from('approval_requests').select('id, status'),
+          supabase.from('tasks').select('id, status, due_at'),
+          supabase.from('incidents').select('id, severity, status'),
+          supabase.from('ai_decision_log').select('cost_usd').gte('created_at', startOfMonth.toISOString()),
+          supabase.rpc('list_my_sessions'),
+          loadAgentControls(), // populates agentControlsByNum + AGENT_REGISTRY's paused count, also refreshes the paused-agents banner
+        ]);
+
+        if (ordersRes.error) throw ordersRes.error;
+        if (approvalsRes.error) throw approvalsRes.error;
+        if (tasksRes.error) throw tasksRes.error;
+        if (incidentsRes.error) throw incidentsRes.error;
+        if (monthAiRes.error) throw monthAiRes.error;
+        if (sessionsRes.error) throw sessionsRes.error;
+
+        const todayOrders = (ordersRes.data || []).filter(o => !o.deleted_at);
+        const revenueOrders = todayOrders.filter(o => o.status !== 'cancelled');
+        const todayRevenue = revenueOrders.reduce((sum, o) => sum + Number(o.total || 0), 0);
+        const todayCurrency = (todayOrders[0] && todayOrders[0].currency) || 'USD';
+
+        const pendingApprovals = (approvalsRes.data || []).filter(r => !isClosedStatus(r.status)).length;
+        const overdueTasks = (tasksRes.data || []).filter(t => isOverdue(t.due_at, t.status)).length;
+        const criticalIncidents = (incidentsRes.data || []).filter(i =>
+          !isClosedStatus(i.status) && ['high', 'critical'].includes(String(i.severity || '').toLowerCase())
+        ).length;
+
+        const pausedAgents = AGENT_REGISTRY.filter(a =>
+          agentControlsByNum[a.num] && agentControlsByNum[a.num].enabled === false
+        ).length;
+
+        const monthAiSpend = (monthAiRes.data || []).reduce((sum, l) => sum + Number(l.cost_usd || 0), 0);
+        const activeSessions = (sessionsRes.data || []).length;
+
+        // Tiles get a color only when there's actually something to look at —
+        // a healthy or neutral number stays plain, matching the severity
+        // colors already used for badges and incidents elsewhere.
+        const approvalsClass = pendingApprovals > 0 ? 'statWarn' : '';
+        const tasksClass = overdueTasks > 0 ? 'statCritical' : '';
+        const incidentsClass = criticalIncidents > 0 ? 'statCritical' : '';
+        const agentsClass = pausedAgents > 0 ? 'statWarn' : '';
+        const aiClass = monthAiSpend >= AI_SPEND_CAP ? 'statCritical'
+          : (monthAiSpend >= AI_SPEND_CAP * 0.8 ? 'statWarn' : '');
+
+        const tile = (num, lbl, cls) => `<div class="stat ${cls}"><div class="num">${num}</div><div class="lbl">${esc(lbl)}</div></div>`;
+
+        wrap.innerHTML = [
+          tile(esc(fmtMoney(todayRevenue, todayCurrency)), "Today's revenue", ''),
+          tile(todayOrders.length, "Today's orders", ''),
+          tile(pendingApprovals, 'Pending approvals', approvalsClass),
+          tile(overdueTasks, 'Overdue tasks', tasksClass),
+          tile(criticalIncidents, 'Open high/critical incidents', incidentsClass),
+          tile(pausedAgents, 'Paused agents', agentsClass),
+          tile(esc(fmtMoney(monthAiSpend, 'USD')) + ' / ' + esc(fmtMoney(AI_SPEND_CAP, 'USD')), 'AI spend this month', aiClass),
+          tile(activeSessions, 'Active sessions', ''),
+        ].join('');
+      } catch (err) {
+        wrap.innerHTML = '<p class="empty">Could not load Business Health.</p>';
+        showDashError('Could not load Business Health: ' + (err && err.message ? err.message : err));
       }
     }
 
@@ -5056,9 +5186,9 @@
 
     async function loadOrders(){
       try {
-        const { data: orders, error } = await supabase
+        const { data: orders, error, count } = await supabase
           .from('orders')
-          .select('id, order_number, customer_name, customer_email, status, currency, total, placed_at, deleted_at')
+          .select('id, order_number, customer_name, customer_email, status, currency, total, placed_at, deleted_at', { count: 'exact' })
           .is('deleted_at', null)
           .order('placed_at', { ascending: false })
           .limit(300);
@@ -5067,16 +5197,23 @@
 
         const totalRevenue = orders.reduce((sum, o) => sum + Number(o.total || 0), 0);
         const currency = (orders[0] && orders[0].currency) || 'USD';
+        const totalOrders = (count != null ? count : orders.length);
         document.getElementById('orderStats').innerHTML = `
-          <div class="stat"><div class="num">${orders.length}</div><div class="lbl">Orders on file</div></div>
+          <div class="stat"><div class="num">${totalOrders}</div><div class="lbl">Orders on file</div></div>
           <div class="stat"><div class="num">${esc(fmtMoney(totalRevenue, currency))}</div><div class="lbl">Total revenue</div></div>
         `;
+        // The revenue/order-count stats above always reflect the TRUE total
+        // (via Supabase's exact count, independent of the 300-row query cap)
+        // — only the table below is ever capped for display.
 
         const recent = orders.slice(0, 15);
         if (!recent.length) {
           document.getElementById('ordersTableWrap').innerHTML = '<p class="empty">No orders yet.</p>';
         } else {
+          const showingNote = totalOrders > recent.length
+            ? `<p class="hint" style="margin:0 0 8px;">Showing the ${recent.length} most recent of ${totalOrders} orders total.</p>` : '';
           document.getElementById('ordersTableWrap').innerHTML = `
+            ${showingNote}
             <table><thead><tr><th>Order #</th><th>Customer</th><th>Status</th><th>Total</th><th>Placed</th><th></th></tr></thead>
             <tbody>${recent.map(o => `
               <tr data-id="${esc(o.id)}">
@@ -5156,19 +5293,27 @@
 
     async function loadTasks(){
       try {
-        const { data: tasks, error } = await supabase
+        const { data: tasks, error, count } = await supabase
           .from('tasks')
-          .select('id, title, priority, status, due_at')
+          .select('id, title, priority, status, due_at', { count: 'exact' })
           .order('due_at', { ascending: true, nullsFirst: false })
           .limit(100);
         if (error) throw error;
         SEARCH_INDEX.tasks = tasks;
 
         const open = tasks.filter(t => !isClosedStatus(t.status));
+        // The 100-row fetch cap applies BEFORE this open/closed filter, so if
+        // there are more than 100 tasks total, some open ones could be sitting
+        // past the cutoff and never even get fetched here — worth a plain
+        // warning rather than silently looking like "nothing more to see."
+        const truncated = count != null && count > tasks.length;
+        const cutoffNote = truncated
+          ? `<p class="hint" style="margin:0 0 8px;color:var(--warn);">Showing the ${tasks.length} soonest-due of ${count} tasks total — some open tasks past this cutoff may not be listed below.</p>` : '';
         if (!open.length) {
-          document.getElementById('tasksTableWrap').innerHTML = '<p class="empty">No open tasks.</p>';
+          document.getElementById('tasksTableWrap').innerHTML = cutoffNote + '<p class="empty">No open tasks.</p>';
         } else {
           document.getElementById('tasksTableWrap').innerHTML = `
+            ${cutoffNote}
             <table><thead><tr><th>Title</th><th>Priority</th><th>Status</th><th>Due</th></tr></thead>
             <tbody>${open.map(t => `
               <tr class="${isOverdue(t.due_at, t.status) ? 'overdue' : ''}" data-id="${esc(t.id)}">
@@ -5185,19 +5330,25 @@
 
     async function loadIncidents(){
       try {
-        const { data: incidents, error } = await supabase
+        const { data: incidents, error, count } = await supabase
           .from('incidents')
-          .select('id, incident_number, title, severity, status, due_at')
+          .select('id, incident_number, title, severity, status, due_at', { count: 'exact' })
           .order('due_at', { ascending: true, nullsFirst: false })
           .limit(100);
         if (error) throw error;
         SEARCH_INDEX.incidents = incidents;
 
         const open = incidents.filter(i => !isClosedStatus(i.status));
+        // Same reasoning as loadTasks above: the 100-row cap applies before
+        // this filter, so a truncated fetch could be hiding open incidents.
+        const truncated = count != null && count > incidents.length;
+        const cutoffNote = truncated
+          ? `<p class="hint" style="margin:0 0 8px;color:var(--warn);">Showing the ${incidents.length} soonest-due of ${count} incidents total — some open incidents past this cutoff may not be listed below.</p>` : '';
         if (!open.length) {
-          document.getElementById('incidentsTableWrap').innerHTML = '<p class="empty">No open incidents.</p>';
+          document.getElementById('incidentsTableWrap').innerHTML = cutoffNote + '<p class="empty">No open incidents.</p>';
         } else {
           document.getElementById('incidentsTableWrap').innerHTML = `
+            ${cutoffNote}
             <table><thead><tr><th>#</th><th>Title</th><th>Severity</th><th>Status</th><th>Due</th></tr></thead>
             <tbody>${open.map(i => `
               <tr class="${isOverdue(i.due_at, i.status) ? 'overdue' : ''}" data-id="${esc(i.id)}">
@@ -6255,19 +6406,26 @@
 
     async function loadApprovals(){
       try {
-        const { data: reqs, error } = await supabase
+        const { data: reqs, error, count } = await supabase
           .from('approval_requests')
-          .select('id, action_type, summary, status, created_at')
+          .select('id, action_type, summary, status, created_at', { count: 'exact' })
           .order('created_at', { ascending: false })
           .limit(100);
         if (error) throw error;
         SEARCH_INDEX.approvals = reqs;
 
         const pending = reqs.filter(r => !isClosedStatus(r.status));
+        // Same reasoning as Tasks/Incidents: the 100-row cap applies before
+        // this pending/closed filter, so a truncated fetch could be hiding a
+        // still-pending request — and this is the approval queue, so that's
+        // exactly the kind of thing that should never go silently missing.
+        const truncated = count != null && count > reqs.length;
+        const cutoffNote = truncated
+          ? `<p class="hint" style="margin:0 0 8px;color:var(--warn);">Showing the ${reqs.length} most recent of ${count} requests total — some pending requests past this cutoff may not be listed below.</p>` : '';
         if (!pending.length) {
-          document.getElementById('approvalsWrap').innerHTML = '<p class="empty">Nothing waiting for approval.</p>';
+          document.getElementById('approvalsWrap').innerHTML = cutoffNote + '<p class="empty">Nothing waiting for approval.</p>';
         } else {
-          document.getElementById('approvalsWrap').innerHTML = pending.map(r => `
+          document.getElementById('approvalsWrap').innerHTML = cutoffNote + pending.map(r => `
             <div class="approvalRow" data-id="${esc(r.id)}">
               <div class="info">
                 <b>${esc(r.action_type)}</b> — ${esc(r.summary || '')}
