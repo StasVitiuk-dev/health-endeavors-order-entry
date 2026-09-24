@@ -1193,6 +1193,36 @@
         </form>
       </section>
 
+      <!-- Documents -->
+      <section class="panel" id="documentsPanel">
+        <h2>Documents</h2>
+        <p class="hint">A central place for contracts, certifications, insurance, tax documents, packaging specs, and anything else worth keeping on file — separate from Evidence Locker, which is only for incident-specific evidence. Upload the file itself, or paste a link to where it lives (Drive, email, etc.).</p>
+        <div class="statRow" id="documentsStats"></div>
+        <div id="documentsWrap"><p class="empty">Loading…</p></div>
+        <form id="addDocumentForm" style="display:flex;flex-direction:column;gap:8px;margin-top:14px;padding-top:16px;border-top:1px solid var(--line);">
+          <input type="text" id="docTitle" placeholder="Title (e.g. General Liability Insurance Policy)" required>
+          <select id="docCategory" required style="padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;">
+            <option value="">Category…</option>
+          </select>
+          <select id="docRelated" style="padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;">
+            <option value="">Not linked to a specific record</option>
+          </select>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <label style="font-size:12px;color:#6b7877;flex:1;min-width:150px;">Issued / effective date (optional)
+              <input type="date" id="docIssuedDate" style="display:block;margin-top:4px;padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;width:100%;">
+            </label>
+            <label style="font-size:12px;color:#6b7877;flex:1;min-width:150px;">Expiration date (optional)
+              <input type="date" id="docExpirationDate" style="display:block;margin-top:4px;padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;width:100%;">
+            </label>
+          </div>
+          <textarea id="docNotes" placeholder="Notes (optional)…" rows="2" style="width:100%;padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;resize:vertical;"></textarea>
+          <input type="file" id="docFile" style="font-size:13px;">
+          <p class="hint" style="margin:-4px 0 0;">Upload a file here, or paste a link below — you don't need both.</p>
+          <input type="text" id="docUrl" placeholder="Link to the document (optional — e.g. a Drive or email link)">
+          <button type="submit" class="small" style="align-self:flex-start;">Add document</button>
+        </form>
+      </section>
+
       <!-- Adverse Event Reports (MoCRA) -->
       <section class="panel" id="adverseEventsPanel">
         <h2>Adverse Event Reports (FDA / MoCRA)</h2>
@@ -1847,6 +1877,7 @@
         { id: 'tasksPanel', label: 'Tasks' },
         { id: 'incidentsPanel', label: 'Incidents' },
         { id: 'evidenceLockerPanel', label: 'Evidence Locker' },
+        { id: 'documentsPanel', label: 'Documents' },
         { id: 'adverseEventsPanel', label: 'Adverse Event Reports' },
       ]},
       { label: 'Customers & AI', color: '#7a5aa8', pages: [
@@ -1882,6 +1913,7 @@
       tasksPanel:          '<rect x="2.4" y="2.4" width="11.2" height="11.2" rx="2.8"/><path d="m5.4 8.2 1.8 1.8 3.4-3.6"/>',
       incidentsPanel:      '<path d="M8 2.6 14 13H2Z"/><path d="M8 6.6v3M8 11.4h.01"/>',
       evidenceLockerPanel: '<rect x="2" y="3" width="12" height="3" rx="1"/><path d="M3.2 6v6a1.6 1.6 0 0 0 1.6 1.6h6.4A1.6 1.6 0 0 0 12.8 12V6"/><path d="M6.6 8.8h2.8"/>',
+      documentsPanel:      '<path d="M4.4 2h5l2.2 2.2v9.4a1 1 0 0 1-1 1H4.4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1Z"/><path d="M9.4 2v2.6H12"/><path d="M5.6 8.4h4.8M5.6 10.8h4.8"/>',
       adverseEventsPanel:  '<circle cx="8" cy="8" r="5.8"/><path d="M8 5.4v5.2M5.4 8h5.2"/>',
       inquiriesPanel:      '<path d="M13.4 8.4c0 2.5-2.4 4.5-5.4 4.5-.7 0-1.4-.1-2-.3l-3 1.2 1-2.5C3.1 10.5 2.6 9.5 2.6 8.4 2.6 5.9 5 3.9 8 3.9s5.4 2 5.4 4.5Z"/>',
       aiPanel:             '<path d="M8 2.4 9.4 6.4 13.4 7.8 9.4 9.2 8 13.2 6.6 9.2 2.6 7.8 6.6 6.4Z"/>',
@@ -1920,6 +1952,7 @@
       featureRequests: [], evidence: [], adverseEvents: [], legalHolds: [],
       attention: [], expenses: [], inventory: [], returns: [], people: [],
       suppliers: [], purchaseOrders: [], qualityChecks: [], recalls: [],
+      documents: [],
     };
 
     // Business Rules: each row's `config` is a small jsonb object whose one
@@ -2083,6 +2116,11 @@
       (SEARCH_INDEX.legalHolds || []).forEach(l => {
         if (hit([l.title, l.description, l.related_reference])) {
           results.push({ pageId: 'legalHoldsPanel', type: 'Legal Hold', label: l.title });
+        }
+      });
+      (SEARCH_INDEX.documents || []).forEach(d => {
+        if (hit([d.title, d.category, d.notes])) {
+          results.push({ pageId: 'documentsPanel', type: 'Document', label: `${d.title} (${DOCUMENT_CATEGORY_LABELS[d.category] || d.category})` });
         }
       });
       (SEARCH_INDEX.expenses || []).forEach(x => {
@@ -2407,6 +2445,7 @@
       tasksPanel: [loadTasks],
       incidentsPanel: [loadIncidents],
       evidenceLockerPanel: [loadEvidenceLocker],
+      documentsPanel: [loadDocuments],
       adverseEventsPanel: [loadAdverseEvents],
       inquiriesPanel: [loadInquiries],
       aiPanel: [loadAI],
@@ -2501,6 +2540,9 @@
       { id:'legal', page:'legalHoldsPanel', title:'Legal holds',
         keys:'legal hold preserve evidence dispute retention delete',
         body:'A legal hold marks records that must be preserved — during a dispute, a claim, or an investigation. While a hold is active, routine clean-up must leave those records alone.|Releasing a hold is recorded in the activity log, with who released it and when.' },
+      { id:'documents', page:'documentsPanel', title:'Documents',
+        keys:'document contract insurance certification tax license expire expiration upload file',
+        body:'A central place for paperwork that isn’t tied to one specific incident — contracts, certifications, insurance, tax documents, packaging specs, wholesale agreements, and so on. That’s the difference from Evidence Locker, which only holds evidence for a specific incident.|Upload the file itself, or just paste a link to where it already lives — you don’t need both.|Optionally link a document to a supplier, an incident, or a purchase order so it shows up in context.|Set an expiration date and it’ll show a color-coded warning here as it approaches or passes — expiring documents don’t (yet) open a task in Needs Your Attention the way Compliance Calendar deadlines do, so it’s still worth checking this page periodically.|Only the Owner or an Administrator can delete a document; any active team member can add or view one.' },
     ];
 
     // One matcher, used by both the command palette and the sidebar search.
@@ -3193,6 +3235,7 @@
       sopsPanel: 'sop_documents',
       featureRequestsPanel: 'feature_requests',
       evidenceLockerPanel: 'evidence_locker',
+      documentsPanel: 'documents',
       adverseEventsPanel: 'adverse_event_reports',
       legalHoldsPanel: 'legal_holds',
       inquiriesPanel: 'customer_inquiries',
@@ -6383,6 +6426,217 @@
       } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = originalBtnText;
+      }
+    });
+
+    // ---------- Documents ----------
+    // General-purpose document storage (Blueprint spec item #29) — separate
+    // from Evidence Locker, which is only ever tied to one specific incident.
+    // The `documents` table and its RLS already existed, unused, before this
+    // (staff can add/view, only Owner/Administrator can delete) — verified
+    // live via information_schema before writing any of this.
+    const DOCUMENT_CATEGORY_LABELS = {
+      contract: 'Contract',
+      insurance: 'Insurance',
+      certification: 'Certification',
+      lab_testing: 'Lab / Testing Document',
+      tax: 'Tax Document',
+      packaging_spec: 'Packaging Spec',
+      wholesale_agreement: 'Wholesale Agreement',
+      invoice: 'Invoice',
+      employee: 'Employee Document',
+      other: 'Other',
+    };
+    (function initDocCategorySelect(){
+      const sel = document.getElementById('docCategory');
+      if (sel) {
+        sel.innerHTML = '<option value="">Category…</option>' +
+          Object.entries(DOCUMENT_CATEGORY_LABELS).map(([k, v]) => `<option value="${esc(k)}">${esc(v)}</option>`).join('');
+      }
+    })();
+
+    function docExpiryBadge(expirationDate){
+      if (!expirationDate) return '';
+      const exp = new Date(expirationDate + 'T00:00:00');
+      const days = Math.round((exp.getTime() - new Date().setHours(0,0,0,0)) / 86400000);
+      if (days < 0) return `<span class="badge sev-high">Expired ${esc(fmtDateOnly(expirationDate))}</span>`;
+      if (days <= 30) return `<span class="badge sev-medium">Expires in ${days}d (${esc(fmtDateOnly(expirationDate))})</span>`;
+      return `<span class="badge sev-low">Valid until ${esc(fmtDateOnly(expirationDate))}</span>`;
+    }
+
+    async function loadDocuments(){
+      try {
+        const [{ data: docs, error }, { data: suppliers }, { data: incidents }, { data: pos }] = await Promise.all([
+          supabase.from('documents')
+            .select('id, title, category, related_type, related_id, document_url, file_path, issued_date, expiration_date, notes, created_at')
+            .order('created_at', { ascending: false }),
+          supabase.from('suppliers').select('id, name').order('name', { ascending: true }),
+          supabase.from('incidents').select('id, incident_number, title').order('created_at', { ascending: false }),
+          supabase.from('purchase_orders').select('id, po_number').order('created_at', { ascending: false }),
+        ]);
+        if (error) throw error;
+        const rows = docs || [];
+        SEARCH_INDEX.documents = rows;
+
+        const suppliersById = {}; (suppliers || []).forEach(s => { suppliersById[s.id] = s; });
+        const incidentsById = {}; (incidents || []).forEach(i => { incidentsById[i.id] = i; });
+        const posById = {}; (pos || []).forEach(p => { posById[p.id] = p; });
+
+        function relatedLabel(d){
+          if (d.related_type === 'supplier' && suppliersById[d.related_id]) return 'Supplier: ' + suppliersById[d.related_id].name;
+          if (d.related_type === 'incident' && incidentsById[d.related_id]) {
+            const i = incidentsById[d.related_id];
+            return 'Incident: ' + (i.incident_number || '') + ' — ' + i.title;
+          }
+          if (d.related_type === 'purchase_order' && posById[d.related_id]) return 'Purchase Order: ' + posById[d.related_id].po_number;
+          return null;
+        }
+
+        // "Link to a record" dropdown on the add-document form, grouped by type.
+        const relatedSel = document.getElementById('docRelated');
+        const keepRelated = relatedSel.value;
+        relatedSel.innerHTML = '<option value="">Not linked to a specific record</option>' +
+          (suppliers && suppliers.length ? `<optgroup label="Suppliers">${suppliers.map(s => `<option value="supplier:${esc(s.id)}">${esc(s.name)}</option>`).join('')}</optgroup>` : '') +
+          (incidents && incidents.length ? `<optgroup label="Incidents">${incidents.map(i => `<option value="incident:${esc(i.id)}">${esc(i.incident_number || '')} — ${esc(i.title)}</option>`).join('')}</optgroup>` : '') +
+          (pos && pos.length ? `<optgroup label="Purchase Orders">${pos.map(p => `<option value="purchase_order:${esc(p.id)}">${esc(p.po_number)}</option>`).join('')}</optgroup>` : '');
+        relatedSel.value = keepRelated;
+
+        const expiringSoon = rows.filter(d => {
+          if (!d.expiration_date) return false;
+          const days = Math.round((new Date(d.expiration_date + 'T00:00:00').getTime() - new Date().setHours(0,0,0,0)) / 86400000);
+          return days <= 30;
+        }).length;
+        document.getElementById('documentsStats').innerHTML = `
+          <div class="stat"><div class="num">${rows.length}</div><div class="lbl">Documents on file</div></div>
+          <div class="stat"><div class="num">${expiringSoon}</div><div class="lbl">Expired or expiring within 30 days</div></div>`;
+
+        document.getElementById('documentsWrap').innerHTML = rows.length ? rows.map(d => {
+          const related = relatedLabel(d);
+          return `
+            <div class="deletedRow" data-id="${esc(d.id)}" data-file-path="${esc(d.file_path || '')}" style="align-items:flex-start;">
+              <div class="info" style="flex:1;">
+                <b>${esc(d.title)}</b>
+                <span class="badge">${esc(DOCUMENT_CATEGORY_LABELS[d.category] || d.category || 'Other')}</span>
+                ${docExpiryBadge(d.expiration_date)}
+                ${related ? `<div style="font-size:12px;color:#6b7877;margin-top:3px;">Linked to: ${esc(related)}</div>` : ''}
+                ${d.issued_date ? `<div style="font-size:12px;color:#8a9694;margin-top:3px;">Issued ${esc(fmtDateOnly(d.issued_date))}</div>` : ''}
+                ${d.notes ? `<div style="margin-top:6px;">${esc(d.notes)}</div>` : ''}
+                ${d.file_path ? `<div style="font-size:12px;margin-top:6px;"><a href="#" class="docFileLink">Open uploaded file</a></div>` : ''}
+                ${d.document_url ? `<div style="font-size:12px;margin-top:6px;"><a href="${esc(d.document_url)}" target="_blank" rel="noopener noreferrer">Open linked document</a></div>` : ''}
+                <div style="margin-top:8px;"><button type="button" class="small secondary docDeleteBtn">Delete</button></div>
+              </div>
+            </div>`;
+        }).join('') : '<p class="empty">No documents on file yet — add your first one below.</p>';
+
+        document.querySelectorAll('.docFileLink').forEach(link => {
+          link.addEventListener('click', async (ev) => {
+            ev.preventDefault();
+            const row = link.closest('[data-file-path]');
+            const path = row.getAttribute('data-file-path');
+            if (!path) return;
+            const original = link.textContent;
+            link.textContent = 'Preparing…';
+            try {
+              const { data, error: signErr } = await supabase.storage.from('document-files').createSignedUrl(path, 60);
+              if (signErr) throw signErr;
+              window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
+            } catch (err) {
+              showDashError('Could not open that file: ' + (err && err.message ? err.message : err));
+            } finally {
+              link.textContent = original;
+            }
+          });
+        });
+
+        document.querySelectorAll('.docDeleteBtn').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const row = btn.closest('[data-id]');
+            const id = row.getAttribute('data-id');
+            if (!confirm('Delete this document? This can\'t be undone.')) return;
+            btn.disabled = true;
+            try {
+              const { error: delErr } = await supabase.from('documents').delete().eq('id', id);
+              if (delErr) throw delErr;
+              toastOk('Document deleted.');
+              loadDocuments();
+            } catch (err) {
+              btn.disabled = false;
+              const msg = (err && err.message) || String(err);
+              if (/row-level security|permission/i.test(msg)) {
+                showDashError('Only the Owner or an Administrator can delete a document — ask one of them, or deactivate/replace it instead.');
+              } else {
+                showDashError('Could not delete that document: ' + msg);
+              }
+            }
+          });
+        });
+      } catch (err) {
+        document.getElementById('documentsWrap').innerHTML = '';
+        showDashError('Could not load documents: ' + (err && err.message ? err.message : err));
+      }
+    }
+
+    document.getElementById('addDocumentForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const titleInput = document.getElementById('docTitle');
+      const categoryInput = document.getElementById('docCategory');
+      const relatedInput = document.getElementById('docRelated');
+      const issuedInput = document.getElementById('docIssuedDate');
+      const expirationInput = document.getElementById('docExpirationDate');
+      const notesInput = document.getElementById('docNotes');
+      const fileInput = document.getElementById('docFile');
+      const urlInput = document.getElementById('docUrl');
+
+      const title = titleInput.value.trim();
+      const category = categoryInput.value;
+      if (!title || !category) { showDashError('Give the document a title and a category first.'); return; }
+
+      let relatedType = null, relatedId = null;
+      if (relatedInput.value.includes(':')) {
+        const [t, id] = relatedInput.value.split(':');
+        relatedType = t; relatedId = id;
+      }
+
+      const btn = e.target.querySelector('button[type="submit"]');
+      const originalText = btn.textContent;
+      btn.disabled = true;
+      try {
+        let filePath = null;
+        const file = fileInput.files && fileInput.files[0];
+        if (file) {
+          btn.textContent = 'Uploading file…';
+          const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+          const path = `${Date.now()}_${safeName}`;
+          const { error: uploadErr } = await supabase.storage.from('document-files').upload(path, file);
+          if (uploadErr) throw uploadErr;
+          filePath = path;
+        }
+
+        const uid = await currentUserId();
+        const { error } = await supabase.from('documents').insert({
+          title,
+          category,
+          related_type: relatedType,
+          related_id: relatedId,
+          document_url: urlInput.value.trim() || null,
+          file_path: filePath,
+          issued_date: issuedInput.value || null,
+          expiration_date: expirationInput.value || null,
+          notes: notesInput.value.trim() || null,
+          uploaded_by: uid,
+        });
+        if (error) throw error;
+
+        titleInput.value = ''; categoryInput.value = ''; relatedInput.value = '';
+        issuedInput.value = ''; expirationInput.value = ''; notesInput.value = '';
+        fileInput.value = ''; urlInput.value = '';
+        toastOk('Document added.');
+        loadDocuments();
+      } catch (err) {
+        showDashError('Could not add that document: ' + (err && err.message ? err.message : err));
+      } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
       }
     });
 
