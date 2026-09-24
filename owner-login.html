@@ -2406,6 +2406,9 @@
       { id:'purchasing', page:'purchaseOrdersPanel', title:'Ordering stock and receiving deliveries',
         keys:'purchase order supplier manufacturer stock receive delivery buy ordering po restock cost',
         body:'Add whoever you buy from on the Suppliers page first — manufacturer, packaging, lab, freight. Purchase orders are raised against them.|Create a draft purchase order, then add what you\u2019re buying line by line. A line can point at a product in your catalogue, or be free text for things like bottles, labels and raw materials that aren\u2019t products.|Move it through Ordered and Shipped as it progresses. When the delivery turns up, press Receive delivery: every line linked to a catalogue product is added to Inventory automatically, and the whole cost \u2014 items, shipping and tax \u2014 is written into Expenses under the category you chose. That keeps Accounting right without entering anything twice.|Lines that aren\u2019t catalogue products are still costed; they just can\u2019t be stocked, and the system tells you when that happens.|Receiving also works out the **true cost** of each unit by sharing shipping and tax across the lines in proportion to their value. That is the figure to set your prices against \u2014 the raw unit cost flatters your margin.|Track deposits and balances with the Payment setting on each order. If a delivery passes its expected date and hasn\u2019t arrived, it appears in Needs Your Attention, and turns high priority after a week.' },
+      { id:'lots', page:'inventoryPanel', title:'Batch and lot tracking',
+        keys:'lot batch number tracking expire expiry recall production run trace',
+        body:'When you receive a delivery, you can give each catalogue line a lot number \u2014 whatever your manufacturer prints on that batch. Leave it blank if they don\u2019t give you one.|Receiving the same lot number again for the same product just adds to it, so a delivery that arrives in two shipments still counts as one batch.|The Inventory page shows every lot still on hand for a product, oldest first \u2014 sell or ship the oldest one first. If this ever needs a recall, you know exactly how much of that batch exists and which delivery it came from.|Tracing a lot all the way to a specific customer order needs your Shopify orders connected, which comes later \u2014 today this covers the receiving and on-hand side.' },
       { id:'legal', page:'legalHoldsPanel', title:'Legal holds',
         keys:'legal hold preserve evidence dispute retention delete',
         body:'A legal hold marks records that must be preserved — during a dispute, a claim, or an investigation. While a hold is active, routine clean-up must leave those records alone.|Releasing a hold is recorded in the activity log, with who released it and when.' },
@@ -3638,6 +3641,7 @@
     const PAYMENT_LABELS = { unpaid: 'Unpaid', partial: 'Part paid', paid: 'Paid' };
     let PO_OPEN_ID = null;
     let PO_PRODUCTS = [];
+    let PO_LOTS = {}; // key: `${purchase_order_id}::${product_id}` -> array of {lot_number, quantity_received}
 
     function poLinesTotal(po){
       return (po.purchase_order_items || [])
@@ -3730,17 +3734,27 @@
 
     async function loadPurchaseOrders(){
       try {
-        const [{ data: pos, error }, { data: prods }] = await Promise.all([
+        const [{ data: pos, error }, { data: prods }, { data: lots }] = await Promise.all([
           supabase.from('purchase_orders')
             .select('id, po_number, status, currency, shipping_cost, tax, expense_category, ordered_at, expected_at, received_at, payment_status, notes, suppliers(name), purchase_order_items(id, product_id, description, sku, quantity, unit_cost, quantity_received, landed_unit_cost)')
             .is('deleted_at', null)
             .order('created_at', { ascending: false }),
           supabase.from('products').select('id, name, sku').order('name', { ascending: true }),
+          supabase.from('inventory_lots').select('purchase_order_id, product_id, lot_number, quantity_received')
+            .not('purchase_order_id', 'is', null),
         ]);
         if (error) throw error;
         const rows = pos || [];
         PO_PRODUCTS = prods || [];
         SEARCH_INDEX.purchaseOrders = rows;
+
+        // Group received lot numbers by which PO line they came from, so the
+        // receiving table can show what was already recorded.
+        PO_LOTS = {};
+        (lots || []).forEach(l => {
+          const key = l.purchase_order_id + '::' + l.product_id;
+          (PO_LOTS[key] = PO_LOTS[key] || []).push(l);
+        });
 
         const openPos = rows.filter(p => ['draft','ordered','shipped'].includes(p.status));
         const outstanding = openPos.reduce((s, p) => s + poGrandTotal(p), 0);
@@ -3797,9 +3811,19 @@
 
         const items = po.purchase_order_items || [];
         const editable = po.status === 'draft' || po.status === 'ordered';
+        const awaitingReceipt = po.status === 'ordered' || po.status === 'shipped';
         const linesHtml = items.length ? `
-          <table><thead><tr><th>Item</th><th>SKU</th><th>Qty</th><th>Unit cost</th><th>Line total</th><th title="Unit cost once shipping and tax are shared out">True cost</th><th></th></tr></thead>
-          <tbody>${items.map(l => `
+          <table><thead><tr><th>Item</th><th>SKU</th><th>Qty</th><th>Unit cost</th><th>Line total</th><th title="Unit cost once shipping and tax are shared out">True cost</th><th title="Which production batch this stock came from">Lot #</th><th></th></tr></thead>
+          <tbody>${items.map(l => {
+            const outstanding = Number(l.quantity || 0) - Number(l.quantity_received || 0);
+            const recordedLots = (PO_LOTS[po.id + '::' + l.product_id] || []);
+            let lotCell = '—';
+            if (l.product_id && awaitingReceipt && outstanding > 0) {
+              lotCell = `<input type="text" class="poLineLot" data-line="${esc(l.id)}" placeholder="e.g. HE-2026-01" style="width:120px;">`;
+            } else if (recordedLots.length) {
+              lotCell = recordedLots.map(rl => esc(rl.lot_number) + ' (' + Number(rl.quantity_received) + ')').join(', ');
+            }
+            return `
             <tr>
               <td>${esc(l.description)}${l.product_id ? ' <span class="badge">catalogue</span>' : ''}</td>
               <td>${esc(l.sku || '—')}</td>
@@ -3807,8 +3831,11 @@
               <td>${fmtMoney(l.unit_cost, po.currency)}</td>
               <td>${fmtMoney(Number(l.quantity) * Number(l.unit_cost || 0), po.currency)}</td>
               <td>${l.landed_unit_cost != null ? fmtMoney(l.landed_unit_cost, po.currency) : '—'}</td>
+              <td>${lotCell}</td>
               <td>${editable ? `<button type="button" class="small secondary poDelLine" data-line="${esc(l.id)}">Remove</button>` : ''}</td>
-            </tr>`).join('')}</tbody></table>`
+            </tr>`;
+          }).join('')}</tbody></table>
+          ${awaitingReceipt && items.some(l => l.product_id) ? '<p class="sMeta" style="margin-top:6px;">Lot # is optional — leave it blank if your manufacturer doesn\'t give you one for this delivery.</p>' : ''}`
           : '<p class="empty">Nothing on this order yet.</p>';
 
         const addLine = editable ? `
@@ -3989,6 +4016,37 @@
             if (outstanding <= 0) continue;
             if (!line.product_id) { skipped++; continue; }
 
+            // If the owner entered a lot number for this line, find or create
+            // the batch record first so the stock movement can point at it.
+            let lotId = null;
+            const lotInput = box.querySelector('.poLineLot[data-line="' + line.id + '"]');
+            const lotNumber = lotInput ? lotInput.value.trim() : '';
+            if (lotNumber) {
+              const { data: existingLot, error: lotReadErr } = await supabase
+                .from('inventory_lots').select('*')
+                .eq('product_id', line.product_id).ilike('lot_number', lotNumber).maybeSingle();
+              if (lotReadErr) throw lotReadErr;
+              if (existingLot) {
+                const { data: updatedLot, error: lotUpdErr } = await supabase.from('inventory_lots')
+                  .update({
+                    quantity_received: Number(existingLot.quantity_received) + outstanding,
+                    quantity_remaining: Number(existingLot.quantity_remaining) + outstanding,
+                    updated_at: new Date().toISOString(),
+                  }).eq('id', existingLot.id).select().single();
+                if (lotUpdErr) throw lotUpdErr;
+                lotId = updatedLot.id;
+              } else {
+                const { data: newLot, error: lotInsErr } = await supabase.from('inventory_lots')
+                  .insert({
+                    product_id: line.product_id, lot_number: lotNumber,
+                    purchase_order_id: po.id, quantity_received: outstanding,
+                    quantity_remaining: outstanding, created_by: uid,
+                  }).select().single();
+                if (lotInsErr) throw lotInsErr;
+                lotId = newLot.id;
+              }
+            }
+
             const { data: inv, error: readErr } = await supabase
               .from('inventory').select('*').eq('product_id', line.product_id).maybeSingle();
             if (readErr) throw readErr;
@@ -4000,7 +4058,7 @@
             if (invErr) throw invErr;
             const { error: adjErr } = await supabase.from('inventory_adjustments').insert({
               product_id: line.product_id, bucket: 'available', change_amount: outstanding,
-              reason: 'Delivery received (' + po.po_number + ')', adjusted_by: uid,
+              reason: 'Delivery received (' + po.po_number + ')', adjusted_by: uid, lot_id: lotId,
             });
             if (adjErr) throw adjErr;
             const { error: lineErr } = await supabase.from('purchase_order_items')
@@ -6007,7 +6065,7 @@
         // in one round trip, using the foreign key link between the two tables.
         const { data: products, error } = await supabase
           .from('products')
-          .select('id, sku, name, is_active, status, cost, retail_price, wholesale_price, packaging_info, inventory(available, reserved, damaged, sample, wholesale, promotional, returned, low_stock_threshold)')
+          .select('id, sku, name, is_active, status, cost, retail_price, wholesale_price, packaging_info, inventory(available, reserved, damaged, sample, wholesale, promotional, returned, low_stock_threshold), inventory_lots(lot_number, quantity_remaining, received_at, expires_at)')
           .order('name', { ascending: true });
         if (error) throw error;
 
@@ -6035,6 +6093,18 @@
           const bucketBadges = ['available', 'reserved', 'damaged', 'sample', 'wholesale', 'promotional', 'returned']
             .map(b => `<span class="badge" style="margin-right:4px;">${esc(INVENTORY_BUCKET_LABELS[b])}: ${Number(inv[b] || 0)}</span>`)
             .join('');
+          const lotsOnHand = (p.inventory_lots || [])
+            .filter(l => Number(l.quantity_remaining) > 0)
+            .sort((a, b) => new Date(a.received_at) - new Date(b.received_at)); // oldest first, for using stock in order
+          const today = new Date().toISOString().slice(0, 10);
+          const lotsHtml = lotsOnHand.length ? `
+                <div style="margin-top:8px;">
+                  <div style="font-size:12px;color:var(--muted);margin-bottom:4px;">Lots on hand (oldest first):</div>
+                  ${lotsOnHand.map(l => {
+                    const expiring = l.expires_at && l.expires_at <= today;
+                    return `<span class="badge${expiring ? ' sev-high' : ''}" style="margin-right:4px;" title="${l.received_at ? 'Received ' + fmtDate(l.received_at) : ''}">${esc(l.lot_number)}: ${Number(l.quantity_remaining)}${l.expires_at ? (expiring ? ' · expired' : ' · exp ' + l.expires_at) : ''}</span>`;
+                  }).join('')}
+                </div>` : '';
           return `
             <div class="deletedRow" data-product-id="${esc(p.id)}" style="align-items:flex-start;">
               <div class="info" style="flex:1;">
@@ -6042,6 +6112,7 @@
                 ${isLow ? ' <span class="badge sev-high">Low stock</span>' : ''}
                 ${!p.is_active ? ' <span class="badge">Inactive</span>' : ''}
                 <br><div style="margin-top:6px;">${bucketBadges}</div>
+                ${lotsHtml}
                 <div style="margin-top:8px;display:flex;align-items:center;gap:6px;">
                   <label style="font-size:12px;color:#6b7877;">Low-stock alert when Available drops below:</label>
                   <input type="number" class="invThresholdInput" min="0" step="1" style="width:80px;padding:5px 7px;border-radius:6px;border:1px solid #cfd8d6;font-family:inherit;font-size:13px;" value="${threshold !== null && threshold !== undefined ? Number(threshold) : ''}" placeholder="none">
