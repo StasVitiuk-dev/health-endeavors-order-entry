@@ -5146,7 +5146,7 @@
       { num: 1, name: 'Invoice Agent', ai: false, status: 'Live now — runs automatically the moment an order is created',
         desc: 'Generates, re-syncs, and voids invoices whenever an order is created or changes.',
         touches: ['orders (read)', 'invoices (write)'],
-        limit: 'Fully automatic. Only ever creates paperwork — never touches money or sends anything.', enforced: false },
+        limit: 'Fully automatic. Only ever creates paperwork — never touches money or sends anything. Enforcement is being wired in now: once done, turning it off will stop it from creating, re-syncing, or voiding any invoice (new orders still save fine, they just won’t get invoiced until it’s back on).', enforced: false },
       { num: 2, name: 'Order Intake Agent', ai: false, status: 'Built — waiting on GitHub Actions minutes (resets Oct 1, 2026)',
         desc: 'Flags missing info, financial mismatches, bad addresses, and duplicate order numbers.',
         touches: ['orders (read)', 'tasks (write)'],
