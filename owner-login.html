@@ -1051,6 +1051,7 @@
             <option value="wholesale">Wholesale</option>
             <option value="promotional">Promotional</option>
             <option value="returned">Returned</option>
+            <option value="recalled">Recalled</option>
           </select>
           <input type="number" id="invAmount" placeholder="Change amount (e.g. 10 to add, -10 to remove)" step="1" required>
           <input type="text" id="invReason" placeholder="Reason (optional — e.g. new batch received, damaged in shipping)">
@@ -1401,6 +1402,25 @@
           <button type="submit" class="small">Log check</button>
         </form>
         <div id="qcWrap"><p class="empty">Loading…</p></div>
+      </section>
+
+      <!-- Recalls -->
+      <section class="panel" id="recallsPanel">
+        <h2>Recalls</h2>
+        <p class="hint">A recall always points at one specific batch. Initiating one tells you what to look into; quarantining actually pulls the remaining stock of that lot out of Available so it can't be sold by mistake.</p>
+        <div class="statRow" id="recallStats"></div>
+        <form class="reminderForm" id="addRecallForm">
+          <select id="recallLot" required><option value="">Which lot?…</option></select>
+          <select id="recallSeverity">
+            <option value="low">Low</option>
+            <option value="normal">Normal</option>
+            <option value="high" selected>High</option>
+            <option value="critical">Critical</option>
+          </select>
+          <input type="text" id="recallReason" placeholder="Why is this batch being recalled?" required class="grow">
+          <button type="submit" class="small">Initiate recall</button>
+        </form>
+        <div id="recallsWrap"><p class="empty">Loading…</p></div>
       </section>
 
       <!-- Procedures (SOPs) -->
@@ -1806,6 +1826,7 @@
         { id: 'suppliersPanel', label: 'Suppliers' },
         { id: 'purchaseOrdersPanel', label: 'Purchase Orders' },
         { id: 'qualityControlPanel', label: 'Quality Control' },
+        { id: 'recallsPanel', label: 'Recalls' },
       ]},
       { label: 'Finance', color: '#2f7d4f', pages: [
         { id: 'expensesPanel', label: 'Expenses' },
@@ -1865,6 +1886,7 @@
       suppliersPanel:      '<path d="M2.4 6.2h11.2v7a1.2 1.2 0 0 1-1.2 1.2H3.6a1.2 1.2 0 0 1-1.2-1.2Z"/><path d="M2 3.2h12v3H2Z"/><path d="M6.6 9.4h2.8"/>',
       purchaseOrdersPanel: '<path d="M4.2 2.2h5l2.8 2.8v8.8H4.2Z"/><path d="M9 2.2V5h2.9"/><path d="M6.2 8.4h3.6M6.2 10.8h2.4"/>',
       qualityControlPanel: '<rect x="3.4" y="2.6" width="9.2" height="11.2" rx="1.4"/><path d="M6 2.6V2a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v.6"/><path d="m5.8 8.4 1.5 1.5 3-3.4"/>',
+      recallsPanel:        '<path d="M8 1.8 14.6 13.4H1.4Z"/><path d="M8 6.4v3.2"/><circle cx="8" cy="11.6" r="0.15" fill="currentColor" stroke="none"/>',
     };
     const FALLBACK_ICON = '<circle cx="8" cy="8" r="2.4"/>';
     function pageIconSvg(pageId){
@@ -1886,7 +1908,7 @@
       orders: [], tasks: [], incidents: [], approvals: [], sops: [],
       featureRequests: [], evidence: [], adverseEvents: [], legalHolds: [],
       attention: [], expenses: [], inventory: [], returns: [], people: [],
-      suppliers: [], purchaseOrders: [], qualityChecks: [],
+      suppliers: [], purchaseOrders: [], qualityChecks: [], recalls: [],
     };
 
     // Business Rules: each row's `config` is a small jsonb object whose one
@@ -1923,6 +1945,7 @@
       wholesale: 'Wholesale',
       promotional: 'Promotional',
       returned: 'Returned',
+      recalled: 'Recalled',
     };
 
     // Return status/condition values below must match the real database check
@@ -2092,6 +2115,13 @@
         const lot = (qc.inventory_lots && qc.inventory_lots.lot_number) || '';
         if (hit([qc.check_type, qc.result, qc.severity, qc.description, prod, lot])) {
           results.push({ pageId: 'qualityControlPanel', type: 'Quality Check', label: `${QC_TYPE_LABELS[qc.check_type] || qc.check_type} — ${prod || 'Unlinked'}` });
+        }
+      });
+      (SEARCH_INDEX.recalls || []).forEach(r => {
+        const prod = (r.products && r.products.name) || '';
+        const lot = (r.inventory_lots && r.inventory_lots.lot_number) || '';
+        if (hit([r.reason, r.status, r.severity, prod, lot])) {
+          results.push({ pageId: 'recallsPanel', type: 'Recall', label: `${prod || 'Unlinked'} — lot ${lot || '?'} (${r.status})` });
         }
       });
       (SEARCH_INDEX.returns || []).forEach(r => {
@@ -2360,6 +2390,7 @@
       suppliersPanel: [loadSuppliers],
       purchaseOrdersPanel: [loadPurchaseOrders],
       qualityControlPanel: [loadQualityChecks],
+      recallsPanel: [loadRecalls],
       expensesPanel: [loadExpenses, loadDeletedExpenses],
       accountingPanel: [loadAccounting],
       tasksPanel: [loadTasks],
@@ -2453,6 +2484,9 @@
       { id:'quality', page:'qualityControlPanel', title:'Quality Control',
         keys:'quality control check inspection defect complaint fail pass escalate incident test',
         body:'Log any inspection, defect or complaint here \u2014 tie it to a specific lot when you can, or to a product generally, or leave it unlinked entirely.|A check that fails and hasn\u2019t been marked resolved shows up in Needs Your Attention automatically.|If something is serious enough to need a real investigation, press Escalate to Incident \u2014 it opens an Incident with the same severity and a sensible category already filled in, and links back to the check that started it.' },
+      { id:'recalls', page:'recallsPanel', title:'Recalling a batch',
+        keys:'recall batch lot quarantine pull withdraw safety',
+        body:'A recall always points at one specific lot. Initiating one just records that you\u2019re looking into it \u2014 it shows up in Needs Your Attention as high priority immediately and stays there until resolved.|Quarantine stock actually moves that lot\u2019s remaining units out of Available into a separate Recalled bucket, so nothing can be sold from it by accident. It also logs the movement the same way any other stock adjustment does.|Escalate to Incident opens a real Incident under Product Safety with the same severity, for when this needs a proper investigation trail.|Honest limit: this covers what\u2019s still in your possession. Tracing a recalled lot to orders that already shipped needs Shopify orders connected \u2014 not built yet, same as batch tracing generally.' },
       { id:'legal', page:'legalHoldsPanel', title:'Legal holds',
         keys:'legal hold preserve evidence dispute retention delete',
         body:'A legal hold marks records that must be preserved — during a dispute, a claim, or an investigation. While a hold is active, routine clean-up must leave those records alone.|Releasing a hold is recorded in the activity log, with who released it and when.' },
@@ -3142,6 +3176,7 @@
       suppliersPanel: 'suppliers',
       purchaseOrdersPanel: 'purchase_orders',
       qualityControlPanel: 'quality_checks',
+      recallsPanel: 'recalls',
       expensesPanel: 'expenses',
       approvalsPanel: 'approval_requests',
       sopsPanel: 'sop_documents',
@@ -3330,6 +3365,7 @@
       alert: 'Alert',
       purchase_order: 'Delivery',
       quality_check: 'Quality check',
+      recall: 'Recall',
     };
 
     function renderAttention(rows){
@@ -3700,6 +3736,7 @@
       if (qc.check_type === 'other') return 'other';
       return 'manufacturing';
     }
+    const RECALL_STATUS_LABELS = { initiated: 'Initiated', quarantined: 'Quarantined', resolved: 'Resolved' };
     let PO_OPEN_ID = null;
     let PO_PRODUCTS = [];
     let PO_LOTS = {}; // key: `${purchase_order_id}::${product_id}` -> array of {lot_number, quantity_received}
@@ -4338,6 +4375,204 @@
         safeRun(loadAttention);
       } catch (err) {
         showDashError('Could not log that check: ' + (err && err.message ? err.message : err));
+      } finally { btn.disabled = false; }
+    });
+
+    // ---------- Recalls ----------
+    async function loadRecalls(){
+      try {
+        const [{ data: recalls, error }, { data: lots }] = await Promise.all([
+          supabase.from('recalls')
+            .select('id, reason, severity, status, quantity_quarantined, resolution, resolved_at, incident_id, created_at, lot_id, product_id, products(name, sku), inventory_lots(lot_number), incidents(incident_number, status)')
+            .order('created_at', { ascending: false }),
+          supabase.from('inventory_lots')
+            .select('id, lot_number, product_id, quantity_remaining, products(name, sku)')
+            .order('received_at', { ascending: false }),
+        ]);
+        if (error) throw error;
+        const rows = recalls || [];
+        SEARCH_INDEX.recalls = rows;
+
+        const active = rows.filter(r => r.status !== 'resolved');
+        const quarantinedUnits = rows.reduce((s, r) => s + (r.status !== 'initiated' ? Number(r.quantity_quarantined || 0) : 0), 0);
+        document.getElementById('recallStats').innerHTML = `
+          <div class="stat"><div class="num">${active.length}</div><div class="lbl">Active recalls</div></div>
+          <div class="stat"><div class="num">${quarantinedUnits}</div><div class="lbl">Units quarantined</div></div>`;
+
+        const lotSel = document.getElementById('recallLot');
+        const keep = lotSel.value;
+        lotSel.innerHTML = '<option value="">Which lot?…</option>' + (lots || []).map(l => {
+          const prod = (l.products && l.products.name) || 'Unknown product';
+          return `<option value="${esc(l.id)}">${esc(prod)} — lot ${esc(l.lot_number)} (${Number(l.quantity_remaining)} left)</option>`;
+        }).join('');
+        lotSel.value = keep;
+
+        document.getElementById('recallsWrap').innerHTML = rows.length ? rows.map(r => {
+          const prod = (r.products && r.products.name) || 'Unlinked';
+          const lot = (r.inventory_lots && r.inventory_lots.lot_number) || '?';
+          const incident = r.incidents;
+          const statusClass = r.status === 'resolved' ? 'sev-low' : 'sev-high';
+          return `
+            <div class="deletedRow" data-id="${esc(r.id)}" data-lot="${esc(r.lot_id)}" style="align-items:flex-start;">
+              <div class="info" style="flex:1;">
+                <b>${esc(prod)} — lot ${esc(lot)}</b>
+                <span class="badge ${statusClass}">${esc(RECALL_STATUS_LABELS[r.status] || r.status)}</span>
+                <span class="badge">${esc(QC_SEVERITY_LABELS[r.severity] || r.severity)}</span>
+                <span style="color:#8a9694;font-size:12px;">${esc(fmtDate(r.created_at))}</span>
+                <div style="margin-top:6px;">${esc(r.reason)}</div>
+                ${r.quantity_quarantined != null ? `<div style="margin-top:6px;">${Number(r.quantity_quarantined)} units pulled from Available into Recalled.</div>` : ''}
+                ${r.resolution ? `<div style="margin-top:6px;color:#4d7c6a;"><b>Resolved:</b> ${esc(r.resolution)}</div>` : ''}
+                ${incident ? `<div style="margin-top:6px;"><span class="badge">Incident ${esc(incident.incident_number || '')} — ${esc(incident.status)}</span></div>` : ''}
+                ${r.status !== 'resolved' ? `
+                  <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                    ${r.status === 'initiated' ? '<button type="button" class="small deny recallQuarantineBtn">Quarantine stock</button>' : ''}
+                    ${!r.incident_id ? '<button type="button" class="small secondary recallEscalateBtn">Escalate to Incident</button>' : ''}
+                    <input type="text" class="recallResolutionInput" placeholder="Resolution notes" style="flex:1;min-width:160px;padding:6px 9px;border-radius:6px;border:1px solid #cfd8d6;font-family:inherit;font-size:13px;">
+                    <button type="button" class="small secondary recallResolveBtn">Mark resolved</button>
+                  </div>` : ''}
+              </div>
+            </div>`;
+        }).join('') : '<p class="empty">No recalls — hopefully it stays that way.</p>';
+
+        document.querySelectorAll('.recallQuarantineBtn').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const row = btn.closest('[data-id]');
+            const id = row.getAttribute('data-id');
+            const lotId = row.getAttribute('data-lot');
+            btn.disabled = true;
+            try {
+              const uid = await currentUserId();
+              const { data: lot, error: lotErr } = await supabase.from('inventory_lots')
+                .select('*').eq('id', lotId).single();
+              if (lotErr) throw lotErr;
+              const { data: inv, error: invReadErr } = await supabase.from('inventory')
+                .select('*').eq('product_id', lot.product_id).maybeSingle();
+              if (invReadErr) throw invReadErr;
+              const amount = Math.min(Number(lot.quantity_remaining || 0), Number((inv && inv.available) || 0));
+              if (amount <= 0) {
+                showDashError('There’s nothing left in Available for this lot to quarantine — check Inventory directly if stock needs adjusting by hand.');
+                btn.disabled = false;
+                return;
+              }
+              const { error: invErr } = await supabase.from('inventory').update({
+                available: Number(inv.available) - amount,
+                recalled: Number(inv.recalled || 0) + amount,
+                updated_at: new Date().toISOString(), updated_by: uid,
+              }).eq('product_id', lot.product_id);
+              if (invErr) throw invErr;
+              const { error: adj1Err } = await supabase.from('inventory_adjustments').insert({
+                product_id: lot.product_id, bucket: 'available', change_amount: -amount,
+                reason: 'Recall — quarantined', adjusted_by: uid, lot_id: lotId,
+              });
+              if (adj1Err) throw adj1Err;
+              const { error: adj2Err } = await supabase.from('inventory_adjustments').insert({
+                product_id: lot.product_id, bucket: 'recalled', change_amount: amount,
+                reason: 'Recall — quarantined', adjusted_by: uid, lot_id: lotId,
+              });
+              if (adj2Err) throw adj2Err;
+              const { error: recErr } = await supabase.from('recalls').update({
+                status: 'quarantined', quantity_quarantined: amount, updated_at: new Date().toISOString(),
+              }).eq('id', id);
+              if (recErr) throw recErr;
+              toastOk(amount + ' units quarantined.');
+              loadRecalls();
+              safeRun(loadInventory);
+              safeRun(loadAttention);
+            } catch (err) {
+              btn.disabled = false;
+              showDashError('Could not quarantine that stock: ' + (err && err.message ? err.message : err));
+            }
+          });
+        });
+
+        document.querySelectorAll('.recallEscalateBtn').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const row = btn.closest('[data-id]');
+            const id = row.getAttribute('data-id');
+            const recall = rows.find(r => r.id === id);
+            if (!recall) return;
+            btn.disabled = true;
+            try {
+              const uid = await currentUserId();
+              const prod = (recall.products && recall.products.name) || 'Unlinked product';
+              const lot = (recall.inventory_lots && recall.inventory_lots.lot_number) || '?';
+              const { data: incident, error: incErr } = await supabase.from('incidents').insert({
+                category: 'product_safety',
+                severity: recall.severity,
+                status: 'open',
+                title: 'Recall — ' + prod + ' lot ' + lot,
+                description: recall.reason,
+                requires_approval: false,
+                created_by: uid,
+              }).select('id').single();
+              if (incErr) throw incErr;
+              const { error: recErr } = await supabase.from('recalls')
+                .update({ incident_id: incident.id, updated_at: new Date().toISOString() }).eq('id', id);
+              if (recErr) throw recErr;
+              toastOk('Escalated to Incidents.');
+              loadRecalls();
+              safeRun(loadIncidents);
+            } catch (err) {
+              btn.disabled = false;
+              showDashError('Could not escalate that: ' + (err && err.message ? err.message : err));
+            }
+          });
+        });
+
+        document.querySelectorAll('.recallResolveBtn').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const row = btn.closest('[data-id]');
+            const id = row.getAttribute('data-id');
+            const note = row.querySelector('.recallResolutionInput').value.trim() || 'Resolved.';
+            btn.disabled = true;
+            try {
+              const { error } = await supabase.from('recalls').update({
+                status: 'resolved', resolution: note, resolved_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              }).eq('id', id);
+              if (error) throw error;
+              toastOk('Recall resolved.');
+              loadRecalls();
+              safeRun(loadAttention);
+            } catch (err) {
+              btn.disabled = false;
+              showDashError('Could not resolve that: ' + (err && err.message ? err.message : err));
+            }
+          });
+        });
+      } catch (err) {
+        document.getElementById('recallsWrap').innerHTML = '';
+        showDashError('Could not load recalls: ' + (err && err.message ? err.message : err));
+      }
+    }
+
+    document.getElementById('addRecallForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const lotId = document.getElementById('recallLot').value;
+      const reason = document.getElementById('recallReason').value.trim();
+      if (!lotId) { toast('Pick which lot this is about first.'); return; }
+      if (!reason) { toast('Say why this batch is being recalled.'); return; }
+      const btn = e.target.querySelector('button[type=submit]');
+      btn.disabled = true;
+      try {
+        const uid = await currentUserId();
+        const { data: lot, error: lotErr } = await supabase.from('inventory_lots')
+          .select('product_id').eq('id', lotId).single();
+        if (lotErr) throw lotErr;
+        const { error } = await supabase.from('recalls').insert({
+          lot_id: lotId,
+          product_id: lot.product_id,
+          reason: reason,
+          severity: document.getElementById('recallSeverity').value,
+          created_by: uid,
+        });
+        if (error) throw error;
+        document.getElementById('recallReason').value = '';
+        toastOk('Recall initiated.');
+        loadRecalls();
+        safeRun(loadAttention);
+      } catch (err) {
+        showDashError('Could not initiate that recall: ' + (err && err.message ? err.message : err));
       } finally { btn.disabled = false; }
     });
 
@@ -6282,7 +6517,7 @@
         // in one round trip, using the foreign key link between the two tables.
         const { data: products, error } = await supabase
           .from('products')
-          .select('id, sku, name, is_active, status, cost, retail_price, wholesale_price, packaging_info, inventory(available, reserved, damaged, sample, wholesale, promotional, returned, low_stock_threshold), inventory_lots(lot_number, quantity_remaining, received_at, expires_at)')
+          .select('id, sku, name, is_active, status, cost, retail_price, wholesale_price, packaging_info, inventory(available, reserved, damaged, sample, wholesale, promotional, returned, recalled, low_stock_threshold), inventory_lots(lot_number, quantity_remaining, received_at, expires_at)')
           .order('name', { ascending: true });
         if (error) throw error;
 
@@ -6309,7 +6544,8 @@
           if (isLow) lowStockCount++;
           const bucketBadges = ['available', 'reserved', 'damaged', 'sample', 'wholesale', 'promotional', 'returned']
             .map(b => `<span class="badge" style="margin-right:4px;">${esc(INVENTORY_BUCKET_LABELS[b])}: ${Number(inv[b] || 0)}</span>`)
-            .join('');
+            .join('') + (Number(inv.recalled || 0) > 0
+              ? `<span class="badge sev-high" style="margin-right:4px;">${esc(INVENTORY_BUCKET_LABELS.recalled)}: ${Number(inv.recalled)}</span>` : '');
           const lotsOnHand = (p.inventory_lots || [])
             .filter(l => Number(l.quantity_remaining) > 0)
             .sort((a, b) => new Date(a.received_at) - new Date(b.received_at)); // oldest first, for using stock in order
