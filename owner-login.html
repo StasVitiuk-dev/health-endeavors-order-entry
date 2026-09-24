@@ -1372,6 +1372,37 @@
         <div id="poWrap"><p class="empty">Loading…</p></div>
       </section>
 
+      <!-- Quality Control -->
+      <section class="panel" id="qualityControlPanel">
+        <h2>Quality Control</h2>
+        <p class="hint">Log any inspection, defect or complaint — tie it to a specific batch when you can. A failed check that isn't resolved shows up in Needs Your Attention, and anything serious can be escalated straight into an Incident.</p>
+        <div class="statRow" id="qcStats"></div>
+        <form class="reminderForm" id="addQcForm">
+          <select id="qcType" required>
+            <option value="incoming_inspection">Incoming inspection</option>
+            <option value="packaging_defect">Packaging defect</option>
+            <option value="customer_complaint">Customer complaint</option>
+            <option value="manufacturing_issue">Manufacturing issue</option>
+            <option value="other">Other</option>
+          </select>
+          <select id="qcResult">
+            <option value="pending">Pending</option>
+            <option value="pass">Pass</option>
+            <option value="fail">Fail</option>
+          </select>
+          <select id="qcSeverity">
+            <option value="low">Low</option>
+            <option value="normal" selected>Normal</option>
+            <option value="high">High</option>
+            <option value="critical">Critical</option>
+          </select>
+          <select id="qcTarget"><option value="">Not tied to a specific product</option></select>
+          <input type="text" id="qcDescription" placeholder="What did you find?" required class="grow">
+          <button type="submit" class="small">Log check</button>
+        </form>
+        <div id="qcWrap"><p class="empty">Loading…</p></div>
+      </section>
+
       <!-- Procedures (SOPs) -->
       <section class="panel" id="sopsPanel">
         <h2>Procedures (SOPs)</h2>
@@ -1774,6 +1805,7 @@
         { id: 'returnsPanel', label: 'Returns' },
         { id: 'suppliersPanel', label: 'Suppliers' },
         { id: 'purchaseOrdersPanel', label: 'Purchase Orders' },
+        { id: 'qualityControlPanel', label: 'Quality Control' },
       ]},
       { label: 'Finance', color: '#2f7d4f', pages: [
         { id: 'expensesPanel', label: 'Expenses' },
@@ -1832,6 +1864,7 @@
       legalHoldsPanel:     '<rect x="3.4" y="7" width="9.2" height="6.4" rx="2"/><path d="M5.8 7V5.4a2.2 2.2 0 0 1 4.4 0V7"/>',
       suppliersPanel:      '<path d="M2.4 6.2h11.2v7a1.2 1.2 0 0 1-1.2 1.2H3.6a1.2 1.2 0 0 1-1.2-1.2Z"/><path d="M2 3.2h12v3H2Z"/><path d="M6.6 9.4h2.8"/>',
       purchaseOrdersPanel: '<path d="M4.2 2.2h5l2.8 2.8v8.8H4.2Z"/><path d="M9 2.2V5h2.9"/><path d="M6.2 8.4h3.6M6.2 10.8h2.4"/>',
+      qualityControlPanel: '<rect x="3.4" y="2.6" width="9.2" height="11.2" rx="1.4"/><path d="M6 2.6V2a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v.6"/><path d="m5.8 8.4 1.5 1.5 3-3.4"/>',
     };
     const FALLBACK_ICON = '<circle cx="8" cy="8" r="2.4"/>';
     function pageIconSvg(pageId){
@@ -1853,7 +1886,7 @@
       orders: [], tasks: [], incidents: [], approvals: [], sops: [],
       featureRequests: [], evidence: [], adverseEvents: [], legalHolds: [],
       attention: [], expenses: [], inventory: [], returns: [], people: [],
-      suppliers: [], purchaseOrders: [],
+      suppliers: [], purchaseOrders: [], qualityChecks: [],
     };
 
     // Business Rules: each row's `config` is a small jsonb object whose one
@@ -2052,6 +2085,13 @@
         const sup = (p.suppliers && p.suppliers.name) || '';
         if (hit([p.po_number, sup, p.status, p.notes])) {
           results.push({ pageId: 'purchaseOrdersPanel', type: 'Purchase Order', label: p.po_number + ' — ' + sup });
+        }
+      });
+      (SEARCH_INDEX.qualityChecks || []).forEach(qc => {
+        const prod = (qc.products && qc.products.name) || '';
+        const lot = (qc.inventory_lots && qc.inventory_lots.lot_number) || '';
+        if (hit([qc.check_type, qc.result, qc.severity, qc.description, prod, lot])) {
+          results.push({ pageId: 'qualityControlPanel', type: 'Quality Check', label: `${QC_TYPE_LABELS[qc.check_type] || qc.check_type} — ${prod || 'Unlinked'}` });
         }
       });
       (SEARCH_INDEX.returns || []).forEach(r => {
@@ -2319,6 +2359,7 @@
       returnsPanel: [loadReturns],
       suppliersPanel: [loadSuppliers],
       purchaseOrdersPanel: [loadPurchaseOrders],
+      qualityControlPanel: [loadQualityChecks],
       expensesPanel: [loadExpenses, loadDeletedExpenses],
       accountingPanel: [loadAccounting],
       tasksPanel: [loadTasks],
@@ -2409,6 +2450,9 @@
       { id:'lots', page:'inventoryPanel', title:'Batch and lot tracking',
         keys:'lot batch number tracking expire expiry recall production run trace',
         body:'When you receive a delivery, you can give each catalogue line a lot number \u2014 whatever your manufacturer prints on that batch. Leave it blank if they don\u2019t give you one.|Receiving the same lot number again for the same product just adds to it, so a delivery that arrives in two shipments still counts as one batch.|The Inventory page shows every lot still on hand for a product, oldest first \u2014 sell or ship the oldest one first. If this ever needs a recall, you know exactly how much of that batch exists and which delivery it came from.|Tracing a lot all the way to a specific customer order needs your Shopify orders connected, which comes later \u2014 today this covers the receiving and on-hand side.' },
+      { id:'quality', page:'qualityControlPanel', title:'Quality Control',
+        keys:'quality control check inspection defect complaint fail pass escalate incident test',
+        body:'Log any inspection, defect or complaint here \u2014 tie it to a specific lot when you can, or to a product generally, or leave it unlinked entirely.|A check that fails and hasn\u2019t been marked resolved shows up in Needs Your Attention automatically.|If something is serious enough to need a real investigation, press Escalate to Incident \u2014 it opens an Incident with the same severity and a sensible category already filled in, and links back to the check that started it.' },
       { id:'legal', page:'legalHoldsPanel', title:'Legal holds',
         keys:'legal hold preserve evidence dispute retention delete',
         body:'A legal hold marks records that must be preserved — during a dispute, a claim, or an investigation. While a hold is active, routine clean-up must leave those records alone.|Releasing a hold is recorded in the activity log, with who released it and when.' },
@@ -3097,6 +3141,7 @@
       returnsPanel: 'returns',
       suppliersPanel: 'suppliers',
       purchaseOrdersPanel: 'purchase_orders',
+      qualityControlPanel: 'quality_checks',
       expensesPanel: 'expenses',
       approvalsPanel: 'approval_requests',
       sopsPanel: 'sop_documents',
@@ -3284,6 +3329,7 @@
       manual: 'Reminder',
       alert: 'Alert',
       purchase_order: 'Delivery',
+      quality_check: 'Quality check',
     };
 
     function renderAttention(rows){
@@ -3639,6 +3685,21 @@
       received: 'Received', cancelled: 'Cancelled',
     };
     const PAYMENT_LABELS = { unpaid: 'Unpaid', partial: 'Part paid', paid: 'Paid' };
+    const QC_TYPE_LABELS = {
+      incoming_inspection: 'Incoming inspection', packaging_defect: 'Packaging defect',
+      customer_complaint: 'Customer complaint', manufacturing_issue: 'Manufacturing issue', other: 'Other',
+    };
+    const QC_RESULT_LABELS = { pending: 'Pending', pass: 'Pass', fail: 'Fail' };
+    const QC_SEVERITY_LABELS = { low: 'Low', normal: 'Normal', high: 'High', critical: 'Critical' };
+    // A failed check's type suggests which Incident category fits, but a
+    // critical severity always points at product safety regardless of type —
+    // that's the one case worth overriding the type-based guess.
+    function qcIncidentCategory(qc){
+      if (qc.severity === 'critical') return 'product_safety';
+      if (qc.check_type === 'customer_complaint') return 'customer_complaint';
+      if (qc.check_type === 'other') return 'other';
+      return 'manufacturing';
+    }
     let PO_OPEN_ID = null;
     let PO_PRODUCTS = [];
     let PO_LOTS = {}; // key: `${purchase_order_id}::${product_id}` -> array of {lot_number, quantity_received}
@@ -4121,6 +4182,162 @@
         loadPurchaseOrders();
       } catch (err) {
         showDashError('Could not create that purchase order: ' + (err && err.message ? err.message : err));
+      } finally { btn.disabled = false; }
+    });
+
+    // ---------- Quality Control ----------
+    let QC_LOTS = []; // flattened {id, lot_number, product_id} across all products, for the target dropdown
+
+    async function loadQualityChecks(){
+      try {
+        const [{ data: checks, error }, { data: products }, { data: lots }] = await Promise.all([
+          supabase.from('quality_checks')
+            .select('id, check_type, result, severity, description, resolution, incident_id, created_at, product_id, lot_id, products(name, sku), inventory_lots(lot_number), incidents(incident_number, status)')
+            .order('created_at', { ascending: false }),
+          supabase.from('products').select('id, name, sku').order('name', { ascending: true }),
+          supabase.from('inventory_lots').select('id, lot_number, product_id').order('received_at', { ascending: false }),
+        ]);
+        if (error) throw error;
+        const rows = checks || [];
+        SEARCH_INDEX.qualityChecks = rows;
+        QC_LOTS = lots || [];
+
+        const failedOpen = rows.filter(c => c.result === 'fail' && !c.resolution).length;
+        document.getElementById('qcStats').innerHTML = `
+          <div class="stat"><div class="num">${rows.length}</div><div class="lbl">Checks logged</div></div>
+          <div class="stat"><div class="num">${failedOpen}</div><div class="lbl">Failed, unresolved</div></div>`;
+
+        // Target dropdown: each product groups its own lots, plus a
+        // "general" option for a check that isn't tied to one specific batch.
+        const targetSel = document.getElementById('qcTarget');
+        const keep = targetSel.value;
+        targetSel.innerHTML = '<option value="">Not tied to a specific product</option>' +
+          (products || []).map(p => {
+            const lotOpts = QC_LOTS.filter(l => l.product_id === p.id)
+              .map(l => `<option value="lot:${esc(l.id)}">Lot ${esc(l.lot_number)}</option>`).join('');
+            return `<optgroup label="${esc(p.name)}${p.sku ? ' (' + esc(p.sku) + ')' : ''}">
+              <option value="product:${esc(p.id)}">General (no specific batch)</option>
+              ${lotOpts}
+            </optgroup>`;
+          }).join('');
+        targetSel.value = keep;
+
+        document.getElementById('qcWrap').innerHTML = rows.length ? rows.map(c => {
+          const prod = (c.products && c.products.name) || 'Unlinked';
+          const lot = (c.inventory_lots && c.inventory_lots.lot_number) || null;
+          const resultClass = c.result === 'fail' ? 'sev-high' : (c.result === 'pass' ? 'sev-low' : '');
+          const incident = c.incidents;
+          return `
+            <div class="deletedRow" data-id="${esc(c.id)}" style="align-items:flex-start;">
+              <div class="info" style="flex:1;">
+                <b>${esc(QC_TYPE_LABELS[c.check_type] || c.check_type)}</b>
+                <span class="badge ${resultClass}">${esc(QC_RESULT_LABELS[c.result] || c.result)}</span>
+                <span class="badge">${esc(QC_SEVERITY_LABELS[c.severity] || c.severity)}</span>
+                <span style="color:#8a9694;font-size:12px;">${esc(prod)}${lot ? ' · lot ' + esc(lot) : ''} · ${esc(fmtDate(c.created_at))}</span>
+                <div style="margin-top:6px;">${esc(c.description)}</div>
+                ${c.resolution ? `<div style="margin-top:6px;color:#4d7c6a;"><b>Resolved:</b> ${esc(c.resolution)}</div>` : ''}
+                ${incident ? `<div style="margin-top:6px;"><span class="badge">Incident ${esc(incident.incident_number || '')} — ${esc(incident.status)}</span></div>` : ''}
+                ${!c.resolution ? `
+                  <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                    <input type="text" class="qcResolutionInput" placeholder="Resolution notes" style="flex:1;min-width:160px;padding:6px 9px;border-radius:6px;border:1px solid #cfd8d6;font-family:inherit;font-size:13px;">
+                    <button type="button" class="small secondary qcResolveBtn">Mark resolved</button>
+                    ${c.result === 'fail' && !c.incident_id ? '<button type="button" class="small deny qcEscalateBtn">Escalate to Incident</button>' : ''}
+                  </div>` : ''}
+              </div>
+            </div>`;
+        }).join('') : '<p class="empty">No quality checks logged yet.</p>';
+
+        document.querySelectorAll('.qcResolveBtn').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const row = btn.closest('[data-id]');
+            const id = row.getAttribute('data-id');
+            const note = row.querySelector('.qcResolutionInput').value.trim() || 'Resolved.';
+            btn.disabled = true;
+            try {
+              const { error } = await supabase.from('quality_checks')
+                .update({ resolution: note, updated_at: new Date().toISOString() }).eq('id', id);
+              if (error) throw error;
+              toastOk('Marked resolved.');
+              loadQualityChecks();
+              safeRun(loadAttention);
+            } catch (err) {
+              btn.disabled = false;
+              showDashError('Could not resolve that: ' + (err && err.message ? err.message : err));
+            }
+          });
+        });
+
+        document.querySelectorAll('.qcEscalateBtn').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const row = btn.closest('[data-id]');
+            const id = row.getAttribute('data-id');
+            const check = rows.find(c => c.id === id);
+            if (!check) return;
+            btn.disabled = true;
+            try {
+              const uid = await currentUserId();
+              const prod = (check.products && check.products.name) || 'Unlinked product';
+              const { data: incident, error: incErr } = await supabase.from('incidents').insert({
+                category: qcIncidentCategory(check),
+                severity: check.severity,
+                status: 'open',
+                title: (QC_TYPE_LABELS[check.check_type] || check.check_type) + ' — ' + prod,
+                description: check.description,
+                requires_approval: false,
+                created_by: uid,
+              }).select('id').single();
+              if (incErr) throw incErr;
+              const { error: qcErr } = await supabase.from('quality_checks')
+                .update({ incident_id: incident.id, updated_at: new Date().toISOString() }).eq('id', id);
+              if (qcErr) throw qcErr;
+              toastOk('Escalated to Incidents.');
+              loadQualityChecks();
+              safeRun(loadIncidents);
+            } catch (err) {
+              btn.disabled = false;
+              showDashError('Could not escalate that: ' + (err && err.message ? err.message : err));
+            }
+          });
+        });
+      } catch (err) {
+        document.getElementById('qcWrap').innerHTML = '';
+        showDashError('Could not load quality checks: ' + (err && err.message ? err.message : err));
+      }
+    }
+
+    document.getElementById('addQcForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = e.target.querySelector('button[type=submit]');
+      const description = document.getElementById('qcDescription').value.trim();
+      if (!description) { toast('Say what you found first.'); return; }
+      const target = document.getElementById('qcTarget').value;
+      let productId = null, lotId = null;
+      if (target.startsWith('lot:')) {
+        lotId = target.slice(4);
+        const lot = QC_LOTS.find(l => l.id === lotId);
+        productId = lot ? lot.product_id : null;
+      } else if (target.startsWith('product:')) {
+        productId = target.slice(8);
+      }
+      btn.disabled = true;
+      try {
+        const uid = await currentUserId();
+        const { error } = await supabase.from('quality_checks').insert({
+          check_type: document.getElementById('qcType').value,
+          result: document.getElementById('qcResult').value,
+          severity: document.getElementById('qcSeverity').value,
+          product_id: productId,
+          lot_id: lotId,
+          description: description,
+          created_by: uid,
+        });
+        if (error) throw error;
+        document.getElementById('qcDescription').value = '';
+        toastOk('Quality check logged.');
+        loadQualityChecks();
+        safeRun(loadAttention);
+      } catch (err) {
+        showDashError('Could not log that check: ' + (err && err.message ? err.message : err));
       } finally { btn.disabled = false; }
     });
 
