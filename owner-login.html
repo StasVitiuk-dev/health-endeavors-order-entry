@@ -1009,8 +1009,23 @@
       <!-- Inventory (manual stock tracking, per product) -->
       <section class="panel" id="inventoryPanel">
         <h2>Inventory</h2>
-        <p class="hint">Tracks how much stock you have of each product, split into Available, Reserved, Damaged, Sample, Wholesale, Promotional, and Returned. Nothing updates automatically yet — adjust counts by hand below, same as Expenses. Every change is logged with who made it, when, and why.</p>
+        <p class="hint">Your product catalogue and how much of each you hold, split into Available, Reserved, Damaged, Sample, Wholesale, Promotional and Returned. Add a product before you can order or stock it — receiving a purchase order and restocking a return both find products by SKU, so give everything a SKU and use the same one in Shopify. Every change is logged with who made it, when and why.</p>
         <div class="statRow" id="inventoryStats"></div>
+
+        <form class="reminderForm" id="addProductForm" style="margin-top:14px;">
+          <input type="text" id="prodName" placeholder="Product name" required>
+          <input type="text" id="prodSku" placeholder="SKU (e.g. HE-COCOA-8OZ)">
+          <select id="prodStatus">
+            <option value="draft">Draft</option>
+            <option value="active">Active</option>
+            <option value="discontinued">Discontinued</option>
+          </select>
+          <input type="number" id="prodCost" placeholder="Cost" step="0.01" min="0" style="flex:0 1 110px;">
+          <input type="number" id="prodRetail" placeholder="Retail price" step="0.01" min="0" style="flex:0 1 130px;">
+          <input type="number" id="prodWholesale" placeholder="Wholesale" step="0.01" min="0" style="flex:0 1 130px;">
+          <input type="text" id="prodPackaging" placeholder="Packaging (optional)">
+          <button type="submit" class="small">Add product</button>
+        </form>
 
         <form id="adjustInventoryForm" style="display:flex;flex-direction:column;gap:8px;margin-top:14px;padding-top:16px;border-top:1px solid var(--line);">
           <h3 style="font-size:13px;color:var(--navy);margin:0 0 2px;">Adjust stock</h3>
@@ -2367,6 +2382,9 @@
       { id:'gestures', page:'attentionPanel', title:'Using it on your iPhone',
         keys:'iphone ipad phone mobile swipe pull refresh gesture touch home screen install app',
         body:'Pull down on any page to refresh it. Swipe left or right to move to the next or previous page.|Tap a row to inspect it — Space is for the Mac, tapping does the same thing on a phone.|To install it properly: open the dashboard in Safari, tap Share, then Add to Home Screen. It gets its own icon and opens full-screen with no address bar.' },
+      { id:'products', page:'inventoryPanel', title:'Adding a product to your catalogue',
+        keys:'product add catalogue sku price cost new item create lotion',
+        body:'Everything starts here. A purchase order can only put stock away against a product that exists, a return can only be restocked against one, and inventory counts only what is in the catalogue.|Add one on the Inventory page: a name is all that is required, but give it a SKU \u2014 a short code you invent, like HE-COCOA-8OZ. **Use exactly the same SKU in Shopify.** Deliveries and returns both find products by SKU, so a mismatch means they silently fail to update your stock.|SKUs must be unique and are treated the same whether you type them in capitals or not.|Status can be draft while you are still setting up, then active once you are selling it. Cost, retail and wholesale prices are optional and can be filled in later.' },
       { id:'purchasing', page:'purchaseOrdersPanel', title:'Ordering stock and receiving deliveries',
         keys:'purchase order supplier manufacturer stock receive delivery buy ordering po restock cost',
         body:'Add whoever you buy from on the Suppliers page first — manufacturer, packaging, lab, freight. Purchase orders are raised against them.|Create a draft purchase order, then add what you\u2019re buying line by line. A line can point at a product in your catalogue, or be free text for things like bottles, labels and raw materials that aren\u2019t products.|Move it through Ordered and Shipped as it progresses. When the delivery turns up, press Receive delivery: every line linked to a catalogue product is added to Inventory automatically, and the whole cost \u2014 items, shipping and tax \u2014 is written into Expenses under the category you chose. That keeps Accounting right without entering anything twice.|Lines that aren\u2019t catalogue products are still costed; they just can\u2019t be stocked, and the system tells you when that happens.|Receiving also works out the **true cost** of each unit by sharing shipping and tax across the lines in proportion to their value. That is the figure to set your prices against \u2014 the raw unit cost flatters your margin.|Track deposits and balances with the Payment setting on each order. If a delivery passes its expected date and hasn\u2019t arrived, it appears in Needs Your Attention, and turns high priority after a week.' },
@@ -3538,6 +3556,52 @@
       if (e.key === 'Enter' && rowCursorEl) { e.preventDefault(); openRowCursor(); return; }
     });
 
+
+
+    // ---- Adding products ----
+    // Nothing else works without this: purchase orders stock products, returns
+    // restock products, and inventory counts products. Until now the dashboard
+    // could only read the catalogue, never add to it.
+    document.getElementById('addProductForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = e.target.querySelector('button[type=submit]');
+      const name = document.getElementById('prodName').value.trim();
+      const sku = document.getElementById('prodSku').value.trim();
+      if (!name) return;
+      btn.disabled = true;
+      try {
+        const uid = await currentUserId();
+        const num = (id) => {
+          const v = document.getElementById(id).value;
+          return v === '' ? null : Number(v);
+        };
+        const { error } = await supabase.from('products').insert({
+          name: name,
+          sku: sku || null,
+          status: document.getElementById('prodStatus').value,
+          cost: num('prodCost'),
+          retail_price: num('prodRetail'),
+          wholesale_price: num('prodWholesale'),
+          packaging_info: document.getElementById('prodPackaging').value.trim() || null,
+          created_by: uid,
+        });
+        if (error) {
+          // The unique index on sku is case-insensitive, so say so plainly
+          if (String(error.message || '').includes('products_sku_unique')) {
+            showDashError('A product already uses the SKU "' + sku + '". SKUs have to be unique, because returns and deliveries find products by them.');
+            return;
+          }
+          throw error;
+        }
+        ['prodName','prodSku','prodCost','prodRetail','prodWholesale','prodPackaging']
+          .forEach(id => document.getElementById(id).value = '');
+        toastOk('Product added.');
+        loadInventory();
+        safeRun(loadPurchaseOrders);
+      } catch (err) {
+        showDashError('Could not add that product: ' + (err && err.message ? err.message : err));
+      } finally { btn.disabled = false; }
+    });
 
     // ---------- Suppliers & Purchase Orders ----------
     // A purchase order is what you've ordered from a supplier. Its lines can
