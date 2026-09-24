@@ -4227,17 +4227,24 @@
 
     async function loadQualityChecks(){
       try {
-        const [{ data: checks, error }, { data: products }, { data: lots }] = await Promise.all([
+        const [{ data: checks, error }, { data: products }, { data: lots }, { data: activeRecalls }] = await Promise.all([
           supabase.from('quality_checks')
             .select('id, check_type, result, severity, description, resolution, incident_id, created_at, product_id, lot_id, products(name, sku), inventory_lots(lot_number), incidents(incident_number, status)')
             .order('created_at', { ascending: false }),
           supabase.from('products').select('id, name, sku').order('name', { ascending: true }),
           supabase.from('inventory_lots').select('id, lot_number, product_id').order('received_at', { ascending: false }),
+          supabase.from('recalls').select('lot_id, product_id').neq('status', 'resolved'),
         ]);
         if (error) throw error;
         const rows = checks || [];
         SEARCH_INDEX.qualityChecks = rows;
         QC_LOTS = lots || [];
+
+        // Cross-link with Recalls: a lot (or, failing that, a whole product)
+        // that already has an active recall gets flagged here too, so nobody
+        // reviewing a quality check misses that it's already being pulled.
+        const recalledLots = new Set((activeRecalls || []).filter(r => r.lot_id).map(r => r.lot_id));
+        const recalledProducts = new Set((activeRecalls || []).filter(r => !r.lot_id && r.product_id).map(r => r.product_id));
 
         const failedOpen = rows.filter(c => c.result === 'fail' && !c.resolution).length;
         document.getElementById('qcStats').innerHTML = `
@@ -4264,6 +4271,7 @@
           const lot = (c.inventory_lots && c.inventory_lots.lot_number) || null;
           const resultClass = c.result === 'fail' ? 'sev-high' : (c.result === 'pass' ? 'sev-low' : '');
           const incident = c.incidents;
+          const alsoRecalled = (c.lot_id && recalledLots.has(c.lot_id)) || (!c.lot_id && c.product_id && recalledProducts.has(c.product_id));
           return `
             <div class="deletedRow" data-id="${esc(c.id)}" style="align-items:flex-start;">
               <div class="info" style="flex:1;">
@@ -4274,6 +4282,7 @@
                 <div style="margin-top:6px;">${esc(c.description)}</div>
                 ${c.resolution ? `<div style="margin-top:6px;color:#4d7c6a;"><b>Resolved:</b> ${esc(c.resolution)}</div>` : ''}
                 ${incident ? `<div style="margin-top:6px;"><span class="badge">Incident ${esc(incident.incident_number || '')} — ${esc(incident.status)}</span></div>` : ''}
+                ${alsoRecalled ? `<div style="margin-top:6px;"><span class="badge sev-high">This batch also has an active recall</span> <a href="#" class="qcViewRecallLink" style="font-size:12px;">View in Recalls →</a></div>` : ''}
                 ${!c.resolution ? `
                   <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
                     <input type="text" class="qcResolutionInput" placeholder="Resolution notes" style="flex:1;min-width:160px;padding:6px 9px;border-radius:6px;border:1px solid #cfd8d6;font-family:inherit;font-size:13px;">
@@ -4283,6 +4292,10 @@
               </div>
             </div>`;
         }).join('') : '<p class="empty">No quality checks logged yet.</p>';
+
+        document.querySelectorAll('.qcViewRecallLink').forEach(link => {
+          link.addEventListener('click', (e) => { e.preventDefault(); showPage('recallsPanel'); });
+        });
 
         document.querySelectorAll('.qcResolveBtn').forEach(btn => {
           btn.addEventListener('click', async () => {
@@ -4381,17 +4394,24 @@
     // ---------- Recalls ----------
     async function loadRecalls(){
       try {
-        const [{ data: recalls, error }, { data: lots }] = await Promise.all([
+        const [{ data: recalls, error }, { data: lots }, { data: failedChecks }] = await Promise.all([
           supabase.from('recalls')
             .select('id, reason, severity, status, quantity_quarantined, resolution, resolved_at, incident_id, created_at, lot_id, product_id, products(name, sku), inventory_lots(lot_number), incidents(incident_number, status)')
             .order('created_at', { ascending: false }),
           supabase.from('inventory_lots')
             .select('id, lot_number, product_id, quantity_remaining, products(name, sku)')
             .order('received_at', { ascending: false }),
+          supabase.from('quality_checks').select('lot_id, product_id').eq('result', 'fail').is('resolution', null),
         ]);
         if (error) throw error;
         const rows = recalls || [];
         SEARCH_INDEX.recalls = rows;
+
+        // Cross-link with Quality Control: flag when this same lot (or
+        // product, if the recall isn't tied to one lot) also has an
+        // unresolved failed check sitting on the other page.
+        const failedLots = new Set((failedChecks || []).filter(c => c.lot_id).map(c => c.lot_id));
+        const failedProducts = new Set((failedChecks || []).filter(c => !c.lot_id && c.product_id).map(c => c.product_id));
 
         const active = rows.filter(r => r.status !== 'resolved');
         const quarantinedUnits = rows.reduce((s, r) => s + (r.status !== 'initiated' ? Number(r.quantity_quarantined || 0) : 0), 0);
@@ -4412,6 +4432,7 @@
           const lot = (r.inventory_lots && r.inventory_lots.lot_number) || '?';
           const incident = r.incidents;
           const statusClass = r.status === 'resolved' ? 'sev-low' : 'sev-high';
+          const alsoFailedQc = (r.lot_id && failedLots.has(r.lot_id)) || (!r.lot_id && r.product_id && failedProducts.has(r.product_id));
           return `
             <div class="deletedRow" data-id="${esc(r.id)}" data-lot="${esc(r.lot_id)}" style="align-items:flex-start;">
               <div class="info" style="flex:1;">
@@ -4423,6 +4444,7 @@
                 ${r.quantity_quarantined != null ? `<div style="margin-top:6px;">${Number(r.quantity_quarantined)} units pulled from Available into Recalled.</div>` : ''}
                 ${r.resolution ? `<div style="margin-top:6px;color:#4d7c6a;"><b>Resolved:</b> ${esc(r.resolution)}</div>` : ''}
                 ${incident ? `<div style="margin-top:6px;"><span class="badge">Incident ${esc(incident.incident_number || '')} — ${esc(incident.status)}</span></div>` : ''}
+                ${alsoFailedQc ? `<div style="margin-top:6px;"><span class="badge sev-high">This batch also has a failed quality check</span> <a href="#" class="recallViewQcLink" style="font-size:12px;">View in Quality Control →</a></div>` : ''}
                 ${r.status !== 'resolved' ? `
                   <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
                     ${r.status === 'initiated' ? '<button type="button" class="small deny recallQuarantineBtn">Quarantine stock</button>' : ''}
@@ -4433,6 +4455,10 @@
               </div>
             </div>`;
         }).join('') : '<p class="empty">No recalls — hopefully it stays that way.</p>';
+
+        document.querySelectorAll('.recallViewQcLink').forEach(link => {
+          link.addEventListener('click', (e) => { e.preventDefault(); showPage('qualityControlPanel'); });
+        });
 
         document.querySelectorAll('.recallQuarantineBtn').forEach(btn => {
           btn.addEventListener('click', async () => {
