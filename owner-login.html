@@ -1223,7 +1223,18 @@
       <!-- AI Activity -->
       <section class="panel" id="aiPanel">
         <h2>AI Agent Activity</h2>
-        <p class="hint">Every decision an AI agent has logged, most recent first.</p>
+        <p class="hint">What each of your 9 agents is allowed to do, what it's actually done, and what it's spent — all in one place.</p>
+
+        <h3 style="margin:18px 0 6px;font-size:15px;">Agent registry — what each one can touch, and what it can't do alone</h3>
+        <p class="hint" style="margin-top:0;">Of these 9, only Agent #7 (Customer Service) calls a paid AI model at all — the rest are rule-based checks with no AI model involved, so there's nothing for them to "get wrong" the way an AI reply could.</p>
+        <div id="agentRegistryWrap"><p class="empty">Loading…</p></div>
+
+        <h3 style="margin:22px 0 6px;font-size:15px;">Live AI spending &amp; model settings</h3>
+        <p class="hint" style="margin-top:0;">Pulled straight from the database, not typed in by hand — so this can never quietly go stale if a model or a limit is ever changed.</p>
+        <div class="statRow" id="aiSpendStats"></div>
+        <div id="aiModelConfigWrap"></div>
+
+        <h3 style="margin:22px 0 6px;font-size:15px;">Recent activity log</h3>
         <div class="statRow" id="aiStats"></div>
         <div id="aiTableWrap"><p class="empty">Loading…</p></div>
       </section>
@@ -5059,14 +5070,106 @@
       }
     }
 
+    // The permanent, honest record of what each agent is built to do and what
+    // it's NOT allowed to do alone — the "AI permission audit" the blueprint
+    // asks for (item #22). Hand-written, not pulled from a table: this
+    // describes the system's own design, not data that changes at runtime,
+    // so it lives here the same way QC_TYPE_LABELS etc. do. Whenever an
+    // agent's actual behavior changes, this list should be updated to match.
+    const AGENT_REGISTRY = [
+      { num: 1, name: 'Invoice Agent', ai: false, status: 'Live now — runs automatically the moment an order is created',
+        desc: 'Generates, re-syncs, and voids invoices whenever an order is created or changes.',
+        touches: ['orders (read)', 'invoices (write)'],
+        limit: 'Fully automatic. Only ever creates paperwork — never touches money or sends anything.' },
+      { num: 2, name: 'Order Intake Agent', ai: false, status: 'Built — waiting on GitHub Actions minutes (resets Oct 1, 2026)',
+        desc: 'Flags missing info, financial mismatches, bad addresses, and duplicate order numbers.',
+        touches: ['orders (read)', 'tasks (write)'],
+        limit: 'Fully automatic. Only opens a task for you to look at — never edits or cancels an order itself.' },
+      { num: 3, name: 'Order Monitoring Agent', ai: false, status: 'Built — waiting on GitHub Actions minutes (resets Oct 1, 2026)',
+        desc: 'Flags large refunds/cancellations, Shopify fraud flags, and stuck-unfulfilled orders.',
+        touches: ['orders (read)', 'approval_requests (write)', 'tasks (write)'],
+        limit: 'Never acts alone above your threshold. A refund or cancellation over the limit opens a real approval request and waits for you — it cannot approve its own request.' },
+      { num: 4, name: 'Retail/Wholesale Agent', ai: false, status: 'Built — waiting on GitHub Actions minutes (resets Oct 1, 2026)',
+        desc: 'Links or creates a customer record per order and tags it retail vs. wholesale.',
+        touches: ['orders (read)', 'customers (write)'],
+        limit: 'Fully automatic. Organizing only — no pricing, money, or communication involved.' },
+      { num: 5, name: 'Shipping/Tracking Agent', ai: false, status: 'Built — waiting on GitHub Actions minutes (resets Oct 1, 2026)',
+        desc: 'Syncs Shopify tracking and flags failed or delayed deliveries, using your own Business Rules thresholds.',
+        touches: ['shipments (read)', 'business_rules (read)', 'tasks (write)'],
+        limit: 'Fully automatic. Only opens a task — never contacts a carrier or a customer.' },
+      { num: 6, name: 'Customer Notification Agent', ai: false, status: 'Live now, but sending is switched off — dry-run only',
+        desc: 'Logs what it would email a customer for each order event (received / shipped / delivered / delayed / cancelled / refunded).',
+        touches: ['customer_notifications (write)'],
+        limit: 'Cannot actually send anything — no email service is connected yet. Right now it can only write a log entry of what it would have sent.' },
+      { num: 7, name: 'Customer Service Agent', ai: true, status: 'Built — waiting on GitHub Actions minutes (resets Oct 1, 2026)',
+        desc: "Drafts a reply to a customer question using that order's context and any procedures you've marked visible to it.",
+        touches: ['customer_inquiries (read/write)', 'orders (read)', 'sop_documents (read — opt-in per procedure only)', 'ai_decision_log (write)'],
+        limit: 'Never sends anything itself — every reply is a draft you review, edit, and copy yourself. An independent keyword check (refunds, health/safety, anger, legal threats) forces human review even if the AI itself sounded confident. Capped at $30/month in AI spending; drafting pauses for the rest of the month if that’s hit.' },
+      { num: 8, name: 'Supervisor Agent', ai: false, status: 'Built — waiting on GitHub Actions minutes (resets Oct 1, 2026)',
+        desc: 'Checks for orders missing an invoice, stalled tasks, and orders/shipments that disagree with each other.',
+        touches: ['orders (read)', 'invoices (read)', 'tasks (read/write)', 'shipments (read)', 'wholesale_inquiries (read)', 'contact_messages (read)'],
+        limit: 'Fully automatic. Only opens a task when something looks wrong — never edits the records it’s checking.' },
+      { num: 9, name: 'Accounting Agent', ai: false, status: 'Live now — dashboard-only, no scheduled job to wait on',
+        desc: 'Rolls up real order revenue and your logged expenses into a live net-profit figure.',
+        touches: ['orders (read)', 'expenses (read)'],
+        limit: 'Not really an "agent" that acts on anything — it only computes and displays. Organizes and shows only; never moves money.' },
+    ];
+
+    function renderAgentRegistry(){
+      document.getElementById('agentRegistryWrap').innerHTML = AGENT_REGISTRY.map(a => `
+        <div class="deletedRow" style="align-items:flex-start;">
+          <div class="info" style="flex:1;">
+            <b>#${a.num} — ${esc(a.name)}</b>
+            ${a.ai ? '<span class="badge sev-medium">Uses a paid AI model</span>' : '<span class="badge sev-low">Rule-based — no AI model</span>'}
+            <div style="color:#8a9694;font-size:12px;margin-top:2px;">${esc(a.status)}</div>
+            <div style="margin-top:6px;">${esc(a.desc)}</div>
+            <div style="margin-top:6px;font-size:12.5px;color:#5b6664;"><b>Touches:</b> ${a.touches.map(esc).join(', ')}</div>
+            <div style="margin-top:6px;font-size:12.5px;"><b>Can't do alone:</b> ${esc(a.limit)}</div>
+          </div>
+        </div>`).join('');
+    }
+
     async function loadAI(){
+      renderAgentRegistry();
       try {
-        const { data: logs, error } = await supabase
-          .from('ai_decision_log')
-          .select('id, agent_key, output_summary, confidence, escalated_to_human, cost_usd, created_at')
-          .order('created_at', { ascending: false })
-          .limit(50);
+        const startOfMonth = new Date();
+        startOfMonth.setUTCDate(1);
+        startOfMonth.setUTCHours(0, 0, 0, 0);
+        const SPEND_CAP = 30;
+
+        const [{ data: logs, error }, { data: monthLogs, error: monthErr }, { data: modelConfig, error: modelErr }] = await Promise.all([
+          supabase.from('ai_decision_log')
+            .select('id, agent_key, output_summary, confidence, escalated_to_human, cost_usd, created_at')
+            .order('created_at', { ascending: false })
+            .limit(50),
+          supabase.from('ai_decision_log')
+            .select('cost_usd')
+            .gte('created_at', startOfMonth.toISOString()),
+          supabase.from('ai_model_config')
+            .select('agent_name, provider, model, fallback_provider, fallback_model'),
+        ]);
         if (error) throw error;
+
+        const spendThisMonth = (monthLogs || []).reduce((s, l) => s + Number(l.cost_usd || 0), 0);
+        document.getElementById('aiSpendStats').innerHTML = `
+          <div class="stat"><div class="num">${esc(fmtMoney(spendThisMonth, 'USD'))}</div><div class="lbl">Spent this month</div></div>
+          <div class="stat"><div class="num">${esc(fmtMoney(SPEND_CAP, 'USD'))}</div><div class="lbl">Monthly cap</div></div>
+          <div class="stat"><div class="num">${esc(fmtMoney(Math.max(0, SPEND_CAP - spendThisMonth), 'USD'))}</div><div class="lbl">Remaining this month</div></div>
+        `;
+
+        if (modelErr || !modelConfig || !modelConfig.length) {
+          document.getElementById('aiModelConfigWrap').innerHTML = '<p class="empty">No AI model configured yet.</p>';
+        } else {
+          document.getElementById('aiModelConfigWrap').innerHTML = `
+            <table><thead><tr><th>Agent</th><th>Provider</th><th>Model</th><th>Fallback model</th></tr></thead>
+            <tbody>${modelConfig.map(m => `
+              <tr>
+                <td>${esc(m.agent_name || '—')}</td>
+                <td>${esc(m.provider || '—')}</td>
+                <td>${esc(m.model || '—')}</td>
+                <td>${esc(m.fallback_model || '— none set —')}</td>
+              </tr>`).join('')}</tbody></table>`;
+        }
 
         const totalCost = logs.reduce((s, l) => s + Number(l.cost_usd || 0), 0);
         const escalated = logs.filter(l => l.escalated_to_human).length;
