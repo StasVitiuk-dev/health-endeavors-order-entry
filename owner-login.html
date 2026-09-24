@@ -1259,7 +1259,7 @@
 
         <h3 style="margin:18px 0 6px;font-size:15px;">Agent registry — what each one can touch, and what it can't do alone</h3>
         <p class="hint" style="margin-top:0;">Of these 9, only Agent #7 (Customer Service) calls a paid AI model at all — the rest are rule-based checks with no AI model involved, so there's nothing for them to "get wrong" the way an AI reply could.</p>
-        <p class="hint" style="margin-top:0;">Each agent has its own On/Off switch below, separate from System Mode — so if one agent is misbehaving you can pause just that one without stopping everything else. Only the Owner or an Administrator can change these; the switch is recorded with who changed it and when. <b>Honest limit:</b> right now this records your decision and shows it here, but the agent's own code doesn't check it yet for most agents — that's being added one agent at a time, starting with whichever ones actually run today. Until an agent says "enforced" below, switching it off is a record of intent, not a guaranteed stop.</p>
+        <p class="hint" style="margin-top:0;">Each agent has its own On/Off switch below, separate from System Mode — so if one agent is misbehaving you can pause just that one without stopping everything else. Only the Owner or an Administrator can change these; the switch is recorded with who changed it and when. <b>Honest limit:</b> Agent #1 (Invoice) is fully wired up — its own code checks the switch before doing anything. The rest still just record your decision for now; their own code doesn't check it yet, and that's being added one agent at a time. Until an agent says "Switch enforced" below, switching it off is a record of intent, not a guaranteed stop.</p>
         <div id="agentRegistryWrap"><p class="empty">Loading…</p></div>
 
         <h3 style="margin:22px 0 6px;font-size:15px;">Live AI spending &amp; model settings</h3>
@@ -5146,7 +5146,7 @@
       { num: 1, name: 'Invoice Agent', ai: false, status: 'Live now — runs automatically the moment an order is created',
         desc: 'Generates, re-syncs, and voids invoices whenever an order is created or changes.',
         touches: ['orders (read)', 'invoices (write)'],
-        limit: 'Fully automatic. Only ever creates paperwork — never touches money or sends anything. Enforcement is being wired in now: once done, turning it off will stop it from creating, re-syncing, or voiding any invoice (new orders still save fine, they just won’t get invoiced until it’s back on).', enforced: false },
+        limit: 'Fully automatic. Only ever creates paperwork — never touches money or sends anything. Its pause switch is real: turning it off stops it from creating, re-syncing, or voiding any invoice — new orders still save fine, they just won’t get invoiced until it’s back on.', enforced: true },
       { num: 2, name: 'Order Intake Agent', ai: false, status: 'Built — waiting on GitHub Actions minutes (resets Oct 1, 2026)',
         desc: 'Flags missing info, financial mismatches, bad addresses, and duplicate order numbers.',
         touches: ['orders (read)', 'tasks (write)'],
