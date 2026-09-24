@@ -5044,7 +5044,7 @@
           document.getElementById('ordersTableWrap').innerHTML = '<p class="empty">No orders yet.</p>';
         } else {
           document.getElementById('ordersTableWrap').innerHTML = `
-            <table><thead><tr><th>Order #</th><th>Customer</th><th>Status</th><th>Total</th><th>Placed</th></tr></thead>
+            <table><thead><tr><th>Order #</th><th>Customer</th><th>Status</th><th>Total</th><th>Placed</th><th></th></tr></thead>
             <tbody>${recent.map(o => `
               <tr data-id="${esc(o.id)}">
                 <td>${esc(o.order_number || o.id)}</td>
@@ -5052,7 +5052,30 @@
                 <td><span class="badge">${esc(o.status || '—')}</span></td>
                 <td>${esc(fmtMoney(o.total, o.currency))}</td>
                 <td>${esc(fmtDate(o.placed_at))}</td>
+                <td><button class="small deny deleteOrderBtn">Delete</button></td>
               </tr>`).join('')}</tbody></table>`;
+          document.querySelectorAll('.deleteOrderBtn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+              const row = btn.closest('tr');
+              const id = row.getAttribute('data-id');
+              const ok = await requireReauth('delete this order');
+              if (!ok) return;
+              btn.disabled = true;
+              try {
+                // Soft delete, same as Feature Requests and Expenses: stamps
+                // deleted_at instead of removing the row, so it lands in the
+                // recycle bin below and Restore puts it right back.
+                const { error } = await supabase.from('orders')
+                  .update({ deleted_at: new Date().toISOString() }).eq('id', id);
+                if (error) throw error;
+                toast('Order moved to the recycle bin');
+                loadOrders();
+              } catch (err) {
+                btn.disabled = false;
+                showDashError('Could not delete that order: ' + (err && err.message ? err.message : err));
+              }
+            });
+          });
         }
         logCustomerAccess(recent, 'Viewed in Owner Dashboard – Orders panel');
 
@@ -5294,17 +5317,26 @@
     function renderPausedAgentsBanner(){
       const banner = document.getElementById('pausedAgentsBanner');
       if (!banner) return;
-      const pausedNames = AGENT_REGISTRY
-        .filter(a => agentControlsByNum[a.num] && agentControlsByNum[a.num].enabled === false)
-        .map(a => `#${a.num} ${a.name}`);
-      if (!pausedNames.length) {
+      const paused = AGENT_REGISTRY
+        .filter(a => agentControlsByNum[a.num] && agentControlsByNum[a.num].enabled === false);
+      if (!paused.length) {
         banner.style.display = 'none';
         return;
       }
       banner.style.display = 'block';
-      banner.textContent = pausedNames.length === 1
-        ? `Agent paused: ${pausedNames[0]} — recorded, but see AI Agent Activity for what that does and doesn't stop today.`
-        : `${pausedNames.length} agents paused: ${pausedNames.join(', ')} — see AI Agent Activity for what that does and doesn't stop today.`;
+      // Only say "genuinely paused" for the agents whose own code actually
+      // checks this switch (see AGENT_REGISTRY's enforced flag) — anything
+      // else is still just a recorded intent, not a real stop, and the
+      // banner should never claim more than is actually true.
+      if (paused.length === 1) {
+        const a = paused[0];
+        banner.textContent = a.enforced
+          ? `Agent paused: #${a.num} ${a.name} — genuinely paused, its own code checks this before doing anything.`
+          : `Agent paused: #${a.num} ${a.name} — recorded, but see AI Agent Activity for what that does and doesn't stop today.`;
+      } else {
+        const parts = paused.map(a => `#${a.num} ${a.name}${a.enforced ? '' : ' (recorded only, not yet enforced)'}`);
+        banner.textContent = `${paused.length} agents paused: ${parts.join(', ')} — see AI Agent Activity for what each one does and doesn't stop.`;
+      }
     }
 
     async function loadAI(){
