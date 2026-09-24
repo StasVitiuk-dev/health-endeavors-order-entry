@@ -865,6 +865,39 @@
     color:var(--muted); font-size:12px; pointer-events:none;
   }
   .rowCursor{ outline:2px solid var(--accent); outline-offset:1px; border-radius:8px; }
+
+  /* Suppliers + Purchase Orders */
+  .supRow{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; padding:11px 0; border-bottom:1px solid var(--line); }
+  .supRow:last-child{ border-bottom:none; }
+  .supRow.inactive{ opacity:0.5; }
+  .supRow .sName{ font-weight:600; font-size:13.5px; color:var(--ink); }
+  .supRow .sMeta{ font-size:12.5px; color:var(--muted); margin-top:2px; }
+
+  .poItem{ border-bottom:1px solid var(--line); }
+  .poItem:last-child{ border-bottom:none; }
+  .poRow{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; padding:11px 0; cursor:pointer; }
+  .poRow:hover{ background:var(--panel-2); }
+  .poNum{ font-weight:600; font-size:13.5px; color:var(--ink); }
+  .poMeta{ font-size:12.5px; color:var(--muted); margin-top:2px; }
+  .poSide{ display:flex; align-items:center; gap:9px; flex:none; }
+  .poTotal{ font-weight:600; font-size:13.5px; color:var(--ink); font-variant-numeric:tabular-nums; }
+  .poDetail{ padding:4px 0 18px; }
+  .poLineForm{ display:flex; flex-wrap:wrap; gap:7px; margin:12px 0; align-items:center; }
+  .poLineForm input, .poLineForm select{ font-size:13px; padding:7px 9px; }
+  .poLineForm .grow{ flex:1 1 180px; }
+  .poLineForm .num{ width:92px; }
+  .poTotalsRow{ display:flex; flex-wrap:wrap; gap:14px; align-items:center; margin-top:12px; font-size:13px; }
+  .poTotalsRow label{ display:flex; align-items:center; gap:7px; margin:0; font-weight:400; color:var(--muted); }
+  .poTotalsRow input{ width:100px; font-size:13px; padding:6px 9px; }
+  .poActions{ display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; padding-top:14px; border-top:1px solid var(--line); }
+  .badge.po-draft{ background:var(--panel-2); color:var(--muted); }
+  .badge.po-ordered{ background:var(--warn-bg); color:var(--warn); }
+  .badge.po-shipped{ background:var(--chip); color:var(--accent); }
+  .badge.po-received{ background:var(--good-bg); color:var(--good); }
+  .badge.po-cancelled{ background:var(--danger-bg); color:var(--danger); }
+  .badge.pay-unpaid{ background:var(--danger-bg); color:var(--danger); }
+  .badge.pay-partial{ background:var(--warn-bg); color:var(--warn); }
+  .badge.pay-paid{ background:var(--good-bg); color:var(--good); }
 </style>
 <script>
   // Applied before anything renders so there's no flash of the wrong theme.
@@ -1268,6 +1301,52 @@
         </div>
       </section>
 
+
+      <!-- Suppliers -->
+      <section class="panel" id="suppliersPanel">
+        <h2>Suppliers</h2>
+        <p class="hint">Everyone you buy from — manufacturers, labs, packaging, freight. Purchase orders are raised against these, so add a supplier before you order from them.</p>
+        <div class="statRow" id="supplierStats"></div>
+        <form class="reminderForm" id="addSupplierForm">
+          <input type="text" id="supName" placeholder="Company name" required>
+          <select id="supType">
+            <option value="manufacturer">Manufacturer</option>
+            <option value="supplier">Supplier</option>
+            <option value="packaging">Packaging</option>
+            <option value="lab">Lab</option>
+            <option value="freight">Freight</option>
+            <option value="other">Other</option>
+          </select>
+          <input type="text" id="supContact" placeholder="Contact person">
+          <input type="text" id="supEmail" placeholder="Email">
+          <input type="text" id="supPhone" placeholder="Phone">
+          <input type="text" id="supNotes" placeholder="Notes (optional)">
+          <button type="submit" class="small">Add supplier</button>
+        </form>
+        <div id="suppliersWrap"><p class="empty">Loading…</p></div>
+      </section>
+
+      <!-- Purchase Orders -->
+      <section class="panel" id="purchaseOrdersPanel">
+        <h2>Purchase Orders</h2>
+        <p class="hint">What you've ordered, what it cost, and when it's due. Open a purchase order to add the things you're buying. When the delivery arrives, marking it Received puts the stock into Inventory and records the cost as an expense — so you never type the same numbers twice.</p>
+        <div class="statRow" id="poStats"></div>
+        <form class="reminderForm" id="addPoForm">
+          <select id="poSupplier" required><option value="">Supplier…</option></select>
+          <input type="date" id="poExpected" title="Expected delivery">
+          <select id="poCategory" title="What kind of spending this is">
+            <option value="manufacturing">Manufacturing</option>
+            <option value="ingredients">Ingredients / raw materials</option>
+            <option value="packaging">Packaging</option>
+            <option value="shipping_supplies">Shipping supplies</option>
+            <option value="other">Other</option>
+          </select>
+          <input type="text" id="poNotes" placeholder="Notes (optional)">
+          <button type="submit" class="small">Create draft</button>
+        </form>
+        <div id="poWrap"><p class="empty">Loading…</p></div>
+      </section>
+
       <!-- Procedures (SOPs) -->
       <section class="panel" id="sopsPanel">
         <h2>Procedures (SOPs)</h2>
@@ -1668,6 +1747,8 @@
       { label: 'Inventory', color: '#8a6d3b', pages: [
         { id: 'inventoryPanel', label: 'Inventory' },
         { id: 'returnsPanel', label: 'Returns' },
+        { id: 'suppliersPanel', label: 'Suppliers' },
+        { id: 'purchaseOrdersPanel', label: 'Purchase Orders' },
       ]},
       { label: 'Finance', color: '#2f7d4f', pages: [
         { id: 'expensesPanel', label: 'Expenses' },
@@ -1724,6 +1805,8 @@
       sopsPanel:           '<path d="M4 2.6h6.2a1.8 1.8 0 0 1 1.8 1.8v9H5.8A1.8 1.8 0 0 1 4 11.6Z"/><path d="M6.2 5.8h3.6M6.2 8.2h3.6"/>',
       featureRequestsPanel:'<path d="M6 11.4a4 4 0 1 1 4 0v1.2H6Z"/><path d="M6.6 14h2.8"/>',
       legalHoldsPanel:     '<rect x="3.4" y="7" width="9.2" height="6.4" rx="2"/><path d="M5.8 7V5.4a2.2 2.2 0 0 1 4.4 0V7"/>',
+      suppliersPanel:      '<path d="M2.4 6.2h11.2v7a1.2 1.2 0 0 1-1.2 1.2H3.6a1.2 1.2 0 0 1-1.2-1.2Z"/><path d="M2 3.2h12v3H2Z"/><path d="M6.6 9.4h2.8"/>',
+      purchaseOrdersPanel: '<path d="M4.2 2.2h5l2.8 2.8v8.8H4.2Z"/><path d="M9 2.2V5h2.9"/><path d="M6.2 8.4h3.6M6.2 10.8h2.4"/>',
     };
     const FALLBACK_ICON = '<circle cx="8" cy="8" r="2.4"/>';
     function pageIconSvg(pageId){
@@ -1745,6 +1828,7 @@
       orders: [], tasks: [], incidents: [], approvals: [], sops: [],
       featureRequests: [], evidence: [], adverseEvents: [], legalHolds: [],
       attention: [], expenses: [], inventory: [], returns: [], people: [],
+      suppliers: [], purchaseOrders: [],
     };
 
     // Business Rules: each row's `config` is a small jsonb object whose one
@@ -1932,6 +2016,17 @@
             label: `${p.display_name || p.email} — #${fmtAccountNumber(acct)} (${ROLE_LABELS[p.role] || p.role})`,
             activitySearch: acct || p.email,
           });
+        }
+      });
+      (SEARCH_INDEX.suppliers || []).forEach(s => {
+        if (hit([s.name, s.contact_name, s.email, s.supplier_type])) {
+          results.push({ pageId: 'suppliersPanel', type: 'Supplier', label: s.name });
+        }
+      });
+      (SEARCH_INDEX.purchaseOrders || []).forEach(p => {
+        const sup = (p.suppliers && p.suppliers.name) || '';
+        if (hit([p.po_number, sup, p.status, p.notes])) {
+          results.push({ pageId: 'purchaseOrdersPanel', type: 'Purchase Order', label: p.po_number + ' — ' + sup });
         }
       });
       (SEARCH_INDEX.returns || []).forEach(r => {
@@ -2189,6 +2284,8 @@
       ordersPanel: [loadOrders],
       inventoryPanel: [loadInventory, loadInventoryAdjustments],
       returnsPanel: [loadReturns],
+      suppliersPanel: [loadSuppliers],
+      purchaseOrdersPanel: [loadPurchaseOrders],
       expensesPanel: [loadExpenses, loadDeletedExpenses],
       accountingPanel: [loadAccounting],
       tasksPanel: [loadTasks],
@@ -2270,6 +2367,9 @@
       { id:'gestures', page:'attentionPanel', title:'Using it on your iPhone',
         keys:'iphone ipad phone mobile swipe pull refresh gesture touch home screen install app',
         body:'Pull down on any page to refresh it. Swipe left or right to move to the next or previous page.|Tap a row to inspect it — Space is for the Mac, tapping does the same thing on a phone.|To install it properly: open the dashboard in Safari, tap Share, then Add to Home Screen. It gets its own icon and opens full-screen with no address bar.' },
+      { id:'purchasing', page:'purchaseOrdersPanel', title:'Ordering stock and receiving deliveries',
+        keys:'purchase order supplier manufacturer stock receive delivery buy ordering po restock cost',
+        body:'Add whoever you buy from on the Suppliers page first — manufacturer, packaging, lab, freight. Purchase orders are raised against them.|Create a draft purchase order, then add what you\u2019re buying line by line. A line can point at a product in your catalogue, or be free text for things like bottles, labels and raw materials that aren\u2019t products.|Move it through Ordered and Shipped as it progresses. When the delivery turns up, press Receive delivery: every line linked to a catalogue product is added to Inventory automatically, and the whole cost \u2014 items, shipping and tax \u2014 is written into Expenses under the category you chose. That keeps Accounting right without entering anything twice.|Lines that aren\u2019t catalogue products are still costed; they just can\u2019t be stocked, and the system tells you when that happens.|Receiving also works out the **true cost** of each unit by sharing shipping and tax across the lines in proportion to their value. That is the figure to set your prices against \u2014 the raw unit cost flatters your margin.|Track deposits and balances with the Payment setting on each order. If a delivery passes its expected date and hasn\u2019t arrived, it appears in Needs Your Attention, and turns high priority after a week.' },
       { id:'legal', page:'legalHoldsPanel', title:'Legal holds',
         keys:'legal hold preserve evidence dispute retention delete',
         body:'A legal hold marks records that must be preserved — during a dispute, a claim, or an investigation. While a hold is active, routine clean-up must leave those records alone.|Releasing a hold is recorded in the activity log, with who released it and when.' },
@@ -2956,6 +3056,8 @@
       incidentsPanel: 'incidents',
       inventoryPanel: 'products',
       returnsPanel: 'returns',
+      suppliersPanel: 'suppliers',
+      purchaseOrdersPanel: 'purchase_orders',
       expensesPanel: 'expenses',
       approvalsPanel: 'approval_requests',
       sopsPanel: 'sop_documents',
@@ -3141,6 +3243,8 @@
       incident: 'Incident',
       calendar_event: 'Calendar',
       manual: 'Reminder',
+      alert: 'Alert',
+      purchase_order: 'Delivery',
     };
 
     function renderAttention(rows){
@@ -3432,6 +3536,452 @@
       if (e.key === 'j') { e.preventDefault(); moveRowCursor(1); return; }
       if (e.key === 'k') { e.preventDefault(); moveRowCursor(-1); return; }
       if (e.key === 'Enter' && rowCursorEl) { e.preventDefault(); openRowCursor(); return; }
+    });
+
+
+    // ---------- Suppliers & Purchase Orders ----------
+    // A purchase order is what you've ordered from a supplier. Its lines can
+    // optionally point at a product in your catalogue — the ones that do are
+    // received straight into Inventory; the ones that don't (bottles, labels,
+    // raw materials) are just costed. Receiving also writes the spend into
+    // Expenses, so Accounting stays honest without double entry.
+    const SUPPLIER_TYPE_LABELS = {
+      manufacturer: 'Manufacturer', supplier: 'Supplier', packaging: 'Packaging',
+      lab: 'Lab', freight: 'Freight', other: 'Other',
+    };
+    const PO_STATUS_LABELS = {
+      draft: 'Draft', ordered: 'Ordered', shipped: 'Shipped',
+      received: 'Received', cancelled: 'Cancelled',
+    };
+    const PAYMENT_LABELS = { unpaid: 'Unpaid', partial: 'Part paid', paid: 'Paid' };
+    let PO_OPEN_ID = null;
+    let PO_PRODUCTS = [];
+
+    function poLinesTotal(po){
+      return (po.purchase_order_items || [])
+        .reduce((s, l) => s + Number(l.quantity || 0) * Number(l.unit_cost || 0), 0);
+    }
+    function poGrandTotal(po){
+      return poLinesTotal(po) + Number(po.shipping_cost || 0) + Number(po.tax || 0);
+    }
+
+    async function loadSuppliers(){
+      try {
+        const { data, error } = await supabase
+          .from('suppliers')
+          .select('id, name, supplier_type, contact_name, email, phone, notes, is_active')
+          .order('name', { ascending: true });
+        if (error) throw error;
+        const rows = data || [];
+        SEARCH_INDEX.suppliers = rows;
+
+        const active = rows.filter(s => s.is_active);
+        document.getElementById('supplierStats').innerHTML = `
+          <div class="stat"><div class="num">${active.length}</div><div class="lbl">Active suppliers</div></div>
+          <div class="stat"><div class="num">${active.filter(s => s.supplier_type === 'manufacturer').length}</div><div class="lbl">Manufacturers</div></div>`;
+
+        // keep the purchase-order dropdown in step
+        const sel = document.getElementById('poSupplier');
+        const keep = sel.value;
+        sel.innerHTML = '<option value="">Supplier…</option>' + active.map(s =>
+          `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('');
+        sel.value = keep;
+
+        document.getElementById('suppliersWrap').innerHTML = rows.length ? rows.map(s => `
+          <div class="supRow${s.is_active ? '' : ' inactive'}" data-id="${esc(s.id)}">
+            <div>
+              <div class="sName">${esc(s.name)} <span class="badge">${esc(SUPPLIER_TYPE_LABELS[s.supplier_type] || s.supplier_type)}</span></div>
+              <div class="sMeta">${[s.contact_name, s.email, s.phone].filter(Boolean).map(esc).join(' · ') || 'No contact details yet'}</div>
+              ${s.notes ? `<div class="sMeta">${esc(s.notes)}</div>` : ''}
+            </div>
+            <button type="button" class="small secondary supToggleBtn">${s.is_active ? 'Deactivate' : 'Reactivate'}</button>
+          </div>`).join('') : '<p class="empty">No suppliers yet. Add the manufacturer you\'re about to order from.</p>';
+
+        document.querySelectorAll('.supToggleBtn').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const row = btn.closest('.supRow');
+            const id = row.getAttribute('data-id');
+            const nowActive = !row.classList.contains('inactive');
+            btn.disabled = true;
+            try {
+              const { error } = await supabase.from('suppliers')
+                .update({ is_active: !nowActive, updated_at: new Date().toISOString() }).eq('id', id);
+              if (error) throw error;
+              toastOk(nowActive ? 'Supplier deactivated.' : 'Supplier reactivated.');
+              loadSuppliers();
+            } catch (err) {
+              btn.disabled = false;
+              showDashError('Could not update that supplier: ' + (err && err.message ? err.message : err));
+            }
+          });
+        });
+      } catch (err) {
+        document.getElementById('suppliersWrap').innerHTML = '';
+        showDashError('Could not load suppliers: ' + (err && err.message ? err.message : err));
+      }
+    }
+
+    document.getElementById('addSupplierForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = e.target.querySelector('button[type=submit]');
+      btn.disabled = true;
+      try {
+        const uid = await currentUserId();
+        const { error } = await supabase.from('suppliers').insert({
+          name: document.getElementById('supName').value.trim(),
+          supplier_type: document.getElementById('supType').value,
+          contact_name: document.getElementById('supContact').value.trim() || null,
+          email: document.getElementById('supEmail').value.trim() || null,
+          phone: document.getElementById('supPhone').value.trim() || null,
+          notes: document.getElementById('supNotes').value.trim() || null,
+          created_by: uid,
+        });
+        if (error) throw error;
+        ['supName','supContact','supEmail','supPhone','supNotes'].forEach(id => document.getElementById(id).value = '');
+        toastOk('Supplier added.');
+        loadSuppliers();
+      } catch (err) {
+        showDashError('Could not add that supplier: ' + (err && err.message ? err.message : err));
+      } finally { btn.disabled = false; }
+    });
+
+    async function loadPurchaseOrders(){
+      try {
+        const [{ data: pos, error }, { data: prods }] = await Promise.all([
+          supabase.from('purchase_orders')
+            .select('id, po_number, status, currency, shipping_cost, tax, expense_category, ordered_at, expected_at, received_at, payment_status, notes, suppliers(name), purchase_order_items(id, product_id, description, sku, quantity, unit_cost, quantity_received, landed_unit_cost)')
+            .is('deleted_at', null)
+            .order('created_at', { ascending: false }),
+          supabase.from('products').select('id, name, sku').order('name', { ascending: true }),
+        ]);
+        if (error) throw error;
+        const rows = pos || [];
+        PO_PRODUCTS = prods || [];
+        SEARCH_INDEX.purchaseOrders = rows;
+
+        const openPos = rows.filter(p => ['draft','ordered','shipped'].includes(p.status));
+        const outstanding = openPos.reduce((s, p) => s + poGrandTotal(p), 0);
+        document.getElementById('poStats').innerHTML = `
+          <div class="stat"><div class="num">${rows.filter(p => p.status === 'draft').length}</div><div class="lbl">Drafts</div></div>
+          <div class="stat"><div class="num">${rows.filter(p => ['ordered','shipped'].includes(p.status)).length}</div><div class="lbl">Awaiting delivery</div></div>
+          <div class="stat"><div class="num">${fmtMoney(outstanding, 'USD')}</div><div class="lbl">Value outstanding</div></div>`;
+
+        document.getElementById('poWrap').innerHTML = rows.length ? rows.map(po => {
+          const sup = (po.suppliers && po.suppliers.name) || 'Unknown supplier';
+          const lines = (po.purchase_order_items || []).length;
+          const bits = [lines + (lines === 1 ? ' line' : ' lines')];
+          if (po.expected_at) bits.push('expected ' + new Date(po.expected_at + 'T00:00:00').toLocaleDateString(undefined, { day:'numeric', month:'short' }));
+          if (po.received_at) bits.push('received ' + fmtDate(po.received_at));
+          return `
+          <div class="poItem" data-id="${esc(po.id)}">
+            <div class="poRow">
+              <div>
+                <div class="poNum">${esc(po.po_number)} · ${esc(sup)}</div>
+                <div class="poMeta">${esc(bits.join(' · '))}</div>
+              </div>
+              <div class="poSide">
+                <span class="poTotal">${fmtMoney(poGrandTotal(po), po.currency)}</span>
+                ${po.payment_status && po.payment_status !== 'paid'
+                    ? `<span class="badge pay-${esc(po.payment_status)}">${esc(PAYMENT_LABELS[po.payment_status] || po.payment_status)}</span>` : ''}
+                ${po.payment_status === 'paid' ? '<span class="badge pay-paid">Paid</span>' : ''}
+                <span class="badge po-${esc(po.status)}">${esc(PO_STATUS_LABELS[po.status] || po.status)}</span>
+              </div>
+            </div>
+            <div class="poDetail" id="poDetail_${esc(po.id)}" style="display:none;"></div>
+          </div>`;
+        }).join('') : '<p class="empty">No purchase orders yet. Add a supplier, then create a draft above.</p>';
+
+        document.querySelectorAll('#poWrap .poRow').forEach(row => {
+          row.addEventListener('click', () => {
+            const id = row.closest('.poItem').getAttribute('data-id');
+            PO_OPEN_ID = (PO_OPEN_ID === id) ? null : id;
+            renderPoDetails(rows);
+          });
+        });
+        renderPoDetails(rows);
+      } catch (err) {
+        document.getElementById('poWrap').innerHTML = '';
+        showDashError('Could not load purchase orders: ' + (err && err.message ? err.message : err));
+      }
+    }
+
+    function renderPoDetails(rows){
+      rows.forEach(po => {
+        const box = document.getElementById('poDetail_' + po.id);
+        if (!box) return;
+        if (PO_OPEN_ID !== po.id) { box.style.display = 'none'; box.innerHTML = ''; return; }
+        box.style.display = 'block';
+
+        const items = po.purchase_order_items || [];
+        const editable = po.status === 'draft' || po.status === 'ordered';
+        const linesHtml = items.length ? `
+          <table><thead><tr><th>Item</th><th>SKU</th><th>Qty</th><th>Unit cost</th><th>Line total</th><th title="Unit cost once shipping and tax are shared out">True cost</th><th></th></tr></thead>
+          <tbody>${items.map(l => `
+            <tr>
+              <td>${esc(l.description)}${l.product_id ? ' <span class="badge">catalogue</span>' : ''}</td>
+              <td>${esc(l.sku || '—')}</td>
+              <td>${Number(l.quantity)}</td>
+              <td>${fmtMoney(l.unit_cost, po.currency)}</td>
+              <td>${fmtMoney(Number(l.quantity) * Number(l.unit_cost || 0), po.currency)}</td>
+              <td>${l.landed_unit_cost != null ? fmtMoney(l.landed_unit_cost, po.currency) : '—'}</td>
+              <td>${editable ? `<button type="button" class="small secondary poDelLine" data-line="${esc(l.id)}">Remove</button>` : ''}</td>
+            </tr>`).join('')}</tbody></table>`
+          : '<p class="empty">Nothing on this order yet.</p>';
+
+        const addLine = editable ? `
+          <div class="poLineForm">
+            <select class="poLineProduct grow">
+              <option value="">Not a catalogue product…</option>
+              ${PO_PRODUCTS.map(p => `<option value="${esc(p.id)}" data-sku="${esc(p.sku || '')}" data-name="${esc(p.name)}">${esc(p.name)}${p.sku ? ' (' + esc(p.sku) + ')' : ''}</option>`).join('')}
+            </select>
+            <input type="text" class="poLineDesc grow" placeholder="What you're buying">
+            <input type="number" class="poLineQty num" placeholder="Qty" min="0.01" step="any">
+            <input type="number" class="poLineCost num" placeholder="Unit cost" min="0" step="0.01">
+            <button type="button" class="small poAddLine">Add</button>
+          </div>` : '';
+
+        const totals = `
+          <div class="poTotalsRow">
+            <span>Items ${fmtMoney(poLinesTotal(po), po.currency)}</span>
+            <label>Shipping <input type="number" class="poShipping" step="0.01" min="0" value="${Number(po.shipping_cost || 0)}" ${editable ? '' : 'disabled'}></label>
+            <label>Tax <input type="number" class="poTax" step="0.01" min="0" value="${Number(po.tax || 0)}" ${editable ? '' : 'disabled'}></label>
+            ${editable ? '<button type="button" class="small secondary poSaveTotals">Save</button>' : ''}
+            <strong style="margin-left:auto;">Total ${fmtMoney(poGrandTotal(po), po.currency)}</strong>
+          </div>`;
+
+        const payment = `
+          <div class="poTotalsRow">
+            <label>Payment
+              <select class="poPayment">
+                ${['unpaid','partial','paid'].map(v =>
+                  `<option value="${v}"${po.payment_status === v ? ' selected' : ''}>${PAYMENT_LABELS[v]}</option>`).join('')}
+              </select>
+            </label>
+            <button type="button" class="small secondary poSavePayment">Save payment</button>
+            ${po.notes ? `<span class="sMeta" style="margin-left:auto;">${esc(po.notes)}</span>` : ''}
+          </div>`;
+
+        let actions = '<div class="poActions">';
+        if (po.status === 'draft')    actions += '<button type="button" class="small poStatusBtn" data-next="ordered">Mark as ordered</button>';
+        if (po.status === 'ordered')  actions += '<button type="button" class="small poStatusBtn" data-next="shipped">Mark as shipped</button>';
+        if (po.status === 'ordered' || po.status === 'shipped') actions += '<button type="button" class="small approve poReceiveBtn">Receive delivery</button>';
+        if (po.status !== 'received' && po.status !== 'cancelled') actions += '<button type="button" class="small secondary poStatusBtn" data-next="cancelled">Cancel</button>';
+        if (po.status === 'received') actions += `<span class="sMeta">Received ${esc(fmtDate(po.received_at))} — stock added to Inventory and cost logged to Expenses.</span>`;
+        actions += '</div>';
+
+        box.innerHTML = linesHtml + addLine + totals + payment + actions;
+        wirePoDetail(po, box);
+      });
+    }
+
+    function wirePoDetail(po, box){
+      const prodSel = box.querySelector('.poLineProduct');
+      const descInput = box.querySelector('.poLineDesc');
+      if (prodSel && descInput) {
+        prodSel.addEventListener('change', () => {
+          const opt = prodSel.selectedOptions[0];
+          if (prodSel.value && opt) descInput.value = opt.getAttribute('data-name') || '';
+        });
+      }
+      const addBtn = box.querySelector('.poAddLine');
+      if (addBtn) addBtn.addEventListener('click', async () => {
+        const productId = prodSel.value || null;
+        const opt = prodSel.selectedOptions[0];
+        const description = (descInput.value || '').trim();
+        const quantity = Number(box.querySelector('.poLineQty').value);
+        const unitCost = Number(box.querySelector('.poLineCost').value || 0);
+        if (!description) { toast('Say what you\'re buying first.'); return; }
+        if (!(quantity > 0)) { toast('Quantity needs to be more than zero.'); return; }
+        addBtn.disabled = true;
+        try {
+          const { error } = await supabase.from('purchase_order_items').insert({
+            purchase_order_id: po.id,
+            product_id: productId,
+            description: description,
+            sku: productId && opt ? (opt.getAttribute('data-sku') || null) : null,
+            quantity: quantity,
+            unit_cost: unitCost,
+          });
+          if (error) throw error;
+          loadPurchaseOrders();
+        } catch (err) {
+          addBtn.disabled = false;
+          showDashError('Could not add that line: ' + (err && err.message ? err.message : err));
+        }
+      });
+
+      box.querySelectorAll('.poDelLine').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          btn.disabled = true;
+          try {
+            const { error } = await supabase.from('purchase_order_items').delete().eq('id', btn.getAttribute('data-line'));
+            if (error) throw error;
+            loadPurchaseOrders();
+          } catch (err) {
+            btn.disabled = false;
+            showDashError('Could not remove that line: ' + (err && err.message ? err.message : err));
+          }
+        });
+      });
+
+      const saveTotals = box.querySelector('.poSaveTotals');
+      if (saveTotals) saveTotals.addEventListener('click', async () => {
+        saveTotals.disabled = true;
+        try {
+          const { error } = await supabase.from('purchase_orders').update({
+            shipping_cost: Number(box.querySelector('.poShipping').value || 0),
+            tax: Number(box.querySelector('.poTax').value || 0),
+            updated_at: new Date().toISOString(),
+          }).eq('id', po.id);
+          if (error) throw error;
+          toastOk('Saved.');
+          loadPurchaseOrders();
+        } catch (err) {
+          saveTotals.disabled = false;
+          showDashError('Could not save that: ' + (err && err.message ? err.message : err));
+        }
+      });
+
+      const savePay = box.querySelector('.poSavePayment');
+      if (savePay) savePay.addEventListener('click', async () => {
+        savePay.disabled = true;
+        try {
+          const { error } = await supabase.from('purchase_orders').update({
+            payment_status: box.querySelector('.poPayment').value,
+            updated_at: new Date().toISOString(),
+          }).eq('id', po.id);
+          if (error) throw error;
+          toastOk('Payment status saved.');
+          loadPurchaseOrders();
+        } catch (err) {
+          savePay.disabled = false;
+          showDashError('Could not save that: ' + (err && err.message ? err.message : err));
+        }
+      });
+
+      box.querySelectorAll('.poStatusBtn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const next = btn.getAttribute('data-next');
+          btn.disabled = true;
+          try {
+            const patch = { status: next, updated_at: new Date().toISOString() };
+            if (next === 'ordered') patch.ordered_at = new Date().toISOString();
+            const { error } = await supabase.from('purchase_orders').update(patch).eq('id', po.id);
+            if (error) throw error;
+            toastOk('Purchase order ' + (PO_STATUS_LABELS[next] || next).toLowerCase() + '.');
+            loadPurchaseOrders();
+          } catch (err) {
+            btn.disabled = false;
+            showDashError('Could not update that order: ' + (err && err.message ? err.message : err));
+          }
+        });
+      });
+
+      const recvBtn = box.querySelector('.poReceiveBtn');
+      if (recvBtn) recvBtn.addEventListener('click', async () => {
+        recvBtn.disabled = true;
+        try {
+          const uid = await currentUserId();
+          const items = po.purchase_order_items || [];
+          let stocked = 0, skipped = 0;
+
+          // Shipping and tax are shared across the lines in proportion to what
+          // each line is worth, so every unit carries its fair share. That is
+          // the number to price against — unit_cost alone flatters the margin.
+          const itemsValue = poLinesTotal(po);
+          const extras = Number(po.shipping_cost || 0) + Number(po.tax || 0);
+          for (const line of items) {
+            const qty = Number(line.quantity || 0);
+            if (qty <= 0) continue;
+            const lineValue = qty * Number(line.unit_cost || 0);
+            const share = itemsValue > 0 ? (lineValue / itemsValue) * extras : (extras / items.length);
+            const landed = (lineValue + share) / qty;
+            const { error: costErr } = await supabase.from('purchase_order_items')
+              .update({ landed_unit_cost: Math.round(landed * 10000) / 10000 }).eq('id', line.id);
+            if (costErr) throw costErr;
+          }
+
+          for (const line of items) {
+            const outstanding = Number(line.quantity || 0) - Number(line.quantity_received || 0);
+            if (outstanding <= 0) continue;
+            if (!line.product_id) { skipped++; continue; }
+
+            const { data: inv, error: readErr } = await supabase
+              .from('inventory').select('*').eq('product_id', line.product_id).maybeSingle();
+            if (readErr) throw readErr;
+            const newValue = Number((inv && inv.available) || 0) + outstanding;
+            const { error: invErr } = await supabase.from('inventory').upsert(
+              { product_id: line.product_id, available: newValue,
+                updated_at: new Date().toISOString(), updated_by: uid },
+              { onConflict: 'product_id' });
+            if (invErr) throw invErr;
+            const { error: adjErr } = await supabase.from('inventory_adjustments').insert({
+              product_id: line.product_id, bucket: 'available', change_amount: outstanding,
+              reason: 'Delivery received (' + po.po_number + ')', adjusted_by: uid,
+            });
+            if (adjErr) throw adjErr;
+            const { error: lineErr } = await supabase.from('purchase_order_items')
+              .update({ quantity_received: Number(line.quantity) }).eq('id', line.id);
+            if (lineErr) throw lineErr;
+            stocked++;
+          }
+
+          const total = poGrandTotal(po);
+          if (total > 0) {
+            const { error: expErr } = await supabase.from('expenses').insert({
+              category: po.expense_category,
+              amount: total,
+              expense_date: new Date().toISOString().slice(0, 10),
+              vendor: (po.suppliers && po.suppliers.name) || null,
+              note: 'Purchase order ' + po.po_number,
+            });
+            if (expErr) throw expErr;
+          }
+
+          const { error: poErr } = await supabase.from('purchase_orders').update({
+            status: 'received', received_at: new Date().toISOString(),
+            received_by: uid, updated_at: new Date().toISOString(),
+          }).eq('id', po.id);
+          if (poErr) throw poErr;
+
+          toastOk(stocked
+            ? `Received — ${stocked} ${stocked === 1 ? 'item' : 'items'} added to Inventory, cost logged to Expenses, true unit costs worked out.`
+            : 'Received — cost logged to Expenses, true unit costs worked out.');
+          if (skipped) toast(`${skipped} line${skipped === 1 ? '' : 's'} weren't catalogue products, so no stock was added for them.`);
+          loadPurchaseOrders();
+          safeRun(loadInventory);
+          safeRun(loadExpenses);
+        } catch (err) {
+          recvBtn.disabled = false;
+          showDashError('Could not receive that delivery: ' + (err && err.message ? err.message : err));
+        }
+      });
+    }
+
+    document.getElementById('addPoForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const supplierId = document.getElementById('poSupplier').value;
+      if (!supplierId) { toast('Pick a supplier first.'); return; }
+      const btn = e.target.querySelector('button[type=submit]');
+      btn.disabled = true;
+      try {
+        const uid = await currentUserId();
+        const { data, error } = await supabase.from('purchase_orders').insert({
+          supplier_id: supplierId,
+          expected_at: document.getElementById('poExpected').value || null,
+          expense_category: document.getElementById('poCategory').value,
+          notes: document.getElementById('poNotes').value.trim() || null,
+          created_by: uid,
+        }).select('id, po_number').single();
+        if (error) throw error;
+        document.getElementById('poNotes').value = '';
+        PO_OPEN_ID = data.id;
+        toastOk(data.po_number + ' created — add what you\'re ordering.');
+        loadPurchaseOrders();
+      } catch (err) {
+        showDashError('Could not create that purchase order: ' + (err && err.message ? err.message : err));
+      } finally { btn.disabled = false; }
     });
 
     // ---------- Calendar ----------
