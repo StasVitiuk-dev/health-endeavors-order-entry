@@ -5240,7 +5240,7 @@
         desc: 'Syncs Shopify tracking and flags failed or delayed deliveries, using your own Business Rules thresholds.',
         touches: ['shipments (read)', 'business_rules (read)', 'tasks (write)'],
         limit: 'Fully automatic. Only opens a task — never contacts a carrier or a customer.', enforced: false },
-      { num: 6, name: 'Customer Notification Agent', ai: false, status: 'Live now, but sending is switched off — dry-run only',
+      { num: 6, name: 'Customer Notification Agent', ai: false, status: 'Built — waiting on GitHub Actions minutes (resets Oct 1, 2026); dry-run only even once running, no email service connected yet',
         desc: 'Logs what it would email a customer for each order event (received / shipped / delivered / delayed / cancelled / refunded).',
         touches: ['customer_notifications (write)'],
         limit: 'Cannot actually send anything — no email service is connected yet. Right now it can only write a log entry of what it would have sent.', enforced: false },
