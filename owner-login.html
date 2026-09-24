@@ -1258,6 +1258,7 @@
 
         <h3 style="margin:18px 0 6px;font-size:15px;">Agent registry — what each one can touch, and what it can't do alone</h3>
         <p class="hint" style="margin-top:0;">Of these 9, only Agent #7 (Customer Service) calls a paid AI model at all — the rest are rule-based checks with no AI model involved, so there's nothing for them to "get wrong" the way an AI reply could.</p>
+        <p class="hint" style="margin-top:0;">Each agent has its own On/Off switch below, separate from System Mode — so if one agent is misbehaving you can pause just that one without stopping everything else. Only the Owner or an Administrator can change these; the switch is recorded with who changed it and when. <b>Honest limit:</b> right now this records your decision and shows it here, but the agent's own code doesn't check it yet for most agents — that's being added one agent at a time, starting with whichever ones actually run today. Until an agent says "enforced" below, switching it off is a record of intent, not a guaranteed stop.</p>
         <div id="agentRegistryWrap"><p class="empty">Loading…</p></div>
 
         <h3 style="margin:22px 0 6px;font-size:15px;">Live AI spending &amp; model settings</h3>
@@ -5144,57 +5145,128 @@
       { num: 1, name: 'Invoice Agent', ai: false, status: 'Live now — runs automatically the moment an order is created',
         desc: 'Generates, re-syncs, and voids invoices whenever an order is created or changes.',
         touches: ['orders (read)', 'invoices (write)'],
-        limit: 'Fully automatic. Only ever creates paperwork — never touches money or sends anything.' },
+        limit: 'Fully automatic. Only ever creates paperwork — never touches money or sends anything.', enforced: false },
       { num: 2, name: 'Order Intake Agent', ai: false, status: 'Built — waiting on GitHub Actions minutes (resets Oct 1, 2026)',
         desc: 'Flags missing info, financial mismatches, bad addresses, and duplicate order numbers.',
         touches: ['orders (read)', 'tasks (write)'],
-        limit: 'Fully automatic. Only opens a task for you to look at — never edits or cancels an order itself.' },
+        limit: 'Fully automatic. Only opens a task for you to look at — never edits or cancels an order itself.', enforced: false },
       { num: 3, name: 'Order Monitoring Agent', ai: false, status: 'Built — waiting on GitHub Actions minutes (resets Oct 1, 2026)',
         desc: 'Flags large refunds/cancellations, Shopify fraud flags, and stuck-unfulfilled orders.',
         touches: ['orders (read)', 'approval_requests (write)', 'tasks (write)'],
-        limit: 'Never acts alone above your threshold. A refund or cancellation over the limit opens a real approval request and waits for you — it cannot approve its own request.' },
+        limit: 'Never acts alone above your threshold. A refund or cancellation over the limit opens a real approval request and waits for you — it cannot approve its own request.', enforced: false },
       { num: 4, name: 'Retail/Wholesale Agent', ai: false, status: 'Built — waiting on GitHub Actions minutes (resets Oct 1, 2026)',
         desc: 'Links or creates a customer record per order and tags it retail vs. wholesale.',
         touches: ['orders (read)', 'customers (write)'],
-        limit: 'Fully automatic. Organizing only — no pricing, money, or communication involved.' },
+        limit: 'Fully automatic. Organizing only — no pricing, money, or communication involved.', enforced: false },
       { num: 5, name: 'Shipping/Tracking Agent', ai: false, status: 'Built — waiting on GitHub Actions minutes (resets Oct 1, 2026)',
         desc: 'Syncs Shopify tracking and flags failed or delayed deliveries, using your own Business Rules thresholds.',
         touches: ['shipments (read)', 'business_rules (read)', 'tasks (write)'],
-        limit: 'Fully automatic. Only opens a task — never contacts a carrier or a customer.' },
+        limit: 'Fully automatic. Only opens a task — never contacts a carrier or a customer.', enforced: false },
       { num: 6, name: 'Customer Notification Agent', ai: false, status: 'Live now, but sending is switched off — dry-run only',
         desc: 'Logs what it would email a customer for each order event (received / shipped / delivered / delayed / cancelled / refunded).',
         touches: ['customer_notifications (write)'],
-        limit: 'Cannot actually send anything — no email service is connected yet. Right now it can only write a log entry of what it would have sent.' },
+        limit: 'Cannot actually send anything — no email service is connected yet. Right now it can only write a log entry of what it would have sent.', enforced: false },
       { num: 7, name: 'Customer Service Agent', ai: true, status: 'Built — waiting on GitHub Actions minutes (resets Oct 1, 2026)',
         desc: "Drafts a reply to a customer question using that order's context and any procedures you've marked visible to it.",
         touches: ['customer_inquiries (read/write)', 'orders (read)', 'sop_documents (read — opt-in per procedure only)', 'ai_decision_log (write)'],
-        limit: 'Never sends anything itself — every reply is a draft you review, edit, and copy yourself. An independent keyword check (refunds, health/safety, anger, legal threats) forces human review even if the AI itself sounded confident. Capped at $30/month in AI spending; drafting pauses for the rest of the month if that’s hit.' },
+        limit: 'Never sends anything itself — every reply is a draft you review, edit, and copy yourself. An independent keyword check (refunds, health/safety, anger, legal threats) forces human review even if the AI itself sounded confident. Capped at $30/month in AI spending; drafting pauses for the rest of the month if that’s hit.', enforced: false },
       { num: 8, name: 'Supervisor Agent', ai: false, status: 'Built — waiting on GitHub Actions minutes (resets Oct 1, 2026)',
         desc: 'Checks for orders missing an invoice, stalled tasks, and orders/shipments that disagree with each other.',
         touches: ['orders (read)', 'invoices (read)', 'tasks (read/write)', 'shipments (read)', 'wholesale_inquiries (read)', 'contact_messages (read)'],
-        limit: 'Fully automatic. Only opens a task when something looks wrong — never edits the records it’s checking.' },
+        limit: 'Fully automatic. Only opens a task when something looks wrong — never edits the records it’s checking.', enforced: false },
       { num: 9, name: 'Accounting Agent', ai: false, status: 'Live now — dashboard-only, no scheduled job to wait on',
         desc: 'Rolls up real order revenue and your logged expenses into a live net-profit figure.',
         touches: ['orders (read)', 'expenses (read)'],
-        limit: 'Not really an "agent" that acts on anything — it only computes and displays. Organizes and shows only; never moves money.' },
+        limit: 'Not really an "agent" that acts on anything — it only computes and displays. Organizes and shows only; never moves money.', enforced: false },
     ];
 
+    let agentControlsByNum = {};
+
     function renderAgentRegistry(){
-      document.getElementById('agentRegistryWrap').innerHTML = AGENT_REGISTRY.map(a => `
+      document.getElementById('agentRegistryWrap').innerHTML = AGENT_REGISTRY.map(a => {
+        const ctrl = agentControlsByNum[a.num];
+        const enabled = ctrl ? ctrl.enabled !== false : true;
+        return `
         <div class="deletedRow" style="align-items:flex-start;">
           <div class="info" style="flex:1;">
             <b>#${a.num} — ${esc(a.name)}</b>
             ${a.ai ? '<span class="badge sev-medium">Uses a paid AI model</span>' : '<span class="badge sev-low">Rule-based — no AI model</span>'}
+            ${a.enforced ? '<span class="badge sev-low">Switch enforced</span>' : '<span class="badge sev-medium">Switch not yet enforced</span>'}
             <div style="color:#8a9694;font-size:12px;margin-top:2px;">${esc(a.status)}</div>
             <div style="margin-top:6px;">${esc(a.desc)}</div>
             <div style="margin-top:6px;font-size:12.5px;color:#5b6664;"><b>Touches:</b> ${a.touches.map(esc).join(', ')}</div>
             <div style="margin-top:6px;font-size:12.5px;"><b>Can't do alone:</b> ${esc(a.limit)}</div>
+            ${ctrl && ctrl.updated_at ? `<div style="margin-top:6px;font-size:12px;color:#8a9694;">Last changed ${ctrl.who ? 'by ' + esc(ctrl.who) + ' ' : ''}on ${new Date(ctrl.updated_at).toLocaleString()}</div>` : ''}
           </div>
-        </div>`).join('');
+          <label class="switch" title="${enabled ? 'On — click to pause this agent' : 'Off — click to turn this agent back on'}">
+            <input type="checkbox" class="agentToggle" data-num="${a.num}" data-name="${esc(a.name)}" ${enabled ? 'checked' : ''}>
+            <span class="slider"></span>
+          </label>
+        </div>`;
+      }).join('');
+
+      document.querySelectorAll('.agentToggle').forEach(cb => {
+        cb.addEventListener('change', async () => {
+          const num = Number(cb.getAttribute('data-num'));
+          const name = cb.getAttribute('data-name');
+          const newVal = cb.checked;
+          // Same pattern as the other switches on this dashboard: flip it back
+          // visually until the password confirmation actually goes through.
+          cb.checked = !newVal;
+          const ok = await requireReauth(newVal ? `turn ${name} back ON` : `pause ${name}`);
+          if (!ok) return;
+          cb.checked = newVal;
+          cb.disabled = true;
+          try {
+            const uid = await currentUserId();
+            const { error } = await supabase.from('agent_controls')
+              .update({ enabled: newVal, updated_by: uid, updated_at: new Date().toISOString() })
+              .eq('agent_num', num);
+            if (error) throw error;
+            toast((newVal ? 'Turned on: ' : 'Paused: ') + name);
+            await loadAgentControls();
+          } catch (err) {
+            cb.checked = !newVal;
+            const msg = (err && err.message) || String(err);
+            if (/row-level security|permission/i.test(msg)) {
+              showDashError('Only the Owner or an Administrator can pause an agent.');
+            } else {
+              showDashError('Could not change that agent: ' + msg);
+            }
+          } finally {
+            cb.disabled = false;
+          }
+        });
+      });
+    }
+
+    async function loadAgentControls(){
+      try {
+        const { data: rows, error } = await supabase
+          .from('agent_controls').select('agent_num, enabled, updated_by, updated_at');
+        if (error) throw error;
+
+        const byId = {};
+        (rows || []).forEach(r => { byId[r.agent_num] = r; });
+
+        const uids = [...new Set((rows || []).map(r => r.updated_by).filter(Boolean))];
+        if (uids.length) {
+          const { data: people } = await supabase.from('profiles').select('id, full_name').in('id', uids);
+          const nameById = {};
+          (people || []).forEach(p => { nameById[p.id] = p.full_name; });
+          Object.values(byId).forEach(r => { r.who = r.updated_by ? nameById[r.updated_by] : null; });
+        }
+
+        agentControlsByNum = byId;
+        renderAgentRegistry();
+      } catch (err) {
+        // Not fatal — the registry still renders with everything shown as on.
+        console.warn('Could not load agent controls:', err && err.message ? err.message : err);
+      }
     }
 
     async function loadAI(){
-      renderAgentRegistry();
+      await loadAgentControls();
       try {
         const startOfMonth = new Date();
         startOfMonth.setUTCDate(1);
