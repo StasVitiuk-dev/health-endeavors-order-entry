@@ -1164,6 +1164,36 @@
         <div id="acctReviewWrap"><p class="empty">Loading…</p></div>
       </section>
 
+      <!-- Tax Records (Agent #10) -->
+      <section class="panel" id="taxRecordsPanel">
+        <h2>Tax Records</h2>
+        <p class="hint">Organizes your income and expense records into a shape your accountant can actually use — categorizes transactions, flags what's missing paperwork, and builds a report you can hand off. <b>It never files anything or talks to the IRS or any state directly</b> — that stays a human decision, always.</p>
+        <div class="viewToggle" id="taxToggle">
+          <button type="button" class="small" data-range="year">This Year</button>
+          <button type="button" class="small secondary" data-range="lastyear">Last Year</button>
+          <button type="button" class="small secondary" data-range="all">All Time</button>
+        </div>
+        <div class="statRow" id="taxStats"></div>
+
+        <h3 style="font-size:13px;color:var(--navy);margin:18px 0 6px;">Expenses by category</h3>
+        <p class="hint" style="margin-top:-2px;">Split into Cost of Goods Sold (ingredients, packaging, manufacturing — the direct cost of what you make) and Operating expenses (everything else). <b>This split is a starting point based on how you've already been categorizing expenses, not tax advice</b> — have your accountant confirm the final categorization before filing anything.</p>
+        <div id="taxCategoryWrap"><p class="empty">Loading…</p></div>
+
+        <h3 style="font-size:13px;color:var(--navy);margin:18px 0 6px;">Estimated cost of units sold</h3>
+        <p class="hint" style="margin-top:-2px;">A separate reference figure — quantity sold × each product's recorded cost — for comparing against the categorized expenses above. This is an estimate, not an authoritative Cost of Goods Sold figure (real COGS accounting also factors in beginning/ending inventory, which this system doesn't track). Items whose SKU doesn't match a product on file, or that have no cost recorded, are called out separately rather than silently left out.</p>
+        <div id="taxCogsWrap"><p class="empty">Loading…</p></div>
+
+        <h3 style="font-size:13px;color:var(--navy);margin:18px 0 6px;">Sales tax collected</h3>
+        <p class="hint" style="margin-top:-2px;">By state, where the state is known. <b>Honest limit:</b> orders don't yet have a dedicated state field — this reads it out of the raw synced order data instead, which hasn't been checked against a real order yet (none have synced as of this build). Treat the total as reliable and the by-state split as unverified until your first real Shopify order confirms the field is really there.</p>
+        <div id="taxStateWrap"><p class="empty">Loading…</p></div>
+
+        <h3 style="font-size:13px;color:var(--navy);margin:18px 0 6px;">Expenses missing a receipt</h3>
+        <p class="hint" style="margin-top:-2px;">Real audit protection — if the IRS or a state ever asks, these are the ones without paperwork backing them up.</p>
+        <div id="taxReceiptWrap"><p class="empty">Loading…</p></div>
+
+        <button type="button" class="small" id="taxExportBtn" style="margin-top:16px;">Export this report as CSV</button>
+      </section>
+
       <!-- Tasks & Incidents -->
       <section class="panel" id="tasksPanel">
         <h2>Tasks</h2>
@@ -1265,7 +1295,7 @@
       <!-- AI Activity -->
       <section class="panel" id="aiPanel">
         <h2>AI Agent Activity</h2>
-        <p class="hint">What each of your 9 agents is allowed to do, what it's actually done, and what it's spent — all in one place.</p>
+        <p class="hint">What each of your 10 agents is allowed to do, what it's actually done, and what it's spent — all in one place.</p>
 
         <h3 style="margin:18px 0 6px;font-size:15px;">Agent registry — what each one can touch, and what it can't do alone</h3>
         <p class="hint" style="margin-top:0;">Of these 9, only Agent #7 (Customer Service) calls a paid AI model at all — the rest are rule-based checks with no AI model involved, so there's nothing for them to "get wrong" the way an AI reply could.</p>
@@ -1916,6 +1946,7 @@
       { label: 'Finance', color: '#2f7d4f', pages: [
         { id: 'expensesPanel', label: 'Expenses' },
         { id: 'accountingPanel', label: 'Accounting' },
+        { id: 'taxRecordsPanel', label: 'Tax Records' },
       ]},
       { label: 'Operations', color: '#3f6fa8', pages: [
         { id: 'tasksPanel', label: 'Tasks' },
@@ -1954,6 +1985,7 @@
       returnsPanel:        '<path d="M3.2 7.2h6.2a3 3 0 0 1 0 6H6.8"/><path d="m5.6 4.4-2.4 2.8 2.4 2.6"/>',
       expensesPanel:       '<rect x="2" y="4" width="12" height="8.4" rx="2"/><path d="M2 7h12M4.6 10h2.4"/>',
       accountingPanel:     '<rect x="3.4" y="2" width="9.2" height="12" rx="2"/><path d="M5.8 5h4.4"/><path d="M6.2 8.4h.01M8 8.4h.01M9.8 8.4h.01M6.2 11h.01M8 11h.01M9.8 11h.01"/>',
+      taxRecordsPanel:     '<rect x="3" y="1.5" width="10" height="13" rx="1.5"/><path d="M5.5 5h5M5.5 7.5h5M5.5 10h3"/>',
       tasksPanel:          '<rect x="2.4" y="2.4" width="11.2" height="11.2" rx="2.8"/><path d="m5.4 8.2 1.8 1.8 3.4-3.6"/>',
       incidentsPanel:      '<path d="M8 2.6 14 13H2Z"/><path d="M8 6.6v3M8 11.4h.01"/>',
       evidenceLockerPanel: '<rect x="2" y="3" width="12" height="3" rx="1"/><path d="M3.2 6v6a1.6 1.6 0 0 0 1.6 1.6h6.4A1.6 1.6 0 0 0 12.8 12V6"/><path d="M6.6 8.8h2.8"/>',
@@ -2482,6 +2514,7 @@
       recallsPanel: [loadRecalls],
       expensesPanel: [loadExpenses, loadDeletedExpenses],
       accountingPanel: [loadAccounting],
+      taxRecordsPanel: [loadTaxRecords],
       tasksPanel: [loadTasks],
       incidentsPanel: [loadIncidents],
       evidenceLockerPanel: [loadEvidenceLocker],
@@ -5223,6 +5256,10 @@
         desc: 'Rolls up real order revenue and your logged expenses into a live net-profit figure.',
         touches: ['orders (read)', 'expenses (read)'],
         limit: 'Not really an "agent" that acts on anything — it only computes and displays. Organizes and shows only; never moves money.', enforced: false },
+      { num: 10, name: 'Tax Record Agent', ai: false, status: 'Live now — dashboard-only, no scheduled job to wait on',
+        desc: 'Categorizes income and expenses, estimates cost of goods sold, tracks sales tax collected, and flags expenses with no receipt on file — builds a report to hand to your accountant.',
+        touches: ['orders (read)', 'expenses (read)', 'order_items (read)', 'products (read)'],
+        limit: 'Not really an "agent" that acts on anything — it only organizes and displays. Never files taxes, never contacts the IRS or any state, and never moves money.', enforced: false },
     ];
 
     let agentControlsByNum = {};
@@ -6062,7 +6099,7 @@
           }
 
           // No AI and Emergency both also best-effort pause Agent #7
-          // (Customer Service) — the only one of the 9 agents that calls a
+          // (Customer Service) — the only one of the 10 agents that calls a
           // paid AI model. Same convenience logic as the Shopify flag above:
           // this doesn't get undone automatically when you switch back to
           // Normal, since you may have paused it for an unrelated reason.
@@ -8135,6 +8172,232 @@
         b.classList.toggle('secondary', b !== btn);
       });
       loadAccounting();
+    });
+
+    // ================= Tax Records (Agent #10) =================
+
+    let taxRange = 'year';
+
+    // Reuses expenses' own existing category list (see the expenses_category_check
+    // constraint) rather than inventing a new one. The COGS/Operating split is a
+    // starting point for your accountant, not a filed tax position.
+    const TAX_CATEGORY_MAP = {
+      ingredients:       { group: 'cogs', label: 'Ingredients' },
+      packaging:         { group: 'cogs', label: 'Packaging' },
+      manufacturing:     { group: 'cogs', label: 'Manufacturing' },
+      shipping_supplies: { group: 'operating', label: 'Shipping Supplies' },
+      advertising:       { group: 'operating', label: 'Advertising' },
+      software:          { group: 'operating', label: 'Software' },
+      other:             { group: 'operating', label: 'Other' },
+    };
+
+    function taxRangeStart(range){
+      const now = new Date();
+      if (range === 'year') return { start: new Date(now.getFullYear(), 0, 1), end: null };
+      if (range === 'lastyear') return { start: new Date(now.getFullYear() - 1, 0, 1), end: new Date(now.getFullYear(), 0, 1) };
+      return { start: null, end: null }; // all time
+    }
+
+    let TAX_REPORT = null; // kept around so the Export button doesn't have to re-query
+
+    async function loadTaxRecords(){
+      try {
+        const { start, end } = taxRangeStart(taxRange);
+
+        let orderQuery = supabase.from('orders')
+          .select('id, order_number, total, tax_total, currency, status, placed_at, deleted_at, source, raw_data')
+          .is('deleted_at', null);
+        if (start) orderQuery = orderQuery.gte('placed_at', start.toISOString());
+        if (end) orderQuery = orderQuery.lt('placed_at', end.toISOString());
+        const { data: orders, error: ordersErr } = await orderQuery;
+        if (ordersErr) throw ordersErr;
+
+        let expenseQuery = supabase.from('expenses')
+          .select('id, category, amount, expense_date, vendor, receipt_path, deleted_at')
+          .is('deleted_at', null);
+        if (start) expenseQuery = expenseQuery.gte('expense_date', start.toISOString().slice(0, 10));
+        if (end) expenseQuery = expenseQuery.lt('expense_date', end.toISOString().slice(0, 10));
+        const { data: expenses, error: expErr } = await expenseQuery;
+        if (expErr) throw expErr;
+
+        const currency = (orders[0] && orders[0].currency) || 'USD';
+
+        // Revenue + sales tax — same cancelled/refunded exclusion as Accounting,
+        // so the two pages never quietly disagree on what counts as a real sale.
+        let revenue = 0, salesTax = 0, stateUnknownTax = 0;
+        const stateTax = {};
+        const inScopeOrders = [];
+        orders.forEach(o => {
+          const { isCancelled, isRefund, isPartialRefund } = classifyOrderStatus(o.status);
+          if (isCancelled || (isRefund && !isPartialRefund)) return;
+          inScopeOrders.push(o);
+          revenue += Number(o.total || 0);
+          const tax = Number(o.tax_total || 0);
+          salesTax += tax;
+          const province = o.raw_data && o.raw_data.shipping_address && o.raw_data.shipping_address.province;
+          if (province) stateTax[province] = (stateTax[province] || 0) + tax;
+          else stateUnknownTax += tax;
+        });
+
+        // Expenses by category, split into COGS vs Operating.
+        let cogsTotal = 0, operatingTotal = 0;
+        const byCategory = {};
+        expenses.forEach(e => {
+          const amt = Number(e.amount || 0);
+          const info = TAX_CATEGORY_MAP[e.category] || { group: 'operating', label: e.category || 'Uncategorized' };
+          if (info.group === 'cogs') cogsTotal += amt; else operatingTotal += amt;
+          byCategory[e.category] = (byCategory[e.category] || 0) + amt;
+        });
+        const totalExpenses = cogsTotal + operatingTotal;
+        const netProfit = revenue - totalExpenses;
+
+        document.getElementById('taxStats').innerHTML = `
+          <div class="stat"><div class="num">${esc(fmtMoney(revenue, currency))}</div><div class="lbl">Revenue</div></div>
+          <div class="stat"><div class="num">${esc(fmtMoney(cogsTotal, currency))}</div><div class="lbl">Cost of Goods Sold (logged)</div></div>
+          <div class="stat"><div class="num">${esc(fmtMoney(operatingTotal, currency))}</div><div class="lbl">Operating expenses</div></div>
+          <div class="stat"><div class="num">${esc(fmtMoney(netProfit, currency))}</div><div class="lbl">Net profit</div></div>
+          <div class="stat"><div class="num">${esc(fmtMoney(salesTax, currency))}</div><div class="lbl">Sales tax collected</div></div>
+        `;
+
+        const catRows = Object.keys(byCategory).map(cat => {
+          const info = TAX_CATEGORY_MAP[cat] || { group: 'operating', label: cat || 'Uncategorized' };
+          return { cat, label: info.label, group: info.group, amount: byCategory[cat] };
+        }).sort((a, b) => (a.group === b.group ? b.amount - a.amount : (a.group === 'cogs' ? -1 : 1)));
+
+        if (!catRows.length) {
+          document.getElementById('taxCategoryWrap').innerHTML = '<p class="empty">No expenses logged in this period.</p>';
+        } else {
+          document.getElementById('taxCategoryWrap').innerHTML = `
+            <table><thead><tr><th>Category</th><th>Type</th><th>Total</th></tr></thead>
+            <tbody>${catRows.map(r => `
+              <tr>
+                <td>${esc(r.label)}</td>
+                <td><span class="badge${r.group === 'cogs' ? ' sev-medium' : ''}">${r.group === 'cogs' ? 'COGS' : 'Operating'}</span></td>
+                <td>${esc(fmtMoney(r.amount, currency))}</td>
+              </tr>`).join('')}</tbody></table>`;
+        }
+
+        // Estimated cost of units sold — quantity sold × each product's recorded
+        // cost, matched by SKU the same way Returns already has to (order_items
+        // has no live foreign key to products). A separate reference figure, not
+        // a stand-in for the categorized expenses above.
+        let estCogs = 0, unmatchedCount = 0;
+        const unmatchedSkus = new Set();
+        const orderIds = inScopeOrders.map(o => o.id);
+        if (orderIds.length) {
+          const { data: items, error: itemsErr } = await supabase
+            .from('order_items').select('order_id, sku, product_name, quantity').in('order_id', orderIds);
+          if (itemsErr) throw itemsErr;
+          const skus = [...new Set((items || []).map(i => i.sku).filter(Boolean))];
+          const costBySku = {};
+          if (skus.length) {
+            const { data: products, error: prodErr } = await supabase
+              .from('products').select('sku, cost').in('sku', skus);
+            if (prodErr) throw prodErr;
+            (products || []).forEach(p => { if (p.sku) costBySku[p.sku] = p.cost; });
+          }
+          (items || []).forEach(it => {
+            const cost = it.sku ? costBySku[it.sku] : null;
+            const qty = Number(it.quantity || 0);
+            if (cost === null || cost === undefined) {
+              unmatchedCount += qty;
+              unmatchedSkus.add(it.sku || it.product_name || '(no SKU)');
+            } else {
+              estCogs += qty * Number(cost);
+            }
+          });
+        }
+        document.getElementById('taxCogsWrap').innerHTML = `
+          <div class="statRow">
+            <div class="stat"><div class="num">${esc(fmtMoney(estCogs, currency))}</div><div class="lbl">Estimated cost of units sold</div></div>
+            <div class="stat"><div class="num">${unmatchedCount}</div><div class="lbl">Units with no matching cost</div></div>
+          </div>
+          ${unmatchedSkus.size ? `<p class="hint" style="margin-top:8px;">SKUs with no cost on file: ${[...unmatchedSkus].map(esc).join(', ')}</p>` : ''}
+        `;
+
+        const stateEntries = Object.keys(stateTax).sort();
+        if (!stateEntries.length && !stateUnknownTax) {
+          document.getElementById('taxStateWrap').innerHTML = '<p class="empty">No sales tax collected in this period.</p>';
+        } else {
+          document.getElementById('taxStateWrap').innerHTML = `
+            <table><thead><tr><th>State</th><th>Sales tax collected</th></tr></thead>
+            <tbody>
+              ${stateEntries.map(s => `<tr><td>${esc(s)}</td><td>${esc(fmtMoney(stateTax[s], currency))}</td></tr>`).join('')}
+              ${stateUnknownTax ? `<tr><td>Unknown / not yet verified</td><td>${esc(fmtMoney(stateUnknownTax, currency))}</td></tr>` : ''}
+            </tbody></table>`;
+        }
+
+        const missing = expenses.filter(e => !e.receipt_path);
+        if (!missing.length) {
+          document.getElementById('taxReceiptWrap').innerHTML = '<p class="empty">Every logged expense in this period has a receipt on file.</p>';
+        } else {
+          document.getElementById('taxReceiptWrap').innerHTML = `
+            <table><thead><tr><th>Date</th><th>Category</th><th>Vendor</th><th>Amount</th></tr></thead>
+            <tbody>${missing.map(e => `
+              <tr>
+                <td>${esc(fmtDate(e.expense_date))}</td>
+                <td>${esc((TAX_CATEGORY_MAP[e.category] || {}).label || e.category || '—')}</td>
+                <td>${esc(e.vendor || '—')}</td>
+                <td>${esc(fmtMoney(e.amount, currency))}</td>
+              </tr>`).join('')}</tbody></table>`;
+        }
+
+        TAX_REPORT = { currency, revenue, cogsTotal, operatingTotal, netProfit, salesTax, catRows, estCogs, unmatchedCount, stateTax, stateUnknownTax, missing };
+      } catch (err) {
+        showDashError('Could not load Tax Records: ' + (err && err.message ? err.message : err));
+      }
+    }
+
+    document.getElementById('taxToggle').addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-range]');
+      if (!btn) return;
+      taxRange = btn.getAttribute('data-range');
+      document.querySelectorAll('#taxToggle button').forEach(b => {
+        b.classList.toggle('secondary', b !== btn);
+      });
+      loadTaxRecords();
+    });
+
+    document.getElementById('taxExportBtn').addEventListener('click', () => {
+      if (!TAX_REPORT) { showDashError('Nothing to export yet — let the page finish loading.'); return; }
+      const r = TAX_REPORT;
+      const periodLabel = taxRange === 'year' ? 'This Year' : taxRange === 'lastyear' ? 'Last Year' : 'All Time';
+      const lines = [
+        ['Health Endeavors — Tax Record report'],
+        ['Period', periodLabel],
+        [],
+        ['Summary'],
+        ['Revenue', fmtMoney(r.revenue, r.currency)],
+        ['Cost of Goods Sold (logged)', fmtMoney(r.cogsTotal, r.currency)],
+        ['Operating expenses', fmtMoney(r.operatingTotal, r.currency)],
+        ['Net profit', fmtMoney(r.netProfit, r.currency)],
+        ['Sales tax collected', fmtMoney(r.salesTax, r.currency)],
+        ['Estimated cost of units sold (reference only)', fmtMoney(r.estCogs, r.currency)],
+        ['Units with no matching cost', r.unmatchedCount],
+        [],
+        ['Expenses by category'],
+        ['Category', 'Type', 'Total'],
+        ...r.catRows.map(c => [c.label, c.group === 'cogs' ? 'COGS' : 'Operating', fmtMoney(c.amount, r.currency)]),
+        [],
+        ['Sales tax by state'],
+        ['State', 'Tax collected'],
+        ...Object.keys(r.stateTax).sort().map(s => [s, fmtMoney(r.stateTax[s], r.currency)]),
+        ...(r.stateUnknownTax ? [['Unknown / not yet verified', fmtMoney(r.stateUnknownTax, r.currency)]] : []),
+        [],
+        ['Expenses missing a receipt'],
+        ['Date', 'Category', 'Vendor', 'Amount'],
+        ...r.missing.map(e => [fmtDate(e.expense_date), (TAX_CATEGORY_MAP[e.category] || {}).label || e.category || '', e.vendor || '', fmtMoney(e.amount, r.currency)]),
+      ];
+      const csv = lines.map(l => l.map(c => '"' + String(c === null || c === undefined ? '' : c).replace(/"/g, '""') + '"').join(',')).join('\r\n');
+      const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'tax-records-' + new Date().toISOString().slice(0, 10) + '.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     });
 
     // If already logged in from a previous visit, skip straight to the dashboard.
