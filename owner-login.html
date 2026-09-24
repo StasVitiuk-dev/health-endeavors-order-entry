@@ -360,6 +360,16 @@
     background:rgba(11,61,76,0.6); align-items:center; justify-content:center; padding:24px;
   }
   #inspectorOverlay.open{ display:flex; }
+
+  /* ---------- Re-auth ("Confirm it's you") password modal ---------- */
+  /* This rule was missing its base display/position/z-index — without it the
+     overlay had no fixed positioning of its own, so closing it (or opening a
+     second one) could leave it stuck showing over the page instead of behaving
+     like a real full-screen modal. */
+  #reauthOverlay{
+    display:none; position:fixed; inset:0; z-index:300;
+    align-items:center; justify-content:center; padding:24px;
+  }
   #inspectorOverlay .insCard{
     background:var(--cream); border-radius:14px; width:100%; max-width:780px;
     max-height:88vh; display:flex; flex-direction:column; box-shadow:0 20px 60px rgba(0,0,0,0.35);
@@ -1760,6 +1770,13 @@
     // for this email" every single time, so a browser left open on your desk
     // can't be used to restore an order, flip a feature switch, or approve/deny
     // a request without you personally typing your password again.
+    // If a password prompt is already open when another one needs to show
+    // (or when the page navigates away from it), this closes THAT exact one
+    // directly — instead of faking a click on the Cancel button, which only
+    // works if that button's listener happens to still be attached. Having a
+    // real handle like this is what actually guarantees the box goes away.
+    let activeReauthClose = null;
+
     function requireReauth(actionLabel){
       const overlay = document.getElementById('reauthOverlay');
       const label = document.getElementById('reauthActionLabel');
@@ -1768,11 +1785,17 @@
       const confirmBtn = document.getElementById('reauthConfirmBtn');
       const cancelBtn = document.getElementById('reauthCancelBtn');
 
+      // A prompt was already open (e.g. two toggles clicked in quick
+      // succession) — cancel that one first so its old listeners can't pile
+      // up on top of this new one.
+      if (activeReauthClose) activeReauthClose(false);
+
       return new Promise((resolve) => {
         label.textContent = actionLabel;
         input.value = '';
         msg.textContent = '';
         msg.className = 'msg';
+        confirmBtn.disabled = false;
         overlay.style.display = 'flex';
         input.focus();
 
@@ -1781,8 +1804,10 @@
           confirmBtn.removeEventListener('click', onConfirm);
           cancelBtn.removeEventListener('click', onCancel);
           input.removeEventListener('keydown', onKeydown);
+          if (activeReauthClose === close) activeReauthClose = null;
           resolve(result);
         }
+        activeReauthClose = close;
         async function onConfirm(){
           const password = input.value;
           if (!password) { msg.textContent = 'Enter your password.'; msg.className = 'msg error'; return; }
@@ -2336,11 +2361,7 @@
       // If a password prompt is still open, leaving the page cancels it.
       // Otherwise it floats over whatever you navigate to, looking like it
       // appeared out of nowhere.
-      const reauth = document.getElementById('reauthOverlay');
-      if (reauth && reauth.style.display === 'flex') {
-        const cancel = document.getElementById('reauthCancelBtn');
-        if (cancel) cancel.click();
-      }
+      if (activeReauthClose) activeReauthClose(false);
       document.querySelectorAll('main.contentArea > section.panel').forEach(sec => {
         sec.classList.toggle('activePage', sec.id === pageId);
       });
