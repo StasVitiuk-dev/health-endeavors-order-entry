@@ -961,6 +961,7 @@
       </nav>
 
       <main class="contentArea">
+      <div id="systemModeBanner" style="display:none;padding:10px 14px;border-radius:8px;margin-bottom:14px;font-size:14px;font-weight:600;"></div>
       <div id="dashError" class="bannerBox"></div>
 
       <!-- Needs Your Attention -->
@@ -1314,7 +1315,23 @@
       <!-- Feature Flags -->
       <section class="panel" id="flagsPanel">
         <h2>Feature Flags</h2>
-        <p class="hint">Switches for what's turned on in your system. Only the Owner role can change these.</p>
+
+        <h3 style="margin:0 0 6px;font-size:15px;">System mode</h3>
+        <p class="hint" style="margin-top:0;">The one master switch for the whole system. Changing it away from Normal shows a banner on every page until it's changed back. Only the Owner can change it; anyone active can see it.</p>
+        <div id="systemModeWrap"><p class="empty">Loading…</p></div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px;padding-bottom:18px;border-bottom:1px solid var(--line);">
+          <select id="systemModeSelect" style="padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;">
+            <option value="NORMAL">Normal — everything runs as usual</option>
+            <option value="LIMITED_AI">Limited AI — only high-confidence, low-risk AI actions run</option>
+            <option value="NO_AI">No AI — every AI agent is paused; rule-based automation keeps running</option>
+            <option value="EMERGENCY">Emergency — AI paused and Shopify Order Sync switched off</option>
+          </select>
+          <button type="button" id="systemModeChangeBtn" class="small">Change mode</button>
+        </div>
+        <p class="hint" style="margin-top:10px;">Honest limits: this is enforced everywhere the dashboard itself checks it, and Emergency mode also switches off the Shopify Order Sync flag below. It does not (yet) force-disable logins or revoke other people's sessions — that would need a server-side change beyond this dashboard. See the guide entry for what's actually enforced today.</p>
+
+        <h3 style="margin:18px 0 6px;font-size:15px;">Other switches</h3>
+        <p class="hint" style="margin-top:0;">Only the Owner role can change these.</p>
         <div id="flagsWrap"><p class="empty">Loading…</p></div>
       </section>
 
@@ -2450,7 +2467,7 @@
       inquiriesPanel: [loadInquiries],
       aiPanel: [loadAI],
       continuityPanel: [loadContinuity],
-      flagsPanel: [loadFlags],
+      flagsPanel: [loadFlags, loadSystemMode],
       businessRulesPanel: [loadBusinessRules],
       approvalsPanel: [loadApprovals],
       sessionsPanel: [loadSessions],
@@ -2542,7 +2559,10 @@
         body:'A legal hold marks records that must be preserved — during a dispute, a claim, or an investigation. While a hold is active, routine clean-up must leave those records alone.|Releasing a hold is recorded in the activity log, with who released it and when.' },
       { id:'documents', page:'documentsPanel', title:'Documents',
         keys:'document contract insurance certification tax license expire expiration upload file',
-        body:'A central place for paperwork that isn’t tied to one specific incident — contracts, certifications, insurance, tax documents, packaging specs, wholesale agreements, and so on. That’s the difference from Evidence Locker, which only holds evidence for a specific incident.|Upload the file itself, or just paste a link to where it already lives — you don’t need both.|Optionally link a document to a supplier, an incident, or a purchase order so it shows up in context.|Set an expiration date and it’ll show a color-coded warning here as it approaches or passes — expiring documents don’t (yet) open a task in Needs Your Attention the way Compliance Calendar deadlines do, so it’s still worth checking this page periodically.|Only the Owner or an Administrator can delete a document; any active team member can add or view one.' },
+        body:'A central place for paperwork that isn’t tied to one specific incident — contracts, certifications, insurance, tax documents, packaging specs, wholesale agreements, and so on. That’s the difference from Evidence Locker, which only holds evidence for a specific incident.|Upload the file itself, or just paste a link to where it already lives — you don’t need both.|Optionally link a document to a supplier, an incident, or a purchase order so it shows up in context.|Set an expiration date and it’ll show a color-coded warning here as it approaches or passes, and once it’s within 30 days (or already expired) it also shows up in Needs Your Attention.|Only the Owner or an Administrator can delete a document; any active team member can add or view one.' },
+      { id:'systemmode', page:'flagsPanel', title:'System mode',
+        keys:'system mode emergency ai kill switch limited no-ai pause banner',
+        body:'One master switch for the whole system, with four settings: Normal (everything runs as usual), Limited AI (only high-confidence, low-risk AI actions run), No AI (every AI agent is paused, but rule-based automation like alerts and inventory math keeps running), and Emergency (AI paused and the Shopify Order Sync flag switched off too).|Changing it away from Normal shows a colored banner at the top of every page for every team member, until it’s changed back to Normal.|Honest limits: this is enforced everywhere the dashboard itself checks the mode — today that’s the AI agents’ own logic and the Shopify Order Sync flag. It does not force-disable anyone’s login or revoke sessions that are already active — that would need a server-side change beyond what a dashboard can do. Use the Active Sessions page if you need to end a specific session right now — switching to Emergency mode will remind you to go check it.|Every change is recorded with who changed it and when.' },
     ];
 
     // One matcher, used by both the command palette and the sidebar search.
@@ -5795,6 +5815,121 @@
         showDashError('Could not load feature flags: ' + (err && err.message ? err.message : err));
       }
     }
+
+    const SYSTEM_MODE_LABELS = {
+      NORMAL:     { label: 'Normal',     desc: 'Everything runs as usual.',                                    bg: '#e7f3ea', fg: '#1e6b34', border: '#bfe3c8' },
+      LIMITED_AI: { label: 'Limited AI', desc: 'Only high-confidence, low-risk AI actions run.',                bg: '#fff4dd', fg: '#8a5b00', border: '#f2d999' },
+      NO_AI:      { label: 'No AI',      desc: 'Every AI agent is paused; rule-based automation keeps running.', bg: '#fff0e6', fg: '#a03d00', border: '#f5c7a3' },
+      EMERGENCY:  { label: 'Emergency',  desc: 'AI paused and Shopify Order Sync switched off.',                bg: '#fbe6e6', fg: '#9e1b1b', border: '#f0bdbd' },
+    };
+
+    async function loadSystemMode(){
+      try {
+        const { data: row, error } = await supabase
+          .from('system_mode')
+          .select('mode, changed_at, changed_by')
+          .eq('id', true)
+          .maybeSingle();
+        if (error) throw error;
+
+        let who = null;
+        if (row && row.changed_by) {
+          const { data: who_row } = await supabase
+            .from('profiles').select('full_name').eq('id', row.changed_by).maybeSingle();
+          who = who_row && who_row.full_name ? esc(who_row.full_name) : null;
+        }
+
+        const mode = (row && row.mode) || 'NORMAL';
+        const info = SYSTEM_MODE_LABELS[mode] || SYSTEM_MODE_LABELS.NORMAL;
+
+        const wrap = document.getElementById('systemModeWrap');
+        if (wrap) {
+          const when = row && row.changed_at ? new Date(row.changed_at).toLocaleString() : null;
+          const changedLine = (who && when) ? `Last changed by ${who} on ${when}.`
+            : when ? `Last changed on ${when}.` : 'No change recorded yet.';
+          wrap.innerHTML = `
+            <div style="display:inline-block;padding:6px 12px;border-radius:999px;font-weight:700;font-size:13px;
+              background:${info.bg};color:${info.fg};border:1px solid ${info.border};">${esc(info.label)}</div>
+            <p class="hint" style="margin:8px 0 0;">${esc(info.desc)} ${esc(changedLine)}</p>`;
+        }
+        const sel = document.getElementById('systemModeSelect');
+        if (sel) sel.value = mode;
+
+        const banner = document.getElementById('systemModeBanner');
+        if (banner) {
+          if (mode === 'NORMAL') {
+            banner.style.display = 'none';
+          } else {
+            banner.style.display = 'block';
+            banner.style.background = info.bg;
+            banner.style.color = info.fg;
+            banner.style.border = `1px solid ${info.border}`;
+            banner.textContent = `System mode: ${info.label} — ${info.desc}`;
+          }
+        }
+      } catch (err) {
+        showDashError('Could not load system mode: ' + (err && err.message ? err.message : err));
+      }
+    }
+
+    (function initSystemModeChangeBtn(){
+      const btn = document.getElementById('systemModeChangeBtn');
+      if (!btn) return;
+      btn.addEventListener('click', async () => {
+        const sel = document.getElementById('systemModeSelect');
+        const newMode = sel ? sel.value : 'NORMAL';
+        const info = SYSTEM_MODE_LABELS[newMode] || SYSTEM_MODE_LABELS.NORMAL;
+        const ok = await requireReauth(`change system mode to ${info.label}`);
+        if (!ok) { await loadSystemMode(); return; }
+
+        // Emergency mode can't force-log-out anyone by itself (that needs a
+        // server-side change beyond this dashboard), so this is the one
+        // moment to remind whoever's flipping the switch to go do that part
+        // by hand if it's actually needed.
+        if (newMode === 'EMERGENCY') {
+          const proceed = confirm(
+            'Reminder: Emergency mode pauses AI and turns off Shopify Order Sync, but it does NOT log anyone out automatically.\n\n' +
+            'If you suspect unauthorized access, go to Active Sessions afterward and log out anything unfamiliar yourself.\n\n' +
+            'Continue switching to Emergency mode?'
+          );
+          if (!proceed) { await loadSystemMode(); return; }
+        }
+
+        btn.disabled = true;
+        try {
+          const uid = await currentUserId();
+          const { error } = await supabase.from('system_mode')
+            .update({ mode: newMode, changed_by: uid, changed_at: new Date().toISOString() })
+            .eq('id', true);
+          if (error) throw error;
+
+          // Emergency mode also best-effort switches off the one live
+          // external-integration flag. If this second update fails we
+          // still keep the mode change — the mode itself is the source
+          // of truth, this is just a convenience so you don't have to
+          // flip both switches by hand.
+          if (newMode === 'EMERGENCY') {
+            const { error: flagErr } = await supabase.from('feature_flags')
+              .update({ enabled: false, updated_by: uid, updated_at: new Date().toISOString() })
+              .eq('flag_key', 'shopify_order_sync');
+            if (flagErr) console.warn('Could not auto-disable Shopify Order Sync:', flagErr.message);
+          }
+
+          toast('System mode changed to ' + info.label);
+          await Promise.all([loadSystemMode(), loadFlags()]);
+        } catch (err) {
+          const msg = (err && err.message) || String(err);
+          if (/row-level security|permission/i.test(msg)) {
+            showDashError('Only the Owner can change system mode — ask the Owner to make this change.');
+          } else {
+            showDashError('Could not change system mode: ' + msg);
+          }
+          await loadSystemMode();
+        } finally {
+          btn.disabled = false;
+        }
+      });
+    })();
 
     async function loadBusinessRules(){
       try {
