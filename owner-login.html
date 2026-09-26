@@ -511,6 +511,15 @@
     color:var(--muted-2); text-transform:uppercase;
   }
   .groupLabel::before{ content:none; }
+  .groupToggle{
+    display:flex; align-items:center; gap:6px; width:calc(100% - 8px);
+    background:none; border:none; padding:0; min-height:0; cursor:pointer; text-align:left;
+    font:inherit; font-size:11px; font-weight:600; letter-spacing:0.02em; text-transform:uppercase;
+    color:var(--muted-2); margin:0 0 6px 8px;
+  }
+  .groupToggle:hover{ color:var(--ink); background:none; }
+  .groupToggle .groupChevron{ width:10px; display:inline-block; }
+  .groupToggle .sidebarBadge{ margin-left:auto; text-transform:none; }
   .sidebarLink{
     border-radius:8px; font-size:13.5px; color:var(--ink); padding:7px 9px; letter-spacing:-0.01em;
   }
@@ -1376,7 +1385,7 @@
 
         <h3 style="margin:18px 0 6px;font-size:15px;">Agent registry — what each one can touch, and what it can't do alone</h3>
         <p class="hint" style="margin-top:0;">Of these 10, only Agent #7 (Customer Service) calls a paid AI model at all — the rest are rule-based checks with no AI model involved, so there's nothing for them to "get wrong" the way an AI reply could.</p>
-        <p class="hint" style="margin-top:0;">Each agent has its own On/Off switch below, separate from System Mode — so if one agent is misbehaving you can pause just that one without stopping everything else. Only the Owner or an Administrator can change these; the switch is recorded with who changed it and when. <b>Honest limit:</b> Agent #1 (Invoice) is fully wired up — its own code checks the switch before doing anything. The rest still just record your decision for now; their own code doesn't check it yet, and that's being added one agent at a time. Until an agent says "Switch enforced" below, switching it off is a record of intent, not a guaranteed stop.</p>
+        <p class="hint" style="margin-top:0;">Each agent has its own On/Off switch below, separate from System Mode — so if one agent is misbehaving you can pause just that one without stopping everything else. Only the Owner or an Administrator can change these; the switch is recorded with who changed it and when. <b>Honest limit:</b> Agents marked "Switch enforced" really check the switch before doing anything. The rest still just record your decision for now; their own code doesn't check it yet, and that's being added one agent at a time. Until an agent says "Switch enforced" below, switching it off is a record of intent, not a guaranteed stop.</p>
         <div id="agentRegistryWrap"><p class="empty">Loading…</p></div>
 
         <h3 style="margin:22px 0 6px;font-size:15px;">Live AI spending &amp; model settings</h3>
@@ -2078,7 +2087,6 @@
         { id: 'suppliersPanel', label: 'Suppliers' },
         { id: 'purchaseOrdersPanel', label: 'Purchase Orders' },
         { id: 'qualityControlPanel', label: 'Quality Control' },
-        { id: 'recallsPanel', label: 'Recalls' },
       ]},
       { label: 'Finance', color: '#2f7d4f', pages: [
         { id: 'expensesPanel', label: 'Expenses' },
@@ -2090,12 +2098,10 @@
         { id: 'incidentsPanel', label: 'Incidents' },
         { id: 'evidenceLockerPanel', label: 'Evidence Locker' },
         { id: 'documentsPanel', label: 'Documents' },
-        { id: 'adverseEventsPanel', label: 'Adverse Event Reports' },
       ]},
       { label: 'Customers & AI', color: '#7a5aa8', pages: [
         { id: 'inquiriesPanel', label: 'Customer Inquiries' },
         { id: 'aiPanel', label: 'AI Agent Activity' },
-        { id: 'continuityPanel', label: 'Business Continuity' },
       ]},
       { label: 'Admin', color: '#9c5a72', pages: [
         { id: 'flagsPanel', label: 'Feature Flags' },
@@ -2105,7 +2111,15 @@
         { id: 'activityPanel', label: 'Employee Activity' },
         { id: 'sopsPanel', label: 'Procedures (SOPs)' },
         { id: 'featureRequestsPanel', label: 'Feature Requests' },
+      ]},
+      // Built and working, but rarely needed day to day — folded up by default
+      // so the sidebar is shorter. One click opens it; searching still finds
+      // these pages, and it opens by itself if you're on one of them.
+      { label: 'Compliance', color: '#8a6d6d', collapsible: true, pages: [
+        { id: 'recallsPanel', label: 'Recalls' },
+        { id: 'adverseEventsPanel', label: 'Adverse Event Reports' },
         { id: 'legalHoldsPanel', label: 'Legal Holds' },
+        { id: 'continuityPanel', label: 'Business Continuity' },
       ]},
     ];
     // Line icons, drawn rather than typed — one consistent 16px grid, 1.4px
@@ -2403,6 +2417,19 @@
     // Pinned favorites: your own shortlist of pages, saved in this browser
     // (like "remember last page") and pinned to the very top of the sidebar
     // so your most-used pages are always one click away.
+    // Which foldable sidebar sections you've opened. Remembered in this browser
+    // only; starts folded.
+    function openGroups(){
+      try { return JSON.parse(localStorage.getItem('he_open_groups') || '[]'); }
+      catch (e) { return []; }
+    }
+    function isGroupOpen(label){ return openGroups().includes(label); }
+    function setGroupOpen(label, open){
+      const set = new Set(openGroups());
+      if (open) set.add(label); else set.delete(label);
+      try { localStorage.setItem('he_open_groups', JSON.stringify([...set])); } catch (e) { /* not critical */ }
+    }
+
     function getPinnedPages(){
       try {
         const raw = localStorage.getItem('he_pinned_pages');
@@ -2467,7 +2494,23 @@
       SIDEBAR_GROUPS.forEach(group => {
         const pages = group.pages.filter(p => !q || p.label.toLowerCase().includes(q));
         if (!pages.length) return;
-        html += `<div class="sidebarGroup" style="--groupColor:${esc(group.color || '#1f7a8c')};"><div class="groupLabel">${esc(group.label)}</div>`;
+        const groupStyle = `--groupColor:${esc(group.color || '#1f7a8c')};`;
+        if (group.collapsible && !q) {
+          // Open if you've opened it, or if the page you're on lives here.
+          const open = isGroupOpen(group.label) || pages.some(p => p.id === currentPageId);
+          // Never hide something that needs attention: if a folded page has a
+          // badge, the total shows on the section header.
+          const hiddenBadges = open ? 0 : pages.reduce((n, p) => n + (getPageBadgeCount(p.id) || 0), 0);
+          html += `<div class="sidebarGroup" style="${groupStyle}">` +
+            `<button type="button" class="groupLabel groupToggle" data-group="${esc(group.label)}" aria-expanded="${open}">` +
+              `<span class="groupChevron">${open ? '▾' : '▸'}</span>${esc(group.label)}` +
+              (hiddenBadges > 0 ? `<span class="sidebarBadge">${hiddenBadges}</span>` : '') +
+            `</button>`;
+          if (open) pages.forEach(p => { html += pageLinkHtml(p, pinnedSet); });
+          html += `</div>`;
+          return;
+        }
+        html += `<div class="sidebarGroup" style="${groupStyle}"><div class="groupLabel">${esc(group.label)}</div>`;
         pages.forEach(p => { html += pageLinkHtml(p, pinnedSet); });
         html += `</div>`;
       });
@@ -2481,6 +2524,13 @@
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
           togglePinnedPage(btn.getAttribute('data-pin-page'));
+        });
+      });
+      wrap.querySelectorAll('.groupToggle').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const label = btn.getAttribute('data-group');
+          setGroupOpen(label, btn.getAttribute('aria-expanded') !== 'true');
+          renderSidebar(document.getElementById('sidebarSearch').value);
         });
       });
       // A "Person" search result also drops that person's account number into
@@ -3024,7 +3074,7 @@
     // entry reads "Orders · TEST-0001" instead of "record 6eaf9306".
     const RECORD_TITLE_KEYS = [
       'order_number','incident_number','title','name','display_name','product_name',
-      'label','sku','rule_key','flag_key','email','vendor','question_text',
+      'label','sku','rule_key','flag_key','email','vendor','question_text','agent_name',
     ];
     function recordTitle(r){
       const nd = r.new_data || {};
@@ -3058,6 +3108,7 @@
       approval_requests: 'Approval Queue',
       calendar_events: 'Calendar',
       personal_calendar_events: 'Personal Calendar',
+      agent_controls: 'Agent Switches',
       product_price_history: 'Price History',
       manual_attention_items: 'Manual Reminders',
       privacy_deletion_requests: 'Privacy Deletion Requests',
@@ -3635,6 +3686,7 @@
       quality_check: 'Quality check',
       recall: 'Recall',
       document: 'Document',
+      low_stock: 'Low stock',
     };
 
     function renderAttention(rows){
@@ -5662,15 +5714,15 @@
         desc: 'Flags large refunds/cancellations, Shopify fraud flags, and stuck-unfulfilled orders.',
         touches: ['orders (read)', 'approval_requests (write)', 'tasks (write)'],
         limit: 'Never acts alone above your threshold. A refund or cancellation over the limit opens a real approval request and waits for you — it cannot approve its own request.', enforced: false },
-      { num: 4, name: 'Retail/Wholesale Agent', ai: false, status: 'Built — waiting on GitHub Actions minutes (resets Oct 1, 2026)',
+      { num: 4, name: 'Retail/Wholesale Agent', ai: false, status: 'Migrated to Supabase pg_cron September 26, 2026 (runs hourly at :03 inside the database — no longer waits on GitHub Actions minutes). The old GitHub schedule was removed the same night. If someone links or deletes an order while it is working, it leaves that order alone.',
         desc: 'Links or creates a customer record per order and tags it retail vs. wholesale.',
-        touches: ['orders (read)', 'customers (write)'],
-        limit: 'Fully automatic. Organizing only — no pricing, money, or communication involved.', enforced: false },
+        touches: ['orders (read + link customer)', 'customers (write)', 'tasks (write, email-mismatch review only)'],
+        limit: 'Fully automatic. Organizing only — no pricing, money, or communication involved. Never changes a customer link once set; a mismatch only opens a task for a person.', enforced: true, cronJobName: 'agent_4_retail_wholesale' },
       { num: 5, name: 'Shipping/Tracking Agent', ai: false, status: 'Built — waiting on GitHub Actions minutes (resets Oct 1, 2026)',
         desc: 'Syncs Shopify tracking and flags failed or delayed deliveries, using your own Business Rules thresholds.',
         touches: ['shipments (read)', 'business_rules (read)', 'tasks (write)'],
         limit: 'Fully automatic. Only opens a task — never contacts a carrier or a customer.', enforced: false },
-      { num: 6, name: 'Customer Notification Agent', ai: false, status: 'Migrated to Supabase pg_cron (runs hourly inside the database — no longer waits on GitHub Actions minutes); synthetically verified only, live A/B check against the old workflow still pending. Still dry-run only, no email service connected yet.',
+      { num: 6, name: 'Customer Notification Agent', ai: false, status: 'Migrated to Supabase pg_cron (runs hourly at :05 inside the database — no longer waits on GitHub Actions minutes). 32 clean hourly runs and a live pause test passed September 26, 2026; the old GitHub schedule was removed the same night. Still dry-run only, no email service connected yet.',
         desc: 'Logs what it would email a customer for each order event (received / shipped / delivered / delayed / cancelled / refunded).',
         touches: ['customer_notifications (write)'],
         limit: 'Cannot actually send anything — no email service is connected yet. Right now it can only write a log entry of what it would have sent.', enforced: true, cronJobName: 'agent_6_customer_notifications' },
