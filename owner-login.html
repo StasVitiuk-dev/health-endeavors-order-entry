@@ -1055,7 +1055,30 @@
             <button type="button" class="small secondary" data-calview="month">Month</button>
           </div>
         </div>
-        <p class="hint">Your synced Apple Calendar. Day and Week list every appointment with its time; Month gives you the overview. Use the chips to show or hide a calendar, and open any event to leave yourself a note — notes are yours and survive every sync.</p>
+        <p class="hint" id="calHintText">Your synced Apple Calendar. Day and Week list every appointment with its time; Month gives you the overview. Use the chips to show or hide a calendar, and open any event to leave yourself a note — notes are yours and survive every sync.</p>
+        <form id="addPersonalEventForm" style="display:none;margin-bottom:16px;">
+          <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;">
+            <div style="flex:2 1 200px;">
+              <label for="personalEventTitle" style="margin-bottom:4px;">Event title</label>
+              <input type="text" id="personalEventTitle" placeholder="e.g. Dentist appointment" required style="margin-bottom:0;">
+            </div>
+            <div style="flex:1 1 160px;">
+              <label for="personalEventStart" style="margin-bottom:4px;">Starts</label>
+              <input type="datetime-local" id="personalEventStart" required style="margin-bottom:0;">
+            </div>
+            <div style="flex:1 1 160px;">
+              <label for="personalEventEnd" style="margin-bottom:4px;">Ends (optional)</label>
+              <input type="datetime-local" id="personalEventEnd" style="margin-bottom:0;">
+            </div>
+            <div style="flex:0 0 auto;display:flex;align-items:center;gap:6px;padding-bottom:9px;">
+              <input type="checkbox" id="personalEventAllDay" style="width:auto;margin:0;">
+              <label for="personalEventAllDay" style="margin:0;font-weight:400;">All day</label>
+            </div>
+            <div style="flex:0 0 auto;">
+              <button type="submit" class="small" id="addPersonalEventBtn">Add event</button>
+            </div>
+          </div>
+        </form>
         <div class="calNav">
           <div class="calBtns">
             <button type="button" class="small secondary" id="calPrevBtn" aria-label="Previous">&larr;</button>
@@ -1726,6 +1749,8 @@
     const whoAmI = document.getElementById('whoAmI');
     const dashErrorEl = document.getElementById('dashError');
     let currentUserEmail = null; // set on login, used to re-check your password before sensitive actions
+    let currentUserRole = null; // set on login — 'owner' sees the Apple-synced calendar; anyone else gets their own
+    let calMode = 'apple'; // 'apple' or 'personal' — which calendar the Calendar page is currently showing
 
     function showLoginError(text){
       loginMsg.textContent = text;
@@ -1836,6 +1861,7 @@
       }
 
       currentUserEmail = user.email;
+      currentUserRole = profile.role;
       loginScreen.style.display = 'none';
       dash.style.display = 'flex';
       whoAmI.textContent = `${profile.display_name || user.email} — role: ${profile.role}`;
@@ -3031,6 +3057,7 @@
       prompt_versions: 'AI Prompt Versions',
       approval_requests: 'Approval Queue',
       calendar_events: 'Calendar',
+      personal_calendar_events: 'Personal Calendar',
       product_price_history: 'Price History',
       manual_attention_items: 'Manual Reminders',
       privacy_deletion_requests: 'Privacy Deletion Requests',
@@ -3773,6 +3800,23 @@
         showDashError('Could not add that reminder: ' + (err && err.message ? err.message : err));
       }
     });
+
+    // ---------- calendar mode ----------
+    // The owner sees their synced Apple Calendar (calendar_events). Everyone
+    // else (e.g. an Administrator) gets their own private, manually-entered
+    // calendar (personal_calendar_events) — nobody sees anyone else's.
+    const APPLE_CAL_HINT = 'Your synced Apple Calendar. Day and Week list every appointment with its time; Month gives you the overview. Use the chips to show or hide a calendar, and open any event to leave yourself a note — notes are yours and survive every sync.';
+    const PERSONAL_CAL_HINT = 'Your own calendar — only you can see these events. Add one below, or click an existing event to edit or delete it.';
+    function applyCalendarMode(){
+      calMode = (currentUserRole === 'owner') ? 'apple' : 'personal';
+      const form = document.getElementById('addPersonalEventForm');
+      const hint = document.getElementById('calHintText');
+      const filtersBox = document.getElementById('calFilters');
+      const personal = calMode === 'personal';
+      if (form) form.style.display = personal ? 'block' : 'none';
+      if (hint) hint.textContent = personal ? PERSONAL_CAL_HINT : APPLE_CAL_HINT;
+      if (filtersBox) filtersBox.style.display = personal ? 'none' : '';
+    }
 
     // ---------- calendar month grid ----------
     const CAL_COLORS = ['#3E6B52','#1f7a8c','#b8734a','#7a5c9e','#2f7d4f','#b8860b','#4a7fb8','#a04a6f'];
@@ -5012,17 +5056,61 @@
       const time = ev.all_day ? '<span class="calAllDay">All day</span>' : esc(fmtTimeShort(ev.starts_at)) +
         (ev.ends_at && !ev.all_day ? '<br><span style="opacity:.65">' + esc(fmtTimeShort(ev.ends_at)) + '</span>' : '');
       const open = calOpenUid === ev.uid;
+      const personal = calMode === 'personal';
       return '<div class="calEvent' + (open ? ' selected' : '') + '" data-uid="' + esc(ev.uid) + '">' +
           '<div class="eTime">' + time + '</div>' +
           '<div class="eBar" style="background:' + colorForCalendar(ev.calendar_name) + '"></div>' +
           '<div class="eBody">' +
             '<div class="eTitle">' + esc(ev.summary || 'Event') + '</div>' +
             (ev.location ? '<div class="eSub">' + esc(ev.location) + '</div>' : '') +
-            '<div class="eSub">' + esc(ev.calendar_name || 'Other') + '</div>' +
-            (note && !open ? '<div class="eNote">' + esc(note) + '</div>' : '') +
-            (open ? noteEditorHtml(ev) : '') +
+            (personal ? '' : '<div class="eSub">' + esc(ev.calendar_name || 'Other') + '</div>') +
+            (!personal && note && !open ? '<div class="eNote">' + esc(note) + '</div>' : '') +
+            (open ? (personal ? personalEventEditorHtml(ev) : noteEditorHtml(ev)) : '') +
           '</div>' +
         '</div>';
+    }
+    // Inline editor for a personal (manually-entered) event: change title or
+    // times, or delete it. Shown when you click one of your own events.
+    function personalEventEditorHtml(ev){
+      return '<div class="calNoteBox" data-personaluid="' + esc(ev.uid) + '">' +
+        '<label style="margin-bottom:4px;">Title</label>' +
+        '<input type="text" class="personalEditTitle" value="' + esc(ev.summary || '') + '" style="margin-bottom:10px;">' +
+        '<label style="margin-bottom:4px;">Starts</label>' +
+        '<input type="datetime-local" class="personalEditStart" value="' + esc(toDatetimeLocalValue(ev.starts_at, ev.all_day)) + '" style="margin-bottom:10px;">' +
+        '<label style="margin-bottom:4px;">Ends (optional)</label>' +
+        '<input type="datetime-local" class="personalEditEnd" value="' + esc(toDatetimeLocalValue(ev.ends_at, ev.all_day)) + '" style="margin-bottom:10px;">' +
+        '<label style="margin:0 0 10px;font-weight:400;display:flex;align-items:center;gap:6px;">' +
+          '<input type="checkbox" class="personalEditAllDay" style="width:auto;margin:0;"' + (ev.all_day ? ' checked' : '') + '> All day' +
+        '</label>' +
+        '<div class="calNoteRow">' +
+          '<button type="button" class="small personalEditSave">Save</button>' +
+          '<button type="button" class="small secondary personalEditDelete">Delete event</button>' +
+        '</div></div>';
+    }
+    // Turns a stored timestamp into the "YYYY-MM-DDTHH:MM" format that a
+    // datetime-local input expects, in your own local time.
+    function toDatetimeLocalValue(iso, allDay){
+      if (!iso) return '';
+      if (allDay) return String(iso).slice(0, 10) + 'T00:00'; // stored as a plain date — don't shift it
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return '';
+      const pad = n => String(n).padStart(2, '0');
+      return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) +
+        'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+    }
+    // Turns what's typed into the form into what gets stored. All-day events
+    // are stored as midnight UTC on the chosen date, so they never drift a
+    // day off (the calendar reads all-day dates exactly as stored).
+    function personalTimesFromInputs(startVal, endVal, allDay){
+      if (allDay) {
+        const s = startVal.slice(0, 10);
+        const e = endVal ? endVal.slice(0, 10) : null;
+        return { starts_at: s + 'T00:00:00Z', ends_at: e ? e + 'T00:00:00Z' : null };
+      }
+      return {
+        starts_at: new Date(startVal).toISOString(),
+        ends_at: endVal ? new Date(endVal).toISOString() : null,
+      };
     }
     function noteEditorHtml(ev){
       return '<div class="calNoteBox" data-noteuid="' + esc(ev.uid) + '">' +
@@ -5168,11 +5256,96 @@
           if (e.key === 'Escape') { e.preventDefault(); calOpenUid = null; renderCalendar(); }
         });
       });
+
+      // Personal calendar: save changes to, or delete, one of your own events.
+      body.querySelectorAll('.calNoteBox[data-personaluid]').forEach(box => {
+        const id = box.getAttribute('data-personaluid');
+        const titleInput = box.querySelector('.personalEditTitle');
+        const startInput = box.querySelector('.personalEditStart');
+        const endInput = box.querySelector('.personalEditEnd');
+        const allDayInput = box.querySelector('.personalEditAllDay');
+        const saveBtn = box.querySelector('.personalEditSave');
+        const delBtn = box.querySelector('.personalEditDelete');
+        setTimeout(() => titleInput && titleInput.focus(), 20);
+        if (saveBtn) saveBtn.addEventListener('click', async () => {
+          const title = (titleInput.value || '').trim();
+          if (!title) { toast('Give the event a title first.'); return; }
+          if (!startInput.value) { toast('Pick when it starts first.'); return; }
+          saveBtn.disabled = true;
+          try {
+            const times = personalTimesFromInputs(startInput.value, endInput.value, allDayInput.checked);
+            const { error } = await supabase.from('personal_calendar_events').update({
+              title,
+              starts_at: times.starts_at,
+              ends_at: times.ends_at,
+              all_day: !!allDayInput.checked,
+              updated_at: new Date().toISOString(),
+            }).eq('id', id);
+            if (error) throw error;
+            toastOk('Event updated.');
+            calOpenUid = null;
+            loadCalendarMonth();
+          } catch (err) {
+            saveBtn.disabled = false;
+            showDashError('Could not save that event: ' + (err && err.message ? err.message : err));
+          }
+        });
+        if (delBtn) delBtn.addEventListener('click', async () => {
+          if (!confirm('Delete this event? This can\'t be undone.')) return;
+          delBtn.disabled = true;
+          try {
+            const { error } = await supabase.from('personal_calendar_events').delete().eq('id', id);
+            if (error) throw error;
+            toastOk('Event deleted.');
+            calOpenUid = null;
+            loadCalendarMonth();
+          } catch (err) {
+            delBtn.disabled = false;
+            showDashError('Could not delete that event: ' + (err && err.message ? err.message : err));
+          }
+        });
+        box.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape') { e.preventDefault(); calOpenUid = null; renderCalendar(); }
+        });
+      });
     }
 
     async function loadCalendarMonth(){
+      applyCalendarMode();
       try {
         const { start, end } = calRange();
+
+        if (calMode === 'personal') {
+          // Your own events only (the database enforces this too). Start one
+          // day early so all-day events on the first visible day aren't missed.
+          const from = new Date(start); from.setDate(from.getDate() - 1);
+          const uid = await currentUserId();
+          const { data: rows, error } = await supabase
+            .from('personal_calendar_events')
+            .select('id, title, starts_at, ends_at, all_day')
+            .eq('owner_id', uid)
+            .gte('starts_at', from.toISOString())
+            .lt('starts_at', end.toISOString())
+            .order('starts_at', { ascending: true });
+          if (error) throw error;
+          // Reshape into the same form the Apple calendar uses, so the exact
+          // same Day / Week / Month views draw them.
+          calEvents = (rows || []).map(r => ({
+            id: r.id,
+            uid: r.id,
+            calendar_name: 'My Calendar',
+            summary: r.title,
+            location: null,
+            starts_at: r.starts_at,
+            ends_at: r.ends_at,
+            all_day: r.all_day,
+          }));
+          calNotes = {};
+          renderCalFilters();
+          renderCalendar();
+          return;
+        }
+
         const { data: events, error } = await supabase
           .from('calendar_events')
           .select('id, uid, calendar_name, summary, location, starts_at, ends_at, all_day')
@@ -5216,6 +5389,42 @@
       calOpenUid = null;
       loadCalendarMonth();
     }
+    // Add a new event to your own personal calendar.
+    const addPersonalEventForm = document.getElementById('addPersonalEventForm');
+    if (addPersonalEventForm) addPersonalEventForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const titleEl = document.getElementById('personalEventTitle');
+      const startEl = document.getElementById('personalEventStart');
+      const endEl = document.getElementById('personalEventEnd');
+      const allDayEl = document.getElementById('personalEventAllDay');
+      const btn = document.getElementById('addPersonalEventBtn');
+      const title = (titleEl.value || '').trim();
+      if (!title || !startEl.value) { toast('Add a title and a start time.'); return; }
+      if (endEl.value && endEl.value < startEl.value) { toast('The end time is before the start time.'); return; }
+      btn.disabled = true;
+      try {
+        const uid = await currentUserId();
+        const times = personalTimesFromInputs(startEl.value, endEl.value, allDayEl.checked);
+        const { error } = await supabase.from('personal_calendar_events').insert({
+          owner_id: uid,
+          title,
+          starts_at: times.starts_at,
+          ends_at: times.ends_at,
+          all_day: !!allDayEl.checked,
+        });
+        if (error) throw error;
+        addPersonalEventForm.reset();
+        toastOk('Event added.');
+        // Jump the calendar to the day you just added so you can see it.
+        calCursor = new Date(startEl.value.slice(0, 10) + 'T00:00:00');
+        loadCalendarMonth();
+      } catch (err) {
+        showDashError('Could not add that event: ' + (err && err.message ? err.message : err));
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
     document.getElementById('calPrevBtn').addEventListener('click', () => calStep(-1));
     document.getElementById('calNextBtn').addEventListener('click', () => calStep(1));
     document.getElementById('calTodayBtn').addEventListener('click', calToday);
