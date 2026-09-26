@@ -982,6 +982,19 @@
         <button type="submit" id="loginBtn">Log In</button>
       </form>
       <div id="loginMsg" class="msg"></div>
+      <p id="forgotPasswordRow" style="text-align:center;margin-top:14px;">
+        <a href="#" id="forgotPasswordLink" style="color:var(--muted);font-size:13px;">Forgot your password?</a>
+      </p>
+
+      <form id="forgotForm" style="display:none;margin-top:4px;">
+        <label for="forgotEmail">Email</label>
+        <input type="email" id="forgotEmail" autocomplete="username" required>
+        <button type="submit" id="forgotBtn">Send Reset Link</button>
+      </form>
+      <p id="backToLoginRow" style="display:none;text-align:center;margin-top:14px;">
+        <a href="#" id="backToLoginLink" style="color:var(--muted);font-size:13px;">Back to log in</a>
+      </p>
+      <div id="forgotMsg" class="msg"></div>
     </div>
   </div>
 
@@ -1930,6 +1943,63 @@
         showBanner('Sign-in failed: ' + (err && err.message ? err.message : err));
       }
     });
+
+    // ---------- forgot password ----------
+    // Sends a normal Supabase password-reset email. The link in that email
+    // brings the person back to change-password.html already signed in for
+    // recovery, where they pick a new password — no admin/owner involvement.
+    const CHANGE_PASSWORD_URL = 'https://stasvitiuk-dev.github.io/health-endeavors-order-entry/change-password.html';
+    const forgotPasswordLink = document.getElementById('forgotPasswordLink');
+    const forgotPasswordRow = document.getElementById('forgotPasswordRow');
+    const backToLoginLink = document.getElementById('backToLoginLink');
+    const backToLoginRow = document.getElementById('backToLoginRow');
+    const forgotForm = document.getElementById('forgotForm');
+    const forgotBtn = document.getElementById('forgotBtn');
+    const forgotMsg = document.getElementById('forgotMsg');
+
+    if (forgotPasswordLink) {
+      forgotPasswordLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        loginForm.style.display = 'none';
+        loginMsg.textContent = '';
+        forgotPasswordRow.style.display = 'none';
+        document.getElementById('forgotEmail').value = document.getElementById('email').value || '';
+        forgotForm.style.display = 'block';
+        backToLoginRow.style.display = 'block';
+        forgotMsg.textContent = '';
+        forgotMsg.className = 'msg';
+      });
+    }
+
+    if (backToLoginLink) {
+      backToLoginLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        forgotForm.style.display = 'none';
+        backToLoginRow.style.display = 'none';
+        forgotMsg.textContent = '';
+        loginForm.style.display = 'block';
+        forgotPasswordRow.style.display = 'block';
+      });
+    }
+
+    if (forgotForm) {
+      forgotForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        forgotBtn.disabled = true;
+        forgotMsg.textContent = 'Sending…';
+        forgotMsg.className = 'msg';
+        const email = document.getElementById('forgotEmail').value.trim();
+        try {
+          await supabase.auth.resetPasswordForEmail(email, { redirectTo: CHANGE_PASSWORD_URL });
+        } catch (err) {
+          // Fall through to the same generic message either way — never reveal
+          // whether an email address has an account on this system.
+        }
+        forgotBtn.disabled = false;
+        forgotMsg.textContent = 'If that email has an account, a reset link has been sent. Check your inbox (and spam folder).';
+        forgotMsg.className = 'msg';
+      });
+    }
 
     document.getElementById('signout').addEventListener('click', async () => {
       await supabase.auth.signOut();
