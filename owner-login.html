@@ -2205,6 +2205,23 @@
       shipping_delay_threshold_days: 'days',
       stuck_task_threshold_days: 'days',
     };
+    // Rules whose number must be a whole number inside a range before it can be
+    // saved. Checked in the browser before the password prompt, so a bad value
+    // never reaches the database or the agents that read it. Only the shipping
+    // delay rule is listed for now; others can be added with one line each.
+    const BUSINESS_RULE_WHOLE_NUMBER_LIMITS = {
+      shipping_delay_threshold_days: { key: 'days', min: 1, max: 365 },
+    };
+    // Returns an error message if newConfig breaks that rule's limits, or '' if it's fine.
+    function businessRuleValueError(ruleKey, label, newConfig){
+      const lim = BUSINESS_RULE_WHOLE_NUMBER_LIMITS[ruleKey];
+      if (!lim) return '';
+      const v = (newConfig && typeof newConfig === 'object' && !Array.isArray(newConfig)) ? newConfig[lim.key] : undefined;
+      if (typeof v !== 'number' || !Number.isInteger(v) || v < lim.min || v > lim.max) {
+        return '"' + label + '" must be a whole number from ' + lim.min + ' to ' + lim.max + '. Nothing was saved.';
+      }
+      return '';
+    }
 
     // Inventory bucket values (must match the database check constraint on
     // inventory_adjustments.bucket) mapped to friendly labels.
@@ -6733,6 +6750,12 @@
                 return;
               }
               newConfig = { [configKey]: num };
+            }
+
+            const ruleValueErr = businessRuleValueError(row.getAttribute('data-rule-key'), label, newConfig);
+            if (ruleValueErr) {
+              showDashError(ruleValueErr);
+              return;
             }
 
             const ok = await requireReauth(`change the "${label}" threshold`);
