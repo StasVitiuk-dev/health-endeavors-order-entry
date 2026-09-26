@@ -5718,10 +5718,10 @@
         desc: 'Links or creates a customer record per order and tags it retail vs. wholesale.',
         touches: ['orders (read + link customer)', 'customers (write)', 'tasks (write, email-mismatch review only)'],
         limit: 'Fully automatic. Organizing only — no pricing, money, or communication involved. Never changes a customer link once set; a mismatch only opens a task for a person.', enforced: true, cronJobName: 'agent_4_retail_wholesale' },
-      { num: 5, name: 'Shipping/Tracking Agent', ai: false, status: 'Built — waiting on GitHub Actions minutes (resets Oct 1, 2026)',
+      { num: 5, name: 'Shipping/Tracking Agent', ai: false, status: 'Migrated to Supabase pg_cron September 26, 2026 (runs hourly at :10 inside the database — no longer waits on GitHub Actions minutes). Live pause test passed the same day; the old GitHub schedule was removed (manual run kept). A cancelled shipment never raises an alert, even if its old tracking status still says in transit.',
         desc: 'Syncs Shopify tracking and flags failed or delayed deliveries, using your own Business Rules thresholds.',
-        touches: ['shipments (read)', 'business_rules (read)', 'tasks (write)'],
-        limit: 'Fully automatic. Only opens a task — never contacts a carrier or a customer.', enforced: false },
+        touches: ['orders (read)', 'shipments (write)', 'business_rules (read)', 'tasks (write)', 'ai_decision_log (write)'],
+        limit: 'Fully automatic. Only opens a task — never contacts a carrier or a customer. A delayed task stays open after delivery until a person closes it. Handles up to 500 orders per run. If Shopify marks a fulfillment error/failure but tracking says delivered, it still opens the failed-review task, because the data contradicts itself and a person should look.', enforced: true, cronJobName: 'agent_5_shipping_tracking' },
       { num: 6, name: 'Customer Notification Agent', ai: false, status: 'Migrated to Supabase pg_cron (runs hourly at :05 inside the database — no longer waits on GitHub Actions minutes). 32 clean hourly runs and a live pause test passed September 26, 2026; the old GitHub schedule was removed the same night. Still dry-run only, no email service connected yet.',
         desc: 'Logs what it would email a customer for each order event (received / shipped / delivered / delayed / cancelled / refunded).',
         touches: ['customer_notifications (write)'],
@@ -5760,10 +5760,10 @@
       const parts = [];
       if (cronInfo) {
         parts.push(cronInfo.active
-          ? `<span style="color:var(--good);">Scheduled job active</span> (${esc(cronInfo.schedule)})`
-          : `<span style="color:var(--danger);">Scheduled job is NOT active</span> — it won't run until re-scheduled`);
+          ? `<span style="color:var(--good);">Scheduled job <code>${esc(a.cronJobName)}</code> active</span> (${esc(cronInfo.schedule)})`
+          : `<span style="color:var(--danger);">Scheduled job <code>${esc(a.cronJobName)}</code> is NOT active</span> — it won't run until re-scheduled`);
       } else {
-        parts.push('<span style="color:var(--warn);">Could not confirm the scheduled job exists</span>');
+        parts.push(`<span style="color:var(--warn);">Could not confirm the scheduled job <code>${esc(a.cronJobName)}</code> exists</span>`);
       }
       if (ctrl && ctrl.last_run_at) {
         const statusColor = ctrl.last_run_status === 'failed' ? 'var(--danger)'
