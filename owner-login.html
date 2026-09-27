@@ -5639,6 +5639,47 @@
       }
     }
 
+    // Task status buttons. Only these moves are allowed from the dashboard:
+    //   open -> in_progress, open -> done, in_progress -> done.
+    // The update only succeeds if the task is STILL in an allowed starting
+    // status (checked by the database in the same statement), so a double
+    // click, a second person, or an agent changing it at the same moment can
+    // never push it through a move that isn't on this list. The dashboard never
+    // creates tasks - agents do - so these buttons can't create duplicates.
+    // Every change goes through the normal logged-in update, so the tasks
+    // change-history (audit) trigger and access rules apply exactly as before.
+    const TASK_STATUS_LABELS = { open: 'Open', in_progress: 'In progress', done: 'Done', cancelled: 'Cancelled' };
+    const TASK_NEXT_ACTIONS = {
+      open: [{ to: 'in_progress', label: 'Mark in progress' }, { to: 'done', label: 'Mark done' }],
+      in_progress: [{ to: 'done', label: 'Mark done' }],
+    };
+    const TASK_ALLOWED_FROM = { in_progress: ['open'], done: ['open', 'in_progress'] };
+
+    async function changeTaskStatus(btn){
+      const row = btn.closest('tr');
+      const id = row && row.getAttribute('data-id');
+      const to = btn.getAttribute('data-to');
+      const allowedFrom = TASK_ALLOWED_FROM[to];
+      if (!id || !allowedFrom) return;
+      row.querySelectorAll('.taskStatusBtn').forEach(b => { b.disabled = true; });
+      try {
+        const { data, error } = await supabase
+          .from('tasks')
+          .update({ status: to })
+          .eq('id', id)
+          .in('status', allowedFrom)
+          .select('id, status');
+        if (error) throw error;
+        if (!data || data.length === 0) {
+          showDashError('That task was already changed (by someone else or an agent), or you don\'t have permission to change it. The list has been refreshed.');
+        }
+      } catch (err) {
+        showDashError('Could not update that task: ' + (err && err.message ? err.message : err));
+      } finally {
+        loadTasks();
+      }
+    }
+
     async function loadTasks(){
       try {
         const { data: tasks, error, count } = await supabase
@@ -5662,14 +5703,18 @@
         } else {
           document.getElementById('tasksTableWrap').innerHTML = `
             ${cutoffNote}
-            <table><thead><tr><th>Title</th><th>Priority</th><th>Status</th><th>Due</th></tr></thead>
+            <table><thead><tr><th>Title</th><th>Priority</th><th>Status</th><th>Due</th><th></th></tr></thead>
             <tbody>${open.map(t => `
               <tr class="${isOverdue(t.due_at, t.status) ? 'overdue' : ''}" data-id="${esc(t.id)}">
                 <td>${esc(t.title)}</td>
                 <td><span class="badge">${esc(t.priority || '—')}</span></td>
-                <td>${esc(t.status || '—')}</td>
+                <td>${esc(TASK_STATUS_LABELS[t.status] || t.status || '—')}</td>
                 <td>${esc(fmtDate(t.due_at))}</td>
+                <td style="white-space:nowrap;">${(TASK_NEXT_ACTIONS[t.status] || []).map(a =>
+                  `<button type="button" class="small taskStatusBtn" data-to="${esc(a.to)}">${esc(a.label)}</button>`).join(' ')}</td>
               </tr>`).join('')}</tbody></table>`;
+          document.querySelectorAll('#tasksTableWrap .taskStatusBtn').forEach(btn =>
+            btn.addEventListener('click', () => changeTaskStatus(btn)));
         }
       } catch (err) {
         showDashError('Could not load tasks: ' + (err && err.message ? err.message : err));
