@@ -1780,6 +1780,13 @@
       if (s === null || s === undefined) return '';
       return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     }
+    // Today's date (or the given date) as YYYY-MM-DD on the viewer's own
+    // calendar. toISOString() gives the UTC date instead, which in US time
+    // zones is already "tomorrow" every evening.
+    function localDateString(d){
+      const t = d || new Date();
+      return t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0');
+    }
     function fmtMoney(amount, currency){
       const n = Number(amount || 0);
       try {
@@ -1878,7 +1885,7 @@
       showPage(getLastPage());
       loadDashboard();
       const expDateInput = document.getElementById('expDate');
-      if (expDateInput && !expDateInput.value) expDateInput.valueAsDate = new Date();
+      if (expDateInput && !expDateInput.value) expDateInput.value = localDateString();
     }
 
     // ---------- re-authentication for sensitive actions ----------
@@ -3627,7 +3634,7 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'employee-activity-' + new Date().toISOString().slice(0, 10) + '.csv';
+      a.download = 'employee-activity-' + localDateString() + '.csv';
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -7601,7 +7608,7 @@
       const dateInput = document.getElementById('aeDateReceived');
       if (dateInput && !dateInput.value) {
         const today = new Date();
-        dateInput.value = today.toISOString().slice(0, 10);
+        dateInput.value = localDateString(today);
       }
     })();
 
@@ -7708,7 +7715,7 @@
         outcomeInput.value = '';
         reporterNameInput.value = '';
         reporterContactInput.value = '';
-        dateInput.value = new Date().toISOString().slice(0, 10);
+        dateInput.value = localDateString();
         loadAdverseEvents();
         loadIncidents();
         loadTasks();
@@ -7881,7 +7888,7 @@
           const lotsOnHand = (p.inventory_lots || [])
             .filter(l => Number(l.quantity_remaining) > 0)
             .sort((a, b) => new Date(a.received_at) - new Date(b.received_at)); // oldest first, for using stock in order
-          const today = new Date().toISOString().slice(0, 10);
+          const today = localDateString();
           const lotsHtml = lotsOnHand.length ? `
                 <div style="margin-top:8px;">
                   <div style="font-size:12px;color:var(--muted);margin-bottom:4px;">Lots on hand (oldest first):</div>
@@ -8688,7 +8695,7 @@
         vendorInput.value = '';
         noteInput.value = '';
         receiptInput.value = '';
-        dateInput.valueAsDate = new Date();
+        dateInput.value = localDateString();
         loadExpenses();
       } catch (err) {
         showDashError('Could not save that expense: ' + (err && err.message ? err.message : err));
@@ -8953,7 +8960,7 @@
             <table><thead><tr><th>Date</th><th>Category</th><th>Vendor</th><th>Amount</th></tr></thead>
             <tbody>${missing.map(e => `
               <tr>
-                <td>${esc(fmtDate(e.expense_date))}</td>
+                <td>${esc(fmtDateOnly(e.expense_date))}</td>
                 <td>${esc((TAX_CATEGORY_MAP[e.category] || {}).label || e.category || '—')}</td>
                 <td>${esc(e.vendor || '—')}</td>
                 <td>${esc(fmtMoney(e.amount, currency))}</td>
@@ -9004,14 +9011,14 @@
         [],
         ['Expenses missing a receipt'],
         ['Date', 'Category', 'Vendor', 'Amount'],
-        ...r.missing.map(e => [fmtDate(e.expense_date), (TAX_CATEGORY_MAP[e.category] || {}).label || e.category || '', e.vendor || '', fmtMoney(e.amount, r.currency)]),
+        ...r.missing.map(e => [fmtDateOnly(e.expense_date), (TAX_CATEGORY_MAP[e.category] || {}).label || e.category || '', e.vendor || '', fmtMoney(e.amount, r.currency)]),
       ];
       const csv = lines.map(l => l.map(c => '"' + String(c === null || c === undefined ? '' : c).replace(/"/g, '""') + '"').join(',')).join('\r\n');
       const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'tax-records-' + new Date().toISOString().slice(0, 10) + '.csv';
+      a.download = 'tax-records-' + localDateString() + '.csv';
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
