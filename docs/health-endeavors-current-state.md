@@ -19,7 +19,7 @@ Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (fro
 
 ## 2. Public website (customer storefront)
 
-- **CURRENT (local only):** a design-neutral prototype shaped like a Shopify Online Store 2.0 theme, plus architecture and planning documents. It lives in a **separate local workspace, not in this repository**, and is **not deployed**. Synthetic data only; 286 local tests (275 passed, 11 intentional size-specific skips).
+- **CURRENT (local only):** a design-neutral prototype shaped like a Shopify Online Store 2.0 theme, plus architecture and planning documents. It lives in a **separate local workspace, not in this repository**, and is **not deployed**. Synthetic data only; 288 local tests (277 passed, 0 failed, 11 intentional size-specific skips; 831/831 over 3 repeats).
 - **Design:** TEMPORARY. Final colours, typography, photography and identity are to be chosen by the owner separately.
 - **Content:** all placeholder; no product claims written.
 - **Preservation:** a snapshot archive was sent to the owner as a file. A GitHub repository for it needs the owner's approval (proposed name `health-endeavors-website`, private).
