@@ -1,0 +1,12 @@
+{
+  "name": "health-endeavors-dashboard-tests",
+  "private": true,
+  "description": "Local regression tests for the Health Endeavors dashboard. Not part of the live site.",
+  "scripts": {
+    "test": "playwright test --config tests/playwright.config.js"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1",
+    "@supabase/supabase-js": "2.117.2"
+  }
+}
