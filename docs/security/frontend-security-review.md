@@ -5,6 +5,19 @@ Status: **findings only.** September 29, 2026. I read the source of all six page
 - No payloads were tested, not even against the mock.
 - No code was changed.
 
+## Status of fixes (updated Sept 29, 2026, evening)
+
+| Finding | Fix |
+| --- | --- |
+| S1 (search.html / dashboard.html escaping) | **PR #7** (open, waiting for the owner) |
+| S3 (dangerous link types) | **PR #10** (blocks javascript:/data:/vbscript:; normal and Apple links keep working) |
+| S4 (CSV formulas) | **PR #9** |
+| S9 (password prompt Enter twice) | **PR #13** |
+| S2 (pin the Supabase library) | **Pending.** The CDN can't be reached from Claude's environment, so the integrity hash can't be verified safely. A wrong hash would stop every page loading. |
+| S5, S6, S11 | Need owner decisions / a read-only access-rule (RLS) query |
+| S7 (CSP) | Later, after the planned CSS/JS split |
+| S10 (orphan uploads) | Not started. It touches the save flow for expenses, evidence and documents; a small PR is possible if wanted. |
+
 ## Summary
 
 - `owner-login.html` is careful about the biggest browser risk: it escapes every database value before putting it on the page (`esc()`). I found no unescaped data path in it.
@@ -30,7 +43,7 @@ No secrets were found. The Supabase key in the pages is the public "publishable"
 | S7 | 🟡 **Low–Medium** | **No Content-Security-Policy on any page** | all `.html` | A CSP limits what an injected script could do, and where scripts can load from. It would reduce the impact of S1 and S2. | Add a `<meta http-equiv="Content-Security-Policy">` allowing only this site, `cdn.jsdelivr.net` (pinned) and the Supabase project. Test carefully, because inline scripts and styles need to be allowed or moved. This fits well after the CSS/JS split. |
 | S8 | 🟡 **Low** | **Session token stored in `localStorage`** (Supabase default) | all pages | Normal for this kind of app, but any script injection (S1) could read it. | Handled by fixing S1/S2/S7. No change needed on its own. |
 | S9 | 🟡 **Low** | **Password prompt: pressing Enter while a check is running starts another check**, and a comment says 12 s while the code uses 8 s | `requireReauth` 1930–1966 | Extra sign-in attempts count toward Supabase's rate limit, and the prompt can show a confusing message. No security impact. | Ignore Enter while a check is in progress. Fix the comment. |
-| S10 | 🟡 **Low** | **Receipt upload happens before the expense is saved** | Expenses form 8671–8684 | If the save fails, the file stays in storage with no expense pointing to it (an orphan receipt). The same pattern exists for evidence (7351) and document (7559) uploads. | Delete the uploaded file if the insert fails, or save first and upload second. |
+| S10 | 🟡 **Low** | **Receipt upload happens before the expense is saved** | Expenses form 8671–8684 | If the save fails, the file stays in storage with no expense pointing to it (an orphan receipt). The same pattern exists for evidence (7351) and document (7559) uploads. | Delete the uploaded file if the insert fails, or save first and upload second. (Receipts are expense records, so the expense variant should be reviewed as accounting-adjacent.) |
 | S11 | ℹ️ **Info** | **Deactivated accounts keep working until reload** | `showDashboardFor` checks `is_active` only at login | Real enforcement must be in RLS: policies should check `is_active`. | Confirm with the same RLS query as S5. |
 | S12 | ℹ️ **Info** | **Logging**: 6 `console.warn` calls log error messages only; no personal data or tokens are logged | 5528–6715 | Fine. | None. |
 
