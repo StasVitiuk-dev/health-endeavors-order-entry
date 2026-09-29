@@ -199,8 +199,8 @@ Every PR:
 
 | # | PR | Tests that must exist and pass first | Rollback note |
 | --- | --- | --- | --- |
-| 0a | **Regression suite** (branch `claude/regression-coverage`): page data, interface, unit, request and screenshot baselines | – | Test-only |
-| 0b | **Inventory-safety tests** (branch `claude/inventory-safety-audit`) | – | Test-only |
+| 0a | **Regression suite** (PR #15): page data, interface, unit, request and screenshot baselines | – | Test-only |
+| 0b | **Inventory-safety tests** (PR #16) | – | Test-only |
 | 1 | Move `<style>` → `assets/owner-login.css` | Screenshot baselines (18 images × 2 sizes); layout tests | Revert; a CSS-only change |
 | 2 | Move inline icons → one PNG file (optional) | Login loads; manifest/icon present | Revert |
 | 3 | Create `00-helpers.js` with the pure helpers and labels (copy, then delete the originals) | `helpers-unit.spec.js`, request baseline, every page opens | Revert |
