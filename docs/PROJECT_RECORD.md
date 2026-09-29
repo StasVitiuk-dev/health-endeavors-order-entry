@@ -33,8 +33,8 @@
 | **Store** | **[HIST]** Not launched. Shopify order sync intentionally **off**, 0 real orders. Real products not yet added. |
 | **Agents** | **[HIST]** #4, #5 and #6 run inside Supabase hourly, each live-tested with an enforced pause switch (Sept 26–27). #2, #3, #7 and #8 switched off (GitHub workflows disabled Sept 26, until there are products). #9 and #10 are dashboard pages. **Agent #1 (Invoice): pause enforcement was verified Sept 24 [HIST], but whether it is currently enabled or paused is [UNVERIFIED].** It was paused for a test that day, and no source records it being switched back on. |
 | **GitHub safety** | **[REPO]** Ruleset `protect-main` is active: PR, 1 approval, Code Owners review, stale approvals dismissed, last-push approval, no force-push, no deletion. CODEOWNERS = owner. No workflow files in this repo. (Bypass list: admin-only per [HIST]; not readable by Claude.) |
-| **Tests** | **[REPO]** `main` has the Playwright suite from PR #4: 65 passed, 9 skipped (run Sept 29). Unmerged branches add 131 more (§6). All mocked, with synthetic data. |
-| **Open PRs** | **[REPO]** #5 `CLAUDE.md` standing rules; #6 this record. Both waiting for the owner. |
+| **Tests** | **[REPO]** `main` has the Playwright suite from PR #4: 65 passed, 9 skipped (run Sept 29). **Combined check [REPO]:** every open fix and test branch (PRs #7–#16, #19–#24) merged together on a scratch copy (never pushed): **405 passed, 0 failed, 49 skipped** at both sizes (Sept 29, 20:41 UTC). The 10 "wanted behaviour" tests for R1–R4 fail as expected and are counted as passed until those fixes exist. All mocked, with synthetic data. |
+| **Open PRs** | **[REPO]** 20 PRs are waiting for the owner, and none is merged: #5–#6 (rules, this record); fixes #7–#14; tests #15, #16, #19–#24; reviews/plans #17, #18. See §6. |
 | **Owner-run checks** | **[PENDING]** Status survives a refresh · `audit_log` shows the status-only change · Cancel on "Mark done" changes nothing · real iPhone layout · administrator account (optional) · **Agent #1's current on/off state**. |
 | **Biggest known risks** | **[REPO]**, reproduced against the code with synthetic data, not fixed: the inventory and purchase-order double-count / lost-update bugs; unescaped output on `search.html` and `dashboard.html`; the Supabase library loads unpinned from a CDN. |
 
@@ -157,8 +157,8 @@ All agent statuses above are [HIST]; Claude cannot see Supabase. The live versio
 | R3 | Return restock all-or-nothing | Double restock (reproduced) | M | Same pattern |
 | R4 | Manual adjustment in the database (fixes lost updates + below-zero race) | Silent wrong stock (reproduced) | M | Same pattern |
 | R5 | Product delete must not wipe stock first | Stock row lost for an in-use product (reproduced in mock) | S | Dashboard or small DB function |
-| R6 | Escape output on `search.html` / `dashboard.html`, or retire them | Script injection via customer / agent text | S | Owner decides if the pages are still used |
-| R7 | Pin + integrity-hash the Supabase library (all 6 pages) | Supply-chain risk | S | – |
+| R6 | Escape output on `search.html` / `dashboard.html` | Script injection via customer / agent text | S | **Fix in PR #7.** The pages are kept; retiring them needs the owner's approval |
+| R7 | Pin + integrity-hash the Supabase library (all 6 pages) | Supply-chain risk | S | **Pending by owner's instruction.** The library server couldn't be reached from the work container, so the hash can't be verified yet. Options: check the hash in a browser, or keep a copy of the library in the repo |
 | R8 | Add real products (character-exact SKUs vs Shopify) | Needed before launch | S (owner) | Old plan: after the fake-order test ✓ |
 | R9 | Before launch: re-enable the disabled workflows / Shopify sync | Operations | S (owner) | Products exist |
 | R10 | Before any real email service: Agent #6 is fixed (v2), and the notifications re-checked | Customer messages | – | Email service chosen |
@@ -173,14 +173,20 @@ All agent statuses above are [HIST]; Claude cannot see Supabase. The live versio
 
 ### 4.3 Should do soon (small, found in this session)
 
-- Link-scheme allowlist (Evidence / Documents)
-- CSV formula guard
-- US-evening date bugs (expense, adverse-event and Receive expense dates)
-- Tax receipt-list date shown a day early
-- Phone swipe inside wide tables changes the page
-- Palette / search Enter opens the guide instead of the page
-- Stale agent status text (#2 / #3 / #7 / #8)
-- Password prompt Enter-twice
+- Link-scheme allowlist (Evidence / Documents): **PR #10**
+- CSV formula guard: **PR #9**
+- US-evening date bugs (expense and adverse-event defaults, lot expired badge, file names): **PR #11**. The PO "Receive" expense date and the Accounting/Tax date ranges are deliberately unchanged, because they are accounting-adjacent and need the owner's decision.
+- Tax receipt-list date shown a day early: **PR #11**
+- Phone swipe inside wide tables changes the page: **PR #12**
+- Phone tap on a purchase order opens change history: **PR #14**
+- Stale agent status text (#2 / #3 / #7 / #8): **PR #8** (wording only, shown as "last recorded state"; no agent setting changed)
+- Password prompt Enter-twice: **PR #13**
+- Palette / search Enter opens the guide first: **owner decision** (it looks deliberate)
+
+**New decisions for the owner (found while writing tests, recorded as current behaviour, not changed):**
+- Approval Queue approve/reject doesn't check that the request is still pending, so two people could act on it at once.
+- Purchase order Cancel has no confirmation. PO status changes don't check the current status.
+- Uploads whose save fails are left in storage (security review S10).
 
 ### 4.4 Optional / future ideas (owner's lists)
 
@@ -211,35 +217,54 @@ All agent statuses above are [HIST]; Claude cannot see Supabase. The live versio
 1. PO receive: double stock + duplicate expense on retry (R1)
 2. Recall quarantine: can move more than the batch holds on retry (R2)
 3. Lost updates in all four stock-changing places (R4)
-4. Unescaped output on `search.html` / `dashboard.html` (R6)
+4. Unescaped output on `search.html` / `dashboard.html` (R6): fix in PR #7
 5. Product delete wipes stock first (R5)
 6. Unpinned CDN library (R7)
 7. Return double-restock; manual adjustment double-save (R3 / R4)
-8. Unchecked link schemes; CSV formulas (§4.3)
-9. Dates: Tax receipt list one day early; evening dates default to tomorrow (§4.3)
-10. Phone: table swipe changes page; PO tap opens change history (§4.3)
-11. Minor: palette Enter → guide; Tax `in()` URL length at scale; password prompt Enter-twice; stale agent text
+8. Unchecked link schemes; CSV formulas (§4.3): fixes in PRs #10 and #9
+9. Dates: Tax receipt list one day early; evening dates default to tomorrow (§4.3): fix in PR #11
+10. Phone: table swipe changes page; PO tap opens change history (§4.3): fixes in PRs #12 and #14
+11. Minor: palette Enter → guide; Tax `in()` URL length at scale; password prompt Enter-twice (PR #13); stale agent text (PR #8)
 
 **Evidence:** the tests and reports on the branches in §6. **Correction from the old docs:** a recall deliberately does *not* reduce the batch's remaining count. That field means "still physically here, in any bucket", so it's by design, not a bug.
 
 ---
 
-## 6. Work done in this session (Sept 29): testing and planning only, no features, no fixes
+## 6. Work done on Sept 29, 2026 (all [REPO]: open PRs, none merged, nothing deployed)
 
-| Branch (not merged, no PR unless noted) | Contents | Tests |
+**Fixes (change dashboard behaviour; each has its own tests that fail on the old code):**
+
+| PR | Fixes | New tests | Full suite on that branch |
+| --- | --- | --- | --- |
+| #7 | `search.html` / `dashboard.html` show database text as plain text (security S1 / R6) | 8 | 73 / 0 / 9 |
+| #8 | Agents #2/#3/#7/#8 status shows "last recorded state (Sept 26)", not "waiting on minutes" (text only; no agent setting changed) | 2 | 67 / 0 / 9 |
+| #9 | CSV exports can't create spreadsheet formulas (S4) | 4 | 69 / 0 / 9 |
+| #10 | Evidence / Documents never make javascript:/data:/vbscript: links clickable; refused on save (S3) | 10 | 75 / 0 / 9 |
+| #11 | Dates shown or pre-filled a day off in US evenings (display and form defaults only) | 8 | 73 / 0 / 9 |
+| #12 | Phone: dragging a wide table no longer switches page | 3 | 68 / 0 / 12 |
+| #13 | Password prompt sends one check even if Enter is pressed repeatedly | 4 | 69 / 0 / 9 |
+| #14 | Phone: tapping a purchase order no longer opens history on top | 2 | 67 / 0 / 11 |
+
+**Merge check [REPO]:** PRs #7–#14 plus every test PR were test-merged together, in more than one order, with **no conflicts** (after moving two small helpers on Sept 29 evening). The combined suite result is in the "Tests" row of §1.
+
+**Tests only (verify existing behaviour; no dashboard change):**
+
+| PR | Covers | Tests |
 | --- | --- | --- |
-| `claude/sweet-hamilton-5ty3zp` → **PR #5** | `CLAUDE.md` standing rules | – |
-| `claude/po-receive-investigation` | PO receive reproduction + fix plan (owner decisions recorded) | 16 |
-| `claude/inventory-safety-audit` | the above + recalls / adjustments / returns / product delete + report | 50 (250/250 over 5 repeats) |
-| `claude/regression-coverage` | Page, interface, unit, request-baseline, screenshot and known-bug tests + report | Suite 191 passed / 0 failed / 45 skipped (564/564 over 3 repeats) |
-| `claude/owner-login-modularization-plan` | Split plan + detailed dependency map + analysis script | – |
-| `claude/frontend-security-review` | Read-only security review (12 findings) | – |
-| `claude/project-record` | **this file** | – |
+| #15 | Pages with data, keyboard/palette/overlays, calculation helpers, request baseline, screenshots | branch suite 184 / 0 / 44 |
+| #16 | Inventory safety: PO receive, recalls, adjustments, returns, product delete (reproduces the known bugs) + 2 reports | 50 (250/250 ×5) |
+| #19 | Feature Flags, System Mode, Business Rules, Approval Queue | 30 (90/90 ×3) |
+| #20 | Inactive account, forgot password, non-owner calendar | 16 (48/48 ×3) |
+| #21 | Quality Control, Adverse Event Reports, Legal Holds | 20 (60/60 ×3) |
+| #22 | Purchase orders except Receive | 20 (60/60 ×3) |
+| #23 | Employee Activity filters/paging, owner Calendar views/notes | 24 (72/72 ×3) |
+| #24 | Agent pause switches (mock only), Active Sessions, Customer Inquiries | 20 (60/60 ×3) |
 
-**Currently doing (Sept 29, evening):** this record is in its own documentation-only PR. `CLAUDE.md` (PR #5) now points future sessions here. Next: small, safe fixes from §4.1 / §4.3, each as its own PR for the owner to review. Nothing is merged or deployed by Claude. **How it fits:**
-- The tests are the safety net for R1–R7 and for the modularization.
-- The reports define R1–R7.
-- This record ties the old-chat history to the repo, so no future session has to rely on chat history.
+**Documentation:** #5 (`CLAUDE.md`, now pointing here), #6 (this record), #17 (security review with fix status; S6 corrected), #18 (modularization plan + architecture map).
+
+The branch `claude/po-receive-investigation` is superseded by #16 (same content plus more); no PR is needed for it.
+
+**Currently doing (Sept 29, evening):** the owner is reviewing. Every item Claude can do safely is in a PR. The rest (R1–R5, R7, the decisions above) waits on the owner. Nothing is merged or deployed by Claude.
 
 ---
 
@@ -251,13 +276,14 @@ Each percentage below measures **one specific checklist only**. None of them is 
 | --- | --- | --- | --- |
 | **Blueprint 90-item addendum** (Build Now 11 + Build Soon 28 + Future 51; *extra hardening features, not the core system*) | **51 done / 90 ≈ 57%** (≈ 58–59% counting 3 partial items as half) | The owner's recount on Sept 26; nothing since has added a Blueprint item (task buttons, tests and reviews aren't on that list) | Official figure from the old docs; not re-audited here |
 | **Original 69-item specification** (the owner's founding requirements list, preserved in the Blueprint checklist) | **46 done, 15 partly, 8 open**: ≈ 67% done, ≈ 77% counting partly as half | **My tally on Sept 29** of the per-item statuses written in the Blueprint checklist | Unofficial; the categorisation of "partly" is a judgement call; owner may recount |
-| **Launch-required list R1–R10 in §4.1 of this record** (Claude's list, from this session's findings) | **~10 required items (R1–R10), 0 done**; ~5 owner checks pending | §4.1–4.2 | Rough: R1 is large (a DB function + dashboard, several PRs); R2–R4 reuse its pattern; R5–R7 are small. Depends on the owner's pace for SQL runs and reviews. |
+| **Launch-required list R1–R10 in §4.1 of this record** (Claude's list, from this session's findings) | **~10 required items (R1–R10), 0 done on `main`**. R6 has a fix waiting in PR #7 (1 of 10 if merged); ~5 owner checks pending | §4.1–4.2; only merged work counts as done | Rough: R1 is large (a DB function + dashboard, several PRs); R2–R4 reuse its pattern; R5–R7 are small. Depends on the owner's pace for SQL runs and reviews. |
 | **Task buttons v2 post-deploy checklist** (the 9 checks in the Blueprint checklist, Sept 27) | 4 of 9 done [HIST] | Sept 29 template | The 5 remaining are [PENDING] |
 
 **Remaining effort, in PR-sized steps (estimate):**
 - Inventory safety R1–R5: about 10 PRs (SQL draft + dashboard for each; R2–R4 are smaller once R1 sets the pattern).
-- Security R6–R7: 2–7 small PRs (one per page if done page by page).
-- §4.3 small fixes: about 8 small PRs.
+- Security R6: done in PR #7 (waiting for review). R7: 1–6 small PRs once a safe way to verify the hash is chosen.
+- §4.3 small fixes: 7 of 8 are in PRs #8–#14 (waiting for review). The 8th (palette Enter) waits on an owner decision.
+- Review load now: 20 open PRs. Fixes #7–#14 are small (each about 1–40 lines of dashboard change). Test PRs #15, #16 and #19–#24 add no dashboard change.
 - Modularization: about 15 PRs, only after R1–R4.
 
 These are counts, not hours. Time depends on review and SQL-run turnaround.
