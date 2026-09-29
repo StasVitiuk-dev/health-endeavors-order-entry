@@ -1780,6 +1780,15 @@
       if (s === null || s === undefined) return '';
       return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     }
+    // True for a saved link that is safe to show as a clickable link. Blocks
+    // only the kinds that run code or smuggle content when clicked
+    // (javascript:, data:, vbscript:); web, email, Apple Mail/Photos and
+    // other normal links still work. Control characters and spaces are
+    // ignored when checking, because browsers ignore them too.
+    function isSafeLink(url){
+      const u = String(url || '').replace(/[\u0000-\u0020\u007f]/g, '').toLowerCase();
+      return !!u && !/^(javascript|data|vbscript):/.test(u);
+    }
     function fmtMoney(amount, currency){
       const n = Number(amount || 0);
       try {
@@ -7289,7 +7298,9 @@
               <div style="font-size:12px;color:#6b7877;margin-top:3px;">Tied to: ${incLabel}</div>
               ${e.description ? `<div style="font-size:12px;color:#6b7877;margin-top:3px;">${esc(e.description)}</div>` : ''}
               ${e.file_path ? `<div style="font-size:12px;margin-top:3px;"><a href="#" class="evidenceFileLink">Download uploaded file</a></div>` : ''}
-              ${e.external_link ? `<div style="font-size:12px;margin-top:3px;"><a href="${esc(e.external_link)}" target="_blank" rel="noopener noreferrer">Open linked file</a></div>` : ''}
+              ${e.external_link ? (isSafeLink(e.external_link)
+                ? `<div style="font-size:12px;margin-top:3px;"><a href="${esc(e.external_link)}" target="_blank" rel="noopener noreferrer">Open linked file</a></div>`
+                : `<div style="font-size:12px;margin-top:3px;color:#8a9694;">Linked file (not opened — this kind of link can run code): ${esc(e.external_link)}</div>`) : ''}
               <br><span style="font-size:11px;color:#8a9694;">Added ${esc(fmtDate(e.created_at))}</span>
             </div>
           </div>`;
@@ -7333,6 +7344,10 @@
       const title = titleInput.value.trim();
       if (!incidentId || !title) {
         showDashError('Pick which incident this evidence belongs to, and give it a title.');
+        return;
+      }
+      if (linkInput.value.trim() && !isSafeLink(linkInput.value)) {
+        showDashError('That link can’t be saved: links starting with javascript:, data: or vbscript: can run code when clicked. Paste a normal web, email or Photos/Drive link instead.');
         return;
       }
       const submitBtn = e.target.querySelector('button[type="submit"]');
@@ -7471,7 +7486,9 @@
                 ${d.issued_date ? `<div style="font-size:12px;color:#8a9694;margin-top:3px;">Issued ${esc(fmtDateOnly(d.issued_date))}</div>` : ''}
                 ${d.notes ? `<div style="margin-top:6px;">${esc(d.notes)}</div>` : ''}
                 ${d.file_path ? `<div style="font-size:12px;margin-top:6px;"><a href="#" class="docFileLink">Open uploaded file</a></div>` : ''}
-                ${d.document_url ? `<div style="font-size:12px;margin-top:6px;"><a href="${esc(d.document_url)}" target="_blank" rel="noopener noreferrer">Open linked document</a></div>` : ''}
+                ${d.document_url ? (isSafeLink(d.document_url)
+                  ? `<div style="font-size:12px;margin-top:6px;"><a href="${esc(d.document_url)}" target="_blank" rel="noopener noreferrer">Open linked document</a></div>`
+                  : `<div style="font-size:12px;margin-top:6px;color:#8a9694;">Linked document (not opened — this kind of link can run code): ${esc(d.document_url)}</div>`) : ''}
                 <div style="margin-top:8px;"><button type="button" class="small secondary docDeleteBtn">Delete</button></div>
               </div>
             </div>`;
@@ -7539,6 +7556,10 @@
       const title = titleInput.value.trim();
       const category = categoryInput.value;
       if (!title || !category) { showDashError('Give the document a title and a category first.'); return; }
+      if (urlInput.value.trim() && !isSafeLink(urlInput.value)) {
+        showDashError('That link can’t be saved: links starting with javascript:, data: or vbscript: can run code when clicked. Paste a normal web, email or Drive link instead.');
+        return;
+      }
 
       let relatedType = null, relatedId = null;
       if (relatedInput.value.includes(':')) {
