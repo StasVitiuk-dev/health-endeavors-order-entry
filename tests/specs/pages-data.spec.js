@@ -86,6 +86,18 @@ test.describe('Orders', () => {
     expect(writes(backend, 'orders')).toEqual([]);
   });
 
+  test('the password prompt fits on screen and its buttons can be reached', async ({ page }) => {
+    await page.locator('#ordersTableWrap tr[data-id="o1"] .deleteOrderBtn').click();
+    await expect(page.locator('#reauthOverlay')).toBeVisible();
+    for (const id of ['#reauthPassword', '#reauthConfirmBtn', '#reauthCancelBtn']) {
+      await expect(page.locator(id)).toBeInViewport({ ratio: 1 });
+    }
+    const vw = page.viewportSize().width;
+    const box = await page.locator('#reauthConfirmBtn').boundingBox();
+    expect(box.x + box.width).toBeLessThanOrEqual(vw);
+    expect(box.height).toBeGreaterThanOrEqual(28);
+  });
+
   test('Restore asks for your password and clears deleted_at only', async ({ page, backend }) => {
     await page.locator('#deletedOrdersWrap .restoreOrderBtn').click();
     await confirmPassword(page, OWNER_USER.password);
