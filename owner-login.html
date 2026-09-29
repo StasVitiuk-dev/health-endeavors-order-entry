@@ -1780,13 +1780,6 @@
       if (s === null || s === undefined) return '';
       return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     }
-    // Today's date (or the given date) as YYYY-MM-DD on the viewer's own
-    // calendar. toISOString() gives the UTC date instead, which in US time
-    // zones is already "tomorrow" every evening.
-    function localDateString(d){
-      const t = d || new Date();
-      return t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0');
-    }
     function fmtMoney(amount, currency){
       const n = Number(amount || 0);
       try {
@@ -1801,6 +1794,13 @@
       if (isNaN(d.getTime())) return '—';
       return d.toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' }) +
              ' ' + d.toLocaleTimeString(undefined, { hour:'numeric', minute:'2-digit' });
+    }
+    // Today's date (or the given date) as YYYY-MM-DD on the viewer's own
+    // calendar. toISOString() gives the UTC date instead, which in US time
+    // zones is already "tomorrow" every evening.
+    function localDateString(d){
+      const t = d || new Date();
+      return t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0');
     }
     // ---------- theme ----------
     // Three settings, cycled by the header button: Auto (follows your Mac),
