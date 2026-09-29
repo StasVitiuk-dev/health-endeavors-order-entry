@@ -222,6 +222,15 @@
   const SUPABASE_ANON_KEY = "sb_publishable_n0sEzZK0JMtwgk280a3YXA_zxtnheqj";
   const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+  // Turns text from the database into plain text before it is placed on the
+  // page, so a name or message containing <, >, & or quotes is shown as
+  // written instead of being treated as page code. Same helper as
+  // owner-login.html.
+  function esc(s) {
+    if (s === null || s === undefined) return '';
+    return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
   function fmtTime(iso) {
     const d = new Date(iso);
     return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
@@ -247,8 +256,8 @@
     const grid = document.getElementById('stat-grid');
     grid.innerHTML = stats.map(s => `
       <div class="stat">
-        <p class="stat-label">${s.label}</p>
-        <p class="stat-value ${s.cls || ''}">${s.value}</p>
+        <p class="stat-label">${esc(s.label)}</p>
+        <p class="stat-value ${s.cls || ''}">${esc(s.value)}</p>
       </div>
     `).join('');
   }
@@ -261,9 +270,9 @@
     }
     list.innerHTML = rows.map(r => `
       <div class="activity-row">
-        <span class="badge">${r.item_type}</span>
-        <span>${r.label ?? ''}</span>
-        <span class="activity-status">${r.status ?? ''}</span>
+        <span class="badge">${esc(r.item_type)}</span>
+        <span>${esc(r.label)}</span>
+        <span class="activity-status">${esc(r.status)}</span>
         <span class="activity-time">${fmtTime(r.created_at)}</span>
       </div>
     `).join('');
@@ -276,7 +285,7 @@
       .single();
 
     if (summaryErr) {
-      document.getElementById('stat-grid').innerHTML = `<div class="error">Couldn't load summary: ${summaryErr.message}</div>`;
+      document.getElementById('stat-grid').innerHTML = `<div class="error">Couldn't load summary: ${esc(summaryErr.message)}</div>`;
     } else {
       renderStats(summaryRows);
     }
@@ -286,7 +295,7 @@
       .select('*');
 
     if (activityErr) {
-      document.getElementById('activity-list').innerHTML = `<div class="error">Couldn't load activity: ${activityErr.message}</div>`;
+      document.getElementById('activity-list').innerHTML = `<div class="error">Couldn't load activity: ${esc(activityErr.message)}</div>`;
     } else {
       renderActivity(activityRows);
     }
@@ -344,8 +353,8 @@
     }
     list.innerHTML = rows.slice(0, 10).map(r => `
       <div class="activity-row">
-        <span class="badge">${r.agent_key ?? ''}</span>
-        <span>${r.output_summary ?? ''}</span>
+        <span class="badge">${esc(r.agent_key)}</span>
+        <span>${esc(r.output_summary)}</span>
         <span class="activity-status">$${Number(r.cost_usd).toFixed(2)}</span>
         <span class="activity-time">${fmtTime(r.created_at)}</span>
       </div>
