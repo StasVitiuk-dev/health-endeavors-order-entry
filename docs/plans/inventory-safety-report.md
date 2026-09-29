@@ -32,7 +32,7 @@ Severity reflects business impact, meaning wrong money or stock and how visible 
 | 6 | 🟠 **Medium** | **Manual "Save adjustment"** (8112–8165) | The stock is saved but the history insert fails. The form keeps its values, so one more click **adds the amount again.** |
 | 7 | 🟠 **Medium** | **Manual "can't go below zero" check** | The check runs in the browser against the number it read earlier. If 95 units are sold in between, a −60 is accepted and the count is written as 40, when the real stock was 5. |
 | 8 | 🟡 **Medium** | **Missing history records** (all four) | Every half-saved case leaves stock changed with no matching `inventory_adjustments` row. The Inventory history stops adding up, and nobody is warned. |
-| 9 | 🟡 **Low–Medium** | **Recall doesn't reduce the lot's remaining count** (4927) | Quarantine moves units from Available to Recalled, but the lot's own `quantity_remaining` stays at 40. The Inventory page keeps showing the lot as fully on hand, and a second recall on the same lot can quarantine it again. This may be intentional; it needs your call. |
+| 9 | ℹ️ **By design (corrected Sept 29)** | **Recall doesn't reduce the lot's remaining count** (4927) | Quarantine moves units from Available to Recalled, but the lot's own `quantity_remaining` stays at 40. **The old system documentation (Sept 24) says this is deliberate:** `quantity_remaining` means "still physically in the business, in any bucket", not "still sellable". The remaining risk is only that a *second* recall on the same lot could quarantine again, and that's covered by finding 2 and the status check in the fix. |
 | 10 | 🟡 **Low** | **Stale data** (all four) | Every action uses what the page loaded earlier: the order lines, the return row's attributes, the recall's status. Nothing re-checks before writing, so another tab or person can't be detected. |
 
 **Stale-data specifics per workflow:**
@@ -84,7 +84,7 @@ apply_stock_change(product_id, bucket, change, reason, lot_id, source_type, sour
 | Function | Replaces | Idempotency rule |
 | --- | --- | --- |
 | `receive_purchase_order(po_id, lots)` | Receive delivery | Already `received` → "already received", no change (your decision) |
-| `quarantine_recall(recall_id)` | Quarantine stock | Not `initiated` → "already quarantined", no change. Also decide finding 9 (reduce the lot's remaining count). |
+| `quarantine_recall(recall_id)` | Quarantine stock | Not `initiated` → "already quarantined", no change. Keep `quantity_remaining` unchanged (by design, finding 9); consider refusing a second active recall on the same lot. |
 | `receive_return(return_id, disposition)` | Mark Received | Not `approved` → "already received", no change |
 | `adjust_inventory(product_id, bucket, change, reason)` | Save adjustment | Atomic by itself. Optionally, a client-generated request id makes a retry safe. |
 | `delete_unused_product(product_id)` | Delete product | Deletes the stock row and product together, or neither |
@@ -116,7 +116,7 @@ Each step is its own reviewed PR. SQL is drafted as files only, and **you run it
 
 ## 6. Decisions needed from you
 
-1. **Finding 9:** should quarantining a recall also reduce the lot's `quantity_remaining`?
+1. ~~Finding 9~~: answered by the old system documentation. Leaving `quantity_remaining` unchanged is deliberate.
 2. **Order:** start with Receive (my recommendation, highest money impact) or with the simpler manual adjustment?
 3. **Product delete:** OK to start with the small dashboard-only stop-gap before the database function?
 4. **Agents:** do any agents or automations write `inventory` directly? If so, the lost-update risk (finding 3) is higher than a single-owner setup suggests, and those writers should move onto `apply_stock_change` too.
