@@ -109,6 +109,25 @@ Preflight → tests → frozen version/fingerprint (if relevant) → rollback re
 - Database or agent changes are drafts only here (SQL files, tests, rollback scripts). Stas runs them in Supabase after approving them.
 - If anything differs from the tested behavior, stop and show Stas before making another change.
 
+## Documentation is part of the work
+
+Documentation is not optional. For every meaningful task, investigation, test suite, architecture decision, bug finding, implementation plan or website milestone:
+
+- Save the important, durable information in the right file. Update existing docs rather than leaving facts only in chat, and create a new doc only when no suitable one exists.
+- Keep docs current when code or architecture changes.
+- Record what changed, why, tests and results, risks, owner decisions and next steps.
+- Never rely on chat history as the only source of truth. When information from older chats becomes relevant, save it. If it conflicts with the current repository, code or decisions, treat the current verified state as authoritative and write down the conflict instead of silently choosing.
+- One authoritative document per topic; link between documents instead of repeating them. Mark items `CURRENT`, `PROPOSED`, `OWNER DECISION REQUIRED` or `DEPRECATED` where it helps.
+- Never put secrets, credentials, recovery codes, customer data, private formula information or sensitive production details in documentation (this repository is public).
+- Before a session or container can expire, make sure all valuable work and documentation is preserved, and tell Stas exactly where.
+
+Where things are recorded:
+
+- `docs/PROJECT_RECORD.md`: detailed record of the internal platform (features, evidence labels, bugs, history).
+- `docs/health-endeavors-current-state.md`: short cross-project summary (internal platform + public website). Update it whenever the verified state changes materially.
+- `docs/health-endeavors-progress.md`: progress tracker per work area (COMPLETED / IN PROGRESS / BLOCKED / NOT STARTED / OWNER DECISION REQUIRED, rough %, next step). Update it whenever meaningful work is completed or scope changes. Percentages are planning estimates; don't inflate them because documents or prototypes exist.
+- Public website: its own `docs/website/` folder in the website workspace or repository, never in this repository.
+
 ## How to work with Stas
 
 - Explain every step in plain language: what it does and why.
@@ -123,7 +142,8 @@ Preflight → tests → frozen version/fingerprint (if relevant) → rollback re
 - **Main file:** `owner-login.html` (about 505 KB, one file with all HTML/CSS/JS). Other pages: `change-password.html`, `dashboard.html`, `index.html`, `manual-order-entry.html`, `search.html`.
 - **Backend:** the production Supabase project. The dashboard uses only the public anon key plus the logged-in user's session. Row-level security protects the data. The `tasks` table has an audit trigger that writes to `audit_log`.
 - **Docs:** `docs/security/claude-access-verification.md` (access verification record), `docs/code-quality/owner-login-review.md` (code-quality review).
+- **Public website:** a separate project (customer storefront). Its code never goes into this repository; a separate repository needs Stas's approval. Until then it is a local workspace with its own `docs/website/`.
 
 ## Current status
 
-Kept in one place: `docs/PROJECT_RECORD.md` (see "Start of every session" above). Don't copy status into this file, so the two can never disagree.
+Kept outside this file: `docs/PROJECT_RECORD.md` (detail), `docs/health-endeavors-current-state.md` (summary) and `docs/health-endeavors-progress.md` (progress). Until PR #6 is merged they are on branch `claude/project-record`. Don't copy status into this file, so they can never disagree.
