@@ -11,20 +11,20 @@ Status: **tests only, no dashboard code changed.** September 29, 2026. Branch `c
 | `tests/specs/helpers-unit.spec.js` | 20 (runs once, in Node) | `esc`, `fmtMoney`, status helpers, order classification, PO totals, account numbers, device labels, time-ago, date-only, week start, report rollups, business-rule limits, tax categories (incl. "every expense category has a tax category") |
 | `tests/specs/request-baseline.spec.js` + `tests/baselines/requests.json` | 1 | Opens **all 31 pages** with realistic data: no JavaScript errors, no writes, and the list of **73 distinct database requests** must match the saved baseline |
 | `tests/specs/visual.spec.js` + 20 images | 10 × 2 sizes | Screenshots of the login screen, 8 main pages and Orders in dark mode |
-| `tests/specs/known-bugs.spec.js` | 2 | Pins down newly found bugs B6 and B7 (below) |
 | `tests/fixtures/business-data.js` | – | Synthetic orders, order items, products, inventory, expenses, returns, with a frozen clock and time zone |
 | `tests/helpers/stateful-backend.js`, `tests/helpers/extract-source.js` | – | Opt-in persisted writes + fault injection; copying helpers out of the page for unit tests. The shared mock is unchanged. |
 
 ## Results
 
-**81 new test definitions on this branch.** Most run at both desktop and iPhone size; some are desktop-only or phone-only on purpose.
+**Update (Sept 29, evening):** the tests that pinned down bugs B2, B3, B6 and B7 were removed from this branch, because fix PRs now exist for them (#9, #11, #12), each bringing its own correct-behaviour tests. That lets this PR and the fixes merge in any order. B1 (palette Enter) has no fix yet; its test stays.
+
+**77 new test definitions on this branch** (originally 81). Most run at both desktop and iPhone size; some are desktop-only or phone-only on purpose.
 
 | | Passed | Failed | Skipped |
 | --- | --- | --- | --- |
 | Before (main) | 65 | 0 | 9 |
-| **This branch, one full run** | **191** | **0** | **45** |
+| **This branch, one full run (after removing the fixed-bug tests)** | **184** | **0** | **44** |
 | This branch, full suite × 3 repeats (before `known-bugs` was added) | 564 | 0 | 132 |
-| `known-bugs.spec.js` × 5 repeats | 15 | 0 | 5 |
 | `visual.spec.js` × 3 repeats | 60 | 0 | 0 |
 | `request-baseline.spec.js` × 3 separate runs | 3 | 0 | 0 |
 
@@ -39,13 +39,13 @@ In addition, the inventory-safety branch has 25 more definitions (50 runs, 250/2
 
 | # | Impact | Bug | Evidence |
 | --- | --- | --- | --- |
-| B1 | 🟠 Medium | **Command palette: typing a page name and pressing Enter opens a Guide article instead of the page.** Guide matches are listed first. Same cause as the existing sidebar-search `fixme`. | `ui-chrome.spec.js` "KNOWN BUG…" |
-| B2 | 🟠 Medium | **Tax page, "Expenses missing a receipt": dates shown one day early** (May 20 → "May 19, 2026 7:00 PM") in US time zones. It uses `fmtDate` on a date-only value; `fmtDateOnly` exists for this. Your accountant would see wrong dates. The CSV export has the same issue. | `pages-data.spec.js` "KNOWN BUG…" |
-| B3 | 🟠 Medium (security) | **CSV exports keep cells starting with `=`**, so they run as formulas in Excel or Numbers (see security review S4). | `pages-data.spec.js` "KNOWN RISK…" |
-| B4 | 🟡 Low | On an iPhone, tapping a purchase order row also opens the change-history overlay on top (found earlier). | `po-receive.spec.js` works around it; see the PO plan |
-| B5 | 🟡 Low | **Password prompt**: Enter while a check is running starts a second check; the comment says 12 s, the code 8 s. | Code reading |
-| B6 | 🟠 Medium (phone) | **Swiping a wide table sideways switches to another page.** The Orders table is wider than an iPhone screen, and dragging it to see Total/Placed/Delete triggers the "swipe to change page" gesture (Orders → Inventory). | `known-bugs.spec.js` B6 |
-| B7 | 🟡 Low–Medium | **In US evenings, dates default to tomorrow.** The new-expense date field, the adverse-event date field and the expense created by "Receive delivery" all use the UTC date (`toISOString()`). After ~7 pm Central, that's the next day, so expenses land on the wrong day and possibly in the wrong month or year for tax. | `known-bugs.spec.js` B7 |
+| B1 | 🟠 Medium (no fix yet; needs your decision, since the guide-first order was deliberate) | **Command palette: typing a page name and pressing Enter opens a Guide article instead of the page.** Guide matches are listed first. Same cause as the existing sidebar-search `fixme`. | `ui-chrome.spec.js` "KNOWN BUG…" |
+| B2 | 🟠 Medium | **Tax page, "Expenses missing a receipt": dates shown one day early** (May 20 → "May 19, 2026 7:00 PM") in US time zones. It uses `fmtDate` on a date-only value; `fmtDateOnly` exists for this. Your accountant would see wrong dates. The CSV export has the same issue. | Fix: **PR #11** |
+| B3 | 🟠 Medium (security) | **CSV exports keep cells starting with `=`**, so they run as formulas in Excel or Numbers (see security review S4). | Fix: **PR #9** |
+| B4 | 🟡 Low | On an iPhone, tapping a purchase order row also opens the change-history overlay on top (found earlier). | Fix: **PR #14** |
+| B5 | 🟡 Low | **Password prompt**: Enter while a check is running starts a second check; the comment says 12 s, the code 8 s. | Fix: **PR #13** |
+| B6 | 🟠 Medium (phone) | **Swiping a wide table sideways switches to another page.** The Orders table is wider than an iPhone screen, and dragging it to see Total/Placed/Delete triggers the "swipe to change page" gesture (Orders → Inventory). | Fix: **PR #12** |
+| B7 | 🟡 Low–Medium | **In US evenings, dates default to tomorrow.** The new-expense date field, the adverse-event date field and the expense created by "Receive delivery" all use the UTC date (`toISOString()`). After ~7 pm Central, that's the next day, so expenses land on the wrong day and possibly in the wrong month or year for tax. | Fix (display / pre-fill part): **PR #11**. The Receive-delivery expense date is left for the inventory fix (needs approval). |
 | B8 | 🟡 Low | **Tax page asks for all order items with every order id in the web address** (`in.(…)`). With many orders (e.g. "All Time" after a few years), the address gets too long and the request can fail. | Code reading (`loadTaxRecords`) |
 | B9 | 🟡 Low | **Help and Quick-add overlays aren't known to `anyOverlayOpen()`**, so a phone swipe while they're open can change the page underneath. | Code reading |
 

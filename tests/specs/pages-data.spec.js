@@ -230,13 +230,6 @@ test.describe('Tax records', () => {
     await expect(page.locator('#taxReceiptWrap')).toContainText('Ingredients');
   });
 
-  test('KNOWN BUG: a receipt-less expense dated May 20 is shown as May 19 (time-zone shift)', async ({ page }) => {
-    // fmtDate() treats the date-only value as midnight UTC, which is the
-    // evening before in US time zones. fmtDateOnly() exists for this case.
-    const row = page.locator('#taxReceiptWrap tbody tr', { hasText: 'Ingredients' });
-    await expect(row).toContainText('May 19, 2026');
-  });
-
   test('Last Year shows only last year\'s records', async ({ page }) => {
     await page.click('#taxToggle button[data-range="lastyear"]');
     await expect(stat(page, 'Revenue')).toHaveText('$200.00');
@@ -253,11 +246,6 @@ test.describe('Tax records', () => {
     expect(csv).toContain('"TX","$8.00"');
   });
 
-  test('KNOWN RISK: a vendor name starting with "=" is written to the CSV unchanged (spreadsheet formula)', async ({ page }) => {
-    const [download] = await Promise.all([page.waitForEvent('download'), page.click('#taxExportBtn')]);
-    const csv = fs.readFileSync(await download.path(), 'utf8');
-    expect(csv).toContain('"=SYNTHETIC formula vendor"');
-  });
 });
 
 // --------------------------------------------------------------- Inventory
