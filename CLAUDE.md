@@ -25,6 +25,8 @@ Before creating any branch, commit, pull request, issue, label, comment or file 
 
 Then wait for Stas to reply "approved", unless Stas has already given a task and said to go ahead.
 
+**Also read `docs/PROJECT_RECORD.md` alongside these rules.** It is the current status record: every feature, what is verified in the repository versus reported or still pending live, remaining work, and daily history. (Until PR #6 is merged, it's on branch `claude/project-record`.) This file holds only the standing rules. Keep status in the project record, and update it whenever something is merged, checked live, or decided.
+
 The first verification record is saved in `docs/security/claude-access-verification.md`. Do not create it again. Any update to it goes through a normal pull request that Stas approves.
 
 ## Health Endeavors and Real Estate OS stay completely separate
@@ -122,11 +124,6 @@ Preflight → tests → frozen version/fingerprint (if relevant) → rollback re
 - **Backend:** the production Supabase project. The dashboard uses only the public anon key plus the logged-in user's session. Row-level security protects the data. The `tasks` table has an audit trigger that writes to `audit_log`.
 - **Docs:** `docs/security/claude-access-verification.md` (access verification record), `docs/code-quality/owner-login-review.md` (code-quality review).
 
-## Status snapshot (September 29, 2026)
+## Current status
 
-This section goes out of date. Check the latest `main` and ask Stas before relying on it.
-
-- **Task buttons v2 are live:** buttons sit under each task title; "Mark done" comes first, then "Mark in progress"; "Mark done" asks for confirmation; status-only updates with the allowed moves open → in_progress, and open or in_progress → done.
-- **Owner-run checks still pending (not code work):** status persists after a refresh; a read-only `audit_log` query shows the status-only changes; Cancel on the "Mark done" confirmation changes nothing (needs a reopened test task); iPhone layout check; an optional check with a second staff account.
-- **Done since then:** CODEOWNERS (PR #3) and the automated dashboard test suite (PR #4).
-- **Future ideas (each as its own PR, only when Stas asks):** a "Recently done + Reopen" section on the Tasks page.
+Kept in one place: `docs/PROJECT_RECORD.md` (see "Start of every session" above). Don't copy status into this file, so the two can never disagree.
