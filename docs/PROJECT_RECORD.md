@@ -272,6 +272,8 @@ The branch `claude/po-receive-investigation` is superseded by #16 (same content 
 
 Each percentage below measures **one specific checklist only**. None of them is a "whole project" percentage.
 
+The cross-area progress tracker (all work areas, including the public website, with one rough overall estimate) is [health-endeavors-progress.md](health-endeavors-progress.md). The short cross-project summary is [health-endeavors-current-state.md](health-endeavors-current-state.md).
+
 | Checklist measured | Value | Basis | Uncertainty |
 | --- | --- | --- | --- |
 | **Blueprint 90-item addendum** (Build Now 11 + Build Soon 28 + Future 51; *extra hardening features, not the core system*) | **51 done / 90 ≈ 57%** (≈ 58–59% counting 3 partial items as half) | The owner's recount on Sept 26; nothing since has added a Blueprint item (task buttons, tests and reviews aren't on that list) | Official figure from the old docs; not re-audited here |
@@ -338,6 +340,8 @@ These are counts, not hours. Time depends on review and SQL-run turnaround.
 | Regression coverage | branch `claude/regression-coverage` → `docs/plans/regression-coverage-report.md` |
 | Modularization | branch `claude/owner-login-modularization-plan` → `docs/plans/owner-login-modularization-plan.md`, `docs/plans/owner-login-architecture-map.md` |
 | Security review | branch `claude/frontend-security-review` → `docs/security/frontend-security-review.md` |
+| Cross-project summary · progress tracker | `docs/health-endeavors-current-state.md` · `docs/health-endeavors-progress.md` (this PR) |
+| Public website (separate project) | Local website workspace → `docs/website/README.md`; never in this repository. A website repository needs the owner's approval. |
 | Full back-end history, SQL fingerprints, agent details | Old-chat *Internal Operating System Documentation* and *Blueprint Checklist* (**owner's private copies; not in this repo on purpose**, since they contain sensitive details) |
 
 **Keeping this current:** update §1, §3, §4 and §9 whenever something is merged, verified live, or decided. Put the date on each change, and when sources disagree, say which one wins and why.
