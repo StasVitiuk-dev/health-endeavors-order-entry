@@ -4,7 +4,8 @@
 #
 # Note: this file only names the owner. Approval from the code owner is
 # enforced only when "Require review from Code Owners" is turned on in
-# the protect-main ruleset.
+# the protect-main ruleset. Changes to this file itself also need the
+# code owner's approval once that setting is on.
 
 *                   @StasVitiuk-dev
 /.github/           @StasVitiuk-dev
