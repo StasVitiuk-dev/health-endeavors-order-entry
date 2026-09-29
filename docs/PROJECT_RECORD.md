@@ -9,6 +9,17 @@
 
 **Rule used when sources disagree:** the newer dated statement wins; anything that can't be settled from these sources is marked **UNCERTAIN**.
 
+**How each fact is labelled.** Every status in this record carries one of these labels:
+
+| Label | Meaning |
+| --- | --- |
+| **[REPO]** | **Repository-verified.** Claude checked it directly in this GitHub repository: files on `main`, git history, PRs, fingerprints, or tests run against the code. It proves what is *in the code*, **not** what the live website is serving. |
+| **[HIST]** | **Historical report.** Stated in the owner's old-chat documents or the Sept 29 session template, for example "confirmed live on Sept 20". Claude has not re-checked it. |
+| **[PENDING]** | **Live check still to do.** Needs the owner, or a live test, to confirm on the real site or database. |
+| **[UNVERIFIED]** | Nobody in these sources has confirmed the current state. |
+
+**Important:** a file on `main` being identical to a tested version is **not** proof that the live site shows it. GitHub Pages normally publishes `main` within minutes, but only a check on the live address (hard refresh or a Private Window) confirms it. Claude does not log in to the live site.
+
 **Deliberately left out (the repository is public):** email addresses, account numbers, user ids, passwords or password-setting methods, store domains, and anything else sensitive. The old-chat documents contain some of these; keep them private.
 
 ---
@@ -17,23 +28,28 @@
 
 | Area | State |
 | --- | --- |
-| **Live dashboard** | `owner-login.html` on `main` = **task buttons v2** (commit 4edf5d6, Sept 28). The file's fingerprint (md5 `49514277…`) is identical to the approved v2 upload recorded in the old docs, and to the copy the owner attached on Sept 29. |
-| **Store** | **Not launched.** Shopify order sync is intentionally **off**, so there are 0 real orders. Real products are **not yet added**; only draft catalogue entries exist. |
-| **Agents** | #1 runs on a database trigger (pause switch enforced). **#4, #5 and #6 run inside Supabase** hourly, all live-tested with enforced pause switches. #2, #3, #7 and #8 are **switched off** (their GitHub workflows were disabled on Sept 26, until there are products). #9 and #10 are dashboard pages with no scheduled job. |
-| **GitHub safety** | Ruleset `protect-main` (PR + 1 approval + Code Owners, stale approvals dismissed, last-push approval, no force-push or deletion). CODEOWNERS = owner. No workflows in this repo. |
-| **Tests** | `main` has the Playwright suite from PR #4: **65 passed, 9 skipped**. Unmerged branches add 131 more tests (see §6). |
-| **Open PR** | **#5** `CLAUDE.md` standing rules, waiting for the owner's review. |
-| **Owner-run checks still pending** | Status survives a refresh · `audit_log` shows the status-only change · Cancel on "Mark done" changes nothing · real iPhone layout · the administrator account (optional). |
-| **Biggest known risks** | The inventory and purchase-order double-count / lost-update bugs (reproduced, not fixed); unescaped output on `search.html` and `dashboard.html`; the Supabase library loads unpinned from a CDN. |
+| **Code on `main`** | **[REPO]** `owner-login.html` on `main` is **task buttons v2** (commit 4edf5d6, Sept 28). Its fingerprint (md5 `49514277…`) is identical to the v2 upload named in the old docs [HIST] and to the copy the owner attached on Sept 29. |
+| **Live site** | **[HIST]** The Sept 29 session template reports v2 **live**, with 4 of 9 post-deploy checks passed. **[PENDING]** The other 5 checks (below). Claude has not checked the live site itself. |
+| **Store** | **[HIST]** Not launched. Shopify order sync intentionally **off**, 0 real orders. Real products not yet added. |
+| **Agents** | **[HIST]** #4, #5 and #6 run inside Supabase hourly, each live-tested with an enforced pause switch (Sept 26–27). #2, #3, #7 and #8 switched off (GitHub workflows disabled Sept 26, until there are products). #9 and #10 are dashboard pages. **Agent #1 (Invoice): pause enforcement was verified Sept 24 [HIST], but whether it is currently enabled or paused is [UNVERIFIED].** It was paused for a test that day, and no source records it being switched back on. |
+| **GitHub safety** | **[REPO]** Ruleset `protect-main` is active: PR, 1 approval, Code Owners review, stale approvals dismissed, last-push approval, no force-push, no deletion. CODEOWNERS = owner. No workflow files in this repo. (Bypass list: admin-only per [HIST]; not readable by Claude.) |
+| **Tests** | **[REPO]** `main` has the Playwright suite from PR #4: 65 passed, 9 skipped (run Sept 29). Unmerged branches add 131 more (§6). All mocked, with synthetic data. |
+| **Open PRs** | **[REPO]** #5 `CLAUDE.md` standing rules; #6 this record. Both waiting for the owner. |
+| **Owner-run checks** | **[PENDING]** Status survives a refresh · `audit_log` shows the status-only change · Cancel on "Mark done" changes nothing · real iPhone layout · administrator account (optional) · **Agent #1's current on/off state**. |
+| **Biggest known risks** | **[REPO]**, reproduced against the code with synthetic data, not fixed: the inventory and purchase-order double-count / lost-update bugs; unescaped output on `search.html` and `dashboard.html`; the Supabase library loads unpinned from a CDN. |
 
 ---
 
 ## 2. Every existing feature and what it does
 
-**Status legend:**
-- **Live ✓**: in production and verified working by the owner or a live test.
-- **Live**: in production, but not individually verified.
-- **Built, not exercised**: in the code, but that path was never tested live.
+**How to read this table:**
+- **[REPO]:** Claude confirmed that every page and feature listed here exists in the code on `main` (Sept 29).
+- **[HIST]:** the "Status" column comes from the owner's old documents. Claude has not re-tested any of it live.
+
+**Status legend ([HIST] unless marked):**
+- **Live ✓ (date)**: reported verified on the live site on that date.
+- **Live**: reported deployed, but not individually verified.
+- **Built, not exercised**: in the code; that path was never tested live.
 - **Partly**: part of the feature exists.
 - **Off**: built, but deliberately switched off.
 
@@ -98,7 +114,7 @@
 
 | # | Agent | What it does | Where / status |
 | --- | --- | --- | --- |
-| 1 | Invoice | Creates, re-syncs and voids invoices on order changes | DB trigger; pause enforced and verified (Sept 24) |
+| 1 | Invoice | Creates, re-syncs and voids invoices on order changes | DB trigger; pause enforcement verified Sept 24 [HIST]; **current on/off state [UNVERIFIED]** |
 | 2 | Order Intake | Flags missing info, mismatches, duplicates | GitHub; **disabled** |
 | 3 | Order Monitoring | Flags large refunds / cancellations → approval queue | GitHub; **disabled** |
 | 4 | Retail/Wholesale | Links each order to a customer; flags email mismatches | **Supabase v4, live** (Sept 27) |
@@ -109,16 +125,16 @@
 | 9 | Accounting | Dashboard computation | Live |
 | 10 | Tax Record | Dashboard computation | Live |
 
-The live versions, fingerprints and rollback files for #4, #5 and #6 are in the old *System Documentation*, §16.
+All agent statuses above are [HIST]; Claude cannot see Supabase. The live versions, fingerprints and rollback files for #4, #5 and #6 are in the old *System Documentation*, §16.
 
 ---
 
 ## 3. Built → tested → merged → confirmed live (recent dashboard work)
 
-| Item | Built | Tested | On `main` | Confirmed live |
+| Item | Built [HIST] | Tested | On `main` [REPO] | Confirmed live [HIST] / still [PENDING] |
 | --- | --- | --- | --- | --- |
 | Task buttons v1 | Sept 27 | 16 browser + 8 DB tests | 22a7546 (Sept 27) | ✓ Sept 27 (buttons, both moves, audit rows); replaced by v2 |
-| **Task buttons v2** | Sept 27 | 32/32 (1100 and 390 px) | **4edf5d6 (Sept 28)** | ✓ **partly** (template Sept 29): desktop layout, open → in_progress, confirmation dialog, OK → done. **Not yet:** refresh persists, `audit_log` check, Cancel test, iPhone, administrator account |
+| **Task buttons v2** | Sept 27 | 32/32 (1100 and 390 px) [HIST] | **4edf5d6 (Sept 28), fingerprint matches v2** | [HIST] partly (template Sept 29): desktop layout, open → in_progress, confirmation dialog, OK → done. **[PENDING]:** refresh persists, `audit_log` check, Cancel test, iPhone, administrator account |
 | Verification record | Sept 29 | – | PR #1 (merged Sept 29) | n/a (doc) |
 | CODEOWNERS | Sept 29 | – | PR #3 (merged; PR #2 closed as superseded) | ✓ ruleset now requires Code Owners |
 | Playwright suite + code review | Sept 29 | 65 passed / 9 skipped | PR #4 (merged) | n/a (tests don't run on the site) |
@@ -153,7 +169,7 @@ The live versions, fingerprints and rollback files for #4, #5 and #6 are in the 
 2. The administrator tries her personal calendar (open since Sept 26).
 3. Returns: exercise "Mark Refunded" and restock-to-Available once.
 4. After launch: confirm the order status words (cancel / refund) match the Accounting / Tax logic, and that the state field exists for Tax.
-5. Agent #1 must be ON before real orders (it was paused for a test on Sept 24; **UNCERTAIN whether it was switched back on**; check the AI Agent Activity page).
+5. **Agent #1 (Invoice) on/off state: [UNVERIFIED].** It was paused for a test on Sept 24, and no source records it being switched back on. It must be ON before real orders. To check: AI Agent Activity page → Agent #1 switch (read-only; don't change anything without deciding first).
 
 ### 4.3 Should do soon (small, found in this session)
 
@@ -220,7 +236,7 @@ The live versions, fingerprints and rollback files for #4, #5 and #6 are in the 
 | `claude/frontend-security-review` | Read-only security review (12 findings) | – |
 | `claude/project-record` | **this file** | – |
 
-**Currently doing:** writing this record, then stopping for the owner's review. **How it fits:**
+**Currently doing (Sept 29, evening):** this record is in its own documentation-only PR. `CLAUDE.md` (PR #5) now points future sessions here. Next: small, safe fixes from §4.1 / §4.3, each as its own PR for the owner to review. Nothing is merged or deployed by Claude. **How it fits:**
 - The tests are the safety net for R1–R7 and for the modularization.
 - The reports define R1–R7.
 - This record ties the old-chat history to the repo, so no future session has to rely on chat history.
@@ -229,12 +245,14 @@ The live versions, fingerprints and rollback files for #4, #5 and #6 are in the 
 
 ## 7. Completion percentages (with basis and uncertainty)
 
-| Measure | Value | Basis | Uncertainty |
+Each percentage below measures **one specific checklist only**. None of them is a "whole project" percentage.
+
+| Checklist measured | Value | Basis | Uncertainty |
 | --- | --- | --- | --- |
-| **Blueprint addendum (90 items)** | **51 done / 90 ≈ 57%** (≈ 58–59% counting 3 partial items as half) | The owner's recount on Sept 26; nothing since has added a Blueprint item (task buttons, tests and reviews aren't on that list) | Official figure from the old docs; not re-audited here |
-| **Original specification (69 items)** | **46 done, 15 partly, 8 open**: ≈ 67% done, ≈ 77% counting partly as half | **My tally on Sept 29** of the per-item statuses written in the Blueprint checklist | Unofficial; the categorisation of "partly" is a judgement call; owner may recount |
-| **Launch readiness (my estimate)** | **~10 required items (R1–R10), 0 done**; ~5 owner checks pending | §4.1–4.2 | Rough: R1 is large (a DB function + dashboard, several PRs); R2–R4 reuse its pattern; R5–R7 are small. Depends on the owner's pace for SQL runs and reviews. |
-| **Task buttons v2 verification** | 4 of 9 checks done | Sept 29 template | – |
+| **Blueprint 90-item addendum** (Build Now 11 + Build Soon 28 + Future 51; *extra hardening features, not the core system*) | **51 done / 90 ≈ 57%** (≈ 58–59% counting 3 partial items as half) | The owner's recount on Sept 26; nothing since has added a Blueprint item (task buttons, tests and reviews aren't on that list) | Official figure from the old docs; not re-audited here |
+| **Original 69-item specification** (the owner's founding requirements list, preserved in the Blueprint checklist) | **46 done, 15 partly, 8 open**: ≈ 67% done, ≈ 77% counting partly as half | **My tally on Sept 29** of the per-item statuses written in the Blueprint checklist | Unofficial; the categorisation of "partly" is a judgement call; owner may recount |
+| **Launch-required list R1–R10 in §4.1 of this record** (Claude's list, from this session's findings) | **~10 required items (R1–R10), 0 done**; ~5 owner checks pending | §4.1–4.2 | Rough: R1 is large (a DB function + dashboard, several PRs); R2–R4 reuse its pattern; R5–R7 are small. Depends on the owner's pace for SQL runs and reviews. |
+| **Task buttons v2 post-deploy checklist** (the 9 checks in the Blueprint checklist, Sept 27) | 4 of 9 done [HIST] | Sept 29 template | The 5 remaining are [PENDING] |
 
 **Remaining effort, in PR-sized steps (estimate):**
 - Inventory safety R1–R5: about 10 PRs (SQL draft + dashboard for each; R2–R4 are smaller once R1 sets the pattern).
@@ -249,9 +267,10 @@ These are counts, not hours. Time depends on review and SQL-run turnaround.
 ## 8. Discrepancies and uncertainties found while reconciling
 
 1. **Agent registry text on the live dashboard** says #2 / #3 / #7 / #8 are "waiting on GitHub Actions minutes (resets Oct 1)". Per the old docs they were **disabled on Sept 26 until products exist**, so they will *not* start on Oct 1. The text should be corrected (small PR).
-2. **Agent #1 pause state** after the Sept 24 test: the old docs say it "needs to be switched back on before real orders". **UNCERTAIN** whether that happened.
+2. **Agent #1 pause state** after the Sept 24 test: the old docs say it "needs to be switched back on before real orders". **[UNVERIFIED]** whether that happened.
 3. **`RESUME_HERE_2026-09-28.md`** and other old-chat files (SQL drafts, rollback files, test packages, the platform review) were **not provided** to this session. Their contents are known only through the summaries above.
 4. **The Sept 29 screenshots**: live vs preview is unclear (§3).
+7. **"On `main`" vs "live":** this record says **[REPO]** only for what Claude checked in the repository. Whether GitHub Pages is serving that exact file is confirmed only by the owner's live checks ([HIST]) or a future check on the live address ([PENDING]).
 5. **Git history** shows the site was created Sept 7–8 and changed Sept 13. The old docs start in detail on Sept 16. Earlier work (Task 1 foundation, Agents #1–#8) isn't dated day by day in these sources.
 6. **Old docs vs repo on how deploys work:** until Sept 28 the owner uploaded files through the GitHub web UI. **Since Sept 29, `main` is protected**: changes go through PRs that the owner approves and merges.
 
@@ -259,9 +278,9 @@ These are counts, not hours. Time depends on review and SQL-run turnaround.
 
 ## 9. Daily history (Central time)
 
-| Date | Completed (source) |
+| Date | Completed ([HIST] from the owner's documents unless marked [REPO] = git history / PRs) |
 | --- | --- |
-| Sept 7–8 | Repository and GitHub Pages site created; first pages uploaded (git) |
+| Sept 7–8 | [REPO] Repository created; first pages uploaded |
 | Sept 13 | Page update (git); last nightly GitHub backup before the Actions minutes ran out (docs) |
 | Sept 16 | Sensitive-action password re-check live; calendar sync fixed (3 bugs) + repeating events; Shopify sync turned off on purpose; waitlist table |
 | Sept 17 | Deploy process written down after the calendar-missing incident; privacy access logging wired; replaceable AI models; Sessions, Break-Glass, SOPs, Feature Requests, Evidence Locker, Adverse Events, Legal Holds all live |
@@ -275,8 +294,8 @@ These are counts, not hours. Time depends on review and SQL-run turnaround.
 | Sept 25 | Administrator account activated; change-password page |
 | Sept 26 | Forgot-password flow live; personal calendar; Agent #6 observation (32 clean runs) + pause test; **Agent #4 live in Supabase**; 7 GitHub workflows disabled; folded Compliance group; overnight switch alert + low-stock warning installed; **Agent #5 live**; delay-days 1–365 check live; fake-order end-to-end test passed; **Agent #6 v2 live**; combined 3-order test passed |
 | Sept 27 | Task duplicate fix (Agent #5 v3, #4 v4) live + in-progress test; tasks access-rule check; **task buttons v1 live** and checked; v2 built and approved; paused at night (v2 not yet seen live) |
-| Sept 28 | **Task buttons v2 uploaded** (4edf5d6) |
-| Sept 29 | v2 live checks (partly); GitHub safety set up; verification record (PR #1); CODEOWNERS (PR #3; PR #2 closed); test suite + code review (PR #4); Code Owners rule on. This session: read-only verification, PR #5 (`CLAUDE.md`), the inventory-safety, regression-coverage, modularization and security branches, and this record |
+| Sept 28 | [REPO] **Task buttons v2 uploaded to `main`** (4edf5d6) |
+| Sept 29 | [HIST] v2 live checks (4 of 9); [REPO] GitHub safety set up; verification record (PR #1); CODEOWNERS (PR #3; PR #2 closed); test suite + code review (PR #4); Code Owners rule on. This session: read-only verification, PR #5 (`CLAUDE.md`), the inventory-safety, regression-coverage, modularization and security branches, and this record |
 
 ---
 
@@ -284,7 +303,7 @@ These are counts, not hours. Time depends on review and SQL-run turnaround.
 
 | Topic | Location |
 | --- | --- |
-| Standing rules | `CLAUDE.md` (PR #5) |
+| Standing rules | `CLAUDE.md` (PR #5). It tells every session to read this record alongside the rules. |
 | Access verification | `docs/security/claude-access-verification.md` |
 | Code-quality review | `docs/code-quality/owner-login-review.md` |
 | Tests | `tests/README.md` |
