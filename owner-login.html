@@ -5649,8 +5649,11 @@
     // Every change goes through the normal logged-in update, so the tasks
     // change-history (audit) trigger and access rules apply exactly as before.
     const TASK_STATUS_LABELS = { open: 'Open', in_progress: 'In progress', done: 'Done', cancelled: 'Cancelled' };
+    // "Mark done" always comes first, so it sits in the same spot for open and
+    // in-progress tasks: clicking "Mark in progress" never slides another
+    // button under the cursor (which caused accidental "done" clicks).
     const TASK_NEXT_ACTIONS = {
-      open: [{ to: 'in_progress', label: 'Mark in progress' }, { to: 'done', label: 'Mark done' }],
+      open: [{ to: 'done', label: 'Mark done' }, { to: 'in_progress', label: 'Mark in progress' }],
       in_progress: [{ to: 'done', label: 'Mark done' }],
     };
     const TASK_ALLOWED_FROM = { in_progress: ['open'], done: ['open', 'in_progress'] };
@@ -5661,6 +5664,11 @@
       const to = btn.getAttribute('data-to');
       const allowedFrom = TASK_ALLOWED_FROM[to];
       if (!id || !allowedFrom) return;
+      if (to === 'done') {
+        const titleEl = row.querySelector('.taskTitle');
+        const title = titleEl ? titleEl.textContent.trim() : 'this task';
+        if (!window.confirm('Mark this task done?\n\n' + title)) return;
+      }
       row.querySelectorAll('.taskStatusBtn').forEach(b => { b.disabled = true; });
       try {
         const { data, error } = await supabase
@@ -5703,15 +5711,17 @@
         } else {
           document.getElementById('tasksTableWrap').innerHTML = `
             ${cutoffNote}
-            <table><thead><tr><th>Title</th><th>Priority</th><th>Status</th><th>Due</th><th></th></tr></thead>
+            <table><thead><tr><th>Title</th><th>Priority</th><th>Status</th><th>Due</th></tr></thead>
             <tbody>${open.map(t => `
               <tr class="${isOverdue(t.due_at, t.status) ? 'overdue' : ''}" data-id="${esc(t.id)}">
-                <td>${esc(t.title)}</td>
+                <td style="white-space:normal;min-width:190px;">
+                  <div class="taskTitle">${esc(t.title)}</div>
+                  <div class="taskActions" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">${(TASK_NEXT_ACTIONS[t.status] || []).map(a =>
+                    `<button type="button" class="small taskStatusBtn" data-to="${esc(a.to)}">${esc(a.label)}</button>`).join('')}</div>
+                </td>
                 <td><span class="badge">${esc(t.priority || '—')}</span></td>
                 <td>${esc(TASK_STATUS_LABELS[t.status] || t.status || '—')}</td>
                 <td>${esc(fmtDate(t.due_at))}</td>
-                <td style="white-space:nowrap;">${(TASK_NEXT_ACTIONS[t.status] || []).map(a =>
-                  `<button type="button" class="small taskStatusBtn" data-to="${esc(a.to)}">${esc(a.label)}</button>`).join(' ')}</td>
               </tr>`).join('')}</tbody></table>`;
           document.querySelectorAll('#tasksTableWrap .taskStatusBtn').forEach(btn =>
             btn.addEventListener('click', () => changeTaskStatus(btn)));
