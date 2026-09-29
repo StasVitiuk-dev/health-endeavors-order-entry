@@ -1,0 +1,12 @@
+# Code owners for the Health Endeavors order-entry dashboard.
+# @StasVitiuk-dev owns every file in the repository, including the
+# .github directory and this CODEOWNERS file itself.
+#
+# Note: this file only names the owner. Approval from the code owner is
+# enforced only when "Require review from Code Owners" is turned on in
+# the protect-main ruleset. Changes to this file itself also need the
+# code owner's approval once that setting is on.
+
+*                   @StasVitiuk-dev
+/.github/           @StasVitiuk-dev
+/.github/CODEOWNERS @StasVitiuk-dev
