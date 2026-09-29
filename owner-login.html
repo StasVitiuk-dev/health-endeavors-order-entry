@@ -1780,6 +1780,14 @@
       if (s === null || s === undefined) return '';
       return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     }
+    function fmtMoney(amount, currency){
+      const n = Number(amount || 0);
+      try {
+        return new Intl.NumberFormat('en-US', { style: 'currency', currency: currency || 'USD' }).format(n);
+      } catch (e) {
+        return '$' + n.toFixed(2);
+      }
+    }
     // True for a saved link that is safe to show as a clickable link. Blocks
     // only the kinds that run code or smuggle content when clicked
     // (javascript:, data:, vbscript:); web, email, Apple Mail/Photos and
@@ -1788,14 +1796,6 @@
     function isSafeLink(url){
       const u = String(url || '').replace(/[\u0000-\u0020\u007f]/g, '').toLowerCase();
       return !!u && !/^(javascript|data|vbscript):/.test(u);
-    }
-    function fmtMoney(amount, currency){
-      const n = Number(amount || 0);
-      try {
-        return new Intl.NumberFormat('en-US', { style: 'currency', currency: currency || 'USD' }).format(n);
-      } catch (e) {
-        return '$' + n.toFixed(2);
-      }
     }
     function fmtDate(iso){
       if (!iso) return '—';
