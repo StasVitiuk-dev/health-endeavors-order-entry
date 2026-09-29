@@ -1,0 +1,211 @@
+// Admin pages that change how the business and its agents behave: Feature
+// Flags, System Mode, Business Rules and the Approval Queue. Every change
+// must ask for your password first, and send only the expected fields.
+// Verifies existing behaviour; synthetic data only (the mock answers all).
+
+const { test, expect, login, gotoPage, OWNER_USER } = require('../helpers/dashboard');
+
+const writes = (backend, table) => backend.tableWrites().filter(r => !table || r.table === table);
+const filtersOf = r => Object.fromEntries(r.params.filter(([k]) => k !== 'select'));
+
+function seed(backend, mode = 'NORMAL') {
+  Object.assign(backend.tables, {
+    feature_flags: [{ id: 'ff-1', flag_key: 'shopify_order_sync', label: 'SYNTHETIC Shopify Order Sync', description: 'SYNTHETIC flag', enabled: false }],
+    system_mode: [{ id: true, mode, changed_at: '2026-09-01T00:00:00Z', changed_by: null }],
+    business_rules: [
+      { id: 'br-refund', rule_key: 'refund_review_threshold_usd', label: 'SYNTHETIC Refund review', description: 'SYNTHETIC', config: { amount: 100 }, is_active: true },
+      { id: 'br-ship', rule_key: 'shipping_delay_threshold_days', label: 'SYNTHETIC Shipping delay', description: 'SYNTHETIC', config: { days: 5 }, is_active: true },
+      { id: 'br-custom', rule_key: 'synthetic_custom_rule', label: 'SYNTHETIC Custom rule', description: 'SYNTHETIC', config: { x: 1 }, is_active: true },
+    ],
+    approval_requests: [
+      { id: 'ap-1', action_type: 'refund_cancellation_review', summary: 'SYNTHETIC pending request', status: 'pending', created_at: '2026-09-20T00:00:00Z' },
+      { id: 'ap-2', action_type: 'refund_cancellation_review', summary: 'SYNTHETIC finished request', status: 'approved', created_at: '2026-09-19T00:00:00Z' },
+    ],
+  });
+}
+
+async function open(page, id) {
+  await gotoPage(page, id);
+  await page.waitForLoadState('networkidle');
+  const overlay = page.locator('#inspectorOverlay');
+  if (await overlay.evaluate(el => el.classList.contains('open'))) await page.click('#insCloseBtn');
+}
+
+async function confirmPassword(page) {
+  await expect(page.locator('#reauthOverlay')).toBeVisible();
+  await page.fill('#reauthPassword', OWNER_USER.password);
+  await page.click('#reauthConfirmBtn');
+  await expect(page.locator('#reauthOverlay')).toBeHidden();
+}
+
+// ------------------------------------------------------------ feature flags
+test.describe('Feature Flags', () => {
+  test.beforeEach(async ({ page, backend }) => { seed(backend); await login(page); await open(page, 'flagsPanel'); });
+
+  test('turning a flag on asks for the password; Cancel leaves it off and sends nothing', async ({ page, backend }) => {
+    const toggle = page.locator('.flagRow[data-id="ff-1"] .flagToggle');
+    await page.locator('.flagRow[data-id="ff-1"] .slider').click();
+    await expect(page.locator('#reauthOverlay')).toBeVisible();
+    await page.click('#reauthCancelBtn');
+    await expect(toggle).not.toBeChecked();
+    expect(writes(backend)).toEqual([]);
+  });
+
+  test('with the password, only the "enabled" field of that flag is sent', async ({ page, backend }) => {
+    await page.locator('.flagRow[data-id="ff-1"] .slider').click();
+    await confirmPassword(page);
+    await expect.poll(() => writes(backend, 'feature_flags').length).toBe(1);
+    const [w] = writes(backend, 'feature_flags');
+    expect(w.body).toEqual({ enabled: true });
+    expect(filtersOf(w)).toEqual({ id: 'eq.ff-1' });
+  });
+});
+
+// -------------------------------------------------------------- system mode
+test.describe('System Mode', () => {
+  test('a non-normal mode shows its banner on every page', async ({ page, backend }) => {
+    seed(backend, 'LIMITED_AI');
+    await login(page);
+    await expect(page.locator('#systemModeBanner')).toBeVisible();
+    await expect(page.locator('#systemModeBanner')).toContainText('Limited AI');
+    await open(page, 'tasksPanel');
+    await expect(page.locator('#systemModeBanner')).toBeVisible();
+  });
+
+  test('Normal mode shows no banner', async ({ page, backend }) => {
+    seed(backend);
+    await login(page);
+    await open(page, 'flagsPanel');
+    await expect(page.locator('#systemModeWrap')).toContainText('Normal');
+    await expect(page.locator('#systemModeBanner')).toBeHidden();
+  });
+
+  test('changing to No AI (with password) records the mode and also pauses Agent #7 only', async ({ page, backend }) => {
+    seed(backend);
+    await login(page);
+    await open(page, 'flagsPanel');
+    await page.selectOption('#systemModeSelect', 'NO_AI');
+    await page.click('#systemModeChangeBtn');
+    await confirmPassword(page);
+    await expect.poll(() => writes(backend, 'agent_controls').length).toBe(1);
+    const mode = writes(backend, 'system_mode');
+    expect(mode).toHaveLength(1);
+    expect(Object.keys(mode[0].body).sort()).toEqual(['changed_at', 'changed_by', 'mode']);
+    expect(mode[0].body.mode).toBe('NO_AI');
+    expect(filtersOf(mode[0])).toEqual({ id: 'eq.true' });
+    expect(filtersOf(writes(backend, 'agent_controls')[0])).toEqual({ agent_num: 'eq.7' });
+    expect(writes(backend, 'agent_controls')[0].body.enabled).toBe(false);
+    expect(writes(backend, 'feature_flags')).toEqual([]);
+  });
+
+  test('Emergency asks for an extra confirmation; saying no changes nothing', async ({ page, backend }) => {
+    seed(backend);
+    await login(page);
+    await open(page, 'flagsPanel');
+    await page.selectOption('#systemModeSelect', 'EMERGENCY');
+    page.once('dialog', d => { expect(d.message()).toContain('does NOT log anyone out'); d.dismiss(); });
+    await page.click('#systemModeChangeBtn');
+    await confirmPassword(page);
+    await page.waitForTimeout(300);
+    expect(writes(backend)).toEqual([]);
+  });
+
+  test('Emergency, confirmed, also switches off Shopify Order Sync and pauses Agent #7', async ({ page, backend }) => {
+    seed(backend);
+    await login(page);
+    await open(page, 'flagsPanel');
+    await page.selectOption('#systemModeSelect', 'EMERGENCY');
+    page.once('dialog', d => d.accept());
+    await page.click('#systemModeChangeBtn');
+    await confirmPassword(page);
+    await expect.poll(() => writes(backend, 'agent_controls').length).toBe(1);
+    expect(writes(backend, 'system_mode')[0].body.mode).toBe('EMERGENCY');
+    const flag = writes(backend, 'feature_flags');
+    expect(flag).toHaveLength(1);
+    expect(flag[0].body.enabled).toBe(false);
+    expect(filtersOf(flag[0])).toEqual({ flag_key: 'eq.shopify_order_sync' });
+  });
+
+  test('cancelling the password prompt changes nothing', async ({ page, backend }) => {
+    seed(backend);
+    await login(page);
+    await open(page, 'flagsPanel');
+    await page.selectOption('#systemModeSelect', 'NO_AI');
+    await page.click('#systemModeChangeBtn');
+    await page.click('#reauthCancelBtn');
+    await page.waitForTimeout(300);
+    expect(writes(backend)).toEqual([]);
+  });
+});
+
+// ----------------------------------------------------------- business rules
+test.describe('Business Rules', () => {
+  test.beforeEach(async ({ page, backend }) => { seed(backend); await login(page); await open(page, 'businessRulesPanel'); });
+  const row = (page, id) => page.locator(`#businessRulesWrap .flagRow[data-id="${id}"]`);
+
+  test('saving a threshold asks for the password and sends only config + who changed it', async ({ page, backend }) => {
+    await row(page, 'br-refund').locator('.ruleValueInput').fill('250');
+    await row(page, 'br-refund').locator('.ruleSaveBtn').click();
+    await confirmPassword(page);
+    await expect.poll(() => writes(backend, 'business_rules').length).toBe(1);
+    const [w] = writes(backend, 'business_rules');
+    expect(Object.keys(w.body).sort()).toEqual(['config', 'updated_by']);
+    expect(w.body.config).toEqual({ amount: 250 });
+    expect(filtersOf(w)).toEqual({ id: 'eq.br-refund' });
+  });
+
+  test('a shipping delay of 0 is refused before any password prompt', async ({ page, backend }) => {
+    await row(page, 'br-ship').locator('.ruleValueInput').fill('0');
+    await row(page, 'br-ship').locator('.ruleSaveBtn').click();
+    await expect(page.locator('#dashError')).toContainText('whole number from 1 to 365');
+    await expect(page.locator('#reauthOverlay')).toBeHidden();
+    expect(writes(backend)).toEqual([]);
+  });
+
+  test('a rule with an unfamiliar shape is edited as raw settings; invalid text is refused', async ({ page, backend }) => {
+    const box = row(page, 'br-custom').locator('.ruleConfigJson');
+    await expect(box).toHaveValue('{"x":1}');
+    await box.fill('{"x": 1,');
+    await row(page, 'br-custom').locator('.ruleSaveBtn').click();
+    await expect(page.locator('#dashError')).toContainText("isn't valid JSON");
+    expect(writes(backend)).toEqual([]);
+  });
+
+  test('switching a rule off asks for the password and sends only is_active + who changed it', async ({ page, backend }) => {
+    await row(page, 'br-refund').locator('.slider').click();
+    await confirmPassword(page);
+    await expect.poll(() => writes(backend, 'business_rules').length).toBe(1);
+    const [w] = writes(backend, 'business_rules');
+    expect(w.body).toEqual({ is_active: false, updated_by: OWNER_USER.id });
+  });
+});
+
+// ------------------------------------------------------------ approval queue
+test.describe('Approval Queue', () => {
+  test.beforeEach(async ({ page, backend }) => { seed(backend); await login(page); await open(page, 'approvalsPanel'); });
+
+  test('only pending requests are listed', async ({ page }) => {
+    await expect(page.locator('#approvalsWrap .approvalRow')).toHaveCount(1);
+    await expect(page.locator('#approvalsWrap')).toContainText('SYNTHETIC pending request');
+    await expect(page.locator('#approvalsWrap')).not.toContainText('SYNTHETIC finished request');
+  });
+
+  test('Approve asks for the password and records status, reviewer and time', async ({ page, backend }) => {
+    await page.click('#approvalsWrap .approveBtn');
+    await confirmPassword(page);
+    await expect.poll(() => writes(backend, 'approval_requests').length).toBe(1);
+    const [w] = writes(backend, 'approval_requests');
+    expect(Object.keys(w.body).sort()).toEqual(['reviewed_at', 'reviewed_by', 'status']);
+    expect(w.body.status).toBe('approved');
+    // Note (current behaviour): the update is by id only; it does not also
+    // require the request to still be pending. See the project record.
+    expect(filtersOf(w)).toEqual({ id: 'eq.ap-1' });
+  });
+
+  test('Deny with Cancel on the password prompt changes nothing', async ({ page, backend }) => {
+    await page.click('#approvalsWrap .denyBtn');
+    await page.click('#reauthCancelBtn');
+    await page.waitForTimeout(300);
+    expect(writes(backend)).toEqual([]);
+  });
+});
