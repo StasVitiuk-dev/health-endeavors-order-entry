@@ -1,6 +1,6 @@
 # Health Endeavors — current state (cross-project summary)
 
-**Last updated:** September 29, 2026 (evening). **Keep this short.** Details live in the linked documents; update this file whenever the verified state changes materially.
+**Last updated:** September 30, 2026. **Keep this short.** Details live in the linked documents; update this file whenever the verified state changes materially.
 
 Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (from the owner's earlier chats, not re-checked) · **PROPOSED** · **OWNER DECISION REQUIRED** · **DEPRECATED**.
 
@@ -19,10 +19,10 @@ Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (fro
 
 ## 2. Public website (customer storefront)
 
-- **CURRENT (local only):** a design-neutral prototype shaped like a Shopify Online Store 2.0 theme, plus architecture and planning documents. It lives in a **separate local workspace, not in this repository**, and is **not deployed**. Synthetic data only; 292 local tests (279 passed, 0 failed, 13 intentional skips; 837/837 over 3 repeats); passes Shopify Theme Check with 0 findings.
+- **CURRENT (local only):** a design-neutral prototype shaped like a Shopify Online Store 2.0 theme, plus architecture and planning documents. It lives in a **separate local workspace, not in this repository**, and is **not deployed**. Synthetic data only. Latest local CI: 558 passed, 22 intentional skips; a small number of intermittent browser failures in 2 of 5 runs are under investigation. Passes Shopify Theme Check with 0 findings. Also contains a local **simulator** of the Shopify→platform integration (one sale = one order/invoice/journal), which is not connected to anything real.
 - **Design:** TEMPORARY. Final colours, typography, photography and identity are to be chosen by the owner separately.
-- **Content:** all placeholder; no product claims written.
-- **Preservation:** a snapshot archive was sent to the owner as a file. A GitHub repository for it needs the owner's approval (proposed name `health-endeavors-website`, private).
+- **Content:** all placeholder; no product claims written. The legacy Sea Foam bottle is the real packaging. The current final INCI list is required from the manufacturer or lab before launch. Owner visual direction (premium, editorial, oceanic; possible whale secondary mark) is recorded as a decision to make, not a final design.
+- **Preservation:** dated ZIP + git bundle snapshots are sent to the owner as files, together with a whole-business `handoff/` package covering the dashboard and the website. A GitHub repository for it needs the owner's approval (proposed name `health-endeavors-website`, private).
 
 ## 3. Architecture (PROPOSED — OWNER APPROVAL REQUIRED)
 

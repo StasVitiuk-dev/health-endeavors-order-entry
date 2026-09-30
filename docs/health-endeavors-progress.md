@@ -1,6 +1,6 @@
 # Health Endeavors — progress tracker
 
-**Last updated:** September 29, 2026. Update whenever meaningful work is completed or scope changes.
+**Last updated:** September 30, 2026. Update whenever meaningful work is completed or scope changes.
 
 **How to read the percentages:** they are **planning estimates, not measurements**. "Done" means merged to `main` and, where it matters, confirmed live. Work in open PRs, prototypes or documents counts only as preparation and is weighted low. Each row states its basis.
 
@@ -34,12 +34,13 @@ The weights are a judgement call: the platform is the largest body of work, and 
 | 5 | **Task buttons v2 post-deploy checks** | OWNER DECISION REQUIRED (owner-run) | 44% | 4 of 9 checks (REPORTED) | Refresh persistence, audit_log row, Cancel test, iPhone, second account | Owner time | Owner runs the checks | Sept 29 |
 | 6 | **Agents / automation** | BLOCKED | 55% | #4, #5, #6 live in Supabase with pause switches (REPORTED) | #2/#3/#7/#8 off until products; #1 state unverified; #8 migration | Products (row 7) | Owner checks Agent #1's switch (read-only) | Sept 29 |
 | 7 | **Store launch readiness** (Shopify products, SKUs, sync) | NOT STARTED | 10% | Fake-order end-to-end tests passed (REPORTED) | Real products with exact SKUs (R8), sync design decision (D-4), re-enable workflows (R9) | Owner; R1–R4 before automatic stock sync | Decide the sync design | Sept 29 |
-| 8 | **Public website** | IN PROGRESS | 15% | Local design-neutral prototype (Shopify-theme structure, cart/forms with mock adapters, 292 tests, Shopify Theme Check clean), architecture, page map, wireframes, media/content/SEO/performance/accessibility/security docs | Repository; visual identity; approved content; photography; real Shopify theme; intake endpoint; launch checks | Owner decisions D-0, D-2, D-22, D-23, D-24 | Owner approves the architecture and a separate repository | Sept 29 |
-| 9 | **Website ↔ platform integration** | NOT STARTED | 5% | Event contracts and flows designed (PROPOSED) | Intake endpoint, order inbox, reconciliation, stock sync, platform queues | R1–R4; owner decisions D-3, D-4, D-6 | Approve the design | Sept 29 |
+| 8 | **Public website** | IN PROGRESS | 15% | Local design-neutral prototype (Shopify-theme structure, cart/forms with mock adapters, 558 local tests, Shopify Theme Check clean); visual direction, cinematic-hero and 360° shot-list specs (PROPOSED; not final design), architecture, page map, wireframes, media/content/SEO/performance/accessibility/security docs | Repository; visual identity; approved content; photography; real Shopify theme; intake endpoint; launch checks | Owner decisions D-0, D-2, D-22, D-23, D-24 | Owner approves the architecture and a separate repository | Sept 30 |
+| 9 | **Website ↔ platform integration** | NOT STARTED | 5% | Event contracts designed (PROPOSED); local **simulator only** (webhook inbox, processor, reconciliation, inventory publishing; soak-tested with fault injection). Not connected to anything real, so it counts as preparation | Intake endpoint, order inbox, reconciliation, stock sync, platform queues | R1–R4; owner decisions D-3, D-4, D-6 | Approve the design | Sept 30 |
 | 10 | **Security hardening** | IN PROGRESS | 40% | Frontend security review (PR #17); fixes for S1/S3/S4 in PRs #7/#10/#9; access verification (PR #1) | Merge fixes; R7; orphan uploads (S10); approval/PO state checks | Review; R7 method | Owner reviews #17 | Sept 29 |
 | 11 | **Code structure (owner-login.html modularization)** | NOT STARTED | 5% | Plan + dependency map (PR #18) | About 15 PRs | Deliberately after R1–R4 | — | Sept 29 |
-| 12 | **Documentation** | IN PROGRESS | 70% | `CLAUDE.md` rules (PR #5), project record, current-state summary, this tracker (PR #6), website docs folder | Merge PRs #5/#6; keep current; owner-facing runbooks | Review | Owner reviews #5 and #6 | Sept 29 |
+| 12 | **Documentation** | IN PROGRESS | 75% | `CLAUDE.md` rules (PR #5), project record, current-state summary, this tracker (PR #6), website docs folder, whole-business handoff package (`handoff/`, preserved with the website ZIP/bundle) | Merge PRs #5/#6; keep current; owner-facing runbooks | Review | Owner reviews #5 and #6 | Sept 30 |
 
 ## Change log for this tracker
 
 - **Sept 29, 2026:** created. Website area added at 15% (prototype and documents only). Workstream C (visual concepts) removed from website scope by owner instruction.
+- **Sept 30, 2026:** Website and integration percentages unchanged (15% and 5%) because the new work is prototype and simulator only. Documentation raised to 75% for the whole-business handoff package. Owner brand directions recorded as open decisions, not final: visual direction references, whale secondary mark (D-38), legacy Sea Foam bottle as real packaging, INCI list required from the manufacturer.
