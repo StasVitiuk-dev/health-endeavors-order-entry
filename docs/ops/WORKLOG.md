@@ -12,3 +12,6 @@ Rules: no merges, deploys, Supabase changes, agent state changes, branch deletio
 - Local PostgreSQL 16 started at /var/tmp/hepg (port 5499, throwaway, synthetic). Nothing touches Supabase.
 - Wrote docs/ops/sql/00_READONLY_A_schema.sql and 01_READONLY_B_data_health.sql (single SELECTs; secrets-redacted; tested locally on a guessed schema).
 - Wrote docs/ops/sql/local-test/00_GUESSED_schema_for_local_tests.sql (LOCAL ONLY).
+- Wrote DRAFT functions docs/ops/sql/drafts/10 (R1 receive_purchase_order, R4 adjust_inventory, R2 quarantine_recall, R3 receive_return, R5 delete_unused_product, helper _he_apply_stock_change), 11 rollback, 12 tests (BEGIN…ROLLBACK). Local result: ALL STOCK FUNCTION TESTS PASSED (5/5 runs).
+- docs/ops/sql/local-test/concurrency_test.sh: 12 checks with real parallel sessions (lost updates, below-zero race, simultaneous receive/recall/return, deadlocks): all PASS ×3.
+- DISCOVERY: processing PO lines in id order (as the earlier plan implied) deadlocks under overlapping receives (3–11 of 20 failed in 3 runs). Fixed in the draft by locking in product order (0 failures).
