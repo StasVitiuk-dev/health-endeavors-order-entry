@@ -96,6 +96,11 @@ begin
   res := receive_return(r, 'restock_available', 1);
   if not (res->>'already_done')::boolean then raise exception 'R3: retry should be already_done'; end if;
   select available into v from inventory where product_id = b; if v <> 21 then raise exception 'R3 retry: B changed to %', v; end if;
+  -- N13: a stale page sets the finished return back to 'approved' -> still no second restock
+  update returns set status = 'approved' where id = r;
+  res := receive_return(r, 'restock_available', 1);
+  if not (res->>'already_done')::boolean or res->>'reason' <> 'received_before' then raise exception 'R3 N13: %', res; end if;
+  select available into v from inventory where product_id = b; if v <> 21 then raise exception 'R3 N13: B changed to %', v; end if;
   -- unknown SKU: marked received, nothing restocked
   update order_items set sku = 'NOPE' where id = oi;
   insert into returns (order_id, order_item_id, status) values (o, oi, 'approved') returning id into r;

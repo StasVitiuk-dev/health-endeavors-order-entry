@@ -290,6 +290,11 @@ begin
   if v_ret.status <> 'approved' then
     return jsonb_build_object('already_done', true, 'status', v_ret.status);
   end if;
+  -- Defence in depth (finding N13): a stale page can set a finished return
+  -- back to 'approved'. If it was already received once, never restock again.
+  if v_ret.received_at is not null then
+    return jsonb_build_object('already_done', true, 'status', v_ret.status, 'reason', 'received_before');
+  end if;
 
   select oi.sku, oi.quantity, o.order_number into v_item
     from order_items oi left join orders o on o.id = oi.order_id

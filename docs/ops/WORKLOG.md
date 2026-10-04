@@ -18,3 +18,9 @@ Rules: no merges, deploys, Supabase changes, agent state changes, branch deletio
 - Wrote docs/ops/R1-R5-function-design.md and docs/ops/other-fixes-review.md (R5, R7, approvals, PO states, PO Cancel, S10, new findings N1–N9).
 - R7 unblocked: npm registry reachable (CDN still blocked); sha384 of supabase-js 2.117.2 UMD verified against a fresh registry tarball and package-lock: sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok. 2.117.2 is the newest 2.x (published 2026-10-02).
 - Added tests/specs/ops-findings.spec.js (tests only): approval race, PO Cancel-after-Receive + no confirmation, lot ilike wildcard (N1), legal-hold release without password (N6). 22/22 pass (6 current-behaviour ×2 sizes + 5 wanted test.fail() ×2); each wanted test verified to fail on its intended assertion.
+
+## 2026-10-04 (late): tasks 8–10
+- Committed `integration-service-architecture.md` (task 8) and `modularization-review.md` (task 9). Checked: none of the open fix PRs edits CSS; #9/#10/#11 edit the helper region, so they must land before the helpers move.
+- Task 10, second pass over every `.update(` in `owner-login.html`: N10 (receipt hard delete), N11 (one-click FDA flag), N12 (recall resolved without quarantine), N13 (stale Approve re-opens a finished return → second restock or second refund).
+- `ops-findings.spec.js`: 34/34 pass (17 tests × 2 sizes). Each new wanted test was checked to fail on its own assertion with `test.fail` removed.
+- R3 draft hardened: `received_at` set → `already_done/received_before`. SQL unit tests pass (new N13 assertion), and the concurrency suite gives 12/12 PASS.
