@@ -249,3 +249,21 @@ test.describe('Adverse events: "Mark reported to FDA"', () => {
     expect(writes(backend, 'adverse_event_reports')).toEqual([]);
   });
 });
+
+// ------------------------------------- Accounting: unpaged totals (N14)
+test.describe('Accounting: "All Time" totals', () => {
+  test('current behaviour: orders and expenses are fetched in one unpaged request each (capped by Supabase "Max rows")', async ({ page, backend }) => {
+    await login(page);
+    await open(page, 'accountingPanel');
+    const before = backend.requests.length;
+    await page.click('#accountingPanel button[data-range="all"]');
+    await expect.poll(() => backend.requests.slice(before).filter(r => r.method === 'GET' && (r.table === 'orders' || r.table === 'expenses')).length).toBe(2);
+    for (const r of backend.requests.slice(before).filter(r => r.method === 'GET' && (r.table === 'orders' || r.table === 'expenses'))) {
+      const keys = r.params.map(([k]) => k);
+      expect(keys).not.toContain('limit');
+      expect(keys).not.toContain('offset');
+      expect(r.headers['range']).toBeUndefined();
+    }
+    // When N14 is fixed (database sum or .range() paging), replace this test with one for the new behaviour.
+  });
+});

@@ -136,3 +136,9 @@ This affects three places, not two:
 Lower impact, noted only:
 - Inquiry "answered" (6238) has no status condition. Harmless.
 - Feature-request advance (7144) reads, then writes, so a double click can skip a status. Harmless.
+
+| # | Severity | Finding | Where | Recommendation |
+|---|---|---|---|---|
+| N14 | 🟠 Medium/High (tax, accounting) | **Accounting and Tax Records totals may silently stop at 1,000 rows.** `loadAccounting` (~8727) and `loadTaxRecords` (~8821) fetch every order and expense in the range with no paging. Supabase's API returns at most its "Max rows" setting per request (1,000 by default) and **does not report an error** when it cuts the list short. An "All time" or full-year view with more than 1,000 orders or expenses would understate revenue, expenses and the tax export, with nothing on screen saying so. Not a problem today (no real orders yet); it becomes one after launch. | 8727+, 8821+ | Totals from a database function (`sum` in SQL, one row back) rather than adding rows in the browser; or page with `.range()` until a short page comes back, and show the row count. **Owner check:** Supabase → Project Settings → API → "Max rows". |
+
+Also checked: the Accounting/Tax date boundaries use local midnight, which gives the correct day in US time zones. Partial refunds count the full order total but are listed under "needs review" (existing, documented behaviour).

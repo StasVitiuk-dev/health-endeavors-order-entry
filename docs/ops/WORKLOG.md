@@ -24,3 +24,4 @@ Rules: no merges, deploys, Supabase changes, agent state changes, branch deletio
 - Task 10, second pass over every `.update(` in `owner-login.html`: N10 (receipt hard delete), N11 (one-click FDA flag), N12 (recall resolved without quarantine), N13 (stale Approve re-opens a finished return → second restock or second refund).
 - `ops-findings.spec.js`: 34/34 pass (17 tests × 2 sizes). Each new wanted test was checked to fail on its own assertion with `test.fail` removed.
 - R3 draft hardened: `received_at` set → `already_done/received_before`. SQL unit tests pass (new N13 assertion), and the concurrency suite gives 12/12 PASS.
+- N14: Accounting/Tax totals are unpaged (Supabase 'Max rows' cap). Documented, with a current-behaviour test. ops-findings: 36/36 pass.
