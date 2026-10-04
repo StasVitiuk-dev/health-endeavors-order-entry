@@ -123,3 +123,16 @@ This affects three places, not two:
 | N7 | ℹ️ Design limit | **Stock is tracked per product, not per lot.** A recall assumes the lot's remaining units are all still in Available. | recall logic | Document. Lot-level buckets are a future design topic, not a launch fix. |
 | N8 | ℹ️ Process | **R7 risk is live:** `@2` moved to a new release on 2026-10-02 without review. | all pages | Pin (above). |
 | N9 | 🟡 Low | **The PO expense date uses the UTC date** (tomorrow's date in US evenings). It was deliberately left out of PR #11 as accounting-adjacent. | 4617 | D-ops-3: the R1 function takes the business date. |
+
+## More findings (second pass, 2026-10-04)
+
+| # | Severity | Finding | Where | Recommendation |
+|---|---|---|---|---|
+| N10 | 🟡 Medium (tax records) | **"Remove receipt" permanently deletes the receipt file from storage in one click.** There is no confirmation and no recycle bin, unlike expenses themselves, which are soft-deleted. The code comment says this is deliberate ("owner-only page"). But receipts are tax records that normally must be kept for years. | `removeExpenseReceipt` ~8564 | **Owner decision:** two-press confirmation at least. Better: unlink only (clear `receipt_path`, keep the file) and leave real deletion to an owner-run cleanup. |
+| N11 | 🟡 Medium (compliance) | **"Mark reported to FDA" is one click**, with no confirmation and no undo button. It doesn't record who marked it (unless an audit trigger does; Query A shows triggers). A mis-click silently clears an FDA deadline from view. | ~7654 | Two-press confirmation; record `fda_reported_by`; optionally ask for the FDA report reference. Test: `ops-findings.spec.js`. |
+| N12 | 🟡 Medium (compliance) | **"Mark resolved" is offered on a recall whose stock was never quarantined.** One click resolves it (an empty note becomes "Resolved."). That removes it from Needs Your Attention and hides "Quarantine stock" for good. There is no status condition either, so it can race with Quarantine. | 4897, 4992–5010 | Require a written note; if the recall is still `initiated`, ask "Stock was never quarantined — resolve anyway?". Conditional update from `initiated`/`quarantined`. Test added. |
+| N13 | 🟠 Medium (stock and money) | **A stale Returns page can re-open a finished return.** Approve/Reject write `status` with no condition. A tab opened while a return was `requested` can later turn a `refunded` (or `closed`) return back into `approved`. Mark Received then appears again and **restocks a second time**, and Mark Refunded can **record a second refund**. The R3 function's "not approved → already done" check cannot catch this, because the status really is `approved` again. | 8275–8291, 8298–8310 | Task-v2 conditional updates for every return status change: Approve/Reject from `requested`; Close from `rejected`, `received` or `refunded`; Refunded from `received` (N5). This should land **with or before** R3. Test added. |
+
+Lower impact, noted only:
+- Inquiry "answered" (6238) has no status condition. Harmless.
+- Feature-request advance (7144) reads, then writes, so a double click can skip a status. Harmless.

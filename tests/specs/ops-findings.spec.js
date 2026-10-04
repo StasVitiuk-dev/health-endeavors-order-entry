@@ -166,3 +166,86 @@ test.describe('Legal holds: releasing a hold', () => {
     expect(writes(backend, 'legal_holds')).toEqual([]);
   });
 });
+
+// ------------------------------------------- returns: stale Approve (N13)
+test.describe('Returns: deciding a return on a stale page', () => {
+  test.beforeEach(async ({ page, backend }) => {
+    backend.tables.returns = [{
+      id: 'ret-1', order_id: 'ord-1', order_item_id: 'item-1', reason: 'damaged', status: 'requested', product_condition: null,
+      disposition: null, refund_amount: null, approved_at: null, received_at: null, refunded_at: null, notes: null, created_at: '2026-09-20T00:00:00Z',
+      orders: { order_number: 'SYN-1001', customer_name: 'SYNTHETIC Customer' }, order_items: { product_name: 'SYNTHETIC product A', sku: 'SYN-A', quantity: 3 },
+    }];
+    await login(page);
+    await open(page, 'returnsPanel');
+  });
+
+  test('current behaviour: Approve on a stale page turns a refunded return back into "approved"', async ({ page, backend }) => {
+    backend.tables.returns[0].status = 'refunded'; // received, restocked and refunded in another tab
+    await page.locator('[data-return-id="ret-1"] .decideReturnBtn[data-next="approved"]').click();
+    await expect.poll(() => backend.tables.returns[0].status).toBe('approved'); // Mark Received (restock) is offered again
+    expect(filtersOf(writes(backend, 'returns')[0])).toEqual({ id: 'eq.ret-1' });
+  });
+
+  test('wanted: Approve/Reject only apply while the return is still "requested"', async ({ page, backend }) => {
+    test.fail(true, 'Fix pending: conditional return status updates — docs/ops/other-fixes-review.md N13');
+    await page.locator('[data-return-id="ret-1"] .decideReturnBtn[data-next="approved"]').click();
+    await expect.poll(() => writes(backend, 'returns').length).toBe(1);
+    expect(filtersOf(writes(backend, 'returns')[0])).toMatchObject({ status: 'eq.requested' });
+  });
+});
+
+// ------------------------------------- recalls: resolve before quarantine (N12)
+test.describe('Recalls: "Mark resolved" on a recall whose stock was never quarantined', () => {
+  test.beforeEach(async ({ page, backend }) => {
+    backend.tables.recalls = [{
+      id: 'rc-1', reason: 'SYNTHETIC contamination report', severity: 'high', status: 'initiated', quantity_quarantined: null, resolution: null,
+      resolved_at: null, incident_id: null, created_at: '2026-09-20T00:00:00Z', lot_id: 'lot-1', product_id: 'prod-a',
+      products: { name: 'SYNTHETIC product A', sku: 'SYN-A' }, inventory_lots: { lot_number: 'L-1' }, incidents: null,
+    }];
+    backend.tables.inventory_lots = [{ id: 'lot-1', lot_number: 'L-1', product_id: 'prod-a', quantity_remaining: 5, products: { name: 'SYNTHETIC product A', sku: 'SYN-A' } }];
+    await login(page);
+    await open(page, 'recallsPanel');
+  });
+
+  test('current behaviour: one click resolves it with the default note, and Quarantine disappears', async ({ page, backend }) => {
+    const row = page.locator('#recallsPanel [data-id="rc-1"]');
+    await expect(row.locator('.recallQuarantineBtn')).toBeVisible();
+    await row.locator('.recallResolveBtn').click();
+    await expect.poll(() => backend.tables.recalls[0].status).toBe('resolved');
+    expect(backend.tables.recalls[0].resolution).toBe('Resolved.');
+    expect(backend.tables.recalls[0].quantity_quarantined).toBeNull();
+    expect(filtersOf(writes(backend, 'recalls')[0])).toEqual({ id: 'eq.rc-1' });
+  });
+
+  test('wanted: resolving requires a written note before it sends anything', async ({ page, backend }) => {
+    test.fail(true, 'Fix pending (owner decision): require a resolution note / confirm when not quarantined — docs/ops/other-fixes-review.md N12');
+    await page.locator('#recallsPanel [data-id="rc-1"] .recallResolveBtn').click();
+    await page.waitForTimeout(300);
+    expect(writes(backend, 'recalls')).toEqual([]);
+  });
+});
+
+// ------------------------------------------- adverse events: FDA flag (N11)
+test.describe('Adverse events: "Mark reported to FDA"', () => {
+  test.beforeEach(async ({ page, backend }) => {
+    backend.tables.adverse_event_reports = [{
+      id: 'ae-1', product_name: 'SYNTHETIC product A', date_received: '2026-09-28', description: 'SYNTHETIC report', outcome_type: 'other',
+      fda_report_deadline: '2026-10-20', fda_reported: false, fda_reported_at: null, reporter_name: null, reporter_contact: null, created_at: '2026-09-28T00:00:00Z',
+    }];
+    await login(page);
+    await open(page, 'adverseEventsPanel');
+  });
+
+  test('current behaviour: one click records the report as filed, with no confirmation and no undo button', async ({ page, backend }) => {
+    await page.locator('#adverseEventsWrap [data-id="ae-1"] .aeMarkReportedBtn').click();
+    await expect.poll(() => backend.tables.adverse_event_reports[0].fda_reported).toBe(true);
+    await expect(page.locator('#adverseEventsWrap [data-id="ae-1"] .aeMarkReportedBtn')).toHaveCount(0);
+  });
+
+  test('wanted: the first press only asks to confirm and sends nothing', async ({ page, backend }) => {
+    test.fail(true, 'Fix pending (owner decision): two-press confirmation for the FDA flag — docs/ops/other-fixes-review.md N11');
+    await page.locator('#adverseEventsWrap [data-id="ae-1"] .aeMarkReportedBtn').click();
+    await page.waitForTimeout(300);
+    expect(writes(backend, 'adverse_event_reports')).toEqual([]);
+  });
+});
