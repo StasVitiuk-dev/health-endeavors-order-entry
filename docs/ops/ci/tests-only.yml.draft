@@ -1,0 +1,50 @@
+# DRAFT — NOT ACTIVE. GitHub only runs workflows stored in .github/workflows/.
+# To activate (owner approval required): move this file to
+# .github/workflows/tests.yml in its own reviewed PR.
+#
+# What it does: runs the dashboard's local Playwright tests (synthetic data,
+# mocked Supabase) on every pull request to main, and on demand.
+# What it can NOT do: it has no secrets, read-only repository access, no
+# deployment step, and never contacts Supabase, Shopify or the live site
+# (the test mock blocks every outside request and fails the test if one is tried).
+name: Dashboard tests (tests only, no deploy)
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Least privilege: the job can read the code and nothing else.
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  playwright:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      # Actions pinned to exact commits (supply-chain safety, like R7).
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install exact test dependencies (package-lock)
+        run: npm ci --ignore-scripts
+      - name: Install the test browser
+        run: npx playwright install --with-deps chromium
+      - name: Run tests
+        run: npm test
+      - name: Keep failure screenshots and traces (7 days)
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: playwright-results
+          path: test-results/
+          retention-days: 7
