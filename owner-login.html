@@ -9039,6 +9039,35 @@
       return { isCancelled, isRefund, isPartialRefund };
     }
 
+    // How refunds recorded on the Returns page count against revenue. This is
+    // an accounting decision for the owner (finding N4), kept in one place so
+    // Accounting and Tax Records always agree:
+    //   'status_only' (today's behaviour): revenue drops only when an order's
+    //       own status says cancelled / refunded; Returns refunds are ignored.
+    //   'subtract_return_refunds': also subtract refund_amount recorded on
+    //       Returns, in the period of refunded_at — except for orders in the
+    //       same list already excluded by their status, so nothing is taken
+    //       off twice.
+    const ACCOUNTING_REFUND_POLICY = 'status_only';
+    function refundsToSubtract(orders, returnRefunds, policy){
+      if (policy !== 'subtract_return_refunds') return 0;
+      const excludedIds = new Set((orders || []).filter(o => {
+        const c = classifyOrderStatus(o.status);
+        return c.isCancelled || (c.isRefund && !c.isPartialRefund);
+      }).map(o => o.id));
+      return (returnRefunds || []).reduce((sum, r) =>
+        excludedIds.has(r.order_id) ? sum : sum + Number(r.refund_amount || 0), 0);
+    }
+    async function returnRefundsIn(start, end){
+      if (ACCOUNTING_REFUND_POLICY !== 'subtract_return_refunds') return [];
+      return fetchAllRows('returns', 'id, order_id, refund_amount, refunded_at', q => {
+        q = q.not('refund_amount', 'is', null);
+        if (start) q = q.gte('refunded_at', start.toISOString());
+        if (end) q = q.lt('refunded_at', end.toISOString());
+        return q;
+      });
+    }
+
     async function loadAccounting(){
       try {
         const start = acctRangeStart(acctRange);
@@ -9069,6 +9098,8 @@
           revenue += amt;
           if (isPartialRefund) needsReview.push(o);
         });
+        const returnRefundTotal = refundsToSubtract(orders, await returnRefundsIn(start, null), ACCOUNTING_REFUND_POLICY);
+        revenue -= returnRefundTotal;
 
         const totalExpenses = expenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
         const netProfit = revenue - totalExpenses;
@@ -9078,6 +9109,7 @@
           <div class="stat"><div class="num">${esc(fmtMoney(totalExpenses, currency))}</div><div class="lbl">Expenses</div></div>
           <div class="stat"><div class="num">${esc(fmtMoney(netProfit, currency))}</div><div class="lbl">Net profit</div></div>
           <div class="stat"><div class="num">${esc(fmtMoney(excluded, currency))}</div><div class="lbl">Cancelled / refunded (excluded)</div></div>
+          ${ACCOUNTING_REFUND_POLICY === 'subtract_return_refunds' ? `<div class="stat"><div class="num">${esc(fmtMoney(returnRefundTotal, currency))}</div><div class="lbl">Refunds on Returns (subtracted)</div></div>` : ''}
         `;
 
         if (!needsReview.length) {
@@ -9167,6 +9199,8 @@
           if (province) stateTax[province] = (stateTax[province] || 0) + tax;
           else stateUnknownTax += tax;
         });
+        const returnRefundTotal = refundsToSubtract(orders, await returnRefundsIn(start, end), ACCOUNTING_REFUND_POLICY);
+        revenue -= returnRefundTotal;
 
         // Expenses by category, split into COGS vs Operating.
         let cogsTotal = 0, operatingTotal = 0;
