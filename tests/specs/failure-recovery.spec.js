@@ -192,3 +192,23 @@ test.describe('Documents: permanent delete', () => {
     expect(Object.fromEntries(writes(backend, 'documents')[0].params)).toEqual({ id: 'eq.doc-1' });
   });
 });
+
+test('Returns page still loads (without the refund cap) if order_items has no price columns', async ({ page, backend }) => {
+  backend.tables.returns = [{
+    id: 'ret-1', order_id: 'ord-1', order_item_id: 'item-1', reason: 'damaged', status: 'received', product_condition: null,
+    disposition: null, refund_amount: null, approved_at: null, received_at: null, refunded_at: null, notes: null, created_at: '2026-09-20T00:00:00Z',
+    orders: { order_number: 'SYN-1001', customer_name: 'SYNTHETIC' }, order_items: { product_name: 'SYNTHETIC A', sku: 'SYN-A', quantity: 3 },
+  }];
+  const original = backend.handleRest.bind(backend);
+  backend.handleRest = (route, entry) => {
+    const select = (entry.params.find(([k]) => k === 'select') || [])[1] || '';
+    if (entry.table === 'returns' && entry.method === 'GET' && /unit_price/.test(select)) {
+      return route.fulfill({ status: 400, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify({ code: '42703', message: 'column order_items_1.unit_price does not exist' }) });
+    }
+    return original(route, entry);
+  };
+  await login(page);
+  await open(page, 'returnsPanel');
+  await expect(page.locator('[data-return-id="ret-1"]')).toBeVisible();
+  await expect(page.locator('[data-return-id="ret-1"]')).toHaveAttribute('data-line-value', '');
+});

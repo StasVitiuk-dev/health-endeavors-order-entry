@@ -876,7 +876,11 @@
     // id is the row's id, or an object of key columns, e.g. { agent_num: 7 }.
     async function updateIfUnchanged(table, id, patch, expected){
       let q = supabase.from(table).update(patch);
-      if (id !== null && typeof id === 'object') Object.keys(id).forEach(k => { q = q.eq(k, id[k]); });
+      // Read back only the key column(s) used, so tables keyed by something
+      // other than id (agent_controls.agent_num) work whether or not they
+      // also have an id column.
+      let keyCols = 'id';
+      if (id !== null && typeof id === 'object') { Object.keys(id).forEach(k => { q = q.eq(k, id[k]); }); keyCols = Object.keys(id).join(','); }
       else q = q.eq('id', id);
       Object.keys(expected || {}).forEach(col => {
         const v = expected[col];
@@ -886,7 +890,7 @@
         else if (typeof v === 'boolean') q = q.is(col, v);
         else q = q.eq(col, v);
       });
-      const { data, error } = await q.select('id');
+      const { data, error } = await q.select(keyCols);
       if (error) throw error;
       return Array.isArray(data) && data.length === 1;
     }
@@ -7483,11 +7487,19 @@
 
     async function loadReturns(){
       try {
-        const { data: returns, error } = await supabase
-          .from('returns')
-          .select('id, order_id, order_item_id, reason, status, product_condition, disposition, refund_amount, approved_at, received_at, refunded_at, notes, created_at, orders(order_number, customer_name), order_items(product_name, sku, quantity, unit_price, line_total)')
+        // order_items.unit_price / line_total feed the refund cap. They are
+        // written by manual-order-entry.html, but if a database ever lacks
+        // them, fall back to the old column list (no cap) instead of failing
+        // the whole page.
+        const RETURN_COLS = 'id, order_id, order_item_id, reason, status, product_condition, disposition, refund_amount, approved_at, received_at, refunded_at, notes, created_at, orders(order_number, customer_name), ';
+        const readReturns = (itemCols) => supabase.from('returns')
+          .select(RETURN_COLS + 'order_items(' + itemCols + ')')
           .order('created_at', { ascending: false })
           .limit(200);
+        let { data: returns, error } = await readReturns('product_name, sku, quantity, unit_price, line_total');
+        if (error && (String(error.code) === '42703' || /does not exist/i.test(error.message || ''))) {
+          ({ data: returns, error } = await readReturns('product_name, sku, quantity'));
+        }
         if (error) throw error;
 
         SEARCH_INDEX.returns = returns;

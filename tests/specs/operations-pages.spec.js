@@ -56,6 +56,8 @@ test.describe('agent pause switches (mock only)', () => {
     expect(w.body).toMatchObject({ enabled: false, updated_by: OWNER_USER.id });
     // Only flips the switch this page showed (on → paused).
     expect(filtersOf(w)).toEqual({ agent_num: 'eq.4', enabled: 'is.true' });
+    // Reads back only agent_num (agent_controls may have no id column).
+    expect(Object.fromEntries(w.params).select).toBe('agent_num');
   });
 });
 
