@@ -1947,6 +1947,8 @@
         }
         activeReauthClose = close;
         async function onConfirm(){
+          // Already checking (Enter pressed again, or a second click) — ignore.
+          if (confirmBtn.disabled) return;
           const password = input.value;
           if (!password) { msg.textContent = 'Enter your password.'; msg.className = 'msg error'; return; }
           confirmBtn.disabled = true;
@@ -1954,7 +1956,7 @@
           msg.className = 'msg';
           try {
             // Never let this sit there spinning — if the check can't answer in
-            // 12 seconds, say so and give the buttons back.
+            // 8 seconds, say so and give the buttons back.
             const check = verifyOnly.auth.signInWithPassword({ email: currentUserEmail, password });
             const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000));
             const { error } = await Promise.race([check, timeout]);
