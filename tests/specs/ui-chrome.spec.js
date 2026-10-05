@@ -68,6 +68,13 @@ test.describe('command palette and keyboard', () => {
   });
 
   test('the palette finds records too (a task by its title)', async ({ page }) => {
+    // The palette searches records the pages have already loaded, and Tasks
+    // loads in the background some time after login. Typing before that raced
+    // (1 in 6 runs failed even on the unchanged integration branch), so load
+    // Tasks first, move to another page, then search from there.
+    await gotoPage(page, 'tasksPanel');
+    await expect(page.locator('#tasksTableWrap')).toContainText('SYNTHETIC in-progress task');
+    await gotoPage(page, 'ordersPanel');
     await page.keyboard.press('ControlOrMeta+k');
     await page.keyboard.type('SYNTHETIC in-progress');
     const hit = page.locator('#paletteResults .pResult', { hasText: 'SYNTHETIC in-progress task' });
