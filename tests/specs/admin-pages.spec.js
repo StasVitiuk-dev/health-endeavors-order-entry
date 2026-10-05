@@ -197,9 +197,9 @@ test.describe('Approval Queue', () => {
     const [w] = writes(backend, 'approval_requests');
     expect(Object.keys(w.body).sort()).toEqual(['reviewed_at', 'reviewed_by', 'status']);
     expect(w.body.status).toBe('approved');
-    // Note (current behaviour): the update is by id only; it does not also
-    // require the request to still be pending. See the project record.
-    expect(filtersOf(w)).toEqual({ id: 'eq.ap-1' });
+    // Only while the request still has the status this page showed, so a
+    // decision made elsewhere is never overwritten.
+    expect(filtersOf(w)).toEqual({ id: 'eq.ap-1', status: 'eq.pending' });
   });
 
   test('Deny with Cancel on the password prompt changes nothing', async ({ page, backend }) => {

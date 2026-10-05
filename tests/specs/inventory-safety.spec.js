@@ -7,8 +7,13 @@
 //   - the connection drops halfway (half-saved),
 //   - the button is pressed again after an error (double-counting).
 //
-// "current behaviour" tests pin down today's unsafe results (they pass now).
-// "wanted" tests are marked test.fail() until the database-side fix lands.
+// Since 2026-10-05 the dashboard (1) writes stock with compare-and-set, so a
+// concurrent change is never overwritten and the below-zero check uses fresh
+// numbers, and (2) claims the recall/return first (a conditional status
+// change), so a retry, double click or stale tab never moves stock twice.
+// What is still missing is all-or-nothing: stock and its history are two
+// writes. Those "wanted" tests stay test.fail() until the R2/R3/R4 database
+// functions exist (BLOCKED ON QUERY A/B).
 // Purchase-order receiving is covered in po-receive.spec.js.
 
 const { test, expect, login, gotoPage } = require('../helpers/dashboard');
@@ -73,54 +78,59 @@ test.describe('recall quarantine', () => {
 
   test('baseline: moves the lot quantity from Available to Recalled, once', async ({ page, backend }) => {
     await page.click('.recallQuarantineBtn');
-    await expect.poll(() => backend.tables.recalls[0].status).toBe('quarantined');
+    await expect.poll(() => adjustments(backend)).toEqual(['available:-40', 'recalled:40']);
     expect(inv(backend)).toMatchObject({ available: 60, recalled: 40 });
-    expect(adjustments(backend)).toEqual(['available:-40', 'recalled:40']);
+    expect(backend.tables.recalls[0].status).toBe('quarantined');
   });
 
-  test('current behaviour: a stock change by someone else in between is silently overwritten', async ({ page, backend }) => {
+  test('a stock change by someone else in between is kept (compare-and-set)', async ({ page, backend }) => {
     // While the page is working out the new numbers, 25 units are sold.
     backend.beforeNext('inventory', 'PATCH', t => { t.inventory[0].available -= 25; });
     await page.click('.recallQuarantineBtn');
-    await expect.poll(() => backend.tables.recalls[0].status).toBe('quarantined');
-    // Correct would be 100 - 25 - 40 = 35. The sale is lost.
-    expect(inv(backend).available).toBe(60);
+    await expect.poll(() => adjustments(backend).length).toBe(2);
+    expect(inv(backend)).toMatchObject({ available: 35, recalled: 40 }); // 100 - 25 - 40
   });
 
-  test('current behaviour: drop after the stock moved leaves the recall "initiated" with no history', async ({ page, backend }) => {
-    backend.dropNext('inventory_adjustments', 'POST');
-    await page.click('.recallQuarantineBtn');
-    await expectError(page, 'Could not quarantine that stock');
-    expect(inv(backend)).toMatchObject({ available: 60, recalled: 40 });
-    expect(adjustments(backend)).toEqual([]);
-    expect(backend.tables.recalls[0].status).toBe('initiated');
-  });
-
-  test('current behaviour: pressing Quarantine again after that error quarantines a second time', async ({ page, backend }) => {
+  test('the recall is claimed first: a dropped claim changes nothing, and a retry quarantines once', async ({ page, backend }) => {
     backend.dropNext('recalls', 'PATCH');
     await page.click('.recallQuarantineBtn');
-    await expectError(page, 'Could not quarantine that stock');
+    await expectError(page, 'nothing was changed');
+    expect(inv(backend)).toMatchObject({ available: 100, recalled: 0 });
+    expect(backend.tables.recalls[0].status).toBe('initiated');
     await page.click('.recallQuarantineBtn');
-    await expect.poll(() => backend.tables.recalls[0].status).toBe('quarantined');
-    // 40 units were in the lot; 80 were moved.
-    expect(inv(backend)).toMatchObject({ available: 20, recalled: 80 });
-    expect(adjustments(backend)).toHaveLength(4);
+    await expect.poll(() => adjustments(backend)).toEqual(['available:-40', 'recalled:40']);
+    expect(inv(backend)).toMatchObject({ available: 60, recalled: 40 });
+  });
+
+  test('a second tab cannot quarantine the same recall again', async ({ page, backend }) => {
+    backend.tables.recalls[0].status = 'quarantined'; // done in another tab
+    await page.click('.recallQuarantineBtn');
+    await expectError(page, 'already changed');
+    expect(inv(backend)).toMatchObject({ available: 100, recalled: 0 });
+    expect(adjustments(backend)).toEqual([]);
+  });
+
+  test('current behaviour: a drop on the history write leaves stock moved without history, and says so', async ({ page, backend }) => {
+    backend.dropNext('inventory_adjustments', 'POST');
+    await page.click('.recallQuarantineBtn');
+    await expectError(page, 'marked Quarantined, but moving the stock did not finish');
+    expect(inv(backend)).toMatchObject({ available: 60, recalled: 40 });
+    expect(adjustments(backend)).toEqual([]);
+    expect(backend.tables.recalls[0].status).toBe('quarantined');
   });
 
   test('current behaviour: the lot\'s own remaining count is not reduced', async ({ page, backend }) => {
     await page.click('.recallQuarantineBtn');
-    await expect.poll(() => backend.tables.recalls[0].status).toBe('quarantined');
+    await expect.poll(() => adjustments(backend).length).toBe(2);
     expect(backend.tables.inventory_lots[0].quantity_remaining).toBe(40);
   });
 
-  test('wanted: a retry after a dropped connection never moves more than the lot holds', async ({ page, backend }) => {
-    test.fail(true, 'Quarantine is not atomic yet');
-    backend.dropNext('recalls', 'PATCH');
+  test('wanted: stock, history and recall status are saved together or not at all', async ({ page, backend }) => {
+    test.fail(true, 'Quarantine is not atomic yet: needs quarantine_recall (R2), BLOCKED ON QUERY A/B');
+    backend.dropNext('inventory_adjustments', 'POST');
     await page.click('.recallQuarantineBtn');
-    await expectError(page, 'Could not quarantine that stock');
-    await page.click('.recallQuarantineBtn');
-    await expect.poll(() => backend.tables.recalls[0].status).toBe('quarantined');
-    expect(inv(backend)).toMatchObject({ available: 60, recalled: 40 });
+    await expectError(page, 'did not finish');
+    expect(inv(backend)).toMatchObject({ available: 100, recalled: 0 });
   });
 });
 
@@ -141,40 +151,34 @@ test.describe('manual stock adjustment', () => {
     expect(inv(backend).available).toBe(107);
   });
 
-  test('current behaviour: a concurrent change is overwritten (lost update)', async ({ page, backend }) => {
-    backend.beforeNext('inventory', 'POST', t => { t.inventory[0].available += 50; }); // another delivery lands
+  test('a concurrent change is kept, not overwritten (compare-and-set)', async ({ page, backend }) => {
+    backend.beforeNext('inventory', 'PATCH', t => { t.inventory[0].available += 50; }); // another delivery lands
     await adjust(page, -10);
     await expect.poll(() => adjustments(backend).length).toBe(1);
-    // Correct would be 100 + 50 - 10 = 140.
-    expect(inv(backend).available).toBe(90);
+    expect(inv(backend).available).toBe(140); // 100 + 50 - 10
   });
 
-  test('current behaviour: the "can\'t go below zero" check can be beaten by a concurrent removal', async ({ page, backend }) => {
-    backend.beforeNext('inventory', 'POST', t => { t.inventory[0].available = 5; }); // 95 sold meanwhile
+  test('the "can\'t go below zero" check uses fresh numbers and refuses', async ({ page, backend }) => {
+    backend.beforeNext('inventory', 'PATCH', t => { t.inventory[0].available = 5; }); // 95 sold meanwhile
     await adjust(page, -60);
-    await expect.poll(() => adjustments(backend).length).toBe(1);
-    // Real stock was 5; removing 60 should have been refused. Instead the
-    // total is written as 40 and the 95 sold units vanish from the count.
-    expect(inv(backend).available).toBe(40);
+    await expectError(page, 'only 5 available in that bucket right now');
+    expect(inv(backend).available).toBe(5);
+    expect(adjustments(backend)).toEqual([]);
   });
 
-  test('current behaviour: drop after stock saved, then Save again adds it twice', async ({ page, backend }) => {
+  test('a drop after the stock saved says it may or may not have been saved (no blind "try again")', async ({ page, backend }) => {
     backend.dropNext('inventory_adjustments', 'POST');
     await adjust(page, 7);
-    await expectError(page, 'Could not save that adjustment');
+    await expectError(page, 'may or may not have been saved');
     expect(inv(backend).available).toBe(107);
     expect(adjustments(backend)).toEqual([]);
-    // The form keeps its values after an error, so one more click...
-    await page.click('#adjustInventoryForm button[type=submit]');
-    await expect.poll(() => adjustments(backend).length).toBe(1);
-    expect(inv(backend).available).toBe(114);
   });
 
   test('wanted: stock and its history are saved together or not at all', async ({ page, backend }) => {
-    test.fail(true, 'Manual adjustment is not atomic yet');
+    test.fail(true, 'Manual adjustment is not atomic yet: needs adjust_inventory (R4), BLOCKED ON QUERY A/B');
     backend.dropNext('inventory_adjustments', 'POST');
     await adjust(page, 7);
-    await expectError(page, 'Could not save that adjustment');
+    await expectError(page, 'may or may not have been saved');
     expect(inv(backend).available).toBe(100);
   });
 });
@@ -193,66 +197,74 @@ test.describe('return restock', () => {
 
   test('baseline: restocks the returned quantity once', async ({ page, backend }) => {
     await markReceived(page);
-    await expect.poll(() => backend.tables.returns[0].status).toBe('received');
+    await expect.poll(() => adjustments(backend)).toEqual(['available:3']);
     expect(inv(backend).available).toBe(103);
-    expect(adjustments(backend)).toEqual(['available:3']);
+    expect(backend.tables.returns[0].status).toBe('received');
   });
 
-  test('current behaviour: drop on the status update, then Mark Received again restocks twice', async ({ page, backend }) => {
+  test('the return is claimed first: a dropped claim changes nothing, and a retry restocks once', async ({ page, backend }) => {
     backend.dropNext('returns', 'PATCH');
     await markReceived(page);
-    await expectError(page, 'Could not mark that return Received');
-    expect(inv(backend).available).toBe(103);
+    await expectError(page, 'nothing was changed');
+    expect(inv(backend).available).toBe(100);
     expect(backend.tables.returns[0].status).toBe('approved');
     await page.click('.markReceivedBtn');
-    await expect.poll(() => backend.tables.returns[0].status).toBe('received');
-    expect(inv(backend).available).toBe(106);
-    expect(adjustments(backend)).toEqual(['available:3', 'available:3']);
+    await expect.poll(() => adjustments(backend)).toEqual(['available:3']);
+    expect(inv(backend).available).toBe(103);
   });
 
-  test('current behaviour: a concurrent change is overwritten (lost update)', async ({ page, backend }) => {
-    backend.beforeNext('inventory', 'POST', t => { t.inventory[0].available -= 30; });
+  test('a concurrent change is kept (compare-and-set)', async ({ page, backend }) => {
+    backend.beforeNext('inventory', 'PATCH', t => { t.inventory[0].available -= 30; });
     await markReceived(page);
-    await expect.poll(() => backend.tables.returns[0].status).toBe('received');
-    expect(inv(backend).available).toBe(103); // correct: 73
+    await expect.poll(() => adjustments(backend).length).toBe(1);
+    expect(inv(backend).available).toBe(73);
   });
 
-  test('current behaviour: a second open tab can restock the same return again', async ({ page, backend }) => {
+  test('a second open tab cannot restock the same return again', async ({ page, backend }) => {
     // The first tab finished; this tab still shows the return as "approved".
     backend.tables.returns[0].status = 'received';
     await markReceived(page);
-    const findPatch = () => backend.requests.find(r => r.method === 'PATCH' && r.table === 'returns');
-    await expect.poll(() => !!findPatch()).toBe(true);
-    expect(inv(backend).available).toBe(103);
-    const patch = findPatch();
-    // The update is not conditional on the return still being "approved".
-    expect(patch.params.map(([k]) => k)).not.toContain('status');
+    await expectError(page, 'already changed');
+    expect(inv(backend).available).toBe(100);
+    const patch = backend.requests.find(r => r.method === 'PATCH' && r.table === 'returns');
+    expect(Object.fromEntries(patch.params)).toMatchObject({ status: 'eq.approved' });
   });
 
-  test('wanted: retrying after a dropped connection restocks exactly once', async ({ page, backend }) => {
-    test.fail(true, 'Return restock is not atomic yet');
-    backend.dropNext('returns', 'PATCH');
+  test('wanted: return status, stock and history are saved together or not at all', async ({ page, backend }) => {
+    test.fail(true, 'Return restock is not atomic yet: needs receive_return (R3), BLOCKED ON QUERY A/B');
+    backend.dropNext('inventory_adjustments', 'POST');
     await markReceived(page);
-    await expectError(page, 'Could not mark that return Received');
-    await page.click('.markReceivedBtn');
-    await expect.poll(() => backend.tables.returns[0].status).toBe('received');
-    expect(inv(backend).available).toBe(103);
+    await expectError(page, 'restock did not finish');
+    expect(inv(backend).available).toBe(100);
   });
 });
 
 // ------------------------------------------------------------ product delete
 test.describe('product delete', () => {
-  test('current behaviour: deleting a product that is in use wipes its stock row anyway', async ({ page, backend }) => {
+  async function pressDeleteTwice(page) {
     await openPanel(page, 'inventoryPanel', '.editProductBtn');
     await closeInspectorIfOpen(page);
-    // The database refuses to delete a product that has history (foreign key).
-    backend.failNext('products', 'DELETE', { status: 409, body: { code: '23503', message: 'violates foreign key constraint' } });
     await page.click('.editProductBtn');
     await page.click('.deleteProductBtn');
     await page.click('.deleteProductBtn'); // "Really delete?"
-    await expectError(page, "can't be deleted because it's already used");
-    // The product stays, but its stock numbers were deleted first.
+  }
+
+  test('a product that still has stock is refused before anything is deleted', async ({ page, backend }) => {
+    await pressDeleteTwice(page);
+    await expectError(page, 'still has stock (Available: 100)');
     expect(backend.tables.products).toHaveLength(1);
+    expect(backend.tables.inventory).toHaveLength(1);
+    expect(backend.requests.filter(r => r.method === 'DELETE')).toEqual([]);
+  });
+
+  test('current behaviour (R5 remainder): a zero-stock product in use loses its empty stock row', async ({ page, backend }) => {
+    Object.assign(inv(backend), { available: 0 });
+    backend.failNext('products', 'DELETE', { status: 409, body: { code: '23503', message: 'violates foreign key constraint' } });
+    await pressDeleteTwice(page);
+    await expectError(page, "can't be deleted because it's already used");
+    expect(backend.tables.products).toHaveLength(1);
+    // Only an all-zero row (and its low-stock threshold) is lost now; the
+    // full fix is delete_unused_product (R5), BLOCKED ON QUERY A/B.
     expect(backend.tables.inventory).toHaveLength(0);
   });
 });

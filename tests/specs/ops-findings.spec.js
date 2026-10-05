@@ -2,10 +2,9 @@
 // review (docs/ops/other-fixes-review.md). Synthetic data; the mock answers
 // every request and nothing leaves the test browser.
 //
-// For each finding:
-//   "current behaviour" pins down today's result (passes now);
-//   "wanted" asserts the fixed behaviour and is marked test.fail() until the
-//   fix lands — Playwright then reports it, and test.fail() is removed.
+// Most findings were fixed on 2026-10-05 (branch
+// claude/platform-overnight-implementation); their tests now pin the fixed
+// behaviour. Anything still open keeps a "wanted" test marked test.fail().
 
 const { test, expect, login, gotoPage, OWNER_USER } = require('../helpers/dashboard');
 
@@ -37,26 +36,20 @@ test.describe('Approval Queue: deciding a request that someone else already deci
     await open(page, 'approvalsPanel');
   });
 
-  test('current behaviour: the decision is written with no "still pending" condition', async ({ page, backend }) => {
+  test('the update only applies while the request still has the status the page showed', async ({ page, backend }) => {
     await page.locator('.approvalRow[data-id="ap-1"] .approveBtn').click();
     await confirmPassword(page);
     await expect.poll(() => writes(backend, 'approval_requests').length).toBe(1);
-    expect(filtersOf(writes(backend, 'approval_requests')[0])).toEqual({ id: 'eq.ap-1' });
+    expect(filtersOf(writes(backend, 'approval_requests')[0])).toEqual({ id: 'eq.ap-1', status: 'eq.pending' });
+    expect(backend.tables.approval_requests[0].status).toBe('approved');
   });
 
-  test('current behaviour: a stale page overwrites a decision made elsewhere (approved → denied)', async ({ page, backend }) => {
+  test('a stale page cannot overwrite a decision made elsewhere (stays approved, page says so)', async ({ page, backend }) => {
     backend.tables.approval_requests[0].status = 'approved'; // decided in another tab after this page loaded
     await page.locator('.approvalRow[data-id="ap-1"] .denyBtn').click();
     await confirmPassword(page);
-    await expect.poll(() => backend.tables.approval_requests[0].status).toBe('denied');
-  });
-
-  test('wanted: the update only applies while the request is still pending', async ({ page, backend }) => {
-    test.fail(true, 'Fix pending: conditional update (Task-v2 pattern) — docs/ops/other-fixes-review.md');
-    await page.locator('.approvalRow[data-id="ap-1"] .approveBtn').click();
-    await confirmPassword(page);
-    await expect.poll(() => writes(backend, 'approval_requests').length).toBe(1);
-    expect(filtersOf(writes(backend, 'approval_requests')[0])).toMatchObject({ status: 'eq.pending' });
+    await expect(page.locator('#dashError')).toContainText('already changed');
+    expect(backend.tables.approval_requests[0].status).toBe('approved');
   });
 });
 
@@ -92,54 +85,33 @@ test.describe('Purchase orders: Cancel on a stale page, and Cancel confirmation'
     await open(page, 'purchaseOrdersPanel');
   });
 
-  test('current behaviour: Cancel after the order was received elsewhere turns "received" into "cancelled"', async ({ page, backend }) => {
+  test('Cancel after the order was received elsewhere is refused; it stays received', async ({ page, backend }) => {
     const box = await openPo(page, 'syn-shipped');
     backend.tables.purchase_orders[0].status = 'received'; // received in another tab after this page loaded
-    await box.locator('.poStatusBtn[data-next="cancelled"]').click();
-    await expect.poll(() => backend.tables.purchase_orders[0].status).toBe('cancelled');
-    expect(filtersOf(writes(backend, 'purchase_orders')[0])).toEqual({ id: 'eq.syn-shipped' });
+    const cancel = box.locator('.poStatusBtn[data-next="cancelled"]');
+    await cancel.click();
+    await cancel.click(); // second press confirms
+    await expect(page.locator('#dashError')).toContainText('already changed');
+    expect(backend.tables.purchase_orders[0].status).toBe('received');
+    expect(filtersOf(writes(backend, 'purchase_orders')[0])).toEqual({ id: 'eq.syn-shipped', status: 'in.(draft,ordered,shipped)' });
   });
 
-  test('current behaviour: one press of Cancel cancels immediately (no confirmation)', async ({ page, backend }) => {
-    const box = await openPo(page, 'syn-shipped');
-    await box.locator('.poStatusBtn[data-next="cancelled"]').click();
-    await expect.poll(() => writes(backend, 'purchase_orders').length).toBe(1);
-  });
-
-  test('wanted: a status change only applies from the expected previous status', async ({ page, backend }) => {
-    test.fail(true, 'Fix pending: conditional PO status update — docs/ops/other-fixes-review.md');
-    const box = await openPo(page, 'syn-shipped');
-    await box.locator('.poStatusBtn[data-next="cancelled"]').click();
-    await expect.poll(() => writes(backend, 'purchase_orders').length).toBe(1);
-    expect(filtersOf(writes(backend, 'purchase_orders')[0])).toHaveProperty('status');
-  });
-
-  test('wanted: the first press of Cancel only asks to confirm and sends nothing', async ({ page, backend }) => {
-    test.fail(true, 'Fix pending: two-press Cancel confirmation (owner decision) — docs/ops/other-fixes-review.md');
+  test('the first press of Cancel only asks to confirm and sends nothing', async ({ page, backend }) => {
     const box = await openPo(page, 'syn-shipped');
     await box.locator('.poStatusBtn[data-next="cancelled"]').click();
     await page.waitForTimeout(300);
     expect(writes(backend, 'purchase_orders')).toEqual([]);
+    await expect(box.locator('.poStatusBtn[data-next="cancelled"]')).toHaveText('Really cancel this order?');
   });
 
-  // ---- N1: lot numbers are looked up with ilike, so _ and % act as wildcards
-  test('current behaviour: a typed lot number is looked up with an unescaped ilike pattern', async ({ page, backend }) => {
+  // ---- N1: lot numbers were looked up with ilike, so _ and % acted as wildcards
+  test('a typed lot number is matched literally (_ and % escaped)', async ({ page, backend }) => {
     const box = await openPo(page, 'syn-shipped');
     await box.locator('.poLineLot[data-line="line-a"]').fill('A_1');
     await box.locator('.poReceiveBtn').click();
     await expect.poll(() => reads(backend, 'inventory_lots').filter(r => filtersOf(r).lot_number).length).toBeGreaterThan(0);
     const lookup = reads(backend, 'inventory_lots').find(r => filtersOf(r).lot_number);
-    expect(filtersOf(lookup).lot_number).toBe('ilike.A_1'); // "_" matches any character, so "AB1" would match
-  });
-
-  test('wanted: the lot lookup treats the typed text literally', async ({ page, backend }) => {
-    test.fail(true, 'Fix pending: exact lot match (in the R1 receive function) — docs/ops/R1-R5-function-design.md');
-    const box = await openPo(page, 'syn-shipped');
-    await box.locator('.poLineLot[data-line="line-a"]').fill('A_1');
-    await box.locator('.poReceiveBtn').click();
-    await expect.poll(() => reads(backend, 'inventory_lots').filter(r => filtersOf(r).lot_number).length).toBeGreaterThan(0);
-    const lookup = reads(backend, 'inventory_lots').find(r => filtersOf(r).lot_number);
-    expect(filtersOf(lookup).lot_number).not.toMatch(/^ilike\.[^\\]*[_%]/);
+    expect(filtersOf(lookup).lot_number).toBe('ilike.A\\_1');
   });
 });
 
@@ -153,17 +125,20 @@ test.describe('Legal holds: releasing a hold', () => {
     await open(page, 'legalHoldsPanel');
   });
 
-  test('current behaviour: one click releases the hold with no confirmation or password', async ({ page, backend }) => {
+  test('releasing asks for the password first; Cancel sends nothing', async ({ page, backend }) => {
     await page.locator('#legalHoldsWrap [data-id="lh-1"] .lhReleaseBtn').click();
-    await expect.poll(() => writes(backend, 'legal_holds').length).toBe(1);
-    await expect(page.locator('#reauthOverlay')).toBeHidden();
+    await expect(page.locator('#reauthOverlay')).toBeVisible();
+    await page.click('#reauthCancelBtn');
+    await page.waitForTimeout(300);
+    expect(writes(backend, 'legal_holds')).toEqual([]);
   });
 
-  test('wanted: releasing a legal hold asks for the password first', async ({ page, backend }) => {
-    test.fail(true, 'Fix pending (owner decision): password re-check for legal-hold release — docs/ops/other-fixes-review.md N6');
+  test('with the password, only an active hold is released', async ({ page, backend }) => {
     await page.locator('#legalHoldsWrap [data-id="lh-1"] .lhReleaseBtn').click();
-    await expect(page.locator('#reauthOverlay')).toBeVisible({ timeout: 2000 });
-    expect(writes(backend, 'legal_holds')).toEqual([]);
+    await confirmPassword(page);
+    await expect.poll(() => writes(backend, 'legal_holds').length).toBe(1);
+    expect(filtersOf(writes(backend, 'legal_holds')[0])).toEqual({ id: 'eq.lh-1', status: 'eq.active' });
+    expect(backend.tables.legal_holds[0].status).toBe('released');
   });
 });
 
@@ -179,18 +154,12 @@ test.describe('Returns: deciding a return on a stale page', () => {
     await open(page, 'returnsPanel');
   });
 
-  test('current behaviour: Approve on a stale page turns a refunded return back into "approved"', async ({ page, backend }) => {
+  test('Approve on a stale page cannot re-open a refunded return', async ({ page, backend }) => {
     backend.tables.returns[0].status = 'refunded'; // received, restocked and refunded in another tab
     await page.locator('[data-return-id="ret-1"] .decideReturnBtn[data-next="approved"]').click();
-    await expect.poll(() => backend.tables.returns[0].status).toBe('approved'); // Mark Received (restock) is offered again
-    expect(filtersOf(writes(backend, 'returns')[0])).toEqual({ id: 'eq.ret-1' });
-  });
-
-  test('wanted: Approve/Reject only apply while the return is still "requested"', async ({ page, backend }) => {
-    test.fail(true, 'Fix pending: conditional return status updates — docs/ops/other-fixes-review.md N13');
-    await page.locator('[data-return-id="ret-1"] .decideReturnBtn[data-next="approved"]').click();
-    await expect.poll(() => writes(backend, 'returns').length).toBe(1);
-    expect(filtersOf(writes(backend, 'returns')[0])).toMatchObject({ status: 'eq.requested' });
+    await expect(page.locator('#dashError')).toContainText('already changed');
+    expect(backend.tables.returns[0].status).toBe('refunded');
+    expect(filtersOf(writes(backend, 'returns')[0])).toEqual({ id: 'eq.ret-1', status: 'eq.requested' });
   });
 });
 
@@ -207,21 +176,22 @@ test.describe('Recalls: "Mark resolved" on a recall whose stock was never quaran
     await open(page, 'recallsPanel');
   });
 
-  test('current behaviour: one click resolves it with the default note, and Quarantine disappears', async ({ page, backend }) => {
-    const row = page.locator('#recallsPanel [data-id="rc-1"]');
-    await expect(row.locator('.recallQuarantineBtn')).toBeVisible();
-    await row.locator('.recallResolveBtn').click();
-    await expect.poll(() => backend.tables.recalls[0].status).toBe('resolved');
-    expect(backend.tables.recalls[0].resolution).toBe('Resolved.');
-    expect(backend.tables.recalls[0].quantity_quarantined).toBeNull();
-    expect(filtersOf(writes(backend, 'recalls')[0])).toEqual({ id: 'eq.rc-1' });
+  test('resolving needs a written note; without one nothing is sent', async ({ page, backend }) => {
+    await page.locator('#recallsPanel [data-id="rc-1"] .recallResolveBtn').click();
+    await expect(page.locator('#dashError')).toContainText('Write what resolved this recall');
+    expect(writes(backend, 'recalls')).toEqual([]);
   });
 
-  test('wanted: resolving requires a written note before it sends anything', async ({ page, backend }) => {
-    test.fail(true, 'Fix pending (owner decision): require a resolution note / confirm when not quarantined — docs/ops/other-fixes-review.md N12');
-    await page.locator('#recallsPanel [data-id="rc-1"] .recallResolveBtn').click();
-    await page.waitForTimeout(300);
+  test('with a note, a never-quarantined recall needs a second press, and the update is conditional', async ({ page, backend }) => {
+    const row = page.locator('#recallsPanel [data-id="rc-1"]');
+    await row.locator('.recallResolutionInput').fill('SYNTHETIC: supplier confirmed false alarm');
+    await row.locator('.recallResolveBtn').click();
+    await expect(row.locator('.recallResolveBtn')).toHaveText('Stock never quarantined — resolve anyway?');
     expect(writes(backend, 'recalls')).toEqual([]);
+    await row.locator('.recallResolveBtn').click();
+    await expect.poll(() => backend.tables.recalls[0].status).toBe('resolved');
+    expect(backend.tables.recalls[0].resolution).toBe('SYNTHETIC: supplier confirmed false alarm');
+    expect(filtersOf(writes(backend, 'recalls')[0])).toEqual({ id: 'eq.rc-1', status: 'eq.initiated' });
   });
 });
 
@@ -236,17 +206,20 @@ test.describe('Adverse events: "Mark reported to FDA"', () => {
     await open(page, 'adverseEventsPanel');
   });
 
-  test('current behaviour: one click records the report as filed, with no confirmation and no undo button', async ({ page, backend }) => {
-    await page.locator('#adverseEventsWrap [data-id="ae-1"] .aeMarkReportedBtn').click();
-    await expect.poll(() => backend.tables.adverse_event_reports[0].fda_reported).toBe(true);
-    await expect(page.locator('#adverseEventsWrap [data-id="ae-1"] .aeMarkReportedBtn')).toHaveCount(0);
-  });
-
-  test('wanted: the first press only asks to confirm and sends nothing', async ({ page, backend }) => {
-    test.fail(true, 'Fix pending (owner decision): two-press confirmation for the FDA flag — docs/ops/other-fixes-review.md N11');
-    await page.locator('#adverseEventsWrap [data-id="ae-1"] .aeMarkReportedBtn').click();
+  test('the first press only asks to confirm and sends nothing', async ({ page, backend }) => {
+    const btn = page.locator('#adverseEventsWrap [data-id="ae-1"] .aeMarkReportedBtn');
+    await btn.click();
+    await expect(btn).toHaveText('Confirm: filed with FDA?');
     await page.waitForTimeout(300);
     expect(writes(backend, 'adverse_event_reports')).toEqual([]);
+  });
+
+  test('the second press sets the flag only if it is not already set', async ({ page, backend }) => {
+    const btn = page.locator('#adverseEventsWrap [data-id="ae-1"] .aeMarkReportedBtn');
+    await btn.click();
+    await btn.click();
+    await expect.poll(() => backend.tables.adverse_event_reports[0].fda_reported).toBe(true);
+    expect(filtersOf(writes(backend, 'adverse_event_reports')[0])).toEqual({ id: 'eq.ae-1', fda_reported: 'not.is.true' });
   });
 });
 

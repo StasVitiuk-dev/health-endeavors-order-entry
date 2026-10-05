@@ -107,7 +107,9 @@ test('saving shipping and tax sends only those two numbers', async ({ page, back
   const [w] = writes(backend, 'purchase_orders');
   expect(Object.keys(w.body).sort()).toEqual(['shipping_cost', 'tax', 'updated_at']);
   expect(w.body).toMatchObject({ shipping_cost: 20, tax: 2.5 });
-  expect(filtersOf(w)).toEqual({ id: 'eq.syn-draft' });
+  // Only while the order can still be edited, so a stale page can't change
+  // the total of an order whose expense has already been logged.
+  expect(filtersOf(w)).toEqual({ id: 'eq.syn-draft', status: 'in.(draft,ordered)' });
 });
 
 test('saving the payment status sends only that status', async ({ page, backend }) => {
@@ -136,16 +138,31 @@ test('"Mark as ordered" records the status and the order date', async ({ page, b
   const [w] = writes(backend, 'purchase_orders');
   expect(Object.keys(w.body).sort()).toEqual(['ordered_at', 'status', 'updated_at']);
   expect(w.body.status).toBe('ordered');
+  expect(filtersOf(w)).toEqual({ id: 'eq.syn-draft', status: 'in.(draft)' });
 });
 
-test('current behaviour: Cancel cancels the purchase order straight away, with no confirmation', async ({ page, backend }) => {
-  // Recorded for the owner's decision (a confirmation step would be a
-  // behaviour change). A purchase order is not deleted by this.
+test('Cancel needs a second press within 4 seconds, and then only cancels a draft/ordered/shipped order', async ({ page, backend }) => {
   const box = await openPo(page, 'syn-draft');
   let dialogShown = false;
   page.on('dialog', d => { dialogShown = true; d.dismiss(); });
-  await box.locator('.poStatusBtn[data-next="cancelled"]').click();
+  const cancel = box.locator('.poStatusBtn[data-next="cancelled"]');
+  await cancel.click();
+  await expect(cancel).toHaveText('Really cancel this order?');
+  await page.waitForTimeout(300);
+  expect(writes(backend, 'purchase_orders')).toEqual([]);
+  await cancel.click();
   await expect.poll(() => writes(backend, 'purchase_orders').length).toBe(1);
   expect(dialogShown).toBe(false);
-  expect(writes(backend, 'purchase_orders')[0].body.status).toBe('cancelled');
+  const [w] = writes(backend, 'purchase_orders');
+  expect(w.body.status).toBe('cancelled');
+  expect(filtersOf(w)).toEqual({ id: 'eq.syn-draft', status: 'in.(draft,ordered,shipped)' });
+});
+
+test('Cancel un-arms itself after 4 seconds', async ({ page, backend }) => {
+  const box = await openPo(page, 'syn-draft');
+  const cancel = box.locator('.poStatusBtn[data-next="cancelled"]');
+  await cancel.click();
+  await expect(cancel).toHaveText('Really cancel this order?');
+  await expect(cancel).toHaveText('Cancel', { timeout: 6000 });
+  expect(writes(backend, 'purchase_orders')).toEqual([]);
 });

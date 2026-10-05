@@ -1775,6 +1775,102 @@
       dashErrorEl.textContent = '';
     }
 
+    // ---------- guarded changes (same idea as Task buttons v2) ----------
+    // Changes one row only while it still looks the way this page last saw
+    // it. The database checks the condition and applies the change in one
+    // step, so a stale tab, a second person or a double click can never
+    // silently overwrite a newer decision: they get "already changed" instead.
+    //   expected: { column: value }      value must still match
+    //             { column: [a, b] }     value must be one of these
+    //             { column: null }       value must still be empty
+    //             { column: { notIs: true } }  value must not be true (null or false)
+    // Returns true only when exactly one row changed. Zero rows means the row
+    // moved on, was removed, or row-level security refused it.
+    // id is the row's id, or an object of key columns, e.g. { agent_num: 7 }.
+    async function updateIfUnchanged(table, id, patch, expected){
+      let q = supabase.from(table).update(patch);
+      if (id !== null && typeof id === 'object') Object.keys(id).forEach(k => { q = q.eq(k, id[k]); });
+      else q = q.eq('id', id);
+      Object.keys(expected || {}).forEach(col => {
+        const v = expected[col];
+        if (Array.isArray(v)) q = q.in(col, v);
+        else if (v === null || v === undefined) q = q.is(col, null);
+        else if (typeof v === 'object' && 'notIs' in v) q = q.not(col, 'is', v.notIs);
+        else if (typeof v === 'boolean') q = q.is(col, v);
+        else q = q.eq(col, v);
+      });
+      const { data, error } = await q.select('id');
+      if (error) throw error;
+      return Array.isArray(data) && data.length === 1;
+    }
+    // Compare-and-set stock change for one product. Reads the stock row,
+    // works out the new numbers, and writes them only if nobody changed those
+    // numbers in between: the write carries the numbers it read as its
+    // condition. If someone did (another person, tab or agent), it reads
+    // again and retries, up to 5 times. Two saves at once can then never
+    // silently overwrite each other, and the below-zero check always uses
+    // fresh numbers. (Stock and its history are still two writes; the
+    // all-or-nothing version is the adjust_inventory database function, R4.)
+    //   deltas: { available: 5, recalled: -5 }
+    // Throws an Error with .belowZero = { bucket, current, result } when a
+    // bucket would go negative; nothing is written in that case.
+    async function changeStock(productId, deltas, uid){
+      const buckets = Object.keys(deltas);
+      for (let attempt = 0; attempt < 5; attempt++) {
+        const { data: inv, error: readErr } = await supabase
+          .from('inventory').select('*').eq('product_id', productId).maybeSingle();
+        if (readErr) throw readErr;
+        const before = {}, after = {};
+        const patch = { updated_at: new Date().toISOString(), updated_by: uid };
+        for (const b of buckets) {
+          before[b] = Number((inv && inv[b]) || 0);
+          after[b] = before[b] + Number(deltas[b]);
+          if (after[b] < 0) {
+            const e = new Error('That would leave ' + (INVENTORY_BUCKET_LABELS[b] || b) + ' at ' + after[b] + ', which isn\'t allowed — only ' + before[b] + ' available in that bucket right now.');
+            e.belowZero = { bucket: b, current: before[b], result: after[b] };
+            throw e;
+          }
+          patch[b] = after[b];
+        }
+        if (!inv) {
+          const { error: insErr } = await supabase.from('inventory').insert({ product_id: productId, ...patch });
+          if (!insErr) return { before, after };
+          if (String(insErr.code) === '23505') continue; // created by someone else a moment ago: read it and retry
+          throw insErr;
+        }
+        let q = supabase.from('inventory').update(patch).eq('product_id', productId);
+        for (const b of buckets) q = (inv[b] === null || inv[b] === undefined) ? q.is(b, null) : q.eq(b, inv[b]);
+        const { data: changed, error: updErr } = await q.select('product_id');
+        if (updErr) throw updErr;
+        if (Array.isArray(changed) && changed.length === 1) return { before, after };
+      }
+      throw new Error('The stock for this product kept changing while saving (someone else is adjusting it right now). Nothing was changed on this try — refresh and try again.');
+    }
+    // A browser-level network failure (no reply at all). The request may or
+    // may not have reached the database, so the honest advice is "check
+    // before retrying", not "try again".
+    function isNetworkError(err){
+      const m = String((err && err.message) || err || '');
+      return /Failed to fetch|NetworkError|Load failed|network|connection/i.test(m) && !(err && err.code);
+    }
+    function staleMessage(what){
+      return (what || 'That item') + ' was already changed — by someone else, another tab or an agent — or you don\'t have permission to change it. Nothing was overwritten; the list has been refreshed.';
+    }
+    // Two-press confirmation for actions that are hard to undo: the first
+    // press only re-labels the button; a second press within 4 seconds
+    // returns true. Same pattern as product Delete.
+    function confirmSecondPress(btn, armedLabel){
+      if (btn.dataset.armed === '1') { btn.dataset.armed = '0'; return true; }
+      const original = btn.dataset.label || btn.textContent;
+      btn.dataset.label = original;
+      btn.dataset.armed = '1';
+      btn.textContent = armedLabel;
+      setTimeout(() => {
+        if (btn.dataset.armed === '1') { btn.dataset.armed = '0'; btn.textContent = original; }
+      }, 4000);
+      return false;
+    }
+
     // ---------- small helpers ----------
     function esc(s){
       if (s === null || s === undefined) return '';
@@ -4207,6 +4303,32 @@
       received: 'Received', cancelled: 'Cancelled',
     };
     const PAYMENT_LABELS = { unpaid: 'Unpaid', partial: 'Part paid', paid: 'Paid' };
+    // Purchase-order state machine: the only status each button may move an
+    // order FROM. Receiving has its own path (draft/received/cancelled can't be
+    // received). Used as the database-side condition, so a stale page can
+    // never, for example, turn a received order into a cancelled one.
+    const PO_ALLOWED_FROM = {
+      ordered: ['draft'],
+      shipped: ['ordered'],
+      cancelled: ['draft', 'ordered', 'shipped'],
+      received: ['ordered', 'shipped'],
+    };
+    // Lines, shipping and tax can only change while the order is still being
+    // put together; after that the logged expense would no longer match.
+    const PO_EDITABLE = ['draft', 'ordered'];
+    // ilike treats % and _ as wildcards. Escape them so a typed lot number
+    // like "A_1" only ever matches "A_1" (any letter case), never "AB1".
+    function likeLiteral(text){
+      return String(text).replace(/[\\%_]/g, ch => '\\' + ch);
+    }
+    // Re-reads an order's status straight from the database. Used before
+    // changes that can't carry their own condition (adding/removing lines),
+    // so a page left open doesn't edit an order that has moved on.
+    async function poStatusNow(poId){
+      const { data, error } = await supabase.from('purchase_orders').select('status').eq('id', poId).maybeSingle();
+      if (error) throw error;
+      return data ? data.status : null;
+    }
     const QC_TYPE_LABELS = {
       incoming_inspection: 'Incoming inspection', packaging_defect: 'Packaging defect',
       customer_complaint: 'Customer complaint', manufacturing_issue: 'Manufacturing issue', other: 'Other',
@@ -4488,6 +4610,11 @@
         if (!(quantity > 0)) { toast('Quantity needs to be more than zero.'); return; }
         addBtn.disabled = true;
         try {
+          if (!PO_EDITABLE.includes(await poStatusNow(po.id))) {
+            showDashError(staleMessage('That purchase order'));
+            loadPurchaseOrders();
+            return;
+          }
           const { error } = await supabase.from('purchase_order_items').insert({
             purchase_order_id: po.id,
             product_id: productId,
@@ -4508,6 +4635,11 @@
         btn.addEventListener('click', async () => {
           btn.disabled = true;
           try {
+            if (!PO_EDITABLE.includes(await poStatusNow(po.id))) {
+              showDashError(staleMessage('That purchase order'));
+              loadPurchaseOrders();
+              return;
+            }
             const { error } = await supabase.from('purchase_order_items').delete().eq('id', btn.getAttribute('data-line'));
             if (error) throw error;
             loadPurchaseOrders();
@@ -4522,13 +4654,13 @@
       if (saveTotals) saveTotals.addEventListener('click', async () => {
         saveTotals.disabled = true;
         try {
-          const { error } = await supabase.from('purchase_orders').update({
+          const changed = await updateIfUnchanged('purchase_orders', po.id, {
             shipping_cost: Number(box.querySelector('.poShipping').value || 0),
             tax: Number(box.querySelector('.poTax').value || 0),
             updated_at: new Date().toISOString(),
-          }).eq('id', po.id);
-          if (error) throw error;
-          toastOk('Saved.');
+          }, { status: PO_EDITABLE });
+          if (changed) toastOk('Saved.');
+          else showDashError(staleMessage('That purchase order'));
           loadPurchaseOrders();
         } catch (err) {
           saveTotals.disabled = false;
@@ -4556,13 +4688,16 @@
       box.querySelectorAll('.poStatusBtn').forEach(btn => {
         btn.addEventListener('click', async () => {
           const next = btn.getAttribute('data-next');
+          const allowedFrom = PO_ALLOWED_FROM[next];
+          if (!allowedFrom) return;
+          if (next === 'cancelled' && !confirmSecondPress(btn, 'Really cancel this order?')) return;
           btn.disabled = true;
           try {
             const patch = { status: next, updated_at: new Date().toISOString() };
             if (next === 'ordered') patch.ordered_at = new Date().toISOString();
-            const { error } = await supabase.from('purchase_orders').update(patch).eq('id', po.id);
-            if (error) throw error;
-            toastOk('Purchase order ' + (PO_STATUS_LABELS[next] || next).toLowerCase() + '.');
+            const changed = await updateIfUnchanged('purchase_orders', po.id, patch, { status: allowedFrom });
+            if (changed) toastOk('Purchase order ' + (PO_STATUS_LABELS[next] || next).toLowerCase() + '.');
+            else showDashError(staleMessage('That purchase order'));
             loadPurchaseOrders();
           } catch (err) {
             btn.disabled = false;
@@ -4574,11 +4709,51 @@
       const recvBtn = box.querySelector('.poReceiveBtn');
       if (recvBtn) recvBtn.addEventListener('click', async () => {
         recvBtn.disabled = true;
+        // Claim first: the order is marked Received only if it is still
+        // Ordered or Shipped. A double click, a second tab, a stale page or a
+        // retry after a lost reply then gets "already changed" and adds
+        // nothing, instead of adding the stock and the expense a second time.
+        // (The full all-or-nothing fix is the receive_purchase_order database
+        // function, R1, which waits on the owner's schema check.)
+        // claimStamp doubles as a receipt: if the reply to the claim is lost,
+        // reading the order back tells us whether it was THIS click that
+        // marked it received (same received_at) or someone else.
+        const claimStamp = new Date().toISOString();
+        let uid = null, claimed = false;
         try {
-          const uid = await currentUserId();
-          const items = po.purchase_order_items || [];
-          let stocked = 0, skipped = 0;
+          uid = await currentUserId();
+          claimed = await updateIfUnchanged('purchase_orders', po.id, {
+            status: 'received', received_at: claimStamp,
+            received_by: uid, updated_at: claimStamp,
+          }, { status: PO_ALLOWED_FROM.received });
+        } catch (err) {
+          let now = null;
+          try {
+            const { data } = await supabase.from('purchase_orders').select('status, received_at').eq('id', po.id).maybeSingle();
+            now = data;
+          } catch (e) { /* still offline */ }
+          if (now && now.status === 'received' && now.received_at && Date.parse(now.received_at) === Date.parse(claimStamp)) {
+            claimed = true; // our claim was saved; only the reply was lost
+          } else if (now && PO_ALLOWED_FROM.received.includes(now.status)) {
+            recvBtn.disabled = false;
+            showDashError('Could not receive that delivery. Nothing was changed, so it is safe to try again: ' + (err && err.message ? err.message : err));
+            return;
+          } else {
+            showDashError('Could not receive that delivery, and the dashboard can\'t tell whether the order was marked received. Do not press Receive again: reload the page and check this order, Inventory and Expenses first. ' + (err && err.message ? err.message : err));
+            loadPurchaseOrders();
+            return;
+          }
+        }
+        if (!claimed) {
+          showDashError(staleMessage('That purchase order') + ' It may already have been received elsewhere — check Inventory and Expenses before doing anything else.');
+          loadPurchaseOrders();
+          return;
+        }
 
+        const items = po.purchase_order_items || [];
+        const progress = { costs: false, stockedNames: [], current: null, expense: false };
+        let stocked = 0, skipped = 0;
+        try {
           // Shipping and tax are shared across the lines in proportion to what
           // each line is worth, so every unit carries its fair share. That is
           // the number to price against — unit_cost alone flatters the margin.
@@ -4594,6 +4769,7 @@
               .update({ landed_unit_cost: Math.round(landed * 10000) / 10000 }).eq('id', line.id);
             if (costErr) throw costErr;
           }
+          progress.costs = true;
 
           for (const line of items) {
             const outstanding = Number(line.quantity || 0) - Number(line.quantity_received || 0);
@@ -4608,7 +4784,7 @@
             if (lotNumber) {
               const { data: existingLot, error: lotReadErr } = await supabase
                 .from('inventory_lots').select('*')
-                .eq('product_id', line.product_id).ilike('lot_number', lotNumber).maybeSingle();
+                .eq('product_id', line.product_id).ilike('lot_number', likeLiteral(lotNumber)).maybeSingle();
               if (lotReadErr) throw lotReadErr;
               if (existingLot) {
                 const { data: updatedLot, error: lotUpdErr } = await supabase.from('inventory_lots')
@@ -4631,15 +4807,8 @@
               }
             }
 
-            const { data: inv, error: readErr } = await supabase
-              .from('inventory').select('*').eq('product_id', line.product_id).maybeSingle();
-            if (readErr) throw readErr;
-            const newValue = Number((inv && inv.available) || 0) + outstanding;
-            const { error: invErr } = await supabase.from('inventory').upsert(
-              { product_id: line.product_id, available: newValue,
-                updated_at: new Date().toISOString(), updated_by: uid },
-              { onConflict: 'product_id' });
-            if (invErr) throw invErr;
+            progress.current = line.description || line.sku || 'a line';
+            await changeStock(line.product_id, { available: outstanding }, uid);
             const { error: adjErr } = await supabase.from('inventory_adjustments').insert({
               product_id: line.product_id, bucket: 'available', change_amount: outstanding,
               reason: 'Delivery received (' + po.po_number + ')', adjusted_by: uid, lot_id: lotId,
@@ -4649,6 +4818,8 @@
               .update({ quantity_received: Number(line.quantity) }).eq('id', line.id);
             if (lineErr) throw lineErr;
             stocked++;
+            progress.stockedNames.push(progress.current);
+            progress.current = null;
           }
 
           const total = poGrandTotal(po);
@@ -4662,24 +4833,30 @@
             });
             if (expErr) throw expErr;
           }
-
-          const { error: poErr } = await supabase.from('purchase_orders').update({
-            status: 'received', received_at: new Date().toISOString(),
-            received_by: uid, updated_at: new Date().toISOString(),
-          }).eq('id', po.id);
-          if (poErr) throw poErr;
+          progress.expense = true;
 
           toastOk(stocked
             ? `Received — ${stocked} ${stocked === 1 ? 'item' : 'items'} added to Inventory, cost logged to Expenses, true unit costs worked out.`
             : 'Received — cost logged to Expenses, true unit costs worked out.');
           if (skipped) toast(`${skipped} line${skipped === 1 ? '' : 's'} weren't catalogue products, so no stock was added for them.`);
-          loadPurchaseOrders();
-          safeRun(loadInventory);
-          safeRun(loadExpenses);
         } catch (err) {
-          recvBtn.disabled = false;
-          showDashError('Could not receive that delivery: ' + (err && err.message ? err.message : err));
+          // The order is already marked Received, so the Receive button is gone
+          // on purpose: pressing it again is exactly what used to double-count.
+          // Say precisely what got done so the rest can be finished by hand.
+          const productLines = items.filter(l => l.product_id && Number(l.quantity || 0) - Number(l.quantity_received || 0) > 0).length;
+          showDashError('Purchase order ' + po.po_number + ' is marked Received, but the work stopped part-way. '
+            + 'Done: ' + [
+              progress.costs ? 'true unit costs' : null,
+              progress.stockedNames.length ? 'stock fully recorded for ' + progress.stockedNames.length + ' of ' + productLines + ' lines (' + progress.stockedNames.join(', ') + ')' : 'no line fully recorded',
+              progress.current ? 'it stopped while recording "' + progress.current + '", so that line\'s stock may or may not have been added — check it on Inventory' : null,
+              progress.expense ? 'expense logged' : 'expense NOT logged',
+            ].filter(Boolean).join('; ')
+            + '. Do not try to receive it again — finish the rest by hand on Inventory / Expenses. Error: '
+            + (err && err.message ? err.message : err));
         }
+        loadPurchaseOrders();
+        safeRun(loadInventory);
+        safeRun(loadExpenses);
       });
     }
 
@@ -4920,7 +5097,7 @@
           const statusClass = r.status === 'resolved' ? 'sev-low' : 'sev-high';
           const alsoFailedQc = (r.lot_id && failedLots.has(r.lot_id)) || (!r.lot_id && r.product_id && failedProducts.has(r.product_id));
           return `
-            <div class="deletedRow" data-id="${esc(r.id)}" data-lot="${esc(r.lot_id)}" style="align-items:flex-start;">
+            <div class="deletedRow" data-id="${esc(r.id)}" data-status="${esc(r.status || '')}" data-lot="${esc(r.lot_id)}" style="align-items:flex-start;">
               <div class="info" style="flex:1;">
                 <b>${esc(prod)} — lot ${esc(lot)}</b>
                 <span class="badge ${statusClass}">${esc(RECALL_STATUS_LABELS[r.status] || r.status)}</span>
@@ -4966,33 +5143,41 @@
                 btn.disabled = false;
                 return;
               }
-              const { error: invErr } = await supabase.from('inventory').update({
-                available: Number(inv.available) - amount,
-                recalled: Number(inv.recalled || 0) + amount,
-                updated_at: new Date().toISOString(), updated_by: uid,
-              }).eq('product_id', lot.product_id);
-              if (invErr) throw invErr;
-              const { error: adj1Err } = await supabase.from('inventory_adjustments').insert({
-                product_id: lot.product_id, bucket: 'available', change_amount: -amount,
-                reason: 'Recall — quarantined', adjusted_by: uid, lot_id: lotId,
-              });
-              if (adj1Err) throw adj1Err;
-              const { error: adj2Err } = await supabase.from('inventory_adjustments').insert({
-                product_id: lot.product_id, bucket: 'recalled', change_amount: amount,
-                reason: 'Recall — quarantined', adjusted_by: uid, lot_id: lotId,
-              });
-              if (adj2Err) throw adj2Err;
-              const { error: recErr } = await supabase.from('recalls').update({
+              // Claim first: only the click that moves the recall from
+              // Initiated to Quarantined moves stock, so a double click, a
+              // second tab or a retry can't quarantine the lot twice.
+              const claimed = await updateIfUnchanged('recalls', id, {
                 status: 'quarantined', quantity_quarantined: amount, updated_at: new Date().toISOString(),
-              }).eq('id', id);
-              if (recErr) throw recErr;
-              toastOk(amount + ' units quarantined.');
+              }, { status: 'initiated' });
+              if (!claimed) {
+                showDashError(staleMessage('That recall') + ' No stock was moved.');
+                loadRecalls();
+                return;
+              }
+              try {
+                await changeStock(lot.product_id, { available: -amount, recalled: amount }, uid);
+                const { error: adj1Err } = await supabase.from('inventory_adjustments').insert({
+                  product_id: lot.product_id, bucket: 'available', change_amount: -amount,
+                  reason: 'Recall — quarantined', adjusted_by: uid, lot_id: lotId,
+                });
+                if (adj1Err) throw adj1Err;
+                const { error: adj2Err } = await supabase.from('inventory_adjustments').insert({
+                  product_id: lot.product_id, bucket: 'recalled', change_amount: amount,
+                  reason: 'Recall — quarantined', adjusted_by: uid, lot_id: lotId,
+                });
+                if (adj2Err) throw adj2Err;
+                toastOk(amount + ' units quarantined.');
+              } catch (stockErr) {
+                showDashError('The recall is marked Quarantined, but moving the stock did not finish: '
+                  + (stockErr && stockErr.message ? stockErr.message : stockErr)
+                  + ' Check Inventory for this product — the units may still be in Available — and move them to Recalled by hand. Do not quarantine again.');
+              }
               loadRecalls();
               safeRun(loadInventory);
               safeRun(loadAttention);
             } catch (err) {
               btn.disabled = false;
-              showDashError('Could not quarantine that stock: ' + (err && err.message ? err.message : err));
+              showDashError('Could not quarantine that stock — nothing was changed: ' + (err && err.message ? err.message : err));
             }
           });
         });
@@ -5035,15 +5220,21 @@
           btn.addEventListener('click', async () => {
             const row = btn.closest('[data-id]');
             const id = row.getAttribute('data-id');
-            const note = row.querySelector('.recallResolutionInput').value.trim() || 'Resolved.';
+            const note = row.querySelector('.recallResolutionInput').value.trim();
+            const seen = row.getAttribute('data-status') || null;
+            // A recall is a compliance record: closing it needs a written
+            // reason, and closing one whose stock was never quarantined needs
+            // a second, deliberate press.
+            if (!note) { showDashError('Write what resolved this recall (resolution notes) before marking it resolved.'); return; }
+            if (seen === 'initiated' && !confirmSecondPress(btn, 'Stock never quarantined — resolve anyway?')) return;
             btn.disabled = true;
             try {
-              const { error } = await supabase.from('recalls').update({
+              const changed = await updateIfUnchanged('recalls', id, {
                 status: 'resolved', resolution: note, resolved_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
-              }).eq('id', id);
-              if (error) throw error;
-              toastOk('Recall resolved.');
+              }, { status: seen });
+              if (changed) toastOk('Recall resolved.');
+              else showDashError(staleMessage('That recall'));
               loadRecalls();
               safeRun(loadAttention);
             } catch (err) {
@@ -5932,11 +6123,13 @@
           cb.disabled = true;
           try {
             const uid = await currentUserId();
-            const { error } = await supabase.from('agent_controls')
-              .update({ enabled: newVal, updated_by: uid, updated_at: new Date().toISOString() })
-              .eq('agent_num', num);
-            if (error) throw error;
-            toast((newVal ? 'Turned on: ' : 'Paused: ') + name);
+            // Only flips the switch this page showed: a stale page can't undo
+            // a pause made elsewhere (or by Emergency / No AI mode).
+            const changed = await updateIfUnchanged('agent_controls', { agent_num: num },
+              { enabled: newVal, updated_by: uid, updated_at: new Date().toISOString() },
+              { enabled: !newVal });
+            if (changed) toast((newVal ? 'Turned on: ' : 'Paused: ') + name);
+            else showDashError(staleMessage('That agent switch'));
             await loadAgentControls();
           } catch (err) {
             cb.checked = !newVal;
@@ -6630,8 +6823,8 @@
               cb.checked = newVal;
               cb.disabled = true;
               try {
-                const { error } = await supabase.from('feature_flags').update({ enabled: newVal }).eq('id', id);
-                if (error) throw error;
+                const changed = await updateIfUnchanged('feature_flags', id, { enabled: newVal }, { enabled: !newVal });
+                if (!changed) { showDashError(staleMessage('That feature flag')); safeRun(loadFlags); }
               } catch (err) {
                 cb.checked = !newVal;
                 showDashError('Could not change that flag: ' + (err && err.message ? err.message : err));
@@ -6653,6 +6846,7 @@
       EMERGENCY:  { label: 'Emergency',  desc: 'AI paused and Shopify Order Sync switched off.',                bg: '#fbe6e6', fg: '#9e1b1b', border: '#f0bdbd' },
     };
 
+    let SYSTEM_MODE_SEEN; // the mode this page last showed; undefined = no mode row found
     async function loadSystemMode(){
       try {
         const { data: row, error } = await supabase
@@ -6670,6 +6864,7 @@
         }
 
         const mode = (row && row.mode) || 'NORMAL';
+        SYSTEM_MODE_SEEN = row ? (row.mode || null) : undefined;
         const info = SYSTEM_MODE_LABELS[mode] || SYSTEM_MODE_LABELS.NORMAL;
 
         const wrap = document.getElementById('systemModeWrap');
@@ -6728,10 +6923,16 @@
         btn.disabled = true;
         try {
           const uid = await currentUserId();
-          const { error } = await supabase.from('system_mode')
-            .update({ mode: newMode, changed_by: uid, changed_at: new Date().toISOString() })
-            .eq('id', true);
-          if (error) throw error;
+          // Only from the mode this page showed: an old tab can't quietly
+          // switch Emergency back to Normal.
+          const changed = await updateIfUnchanged('system_mode', { id: true },
+            { mode: newMode, changed_by: uid, changed_at: new Date().toISOString() },
+            { mode: SYSTEM_MODE_SEEN === undefined ? null : SYSTEM_MODE_SEEN });
+          if (!changed) {
+            showDashError(staleMessage('System mode') + ' Check the current mode before choosing again.');
+            await Promise.all([loadSystemMode(), loadFlags(), loadAgentControls()]);
+            return;
+          }
 
           // Emergency mode also best-effort switches off the one live
           // external-integration flag. If this second update fails we
@@ -6928,7 +7129,7 @@
           document.getElementById('approvalsWrap').innerHTML = cutoffNote + '<p class="empty">Nothing waiting for approval.</p>';
         } else {
           document.getElementById('approvalsWrap').innerHTML = cutoffNote + pending.map(r => `
-            <div class="approvalRow" data-id="${esc(r.id)}">
+            <div class="approvalRow" data-id="${esc(r.id)}" data-status="${esc(r.status || '')}">
               <div class="info">
                 <b>${esc(r.action_type)}</b> — ${esc(r.summary || '')}
                 <br><span style="font-size:11px;color:#8a9694;">Requested ${esc(fmtDate(r.created_at))}</span>
@@ -6955,11 +7156,11 @@
       try {
         const { data: sessionData } = await supabase.auth.getSession();
         const uid = sessionData && sessionData.session ? sessionData.session.user.id : null;
-        const { error } = await supabase
-          .from('approval_requests')
-          .update({ status: decision, reviewed_by: uid, reviewed_at: new Date().toISOString() })
-          .eq('id', id);
-        if (error) throw error;
+        const seenStatus = row.getAttribute('data-status') || null;
+        const changed = await updateIfUnchanged('approval_requests', id,
+          { status: decision, reviewed_by: uid, reviewed_at: new Date().toISOString() },
+          { status: seenStatus });
+        if (!changed) showDashError(staleMessage('That request'));
         loadApprovals();
       } catch (err) {
         row.querySelectorAll('button').forEach(b => b.disabled = false);
@@ -7183,8 +7384,9 @@
         if (fetchErr) throw fetchErr;
         const nextStatus = FR_NEXT_STATUS[current.status];
         if (!nextStatus) return;
-        const { error } = await supabase.from('feature_requests').update({ status: nextStatus, updated_at: new Date().toISOString() }).eq('id', id);
-        if (error) throw error;
+        // Conditional on the status just read, so a double click moves it one step, not two.
+        const changed = await updateIfUnchanged('feature_requests', id, { status: nextStatus, updated_at: new Date().toISOString() }, { status: current.status });
+        if (!changed) showDashError(staleMessage('That request'));
         loadFeatureRequests();
       } catch (err) {
         btn.disabled = false;
@@ -7709,12 +7911,15 @@
           btn.addEventListener('click', async () => {
             const row = btn.closest('.approvalRow');
             const id = row.getAttribute('data-id');
+            // A regulatory record with no undo button: needs a second press,
+            // and only sets the flag if it isn't already set.
+            if (!confirmSecondPress(btn, 'Confirm: filed with FDA?')) return;
             btn.disabled = true;
             try {
-              const { error: updErr } = await supabase.from('adverse_event_reports')
-                .update({ fda_reported: true, fda_reported_at: new Date().toISOString() })
-                .eq('id', id);
-              if (updErr) throw updErr;
+              const changed = await updateIfUnchanged('adverse_event_reports', id,
+                { fda_reported: true, fda_reported_at: new Date().toISOString() },
+                { fda_reported: { notIs: true } });
+              if (!changed) showDashError(staleMessage('That report'));
               loadAdverseEvents();
             } catch (err) {
               btn.disabled = false;
@@ -7808,14 +8013,19 @@
           btn.addEventListener('click', async () => {
             const row = btn.closest('.approvalRow');
             const id = row.getAttribute('data-id');
+            // Releasing a legal hold lets protected records be changed or
+            // deleted again, so it gets the same password re-check as the
+            // other sensitive actions, and only an active hold is released.
+            const ok = await requireReauth('release this legal hold');
+            if (!ok) return;
             btn.disabled = true;
             try {
               const { data: sessionData } = await supabase.auth.getSession();
               const uid = sessionData && sessionData.session ? sessionData.session.user.id : null;
-              const { error: relErr } = await supabase.from('legal_holds')
-                .update({ status: 'released', released_at: new Date().toISOString(), released_by: uid })
-                .eq('id', id);
-              if (relErr) throw relErr;
+              const changed = await updateIfUnchanged('legal_holds', id,
+                { status: 'released', released_at: new Date().toISOString(), released_by: uid },
+                { status: 'active' });
+              if (!changed) showDashError(staleMessage('That legal hold'));
               loadLegalHolds();
               loadReleasedLegalHolds();
             } catch (err) {
@@ -8082,6 +8292,18 @@
             }
             btn.disabled = true;
             try {
+              // Never delete a product that still has stock: the stock row is
+              // removed first (it exists for every product), so a product that
+              // turned out to be in use used to lose its stock numbers (R5).
+              // Fresh read, not the page's copy, in case stock arrived since.
+              const { data: invNow, error: invNowErr } = await supabase
+                .from('inventory').select('*').eq('product_id', id).maybeSingle();
+              if (invNowErr) throw invNowErr;
+              const held = invNow ? Object.keys(INVENTORY_BUCKET_LABELS).filter(b => Number(invNow[b] || 0) !== 0) : [];
+              if (held.length) {
+                showDashError('"' + name + '" still has stock (' + held.map(b => INVENTORY_BUCKET_LABELS[b] + ': ' + Number(invNow[b])).join(', ') + '), so it can\'t be deleted. Use Deactivate instead, or move the stock out first.');
+                return;
+              }
               // clear its inventory row first, which exists for every product
               await supabase.from('inventory').delete().eq('product_id', id);
               const { error } = await supabase.from('products').delete().eq('id', id);
@@ -8179,27 +8401,15 @@
       const originalBtnText = submitBtn.textContent;
       submitBtn.disabled = true;
       try {
-        // Read the current count for this product/bucket first, so we can
-        // compute the new total and refuse to let it go negative.
-        const { data: existing, error: readErr } = await supabase
-          .from('inventory')
-          .select('*')
-          .eq('product_id', productId)
-          .maybeSingle();
-        if (readErr) throw readErr;
-
-        const current = existing ? Number(existing[bucket] || 0) : 0;
-        const newValue = current + changeAmount;
-        if (newValue < 0) {
-          showDashError(`That would leave ${INVENTORY_BUCKET_LABELS[bucket]} at ${newValue}, which isn't allowed — only ${current} available in that bucket right now.`);
-          return;
-        }
-
+        // Compare-and-set: never overwrites a change someone else saved in
+        // between, and refuses to go below zero using fresh numbers.
         const uid = await currentUserId();
-        const { error: upErr } = await supabase
-          .from('inventory')
-          .upsert({ product_id: productId, [bucket]: newValue, updated_at: new Date().toISOString(), updated_by: uid }, { onConflict: 'product_id' });
-        if (upErr) throw upErr;
+        try {
+          await changeStock(productId, { [bucket]: changeAmount }, uid);
+        } catch (stockErr) {
+          if (stockErr && stockErr.belowZero) { showDashError(stockErr.message); return; }
+          throw stockErr;
+        }
 
         const { error: logErr } = await supabase
           .from('inventory_adjustments')
@@ -8212,7 +8422,9 @@
         loadInventory();
         loadInventoryAdjustments();
       } catch (err) {
-        showDashError('Could not save that adjustment: ' + (err && err.message ? err.message : err));
+        showDashError(isNetworkError(err)
+          ? 'The connection dropped while saving, so this adjustment may or may not have been saved. Check the stock and the Adjustment history below before saving it again.'
+          : 'Could not save that adjustment: ' + (err && err.message ? err.message : err));
       } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = originalBtnText;
@@ -8231,11 +8443,23 @@
     // the matching product by SKU. `disposition` is a small additive column
     // added purely to drive that restock — it isn't otherwise part of the
     // original table.
+    // The most that can sensibly be refunded for one return: the value of the
+    // order line it is for (line_total, or quantity × unit_price). Empty when
+    // the line has no price on file, in which case no cap is applied.
+    function returnLineValue(item){
+      if (!item) return '';
+      if (item.line_total !== null && item.line_total !== undefined && item.line_total !== '') return String(Number(item.line_total));
+      if (item.unit_price !== null && item.unit_price !== undefined && item.quantity !== null && item.quantity !== undefined) {
+        return String(Math.round(Number(item.unit_price) * Number(item.quantity) * 100) / 100);
+      }
+      return '';
+    }
+
     async function loadReturns(){
       try {
         const { data: returns, error } = await supabase
           .from('returns')
-          .select('id, order_id, order_item_id, reason, status, product_condition, disposition, refund_amount, approved_at, received_at, refunded_at, notes, created_at, orders(order_number, customer_name), order_items(product_name, sku, quantity)')
+          .select('id, order_id, order_item_id, reason, status, product_condition, disposition, refund_amount, approved_at, received_at, refunded_at, notes, created_at, orders(order_number, customer_name), order_items(product_name, sku, quantity, unit_price, line_total)')
           .order('created_at', { ascending: false })
           .limit(200);
         if (error) throw error;
@@ -8310,7 +8534,7 @@
           ].filter(Boolean).join(' · ');
 
           return `
-            <div class="deletedRow" data-return-id="${esc(r.id)}" data-item-sku="${esc(item.sku || '')}" data-quantity="${esc(item.quantity || 0)}" data-order-label="${esc(order.order_number || r.order_id)}" style="align-items:flex-start;flex-wrap:wrap;">
+            <div class="deletedRow" data-return-id="${esc(r.id)}" data-status="${esc(r.status || '')}" data-line-value="${esc(returnLineValue(item))}" data-item-sku="${esc(item.sku || '')}" data-quantity="${esc(item.quantity || 0)}" data-order-label="${esc(order.order_number || r.order_id)}" style="align-items:flex-start;flex-wrap:wrap;">
               <div class="info" style="flex:1;min-width:220px;">
                 <b>${esc(item.product_name || 'Unknown item')}</b>${item.sku ? ' <span style="color:#8a9694;font-size:12px;">(' + esc(item.sku) + ')</span>' : ''}
                 — Qty ${esc(item.quantity !== undefined && item.quantity !== null ? item.quantity : '—')}
@@ -8336,8 +8560,11 @@
               const uid = await currentUserId();
               const patch = { status: next, updated_at: new Date().toISOString() };
               if (next === 'approved') { patch.approved_by = uid; patch.approved_at = new Date().toISOString(); }
-              const { error: updErr } = await supabase.from('returns').update(patch).eq('id', id);
-              if (updErr) throw updErr;
+              // Approve/Reject only a return that is still "requested": a page
+              // opened earlier must not re-open a return that was received or
+              // refunded since (that used to allow a second restock and refund).
+              const changed = await updateIfUnchanged('returns', id, patch, { status: 'requested' });
+              if (!changed) showDashError(staleMessage('That return'));
               loadReturns();
             } catch (err) {
               btn.disabled = false;
@@ -8356,8 +8583,9 @@
             const next = btn.getAttribute('data-next');
             btn.disabled = true;
             try {
-              const { error: updErr } = await supabase.from('returns').update({ status: next, updated_at: new Date().toISOString() }).eq('id', id);
-              if (updErr) throw updErr;
+              const seen = row.getAttribute('data-status') || null;
+              const changed = await updateIfUnchanged('returns', id, { status: next, updated_at: new Date().toISOString() }, { status: seen });
+              if (!changed) showDashError(staleMessage('That return'));
               loadReturns();
             } catch (err) {
               btn.disabled = false;
@@ -8384,8 +8612,27 @@
             const disposition = dispositionSelect ? dispositionSelect.value : '';
             if (!disposition) { showDashError('Pick what happens to the stock before marking this Received.'); return; }
             btn.disabled = true;
+            // Claim first: mark the return Received only if it is still
+            // Approved. Only the click that wins the claim restocks, so a
+            // double click, a second tab or a retry can't restock twice.
+            let uid = null;
             try {
-              const uid = await currentUserId();
+              uid = await currentUserId();
+              const claimed = await updateIfUnchanged('returns', id,
+                { status: 'received', disposition, received_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+                { status: 'approved' });
+              if (!claimed) {
+                showDashError(staleMessage('That return') + ' No stock was added.');
+                loadReturns();
+                return;
+              }
+            } catch (err) {
+              btn.disabled = false;
+              showDashError('Could not mark that return Received — nothing was changed: ' + (err && err.message ? err.message : err)
+                + ' If the connection dropped, reload first: the return may already show Received.');
+              return;
+            }
+            try {
               if ((disposition === 'restock_available' || disposition === 'restock_damaged') && quantity > 0) {
                 if (!sku) {
                   showDashError('This return has no SKU on file, so it was marked Received without an automatic restock — please adjust Inventory manually.');
@@ -8401,18 +8648,7 @@
                   } else {
                     const productId = matchedProduct.id;
                     const bucket = disposition === 'restock_available' ? 'available' : 'damaged';
-                    const { data: currentInv, error: readErr } = await supabase
-                      .from('inventory')
-                      .select('*')
-                      .eq('product_id', productId)
-                      .maybeSingle();
-                    if (readErr) throw readErr;
-                    const currentValue = Number((currentInv && currentInv[bucket]) || 0);
-                    const newValue = currentValue + quantity;
-                    const { error: invErr } = await supabase
-                      .from('inventory')
-                      .upsert({ product_id: productId, [bucket]: newValue, updated_at: new Date().toISOString(), updated_by: uid }, { onConflict: 'product_id' });
-                    if (invErr) throw invErr;
+                    await changeStock(productId, { [bucket]: quantity }, uid);
                     const { error: adjErr } = await supabase
                       .from('inventory_adjustments')
                       .insert({ product_id: productId, bucket, change_amount: quantity, reason: `Return received (order ${orderLabel})`, adjusted_by: uid });
@@ -8420,18 +8656,13 @@
                   }
                 }
               }
-              const { error: updErr } = await supabase
-                .from('returns')
-                .update({ status: 'received', disposition, received_at: new Date().toISOString(), updated_at: new Date().toISOString() })
-                .eq('id', id);
-              if (updErr) throw updErr;
-              loadReturns();
-              loadInventory();
-              loadInventoryAdjustments();
             } catch (err) {
-              btn.disabled = false;
-              showDashError('Could not mark that return Received: ' + (err && err.message ? err.message : err));
+              showDashError('The return is marked Received, but the restock did not finish: ' + (err && err.message ? err.message : err)
+                + ' The stock may or may not have been added — check Inventory and adjust by hand if needed. Do not re-receive the return.');
             }
+            loadReturns();
+            loadInventory();
+            loadInventoryAdjustments();
           });
         });
 
@@ -8450,13 +8681,20 @@
               showDashError("That refund amount doesn't look like a valid number.");
               return;
             }
+            const lineValueAttr = row.getAttribute('data-line-value');
+            const lineValue = lineValueAttr === '' || lineValueAttr === null ? null : Number(lineValueAttr);
+            if (amount !== null && lineValue !== null && !isNaN(lineValue) && amount > lineValue + 0.005) {
+              showDashError('That refund (' + fmtMoney(amount) + ') is more than this order line was worth (' + fmtMoney(lineValue) + '). Check the amount — nothing was saved.');
+              return;
+            }
             btn.disabled = true;
             try {
-              const { error: updErr } = await supabase
-                .from('returns')
-                .update({ status: 'refunded', refunded_at: new Date().toISOString(), refund_amount: amount, updated_at: new Date().toISOString() })
-                .eq('id', id);
-              if (updErr) throw updErr;
+              // Only from Received, and only once: a second click or a stale
+              // page can't overwrite the amount or record a second refund.
+              const changed = await updateIfUnchanged('returns', id,
+                { status: 'refunded', refunded_at: new Date().toISOString(), refund_amount: amount, updated_at: new Date().toISOString() },
+                { status: 'received' });
+              if (!changed) showDashError(staleMessage('That return') + ' No refund was recorded.');
               loadReturns();
             } catch (err) {
               btn.disabled = false;
@@ -8620,15 +8858,19 @@
       const id = row.getAttribute('data-id');
       const path = row.getAttribute('data-file-path');
       if (!path) return;
+      // Receipts are tax records and this deletes the file for good, so it
+      // takes a second press (finding N10; whether files should be deleted at
+      // all is an open owner decision).
+      if (!confirmSecondPress(btn, 'Delete receipt file for good?')) return;
       btn.disabled = true;
       try {
-        // Remove the file from storage, then clear the column pointing to it.
-        // Owner-only page, so no extra confirmation step here — same reasoning
-        // as every other control on this page.
+        // Unlink first (only if the row still points at this exact file), then
+        // remove the file. If the second step fails, the result is a stray
+        // file nobody can see — never an expense pointing at a missing file.
+        const changed = await updateIfUnchanged('expenses', id, { receipt_path: null }, { receipt_path: path });
+        if (!changed) { showDashError(staleMessage('That expense')); loadExpenses(); return; }
         const { error: removeErr } = await supabase.storage.from('expense-receipts').remove([path]);
-        if (removeErr) throw removeErr;
-        const { error } = await supabase.from('expenses').update({ receipt_path: null }).eq('id', id);
-        if (error) throw error;
+        if (removeErr) showDashError('The receipt was unlinked from the expense, but the file itself could not be deleted from storage: ' + (removeErr.message || removeErr));
         loadExpenses();
       } catch (err) {
         btn.disabled = false;

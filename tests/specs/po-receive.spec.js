@@ -145,75 +145,77 @@ test.beforeEach(async ({ page, backend }) => {
 
 test('baseline: receiving with a good connection adds each line once', async ({ page, backend }) => {
   await clickReceive(page);
-  await expect.poll(() => snapshot(backend).poStatus).toBe('received');
-  expect(snapshot(backend)).toEqual(AFTER_ONE_RECEIVE);
+  await expect.poll(() => snapshot(backend)).toEqual(AFTER_ONE_RECEIVE);
 });
 
-test.describe('current behaviour (documents the bug)', () => {
-  test('drop on the final status update: stock and expense saved, order still open', async ({ page, backend }) => {
+// Since the 2026-10-05 change the order is "claimed" first: it is marked
+// Received only if it is still Ordered/Shipped, and only then is the stock and
+// expense written. That removes every double-count path from the browser. It
+// is still not all-or-nothing (that needs the R1 database function), so a drop
+// part-way leaves the order Received with some work missing — but the page
+// says exactly what, and never invites a second Receive.
+test.describe('claim-first receiving (current behaviour)', () => {
+  test('drop on the claim: nothing is saved, and trying again receives once', async ({ page, backend }) => {
     backend.dropNext('purchase_orders', 'PATCH');
     await clickReceive(page);
     await expectReceiveError(page);
-    expect(snapshot(backend)).toEqual({ ...AFTER_ONE_RECEIVE, poStatus: 'shipped' });
-  });
-
-  test('...then pressing Receive again adds all stock and the expense a second time', async ({ page, backend }) => {
-    backend.dropNext('purchase_orders', 'PATCH');
-    await clickReceive(page);
-    await expectReceiveError(page);
-    await clickReceive(page);
-    await expect.poll(() => snapshot(backend).poStatus).toBe('received');
-    expect(snapshot(backend)).toEqual({ availableA: 110, availableB: 40, adjustments: 4, expenses: 2, poStatus: 'received' });
-  });
-
-  test('...even after reloading the page, the expense is logged twice', async ({ page, backend }) => {
-    backend.dropNext('purchase_orders', 'PATCH');
-    await clickReceive(page);
-    await expectReceiveError(page);
-    await reloadAndReopen(page);
-    await clickReceive(page);
-    await expect.poll(() => snapshot(backend).poStatus).toBe('received');
-    expect(snapshot(backend)).toEqual({ ...AFTER_ONE_RECEIVE, expenses: 2 });
-  });
-
-  test('drop after the database saved line A\'s stock: stock raised with no adjustment record', async ({ page, backend }) => {
-    // Line A's inventory write is saved but the reply is lost, so its
-    // adjustment, "line received", line B, the expense and the status are
-    // never written.
-    backend.dropNext('inventory', 'POST', { applied: true });
-    await clickReceive(page);
-    await expectReceiveError(page);
-    expect(snapshot(backend)).toEqual({ ...BEFORE, availableA: 60 });
-    expect(backend.tables.purchase_order_items.map(l => l.quantity_received)).toEqual([0, 0]);
-  });
-
-  test('...then pressing Receive again after a reload adds line A\'s stock twice', async ({ page, backend }) => {
-    backend.dropNext('inventory', 'POST', { applied: true });
-    await clickReceive(page);
-    await expectReceiveError(page);
-    await reloadAndReopen(page);
-    await clickReceive(page);
-    await expect.poll(() => snapshot(backend).poStatus).toBe('received');
-    expect(snapshot(backend)).toEqual({ ...AFTER_ONE_RECEIVE, availableA: 110 });
-  });
-});
-
-test.describe('all-or-nothing (wanted behaviour; fails until fixed)', () => {
-  test('a dropped connection leaves nothing half-saved', async ({ page, backend }) => {
-    test.fail(true, 'Receiving is not atomic yet: see docs/code-quality/owner-login-review.md 2.1');
-    backend.dropNext('purchase_orders', 'PATCH');
-    await clickReceive(page);
-    await expectReceiveError(page);
+    await expect(page.locator('body')).toContainText('Nothing was changed, so it is safe to try again');
     expect(snapshot(backend)).toEqual(BEFORE);
+    await clickReceive(page);
+    await expect.poll(() => snapshot(backend)).toEqual(AFTER_ONE_RECEIVE);
   });
 
-  test('pressing Receive again after a failure never double-counts', async ({ page, backend }) => {
-    test.fail(true, 'Receiving is not atomic yet: see docs/code-quality/owner-login-review.md 2.1');
-    backend.dropNext('inventory', 'POST', { applied: true });
+  test('claim saved but its reply lost: the page recognises its own claim and finishes once', async ({ page, backend }) => {
+    backend.dropNext('purchase_orders', 'PATCH', { applied: true });
     await clickReceive(page);
-    await expectReceiveError(page);
+    await expect.poll(() => snapshot(backend)).toEqual(AFTER_ONE_RECEIVE);
+    await expect(page.locator('.poReceiveBtn')).toHaveCount(0);
+  });
+
+  test('a second click, a second tab or a stale page adds nothing', async ({ page, backend }) => {
     await clickReceive(page);
-    await expect.poll(() => snapshot(backend).poStatus).toBe('received');
+    await expect.poll(() => snapshot(backend)).toEqual(AFTER_ONE_RECEIVE);
+    // A page that still shows the order as Shipped (opened before the receive):
+    backend.tables.purchase_orders[0].status = 'shipped';
+    await reloadAndReopen(page);
+    backend.tables.purchase_orders[0].status = 'received';
+    await clickReceive(page);
+    await expect(page.locator('body')).toContainText('already changed');
     expect(snapshot(backend)).toEqual(AFTER_ONE_RECEIVE);
+  });
+
+  test('drop after the database saved line A\'s stock: order Received, the page names the uncertain line, and no Receive button', async ({ page, backend }) => {
+    backend.dropNext('inventory', 'PATCH', { applied: true });
+    await clickReceive(page);
+    await expect(page.locator('body')).toContainText('is marked Received, but the work stopped part-way');
+    await expect(page.locator('body')).toContainText('SYNTHETIC product A');
+    await expect(page.locator('body')).toContainText('expense NOT logged');
+    expect(snapshot(backend)).toEqual({ ...BEFORE, availableA: 60, poStatus: 'received' });
+    await expect(page.locator('.poReceiveBtn')).toHaveCount(0);
+  });
+
+  test('...and after a reload there is still no way to receive it a second time', async ({ page, backend }) => {
+    backend.dropNext('inventory', 'PATCH', { applied: true });
+    await clickReceive(page);
+    await expect(page.locator('body')).toContainText('stopped part-way');
+    await page.reload();
+    await expect(page.locator('#dash')).toBeVisible();
+    await gotoPage(page, 'purchaseOrdersPanel');
+    await page.locator(`.poItem[data-id="${PO_ID}"] .poRow`).click();
+    const overlay = page.locator('#inspectorOverlay');
+    if (await overlay.evaluate(el => el.classList.contains('open'))) await page.click('#insCloseBtn');
+    await expect(page.locator(`#poDetail_${PO_ID}`)).toContainText('Received');
+    await expect(page.locator('.poReceiveBtn')).toHaveCount(0);
+    expect(snapshot(backend).availableA).toBe(60);
+  });
+});
+
+test.describe('all-or-nothing (wanted behaviour; needs the R1 database function)', () => {
+  test('a dropped connection part-way leaves nothing half-saved', async ({ page, backend }) => {
+    test.fail(true, 'Receiving is not atomic yet: needs receive_purchase_order (R1), BLOCKED ON QUERY A/B');
+    backend.dropNext('inventory', 'PATCH', { applied: true });
+    await clickReceive(page);
+    await expect(page.locator('body')).toContainText('stopped part-way');
+    expect(snapshot(backend)).toEqual(BEFORE);
   });
 });
