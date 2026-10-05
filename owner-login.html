@@ -987,6 +987,9 @@
       const m = String((err && err.message) || err || '');
       return /Failed to fetch|NetworkError|Load failed|network|connection/i.test(m) && !(err && err.code);
     }
+    // Guard for an on/off column as the page showed it: "on" must still be
+    // true; "off" may be false or empty (null).
+    function boolGuard(shownOn){ return shownOn ? true : { notIs: true }; }
     function staleMessage(what){
       return (what || 'That item') + ' was already changed — by someone else, another tab or an agent — or you don\'t have permission to change it. Nothing was overwritten; the list has been refreshed.';
     }
@@ -3461,10 +3464,10 @@
             const nowActive = !row.classList.contains('inactive');
             btn.disabled = true;
             try {
-              const { error } = await supabase.from('suppliers')
-                .update({ is_active: !nowActive, updated_at: new Date().toISOString() }).eq('id', id);
-              if (error) throw error;
-              toastOk(nowActive ? 'Supplier deactivated.' : 'Supplier reactivated.');
+              const changed = await updateIfUnchanged('suppliers', id,
+                { is_active: !nowActive, updated_at: new Date().toISOString() }, { is_active: boolGuard(nowActive) });
+              if (changed) toastOk(nowActive ? 'Supplier deactivated.' : 'Supplier reactivated.');
+              else showDashError(staleMessage('That supplier'));
               loadSuppliers();
             } catch (err) {
               btn.disabled = false;
@@ -5515,7 +5518,7 @@
               <button class="small inqCopyBtn" data-id="${esc(i.id)}">Copy reply</button>
             ` : ''}
             ${i.status !== 'answered'
-              ? `<button class="small inqAnsweredBtn" data-id="${esc(i.id)}">Mark as answered</button>`
+              ? `<button class="small inqAnsweredBtn" data-id="${esc(i.id)}" data-status="${esc(i.status || '')}">Mark as answered</button>`
               : `<span class="badge sev-low">Answered ${esc(fmtDate(i.answered_at))}</span>`}
           </div>
         </div>`;
@@ -5585,8 +5588,9 @@
       const id = btn.getAttribute('data-id');
       btn.disabled = true;
       try {
-        const { error } = await supabase.from('customer_inquiries').update({ status: 'answered', answered_at: new Date().toISOString() }).eq('id', id);
-        if (error) throw error;
+        const changed = await updateIfUnchanged('customer_inquiries', id,
+          { status: 'answered', answered_at: new Date().toISOString() }, { status: btn.getAttribute('data-status') || null });
+        if (!changed) showDashError(staleMessage('That question'));
         loadInquiries();
       } catch (err) {
         showDashError('Could not mark that as answered: ' + (err && err.message ? err.message : err));
@@ -6163,11 +6167,9 @@
             cb.disabled = true;
             try {
               const uid = await currentUserId();
-              const { error } = await supabase
-                .from('business_rules')
-                .update({ is_active: newVal, updated_by: uid })
-                .eq('id', id);
-              if (error) throw error;
+              const changed = await updateIfUnchanged('business_rules', id,
+                { is_active: newVal, updated_by: uid }, { is_active: boolGuard(!newVal) });
+              if (!changed) throw new Error(staleMessage('That rule'));
             } catch (err) {
               cb.checked = !newVal;
               showDashError('Could not change that rule: ' + (err && err.message ? err.message : err));
@@ -6321,8 +6323,8 @@
             const newVal = cb.checked;
             cb.disabled = true;
             try {
-              const { error } = await supabase.from('sop_documents').update({ agent_visible: newVal }).eq('id', id);
-              if (error) throw error;
+              const changed = await updateIfUnchanged('sop_documents', id, { agent_visible: newVal }, { agent_visible: boolGuard(!newVal) });
+              if (!changed) throw new Error(staleMessage('That procedure'));
             } catch (err) {
               cb.checked = !newVal;
               showDashError('Could not update that procedure: ' + (err && err.message ? err.message : err));
@@ -7309,10 +7311,10 @@
             const makeActive = btn.textContent.trim() === 'Reactivate';
             btn.disabled = true;
             try {
-              const { error } = await supabase.from('products')
-                .update({ is_active: makeActive, updated_at: new Date().toISOString() }).eq('id', id);
-              if (error) throw error;
-              toastOk(makeActive ? 'Product reactivated.' : 'Product deactivated.');
+              const changed = await updateIfUnchanged('products', id,
+                { is_active: makeActive, updated_at: new Date().toISOString() }, { is_active: boolGuard(!makeActive) });
+              if (changed) toastOk(makeActive ? 'Product reactivated.' : 'Product deactivated.');
+              else showDashError(staleMessage('That product'));
               loadInventory();
             } catch (err) {
               btn.disabled = false;
