@@ -25,3 +25,4 @@ Rules: no merges, deploys, Supabase changes, agent state changes, branch deletio
 - `ops-findings.spec.js`: 34/34 pass (17 tests × 2 sizes). Each new wanted test was checked to fail on its own assertion with `test.fail` removed.
 - R3 draft hardened: `received_at` set → `already_done/received_before`. SQL unit tests pass (new N13 assertion), and the concurrency suite gives 12/12 PASS.
 - N14: Accounting/Tax totals are unpaged (Supabase 'Max rows' cap). Documented, with a current-behaviour test. ops-findings: 36/36 pass.
+- Merge simulation complete: 20/20 clean merges in the recommended order; 404 passed, 0 failed at the end; ops-findings 36/36 on the merged tree. Written up in pr-merge-order.md.
