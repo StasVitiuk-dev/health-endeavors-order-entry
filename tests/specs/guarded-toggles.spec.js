@@ -58,3 +58,18 @@ test.describe('Customer inquiries: Mark as answered', () => {
     expect(filtersOf(writes(backend, 'customer_inquiries')[0])).toEqual({ id: 'eq.inq-1', status: 'eq.drafted' });
   });
 });
+
+test('an agent switch stored as empty (null) shows on, and pausing it works (guard "not false")', async ({ page, backend }) => {
+  const { OWNER_USER } = require('../helpers/dashboard');
+  backend.tables.agent_controls = [{ agent_num: 4, enabled: null, updated_by: null, updated_at: null }];
+  await login(page);
+  await open(page, 'aiPanel');
+  const card = page.locator('#agentRegistryWrap .deletedRow[data-agent="4"]');
+  await expect(card.locator('.agentToggle')).toBeChecked();
+  await card.locator('.slider').click();
+  await expect(page.locator('#reauthOverlay')).toBeVisible();
+  await page.fill('#reauthPassword', OWNER_USER.password);
+  await page.click('#reauthConfirmBtn');
+  await expect.poll(() => backend.tables.agent_controls[0].enabled).toBe(false);
+  expect(filtersOf(writes(backend, 'agent_controls')[0])).toEqual({ agent_num: 'eq.4', enabled: 'not.is.false' });
+});

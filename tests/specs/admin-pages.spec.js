@@ -60,7 +60,7 @@ test.describe('Feature Flags', () => {
     const [w] = writes(backend, 'feature_flags');
     expect(w.body).toEqual({ enabled: true });
     // Only flips the flag from the state this page showed (off → on).
-    expect(filtersOf(w)).toEqual({ id: 'eq.ff-1', enabled: 'is.false' });
+    expect(filtersOf(w)).toEqual({ id: 'eq.ff-1', enabled: 'not.is.true' });
   });
 });
 

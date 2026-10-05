@@ -5238,7 +5238,8 @@
             // a pause made elsewhere (or by Emergency / No AI mode).
             const changed = await updateIfUnchanged('agent_controls', { agent_num: num },
               { enabled: newVal, updated_by: uid, updated_at: new Date().toISOString() },
-              { enabled: !newVal });
+              // The page shows a switch as on unless it is exactly false.
+              { enabled: newVal ? false : { notIs: false } });
             if (changed) toast((newVal ? 'Turned on: ' : 'Paused: ') + name);
             else showDashError(staleMessage('That agent switch'));
             await loadAgentControls();
@@ -5905,7 +5906,7 @@
               cb.checked = newVal;
               cb.disabled = true;
               try {
-                const changed = await updateIfUnchanged('feature_flags', id, { enabled: newVal }, { enabled: !newVal });
+                const changed = await updateIfUnchanged('feature_flags', id, { enabled: newVal }, { enabled: boolGuard(!newVal) });
                 if (!changed) { showDashError(staleMessage('That feature flag')); safeRun(loadFlags); }
               } catch (err) {
                 cb.checked = !newVal;
