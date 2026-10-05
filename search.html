@@ -157,6 +157,15 @@
   const SUPABASE_ANON_KEY = "sb_publishable_n0sEzZK0JMtwgk280a3YXA_zxtnheqj";
   const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+  // Turns text from the database into plain text before it is placed on the
+  // page, so a name or message containing <, >, & or quotes is shown as
+  // written instead of being treated as page code. Same helper as
+  // owner-login.html.
+  function esc(s) {
+    if (s === null || s === undefined) return '';
+    return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
   const typeLabels = {
     customer: 'Customer',
     order: 'Order',
@@ -171,15 +180,15 @@
       return;
     }
     if (!rows || rows.length === 0) {
-      box.innerHTML = `<div class="empty">No matches for "${term}".</div>`;
+      box.innerHTML = `<div class="empty">No matches for "${esc(term)}".</div>`;
       return;
     }
     box.innerHTML = rows.map(r => `
       <div class="result-row">
-        <span class="badge">${typeLabels[r.result_type] || r.result_type}</span>
+        <span class="badge">${esc(typeLabels[r.result_type] || r.result_type)}</span>
         <div>
-          <div class="result-label">${r.label ?? ''}</div>
-          ${r.subtitle ? `<div class="result-subtitle">${r.subtitle}</div>` : ''}
+          <div class="result-label">${esc(r.label)}</div>
+          ${r.subtitle ? `<div class="result-subtitle">${esc(r.subtitle)}</div>` : ''}
         </div>
       </div>
     `).join('');
@@ -196,7 +205,7 @@
       }
       const { data, error } = await sb.rpc('global_search', { search_term: term });
       if (error) {
-        document.getElementById('results').innerHTML = `<div class="error">Search failed: ${error.message}</div>`;
+        document.getElementById('results').innerHTML = `<div class="error">Search failed: ${esc(error.message)}</div>`;
         return;
       }
       renderResults(data, term);
