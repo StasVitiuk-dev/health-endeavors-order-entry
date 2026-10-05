@@ -89,3 +89,16 @@ test('Business Health tiles count every row: 1,500 pending approvals and 2,400 A
   await expect(tiles.locator('.stat', { hasText: 'Pending approvals' })).toContainText(/1,?500/);
   await expect(tiles.locator('.stat', { hasText: 'AI spend this month' })).toContainText('$24.00');
 });
+
+test('Tax Records cost-of-goods estimate: 2,500 orders with a 1,000-row cap and a 16 KB URL limit', async ({ page, backend }) => {
+  seedMany(backend, 2500, 0);
+  backend.tables.order_items = backend.tables.orders.map((o, i) => ({ id: 'oi-' + String(i).padStart(5, '0'), order_id: o.id, sku: i % 2 ? 'SYN-A' : 'SYN-B', product_name: 'SYNTHETIC', quantity: 2 }));
+  backend.tables.products = [{ id: 'p-a', sku: 'SYN-A', cost: 1.5, name: 'SYNTHETIC A' }, { id: 'p-b', sku: 'SYN-B', cost: 2.5, name: 'SYNTHETIC B' }];
+  backend.maxRows = 1000;
+  backend.maxUrlLength = 16384;
+  await login(page);
+  await openAllTime(page, 'taxRecordsPanel');
+  // 1,250 orders × 2 × $1.50 + 1,250 × 2 × $2.50 = $10,000
+  await expect(page.locator('#taxCogsWrap')).toContainText('$10,000.00');
+  expect(backend.requests.filter(r => r.table && r.method === 'GET' && r.path && (r.query || '').length > 16000)).toEqual([]);
+});

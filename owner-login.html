@@ -964,6 +964,22 @@
       throw new Error('Too many ' + table + ' records to add up in the browser.');
     }
 
+    // fetchAllRows for "rows whose <column> is one of these values". A long
+    // .in() list goes into the URL, and real gateways reject URLs past a few
+    // KB (2,500 order ids would be ~90 KB), so the list is sent in chunks.
+    async function fetchAllRowsIn(table, columns, column, values, applyFilters){
+      const CHUNK = 150;
+      const out = [];
+      for (let i = 0; i < values.length; i += CHUNK) {
+        const part = values.slice(i, i + CHUNK);
+        out.push(...await fetchAllRows(table, columns, q => {
+          q = q.in(column, part);
+          return applyFilters ? applyFilters(q) : q;
+        }));
+      }
+      return out;
+    }
+
     // A browser-level network failure (no reply at all). The request may or
     // may not have reached the database, so the honest advice is "check
     // before retrying", not "try again".
@@ -8204,15 +8220,13 @@
         const unmatchedSkus = new Set();
         const orderIds = inScopeOrders.map(o => o.id);
         if (orderIds.length) {
-          const { data: items, error: itemsErr } = await supabase
-            .from('order_items').select('order_id, sku, product_name, quantity').in('order_id', orderIds);
-          if (itemsErr) throw itemsErr;
+          // Chunked and paged: every line of every order counts, and the
+          // request URLs stay short however many orders there are.
+          const items = await fetchAllRowsIn('order_items', 'id, order_id, sku, product_name, quantity', 'order_id', orderIds);
           const skus = [...new Set((items || []).map(i => i.sku).filter(Boolean))];
           const costBySku = {};
           if (skus.length) {
-            const { data: products, error: prodErr } = await supabase
-              .from('products').select('sku, cost').in('sku', skus);
-            if (prodErr) throw prodErr;
+            const products = await fetchAllRowsIn('products', 'id, sku, cost', 'sku', skus);
             (products || []).forEach(p => { if (p.sku) costBySku[p.sku] = p.cost; });
           }
           (items || []).forEach(it => {

@@ -124,6 +124,7 @@ class FakeSupabase {
     this.cdnRequests = [];     // every request for the Supabase library
     this.cdnBody = null;       // optional replacement bytes for the library (integrity tests)
     this.maxRows = null;       // optional per-reply row cap, like Supabase's "Max rows" (default 1000 there)
+    this.maxUrlLength = null;  // optional URL length limit (real gateways reject very long URLs)
   }
 
   // Changes the page asked for on any table (updates, inserts, deletes).
@@ -157,6 +158,10 @@ class FakeSupabase {
     if (url.pathname.startsWith('/rest/v1/')) {
       entry.table = url.pathname.slice('/rest/v1/'.length);
       this.requests.push(entry);
+      // Like the real gateway, refuse very long URLs (e.g. a huge .in() list).
+      if (this.maxUrlLength != null && req.url().length > this.maxUrlLength) {
+        return route.fulfill({ status: 414, contentType: 'text/plain', headers: { 'access-control-allow-origin': '*' }, body: 'URI Too Long' });
+      }
       const delay = this.delayMs[entry.table];
       if (delay) await new Promise(r => setTimeout(r, delay));
       return this.handleRest(route, entry);
