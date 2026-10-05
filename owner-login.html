@@ -1825,6 +1825,9 @@
         for (const b of buckets) {
           before[b] = Number((inv && inv[b]) || 0);
           after[b] = before[b] + Number(deltas[b]);
+          if (!Number.isFinite(before[b]) || !Number.isFinite(after[b])) {
+            throw new Error('The saved ' + (INVENTORY_BUCKET_LABELS[b] || b) + ' number for this product isn\'t a valid number, so nothing was changed. It needs fixing by hand before stock can move.');
+          }
           if (after[b] < 0) {
             const e = new Error('That would leave ' + (INVENTORY_BUCKET_LABELS[b] || b) + ' at ' + after[b] + ', which isn\'t allowed — only ' + before[b] + ' available in that bucket right now.');
             e.belowZero = { bucket: b, current: before[b], result: after[b] };
@@ -6858,6 +6861,15 @@
       }
     }
 
+    // Flags that start real outside effects and must stay off until their
+    // launch checks are done (R9). The switch still works — the owner decides —
+    // but turning one ON takes an explicit extra confirmation, and the page
+    // says why it is blocked. (The real protection is the database's own
+    // permissions; this only prevents an accidental click.)
+    const LAUNCH_BLOCKED_FLAGS = {
+      shopify_order_sync: 'Blocked until launch checks: keep off until the stock fixes (R1–R4) are live and Agent #1 (invoices) is confirmed on — otherwise real orders can be miscounted or left without an invoice.',
+    };
+
     async function loadFlags(){
       try {
         const { data: flags, error } = await supabase
@@ -6870,10 +6882,11 @@
           document.getElementById('flagsWrap').innerHTML = '<p class="empty">No feature flags exist yet.</p>';
         } else {
           document.getElementById('flagsWrap').innerHTML = flags.map(f => `
-            <div class="flagRow" data-id="${esc(f.id)}">
+            <div class="flagRow" data-id="${esc(f.id)}" data-key="${esc(f.flag_key || '')}">
               <div class="flagInfo">
-                <div class="k">${esc(f.label || f.flag_key)}</div>
+                <div class="k">${esc(f.label || f.flag_key)}${LAUNCH_BLOCKED_FLAGS[f.flag_key] ? ' <span class="badge sev-high flagBlockedBadge">Blocked until launch checks</span>' : ''}</div>
                 <div class="d">${esc(f.description || f.flag_key)}</div>
+                ${LAUNCH_BLOCKED_FLAGS[f.flag_key] ? `<div class="d flagBlockedReason" style="color:var(--danger);">${esc(LAUNCH_BLOCKED_FLAGS[f.flag_key])}</div>` : ''}
               </div>
               <label class="switch">
                 <input type="checkbox" class="flagToggle" ${f.enabled ? 'checked' : ''}>
@@ -6888,6 +6901,8 @@
               // Flip the switch back to how it was while we ask for your
               // password, so it doesn't visually take effect until confirmed.
               cb.checked = !newVal;
+              const blockedReason = newVal ? LAUNCH_BLOCKED_FLAGS[row.getAttribute('data-key')] : null;
+              if (blockedReason && !confirm(blockedReason + '\n\nTurn it ON anyway?')) return;
               const ok = await requireReauth(newVal ? 'turn this feature ON' : 'turn this feature OFF');
               if (!ok) return;
               cb.checked = newVal;

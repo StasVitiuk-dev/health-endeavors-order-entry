@@ -44,6 +44,7 @@ test.describe('Feature Flags', () => {
 
   test('turning a flag on asks for the password; Cancel leaves it off and sends nothing', async ({ page, backend }) => {
     const toggle = page.locator('.flagRow[data-id="ff-1"] .flagToggle');
+    page.once('dialog', d => d.accept()); // the launch-blocked confirmation (see below)
     await page.locator('.flagRow[data-id="ff-1"] .slider').click();
     await expect(page.locator('#reauthOverlay')).toBeVisible();
     await page.click('#reauthCancelBtn');
@@ -52,6 +53,7 @@ test.describe('Feature Flags', () => {
   });
 
   test('with the password, only the "enabled" field of that flag is sent', async ({ page, backend }) => {
+    page.once('dialog', d => d.accept()); // the launch-blocked confirmation (see below)
     await page.locator('.flagRow[data-id="ff-1"] .slider').click();
     await confirmPassword(page);
     await expect.poll(() => writes(backend, 'feature_flags').length).toBe(1);
@@ -59,6 +61,29 @@ test.describe('Feature Flags', () => {
     expect(w.body).toEqual({ enabled: true });
     // Only flips the flag from the state this page showed (off → on).
     expect(filtersOf(w)).toEqual({ id: 'eq.ff-1', enabled: 'is.false' });
+  });
+});
+
+// Shopify Order Sync is launch-blocked (R9): the page says so, and turning it
+// ON takes an explicit extra confirmation before the password prompt.
+test.describe('Feature Flags: launch-blocked Shopify Order Sync', () => {
+  test.beforeEach(async ({ page, backend }) => { seed(backend); await login(page); await open(page, 'flagsPanel'); });
+
+  test('the flag is labelled as blocked until launch checks, with the reason', async ({ page }) => {
+    const row = page.locator('.flagRow[data-id="ff-1"]');
+    await expect(row.locator('.flagBlockedBadge')).toHaveText('Blocked until launch checks');
+    await expect(row.locator('.flagBlockedReason')).toContainText('R1–R4');
+  });
+
+  test('declining the extra confirmation sends nothing and asks no password', async ({ page, backend }) => {
+    let message = '';
+    page.once('dialog', d => { message = d.message(); d.dismiss(); });
+    await page.locator('.flagRow[data-id="ff-1"] .slider').click();
+    await page.waitForTimeout(300);
+    expect(message).toContain('Turn it ON anyway?');
+    await expect(page.locator('#reauthOverlay')).toBeHidden();
+    await expect(page.locator('.flagRow[data-id="ff-1"] .flagToggle')).not.toBeChecked();
+    expect(writes(backend)).toEqual([]);
   });
 });
 
