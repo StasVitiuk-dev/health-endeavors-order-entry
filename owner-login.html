@@ -23,7 +23,7 @@
 <title>Health Endeavors — Owner Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous" onerror="window.__sbLoadFailed=true"></script>
 <link rel="stylesheet" href="assets/owner-login.css?v=71e9d86dca">
-<script src="assets/owner-login-helpers.js?v=5f9ab243d8" onerror="window.__heHelpersLoadFailed=true"></script>
+<script src="assets/owner-login-helpers.js?v=4ef61f2455" onerror="window.__heHelpersLoadFailed=true"></script>
 <script>
   // Applied before anything renders so there's no flash of the wrong theme.
   (function(){
@@ -937,6 +937,18 @@
         const { data: changed, error: updErr } = await q.select('product_id');
         if (updErr) throw updErr;
         if (Array.isArray(changed) && changed.length === 1) return { before, after };
+        // No row changed. Either someone changed the numbers (retry), or the
+        // database's rules refused this user (row-level security answers with
+        // "0 rows", not an error). If the numbers are exactly as read, it was
+        // a refusal: stop and say so instead of retrying.
+        const { data: again, error: againErr } = await supabase
+          .from('inventory').select('*').eq('product_id', productId).maybeSingle();
+        if (againErr) throw againErr;
+        if (again && buckets.every(b => String(again[b]) === String(inv[b]))) {
+          const e = new Error('You do not have permission to change stock (only the Owner or an Administrator can). Nothing was changed.');
+          e.permissionDenied = true;
+          throw e;
+        }
       }
       throw new Error('The stock for this product kept changing while saving (someone else is adjusting it right now). Nothing was changed on this try — refresh and try again.');
     }
@@ -983,6 +995,11 @@
       }
       return out;
     }
+
+    // Stock (inventory, adjustments, lots, purchasing, recalls) can only be
+    // changed by the Owner or an Administrator — the database's own rules
+    // (Query A). The page checks first so it never starts a change it can't finish.
+    function canChangeStock(){ return currentUserRole === 'owner' || currentUserRole === 'administrator'; }
 
     // A browser-level network failure (no reply at all). The request may or
     // may not have reached the database, so the honest advice is "check
@@ -3779,6 +3796,7 @@
 
       const recvBtn = box.querySelector('.poReceiveBtn');
       if (recvBtn) recvBtn.addEventListener('click', async () => {
+        if (!canChangeStock()) { showDashError('Only the Owner or an Administrator can change stock. Nothing was changed.'); return; }
         recvBtn.disabled = true;
         // Claim first: the order is marked Received only if it is still
         // Ordered or Shipped. A double click, a second tab, a stale page or a
@@ -4199,6 +4217,7 @@
             const row = btn.closest('[data-id]');
             const id = row.getAttribute('data-id');
             const lotId = row.getAttribute('data-lot');
+            if (!canChangeStock()) { showDashError('Only the Owner or an Administrator can change stock. Nothing was changed.'); return; }
             btn.disabled = true;
             try {
               const uid = await currentUserId();
@@ -6221,7 +6240,9 @@
               </div>
             </div>`).join('');
           document.querySelectorAll('.approveBtn').forEach(btn => btn.addEventListener('click', () => decideApproval(btn, 'approved')));
-          document.querySelectorAll('.denyBtn').forEach(btn => btn.addEventListener('click', () => decideApproval(btn, 'denied')));
+          // The database allows only pending / approved / rejected (Query A, 2026-10-05):
+          // 'denied' was refused by its status check, so Deny never worked.
+          document.querySelectorAll('.denyBtn').forEach(btn => btn.addEventListener('click', () => decideApproval(btn, 'rejected')));
         }
       } catch (err) {
         showDashError('Could not load the approval queue: ' + (err && err.message ? err.message : err));
@@ -6231,7 +6252,7 @@
     async function decideApproval(btn, decision){
       const row = btn.closest('.approvalRow');
       const id = row.getAttribute('data-id');
-      const ok = await requireReauth(decision === 'approved' ? 'approve this request' : 'deny this request');
+      const ok = await requireReauth(decision === 'approved' ? 'approve this request' : 'deny (reject) this request');
       if (!ok) return;
       row.querySelectorAll('button').forEach(b => b.disabled = true);
       try {
@@ -6693,6 +6714,8 @@
     // The `documents` table and its RLS already existed, unused, before this
     // (staff can add/view, only Owner/Administrator can delete) — verified
     // live via information_schema before writing any of this.
+    // The document link types the database accepts besides "not linked" (Query A).
+    const DOCUMENT_LINK_TYPES = ['supplier'];
     const DOCUMENT_CATEGORY_LABELS = {
       contract: 'Contract',
       insurance: 'Insurance',
@@ -6724,29 +6747,23 @@
 
     async function loadDocuments(){
       try {
-        const [{ data: docs, error }, { data: suppliers }, { data: incidents }, { data: pos }] = await Promise.all([
+        // A document can be linked to a supplier, or to nothing: the database
+        // only allows related_type 'supplier' or 'general' (Query A). Incident
+        // and purchase-order links were offered before and always failed.
+        const [{ data: docs, error }, { data: suppliers }] = await Promise.all([
           supabase.from('documents')
             .select('id, title, category, related_type, related_id, document_url, file_path, issued_date, expiration_date, notes, created_at')
             .order('created_at', { ascending: false }),
           supabase.from('suppliers').select('id, name').order('name', { ascending: true }),
-          supabase.from('incidents').select('id, incident_number, title').order('created_at', { ascending: false }),
-          supabase.from('purchase_orders').select('id, po_number').order('created_at', { ascending: false }),
         ]);
         if (error) throw error;
         const rows = docs || [];
         SEARCH_INDEX.documents = rows;
 
         const suppliersById = {}; (suppliers || []).forEach(s => { suppliersById[s.id] = s; });
-        const incidentsById = {}; (incidents || []).forEach(i => { incidentsById[i.id] = i; });
-        const posById = {}; (pos || []).forEach(p => { posById[p.id] = p; });
 
         function relatedLabel(d){
           if (d.related_type === 'supplier' && suppliersById[d.related_id]) return 'Supplier: ' + suppliersById[d.related_id].name;
-          if (d.related_type === 'incident' && incidentsById[d.related_id]) {
-            const i = incidentsById[d.related_id];
-            return 'Incident: ' + (i.incident_number || '') + ' — ' + i.title;
-          }
-          if (d.related_type === 'purchase_order' && posById[d.related_id]) return 'Purchase Order: ' + posById[d.related_id].po_number;
           return null;
         }
 
@@ -6754,9 +6771,7 @@
         const relatedSel = document.getElementById('docRelated');
         const keepRelated = relatedSel.value;
         relatedSel.innerHTML = '<option value="">Not linked to a specific record</option>' +
-          (suppliers && suppliers.length ? `<optgroup label="Suppliers">${suppliers.map(s => `<option value="supplier:${esc(s.id)}">${esc(s.name)}</option>`).join('')}</optgroup>` : '') +
-          (incidents && incidents.length ? `<optgroup label="Incidents">${incidents.map(i => `<option value="incident:${esc(i.id)}">${esc(i.incident_number || '')} — ${esc(i.title)}</option>`).join('')}</optgroup>` : '') +
-          (pos && pos.length ? `<optgroup label="Purchase Orders">${pos.map(p => `<option value="purchase_order:${esc(p.id)}">${esc(p.po_number)}</option>`).join('')}</optgroup>` : '');
+          (suppliers && suppliers.length ? `<optgroup label="Suppliers">${suppliers.map(s => `<option value="supplier:${esc(s.id)}">${esc(s.name)}</option>`).join('')}</optgroup>` : '');
         relatedSel.value = keepRelated;
 
         const expiringSoon = rows.filter(d => {
@@ -6864,6 +6879,12 @@
         const [t, id] = relatedInput.value.split(':');
         relatedType = t; relatedId = id;
       }
+      // Checked before anything is uploaded, so a refused save never leaves a
+      // file behind. Only supplier links are allowed by the database.
+      if (relatedType !== null && !DOCUMENT_LINK_TYPES.includes(relatedType)) {
+        showDashError('Documents can only be linked to a supplier (or to nothing). Pick a supplier or "Not linked", then save again.');
+        return;
+      }
 
       const btn = e.target.querySelector('button[type="submit"]');
       const originalText = btn.textContent;
@@ -6893,7 +6914,17 @@
           notes: notesInput.value.trim() || null,
           uploaded_by: uid,
         });
-        if (error) throw error;
+        if (error) {
+          // The file is already in storage but its record was refused: remove
+          // the just-uploaded file so nothing is left that no page can show.
+          if (filePath) {
+            const { error: cleanupErr } = await supabase.storage.from('document-files').remove([filePath]);
+            if (cleanupErr) {
+              throw new Error((error.message || error) + ' — and the uploaded file could not be removed again; tell the owner it is left in storage as "' + filePath + '".');
+            }
+          }
+          throw error;
+        }
 
         titleInput.value = ''; categoryInput.value = ''; relatedInput.value = '';
         issuedInput.value = ''; expirationInput.value = ''; notesInput.value = '';
@@ -7451,6 +7482,7 @@
       if (!productId) { showDashError('Pick a product to adjust.'); return; }
       if (!bucket) { showDashError('Pick which bucket this adjustment applies to.'); return; }
       if (!changeAmount) { showDashError('Enter a non-zero amount (positive to add, negative to remove).'); return; }
+      if (!canChangeStock()) { showDashError('Only the Owner or an Administrator can change stock. Nothing was changed.'); return; }
 
       const submitBtn = e.target.querySelector('button[type="submit"]');
       const originalBtnText = submitBtn.textContent;
@@ -7650,6 +7682,15 @@
             const dispositionSelect = row.querySelector('.dispositionSelect');
             const disposition = dispositionSelect ? dispositionSelect.value : '';
             if (!disposition) { showDashError('Pick what happens to the stock before marking this Received.'); return; }
+            // Stock can only be changed by the Owner or an Administrator (the
+            // database's own rules, Query A). Check before anything is saved, so
+            // an employee never ends up with a return marked Received whose
+            // restock was then refused.
+            const restocks = (disposition === 'restock_available' || disposition === 'restock_damaged') && quantity > 0 && !!sku;
+            if (restocks && !canChangeStock()) {
+              showDashError('Only the Owner or an Administrator can restock a return. Nothing was changed. Ask one of them to mark it Received, or choose "Discard" if the item is not going back into stock.');
+              return;
+            }
             btn.disabled = true;
             // Claim first: mark the return Received only if it is still
             // Approved. Only the click that wins the claim restocks, so a

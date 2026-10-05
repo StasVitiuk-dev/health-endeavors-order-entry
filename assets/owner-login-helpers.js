@@ -33,7 +33,7 @@
       }
     }
 
-    const CLOSED_WORDS = ['done','complete','completed','resolved','closed','cancelled','canceled','denied','approved','fulfilled'];
+    const CLOSED_WORDS = ['done','complete','completed','resolved','closed','cancelled','canceled','denied','rejected','approved','fulfilled'];
 
     function isClosedStatus(status){
       if (!status) return false;
