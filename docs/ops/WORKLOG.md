@@ -33,3 +33,6 @@ Rules: no merges, deploys, Supabase changes, agent state changes, branch deletio
 - Baseline on the clean copy: 440 passed, 49 skipped.
 - Implemented and tested: guarded updates everywhere; compare-and-set stock; claim-first receive/return/recall; refund cap; confirmations; R7 pin + SRI; N14 paging (proved: the old code showed $10,000 instead of $25,000); N4 options; agent truth model; sync interlock; no-live-send tripwires; failure-recovery tests.
 - Stress: `stress_test.sh` 10 runs, 230 checks, 0 failed, 0 deadlocks. Control with the old lock order: 15–17 deadlocks out of 30.
+- Tax cost estimate: chunked + paged (an old URL of about 90 KB at 2,500 orders). Broad XSS test with a control. Document delete now needs the password. Modularization maps written.
+- Full suite at `5e53be2`: 531 passed / 0 failed / 65 skipped. PR heads re-checked: unchanged and all contained in this branch. `main` unchanged.
+- The morning report is `OVERNIGHT_PLATFORM_REVIEW_2026-10-05.md`. Progress/current-state: platform rows only.

@@ -1,6 +1,6 @@
 # Health Endeavors — current state (cross-project summary)
 
-**Last updated:** September 30, 2026. **Keep this short.** Details live in the linked documents; update this file whenever the verified state changes materially.
+**Last updated:** October 5, 2026 (platform sections §5, §6 and §8; website sections unchanged from Sept 30). **Keep this short.** Details live in the linked documents; update this file whenever the verified state changes materially.
 
 Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (from the owner's earlier chats, not re-checked) · **PROPOSED** · **OWNER DECISION REQUIRED** · **DEPRECATED**.
 
@@ -42,15 +42,22 @@ Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (fro
 - **Rules and record:** #5 (`CLAUDE.md`), #6 (project record + this file + progress tracker).
 - **Fixes waiting for review:** #7 escape output on search/dashboard pages (R6) · #8 agent status wording · #9 CSV formula guard · #10 unsafe link schemes · #11 US-evening dates · #12 phone table swipe · #13 password prompt double submit · #14 phone PO tap.
 - **Tests only:** #15, #16, #19–#24. **Reviews/plans:** #17 security review, #18 modularization plan.
-- All 16 fix and test branches merged together on a scratch copy passed: 405 passed, 0 failed (Sept 29).
+- All 20 branches merged together on a scratch copy, in the recommended order: no conflicts, 404 passed (Oct 4); re-checked Oct 5.
+- **Review branches (no PRs):**
+  - `claude/ops-readiness`: the operations review and the read-only Queries A/B/C
+  - `claude/platform-overnight-implementation`: the 20 PRs plus tested fixes for stale state, double actions, R7, report totals and agent truth, plus modularization steps 1–2. Its full suite: 531 passed, 0 failed
+  - `claude/tests-only-ci`: the CI workflow, not active
 
 ## 6. Known bugs and risks (top items)
 
-1. Stock can be double-counted or lost on retries or concurrent edits (PO receive, recalls, returns, manual adjustments): R1–R4, reproduced in tests. **Blocks** automatic Shopify stock sync.
-2. Product delete wipes stock first (R5).
-3. Unescaped output on `search.html` / `dashboard.html` (R6): fix in PR #7.
-4. Supabase library loaded from a CDN without a pinned version (R7): pending a safe way to verify.
-5. Approval-queue and PO status actions don't check the current state; PO Cancel has no confirmation (owner decisions).
+1. Stock can be double-counted or lost on retries or concurrent edits: R1–R4.
+   - On `main`: unprotected.
+   - On the overnight branch: protected browser-side (no double counting, no lost updates). A connection drop can still leave work half-done, so the all-or-nothing database functions are still needed: BLOCKED ON QUERY A/B. **Blocks** automatic Shopify stock sync.
+2. Product delete wipes stock first (R5). The overnight branch refuses while stock remains; the full fix needs Query A.
+3. Unescaped output on `search.html` / `dashboard.html` (R6): fix in PR #7, plus a broad XSS test on the overnight branch.
+4. Supabase library unpinned (R7): pinned with an integrity hash on the overnight branch (not merged).
+5. Approval, PO, return, recall, legal-hold, flag and agent-switch actions don't check the current state (main). Fixed on the overnight branch.
+6. **New (Oct 5):** report totals undercount past 1,000 rows (N14), fixed on the branch. Refunds recorded on Returns don't reduce revenue (N4): owner/accounting decision.
 6. Website risks once built: third-party apps and trackers (performance and privacy), unapproved claims, and placeholder text reaching production (a launch check will search for "PLACEHOLDER").
 
 ## 7. Safety boundaries (always)
