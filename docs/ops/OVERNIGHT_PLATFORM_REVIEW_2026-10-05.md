@@ -245,3 +245,87 @@ Earlier findings N1–N13: see `other-fixes-review.md`. Branch status of each:
 - no agent enabled or disabled; no backups touched; no money or accounting actions (N4 is code behind an unchanged default)
 - no secrets requested, created or written
 - no Real Estate access; no website repository access or changes (website rows in the progress doc were left as they were)
+
+---
+
+## Appendix A: auditability of state-changing actions (WS17)
+
+"Actor" means the row itself records who did it. Every table may additionally be covered by the database `audit_log` triggers that feed the Record Inspector history. Their coverage per table is **unknown until Query A** (it lists triggers).
+
+| Action | Actor recorded on the row | Timestamp | Old → new visible | Reason / comment |
+|---|---|---|---|---|
+| Approve / deny request | `reviewed_by` ✓ | `reviewed_at` | via `audit_log` | — |
+| PO ordered / shipped / cancelled | ✗ | `updated_at`, `ordered_at` | via `audit_log` | — |
+| PO receive | `received_by` ✓; stock history `adjusted_by` ✓; expense ✗ | `received_at` | history rows | reason text on history |
+| Return approve | `approved_by` ✓ | `approved_at` | via `audit_log` | — |
+| Return receive / refund / close | ✗ | `received_at` / `refunded_at` / `updated_at` | via `audit_log` | disposition; amount |
+| Recall quarantine / resolve | ✗ (stock history `adjusted_by` ✓) | `updated_at`, `resolved_at` | via `audit_log` | resolution note (now required) |
+| Legal hold release | `released_by` ✓ | `released_at` | — | ✗ (no reason field) |
+| FDA flag | ✗ | `fda_reported_at` | — | ✗ (no report reference) |
+| Manual stock adjustment | `adjusted_by` ✓ | `created_at` | history row | reason ✓ |
+| Agent switch / system mode / business rule | `updated_by` / `changed_by` ✓ | ✓ | via `audit_log` | — |
+| Feature flag | ✗ | ✗ | via `audit_log` | — |
+| Expense delete / receipt remove / product delete / document delete | ✗ | `deleted_at` only for expenses | via `audit_log` (if covered) | — |
+
+**Not changed tonight (would need schema columns, so draft-only):**
+- actor columns for return receive/refund, recall, FDA flag and flags
+- a release reason for legal holds
+- an FDA report reference
+
+**Recommendation:** first confirm `audit_log` trigger coverage with Query A. If every table above is covered with `auth.uid()`, the actor is already recorded and only the UI needs to show it.
+
+## Appendix B: destructive actions (WS18)
+
+| Action | Kind | Protection on the branch |
+|---|---|---|
+| Order delete | Soft delete (recycle bin) | password (existing) |
+| Expense delete | Soft delete (recycle bin) | — (reversible) |
+| Feature request delete | Soft delete | — (reversible) |
+| Document delete | **Irreversible**, compliance-affecting | confirm + **password (new)**; file left behind (N15) |
+| Receipt remove | **Irreversible** file delete, tax record | **two-press (new)**, unlink first |
+| Product delete | Irreversible; was stock-affecting | two-press (existing) + **refuses with stock (new)** |
+| PO line remove | Irreversible, money-affecting before ordering | only while draft/ordered (**new**) |
+| PO cancel | Status change, money-affecting | **two-press + state machine (new)** |
+| Recall resolve | Compliance | **note required + second press if never quarantined (new)** |
+| Legal hold release | Compliance | **password + active-only (new)** |
+| FDA flag | Compliance (no undo button) | **two-press + only if unset (new)** |
+| Session log-out (other device) | Security | password (existing) |
+| Calendar event / note delete | Irreversible, low impact | confirm (existing) |
+| Attention item dismiss | Reversible flag | — |
+
+## Appendix C: performance and scale (WS19)
+
+- **Measured** (`report-totals.spec.js`, synthetic): Accounting "All Time" with 2,500 orders and 1,200 expenses, behind a 400-row cap, renders correct totals in about 10 s of test time, in 7 + 3 paged requests. With the default 1,000-row cap: 3 + 2 requests.
+- **Changed:** totals are always complete now, at the cost of more requests as data grows. The scalable end state is `report_totals()` (database sums, one row), drafted and BLOCKED ON QUERY A/B.
+- **Still unbounded, but low risk today:**
+  - Calendar notes `.in(event_uid, ≤300)`: could exceed URL limits with very long Apple UIDs
+  - Inquiry → order lookup `.in(id, …)`
+  - Lists are capped by design (tasks 100, approvals, returns 200) and say so when truncated (now that the mock exposes the count, those notices are exercised)
+- No subscriptions or realtime channels are opened (verified: the test mock blocks websockets and no test fails on it). Background refresh: the current page only, every 5 minutes.
+
+## Appendix D: integration readiness on the platform side (WS20)
+
+- The design is in `docs/ops/integration-service-architecture.md`: one sale = one order = one invoice; idempotent inbox; reconciliation; stock publication blocked until R1–R4.
+- **Boundary:** the event contracts and the simulator live in the website workspace. Re-creating them here would duplicate website-owned code. **Stopped at the boundary** (the owner to approve a private integration repository).
+- **Platform-side pieces added tonight that the integration will rely on:**
+  - `report_totals()` draft
+  - the N4 refund policy (a single source of truth for refunds is needed before Shopify refunds arrive)
+  - the R9 interlock on `shopify_order_sync`
+  - the no-live-send tripwires
+- No endpoint, webhook or secret was created.
+
+## Appendix E: blueprint / specification gap (WS15)
+
+The full *Blueprint Checklist* and the 69-item specification are in the owner's private documents, not in this repository. Only the summary in `PROJECT_RECORD.md` §4 could be compared.
+
+| Item (from PROJECT_RECORD §4) | State | Rank (safety / value / difficulty / dependency) |
+|---|---|---|
+| R1–R5 all-or-nothing functions | browser-side protection done tonight; DB functions BLOCKED ON QUERY A/B | 1 / high / medium / Query A |
+| Agent #1 verification | UI now shows the real state; the owner must look | 1 / high / trivial / owner |
+| Agent run-history view | needs a history table (schema) | 3 / medium / medium / Query C |
+| "Recently done + Reopen" on Tasks | not built: needs the owner's choice of which transitions to allow back | 4 / medium / small / owner |
+| Login / failed-login history | needs auth logs server-side | 3 / medium / medium / server |
+| Business Rules DB validation | client validation exists; DB side needs schema | 3 / low / small / Query A |
+| Scheduled-report email; email intake | waits on an email service (R10) | 5 / medium / medium / owner |
+| Charts / analytics | not started | 5 / low / medium / — |
+| Modularization | steps 1–2 done tonight | 4 / maintainability / large / open PRs |
