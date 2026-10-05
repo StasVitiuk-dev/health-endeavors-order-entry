@@ -6033,7 +6033,7 @@
     // so it lives here the same way QC_TYPE_LABELS etc. do. Whenever an
     // agent's actual behavior changes, this list should be updated to match.
     const AGENT_REGISTRY = [
-      { num: 1, name: 'Invoice Agent', ai: false, status: 'Live now — runs automatically the moment an order is created',
+      { num: 1, name: 'Invoice Agent', ai: false, trigger: true, status: 'Runs automatically inside the database the moment an order is created or changes — but only while its switch is on (see the state badge). The dashboard cannot see the trigger itself or a last-run time for this agent.',
         desc: 'Generates, re-syncs, and voids invoices whenever an order is created or changes.',
         touches: ['orders (read)', 'invoices (write)'],
         limit: 'Fully automatic. Only ever creates paperwork — never touches money or sends anything. Its pause switch is real: turning it off stops it from creating, re-syncing, or voiding any invoice — new orders still save fine, they just won’t get invoiced until it’s back on.', enforced: true },
@@ -6055,7 +6055,7 @@
         limit: 'Fully automatic. Only opens a task — never contacts a carrier or a customer. A delayed task stays open after delivery until a person closes it. Handles up to 500 orders per run. If Shopify marks a fulfillment error/failure but tracking says delivered, it still opens the failed-review task, because the data contradicts itself and a person should look.', enforced: true, cronJobName: 'agent_5_shipping_tracking' },
       { num: 6, name: 'Customer Notification Agent', ai: false, status: 'Migrated to Supabase pg_cron (runs hourly at :05 inside the database — no longer waits on GitHub Actions minutes). 32 clean hourly runs and a live pause test passed September 26, 2026; the old GitHub schedule was removed the same night. Still dry-run only, no email service connected yet.',
         desc: 'Logs what it would email a customer for each order event (received / shipped / delivered / delayed / cancelled / refunded).',
-        touches: ['customer_notifications (write)'],
+        touches: ['customer_notifications (write)'], dryRun: true,
         limit: 'Cannot actually send anything — no email service is connected yet. Right now it can only write a log entry of what it would have sent.', enforced: true, cronJobName: 'agent_6_customer_notifications' },
       { num: 7, name: 'Customer Service Agent', ai: true, status: 'Last recorded state (September 26, 2026): switched off — its GitHub workflow was disabled until the store has products, so it should not start by itself when GitHub minutes reset on October 1. This dashboard cannot see GitHub, so check GitHub → Actions before relying on this; turning it back on is a deliberate step (Enable workflow).',
         desc: "Drafts a reply to a customer question using that order's context and any procedures you've marked visible to it.",
@@ -6065,17 +6065,52 @@
         desc: 'Checks for orders missing an invoice, stalled tasks, and orders/shipments that disagree with each other.',
         touches: ['orders (read)', 'invoices (read)', 'tasks (read/write)', 'shipments (read)', 'wholesale_inquiries (read)', 'contact_messages (read)'],
         limit: 'Fully automatic. Only opens a task when something looks wrong — never edits the records it’s checking.', enforced: false },
-      { num: 9, name: 'Accounting Agent', ai: false, status: 'Live now — dashboard-only, no scheduled job to wait on',
+      { num: 9, name: 'Accounting Agent', ai: false, dashboardOnly: true, status: 'Live now — dashboard-only, no scheduled job to wait on',
         desc: 'Rolls up real order revenue and your logged expenses into a live net-profit figure.',
         touches: ['orders (read)', 'expenses (read)'],
         limit: 'Not really an "agent" that acts on anything — it only computes and displays. Organizes and shows only; never moves money.', enforced: false },
-      { num: 10, name: 'Tax Record Agent', ai: false, status: 'Live now — dashboard-only, no scheduled job to wait on',
+      { num: 10, name: 'Tax Record Agent', ai: false, dashboardOnly: true, status: 'Live now — dashboard-only, no scheduled job to wait on',
         desc: 'Categorizes income and expenses, estimates cost of goods sold, tracks sales tax collected, and flags expenses with no receipt on file — builds a report to hand to your accountant.',
         touches: ['orders (read)', 'expenses (read)', 'order_items (read)', 'products (read)'],
         limit: 'Not really an "agent" that acts on anything — it only organizes and displays. Never files taxes, never contacts the IRS or any state, and never moves money.', enforced: false },
     ];
 
     let agentControlsByNum = {};
+    // 'loading' until the first read, then 'ok' or 'failed'. When the switches
+    // can't be read, every agent shows UNKNOWN — never "on" by default.
+    let agentControlsState = 'loading';
+    const AGENT_STALE_AFTER_HOURS = 2; // pg_cron agents run hourly; 2 missed hours = stale
+
+    // The one honest state for each agent, from the data the dashboard can
+    // actually see (agent_controls, its last_run_* columns, and whether the
+    // scheduled job exists). Anything it cannot see is UNKNOWN, not "live".
+    //   ENABLED · DISABLED · UNKNOWN · FAILED · STALE · DRY RUN · CALCULATED HERE
+    function agentTruth(a, ctrl, nowMs){
+      const now = nowMs || Date.now();
+      if (a.dashboardOnly) return { key: 'calc', label: 'Calculated here', cls: 'sev-low', detail: 'Worked out by this page each time it opens; nothing runs in the background.' };
+      if (agentControlsState === 'failed') return { key: 'unknown', label: 'Unknown', cls: '', detail: 'The agent switches could not be read, so the dashboard cannot say whether this agent is on.' };
+      if (agentControlsState === 'loading') return { key: 'unknown', label: 'Checking…', cls: '', detail: '' };
+      if (!ctrl) return { key: 'unknown', label: 'Unknown', cls: '', detail: 'No switch row for this agent in agent_controls.' };
+      if (ctrl.enabled === false) {
+        return { key: 'disabled', label: 'Disabled', cls: 'sev-medium',
+          detail: a.enforced ? 'Paused: its own code checks this switch.' : 'Switch is off, but this agent does not check its switch yet — make sure its runner is off too.' };
+      }
+      if (ctrl.last_run_status === 'failed') return { key: 'failed', label: 'Failed', cls: 'sev-high', detail: 'The last run failed' + (ctrl.last_error ? ': ' + ctrl.last_error : '.') };
+      if (a.cronJobName) {
+        const job = cronJobStatusByName[a.cronJobName];
+        if (!job || !job.active) return { key: 'stale', label: 'Stale', cls: 'sev-high', detail: job ? 'Its scheduled job is not active, so it will not run.' : 'Its scheduled job could not be confirmed.' };
+        const last = ctrl.last_run_at ? Date.parse(ctrl.last_run_at) : NaN;
+        if (isNaN(last)) return { key: 'stale', label: 'Stale', cls: 'sev-high', detail: 'No run recorded yet.' };
+        const hours = (now - last) / 3600000;
+        if (hours > AGENT_STALE_AFTER_HOURS) return { key: 'stale', label: 'Stale', cls: 'sev-high', detail: 'Last run ' + Math.floor(hours) + ' hours ago; it should run every hour.' };
+        if (a.dryRun) return { key: 'dryrun', label: 'Dry run', cls: 'sev-medium', detail: 'Running, but only logs what it would send — no email service is connected.' };
+        return { key: 'enabled', label: 'Enabled', cls: 'sev-low', detail: 'Switch on and running on schedule.' };
+      }
+      if (a.trigger) return { key: 'enabled', label: 'Enabled', cls: 'sev-low', detail: 'Switch on. Runs on order changes; the dashboard cannot see its last run.' };
+      // Agents that run on GitHub Actions (outside this dashboard's view) and
+      // don't check their switch yet: "on" here proves nothing about reality.
+      return { key: 'unknown', label: 'Unknown', cls: '', detail: 'Switch on, but this agent runs on GitHub Actions, which this dashboard cannot see, and it does not check its switch yet. Check GitHub → Actions.' };
+    }
     // Populated from the get_agent_cron_status() RPC — jobname -> {jobname, schedule, active}.
     // Only ever has entries for agents actually migrated to pg_cron.
     let cronJobStatusByName = {};
@@ -6114,13 +6149,18 @@
     function renderAgentRegistry(){
       document.getElementById('agentRegistryWrap').innerHTML = AGENT_REGISTRY.map(a => {
         const ctrl = agentControlsByNum[a.num];
-        const enabled = ctrl ? ctrl.enabled !== false : true;
+        const truth = agentTruth(a, ctrl);
+        // The switch only shows a position the dashboard actually read.
+        const switchKnown = agentControlsState === 'ok' && !!ctrl;
+        const enabled = switchKnown && ctrl.enabled !== false;
         return `
-        <div class="deletedRow" style="align-items:flex-start;">
+        <div class="deletedRow" style="align-items:flex-start;" data-agent="${a.num}" data-truth="${truth.key}">
           <div class="info" style="flex:1;">
             <b>#${a.num} — ${esc(a.name)}</b>
+            <span class="badge agentTruthBadge ${truth.cls}">${esc(truth.label)}</span>
             ${a.ai ? '<span class="badge sev-medium">Uses a paid AI model</span>' : '<span class="badge sev-low">Rule-based — no AI model</span>'}
             ${a.enforced ? '<span class="badge sev-low">Switch enforced</span>' : '<span class="badge sev-medium">Switch not yet enforced</span>'}
+            ${truth.detail ? `<div class="agentTruthDetail" style="font-size:12.5px;margin-top:4px;">${esc(truth.detail)}</div>` : ''}
             <div style="color:#8a9694;font-size:12px;margin-top:2px;">${esc(a.status)}</div>
             <div style="margin-top:6px;">${esc(a.desc)}</div>
             <div style="margin-top:6px;font-size:12.5px;color:#5b6664;"><b>Touches:</b> ${a.touches.map(esc).join(', ')}</div>
@@ -6128,8 +6168,8 @@
             ${ctrl && ctrl.updated_at ? `<div style="margin-top:6px;font-size:12px;color:#8a9694;">Last changed ${ctrl.who ? 'by ' + esc(ctrl.who) + ' ' : ''}on ${new Date(ctrl.updated_at).toLocaleString()}</div>` : ''}
             ${agentJobHealthHtml(a, ctrl)}
           </div>
-          <label class="switch" title="${enabled ? 'On — click to pause this agent' : 'Off — click to turn this agent back on'}">
-            <input type="checkbox" class="agentToggle" data-num="${a.num}" data-name="${esc(a.name)}" ${enabled ? 'checked' : ''}>
+          <label class="switch" title="${!switchKnown ? 'Switch position unknown — it could not be read' : (enabled ? 'On — click to pause this agent' : 'Off — click to turn this agent back on')}">
+            <input type="checkbox" class="agentToggle" data-num="${a.num}" data-name="${esc(a.name)}" ${enabled ? 'checked' : ''} ${switchKnown ? '' : 'disabled'}>
             <span class="slider"></span>
           </label>
         </div>`;
@@ -6206,11 +6246,17 @@
         }
 
         agentControlsByNum = byId;
+        agentControlsState = 'ok';
         renderAgentRegistry();
         renderPausedAgentsBanner();
       } catch (err) {
-        // Not fatal — the registry still renders with everything shown as on.
+        // Not fatal, but never pretend: every agent shows UNKNOWN and the
+        // switches are disabled until they can be read.
         console.warn('Could not load agent controls:', err && err.message ? err.message : err);
+        agentControlsState = 'failed';
+        agentControlsByNum = {};
+        if (document.getElementById('agentRegistryWrap')) renderAgentRegistry();
+        renderPausedAgentsBanner();
       }
     }
 
@@ -6220,6 +6266,11 @@
     function renderPausedAgentsBanner(){
       const banner = document.getElementById('pausedAgentsBanner');
       if (!banner) return;
+      if (agentControlsState === 'failed') {
+        banner.style.display = 'block';
+        banner.textContent = 'Agent switches could not be read — the dashboard cannot tell which agents are on. See AI Agent Activity.';
+        return;
+      }
       const paused = AGENT_REGISTRY
         .filter(a => agentControlsByNum[a.num] && agentControlsByNum[a.num].enabled === false);
       if (!paused.length) {
@@ -6255,9 +6306,9 @@
             .select('id, agent_key, output_summary, confidence, escalated_to_human, cost_usd, created_at')
             .order('created_at', { ascending: false })
             .limit(50),
-          supabase.from('ai_decision_log')
-            .select('cost_usd')
-            .gte('created_at', startOfMonth.toISOString()),
+          // every row of the month, not just the first 1,000 (finding N14)
+          fetchAllRows('ai_decision_log', 'id, cost_usd', q => q.gte('created_at', startOfMonth.toISOString()))
+            .then(rows => ({ data: rows, error: null }), err => ({ data: null, error: err })),
           supabase.from('ai_model_config')
             .select('agent_name, provider, model, fallback_provider, fallback_model'),
         ]);
@@ -6862,7 +6913,7 @@
       NORMAL:     { label: 'Normal',     desc: 'Everything runs as usual.',                                    bg: '#e7f3ea', fg: '#1e6b34', border: '#bfe3c8' },
       LIMITED_AI: { label: 'Limited AI', desc: 'Only high-confidence, low-risk AI actions run.',                bg: '#fff4dd', fg: '#8a5b00', border: '#f2d999' },
       NO_AI:      { label: 'No AI',      desc: 'Every AI agent is paused; rule-based automation keeps running.', bg: '#fff0e6', fg: '#a03d00', border: '#f5c7a3' },
-      EMERGENCY:  { label: 'Emergency',  desc: 'AI paused and Shopify Order Sync switched off.',                bg: '#fbe6e6', fg: '#9e1b1b', border: '#f0bdbd' },
+      EMERGENCY:  { label: 'Emergency',  desc: 'AI paused and Shopify Order Sync switched off. Rule-based agents (#1 invoices, #4, #5, #6) keep running.',                bg: '#fbe6e6', fg: '#9e1b1b', border: '#f0bdbd' },
     };
 
     let SYSTEM_MODE_SEEN; // the mode this page last showed; undefined = no mode row found
