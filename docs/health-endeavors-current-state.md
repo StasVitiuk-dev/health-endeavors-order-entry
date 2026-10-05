@@ -45,7 +45,7 @@ Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (fro
 - All 20 branches merged together on a scratch copy, in the recommended order: no conflicts, 404 passed (Oct 4); re-checked Oct 5.
 - **Review branches (no PRs):**
   - `claude/ops-readiness`: the operations review and the read-only Queries A/B/C
-  - `claude/platform-overnight-implementation`: the 20 PRs plus tested fixes for stale state, double actions, R7, report totals and agent truth, plus modularization steps 1–2. Its full suite: 531 passed, 0 failed
+  - `claude/platform-overnight-implementation`: the 20 PRs plus tested fixes for stale state, double actions, R7, report totals and agent truth, plus modularization steps 1–2. Its full suite: 553 passed, 0 failed
   - `claude/tests-only-ci`: the CI workflow, not active
 
 ## 6. Known bugs and risks (top items)

@@ -36,3 +36,4 @@ Rules: no merges, deploys, Supabase changes, agent state changes, branch deletio
 - Tax cost estimate: chunked + paged (an old URL of about 90 KB at 2,500 orders). Broad XSS test with a control. Document delete now needs the password. Modularization maps written.
 - Full suite at `5e53be2`: 531 passed / 0 failed / 65 skipped. PR heads re-checked: unchanged and all contained in this branch. `main` unchanged.
 - The morning report is `OVERNIGHT_PLATFORM_REVIEW_2026-10-05.md`. Progress/current-state: platform rows only.
+- **Final:** full suite on `eb5870b`: 553 passed / 0 failed / 65 skipped. Merge-simulation re-run: 20/20 clean merges; checkpoints 364 and 405 passed; fingerprints identical to Oct 4. Self-review fixes added: key-column readback, Returns column fallback, null-switch guards.

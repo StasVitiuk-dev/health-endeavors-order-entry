@@ -35,7 +35,7 @@
    - CSS and icon moved to `assets/` (pixel-identical)
    - 21 pure helpers moved to `assets/owner-login-helpers.js`, with load and version guards
    - `owner-login.html`: 536 KB → 464 KB
-8. **Tests:** the full suite on the branch has **531 passing, 0 failing**. 8 new spec files (44 test definitions, more with per-page loops) and 8 rewritten spec files. Local database stress suite: 230 checks, 0 failures, 0 deadlocks.
+8. **Tests:** the full suite on the branch has **553 passing, 0 failing** (final commit `eb5870b`). 8 new spec files (44 test definitions, more with per-page loops) and 8 rewritten spec files. Local database stress suite: 230 checks, 0 failures, 0 deadlocks.
 9. **CI** is ready on its own branch (not active).
 
 ## 2. Branches and commits
@@ -66,7 +66,11 @@
 | `5e53be2` | modularization step 2 (pure helpers) |
 | `02b3470` | XSS-everywhere test, document delete password, modularization maps |
 | `d1a8370` | Tax cost estimate: chunked + paged |
-| *(final)* | docs: this review, progress/current-state, work log |
+| `252c4cf`, `29b754b` | docs: this review + appendices, progress/current-state, work log |
+| `7d0b7e9` | guards for the remaining toggles (suppliers, products, business rules, procedure visibility, inquiry answered) |
+| `b412a72` | self-review hardening: key-column readback (`agent_controls` may have no `id`); Returns falls back if the price columns are missing |
+| `eb5870b` | self-review hardening: guards match what the page displays (null agent switch = on, null flag = off) |
+| *(final)* | final test numbers in this file and the work log |
 
 **`main` unchanged:** `d3db7bc8e8cb74e9e26e296ac5ca546164a63cb1` (checked at the end of the session).
 
@@ -97,6 +101,7 @@
 | Products | Delete refuses while any stock remains (fresh read). |
 | Manual adjustments | Compare-and-set; honest network-drop message. |
 | Feature requests, feature flags, agent switches, system mode | Change only from the state the page showed. A stale tab can't undo Emergency mode or a pause. |
+| Suppliers, products (active), business rules (on/off), procedure visibility, inquiry "answered" | Same, via `boolGuard()`: "on" must still be true; "off" may be false or null. |
 | Reports (N14) | Accounting, Tax Records (incl. cost estimate), Business Health, Daily Summary and AI spend read every row. |
 | N4 | `ACCOUNTING_REFUND_POLICY` (`'status_only'` kept) plus a tested `'subtract_return_refunds'` option that never subtracts twice. |
 | Agents | `agentTruth()` states. Unreadable switches show Unknown and are disabled. Banner says when switches can't be read. #1 text no longer fixed "Live now". The Emergency description says rule-based agents keep running. |
@@ -153,7 +158,12 @@
 
 ### 4.1 Final runs
 
-*(Filled in at the end of the session: see the work log entry "final".)*
+| Run | Result |
+|---|---|
+| **Full suite on the final code commit `eb5870b`** (clean worktree, nothing else running) | **553 passed, 0 failed, 65 skipped** (15.8 min) |
+| Merge simulation re-run (fresh scratch copy of `main`, PR heads re-fetched and unchanged) | **20/20 clean merges, no conflicts.** Smoke tests (`general` + `safety`) after every merge: 0 failures. Full suite after step 12: **364 passed**. After step 20: **405 passed**, 0 failed. `owner-login.html` fingerprints identical to the Oct 4 simulation at every step (`49514277` → … → `c6b809a9`). |
+
+**Note on the smoke counts:** during the re-run they were 25–28 passed and never failed. The lower counts coincided with my own test runs competing for CPU. Quiet steps showed 28. The full-suite checkpoints are the authoritative numbers.
 
 ## 5. Review ready
 
@@ -197,6 +207,14 @@ Earlier findings N1–N13: see `other-fixes-review.md`. Branch status of each:
 - partly: N10 (confirmation + unlink-first)
 - owner decision: N4 (options ready)
 - documented: N2, N7, N8 (pin done), N9
+
+### 7.1 Self-review of tonight's own code (fixed before anything is merged)
+
+| Issue in the new code | Risk if merged | Fix |
+|---|---|---|
+| The guarded update read back `id`. `agent_controls` is keyed by `agent_num` and may have no `id` column. | Agent switches could fail in production | Reads back only the key column(s) used (`b412a72`); test asserts `select=agent_num` |
+| Returns now reads `order_items.unit_price` / `line_total` for the refund cap | If the columns were missing, the Returns page would fail to load | Falls back to the old column list on an undefined-column error (`b412a72`); test |
+| Guards for switches stored as null didn't match the display (null agent switch shown on; null flag shown off) | Those switches would always say "already changed" | Guards mirror the display rule (`eb5870b`); test |
 
 ## 8. Modularization progress
 
