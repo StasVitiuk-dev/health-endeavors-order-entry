@@ -1780,6 +1780,16 @@
       if (s === null || s === undefined) return '';
       return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     }
+    // One CSV cell, quoted. Spreadsheet apps run a cell that starts with
+    // = + - @ (or a tab / line break) as a formula, so text like a vendor or
+    // person name starting with one of those gets a leading apostrophe and is
+    // shown as plain text. Plain numbers and money amounts (including
+    // negatives like -$20.00) are left exactly as they are.
+    function csvCell(c){
+      let s = String(c === null || c === undefined ? '' : c);
+      if (/^[=+\-@\t\r]/.test(s) && !/^[-+]?\$?[\d,]+(\.\d+)?%?$/.test(s)) s = "'" + s;
+      return '"' + s.replace(/"/g, '""') + '"';
+    }
     function fmtMoney(amount, currency){
       const n = Number(amount || 0);
       try {
@@ -3622,7 +3632,7 @@
         recordTitle(r),
         plainChange(r),
       ]));
-      const csv = lines.map(l => l.map(c => '"' + String(c === null || c === undefined ? '' : c).replace(/"/g, '""') + '"').join(',')).join('\r\n');
+      const csv = lines.map(l => l.map(csvCell).join(',')).join('\r\n');
       const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -9006,7 +9016,7 @@
         ['Date', 'Category', 'Vendor', 'Amount'],
         ...r.missing.map(e => [fmtDate(e.expense_date), (TAX_CATEGORY_MAP[e.category] || {}).label || e.category || '', e.vendor || '', fmtMoney(e.amount, r.currency)]),
       ];
-      const csv = lines.map(l => l.map(c => '"' + String(c === null || c === undefined ? '' : c).replace(/"/g, '""') + '"').join(',')).join('\r\n');
+      const csv = lines.map(l => l.map(csvCell).join(',')).join('\r\n');
       const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
