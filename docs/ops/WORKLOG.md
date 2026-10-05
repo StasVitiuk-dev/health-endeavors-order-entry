@@ -27,3 +27,9 @@ Rules: no merges, deploys, Supabase changes, agent state changes, branch deletio
 - N14: Accounting/Tax totals are unpaged (Supabase 'Max rows' cap). Documented, with a current-behaviour test. ops-findings: 36/36 pass.
 - Merge simulation complete: 20/20 clean merges in the recommended order; 404 passed, 0 failed at the end; ops-findings 36/36 on the merged tree. Written up in pr-merge-order.md.
 - Final: OWNER-REVIEW-PACKAGE.md written. Push refused (403, GitHub access); the bundle is in the scratchpad.
+
+## 2026-10-05 overnight: implementation branch `claude/platform-overnight-implementation`
+- Base: `main` + the 20 open PR branches + `claude/ops-readiness`, as merge commits (no branch changed). The fingerprint equals the simulation's (`c6b809a9`).
+- Baseline on the clean copy: 440 passed, 49 skipped.
+- Implemented and tested: guarded updates everywhere; compare-and-set stock; claim-first receive/return/recall; refund cap; confirmations; R7 pin + SRI; N14 paging (proved: the old code showed $10,000 instead of $25,000); N4 options; agent truth model; sync interlock; no-live-send tripwires; failure-recovery tests.
+- Stress: `stress_test.sh` 10 runs, 230 checks, 0 failed, 0 deadlocks. Control with the old lock order: 15–17 deadlocks out of 30.
