@@ -45,3 +45,46 @@ test('the stylesheet and icon load (no 404) and styles apply', async ({ page, ba
   const display = await page.locator('#dash').evaluate(el => getComputedStyle(el).display);
   expect(display).not.toBe('inline');
 });
+
+// ---- step 2: pure helpers in assets/owner-login-helpers.js
+base.test.describe('pure helpers file', () => {
+  base.test.beforeEach(({}, testInfo) => { base.test.skip(testInfo.project.name !== 'desktop', 'source check; run once'); });
+
+  base.test('loads into window.HE.helpers (frozen, API 1) without touching the DOM or Supabase', () => {
+    const src = fs.readFileSync(path.join(ROOT, 'assets', 'owner-login-helpers.js'), 'utf8');
+    base.expect(src).not.toMatch(/\bdocument\b|\bsupabase\b|localStorage|fetch\(/);
+    const window = {};
+    new Function('window', src)(window);
+    base.expect(window.HE.helpers.API).toBe(1);
+    base.expect(Object.isFrozen(window.HE.helpers)).toBe(true);
+    base.expect(window.HE.helpers.esc('<b>')).toBe('&lt;b&gt;');
+    base.expect(window.HE.helpers.likeLiteral('A_1%')).toBe('A\\_1\\%');
+  });
+
+  base.test('every helper the page takes from window.HE.helpers exists there, and none is still defined in the page', () => {
+    const src = fs.readFileSync(path.join(ROOT, 'assets', 'owner-login-helpers.js'), 'utf8');
+    const window = {};
+    new Function('window', src)(window);
+    const m = html().match(/const \{\n([\s\S]*?)\n    \} = window\.HE\.helpers;/);
+    base.expect(m).not.toBeNull();
+    const names = m[1].split(',').map(x => x.trim()).filter(Boolean);
+    base.expect(names.length).toBe(21);
+    for (const n of names) {
+      base.expect(window.HE.helpers[n], n).toBeDefined();
+      base.expect(html(), n).not.toMatch(new RegExp('^    (async )?function ' + n + '\\s*\\(|^    const ' + n + '\\s*=', 'm'));
+    }
+  });
+});
+
+test('if the helpers file fails to load, the page says so and does not start', async ({ page }) => {
+  await page.route('**/assets/owner-login-helpers.js*', route => route.fulfill({ status: 404, body: 'not found' }));
+  await page.goto('/owner-login.html');
+  await expect(page.locator('body')).toContainText('owner-login-helpers.js) did not load');
+});
+
+test('an old helpers file (wrong API) is refused with a "reload" message', async ({ page }) => {
+  const src = fs.readFileSync(path.join(ROOT, 'assets', 'owner-login-helpers.js'), 'utf8').replace('API: 1,', 'API: 0,');
+  await page.route('**/assets/owner-login-helpers.js*', route => route.fulfill({ status: 200, contentType: 'application/javascript', body: src }));
+  await page.goto('/owner-login.html');
+  await expect(page.locator('body')).toContainText('loaded a mix of old and new files');
+});

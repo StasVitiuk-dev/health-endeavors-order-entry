@@ -10,7 +10,12 @@
 const fs = require('fs');
 const path = require('path');
 
-const SOURCE = fs.readFileSync(path.resolve(__dirname, '..', '..', 'owner-login.html'), 'utf8');
+// owner-login.html plus the pure helpers moved out of it into
+// assets/owner-login-helpers.js (same 4-space indentation, so the same rules
+// find them in either file).
+const ROOT = path.resolve(__dirname, '..', '..');
+const SOURCE = fs.readFileSync(path.join(ROOT, 'owner-login.html'), 'utf8')
+  + '\n' + fs.readFileSync(path.join(ROOT, 'assets', 'owner-login-helpers.js'), 'utf8');
 
 // The dashboard code is consistently indented, so a top-level helper inside
 // initApp() starts on a line indented by 4 spaces and ends at the next line
