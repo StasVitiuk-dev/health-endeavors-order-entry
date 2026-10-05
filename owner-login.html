@@ -3931,24 +3931,22 @@
         startOfMonth.setUTCDate(1);
         startOfMonth.setUTCHours(0, 0, 0, 0);
 
+        // Counted from every row, read a page at a time (fetchAllRows): a
+        // month of AI decision logs or years of approvals easily passes the
+        // 1,000 rows one request can return, and the tiles would undercount.
         const [
-          ordersRes, approvalsRes, tasksRes, incidentsRes, monthAiRes, sessionsRes,
+          ordersRows, approvalsRows, tasksRows, incidentsRows, monthAiRows, sessionsRes,
         ] = await Promise.all([
-          supabase.from('orders').select('id, total, currency, status, deleted_at, placed_at')
-            .gte('placed_at', startIso),
-          supabase.from('approval_requests').select('id, status'),
-          supabase.from('tasks').select('id, status, due_at'),
-          supabase.from('incidents').select('id, severity, status'),
-          supabase.from('ai_decision_log').select('cost_usd').gte('created_at', startOfMonth.toISOString()),
+          fetchAllRows('orders', 'id, total, currency, status, deleted_at, placed_at', q => q.gte('placed_at', startIso)),
+          fetchAllRows('approval_requests', 'id, status', q => q),
+          fetchAllRows('tasks', 'id, status, due_at', q => q),
+          fetchAllRows('incidents', 'id, severity, status', q => q),
+          fetchAllRows('ai_decision_log', 'id, cost_usd', q => q.gte('created_at', startOfMonth.toISOString())),
           supabase.rpc('list_my_sessions'),
           loadAgentControls(), // populates agentControlsByNum + AGENT_REGISTRY's paused count, also refreshes the paused-agents banner
         ]);
-
-        if (ordersRes.error) throw ordersRes.error;
-        if (approvalsRes.error) throw approvalsRes.error;
-        if (tasksRes.error) throw tasksRes.error;
-        if (incidentsRes.error) throw incidentsRes.error;
-        if (monthAiRes.error) throw monthAiRes.error;
+        const ordersRes = { data: ordersRows }, approvalsRes = { data: approvalsRows }, tasksRes = { data: tasksRows };
+        const incidentsRes = { data: incidentsRows }, monthAiRes = { data: monthAiRows };
         if (sessionsRes.error) throw sessionsRes.error;
 
         const todayOrders = (ordersRes.data || []).filter(o => !o.deleted_at);
@@ -6648,24 +6646,17 @@
         document.getElementById('dailySummaryDateLabel').textContent =
           start.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
 
-        const [ordersRes, inquiriesRes, tasksRes, incidentsRes, aiRes] = await Promise.all([
-          supabase.from('orders').select('id, total, currency, status, deleted_at, placed_at')
-            .gte('placed_at', startIso).lt('placed_at', endIso),
-          supabase.from('customer_inquiries').select('id, created_at')
-            .gte('created_at', startIso).lt('created_at', endIso),
-          supabase.from('tasks').select('id, created_at')
-            .gte('created_at', startIso).lt('created_at', endIso),
-          supabase.from('incidents').select('id, created_at')
-            .gte('created_at', startIso).lt('created_at', endIso),
-          supabase.from('ai_decision_log').select('id, cost_usd, model_used, created_at')
-            .gte('created_at', startIso).lt('created_at', endIso),
+        // Every row counts (see fetchAllRows): never a silently capped list.
+        const between = (col) => q => q.gte(col, startIso).lt(col, endIso);
+        const [ordersRows, inquiriesRows, tasksRows, incidentsRows, aiRows] = await Promise.all([
+          fetchAllRows('orders', 'id, total, currency, status, deleted_at, placed_at', between('placed_at')),
+          fetchAllRows('customer_inquiries', 'id, created_at', between('created_at')),
+          fetchAllRows('tasks', 'id, created_at', between('created_at')),
+          fetchAllRows('incidents', 'id, created_at', between('created_at')),
+          fetchAllRows('ai_decision_log', 'id, cost_usd, model_used, created_at', between('created_at')),
         ]);
-
-        if (ordersRes.error) throw ordersRes.error;
-        if (inquiriesRes.error) throw inquiriesRes.error;
-        if (tasksRes.error) throw tasksRes.error;
-        if (incidentsRes.error) throw incidentsRes.error;
-        if (aiRes.error) throw aiRes.error;
+        const ordersRes = { data: ordersRows }, inquiriesRes = { data: inquiriesRows }, tasksRes = { data: tasksRows };
+        const incidentsRes = { data: incidentsRows }, aiRes = { data: aiRows };
 
         const orders = (ordersRes.data || []).filter(o => !o.deleted_at);
         const revenueOrders = orders.filter(o => o.status !== 'cancelled');

@@ -74,3 +74,18 @@ test('if rows go missing part-way, Accounting shows an error instead of a smalle
   await page.click('#accountingPanel button[data-range="all"]');
   await expect(page.locator('#dashError')).toContainText('records could be read, so this total would be wrong');
 });
+
+test('Business Health tiles count every row: 1,500 pending approvals and 2,400 AI log entries with a 1,000-row cap', async ({ page, backend }) => {
+  const nowIso = new Date().toISOString();
+  backend.tables.approval_requests = Array.from({ length: 1500 }, (_, i) => ({
+    id: 'ap-' + String(i).padStart(5, '0'), action_type: 'synthetic', summary: 'SYNTHETIC', status: 'pending', created_at: nowIso,
+  }));
+  backend.tables.ai_decision_log = Array.from({ length: 2400 }, (_, i) => ({
+    id: 'ai-' + String(i).padStart(5, '0'), cost_usd: 0.01, model_used: 'rules-only', created_at: nowIso,
+  }));
+  backend.maxRows = 1000;
+  await login(page);
+  const tiles = page.locator('#businessHealthStats');
+  await expect(tiles.locator('.stat', { hasText: 'Pending approvals' })).toContainText(/1,?500/);
+  await expect(tiles.locator('.stat', { hasText: 'AI spend this month' })).toContainText('$24.00');
+});
