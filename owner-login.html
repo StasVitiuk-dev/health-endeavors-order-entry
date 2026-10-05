@@ -6790,6 +6790,10 @@
             const row = btn.closest('[data-id]');
             const id = row.getAttribute('data-id');
             if (!confirm('Delete this document? This can\'t be undone.')) return;
+            // A permanent delete of a compliance record: same password re-check
+            // as deleting an order (which is only a soft delete).
+            const ok = await requireReauth('permanently delete this document');
+            if (!ok) return;
             btn.disabled = true;
             try {
               const { error: delErr } = await supabase.from('documents').delete().eq('id', id);

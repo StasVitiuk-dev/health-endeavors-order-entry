@@ -166,3 +166,29 @@ test.describe('Malformed data', () => {
     expect(writes(backend, 'inventory_adjustments')).toEqual([]);
   });
 });
+
+test.describe('Documents: permanent delete', () => {
+  test.beforeEach(async ({ page, backend }) => {
+    backend.tables.documents = [{ id: 'doc-1', title: 'SYNTHETIC COA', category: 'other', related_type: null, related_id: null, document_url: null, file_path: null, issued_date: null, expiration_date: null, notes: null, created_at: '2026-09-20T00:00:00Z' }];
+    await login(page);
+    await open(page, 'documentsPanel');
+  });
+
+  test('after the confirm dialog it also asks for the password; Cancel deletes nothing', async ({ page, backend }) => {
+    page.once('dialog', d => d.accept());
+    await page.locator('#documentsPanel [data-id="doc-1"] .docDeleteBtn').click();
+    await expect(page.locator('#reauthOverlay')).toBeVisible();
+    await page.click('#reauthCancelBtn');
+    await page.waitForTimeout(300);
+    expect(writes(backend, 'documents')).toEqual([]);
+  });
+
+  test('with the password the document row is deleted (by id only)', async ({ page, backend }) => {
+    page.once('dialog', d => d.accept());
+    await page.locator('#documentsPanel [data-id="doc-1"] .docDeleteBtn').click();
+    await confirmPassword(page);
+    await expect.poll(() => writes(backend, 'documents').length).toBe(1);
+    expect(writes(backend, 'documents')[0].method).toBe('DELETE');
+    expect(Object.fromEntries(writes(backend, 'documents')[0].params)).toEqual({ id: 'eq.doc-1' });
+  });
+});
