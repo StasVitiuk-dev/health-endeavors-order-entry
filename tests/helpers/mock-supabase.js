@@ -121,6 +121,9 @@ class FakeSupabase {
     this.blocked = [];         // every non-dashboard, non-Supabase request (should stay empty)
     this.delayMs = {};         // optional per-table response delay, for timing tests
     this.nextTaskUpdateHook = null;
+    this.cdnRequests = [];     // every request for the Supabase library
+    this.cdnBody = null;       // optional replacement bytes for the library (integrity tests)
+    this.maxRows = null;       // optional per-reply row cap, like Supabase's "Max rows" (default 1000 there)
   }
 
   // Changes the page asked for on any table (updates, inserts, deletes).
@@ -192,8 +195,11 @@ class FakeSupabase {
     const rows = this.tables[table] || [];
     const prefer = headers['prefer'] || '';
     const wantsObject = (headers['accept'] || '').includes('vnd.pgrst.object');
+    // Like the real API gateway: cross-origin reads allowed, and Content-Range
+    // (where the exact row count travels) exposed to the page.
     const respond = (status, data, extraHeaders = {}) => route.fulfill({
-      status, contentType: 'application/json', headers: extraHeaders,
+      status, contentType: 'application/json',
+      headers: { 'access-control-allow-origin': '*', 'access-control-expose-headers': 'content-range', ...extraHeaders },
       body: data === undefined ? '' : JSON.stringify(data),
     });
 
@@ -203,6 +209,9 @@ class FakeSupabase {
       const offset = Number(search.get('offset') || 0);
       const limit = search.get('limit') != null ? Number(search.get('limit')) : undefined;
       matched = matched.slice(offset, limit != null ? offset + limit : undefined);
+      // Like Supabase's "Max rows" API setting: one reply never holds more
+      // than this many rows, and nothing in the reply says it was cut short.
+      if (this.maxRows != null) matched = matched.slice(0, this.maxRows);
       const extra = {};
       if (prefer.includes('count=')) {
         extra['content-range'] = matched.length ? `${offset}-${offset + matched.length - 1}/${total}` : `*/${total}`;
@@ -252,7 +261,16 @@ async function installMocks(page) {
     const url = new URL(route.request().url());
     if (url.origin === DASHBOARD_ORIGIN) return serveRepoFile(route, url);
     if (url.href.startsWith(SUPABASE_CDN_PREFIX)) {
-      return route.fulfill({ status: 200, contentType: 'application/javascript; charset=utf-8', body: fs.readFileSync(SUPABASE_UMD) });
+      // The pages load the library with crossorigin="anonymous" + integrity,
+      // so (like the real CDN) the reply must allow cross-origin reads.
+      // backend.cdnBody lets a test serve altered bytes to prove the
+      // integrity check refuses them.
+      backend.cdnRequests.push(url.href);
+      return route.fulfill({
+        status: 200, contentType: 'application/javascript; charset=utf-8',
+        headers: { 'access-control-allow-origin': '*' },
+        body: backend.cdnBody != null ? backend.cdnBody : fs.readFileSync(SUPABASE_UMD),
+      });
     }
     if (url.host === SUPABASE_HOST) return backend.handle(route);
     backend.blocked.push(url.href);

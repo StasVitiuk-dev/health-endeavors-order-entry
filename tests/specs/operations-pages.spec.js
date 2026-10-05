@@ -54,7 +54,8 @@ test.describe('agent pause switches (mock only)', () => {
     const [w] = writes(backend, 'agent_controls');
     expect(Object.keys(w.body).sort()).toEqual(['enabled', 'updated_at', 'updated_by']);
     expect(w.body).toMatchObject({ enabled: false, updated_by: OWNER_USER.id });
-    expect(filtersOf(w)).toEqual({ agent_num: 'eq.4' });
+    // Only flips the switch this page showed (on → paused).
+    expect(filtersOf(w)).toEqual({ agent_num: 'eq.4', enabled: 'is.true' });
   });
 });
 

@@ -21,7 +21,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Health Endeavors — Owner Dashboard</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onerror="window.__sbLoadFailed=true"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous" onerror="window.__sbLoadFailed=true"></script>
 <style>
   :root{
     /* Constant brand tones — used where white text sits on a coloured fill */
@@ -1846,6 +1846,34 @@
       }
       throw new Error('The stock for this product kept changing while saving (someone else is adjusting it right now). Nothing was changed on this try — refresh and try again.');
     }
+    // Reads every matching row, a page at a time. One request returns at most
+    // Supabase's "Max rows" setting (1,000 by default) and does NOT say when it
+    // stopped short, so a report that adds rows up in the browser would quietly
+    // undercount (finding N14). This asks for the exact total with the first
+    // page and keeps reading until it has every row; if rows go missing it
+    // throws rather than return a partial list. Ordered by id so pages don't
+    // overlap. Long-term the totals belong in a database function (one small
+    // row back) — that needs the schema check first.
+    async function fetchAllRows(table, columns, applyFilters){
+      const PAGE = 1000;
+      const rows = [];
+      let total;
+      for (let pageNo = 0; pageNo < 10000; pageNo++) {
+        let q = supabase.from(table).select(columns, pageNo === 0 ? { count: 'exact' } : undefined);
+        q = applyFilters(q).order('id', { ascending: true }).range(rows.length, rows.length + PAGE - 1);
+        const { data, error, count } = await q;
+        if (error) throw error;
+        if (pageNo === 0) total = (typeof count === 'number') ? count : null;
+        const batch = data || [];
+        rows.push(...batch);
+        if (total !== null ? rows.length >= total : batch.length < PAGE) return rows;
+        if (!batch.length) {
+          throw new Error('Only ' + rows.length + ' of ' + total + ' ' + table + ' records could be read, so this total would be wrong. Refresh to try again.');
+        }
+      }
+      throw new Error('Too many ' + table + ' records to add up in the browser.');
+    }
+
     // A browser-level network failure (no reply at all). The request may or
     // may not have reached the database, so the honest advice is "check
     // before retrying", not "try again".
@@ -9024,19 +9052,16 @@
       try {
         const start = acctRangeStart(acctRange);
 
-        let orderQuery = supabase.from('orders')
-          .select('id, order_number, total, currency, status, placed_at, deleted_at')
-          .is('deleted_at', null);
-        if (start) orderQuery = orderQuery.gte('placed_at', start.toISOString());
-        const { data: orders, error: ordersErr } = await orderQuery;
-        if (ordersErr) throw ordersErr;
-
-        let expenseQuery = supabase.from('expenses')
-          .select('id, amount, expense_date, deleted_at')
-          .is('deleted_at', null);
-        if (start) expenseQuery = expenseQuery.gte('expense_date', start.toISOString().slice(0, 10));
-        const { data: expenses, error: expErr } = await expenseQuery;
-        if (expErr) throw expErr;
+        const orders = await fetchAllRows('orders', 'id, order_number, total, currency, status, placed_at, deleted_at', q => {
+          q = q.is('deleted_at', null);
+          if (start) q = q.gte('placed_at', start.toISOString());
+          return q;
+        });
+        const expenses = await fetchAllRows('expenses', 'id, amount, expense_date, deleted_at', q => {
+          q = q.is('deleted_at', null);
+          if (start) q = q.gte('expense_date', start.toISOString().slice(0, 10));
+          return q;
+        });
 
         const currency = (orders[0] && orders[0].currency) || 'USD';
         let revenue = 0;
@@ -9118,21 +9143,20 @@
       try {
         const { start, end } = taxRangeStart(taxRange);
 
-        let orderQuery = supabase.from('orders')
-          .select('id, order_number, total, tax_total, currency, status, placed_at, deleted_at, source, raw_data')
-          .is('deleted_at', null);
-        if (start) orderQuery = orderQuery.gte('placed_at', start.toISOString());
-        if (end) orderQuery = orderQuery.lt('placed_at', end.toISOString());
-        const { data: orders, error: ordersErr } = await orderQuery;
-        if (ordersErr) throw ordersErr;
-
-        let expenseQuery = supabase.from('expenses')
-          .select('id, category, amount, expense_date, vendor, receipt_path, deleted_at')
-          .is('deleted_at', null);
-        if (start) expenseQuery = expenseQuery.gte('expense_date', start.toISOString().slice(0, 10));
-        if (end) expenseQuery = expenseQuery.lt('expense_date', end.toISOString().slice(0, 10));
-        const { data: expenses, error: expErr } = await expenseQuery;
-        if (expErr) throw expErr;
+        const orders = await fetchAllRows('orders',
+          'id, order_number, total, tax_total, currency, status, placed_at, deleted_at, source, raw_data', q => {
+            q = q.is('deleted_at', null);
+            if (start) q = q.gte('placed_at', start.toISOString());
+            if (end) q = q.lt('placed_at', end.toISOString());
+            return q;
+          });
+        const expenses = await fetchAllRows('expenses',
+          'id, category, amount, expense_date, vendor, receipt_path, deleted_at', q => {
+            q = q.is('deleted_at', null);
+            if (start) q = q.gte('expense_date', start.toISOString().slice(0, 10));
+            if (end) q = q.lt('expense_date', end.toISOString().slice(0, 10));
+            return q;
+          });
 
         const currency = (orders[0] && orders[0].currency) || 'USD';
 

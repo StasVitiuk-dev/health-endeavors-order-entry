@@ -57,7 +57,8 @@ test.describe('Feature Flags', () => {
     await expect.poll(() => writes(backend, 'feature_flags').length).toBe(1);
     const [w] = writes(backend, 'feature_flags');
     expect(w.body).toEqual({ enabled: true });
-    expect(filtersOf(w)).toEqual({ id: 'eq.ff-1' });
+    // Only flips the flag from the state this page showed (off → on).
+    expect(filtersOf(w)).toEqual({ id: 'eq.ff-1', enabled: 'is.false' });
   });
 });
 
@@ -92,7 +93,8 @@ test.describe('System Mode', () => {
     expect(mode).toHaveLength(1);
     expect(Object.keys(mode[0].body).sort()).toEqual(['changed_at', 'changed_by', 'mode']);
     expect(mode[0].body.mode).toBe('NO_AI');
-    expect(filtersOf(mode[0])).toEqual({ id: 'eq.true' });
+    // Only from the mode this page showed, so an old tab can't undo a change.
+    expect(filtersOf(mode[0])).toEqual({ id: 'eq.true', mode: 'eq.NORMAL' });
     expect(filtersOf(writes(backend, 'agent_controls')[0])).toEqual({ agent_num: 'eq.7' });
     expect(writes(backend, 'agent_controls')[0].body.enabled).toBe(false);
     expect(writes(backend, 'feature_flags')).toEqual([]);

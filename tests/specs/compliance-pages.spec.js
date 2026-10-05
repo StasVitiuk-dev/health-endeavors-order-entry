@@ -117,13 +117,15 @@ test.describe('Adverse Event Reports', () => {
     });
   });
 
-  test('"Mark reported to FDA" sends only the reported flag and time', async ({ page, backend }) => {
-    await page.locator('#adverseEventsWrap [data-id="ae-open"] .aeMarkReportedBtn').click();
+  test('"Mark reported to FDA" (two presses) sends only the reported flag and time', async ({ page, backend }) => {
+    const btn = page.locator('#adverseEventsWrap [data-id="ae-open"] .aeMarkReportedBtn');
+    await btn.click();
+    await btn.click(); // second press confirms
     await expect.poll(() => writes(backend, 'adverse_event_reports').length).toBe(1);
     const [w] = writes(backend, 'adverse_event_reports');
     expect(Object.keys(w.body).sort()).toEqual(['fda_reported', 'fda_reported_at']);
     expect(w.body.fda_reported).toBe(true);
-    expect(filtersOf(w)).toEqual({ id: 'eq.ae-open' });
+    expect(filtersOf(w)).toEqual({ id: 'eq.ae-open', fda_reported: 'not.is.true' });
   });
 });
 
@@ -153,13 +155,16 @@ test.describe('Legal Holds', () => {
     });
   });
 
-  test('releasing a hold records released, when and by whom (nothing is deleted)', async ({ page, backend }) => {
+  test('releasing a hold (with the password) records released, when and by whom (nothing is deleted)', async ({ page, backend }) => {
     await page.locator('#legalHoldsWrap [data-id="lh-1"] .lhReleaseBtn').click();
+    await expect(page.locator('#reauthOverlay')).toBeVisible();
+    await page.fill('#reauthPassword', OWNER_USER.password);
+    await page.click('#reauthConfirmBtn');
     await expect.poll(() => writes(backend, 'legal_holds').length).toBe(1);
     const [w] = writes(backend, 'legal_holds');
     expect(w.method).toBe('PATCH');
     expect(Object.keys(w.body).sort()).toEqual(['released_at', 'released_by', 'status']);
     expect(w.body.status).toBe('released');
-    expect(filtersOf(w)).toEqual({ id: 'eq.lh-1' });
+    expect(filtersOf(w)).toEqual({ id: 'eq.lh-1', status: 'eq.active' });
   });
 });
