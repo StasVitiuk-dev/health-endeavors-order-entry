@@ -4074,11 +4074,24 @@
     document.body.appendChild(ptr);
     (function(){
       const area = document.querySelector('main.contentArea');
-      let startY = 0, startX = 0, pulling = false, dy = 0, dx = 0;
+      let startY = 0, startX = 0, pulling = false, dy = 0, dx = 0, swipeAllowed = true;
+      // True when the finger started on something that scrolls sideways
+      // itself (e.g. a wide table on a phone): that drag scrolls it, so it
+      // must not also change the page.
+      function startsInSideScroller(el){
+        for (let n = el; n && n !== area; n = n.parentElement) {
+          if (n.scrollWidth > n.clientWidth + 1) {
+            const ox = getComputedStyle(n).overflowX;
+            if (ox === 'auto' || ox === 'scroll') return true;
+          }
+        }
+        return false;
+      }
       area.addEventListener('touchstart', (e) => {
         if (e.touches.length !== 1) return;
         startY = e.touches[0].clientY; startX = e.touches[0].clientX;
         pulling = area.scrollTop <= 0;
+        swipeAllowed = !startsInSideScroller(e.target);
         dy = 0; dx = 0;
       }, { passive: true });
       area.addEventListener('touchmove', (e) => {
@@ -4093,7 +4106,7 @@
         if (pulling && dy > 110) { toast('Refreshing…'); loadDashboard(); }
         ptr.style.height = '0px';
         // A clear sideways swipe moves to the next or previous page
-        if (Math.abs(dx) > 80 && Math.abs(dx) > Math.abs(dy) * 2 && !anyOverlayOpen()) {
+        if (swipeAllowed && Math.abs(dx) > 80 && Math.abs(dx) > Math.abs(dy) * 2 && !anyOverlayOpen()) {
           const ids = allPageIds();
           const i = ids.indexOf(currentPageId);
           if (i !== -1) {
