@@ -5890,10 +5890,22 @@
       btn.disabled = true;
       btn.textContent = 'Saving…';
       try {
-        const { data: changed, error } = await supabase.from('customer_inquiries').update({ ai_draft_reply: textarea.value }).eq('id', id).select('id');
+        // EXT5: two people editing the same reply must not overwrite each
+        // other silently. Re-read the draft first: if it changed since this
+        // page loaded it, stop and keep this text in the box. (A short gap
+        // remains between this read and the save; the text itself is too long
+        // to use as a database condition safely.)
+        const rec = ALL_INQUIRIES.find(i => i.id === id);
+        const { data: nowRow, error: nowErr } = await supabase.from('customer_inquiries').select('ai_draft_reply, answered_at').eq('id', id).maybeSingle();
+        if (nowErr) throw nowErr;
+        if (!nowRow) throw new Error(staleMessage('That inquiry') + ' Your draft was not saved — copy it before reloading.');
+        if (nowRow.answered_at) throw new Error('This inquiry was marked answered in the meantime, so the draft was not saved. Your text is still in the box — copy it if you need it.');
+        if (rec && (nowRow.ai_draft_reply || '') !== (rec.ai_draft_reply || '')) {
+          throw new Error('Someone else changed this draft since you opened it, so yours was not saved (nothing was overwritten). Your text is still in the box: copy it, reload to see theirs, then combine them.');
+        }
+        const { data: changed, error } = await supabase.from('customer_inquiries').update({ ai_draft_reply: textarea.value }).eq('id', id).is('answered_at', null).select('id');
         if (error) throw error;
         if (noRowsChanged(changed)) throw new Error(staleMessage('That inquiry') + ' Your draft was not saved — copy it before reloading.');
-        const rec = ALL_INQUIRIES.find(i => i.id === id);
         if (rec) rec.ai_draft_reply = textarea.value;
         btn.textContent = 'Saved';
         setTimeout(() => { btn.textContent = originalText; btn.disabled = false; }, 1200);

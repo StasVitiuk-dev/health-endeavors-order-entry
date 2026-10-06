@@ -143,7 +143,7 @@ test.describe('Customer Inquiries', () => {
     await expect.poll(() => writes(backend, 'customer_inquiries').length).toBe(1);
     const [w] = writes(backend, 'customer_inquiries');
     expect(w.body).toEqual({ ai_draft_reply: 'SYNTHETIC edited draft' });
-    expect(filtersOf(w)).toEqual({ id: 'eq.inq-low' });
+    expect(filtersOf(w)).toEqual({ id: 'eq.inq-low', answered_at: 'is.null' }); // EXT5: only while still unanswered
   });
 
   test('Mark as answered records only the status and time (nothing is sent to the customer)', async ({ page, backend }) => {

@@ -71,6 +71,30 @@ const WORKFLOWS = [
     seed: b => { b.tables.feature_flags = [{ id: 'ff-x', flag_key: 'synthetic_test_flag', label: 'SYNTHETIC flag', description: 'SYNTHETIC', enabled: false }]; },
     act: async page => { await page.locator('.flagRow[data-id="ff-x"] .slider').click(); await confirmPassword(page); },
     value: b => b.tables.feature_flags[0].enabled, before: false, after: true },
+  // ---- EXT5: more single-write actions, so every failure kind runs on them too ----
+  { name: 'feature request: Mark in progress', table: 'feature_requests', method: 'PATCH', page: 'featureRequestsPanel',
+    seed: b => { b.tables.feature_requests = [{ id: 'fr-1', title: 'SYNTHETIC request', description: null, priority: 'normal', status: 'requested', requested_at: '2026-09-20T00:00:00Z', deleted_at: null }]; },
+    act: async page => { await page.click('#featureRequestsWrap [data-id="fr-1"] .frAdvanceBtn'); },
+    value: b => b.tables.feature_requests[0].status, before: 'requested', after: 'in_progress' },
+  { name: 'legal hold: Release', table: 'legal_holds', method: 'PATCH', page: 'legalHoldsPanel',
+    seed: b => { b.tables.legal_holds = [{ id: 'lh-1', title: 'SYNTHETIC hold', description: null, related_type: 'order', related_reference: 'SYN-1', placed_at: '2026-09-20T00:00:00Z', status: 'active' }]; },
+    act: async page => { await page.click('#legalHoldsWrap [data-id="lh-1"] .lhReleaseBtn'); await confirmPassword(page); },
+    value: b => b.tables.legal_holds[0].status, before: 'active', after: 'released' },
+  { name: 'adverse event: Mark reported to FDA', table: 'adverse_event_reports', method: 'PATCH', page: 'adverseEventsPanel',
+    seed: b => { b.tables.adverse_event_reports = [{ id: 'ae-1', product_name: 'SYNTHETIC lotion', date_received: '2026-09-20', description: 'SYNTHETIC', outcome_type: 'other', fda_report_deadline: '2026-12-01', fda_reported: false, fda_reported_at: null, reporter_name: null, reporter_contact: null, created_at: '2026-09-20T00:00:00Z' }]; },
+    act: async page => { const btn = page.locator('#adverseEventsWrap [data-id="ae-1"] .aeMarkReportedBtn'); await btn.click(); await btn.click(); },
+    value: b => b.tables.adverse_event_reports[0].fda_reported, before: false, after: true },
+  { name: 'expense: Restore', table: 'expenses', method: 'PATCH', page: 'expensesPanel', business: true,
+    act: async page => { await page.click('#deletedExpensesWrap .restoreExpenseBtn'); },
+    value: b => b.tables.expenses.find(e => e.id === 'e5').deleted_at === null, before: false, after: true },
+  { name: 'recall: Mark resolved', table: 'recalls', method: 'PATCH', page: 'recallsPanel',
+    seed: b => {
+      b.tables.recalls = [{ id: 'rc-1', reason: 'SYNTHETIC', severity: 'high', status: 'quarantined', quantity_quarantined: 2, resolution: null, resolved_at: null, incident_id: null,
+        created_at: '2026-09-20T00:00:00Z', lot_id: 'lot-1', product_id: 'prod-a', products: { name: 'SYNTHETIC A', sku: 'SYN-A' }, inventory_lots: { lot_number: 'L-1' }, incidents: null }];
+      b.tables.inventory_lots = [{ id: 'lot-1', lot_number: 'L-1', product_id: 'prod-a', quantity_remaining: 5, products: { name: 'SYNTHETIC A', sku: 'SYN-A' } }];
+    },
+    act: async page => { const row = page.locator('#recallsPanel [data-id="rc-1"]'); await row.locator('.recallResolutionInput').fill('SYNTHETIC resolved'); await row.locator('.recallResolveBtn').click(); if (await page.locator('#reauthOverlay').isVisible()) await confirmPassword(page); },
+    value: b => b.tables.recalls[0].status, before: 'quarantined', after: 'resolved' },
 ];
 
 const RAW_INTERNALS = /row-level security|violates check constraint|evidence_locker|_policy|Failed to fetch|Load failed|NetworkError|TypeError/i;

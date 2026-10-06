@@ -91,3 +91,42 @@ test.describe('Customer inquiries: saving a draft that is quietly refused', () =
     await expect(page.locator('.inqSaveBtn[data-id="inq-1"]')).not.toHaveText('Saved');
   });
 });
+
+// EXT5: two people editing the same reply draft must not overwrite each other.
+test.describe('Customer inquiries: draft edited elsewhere', () => {
+  const base = { channel: 'email', order_id: null, customer_email: 'syn@example.test', ai_confidence: 0.8, sensitive: false, sensitive_reasons: null, drafted_at: null, answered_at: null };
+  async function openDraft(page, backend) {
+    const { enableWrites } = require('../helpers/stateful-backend');
+    backend.tables.customer_inquiries = [{ ...base, id: 'inq-1', customer_name: 'SYNTHETIC', question_text: 'SYNTHETIC question', status: 'drafted', severity: 'low', ai_draft_reply: 'SYNTHETIC draft', created_at: '2026-09-22T00:00:00Z' }];
+    backend.tables.orders = [];
+    enableWrites(backend, ['customer_inquiries']);
+    await login(page);
+    await open(page, 'inquiriesPanel');
+    await page.locator('.inqDraftText[data-id="inq-1"]').fill('SYNTHETIC my edit');
+  }
+  test('someone else saved a different draft meanwhile: mine is not saved, theirs survives, my text stays', async ({ page, backend }) => {
+    await openDraft(page, backend);
+    backend.tables.customer_inquiries[0].ai_draft_reply = 'SYNTHETIC their edit';
+    await page.locator('.inqSaveBtn[data-id="inq-1"]').click();
+    await expect(page.locator('#dashError')).toContainText('Someone else changed this draft');
+    expect(backend.tables.customer_inquiries[0].ai_draft_reply).toBe('SYNTHETIC their edit');
+    await expect(page.locator('.inqDraftText[data-id="inq-1"]')).toHaveValue('SYNTHETIC my edit');
+  });
+  test('the inquiry was answered meanwhile: the draft is not saved', async ({ page, backend }) => {
+    await openDraft(page, backend);
+    backend.tables.customer_inquiries[0].answered_at = '2026-09-23T00:00:00Z';
+    await page.locator('.inqSaveBtn[data-id="inq-1"]').click();
+    await expect(page.locator('#dashError')).toContainText('marked answered in the meantime');
+    expect(backend.tables.customer_inquiries[0].ai_draft_reply).toBe('SYNTHETIC draft');
+  });
+  test('nothing changed elsewhere: saves, and a second save of a further edit works too', async ({ page, backend }) => {
+    await openDraft(page, backend);
+    await page.locator('.inqSaveBtn[data-id="inq-1"]').click();
+    await expect.poll(() => backend.tables.customer_inquiries[0].ai_draft_reply).toBe('SYNTHETIC my edit');
+    await expect(page.locator('.inqSaveBtn[data-id="inq-1"]')).toBeEnabled({ timeout: 5000 });
+    await page.locator('.inqDraftText[data-id="inq-1"]').fill('SYNTHETIC my second edit');
+    await page.locator('.inqSaveBtn[data-id="inq-1"]').click();
+    await expect.poll(() => backend.tables.customer_inquiries[0].ai_draft_reply).toBe('SYNTHETIC my second edit');
+    await expect(page.locator('#dashError')).toBeHidden();
+  });
+});

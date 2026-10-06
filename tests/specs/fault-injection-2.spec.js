@@ -32,6 +32,11 @@ const FAULTS = {
   jwtExpired: { inject: (b, w) => b.failNext(w.table, w.method, { status: 401, body: { code: 'PGRST301', message: 'JWT expired' } }), saved: false, says: /sign in again/i },
   duplicate: { inject: (b, w) => b.failNext(w.table, w.method, { status: 409, body: { code: '23505', message: `duplicate key value violates unique constraint "${w.table}_synthetic_key"` } }), saved: false, says: /already used/i },
   garbled: { inject: (b, w) => b.replyNext(w.table, w.method, { status: 200, body: '[{"id":"x","sta', applied: true }), saved: true },
+  // EXT5: a silent refusal (row-level security answers "0 rows", no error),
+  // an empty reply, and no connection at all.
+  zeroRows: { inject: (b, w) => b.replyNext(w.table, w.method, { status: 200, body: '[]' }), saved: false },
+  emptyReply: { inject: (b, w) => b.replyNext(w.table, w.method, { status: 200, body: '', applied: true }), saved: true, unsureOk: true },
+  offline: { inject: (b, w) => b.dropNext(w.table, w.method, { applied: false }), saved: false, says: /cannot tell whether/ },
 };
 const RAW = new RegExp(RAW_INTERNALS.source + '|<html|<!DOCTYPE|<h1|_synthetic_key|PGRST|JSON|Unexpected (end|token)', 'i');
 
@@ -56,7 +61,7 @@ for (const w of WORKFLOWS) {
       if (f.says) expect(text).toMatch(f.says);
       if (f.saved) {
         expect(w.value(backend), 'the database did save it').toEqual(w.after);
-        expect(text).toContain('cannot tell whether');
+        if (!f.unsureOk) expect(text).toContain('cannot tell whether');
         expect(text).not.toMatch(/nothing was (changed|saved)/i);
       } else {
         expect(w.value(backend), 'nothing changed').toEqual(w.before);
