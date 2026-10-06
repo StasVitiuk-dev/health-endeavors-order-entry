@@ -60,7 +60,7 @@ function parseInList(raw) {
 // on the value the page showed. Plain data fields (notes, names) are not here.
 const STATE_COLUMNS = {
   tasks: ['status'], purchase_orders: ['status', 'payment_status'], returns: ['status'],
-  recalls: ['status'], approval_requests: ['status'], feature_requests: ['status'],
+  recalls: ['status'], approval_requests: ['status'], feature_requests: ['status', 'deleted_at'],
   legal_holds: ['status'], quality_checks: ['result'], incidents: ['status'],
   customer_inquiries: ['status', 'severity'], service_status: ['status'],
   system_mode: ['mode'], feature_flags: ['enabled'], agent_controls: ['enabled'],

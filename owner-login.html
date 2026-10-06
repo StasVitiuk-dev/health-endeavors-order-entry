@@ -6679,7 +6679,7 @@
         });
 
         document.getElementById('featureRequestsWrap').innerHTML = sorted.map(r => `
-          <div class="approvalRow" data-id="${esc(r.id)}">
+          <div class="approvalRow" data-id="${esc(r.id)}" data-status="${esc(r.status || '')}">
             <div class="info">
               <b>${esc(r.title)}</b>
               ${r.priority === 'high' ? '<span class="priorityPill high">high</span>' : ''}
@@ -6704,12 +6704,14 @@
       const id = row.getAttribute('data-id');
       btn.disabled = true;
       try {
-        const { data: current, error: fetchErr } = await supabase.from('feature_requests').select('status').eq('id', id).single();
-        if (fetchErr) throw fetchErr;
-        const nextStatus = FR_NEXT_STATUS[current.status];
-        if (!nextStatus) return;
-        // Conditional on the status just read, so a double click moves it one step, not two.
-        const changed = await updateIfUnchanged('feature_requests', id, { status: nextStatus, updated_at: new Date().toISOString() }, { status: current.status });
+        // The step the button showed, from the status the page showed (EXT4).
+        // It used to re-read the current status and advance from THAT, so a
+        // stale "Mark in progress" could mark a request Done, and a click on a
+        // request already done elsewhere silently did nothing.
+        const shown = row.getAttribute('data-status');
+        const nextStatus = FR_NEXT_STATUS[shown];
+        if (!nextStatus) { showDashError(staleMessage('That request')); loadFeatureRequests(); return; }
+        const changed = await updateIfUnchanged('feature_requests', id, { status: nextStatus, updated_at: new Date().toISOString() }, { status: shown });
         if (!changed) showDashError(staleMessage('That request'));
         loadFeatureRequests();
       } catch (err) {
@@ -6762,7 +6764,8 @@
             const id = row.getAttribute('data-id');
             btn.disabled = true;
             try {
-              const { data: changed, error } = await supabase.from('feature_requests').update({ deleted_at: null }).eq('id', id).select('id');
+              // Only while it is still deleted. EXT4
+              const { data: changed, error } = await supabase.from('feature_requests').update({ deleted_at: null }).eq('id', id).not('deleted_at', 'is', null).select('id');
               if (error) throw error;
               if (noRowsChanged(changed)) { showDashError(staleMessage('That request')); loadFeatureRequests(); return; }
               loadFeatureRequests();
@@ -8351,7 +8354,8 @@
             const id = row.getAttribute('data-id');
             btn.disabled = true;
             try {
-              const { data: changed, error } = await supabase.from('expenses').update({ deleted_at: null }).eq('id', id).select('id');
+              // Only while it is still deleted (restored elsewhere = nothing to do). EXT4
+              const { data: changed, error } = await supabase.from('expenses').update({ deleted_at: null }).eq('id', id).not('deleted_at', 'is', null).select('id');
               if (error) throw error;
               if (noRowsChanged(changed)) { showDashError(staleMessage('That expense')); loadExpenses(); return; }
               loadExpenses();

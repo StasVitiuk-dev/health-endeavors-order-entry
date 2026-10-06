@@ -20,7 +20,7 @@ const MUTATING_RPCS = new Set(['log_customer_data_access', 'revoke_my_session'])
 // Workflow-state columns (kept in step with STATE_COLUMNS in tests/helpers/mock-supabase.js)
 const STATE_COLUMNS = {
   tasks: ['status'], purchase_orders: ['status', 'payment_status'], returns: ['status'], recalls: ['status'],
-  approval_requests: ['status'], feature_requests: ['status'], legal_holds: ['status'], quality_checks: ['result', 'resolution'],
+  approval_requests: ['status'], feature_requests: ['status', 'deleted_at'], legal_holds: ['status'], quality_checks: ['result', 'resolution'],
   incidents: ['status'], customer_inquiries: ['status', 'severity'], service_status: ['status'], system_mode: ['mode'],
   feature_flags: ['enabled'], agent_controls: ['enabled'], business_rules: ['is_active', 'config'], sop_documents: ['agent_visible'],
   products: ['status', 'is_active'], orders: ['status', 'deleted_at'], expenses: ['deleted_at', 'receipt_path'],
@@ -152,8 +152,8 @@ function guardsFor(src, idx, stmt, op, table, ctxStart) {
     const more = ahead.match(new RegExp('\\b' + v[1] + '\\b[^;]*;', 'g')) || [];
     stmt = stmt + more.join(' ');
   }
-  const conds = (stmt.match(/\.(eq|neq|in|is|not|gte|lte|ilike)\(\s*'([a-z_]+)'/g) || []).map(s => s.replace(/^\.(\w+)\(\s*'/, '$1:'));
-  const nonKey = conds.filter(c => !/:(id|product_id|agent_num|flag_key|order_id)$/.test(c) || /^(in|is|not)/.test(c));
+  const conds = [...stmt.matchAll(/\.(eq|neq|in|is|not|gte|lte|ilike)\(\s*'([a-z_]+)'/g)].map(x => x[1] + ':' + x[2]);
+  const nonKey = conds.filter(c => !/:(id|product_id|agent_num|flag_key|order_id|event_uid)$/.test(c) || /^(in|is|not)/.test(c));
   return {
     staleCondition: op === 'updateIfUnchanged' ? !/,\s*\{\s*\}\s*\)/.test(stmt) : nonKey.length > 0,
     readBack: op === 'updateIfUnchanged' || /\.select\(/.test(stmt),

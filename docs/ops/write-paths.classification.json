@@ -11,7 +11,7 @@
   }
  },
  "owner-login.html|changeStock|inventory|update|1": {
-  "guards": "staleCondition,readBack",
+  "guards": "readBack",
   "idempotency": "guarded: a repeat changes nothing",
   "audit": "audit trigger (Query A)",
   "partial": "no (single write)",
@@ -57,7 +57,7 @@
   }
  },
  "owner-login.html|click [data-dismiss-id]|manual_attention_items|update|1": {
-  "guards": "staleCondition,readBack,doubleClickLock",
+  "guards": "readBack,doubleClickLock",
   "idempotency": "guarded: a repeat changes nothing",
   "audit": "unknown until Query C §10",
   "partial": "no (single write)",
@@ -124,12 +124,15 @@
   "note": ""
  },
  "owner-login.html|click .poDelLine|purchase_order_items|delete|1": {
-  "guards": "staleCondition,readBack,doubleClickLock",
+  "guards": "readBack,doubleClickLock",
   "idempotency": "guarded: a repeat changes nothing",
   "audit": "audit trigger (Query A)",
   "partial": "no (single write)",
   "sensitive": "yes",
-  "note": ""
+  "note": "",
+  "justify": {
+   "stale": "Re-reads the order status just before deleting and refuses unless it is still draft/ordered; the row read-back reports a line already gone. Not atomic against a receive in another tab until R1 moves receiving into one database function (known limitation, WRITE_PATH_MATRIX)."
+  }
  },
  "owner-login.html|click saveTotals|purchase_orders|updateIfUnchanged|1": {
   "guards": "staleCondition,readBack,doubleClickLock",
@@ -164,7 +167,7 @@
   "note": ""
  },
  "owner-login.html|click recvBtn|purchase_order_items|update|1": {
-  "guards": "staleCondition,readBack,doubleClickLock,confirmation,rolePrecheck",
+  "guards": "readBack,doubleClickLock,confirmation,rolePrecheck",
   "idempotency": "guarded: a repeat changes nothing",
   "audit": "audit trigger (Query A)",
   "partial": "YES until R1: claim-first browser path; a failure part-way is reported with what to finish by hand",
@@ -172,7 +175,7 @@
   "note": ""
  },
  "owner-login.html|click recvBtn|inventory_lots|update|1": {
-  "guards": "staleCondition,readBack,doubleClickLock,confirmation,rolePrecheck",
+  "guards": "readBack,doubleClickLock,confirmation,rolePrecheck",
   "idempotency": "guarded: a repeat changes nothing",
   "audit": "audit trigger (Query A)",
   "partial": "YES until R1: claim-first browser path; a failure part-way is reported with what to finish by hand",
@@ -196,7 +199,7 @@
   "note": ""
  },
  "owner-login.html|click recvBtn|purchase_order_items|update|2": {
-  "guards": "staleCondition,readBack,doubleClickLock,confirmation,rolePrecheck",
+  "guards": "readBack,doubleClickLock,confirmation,rolePrecheck",
   "idempotency": "guarded: a repeat changes nothing",
   "audit": "audit trigger (Query A)",
   "partial": "YES until R1: claim-first browser path; a failure part-way is reported with what to finish by hand",
@@ -287,15 +290,18 @@
   }
  },
  "owner-login.html|click delBtn|calendar_notes|delete|1": {
-  "guards": "staleCondition,readBack,doubleClickLock",
+  "guards": "readBack,doubleClickLock",
   "idempotency": "guarded: a repeat changes nothing",
   "audit": "unknown until Query C §10",
   "partial": "no (single write)",
   "sensitive": "no",
-  "note": ""
+  "note": "",
+  "justify": {
+   "stale": "A private note keyed by the calendar event; it has no workflow state. Deleting twice or after another tab deleted it is reported by the read-back."
+  }
  },
  "owner-login.html|click saveBtn|personal_calendar_events|update|1": {
-  "guards": "staleCondition,readBack,doubleClickLock",
+  "guards": "readBack,doubleClickLock",
   "idempotency": "guarded: a repeat changes nothing",
   "audit": "unknown until Query C §10",
   "partial": "no (single write)",
@@ -303,12 +309,15 @@
   "note": ""
  },
  "owner-login.html|click delBtn|personal_calendar_events|delete|1": {
-  "guards": "staleCondition,readBack,doubleClickLock,confirmation",
+  "guards": "readBack,doubleClickLock,confirmation",
   "idempotency": "guarded: a repeat changes nothing",
   "audit": "unknown until Query C §10",
   "partial": "no (single write)",
   "sensitive": "no",
-  "note": ""
+  "note": "",
+  "justify": {
+   "stale": "The owner's own private event with no workflow state; the read-back reports one already deleted elsewhere."
+  }
  },
  "owner-login.html|submit addPersonalEventForm|personal_calendar_events|insert|1": {
   "guards": "doubleClickLock",
@@ -370,7 +379,7 @@
   "note": ""
  },
  "owner-login.html|saveInquiryDraft|customer_inquiries|update|1": {
-  "guards": "staleCondition,readBack,doubleClickLock",
+  "guards": "readBack,doubleClickLock",
   "idempotency": "guarded: a repeat changes nothing",
   "audit": "unknown until Query C §10",
   "partial": "no (single write)",
@@ -410,28 +419,37 @@
   "note": ""
  },
  "owner-login.html|click systemModeChangeBtn|feature_flags|update|1": {
-  "guards": "staleCondition,readBack,doubleClickLock,confirmation",
+  "guards": "readBack,doubleClickLock,confirmation",
   "idempotency": "guarded: a repeat changes nothing",
   "audit": "unknown until Query C §10",
   "partial": "mode saved; each follow-up switch-off checked and reported (MU-06)",
   "sensitive": "yes",
-  "note": ""
+  "note": "",
+  "justify": {
+   "stale": "Emergency force-off: setting enabled=false is idempotent from any state; the rows are read back and anything left on is reported."
+  }
  },
  "owner-login.html|click systemModeChangeBtn|feature_flags|update|2": {
-  "guards": "staleCondition,readBack,doubleClickLock,confirmation",
+  "guards": "readBack,doubleClickLock,confirmation",
   "idempotency": "guarded: a repeat changes nothing",
   "audit": "unknown until Query C §10",
   "partial": "mode saved; each follow-up switch-off checked and reported (MU-06)",
   "sensitive": "yes",
-  "note": ""
+  "note": "",
+  "justify": {
+   "stale": "Fallback of the Emergency force-off without who/when columns; idempotent and read back like the first attempt."
+  }
  },
  "owner-login.html|click systemModeChangeBtn|agent_controls|update|1": {
-  "guards": "staleCondition,readBack,doubleClickLock,confirmation",
+  "guards": "readBack,doubleClickLock,confirmation",
   "idempotency": "guarded: a repeat changes nothing",
   "audit": "unknown until Query C §10",
   "partial": "mode saved; each follow-up switch-off checked and reported (MU-06)",
   "sensitive": "yes",
-  "note": ""
+  "note": "",
+  "justify": {
+   "stale": "Switching an agent off is idempotent from any state; the rows are read back and a failure is reported."
+  }
  },
  "owner-login.html|click .ruleSaveBtn|business_rules|updateIfUnchanged|1": {
   "guards": "staleCondition,readBack,doubleClickLock,confirmation",
@@ -594,20 +612,26 @@
   "note": ""
  },
  "owner-login.html|click .deleteProductBtn|inventory|delete|1": {
-  "guards": "staleCondition,readBack,doubleClickLock,confirmation,rolePrecheck",
+  "guards": "readBack,doubleClickLock,confirmation,rolePrecheck",
   "idempotency": "guarded: a repeat changes nothing",
   "audit": "audit trigger (Query A)",
   "partial": "contained: stock row put back if the product delete fails",
   "sensitive": "yes",
-  "note": ""
+  "note": "",
+  "justify": {
+   "stale": "The every-bucket-is-0 conditions are added in a loop (.eq(bucket, 0)), which the static extractor cannot see; product-lifecycle.spec.js proves stock that arrives meanwhile blocks the delete."
+  }
  },
  "owner-login.html|click .deleteProductBtn|products|delete|1": {
-  "guards": "staleCondition,readBack,doubleClickLock,confirmation,rolePrecheck",
+  "guards": "readBack,doubleClickLock,confirmation,rolePrecheck",
   "idempotency": "guarded: a repeat changes nothing",
   "audit": "audit trigger (Query A)",
   "partial": "contained: stock row put back if the product delete fails",
   "sensitive": "yes",
-  "note": ""
+  "note": "",
+  "justify": {
+   "stale": "Fresh in-use checks run just before; foreign keys refuse a product with sales, lots or returns; on refusal the stock row is restored exactly."
+  }
  },
  "owner-login.html|click .deleteProductBtn|inventory|insert|1": {
   "guards": "doubleClickLock,confirmation,rolePrecheck",
