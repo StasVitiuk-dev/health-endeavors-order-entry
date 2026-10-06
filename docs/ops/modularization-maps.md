@@ -12,7 +12,7 @@ Generated from the code on `claude/platform-overnight-implementation`, which con
 2. Body HTML: login screen, app shell, 30 page `<section>`s, overlays.
 3. Main inline script:
    1. error banners (`error`, `unhandledrejection`)
-   2. **start-up checks**, in order: library loaded → helpers loaded → helpers API = 2 (since 2026-10-06) → `initApp()`
+   2. **start-up checks**, in order: library loaded → helpers loaded → helpers API = 3 (since 2026-10-06) → `initApp()`
 4. `initApp()` runs top to bottom, once:
    1. takes the 21 helpers from `window.HE.helpers`
    2. creates the Supabase client
@@ -67,6 +67,7 @@ Plus `SEARCH_INDEX`, a `const` object written by 19 loaders and read by search a
 | 1 | `<style>` → `assets/owner-login.css` (byte-for-byte); 2 identical base64 icons → `assets/owner-login-icon.png` | 535,811 → 473,175 bytes | `visual.spec.js` 20/20 pixel-identical; `assets.spec.js` (content-hash `?v=`) |
 | 2 | 21 pure helpers → `assets/owner-login-helpers.js` (IIFE, frozen `window.HE.helpers`, API 1) | → ~464 KB | `helpers-unit.spec.js` (now reads both files); `assets.spec.js` (names, purity, load-failure and old-API guards); full suite |
 | 2b (2026-10-06) | 7 more pure helpers → the same file, API **2**: `isNetworkError`, `boolGuard`, `noRowsChanged`, `staleMessage`, `explainDbError`, `UPLOAD_MAX_BYTES`, `uploadProblem` (moved text unchanged; the page takes them from `window.HE.helpers`) | −49 lines from the page | `helpers-unit.spec.js` (5 new unit tests), `assets.spec.js` (hash, old-API guard), full suite |
+| 2c (2026-10-06) | `confirmSecondPress`, `uploadStamp`, `safeStorageName` → the same file, API **3** (31 helpers) | −35 lines from the page | `helpers-unit.spec.js` (3 new unit tests), `assets.spec.js`, full suite |
 
 **No build step.** GitHub Pages serves the files as they are. A browser holding an old cached file can't run mixed code: the page refuses to start and asks for a reload.
 
@@ -77,6 +78,6 @@ I stopped before step 3 (the `HE` namespace + start registry + feature modules) 
 - the stock pages should keep their current shape until the R1–R4 database functions replace their request chains (`modularization-review.md` §2)
 
 **Next safe candidates, in order:**
-1. `confirmSecondPress` (DOM-only; `staleMessage` moved in step 2b)
+1. the upload flow (`uploadThenSave`) with `supabase` passed in (`confirmSecondPress` moved in step 2c)
 2. the access helpers, moved with `supabase` passed in
 3. the Tasks page (best tested)

@@ -197,3 +197,27 @@ test.describe('error and upload helpers', () => {
     expect(E.staleMessage('That order')).toMatch(/^That order was already changed/);
   });
 });
+
+// Moved on 2026-10-06 (modularization step 2c).
+test.describe('upload names and two-press confirmation', () => {
+  const U = load(['safeStorageName', 'uploadStamp', 'confirmSecondPress']);
+  test('safeStorageName: no folders, no dot runs or hidden names, ≤ 100 chars, extension kept', () => {
+    expect(U.safeStorageName('../../etc/passwd.pdf')).toBe('etc_passwd.pdf');
+    expect(U.safeStorageName('.hidden')).toBe('hidden');
+    expect(U.safeStorageName('')).toBe('file');
+    const long = U.safeStorageName('A'.repeat(300) + '.jpeg');
+    expect(long.length).toBe(100);
+    expect(long.endsWith('.jpeg')).toBe(true);
+  });
+  test('uploadStamp: two calls in the same millisecond differ', () => {
+    const a = U.uploadStamp(), b = U.uploadStamp();
+    expect(a).not.toBe(b);
+    expect(a).toMatch(/^\d+-[a-z0-9]+$/);
+  });
+  test('confirmSecondPress: first press arms and relabels, second press confirms', () => {
+    const btn = { dataset: {}, textContent: 'Cancel' };
+    expect(U.confirmSecondPress(btn, 'Really?')).toBe(false);
+    expect(btn.textContent).toBe('Really?');
+    expect(U.confirmSecondPress(btn, 'Really?')).toBe(true);
+  });
+});

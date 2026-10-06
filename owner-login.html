@@ -23,7 +23,7 @@
 <title>Health Endeavors — Owner Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous" onerror="window.__sbLoadFailed=true"></script>
 <link rel="stylesheet" href="assets/owner-login.css?v=71e9d86dca">
-<script src="assets/owner-login-helpers.js?v=3f586b0e4c" onerror="window.__heHelpersLoadFailed=true"></script>
+<script src="assets/owner-login-helpers.js?v=5f1a6b2b6e" onerror="window.__heHelpersLoadFailed=true"></script>
 <script>
   // Applied before anything renders so there's no flash of the wrong theme.
   (function(){
@@ -793,7 +793,7 @@
     showBanner('The sign-in helper library did not load from the internet, so this page cannot work yet. Check that your Mac is online, then fully reload this page (press Cmd+R). If this keeps happening, a content blocker or ad blocker extension in Safari may be blocking cdn.jsdelivr.net — try turning it off for this page and reloading.');
   } else if (window.__heHelpersLoadFailed || !window.HE || !window.HE.helpers) {
     showBanner('Part of this page (assets/owner-login-helpers.js) did not load, so it cannot start. Check that you are online, then fully reload this page (press Cmd+R).');
-  } else if (window.HE.helpers.API !== 2) {
+  } else if (window.HE.helpers.API !== 3) {
     showBanner('The dashboard was just updated and this page loaded a mix of old and new files. Fully reload this page (press Cmd+R) — nothing was changed.');
   } else {
     initApp();
@@ -830,6 +830,9 @@
       explainDbError,
       UPLOAD_MAX_BYTES,
       uploadProblem,
+      confirmSecondPress,
+      uploadStamp,
+      safeStorageName,
     } = window.HE.helpers;
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const verifyOnly = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -1016,23 +1019,6 @@
     // connection dropped while saving, the record may have been saved anyway
     // (only the reply lost): it looks first, so a saved record never loses
     // its file. Returns normally only when the record is saved.
-    // A storage-safe file name: letters, digits, dot, dash, underscore only
-    // (no slashes, so no folders or "../"), no leading dots, and at most 100
-    // characters with the extension kept, so very long names can't make the
-    // upload fail at the storage limit.
-    // Time plus a short random part: two uploads of the same name in the same
-    // millisecond (two tabs, a fast retry) no longer collide on one path.
-    function uploadStamp(){ return Date.now() + '-' + Math.random().toString(36).slice(2, 8); }
-    function safeStorageName(name){
-      let n = String(name || 'file').replace(/[^a-zA-Z0-9._-]/g, '_').replace(/\.{2,}/g, '.').replace(/_+/g, '_').replace(/^[._]+/, '');
-      if (!n || n === '_') n = 'file';
-      if (n.length > 100) {
-        const dot = n.lastIndexOf('.');
-        const ext = dot > 0 && n.length - dot <= 10 ? n.slice(dot) : '';
-        n = n.slice(0, 100 - ext.length) + ext;
-      }
-      return n;
-    }
     async function uploadThenSave(bucket, table, column, path, file, saveRecord){
       const { error: uploadErr } = await supabase.storage.from(bucket).upload(path, file);
       if (uploadErr) throw uploadErr;
@@ -1050,20 +1036,6 @@
         throw new Error((error.message || error) + ' — and the uploaded file could not be removed again; tell the owner it is left in storage as "' + path + '".');
       }
       throw error;
-    }
-    // Two-press confirmation for actions that are hard to undo: the first
-    // press only re-labels the button; a second press within 4 seconds
-    // returns true. Same pattern as product Delete.
-    function confirmSecondPress(btn, armedLabel){
-      if (btn.dataset.armed === '1') { btn.dataset.armed = '0'; return true; }
-      const original = btn.dataset.label || btn.textContent;
-      btn.dataset.label = original;
-      btn.dataset.armed = '1';
-      btn.textContent = armedLabel;
-      setTimeout(() => {
-        if (btn.dataset.armed === '1') { btn.dataset.armed = '0'; btn.textContent = original; }
-      }, 4000);
-      return false;
     }
 
     // True for a saved link that is safe to show as a clickable link. Blocks

@@ -279,10 +279,46 @@
       return null;
     }
 
+
+    // ---------- moved from owner-login.html on 2026-10-06 (modularization step 2c) ----------
+    // Two-press confirmation for actions that are hard to undo: the first
+    // press only re-labels the button; a second press within 4 seconds
+    // returns true. Same pattern as product Delete.
+    function confirmSecondPress(btn, armedLabel){
+      if (btn.dataset.armed === '1') { btn.dataset.armed = '0'; return true; }
+      const original = btn.dataset.label || btn.textContent;
+      btn.dataset.label = original;
+      btn.dataset.armed = '1';
+      btn.textContent = armedLabel;
+      setTimeout(() => {
+        if (btn.dataset.armed === '1') { btn.dataset.armed = '0'; btn.textContent = original; }
+      }, 4000);
+      return false;
+    }
+
+    // Time plus a short random part: two uploads of the same name in the same
+    // millisecond (two tabs, a fast retry) no longer collide on one path.
+    function uploadStamp(){ return Date.now() + '-' + Math.random().toString(36).slice(2, 8); }
+
+    // A storage-safe file name: letters, digits, dot, dash, underscore only
+    // (no slashes, so no folders or "../"), no leading dots, and at most 100
+    // characters with the extension kept, so very long names can't make the
+    // upload fail at the storage limit.
+    function safeStorageName(name){
+      let n = String(name || 'file').replace(/[^a-zA-Z0-9._-]/g, '_').replace(/\.{2,}/g, '.').replace(/_+/g, '_').replace(/^[._]+/, '');
+      if (!n || n === '_') n = 'file';
+      if (n.length > 100) {
+        const dot = n.lastIndexOf('.');
+        const ext = dot > 0 && n.length - dot <= 10 ? n.slice(dot) : '';
+        n = n.slice(0, 100 - ext.length) + ext;
+      }
+      return n;
+    }
+
   // Bump API when a helper's name or arguments change, so a page that loaded
   // an older copy refuses to start instead of running mixed code.
   window.HE.helpers = Object.freeze({
-    API: 2,
+    API: 3,
     esc,
     csvCell,
     fmtMoney,
@@ -311,5 +347,8 @@
     explainDbError,
     UPLOAD_MAX_BYTES,
     uploadProblem,
+    confirmSecondPress,
+    uploadStamp,
+    safeStorageName,
   });
 })();
