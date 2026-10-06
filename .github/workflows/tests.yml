@@ -28,7 +28,9 @@ jobs:
   playwright:
     name: Playwright (behaviour)
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    # 60 (was 40): the suite grew to about 1,600 tests (about 32 minutes with
+    # 2 workers on the session machine, 2026-10-06 extension 4).
+    timeout-minutes: 60
     steps:
       # Actions pinned to exact commits (supply-chain safety, like R7).
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
