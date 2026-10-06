@@ -102,6 +102,8 @@ Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (fro
 
 No merging or deploying by Claude · no production Supabase, SQL, cron, RLS or permission changes · no Shopify production changes, Shopify/Gmail connectors only with task approval · no real customer messages · no secrets anywhere · no money/accounting logic changes in production · no destructive or irreversible actions · Health Endeavors and Real Estate OS stay completely separate · website code never in this repository.
 
+**How to report to the owner (CURRENT, owner instruction, Oct 6, 2026):** the owner prefers detailed evidence in durable repository documents and concise, copy-friendly final chat responses. Put the full session report (evidence, test counts, bugs, decisions, rollback, SHAs, safety) in `docs/ops/`. Keep the final chat message to roughly 600–1,200 words in the owner's fixed structure: branch, SHAs, status, tests, fixes, findings, waiting on owner, weak spots, production / merged / deployed, report path, rollback, next action. Never leave out P0/P1, security, data-integrity, production or owner-decision items, or unresolved failures. Long chat replies are hard to copy, because the browser jumps while text is being selected.
+
 ## 8. Pending owner decisions (most important first)
 
 1. Review and merge order for PRs #5–#24.
