@@ -6572,7 +6572,7 @@
         loadApprovals();
       } catch (err) {
         row.querySelectorAll('button').forEach(b => b.disabled = false);
-        showDashError(`Could not mark that request "${decision}": ` + (err && err.message ? err.message : err) + ' — if this mentions an invalid status value, send me the exact message and I\'ll fix the wording in one step.');
+        showDashError(`Could not mark that request "${decision}": ` + (err && err.message ? err.message : err));
       }
     }
 

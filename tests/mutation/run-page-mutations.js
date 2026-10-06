@@ -14,6 +14,55 @@ const SCRATCH = path.resolve(process.argv[2] || path.join(require('os').tmpdir()
 
 // [name, file, exact text to find, replacement, specs + grep]
 const MUTATIONS = [
+  // ---- EXT4 additions (2026-10-06) ----
+  ['feature request advances from the database status, not the one shown (stale tab could jump to done)', 'owner-login.html',
+    "{ status: nextStatus, updated_at: new Date().toISOString() }, { status: shown });", "{ status: nextStatus, updated_at: new Date().toISOString() }, {});",
+    'state-transitions-2 -g "feature request \\"Mark"'],
+  ['expense Restore without the "still deleted" condition', 'owner-login.html',
+    "from('expenses').update({ deleted_at: null }).eq('id', id).not('deleted_at', 'is', null)", "from('expenses').update({ deleted_at: null }).eq('id', id)",
+    'state-transitions-2 -g "expense Restore"'],
+  ['gateway error page shown as raw HTML again', 'assets/owner-login-helpers.js',
+    'if (html !== -1) {', 'if (false) {',
+    'fault-injection-2 -g "gateway502"'],
+  ['manual order retry matches on the total only (changed lines silently dropped)', 'manual-order-entry.html',
+    'if (pending && pending.fingerprint === fingerprint) {', 'if (pending) {',
+    'manual-order-entry -g "same total"'],
+  ['manual order reuses an order number another tab already has', 'manual-order-entry.html',
+    'if (!taken || !taken.length) orderNumber = candidate;', 'orderNumber = candidate;',
+    'manual-order-entry -g "same second"'],
+  ['manual order: Enter while saving submits twice', 'manual-order-entry.html',
+    'if (saving) return; // Enter pressed again', 'void 0; // Enter pressed again',
+    'manual-order-entry -g "Enter pressed"'],
+  ['product delete restores the stock row without looking (deleted product gets a stray row)', 'owner-login.html',
+    'if (!stillThere) { prodGone = [{ id }]; error = null; }', '',
+    'session-expiry-midway -g "WAS deleted"'],
+  ['receive expense dated with the UTC day again', 'owner-login.html',
+    'expense_date: localDateString(new Date()), // Central calendar day', 'expense_date: new Date().toISOString().slice(0, 10), // Central calendar day',
+    'po-receive -g "Sept 30"'],
+  ['Accounting expense range uses a UTC slice again', 'owner-login.html',
+    "if (start) q = q.gte('expense_date', localDateString(start));\n          return q;", "if (start) q = q.gte('expense_date', start.toISOString().slice(0, 10));\n          return q;",
+    'timezone-contract'],
+  ['PO grand total not rounded to cents', 'assets/owner-login-helpers.js',
+    'return Math.round((poLinesTotal(po) + Number(po.shipping_cost || 0) + Number(po.tax || 0)) * 100) / 100;', 'return poLinesTotal(po) + Number(po.shipping_cost || 0) + Number(po.tax || 0);',
+    'helpers-unit -g "whole cents"'],
+  ['money decimals rule removed (10.009 accepted)', 'assets/owner-login-helpers.js',
+    'if (!o.integer && o.decimals !== undefined) {', 'if (false) {',
+    'failure-recovery -g "10.009"'],
+  ['1,000-row notice never shown', 'owner-login.html',
+    'if (Array.isArray(rows) && rows.length >= ROW_CAP) noteRowCap(', 'if (false) noteRowCap(',
+    'scale-matrix -g "notice"'],
+  ['Emergency stops before switching off Order Sync when the mode is not recorded', 'owner-login.html',
+    'if (modeProblem && !protective) {', 'if (modeProblem) {',
+    'admin-pages -g "Emergency when"'],
+  ['dialog focus trap removed', 'owner-login.html',
+    "const open = Array.from(document.querySelectorAll('[role=\"dialog\"][aria-modal=\"true\"]')).filter(shown);", 'const open = [];',
+    'a11y-basics -g "stay inside"'],
+  ['procedure form double-submit lock removed', 'owner-login.html',
+    'if (submitBtn && submitBtn.disabled) return;', '',
+    'write-path-inventory -g "Procedures"'],
+  ['refund amount checks removed', 'owner-login.html',
+    "const refundProblem = numberInputError(raw, { label: 'The refund amount', allowBlank: true, max: 1000000, decimals: 2 });", "const refundProblem = '';",
+    'failure-recovery -g "refund of"'],
   // ---- EXT3 additions (2026-10-06) ----
   ['return decision ignores the status shown (stale tab could re-open a return)', 'owner-login.html',
     "const changed = await updateIfUnchanged('returns', id, patch, { status: 'requested' });", "const changed = await updateIfUnchanged('returns', id, patch, {});",
@@ -28,7 +77,7 @@ const MUTATIONS = [
     ".eq('status', row.getAttribute('data-status'))", '',
     'pages-data -g "stale edit form|saving a product"'],
   ['order Restore without the "still deleted" condition (X3-02)', 'owner-login.html',
-    ".update({ deleted_at: null }).eq('id', id).not('deleted_at', 'is', null)", ".update({ deleted_at: null }).eq('id', id)",
+    "from('orders').update({ deleted_at: null }).eq('id', id).not('deleted_at', 'is', null)", "from('orders').update({ deleted_at: null }).eq('id', id)",
     'pages-data -g "Restore"'],
   ['Expenses total summed from the 200 listed only (X3-03)', 'owner-login.html',
     'const total = allAmounts.reduce(', 'const total = (rows || []).reduce(',
@@ -49,7 +98,7 @@ const MUTATIONS = [
     "if (event !== 'SIGNED_OUT' || signingOutHere || dash.style.display !== 'flex') return;", 'return;',
     'session-failures -g "another tab"'],
   ['manual order retry creates a second order again', 'manual-order-entry.html',
-    'if (already && already.length) {', 'if (false) {',
+    'if (already && already.length) newOrder = already[0];', 'if (false) newOrder = already[0];',
     'manual-order-entry -g "SAME order|no second order"'],
   ['manual order retry adds the items twice', 'manual-order-entry.html',
     'if (!itemCount) {', 'if (true) {',
@@ -132,6 +181,8 @@ for (const [name, file, find, repl, specs] of MUTATIONS) {
   const target = path.join(SCRATCH, file);
   const src = fs.readFileSync(target, 'utf8');
   if (!src.includes(find)) { results.push([name, 'MUTATION NOT APPLIED (text not found)']); continue; }
+  // EXT4: the text must be unique, or the wrong copy could be broken.
+  if (src.split(find).length !== 2) { results.push([name, 'MUTATION NOT APPLIED (text found more than once)']); continue; }
   fs.writeFileSync(target, src.replace(find, repl));
   if (file.startsWith('assets/')) fixHelpersHash(SCRATCH);
   let out = '';

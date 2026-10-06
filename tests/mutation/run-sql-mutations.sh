@@ -25,6 +25,7 @@ MUTATIONS=(
   "fully received lines are stocked again|    continue when v_outstanding <= 0;|    continue when false;"
   "return restocked twice (status check removed)|  if v_ret.status <> 'approved' then|  if false then"
   "sold product can be deleted (X3-13)|  if exists (select 1 from order_items oi join products p on lower(p.sku) = lower(oi.sku)|  if false and exists (select 1 from order_items oi join products p on lower(p.sku) = lower(oi.sku)"
+  "receive expense not rounded to cents (EXT4)|  v_total := round(v_items_value + v_extras, 2);|  v_total := v_items_value + v_extras;"
   "unknown stock bucket accepted|  if p_bucket not in ('available','reserved','damaged','sample','wholesale','promotional','returned','recalled') then|  if false then"
 )
 
@@ -55,6 +56,12 @@ sed 's/^  if array_length(missing, 1) > 0 then$/  if false then/' "$DRAFT" > "$T
 if grep -q "if false then" "$TMP/10_nopre.sql"; then
   if INSTALL_FILE="$TMP/10_nopre.sql" bash "$PKG" "${CONN[@]}" > "$TMP/pkg.out" 2>&1; then echo "MISS install preflight disabled → NOT CAUGHT"; missed=$((missed+1)); else echo "OK   install preflight disabled → CAUGHT ($(grep -c FAIL "$TMP/pkg.out") failing checks)"; caught=$((caught+1)); fi
 fi
+
+# EXT4: the column-type preflight is also checked by the install package tests.
+sed 's/^     where c.data_type <> t.typ);$/     where false);/' "$DRAFT" > "$TMP/10_notypes.sql"
+if grep -q "where false);" "$TMP/10_notypes.sql"; then
+  if INSTALL_FILE="$TMP/10_notypes.sql" bash "$PKG" "${CONN[@]}" > "$TMP/pkg2.out" 2>&1; then echo "MISS install type check disabled → NOT CAUGHT"; missed=$((missed+1)); else echo "OK   install type check disabled → CAUGHT ($(grep -c FAIL "$TMP/pkg2.out") failing checks)"; caught=$((caught+1)); fi
+else echo "MISS install type check disabled → MUTATION NOT APPLIED"; missed=$((missed+1)); fi
 
 psql "${CONN[@]}" -d postgres -qX -c "drop database if exists $DB" >/dev/null 2>&1
 rm -rf "$TMP"
