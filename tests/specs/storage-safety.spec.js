@@ -145,6 +145,53 @@ test.describe('evidence and receipts', () => {
   });
 });
 
+// ST-04 (2026-10-06): removing a receipt unlinks it from the expense FIRST
+// (only while it still points at that file), then deletes the file. So a
+// failure can leave a stray file nobody sees, never an expense pointing at a
+// missing receipt.
+test.describe('removing a receipt', () => {
+  const RECEIPT = 'SYN/receipt.pdf';
+  test.beforeEach(async ({ page, backend }) => {
+    backend.tables.expenses = [{ id: 'exp-r', category: 'packaging', amount: 5, expense_date: '2026-06-01', receipt_path: RECEIPT, deleted_at: null, created_at: '2026-06-01T00:00:00Z' }];
+    enableWrites(backend, ['expenses']);
+    await login(page);
+    await gotoPage(page, 'expensesPanel');
+  });
+  const removeBtn = page => page.locator('#expensesWrap .approvalRow[data-id="exp-r"] .expRemoveReceiptBtn');
+
+  test('unlinks first (guarded by the file it showed), then deletes the file', async ({ page, backend }) => {
+    await removeBtn(page).click();
+    await removeBtn(page).click(); // second press
+    await expect.poll(() => removals(backend, 'expense-receipts').length).toBe(1);
+    const patchAt = backend.requests.findIndex(r => r.table === 'expenses' && r.method === 'PATCH');
+    const removeAt = backend.requests.indexOf(removals(backend, 'expense-receipts')[0]);
+    expect(patchAt).toBeGreaterThan(-1);
+    expect(patchAt).toBeLessThan(removeAt);
+    expect(Object.fromEntries(backend.requests[patchAt].params.filter(([k]) => k !== 'select'))).toEqual({ id: 'eq.exp-r', receipt_path: 'eq.' + RECEIPT });
+    expect(removals(backend, 'expense-receipts')[0].body.prefixes).toEqual([RECEIPT]);
+    expect(backend.tables.expenses[0].receipt_path).toBeNull();
+  });
+
+  test('if the file cannot be deleted, the expense is still unlinked and the page says the file remains', async ({ page, backend }) => {
+    await page.route(/\/storage\/v1\/object\/expense-receipts/, route => route.request().method() === 'DELETE'
+      ? route.fulfill({ status: 500, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify({ statusCode: '500', error: 'SYNTHETIC', message: 'SYNTHETIC storage failure' }) })
+      : route.fallback());
+    await removeBtn(page).click();
+    await removeBtn(page).click();
+    await expect(page.locator('#dashError')).toContainText('could not be deleted from storage');
+    expect(backend.tables.expenses[0].receipt_path).toBeNull();
+  });
+
+  test('if the expense was changed elsewhere, nothing is deleted', async ({ page, backend }) => {
+    backend.tables.expenses[0].receipt_path = 'SYN/other.pdf'; // another tab replaced the receipt
+    await removeBtn(page).click();
+    await removeBtn(page).click();
+    await expect(page.locator('#dashError')).toContainText('already changed');
+    expect(removals(backend, 'expense-receipts')).toEqual([]);
+    expect(backend.tables.expenses[0].receipt_path).toBe('SYN/other.pdf');
+  });
+});
+
 test('a raw "row-level security" refusal is explained in plain words, without internal names', async ({ page, backend }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop', 'message text; run once');
   backend.tables.incidents = [{ id: 'inc-1', incident_number: 'INC-1', title: 'SYNTHETIC incident', created_at: '2026-09-20T00:00:00Z' }];

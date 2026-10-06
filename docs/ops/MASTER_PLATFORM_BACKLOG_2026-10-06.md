@@ -4,14 +4,14 @@ Internal dashboard/platform only. Generated from `docs/ops/backlog/items.py` (ed
 
 **162 deduplicated items** from 217 raw candidates (55 duplicates merged: the same item recorded in PROJECT_RECORD, the overnight review, PRs, owner lists, decision registers and tests).
 
-Status counts: BLOCKED-EXT 2, BLOCKED-OWNER 25, BLOCKED-PROD 12, BLOCKED-QC 7, DEFERRED 10, DONE 98, QUEUED 8
+Status counts: BLOCKED-EXT 2, BLOCKED-OWNER 25, BLOCKED-PROD 12, BLOCKED-QC 7, DEFERRED 10, DONE 100, QUEUED 6
 
 | Priority | Items | Done (branch) | Remaining |
 |---|---|---|---|
 | P0 | 14 | 4 | 10 |
 | P1 | 47 | 33 | 14 |
 | P2 | 53 | 36 | 17 |
-| P3 | 41 | 25 | 16 |
+| P3 | 41 | 27 | 14 |
 | P4 | 7 | 0 | 7 |
 
 Priorities: P0 data loss / security / financial corruption / destructive · P1 launch blocker / correctness / concurrency / permission · P2 reliability / scale / accessibility / major UX · P3 maintainability / tests / docs · P4 future.
@@ -162,8 +162,6 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | RP-06 | Reporting | Duplicate PO expenses detection in reports | Duplicate expense visibility | Low | S | — | Y | N | N | QUEUED |
 | SC-05 | Scale | "Showing first 1,000" notice for long lists (lots, products, POs) | Silent list truncation later | Low | S | — | Y | N | N | DEFERRED |
 | SC-06 | Scale | Lot pickers truncate after 1,000 lots | Older lots missing from pickers | Low | S | — | Y | N | N | DEFERRED |
-| SE-09 | Security | Bidi/RTL override and zero-width characters in names shown with clear isolation | Spoofed display text | Low | S | — | Y | N | N | QUEUED |
-| ST-04 | Storage | Receipt delete: storage removed but DB clear fails → record points at missing file | Documented, acceptable; test it | Low | S | — | Y | N | N | QUEUED |
 | ST-08 | Storage | Read-only listing of orphaned objects created before the fixes | Cleanup scope | Low | S | owner | N | Y | Y | BLOCKED-PROD |
 | ST-09 | Storage | Server-side atomic upload+record (signed upload + DB function) design | Browser cannot make two systems atomic | Low | M | design only | Y | N | N | QUEUED |
 | UX-01 | UX | Sidebar search: typing a page name + Enter opens that page (test.fixme) | Known behaviour gap; owner said palette Enter→guide looks deliberate | Low | S | owner decision | Y | Y | N | BLOCKED-OWNER |
@@ -182,9 +180,11 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | MU-09 | Mutations | Raw errors still show table/policy names (e.g. "for table evidence_locker") | Unnecessary internal detail in UI | Low | S | — | Y | N | N | DONE |
 | MU-14 | Mutations | Business rules threshold: stale overwrite (config) unguarded | Two owners editing | Low | S | — | Y | N | N | DONE |
 | SC-07 | Scale | Single reusable paging helper used by all totals (fetchAllRows/In) | Consistency | Low | S | — | Y | N | N | DONE |
+| SE-09 | Security | Bidi/RTL override and zero-width characters in names shown with clear isolation | Spoofed display text | Low | S | — | Y | N | N | DONE |
 | SE-10 | Security | Public repo hygiene scan in CI (no keys/emails in added files) | Prevent leaks | Low | S | — | Y | N | N | DONE |
 | SM-15 | State machine | Customer inquiry "answered" guarded; severity/draft unguarded | Last write wins on drafts | Low | S | — | Y | N | N | DONE |
 | SM-16 | State machine | Service status change unguarded (stale overwrite) | Low consequence | Low | S | — | Y | N | N | DONE |
+| ST-04 | Storage | Receipt delete: storage removed but DB clear fails → record points at missing file | Documented, acceptable; test it | Low | S | — | Y | N | N | DONE |
 | ST-06 | Storage | Path collision: same name in the same millisecond | Upload error | Low | S | — | Y | N | N | DONE |
 | TQ-01 | Tests | Flaky palette tests fixed at root; employee delete test robust | Trust in suite | Medium | S | — | Y | N | N | DONE |
 | TQ-02 | Tests | Mutation tests for page-side guards (stale guard, noRowsChanged, escaping, paging, upload cleanup) | Prove tests bite | Medium | M | — | Y | N | N | DONE |

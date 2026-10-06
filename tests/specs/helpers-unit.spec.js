@@ -21,6 +21,11 @@ const H = load([
 ]);
 
 test.describe('esc (HTML escaping)', () => {
+  test('drops bidi override/isolate characters that could reverse displayed text (SE-09)', () => {
+    expect(H.esc('invoice\u202Efdp.exe')).toBe('invoicefdp.exe');
+    expect(H.esc('a\u2066b\u2069c\u202Ad\u202Ce')).toBe('abcde');
+    expect(H.esc('Café 👩‍👩‍👧 日本')).toBe('Café 👩‍👩‍👧 日本'); // ordinary text and joined emoji unchanged
+  });
   test('escapes the five HTML special characters', () => {
     expect(H.esc(`<img src=x onerror="a('b')">&`)).toBe('&lt;img src=x onerror=&quot;a(&#39;b&#39;)&quot;&gt;&amp;');
   });

@@ -10,7 +10,11 @@
     // ---------- small helpers ----------
     function esc(s){
       if (s === null || s === undefined) return '';
-      return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+      // Bidi override/isolate controls (U+202A–202E, U+2066–2069) are dropped:
+      // they can make text display reversed ("invoice\u202Efdp.exe" shows as
+      // "invoiceexe.pdf") and have no use in business data (SE-09).
+      return String(s).replace(/[\u202A-\u202E\u2066-\u2069]/g, '')
+        .replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     }
 
     // One CSV cell, quoted. Spreadsheet apps run a cell that starts with
