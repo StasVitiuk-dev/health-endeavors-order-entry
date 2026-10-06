@@ -67,6 +67,68 @@ Earlier on 2026-10-05/06 (before this session's backlog): `46c8039`, `b0de408`, 
   - storage bucket/policy review
   - any permission follow-up from Query D
 
+## Extension round (later on 2026-10-06)
+
+Same branch, still **not merged, not deployed; `main` and production untouched**. 17 more commits (`3ffc1c5` … final).
+
+**Master backlog:** `docs/ops/MASTER_PLATFORM_BACKLOG_2026-10-06.md`. It has 162 deduplicated items, built from 217 raw candidates (55 duplicates merged). Status:
+
+| Status | Items |
+|---|---|
+| Done on the branch | 100 |
+| Queued (low value) | 6 |
+| Waiting for your decision | 25 |
+| Waiting for a production change | 12 |
+| Waiting for Query C | 7 |
+| Deferred | 10 |
+| External | 2 |
+
+Every remaining P0 and P1 item waits on Query C, your decision, or a production change. None of them can be done on the branch alone.
+
+**What changed, in plain words:**
+- **Emergency / No-AI mode:** if Shopify Order Sync or Agent #7 was not really switched off, the page now says so. Before, it only said "System mode changed".
+- **"Saved" really means saved:** 9 more places where "saved" could appear when the database changed nothing. "Log out device" now checks that the device really disappeared.
+- **No overwriting other people's changes:** Business Rules values, inquiry severity and service status no longer overwrite a change someone else made in another tab.
+- **Plain error messages:** error text no longer shows internal table, policy or constraint names.
+- **Activity export:** it now includes every row, up to 20,000, not just the first 500. The page warns if that cap is reached.
+- **Unknown is not zero:** "unknown" is no longer shown as 0 or "off". For example, Paused agents shows "?" when the switches could not be read, and a missing Order Sync setting says "not configured".
+- **One failure doesn't blank the page:** one failing table no longer blanks the rest of the page. A product with no stock record is labelled.
+- **Readable text:** text contrast now meets the WCAG AA readability standard on every page, light and dark. Dark-mode buttons were 3.0:1, Delete 2.8:1, and some labels 1.6:1. The change is colour only, no redesign.
+- **Uploads and names:** upload names are made safe and collision-free. Invisible right-to-left "override" characters are dropped from displayed names, so text can't display reversed.
+- **Stock functions (still drafts):** install in one transaction, so a failure installs nothing. Click-by-click install and rollback steps are in `R1-R5-INSTALL-RUNBOOK.md`.
+- **Helpers file (step 2c):** 3 more helpers moved into it, now API 3.
+
+**Final evidence (run with nothing else competing):**
+
+| Check | Result |
+|---|---|
+| Full suite (desktop 1100px + iPhone 390px) | **864 tests: 739 passed, 0 failed, 125 skipped**. The skips are by design. |
+| Key safety specs repeated ×3 | 162 passed, 0 failed |
+| SQL drafts `14`, `15`, `16` on the real table shapes | all pass |
+| Stress (20 scenarios, 52 checks per run, up to 100 callers) | 10 runs: 0 failed, 0 deadlocks |
+| Mutation harness (deliberately break a safety guard, check that the tests fail) | **12 of 12 caught**. The harness now fails if a mutation cannot be applied. |
+| Secret / email scan of everything added since `main` | clean (only `@example.test` addresses) |
+
+**New bugs found and fixed in this round:**
+- Emergency-mode false success
+- 9 silent-refusal writes
+- session revoke false success
+- internal names in error text
+- Activity export capped at 500
+- unknown shown as 0 or "off"
+- dark-mode and grey-text contrast (64 hard-coded colours)
+- business-rule stale overwrite
+- unsafe upload names
+- bidi spoofing
+- `report_totals` draft not matching the real NOT NULL columns
+- two stale mutation-harness entries
+
+**Still for you:**
+- Query C (you run it manually; not given again here)
+- Query D (prepared only, not given)
+- your decisions listed in the backlog
+- installing R1–R5 after Query C
+
 ## Public-repository review
 
 No keys, tokens, real emails or project hosts in anything added. One sentence describing Query B's result beyond "ran clean" was pushed in `a6d1a31` (`docs/ops/storage-safety-audit.md`) and removed in `e02377b`. Per your instruction, history was **not** rewritten, so the sentence remains visible in that one commit's history. It says nothing more than that little or no data exists yet.
