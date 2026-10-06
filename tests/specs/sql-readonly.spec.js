@@ -73,3 +73,18 @@ test('Query C: function source and job command text are only pattern-matched, ne
   expect(sql).toMatch(/\[token\]/);
   expect(sql).toMatch(/to_regclass\('cron\.job'\)/); // still runs without pg_cron
 });
+
+// EXT4 (workstream AP): the owner guide states the reviewed file's checksum,
+// line count and first / last lines. If the file changes, this fails until the
+// guide is updated in the same change, so the owner never checks against an
+// outdated value.
+test('Query C owner guide: checksum, line count and first/last lines match the file', () => {
+  const file = fs.readFileSync(path.join(DIR, '02_READONLY_C_agents.sql'), 'utf8');
+  const guide = fs.readFileSync(path.join(ROOT, 'docs', 'ops', 'QUERY_C_OWNER_RUN_GUIDE.md'), 'utf8');
+  const sha = require('crypto').createHash('sha256').update(file).digest('hex');
+  expect(guide).toContain('`' + sha + '`');
+  const lines = file.replace(/\n$/, '').split('\n');
+  expect(guide).toContain(lines.length + ' lines');
+  expect(guide).toContain('`' + lines[0] + '`');
+  expect(guide).toContain('`' + lines[lines.length - 1] + '`');
+});

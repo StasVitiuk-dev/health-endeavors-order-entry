@@ -10,6 +10,34 @@ Before the stock functions (R1–R5) can be installed safely, we need to know wh
 
 File: `docs/ops/sql/02_READONLY_C_agents.sql` (version 3).
 
+## The package at a glance
+
+| | |
+|---|---|
+| File | `docs/ops/sql/02_READONLY_C_agents.sql` (version 3), 255 lines |
+| SHA-256 checksum | `5322509e64950bce9df9d54b844cf7433c5d4ef18398f4d51b3c34fb62192849` (kept in step with the file by `sql-readonly.spec.js`; a session that changes the file must update this line in the same PR) |
+| First line | `-- =============================================================================` |
+| Last line | `order by 1, 2;` |
+| Writes | **None.** One `SELECT`; proven by the automated check below |
+| Expected output | 3 columns (`section`, `item`, `result`), sections `0 counts` to `10 audit coverage`, usually 50–200 rows |
+| Expected time | A few seconds. It reads the system catalog and counts rows; it does not lock anything |
+
+**How to check the file is the reviewed one (optional, 30 seconds):** on GitHub, open the file, click **Raw**, and compare the line count shown in the GitHub file view (255 lines) and the first and last lines with the table above. The checksum is for a session to verify if you ask; you don't have to compute it.
+
+## What NOT to click
+
+- Don't click **Run** on any other query or template in the SQL Editor during this step.
+- If Supabase offers **"Explain"**, **"Fix with AI"**, **"Optimize"** or a suggested rewrite, don't accept it. Run the file exactly as copied.
+- If a dialog warns about **"destructive operations"** or asks to confirm a change, **stop and click Cancel**. Query C never triggers that dialog, so seeing it means the wrong text was pasted.
+- Don't change the **Role** selector (leave the default `postgres`), don't toggle **RLS** anywhere, and don't save the query as a shared snippet.
+- Don't click any **Database → Functions / Triggers / Cron** "edit" or "delete" buttons while looking at the result. The result is information only.
+
+## How to stop
+
+- While it runs: click **Cancel** next to Run, or close the browser tab. Because it only reads, stopping changes nothing.
+- If it runs longer than about a minute, stop it and tell the session. That is unexpected for this query.
+- If anything on screen looks different from this guide, stop and send a screenshot before doing anything else.
+
 ## Why it is safe to run
 
 Proven on a local copy and by an automated check (`tests/specs/sql-readonly.spec.js`, which runs with every test suite):
