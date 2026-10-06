@@ -1,3 +1,6 @@
+-- SUPERSEDED 2026-10-05: kept for history only. The current draft is tested on the REAL
+-- table shapes (local-test/01_REAL_SHAPE_… + drafts/15_DRAFT_tests_…); it needs
+-- public.is_owner_or_admin() and purchase_orders.deleted_at, which this guessed setup lacks.
 -- LOCAL TEST ONLY — NEVER RUN ON SUPABASE.
 -- A GUESSED stand-in for the production tables, reconstructed only from how
 -- owner-login.html reads and writes them (column names, buckets, statuses).

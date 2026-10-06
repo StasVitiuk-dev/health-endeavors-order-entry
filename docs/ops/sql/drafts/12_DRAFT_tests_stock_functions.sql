@@ -1,3 +1,6 @@
+-- SUPERSEDED 2026-10-05: kept for history only. The current draft is tested on the REAL
+-- table shapes (local-test/01_REAL_SHAPE_… + drafts/15_DRAFT_tests_…); it needs
+-- public.is_owner_or_admin() and purchase_orders.deleted_at, which this guessed setup lacks.
 -- DRAFT tests for the stock functions. Everything runs inside BEGIN … ROLLBACK
 -- with synthetic rows, as the `authenticated` role, so NOTHING is kept.
 -- Each check raises an exception (and stops) if a result is wrong; the last

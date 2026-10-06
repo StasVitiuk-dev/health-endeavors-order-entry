@@ -1,10 +1,17 @@
 -- =============================================================================
 -- DRAFT — DO NOT RUN ON SUPABASE YET.
 -- R1–R5 all-or-nothing stock functions for Health Endeavors.
--- Written against a GUESSED schema (docs/ops/sql/local-test/). Column names,
--- statuses and constraints MUST be checked against the owner's Query A output
--- before this becomes a real migration. Tested only on a local throwaway
--- PostgreSQL with synthetic data.
+-- 2026-10-05: reconciled with the REAL table shapes from the owner's read-only
+-- Query A (columns, statuses, CHECK/UNIQUE constraints, RLS: stock tables are
+-- Owner/Administrator only, via the existing public.is_owner_or_admin()).
+-- Changes from the first draft: Owner/Administrator check before any stock
+-- change; deleted purchase orders refused; non-whole catalogue quantities and
+-- lot counts refused instead of silently rounded (PO quantities and lot
+-- counts are numeric in the database, stock buckets are integers); SKU matched
+-- case-insensitively like the unique index lower(sku); disposition validated.
+-- Still DRAFT: Query B (data health) and Query C (agents writing stock) must
+-- be reviewed first. Tested only on a local PostgreSQL with a copy of the real
+-- table shapes (local-test/01_REAL_SHAPE_…) and synthetic data.
 --
 -- Design (docs/ops/R1-R5-function-design.md has the full reasoning):
 --   * One function call = one transaction: every write happens or none does.
@@ -43,7 +50,20 @@ begin
   if p_change is null or p_change = 0 then
     raise exception 'A stock change must be a non-zero whole number.' using errcode = '22023';
   end if;
+  -- Same rule as the stock tables' row-level security (Query A), checked up
+  -- front so the caller gets a clear message instead of a bare RLS refusal.
+  if not public.is_owner_or_admin() then
+    raise exception 'Only the Owner or an Administrator can change stock.' using errcode = '42501';
+  end if;
 
+  -- Lock order everywhere: product, then its stock row. The history row's
+  -- foreign key needs a share lock on the product anyway; taking it first means
+  -- a concurrent delete_unused_product (product, then stock row) can't deadlock
+  -- with this (found by the real-shape stress test, scenario S8).
+  perform 1 from products where id = p_product_id for key share;
+  if not found then
+    raise exception 'That product no longer exists.' using errcode = 'P0002';
+  end if;
   -- Make sure the product has a stock row, then lock it.
   insert into inventory (product_id) values (p_product_id) on conflict (product_id) do nothing;
   perform 1 from inventory where product_id = p_product_id for update;
@@ -112,7 +132,7 @@ declare
   v_line_count integer;
   v_lot_number text;
   v_lot_id uuid;
-  v_outstanding integer;
+  v_outstanding numeric;
   v_stocked integer := 0;
   v_skipped integer := 0;
   v_total numeric;
@@ -122,10 +142,16 @@ begin
   if jsonb_typeof(coalesce(p_lots, '[]'::jsonb)) <> 'array' then
     raise exception 'Lot details must be a list.' using errcode = '22023';
   end if;
+  if not public.is_owner_or_admin() then
+    raise exception 'Only the Owner or an Administrator can receive a delivery.' using errcode = '42501';
+  end if;
 
   select * into v_po from purchase_orders where id = p_po_id for update;
   if not found then
     raise exception 'That purchase order no longer exists.' using errcode = 'P0002';
+  end if;
+  if v_po.deleted_at is not null then
+    raise exception 'Purchase order % was deleted, so it can''t be received.', v_po.po_number using errcode = '55000';
   end if;
   if v_po.status = 'received' then
     return jsonb_build_object('already_received', true, 'po_number', v_po.po_number);
@@ -137,6 +163,15 @@ begin
 
   -- Lock the lines too, so nothing edits them mid-receive.
   perform 1 from purchase_order_items where purchase_order_id = p_po_id for update;
+
+  -- Stock buckets are whole numbers; purchase-order quantities are numeric.
+  -- Refuse (before changing anything) rather than silently round 2.5 to 3.
+  if exists (select 1 from purchase_order_items
+              where purchase_order_id = p_po_id and product_id is not null
+                and (quantity <> trunc(quantity) or quantity_received <> trunc(quantity_received))) then
+    raise exception 'A catalogue line on purchase order % has a quantity that is not a whole number. Fix the line first — stock is counted in whole units.', v_po.po_number
+      using errcode = '22023', hint = 'non_whole_quantity';
+  end if;
 
   -- Landed unit cost: same formula as the dashboard today (owner-login.html 4542–4553).
   select coalesce(sum(quantity * unit_cost), 0), count(*) into v_items_value, v_line_count
@@ -182,7 +217,7 @@ begin
       end if;
     end if;
 
-    perform _he_apply_stock_change(v_line.product_id, 'available', v_outstanding,
+    perform _he_apply_stock_change(v_line.product_id, 'available', v_outstanding::integer,
                                    'Delivery received (' || v_po.po_number || ')', v_lot_id);
     update purchase_order_items set quantity_received = quantity where id = v_line.id;
     v_stocked := v_stocked + 1;
@@ -224,6 +259,9 @@ declare
   v_available integer;
   v_amount integer;
 begin
+  if not public.is_owner_or_admin() then
+    raise exception 'Only the Owner or an Administrator can quarantine stock.' using errcode = '42501';
+  end if;
   select * into v_recall from recalls where id = p_recall_id for update;
   if not found then
     raise exception 'That recall no longer exists.' using errcode = 'P0002';
@@ -236,6 +274,11 @@ begin
   select * into v_lot from inventory_lots where id = v_recall.lot_id for update;
   if not found then
     raise exception 'The recalled lot no longer exists.' using errcode = 'P0002';
+  end if;
+
+  if v_lot.quantity_remaining <> trunc(v_lot.quantity_remaining) then
+    raise exception 'Lot % has a remaining count that is not a whole number; fix it before quarantining.', v_lot.lot_number
+      using errcode = '22023', hint = 'non_whole_quantity';
   end if;
 
   insert into inventory (product_id) values (v_lot.product_id) on conflict (product_id) do nothing;
@@ -282,6 +325,15 @@ begin
   if p_disposition is null or p_disposition = '' then
     raise exception 'Pick what happens to the stock before marking this Received.' using errcode = '22023';
   end if;
+  if p_disposition not in ('restock_available', 'restock_damaged', 'discard') then
+    raise exception 'Unknown disposition "%".', p_disposition using errcode = '22023';
+  end if;
+  -- Restocking changes stock, which only the Owner or an Administrator may do
+  -- (Query A). Checked before anything is locked or written, so a refused
+  -- restock never leaves the return marked Received. 'discard' stays open to staff.
+  if p_disposition <> 'discard' and not public.is_owner_or_admin() then
+    raise exception 'Only the Owner or an Administrator can restock a return. Nothing was changed.' using errcode = '42501';
+  end if;
 
   select * into v_ret from returns where id = p_return_id for update;
   if not found then
@@ -310,7 +362,8 @@ begin
     if v_item.sku is null or v_item.sku = '' then
       v_note := 'no_sku';
     else
-      select id into v_product_id from products where sku = v_item.sku;
+      -- Case-insensitive, like the unique index on lower(sku).
+      select id into v_product_id from products where lower(sku) = lower(v_item.sku);
       if v_product_id is null then
         v_note := 'no_product_with_sku';
       else

@@ -1,4 +1,6 @@
 #!/bin/bash
+# SUPERSEDED 2026-10-05: kept for history only. Use stress_test.sh on the REAL table
+# shapes (local-test/01_REAL_SHAPE_…); this script targets the old guessed schema.
 # LOCAL TEST ONLY. Fires many simultaneous calls at the DRAFT functions on a
 # throwaway local PostgreSQL and checks nothing is lost or doubled.
 # Usage: concurrency_test.sh <psql connection args...>

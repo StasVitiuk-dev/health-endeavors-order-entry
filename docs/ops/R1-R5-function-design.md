@@ -110,3 +110,35 @@ Every stock-changing button does several separate requests from the browser: rea
 | D-ops-4 | Should a second active recall on the same lot be refused? | Yes (one active recall per lot). Needs a status check, or a partial unique index after Query A. |
 | D-ops-5 | Returns: allow "units actually returned" (partial-line returns)? Today the whole line is restocked. | Yes: an optional quantity field that defaults to the whole line. |
 | D-ops-6 | Do any agents or automations write `inventory` directly? | Owner to confirm. If yes, move them onto the same function. |
+
+## 8. Reconciled with the real schema (Query A, 2026-10-05)
+
+The owner's read-only Query A confirmed most assumptions. These changes were made in `10_DRAFT_stock_functions.sql`:
+
+| Assumption in the first draft | Reality (Query A) | Change |
+|---|---|---|
+| Anyone logged in may change stock (RLS decides) | Stock, lots, purchasing and recalls are **Owner/Administrator only**; returns are open to all staff | Every stock change checks `public.is_owner_or_admin()` first (42501, clear message). `receive_return` checks before anything is locked or written, so a refused restock never leaves a return "received". `discard` stays open to staff. |
+| Purchase orders are never deleted | `purchase_orders.deleted_at` exists | A deleted order is refused (55000) |
+| Quantities are whole numbers | PO quantities and lot counts are `numeric`; stock buckets are `integer` | A fractional catalogue line or lot count is refused (22023) before anything changes, instead of rounding silently. Non-catalogue lines (freight) may be fractional. |
+| SKU match is exact | Unique index on `lower(sku)` | Return restock matches `lower(sku) = lower(…)` |
+| Disposition is free text | CHECK: `restock_available`, `restock_damaged`, `discard` | Validated up front (22023) |
+| Lock order only mattered between receives | The history row's foreign key share-locks the product, so a product delete racing a stock change could deadlock | The helper locks the product (`FOR KEY SHARE`) before the stock row; `delete_unused_product` uses the same order |
+
+**Confirmed and unchanged:**
+- the bucket names and the `inventory` unique key on `product_id`
+- the column lists for history, lots, expenses and returns
+- the status values
+- expense categories = PO categories
+- every one of these tables has an audit trigger recording `auth.uid()`
+- the stock-row and history foreign keys still make `delete_unused_product` refuse a product that is in use
+
+**Tests on a local copy of the real table shapes:**
+- `drafts/15_DRAFT_tests_stock_functions_real_shape.sql`: all pass
+- **mutation check:** removing any one of the deleted-order, whole-unit, case-insensitive SKU, fractional-lot or disposition checks makes a test fail
+- `local-test/stress_test.sh`, real shape: 30 runs, 0 failed checks, 0 deadlocks
+- deadlock control (old lock order): 19 and 26 deadlocks out of 30, so the check works
+
+**Still needed before this becomes production SQL:**
+1. Query B results (data health; e.g. fractional quantities already stored, negative "recalled")
+2. Query C results (whether any agent or function writes `inventory` directly)
+3. Owner review and approval
