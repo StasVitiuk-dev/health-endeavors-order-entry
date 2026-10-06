@@ -7935,10 +7935,32 @@
             btn.disabled = true;
             try {
               const uid = await currentUserId();
-              const { error: upErr } = await supabase
-                .from('inventory')
-                .upsert({ product_id: productId, low_stock_threshold: value, updated_at: new Date().toISOString(), updated_by: uid }, { onConflict: 'product_id' });
-              if (upErr) throw upErr;
+              // EXT5: only over the value this page showed (the box's original
+              // value), so a second tab can't silently undo someone's change.
+              const shown = input.defaultValue === '' ? null : Number(input.defaultValue);
+              let thrQ = supabase.from('inventory')
+                .update({ low_stock_threshold: value, updated_at: new Date().toISOString(), updated_by: uid })
+                .eq('product_id', productId);
+              thrQ = shown === null ? thrQ.is('low_stock_threshold', null) : thrQ.eq('low_stock_threshold', shown);
+              const { data: thrRows, error: thrErr } = await thrQ.select('product_id');
+              if (thrErr) throw thrErr;
+              if (noRowsChanged(thrRows)) {
+                const { data: nowRow, error: nowErr } = await supabase.from('inventory').select('low_stock_threshold').eq('product_id', productId).maybeSingle();
+                if (nowErr) throw nowErr;
+                if (!nowRow) {
+                  // No stock record yet: create it with this alert level.
+                  const { error: upErr } = await supabase
+                    .from('inventory')
+                    .upsert({ product_id: productId, low_stock_threshold: value, updated_at: new Date().toISOString(), updated_by: uid }, { onConflict: 'product_id' });
+                  if (upErr) throw upErr;
+                } else if ((nowRow.low_stock_threshold === undefined ? null : nowRow.low_stock_threshold) !== shown) {
+                  showDashError(staleMessage('That low-stock alert level') + ' It is now ' + (nowRow.low_stock_threshold === null ? 'not set' : nowRow.low_stock_threshold) + '. Nothing was changed.');
+                  loadInventory();
+                  return;
+                } else {
+                  throw new Error('nothing was changed (no permission?)');
+                }
+              }
               loadInventory();
             } catch (err) {
               btn.disabled = false;

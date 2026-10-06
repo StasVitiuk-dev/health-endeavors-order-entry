@@ -146,7 +146,10 @@ function guardsFor(src, idx, stmt, op, table, ctxStart) {
   const handler = c ? src.slice(c.open, idx) : src.slice(Math.max(0, idx - 3000), idx);
   const near = handler;
   // a query built in a variable and finished later (let q = …delete()…; q = q.eq(…); await q.select('id'))
-  const v = /^\s*(?:await\s+)?(?:let|const|var)?\s*([A-Za-z_$][\w$]*)\s*=\s*(?:await\s+)?supabase/.exec(src.slice(src.lastIndexOf('\n', idx) + 1, idx + 5));
+  // (EXT5: the declaration may be a few lines up in the same statement:
+  //  let q = supabase.from('t')\n  .update(…)\n  .eq(…);)
+  const v = /^\s*(?:await\s+)?(?:let|const|var)?\s*([A-Za-z_$][\w$]*)\s*=\s*(?:await\s+)?supabase/.exec(src.slice(src.lastIndexOf('\n', idx) + 1, idx + 5))
+    || /(?:let|const|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:await\s+)?supabase[^;]*$/.exec(src.slice(Math.max(0, idx - 300), idx));
   if (v) {
     const ahead = src.slice(idx, idx + 700);
     const more = ahead.match(new RegExp('\\b' + v[1] + '\\b[^;]*;', 'g')) || [];

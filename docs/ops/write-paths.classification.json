@@ -647,7 +647,7 @@
   "audit": "audit trigger (Query A)",
   "partial": "no (single write)",
   "sensitive": "yes",
-  "note": "",
+  "note": "EXT5: now only when the product has no stock record yet (after the guarded update found none)",
   "justify": {
    "readBack": "Upsert: a refusal raises an error (no silent 0-row outcome). Last write wins on a config value (F3-09, deferred)."
   }
@@ -836,5 +836,13 @@
   "partial": "no (single write)",
   "sensitive": "yes",
   "note": ""
+ },
+ "owner-login.html|click .saveThresholdBtn|inventory|update|1": {
+  "guards": "staleCondition,readBack,doubleClickLock,rolePrecheck",
+  "idempotency": "guarded: a repeat changes nothing",
+  "audit": "audit trigger (Query A)",
+  "partial": "no (single write)",
+  "sensitive": "no",
+  "note": "EXT5: only over the alert level the page showed; 0 rows -> looks, then creates the stock record or reports the change"
  }
 }

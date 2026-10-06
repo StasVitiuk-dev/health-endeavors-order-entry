@@ -4,14 +4,14 @@ Internal dashboard/platform only. Generated from `docs/ops/backlog/items.py` (ed
 
 **251 deduplicated items** from 311 raw candidates (60 duplicates merged: the same item recorded in PROJECT_RECORD, the overnight review, PRs, owner lists, decision registers and tests).
 
-Status counts: BLOCKED-EXT 2, BLOCKED-OWNER 30, BLOCKED-PROD 15, BLOCKED-QC 12, DEFERRED 22, DONE 167, QUEUED 3
+Status counts: BLOCKED-EXT 2, BLOCKED-OWNER 30, BLOCKED-PROD 15, BLOCKED-QC 12, DEFERRED 22, DONE 168, QUEUED 2
 
 | Priority | Items | Done (branch) | Remaining |
 |---|---|---|---|
 | P0 | 14 | 4 | 10 |
 | P1 | 63 | 45 | 18 |
 | P2 | 78 | 59 | 19 |
-| P3 | 81 | 59 | 22 |
+| P3 | 81 | 60 | 21 |
 | P4 | 15 | 0 | 15 |
 
 Priorities: P0 data loss / security / financial corruption / destructive · P1 launch blocker / correctness / concurrency / permission · P2 reliability / scale / accessibility / major UX · P3 maintainability / tests / docs · P4 future.
@@ -214,7 +214,6 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | X3-16 | Inventory | Keep permanent product delete limited to never-used products, or archive only? | Policy | Low | S | owner | N | Y | N | BLOCKED-OWNER |
 | X3-19 | Audit | Send actor fields on more writes once columns are confirmed | Blind columns break writes | Low | S | Query C §10 | Y | N | N | BLOCKED-QC |
 | X5-15 | Audit | employee_activity ordering ties: the RPC's ORDER BY (needs happened_at, id) is not visible from the dashboard | Possible skip at equal timestamps (owner/Query C check) | Low | S | Query C / owner | N | Y | N | BLOCKED-QC |
-| X5-16 | Inventory | Low-stock threshold save is last-write-wins between two tabs (config value) | Minor overwrite | Low | S | — | Y | N | N | QUEUED |
 | AX-03 | Accessibility | Toasts announced (aria-live polite) | Success not announced | Low | S | — | Y | N | N | DONE |
 | AX-04 | Accessibility | prefers-reduced-motion respected for animations | Motion sensitivity | Low | S | — | Y | N | N | DONE |
 | AX-06 | Accessibility | Colour contrast check of badges in light/dark | Readability | Low | S | — | Y | N | N | DONE |
@@ -274,6 +273,7 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | X5-12 | Validation | Unreadable number text ($12.50, 12-) reported as "empty" | Confusing message | Low | S | — | Y | N | N | DONE |
 | X5-13 | Privacy | Manual-order attempt record kept customer name / e-mail in browser storage | PII on shared devices | Low | S | — | Y | N | N | DONE |
 | X5-14 | Tests | Failure matrix 14 actions x 14 kinds (silent refusal, empty reply, offline added); state machines from one fixture; mutation 57 + SQL 11 | Evidence breadth | Medium | M | — | Y | N | N | DONE |
+| X5-16 | Inventory | Low-stock threshold save was last-write-wins between two tabs; now only over the level shown | Minor overwrite | Low | S | — | Y | N | N | DONE |
 
 ## P4
 

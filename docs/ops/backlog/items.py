@@ -301,7 +301,7 @@ a('X5-12','Validation','Unreadable number text ($12.50, 12-) reported as "empty"
 a('X5-13','Privacy','Manual-order attempt record kept customer name / e-mail in browser storage','PII on shared devices','P3','Low','S','—','Y','N','N','DONE')
 a('X5-14','Tests','Failure matrix 14 actions x 14 kinds (silent refusal, empty reply, offline added); state machines from one fixture; mutation 57 + SQL 11','Evidence breadth','P3','Medium','M','—','Y','N','N','DONE')
 a('X5-15','Audit','employee_activity ordering ties: the RPC\'s ORDER BY (needs happened_at, id) is not visible from the dashboard','Possible skip at equal timestamps (owner/Query C check)','P3','Low','S','Query C / owner','N','Y','N','BLOCKED-QC')
-a('X5-16','Inventory','Low-stock threshold save is last-write-wins between two tabs (config value)','Minor overwrite','P3','Low','S','—','Y','N','N','QUEUED')
+a('X5-16','Inventory','Low-stock threshold save was last-write-wins between two tabs; now only over the level shown','Minor overwrite','P3','Low','S','—','Y','N','N','DONE')
 
 if __name__ == '__main__':
     import collections, os

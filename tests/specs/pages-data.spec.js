@@ -275,8 +275,34 @@ test.describe('Inventory', () => {
     await row.locator('.saveThresholdBtn').click();
     await expect.poll(() => writes(backend, 'inventory').length).toBe(1);
     const [w] = writes(backend, 'inventory');
-    expect(Object.keys(w.body).sort()).toEqual(['low_stock_threshold', 'product_id', 'updated_at', 'updated_by']);
+    expect(Object.keys(w.body).sort()).toEqual(['low_stock_threshold', 'updated_at', 'updated_by']);
     expect(w.body.low_stock_threshold).toBe(10);
+    // EXT5: only over the alert level the page showed
+    expect(Object.fromEntries(w.params.filter(([k]) => k !== 'select'))).toMatchObject({ product_id: 'eq.prod-b' });
+    expect(w.params.some(([k]) => k === 'low_stock_threshold')).toBe(true);
+  });
+
+  test('EXT5: a product with no stock record yet gets one, with this alert level', async ({ page, backend }) => {
+    backend.tables.inventory = backend.tables.inventory.filter(r => r.product_id !== 'prod-b');
+    await page.click('#refreshBtn');
+    await page.waitForLoadState('networkidle');
+    const row = page.locator('#inventoryWrap [data-product-id="prod-b"]');
+    await row.locator('.invThresholdInput').fill('4');
+    await row.locator('.saveThresholdBtn').click();
+    await expect.poll(() => writes(backend, 'inventory').filter(w => w.method === 'POST').length).toBe(1);
+    const post = writes(backend, 'inventory').find(w => w.method === 'POST');
+    expect(post.body).toMatchObject({ product_id: 'prod-b', low_stock_threshold: 4 });
+    await expect(page.locator('#dashError')).toBeHidden();
+  });
+
+  test('EXT5: a low-stock level changed in another tab is not overwritten', async ({ page, backend }) => {
+    const row = page.locator('#inventoryWrap [data-product-id="prod-b"]');
+    const inv = backend.tables.inventory.find(r => r.product_id === 'prod-b');
+    inv.low_stock_threshold = 7; // another tab saved 7 after this page loaded
+    await row.locator('.invThresholdInput').fill('10');
+    await row.locator('.saveThresholdBtn').click();
+    await expect(page.locator('#dashError')).toContainText('It is now 7');
+    expect(inv.low_stock_threshold).toBe(7);
   });
 
   test('saving a product sends only the product fields', async ({ page, backend }) => {
