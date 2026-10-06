@@ -259,7 +259,7 @@ test.describe('numberInputError (typed numbers, X3-05/06)', () => {
     expect(E('0.12555', { label: 'Cost', decimals: 4 })).toBe('Cost can have at most 4 decimal places.');
     expect(E('', { allowBlank: true, decimals: 2 })).toBe('');
     expect(E('-0.01', { decimals: 2 })).toContain('cannot be less than 0');
-    expect(E('Infinity', { decimals: 2 })).toBe('That value must be a number.');
+    expect(E('Infinity', { decimals: 2 })).toContain('must be a plain number');
   });
   test('a blank box is refused unless blank is allowed (it used to save as 0)', () => {
     expect(E('', { label: 'Amount' })).toBe('Amount is empty. Enter a number.');
@@ -267,9 +267,9 @@ test.describe('numberInputError (typed numbers, X3-05/06)', () => {
     expect(E('', { allowBlank: true })).toBe('');
   });
   test('not-a-number, infinity, negatives, huge values and fractions are refused', () => {
-    expect(E('abc', { label: 'X' })).toBe('X must be a number.');
-    expect(E('1e400', { label: 'X' })).toBe('X must be a number.');
-    expect(E('Infinity', { label: 'X' })).toBe('X must be a number.');
+    expect(E('abc', { label: 'X' })).toContain('X must be a plain number');
+    expect(E('1e400', { label: 'X' })).toContain('X must be a plain number');
+    expect(E('Infinity', { label: 'X' })).toContain('X must be a plain number');
     expect(E('-5', { label: 'Tax' })).toBe('Tax cannot be less than 0.');
     expect(E('0', { label: 'Amount', minExclusive: true })).toBe('Amount must be more than 0.');
     expect(E('20000000', { label: 'Shipping', max: 10000000 })).toBe('Shipping is too large (more than 10,000,000).');

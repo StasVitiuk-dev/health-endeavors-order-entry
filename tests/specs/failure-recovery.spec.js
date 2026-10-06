@@ -94,7 +94,7 @@ test.describe('Returns', () => {
     expect(writes(backend, 'returns')).toEqual([]);
   });
 
-  for (const [typed, says] of [['10.009', 'whole cents'], ['-1', 'cannot be less than 0'], ['abc', 'must be a number']]) {
+  for (const [typed, says] of [['10.009', 'whole cents'], ['-1', 'cannot be less than 0'], ['abc', 'must be a plain number']]) {
     test(`a refund of "${typed}" is refused before anything is sent (EXT4)`, async ({ page, backend }) => {
       backend.tables.returns[0].status = 'received';
       await page.reload();

@@ -29,7 +29,7 @@
 <title>Health Endeavors — Owner Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous" onerror="window.__sbLoadFailed=true"></script>
 <link rel="stylesheet" href="assets/owner-login.css?v=665ff419f0">
-<script src="assets/owner-login-helpers.js?v=46d05e7f37" onerror="window.__heHelpersLoadFailed=true"></script>
+<script src="assets/owner-login-helpers.js?v=03d97295d1" onerror="window.__heHelpersLoadFailed=true"></script>
 <script>
   // Applied before anything renders so there's no flash of the wrong theme.
   (function(){
@@ -3549,9 +3549,9 @@
         };
         // Same checks as editing a product (EXT4): the add form only had the
         // browser's own checks, with no upper limit.
-        const priceProblem = numberInputError(document.getElementById('prodCost').value, { label: 'Cost', allowBlank: true, max: 1000000, decimals: 4 })
-          || numberInputError(document.getElementById('prodRetail').value, { label: 'Retail price', allowBlank: true, max: 1000000, decimals: 2 })
-          || numberInputError(document.getElementById('prodWholesale').value, { label: 'Wholesale price', allowBlank: true, max: 1000000, decimals: 2 });
+        const priceProblem = numberInputError(numVal(document.getElementById('prodCost')), { label: 'Cost', allowBlank: true, max: 1000000, decimals: 4 })
+          || numberInputError(numVal(document.getElementById('prodRetail')), { label: 'Retail price', allowBlank: true, max: 1000000, decimals: 2 })
+          || numberInputError(numVal(document.getElementById('prodWholesale')), { label: 'Wholesale price', allowBlank: true, max: 1000000, decimals: 2 });
         if (priceProblem) { showDashError(priceProblem + ' Nothing was saved.'); return; }
         const { error } = await supabase.from('products').insert({
           name: name,
@@ -3609,6 +3609,15 @@
     // Lines, shipping and tax can only change while the order is still being
     // put together; after that the logged expense would no longer match.
     const PO_EDITABLE = ['draft', 'ordered'];
+    // EXT5: a browser number box silently empties text it can't read ("$12.50",
+    // "1,200", "12 units"), so the page used to say "is empty". This hands the
+    // number check something that is clearly not a number instead, so the
+    // person is told to type plain digits.
+    function numVal(el){
+      if (!el) return '';
+      if (el.validity && el.validity.badInput) return '(not a plain number)';
+      return el.value;
+    }
     // Re-reads an order's status straight from the database. Used before
     // changes that can't carry their own condition (adding/removing lines),
     // so a page left open doesn't edit an order that has moved on.
@@ -3907,8 +3916,8 @@
         const unitCost = Number(box.querySelector('.poLineCost').value || 0);
         if (!description) { toast('Say what you\'re buying first.'); return; }
         if (!(quantity > 0)) { toast('Quantity needs to be more than zero.'); return; }
-        const lineProblem = numberInputError(box.querySelector('.poLineQty').value, { label: 'Quantity', min: 0, minExclusive: true, max: 1000000 })
-          || numberInputError(box.querySelector('.poLineCost').value, { label: 'Unit cost', allowBlank: true, max: 10000000, decimals: 4 });
+        const lineProblem = numberInputError(numVal(box.querySelector('.poLineQty')), { label: 'Quantity', min: 0, minExclusive: true, max: 1000000 })
+          || numberInputError(numVal(box.querySelector('.poLineCost')), { label: 'Unit cost', allowBlank: true, max: 10000000, decimals: 4 });
         if (lineProblem) { toast(lineProblem); return; }
         // Stock is counted in whole units (inventory columns are integers), so a
         // catalogue product line can't be 2.5. Non-catalogue lines (freight,
@@ -3973,8 +3982,8 @@
 
       const saveTotals = box.querySelector('.poSaveTotals');
       if (saveTotals) saveTotals.addEventListener('click', async () => {
-        const totalsProblem = numberInputError(box.querySelector('.poShipping').value, { label: 'Shipping', allowBlank: true, max: 10000000, decimals: 2 })
-          || numberInputError(box.querySelector('.poTax').value, { label: 'Tax', allowBlank: true, max: 10000000, decimals: 2 });
+        const totalsProblem = numberInputError(numVal(box.querySelector('.poShipping')), { label: 'Shipping', allowBlank: true, max: 10000000, decimals: 2 })
+          || numberInputError(numVal(box.querySelector('.poTax')), { label: 'Tax', allowBlank: true, max: 10000000, decimals: 2 });
         if (totalsProblem) { showDashError(totalsProblem + ' Nothing was saved.'); return; }
         saveTotals.disabled = true;
         try {
@@ -6521,7 +6530,7 @@
               const valueInput = row.querySelector('.ruleValueInput');
               const num = Number(valueInput.value);
               // A blank box used to save as 0 (Number('') is 0): refused now.
-              const ruleProblem = numberInputError(valueInput.value, { label: '"' + label + '"', min: 0 });
+              const ruleProblem = numberInputError(numVal(valueInput), { label: '"' + label + '"', min: 0 });
               if (ruleProblem) {
                 showDashError(ruleProblem + ' Nothing was saved.');
                 return;
@@ -7725,7 +7734,7 @@
           btn.addEventListener('click', async () => {
             const row = btn.closest('[data-product-id]');
             const id = row.getAttribute('data-product-id');
-            const val = (cls) => row.querySelector(cls).value;
+            const val = (cls) => numVal(row.querySelector(cls));
             const num = (cls) => { const v = val(cls); return v === '' ? null : Number(v); };
             const name = val('.peName').trim();
             if (!name) { toast('A product needs a name.'); return; }
@@ -7895,7 +7904,7 @@
             const row = btn.closest('[data-product-id]');
             const productId = row.getAttribute('data-product-id');
             const input = row.querySelector('.invThresholdInput');
-            const raw = input.value.trim();
+            const raw = numVal(input).trim();
             // Stock settings are Owner/Administrator only (row-level security on
             // inventory); say so before sending, like the other stock actions.
             if (!canChangeStock()) { showDashError('Only the Owner or an Administrator can change stock settings. Nothing was changed.'); return; }
@@ -7961,7 +7970,7 @@
       const bucket = bucketSelect.value;
       const changeAmount = parseInt(amountInput.value, 10);
       // "2.7" used to be cut to 2 silently; whole units only, refused otherwise.
-      const changeProblem = amountInput.value.trim() === '' ? '' : numberInputError(amountInput.value, { label: 'The amount', min: -1000000, max: 1000000, integer: true });
+      const changeProblem = numVal(amountInput).trim() === '' ? '' : numberInputError(numVal(amountInput), { label: 'The amount', min: -1000000, max: 1000000, integer: true });
       if (changeProblem) { showDashError(changeProblem + ' Nothing was changed.'); return; }
 
       if (!productId) { showDashError('Pick a product to adjust.'); return; }
@@ -8263,7 +8272,7 @@
             const row = btn.closest('[data-return-id]');
             const id = row.getAttribute('data-return-id');
             const amountInput = row.querySelector('.refundAmountInput');
-            const raw = amountInput ? amountInput.value.trim() : '';
+            const raw = amountInput ? numVal(amountInput).trim() : '';
             const amount = raw === '' ? null : Number(raw);
             // Whole cents, not negative, not absurd (EXT4: 10.009 used to be saved).
             const refundProblem = numberInputError(raw, { label: 'The refund amount', allowBlank: true, max: 1000000, decimals: 2 });
@@ -8549,7 +8558,7 @@
         showDashError('Pick a category for this expense.');
         return;
       }
-      const amountProblem = numberInputError(amountInput.value, { label: 'The amount', min: 0, minExclusive: true, max: 10000000, decimals: 2 });
+      const amountProblem = numberInputError(numVal(amountInput), { label: 'The amount', min: 0, minExclusive: true, max: 10000000, decimals: 2 });
       if (amountProblem) {
         showDashError(amountProblem + ' Enter an amount greater than $0.');
         return;

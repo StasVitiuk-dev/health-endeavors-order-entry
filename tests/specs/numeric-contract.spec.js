@@ -67,3 +67,26 @@ test('adding a product with a cost above $1,000,000 is refused with plain words 
   await expect(page.locator('#dashError')).toContainText('Cost is too large');
   expect(backend.tables.products).toHaveLength(0);
 });
+
+// EXT5 (workstream 7): a browser number box empties text it can't read
+// ("$12.50", "1,200"); the page used to say "is empty". Typed for real with
+// the keyboard, as a person would.
+for (const typed of ['12-', '1e', '5..5']) { // typos Chromium accepts but cannot read (pasted "$12.50" ends the same way)
+  test(`expense amount typed as "${typed}": told to type a plain number, nothing saved`, async ({ page, backend }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'run once');
+    const { enableWrites } = require('../helpers/stateful-backend');
+    backend.tables.expenses = [];
+    enableWrites(backend, ['expenses']);
+    await login(page);
+    await gotoPage(page, 'expensesPanel');
+    await page.selectOption('#expCategory', { index: 1 });
+    await page.locator('#expAmount').click();
+    await page.keyboard.type(typed);
+    const bad = await page.locator('#expAmount').evaluate(el => el.validity.badInput || el.value === '');
+    test.skip(!bad, 'this browser kept the text as a number');
+    await page.locator('#expAmount').evaluate(el => el.form.noValidate = true); // reach the page's own check, as with a pasted value
+    await page.locator('#addExpenseForm button[type=submit]').click();
+    await expect(page.locator('#dashError')).toContainText('must be a plain number');
+    expect(backend.tables.expenses).toHaveLength(0);
+  });
+}

@@ -361,7 +361,7 @@
       const text = String(raw === null || raw === undefined ? '' : raw).trim();
       if (text === '') return o.allowBlank ? '' : label + ' is empty. Enter a number.';
       const n = Number(text);
-      if (!Number.isFinite(n)) return label + ' must be a number.';
+      if (!Number.isFinite(n)) return label + ' must be a plain number: digits and one decimal point only (no $, commas, spaces or words), for example 1200.50.';
       const min = o.min === undefined ? 0 : o.min;
       const max = o.max === undefined ? 1e9 : o.max;
       if (o.minExclusive ? n <= min : n < min) return label + (o.minExclusive ? ' must be more than ' : ' cannot be less than ') + min + '.';

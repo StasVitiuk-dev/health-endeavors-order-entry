@@ -86,7 +86,7 @@ const MUTATIONS = [
     'return q.order(\'created_at\', { ascending: false }).limit(closed ? CLOSED_CAP : OPEN_CAP);', 'return q.order(\'created_at\', { ascending: false }).limit(closed ? CLOSED_CAP : 0);',
     'second-pass-fixes -g "Returns"'],
   ['typed numbers: infinity / text no longer refused (X3-05/06)', 'assets/owner-login-helpers.js',
-    "if (!Number.isFinite(n)) return label + ' must be a number.';", '',
+    "if (!Number.isFinite(n)) return label + ' must be a plain number: digits and one decimal point only (no $, commas, spaces or words), for example 1200.50.';", '',
     'helpers-unit -g "numberInputError"'],
   ['negative shipping accepted again (X3-06)', 'owner-login.html',
     "const totalsProblem = numberInputError(box.querySelector('.poShipping').value", "const totalsProblem = '' && numberInputError(box.querySelector('.poShipping').value",
