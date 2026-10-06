@@ -101,3 +101,11 @@ All are 0 commits behind `main`.
 | Full suite after step 20 (everything merged) | **405 passed**, 0 failed (Oct 4: 404; one more test now runs on this machine) |
 
 The recommended order still holds.
+
+## Re-check, 2026-10-06 (extension 4)
+
+Read-only (`git ls-remote` and ancestry checks; nothing merged, no branch changed).
+
+- `main` is still `d3db7bc`. All 20 PR heads are unchanged (same SHAs as the extension 3 list above).
+- `claude/platform-deep-readiness-extension-4` **contains all 20 PR heads** (each is an ancestor of the branch), and `main` is an ancestor of the branch. Merging the branch would therefore bring in all 20 PRs' changes with no conflicts against `main` as it is today.
+- If you prefer to merge PR by PR, the recommended order above still holds. Merging the branch later is then still conflict-free, because it builds on the same commits.
