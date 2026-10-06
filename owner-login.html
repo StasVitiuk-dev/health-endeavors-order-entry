@@ -5708,9 +5708,11 @@
       const newVal = sel.value || null;
       sel.disabled = true;
       try {
-        const { data: changed, error } = await supabase.from('customer_inquiries').update({ severity: newVal }).eq('id', id).select('id');
-        if (error) throw error;
-        if (noRowsChanged(changed)) { showDashError(staleMessage('That inquiry')); loadInquiries(); return; }
+        // Only over the severity this page showed (the option rendered as
+        // selected): a stale tab can't overwrite someone else's change.
+        const shown = [...sel.options].find(o => o.defaultSelected);
+        const ok = await updateIfUnchanged('customer_inquiries', id, { severity: newVal }, { severity: shown && shown.value ? shown.value : null });
+        if (!ok) { showDashError(staleMessage('That inquiry')); loadInquiries(); return; }
         const rec = ALL_INQUIRIES.find(i => i.id === id);
         if (rec) rec.severity = newVal;
         renderInquiries();
@@ -5872,9 +5874,10 @@
       const newVal = sel.value;
       sel.disabled = true;
       try {
-        const { data: changed, error } = await supabase.from('service_status').update({ status: newVal, updated_at: new Date().toISOString() }).eq('id', id).select('id');
-        if (error) throw error;
-        if (noRowsChanged(changed)) showDashError(staleMessage('That service status'));
+        const shown = [...sel.options].find(o => o.defaultSelected);
+        const ok = await updateIfUnchanged('service_status', id, { status: newVal, updated_at: new Date().toISOString() },
+          { status: shown && shown.value ? shown.value : null });
+        if (!ok) showDashError(staleMessage('That service status'));
         loadContinuity();
       } catch (err) {
         showDashError('Could not update that service status: ' + (err && err.message ? err.message : err));

@@ -159,4 +159,16 @@ test.describe('Customer Inquiries', () => {
     await expect.poll(() => writes(backend, 'customer_inquiries').length).toBe(1);
     expect(writes(backend, 'customer_inquiries')[0].body).toEqual({ severity: 'medium' });
   });
+
+  // SM-15 (2026-10-06): only over the severity the page showed.
+  test('a severity changed elsewhere meanwhile is not overwritten by a stale page', async ({ page, backend }) => {
+    const shown = backend.tables.customer_inquiries.find(i => i.id === 'inq-new');
+    const before = shown.severity;
+    shown.severity = 'high'; // changed in another tab after this page loaded
+    await page.locator('#inquiriesWrap .inqSeveritySelect[data-id="inq-new"]').selectOption('medium');
+    await expect(page.locator('#dashError')).toContainText('already changed');
+    expect(backend.tables.customer_inquiries.find(i => i.id === 'inq-new').severity).toBe('high');
+    const w = writes(backend, 'customer_inquiries')[0];
+    expect(Object.fromEntries(w.params.filter(([k]) => k !== 'select')).severity).toBe(before == null ? 'is.null' : 'eq.' + before);
+  });
 });
