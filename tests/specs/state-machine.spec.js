@@ -162,3 +162,48 @@ test.describe('the synthetic test data itself obeys the database rules', () => {
     expect(checkWrite('returns', { order_id: 'x' }, { isInsert: true })).toHaveLength(1); // reason missing
   });
 });
+
+// EXT5 (workstream 5): one machine-readable source (tests/fixtures/state-machines.js)
+// for both the documentation and these checks.
+test.describe('state-machine fixture matches the code and the database', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const { MACHINES, markdown } = require('../fixtures/state-machines');
+  const C = load(['TASK_ALLOWED_FROM', 'PO_ALLOWED_FROM', 'FR_NEXT_STATUS', 'PO_EDITABLE']);
+  const toFromMap = m => Object.fromEntries(m.transitions.map(([from, to]) => [to, [...from].sort()]));
+  const sortVals = o => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, Array.isArray(v) ? [...v].sort() : v]));
+
+  test('tasks and purchase orders: the page\'s allowed-from lists equal the fixture', () => {
+    expect(sortVals(C.TASK_ALLOWED_FROM)).toEqual(toFromMap(MACHINES.tasks));
+    expect(sortVals(C.PO_ALLOWED_FROM)).toEqual(toFromMap(MACHINES.purchase_orders));
+  });
+  test('feature requests: the page\'s next-step map equals the fixture', () => {
+    expect(C.FR_NEXT_STATUS).toEqual(Object.fromEntries(MACHINES.feature_requests.transitions.map(([from, to]) => [from[0], to])));
+  });
+  test('every status the fixture lists is exactly the database\'s list (where the database rule is known)', () => {
+    for (const m of Object.values(MACHINES)) {
+      const allowed = (ALLOWED[m.table] || {})[m.column];
+      if (!allowed) continue; // not verified yet (Query C section 9): stated in the notes
+      expect([...m.states].sort(), m.table).toEqual([...allowed].sort());
+    }
+  });
+  test('every transition starts and ends in a listed state; terminal states have no way out', () => {
+    for (const [name, m] of Object.entries(MACHINES)) {
+      for (const [from, to] of m.transitions) {
+        expect(m.states, name).toContain(to);
+        for (const f of from) expect(m.states, name).toContain(f);
+        for (const t of m.terminal) expect(from, `${name}: no move out of terminal ${t}`).not.toContain(t);
+      }
+    }
+  });
+  test('each transition\'s "from" condition appears in the page as the condition sent with the write', () => {
+    // returns / recalls / approvals / legal holds use literal or shown-status conditions
+    expect(SOURCE).toContain("updateIfUnchanged('returns', id, patch, { status: 'requested' })");
+    expect(SOURCE).toContain("updateIfUnchanged('returns', id, { status: next, updated_at: new Date().toISOString() }, { status: seen })");
+    expect(SOURCE).toMatch(/updateIfUnchanged\('recalls', id, \{\s*status: 'resolved'[\s\S]{0,200}\}, \{ status: seen \}\)/);
+  });
+  test('docs/ops/STATE_MACHINES.md is generated from the fixture and up to date', () => {
+    const doc = fs.readFileSync(path.resolve(__dirname, '..', '..', 'docs', 'ops', 'STATE_MACHINES.md'), 'utf8');
+    expect(doc).toBe(markdown() + '\n');
+  });
+});
