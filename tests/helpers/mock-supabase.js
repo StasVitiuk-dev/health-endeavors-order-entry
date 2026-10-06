@@ -56,6 +56,26 @@ function parseInList(raw) {
   return inner.split(',').map(v => v.trim().replace(/^"(.*)"$/, '$1'));
 }
 
+// Workflow-state columns: every UI change to one of these must be conditional
+// on the value the page showed. Plain data fields (notes, names) are not here.
+const STATE_COLUMNS = {
+  tasks: ['status'], purchase_orders: ['status', 'payment_status'], returns: ['status'],
+  recalls: ['status'], approval_requests: ['status'], feature_requests: ['status'],
+  legal_holds: ['status'], quality_checks: ['result'], incidents: ['status'],
+  customer_inquiries: ['status', 'severity'], service_status: ['status'],
+  system_mode: ['mode'], feature_flags: ['enabled'], agent_controls: ['enabled'],
+  business_rules: ['is_active', 'config'], sop_documents: ['agent_visible'],
+  products: ['status', 'is_active'], orders: ['status', 'deleted_at'],
+  expenses: ['deleted_at', 'receipt_path'], adverse_event_reports: ['fda_reported'],
+};
+// Writes that are safe without a condition, each with its reason.
+const STATE_WRITE_EXCEPTIONS = {
+  // Emergency / No-AI mode forces these OFF. Writing "off" twice is harmless
+  // and the result is read back and reported (MU-06).
+  feature_flags: [(e, c) => c === 'enabled' && e.body.enabled === false && e.params.some(([k, v]) => k === 'flag_key' && v === 'eq.shopify_order_sync')],
+  agent_controls: [(e, c) => c === 'enabled' && e.body.enabled === false && e.params.some(([k, v]) => k === 'agent_num' && v === 'eq.7') && !e.params.some(([k]) => k === 'enabled')],
+};
+
 function jsonEqual(a, b) {
   if (a === b) return true;
   if (a === null || b === null || typeof a !== 'object' || typeof b !== 'object') return false;
@@ -155,6 +175,8 @@ class FakeSupabase {
     this.constraintViolations = []; // writes the real database would refuse (db-constraints.js)
     this.expectViolations = false;  // a test that provokes one on purpose sets this
     this.allowImpossibleData = false; // a test seeding deliberately impossible rows (XSS payloads) sets this
+    this.unguardedStateWrites = []; // state changes sent without "only if it is still …" (see STATE_COLUMNS)
+    this.allowUnguardedState = false; // a test that provokes one on purpose sets this
   }
 
   // Changes the page asked for on any table (updates, inserts, deletes).
@@ -207,6 +229,19 @@ class FakeSupabase {
             body: JSON.stringify({ code: '23514', details: null, hint: null,
               message: `new row for relation "${b.table}" violates check constraint "${b.constraint}"` }),
           });
+        }
+      }
+      // State-machine rule (2026-10-06, EXT3): a PATCH that changes a workflow
+      // state column must carry a condition on that same column (the value
+      // the page showed), so a stale tab can never move a record backwards
+      // or apply the same step twice. Recorded here; the shared test setup
+      // fails any test that leaves one behind.
+      if (entry.method === 'PATCH' && entry.body && typeof entry.body === 'object') {
+        for (const col of STATE_COLUMNS[entry.table] || []) {
+          if (!Object.prototype.hasOwnProperty.call(entry.body, col)) continue;
+          if (entry.params.some(([k]) => k === col)) continue;
+          if ((STATE_WRITE_EXCEPTIONS[entry.table] || []).some(fn => fn(entry, col))) continue;
+          this.unguardedStateWrites.push(`${entry.table}.${col} := ${JSON.stringify(entry.body[col])} with filters ${entry.query}`);
         }
       }
       const delay = this.delayMs[entry.table];

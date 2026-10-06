@@ -1,6 +1,8 @@
 -- =============================================================================
 -- Health Endeavors — READ-ONLY agents, schedules and stock-paths check (Query C)
--- Version 2 (2026-10-06). Replaces the earlier three-statement version.
+-- Version 3 (2026-10-06). Replaces version 2: also runs when the pg_cron
+-- extension is not installed (section 5 then says so instead of the whole
+-- query failing), and masks long token-like strings in agent error text.
 --
 -- ONE SELECT statement. It reads tables and the system catalog and changes
 -- NOTHING. Three named columns (section, item, result) so the CSV export
@@ -10,7 +12,8 @@
 --   * no function source code and no scheduled-job command text (a job
 --     command can contain a key) — only names and yes/no answers;
 --   * no customer data — numbers, names of agents/flags/jobs/functions only;
---   * agent error text is cut to 120 characters with e-mail addresses masked.
+--   * agent error text is cut to 120 characters, with e-mail addresses and
+--     long token-like strings (24+ letters/digits) masked.
 --
 -- Sections:
 --   0 counts            rows per table (numbers only); "table not found" if absent
@@ -61,24 +64,44 @@ reach as (  -- writes stock itself, or calls (one level) a function that does
                                     and f.prosrc ~* ('\m' || w.proname || '\M')) as reaches_stock
   from fn f
 ),
+-- pg_cron tables are read only if they exist (to_regclass), through
+-- query_to_xml, so the query still parses and runs without the extension.
+-- Job command text is used only for matching below; it is never output.
+cron_job as (
+  select x.* from xmltable('/table/row' passing query_to_xml(
+    case when to_regclass('cron.job') is not null
+         then 'select jobid, jobname, schedule, active, command from cron.job'
+         else 'select null::bigint as jobid, null::text as jobname, null::text as schedule, null::boolean as active, null::text as command where false' end,
+    false, false, '')
+    columns jobid bigint, jobname text, schedule text, active boolean, command text) x
+),
 jobs as (
   select j.jobid, j.jobname, j.schedule, j.active,
     (select string_agg(distinct f.nspname || '.' || f.proname, ', ' order by f.nspname || '.' || f.proname)
        from fn f where j.command ~* ('\m' || f.proname || '\M')) as calls_functions,
     substring(j.command from '/functions/v1/([A-Za-z0-9_-]+)') as calls_edge_function,
     (j.command ~* 'net\.http_') as uses_http
-  from cron.job j
+  from cron_job j
 ),
 runs as (
-  select d.jobid, max(d.start_time) as last_start,
-         count(*) filter (where d.start_time > now() - interval '7 days') as runs_7d,
-         count(*) filter (where d.start_time > now() - interval '7 days' and d.status <> 'succeeded') as not_ok_7d,
-         count(*) as runs_total
-  from cron.job_run_details d group by d.jobid
+  select x.* from xmltable('/table/row' passing query_to_xml(
+    case when to_regclass('cron.job_run_details') is not null
+         then 'select jobid, max(start_time) as last_start,
+                      count(*) filter (where start_time > now() - interval ''7 days'') as runs_7d,
+                      count(*) filter (where start_time > now() - interval ''7 days'' and status <> ''succeeded'') as not_ok_7d,
+                      count(*) as runs_total
+               from cron.job_run_details group by jobid'
+         else 'select null::bigint as jobid, null::timestamptz as last_start, 0::bigint as runs_7d, 0::bigint as not_ok_7d, 0::bigint as runs_total where false' end,
+    false, false, '')
+    columns jobid bigint, last_start timestamptz, runs_7d bigint, not_ok_7d bigint, runs_total bigint) x
 ),
 last_run as (
-  select distinct on (d.jobid) d.jobid, d.status
-  from cron.job_run_details d order by d.jobid, d.start_time desc
+  select x.* from xmltable('/table/row' passing query_to_xml(
+    case when to_regclass('cron.job_run_details') is not null
+         then 'select distinct on (jobid) jobid, status from cron.job_run_details order by jobid, start_time desc'
+         else 'select null::bigint as jobid, null::text as status where false' end,
+    false, false, '')
+    columns jobid bigint, status text) x
 ),
 trg as (
   select c.relname, t.tgname, t.tgfoid,
@@ -107,7 +130,7 @@ select '1 agents', 'agent #' || lpad(coalesce(to_jsonb(a)->>'agent_num', '?'), 2
          'last_run_at=' || coalesce(to_jsonb(a)->>'last_run_at', 'never recorded'),
          'last_run_status=' || coalesce(to_jsonb(a)->>'last_run_status', 'none'),
          'switch_changed_at=' || coalesce(to_jsonb(a)->>'updated_at', 'unknown'),
-         'last_error=' || coalesce(nullif(left(regexp_replace(coalesce(to_jsonb(a)->>'last_error', ''), '[^[:space:]@]+@[^[:space:]@]+', '[email]', 'g'), 120), ''), 'none'))
+         'last_error=' || coalesce(nullif(left(regexp_replace(regexp_replace(coalesce(to_jsonb(a)->>'last_error', ''), '[^[:space:]@]+@[^[:space:]@]+', '[email]', 'g'), '[A-Za-z0-9_.=+/-]{24,}', '[token]', 'g'), 120), ''), 'none'))
 from agent_controls a
 -- 2 switches ----------------------------------------------------------------
 union all
@@ -160,6 +183,9 @@ select '5 scheduled jobs', j.jobname,
 from jobs j left join runs r on r.jobid = j.jobid left join last_run lr on lr.jobid = j.jobid
 union all
 select '5 scheduled jobs', '(total)', count(*)::text || ' job(s)' from jobs
+union all
+select '5 scheduled jobs', '(pg_cron installed)',
+       case when to_regclass('cron.job') is not null then 'yes' else 'NO: no database-scheduled jobs can exist; agents run elsewhere (GitHub, edge functions)' end
 -- 6 stock writers -----------------------------------------------------------
 union all
 select '6 stock writers', f.nspname || '.' || f.proname,

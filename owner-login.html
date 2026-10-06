@@ -5061,7 +5061,8 @@
               if (!ok) return;
               btn.disabled = true;
               try {
-                const { data: changed, error } = await supabase.from('orders').update({ deleted_at: null }).eq('id', id).select('id');
+                // Only while it is still deleted (restored elsewhere = nothing to do).
+                const { data: changed, error } = await supabase.from('orders').update({ deleted_at: null }).eq('id', id).not('deleted_at', 'is', null).select('id');
                 if (error) throw error;
                 if (noRowsChanged(changed)) showDashError(staleMessage('That order'));
                 loadOrders();
@@ -7411,7 +7412,7 @@
                   }).join('')}
                 </div>` : '';
           return `
-            <div class="deletedRow" data-product-id="${esc(p.id)}" style="align-items:flex-start;">
+            <div class="deletedRow" data-product-id="${esc(p.id)}" data-status="${esc(p.status || '')}" style="align-items:flex-start;">
               <div class="info" style="flex:1;">
                 <b>${esc(p.name)}</b>${p.sku ? ' <span style="color:var(--muted);font-size:12px;">(' + esc(p.sku) + ')</span>' : ''}
                 ${isLow ? ' <span class="badge sev-high">Low stock</span>' : ''}
@@ -7494,7 +7495,10 @@
                 wholesale_price: num('.peWholesale'),
                 packaging_info: val('.pePackaging').trim() || null,
                 updated_at: new Date().toISOString(),
-              }).eq('id', id).select('id');
+              // Only while the status is still the one this form opened with,
+              // so a stale tab can't flip a product back (e.g. discontinued
+              // → active) without noticing.
+              }).eq('id', id).eq('status', row.getAttribute('data-status')).select('id');
               if (!error && noRowsChanged(saved)) { showDashError(staleMessage('That product')); loadInventory(); return; }
               if (error) {
                 if (String(error.message || '').includes('products_sku_unique')) {

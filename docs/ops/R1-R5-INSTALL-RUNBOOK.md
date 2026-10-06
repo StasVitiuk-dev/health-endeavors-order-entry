@@ -23,6 +23,16 @@ They run with the caller's own rights (security invoker), so the existing permis
 - every write was made to fail on purpose, and the database stayed exactly as before each time
 - stress tests: 40 runs, 0 deadlocks
 - the whole file installs in one transaction: a failure halfway installs nothing (tested)
+- **preflight (added 2026-10-06):** before creating anything, the file checks that every table, column, unique index and helper function the stock functions rely on exists. If anything is missing it stops, says exactly what is missing, and installs nothing. Without this, PostgreSQL would install the functions "successfully" and they would fail at the first button press
+- **install package tests** (`docs/ops/sql/local-test/install_package_test.sh`, 34 checks, all pass, on a throwaway copy of the local database):
+  - clean install
+  - second install (identical result)
+  - install over a leftover old draft
+  - rollback, run twice
+  - failure halfway, on a first install and on a re-install
+  - refusal on a missing helper function, a missing column or a missing unique index
+  - refusal for the public role and for employees
+  - five re-installs while staff use the functions (no lost or doubled stock change)
 
 ## Before you start (5 minutes)
 
@@ -35,7 +45,7 @@ They run with the caller's own rights (security invoker), so the existing permis
 2. Paste the **whole** of `10_DRAFT_stock_functions.sql` (from `-- ===` at the top to `commit;` at the bottom).
 3. Click **Run**.
 4. Expected result: "Success. No rows returned". A few "does not exist, skipping" notices are normal (they're about older draft versions that were never installed).
-5. If you see a red **ERROR**: stop. Nothing was installed, because the file is one transaction. Copy the exact error text into the chat.
+5. If you see a red **ERROR**: stop. Nothing was installed, because the file is one transaction. Copy the exact error text into the chat. An error starting "Install stopped, nothing was changed. This database is missing: …" comes from the preflight: the database is not shaped the way Query A reported, and the session needs to adjust the file first.
 
 ## Check it (read-only, 1 minute)
 
@@ -54,6 +64,18 @@ order by 1;
 ```
 
 Expected: 6 rows, each with `anon_can_run = false`, `staff_can_run = true` and `runs_with_owner_rights = false`. Send a screenshot.
+
+**Fingerprint check (proves the installed code is exactly the reviewed code).** New query, paste and run:
+
+```sql
+select md5(string_agg(p.proname || ':' || pg_get_function_identity_arguments(p.oid) || ':' || md5(p.prosrc), ',' order by p.proname)) as fingerprint
+from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+where n.nspname = 'public'
+  and p.proname in ('_he_apply_stock_change','adjust_inventory','receive_purchase_order',
+                    'quarantine_recall','receive_return','delete_unused_product');
+```
+
+Expected for the version reviewed on 2026-10-06: `740df48f5161e764dafbb674985e583a`. If the file changes later, the session recomputes this value locally and updates it here in the same pull request. A different value means a different version was pasted: roll back and ask.
 
 ## Roll back (if anything looks wrong)
 

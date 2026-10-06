@@ -224,6 +224,11 @@ test('hostile or very long file names become short, folder-free storage names (e
     const before = uploads(backend, 'document-files').length;
     await page.click('#addDocumentForm button[type="submit"]');
     await expect.poll(() => uploads(backend, 'document-files').length).toBe(before + 1);
+    // Wait until this save has finished (form cleared, button usable again)
+    // before typing the next one; otherwise, under load, the form reset of
+    // this save could wipe the next name (seen once in a full run).
+    await expect(page.locator('#docTitle')).toHaveValue('');
+    await expect(page.locator('#addDocumentForm button[type="submit"]')).toBeEnabled();
   }
   const paths = uploads(backend, 'document-files').map(r => uploadedPath(r, 'document-files'));
   for (const p of paths) {

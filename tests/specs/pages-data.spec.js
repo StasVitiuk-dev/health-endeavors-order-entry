@@ -104,7 +104,15 @@ test.describe('Orders', () => {
     await expect.poll(() => writes(backend, 'orders').length).toBe(1);
     const [w] = writes(backend, 'orders');
     expect(w.body).toEqual({ deleted_at: null });
-    expect(filtersOf(w)).toEqual({ id: 'eq.o6' });
+    // Only while it is still deleted (EXT3 state-machine rule)
+    expect(filtersOf(w)).toEqual({ id: 'eq.o6', deleted_at: 'not.is.null' });
+  });
+
+  test('Restore of an order already restored elsewhere changes nothing and says so', async ({ page, backend }) => {
+    backend.tables.orders.find(o => o.id === 'o6').deleted_at = null; // another tab restored it
+    await page.locator('#deletedOrdersWrap .restoreOrderBtn').click();
+    await confirmPassword(page, OWNER_USER.password);
+    await expect(page.locator('#dashError')).toContainText('already changed');
   });
 });
 
@@ -280,7 +288,19 @@ test.describe('Inventory', () => {
     const [w] = writes(backend, 'products');
     expect(Object.keys(w.body).sort()).toEqual(['cost', 'name', 'packaging_info', 'retail_price', 'sku', 'status', 'updated_at', 'wholesale_price']);
     expect(w.body.retail_price).toBe(21.5);
-    expect(filtersOf(w)).toEqual({ id: 'eq.prod-b' });
+    // Only while the status is still the one the form opened with (EXT3)
+    expect(filtersOf(w)).toEqual({ id: 'eq.prod-b', status: 'eq.active' });
+  });
+
+  test('a product whose status changed in another tab is not flipped back by a stale edit form', async ({ page, backend }) => {
+    const row = page.locator('#inventoryWrap [data-product-id="prod-b"]');
+    await row.locator('.editProductBtn').click();
+    backend.tables.products.find(p => p.id === 'prod-b').status = 'discontinued'; // changed elsewhere
+    await row.locator('.peRetail').fill('21.5');
+    await row.locator('.saveProductBtn').click();
+    await expect(page.locator('#dashError')).toContainText('already changed');
+    expect(backend.tables.products.find(p => p.id === 'prod-b').status).toBe('discontinued');
+    expect(backend.tables.products.find(p => p.id === 'prod-b').retail_price).toBe(20);
   });
 
   test('an adjustment that would go below zero is refused before anything is sent', async ({ page, backend }) => {

@@ -36,6 +36,64 @@
 -- One transaction: every function is installed, or (on any error) none is.
 begin;
 
+-- ---------------------------------------------------------------------------
+-- Preflight (2026-10-06, EXT3): refuse to install on a database that does not
+-- have the shape these functions were written and tested for. PostgreSQL only
+-- checks a function's body when it is CALLED, so without this a wrong shape
+-- would install "successfully" and fail at the first button press. Any
+-- problem below stops the whole install (nothing is created) and lists every
+-- missing piece at once.
+-- ---------------------------------------------------------------------------
+do $pre$
+declare
+  missing text[] := '{}';
+  req record;
+begin
+  for req in
+    select * from (values
+      ('products', array['id','sku']),
+      ('inventory', array['product_id','available','reserved','damaged','sample','wholesale','promotional','returned','recalled','updated_at','updated_by']),
+      ('inventory_adjustments', array['product_id','bucket','change_amount','reason','adjusted_by','lot_id']),
+      ('inventory_lots', array['id','product_id','lot_number','purchase_order_id','quantity_received','quantity_remaining','created_by','updated_at']),
+      ('purchase_orders', array['id','po_number','status','supplier_id','expense_category','shipping_cost','tax','deleted_at','received_at','received_by','updated_at']),
+      ('purchase_order_items', array['id','purchase_order_id','product_id','quantity','unit_cost','quantity_received','landed_unit_cost']),
+      ('suppliers', array['id','name']),
+      ('expenses', array['category','amount','expense_date','vendor','note']),
+      ('recalls', array['id','status','lot_id','product_id','quantity_quarantined','updated_at']),
+      ('returns', array['id','status','order_item_id','disposition','received_at','updated_at']),
+      ('order_items', array['id','order_id','sku','quantity']),
+      ('orders', array['id','order_number'])
+    ) as t(tbl, cols)
+  loop
+    if to_regclass('public.' || req.tbl) is null then
+      missing := missing || ('table public.' || req.tbl);
+    else
+      missing := missing || array(
+        select 'column ' || req.tbl || '.' || c from unnest(req.cols) c
+        where not exists (select 1 from information_schema.columns
+                          where table_schema = 'public' and table_name = req.tbl and column_name = c));
+    end if;
+  end loop;
+  if to_regprocedure('public.is_owner_or_admin()') is null then missing := missing || 'function public.is_owner_or_admin()'::text; end if;
+  if to_regprocedure('auth.uid()') is null then missing := missing || 'function auth.uid()'::text; end if;
+  -- ON CONFLICT targets used by the functions must exist as unique indexes.
+  if to_regclass('public.inventory') is not null and not exists (
+       select 1 from pg_index i join pg_attribute a on a.attrelid = i.indrelid and a.attnum = i.indkey[0]
+       where i.indrelid = 'public.inventory'::regclass and i.indisunique and i.indnatts = 1 and a.attname = 'product_id') then
+    missing := missing || 'unique index on inventory(product_id)'::text;
+  end if;
+  if to_regclass('public.inventory_lots') is not null and not exists (
+       select 1 from pg_index i
+       where i.indrelid = 'public.inventory_lots'::regclass and i.indisunique
+         and pg_get_indexdef(i.indexrelid) ~* '\(product_id, lower\(\(?lot_number\)?\)\)') then
+    missing := missing || 'unique index on inventory_lots(product_id, lower(lot_number))'::text;
+  end if;
+  if array_length(missing, 1) > 0 then
+    raise exception 'Install stopped, nothing was changed. This database is missing: %', array_to_string(missing, '; ')
+      using errcode = '42P01', hint = 'The functions were written for the shape Query A reported. Send this message to the session.';
+  end if;
+end $pre$;
+
 -- Earlier draft signatures (never installed anywhere; harmless if absent), so a
 -- re-run can't leave an old overload behind.
 drop function if exists public.adjust_inventory(uuid, text, integer, text);

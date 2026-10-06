@@ -14,6 +14,9 @@ const test = base.test.extend({
     const backend = await installMocks(page);
     await use(backend);
     base.expect(backend.blocked, 'the page tried to reach something outside the mock').toEqual([]);
+    if (!backend.allowUnguardedState) {
+      base.expect(backend.unguardedStateWrites, 'the page changed a workflow state without checking it was still what the page showed (STATE_COLUMNS in mock-supabase.js)').toEqual([]);
+    }
     if (!backend.expectViolations) {
       base.expect(backend.constraintViolations, 'the page wrote a value the real database refuses (tests/helpers/db-constraints.js)').toEqual([]);
       // The mock's tables (including rows a test seeded) must also be a state
