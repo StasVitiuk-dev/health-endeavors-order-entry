@@ -38,10 +38,14 @@ for (const cap of [1000, 400]) {
     await expect(stats).toContainText('$25,000.00'); // revenue: 2,500 × $10
     await expect(stats).toContainText('$1,200.00');  // expenses: 1,200 × $1
     await expect(stats).toContainText('$23,800.00'); // net profit
-    // It read the orders a page at a time, in a stable order.
-    const offsets = ordersReads(backend, since).map(r => Number(Object.fromEntries(r.params).offset));
-    expect(offsets.slice(0, 3)).toEqual([0, cap, 2 * cap]);
-    expect(ordersReads(backend, since).every(r => Object.fromEntries(r.params).order === 'id.asc')).toBe(true);
+    // It read the orders a page at a time, in id order, each page continuing
+    // after the last id read (EXT5: keyset, not position).
+    const reads = ordersReads(backend, since);
+    expect(reads.every(r => Object.fromEntries(r.params).order === 'id.asc')).toBe(true);
+    const afters = reads.map(r => (Object.fromEntries(r.params).id || '').replace(/^gt\./, ''));
+    expect(afters[0]).toBe(''); // first page from the start
+    expect(afters.slice(1, 3).every(Boolean)).toBe(true);
+    expect([...afters.slice(1)].sort()).toEqual(afters.slice(1)); // always moving forward
   });
 }
 
@@ -157,4 +161,31 @@ test('Tax CSV export at 2,500 orders / 1,200 expenses matches the screen and lis
   expect(csv).toContain('"Sales tax collected","$1,250.00"');
   const missingSection = csv.split('"Expenses missing a receipt"')[1];
   expect(missingSection.trim().split('\r\n').length - 1).toBe(1200); // header row + 1,200
+});
+
+
+// EXT5: an order created (or deleted) between two page reads used to shift the
+// pages by one, so one order was counted twice and another missed, silently.
+test('an order created while Accounting reads its pages is not double-counted', async ({ page, backend }) => {
+  seedMany(backend, 2500, 0);
+  backend.tables.orders[999].total = 500; // the last order of page 1: a repeat would show
+  backend.maxRows = 1000;
+  await login(page);
+  await gotoPage(page, 'accountingPanel');
+  await page.waitForLoadState('networkidle');
+  const original = backend.handleRest.bind(backend);
+  let served = 0;
+  backend.handleRest = (route, entry) => {
+    if (entry.method === 'GET' && entry.table === 'orders' && entry.params.some(([k]) => k === 'offset')) {
+      served++;
+      // before the 2nd page: a new order whose id sorts at the very start
+      if (served === 2) backend.tables.orders.unshift({ ...backend.tables.orders[0], id: '0000-new', order_number: 'SYN-NEW', total: 10 });
+    }
+    return original(route, entry);
+  };
+  await page.click('#accountingPanel button[data-range="all"]');
+  // The 2,500 orders that existed when the read began, each exactly once:
+  // 2,499 x $10 + $500. (By position, order #1000 was counted twice and the last
+  // one missed: $25,980.)
+  await expect(page.locator('#acctStats .stat').first().locator('.num')).toHaveText('$25,490.00');
 });

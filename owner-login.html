@@ -1019,22 +1019,34 @@
     // throws rather than return a partial list. Ordered by id so pages don't
     // overlap. Long-term the totals belong in a database function (one small
     // row back) — that needs the schema check first.
+    // EXT5: pages continue AFTER the last id read (keyset), not at a position.
+    // With positions, a record created or soft-deleted between two pages
+    // shifted everything by one, so one record was counted twice and another
+    // missed, silently, in money totals. Reads until a page comes back empty
+    // (the server may cap a page below PAGE); the first page's exact count is
+    // then used only to notice records that went missing.
     async function fetchAllRows(table, columns, applyFilters){
       const PAGE = 1000;
       const rows = [];
-      let total;
+      const seen = new Set();
+      let total = null, lastId = null;
       for (let pageNo = 0; pageNo < 10000; pageNo++) {
         let q = supabase.from(table).select(columns, pageNo === 0 ? { count: 'exact' } : undefined);
-        q = applyFilters(q).order('id', { ascending: true }).range(rows.length, rows.length + PAGE - 1);
+        q = applyFilters(q);
+        if (lastId !== null) q = q.gt('id', lastId);
+        q = q.order('id', { ascending: true }).range(0, PAGE - 1);
         const { data, error, count } = await q;
         if (error) throw error;
         if (pageNo === 0) total = (typeof count === 'number') ? count : null;
         const batch = data || [];
-        rows.push(...batch);
-        if (total !== null ? rows.length >= total : batch.length < PAGE) return rows;
+        for (const r of batch) if (!seen.has(r.id)) { seen.add(r.id); rows.push(r); }
         if (!batch.length) {
-          throw new Error('Only ' + rows.length + ' of ' + total + ' ' + table + ' records could be read, so this total would be wrong. Refresh to try again.');
+          if (total !== null && rows.length < total) {
+            throw new Error('Only ' + rows.length + ' of ' + total + ' ' + table + ' records could be read, so this total would be wrong. Refresh to try again.');
+          }
+          return rows;
         }
+        lastId = batch[batch.length - 1].id;
       }
       throw new Error('Too many ' + table + ' records to add up in the browser.');
     }
@@ -2653,11 +2665,17 @@
     async function fetchAllActivity(filters, cap){
       const PAGE = 500;
       const rows = [];
+      const seenIds = new Set();
+      let offset = 0;
       for (;;) {
-        const { data, error } = await supabase.rpc('employee_activity', Object.assign({}, filters, { p_limit: PAGE, p_offset: rows.length }));
+        const { data, error } = await supabase.rpc('employee_activity', Object.assign({}, filters, { p_limit: PAGE, p_offset: offset }));
         if (error) throw error;
         const batch = data || [];
-        rows.push(...batch);
+        // EXT5: pages are counted by position, so a change recorded while
+        // exporting shifts everything by one and the next page repeats rows.
+        // The audit log only grows, so skipping ids already seen is exact.
+        for (const r of batch) if (!seenIds.has(r.id)) { seenIds.add(r.id); rows.push(r); }
+        offset += batch.length;
         if (batch.length < PAGE) return { rows, capped: false };
         if (rows.length >= cap) return { rows: rows.slice(0, cap), capped: true };
       }
@@ -2682,7 +2700,10 @@
         });
         if (error) throw error;
         const rows = data || [];
-        ACTIVITY_ROWS = ACTIVITY_ROWS.concat(rows);
+        // EXT5: "Load more" after new changes were recorded would repeat the
+        // last rows (pages are counted by position); skip ids already shown.
+        const shown = new Set(ACTIVITY_ROWS.map(r => r.id));
+        ACTIVITY_ROWS = ACTIVITY_ROWS.concat(rows.filter(r => r.id == null || !shown.has(r.id)));
         ACTIVITY_OFFSET += rows.length;
         document.getElementById('activityMoreWrap').style.display =
           rows.length === ACTIVITY_PAGE_SIZE ? 'block' : 'none';
