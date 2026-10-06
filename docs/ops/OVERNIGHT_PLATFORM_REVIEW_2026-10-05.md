@@ -266,6 +266,23 @@ Earlier findings N1–N13: see `other-fixes-review.md`. Branch status of each:
 
 ---
 
+## 12. Follow-up after Query A (2026-10-05/06)
+
+Query A (read-only schema check, run by the owner) confirmed three live dashboard bugs and corrected several draft assumptions. All fixes are on this branch only. Nothing is merged and nothing ran against production.
+
+| Item | Status | Change | Test |
+|---|---|---|---|
+| Approval Deny wrote `denied`, which the database refuses | Fixed on branch | Deny writes `rejected` | `query-a-fixes.spec.js` |
+| `rejected` requests counted as open | Fixed on branch | `rejected` is a closed status everywhere (queue, home tile) | `query-a-fixes.spec.js` |
+| Documents offered Incident / Purchase Order links the database refuses; a refused save left the uploaded file behind | Fixed on branch | Supplier or no link only, checked before upload; the file is removed if the record save fails | `query-a-fixes.spec.js` |
+| An employee could mark a return Received, and the stock change then failed with a misleading message | Fixed on branch | Owner/Admin check before anything is saved (Discard stays open to staff); an RLS refusal now says "permission" | `query-a-fixes.spec.js` |
+| Fractional catalogue quantities, deleted purchase orders, SKU letter case | Fixed on branch | Whole units required for catalogue lines; deleted orders can't be changed or received; case-insensitive SKU match | `query-a-fixes.spec.js`, updated `purchase-orders.spec.js` / `ops-findings.spec.js` |
+| R1–R5 draft SQL | Reconciled, still DRAFT | Permission check, whole-unit check, deleted PO refusal, case-insensitive SKU, product lock first (deadlock fix) | `drafts/15_DRAFT_tests_stock_functions_real_shape.sql`; stress 30 runs, 0 deadlocks |
+| Query B | Corrected | Named output columns (CSV keeps every field), real column names | Local real-shape run |
+| Database function permissions | Separate investigation | Read-only Query D prepared (`sql/03_READONLY_D_…`), **not yet to be run** | Local synthetic run |
+
+Rollback: revert `b0de408` and the dashboard follow-up commit on this branch. The SQL commits are files only.
+
 ## Appendix A: auditability of state-changing actions (WS17)
 
 "Actor" means the row itself records who did it. Every table may additionally be covered by the database `audit_log` triggers that feed the Record Inspector history. Their coverage per table is **unknown until Query A** (it lists triggers).

@@ -85,6 +85,9 @@ test.describe('command palette and keyboard', () => {
 
   test('arrow keys move the selection; clicking outside closes', async ({ page }) => {
     await page.keyboard.press('ControlOrMeta+k');
+    // The palette focuses its input 10 ms after opening; a key pressed before
+    // that is lost, which made this test fail about 4 times in 10.
+    await expect(page.locator('#paletteInput')).toBeFocused();
     const selIndex = () => page.locator('#paletteResults .pResult.sel').getAttribute('data-i');
     expect(await selIndex()).toBe('0');
     await page.keyboard.press('ArrowDown');

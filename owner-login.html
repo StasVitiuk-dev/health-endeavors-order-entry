@@ -3696,6 +3696,10 @@
         const unitCost = Number(box.querySelector('.poLineCost').value || 0);
         if (!description) { toast('Say what you\'re buying first.'); return; }
         if (!(quantity > 0)) { toast('Quantity needs to be more than zero.'); return; }
+        // Stock is counted in whole units (inventory columns are integers), so a
+        // catalogue product line can't be 2.5. Non-catalogue lines (freight,
+        // services) may be fractional.
+        if (productId && !Number.isInteger(quantity)) { toast('A catalogue product line needs a whole number of units.'); return; }
         addBtn.disabled = true;
         try {
           if (!PO_EDITABLE.includes(await poStatusNow(po.id))) {
@@ -3746,7 +3750,7 @@
             shipping_cost: Number(box.querySelector('.poShipping').value || 0),
             tax: Number(box.querySelector('.poTax').value || 0),
             updated_at: new Date().toISOString(),
-          }, { status: PO_EDITABLE });
+          }, { status: PO_EDITABLE, deleted_at: null });
           if (changed) toastOk('Saved.');
           else showDashError(staleMessage('That purchase order'));
           loadPurchaseOrders();
@@ -3783,7 +3787,7 @@
           try {
             const patch = { status: next, updated_at: new Date().toISOString() };
             if (next === 'ordered') patch.ordered_at = new Date().toISOString();
-            const changed = await updateIfUnchanged('purchase_orders', po.id, patch, { status: allowedFrom });
+            const changed = await updateIfUnchanged('purchase_orders', po.id, patch, { status: allowedFrom, deleted_at: null });
             if (changed) toastOk('Purchase order ' + (PO_STATUS_LABELS[next] || next).toLowerCase() + '.');
             else showDashError(staleMessage('That purchase order'));
             loadPurchaseOrders();
@@ -3796,6 +3800,13 @@
 
       const recvBtn = box.querySelector('.poReceiveBtn');
       if (recvBtn) recvBtn.addEventListener('click', async () => {
+        // Checked before anything is saved: a catalogue line with a fractional
+        // quantity can't go into whole-unit stock (and used to fail half-way).
+        const fractional = (po.purchase_order_items || []).filter(l => l.product_id && !Number.isInteger(Number(l.quantity || 0)));
+        if (fractional.length) {
+          showDashError('This order has a catalogue line with a quantity that is not a whole number (' + fractional.map(l => l.description || l.sku || 'a line').join(', ') + '). Stock is counted in whole units — fix the line before receiving. Nothing was changed.');
+          return;
+        }
         if (!canChangeStock()) { showDashError('Only the Owner or an Administrator can change stock. Nothing was changed.'); return; }
         recvBtn.disabled = true;
         // Claim first: the order is marked Received only if it is still
@@ -3814,7 +3825,7 @@
           claimed = await updateIfUnchanged('purchase_orders', po.id, {
             status: 'received', received_at: claimStamp,
             received_by: uid, updated_at: claimStamp,
-          }, { status: PO_ALLOWED_FROM.received });
+          }, { status: PO_ALLOWED_FROM.received, deleted_at: null });
         } catch (err) {
           let now = null;
           try {
@@ -7720,7 +7731,8 @@
                   const { data: matchedProduct, error: prodErr } = await supabase
                     .from('products')
                     .select('id')
-                    .eq('sku', sku)
+                    // Case-insensitive, like the database's unique index on lower(sku).
+                    .ilike('sku', likeLiteral(sku))
                     .maybeSingle();
                   if (prodErr) throw prodErr;
                   if (!matchedProduct) {

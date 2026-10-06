@@ -80,6 +80,20 @@ function matchesFilter(row, column, expr) {
       else if (arg === 'false') result = value === false;
       else result = true;
       break;
+    case 'ilike':
+    case 'like': {
+      // SQL LIKE: % = any run, _ = one character, backslash escapes the next one.
+      let re = '';
+      for (let i = 0; i < arg.length; i++) {
+        const ch = arg[i];
+        if (ch === '\\' && i + 1 < arg.length) { re += arg[++i].replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); continue; }
+        if (ch === '%') re += '[\\s\\S]*';
+        else if (ch === '_') re += '[\\s\\S]';
+        else re += ch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      }
+      result = str !== null && new RegExp('^' + re + '$', op === 'ilike' ? 'i' : '').test(str);
+      break;
+    }
     case 'gt': result = str !== null && str > arg; break;
     case 'gte': result = str !== null && str >= arg; break;
     case 'lt': result = str !== null && str < arg; break;

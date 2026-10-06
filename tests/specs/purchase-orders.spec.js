@@ -109,7 +109,7 @@ test('saving shipping and tax sends only those two numbers', async ({ page, back
   expect(w.body).toMatchObject({ shipping_cost: 20, tax: 2.5 });
   // Only while the order can still be edited, so a stale page can't change
   // the total of an order whose expense has already been logged.
-  expect(filtersOf(w)).toEqual({ id: 'eq.syn-draft', status: 'in.(draft,ordered)' });
+  expect(filtersOf(w)).toEqual({ id: 'eq.syn-draft', status: 'in.(draft,ordered)', deleted_at: 'is.null' });
 });
 
 test('saving the payment status sends only that status', async ({ page, backend }) => {
@@ -138,7 +138,7 @@ test('"Mark as ordered" records the status and the order date', async ({ page, b
   const [w] = writes(backend, 'purchase_orders');
   expect(Object.keys(w.body).sort()).toEqual(['ordered_at', 'status', 'updated_at']);
   expect(w.body.status).toBe('ordered');
-  expect(filtersOf(w)).toEqual({ id: 'eq.syn-draft', status: 'in.(draft)' });
+  expect(filtersOf(w)).toEqual({ id: 'eq.syn-draft', status: 'in.(draft)', deleted_at: 'is.null' });
 });
 
 test('Cancel needs a second press within 4 seconds, and then only cancels a draft/ordered/shipped order', async ({ page, backend }) => {
@@ -155,7 +155,7 @@ test('Cancel needs a second press within 4 seconds, and then only cancels a draf
   expect(dialogShown).toBe(false);
   const [w] = writes(backend, 'purchase_orders');
   expect(w.body.status).toBe('cancelled');
-  expect(filtersOf(w)).toEqual({ id: 'eq.syn-draft', status: 'in.(draft,ordered,shipped)' });
+  expect(filtersOf(w)).toEqual({ id: 'eq.syn-draft', status: 'in.(draft,ordered,shipped)', deleted_at: 'is.null' });
 });
 
 test('Cancel un-arms itself after 4 seconds', async ({ page, backend }) => {

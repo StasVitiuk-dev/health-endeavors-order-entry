@@ -93,7 +93,7 @@ test.describe('Purchase orders: Cancel on a stale page, and Cancel confirmation'
     await cancel.click(); // second press confirms
     await expect(page.locator('#dashError')).toContainText('already changed');
     expect(backend.tables.purchase_orders[0].status).toBe('received');
-    expect(filtersOf(writes(backend, 'purchase_orders')[0])).toEqual({ id: 'eq.syn-shipped', status: 'in.(draft,ordered,shipped)' });
+    expect(filtersOf(writes(backend, 'purchase_orders')[0])).toEqual({ id: 'eq.syn-shipped', status: 'in.(draft,ordered,shipped)', deleted_at: 'is.null' });
   });
 
   test('the first press of Cancel only asks to confirm and sends nothing', async ({ page, backend }) => {

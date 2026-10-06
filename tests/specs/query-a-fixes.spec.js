@@ -226,3 +226,82 @@ test.describe('Other stock actions: an employee is stopped before anything is sa
     expect(backend.tableWrites()).toEqual([]);
   });
 });
+
+// ------------------------------------------- changed assumptions (Query A)
+function seedPo(backend, { quantity = 10, deleted = false } = {}) {
+  const items = [{ id: 'line-a', purchase_order_id: 'po-1', product_id: 'prod-a', description: 'SYNTHETIC A', sku: 'SYN-A', quantity, unit_cost: 2, quantity_received: 0, landed_unit_cost: null }];
+  Object.assign(backend.tables, {
+    products: [{ id: 'prod-a', name: 'SYNTHETIC A', sku: 'SYN-A' }],
+    purchase_order_items: items,
+    purchase_orders: [{ id: 'po-1', po_number: 'PO-1', status: 'shipped', currency: 'USD', shipping_cost: 0, tax: 0, expense_category: 'packaging', ordered_at: null, expected_at: null, received_at: null, payment_status: 'unpaid', notes: null, created_at: '2026-09-01T00:00:00Z', deleted_at: deleted ? '2026-10-01T00:00:00Z' : null, suppliers: { name: 'SYNTHETIC' }, purchase_order_items: items }],
+    inventory: [{ product_id: 'prod-a', available: 5 }],
+    inventory_adjustments: [], inventory_lots: [], expenses: [],
+  });
+  enableWrites(backend, ['inventory', 'inventory_adjustments', 'expenses']);
+}
+async function openPo(page) {
+  await open(page, 'purchaseOrdersPanel');
+  await page.locator('.poItem[data-id="po-1"] .poRow').click();
+  const overlay = page.locator('#inspectorOverlay');
+  if (await overlay.evaluate(el => el.classList.contains('open'))) await page.click('#insCloseBtn');
+  await expect(page.locator('#poDetail_po-1')).toBeVisible();
+}
+
+test.describe('Purchase orders: whole units and deleted orders', () => {
+  test('a catalogue line with a fractional quantity is refused when it is received, before anything is saved', async ({ page, backend }) => {
+    seedPo(backend, { quantity: 2.5 });
+    await login(page);
+    await openPo(page);
+    await page.locator('.poReceiveBtn').click();
+    await expect(page.locator('#dashError')).toContainText('not a whole number');
+    expect(backend.tableWrites()).toEqual([]);
+    expect(backend.tables.purchase_orders[0].status).toBe('shipped');
+  });
+
+  test('adding a catalogue line needs a whole number of units; a non-catalogue line may be fractional', async ({ page, backend }) => {
+    seedPo(backend);
+    backend.tables.purchase_orders[0].status = 'draft';
+    backend.tables.purchase_orders[0].purchase_order_items = [];
+    backend.tables.purchase_order_items = [];
+    await login(page);
+    await openPo(page);
+    const box = page.locator('#poDetail_po-1');
+    await box.locator('.poLineProduct').selectOption('prod-a');
+    await box.locator('.poLineQty').fill('2.5');
+    await box.locator('.poLineCost').fill('1');
+    await box.locator('.poAddLine').click();
+    await page.waitForTimeout(300);
+    expect(writes(backend, 'purchase_order_items')).toEqual([]);
+    await box.locator('.poLineProduct').selectOption('');
+    await box.locator('.poLineDesc').fill('SYNTHETIC freight');
+    await box.locator('.poLineQty').fill('0.5');
+    await box.locator('.poAddLine').click();
+    await expect.poll(() => writes(backend, 'purchase_order_items').length).toBe(1);
+    expect(writes(backend, 'purchase_order_items')[0].body).toMatchObject({ product_id: null, quantity: 0.5 });
+  });
+
+  test('an order deleted elsewhere after the page loaded can no longer be received', async ({ page, backend }) => {
+    seedPo(backend);
+    await login(page);
+    await openPo(page);
+    backend.tables.purchase_orders[0].deleted_at = '2026-10-05T00:00:00Z'; // deleted in another tab
+    await page.locator('.poReceiveBtn').click();
+    await expect(page.locator('#dashError')).toContainText('already changed');
+    expect(backend.tables.purchase_orders[0].status).toBe('shipped');
+    expect(backend.tables.inventory[0].available).toBe(5);
+    const claim = writes(backend, 'purchase_orders')[0];
+    expect(filtersOf(claim)).toMatchObject({ deleted_at: 'is.null' });
+  });
+});
+
+test('return restock finds the product even when the SKU differs in letter case', async ({ page, backend }) => {
+  seedReturn(backend);
+  backend.tables.returns[0].order_items.sku = 'syn-a'; // product is "SYN-A"
+  await login(page);
+  await open(page, 'returnsPanel');
+  await page.selectOption('.dispositionSelect', 'restock_available');
+  await page.click('.markReceivedBtn');
+  await expect.poll(() => backend.tables.inventory[0].available).toBe(13);
+  const lookup = backend.requests.find(r => r.method === 'GET' && r.table === 'products' && r.params.some(([k]) => k === 'sku'));
+  expect(Object.fromEntries(lookup.params).sku).toBe('ilike.syn-a');
+});
