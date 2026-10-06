@@ -222,6 +222,11 @@ a('X3-25','Docs','Backup health unverified; records disagree (kept on vs last ra
 a('X3-26','Storage','Zero-byte files uploaded and saved as empty receipts/documents','Useless record looks saved','P3','Low','S','—','Y','N','N','DONE')
 a('X3-27','Storage','Document delete from a stale tab removed record + old file, orphaning a replaced file','Orphan file','P3','Low','S','—','Y','N','N','DONE')
 
+a('X3-28','Accessibility','Keyboard focus not returned to the opener when a dialog closed (6 dialogs)','WCAG 2.4.3; keyboard users lost their place','P2','Medium','S','—','Y','N','N','DONE')
+a('X3-29','Accessibility','No dialog was announced as a dialog (role, aria-modal, label)','Screen readers did not say a dialog opened','P2','Medium','S','—','Y','N','N','DONE')
+a('X3-30','Tests','"Every overlay closes with Escape" silently skipped the Record Inspector (opened by click, which never opens it)','False confidence','P3','Low','S','—','Y','N','N','DONE')
+a('X3-31','Search','Guide matching is single-word fuzzy: gibberish with a common word lists unrelated articles','Relevance','P4','Low','S','—','Y','N','N','DEFERRED')
+
 # ---------------- Docs / process / owner
 a('DOC-01','Docs','Audits recorded (state machine, mutations, storage, pagination, launch readiness)','Durable record','P3','Medium','S','—','Y','N','N','DONE')
 a('DOC-02','Docs','Merge order for open PRs #5–#24 and this branch','Safe rollout','P2','High','S','owner','Y','Y','N','BLOCKED-OWNER',['pr-merge-order.md'])

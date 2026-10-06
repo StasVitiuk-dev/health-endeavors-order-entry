@@ -109,12 +109,17 @@ test('every overlay closes with Escape', async ({ page, backend }, testInfo) => 
     await page.keyboard.press('Escape');
     if (await el.isVisible()) stuck.push(name);
   }
-  // Record Inspector: opened from a row, closed with Escape
-  await page.locator('#ordersTableWrap tbody tr').first().click();
-  if (await page.locator('#inspectorOverlay.open').count()) {
-    await page.keyboard.press('Escape');
-    if (await page.locator('#inspectorOverlay.open').count()) stuck.push('record inspector');
-  }
+  // Record Inspector: opened from a row with Quick Look (hover + Space), closed
+  // with Escape. (Was a click, which never opens it, so this part used to be
+  // skipped silently; fixed EXT3.)
+  // (Focus is back on the Delete button after the password prompt, and Space
+  // on a focused button presses it, so move focus away first.)
+  await page.evaluate(() => document.activeElement && document.activeElement.blur());
+  await page.locator('#ordersTableWrap tbody tr').first().hover();
+  await page.keyboard.press(' ');
+  await expect(page.locator('#inspectorOverlay.open')).toBeVisible();
+  await page.keyboard.press('Escape');
+  if (await page.locator('#inspectorOverlay.open').count()) stuck.push('record inspector');
   expect(stuck).toEqual([]);
   expect(backend.tableWrites()).toEqual([]);
 });
@@ -161,3 +166,44 @@ for (const scheme of ['light', 'dark']) {
     expect([...bad.values()]).toEqual([]);
   });
 }
+
+// EXT3 (2026-10-06): when a dialog closes, keyboard focus goes back to the
+// button that opened it (WCAG 2.4.3), instead of the top of the page.
+test('focus returns to the opener when a dialog closes with Escape', async ({ page, backend }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'keyboard; desktop only');
+  seedBusiness(backend);
+  await page.clock.setFixedTime(NOW);
+  await login(page);
+  await gotoPage(page, 'ordersPanel');
+  const focusedId = () => page.evaluate(() => document.activeElement && (document.activeElement.id || document.activeElement.className));
+  const lost = [];
+  // command palette, opened while the Refresh button has focus
+  await page.locator('#refreshBtn').focus();
+  await page.keyboard.press('ControlOrMeta+k');
+  await expect(page.locator('#paletteOverlay.open')).toBeVisible();
+  await page.keyboard.press('Escape');
+  if ((await focusedId()) !== 'refreshBtn') lost.push('command palette → ' + await focusedId());
+  // quick add
+  await page.locator('#refreshBtn').focus();
+  await page.keyboard.press('ControlOrMeta+n');
+  await expect(page.locator('#quickAddOverlay.open')).toBeVisible();
+  await page.keyboard.press('Escape');
+  if ((await focusedId()) !== 'refreshBtn') lost.push('quick add → ' + await focusedId());
+  // password prompt, opened from a Delete button
+  const del = page.locator('#ordersTableWrap .deleteOrderBtn').first();
+  await del.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#reauthOverlay')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#reauthOverlay')).toBeHidden();
+  if (!(await del.evaluate(el => el === document.activeElement))) lost.push('password prompt → ' + await focusedId());
+  expect(lost).toEqual([]);
+});
+
+test('every dialog is announced as a dialog with a name (role, aria-modal, label)', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'markup; run once');
+  await login(page);
+  const missing = await page.evaluate(() => ['reauthOverlay', 'inspectorOverlay', 'paletteOverlay', 'shortcutOverlay', 'quickAddOverlay', 'helpOverlay']
+    .filter(id => { const el = document.getElementById(id); return !el || el.getAttribute('role') !== 'dialog' || el.getAttribute('aria-modal') !== 'true' || !(el.getAttribute('aria-label') || '').trim(); }));
+  expect(missing).toEqual([]);
+});

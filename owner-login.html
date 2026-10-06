@@ -741,7 +741,7 @@
        doesn't store or compare the password itself anywhere. -->
   <div id="inspectHint">Press <kbd>Space</kbd> to inspect this record</div>
 
-  <div id="inspectorOverlay">
+  <div id="inspectorOverlay" role="dialog" aria-modal="true" aria-label="Record history">
     <div class="insCard">
       <div class="insHead">
         <h3 id="insTitle">Record</h3>
@@ -758,7 +758,7 @@
     </div>
   </div>
 
-  <div id="reauthOverlay">
+  <div id="reauthOverlay" role="dialog" aria-modal="true" aria-label="Confirm your password">
     <div class="card">
       <h3>Confirm it's you</h3>
       <p class="sub">Re-enter your password to <span id="reauthActionLabel">continue</span>.</p>
@@ -1152,6 +1152,22 @@
     // real handle like this is what actually guarantees the box goes away.
     let activeReauthClose = null;
 
+    // Keyboard focus goes back to whatever opened a dialog when it closes
+    // (WCAG 2.4.3), so keyboard and screen-reader users keep their place
+    // instead of starting again from the top of the page (EXT3).
+    const focusReturn = new Map();
+    function rememberFocus(key){
+      const el = document.activeElement;
+      if (el && el !== document.body && !focusReturn.has(key)) focusReturn.set(key, el);
+    }
+    function restoreFocus(key){
+      const el = focusReturn.get(key);
+      focusReturn.delete(key);
+      if (el && document.contains(el) && el.offsetParent !== null && typeof el.focus === 'function') {
+        try { el.focus({ preventScroll: true }); } catch (e) { /* element can't take focus any more */ }
+      }
+    }
+
     function requireReauth(actionLabel){
       const overlay = document.getElementById('reauthOverlay');
       const label = document.getElementById('reauthActionLabel');
@@ -1171,6 +1187,7 @@
         msg.textContent = '';
         msg.className = 'msg';
         confirmBtn.disabled = false;
+        rememberFocus('reauth');
         overlay.style.display = 'flex';
         input.focus();
 
@@ -1180,6 +1197,7 @@
           cancelBtn.removeEventListener('click', onCancel);
           input.removeEventListener('keydown', onKeydown);
           if (activeReauthClose === close) activeReauthClose = null;
+          restoreFocus('reauth');
           resolve(result);
         }
         activeReauthClose = close;
@@ -2117,6 +2135,8 @@
 
     const helpOverlay = document.createElement('div');
     helpOverlay.id = 'helpOverlay';
+    // Announced as a dialog by screen readers (EXT3).
+    helpOverlay.setAttribute('role', 'dialog'); helpOverlay.setAttribute('aria-modal', 'true'); helpOverlay.setAttribute('aria-label', 'Guide');
     helpOverlay.innerHTML = '<div class="helpCard"><h3 id="helpTitle"></h3>' +
       '<div class="helpWhere" id="helpWhere"></div><div id="helpBody"></div>' +
       '<div class="helpFoot"><button type="button" class="small" id="helpGoBtn">Take me there</button>' +
@@ -2129,9 +2149,10 @@
       document.getElementById('helpWhere').textContent = PAGE_LABEL_BY_ID[entry.page] || '';
       document.getElementById('helpBody').innerHTML =
         entry.body.split('|').map(p => '<p>' + esc(p) + '</p>').join('');
+      rememberFocus('help');
       helpOverlay.classList.add('open');
     }
-    function closeHelp(){ helpOverlay.classList.remove('open'); }
+    function closeHelp(){ helpOverlay.classList.remove('open'); restoreFocus('help'); }
     document.getElementById('helpCloseBtn').addEventListener('click', closeHelp);
     document.getElementById('helpGoBtn').addEventListener('click', () => {
       if (HELP_CURRENT) showPage(HELP_CURRENT.page);
@@ -2142,6 +2163,8 @@
     // ---- Command palette ----
     const paletteOverlay = document.createElement('div');
     paletteOverlay.id = 'paletteOverlay';
+    // Announced as a dialog by screen readers (EXT3).
+    paletteOverlay.setAttribute('role', 'dialog'); paletteOverlay.setAttribute('aria-modal', 'true'); paletteOverlay.setAttribute('aria-label', 'Search and commands');
     paletteOverlay.innerHTML =
       '<div class="paletteCard">' +
         '<input type="text" id="paletteInput" placeholder="Jump to a page or record, or ask how something works\u2026" autocomplete="off" spellcheck="false">' +
@@ -2205,6 +2228,7 @@
     function openPalette(){
       PAL_SEL = 0;
       PAL_ITEMS = paletteItems('');
+      rememberFocus('palette');
       paletteOverlay.classList.add('open');
       renderPalette();
       const inp = document.getElementById('paletteInput');
@@ -2215,11 +2239,13 @@
       inp.focus();
       setTimeout(() => inp.focus(), 10);
     }
-    function closePalette(){ paletteOverlay.classList.remove('open'); }
+    // restore=false when a result was chosen: the page changes, so focus
+    // should not jump back to where the palette was opened from.
+    function closePalette(restore = true){ paletteOverlay.classList.remove('open'); if (restore) restoreFocus('palette'); else focusReturn.delete('palette'); }
     function runPalette(i){
       const it = PAL_ITEMS[i];
       if (!it) return;
-      closePalette();
+      closePalette(false);
       if (it.help) { openHelp(it.help); return; }
       showPage(it.pageId);
       if (it.activitySearch) {
@@ -2241,6 +2267,8 @@
     // ---- Shortcut sheet ----
     const shortcutOverlay = document.createElement('div');
     shortcutOverlay.id = 'shortcutOverlay';
+    // Announced as a dialog by screen readers (EXT3).
+    shortcutOverlay.setAttribute('role', 'dialog'); shortcutOverlay.setAttribute('aria-modal', 'true'); shortcutOverlay.setAttribute('aria-label', 'Keyboard shortcuts');
     shortcutOverlay.innerHTML =
       '<div class="shortcutCard"><h3>Keyboard shortcuts</h3><div class="scGrid">' +
       '<div class="scGroup"><h4>Anywhere</h4>' +
@@ -2272,8 +2300,8 @@
         '<div class="scRow"><span>Calendar</span><span><kbd>g</kbd><kbd>c</kbd></span></div></div>' +
       '</div></div>';
     document.body.appendChild(shortcutOverlay);
-    function openShortcuts(){ shortcutOverlay.classList.add('open'); }
-    function closeShortcuts(){ shortcutOverlay.classList.remove('open'); }
+    function openShortcuts(){ rememberFocus('shortcuts'); shortcutOverlay.classList.add('open'); }
+    function closeShortcuts(){ shortcutOverlay.classList.remove('open'); restoreFocus('shortcuts'); }
     shortcutOverlay.addEventListener('click', (e) => { if (e.target === shortcutOverlay) closeShortcuts(); });
 
     // ---- Global keyboard layer ----
@@ -2776,6 +2804,7 @@
       document.getElementById('insTabHistory').className = '';
       document.getElementById('insTabRaw').className = 'secondary';
       document.getElementById('insBody').innerHTML = '<p class="empty">Loading history…</p>';
+      rememberFocus('inspector');
       document.getElementById('inspectorOverlay').classList.add('open');
       try {
         // All matches, page by page: other records whose text mentions this id
@@ -2896,6 +2925,7 @@
     }
     function closeInspector(){
       document.getElementById('inspectorOverlay').classList.remove('open');
+      restoreFocus('inspector');
       document.getElementById('inspectHint').classList.remove('show');
       if (typeof INSPECT_TARGET !== 'undefined' && INSPECT_TARGET && INSPECT_TARGET.el) {
         INSPECT_TARGET.el.classList.remove('inspectHover');
@@ -3291,6 +3321,7 @@
     // ---- ⌘N: jot a reminder from anywhere ----
     const quickAdd = document.createElement('div');
     quickAdd.id = 'quickAddOverlay';
+    quickAdd.setAttribute('role', 'dialog'); quickAdd.setAttribute('aria-modal', 'true'); quickAdd.setAttribute('aria-label', 'Quick add');
     quickAdd.innerHTML = '<div class="quickAddCard"><h4>New reminder</h4>' +
       '<input type="text" id="quickAddInput" placeholder="What do you need to remember?" autocomplete="off">' +
       '<div class="quickAddRow"><select id="quickAddPriority">' +
@@ -3300,12 +3331,13 @@
       '<button type="button" class="small" id="quickAddSave">Add</button></div></div>';
     document.body.appendChild(quickAdd);
     function openQuickAdd(){
+      rememberFocus('quickadd');
       quickAdd.classList.add('open');
       const i = document.getElementById('quickAddInput');
       i.value = '';
       setTimeout(() => i.focus(), 10);
     }
-    function closeQuickAdd(){ quickAdd.classList.remove('open'); }
+    function closeQuickAdd(){ quickAdd.classList.remove('open'); restoreFocus('quickadd'); }
     async function saveQuickAdd(){
       const title = (document.getElementById('quickAddInput').value || '').trim();
       if (!title) { closeQuickAdd(); return; }
