@@ -264,3 +264,117 @@ test('one bad line refuses all items (one statement), and the retry adds every l
   expect(backend.tables.orders).toHaveLength(1);
   expect(backend.tables.order_items).toHaveLength(2);
 });
+
+// ---- EXT5 (workstream 2): deeper manual-order failure testing ----
+
+test('with no other order, the first save uses the plain number for that second', async ({ page, backend }) => {
+  setup(backend);
+  await page.clock.setFixedTime(new Date('2026-06-15T17:00:05Z'));
+  await signIn(page);
+  await fillOrder(page);
+  await save(page);
+  await expect(page.locator('#successMsg')).toContainText('Saved');
+  expect(backend.tables.orders[0].order_number).toBe('M-20260615-120005');
+});
+
+test('retry after a lost reply: another person\'s order with the same number is never adopted', async ({ page, backend }) => {
+  setup(backend);
+  await signIn(page);
+  await fillOrder(page);
+  backend.dropNext('orders', 'POST', { applied: false }); // first attempt not saved at all
+  await save(page);
+  await expect(page.locator('#formMsg')).toContainText('may or may not');
+  const num = await page.evaluate(() => JSON.parse(sessionStorage.getItem('he.manualOrder.pending')).orderNumber);
+  // meanwhile an order with the same number, same person, different customer appears (another tab)
+  backend.tables.orders.push({ id: 'other', order_number: num, entered_by: OWNER_USER.id, total: 77, customer_name: 'SYNTHETIC Someone else', source: 'manual', deleted_at: null });
+  await save(page);
+  await expect(page.locator('#successMsg')).toContainText('Saved');
+  expect(backend.tables.order_items).toHaveLength(1);
+  expect(backend.tables.order_items[0].order_id).not.toBe('other');
+  expect(backend.tables.orders).toHaveLength(2);
+});
+
+test('retry when two identical orders carry the number: stops and explains, adds nothing', async ({ page, backend }) => {
+  setup(backend);
+  await signIn(page);
+  await fillOrder(page); // 2 x $10 = $20
+  backend.dropNext('orders', 'POST', { applied: false });
+  await save(page);
+  await expect(page.locator('#formMsg')).toContainText('may or may not');
+  const num = await page.evaluate(() => JSON.parse(sessionStorage.getItem('he.manualOrder.pending')).orderNumber);
+  const twin = { order_number: num, entered_by: OWNER_USER.id, total: 20, customer_name: 'SYNTHETIC Walk-in', source: 'manual', deleted_at: null };
+  backend.tables.orders.push({ id: 'twin-1', ...twin }, { id: 'twin-2', ...twin });
+  await save(page);
+  await expect(page.locator('#formMsg')).toContainText('cannot tell which is this one');
+  expect(backend.tables.order_items).toHaveLength(0);
+});
+
+test('an order saved without its items is listed on sign-in, even after the tab was closed', async ({ page, backend, context }) => {
+  setup(backend);
+  await signIn(page);
+  await fillOrder(page);
+  backend.failNext('order_items', 'POST', { status: 500, body: { message: 'Synthetic server error' } });
+  await save(page);
+  await expect(page.locator('#formMsg')).toBeVisible();
+  backend.tables.orders[0].created_at = new Date().toISOString(); // the database default
+  const num = backend.tables.orders[0].order_number;
+  await page.close(); // tab closed: its session storage is gone
+  const page2 = await context.newPage();
+  await page2.goto('/manual-order-entry.html');
+  await expect(page2.locator('#appView')).toBeVisible();
+  await expect(page2.locator('#unfinishedMsg')).toContainText('Saved without any items: order ' + num);
+});
+
+test('no warning when every recent order has its items', async ({ page, backend }) => {
+  setup(backend);
+  backend.tables.orders.push({ id: 'done-1', order_number: 'M-1', entered_by: OWNER_USER.id, total: 5, source: 'manual', deleted_at: null, created_at: new Date().toISOString() });
+  backend.tables.order_items.push({ id: 'i-1', order_id: 'done-1', product_name: 'SYNTHETIC', quantity: 1, unit_price: 5, line_total: 5 });
+  await signIn(page);
+  await page.waitForLoadState('networkidle');
+  await expect(page.locator('#unfinishedMsg')).toBeHidden();
+});
+
+test('three tabs saving in the same second create three separate orders', async ({ page, backend, context }) => {
+  setup(backend);
+  await page.clock.setFixedTime(new Date('2026-06-15T17:00:05Z'));
+  await signIn(page);
+  const pages = [page];
+  for (let i = 0; i < 2; i++) {
+    const p = await context.newPage();
+    await p.clock.setFixedTime(new Date('2026-06-15T17:00:05Z'));
+    await p.goto('/manual-order-entry.html');
+    await expect(p.locator('#appView')).toBeVisible();
+    pages.push(p);
+  }
+  for (const [i, p] of pages.entries()) await fillOrder(p, { qty: String(i + 1), price: '10' });
+  for (const p of pages) { await save(p); await expect(p.locator('#successMsg')).toContainText('Saved'); }
+  expect(backend.tables.orders).toHaveLength(3);
+  expect(new Set(backend.tables.orders.map(o => o.order_number)).size).toBe(3);
+  expect(backend.tables.order_items.map(i => i.quantity).sort()).toEqual([1, 2, 3]);
+});
+
+for (const [field, value] of [['qty', '2.5'], ['qty', '0'], ['qty', '-1'], ['qty', '100001'], ['price', '-3'], ['price', '1.005'], ['price', '2000000']]) {
+  test(`the form refuses ${field} = ${value} before anything is sent`, async ({ page, backend }) => {
+    setup(backend);
+    await signIn(page);
+    await fillOrder(page);
+    await page.fill(field === 'qty' ? '.item-row .item-qty' : '.item-row .item-price', value);
+    await save(page);
+    await page.waitForTimeout(300);
+    expect(inserts(backend, 'orders')).toHaveLength(0);
+    await expect(page.locator('#successMsg')).toBeHidden();
+  });
+}
+
+test('sign-in expired while saving the items: says so; the identical retry adds the items once', async ({ page, backend }) => {
+  setup(backend);
+  await signIn(page);
+  await fillOrder(page);
+  backend.failNext('order_items', 'POST', { status: 401, body: { code: 'PGRST301', message: 'JWT expired' } });
+  await save(page);
+  await expect(page.locator('#formMsg')).toContainText('sign-in has expired');
+  await save(page);
+  await expect(page.locator('#successMsg')).toContainText('Saved');
+  expect(backend.tables.orders).toHaveLength(1);
+  expect(backend.tables.order_items).toHaveLength(1);
+});

@@ -98,6 +98,7 @@
     <p class="subtitle">For wholesale, physical/in-person, or other sales that don't come through Shopify.</p>
 
     <div id="formMsg" class="msg error" hidden></div>
+    <div id="unfinishedMsg" class="msg error" hidden></div>
     <div id="successMsg" class="msg success" hidden></div>
 
     <form id="orderForm">
@@ -319,6 +320,29 @@
     if (pending) {
       showError(formMsg, 'An earlier save (order ' + pending.orderNumber + ', ' + money(pending.total) + ') may not have finished before this page was reloaded. Check the Orders page in the dashboard before entering it again. Entering exactly the same order again is safe: the page will not create a second copy.');
     }
+    checkUnfinished(user);
+  }
+
+  // EXT5: an order saved without its items (items refused, connection lost,
+  // tab or browser closed in between) is found from the database itself, so
+  // it shows up in any tab, on any device, after any restart.
+  async function checkUnfinished(user){
+    const box = document.getElementById('unfinishedMsg');
+    if (!box) return;
+    try {
+      const since = new Date(Date.now() - 7 * 86400000).toISOString();
+      const { data: recent, error } = await sb.from('orders').select('id, order_number, total')
+        .eq('entered_by', user.id).eq('source', 'manual').is('deleted_at', null).gte('created_at', since)
+        .order('created_at', { ascending: false }).limit(50);
+      if (error || !recent || !recent.length) return;
+      const { data: lines, error: linesErr } = await sb.from('order_items').select('order_id').in('order_id', recent.map(o => o.id));
+      if (linesErr) return;
+      const withLines = new Set((lines || []).map(l => l.order_id));
+      const empty = recent.filter(o => !withLines.has(o.id));
+      if (!empty.length) { box.hidden = true; return; }
+      showError(box, 'Saved without any items: ' + empty.map(o => 'order ' + (o.order_number || o.id) + ' (' + money(Number(o.total) || 0) + ')').join(', ')
+        + '. Its items were not saved (for example the connection dropped or the page was closed). Re-enter exactly the same order on this device to finish it, or ask the owner to delete it on the Orders page.');
+    } catch (e) { /* a check only: never block entering orders */ }
   }
 
   function showLogin(){
@@ -399,10 +423,20 @@
       if (isRetry) {
         // A retry: was the order already saved the first time?
         orderNumber = pending.orderNumber;
-        const { data: already, error: findErr } = await sb.from('orders').select('id')
-          .eq('order_number', orderNumber).eq('entered_by', user.id).limit(1);
+        // EXT5: order numbers are not unique in the database, and two tabs of
+        // the same person can pick the same number in the same instant. So the
+        // first attempt is recognised by number AND person AND total AND
+        // customer, never by number alone; two matches means we can't tell.
+        const { data: already, error: findErr } = await sb.from('orders').select('id, customer_name, total')
+          .eq('order_number', orderNumber).eq('entered_by', user.id).is('deleted_at', null).limit(5);
         if (findErr) throw findErr;
-        if (already && already.length) newOrder = already[0];
+        const mine = (already || []).filter(o => Number(o.total) === Number(pending.total) && (o.customer_name || '') === orderPayload.customer_name);
+        if (mine.length > 1) throw new Error('More than one order is saved under number ' + orderNumber + ' with the same customer and total, so the page cannot tell which is this one. Nothing more was saved. Check the Orders page in the dashboard and delete the extra copy.');
+        if (mine.length === 1) newOrder = mine[0];
+        else if (already && already.length) {
+          // Same number, but someone else's order (different customer or total): never add to it.
+          orderNumber = generateOrderNumber() + '-r' + Math.floor(Math.random() * 900 + 100);
+        }
       } else {
         // A new order: never reuse a number another tab or person already
         // has (numbers are per second), or a retry could adopt their order.
@@ -456,6 +490,7 @@
       successMsg.textContent = `Saved — order ${orderPayload.order_number} for ${money(total)}.`;
       successMsg.hidden = false;
       resetForm();
+      checkUnfinished(user);
     } catch (err) {
       showError(formMsg, explainSaveError(err, err && err.stage));
     } finally {
