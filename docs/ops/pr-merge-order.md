@@ -80,3 +80,24 @@ The `owner-login.html` fingerprint column lets the owner confirm each step on Gi
 ## 5. Rollback
 
 Every PR is a single merge commit. Reverting it restores the previous state; none of them changes the database.
+
+## Re-run, 2026-10-06 (extension 3)
+
+Read-only: a scratch worktree of `main` (`d3db7bc`); no real branch was changed.
+
+**PR heads (none changed since 2026-09-29/30):**
+- #5 `30eac3a`, #6 `2a3438f`, #17 `ce243ca`, #18 `522dba7`
+- #15 `bf7060f`, #16 `6d45c6e`, #19 `1a5a227`, #20 `efdda73`, #21 `60e53d0`, #22 `b68f8a3`, #23 `ed86255`, #24 `6b794cd`
+- #7 `59e2ced`, #9 `3b8abf5`, #10 `cfee914`, #13 `0eaf961`, #11 `5d9b45b`, #12 `ab71fdc`, #14 `6b7efb2`, #8 `444bdc3`
+
+All are 0 commits behind `main`.
+
+| Check | Result |
+|---|---|
+| Merges in the recommended order (steps 1–20) | **all 20 clean** |
+| `owner-login.html` fingerprint after each step | **all 20 match** the table above (49514277 … c6b809a9) |
+| Smoke test after each step (`general.spec.js`, desktop) | 9 passed each time |
+| Full suite after step 12 (docs + tests merged) | **364 passed**, 0 failed |
+| Full suite after step 20 (everything merged) | **405 passed**, 0 failed (Oct 4: 404; one more test now runs on this machine) |
+
+The recommended order still holds.
