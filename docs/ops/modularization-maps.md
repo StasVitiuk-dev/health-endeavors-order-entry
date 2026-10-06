@@ -92,3 +92,5 @@ Moved from `owner-login.html` to `assets/owner-login-helpers.js`:
 All three are pure and now take an optional "now", so the Central-time boundaries (local midnight on the 1st, Jan 1, a US evening) are unit-tested directly (`helpers-unit.spec.js`, run with the Chicago time zone). The helpers file now holds 35 names; API 4 → 5, so a page with a cached older helpers file refuses to start and asks for a reload. Behaviour is unchanged: the request baseline is identical and the screenshots are unchanged.
 
 Also added in extension 3, without a step number: `numberInputError` (API 4).
+
+Also extension 3: `maskSensitive` (API 6, 36 names). Agent error text on the agents page is masked like in Query C (e-mails, long tokens; capped at 300 characters).

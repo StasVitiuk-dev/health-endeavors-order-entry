@@ -4,14 +4,14 @@ Internal dashboard/platform only. Generated from `docs/ops/backlog/items.py` (ed
 
 **209 deduplicated items** from 264 raw candidates (55 duplicates merged: the same item recorded in PROJECT_RECORD, the overnight review, PRs, owner lists, decision registers and tests).
 
-Status counts: BLOCKED-EXT 2, BLOCKED-OWNER 31, BLOCKED-PROD 12, BLOCKED-QC 11, DEFERRED 20, DONE 126, QUEUED 7
+Status counts: BLOCKED-EXT 2, BLOCKED-OWNER 31, BLOCKED-PROD 12, BLOCKED-QC 11, DEFERRED 20, DONE 129, QUEUED 4
 
 | Priority | Items | Done (branch) | Remaining |
 |---|---|---|---|
 | P0 | 14 | 4 | 10 |
 | P1 | 53 | 37 | 16 |
 | P2 | 64 | 45 | 19 |
-| P3 | 65 | 40 | 25 |
+| P3 | 65 | 43 | 22 |
 | P4 | 13 | 0 | 13 |
 
 Priorities: P0 data loss / security / financial corruption / destructive · P1 launch blocker / correctness / concurrency / permission · P2 reliability / scale / accessibility / major UX · P3 maintainability / tests / docs · P4 future.
@@ -169,11 +169,9 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 
 | ID | Area | Item | Why it matters | Launch impact | Effort | Depends on | Safe in branch | Owner | Prod | Status |
 |---|---|---|---|---|---|---|---|---|---|---|
-| CI-04 | CI | Optional SQL job (local Postgres service) for draft tests | Draft regressions caught in CI | Low | M | CI-02 | Y | Y | N | QUEUED |
 | DOC-09 | Docs | Invoice status decision (issued vs draft) | Agent #1 output | Low | S | owner | N | Y | N | BLOCKED-OWNER |
 | F3-01 | Accessibility | Input and control borders in light mode ~1.4:1 (37 inline #cfd8d6 + theme --field-border) vs WCAG 1.4.11 3:1 | Hard to see field edges | Low | S | design decision | Y | Y | N | BLOCKED-OWNER |
 | F3-03 | Orders | Manual order number has 1-second resolution (M-YYYYMMDD-HHMMSS): two devices in the same second collide | generateOrderNumber | Low | S | Query C §9 (is order_number unique?) | Y | N | N | BLOCKED-QC |
-| F3-06 | Agents | Agent error text shown on the agents page is not masked like in Query C (emails/tokens) | last_error rendered as text | Low | S | — | Y | N | N | QUEUED |
 | F3-07 | Reports | Accounting "This Week" is the last 7×24 h, not Monday–Sunday; label could mislead | acctRangeStart week = now − 7 days | Low | S | owner wording | Y | Y | N | BLOCKED-OWNER |
 | F3-08 | Storage | Receipt/document file type is checked by extension only (not content) | uploadProblem uses the name | Low | S | — | Y | N | N | DEFERRED |
 | F3-13 | Performance | owner-login.html still ~500 KB in one file; first load parses everything | file size | Low | L | modularization step 3 | Y | Y | N | BLOCKED-OWNER |
@@ -187,7 +185,6 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | SC-05 | Scale | "Showing first 1,000" notice for long lists (lots, products, POs) | Silent list truncation later | Low | S | — | Y | N | N | DEFERRED |
 | SC-06 | Scale | Lot pickers truncate after 1,000 lots | Older lots missing from pickers | Low | S | — | Y | N | N | DEFERRED |
 | ST-08 | Storage | Read-only listing of orphaned objects created before the fixes | Cleanup scope | Low | S | owner | N | Y | Y | BLOCKED-PROD |
-| ST-09 | Storage | Server-side atomic upload+record (signed upload + DB function) design | Browser cannot make two systems atomic | Low | M | design only | Y | N | N | QUEUED |
 | UX-06 | UX | Administrator tries personal calendar | Pending check | Low | S | owner | N | Y | N | BLOCKED-OWNER |
 | X3-11 | Scale | Return-form order picker lists newest 200 orders only | Old order returns can't be logged | Low | S | volume | Y | N | N | DEFERRED |
 | X3-12 | Scale | Evidence form incident picker newest 200 only | Years away | Low | S | volume | Y | N | N | DEFERRED |
@@ -198,11 +195,13 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | AX-04 | Accessibility | prefers-reduced-motion respected for animations | Motion sensitivity | Low | S | — | Y | N | N | DONE |
 | AX-06 | Accessibility | Colour contrast check of badges in light/dark | Readability | Low | S | — | Y | N | N | DONE |
 | AX-09 | Accessibility | Contrast of text inside plain divs/spans (test covers badges, buttons, hints, empty states, labels, links, stat labels) | Remaining coverage gap | Low | S | — | Y | N | N | DONE |
+| CI-04 | CI | Optional SQL job (local Postgres service) for draft tests | Draft regressions caught in CI | Low | M | CI-02 | Y | Y | N | DONE |
 | CI-05 | CI | Secret/PII scan step in CI | Public repo hygiene | Low | S | — | Y | N | N | DONE |
 | DOC-01 | Docs | Audits recorded (state machine, mutations, storage, pagination, launch readiness) | Durable record | Medium | S | — | Y | N | N | DONE |
 | DOC-04 | Docs | Mark superseded statements in older docs (guessed schema, "BLOCKED ON QUERY A/B") | Stale docs | Low | S | — | Y | N | N | DONE |
 | EM-06 | Empty states | Product without inventory row: Inventory page shows it with "no stock row" warning | Broken invariant visible | Low | S | — | Y | N | N | DONE |
 | F3-04 | Auth | dashboard.html / search.html / manual-order-entry.html do not react to sign-out in another tab | no onAuthStateChange (order entry re-checks the user before saving) | Low | S | — | Y | N | N | DONE |
+| F3-06 | Agents | Agent error text shown on the agents page is not masked like in Query C (emails/tokens) | last_error rendered as text | Low | S | — | Y | N | N | DONE |
 | INV-27 | Inventory | SQL draft tests for lot numbers with only whitespace / unicode / mixed case duplicates | Lot identity edge cases | Low | S | — | Y | N | N | DONE |
 | MD-01 | Modularization | Steps 1, 2, 2b (CSS, icon, 28 pure helpers) | Smaller main file | Low | M | — | Y | N | N | DONE |
 | MD-02 | Modularization | Move confirmSecondPress + small DOM helpers | Next safe slice | Low | S | — | Y | N | N | DONE |
@@ -216,6 +215,7 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | SM-16 | State machine | Service status change unguarded (stale overwrite) | Low consequence | Low | S | — | Y | N | N | DONE |
 | ST-04 | Storage | Receipt delete: storage removed but DB clear fails → record points at missing file | Documented, acceptable; test it | Low | S | — | Y | N | N | DONE |
 | ST-06 | Storage | Path collision: same name in the same millisecond | Upload error | Low | S | — | Y | N | N | DONE |
+| ST-09 | Storage | Server-side atomic upload+record (signed upload + DB function) design | Browser cannot make two systems atomic | Low | M | design only | Y | N | N | DONE |
 | TQ-01 | Tests | Flaky palette tests fixed at root; employee delete test robust | Trust in suite | Medium | S | — | Y | N | N | DONE |
 | TQ-02 | Tests | Mutation tests for page-side guards (stale guard, noRowsChanged, escaping, paging, upload cleanup) | Prove tests bite | Medium | M | — | Y | N | N | DONE |
 | TQ-03 | Tests | Mock: DELETE representation, ilike, constraints, URL limits | Realism | Medium | S | — | Y | N | N | DONE |

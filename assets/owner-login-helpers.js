@@ -377,10 +377,20 @@
       return { start: null, end: null }; // all time
     }
 
+    // Agent error text can quote an e-mail address or a key from a failed
+    // call. Shown on screen (and in screenshots people share), so mask them,
+    // the same way Query C does, and cap the length (F3-06, EXT3).
+    function maskSensitive(text){
+      const t = String(text === null || text === undefined ? '' : text)
+        .replace(/[^\s@:;,()<>]+@[^\s@:;,()<>]+/g, '[email]')
+        .replace(/[A-Za-z0-9_.=+\/-]{24,}/g, '[token]');
+      return t.length > 300 ? t.slice(0, 300) + '…' : t;
+    }
+
   // Bump API when a helper's name or arguments change, so a page that loaded
   // an older copy refuses to start instead of running mixed code.
   window.HE.helpers = Object.freeze({
-    API: 5,
+    API: 6,
     esc,
     csvCell,
     fmtMoney,
@@ -416,5 +426,6 @@
     localDateString,
     acctRangeStart,
     taxRangeStart,
+    maskSensitive,
   });
 })();

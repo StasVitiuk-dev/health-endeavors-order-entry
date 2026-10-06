@@ -23,7 +23,7 @@
 <title>Health Endeavors — Owner Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous" onerror="window.__sbLoadFailed=true"></script>
 <link rel="stylesheet" href="assets/owner-login.css?v=fb8c7e08fd">
-<script src="assets/owner-login-helpers.js?v=48583b96f4" onerror="window.__heHelpersLoadFailed=true"></script>
+<script src="assets/owner-login-helpers.js?v=80e02990bb" onerror="window.__heHelpersLoadFailed=true"></script>
 <script>
   // Applied before anything renders so there's no flash of the wrong theme.
   (function(){
@@ -793,7 +793,7 @@
     showBanner('The sign-in helper library did not load from the internet, so this page cannot work yet. Check that your Mac is online, then fully reload this page (press Cmd+R). If this keeps happening, a content blocker or ad blocker extension in Safari may be blocking cdn.jsdelivr.net — try turning it off for this page and reloading.');
   } else if (window.__heHelpersLoadFailed || !window.HE || !window.HE.helpers) {
     showBanner('Part of this page (assets/owner-login-helpers.js) did not load, so it cannot start. Check that you are online, then fully reload this page (press Cmd+R).');
-  } else if (window.HE.helpers.API !== 5) {
+  } else if (window.HE.helpers.API !== 6) {
     showBanner('The dashboard was just updated and this page loaded a mix of old and new files. Fully reload this page (press Cmd+R) — nothing was changed.');
   } else {
     initApp();
@@ -837,6 +837,7 @@
       localDateString,
       acctRangeStart,
       taxRangeStart,
+      maskSensitive,
     } = window.HE.helpers;
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const verifyOnly = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -5334,7 +5335,7 @@
       }
       // Agents word it differently ("failed", "error", "failure"…); any of
       // them is a failure, never a quiet "Enabled".
-      if (/fail|error/i.test(String(ctrl.last_run_status || ''))) return { key: 'failed', label: 'Failed', cls: 'sev-high', detail: 'The last run failed' + (ctrl.last_error ? ': ' + ctrl.last_error : '.') };
+      if (/fail|error/i.test(String(ctrl.last_run_status || ''))) return { key: 'failed', label: 'Failed', cls: 'sev-high', detail: 'The last run failed' + (ctrl.last_error ? ': ' + maskSensitive(ctrl.last_error) : '.') };
       if (a.cronJobName) {
         const job = cronJobStatusByName[a.cronJobName];
         if (!job || !job.active) return { key: 'stale', label: 'Stale', cls: 'sev-high', detail: job ? 'Its scheduled job is not active, so it will not run.' : 'Its scheduled job could not be confirmed.' };
@@ -5380,7 +5381,7 @@
       } else {
         parts.push('<span style="color:var(--muted);">No run recorded yet</span>');
       }
-      if (ctrl && ctrl.last_error) parts.push(`<span style="color:var(--danger);">Last error: ${esc(ctrl.last_error)}</span>`);
+      if (ctrl && ctrl.last_error) parts.push(`<span style="color:var(--danger);">Last error: ${esc(maskSensitive(ctrl.last_error))}</span>`);
       return `<div style="margin-top:6px;font-size:12px;padding:8px 10px;background:var(--panel-2);border-radius:8px;">
         <b style="font-size:11px;text-transform:uppercase;letter-spacing:0.02em;color:var(--muted);">Job health</b><br>
         ${parts.join(' &middot; ')}

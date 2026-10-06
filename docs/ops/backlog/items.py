@@ -86,7 +86,7 @@ a('ST-05','Storage','Malicious filenames (path traversal, unicode, very long) pr
 a('ST-06','Storage','Path collision: same name in the same millisecond','Upload error','P3','Low','S','—','Y','N','N','DONE')
 a('ST-07','Storage','Read-only check of bucket privacy, size limits, MIME rules and storage policies','Unknown production settings','P1','Medium','S','owner runs a read-only check','N','Y','Y','BLOCKED-PROD')
 a('ST-08','Storage','Read-only listing of orphaned objects created before the fixes','Cleanup scope','P3','Low','S','owner','N','Y','Y','BLOCKED-PROD')
-a('ST-09','Storage','Server-side atomic upload+record (signed upload + DB function) design','Browser cannot make two systems atomic','P3','Low','M','design only','Y','N','N','QUEUED')
+a('ST-09','Storage','Server-side atomic upload+record (signed upload + DB function) design','Browser cannot make two systems atomic','P3','Low','M','design only','Y','N','N','DONE')
 a('ST-10','Storage','Signed-URL lifetime (60 s) and download link behaviour documented','Expired links','P4','Low','S','—','Y','N','N','DEFERRED')
 
 # ---------------- Reporting / money
@@ -183,7 +183,7 @@ a('TQ-05','Tests','Request baseline kept current','Unexpected requests','P3','Lo
 a('CI-01','CI','Tests-only workflow ready, least privilege','Automated checks','P2','Medium','S','—','Y','N','N','DONE')
 a('CI-02','CI','Activate CI (owner opens/merges the PR) and make Playwright required','Gate merges','P2','Medium','S','owner','N','Y','Y','BLOCKED-OWNER')
 a('CI-03','CI','Verify pinned action SHAs against release tags','Supply chain','P2','Low','S','owner (other repos out of scope)','N','Y','N','BLOCKED-OWNER')
-a('CI-04','CI','Optional SQL job (local Postgres service) for draft tests','Draft regressions caught in CI','P3','Low','M','CI-02','Y','Y','N','QUEUED')
+a('CI-04','CI','Optional SQL job (local Postgres service) for draft tests','Draft regressions caught in CI','P3','Low','M','CI-02','Y','Y','N','DONE')
 a('CI-05','CI','Secret/PII scan step in CI','Public repo hygiene','P3','Low','S','—','Y','N','N','DONE')
 
 # ---------------- Modularization / maintainability
@@ -235,7 +235,7 @@ a('F3-02','Orders','Manual orders record no SKU (product name only): returns of 
 a('F3-03','Orders','Manual order number has 1-second resolution (M-YYYYMMDD-HHMMSS): two devices in the same second collide','generateOrderNumber','P3','Low','S','Query C §9 (is order_number unique?)','Y','N','N','BLOCKED-QC')
 a('F3-04','Auth','dashboard.html / search.html / manual-order-entry.html do not react to sign-out in another tab','no onAuthStateChange (order entry re-checks the user before saving)','P3','Low','S','—','Y','N','N','DONE')
 a('F3-05','Search','Palette record results cap at 30 without saying "more…"','searchEverything slice(0,30)','P4','Low','S','—','Y','N','N','DEFERRED')
-a('F3-06','Agents','Agent error text shown on the agents page is not masked like in Query C (emails/tokens)','last_error rendered as text','P3','Low','S','—','Y','N','N','QUEUED')
+a('F3-06','Agents','Agent error text shown on the agents page is not masked like in Query C (emails/tokens)','last_error rendered as text','P3','Low','S','—','Y','N','N','DONE')
 a('F3-07','Reports','Accounting "This Week" is the last 7×24 h, not Monday–Sunday; label could mislead','acctRangeStart week = now − 7 days','P3','Low','S','owner wording','Y','Y','N','BLOCKED-OWNER')
 a('F3-08','Storage','Receipt/document file type is checked by extension only (not content)','uploadProblem uses the name','P3','Low','S','—','Y','N','N','DEFERRED')
 a('F3-09','Inventory','Low-stock threshold has no stale-tab guard (last write wins on a config value)','upsert without condition','P4','Low','S','—','Y','N','N','DEFERRED')
