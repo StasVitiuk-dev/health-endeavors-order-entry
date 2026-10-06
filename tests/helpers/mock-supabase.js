@@ -56,6 +56,14 @@ function parseInList(raw) {
   return inner.split(',').map(v => v.trim().replace(/^"(.*)"$/, '$1'));
 }
 
+function jsonEqual(a, b) {
+  if (a === b) return true;
+  if (a === null || b === null || typeof a !== 'object' || typeof b !== 'object') return false;
+  if (Array.isArray(a) !== Array.isArray(b)) return false;
+  const ka = Object.keys(a), kb = Object.keys(b);
+  return ka.length === kb.length && ka.every(k => Object.prototype.hasOwnProperty.call(b, k) && jsonEqual(a[k], b[k]));
+}
+
 function matchesFilter(row, column, expr) {
   const value = row[column];
   const dot = expr.indexOf('.');
@@ -72,7 +80,11 @@ function matchesFilter(row, column, expr) {
   let result;
   const str = value === null || value === undefined ? null : String(value);
   switch (op) {
-    case 'eq': result = str === arg; break;
+    case 'eq':
+      // jsonb columns compare by meaning (PostgREST casts the text to jsonb)
+      if (value !== null && typeof value === 'object') { try { result = jsonEqual(value, JSON.parse(arg)); } catch (e) { result = false; } }
+      else result = str === arg;
+      break;
     case 'neq': result = str !== arg; break;
     case 'in': result = parseInList(arg).includes(str); break;
     case 'is':

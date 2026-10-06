@@ -22,7 +22,7 @@
 <meta http-equiv="Expires" content="0">
 <title>Health Endeavors — Owner Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous" onerror="window.__sbLoadFailed=true"></script>
-<link rel="stylesheet" href="assets/owner-login.css?v=71e9d86dca">
+<link rel="stylesheet" href="assets/owner-login.css?v=2f20e9d637">
 <script src="assets/owner-login-helpers.js?v=5f1a6b2b6e" onerror="window.__heHelpersLoadFailed=true"></script>
 <script>
   // Applied before anything renders so there's no flash of the wrong theme.
@@ -282,12 +282,12 @@
           <input type="date" id="expDate" required>
           <input type="text" id="expVendor" placeholder="Vendor (optional — e.g. Uline, Meta Ads)">
           <textarea id="expNote" placeholder="Note (optional)" rows="2" style="width:100%;padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;resize:vertical;"></textarea>
-          <label style="font-size:12px;color:#6b7877;">Receipt (optional) — photo, screenshot, or PDF</label>
+          <label style="font-size:12px;color:var(--muted);">Receipt (optional) — photo, screenshot, or PDF</label>
           <input type="file" id="expReceipt" accept="image/*,.pdf" aria-label="Receipt file (optional)">
           <button type="submit" class="small" style="align-self:flex-start;">Add expense</button>
         </form>
 
-        <h4 style="font-size:12px;color:#6b7877;margin:18px 0 6px;">Recently deleted expenses</h4>
+        <h4 style="font-size:12px;color:var(--muted);margin:18px 0 6px;">Recently deleted expenses</h4>
         <p class="hint" style="margin-top:-2px;">Deleted expenses land here instead of disappearing for good — restore puts them right back.</p>
         <div id="deletedExpensesWrap"><p class="empty">Loading…</p></div>
       </section>
@@ -395,10 +395,10 @@
             <option value="">Not linked to a specific record</option>
           </select>
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <label style="font-size:12px;color:#6b7877;flex:1;min-width:150px;">Issued / effective date (optional)
+            <label style="font-size:12px;color:var(--muted);flex:1;min-width:150px;">Issued / effective date (optional)
               <input type="date" id="docIssuedDate" style="display:block;margin-top:4px;padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;width:100%;">
             </label>
-            <label style="font-size:12px;color:#6b7877;flex:1;min-width:150px;">Expiration date (optional)
+            <label style="font-size:12px;color:var(--muted);flex:1;min-width:150px;">Expiration date (optional)
               <input type="date" id="docExpirationDate" style="display:block;margin-top:4px;padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;width:100%;">
             </label>
           </div>
@@ -417,7 +417,7 @@
         <div id="adverseEventsWrap"><p class="empty">Loading…</p></div>
         <form id="addAdverseEventForm" style="display:flex;flex-direction:column;gap:8px;margin-top:14px;padding-top:16px;border-top:1px solid var(--line);">
           <input type="text" id="aeProduct" placeholder="Product name (e.g. Cocoa Body Lotion)" required>
-          <label style="font-size:12px;color:#6b7877;">Date the report was received
+          <label style="font-size:12px;color:var(--muted);">Date the report was received
             <input type="date" id="aeDateReceived" required style="display:block;margin-top:4px;padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;">
           </label>
           <textarea id="aeDescription" placeholder="What was reported?" rows="3" required style="width:100%;padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;resize:vertical;"></textarea>
@@ -677,7 +677,7 @@
           <input type="text" id="sopTitle" placeholder="Procedure title (e.g. How to process a return)" required>
           <input type="text" id="sopCategory" placeholder="Category (optional, e.g. Orders, Shipping)">
           <textarea id="sopContent" placeholder="Write the steps here…" rows="4" required style="width:100%;padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;resize:vertical;"></textarea>
-          <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:#33403e;">
+          <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink);">
             <input type="checkbox" id="sopAgentVisible">
             Let the Customer Service Agent reference this when drafting customer replies
           </label>
@@ -701,7 +701,7 @@
           <button type="submit" class="small" style="align-self:flex-start;">Add request</button>
         </form>
 
-        <h4 style="font-size:12px;color:#6b7877;margin:18px 0 6px;">Recently deleted requests</h4>
+        <h4 style="font-size:12px;color:var(--muted);margin:18px 0 6px;">Recently deleted requests</h4>
         <p class="hint" style="margin-top:-2px;">Deleted requests land here instead of disappearing for good — restore puts them right back.</p>
         <div id="deletedFeatureRequestsWrap"><p class="empty">Loading…</p></div>
       </section>
@@ -726,7 +726,7 @@
           <button type="submit" class="small" style="align-self:flex-start;">Place legal hold</button>
         </form>
 
-        <h4 style="font-size:12px;color:#6b7877;margin:18px 0 6px;">Recently released holds</h4>
+        <h4 style="font-size:12px;color:var(--muted);margin:18px 0 6px;">Recently released holds</h4>
         <p class="hint" style="margin-top:-2px;">Holds you've released, kept here for reference.</p>
         <div id="releasedLegalHoldsWrap"><p class="empty">Loading…</p></div>
       </section>
@@ -4143,7 +4143,7 @@
                 <b>${esc(QC_TYPE_LABELS[c.check_type] || c.check_type)}</b>
                 <span class="badge ${resultClass}">${esc(QC_RESULT_LABELS[c.result] || c.result)}</span>
                 <span class="badge">${esc(QC_SEVERITY_LABELS[c.severity] || c.severity)}</span>
-                <span style="color:#8a9694;font-size:12px;">${esc(prod)}${lot ? ' · lot ' + esc(lot) : ''} · ${esc(fmtDate(c.created_at))}</span>
+                <span style="color:var(--muted);font-size:12px;">${esc(prod)}${lot ? ' · lot ' + esc(lot) : ''} · ${esc(fmtDate(c.created_at))}</span>
                 <div style="margin-top:6px;">${esc(c.description)}</div>
                 ${c.resolution ? `<div style="margin-top:6px;color:#4d7c6a;"><b>Resolved:</b> ${esc(c.resolution)}</div>` : ''}
                 ${incident ? `<div style="margin-top:6px;"><span class="badge">Incident ${esc(incident.incident_number || '')} — ${esc(incident.status)}</span></div>` : ''}
@@ -4302,7 +4302,7 @@
                 <b>${esc(prod)} — lot ${esc(lot)}</b>
                 <span class="badge ${statusClass}">${esc(RECALL_STATUS_LABELS[r.status] || r.status)}</span>
                 <span class="badge">${esc(QC_SEVERITY_LABELS[r.severity] || r.severity)}</span>
-                <span style="color:#8a9694;font-size:12px;">${esc(fmtDate(r.created_at))}</span>
+                <span style="color:var(--muted);font-size:12px;">${esc(fmtDate(r.created_at))}</span>
                 <div style="margin-top:6px;">${esc(r.reason)}</div>
                 ${r.quantity_quarantined != null ? `<div style="margin-top:6px;">${Number(r.quantity_quarantined)} units pulled from Available into Recalled.</div>` : ''}
                 ${r.resolution ? `<div style="margin-top:6px;color:#4d7c6a;"><b>Resolved:</b> ${esc(r.resolution)}</div>` : ''}
@@ -5049,7 +5049,7 @@
           document.getElementById('deletedOrdersWrap').innerHTML = deleted.map(o => `
             <div class="deletedRow" data-id="${esc(o.id)}">
               <div class="info"><b>${esc(o.order_number || o.id)}</b> — ${esc(o.customer_name || '—')} — ${esc(fmtMoney(o.total, o.currency))}<br>
-              <span style="font-size:11px;color:#8a9694;">Deleted ${esc(fmtDate(o.deleted_at))}</span></div>
+              <span style="font-size:11px;color:var(--muted);">Deleted ${esc(fmtDate(o.deleted_at))}</span></div>
               <button class="small restoreOrderBtn">Restore</button>
             </div>`).join('');
           logCustomerAccess(deleted, 'Viewed in Owner Dashboard – Recycle bin');
@@ -5344,11 +5344,11 @@
             ${a.ai ? '<span class="badge sev-medium">Uses a paid AI model</span>' : '<span class="badge sev-low">Rule-based — no AI model</span>'}
             ${a.enforced ? '<span class="badge sev-low">Switch enforced</span>' : '<span class="badge sev-medium">Switch not yet enforced</span>'}
             ${truth.detail ? `<div class="agentTruthDetail" style="font-size:12.5px;margin-top:4px;">${esc(truth.detail)}</div>` : ''}
-            <div style="color:#8a9694;font-size:12px;margin-top:2px;">${esc(a.status)}</div>
+            <div style="color:var(--muted);font-size:12px;margin-top:2px;">${esc(a.status)}</div>
             <div style="margin-top:6px;">${esc(a.desc)}</div>
-            <div style="margin-top:6px;font-size:12.5px;color:#5b6664;"><b>Touches:</b> ${a.touches.map(esc).join(', ')}</div>
+            <div style="margin-top:6px;font-size:12.5px;color:var(--muted);"><b>Touches:</b> ${a.touches.map(esc).join(', ')}</div>
             <div style="margin-top:6px;font-size:12.5px;"><b>Can't do alone:</b> ${esc(a.limit)}</div>
-            ${ctrl && ctrl.updated_at ? `<div style="margin-top:6px;font-size:12px;color:#8a9694;">Last changed ${ctrl.who ? 'by ' + esc(ctrl.who) + ' ' : ''}on ${new Date(ctrl.updated_at).toLocaleString()}</div>` : ''}
+            ${ctrl && ctrl.updated_at ? `<div style="margin-top:6px;font-size:12px;color:var(--muted);">Last changed ${ctrl.who ? 'by ' + esc(ctrl.who) + ' ' : ''}on ${new Date(ctrl.updated_at).toLocaleString()}</div>` : ''}
             ${agentJobHealthHtml(a, ctrl)}
           </div>
           <label class="switch" title="${!switchKnown ? 'Switch position unknown — it could not be read' : (enabled ? 'On — click to pause this agent' : 'Off — click to turn this agent back on')}">
@@ -5623,12 +5623,12 @@
             ${i.channel ? `<span class="badge">${esc(i.channel)}</span>` : ''}
             <span class="badge ${inqStatusBadgeClass(i.status)}">${esc(INQ_STATUS_LABELS[i.status] || i.status)}</span>
             ${i.severity ? `<span class="badge sev-${esc(i.severity)}">${esc(i.severity)} severity</span>` : ''}
-            <div style="font-size:12px;color:#6b7877;margin-top:3px;">
+            <div style="font-size:12px;color:var(--muted);margin-top:3px;">
               ${esc(i.customer_email || 'No email on file')}${order ? ' · Order ' + esc(order.order_number) : ''}
             </div>
-            <div style="font-size:11px;color:#8a9694;margin-top:2px;">Asked ${esc(fmtDate(i.created_at))}</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px;">Asked ${esc(fmtDate(i.created_at))}</div>
             <div style="margin-top:6px;">
-              <label style="font-size:11.5px;color:#6b7877;">Severity:
+              <label style="font-size:11.5px;color:var(--muted);">Severity:
                 <select class="inqSeveritySelect" data-id="${esc(i.id)}" style="margin-left:4px;padding:3px 6px;border-radius:6px;border:1px solid #cfd8d6;font-family:inherit;font-size:12px;">
                   <option value="" ${!i.severity ? 'selected' : ''}>Not classified</option>
                   <option value="low" ${i.severity === 'low' ? 'selected' : ''}>Low</option>
@@ -5639,7 +5639,7 @@
             </div>
 
             <div style="margin-top:8px;padding:8px 10px;background:#f4f7f6;border-radius:8px;font-size:13px;">
-              <b style="font-size:11px;color:#6b7877;text-transform:uppercase;">Question</b><br>
+              <b style="font-size:11px;color:var(--muted);text-transform:uppercase;">Question</b><br>
               ${esc(i.question_text)}
             </div>
 
@@ -5650,7 +5650,7 @@
 
             ${i.ai_draft_reply ? `
               <div style="margin-top:8px;">
-                <b style="font-size:11px;color:#6b7877;text-transform:uppercase;">AI draft reply${i.ai_confidence != null ? ' · ' + Math.round(i.ai_confidence * 100) + '% confidence' : ''}</b>
+                <b style="font-size:11px;color:var(--muted);text-transform:uppercase;">AI draft reply${i.ai_confidence != null ? ' · ' + Math.round(i.ai_confidence * 100) + '% confidence' : ''}</b>
                 <textarea class="inqDraftText" data-id="${esc(i.id)}" rows="4" style="width:100%;margin-top:4px;padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:13.5px;resize:vertical;">${esc(i.ai_draft_reply)}</textarea>
               </div>
             ` : '<p class="empty" style="padding:6px 0;">No draft yet — the agent hasn\'t answered this one.</p>'}
@@ -5806,12 +5806,12 @@
           let liveSignal = '';
           if (s.service_name === 'Apple Calendar Sync') {
             liveSignal = lastCalendarSync
-              ? `<div style="font-size:11.5px;color:#6b7877;margin-top:3px;">Last real sync: ${esc(timeAgo(lastCalendarSync))} (${esc(fmtDate(lastCalendarSync))})</div>`
-              : `<div style="font-size:11.5px;color:#6b7877;margin-top:3px;">No sync recorded yet.</div>`;
+              ? `<div style="font-size:11.5px;color:var(--muted);margin-top:3px;">Last real sync: ${esc(timeAgo(lastCalendarSync))} (${esc(fmtDate(lastCalendarSync))})</div>`
+              : `<div style="font-size:11.5px;color:var(--muted);margin-top:3px;">No sync recorded yet.</div>`;
           } else if (s.service_name === 'Anthropic AI API') {
             liveSignal = lastAiCall
-              ? `<div style="font-size:11.5px;color:#6b7877;margin-top:3px;">Last real AI call: ${esc(timeAgo(lastAiCall))} (${esc(fmtDate(lastAiCall))})</div>`
-              : `<div style="font-size:11.5px;color:#6b7877;margin-top:3px;">No AI call logged yet.</div>`;
+              ? `<div style="font-size:11.5px;color:var(--muted);margin-top:3px;">Last real AI call: ${esc(timeAgo(lastAiCall))} (${esc(fmtDate(lastAiCall))})</div>`
+              : `<div style="font-size:11.5px;color:var(--muted);margin-top:3px;">No AI call logged yet.</div>`;
           }
           return `
           <div class="approvalRow" style="align-items:flex-start;" data-id="${esc(s.id)}">
@@ -5819,12 +5819,12 @@
               <b>${esc(s.service_name)}</b>
               ${s.category ? `<span class="badge">${esc(s.category)}</span>` : ''}
               <span class="badge ${continuityBadgeClass(s.status)}">${esc(s.status)}</span>
-              ${s.notes ? `<div style="font-size:12px;color:#6b7877;margin-top:3px;">${esc(s.notes)}</div>` : ''}
+              ${s.notes ? `<div style="font-size:12px;color:var(--muted);margin-top:3px;">${esc(s.notes)}</div>` : ''}
               ${liveSignal}
-              <div style="font-size:11px;color:#8a9694;margin-top:3px;">Status last set ${esc(fmtDate(s.updated_at))}</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:3px;">Status last set ${esc(fmtDate(s.updated_at))}</div>
             </div>
             <div class="actions">
-              <label style="font-size:11.5px;color:#6b7877;">
+              <label style="font-size:11.5px;color:var(--muted);">
                 <select class="continuityStatusSelect" data-id="${esc(s.id)}" style="padding:4px 7px;border-radius:6px;border:1px solid #cfd8d6;font-family:inherit;font-size:12.5px;">
                   <option value="operational" ${s.status === 'operational' ? 'selected' : ''}>Operational</option>
                   <option value="degraded" ${s.status === 'degraded' ? 'selected' : ''}>Degraded</option>
@@ -6243,7 +6243,7 @@
           const currentValue = knownShape ? r.config[configKey] : null;
 
           return `
-            <div class="flagRow" data-id="${esc(r.id)}" data-rule-key="${esc(r.rule_key)}" data-config-key="${esc(configKey || '')}" style="align-items:flex-start;">
+            <div class="flagRow" data-id="${esc(r.id)}" data-rule-key="${esc(r.rule_key)}" data-config-key="${esc(configKey || '')}" data-config="${esc(JSON.stringify(r.config === undefined ? null : r.config))}" style="align-items:flex-start;">
               <div class="flagInfo" style="flex:1;min-width:0;">
                 <div class="k">${esc(r.label || r.rule_key)}</div>
                 <div class="d">${esc(r.description || r.rule_key)}</div>
@@ -6251,7 +6251,7 @@
               <div style="display:flex;align-items:center;gap:10px;flex:none;">
                 ${knownShape ? `
                   <input type="number" class="ruleValueInput" value="${esc(String(currentValue))}" step="any" style="width:90px;padding:7px 8px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:13.5px;">
-                  <span style="font-size:12px;color:#6b7877;min-width:60px;">${esc(unit)}</span>
+                  <span style="font-size:12px;color:var(--muted);min-width:60px;">${esc(unit)}</span>
                 ` : `
                   <textarea class="ruleConfigJson" rows="2" style="width:180px;padding:7px 8px;border-radius:8px;border:1px solid #cfd8d6;font-family:monospace;font-size:12px;resize:vertical;">${esc(JSON.stringify(r.config))}</textarea>
                 `}
@@ -6310,13 +6310,14 @@
             btn.disabled = true;
             try {
               const uid = await currentUserId();
-              const { data: saved, error } = await supabase
-                .from('business_rules')
-                .update({ config: newConfig, updated_by: uid })
-                .eq('id', id)
-                .select('id');
-              if (error) throw error;
-              if (noRowsChanged(saved)) { showDashError(staleMessage('That rule')); return; }
+              // Only while the rule still has the settings this page showed
+              // (MU-14), so a change made elsewhere is never overwritten.
+              const shown = row.getAttribute('data-config');
+              const changed = await updateIfUnchanged('business_rules', id,
+                { config: newConfig, updated_by: uid },
+                shown === 'null' ? { config: null } : { config: shown });
+              if (!changed) { showDashError(staleMessage('That rule')); loadBusinessRules(); return; }
+              row.setAttribute('data-config', JSON.stringify(newConfig));
               btn.style.display = 'none';
             } catch (err) {
               showDashError('Could not save that rule: ' + (err && err.message ? err.message : err));
@@ -6380,7 +6381,7 @@
             <div class="approvalRow" data-id="${esc(r.id)}" data-status="${esc(r.status || '')}">
               <div class="info">
                 <b>${esc(r.action_type)}</b> — ${esc(r.summary || '')}
-                <br><span style="font-size:11px;color:#8a9694;">Requested ${esc(fmtDate(r.created_at))}</span>
+                <br><span style="font-size:11px;color:var(--muted);">Requested ${esc(fmtDate(r.created_at))}</span>
               </div>
               <div class="actions">
                 <button class="small approve approveBtn">Approve</button>
@@ -6430,7 +6431,7 @@
           <div class="sessionRow" data-id="${esc(s.session_id)}">
             <div class="info">
               <b>${esc(deviceLabel(s.user_agent))}</b>${s.is_current ? ' <span style="color:var(--good);font-size:11px;">· This device</span>' : ''}
-              <br><span style="font-size:11px;color:#8a9694;">Signed in ${esc(fmtDate(s.created_at))} &middot; Last active ${esc(fmtDate(s.last_active))}${s.ip_address ? ' &middot; ' + esc(s.ip_address) : ''}</span>
+              <br><span style="font-size:11px;color:var(--muted);">Signed in ${esc(fmtDate(s.created_at))} &middot; Last active ${esc(fmtDate(s.last_active))}${s.ip_address ? ' &middot; ' + esc(s.ip_address) : ''}</span>
             </div>
             <div class="actions">
               ${s.is_current ? '' : '<button class="small deny logoutSessionBtn">Log out</button>'}
@@ -6485,12 +6486,12 @@
         document.getElementById('sopsWrap').innerHTML = sops.map(s => `
           <details style="border-bottom:1px solid var(--line);padding:8px 0;">
             <summary style="cursor:pointer;font-weight:600;font-size:13.5px;color:var(--navy);">
-              ${esc(s.title)}${s.category ? ` <span style="font-weight:400;color:#6b7877;font-size:12px;">&middot; ${esc(s.category)}</span>` : ''}
+              ${esc(s.title)}${s.category ? ` <span style="font-weight:400;color:var(--muted);font-size:12px;">&middot; ${esc(s.category)}</span>` : ''}
             </summary>
-            <div style="white-space:pre-wrap;font-size:13px;color:#33403e;margin:8px 0 4px;">${esc(s.content)}</div>
+            <div style="white-space:pre-wrap;font-size:13px;color:var(--ink);margin:8px 0 4px;">${esc(s.content)}</div>
             <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:6px;">
-              <div style="font-size:11px;color:#8a9694;">Last updated ${esc(fmtDate(s.updated_at))}</div>
-              <label style="display:flex;align-items:center;gap:8px;font-size:11.5px;color:#33403e;cursor:pointer;">
+              <div style="font-size:11px;color:var(--muted);">Last updated ${esc(fmtDate(s.updated_at))}</div>
+              <label style="display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--ink);cursor:pointer;">
                 Customer Service Agent may reference this
                 <span class="switch">
                   <input type="checkbox" class="sopAgentToggle" data-id="${esc(s.id)}" ${s.agent_visible ? 'checked' : ''}>
@@ -6596,8 +6597,8 @@
               <b>${esc(r.title)}</b>
               ${r.priority === 'high' ? '<span class="priorityPill high">high</span>' : ''}
               <span class="badge${r.status === 'done' ? ' sev-low' : ''}">${esc(FR_STATUS_LABELS[r.status] || r.status)}</span>
-              ${r.description ? `<div style="font-size:12px;color:#6b7877;margin-top:3px;">${esc(r.description)}</div>` : ''}
-              <br><span style="font-size:11px;color:#8a9694;">Requested ${esc(fmtDate(r.requested_at))}</span>
+              ${r.description ? `<div style="font-size:12px;color:var(--muted);margin-top:3px;">${esc(r.description)}</div>` : ''}
+              <br><span style="font-size:11px;color:var(--muted);">Requested ${esc(fmtDate(r.requested_at))}</span>
             </div>
             <div class="actions">
               ${FR_NEXT_STATUS[r.status] ? `<button class="small frAdvanceBtn">${esc(FR_NEXT_LABEL[r.status])}</button>` : ''}
@@ -6665,7 +6666,7 @@
         document.getElementById('deletedFeatureRequestsWrap').innerHTML = deleted.map(r => `
           <div class="deletedRow" data-id="${esc(r.id)}">
             <div class="info"><b>${esc(r.title)}</b><br>
-            <span style="font-size:11px;color:#8a9694;">Deleted ${esc(fmtDate(r.deleted_at))}</span></div>
+            <span style="font-size:11px;color:var(--muted);">Deleted ${esc(fmtDate(r.deleted_at))}</span></div>
             <button class="small restoreFeatureRequestBtn">Restore</button>
           </div>`).join('');
         document.querySelectorAll('.restoreFeatureRequestBtn').forEach(btn => {
@@ -6773,13 +6774,13 @@
             <div class="info">
               <b>${esc(e.title)}</b>
               ${e.evidence_type ? `<span class="badge">${esc(e.evidence_type)}</span>` : ''}
-              <div style="font-size:12px;color:#6b7877;margin-top:3px;">Tied to: ${incLabel}</div>
-              ${e.description ? `<div style="font-size:12px;color:#6b7877;margin-top:3px;">${esc(e.description)}</div>` : ''}
+              <div style="font-size:12px;color:var(--muted);margin-top:3px;">Tied to: ${incLabel}</div>
+              ${e.description ? `<div style="font-size:12px;color:var(--muted);margin-top:3px;">${esc(e.description)}</div>` : ''}
               ${e.file_path ? `<div style="font-size:12px;margin-top:3px;"><a href="#" class="evidenceFileLink">Download uploaded file</a></div>` : ''}
               ${e.external_link ? (isSafeLink(e.external_link)
                 ? `<div style="font-size:12px;margin-top:3px;"><a href="${esc(e.external_link)}" target="_blank" rel="noopener noreferrer">Open linked file</a></div>`
-                : `<div style="font-size:12px;margin-top:3px;color:#8a9694;">Linked file (not opened — this kind of link can run code): ${esc(e.external_link)}</div>`) : ''}
-              <br><span style="font-size:11px;color:#8a9694;">Added ${esc(fmtDate(e.created_at))}</span>
+                : `<div style="font-size:12px;margin-top:3px;color:var(--muted);">Linked file (not opened — this kind of link can run code): ${esc(e.external_link)}</div>`) : ''}
+              <br><span style="font-size:11px;color:var(--muted);">Added ${esc(fmtDate(e.created_at))}</span>
             </div>
           </div>`;
         }).join('');
@@ -6954,13 +6955,13 @@
                 <b>${esc(d.title)}</b>
                 <span class="badge">${esc(DOCUMENT_CATEGORY_LABELS[d.category] || d.category || 'Other')}</span>
                 ${docExpiryBadge(d.expiration_date)}
-                ${related ? `<div style="font-size:12px;color:#6b7877;margin-top:3px;">Linked to: ${esc(related)}</div>` : ''}
-                ${d.issued_date ? `<div style="font-size:12px;color:#8a9694;margin-top:3px;">Issued ${esc(fmtDateOnly(d.issued_date))}</div>` : ''}
+                ${related ? `<div style="font-size:12px;color:var(--muted);margin-top:3px;">Linked to: ${esc(related)}</div>` : ''}
+                ${d.issued_date ? `<div style="font-size:12px;color:var(--muted);margin-top:3px;">Issued ${esc(fmtDateOnly(d.issued_date))}</div>` : ''}
                 ${d.notes ? `<div style="margin-top:6px;">${esc(d.notes)}</div>` : ''}
                 ${d.file_path ? `<div style="font-size:12px;margin-top:6px;"><a href="#" class="docFileLink">Open uploaded file</a></div>` : ''}
                 ${d.document_url ? (isSafeLink(d.document_url)
                   ? `<div style="font-size:12px;margin-top:6px;"><a href="${esc(d.document_url)}" target="_blank" rel="noopener noreferrer">Open linked document</a></div>`
-                  : `<div style="font-size:12px;margin-top:6px;color:#8a9694;">Linked document (not opened — this kind of link can run code): ${esc(d.document_url)}</div>`) : ''}
+                  : `<div style="font-size:12px;margin-top:6px;color:var(--muted);">Linked document (not opened — this kind of link can run code): ${esc(d.document_url)}</div>`) : ''}
                 <div style="margin-top:8px;"><button type="button" class="small secondary docDeleteBtn">Delete</button></div>
               </div>
             </div>`;
@@ -7148,9 +7149,9 @@
               <b>${esc(ev.product_name)}</b>
               <span class="badge ${statusClass}">${statusLabel}</span>
               ${ev.outcome_type ? `<span class="badge">${esc(ev.outcome_type.replace(/_/g, ' '))}</span>` : ''}
-              <div style="font-size:12px;color:#6b7877;margin-top:3px;">${esc(ev.description)}</div>
-              ${ev.reporter_name ? `<div style="font-size:11px;color:#8a9694;margin-top:3px;">Reported by: ${esc(ev.reporter_name)}${ev.reporter_contact ? ' — ' + esc(ev.reporter_contact) : ''}</div>` : ''}
-              <br><span style="font-size:11px;color:#8a9694;">Received ${esc(fmtDateOnly(ev.date_received))}</span>
+              <div style="font-size:12px;color:var(--muted);margin-top:3px;">${esc(ev.description)}</div>
+              ${ev.reporter_name ? `<div style="font-size:11px;color:var(--muted);margin-top:3px;">Reported by: ${esc(ev.reporter_name)}${ev.reporter_contact ? ' — ' + esc(ev.reporter_contact) : ''}</div>` : ''}
+              <br><span style="font-size:11px;color:var(--muted);">Received ${esc(fmtDateOnly(ev.date_received))}</span>
             </div>
             <div class="actions">
               ${!ev.fda_reported ? `<button class="small aeMarkReportedBtn">Mark reported to FDA</button>` : ''}
@@ -7251,9 +7252,9 @@
             <div class="info">
               <b>${esc(h.title)}</b>
               ${h.related_type ? `<span class="badge">${esc(h.related_type)}</span>` : ''}
-              ${h.related_reference ? `<div style="font-size:12px;color:#6b7877;margin-top:3px;">Reference: ${esc(h.related_reference)}</div>` : ''}
-              ${h.description ? `<div style="font-size:12px;color:#6b7877;margin-top:3px;">${esc(h.description)}</div>` : ''}
-              <br><span style="font-size:11px;color:#8a9694;">Placed ${esc(fmtDate(h.placed_at))}</span>
+              ${h.related_reference ? `<div style="font-size:12px;color:var(--muted);margin-top:3px;">Reference: ${esc(h.related_reference)}</div>` : ''}
+              ${h.description ? `<div style="font-size:12px;color:var(--muted);margin-top:3px;">${esc(h.description)}</div>` : ''}
+              <br><span style="font-size:11px;color:var(--muted);">Placed ${esc(fmtDate(h.placed_at))}</span>
             </div>
             <div class="actions">
               <button class="small lhReleaseBtn">Release hold</button>
@@ -7307,7 +7308,7 @@
         document.getElementById('releasedLegalHoldsWrap').innerHTML = holds.map(h => `
           <div class="deletedRow">
             <div class="info"><b>${esc(h.title)}</b><br>
-            <span style="font-size:11px;color:#8a9694;">Released ${esc(fmtDate(h.released_at))}</span></div>
+            <span style="font-size:11px;color:var(--muted);">Released ${esc(fmtDate(h.released_at))}</span></div>
           </div>`).join('');
       } catch (err) {
         showDashError('Could not load released holds: ' + (err && err.message ? err.message : err));
@@ -7389,7 +7390,11 @@
           const threshold = inv.low_stock_threshold;
           const isLow = threshold !== null && threshold !== undefined && available < Number(threshold);
           if (isLow) lowStockCount++;
-          const bucketBadges = ['available', 'reserved', 'damaged', 'sample', 'wholesale', 'promotional', 'returned']
+          // No stock row at all is not the same as "0 in stock": say so (the
+          // row is created on the first stock change).
+          const hasStockRow = Array.isArray(p.inventory) ? p.inventory.length > 0 : !!p.inventory;
+          const noRowBadge = hasStockRow ? '' : '<span class="badge sev-medium noStockRowBadge" style="margin-right:4px;">No stock record yet (counts shown as 0)</span>';
+          const bucketBadges = noRowBadge + ['available', 'reserved', 'damaged', 'sample', 'wholesale', 'promotional', 'returned']
             .map(b => `<span class="badge" style="margin-right:4px;">${esc(INVENTORY_BUCKET_LABELS[b])}: ${Number(inv[b] || 0)}</span>`)
             .join('') + (Number(inv.recalled || 0) > 0
               ? `<span class="badge sev-high" style="margin-right:4px;">${esc(INVENTORY_BUCKET_LABELS.recalled)}: ${Number(inv.recalled)}</span>` : '');
@@ -7408,13 +7413,13 @@
           return `
             <div class="deletedRow" data-product-id="${esc(p.id)}" style="align-items:flex-start;">
               <div class="info" style="flex:1;">
-                <b>${esc(p.name)}</b>${p.sku ? ' <span style="color:#8a9694;font-size:12px;">(' + esc(p.sku) + ')</span>' : ''}
+                <b>${esc(p.name)}</b>${p.sku ? ' <span style="color:var(--muted);font-size:12px;">(' + esc(p.sku) + ')</span>' : ''}
                 ${isLow ? ' <span class="badge sev-high">Low stock</span>' : ''}
                 ${!p.is_active ? ' <span class="badge">Inactive</span>' : ''}
                 <br><div style="margin-top:6px;">${bucketBadges}</div>
                 ${lotsHtml}
                 <div style="margin-top:8px;display:flex;align-items:center;gap:6px;">
-                  <label style="font-size:12px;color:#6b7877;">Low-stock alert when Available drops below:</label>
+                  <label style="font-size:12px;color:var(--muted);">Low-stock alert when Available drops below:</label>
                   <input type="number" class="invThresholdInput" min="0" step="1" style="width:80px;padding:5px 7px;border-radius:6px;border:1px solid #cfd8d6;font-family:inherit;font-size:13px;" value="${threshold !== null && threshold !== undefined ? Number(threshold) : ''}" placeholder="none">
                   <button type="button" class="small saveThresholdBtn">Save</button>
                   <button type="button" class="small secondary editProductBtn" style="margin-left:auto;">Edit product</button>
@@ -7656,8 +7661,8 @@
             <div class="deletedRow">
               <div class="info">
                 <b>${esc(productLabel)}</b> — ${esc(INVENTORY_BUCKET_LABELS[a.bucket] || a.bucket)}: ${sign}${Number(a.change_amount)}
-                ${a.reason ? '<br><span style="font-size:12px;color:#6b7877;">' + esc(a.reason) + '</span>' : ''}
-                <br><span style="font-size:11px;color:#8a9694;">${esc(fmtDate(a.adjusted_at))}</span>
+                ${a.reason ? '<br><span style="font-size:12px;color:var(--muted);">' + esc(a.reason) + '</span>' : ''}
+                <br><span style="font-size:11px;color:var(--muted);">${esc(fmtDate(a.adjusted_at))}</span>
               </div>
             </div>`;
         }).join('');
@@ -7804,14 +7809,14 @@
           return `
             <div class="deletedRow" data-return-id="${esc(r.id)}" data-status="${esc(r.status || '')}" data-line-value="${esc(returnLineValue(item))}" data-item-sku="${esc(item.sku || '')}" data-quantity="${esc(item.quantity || 0)}" data-order-label="${esc(order.order_number || r.order_id)}" style="align-items:flex-start;flex-wrap:wrap;">
               <div class="info" style="flex:1;min-width:220px;">
-                <b>${esc(item.product_name || 'Unknown item')}</b>${item.sku ? ' <span style="color:#8a9694;font-size:12px;">(' + esc(item.sku) + ')</span>' : ''}
+                <b>${esc(item.product_name || 'Unknown item')}</b>${item.sku ? ' <span style="color:var(--muted);font-size:12px;">(' + esc(item.sku) + ')</span>' : ''}
                 — Qty ${esc(item.quantity !== undefined && item.quantity !== null ? item.quantity : '—')}
                 <span class="badge ${statusClass}" style="margin-left:6px;">${esc(statusLabel)}</span>
                 ${(r.refund_amount !== null && r.refund_amount !== undefined) ? '<span class="badge" style="margin-left:4px;">Refunded $' + Number(r.refund_amount).toFixed(2) + '</span>' : ''}
-                <br><span style="font-size:12px;color:#6b7877;">Order ${esc(order.order_number || r.order_id)}${order.customer_name ? ' — ' + esc(order.customer_name) : ''}</span>
-                ${detailLine ? '<br><span style="font-size:12px;color:#6b7877;">' + detailLine + '</span>' : ''}
-                ${r.notes ? '<br><span style="font-size:12px;color:#6b7877;">Notes: ' + esc(r.notes) + '</span>' : ''}
-                <br><span style="font-size:11px;color:#8a9694;">Requested ${esc(fmtDate(r.created_at))}</span>
+                <br><span style="font-size:12px;color:var(--muted);">Order ${esc(order.order_number || r.order_id)}${order.customer_name ? ' — ' + esc(order.customer_name) : ''}</span>
+                ${detailLine ? '<br><span style="font-size:12px;color:var(--muted);">' + detailLine + '</span>' : ''}
+                ${r.notes ? '<br><span style="font-size:12px;color:var(--muted);">Notes: ' + esc(r.notes) + '</span>' : ''}
+                <br><span style="font-size:11px;color:var(--muted);">Requested ${esc(fmtDate(r.created_at))}</span>
               </div>
               <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">${actionHtml}</div>
             </div>`;
@@ -8098,10 +8103,10 @@
             <div class="info">
               <b>${esc(EXPENSE_CATEGORY_LABELS[r.category] || r.category)}</b>
               <span class="badge">${esc(fmtMoney(r.amount, 'USD'))}</span>
-              ${r.vendor ? `<div style="font-size:12px;color:#6b7877;margin-top:3px;">Vendor: ${esc(r.vendor)}</div>` : ''}
-              ${r.note ? `<div style="font-size:12px;color:#6b7877;margin-top:3px;">${esc(r.note)}</div>` : ''}
+              ${r.vendor ? `<div style="font-size:12px;color:var(--muted);margin-top:3px;">Vendor: ${esc(r.vendor)}</div>` : ''}
+              ${r.note ? `<div style="font-size:12px;color:var(--muted);margin-top:3px;">${esc(r.note)}</div>` : ''}
               ${r.receipt_path ? `<div style="font-size:12px;margin-top:3px;"><a href="#" class="expFileLink">View receipt</a></div>` : ''}
-              <br><span style="font-size:11px;color:#8a9694;">${esc(fmtDateOnly(r.expense_date))}</span>
+              <br><span style="font-size:11px;color:var(--muted);">${esc(fmtDateOnly(r.expense_date))}</span>
             </div>
             <div class="actions">
               ${r.receipt_path ? `<button class="small expRemoveReceiptBtn">Remove receipt</button>` : ''}
@@ -8194,7 +8199,7 @@
         document.getElementById('deletedExpensesWrap').innerHTML = deleted.map(r => `
           <div class="deletedRow" data-id="${esc(r.id)}">
             <div class="info"><b>${esc(EXPENSE_CATEGORY_LABELS[r.category] || r.category)} — ${esc(fmtMoney(r.amount, 'USD'))}</b><br>
-            <span style="font-size:11px;color:#8a9694;">Deleted ${esc(fmtDate(r.deleted_at))}</span></div>
+            <span style="font-size:11px;color:var(--muted);">Deleted ${esc(fmtDate(r.deleted_at))}</span></div>
             <button class="small restoreExpenseBtn">Restore</button>
           </div>`).join('');
         document.querySelectorAll('.restoreExpenseBtn').forEach(btn => {
@@ -8366,7 +8371,7 @@
           document.getElementById('acctReviewWrap').innerHTML = needsReview.map(o => `
             <div class="deletedRow">
               <div class="info"><b>${esc(o.order_number || o.id)}</b> — ${esc(fmtMoney(o.total, o.currency))}<br>
-              <span style="font-size:11px;color:#8a9694;">Status: ${esc(o.status)} — Placed ${esc(fmtDate(o.placed_at))}</span></div>
+              <span style="font-size:11px;color:var(--muted);">Status: ${esc(o.status)} — Placed ${esc(fmtDate(o.placed_at))}</span></div>
             </div>`).join('');
         }
       } catch (err) {

@@ -14,6 +14,9 @@ const SCRATCH = path.resolve(process.argv[2] || path.join(require('os').tmpdir()
 
 // [name, file, exact text to find, replacement, specs + grep]
 const MUTATIONS = [
+  ['business rule save ignores what the page showed (MU-14)', 'owner-login.html',
+    "shown === 'null' ? { config: null } : { config: shown });", '{});',
+    'admin-pages -g "MU-14"'],
   ['stale guard dropped (updateIfUnchanged ignores the expected values)', 'owner-login.html',
     'Object.keys(expected || {}).forEach(col => {', 'Object.keys({}).forEach(col => {',
     'ops-findings purchase-orders guarded-toggles -g "stale|already|only from|only while"'],
@@ -26,7 +29,7 @@ const MUTATIONS = [
   ['permission pre-check removed (canChangeStock always true)', 'owner-login.html',
     "function canChangeStock(){ return currentUserRole === 'owner' || currentUserRole === 'administrator'; }", 'function canChangeStock(){ return true; }',
     'query-a-fixes inventory-safety -g "employee"'],
-  ['second press removed (confirmSecondPress always true)', 'owner-login.html',
+  ['second press removed (confirmSecondPress always true)', 'assets/owner-login-helpers.js',
     "if (btn.dataset.armed === '1') { btn.dataset.armed = '0'; return true; }", 'return true;',
     'failure-recovery ops-findings purchase-orders -g "first press|Confirm refund|second press"'],
   ['upload cleanup skipped (refused record leaves the file)', 'owner-login.html',
@@ -35,7 +38,7 @@ const MUTATIONS = [
   ['upload keeps a file even when nothing was saved (network check inverted)', 'owner-login.html',
     'if (!checkErr && saved) return;', 'if (!checkErr) return;',
     'storage-safety -g "before the record was saved"'],
-  ['file names not cleaned (safeStorageName identity)', 'owner-login.html',
+  ['file names not cleaned (safeStorageName identity)', 'assets/owner-login-helpers.js',
     "let n = String(name || 'file').replace(/[^a-zA-Z0-9._-]/g, '_')", "let n = String(name || 'file')",
     'storage-safety -g "hostile or very long"'],
   ['escaping broken (esc returns raw text)', 'assets/owner-login-helpers.js',
@@ -82,3 +85,6 @@ for (const [name, file, find, repl, specs] of MUTATIONS) {
 }
 try { sh(`git worktree remove --force "${SCRATCH}"`, ROOT); } catch (e) { /* ignore */ }
 for (const [n, r] of results) console.log((r.startsWith('CAUGHT') ? 'OK   ' : 'MISS ') + n + ' → ' + r);
+// Non-zero exit when any mutation was missed or could not be applied (e.g. a
+// helper moved to another file), so a stale harness can't pass quietly.
+if (results.some(([, r]) => !r.startsWith('CAUGHT'))) process.exitCode = 1;

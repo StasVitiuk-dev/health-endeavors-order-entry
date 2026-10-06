@@ -220,7 +220,30 @@ test.describe('Business Rules', () => {
     const [w] = writes(backend, 'business_rules');
     expect(Object.keys(w.body).sort()).toEqual(['config', 'updated_by']);
     expect(w.body.config).toEqual({ amount: 250 });
-    expect(filtersOf(w)).toEqual({ id: 'eq.br-refund' });
+    // Only while the rule still has the settings this page showed (MU-14)
+    expect(filtersOf(w)).toEqual({ id: 'eq.br-refund', config: 'eq.{"amount":100}' });
+  });
+
+  test('a rule changed elsewhere since the page loaded is not overwritten (MU-14)', async ({ page, backend }) => {
+    const before = JSON.parse(JSON.stringify(backend.tables.business_rules.find(r => r.id === 'br-refund').config));
+    backend.tables.business_rules.find(r => r.id === 'br-refund').config = { amount: 999 }; // another tab saved
+    await row(page, 'br-refund').locator('.ruleValueInput').fill('250');
+    await row(page, 'br-refund').locator('.ruleSaveBtn').click();
+    await confirmPassword(page);
+    await expect(page.locator('#dashError')).toContainText('changed');
+    expect(backend.tables.business_rules.find(r => r.id === 'br-refund').config).toEqual({ amount: 999 });
+    expect(before).not.toEqual({ amount: 999 });
+  });
+
+  test('two saves in a row from the same page both go through', async ({ page, backend }) => {
+    for (const v of ['250', '300']) {
+      await row(page, 'br-refund').locator('.ruleValueInput').fill(v);
+      await row(page, 'br-refund').locator('.ruleSaveBtn').click();
+      await confirmPassword(page);
+      await expect(row(page, 'br-refund').locator('.ruleSaveBtn')).toBeHidden();
+    }
+    expect(backend.tables.business_rules.find(r => r.id === 'br-refund').config).toEqual({ amount: 300 });
+    await expect(page.locator('#dashError')).toBeHidden();
   });
 
   test('a shipping delay of 0 is refused before any password prompt', async ({ page, backend }) => {

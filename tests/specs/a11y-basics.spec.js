@@ -118,3 +118,46 @@ test('every overlay closes with Escape', async ({ page, backend }, testInfo) => 
   expect(stuck).toEqual([]);
   expect(backend.tableWrites()).toEqual([]);
 });
+
+// AX-06 (2026-10-06): text contrast meets WCAG AA (4.5:1 for normal text,
+// 3:1 for large) on every page, light and dark, for badges, buttons, hints,
+// empty states, labels and links.
+for (const scheme of ['light', 'dark']) {
+  test(`text contrast meets AA on every page (${scheme})`, async ({ page, backend }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'colours; run once');
+    test.setTimeout(180000);
+    await page.emulateMedia({ colorScheme: scheme });
+    seedBusiness(backend);
+    await page.clock.setFixedTime(NOW);
+    await login(page);
+    const ids = await page.locator('#sidebarGroups .sidebarLink[data-page]').evaluateAll(els => [...new Set(els.map(e => e.getAttribute('data-page')))]);
+    const bad = new Map();
+    for (const id of ids) {
+      await gotoPage(page, id);
+      await page.waitForLoadState('networkidle');
+      const found = await page.locator(`section#${id}`).evaluate(root => {
+        const parse = c => { const m = c.match(/rgba?\(([^)]+)\)/); if (!m) return null; const p = m[1].split(',').map(Number); return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; };
+        const lum = ({ r, g, b }) => { const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }; return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b); };
+        const bgOf = el => {
+          const layers = []; let e = el;
+          while (e) { const c = parse(getComputedStyle(e).backgroundColor); if (c && c.a > 0) { layers.push(c); if (c.a >= 1) break; } e = e.parentElement; }
+          let base = layers.pop() || { r: 255, g: 255, b: 255, a: 1 };
+          while (layers.length) { const t = layers.pop(); base = { r: t.r * t.a + base.r * (1 - t.a), g: t.g * t.a + base.g * (1 - t.a), b: t.b * t.a + base.b * (1 - t.a), a: 1 }; }
+          return base;
+        };
+        const out = [];
+        root.querySelectorAll('.badge, button, .hint, .empty, label, .lbl, a').forEach(el => {
+          if (!el.textContent.trim() || el.offsetParent === null || el.disabled) return;
+          const fg = parse(getComputedStyle(el).color); if (!fg) return;
+          const L1 = lum(fg), L2 = lum(bgOf(el));
+          const ratio = (Math.max(L1, L2) + 0.05) / (Math.min(L1, L2) + 0.05);
+          const cs = getComputedStyle(el); const size = parseFloat(cs.fontSize); const bold = Number(cs.fontWeight) >= 700;
+          if (ratio < ((size >= 24 || (size >= 18.66 && bold)) ? 3 : 4.5)) out.push(`${el.tagName.toLowerCase()}.${[...el.classList].join('.')} ${ratio.toFixed(2)}`);
+        });
+        return out;
+      });
+      found.forEach(f => { if (!bad.has(f)) bad.set(f, `${id}: ${f}`); });
+    }
+    expect([...bad.values()]).toEqual([]);
+  });
+}

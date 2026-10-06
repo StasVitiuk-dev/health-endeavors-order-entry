@@ -77,3 +77,35 @@ test('with no Shopify Order Sync switch row, the flags page says its state is un
   await gotoPage(page, 'flagsPanel');
   await expect(page.locator('.flagSyncMissing')).toContainText('not configured');
 });
+
+// EM-04 (2026-10-06): one table failing to load must not take other pages
+// down, and the error must say which area failed.
+test('if one table fails to load, its page says so and every other page still works', async ({ page, backend, pageErrors }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'run once');
+  test.setTimeout(180000);
+  await page.route(url => new URL(url).pathname.endsWith('/rest/v1/purchase_orders'), route =>
+    route.request().method() === 'GET' ? route.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"SYNTHETIC outage"}' }) : route.fallback());
+  await login(page);
+  await gotoPage(page, 'purchaseOrdersPanel');
+  await expect(page.locator('#dashError')).toContainText(/purchase order/i);
+  for (const id of ['ordersPanel', 'inventoryPanel', 'tasksPanel', 'expensesPanel', 'documentsPanel']) {
+    await gotoPage(page, id);
+    await expect(page.locator(`section#${id}`)).toHaveClass(/activePage/);
+    expect(await page.locator(`section#${id}`).innerText()).not.toMatch(/\bundefined\b|\bNaN\b/);
+  }
+  expect(pageErrors.filter(e => !/favicon|500|Failed to load resource/i.test(e))).toEqual([]);
+});
+
+// EM-06 (2026-10-06): a product with no stock row says so instead of
+// silently showing zeros as if they were counted.
+test('a product without a stock row is labelled "No stock record yet"', async ({ page, backend }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'run once');
+  backend.tables.products = [
+    { id: 'p-row', name: 'SYNTHETIC with row', sku: 'SYN-R', is_active: true, status: 'active', inventory: { available: 0, reserved: 0, damaged: 0, sample: 0, wholesale: 0, promotional: 0, returned: 0, recalled: 0, low_stock_threshold: null }, inventory_lots: [] },
+    { id: 'p-norow', name: 'SYNTHETIC without row', sku: 'SYN-N', is_active: true, status: 'active', inventory: null, inventory_lots: [] },
+  ];
+  await login(page);
+  await gotoPage(page, 'inventoryPanel');
+  await expect(page.locator('[data-product-id="p-norow"] .noStockRowBadge')).toBeVisible();
+  await expect(page.locator('[data-product-id="p-row"] .noStockRowBadge')).toHaveCount(0);
+});

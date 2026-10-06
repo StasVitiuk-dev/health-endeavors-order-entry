@@ -2,6 +2,11 @@
     /* Constant brand tones — used where white text sits on a coloured fill */
     --brand-solid:#0071e3;
     --teal-solid:#0071e3;
+    /* AX-06: button fills stay dark enough for white text (AA) in both themes */
+    --btn-fill:#0071e3;
+    --btn-fill-hover:#0077ed;
+    --danger-solid:#d70015;
+    --good-solid:#187a37;
 
     /* Light: near-monochrome surfaces, one blue accent */
     --page:#f5f5f7;
@@ -22,7 +27,7 @@
     --cream:#ffffff;
     --copper:#0071e3;
     --danger:#d70015;
-    --good:#1d8a3f;
+    --good:#187a37; /* AA: 4.95:1 on --good-bg (was #1d8a3f, 4.0:1) */
     --warn:#996400;
     --danger-bg:#fdf0ef;
     --warn-bg:#fdf6e6;
@@ -269,7 +274,7 @@
   .badge.sev-high, .badge.sev-critical{ background:var(--danger-bg); color:var(--danger); }
   .badge.sev-medium{ background:var(--warn-bg); color:var(--warn); }
   .badge.sev-low{ background:var(--good-bg); color:var(--good); }
-  .empty{ color:var(--muted-2); font-size:13px; padding:10px 0; }
+  .empty{ color:var(--muted); font-size:13px; padding:10px 0; }
 
   .flagRow, .approvalRow, .deletedRow, .sessionRow{
     display:flex; align-items:center; justify-content:space-between; gap:12px;
@@ -429,16 +434,17 @@
   button{
     font-family:inherit; font-size:14px; font-weight:500; letter-spacing:-0.01em;
     border-radius:980px; padding:8px 16px; border:none;
-    background:var(--accent); color:#fff;
+    background:var(--btn-fill); color:#fff;
     transition:background .15s ease, opacity .15s ease;
   }
-  button:hover:not(:disabled){ background:var(--accent-hover); filter:none; transform:none; }
+  button:hover:not(:disabled){ background:var(--btn-fill-hover); filter:none; transform:none; }
   button:active:not(:disabled){ transform:none; opacity:0.82; }
   button.secondary{ background:transparent; color:var(--accent); border:1px solid var(--line); }
   button.secondary:hover:not(:disabled){ background:var(--panel-2); }
   button.small{ padding:5px 13px; font-size:13px; }
-  button.approve{ background:var(--good); }
-  button.deny{ background:var(--danger); }
+  button.approve{ background:var(--good-solid); }
+  button.deny{ background:var(--danger-solid); }
+  section.panel a{ color:var(--accent); } /* AX-06: links were browser-default blue (1.8:1 in dark) */
   .dismissBtn{ border:1px solid var(--line); color:var(--muted); background:transparent; border-radius:980px; }
 
   input[type=email], input[type=password], input[type=text], input[type=number],
@@ -454,7 +460,7 @@
 
   .stat{ background:var(--panel-2); border:none; border-radius:var(--radius); padding:16px 20px; box-shadow:none; }
   .stat .num{ font-size:28px; font-weight:600; letter-spacing:-0.03em; color:var(--ink); }
-  .stat .lbl{ font-size:11.5px; color:var(--muted-2); letter-spacing:0; text-transform:none; font-weight:400; }
+  .stat .lbl{ font-size:11.5px; color:var(--muted); letter-spacing:0; text-transform:none; font-weight:400; } /* AA contrast (was --muted-2, 3.3:1) */
 
   .badge, .priorityPill{
     border-radius:980px; font-weight:500; font-size:11.5px; padding:3px 9px;
@@ -465,7 +471,7 @@
   .badge.sev-low{ background:var(--good-bg); color:var(--good); }
   table th{ color:var(--muted-2); font-weight:500; font-size:11.5px; letter-spacing:0; text-transform:none; }
   th, td{ border-bottom:1px solid var(--line); }
-  .empty{ text-align:center; padding:34px 16px; border:none; background:transparent; color:var(--muted-2); font-size:13.5px; }
+  .empty{ text-align:center; padding:34px 16px; border:none; background:transparent; color:var(--muted); font-size:13.5px; } /* AA contrast (was --muted-2, 3.6:1) */
   .empty .emptyIcon{ display:none; }
   .bannerBox{ border-radius:var(--radius-sm); }
   .calCell{ border-radius:10px; background:var(--panel-2); border-color:var(--line); }
@@ -475,7 +481,7 @@
   header.topbar h1{ font-size:17px; font-weight:600; color:var(--ink); }
   header.topbar .who{ font-size:13px; color:var(--muted); opacity:1; }
   #signout, #themeBtn{ background:transparent; border:1px solid var(--line); color:var(--accent); padding:6px 13px; font-size:13px; }
-  #refreshBtn{ background:var(--accent); color:#fff; }
+  #refreshBtn{ background:var(--btn-fill); color:#fff; }
   .menuToggleBtn{ background:transparent; border:1px solid var(--line); color:var(--ink); }
 
   /* Sidebar */
@@ -500,7 +506,7 @@
   }
   .sidebarLink:hover{ background:var(--panel-2); box-shadow:none; }
   .sidebarGroup .sidebarLink:not(.active):hover{ box-shadow:none; }
-  .sidebarLink.active{ background:var(--accent); color:#fff; font-weight:500; box-shadow:none; }
+  .sidebarLink.active{ background:var(--btn-fill); color:#fff; font-weight:500; box-shadow:none; }
   .sidebarLink.active .pageIcon{ color:#fff; }
   .sidebarLink.active .sidebarBadge{ background:rgba(255,255,255,0.3); color:#fff; }
   .sidebarBadge{ background:var(--muted-2); color:#fff; font-weight:500; border-radius:980px; }
@@ -517,7 +523,7 @@
 
   /* Employee Activity + inspector, kept in the same language */
   .personChip{ background:var(--panel-2); border:1px solid var(--line); color:var(--ink); border-radius:980px; font-weight:400; }
-  .personChip.active{ background:var(--accent); color:#fff; border-color:var(--accent); }
+  .personChip.active{ background:var(--btn-fill); color:#fff; border-color:var(--accent); }
   .actItem.hovered{ background:var(--panel-2); }
   .actItem.isDelete{ background:var(--danger-bg); }
   .digestLine{ background:var(--panel-2); border:none; border-radius:var(--radius); color:var(--ink); padding:12px 16px; }
@@ -708,7 +714,7 @@
   .pResult .pIcon svg{ width:16px; height:16px; }
   .pResult .pMain{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .pResult .pKind{ font-size:11px; color:var(--muted-2); flex:none; }
-  .pResult.sel{ background:var(--accent); color:#fff; }
+  .pResult.sel{ background:var(--btn-fill); color:#fff; }
   .pResult.sel .pIcon, .pResult.sel .pKind{ color:rgba(255,255,255,0.8); }
   .pEmpty{ padding:22px; text-align:center; color:var(--muted-2); font-size:13px; }
   .paletteFoot{
@@ -848,7 +854,7 @@
     display:inline-flex; align-items:center; justify-content:center; margin-bottom:2px;
   }
   .calCell.today{ border-color:var(--accent); }
-  .calCell.today .dNum{ background:var(--accent); color:#fff; }
+  .calCell.today .dNum{ background:var(--btn-fill); color:#fff; }
   .calChip{
     display:flex; align-items:center; gap:5px; font-size:11px; line-height:1.4;
     color:var(--ink); min-width:0;
