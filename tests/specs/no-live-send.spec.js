@@ -19,7 +19,19 @@ base.test.describe('page source cannot send anything by itself', () => {
   base.test.beforeEach(({}, testInfo) => { base.test.skip(testInfo.project.name !== 'desktop', 'source scan; run once'); });
   for (const file of PAGES) {
     base.test(`${file}: no fetch/XHR/beacon, no Edge Function calls, no mailto/sms links`, () => {
-      const html = fs.readFileSync(path.join(ROOT, file), 'utf8');
+      let html = fs.readFileSync(path.join(ROOT, file), 'utf8');
+      // The one deliberate exception (EXT4, reviewed): the owner dashboard hands
+      // the database client a wrapper that passes each of the client's own
+      // requests straight through and only reads the reply to notice the
+      // 1,000-row limit. It adds no request of its own; the browser-session
+      // tests below still prove nothing leaves for any other host.
+      if (file === 'owner-login.html') {
+        const wrapper = 'function capAwareFetch(input, init){\n      return fetch(input, init).then(res => {';
+        base.expect(html.split(wrapper).length - 1, 'the reviewed wrapper exists exactly once').toBe(1);
+        base.expect(html, 'the wrapper is only used by the database client').toContain("createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { global: { fetch: capAwareFetch } })");
+        base.expect(html.split('capAwareFetch').length - 1, 'and nowhere else').toBe(2);
+        html = html.replace(wrapper, '');
+      }
       base.expect(html).not.toMatch(/\bfetch\s*\(/);
       base.expect(html).not.toMatch(/XMLHttpRequest|sendBeacon|new\s+WebSocket/);
       base.expect(html).not.toMatch(/functions\s*\.\s*invoke|\/functions\/v1\//);

@@ -335,7 +335,7 @@ test.describe('Returns', () => {
     const row = page.locator('#returnsWrap [data-return-id="ret-received"]');
     await row.locator('.refundAmountInput').fill('-3');
     await row.locator('.markRefundedBtn').click();
-    await expect(page.locator('#dashError')).toContainText("doesn't look like a valid number");
+    await expect(page.locator('#dashError')).toContainText('cannot be less than 0'); // EXT4 wording (numberInputError)
     expect(backend.tableWrites()).toEqual([]);
   });
 });
