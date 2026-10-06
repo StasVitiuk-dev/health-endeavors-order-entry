@@ -226,3 +226,28 @@ test.describe('upload names and two-press confirmation', () => {
     expect(U.confirmSecondPress(btn, 'Really?')).toBe(true);
   });
 });
+
+test.describe('numberInputError (typed numbers, X3-05/06)', () => {
+  const N = load(['numberInputError']);
+  const E = (raw, o) => N.numberInputError(raw, o);
+  test('a blank box is refused unless blank is allowed (it used to save as 0)', () => {
+    expect(E('', { label: 'Amount' })).toBe('Amount is empty. Enter a number.');
+    expect(E('   ', { label: 'Amount' })).toContain('empty');
+    expect(E('', { allowBlank: true })).toBe('');
+  });
+  test('not-a-number, infinity, negatives, huge values and fractions are refused', () => {
+    expect(E('abc', { label: 'X' })).toBe('X must be a number.');
+    expect(E('1e400', { label: 'X' })).toBe('X must be a number.');
+    expect(E('Infinity', { label: 'X' })).toBe('X must be a number.');
+    expect(E('-5', { label: 'Tax' })).toBe('Tax cannot be less than 0.');
+    expect(E('0', { label: 'Amount', minExclusive: true })).toBe('Amount must be more than 0.');
+    expect(E('20000000', { label: 'Shipping', max: 10000000 })).toBe('Shipping is too large (more than 10,000,000).');
+    expect(E('2.7', { label: 'Amount', min: -100, integer: true })).toBe('Amount must be a whole number.');
+  });
+  test('ordinary values pass', () => {
+    for (const [v, o] of [['12.50', {}], ['0', {}], ['-3', { min: -100, integer: true }], ['1000000', { max: 1000000 }], [' 7 ', { integer: true }]]) {
+      expect(E(v, o), v).toBe('');
+    }
+  });
+});
+

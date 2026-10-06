@@ -29,10 +29,28 @@ This is an independent re-read of the dashboard code and the master backlog, don
 | X3-03 | P1 | SAFE NOW | **Expenses page totals came from the newest 200 expenses only.** "Expenses on file" and **"Total logged" (money)** were silently wrong beyond 200 expenses. This contradicts the scale audit's statement that money totals come only from complete reads | `owner-login.html` loadExpenses: `.limit(200)`, totals summed from that list | See the fix section below |
 | X3-04 | P2 | SAFE NOW | **Returns page counts came from the newest 200 returns only.** Older open returns disappeared from the list and from "Total returns" / the open count, with no warning | loadReturns: `.limit(200)`, counts from that list | See the fix section below |
 | X3-05 | P3 | SAFE NOW | **A blank Business Rules value saved as 0** (`Number('') === 0`) instead of being refused | ruleSaveBtn handler | See the fix section below |
-| X3-06 | P3 | SAFE NOW | **Money and number inputs not checked in the browser:** negative PO shipping and tax, negative product prices, "infinite" amounts (`1e400`). A stock adjustment of "2.7" was silently cut to 2 | parseFloat / Number / parseInt without finiteness or range checks | See the fix section below |
+| X3-06 | P3 | SAFE NOW | **Money and number inputs not checked in the browser:** negative PO shipping and tax (the Save button sends whatever is typed, so the field's `min="0"` does not stop it), negative product prices, out-of-range amounts. *Correction during the audit:* the stock adjustment of "2.7" is already blocked by the browser's own form check (`step="1"`), so it was never cut to 2 through the form; the page now checks it too, as a second line of defence | parseFloat / Number / parseInt without finiteness or range checks | See the fix section below |
 | X3-07 | P3 | SAFE NOW | **Cleared expense date fell back to the UTC date** ("tomorrow" on a US evening) | `new Date().toISOString().slice(0, 10)` fallback | See the fix section below |
 | X3-08 | P2 | SAFE NOW | **Query C failed outright if pg_cron is not installed**, and agent error text masked e-mails but not long tokens | `02_READONLY_C_agents.sql` v2 referenced `cron.job` directly | v3: scheduler tables read only if present; tokens masked. Local tests with and without pg_cron. Static read-only check for queries A–D (`sql-readonly.spec.js`) |
 | X3-09 | P1 | SAFE NOW | **R1–R5 install had no schema preflight.** On a wrong shape it would install "successfully" and fail at the first button press | PostgreSQL checks function bodies only when called | Preflight added (tables, columns, unique indexes, helper functions); `install_package_test.sh`, 34 checks |
 | X3-10 | P3 | SAFE NOW | **Flaky test:** hostile-filename test typed the next name before the previous save had finished, so under load the form reset wiped it (seen once in a full run) | `storage-safety.spec.js` | Waits for the form to clear and the button to come back; no fixed delay. 15/15 repeats |
 | X3-11 | P3 | DEFER | Return-form order picker lists the newest 200 orders only: a return for an older order cannot be logged from the dashboard | loadReturns order picker `.limit(200)` | Fine at launch volume; revisit at about 150 orders a month |
 | X3-12 | P3 | DEFER | The evidence form's incident picker shows the newest 200 incidents only | `.limit(200)` | Years away at expected volume |
+
+## Fixes for X3-03 … X3-07 (branch only, tested in `tests/specs/second-pass-fixes.spec.js`)
+
+- **X3-03 Expenses:**
+  - The list still shows the newest 200.
+  - "Expenses on file" and "Total logged" now come from a complete, paged read of every non-deleted expense.
+  - A note says "The list below shows the newest 200 of N expenses. The totals above include all of them."
+  - Test: 250 expenses plus 1 deleted give 250 and $500.00.
+- **X3-04 Returns:**
+  - Every open return is listed (up to 1,000, with a warning beyond that), plus the newest 200 closed ones.
+  - Total, open and refunded are exact database counts.
+  - Test: an old open return behind 210 newer closed ones is listed; counts 211 / 1 / 5.
+- **X3-05 / X3-06:**
+  - New shared helper `numberInputError` (helpers file, API 4, unit-tested).
+  - It refuses blank (unless blank is allowed), non-numbers, infinity, values below the minimum, values above a sane maximum, and fractions where whole units are needed.
+  - Used for: expense amount, PO shipping and tax, PO line quantity and cost, product cost / retail / wholesale, Business Rules values, stock adjustment, low-stock threshold.
+  - Tests: blank rule refused; negative shipping refused; negative price refused; 2.7 units never applied.
+- **X3-07:** a cleared expense date now falls back to today's local date (`localDateString`), not the UTC date.

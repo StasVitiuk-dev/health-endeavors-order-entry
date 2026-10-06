@@ -319,10 +319,31 @@
       return n;
     }
 
+    // One typed number, checked before anything is saved (X3-05/06, 2026-10-06).
+    // Returns '' when fine, otherwise a plain sentence saying what is wrong.
+    // Blank is refused unless allowBlank (so a blank never silently becomes
+    // 0), and "1e400", NaN, negatives (below min), huge values (above max)
+    // and fractions (when integer) are refused instead of being saved or
+    // silently cut.
+    function numberInputError(raw, opts){
+      const o = opts || {};
+      const label = o.label || 'That value';
+      const text = String(raw === null || raw === undefined ? '' : raw).trim();
+      if (text === '') return o.allowBlank ? '' : label + ' is empty. Enter a number.';
+      const n = Number(text);
+      if (!Number.isFinite(n)) return label + ' must be a number.';
+      const min = o.min === undefined ? 0 : o.min;
+      const max = o.max === undefined ? 1e9 : o.max;
+      if (o.minExclusive ? n <= min : n < min) return label + (o.minExclusive ? ' must be more than ' : ' cannot be less than ') + min + '.';
+      if (n > max) return label + ' is too large (more than ' + max.toLocaleString('en-US') + ').';
+      if (o.integer && !Number.isInteger(n)) return label + ' must be a whole number.';
+      return '';
+    }
+
   // Bump API when a helper's name or arguments change, so a page that loaded
   // an older copy refuses to start instead of running mixed code.
   window.HE.helpers = Object.freeze({
-    API: 3,
+    API: 4,
     esc,
     csvCell,
     fmtMoney,
@@ -354,5 +375,6 @@
     confirmSecondPress,
     uploadStamp,
     safeStorageName,
+    numberInputError,
   });
 })();

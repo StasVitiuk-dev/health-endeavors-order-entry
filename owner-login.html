@@ -23,7 +23,7 @@
 <title>Health Endeavors — Owner Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous" onerror="window.__sbLoadFailed=true"></script>
 <link rel="stylesheet" href="assets/owner-login.css?v=2f20e9d637">
-<script src="assets/owner-login-helpers.js?v=79ab4ca198" onerror="window.__heHelpersLoadFailed=true"></script>
+<script src="assets/owner-login-helpers.js?v=1c2bd98456" onerror="window.__heHelpersLoadFailed=true"></script>
 <script>
   // Applied before anything renders so there's no flash of the wrong theme.
   (function(){
@@ -793,7 +793,7 @@
     showBanner('The sign-in helper library did not load from the internet, so this page cannot work yet. Check that your Mac is online, then fully reload this page (press Cmd+R). If this keeps happening, a content blocker or ad blocker extension in Safari may be blocking cdn.jsdelivr.net — try turning it off for this page and reloading.');
   } else if (window.__heHelpersLoadFailed || !window.HE || !window.HE.helpers) {
     showBanner('Part of this page (assets/owner-login-helpers.js) did not load, so it cannot start. Check that you are online, then fully reload this page (press Cmd+R).');
-  } else if (window.HE.helpers.API !== 3) {
+  } else if (window.HE.helpers.API !== 4) {
     showBanner('The dashboard was just updated and this page loaded a mix of old and new files. Fully reload this page (press Cmd+R) — nothing was changed.');
   } else {
     initApp();
@@ -833,6 +833,7 @@
       confirmSecondPress,
       uploadStamp,
       safeStorageName,
+      numberInputError,
     } = window.HE.helpers;
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const verifyOnly = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -3788,6 +3789,9 @@
         const unitCost = Number(box.querySelector('.poLineCost').value || 0);
         if (!description) { toast('Say what you\'re buying first.'); return; }
         if (!(quantity > 0)) { toast('Quantity needs to be more than zero.'); return; }
+        const lineProblem = numberInputError(box.querySelector('.poLineQty').value, { label: 'Quantity', min: 0, minExclusive: true, max: 1000000 })
+          || numberInputError(box.querySelector('.poLineCost').value, { label: 'Unit cost', allowBlank: true, max: 10000000 });
+        if (lineProblem) { toast(lineProblem); return; }
         // Stock is counted in whole units (inventory columns are integers), so a
         // catalogue product line can't be 2.5. Non-catalogue lines (freight,
         // services) may be fractional.
@@ -3837,6 +3841,9 @@
 
       const saveTotals = box.querySelector('.poSaveTotals');
       if (saveTotals) saveTotals.addEventListener('click', async () => {
+        const totalsProblem = numberInputError(box.querySelector('.poShipping').value, { label: 'Shipping', allowBlank: true, max: 10000000 })
+          || numberInputError(box.querySelector('.poTax').value, { label: 'Tax', allowBlank: true, max: 10000000 });
+        if (totalsProblem) { showDashError(totalsProblem + ' Nothing was saved.'); return; }
         saveTotals.disabled = true;
         try {
           const changed = await updateIfUnchanged('purchase_orders', po.id, {
@@ -6292,8 +6299,10 @@
             } else {
               const valueInput = row.querySelector('.ruleValueInput');
               const num = Number(valueInput.value);
-              if (Number.isNaN(num)) {
-                showDashError('Enter a valid number for "' + label + '".');
+              // A blank box used to save as 0 (Number('') is 0): refused now.
+              const ruleProblem = numberInputError(valueInput.value, { label: '"' + label + '"', min: 0 });
+              if (ruleProblem) {
+                showDashError(ruleProblem + ' Nothing was saved.');
                 return;
               }
               newConfig = { [configKey]: num };
@@ -7484,6 +7493,10 @@
             const num = (cls) => { const v = val(cls); return v === '' ? null : Number(v); };
             const name = val('.peName').trim();
             if (!name) { toast('A product needs a name.'); return; }
+            const priceProblem = numberInputError(val('.peCost'), { label: 'Cost', allowBlank: true, max: 1000000 })
+              || numberInputError(val('.peRetail'), { label: 'Retail price', allowBlank: true, max: 1000000 })
+              || numberInputError(val('.peWholesale'), { label: 'Wholesale price', allowBlank: true, max: 1000000 });
+            if (priceProblem) { showDashError(priceProblem + ' Nothing was saved.'); return; }
             btn.disabled = true;
             try {
               const { data: saved, error } = await supabase.from('products').update({
@@ -7625,6 +7638,8 @@
             const productId = row.getAttribute('data-product-id');
             const input = row.querySelector('.invThresholdInput');
             const raw = input.value.trim();
+            const thresholdProblem = numberInputError(raw, { label: 'The low-stock alert level', allowBlank: true, integer: true, max: 1000000 });
+            if (thresholdProblem) { showDashError(thresholdProblem + ' Nothing was saved.'); return; }
             const value = raw === '' ? null : parseInt(raw, 10);
             btn.disabled = true;
             try {
@@ -7684,6 +7699,9 @@
       const productId = productSelect.value;
       const bucket = bucketSelect.value;
       const changeAmount = parseInt(amountInput.value, 10);
+      // "2.7" used to be cut to 2 silently; whole units only, refused otherwise.
+      const changeProblem = amountInput.value.trim() === '' ? '' : numberInputError(amountInput.value, { label: 'The amount', min: -1000000, max: 1000000, integer: true });
+      if (changeProblem) { showDashError(changeProblem + ' Nothing was changed.'); return; }
 
       if (!productId) { showDashError('Pick a product to adjust.'); return; }
       if (!bucket) { showDashError('Pick which bucket this adjustment applies to.'); return; }
@@ -7731,15 +7749,32 @@
         // them, fall back to the old column list (no cap) instead of failing
         // the whole page.
         const RETURN_COLS = 'id, order_id, order_item_id, reason, status, product_condition, disposition, refund_amount, approved_at, received_at, refunded_at, notes, created_at, orders(order_number, customer_name), ';
-        const readReturns = (itemCols) => supabase.from('returns')
-          .select(RETURN_COLS + 'order_items(' + itemCols + ')')
-          .order('created_at', { ascending: false })
-          .limit(200);
-        let { data: returns, error } = await readReturns('product_name, sku, quantity, unit_price, line_total');
-        if (error && (String(error.code) === '42703' || /does not exist/i.test(error.message || ''))) {
-          ({ data: returns, error } = await readReturns('product_name, sku, quantity'));
+        // Every open return is listed (up to 1,000), plus the newest 200
+        // closed ones. Counts come from the database's exact counts, so an
+        // open return can never drop off the page just because 200 newer
+        // returns exist (X3-04, 2026-10-06).
+        const OPEN_CAP = 1000, CLOSED_CAP = 200;
+        const readPart = (itemCols, closed) => {
+          let q = supabase.from('returns').select(RETURN_COLS + 'order_items(' + itemCols + ')', { count: 'exact' });
+          q = closed ? q.eq('status', 'closed') : q.neq('status', 'closed');
+          return q.order('created_at', { ascending: false }).limit(closed ? CLOSED_CAP : OPEN_CAP);
+        };
+        const readReturns = async (itemCols) => {
+          const [open, closed] = await Promise.all([readPart(itemCols, false), readPart(itemCols, true)]);
+          const error = open.error || closed.error;
+          if (error) return { error };
+          const data = [...(open.data || []), ...(closed.data || [])].sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')));
+          return { data, error: null, openCount: open.count, closedCount: closed.count, openShown: (open.data || []).length, closedShown: (closed.data || []).length };
+        };
+        let read = await readReturns('product_name, sku, quantity, unit_price, line_total');
+        if (read.error && (String(read.error.code) === '42703' || /does not exist/i.test(read.error.message || ''))) {
+          read = await readReturns('product_name, sku, quantity');
         }
-        if (error) throw error;
+        if (read.error) throw read.error;
+        const returns = read.data;
+        const { count: refundedTotal, error: refundedErr } = await supabase.from('returns')
+          .select('id', { count: 'exact', head: true }).not('refunded_at', 'is', null);
+        if (refundedErr) throw refundedErr;
 
         SEARCH_INDEX.returns = returns;
 
@@ -7760,20 +7795,25 @@
           orderSelect.dataset.loaded = '1';
         }
 
-        const openCount = returns.filter(r => r.status !== 'closed').length;
-        const refundedCount = returns.filter(r => r.refunded_at).length;
+        const openCount = read.openCount != null ? read.openCount : read.openShown;
+        const closedCount = read.closedCount != null ? read.closedCount : read.closedShown;
+        const refundedCount = refundedTotal != null ? refundedTotal : returns.filter(r => r.refunded_at).length;
         document.getElementById('returnsStats').innerHTML = `
-          <div class="stat"><div class="num">${returns.length}</div><div class="lbl">Total returns</div></div>
+          <div class="stat"><div class="num">${openCount + closedCount}</div><div class="lbl">Total returns</div></div>
           <div class="stat"><div class="num">${openCount}</div><div class="lbl">Open</div></div>
           <div class="stat"><div class="num">${refundedCount}</div><div class="lbl">Refunded</div></div>
         `;
+        const returnsCutNote = [
+          openCount > read.openShown ? `Only the newest ${read.openShown} of ${openCount} open returns are listed below.` : '',
+          closedCount > read.closedShown ? `Closed returns: showing the newest ${read.closedShown} of ${closedCount}.` : '',
+        ].filter(Boolean).join(' ');
 
         if (!returns.length) {
           document.getElementById('returnsWrap').innerHTML = '<p class="empty">No returns logged yet.</p>';
           return;
         }
 
-        document.getElementById('returnsWrap').innerHTML = returns.map(r => {
+        document.getElementById('returnsWrap').innerHTML = (returnsCutNote ? `<p class="hint returnsCutNote" style="margin:0 0 8px;color:var(--warn);">${esc(returnsCutNote)}</p>` : '') + returns.map(r => {
           const order = r.orders || {};
           const item = r.order_items || {};
           const statusLabel = RETURN_STATUS_LABELS[r.status] || r.status;
@@ -8091,11 +8131,14 @@
         if (error) throw error;
         SEARCH_INDEX.expenses = rows;
 
-        const total = (rows || []).reduce((sum, r) => sum + Number(r.amount || 0), 0);
+        // The list shows the newest 200; the count and money total come from
+        // every expense (paged, complete), never just the listed ones (X3-03).
+        const allAmounts = await fetchAllRows('expenses', 'id, amount', q => q.is('deleted_at', null));
+        const total = allAmounts.reduce((sum, r) => sum + Number(r.amount || 0), 0);
         document.getElementById('expenseStats').innerHTML = `
-          <div class="stat"><div class="num">${(rows || []).length}</div><div class="lbl">Expenses on file</div></div>
+          <div class="stat"><div class="num">${allAmounts.length}</div><div class="lbl">Expenses on file</div></div>
           <div class="stat"><div class="num">${esc(fmtMoney(total, 'USD'))}</div><div class="lbl">Total logged</div></div>
-        `;
+        ` + (allAmounts.length > (rows || []).length ? `<p class="hint expensesCutNote" style="flex-basis:100%;margin:4px 0 0;">The list below shows the newest ${(rows || []).length} of ${allAmounts.length} expenses. The totals above include all of them.</p>` : '');
 
         if (!rows || !rows.length) {
           document.getElementById('expensesWrap').innerHTML = '<p class="empty">No expenses logged yet — add your first one below.</p>';
@@ -8242,8 +8285,9 @@
         showDashError('Pick a category for this expense.');
         return;
       }
-      if (!amount || amount <= 0) {
-        showDashError('Enter an amount greater than $0.');
+      const amountProblem = numberInputError(amountInput.value, { label: 'The amount', min: 0, minExclusive: true, max: 10000000 });
+      if (amountProblem) {
+        showDashError(amountProblem + ' Enter an amount greater than $0.');
         return;
       }
       const receiptFile = receiptInput.files && receiptInput.files[0];
@@ -8256,7 +8300,7 @@
         const saveExpense = receiptPath => supabase.from('expenses').insert({
           category,
           amount,
-          expense_date: dateInput.value || new Date().toISOString().slice(0, 10),
+          expense_date: dateInput.value || localDateString(new Date()),
           vendor: vendorInput.value.trim() || null,
           note: noteInput.value.trim() || null,
           receipt_path: receiptPath,
