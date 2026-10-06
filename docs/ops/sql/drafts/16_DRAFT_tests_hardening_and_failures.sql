@@ -136,6 +136,29 @@ begin
   res := receive_purchase_order(po, jsonb_build_array(jsonb_build_object('line_id', l1, 'lot_number', 12345)));
   select count(*) into n from inventory_lots where lot_number = '12345'; if n <> 1 then raise exception 'R1: numeric lot number not stored as text'; end if;
 
+  -- R1 lot identity edge cases (INV-27): whitespace-only = no lot; padded and
+  -- mixed-case spellings are one lot; non-ASCII letters match case-insensitively
+  insert into purchase_orders (po_number, supplier_id, status) values ('HX-LOT-1', s, 'ordered') returning id into po;
+  insert into purchase_order_items (purchase_order_id, product_id, description, quantity, unit_cost) values (po, b, 'B', 1, 1) returning id into l1;
+  perform receive_purchase_order(po, jsonb_build_array(jsonb_build_object('line_id', l1, 'lot_number', '   ')));
+  select count(*) into n from inventory_lots where trim(lot_number) = ''; if n <> 0 then raise exception 'INV-27: whitespace lot stored'; end if;
+  insert into purchase_orders (po_number, supplier_id, status) values ('HX-LOT-2', s, 'ordered') returning id into po;
+  insert into purchase_order_items (purchase_order_id, product_id, description, quantity, unit_cost) values (po, b, 'B', 2, 1) returning id into l1;
+  perform receive_purchase_order(po, jsonb_build_array(jsonb_build_object('line_id', l1, 'lot_number', '  Lot-Q  ')));
+  insert into purchase_orders (po_number, supplier_id, status) values ('HX-LOT-3', s, 'ordered') returning id into po;
+  insert into purchase_order_items (purchase_order_id, product_id, description, quantity, unit_cost) values (po, b, 'B', 3, 1) returning id into l1;
+  perform receive_purchase_order(po, jsonb_build_array(jsonb_build_object('line_id', l1, 'lot_number', 'LOT-q')));
+  select count(*), sum(quantity_remaining) into n, v from inventory_lots where product_id = b and lower(lot_number) = 'lot-q';
+  if n <> 1 or v <> 5 then raise exception 'INV-27: padded/mixed-case lot should be one row of 5, got % rows, %', n, v; end if;
+  insert into purchase_orders (po_number, supplier_id, status) values ('HX-LOT-4', s, 'ordered') returning id into po;
+  insert into purchase_order_items (purchase_order_id, product_id, description, quantity, unit_cost) values (po, b, 'B', 1, 1) returning id into l1;
+  perform receive_purchase_order(po, jsonb_build_array(jsonb_build_object('line_id', l1, 'lot_number', 'ÖKO-1')));
+  insert into purchase_orders (po_number, supplier_id, status) values ('HX-LOT-5', s, 'ordered') returning id into po;
+  insert into purchase_order_items (purchase_order_id, product_id, description, quantity, unit_cost) values (po, b, 'B', 1, 1) returning id into l1;
+  perform receive_purchase_order(po, jsonb_build_array(jsonb_build_object('line_id', l1, 'lot_number', 'öko-1')));
+  select count(*) into n from inventory_lots where product_id = b and lower(lot_number) = lower('ÖKO-1');
+  if n <> 1 then raise exception 'INV-27: non-ASCII lot spelled in two cases made % rows', n; end if;
+
   -- ---------------------------------------------------------------------------
   -- All-or-nothing: inject a failure at each write of each workflow
   -- ---------------------------------------------------------------------------

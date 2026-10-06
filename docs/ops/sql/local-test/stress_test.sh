@@ -306,6 +306,41 @@ run_once() {
   call "select receive_purchase_order('a1900000-0000-4000-8000-000000000001');"
   check "S19 retry receives exactly once" "$(q "select (select available from inventory where product_id='$A') || '/' || (select count(*) from expenses)")" "1004/1"
 
+  dl_mark "S20"
+  # S20. 100 callers at once across every function: 30 adjustments, 10 POs each
+  # sent twice, 10 returns each sent twice, 5 recalls each sent 3x, and 5
+  # unused products deleted while 5 adjustments target them
+  reset
+  q "insert into purchase_orders (id, po_number, status, supplier_id) select ('a2000000-0000-4000-8000-' || lpad(g::text,12,'0'))::uuid, 'S20-'||g, 'shipped', '99999999-0000-4000-8000-000000000000' from generate_series(1,10) g"
+  q "insert into purchase_order_items (purchase_order_id, product_id, description, quantity, unit_cost) select ('a2000000-0000-4000-8000-' || lpad(g::text,12,'0'))::uuid, (array['$A','$B','$C']::uuid[])[1 + g % 3], 'x', 2, 1 from generate_series(1,10) g"
+  q "insert into orders (id, channel, order_number) values ('a2000000-1111-4000-8000-000000000001','manual','S20')"
+  q "insert into order_items (id, order_id, sku, quantity) select ('a2000000-2222-4000-8000-' || lpad(g::text,12,'0'))::uuid, 'a2000000-1111-4000-8000-000000000001', (array['s-a','S-B','s-C'])[1 + g % 3], 1 from generate_series(1,10) g"
+  q "insert into returns (id, order_id, order_item_id, reason, status) select ('a2000000-3333-4000-8000-' || lpad(g::text,12,'0'))::uuid, 'a2000000-1111-4000-8000-000000000001', ('a2000000-2222-4000-8000-' || lpad(g::text,12,'0'))::uuid, 'other', 'approved' from generate_series(1,10) g"
+  q "insert into inventory_lots (id, product_id, lot_number, quantity_received, quantity_remaining) select ('a2000000-4444-4000-8000-' || lpad(g::text,12,'0'))::uuid, '$A', 'S20L'||g, 3, 3 from generate_series(1,5) g"
+  q "insert into recalls (id, lot_id, product_id, reason, status) select ('a2000000-5555-4000-8000-' || lpad(g::text,12,'0'))::uuid, ('a2000000-4444-4000-8000-' || lpad(g::text,12,'0'))::uuid, '$A', 'S20', 'initiated' from generate_series(1,5) g"
+  q "insert into products (id, name, sku) select ('a2000000-6666-4000-8000-' || lpad(g::text,12,'0'))::uuid, 'S20-del-'||g, 'S20D'||g from generate_series(1,5) g"
+  q "insert into inventory (product_id, available) select ('a2000000-6666-4000-8000-' || lpad(g::text,12,'0'))::uuid, 0 from generate_series(1,5) g"
+  local dl20=$(grep -c deadlock "$ERR")
+  for i in $(seq 30); do p=$([ $((i%3)) = 0 ] && echo $A || ([ $((i%3)) = 1 ] && echo $B || echo $C)); call "select adjust_inventory('$p','available',$([ $((i%2)) = 0 ] && echo 1 || echo -1),'s20');" & done
+  for g in $(seq 10); do for k in 1 2; do call "select receive_purchase_order(('a2000000-0000-4000-8000-' || lpad('$g',12,'0'))::uuid);" & done; done
+  for g in $(seq 10); do for k in 1 2; do call "select receive_return(('a2000000-3333-4000-8000-' || lpad('$g',12,'0'))::uuid,'restock_available');" & done; done
+  for g in $(seq 5); do for k in 1 2 3; do call "select quarantine_recall(('a2000000-5555-4000-8000-' || lpad('$g',12,'0'))::uuid);" & done; done
+  for g in $(seq 5); do
+    call "select delete_unused_product(('a2000000-6666-4000-8000-' || lpad('$g',12,'0'))::uuid);" &
+    call "select adjust_inventory(('a2000000-6666-4000-8000-' || lpad('$g',12,'0'))::uuid,'available',1,'s20-del');" &
+  done; wait
+  check "S20 100 callers: no deadlock" "$(( $(grep -c deadlock "$ERR") - dl20 ))" 0
+  check "S20 every PO received once (10 expenses)" "$(q "select (select count(*) from purchase_orders where po_number like 'S20-%' and status='received') || '/' || (select count(*) from expenses where note like 'Purchase order S20-%')")" "10/10"
+  check "S20 every return restocked once" "$(q "select (select count(*) from returns where status='received') || '/' || (select count(*) from inventory_adjustments where reason like 'Return received%')")" "10/10"
+  check "S20 each recall quarantined once (15 units)" "$(q "select (select count(*) from recalls where reason='S20' and status='quarantined') || '/' || (select recalled from inventory where product_id='$A')")" "5/15"
+  # (history_consistent assumes every stock row started at 1000 available; the
+  # S20 delete-race products start at 0, so check them with their own start)
+  check "S20 history explains every bucket (A, B, C from 1000; delete-race products from 0)" "$(q "select count(*) from inventory i
+       where i.available <> (case when i.product_id in ('$A','$B','$C') then 1000 else 0 end)
+                              + coalesce((select sum(change_amount) from inventory_adjustments a where a.product_id=i.product_id and a.bucket='available'),0)
+          or i.recalled <> coalesce((select sum(change_amount) from inventory_adjustments a where a.product_id=i.product_id and a.bucket='recalled'),0)")" 0
+  check "S20 deleted-or-kept products consistent (no orphan stock, history only on kept ones)" "$(q "select count(*) from inventory_adjustments a where a.reason='s20-del' and not exists (select 1 from products p where p.id=a.product_id)")/$(q "select count(*) from inventory i where not exists (select 1 from products p where p.id=i.product_id)")" "0/0"
+
   dl_mark "end"
   local t1=$(date +%s%N)
   echo "run $1: $pass passed, $fail failed, deadlocks seen: $(grep -c deadlock "$ERR"), $(( (t1 - t0) / 1000000 )) ms"
