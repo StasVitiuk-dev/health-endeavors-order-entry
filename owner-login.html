@@ -1016,6 +1016,23 @@
     // connection dropped while saving, the record may have been saved anyway
     // (only the reply lost): it looks first, so a saved record never loses
     // its file. Returns normally only when the record is saved.
+    // A storage-safe file name: letters, digits, dot, dash, underscore only
+    // (no slashes, so no folders or "../"), no leading dots, and at most 100
+    // characters with the extension kept, so very long names can't make the
+    // upload fail at the storage limit.
+    // Time plus a short random part: two uploads of the same name in the same
+    // millisecond (two tabs, a fast retry) no longer collide on one path.
+    function uploadStamp(){ return Date.now() + '-' + Math.random().toString(36).slice(2, 8); }
+    function safeStorageName(name){
+      let n = String(name || 'file').replace(/[^a-zA-Z0-9._-]/g, '_').replace(/\.{2,}/g, '.').replace(/_+/g, '_').replace(/^[._]+/, '');
+      if (!n || n === '_') n = 'file';
+      if (n.length > 100) {
+        const dot = n.lastIndexOf('.');
+        const ext = dot > 0 && n.length - dot <= 10 ? n.slice(dot) : '';
+        n = n.slice(0, 100 - ext.length) + ext;
+      }
+      return n;
+    }
     async function uploadThenSave(bucket, table, column, path, file, saveRecord){
       const { error: uploadErr } = await supabase.storage.from(bucket).upload(path, file);
       if (uploadErr) throw uploadErr;
@@ -6858,8 +6875,8 @@
         // Used to leave the uploaded file behind whenever the record was refused.
         if (evFile) {
           submitBtn.textContent = 'Uploading file…';
-          const safeName = evFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-          await uploadThenSave('evidence-files', 'evidence_locker', 'file_path', `${incidentId}/${Date.now()}_${safeName}`, evFile, saveEvidence);
+          const safeName = safeStorageName(evFile.name);
+          await uploadThenSave('evidence-files', 'evidence_locker', 'file_path', `${incidentId}/${uploadStamp()}_${safeName}`, evFile, saveEvidence);
         } else {
           const { error } = await saveEvidence(null);
           if (error) throw error;
@@ -7092,8 +7109,8 @@
         });
         if (docFile) {
           btn.textContent = 'Uploading file…';
-          const safeName = docFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-          await uploadThenSave('document-files', 'documents', 'file_path', `${Date.now()}_${safeName}`, docFile, saveDoc);
+          const safeName = safeStorageName(docFile.name);
+          await uploadThenSave('document-files', 'documents', 'file_path', `${uploadStamp()}_${safeName}`, docFile, saveDoc);
         } else {
           const { error } = await saveDoc(null);
           if (error) throw error;
@@ -8263,8 +8280,8 @@
         // Used to leave the receipt file behind whenever the expense was refused.
         if (receiptFile) {
           submitBtn.textContent = 'Uploading receipt…';
-          const safeName = receiptFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-          await uploadThenSave('expense-receipts', 'expenses', 'receipt_path', `${Date.now()}_${safeName}`, receiptFile, saveExpense);
+          const safeName = safeStorageName(receiptFile.name);
+          await uploadThenSave('expense-receipts', 'expenses', 'receipt_path', `${uploadStamp()}_${safeName}`, receiptFile, saveExpense);
         } else {
           const { error } = await saveExpense(null);
           if (error) {

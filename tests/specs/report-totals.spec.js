@@ -102,3 +102,59 @@ test('Tax Records cost-of-goods estimate: 2,500 orders with a 1,000-row cap and 
   await expect(page.locator('#taxCogsWrap')).toContainText('$10,000.00');
   expect(backend.requests.filter(r => r.table && r.method === 'GET' && r.path && (r.query || '').length > 16000)).toEqual([]);
 });
+
+// RP-02 (2026-10-06): exact totals at the page edges. With a 1,000-row cap,
+// 999 / 1,000 / 1,001 are where an off-by-one in the paging would show; 0 and
+// 1 are the small ends; 10,000 is the large end.
+const money = n => '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+for (const n of [0, 1, 999, 1000, 1001, 10000]) {
+  test(`Accounting and Tax "All Time" are exact with ${n.toLocaleString('en-US')} orders and expenses (1,000-row cap)`, async ({ page, backend }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'arithmetic; run once');
+    test.setTimeout(120000);
+    seedMany(backend, n, n);
+    backend.maxRows = 1000;
+    await login(page);
+    await openAllTime(page, 'accountingPanel');
+    const stats = page.locator('#acctStats');
+    await expect(stats).toContainText(money(n * 10)); // revenue
+    await expect(stats).toContainText(money(n * 9));  // net profit = 10n − 1n
+    await openAllTime(page, 'taxRecordsPanel');
+    await expect(page.locator('#taxStats')).toContainText(money(n * 0.5)); // sales tax
+    await expect(page.locator('#dashError')).toBeHidden();
+  });
+}
+
+// RP-05 (2026-10-06): deleted (recycle-bin) orders and expenses never count,
+// also when the deleted ones are spread across several pages.
+test('Accounting and Tax leave out soft-deleted orders and expenses across pages', async ({ page, backend }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'arithmetic; run once');
+  seedMany(backend, 2500, 1500);
+  backend.tables.orders.forEach((o, i) => { if (i % 5 === 0) o.deleted_at = '2026-03-05T00:00:00Z'; }); // 500 deleted
+  backend.tables.expenses.forEach((e, i) => { if (i % 3 === 0) e.deleted_at = '2026-03-05T00:00:00Z'; }); // 500 deleted
+  backend.maxRows = 1000;
+  await login(page);
+  await openAllTime(page, 'accountingPanel');
+  await expect(page.locator('#acctStats')).toContainText('$20,000.00'); // 2,000 kept × $10
+  await expect(page.locator('#acctStats')).toContainText('$1,000.00');  // 1,000 kept × $1
+  await expect(page.locator('#acctStats')).toContainText('$19,000.00');
+  await openAllTime(page, 'taxRecordsPanel');
+  await expect(page.locator('#taxStats')).toContainText('$1,000.00'); // sales tax 2,000 × $0.50
+});
+
+// RP-07 (2026-10-06): the Tax CSV export carries the same complete figures
+// as the screen at scale, and every receipt-less expense (1,200 of them).
+test('Tax CSV export at 2,500 orders / 1,200 expenses matches the screen and lists every missing receipt', async ({ page, backend }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'download; run once');
+  const fs = require('fs');
+  seedMany(backend, 2500, 1200);
+  backend.maxRows = 1000;
+  await login(page);
+  await openAllTime(page, 'taxRecordsPanel');
+  await expect(page.locator('#taxStats')).toContainText('$25,000.00');
+  const [file] = await Promise.all([page.waitForEvent('download'), page.click('#taxExportBtn')]);
+  const csv = fs.readFileSync(await file.path(), 'utf8');
+  expect(csv).toContain('"Revenue","$25,000.00"');
+  expect(csv).toContain('"Sales tax collected","$1,250.00"');
+  const missingSection = csv.split('"Expenses missing a receipt"')[1];
+  expect(missingSection.trim().split('\r\n').length - 1).toBe(1200); // header row + 1,200
+});

@@ -159,3 +159,45 @@ test('a raw "row-level security" refusal is explained in plain words', async ({ 
   await expect(page.locator('#dashError')).toContainText('row-level security');
   await expect(page.locator('#dashError')).toContainText('only the Owner or an Administrator can do it');
 });
+
+test('hostile or very long file names become short, folder-free storage names (extension kept)', async ({ page, backend }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'run once');
+  backend.tables.documents = [];
+  backend.tables.suppliers = [];
+  enableWrites(backend, ['documents']);
+  await login(page);
+  await openDocuments(page);
+  const names = ['../../etc/passwd<script>.pdf', '..\\..\\windows\\evil.pdf', 'ünïcødé 名前.pdf', 'A'.repeat(400) + '.pdf', '.hidden.pdf'];
+  for (const name of names) {
+    await page.fill('#docTitle', 'SYNTHETIC ' + name.slice(0, 10));
+    await page.selectOption('#docCategory', 'other');
+    await page.setInputFiles('#docFile', { name, mimeType: 'application/pdf', buffer: Buffer.from('%PDF synthetic') });
+    const before = uploads(backend, 'document-files').length;
+    await page.click('#addDocumentForm button[type="submit"]');
+    await expect.poll(() => uploads(backend, 'document-files').length).toBe(before + 1);
+  }
+  const paths = uploads(backend, 'document-files').map(r => uploadedPath(r, 'document-files'));
+  for (const p of paths) {
+    expect(p).not.toMatch(/[\/\\<>]|\.\./);
+    expect(p.length).toBeLessThan(130);
+    expect(p).toMatch(/\.pdf$/);
+    expect(p.split('_').slice(1).join('_')).not.toMatch(/^\./); // no hidden-file name after the timestamp
+  }
+});
+
+test('two uploads of the same file name get different storage paths', async ({ page, backend }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'run once');
+  backend.tables.documents = [];
+  backend.tables.suppliers = [];
+  enableWrites(backend, ['documents']);
+  await page.clock.setFixedTime(new Date('2026-10-06T12:00:00Z')); // same millisecond for both
+  await login(page);
+  await openDocuments(page);
+  for (let i = 0; i < 2; i++) {
+    await fillDocument(page);
+    await page.click('#addDocumentForm button[type="submit"]');
+    await expect.poll(() => uploads(backend, 'document-files').length).toBe(i + 1);
+  }
+  const [a, b] = uploads(backend, 'document-files').map(r => uploadedPath(r, 'document-files'));
+  expect(a).not.toBe(b);
+});
