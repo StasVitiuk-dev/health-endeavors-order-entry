@@ -164,6 +164,45 @@ test.describe('System Mode', () => {
   const zeroRowsOn = (page, table) => page.route(url => new URL(url).pathname.endsWith('/rest/v1/' + table), route =>
     route.request().method() === 'PATCH' ? route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }) : route.fallback());
 
+  // EXT4 (workstream Q): the protective steps run even when the mode itself
+  // could not be recorded (refused / changed elsewhere / connection lost).
+  const modeFault = {
+    'changed in another tab': (page, backend) => { backend.tables.system_mode[0].mode = 'NO_AI'; },
+    'refused with a server error': page => page.route(url => new URL(url).pathname.endsWith('/rest/v1/system_mode'), route =>
+      route.request().method() === 'PATCH' ? route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ message: 'Synthetic server error' }) }) : route.fallback()),
+    'reply lost (outcome unknown)': page => page.route(url => new URL(url).pathname.endsWith('/rest/v1/system_mode'), route =>
+      route.request().method() === 'PATCH' ? route.abort('connectionreset') : route.fallback()),
+  };
+  for (const [name, inject] of Object.entries(modeFault)) {
+    test(`Emergency when the mode is ${name}: Order Sync is still switched off and Agent #7 paused; no success message`, async ({ page, backend }) => {
+      seed(backend);
+      backend.tables.feature_flags[0].enabled = true;
+      backend.tables.agent_controls = [{ agent_num: 7, enabled: true }];
+      await login(page);
+      await open(page, 'flagsPanel');
+      await inject(page, backend);
+      await goEmergency(page);
+      await expect(page.locator('#dashError')).toContainText('Emergency mode was NOT confirmed');
+      await expect(page.locator('#dashError')).toContainText('switched off anyway');
+      await expect(page.locator('.toast', { hasText: 'System mode changed to' })).toHaveCount(0);
+      expect(writes(backend, 'feature_flags').some(w => w.body.enabled === false)).toBe(true);
+      expect(writes(backend, 'agent_controls').some(w => w.body.enabled === false)).toBe(true);
+    });
+  }
+
+  test('Normal when the mode changed in another tab: nothing else is touched', async ({ page, backend }) => {
+    seed(backend, 'EMERGENCY');
+    await login(page);
+    await open(page, 'flagsPanel');
+    backend.tables.system_mode[0].mode = 'NO_AI';
+    await page.selectOption('#systemModeSelect', 'NORMAL');
+    await page.click('#systemModeChangeBtn');
+    await confirmPassword(page);
+    await expect(page.locator('#dashError')).toContainText('changed');
+    expect(writes(backend, 'feature_flags')).toEqual([]);
+    expect(writes(backend, 'agent_controls')).toEqual([]);
+  });
+
   test('Emergency: if Shopify Order Sync could not really be switched off, the page says so (no success message)', async ({ page, backend }) => {
     seed(backend);
     backend.tables.agent_controls = [{ agent_num: 7, enabled: true }];

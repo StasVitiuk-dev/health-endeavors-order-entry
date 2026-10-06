@@ -6283,11 +6283,25 @@
           const uid = await currentUserId();
           // Only from the mode this page showed: an old tab can't quietly
           // switch Emergency back to Normal.
-          const changed = await updateIfUnchanged('system_mode', { id: true },
-            { mode: newMode, changed_by: uid, changed_at: new Date().toISOString() },
-            { mode: SYSTEM_MODE_SEEN === undefined ? null : SYSTEM_MODE_SEEN });
-          if (!changed) {
-            showDashError(staleMessage('System mode') + ' Check the current mode before choosing again.');
+          // EXT4: for Emergency and No AI the protective steps below (sync
+          // off, Agent #7 paused) run even if recording the mode fails or its
+          // outcome is unknown. They only switch things OFF, are safe to
+          // repeat, and in an emergency must not wait on the mode record.
+          const protective = newMode === 'EMERGENCY' || newMode === 'NO_AI';
+          let modeProblem = null;
+          try {
+            const changed = await updateIfUnchanged('system_mode', { id: true },
+              { mode: newMode, changed_by: uid, changed_at: new Date().toISOString() },
+              { mode: SYSTEM_MODE_SEEN === undefined ? null : SYSTEM_MODE_SEEN });
+            if (!changed) modeProblem = staleMessage('System mode') + ' Check the current mode before choosing again.';
+          } catch (modeErr) {
+            if (!protective) throw modeErr;
+            modeProblem = isNetworkError(modeErr)
+              ? 'The connection dropped, so the dashboard cannot tell whether the mode was recorded.'
+              : 'The mode could not be recorded (' + ((modeErr && modeErr.message) || modeErr) + ').';
+          }
+          if (modeProblem && !protective) {
+            showDashError(modeProblem);
             await Promise.all([loadSystemMode(), loadFlags(), loadAgentControls()]);
             return;
           }
@@ -6337,7 +6351,13 @@
             }
           }
 
-          if (leftOn.length) {
+          const doneOff = newMode === 'EMERGENCY'
+            ? 'Shopify Order Sync and Agent #7 were switched off anyway'
+            : 'Agent #7 was paused anyway';
+          if (modeProblem) {
+            showDashError(info.label + ' mode was NOT confirmed: ' + modeProblem + ' ' +
+              (leftOn.length ? 'Also: ' + leftOn.join(' ') : doneOff + '.') + ' Reload the page and check the mode.');
+          } else if (leftOn.length) {
             showDashError('System mode is now ' + info.label + ', but: ' + leftOn.join(' '));
           } else {
             toast('System mode changed to ' + info.label);
