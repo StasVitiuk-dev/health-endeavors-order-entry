@@ -36,6 +36,12 @@
 -- One transaction: every function is installed, or (on any error) none is.
 begin;
 
+-- EXT5: if Run is pressed twice (two tabs, a double click), the second copy
+-- waits here until the first has finished, then installs the same functions
+-- again (harmless), instead of failing with a confusing duplicate-key error.
+-- Released automatically at COMMIT / ROLLBACK.
+select pg_advisory_xact_lock(hashtext('health_endeavors_stock_functions_install'));
+
 -- ---------------------------------------------------------------------------
 -- Preflight (2026-10-06, EXT3): refuse to install on a database that does not
 -- have the shape these functions were written and tested for. PostgreSQL only

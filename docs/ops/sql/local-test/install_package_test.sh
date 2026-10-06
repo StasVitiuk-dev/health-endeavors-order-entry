@@ -145,6 +145,61 @@ expect_eq "10 no unexpected errors during re-install (missing-function blips onl
 expect_eq "10 still six functions afterwards" "$(count_funcs)" "6"
 rm -f "$ERRF"
 
+# 12. adversarial (EXT5) -----------------------------------------------------------------
+fresh_db
+# 12a. two installs at the same moment: both finish, one consistent result
+( run "$INSTALL" > /tmp/he_inst_a.out 2>&1 ) & ( run "$INSTALL" > /tmp/he_inst_b.out 2>&1 ) & wait
+expect_eq "12a two simultaneous installs: six functions, same fingerprint" "$(count_funcs):$(fingerprint)" "6:$FP1"
+expect_eq "12a both copies finish without any error (the second waits for the first)" "$(cat /tmp/he_inst_a.out /tmp/he_inst_b.out | grep -c ERROR)" "0"
+# 12b. third install in a row
+run "$INSTALL" >/dev/null; run "$INSTALL" >/dev/null
+expect_eq "12b third install: unchanged" "$(count_funcs):$(fingerprint)" "6:$FP1"
+# 12c. same name and signature, different (old / wrong) body is replaced
+q "create or replace function public.adjust_inventory(p_product_id uuid, p_bucket text, p_change integer, p_reason text default null, p_expected integer default null) returns jsonb language sql as \$x\$ select '{}'::jsonb \$x\$" >/dev/null
+[ "$(fingerprint)" != "$FP1" ] && ok "12c a different body is visible in the fingerprint" || bad "12c fingerprint did not change for a different body"
+run "$INSTALL" >/dev/null
+expect_eq "12c re-install replaces the wrong body (fingerprint back to the reviewed one)" "$(fingerprint)" "$FP1"
+# 12d. an unexpected extra index does not stop or change the install
+fresh_db
+q "create index he_extra_test_idx on public.inventory_lots (purchase_order_id)" >/dev/null
+out=$(run "$INSTALL"); [ -z "$(echo "$out" | grep ERROR)" ] && ok "12d extra index: install runs" || bad "12d extra index: $out"
+expect_eq "12d extra index: same fingerprint" "$(fingerprint)" "$FP1"
+# 12e. rollback after a partial (hand-made) install, then install again
+fresh_db
+q "create function public._he_apply_stock_change(p uuid) returns void language sql as 'select'; create function public.quarantine_recall(p_recall_id uuid) returns jsonb language sql as \$x\$ select '{}'::jsonb \$x\$" >/dev/null
+out=$(run "$ROLLBACK"); [ -z "$(echo "$out" | grep ERROR)" ] && ok "12e rollback over a partial install runs" || bad "12e rollback partial: $out"
+left=$(q "select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname in ($FUNCS) and pg_get_function_identity_arguments(p.oid) <> 'p uuid'")
+expect_eq "12e the reviewed signatures are gone after rollback" "$left" "0"
+q "drop function if exists public._he_apply_stock_change(uuid)" >/dev/null
+out=$(run "$INSTALL"); expect_eq "12e install after that rollback: six functions, reviewed fingerprint" "$(count_funcs):$(fingerprint)" "6:$FP1"
+# 12f. reads keep working while the package is (re)installed
+RF=$(mktemp)
+( for i in $(seq 1 60); do psql "${CONN[@]}" -d "$DB" -tAX -c "select count(*) from products; select count(*) from inventory" >/dev/null 2>>"$RF"; done ) &
+RL=$!
+for i in 1 2 3 4; do run "$INSTALL" >/dev/null; done
+wait $RL
+expect_eq "12f table reads during re-installs: no error" "$(grep -c ERROR "$RF")" "0"
+rm -f "$RF"
+# 12g. a database without auth.uid() is refused by the preflight
+fresh_db
+q "alter function auth.uid() rename to uid_hidden" >/dev/null
+out=$(run "$INSTALL")
+echo "$out" | grep -q "function auth.uid()" && ok "12g refuses when auth.uid() is missing" || bad "12g auth.uid: $out"
+expect_eq "12g nothing installed" "$(count_funcs)" "0"
+
+# 13. PO line guard package (drafts/17 + 18, EXT5) -----------------------------------------
+G17="$ROOT/docs/ops/sql/drafts/17_DRAFT_po_line_delete_guard.sql"; G18="$ROOT/docs/ops/sql/drafts/18_DRAFT_rollback_po_line_delete_guard.sql"
+gcount() { q "select count(*) from pg_trigger where tgname='he_po_line_delete_guard'"; }
+fresh_db
+out=$(run "$G17"); [ -z "$(echo "$out" | grep ERROR)" ] && ok "13 guard installs" || bad "13 guard install: $out"
+run "$G17" >/dev/null; expect_eq "13 second guard install: still exactly one trigger" "$(gcount)" "1"
+run "$G18" >/dev/null; run "$G18" >/dev/null; expect_eq "13 rollback twice: no trigger, no error" "$(gcount)" "0"
+expect_eq "13 rollback removes the function too" "$(q "select count(*) from pg_proc where proname='_he_po_line_delete_guard'")" "0"
+q "alter table public.purchase_order_items rename to poi_hidden" >/dev/null
+out=$(run "$G17"); echo "$out" | grep -q "Install stopped, nothing was changed" && ok "13 guard preflight refuses a missing table" || bad "13 guard preflight: $out"
+q "alter table public.poi_hidden rename to purchase_order_items" >/dev/null
+expect_eq "13 nothing installed after the refusal" "$(gcount)" "0"
+
 # 11. the install file itself: one transaction, preflight first --------------------------
 first_stmt=$(grep -vE '^\s*(--|$)' "$INSTALL" | head -1)
 expect_eq "11 first statement is BEGIN" "$first_stmt" "begin;"

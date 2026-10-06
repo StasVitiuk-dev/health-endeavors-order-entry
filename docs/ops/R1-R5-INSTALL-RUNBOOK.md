@@ -47,6 +47,8 @@ They run with the caller's own rights (security invoker), so the existing permis
 4. Expected result: "Success. No rows returned". A few "does not exist, skipping" notices are normal (they're about older draft versions that were never installed).
 5. If you see a red **ERROR**: stop. Nothing was installed, because the file is one transaction. Copy the exact error text into the chat. An error starting "Install stopped, nothing was changed. This database is missing: …" comes from the preflight: the database is not shaped the way Query A reported, and the session needs to adjust the file first.
 
+**If you press Run twice by accident (EXT5):** the second copy waits for the first, then runs again harmlessly. You'll see two "Success" messages and nothing breaks; this is tested (`install_package_test.sh` §12a). The rollback files behave the same way.
+
 ## Check it (read-only, 1 minute)
 
 New query, paste and run:

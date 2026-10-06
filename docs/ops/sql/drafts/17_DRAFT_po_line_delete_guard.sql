@@ -27,6 +27,7 @@
 -- a whole order (cascade) is unaffected: the order row is already gone.
 -- Nothing else changes: no data, no permissions, no other table.
 begin;
+select pg_advisory_xact_lock(hashtext('health_endeavors_po_line_guard_install')); -- EXT5: a second copy run at the same time waits instead of failing
 
 do $pre$
 begin

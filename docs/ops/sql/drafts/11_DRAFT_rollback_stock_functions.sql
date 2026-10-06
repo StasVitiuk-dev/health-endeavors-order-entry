@@ -4,6 +4,7 @@
 -- dashboard PR first, or the buttons would call missing functions).
 -- Run as one transaction: all functions disappear together, or none do.
 begin;
+select pg_advisory_xact_lock(hashtext('health_endeavors_stock_functions_install')); -- EXT5: a second copy run at the same time waits instead of failing
 drop function if exists public.delete_unused_product(uuid);
 drop function if exists public.receive_return(uuid, text, integer);
 drop function if exists public.quarantine_recall(uuid);
