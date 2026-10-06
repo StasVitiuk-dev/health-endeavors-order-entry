@@ -81,3 +81,68 @@ jobs:
           name: screenshot-differences
           path: test-results/
           retention-days: 7
+
+  # Informational (2026-10-06): the database DRAFT tests (R1–R5 stock
+  # functions, report totals, Query C on a mock catalog, install package,
+  # SQL mutation check, one stress run) on a throwaway PostgreSQL 16 service
+  # inside the runner. Synthetic data only; never connects to Supabase; no
+  # secrets (the service password exists only inside this job's container).
+  # Each step runs only if its files exist in the commit being tested, so
+  # pull requests that predate these files are not failed by it.
+  sql-drafts:
+    name: SQL drafts (informational)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    continue-on-error: true
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: ci-only-local
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      PGHOST: localhost
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGPASSWORD: ci-only-local
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build the local real-shape schema
+        run: |
+          set -e
+          D=docs/ops/sql/local-test/01_REAL_SHAPE_schema_for_local_tests.sql
+          if [ ! -f "$D" ]; then echo "no real-shape schema in this commit; nothing to test"; exit 0; fi
+          createdb he_real
+          psql -d he_real -v ON_ERROR_STOP=1 -q -f "$D"
+      - name: Install the R1–R5 draft and run its tests
+        run: |
+          set -e
+          [ -f docs/ops/sql/drafts/10_DRAFT_stock_functions.sql ] || exit 0
+          psql -d he_real -v ON_ERROR_STOP=1 -q -f docs/ops/sql/drafts/10_DRAFT_stock_functions.sql
+          for t in 15_DRAFT_tests_stock_functions_real_shape 16_DRAFT_tests_hardening_and_failures 14_DRAFT_tests_report_totals; do
+            f=docs/ops/sql/drafts/$t.sql
+            if [ -f "$f" ]; then psql -d he_real -v ON_ERROR_STOP=1 -q -f "$f"; fi
+          done
+      - name: Query C on a mock catalog (read-only; no fake secret may appear)
+        run: |
+          set -e
+          for t in query_c_mock_test query_c_no_cron_test; do
+            f=docs/ops/sql/local-test/$t.sql
+            [ -f "$f" ] || continue
+            psql -d he_real -v ON_ERROR_STOP=1 -f "$f" > out.txt
+            if grep -qE 'SUPERSECRET|FAKETOKEN' out.txt; then echo "a fake secret leaked into the output"; exit 1; fi
+          done
+      - name: Install package tests and SQL mutation check
+        run: |
+          set -e
+          if [ -f docs/ops/sql/local-test/install_package_test.sh ]; then bash docs/ops/sql/local-test/install_package_test.sh -h localhost -p 5432 -U postgres; fi
+          if [ -f tests/mutation/run-sql-mutations.sh ]; then bash tests/mutation/run-sql-mutations.sh -h localhost -p 5432 -U postgres; fi
+      - name: One stress run
+        run: |
+          set -e
+          if [ -f docs/ops/sql/local-test/stress_test.sh ]; then bash docs/ops/sql/local-test/stress_test.sh 1 -h localhost -p 5432 -U postgres -d he_real; fi
+
