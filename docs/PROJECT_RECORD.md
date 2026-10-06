@@ -327,6 +327,18 @@ These are counts, not hours. Time depends on review and SQL-run turnaround.
 | Oct 5 | [REPO] Overnight platform branch `claude/platform-overnight-implementation` (not merged): guarded updates, R7, N14 paging, agent truth, stress tests. Owner ran Query A (schema, read-only); fixes for the 3 bugs it confirmed (Deny → `rejected`, rejected = closed, document links). Owner ran Query B (read-only): **ran clean; no existing data repair required** |
 | Oct 6 | [REPO] Same branch, not merged, nothing deployed: R1–R5 drafts hardened (failure injection, 19-scenario stress, 30 runs, 0 deadlocks); state-machine audit (document categories fixed; mock enforces real rules); stale-tab / silent-refusal / storage / scale / XSS / accessibility / empty-database audits with fixes and tests; Query C v2 and Query D prepared (not run). Owner review: `docs/ops/OWNER_REVIEW_2026-10-06.md` |
 | Oct 6 (extension) | [REPO] Same branch, not merged, nothing deployed: master backlog (162 deduplicated items from 217 candidates, `docs/ops/MASTER_PLATFORM_BACKLOG_2026-10-06.md`); Emergency-mode honesty; silent-refusal sweep finished; session revoke check; sanitized error text; reporting boundary tests to 10,000 rows; unknown-vs-zero states; AA contrast light/dark; stress S20 (100 callers); page mutation harness (12/12 caught); helpers step 2c (API 3); R1–R5 install runbook. See the extension section of the owner review |
+| Oct 6 (extension 3) | [REPO] New branch `claude/platform-overnight-extension-3` (from `37050c6`), not merged, nothing deployed:
+- Second-pass audit, findings X3-01…32. P1 items fixed on the branch:
+  - Expenses money total cut at 200
+  - duplicate manual order on retry
+  - manual order dates on the wrong day (live on `main`)
+  - R1–R5 install preflight
+- Test framework: a state-machine rule in every test, a failure-injection matrix, role / scale / device matrices, and session-loss handling
+- Mutation checks: page 31/31, SQL 8/8 (3 untested SQL rules found and covered)
+- Stress: 25 scenarios
+- Query C v3 with an owner guide (not run)
+- Readiness checklist, auditability, product lifecycle, rollback/backup reviews
+- See `docs/ops/OVERNIGHT_PLATFORM_EXTENSION_3_2026-10-06.md` |
 
 ---
 

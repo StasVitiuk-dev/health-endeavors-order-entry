@@ -90,6 +90,8 @@ Branch work counts as preparation, never as live completion.
 | Expenses totals complete beyond 200 | BRANCH READY | X3-03 |
 | Central-time month and year boundaries; exact cents | BRANCH READY | `report-boundaries.spec.js` |
 | Sales tax by state | BLOCKED (first real order) | RP-09 |
+| Manual orders land on the chosen day (Central), not the day before | BRANCH READY (bug live on `main`) | X3-32, `manual-order-entry.spec.js` |
+| Manual order retry never creates a second order | BRANCH READY (bug live on `main`) | X3-20, `manual-order-entry.spec.js` |
 
 ## Documents and storage
 | Item | Status | Evidence |
