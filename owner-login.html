@@ -17,6 +17,12 @@
 <link rel="preconnect" href="https://uizrazyehilyzmwttsrn.supabase.co" crossorigin>
 <link rel="dns-prefetch" href="https://uizrazyehilyzmwttsrn.supabase.co">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<!-- Content Security Policy (F3-14, EXT3): the page may only load its own
+     files and the pinned Supabase library, and may only talk to its own
+     Supabase project. If a text-escaping bug ever slipped through, injected
+     code could not load outside scripts or send data to another site.
+     ('unsafe-inline' stays because the page's own code and styles are inline.) -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://uizrazyehilyzmwttsrn.supabase.co wss://uizrazyehilyzmwttsrn.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">

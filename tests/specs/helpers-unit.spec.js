@@ -299,7 +299,7 @@ test.describe('date ranges (step 2d): Central-time boundaries', () => {
 test.describe('maskSensitive (agent error text, F3-06)', () => {
   const M = load(['maskSensitive']);
   test('e-mail addresses and long token-like strings are masked; ordinary words stay', () => {
-    expect(M.maskSensitive('send failed for jane.doe@example.com: apikey=FAKETOKENabcdefghijklmnopqrstuvwxyz0123 rejected'))
+    expect(M.maskSensitive('send failed for jane.doe@example.test: apikey=FAKETOKENabcdefghijklmnopqrstuvwxyz0123 rejected'))
       .toBe('send failed for [email]: [token] rejected');
     expect(M.maskSensitive('Timeout after 30 s calling the shipping API')).toBe('Timeout after 30 s calling the shipping API');
   });

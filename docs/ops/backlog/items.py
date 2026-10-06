@@ -243,7 +243,7 @@ a('F3-10','Tests','Visual baselines exist for 2 sizes only; device matrix checks
 a('F3-11','CI','Mutation harnesses are not in CI (20 min page run)','run-page-mutations.js','P4','Low','S','CI-02','Y','Y','N','DEFERRED')
 a('F3-12','Docs','Owner-facing "what each page does" guide is spread across Guide articles; no printable one-pager','help entries in page','P4','Low','M','—','Y','N','N','DEFERRED')
 a('F3-13','Performance','owner-login.html still ~500 KB in one file; first load parses everything','file size','P3','Low','L','modularization step 3','Y','Y','N','BLOCKED-OWNER')
-a('F3-14','Security','No Content-Security-Policy meta on the pages (GitHub Pages cannot set headers)','pages have no CSP','P3','Medium','M','test inline handlers first','Y','N','N','QUEUED')
+a('F3-14','Security','No Content-Security-Policy meta on the pages (GitHub Pages cannot set headers)','pages have no CSP','P3','Medium','M','test inline handlers first','Y','N','N','DONE')
 a('F3-15','Data','Existing manual orders entered before X3-32 may sit one day early','date bug on main','P3','Low','S','owner (pre-launch: likely none)','N','Y','Y','BLOCKED-OWNER')
 
 # ---------------- Docs / process / owner
