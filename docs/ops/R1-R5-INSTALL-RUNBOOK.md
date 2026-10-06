@@ -85,7 +85,7 @@ Expected for the version reviewed on 2026-10-06: `3df2bf7a07b451f12f9359ceca1c85
 
 ## After install
 
-- **Optional second step, also needs your approval (EXT4):** `drafts/17_DRAFT_po_line_delete_guard.sql` stops a purchase-order line being removed while that order is being received. The local test showed that race leaving stock no line explains, even with R1. It adds one small check (a trigger) and changes no data. Install it after R1. Roll it back with `drafts/18_DRAFT_rollback_po_line_delete_guard.sql`.
+- **Optional second step, also needs your approval (EXT4):** `drafts/17_DRAFT_po_line_delete_guard.sql` stops a purchase-order line being removed, added or re-quantified while (or after) that order is being received (EXT5: now covers all three). The local tests showed each of those races leaving the order and the stock disagreeing, even with R1 (`PO_RECEIVE_RACE_REVIEW.md`). It adds one small check (a trigger) and changes no data. Install it after R1. Roll it back with `drafts/18_DRAFT_rollback_po_line_delete_guard.sql`.
 
 - A separate dashboard PR switches the stock buttons to the functions. It gets reviewed, merged and checked live like any other.
 - Later, and only with your approval: remove direct table write access on the stock tables (backlog INV-20), so the functions become the only path.

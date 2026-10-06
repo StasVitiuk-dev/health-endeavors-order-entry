@@ -3930,6 +3930,14 @@
             unit_cost: unitCost,
           });
           if (error) throw error;
+          // EXT5: the status was checked before the insert, in a separate
+          // request. If the order was received in between, this line is not
+          // part of that delivery: say so (the database guard drafted in
+          // drafts/17 closes this window for deletes once installed).
+          const statusAfter = await poStatusNow(po.id).catch(() => null);
+          if (statusAfter && !PO_EDITABLE.includes(statusAfter)) {
+            showDashError('The line was added, but purchase order ' + po.po_number + ' became "' + (PO_STATUS_LABELS[statusAfter] || statusAfter) + '" at the same moment. Check whether this line was received with it (Inventory) before doing anything else.');
+          }
           loadPurchaseOrders();
         } catch (err) {
           addBtn.disabled = false;
@@ -3949,6 +3957,12 @@
             const { data: gone, error } = await supabase.from('purchase_order_items').delete().eq('id', btn.getAttribute('data-line')).select('id');
             if (error) throw error;
             if (noRowsChanged(gone)) { showDashError(staleMessage('That line')); loadPurchaseOrders(); return; }
+            // EXT5: same check after the delete: a Receive that started in
+            // between may already have added this line's stock.
+            const statusAfter = await poStatusNow(po.id).catch(() => null);
+            if (statusAfter && !PO_EDITABLE.includes(statusAfter)) {
+              showDashError('The line was removed, but purchase order ' + po.po_number + ' became "' + (PO_STATUS_LABELS[statusAfter] || statusAfter) + '" at the same moment, so its stock may already have been added. Check Inventory and Expenses for this order.');
+            }
             loadPurchaseOrders();
           } catch (err) {
             btn.disabled = false;
@@ -4073,15 +4087,37 @@
           return;
         }
 
-        const items = po.purchase_order_items || [];
+        // EXT5: receive what is saved NOW, not what this page loaded. Another
+        // tab (or person) may have added or removed a line, or changed the
+        // shipping or tax, since the page opened; the claim above only checks
+        // the status. Lines can't be changed any more once the order is
+        // Received (every line edit checks the status first), so this read is
+        // the order's final content, except for an edit already in flight
+        // (checked again at the end).
+        let items = po.purchase_order_items || [];
+        let rpo = po;
+        let changedNote = '';
         const progress = { costs: false, stockedNames: [], current: null, expense: false };
         let stocked = 0, skipped = 0;
+        const lineSig = list => (list || []).map(l => [l.id, Number(l.quantity), Number(l.unit_cost || 0), l.product_id || ''].join(':')).sort().join('|');
         try {
+          const { data: fresh, error: freshErr } = await supabase.from('purchase_orders')
+            .select('id, po_number, shipping_cost, tax, expense_category, suppliers(name), purchase_order_items(id, product_id, description, sku, quantity, unit_cost, quantity_received, landed_unit_cost)')
+            .eq('id', po.id).maybeSingle();
+          if (freshErr) throw freshErr;
+          if (!fresh) throw new Error('the order could not be read back after it was marked received');
+          rpo = Object.assign({}, po, fresh);
+          items = rpo.purchase_order_items || [];
+          if (lineSig(items) !== lineSig(po.purchase_order_items) || Number(rpo.shipping_cost || 0) !== Number(po.shipping_cost || 0) || Number(rpo.tax || 0) !== Number(po.tax || 0)) {
+            changedNote = ' Note: this order had changed since this page was opened (lines, shipping or tax), so the saved version was received, not the one on screen.';
+          }
+          const fractionalNow = items.filter(l => l.product_id && !Number.isInteger(Number(l.quantity || 0)));
+          if (fractionalNow.length) throw new Error('a catalogue line now has a quantity that is not a whole number (' + fractionalNow.map(l => l.description || l.sku || 'a line').join(', ') + ')');
           // Shipping and tax are shared across the lines in proportion to what
           // each line is worth, so every unit carries its fair share. That is
           // the number to price against — unit_cost alone flatters the margin.
-          const itemsValue = poLinesTotal(po);
-          const extras = Number(po.shipping_cost || 0) + Number(po.tax || 0);
+          const itemsValue = poLinesTotal(rpo);
+          const extras = Number(rpo.shipping_cost || 0) + Number(rpo.tax || 0);
           for (const line of items) {
             const qty = Number(line.quantity || 0);
             if (qty <= 0) continue;
@@ -4135,7 +4171,7 @@
             await changeStock(line.product_id, { available: outstanding }, uid);
             const { error: adjErr } = await supabase.from('inventory_adjustments').insert({
               product_id: line.product_id, bucket: 'available', change_amount: outstanding,
-              reason: 'Delivery received (' + po.po_number + ')', adjusted_by: uid, lot_id: lotId,
+              reason: 'Delivery received (' + rpo.po_number + ')', adjusted_by: uid, lot_id: lotId,
             });
             if (adjErr) throw adjErr;
             const { data: lineRows, error: lineErr } = await supabase.from('purchase_order_items')
@@ -4143,28 +4179,54 @@
             if (lineErr) throw lineErr;
             // Stock for this line is already added: if the line can't be marked
             // received, say so (it would otherwise look unreceived).
-            if (noRowsChanged(lineRows)) throw new Error('its stock was added, but the line could not be marked received (nothing was changed — no permission?)');
+            if (noRowsChanged(lineRows)) {
+              // Was the line removed at this very moment (EXT5), or refused?
+              let stillThere = true;
+              try {
+                const { data: look, error: lookErr } = await supabase.from('purchase_order_items').select('id').eq('id', line.id).maybeSingle();
+                if (!lookErr) stillThere = !!look;
+              } catch (e) { /* unknown: keep the general wording */ }
+              throw new Error(stillThere
+                ? 'its stock was added, but the line could not be marked received (nothing was changed — no permission?)'
+                : 'its stock was added, but the line was removed from the order while it was being received (someone edited the order at the same moment)');
+            }
             stocked++;
             progress.stockedNames.push(progress.current);
             progress.current = null;
           }
 
-          const total = poGrandTotal(po);
+          const total = poGrandTotal(rpo);
           if (total > 0) {
             const { error: expErr } = await supabase.from('expenses').insert({
-              category: po.expense_category,
+              category: rpo.expense_category,
               amount: total,
               expense_date: localDateString(new Date()), // Central calendar day (UTC was "tomorrow" after 7 pm) (EXT4)
-              vendor: (po.suppliers && po.suppliers.name) || null,
-              note: 'Purchase order ' + po.po_number,
+              vendor: (rpo.suppliers && rpo.suppliers.name) || null,
+              note: 'Purchase order ' + rpo.po_number,
             });
             if (expErr) throw expErr;
           }
           progress.expense = true;
 
-          toastOk(stocked
-            ? `Received — ${stocked} ${stocked === 1 ? 'item' : 'items'} added to Inventory, cost logged to Expenses, true unit costs worked out.`
-            : 'Received — cost logged to Expenses, true unit costs worked out.');
+          // EXT5: a line edit that passed its status check just before the
+          // claim can still land while receiving. Check the lines once more;
+          // if they differ from what was received, say so instead of success.
+          let after = null;
+          try {
+            const { data: afterRows, error: afterErr } = await supabase.from('purchase_order_items')
+              .select('id, product_id, quantity, unit_cost').eq('purchase_order_id', rpo.id);
+            if (!afterErr) after = afterRows;
+          } catch (e) { /* re-check unavailable: reported below */ }
+          if (after && lineSig(after) !== lineSig(items)) {
+            showDashError('Purchase order ' + rpo.po_number + ' was received, but the lines of this order changed while it was being received (a line was added, removed or edited at the same moment). '
+              + 'Stock and the expense follow the lines as they were when receiving started. Compare the order with Inventory and Expenses now and correct by hand if needed.');
+          } else {
+            toastOk((stocked
+              ? `Received — ${stocked} ${stocked === 1 ? 'item' : 'items'} added to Inventory, cost logged to Expenses, true unit costs worked out.`
+              : 'Received — cost logged to Expenses, true unit costs worked out.') + changedNote);
+            if (changedNote) toast(changedNote.trim());
+            if (!after) toast('Received, but the lines could not be checked again afterwards. If anyone was editing this order, compare it with Inventory.');
+          }
           if (skipped) toast(`${skipped} line${skipped === 1 ? '' : 's'} weren't catalogue products, so no stock was added for them.`);
         } catch (err) {
           // The order is already marked Received, so the Receive button is gone

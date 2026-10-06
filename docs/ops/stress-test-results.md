@@ -1,6 +1,12 @@
 # Stock functions: local stress-test results
 
-## CURRENT: extension 4 additions (2026-10-06)
+## CURRENT: extension 5 additions (2026-10-06)
+
+- **S27 now covers three races** against a receive: remove a line, add a line, change a line's quantity. Without a guard, out of 20 simultaneous races each: delete 4, add 5, quantity 6 failed (one run). With the extended guard (`drafts/17`): 0 / 0 / 0, no deadlock. The guard also still allows the receive's own bookkeeping, refuses edits on a received order, and lets a whole order be deleted (cascade). 98 checks per run.
+- **`po_race_interleavings.sh` (new):** each ordering forced with a held transaction. Without the guard, "receive first, edit second" fails every time for all three edits; "edit first" is safe. With the guard, all 6 orderings agree.
+- SQL mutation harness: disabling the guard is caught (11 / 11 mutations).
+
+## Earlier: extension 4 additions (2026-10-06)
 
 `stress_test.sh` now has 29 scenarios and **91 checks per run**. New in extension 4:
 

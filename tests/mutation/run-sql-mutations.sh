@@ -63,6 +63,22 @@ if grep -q "where false);" "$TMP/10_notypes.sql"; then
   if INSTALL_FILE="$TMP/10_notypes.sql" bash "$PKG" "${CONN[@]}" > "$TMP/pkg2.out" 2>&1; then echo "MISS install type check disabled → NOT CAUGHT"; missed=$((missed+1)); else echo "OK   install type check disabled → CAUGHT ($(grep -c FAIL "$TMP/pkg2.out") failing checks)"; caught=$((caught+1)); fi
 else echo "MISS install type check disabled → MUTATION NOT APPLIED"; missed=$((missed+1)); fi
 
+# EXT5: the PO line guard (drafts/17) is checked by the forced interleavings.
+GUARD="$ROOT/docs/ops/sql/drafts/17_DRAFT_po_line_delete_guard.sql"
+python3 - "$GUARD" "$TMP/17_noguard.sql" <<'PY'
+import sys
+s=open(sys.argv[1]).read()
+f="  if found and v_status not in ('draft', 'ordered') then\n    raise exception 'Purchase order % is \"%\" now, so its lines can no longer be changed."
+if s.count(f)!=1: print('NOTFOUND'); sys.exit(0)
+open(sys.argv[2],'w').write(s.replace(f, f.replace('if found and', 'if false and'), 1))
+PY
+if [ -f "$TMP/17_noguard.sql" ]; then
+  psql "${CONN[@]}" -d postgres -qX -c "drop database if exists $DB" >/dev/null 2>&1
+  psql "${CONN[@]}" -d postgres -qX -v ON_ERROR_STOP=1 -c "create database $DB template $SRC_DB" >/dev/null
+  psql "${CONN[@]}" -d "$DB" -qX -v ON_ERROR_STOP=1 -f "$DRAFT" >/dev/null 2>&1
+  if GUARD_FILE="$TMP/17_noguard.sql" bash "$ROOT/docs/ops/sql/local-test/po_race_interleavings.sh" "${CONN[@]}" -d "$DB" > "$TMP/race.out" 2>&1; then echo "MISS PO line guard disabled → NOT CAUGHT"; missed=$((missed+1)); else echo "OK   PO line guard disabled → CAUGHT ($(grep -o 'GUARDED FAILURES: [0-9]*' "$TMP/race.out"))"; caught=$((caught+1)); fi
+else echo "MISS PO line guard disabled → MUTATION NOT APPLIED"; missed=$((missed+1)); fi
+
 psql "${CONN[@]}" -d postgres -qX -c "drop database if exists $DB" >/dev/null 2>&1
 rm -rf "$TMP"
 echo "SQL MUTATIONS: $caught caught, $missed missed"

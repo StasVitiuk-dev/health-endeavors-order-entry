@@ -439,29 +439,57 @@ run_once() {
   check "S26 data-integrity invariants hold" "$($PSQL -f "$(dirname "$0")/invariants.sql" | grep -c .)" 0
 
   dl_mark "S27"
-  # S27 (EXT4). A purchase-order line is removed while the order is received.
-  # Without a guard the line can disappear AFTER its stock was added (shown
-  # here for the record, not as a check). With the draft guard
-  # (drafts/17_…) installed, stock always matches the order's lines.
+  # S27 (EXT4; EXT5 adds add-line and quantity-change). A purchase-order line
+  # is removed / added / re-quantified while the order is received. Without a
+  # guard the order and its stock can disagree (counted for the record, not a
+  # check). With the draft guard (drafts/17_…) installed they must always
+  # agree, with no deadlock. "Agree" = the order is received AND every line
+  # has quantity_received = quantity AND stock grew by exactly the sum of the
+  # lines; or the receive did not happen and stock did not move.
+  s27_action() {
+    case "$1" in
+      delete) echo "delete from purchase_order_items where id='a2700000-1111-4000-8000-000000000002';" ;;
+      add)    echo "insert into purchase_order_items (purchase_order_id, product_id, description, quantity, unit_cost) values ('a2700000-0000-4000-8000-000000000001','$A','late',3,1);" ;;
+      qty)    echo "update purchase_order_items set quantity = 9 where id='a2700000-1111-4000-8000-000000000002';" ;;
+    esac
+  }
   s27_round() {
-    local bad=0
+    local bad=0 kind=$1
     for i in $(seq 1 20); do
       reset
-      q "insert into purchase_orders (id, po_number, status, supplier_id) values ('a2700000-0000-4000-8000-000000000001','S27','shipped','99999999-0000-4000-8000-000000000000')"
+      q "insert into purchase_orders (id, po_number, status, supplier_id) values ('a2700000-0000-4000-8000-000000000001','S27','ordered','99999999-0000-4000-8000-000000000000')"
       q "insert into purchase_order_items (id, purchase_order_id, product_id, description, quantity, unit_cost) values ('a2700000-1111-4000-8000-000000000001','a2700000-0000-4000-8000-000000000001','$A','x',5,1), ('a2700000-1111-4000-8000-000000000002','a2700000-0000-4000-8000-000000000001','$A','y',7,1)"
       call "select receive_purchase_order('a2700000-0000-4000-8000-000000000001');" &
-      call "delete from purchase_order_items i using purchase_orders p where i.id='a2700000-1111-4000-8000-000000000002' and p.id=i.purchase_order_id and p.status in ('draft','ordered','shipped');" &
+      call "$(s27_action $kind)" &
       wait
-      [ "$(q "select (select available from inventory where product_id='$A') = 1000 + (select coalesce(sum(quantity),0) from purchase_order_items where purchase_order_id='a2700000-0000-4000-8000-000000000001' and quantity_received = quantity)")" = t ] || bad=$((bad+1))
+      [ "$(q "select case (select status from purchase_orders where id='a2700000-0000-4000-8000-000000000001')
+          when 'received' then (not exists (select 1 from purchase_order_items where purchase_order_id='a2700000-0000-4000-8000-000000000001' and coalesce(quantity_received,0) <> quantity)
+                                and (select available from inventory where product_id='$A') = 1000 + (select sum(quantity) from purchase_order_items where purchase_order_id='a2700000-0000-4000-8000-000000000001'))::text
+          else ((select available from inventory where product_id='$A') = 1000)::text end")" = true ] || bad=$((bad+1))
     done
     echo $bad
   }
-  S27_UNGUARDED=$(s27_round)
+  S27_UNGUARDED=""
+  for k in delete add qty; do S27_UNGUARDED="$S27_UNGUARDED $k:$(s27_round $k)/20"; done
   $PSQL -f "$(dirname "$0")/../drafts/17_DRAFT_po_line_delete_guard.sql" >/dev/null
-  check "S27 with the line-delete guard: stock always matches the received lines (20 races)" "$(s27_round)" 0
+  local dl27=$(grep -c deadlock "$ERR")
+  for k in delete add qty; do
+    check "S27 with the line guard ($k vs receive): order and stock always agree (20 races)" "$(s27_round $k)" 0
+  done
+  check "S27 with the line guard: no deadlock" "$(( $(grep -c deadlock "$ERR") - dl27 ))" 0
+  # the receive itself may still write quantity_received / landed_unit_cost on a received order's lines
+  reset
+  q "insert into purchase_orders (id, po_number, status, supplier_id) values ('a2700000-0000-4000-8000-000000000003','S27b','received','99999999-0000-4000-8000-000000000000')"
+  q "insert into purchase_orders (id, po_number, status, supplier_id) values ('a2700000-0000-4000-8000-000000000004','S27c','ordered','99999999-0000-4000-8000-000000000000')"
+  q "insert into purchase_order_items (id, purchase_order_id, product_id, description, quantity, unit_cost) values ('a2700000-1111-4000-8000-000000000009','a2700000-0000-4000-8000-000000000004','$A','z',2,1)"
+  q "update purchase_orders set status='received' where id='a2700000-0000-4000-8000-000000000004'"
+  check "S27 guard allows receive bookkeeping (quantity_received, landed cost) on a received order" "$($PSQL -c "update purchase_order_items set quantity_received = 2, landed_unit_cost = 1.5 where id='a2700000-1111-4000-8000-000000000009'" 2>&1 | grep -c ERROR)" 0
+  check "S27 guard refuses a quantity change on a received order" "$($PSQL -c "update purchase_order_items set quantity = 3 where id='a2700000-1111-4000-8000-000000000009'" 2>&1 | grep -c 'can no longer be changed')" 1
+  check "S27 guard refuses adding a line to a received order" "$($PSQL -c "insert into purchase_order_items (purchase_order_id, description, quantity) values ('a2700000-0000-4000-8000-000000000003','late',1)" 2>&1 | grep -c 'can no longer be changed')" 1
+  check "S27 guard still lets a whole order be deleted (cascade)" "$($PSQL -c "delete from purchase_orders where id='a2700000-0000-4000-8000-000000000004'" 2>&1 | grep -c ERROR)" 0
   $PSQL -f "$(dirname "$0")/../drafts/18_DRAFT_rollback_po_line_delete_guard.sql" >/dev/null
   check "S27 guard rollback leaves no trigger" "$(q "select count(*) from pg_trigger where tgname='he_po_line_delete_guard'")" 0
-  [ -n "$VERBOSE" ] && echo "  S27 without the guard: $S27_UNGUARDED of 20 races left stock that no line explains"
+  [ -n "$VERBOSE" ] && echo "  S27 without the guard (out of 20 races each):$S27_UNGUARDED"
 
   dl_mark "S28"
   # S28 (EXT4). A recall is quarantined while 30 people take stock out of
@@ -502,7 +530,7 @@ run_once() {
 
   dl_mark "end"
   local t1=$(date +%s%N)
-  echo "run $1: $pass passed, $fail failed, deadlocks seen: $(grep -c deadlock "$ERR"), $(( (t1 - t0) / 1000000 )) ms; S21 ladder:$S21_LADDER; S27 unguarded races:$S27_UNGUARDED/20"
+  echo "run $1: $pass passed, $fail failed, deadlocks seen: $(grep -c deadlock "$ERR"), $(( (t1 - t0) / 1000000 )) ms; S21 ladder:$S21_LADDER; S27 unguarded:$S27_UNGUARDED"
 }
 
 total_fail=0

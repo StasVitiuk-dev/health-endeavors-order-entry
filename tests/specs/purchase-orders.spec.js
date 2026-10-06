@@ -177,3 +177,20 @@ test('Cancel un-arms itself after 4 seconds', async ({ page, backend }) => {
   await expect(cancel).toHaveText('Cancel', { timeout: 6000 });
   expect(writes(backend, 'purchase_orders')).toEqual([]);
 });
+
+// EXT5: the line edit checks the status, then writes in a second request. A
+// Receive landing in between must not leave the editor believing all is well.
+for (const [what, act, method] of [
+  ['removing a line', async box => box.locator('.poDelLine[data-line="line-1"]').click(), 'DELETE'],
+  ['adding a line', async box => { await box.locator('.poLineDesc').fill('SYNTHETIC caps'); await box.locator('.poLineQty').fill('5'); await box.locator('.poAddLine').click(); }, 'POST'],
+]) {
+  test(`${what} while the order is received at the same moment: the editor is warned`, async ({ page, backend }) => {
+    const box = await openPo(page, 'syn-draft');
+    await page.route(/\/rest\/v1\/purchase_order_items/, route => {
+      if (route.request().method() === method) backend.tables.purchase_orders.find(p => p.id === 'syn-draft').status = 'received';
+      return route.fallback();
+    });
+    await act(box);
+    await expect(page.locator('#dashError')).toContainText('at the same moment');
+  });
+}

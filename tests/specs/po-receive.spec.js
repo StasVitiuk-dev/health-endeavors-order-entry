@@ -269,3 +269,67 @@ test.describe('expense date', () => {
     expect(backend.tables.expenses[0].expense_date).toBe('2026-09-30');
   });
 });
+
+// EXT5: Receive used the lines, shipping and tax the page loaded, not what is
+// in the database when the order is received. Another tab (or person) that
+// changed the order meanwhile was silently ignored. Now the order is re-read
+// right after the claim and the current lines are received; a change that
+// lands while receiving is reported, never shown as a clean success.
+test.describe('order changed in another tab before Receive', () => {
+  const removeLine = (backend, id) => {
+    backend.tables.purchase_order_items = backend.tables.purchase_order_items.filter(l => l.id !== id);
+    const po = backend.tables.purchase_orders[0];
+    po.purchase_order_items = po.purchase_order_items.filter(l => l.id !== id);
+  };
+  test('a line removed elsewhere is not stocked and not charged', async ({ page, backend }) => {
+    removeLine(backend, 'poi-b');
+    await clickReceive(page);
+    await expect.poll(() => snapshot(backend).poStatus).toBe('received');
+    await expect.poll(() => backend.tables.expenses.length).toBe(1);
+    expect(snapshot(backend)).toMatchObject({ availableA: 60, availableB: 0 });
+    expect(backend.tables.expenses[0].amount).toBe(50 * 2 + 15 + 5); // line A + shipping + tax
+    await expect(page.locator('body')).toContainText('changed since this page was opened');
+  });
+  test('a line added elsewhere is received too', async ({ page, backend }) => {
+    const extra = { id: 'poi-c', purchase_order_id: PO_ID, product_id: PRODUCT_B, description: 'SYNTHETIC product B extra', sku: 'SYN-B', quantity: 3, unit_cost: 5, quantity_received: 0, landed_unit_cost: null };
+    backend.tables.purchase_order_items.push(extra); // the order's embedded list is the same array in this fixture
+    await clickReceive(page);
+    await expect.poll(() => snapshot(backend).availableB).toBe(23);
+    expect(backend.tables.expenses[0].amount).toBe(100 + 100 + 15 + 15 + 5);
+  });
+  test('shipping changed elsewhere: the expense uses the saved figure', async ({ page, backend }) => {
+    backend.tables.purchase_orders[0].shipping_cost = 40;
+    await clickReceive(page);
+    await expect.poll(() => backend.tables.expenses.length).toBe(1);
+    expect(backend.tables.expenses[0].amount).toBe(100 + 100 + 40 + 5);
+  });
+  test('a line removed WHILE receiving (before it is marked): no success; the page names the cause', async ({ page, backend }) => {
+    let fired = false;
+    // remove line B just before the first stock write, i.e. after the re-read
+    const orig = backend.handle.bind(backend);
+    backend.handle = async route => {
+      const u = new URL(route.request().url());
+      if (!fired && u.pathname.endsWith('/rest/v1/inventory') && route.request().method() === 'PATCH') { fired = true; removeLine(backend, 'poi-b'); }
+      return orig(route);
+    };
+    await clickReceive(page);
+    await expect(page.locator('#dashError')).toContainText('removed from the order while it was being received', { timeout: 15000 });
+    await expect(page.locator('#toastHost .toast.ok')).toHaveCount(0);
+  });
+});
+
+test('a line removed after the last line was marked (just before the expense): the final re-check reports it', async ({ page, backend }) => {
+  let fired = false;
+  const orig = backend.handle.bind(backend);
+  backend.handle = async route => {
+    const u = new URL(route.request().url());
+    if (!fired && u.pathname.endsWith('/rest/v1/expenses') && route.request().method() === 'POST') {
+      fired = true;
+      backend.tables.purchase_order_items = backend.tables.purchase_order_items.filter(l => l.id !== 'poi-b');
+    }
+    return orig(route);
+  };
+  await clickReceive(page);
+  await expect(page.locator('#dashError')).toContainText('lines of this order changed while it was being received', { timeout: 15000 });
+  await expect(page.locator('#toastHost .toast.ok')).toHaveCount(0);
+});
