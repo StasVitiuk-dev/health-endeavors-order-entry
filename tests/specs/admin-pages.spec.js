@@ -153,6 +153,48 @@ test.describe('System Mode', () => {
     expect(filtersOf(flag[0])).toEqual({ flag_key: 'eq.shopify_order_sync' });
   });
 
+  // MU-06 (2026-10-06): the follow-up switches must really happen, or the
+  // page must say so. Row-level security refuses with "0 rows", no error.
+  async function goEmergency(page) {
+    await page.selectOption('#systemModeSelect', 'EMERGENCY');
+    page.once('dialog', d => d.accept());
+    await page.click('#systemModeChangeBtn');
+    await confirmPassword(page);
+  }
+  const zeroRowsOn = (page, table) => page.route(url => new URL(url).pathname.endsWith('/rest/v1/' + table), route =>
+    route.request().method() === 'PATCH' ? route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }) : route.fallback());
+
+  test('Emergency: if Shopify Order Sync could not really be switched off, the page says so (no success message)', async ({ page, backend }) => {
+    seed(backend);
+    backend.tables.agent_controls = [{ agent_num: 7, enabled: true }];
+    await login(page);
+    await open(page, 'flagsPanel');
+    await zeroRowsOn(page, 'feature_flags');
+    await goEmergency(page);
+    await expect(page.locator('#dashError')).toContainText('Shopify Order Sync could NOT be switched off');
+    await expect(page.locator('.toast', { hasText: 'System mode changed to' })).toHaveCount(0);
+  });
+
+  test('Emergency: if Agent #7 could not really be paused, the page says so', async ({ page, backend }) => {
+    seed(backend);
+    backend.tables.agent_controls = [{ agent_num: 7, enabled: true }];
+    await login(page);
+    await open(page, 'flagsPanel');
+    await zeroRowsOn(page, 'agent_controls');
+    await goEmergency(page);
+    await expect(page.locator('#dashError')).toContainText('Agent #7 (Customer Service) could NOT be paused');
+  });
+
+  test('Emergency: when both follow-ups really happen, it reports success and no error', async ({ page, backend }) => {
+    seed(backend);
+    backend.tables.agent_controls = [{ agent_num: 7, enabled: true }];
+    await login(page);
+    await open(page, 'flagsPanel');
+    await goEmergency(page);
+    await expect(page.locator('.toast', { hasText: 'System mode changed to Emergency' })).toBeVisible();
+    await expect(page.locator('#dashError')).toBeHidden();
+  });
+
   test('cancelling the password prompt changes nothing', async ({ page, backend }) => {
     seed(backend);
     await login(page);

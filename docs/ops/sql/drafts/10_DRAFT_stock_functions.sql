@@ -33,6 +33,9 @@
 --   * search_path pinned; EXECUTE granted to `authenticated` only.
 -- =============================================================================
 
+-- One transaction: every function is installed, or (on any error) none is.
+begin;
+
 -- Earlier draft signatures (never installed anywhere; harmless if absent), so a
 -- re-run can't leave an old overload behind.
 drop function if exists public.adjust_inventory(uuid, text, integer, text);
@@ -487,3 +490,5 @@ grant execute on function public.receive_purchase_order(uuid, jsonb, date) to au
 grant execute on function public.quarantine_recall(uuid) to authenticated;
 grant execute on function public.receive_return(uuid, text, integer) to authenticated;
 grant execute on function public.delete_unused_product(uuid) to authenticated;
+
+commit;

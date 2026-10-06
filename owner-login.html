@@ -6113,26 +6113,42 @@
           // still keep the mode change — the mode itself is the source
           // of truth, this is just a convenience so you don't have to
           // flip both switches by hand.
+          // Each of these must really have happened (a refusal by the
+          // database's permissions changes 0 rows without an error), and if
+          // one didn't, the page says so plainly instead of reporting success:
+          // in an emergency the owner must not believe the sync is off when
+          // it is still on.
+          const leftOn = [];
           if (newMode === 'EMERGENCY') {
-            const { error: flagErr } = await supabase.from('feature_flags')
+            const { data: flagRows, error: flagErr } = await supabase.from('feature_flags')
               .update({ enabled: false, updated_by: uid, updated_at: new Date().toISOString() })
-              .eq('flag_key', 'shopify_order_sync');
-            if (flagErr) console.warn('Could not auto-disable Shopify Order Sync:', flagErr.message);
+              .eq('flag_key', 'shopify_order_sync')
+              .select('id, enabled');
+            if (flagErr || noRowsChanged(flagRows) || flagRows.some(r => r.enabled !== false)) {
+              leftOn.push('Shopify Order Sync could NOT be switched off' + (flagErr ? ' (' + flagErr.message + ')' : ' (nothing was changed — no permission, or the flag row is missing)') + '. Switch it off by hand on this page now.');
+            }
           }
 
           // No AI and Emergency both also best-effort pause Agent #7
           // (Customer Service) — the only one of the 10 agents that calls a
-          // paid AI model. Same convenience logic as the Shopify flag above:
-          // this doesn't get undone automatically when you switch back to
-          // Normal, since you may have paused it for an unrelated reason.
+          // paid AI model. This doesn't get undone automatically when you
+          // switch back to Normal, since you may have paused it for an
+          // unrelated reason.
           if (newMode === 'NO_AI' || newMode === 'EMERGENCY') {
-            const { error: agentErr } = await supabase.from('agent_controls')
+            const { data: agentRows, error: agentErr } = await supabase.from('agent_controls')
               .update({ enabled: false, updated_by: uid, updated_at: new Date().toISOString() })
-              .eq('agent_num', 7);
-            if (agentErr) console.warn('Could not auto-pause Customer Service Agent:', agentErr.message);
+              .eq('agent_num', 7)
+              .select('agent_num, enabled');
+            if (agentErr || noRowsChanged(agentRows) || agentRows.some(r => r.enabled !== false)) {
+              leftOn.push('Agent #7 (Customer Service) could NOT be paused' + (agentErr ? ' (' + agentErr.message + ')' : ' (nothing was changed — no permission, or its switch row is missing)') + '. Pause it by hand on the AI Agent Activity page now.');
+            }
           }
 
-          toast('System mode changed to ' + info.label);
+          if (leftOn.length) {
+            showDashError('System mode is now ' + info.label + ', but: ' + leftOn.join(' '));
+          } else {
+            toast('System mode changed to ' + info.label);
+          }
           await Promise.all([loadSystemMode(), loadFlags(), loadAgentControls()]);
         } catch (err) {
           const msg = (err && err.message) || String(err);
