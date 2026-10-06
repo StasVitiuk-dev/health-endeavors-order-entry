@@ -4,14 +4,14 @@ Internal dashboard/platform only. Generated from `docs/ops/backlog/items.py` (ed
 
 **209 deduplicated items** from 264 raw candidates (55 duplicates merged: the same item recorded in PROJECT_RECORD, the overnight review, PRs, owner lists, decision registers and tests).
 
-Status counts: BLOCKED-EXT 2, BLOCKED-OWNER 31, BLOCKED-PROD 12, BLOCKED-QC 11, DEFERRED 20, DONE 129, QUEUED 4
+Status counts: BLOCKED-EXT 2, BLOCKED-OWNER 31, BLOCKED-PROD 12, BLOCKED-QC 11, DEFERRED 20, DONE 130, QUEUED 3
 
 | Priority | Items | Done (branch) | Remaining |
 |---|---|---|---|
 | P0 | 14 | 4 | 10 |
 | P1 | 53 | 37 | 16 |
 | P2 | 64 | 45 | 19 |
-| P3 | 65 | 43 | 22 |
+| P3 | 65 | 44 | 21 |
 | P4 | 13 | 0 | 13 |
 
 Priorities: P0 data loss / security / financial corruption / destructive · P1 launch blocker / correctness / concurrency / permission · P2 reliability / scale / accessibility / major UX · P3 maintainability / tests / docs · P4 future.
@@ -181,7 +181,6 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | MD-03 | Modularization | HE namespace + start registry + feature modules | Plan step 3 | Low | L | open PRs merged | N | Y | N | BLOCKED-OWNER |
 | MD-04 | Modularization | Upload helpers (uploadThenSave) to a module with supabase injected | Reuse/testing | Low | S | — | Y | N | N | QUEUED |
 | MU-12 | Mutations | Product edit concurrent-edit guard (updated_at) | Last save wins | Low | S | — | Y | N | N | DEFERRED |
-| RP-06 | Reporting | Duplicate PO expenses detection in reports | Duplicate expense visibility | Low | S | — | Y | N | N | QUEUED |
 | SC-05 | Scale | "Showing first 1,000" notice for long lists (lots, products, POs) | Silent list truncation later | Low | S | — | Y | N | N | DEFERRED |
 | SC-06 | Scale | Lot pickers truncate after 1,000 lots | Older lots missing from pickers | Low | S | — | Y | N | N | DEFERRED |
 | ST-08 | Storage | Read-only listing of orphaned objects created before the fixes | Cleanup scope | Low | S | owner | N | Y | Y | BLOCKED-PROD |
@@ -208,6 +207,7 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | MU-05 | Mutations | Reminder double submit (form + quick add Enter) | Duplicates | Low | S | — | Y | N | N | DONE |
 | MU-09 | Mutations | Raw errors still show table/policy names (e.g. "for table evidence_locker") | Unnecessary internal detail in UI | Low | S | — | Y | N | N | DONE |
 | MU-14 | Mutations | Business rules threshold: stale overwrite (config) unguarded | Two owners editing | Low | S | — | Y | N | N | DONE |
+| RP-06 | Reporting | Duplicate PO expenses detection in reports | Duplicate expense visibility | Low | S | — | Y | N | N | DONE |
 | SC-07 | Scale | Single reusable paging helper used by all totals (fetchAllRows/In) | Consistency | Low | S | — | Y | N | N | DONE |
 | SE-09 | Security | Bidi/RTL override and zero-width characters in names shown with clear isolation | Spoofed display text | Low | S | — | Y | N | N | DONE |
 | SE-10 | Security | Public repo hygiene scan in CI (no keys/emails in added files) | Prevent leaks | Low | S | — | Y | N | N | DONE |

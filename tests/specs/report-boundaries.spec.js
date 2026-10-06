@@ -69,3 +69,22 @@ test('a deleted order and a cancelled order never count as revenue, at any range
     await expect(revenue(page, 'acctStats'), r).toHaveText(r === 'today' ? '$0.00' : '$20.00');
   }
 });
+
+test('a purchase order whose cost was logged twice is listed for review; totals are not changed (RP-06)', async ({ page, backend }) => {
+  Object.assign(backend.tables, {
+    orders: [], returns: [], order_items: [],
+    expenses: [
+      { id: 'e1', category: 'packaging', amount: 40, expense_date: '2026-06-02', vendor: null, note: 'Purchase order PO-7', receipt_path: null, deleted_at: null },
+      { id: 'e2', category: 'packaging', amount: 40, expense_date: '2026-06-03', vendor: null, note: 'Purchase order PO-7', receipt_path: null, deleted_at: null },
+      { id: 'e3', category: 'packaging', amount: 25, expense_date: '2026-06-03', vendor: null, note: 'Purchase order PO-8', receipt_path: null, deleted_at: null },
+      { id: 'e4', category: 'packaging', amount: 999, expense_date: '2026-06-03', vendor: null, note: 'Purchase order PO-8', receipt_path: null, deleted_at: '2026-06-04T00:00:00Z' },
+    ],
+  });
+  await page.clock.setFixedTime(NOW);
+  await login(page);
+  await gotoPage(page, 'accountingPanel');
+  await page.click('#acctToggle button[data-range="all"]');
+  await expect(page.locator('#acctDupWrap .acctDupRow')).toHaveCount(1); // PO-8's second entry is deleted
+  await expect(page.locator('#acctDupWrap')).toContainText('Purchase order PO-7 — logged 2 times, $80.00 in total');
+  await expect(page.locator('#acctStats .stat').nth(1).locator('.num')).toHaveText('$105.00'); // expenses total unchanged
+});

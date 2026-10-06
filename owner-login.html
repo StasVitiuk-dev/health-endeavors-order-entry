@@ -307,6 +307,10 @@
         <h3 style="font-size:13px;color:var(--navy);margin:18px 0 6px;">Orders needing refund review</h3>
         <p class="hint" style="margin-top:-2px;">These have a partial-refund status but no exact refunded amount on file, so they're counted at full value above — check Shopify if the real number matters for this period.</p>
         <div id="acctReviewWrap"><p class="empty">Loading…</p></div>
+
+        <h3 style="font-size:13px;color:var(--navy);margin:18px 0 6px;">Possible duplicate delivery costs</h3>
+        <p class="hint" style="margin-top:-2px;">Each received purchase order should add its cost to Expenses once. These have more than one cost entry, so check whether one is a duplicate. They are counted as they are in the totals above; nothing is changed automatically.</p>
+        <div id="acctDupWrap"><p class="empty">Loading…</p></div>
       </section>
 
       <!-- Tax Records (Agent #10) -->
@@ -8450,7 +8454,7 @@
           if (start) q = q.gte('placed_at', start.toISOString());
           return q;
         });
-        const expenses = await fetchAllRows('expenses', 'id, amount, expense_date, deleted_at', q => {
+        const expenses = await fetchAllRows('expenses', 'id, amount, expense_date, deleted_at, note', q => {
           q = q.is('deleted_at', null);
           if (start) q = q.gte('expense_date', start.toISOString().slice(0, 10));
           return q;
@@ -8484,6 +8488,23 @@
           <div class="stat"><div class="num">${esc(fmtMoney(excluded, currency))}</div><div class="lbl">Cancelled / refunded (excluded)</div></div>
           ${ACCOUNTING_REFUND_POLICY === 'subtract_return_refunds' ? `<div class="stat"><div class="num">${esc(fmtMoney(returnRefundTotal, currency))}</div><div class="lbl">Refunds on Returns (subtracted)</div></div>` : ''}
         `;
+
+        // RP-06 (EXT3): the same purchase order's cost logged more than once
+        // (a retried or half-finished receive). Shown for review only.
+        const poCosts = {};
+        expenses.forEach(e => {
+          const m = /^Purchase order (.+)$/.exec(String(e.note || '').trim());
+          if (!m) return;
+          (poCosts[m[1]] = poCosts[m[1]] || []).push(e);
+        });
+        const dupPos = Object.keys(poCosts).filter(k => poCosts[k].length > 1).sort();
+        document.getElementById('acctDupWrap').innerHTML = !dupPos.length
+          ? '<p class="empty">None found.</p>'
+          : dupPos.map(k => `
+            <div class="deletedRow acctDupRow">
+              <div class="info"><b>Purchase order ${esc(k)}</b> — logged ${poCosts[k].length} times, ${esc(fmtMoney(poCosts[k].reduce((s, e) => s + Number(e.amount || 0), 0), currency))} in total<br>
+              <span style="font-size:11px;color:var(--muted);">${poCosts[k].map(e => esc(fmtDateOnly(e.expense_date)) + ': ' + esc(fmtMoney(e.amount, currency))).join(' · ')}</span></div>
+            </div>`).join('');
 
         if (!needsReview.length) {
           document.getElementById('acctReviewWrap').innerHTML = '<p class="empty">Nothing needs review right now.</p>';

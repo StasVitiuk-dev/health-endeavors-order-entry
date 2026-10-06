@@ -95,7 +95,7 @@ a('RP-02','Reporting','Boundary tests 0/1/999/1,000/1,001/10,000 rows for Accoun
 a('RP-03','Reporting','Refund accounting decision N4 (subtract vs full)','Revenue correctness','P1','High','S','owner decision','P','Y','N','BLOCKED-OWNER',['N4'])
 a('RP-04','Reporting','Accounting/Tax date ranges in Central time vs UTC','Evening orders counted on the wrong day','P1','Medium','S','D-ops-3 / owner','P','Y','N','BLOCKED-OWNER',['PR #11 note'])
 a('RP-05','Reporting','Deleted (soft) orders and expenses excluded from all totals — test','Double counting','P2','Medium','S','—','Y','N','N','DONE')
-a('RP-06','Reporting','Duplicate PO expenses detection in reports','Duplicate expense visibility','P3','Low','S','—','Y','N','N','QUEUED')
+a('RP-06','Reporting','Duplicate PO expenses detection in reports','Duplicate expense visibility','P3','Low','S','—','Y','N','N','DONE')
 a('RP-07','Reporting','Tax CSV export = figures on screen at scale (2,500 rows)','Export truncation','P2','Medium','S','—','Y','N','N','DONE')
 a('RP-08','Reporting','Partial refunds counted in full (listed for review)','Known limitation','P2','Medium','M','N4','P','Y','N','BLOCKED-OWNER')
 a('RP-09','Reporting','Sales tax by state requires state field on real orders','Unverified until first real order','P2','Medium','S','first real order','N','Y','N','BLOCKED-EXT')

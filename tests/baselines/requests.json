@@ -17,7 +17,7 @@
   "GET documents?order=created_at.desc&select=id,title,category,related_type,related_id,document_url,file_path,issued_date,expiration_date,notes,created_at",
   "GET evidence_locker?limit=200&order=created_at.desc&select=id,incident_id,title,description,evidence_type,external_link,file_path,created_at",
   "GET expenses?deleted_at=is.null&expense_date=gte.2026-01-01&limit=1000&offset=0&order=id.asc&select=id,category,amount,expense_date,vendor,receipt_path,deleted_at",
-  "GET expenses?deleted_at=is.null&expense_date=gte.2026-06-15&limit=1000&offset=0&order=id.asc&select=id,amount,expense_date,deleted_at",
+  "GET expenses?deleted_at=is.null&expense_date=gte.2026-06-15&limit=1000&offset=0&order=id.asc&select=id,amount,expense_date,deleted_at,note",
   "GET expenses?deleted_at=is.null&limit=1000&offset=0&order=id.asc&select=id,amount",
   "GET expenses?deleted_at=is.null&limit=200&order=expense_date.desc&select=id,category,amount,expense_date,vendor,note,receipt_path",
   "GET expenses?deleted_at=not.is.null&limit=50&order=deleted_at.desc&select=id,category,amount,deleted_at,receipt_path",
