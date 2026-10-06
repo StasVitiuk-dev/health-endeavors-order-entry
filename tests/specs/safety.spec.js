@@ -71,3 +71,35 @@ test('test files contain no real secrets or real contact details', () => {
     }
   }
 });
+
+// SE-10 / CI-05 (2026-10-06): the repository is public, so the documents,
+// SQL drafts and helpers must not contain secrets or real contact details
+// either. (The dashboard pages are not scanned for tokens: they carry the
+// public anon key on purpose.) Placeholder addresses are allowed.
+test('docs, SQL drafts and helpers contain no secrets or real e-mail addresses', () => {
+  const ROOT = path.resolve(__dirname, '..', '..');
+  const files = [
+    ...listFiles(path.join(ROOT, 'docs')),
+    ...listFiles(path.join(ROOT, 'assets')).filter(f => f.endsWith('.js') || f.endsWith('.css')),
+    ...fs.readdirSync(ROOT).filter(f => f.endsWith('.md')).map(f => path.join(ROOT, f)),
+  ].filter(f => /\.(md|sql|sh|py|js|css|txt|draft)$/.test(f));
+  expect(files.length).toBeGreaterThan(20);
+  const secrets = [
+    /sb_secret_[A-Za-z0-9]/,
+    /shpat_[0-9a-f]{8}/i,
+    /sk_live_[A-Za-z0-9]{8}/,
+    /eyJ[a-zA-Z0-9_-]{20,}\.eyJ[a-zA-Z0-9_-]{20,}\.[a-zA-Z0-9_-]{20,}/,
+    /-----BEGIN [A-Z ]*PRIVATE KEY-----/,
+    /[a-z0-9]{20}\.supabase\.co/,   // a real project host
+  ];
+  const allowedEmail = /(@example\.(test|com|org)|\.test$|^noreply@anthropic\.com$|@google\.com$|^\[email\]$)/i;
+  const emailPattern = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;
+  const problems = [];
+  for (const file of files) {
+    const text = fs.readFileSync(file, 'utf8');
+    const rel = path.relative(ROOT, file);
+    for (const re of secrets) if (re.test(text)) problems.push(`${rel} matches ${re}`);
+    for (const email of text.match(emailPattern) || []) if (!allowedEmail.test(email)) problems.push(`${rel} has e-mail ${email}`);
+  }
+  expect(problems).toEqual([]);
+});
