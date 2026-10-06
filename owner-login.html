@@ -6610,6 +6610,11 @@
       const title = titleInput.value.trim();
       const content = contentInput.value.trim();
       if (!title || !content) return;
+      // One save at a time: a double click or a second Enter must not add the
+      // same procedure twice (agents may read agent-visible procedures). EXT4.
+      const submitBtn = e.target.querySelector('button[type="submit"]');
+      if (submitBtn && submitBtn.disabled) return;
+      if (submitBtn) submitBtn.disabled = true;
       try {
         const { data: sessionData } = await supabase.auth.getSession();
         const uid = sessionData && sessionData.session ? sessionData.session.user.id : null;
@@ -6628,6 +6633,8 @@
         loadSops();
       } catch (err) {
         showDashError('Could not add that procedure: ' + (err && err.message ? err.message : err));
+      } finally {
+        if (submitBtn) submitBtn.disabled = false;
       }
     });
 
