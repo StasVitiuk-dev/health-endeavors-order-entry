@@ -1,6 +1,6 @@
 # Health Endeavors — current state (cross-project summary)
 
-**Last updated:** October 5, 2026 (platform sections §5, §6 and §8; website sections unchanged from Sept 30). **Keep this short.** Details live in the linked documents; update this file whenever the verified state changes materially.
+**Last updated:** October 6, 2026 (platform §1; website sections unchanged from Sept 30). **Keep this short.** Details live in the linked documents; update this file whenever the verified state changes materially.
 
 Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (from the owner's earlier chats, not re-checked) · **PROPOSED** · **OWNER DECISION REQUIRED** · **DEPRECATED**.
 
@@ -15,6 +15,7 @@ Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (fro
 
 - **CURRENT:** the owner dashboard (`owner-login.html` + 5 other pages) on GitHub Pages from `main`, backed by the production Supabase project (public anon key + staff login + row-level security).
 - **REPORTED:** broad operations features are live: orders, inventory with batch/lot tracking, purchase orders, returns, recalls, quality control, adverse event reports (15-business-day deadline), legal holds, customer inquiries, accounting and tax records, tasks, calendar, employee activity, audit log, security pages, and agents #4/#5/#6 running hourly in Supabase. See PROJECT_RECORD §2.
+- **Branch work (not merged, not live), Oct 5–6:** `claude/platform-overnight-implementation` holds the Query A fixes, hardened R1–R5 stock-function drafts (tested locally only) and the state-machine, stale-tab, storage, scale, XSS, accessibility and empty-database audits, each with fixes and tests. Query B ran clean; no existing data repair is required. Queries C and D are prepared, not run. See `docs/ops/OWNER_REVIEW_2026-10-06.md`.
 - **Store not launched:** 0 real orders, real products not yet added, the Shopify order sync and agents #2/#3/#7/#8 switched off on purpose until products exist (REPORTED). Agent #1's on/off state is **unverified**.
 
 ## 2. Public website (customer storefront)

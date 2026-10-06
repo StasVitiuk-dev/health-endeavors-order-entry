@@ -324,6 +324,8 @@ These are counts, not hours. Time depends on review and SQL-run turnaround.
 | Sept 27 | Task duplicate fix (Agent #5 v3, #4 v4) live + in-progress test; tasks access-rule check; **task buttons v1 live** and checked; v2 built and approved; paused at night (v2 not yet seen live) |
 | Sept 28 | [REPO] **Task buttons v2 uploaded to `main`** (4edf5d6) |
 | Sept 29 | [HIST] v2 live checks (4 of 9); [REPO] GitHub safety set up; verification record (PR #1); CODEOWNERS (PR #3; PR #2 closed); test suite + code review (PR #4); Code Owners rule on. This session: read-only verification, PR #5 (`CLAUDE.md`), the inventory-safety, regression-coverage, modularization and security branches, and this record |
+| Oct 5 | [REPO] Overnight platform branch `claude/platform-overnight-implementation` (not merged): guarded updates, R7, N14 paging, agent truth, stress tests. Owner ran Query A (schema, read-only); fixes for the 3 bugs it confirmed (Deny → `rejected`, rejected = closed, document links). Owner ran Query B (read-only): **ran clean; no existing data repair required** |
+| Oct 6 | [REPO] Same branch, not merged, nothing deployed: R1–R5 drafts hardened (failure injection, 19-scenario stress, 30 runs, 0 deadlocks); state-machine audit (document categories fixed; mock enforces real rules); stale-tab / silent-refusal / storage / scale / XSS / accessibility / empty-database audits with fixes and tests; Query C v2 and Query D prepared (not run). Owner review: `docs/ops/OWNER_REVIEW_2026-10-06.md` |
 
 ---
 
@@ -340,6 +342,9 @@ These are counts, not hours. Time depends on review and SQL-run turnaround.
 | Regression coverage | branch `claude/regression-coverage` → `docs/plans/regression-coverage-report.md` |
 | Modularization | branch `claude/owner-login-modularization-plan` → `docs/plans/owner-login-modularization-plan.md`, `docs/plans/owner-login-architecture-map.md` |
 | Security review | branch `claude/frontend-security-review` → `docs/security/frontend-security-review.md` |
+| Owner review (latest) · launch readiness | `docs/ops/OWNER_REVIEW_2026-10-06.md` · `docs/ops/LAUNCH_READINESS_2026-10-06.md` |
+| Audits (2026-10-06) | `docs/ops/state-machine-audit.md`, `mutation-safety-audit.md`, `storage-safety-audit.md`, `pagination-scale-audit.md` |
+| Stock functions (R1–R5) | `docs/ops/R1-R5-function-design.md`, `docs/ops/stress-test-results.md`, `docs/ops/sql/drafts/` |
 | Cross-project summary · progress tracker | `docs/health-endeavors-current-state.md` · `docs/health-endeavors-progress.md` (this PR) |
 | Public website (separate project) | Local website workspace → `docs/website/README.md`; never in this repository. A website repository needs the owner's approval. |
 | Full back-end history, SQL fingerprints, agent details | Old-chat *Internal Operating System Documentation* and *Blueprint Checklist* (**owner's private copies; not in this repo on purpose**, since they contain sensitive details) |
