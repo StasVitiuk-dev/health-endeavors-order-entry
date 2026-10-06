@@ -86,6 +86,25 @@ test.describe('Active Sessions', () => {
     expect(backend.requests.find(r => r.rpc === 'revoke_my_session').body).toEqual({ target_session_id: 'sess-phone' });
   });
 
+  // MU-13 (2026-10-06): only say "logged out" when the device is really gone.
+  test('when the device is gone afterwards, it says "Device logged out"', async ({ page, backend }) => {
+    await page.route(url => new URL(url).pathname.endsWith('/rpc/revoke_my_session'), route => {
+      backend.rpc.list_my_sessions = backend.rpc.list_my_sessions.filter(x => x.session_id !== 'sess-phone');
+      return route.fallback();
+    });
+    await page.click('.sessionRow[data-id="sess-phone"] .logoutSessionBtn');
+    await confirmPassword(page);
+    await expect(page.locator('.toast', { hasText: 'Device logged out' })).toBeVisible();
+    await expect(page.locator('.sessionRow[data-id="sess-phone"]')).toHaveCount(0);
+  });
+
+  test('when the device still shows up afterwards, it says it was NOT logged out', async ({ page }) => {
+    await page.click('.sessionRow[data-id="sess-phone"] .logoutSessionBtn');
+    await confirmPassword(page);
+    await expect(page.locator('#dashError')).toContainText('was NOT logged out');
+    await expect(page.locator('.toast', { hasText: 'Device logged out' })).toHaveCount(0);
+  });
+
   test('Cancel on the password prompt logs nothing out', async ({ page, backend }) => {
     await page.click('.sessionRow[data-id="sess-phone"] .logoutSessionBtn');
     await page.click('#reauthCancelBtn');

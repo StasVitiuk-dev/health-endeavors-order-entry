@@ -73,3 +73,21 @@ test('an agent switch stored as empty (null) shows on, and pausing it works (gua
   await expect.poll(() => backend.tables.agent_controls[0].enabled).toBe(false);
   expect(filtersOf(writes(backend, 'agent_controls')[0])).toEqual({ agent_num: 'eq.4', enabled: 'not.is.false' });
 });
+
+// MU-07 (2026-10-06): a draft save the database quietly refuses (0 rows) must
+// not show "Saved"; the person is told to copy the draft first.
+test.describe('Customer inquiries: saving a draft that is quietly refused', () => {
+  test('says the draft was not saved instead of "Saved"', async ({ page, backend }) => {
+    const base = { channel: 'email', order_id: null, customer_email: 'syn@example.test', ai_confidence: 0.8, sensitive: false, sensitive_reasons: null, drafted_at: null, answered_at: null };
+    backend.tables.customer_inquiries = [{ ...base, id: 'inq-1', customer_name: 'SYNTHETIC', question_text: 'SYNTHETIC question', status: 'drafted', severity: 'low', ai_draft_reply: 'SYNTHETIC draft', created_at: '2026-09-22T00:00:00Z' }];
+    backend.tables.orders = [];
+    await login(page);
+    await open(page, 'inquiriesPanel');
+    await page.route(url => new URL(url).pathname.endsWith('/rest/v1/customer_inquiries'), route =>
+      route.request().method() === 'PATCH' ? route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }) : route.fallback());
+    await page.locator('.inqDraftText[data-id="inq-1"]').fill('SYNTHETIC edited draft');
+    await page.locator('.inqSaveBtn[data-id="inq-1"]').click();
+    await expect(page.locator('#dashError')).toContainText('Your draft was not saved');
+    await expect(page.locator('.inqSaveBtn[data-id="inq-1"]')).not.toHaveText('Saved');
+  });
+});

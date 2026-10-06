@@ -2982,8 +2982,9 @@
           const id = btn.getAttribute('data-dismiss-id');
           btn.disabled = true;
           try {
-            const { error } = await supabase.from('manual_attention_items').update({ dismissed: true }).eq('id', id);
+            const { data: changed, error } = await supabase.from('manual_attention_items').update({ dismissed: true }).eq('id', id).select('id');
             if (error) throw error;
+            if (noRowsChanged(changed)) showDashError(staleMessage('That reminder'));
             loadAttention();
           } catch (err) {
             btn.disabled = false;
@@ -3922,9 +3923,10 @@
             const lineValue = qty * Number(line.unit_cost || 0);
             const share = itemsValue > 0 ? (lineValue / itemsValue) * extras : (extras / items.length);
             const landed = (lineValue + share) / qty;
-            const { error: costErr } = await supabase.from('purchase_order_items')
-              .update({ landed_unit_cost: Math.round(landed * 10000) / 10000 }).eq('id', line.id);
+            const { data: costRows, error: costErr } = await supabase.from('purchase_order_items')
+              .update({ landed_unit_cost: Math.round(landed * 10000) / 10000 }).eq('id', line.id).select('id');
             if (costErr) throw costErr;
+            if (noRowsChanged(costRows)) throw new Error('the true unit cost of a line could not be saved (nothing was changed — no permission?)');
           }
           progress.costs = true;
 
@@ -3971,9 +3973,12 @@
               reason: 'Delivery received (' + po.po_number + ')', adjusted_by: uid, lot_id: lotId,
             });
             if (adjErr) throw adjErr;
-            const { error: lineErr } = await supabase.from('purchase_order_items')
-              .update({ quantity_received: Number(line.quantity) }).eq('id', line.id);
+            const { data: lineRows, error: lineErr } = await supabase.from('purchase_order_items')
+              .update({ quantity_received: Number(line.quantity) }).eq('id', line.id).select('id');
             if (lineErr) throw lineErr;
+            // Stock for this line is already added: if the line can't be marked
+            // received, say so (it would otherwise look unreceived).
+            if (noRowsChanged(lineRows)) throw new Error('its stock was added, but the line could not be marked received (nothing was changed — no permission?)');
             stocked++;
             progress.stockedNames.push(progress.current);
             progress.current = null;
@@ -4694,8 +4699,9 @@
         if (delBtn) delBtn.addEventListener('click', async () => {
           delBtn.disabled = true;
           try {
-            const { error } = await supabase.from('calendar_notes').delete().eq('event_uid', uid);
+            const { data: gone, error } = await supabase.from('calendar_notes').delete().eq('event_uid', uid).select('event_uid');
             if (error) throw error;
+            if (noRowsChanged(gone)) { showDashError(staleMessage('That note')); return; }
             delete calNotes[uid];
             toastOk('Note removed.');
             calOpenUid = null;
@@ -4728,14 +4734,15 @@
           saveBtn.disabled = true;
           try {
             const times = personalTimesFromInputs(startInput.value, endInput.value, allDayInput.checked);
-            const { error } = await supabase.from('personal_calendar_events').update({
+            const { data: changed, error } = await supabase.from('personal_calendar_events').update({
               title,
               starts_at: times.starts_at,
               ends_at: times.ends_at,
               all_day: !!allDayInput.checked,
               updated_at: new Date().toISOString(),
-            }).eq('id', id);
+            }).eq('id', id).select('id');
             if (error) throw error;
+            if (noRowsChanged(changed)) { showDashError(staleMessage('That event')); saveBtn.disabled = false; loadCalendarMonth(); return; }
             toastOk('Event updated.');
             calOpenUid = null;
             loadCalendarMonth();
@@ -4748,8 +4755,9 @@
           if (!confirm('Delete this event? This can\'t be undone.')) return;
           delBtn.disabled = true;
           try {
-            const { error } = await supabase.from('personal_calendar_events').delete().eq('id', id);
+            const { data: gone, error } = await supabase.from('personal_calendar_events').delete().eq('id', id).select('id');
             if (error) throw error;
+            if (noRowsChanged(gone)) { showDashError(staleMessage('That event')); delBtn.disabled = false; loadCalendarMonth(); return; }
             toastOk('Event deleted.');
             calOpenUid = null;
             loadCalendarMonth();
@@ -5632,8 +5640,9 @@
       const newVal = sel.value || null;
       sel.disabled = true;
       try {
-        const { error } = await supabase.from('customer_inquiries').update({ severity: newVal }).eq('id', id);
+        const { data: changed, error } = await supabase.from('customer_inquiries').update({ severity: newVal }).eq('id', id).select('id');
         if (error) throw error;
+        if (noRowsChanged(changed)) { showDashError(staleMessage('That inquiry')); loadInquiries(); return; }
         const rec = ALL_INQUIRIES.find(i => i.id === id);
         if (rec) rec.severity = newVal;
         renderInquiries();
@@ -5651,8 +5660,9 @@
       btn.disabled = true;
       btn.textContent = 'Saving…';
       try {
-        const { error } = await supabase.from('customer_inquiries').update({ ai_draft_reply: textarea.value }).eq('id', id);
+        const { data: changed, error } = await supabase.from('customer_inquiries').update({ ai_draft_reply: textarea.value }).eq('id', id).select('id');
         if (error) throw error;
+        if (noRowsChanged(changed)) throw new Error(staleMessage('That inquiry') + ' Your draft was not saved — copy it before reloading.');
         const rec = ALL_INQUIRIES.find(i => i.id === id);
         if (rec) rec.ai_draft_reply = textarea.value;
         btn.textContent = 'Saved';
@@ -5794,8 +5804,9 @@
       const newVal = sel.value;
       sel.disabled = true;
       try {
-        const { error } = await supabase.from('service_status').update({ status: newVal, updated_at: new Date().toISOString() }).eq('id', id);
+        const { data: changed, error } = await supabase.from('service_status').update({ status: newVal, updated_at: new Date().toISOString() }).eq('id', id).select('id');
         if (error) throw error;
+        if (noRowsChanged(changed)) showDashError(staleMessage('That service status'));
         loadContinuity();
       } catch (err) {
         showDashError('Could not update that service status: ' + (err && err.message ? err.message : err));
@@ -6393,6 +6404,14 @@
       try {
         const { error } = await supabase.rpc('revoke_my_session', { target_session_id: id });
         if (error) throw error;
+        // Check it really happened: a device that still shows up afterwards
+        // must not look logged out.
+        const { data: after, error: afterErr } = await supabase.rpc('list_my_sessions');
+        if (!afterErr && Array.isArray(after) && after.some(x => String(x.session_id) === String(id))) {
+          showDashError('That device still shows as signed in, so it was NOT logged out (no permission, or the session could not be ended). Try again, or change your password to sign out everywhere.');
+        } else {
+          toastOk('Device logged out.');
+        }
         loadSessions();
       } catch (err) {
         btn.disabled = false;

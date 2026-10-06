@@ -318,3 +318,22 @@ test('return restock finds the product even when the SKU differs in letter case'
   const lookup = backend.requests.find(r => r.method === 'GET' && r.table === 'products' && r.params.some(([k]) => k === 'sku'));
   expect(Object.fromEntries(lookup.params).sku).toBe('ilike.syn-a');
 });
+
+// MU-07 (2026-10-06): inside Receive, if marking a line received is quietly
+// refused (0 rows), the page names the line as uncertain instead of
+// pretending the delivery finished cleanly.
+test('Receive: a line update the database quietly refuses is reported, not hidden', async ({ page, backend }) => {
+  seedPo(backend);
+  await login(page);
+  await openPo(page);
+  await page.route(url => new URL(url).pathname.endsWith('/rest/v1/purchase_order_items'), route => {
+    const r = route.request();
+    if (r.method() === 'PATCH' && (r.postData() || '').includes('quantity_received')) {
+      return route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
+    }
+    return route.fallback();
+  });
+  await page.locator('.poReceiveBtn').click();
+  await page.locator('.poReceiveBtn').click(); // confirm
+  await expect(page.locator('#dashError')).toContainText('could not be marked received');
+});
