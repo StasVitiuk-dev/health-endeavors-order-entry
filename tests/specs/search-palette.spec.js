@@ -66,3 +66,48 @@ test('Record Inspector: a permission refusal on the history is shown in plain wo
   await expect(page.locator('#inspectorOverlay')).toContainText('only the Owner or an Administrator can do it');
   await expect(page.locator('#inspectorOverlay')).not.toContainText('permission denied for function');
 });
+
+// EXT4 (workstream U): priority and scale.
+test('order of results: pages first, then records, then Guide articles', async ({ page, backend }) => {
+  backend.tables.tasks = [task('t-1', 'SYNTHETIC check returns shelf')];
+  await login(page);
+  await loadTasksThenLeave(page);
+  await page.keyboard.press('ControlOrMeta+k');
+  await page.keyboard.type('returns');
+  await expect(page.locator('#paletteResults .pResult').first()).toBeVisible();
+  const kinds = await page.locator('#paletteResults .pResult .pKind').allTextContents();
+  const firstRecord = kinds.indexOf('Task');
+  const firstGuide = kinds.indexOf('Guide');
+  expect(firstRecord, 'a record is listed').toBeGreaterThan(0); // after the Returns page
+  expect(firstGuide, 'a Guide article is listed').toBeGreaterThan(firstRecord);
+  expect(kinds.slice(0, firstRecord).every(k => k !== 'Guide' && k !== 'Task'), 'only pages before the first record').toBe(true);
+  await expect(page.locator('#paletteResults .pResult.sel .pMain')).toHaveText('Returns'); // Enter opens the page
+});
+
+test('10,000 records: each keystroke updates the palette quickly, and the cap holds', async ({ page, backend }) => {
+  test.setTimeout(180000);
+  // The product list is read whole (the server would cap it at 1,000 and the
+  // page would then say so; the mock here has no cap), so 10,000 products put
+  // 10,000 records into the search index.
+  backend.tables.products = Array.from({ length: 10000 }, (_, i) => ({ id: 'p-' + i, name: 'SYNTHETIC scale product ' + i, sku: 'SC-' + i, is_active: true, status: 'active', cost: null, retail_price: null, wholesale_price: null, packaging_info: null }));
+  backend.tables.inventory = backend.tables.products.map(p => ({ product_id: p.id, available: 1, reserved: 0, damaged: 0, sample: 0, wholesale: 0, promotional: 0, returned: 0, recalled: 0, low_stock_threshold: null }));
+  await login(page);
+  await gotoPage(page, 'inventoryPanel');
+  await expect(page.locator('#inventoryWrap [data-product-id="p-9999"]')).toHaveCount(1, { timeout: 90000 });
+  await page.keyboard.press('ControlOrMeta+k');
+  await expect(page.locator('#paletteInput')).toBeFocused();
+  const ms = await page.evaluate(() => {
+    const input = document.getElementById('paletteInput');
+    const times = [];
+    for (const q of ['s', 'sc', 'sca', 'scale', 'scale product 99']) {
+      const t0 = performance.now();
+      input.value = q; input.dispatchEvent(new Event('input', { bubbles: true }));
+      times.push(performance.now() - t0);
+    }
+    return Math.max(...times);
+  });
+  expect(ms, 'slowest keystroke (ms)').toBeLessThan(250);
+  const kinds = await page.locator('#paletteResults .pResult .pKind').allTextContents();
+  expect(kinds.length).toBeLessThanOrEqual(40);
+  expect(kinds.filter(k => k !== 'Guide').length).toBeGreaterThan(0);
+});

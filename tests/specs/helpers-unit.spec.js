@@ -366,3 +366,34 @@ test.describe('maskSensitive (agent error text, F3-06)', () => {
   });
 });
 
+
+// EXT4 (workstream T): CSV cell safety in every edge the exports can meet.
+test.describe('csvCell (CSV export safety)', () => {
+  const C = load(['csvCell']);
+  const cell = v => C.csvCell(v);
+  test('formula starters are neutralised with a leading apostrophe', () => {
+    for (const v of ['=1+1', '+SUM(A1)', '-2+3', '@SUM(A1)', '\t=1', '\r=1', '=HYPERLINK("http://x.test","click")']) {
+      expect(cell(v).startsWith('"\''), v).toBe(true);
+    }
+    expect(cell('=HYPERLINK("http://x.test","click")')).toBe('"\'=HYPERLINK(""http://x.test"",""click"")"');
+  });
+  test('money and plain numbers stay numbers', () => {
+    for (const v of ['-12.50', '+3', '-$1,234.56', '$0.00', '15%', '-0.01', '1,000']) expect(cell(v), v).toBe('"' + v + '"');
+  });
+  test('quotes, commas, line breaks and Unicode are kept exactly, inside one quoted cell', () => {
+    expect(cell('He said "hi", then left')).toBe('"He said ""hi"", then left"');
+    expect(cell('line 1\r\nline 2')).toBe('"line 1\r\nline 2"');
+    expect(cell('Café 日本 👩‍👩‍👧 עברית')).toBe('"Café 日本 👩‍👩‍👧 עברית"');
+    expect(cell(null)).toBe('""');
+    expect(cell(undefined)).toBe('""');
+    expect(cell(0)).toBe('"0"');
+  });
+  test('20,000 rows x 8 columns build in well under a second', () => {
+    const row = ['2026-10-06', 'SYNTHETIC Name', '=cmd', '-$12.50', 'Café', 'a "quote"', 'x,y', 'line\nbreak'];
+    const t0 = Date.now();
+    const csv = Array.from({ length: 20000 }, () => row).map(l => l.map(C.csvCell).join(',')).join('\r\n');
+    expect(Date.now() - t0).toBeLessThan(1000);
+    expect(csv.split('\r\n')).toHaveLength(20000 + 2 * 0); // embedded \n is not \r\n, so one record per row
+    expect(csv.length).toBeGreaterThan(20000 * 60);
+  });
+});

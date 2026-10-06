@@ -209,3 +209,69 @@ test('every dialog is announced as a dialog with a name (role, aria-modal, label
     .filter(id => { const el = document.getElementById(id); return !el || el.getAttribute('role') !== 'dialog' || el.getAttribute('aria-modal') !== 'true' || !(el.getAttribute('aria-label') || '').trim(); }));
   expect(missing).toEqual([]);
 });
+
+// ---- EXT4 (workstream V) ----
+test('a "Skip to main content" link is the first thing Tab reaches, and it moves focus to the page content', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'keyboard; desktop only');
+  await login(page);
+  await page.waitForLoadState('networkidle');
+  await page.evaluate(() => { document.activeElement && document.activeElement.blur(); window.scrollTo(0, 0); });
+  await page.keyboard.press('Tab');
+  const skip = page.locator('#skipLink');
+  await expect(skip).toBeFocused();
+  await expect(skip).toBeInViewport(); // visible once focused
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#mainContent')).toBeFocused();
+});
+
+test('Tab and Shift+Tab stay inside every open dialog', async ({ page, backend }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'keyboard; desktop only');
+  seedBusiness(backend);
+  await page.clock.setFixedTime(NOW);
+  await login(page);
+  await gotoPage(page, 'ordersPanel');
+  await page.waitForLoadState('networkidle');
+  const inside = id => page.evaluate(d => document.getElementById(d).contains(document.activeElement), id);
+  const escaped = [];
+  const cycle = async id => {
+    for (let i = 0; i < 25; i++) { await page.keyboard.press('Tab'); if (!(await inside(id))) { escaped.push(id + ' (Tab ' + (i + 1) + ')'); return; } }
+    for (let i = 0; i < 25; i++) { await page.keyboard.press('Shift+Tab'); if (!(await inside(id))) { escaped.push(id + ' (Shift+Tab ' + (i + 1) + ')'); return; } }
+  };
+  await page.keyboard.press('ControlOrMeta+k');
+  await expect(page.locator('#paletteOverlay.open')).toBeVisible();
+  await cycle('paletteOverlay');
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('ControlOrMeta+n');
+  await expect(page.locator('#quickAddOverlay.open')).toBeVisible();
+  await cycle('quickAddOverlay');
+  await page.keyboard.press('Escape');
+  await page.locator('#ordersTableWrap .deleteOrderBtn').first().click();
+  await expect(page.locator('#reauthOverlay')).toBeVisible();
+  await cycle('reauthOverlay');
+  await page.keyboard.press('Escape');
+  expect(escaped).toEqual([]);
+});
+
+test('every page has a heading, and every data table has column headers', async ({ page, backend }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'markup; run once');
+  test.setTimeout(180000);
+  seedBusiness(backend);
+  await page.clock.setFixedTime(NOW);
+  await login(page);
+  const ids = await page.locator('#sidebarGroups .sidebarLink[data-page]').evaluateAll(els => [...new Set(els.map(e => e.getAttribute('data-page')))]);
+  const problems = [];
+  for (const id of ids) {
+    await gotoPage(page, id);
+    await page.waitForLoadState('networkidle');
+    const r = await page.evaluate(pid => {
+      const sec = document.getElementById(pid);
+      const vis = el => el.getClientRects().length > 0;
+      const heading = [...sec.querySelectorAll('h1, h2, h3, [role=heading]')].some(vis);
+      const bareTables = [...sec.querySelectorAll('table')].filter(vis).filter(t => !t.querySelector('th')).length;
+      return { heading, bareTables };
+    }, id);
+    if (!r.heading) problems.push(id + ': no heading');
+    if (r.bareTables) problems.push(id + ': ' + r.bareTables + ' table(s) without headers');
+  }
+  expect(problems).toEqual([]);
+});

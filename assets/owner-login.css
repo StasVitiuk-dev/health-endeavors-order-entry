@@ -157,6 +157,11 @@
     background:var(--danger-bg); color:var(--danger); font-size:13px;
   }
 
+  /* Skip link (EXT4): off screen until it gets keyboard focus. */
+  .skipLink{ position:absolute; left:8px; top:-60px; z-index:10000; background:var(--navy); color:#fff; padding:10px 14px; border-radius:8px; font-weight:600; text-decoration:none; }
+  .skipLink:focus{ top:8px; outline:3px solid #ffbf47; outline-offset:2px; }
+  main.contentArea:focus{ outline:none; }
+
   /* ---------- Dashboard shell ---------- */
   #dash{ display:none; flex-direction:column; height:100vh; }
   header.topbar{

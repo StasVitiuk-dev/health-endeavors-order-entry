@@ -11,7 +11,13 @@ const { NOW, seedBusiness } = require('../fixtures/business-data');
 test.use({ timezoneId: 'America/Chicago', locale: 'en-US' });
 
 const SIZES = [
+  { name: '280 px (folded phone)', width: 280, height: 653 },
   { name: '320 px (400% zoom)', width: 320, height: 640 },
+  { name: '344 px (folded phone, wide)', width: 344, height: 882 },
+  { name: '375 px small phone', width: 375, height: 667 },
+  { name: '414 px phone', width: 414, height: 896 },
+  { name: '1366 px laptop', width: 1366, height: 768 },
+  { name: '2560 px ultrawide', width: 2560, height: 1080 },
   { name: '360 px phone', width: 360, height: 740 },
   { name: '430 px large phone', width: 430, height: 932 },
   { name: '640 px (200% zoom)', width: 640, height: 720 },
