@@ -19,9 +19,20 @@ Everything is on the branch with tests; see the launch-readiness doc for what st
 | `e02377b` | Empty-database and accessibility checks; helpers moved out; CI re-review |
 | `1b71d8c` | Launch readiness, tracker/record/summary, Query D classification |
 | `512a240` | Local test harnesses for Query C and D |
-| (final) | Flakiness results and this review (latest SHA in the chat report) |
+| `137a57b` | This review (draft), tests README |
+| (final) | Flaky employee-delete test made robust; final numbers below |
 
 Earlier on 2026-10-05/06 (before this session's backlog): `46c8039`, `b0de408`, `ffbb95c`, `b321865`, `1d2fdb0`.
+
+## Final test evidence (run with nothing else competing)
+
+| Check | Result |
+|---|---|
+| Full dashboard suite (desktop 1100px + iPhone 390px) | **774 tests: 677 passed, 0 failed, 97 skipped** (skips are by design: desktop-only/iPhone-only tests and Node-only unit tests run once) |
+| Flakiness | desktop suite × 3: 1,087 passed. The only real flake found (employee product-delete test, 1 in 30 after a reload) is fixed: 60/60 after. The palette tests' flake was fixed at the root (the page now focuses immediately). The other failures in that run came from a spec file that changed mid-run |
+| SQL drafts on the real table shapes | `15_…` and `16_…`: all pass. 4 mutation tests are each caught |
+| Stress (19 scenarios, 46 checks per run) | 30 runs + a final 10: **0 failed, 0 deadlocks**. Control with the old lock order: deadlocks in 2 of 3 runs |
+| Query C / D harnesses | pass: no fake key leaks; classifications as expected |
 
 ## Bugs found and fixed (all on the branch, each with a test that fails on the old code)
 
