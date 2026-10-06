@@ -24,6 +24,8 @@
 --                       directly, and who can reach it (trigger, job, anon)
 --   7 triggers          every trigger on stock / order / purchasing tables
 --   8 direct writes     which API roles may write stock tables directly
+--   9 value rules       every CHECK rule and enum list on public tables (the
+--                       allowed status/category values; schema only, no data)
 --
 -- Limits: agents that run outside the database (GitHub workflows, edge
 -- functions) are only visible through what they record (agent_controls,
@@ -194,4 +196,19 @@ select '8 direct writes', r || ' on ' || t,
          'row_security=' || (select case when c.relforcerowsecurity then 'on (forced)' when c.relrowsecurity then 'on' else 'OFF' end
                              from pg_class c where c.oid = ('public.' || t)::regclass))
 from unnest(array['inventory','inventory_lots','inventory_adjustments']) t, unnest(array['anon','authenticated']) r
+-- 9 value rules -------------------------------------------------------------
+union all
+select '9 value rules', c.relname || ' · ' || k.conname, pg_get_constraintdef(k.oid)
+from pg_constraint k
+join pg_class c on c.oid = k.conrelid
+join pg_namespace n on n.oid = c.relnamespace
+where n.nspname = 'public' and k.contype = 'c'
+union all
+select '9 value rules', c.relname || '.' || a.attname || ' (enum ' || t.typname || ')',
+       (select string_agg(e.enumlabel, ', ' order by e.enumsortorder) from pg_enum e where e.enumtypid = t.oid)
+from pg_attribute a
+join pg_class c on c.oid = a.attrelid and c.relkind in ('r','p')
+join pg_namespace n on n.oid = c.relnamespace
+join pg_type t on t.oid = a.atttypid and t.typtype = 'e'
+where n.nspname = 'public' and a.attnum > 0 and not a.attisdropped
 order by 1, 2;

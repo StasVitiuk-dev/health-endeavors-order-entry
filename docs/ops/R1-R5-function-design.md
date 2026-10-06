@@ -138,7 +138,34 @@ The owner's read-only Query A confirmed most assumptions. These changes were mad
 - `local-test/stress_test.sh`, real shape: 30 runs, 0 failed checks, 0 deadlocks
 - deadlock control (old lock order): 19 and 26 deadlocks out of 30, so the check works
 
+**Still needed before this becomes production SQL:** see section 9.
+
+## 9. Hardening round (2026-10-06)
+
+Query B ran clean; no existing data repair is required before installing these functions.
+
+| Problem found by re-reading / stress testing | Change in `10_DRAFT_stock_functions.sql` | Proof |
+|---|---|---|
+| Quarantine locked the lot and stock row **before** the product; a product delete at the same moment could deadlock | Product locked (`FOR KEY SHARE`) first, then lot, then stock row | Stress S15 (30 quarantine + 30 delete pairs at once): 0 deadlocks; control with the old order: deadlocks in 2 of 3 runs, each cancelling a quarantine or receive |
+| Receive could lock a lot before the product (same cycle) | Product locked at the start of each line | S15 (30 receive + 30 delete pairs) |
+| Delete held the product while its foreign-key check waited on a delivery being received (a lock cycle) | `delete_unused_product` first checks, without locking, whether anything refers to the product (all references are plain foreign keys, so such a product can never be deleted anyway) | S15 |
+| Two deliveries bringing the same **new** lot at the same moment: the second failed on the unique index | One `INSERT … ON CONFLICT (product_id, lower(lot_number)) DO UPDATE` adds them up | Stress S14 (10 at once, mixed case): one lot row of 30, 0 duplicate-key errors; file 16 sequential check |
+| A manual adjustment resent after a lost reply, or saved from a stale tab, applied twice / overwrote | Optional `p_expected` (the value the page showed): refused with hint `stale_value` if the bucket changed | S10 (60 stale-checked saves at once: exactly 1 applied), S16 (two stale tabs), file 16 |
+| `delete_unused_product` run by an employee: row-level security made the delete affect nothing, yet it returned `deleted: true` | Owner/Administrator check up front; a delete that removed nothing raises 42501 | file 16 (and the mutation test catches its removal) |
+| Stock check used the sum of buckets; `recalled` has no ≥ 0 rule, so +5 / −5 summed to "no stock" | Any non-zero bucket counts as stock | file 16 (mutation caught) |
+| Rollback script didn't list the new signatures | `11_DRAFT_rollback…` drops the new and old signatures in one transaction | installed → rolled back → re-installed locally |
+
+**All-or-nothing proof (`drafts/16_DRAFT_tests_hardening_and_failures.sql`):** a test-only trigger makes one write fail part-way, and a fingerprint of every business table is compared before and after. Covered:
+- R1 receive, a failure at each of 7 writes: line update, lot insert, stock update, history insert, audit row, expense insert, order update. Plus a permission refusal part-way (simulated row-level-security refusal on the expense).
+- R2, R3 and R4, a failure at each of their writes (stock, history, audit, recall/return update).
+
+Every case left the database byte-for-byte unchanged, and each order or return still went through cleanly on retry. Malformed inputs (zero, negative, decimal 2.5, unknown or injection-looking bucket, unknown or null IDs, lots not a list, 101-character lot, number as lot) are all refused with nothing changed.
+
+**Mutation check:** removing the expected-value check, the delete permission check or the any-bucket stock check, or swallowing an expense failure, each makes file 16 fail. Removing the quarantine product lock is invisible to sequential tests and caught only by stress S15 (control above).
+
+**Stress (`local-test/stress_test.sh`, 19 scenarios, 46 checks per run):** results in `docs/ops/stress-test-results.md`.
+
 **Still needed before this becomes production SQL:**
-1. Query B results (data health; e.g. fractional quantities already stored, negative "recalled")
-2. Query C results (whether any agent or function writes `inventory` directly)
-3. Owner review and approval
+1. Query C results (whether any agent, trigger, scheduled job or other function writes stock directly; such a path would bypass these checks)
+2. A dashboard change to call these functions instead of writing tables directly (separate PR, after the functions are installed)
+3. Owner review and approval; installation is a production change the owner runs

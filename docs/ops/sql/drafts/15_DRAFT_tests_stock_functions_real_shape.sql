@@ -8,7 +8,8 @@
 begin;
 insert into profiles (id, email, role) values
   ('00000000-0000-4000-8000-0000000000a1', 'owner@example.test', 'owner'),
-  ('00000000-0000-4000-8000-0000000000e1', 'employee@example.test', 'employee');
+  ('00000000-0000-4000-8000-0000000000e1', 'employee@example.test', 'employee')
+on conflict (id) do update set role = excluded.role;
 set local role authenticated;
 
 do $$
@@ -144,7 +145,10 @@ begin
 
   -- R5 delete --------------------------------------------------------------------------
   res := delete_unused_product(a);
-  if (res->>'deleted')::boolean or res->>'reason' <> 'has_stock' then raise exception 'R5: product with stock deleted? %', res; end if;
+  -- A has stock AND history: refused as in use (checked first, without locks);
+  -- the stock-without-history case ('has_stock') is in file 16.
+  if (res->>'deleted')::boolean or res->>'reason' not in ('in_use', 'has_stock') then raise exception 'R5: product with stock deleted? %', res; end if;
+  select count(*) into n from inventory where product_id = a and available > 0; if n <> 1 then raise exception 'R5: stock row of A changed'; end if;
   update inventory set available = 0, recalled = 0, damaged = 0 where product_id = b;
   res := delete_unused_product(b);
   if (res->>'deleted')::boolean or res->>'reason' <> 'in_use' then raise exception 'R5: in-use product: %', res; end if;

@@ -9,8 +9,15 @@
 -- lot counts refused instead of silently rounded (PO quantities and lot
 -- counts are numeric in the database, stock buckets are integers); SKU matched
 -- case-insensitively like the unique index lower(sku); disposition validated.
--- Still DRAFT: Query B (data health) and Query C (agents writing stock) must
--- be reviewed first. Tested only on a local PostgreSQL with a copy of the real
+-- 2026-10-06 hardening: product locked before any lot or stock row in every
+-- workflow (removes the last delete-vs-receive/quarantine deadlock paths);
+-- lot rows upserted on the real unique index (two deliveries of the same new
+-- lot no longer collide); optional expected-value check on manual
+-- adjustments (a stale tab or a resent request can't apply a change twice);
+-- delete_unused_product checks permission, treats any non-zero bucket as
+-- stock, and never reports a delete that row-level security silently skipped.
+-- Query B ran clean: no existing data repair is needed first.
+-- Still DRAFT: Query C (agents writing stock) must be reviewed first. Tested only on a local PostgreSQL with a copy of the real
 -- table shapes (local-test/01_REAL_SHAPE_…) and synthetic data.
 --
 -- Design (docs/ops/R1-R5-function-design.md has the full reasoning):
@@ -26,6 +33,11 @@
 --   * search_path pinned; EXECUTE granted to `authenticated` only.
 -- =============================================================================
 
+-- Earlier draft signatures (never installed anywhere; harmless if absent), so a
+-- re-run can't leave an old overload behind.
+drop function if exists public.adjust_inventory(uuid, text, integer, text);
+drop function if exists public._he_apply_stock_change(uuid, text, integer, text, uuid);
+
 -- ---------------------------------------------------------------------------
 -- Layer 1: apply one bucket change + its history row, atomically.
 -- Internal helper used by every workflow below (and by adjust_inventory).
@@ -35,7 +47,8 @@ create or replace function public._he_apply_stock_change(
   p_bucket text,
   p_change integer,
   p_reason text,
-  p_lot_id uuid default null
+  p_lot_id uuid default null,
+  p_expected integer default null   -- if given: the value the page showed; refuse if it changed
 ) returns integer          -- the bucket's new value
 language plpgsql
 security invoker
@@ -43,6 +56,7 @@ set search_path = public, pg_temp
 as $$
 declare
   v_new integer;
+  v_current integer;
 begin
   if p_bucket not in ('available','reserved','damaged','sample','wholesale','promotional','returned','recalled') then
     raise exception 'Unknown stock bucket "%".', p_bucket using errcode = '22023';
@@ -67,6 +81,15 @@ begin
   -- Make sure the product has a stock row, then lock it.
   insert into inventory (product_id) values (p_product_id) on conflict (product_id) do nothing;
   perform 1 from inventory where product_id = p_product_id for update;
+
+  if p_expected is not null then
+    execute format('select %1$I from inventory where product_id = $1', p_bucket) into v_current using p_product_id;
+    if v_current is distinct from p_expected then
+      raise exception '% changed since the page loaded: it is now %, not %. Nothing was changed — reload and try again.',
+        initcap(p_bucket), v_current, p_expected
+        using errcode = '55000', hint = 'stale_value';
+    end if;
+  end if;
 
   execute format(
     'update inventory set %1$I = %1$I + $1, updated_at = now(), updated_by = auth.uid()
@@ -93,7 +116,8 @@ create or replace function public.adjust_inventory(
   p_product_id uuid,
   p_bucket text,
   p_change integer,
-  p_reason text default null
+  p_reason text default null,
+  p_expected integer default null   -- the bucket value the page showed (recommended)
 ) returns jsonb
 language plpgsql
 security invoker
@@ -105,7 +129,7 @@ begin
   if not exists (select 1 from products where id = p_product_id) then
     raise exception 'That product no longer exists.' using errcode = 'P0002';
   end if;
-  v_new := _he_apply_stock_change(p_product_id, p_bucket, p_change, nullif(trim(p_reason), ''), null);
+  v_new := _he_apply_stock_change(p_product_id, p_bucket, p_change, nullif(trim(p_reason), ''), null, p_expected);
   return jsonb_build_object('product_id', p_product_id, 'bucket', p_bucket, 'change', p_change, 'new_value', v_new);
 end $$;
 
@@ -192,6 +216,13 @@ begin
     continue when v_outstanding <= 0;
     if v_line.product_id is null then v_skipped := v_skipped + 1; continue; end if;
 
+    -- Product first, before its lot or stock row (same order as every other
+    -- workflow and as delete_unused_product), so nothing can deadlock.
+    perform 1 from products where id = v_line.product_id for key share;
+    if not found then
+      raise exception 'A product on purchase order % no longer exists.', v_po.po_number using errcode = 'P0002';
+    end if;
+
     v_lot_id := null;
     select nullif(trim(e->>'lot_number'), '') into v_lot_number
       from jsonb_array_elements(coalesce(p_lots, '[]'::jsonb)) e
@@ -200,21 +231,17 @@ begin
       if length(v_lot_number) > 100 then
         raise exception 'Lot number is too long.' using errcode = '22001';
       end if;
-      -- Exact, case-insensitive match (the dashboard's ilike treated _ and % as wildcards).
-      select id into v_lot_id from inventory_lots
-       where product_id = v_line.product_id and lower(lot_number) = lower(v_lot_number)
-       for update;
-      if found then
-        update inventory_lots
-           set quantity_received = quantity_received + v_outstanding,
-               quantity_remaining = quantity_remaining + v_outstanding,
-               updated_at = now()
-         where id = v_lot_id;
-      else
-        insert into inventory_lots (product_id, lot_number, purchase_order_id, quantity_received, quantity_remaining, created_by)
-        values (v_line.product_id, v_lot_number, p_po_id, v_outstanding, v_outstanding, auth.uid())
-        returning id into v_lot_id;
-      end if;
+      -- Exact, case-insensitive match on the real unique index
+      -- (product_id, lower(lot_number)); the dashboard's ilike treated _ and %
+      -- as wildcards. One statement, so two deliveries of the same new lot
+      -- at the same moment add up instead of colliding.
+      insert into inventory_lots (product_id, lot_number, purchase_order_id, quantity_received, quantity_remaining, created_by)
+      values (v_line.product_id, v_lot_number, p_po_id, v_outstanding, v_outstanding, auth.uid())
+      on conflict (product_id, lower(lot_number)) do update
+         set quantity_received = inventory_lots.quantity_received + excluded.quantity_received,
+             quantity_remaining = inventory_lots.quantity_remaining + excluded.quantity_remaining,
+             updated_at = now()
+      returning id into v_lot_id;
     end if;
 
     perform _he_apply_stock_change(v_line.product_id, 'available', v_outstanding::integer,
@@ -256,6 +283,7 @@ as $$
 declare
   v_recall recalls%rowtype;
   v_lot inventory_lots%rowtype;
+  v_lot_product uuid;
   v_available integer;
   v_amount integer;
 begin
@@ -271,6 +299,11 @@ begin
                               'quantity_quarantined', v_recall.quantity_quarantined);
   end if;
 
+  -- Product first, then its lot and stock row (the same order everywhere).
+  select product_id into v_lot_product from inventory_lots where id = v_recall.lot_id;
+  if v_lot_product is not null then
+    perform 1 from products where id = v_lot_product for key share;
+  end if;
   select * into v_lot from inventory_lots where id = v_recall.lot_id for update;
   if not found then
     raise exception 'The recalled lot no longer exists.' using errcode = 'P0002';
@@ -393,20 +426,45 @@ security invoker
 set search_path = public, pg_temp
 as $$
 declare
-  v_stock integer;
+  v_inv inventory%rowtype;
+  v_deleted integer;
 begin
+  -- Without this, row-level security would make the delete below quietly
+  -- affect nothing for an employee, and the function would report success.
+  if not public.is_owner_or_admin() then
+    raise exception 'Only the Owner or an Administrator can delete a product.' using errcode = '42501';
+  end if;
+  -- Every reference to a product is a plain foreign key (Query A), so a
+  -- product with any history can never be deleted. Check that first, without
+  -- locking anything: otherwise the delete would hold the product while its
+  -- foreign-key check waits for, e.g., a delivery being received for it —
+  -- which itself waits for the product (a lock cycle).
+  if exists (select 1 from purchase_order_items where product_id = p_product_id)
+     or exists (select 1 from inventory_lots where product_id = p_product_id)
+     or exists (select 1 from inventory_adjustments where product_id = p_product_id)
+     or exists (select 1 from recalls where product_id = p_product_id) then
+    return jsonb_build_object('deleted', false, 'reason', 'in_use');
+  end if;
   perform 1 from products where id = p_product_id for update;
   if not found then
     return jsonb_build_object('deleted', false, 'reason', 'not_found');
   end if;
-  select coalesce(available + reserved + damaged + sample + wholesale + promotional + returned + recalled, 0)
-    into v_stock from inventory where product_id = p_product_id for update;
-  if coalesce(v_stock, 0) <> 0 then
-    return jsonb_build_object('deleted', false, 'reason', 'has_stock', 'units', v_stock);
+  select * into v_inv from inventory where product_id = p_product_id for update;
+  -- Any non-zero bucket counts as stock ("recalled" has no >= 0 rule, so a
+  -- plain sum could cancel out to zero).
+  if found and (v_inv.available <> 0 or v_inv.reserved <> 0 or v_inv.damaged <> 0 or v_inv.sample <> 0
+                or v_inv.wholesale <> 0 or v_inv.promotional <> 0 or v_inv.returned <> 0 or v_inv.recalled <> 0) then
+    return jsonb_build_object('deleted', false, 'reason', 'has_stock',
+      'units', v_inv.available + v_inv.reserved + v_inv.damaged + v_inv.sample + v_inv.wholesale
+               + v_inv.promotional + v_inv.returned + v_inv.recalled);
   end if;
   begin
     delete from inventory where product_id = p_product_id;
     delete from products where id = p_product_id;
+    get diagnostics v_deleted = row_count;
+    if v_deleted = 0 then
+      raise exception 'The product was not deleted (not permitted).' using errcode = '42501';
+    end if;
   exception when foreign_key_violation then
     -- The sub-block is rolled back: the stock row is restored automatically.
     return jsonb_build_object('deleted', false, 'reason', 'in_use');
@@ -417,14 +475,14 @@ end $$;
 -- ---------------------------------------------------------------------------
 -- Permissions: logged-in staff only; RLS still applies (security invoker).
 -- ---------------------------------------------------------------------------
-revoke all on function public._he_apply_stock_change(uuid, text, integer, text, uuid) from public, anon;
-revoke all on function public.adjust_inventory(uuid, text, integer, text) from public, anon;
+revoke all on function public._he_apply_stock_change(uuid, text, integer, text, uuid, integer) from public, anon;
+revoke all on function public.adjust_inventory(uuid, text, integer, text, integer) from public, anon;
 revoke all on function public.receive_purchase_order(uuid, jsonb, date) from public, anon;
 revoke all on function public.quarantine_recall(uuid) from public, anon;
 revoke all on function public.receive_return(uuid, text, integer) from public, anon;
 revoke all on function public.delete_unused_product(uuid) from public, anon;
-grant execute on function public._he_apply_stock_change(uuid, text, integer, text, uuid) to authenticated;
-grant execute on function public.adjust_inventory(uuid, text, integer, text) to authenticated;
+grant execute on function public._he_apply_stock_change(uuid, text, integer, text, uuid, integer) to authenticated;
+grant execute on function public.adjust_inventory(uuid, text, integer, text, integer) to authenticated;
 grant execute on function public.receive_purchase_order(uuid, jsonb, date) to authenticated;
 grant execute on function public.quarantine_recall(uuid) to authenticated;
 grant execute on function public.receive_return(uuid, text, integer) to authenticated;

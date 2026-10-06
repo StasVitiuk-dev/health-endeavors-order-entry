@@ -19,7 +19,18 @@ B=22222222-2222-4222-8222-222222222222
 C=33333333-3333-4333-8333-333333333333
 
 call() { $PSQL -c "set role authenticated; select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-00000000000$((RANDOM%9+1))',false); $1" >/dev/null 2>>"$ERR"; }
+# as a specific profile (e.g. the employee …0e1)
+call_as() { $PSQL -c "set role authenticated; select set_config('request.jwt.claim.sub','$1',false); $2" >/dev/null 2>>"$ERR"; }
+EMP=00000000-0000-4000-8000-0000000000e1
 q() { $PSQL -c "$1"; }
+# Test-only: lets S19 hold a receive open long enough to kill its connection.
+$PSQL <<'SQL'
+create or replace function public._stress_sleep() returns trigger language plpgsql as $f$
+begin if current_setting('stress.sleep', true) = '1' then perform pg_sleep(3); end if; return new; end $f$;
+drop trigger if exists _stress_sleep on public.expenses;
+create trigger _stress_sleep before insert on public.expenses for each row execute function public._stress_sleep();
+SQL
+trap "$PSQL -c 'drop trigger if exists _stress_sleep on public.expenses; drop function if exists public._stress_sleep();' >/dev/null" EXIT
 pass=0; fail=0
 check() { if [ "$2" = "$3" ]; then pass=$((pass+1)); [ -n "$VERBOSE" ] && echo "PASS  $1 ($2)"; else fail=$((fail+1)); echo "FAIL  $1: expected $3, got $2"; fi; }
 
@@ -30,6 +41,7 @@ delete from purchase_order_items; delete from inventory_lots; delete from purcha
 delete from audit_log;
 insert into profiles (id, email, role) select ('00000000-0000-4000-8000-00000000000' || g)::uuid, 'stress' || g || '@example.test', 'owner'
   from generate_series(1, 9) g on conflict (id) do nothing;
+insert into profiles (id, email, role) values ('$EMP', 'stress-employee@example.test', 'employee') on conflict (id) do nothing;
 insert into suppliers (id, name) values ('99999999-0000-4000-8000-000000000000', 'STRESS supplier');
 insert into products (id, name, sku) values ('$A','STRESS A','S-A'), ('$B','STRESS B','S-B'), ('$C','STRESS C','S-C');
 insert into inventory (product_id, available) values ('$A', 1000), ('$B', 1000), ('$C', 1000);
@@ -169,6 +181,130 @@ run_once() {
   call "select adjust_inventory('$A','not_a_bucket',1,'s9-bucket');"
   check "S9 bad return quantities refused, return still approved" "$(q "select status from returns where id='ffffffff-2222-4000-8000-000000000001'")" approved
   check "S9 overflow / zero / unknown bucket refused, stock unchanged" "$(q "select available||'/'||(select count(*) from inventory_adjustments) from inventory where product_id='$A'")" "1000/0"
+
+  dl_mark "S10"
+  # S10. 60 tabs that all saw 1000 adjust at once with the expected value:
+  # exactly one wins, the rest are refused as stale (no lost update, no double)
+  reset
+  for i in $(seq 60); do call "select adjust_inventory('$A','available',1,'s10',1000);" & done; wait
+  check "S10 60 stale-checked adjustments: exactly one applied" "$(q "select count(*) from inventory_adjustments where reason='s10'")" 1
+  check "S10 stock = 1001" "$(q "select available from inventory where product_id='$A'")" 1001
+  # …and 80 plain +1 on one hot row at once: all applied, none lost
+  for i in $(seq 80); do call "select adjust_inventory('$B','available',1,'s10hot');" & done; wait
+  check "S10 80 simultaneous +1 on one row: 1080" "$(q "select available from inventory where product_id='$B'")" 1080
+  check "S10 history explains every bucket" "$(history_consistent)" 0
+
+  dl_mark "S11"
+  # S11. 20 returns of the same product (SKU in mixed case), each sent 3× at once
+  reset
+  q "insert into orders (id, channel, order_number) values ('a1100000-0000-4000-8000-000000000001','manual','S11')"
+  q "insert into order_items (id, order_id, sku, quantity)
+       select ('a1100000-1111-4000-8000-' || lpad(g::text,12,'0'))::uuid, 'a1100000-0000-4000-8000-000000000001',
+              (array['s-a','S-A','S-a'])[1 + g % 3], 1 from generate_series(1,20) g"
+  q "insert into returns (id, order_id, order_item_id, reason, status)
+       select ('a1100000-2222-4000-8000-' || lpad(g::text,12,'0'))::uuid, 'a1100000-0000-4000-8000-000000000001',
+              ('a1100000-1111-4000-8000-' || lpad(g::text,12,'0'))::uuid, 'other', 'approved' from generate_series(1,20) g"
+  for g in $(seq 20); do for k in 1 2 3; do
+    call "select receive_return(('a1100000-2222-4000-8000-' || lpad('$g',12,'0'))::uuid, 'restock_available');" &
+  done; done; wait
+  check "S11 each return restocked exactly once (A = 1020)" "$(q "select available from inventory where product_id='$A'")" 1020
+  check "S11 all 20 received" "$(q "select count(*) from returns where status='received'")" 20
+  check "S11 20 history rows" "$(q "select count(*) from inventory_adjustments where reason like 'Return received%'")" 20
+
+  dl_mark "S12"
+  # S12. 6 recalls whose lots (60) exceed what is in stock (30), each sent 3× at once
+  reset; q "update inventory set available = 30 where product_id='$B'"
+  q "update inventory set available = 30 where product_id='$B'; insert into inventory_adjustments (product_id, bucket, change_amount, reason) values ('$B','available',-970,'seed')"
+  q "insert into inventory_lots (id, product_id, lot_number, quantity_received, quantity_remaining)
+       select ('a1200000-0000-4000-8000-' || lpad(g::text,12,'0'))::uuid, '$B', 'S12-' || g, 10, 10 from generate_series(1,6) g"
+  q "insert into recalls (id, lot_id, product_id, reason, status)
+       select ('a1200000-1111-4000-8000-' || lpad(g::text,12,'0'))::uuid, ('a1200000-0000-4000-8000-' || lpad(g::text,12,'0'))::uuid, '$B', 'S12', 'initiated' from generate_series(1,6) g"
+  for g in $(seq 6); do for k in 1 2 3; do
+    call "select quarantine_recall(('a1200000-1111-4000-8000-' || lpad('$g',12,'0'))::uuid);" &
+  done; done; wait
+  check "S12 never below zero; available + recalled = 30" "$(q "select (available >= 0)::text || '/' || (available + recalled) from inventory where product_id='$B'")" "true/30"
+  check "S12 quarantined amounts add up to Recalled" "$(q "select (select coalesce(sum(quantity_quarantined),0) from recalls) = recalled from inventory where product_id='$B'")" t
+  check "S12 history explains every bucket" "$(history_consistent)" 0
+
+  dl_mark "S13"
+  # S13. depletion race: 40 × -5 and 10 × +1 at once on 100 units
+  reset; q "update inventory set available = 100 where product_id='$C'; insert into inventory_adjustments (product_id, bucket, change_amount, reason) values ('$C','available',-900,'seed')"
+  for i in $(seq 40); do call "select adjust_inventory('$C','available',-5,'s13');" & done
+  for i in $(seq 10); do call "select adjust_inventory('$C','available',1,'s13');" & done; wait
+  check "S13 never below zero" "$(q "select (available >= 0) from inventory where product_id='$C'")" t
+  check "S13 stock = 100 + the changes that were recorded" "$(q "select available = 100 + (select coalesce(sum(change_amount),0) from inventory_adjustments where reason='s13') from inventory where product_id='$C'")" t
+  check "S13 history explains every bucket" "$(history_consistent)" 0
+
+  dl_mark "S14"
+  # S14. the same NEW lot (any letter case) on 10 deliveries received at once
+  reset
+  q "insert into purchase_orders (id, po_number, status, supplier_id) select ('a1400000-0000-4000-8000-' || lpad(g::text,12,'0'))::uuid, 'S14-'||g, 'shipped', '99999999-0000-4000-8000-000000000000' from generate_series(1,10) g"
+  q "insert into purchase_order_items (id, purchase_order_id, product_id, description, quantity, unit_cost)
+       select ('a1400000-1111-4000-8000-' || lpad(g::text,12,'0'))::uuid, ('a1400000-0000-4000-8000-' || lpad(g::text,12,'0'))::uuid, '$C', 'C', 3, 1 from generate_series(1,10) g"
+  local dup_before=$(grep -c 'duplicate key' "$ERR")
+  for g in $(seq 10); do
+    lot=$([ $((g%2)) = 0 ] && echo "Lot-X" || echo "LOT-x")
+    call "select receive_purchase_order(('a1400000-0000-4000-8000-' || lpad('$g',12,'0'))::uuid, jsonb_build_array(jsonb_build_object('line_id', ('a1400000-1111-4000-8000-' || lpad('$g',12,'0')), 'lot_number', '$lot')));" &
+  done; wait
+  check "S14 one lot row holding all 30 units" "$(q "select count(*) || '/' || sum(quantity_remaining)::int from inventory_lots where lower(lot_number)='lot-x'")" "1/30"
+  check "S14 all 10 received, no duplicate-key failures" "$(q "select count(*) from purchase_orders where po_number like 'S14-%' and status='received'")/$(( $(grep -c 'duplicate key' "$ERR") - dup_before ))" "10/0"
+
+  dl_mark "S15"
+  # S15. deleting products while they are being received / quarantined (30 + 30 pairs)
+  reset
+  q "insert into products (id, name, sku) select ('a1500000-0000-4000-8000-' || lpad(g::text,12,'0'))::uuid, 'S15-'||g, 'S15-'||g from generate_series(1,60) g"
+  q "insert into inventory (product_id, available) select ('a1500000-0000-4000-8000-' || lpad(g::text,12,'0'))::uuid, case when g > 30 then 5 else 0 end from generate_series(1,60) g"
+  q "insert into purchase_orders (id, po_number, status, supplier_id) select ('a1500000-1111-4000-8000-' || lpad(g::text,12,'0'))::uuid, 'S15-'||g, 'shipped', '99999999-0000-4000-8000-000000000000' from generate_series(1,30) g"
+  q "insert into purchase_order_items (purchase_order_id, product_id, description, quantity, unit_cost) select ('a1500000-1111-4000-8000-' || lpad(g::text,12,'0'))::uuid, ('a1500000-0000-4000-8000-' || lpad(g::text,12,'0'))::uuid, 'x', 2, 1 from generate_series(1,30) g"
+  q "insert into inventory_lots (id, product_id, lot_number, quantity_received, quantity_remaining) select ('a1500000-2222-4000-8000-' || lpad(g::text,12,'0'))::uuid, ('a1500000-0000-4000-8000-' || lpad(g::text,12,'0'))::uuid, 'L'||g, 5, 5 from generate_series(31,60) g"
+  q "insert into recalls (id, lot_id, product_id, reason, status) select ('a1500000-3333-4000-8000-' || lpad(g::text,12,'0'))::uuid, ('a1500000-2222-4000-8000-' || lpad(g::text,12,'0'))::uuid, ('a1500000-0000-4000-8000-' || lpad(g::text,12,'0'))::uuid, 'S15', 'initiated' from generate_series(31,60) g"
+  local dl15=$(grep -c deadlock "$ERR")
+  for g in $(seq 30); do
+    call "select receive_purchase_order(('a1500000-1111-4000-8000-' || lpad('$g',12,'0'))::uuid);" &
+    call "select delete_unused_product(('a1500000-0000-4000-8000-' || lpad('$g',12,'0'))::uuid);" &
+  done
+  for g in $(seq 31 60); do
+    call "select quarantine_recall(('a1500000-3333-4000-8000-' || lpad('$g',12,'0'))::uuid);" &
+    call "select delete_unused_product(('a1500000-0000-4000-8000-' || lpad('$g',12,'0'))::uuid);" &
+  done; wait
+  check "S15 no deadlock (delete vs receive / quarantine)" "$(( $(grep -c deadlock "$ERR") - dl15 ))" 0
+  check "S15 products in use were all kept" "$(q "select count(*) from products where name like 'S15-%'")" 60
+  check "S15 every delivery received, every recall quarantined" "$(q "select (select count(*) from purchase_orders where po_number like 'S15-%' and status='received') || '/' || (select count(*) from recalls where reason='S15' and status='quarantined')")" "30/30"
+
+  dl_mark "S16"
+  # S16. two stale tabs: both showed 1000; the first save wins, the second is refused
+  reset
+  call "select adjust_inventory('$A','available',5,'s16',1000);"
+  call "select adjust_inventory('$A','available',-3,'s16',1000);"
+  check "S16 stale second tab refused (1005, one history row)" "$(q "select available || '/' || (select count(*) from inventory_adjustments where reason='s16') from inventory where product_id='$A'")" "1005/1"
+
+  dl_mark "S17"
+  # S17. an employee hammering stock actions (refused) while the owner receives once
+  reset
+  q "insert into purchase_orders (id, po_number, status, supplier_id) values ('a1700000-0000-4000-8000-000000000001','S17','shipped','99999999-0000-4000-8000-000000000000')"
+  q "insert into purchase_order_items (purchase_order_id, product_id, description, quantity, unit_cost) values ('a1700000-0000-4000-8000-000000000001','$A','A',6,1)"
+  for i in $(seq 10); do
+    call_as $EMP "select receive_purchase_order('a1700000-0000-4000-8000-000000000001');" &
+    call_as $EMP "select adjust_inventory('$A','available',1,'s17-emp');" &
+  done
+  call "select receive_purchase_order('a1700000-0000-4000-8000-000000000001');" & wait
+  check "S17 employee changed nothing; owner's receive applied once (A = 1006)" "$(q "select available || '/' || (select count(*) from inventory_adjustments where reason='s17-emp') from inventory where product_id='$A'")" "1006/0"
+  check "S17 refusals were permission errors" "$( [ $(grep -c 'Only the Owner or an Administrator' "$ERR") -ge 20 ] && echo yes || echo no)" yes
+
+  dl_mark "S19"
+  # S19. the connection dies in the middle of a receive (before it commits):
+  # nothing is kept, and the retry receives exactly once
+  reset
+  q "insert into purchase_orders (id, po_number, status, supplier_id) values ('a1900000-0000-4000-8000-000000000001','S19','shipped','99999999-0000-4000-8000-000000000000')"
+  q "insert into purchase_order_items (purchase_order_id, product_id, description, quantity, unit_cost) values ('a1900000-0000-4000-8000-000000000001','$A','A',4,2), ('a1900000-0000-4000-8000-000000000001','$B','B',3,2)"
+  call "select set_config('stress.sleep','1',false); select receive_purchase_order('a1900000-0000-4000-8000-000000000001');" &
+  until [ "$(q "select count(*) from pg_stat_activity where query like '%a1900000-0000-4000-8000-000000000001%' and wait_event = 'PgSleep'")" = 1 ]; do :; done
+  q "select pg_terminate_backend(pid) from pg_stat_activity where query like '%a1900000-0000-4000-8000-000000000001%' and wait_event = 'PgSleep'" >/dev/null
+  wait
+  check "S19 killed mid-receive: nothing kept" "$(q "select (select available from inventory where product_id='$A') || '/' || (select count(*) from inventory_adjustments) || '/' || (select count(*) from expenses) || '/' || (select status from purchase_orders where po_number='S19')")" "1000/0/0/shipped"
+  call "select receive_purchase_order('a1900000-0000-4000-8000-000000000001');"
+  call "select receive_purchase_order('a1900000-0000-4000-8000-000000000001');"
+  check "S19 retry receives exactly once" "$(q "select (select available from inventory where product_id='$A') || '/' || (select count(*) from expenses)")" "1004/1"
 
   dl_mark "end"
   local t1=$(date +%s%N)
