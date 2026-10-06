@@ -74,6 +74,23 @@ begin
                           where table_schema = 'public' and table_name = req.tbl and column_name = c));
     end if;
   end loop;
+  -- Column types the functions depend on (EXT4): stock buckets and history
+  -- are whole numbers, money and delivery quantities are numeric, dates are
+  -- dates, ids are uuids. A different type would install and then fail (or
+  -- round) at the first button press.
+  missing := missing || array(
+    select 'type of ' || t.tbl || '.' || t.col || ' is ' || c.data_type || ', expected ' || t.typ
+      from (values
+        ('inventory','available','integer'), ('inventory','recalled','integer'), ('inventory','damaged','integer'),
+        ('inventory_adjustments','change_amount','integer'),
+        ('inventory_lots','quantity_received','numeric'), ('inventory_lots','quantity_remaining','numeric'),
+        ('purchase_order_items','quantity','numeric'), ('purchase_order_items','quantity_received','numeric'),
+        ('purchase_order_items','unit_cost','numeric'), ('purchase_orders','shipping_cost','numeric'), ('purchase_orders','tax','numeric'),
+        ('expenses','amount','numeric'), ('expenses','expense_date','date'),
+        ('order_items','quantity','integer'), ('products','id','uuid'), ('purchase_orders','id','uuid')
+      ) as t(tbl, col, typ)
+      join information_schema.columns c on c.table_schema = 'public' and c.table_name = t.tbl and c.column_name = t.col
+     where c.data_type <> t.typ);
   if to_regprocedure('public.is_owner_or_admin()') is null then missing := missing || 'function public.is_owner_or_admin()'::text; end if;
   if to_regprocedure('auth.uid()') is null then missing := missing || 'function auth.uid()'::text; end if;
   -- ON CONFLICT targets used by the functions must exist as unique indexes.
@@ -311,7 +328,9 @@ begin
     v_stocked := v_stocked + 1;
   end loop;
 
-  v_total := v_items_value + v_extras;
+  -- Whole cents: unit costs may have fractions of a cent (0.125), the
+  -- expense may not (EXT4; same rule as the dashboard's poGrandTotal).
+  v_total := round(v_items_value + v_extras, 2);
   if v_total > 0 then
     select name into v_vendor from suppliers where id = v_po.supplier_id;
     insert into expenses (category, amount, expense_date, vendor, note)

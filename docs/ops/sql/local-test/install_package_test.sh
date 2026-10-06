@@ -92,6 +92,34 @@ if [ -n "$IDX" ]; then
   expect_eq "8 nothing installed" "$(count_funcs)" "0"
 else bad "8 could not find the lot unique index in the local schema"; fi
 
+# 8b. wrong column type / missing table (EXT4) ----------------------------------------
+fresh_db
+q "alter table public.inventory alter column available type numeric" >/dev/null
+out=$(run "$INSTALL")
+echo "$out" | grep -q "type of inventory.available is numeric, expected integer" && ok "8b refuses a wrong column type and names it" || bad "8b wrong type: $out"
+expect_eq "8b nothing installed" "$(count_funcs)" "0"
+fresh_db
+q "alter table public.recalls rename to recalls_hidden" >/dev/null
+out=$(run "$INSTALL")
+echo "$out" | grep -q "table public.recalls" && ok "8b refuses a missing table and names it" || bad "8b missing table: $out"
+expect_eq "8b nothing installed (missing table)" "$(count_funcs)" "0"
+
+# 8c. a hostile search_path cannot change who may change stock (EXT4) ----------------
+fresh_db; run "$INSTALL" >/dev/null
+out=$(q "insert into profiles (id, email, role) values ('00000000-0000-4000-8000-0000000000e8','emp8@example.test','employee') on conflict (id) do update set role='employee';
+  create schema if not exists evil; create or replace function evil.is_owner_or_admin() returns boolean language sql as 'select true';
+  grant usage on schema evil to authenticated; grant execute on function evil.is_owner_or_admin() to authenticated;
+  set role authenticated; set search_path = evil, public; select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-0000000000e8',false);
+  select public.adjust_inventory((select id from public.products limit 1), 'available', 1, 'test', null)")
+echo "$out" | grep -q "Only the Owner or an Administrator" && ok "8c a look-alike permission check earlier in search_path is ignored" || bad "8c search_path: $out"
+expect_eq "8c functions are owned by the installing role" "$(q "select count(distinct pg_get_userbyid(p.proowner)) || ':' || min(pg_get_userbyid(p.proowner)) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname in ($FUNCS)")" "1:postgres"
+
+# 8d. reinstall after rollback gives the same functions (EXT4) ------------------------
+run "$ROLLBACK" >/dev/null; run "$INSTALL" >/dev/null
+expect_eq "8d reinstall after rollback: same fingerprint" "$(fingerprint)" "$FP1"
+RUNBOOK_FP=$(grep -o 'Expected for the version reviewed on [0-9-]*: `[0-9a-f]\{32\}`' "$ROOT/docs/ops/R1-R5-INSTALL-RUNBOOK.md" | grep -o '[0-9a-f]\{32\}')
+expect_eq "8d the runbook's expected fingerprint matches this file (update the runbook when the file changes)" "$RUNBOOK_FP" "$FP1"
+
 # 9. permission refusal --------------------------------------------------------------
 fresh_db; run "$INSTALL" >/dev/null
 out=$(q "set role anon; select public.adjust_inventory(gen_random_uuid(), 'available', 1, 'test', null)")

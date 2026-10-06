@@ -1,6 +1,21 @@
 # Stock functions: local stress-test results
 
-## CURRENT: hardened drafts on the real table shapes (2026-10-06)
+## CURRENT: extension 4 additions (2026-10-06)
+
+`stress_test.sh` now has 29 scenarios and **88 checks per run**. New in extension 4:
+
+| # | Scenario | Result |
+|---|---|---|
+| S21 | Operator ladder extended to 150 and 200 people adjusting one product | Exact at every level. Time grows roughly linearly (about 2.7–3.2 s at 100 and 4.7–5.8 s at 200 on the local machine) |
+| S26 | The same new lot number (mixed case) on 20 POs received at once | One lot row; 210/210 units; stock +210; 20 expenses |
+| S27 | Remove a PO line while the order is received (20 races) | **Without a guard, 2–6 of every 20 races leave stock that no line explains, even with R1.** With the draft guard `drafts/17_DRAFT_po_line_delete_guard.sql`: 0, and 0 deadlocks. A first version of the guard that locked the order row deadlocked once and was changed |
+| S28 | Recall quarantine while 30 people take stock out | No bucket below zero; available + recalled + taken = start |
+| S29 | Delete product vs delivery for it (10 each) | Consistent either way; 0 deadlocks |
+| AL | `invariants.sql` after S20, S26 and S28 | No broken rule. A planted violation of each kind is detected |
+
+Runs: 4 runs, 0 failed checks. One deadlock happened only with the first guard version, which has been fixed.
+
+## Earlier: hardened drafts on the real table shapes (2026-10-06)
 
 **What was tested:** `docs/ops/sql/drafts/10_DRAFT_stock_functions.sql` after the 2026-10-06 hardening (design doc section 9), on a throwaway local PostgreSQL 16 with the **real** table shapes from Query A (`local-test/01_REAL_SHAPE_…`). Real parallel sessions, each signed in as a synthetic owner (or the synthetic employee), with row-level security on. **Not Supabase; not production evidence.**
 

@@ -300,6 +300,20 @@ begin
     end loop;
   end;
 
+  -- (EXT4) the delivery's expense is whole cents even when a unit cost has
+  -- fractions of a cent: 3 x 0.125 = 0.375 is logged as 0.38.
+  declare pc uuid; poc uuid;
+  begin
+    insert into products (name, sku) values ('TEST cents', 'T-CENTS') returning id into pc;
+    insert into inventory (product_id) values (pc);
+    insert into purchase_orders (po_number, supplier_id, status) values ('HX-PO-CENTS', s, 'shipped') returning id into poc;
+    insert into purchase_order_items (purchase_order_id, product_id, description, quantity, unit_cost) values (poc, pc, 'caps', 3, 0.125);
+    perform receive_purchase_order(poc);
+    if (select amount from expenses where note = 'Purchase order HX-PO-CENTS') <> 0.38 then
+      raise exception 'expense not rounded to cents: %', (select amount from expenses where note = 'Purchase order HX-PO-CENTS');
+    end if;
+  end;
+
   raise notice 'ALL HARDENING AND FAILURE TESTS PASSED';
 end $$;
 rollback;

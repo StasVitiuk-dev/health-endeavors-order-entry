@@ -30,14 +30,14 @@ begin if current_setting('stress.sleep', true) = '1' then perform pg_sleep(3); e
 drop trigger if exists _stress_sleep on public.expenses;
 create trigger _stress_sleep before insert on public.expenses for each row execute function public._stress_sleep();
 SQL
-trap "$PSQL -c 'drop trigger if exists _stress_sleep on public.expenses; drop function if exists public._stress_sleep();' >/dev/null" EXIT
+trap "$PSQL -c 'drop trigger if exists _stress_sleep on public.expenses; drop function if exists public._stress_sleep(); drop trigger if exists he_po_line_delete_guard on public.purchase_order_items; drop function if exists public._he_po_line_delete_guard();' >/dev/null" EXIT
 pass=0; fail=0
 check() { if [ "$2" = "$3" ]; then pass=$((pass+1)); [ -n "$VERBOSE" ] && echo "PASS  $1 ($2)"; else fail=$((fail+1)); echo "FAIL  $1: expected $3, got $2"; fi; }
 
 reset() {
   $PSQL <<SQL
 delete from inventory_adjustments; delete from expenses; delete from recalls; delete from returns; delete from order_items; delete from orders;
-delete from purchase_order_items; delete from inventory_lots; delete from purchase_orders; delete from inventory; delete from products; delete from suppliers;
+delete from inventory_lots; delete from purchase_orders; delete from purchase_order_items; delete from inventory; delete from products; delete from suppliers;
 delete from audit_log;
 insert into profiles (id, email, role) select ('00000000-0000-4000-8000-00000000000' || g)::uuid, 'stress' || g || '@example.test', 'owner'
   from generate_series(1, 9) g on conflict (id) do nothing;
@@ -341,13 +341,16 @@ run_once() {
           or i.recalled <> coalesce((select sum(change_amount) from inventory_adjustments a where a.product_id=i.product_id and a.bucket='recalled'),0)")" 0
   check "S20 deleted-or-kept products consistent (no orphan stock, history only on kept ones)" "$(q "select count(*) from inventory_adjustments a where a.reason='s20-del' and not exists (select 1 from products p where p.id=a.product_id)")/$(q "select count(*) from inventory i where not exists (select 1 from products p where p.id=i.product_id)")" "0/0"
 
+  # AL (EXT4): every data-integrity rule holds after the busiest scenario.
+  check "S20 data-integrity invariants hold (invariants.sql: no broken rule)" "$($PSQL -f "$(dirname "$0")/invariants.sql" | grep -c .)" 0
+
   dl_mark "S21"
-  # S21 (EXT3). Operator ladder: 2, 5, 10, 25, 50, 100 people adjust the same
+  # S21 (EXT3; EXT4 adds 150 and 200). Operator ladder: 2 … 200 people adjust the same
   # product at once. Every level: nothing lost, nothing doubled, history
   # explains the stock; the time per level is printed so a slowdown that
   # grows faster than the load would show up.
   local ladder=""
-  for n in 2 5 10 25 50 100; do
+  for n in 2 5 10 25 50 100 150 200; do
     reset
     local l0=$(date +%s%N)
     for i in $(seq $n); do call "select adjust_inventory('$A','available',1,'s21');" & done; wait
@@ -419,9 +422,87 @@ run_once() {
       else 'unexpected status' end")" true
   check "S25 no deadlock" "$(( $(grep -c deadlock "$ERR") - dl25 ))" 0
 
+  dl_mark "S26"
+  # S26 (EXT4). The same new lot number arrives on 20 purchase orders that are
+  # received at the same moment. One lot row, quantities added up, stock and
+  # history exact, 20 expenses.
+  reset
+  q "insert into purchase_orders (id, po_number, status, supplier_id) select ('a2600000-0000-4000-8000-' || lpad(g::text,12,'0'))::uuid, 'S26-'||g, 'shipped', '99999999-0000-4000-8000-000000000000' from generate_series(1,20) g"
+  q "insert into purchase_order_items (id, purchase_order_id, product_id, description, quantity, unit_cost) select ('a2600000-1111-4000-8000-' || lpad(g::text,12,'0'))::uuid, ('a2600000-0000-4000-8000-' || lpad(g::text,12,'0'))::uuid, '$A', 'x', g, 1 from generate_series(1,20) g"
+  for g in $(seq 1 20); do
+    call "select receive_purchase_order('a2600000-0000-4000-8000-$(printf %012d $g)', '[{\"line_id\":\"a2600000-1111-4000-8000-$(printf %012d $g)\",\"lot_number\":\"$( [ $((g%2)) = 0 ] && echo l-same || echo L-SAME )\"}]'::jsonb);" &
+  done; wait
+  check "S26 one lot row for L-SAME / l-same (case-insensitive)" "$(q "select count(*) from inventory_lots where lower(lot_number)='l-same'")" 1
+  check "S26 lot received = 1+2+…+20 = 210" "$(q "select quantity_received::int || '/' || quantity_remaining::int from inventory_lots where lower(lot_number)='l-same'")" "210/210"
+  check "S26 stock = 1000 + 210, 20 expenses" "$(q "select (select available from inventory where product_id='$A') || '/' || (select count(*) from expenses)")" "1210/20"
+  check "S26 history explains stock" "$(history_consistent)" 0
+  check "S26 data-integrity invariants hold" "$($PSQL -f "$(dirname "$0")/invariants.sql" | grep -c .)" 0
+
+  dl_mark "S27"
+  # S27 (EXT4). A purchase-order line is removed while the order is received.
+  # Without a guard the line can disappear AFTER its stock was added (shown
+  # here for the record, not as a check). With the draft guard
+  # (drafts/17_…) installed, stock always matches the order's lines.
+  s27_round() {
+    local bad=0
+    for i in $(seq 1 20); do
+      reset
+      q "insert into purchase_orders (id, po_number, status, supplier_id) values ('a2700000-0000-4000-8000-000000000001','S27','shipped','99999999-0000-4000-8000-000000000000')"
+      q "insert into purchase_order_items (id, purchase_order_id, product_id, description, quantity, unit_cost) values ('a2700000-1111-4000-8000-000000000001','a2700000-0000-4000-8000-000000000001','$A','x',5,1), ('a2700000-1111-4000-8000-000000000002','a2700000-0000-4000-8000-000000000001','$A','y',7,1)"
+      call "select receive_purchase_order('a2700000-0000-4000-8000-000000000001');" &
+      call "delete from purchase_order_items i using purchase_orders p where i.id='a2700000-1111-4000-8000-000000000002' and p.id=i.purchase_order_id and p.status in ('draft','ordered','shipped');" &
+      wait
+      [ "$(q "select (select available from inventory where product_id='$A') = 1000 + (select coalesce(sum(quantity),0) from purchase_order_items where purchase_order_id='a2700000-0000-4000-8000-000000000001' and quantity_received = quantity)")" = t ] || bad=$((bad+1))
+    done
+    echo $bad
+  }
+  S27_UNGUARDED=$(s27_round)
+  $PSQL -f "$(dirname "$0")/../drafts/17_DRAFT_po_line_delete_guard.sql" >/dev/null
+  check "S27 with the line-delete guard: stock always matches the received lines (20 races)" "$(s27_round)" 0
+  $PSQL -f "$(dirname "$0")/../drafts/18_DRAFT_rollback_po_line_delete_guard.sql" >/dev/null
+  check "S27 guard rollback leaves no trigger" "$(q "select count(*) from pg_trigger where tgname='he_po_line_delete_guard'")" 0
+  [ -n "$VERBOSE" ] && echo "  S27 without the guard: $S27_UNGUARDED of 20 races left stock that no line explains"
+
+  dl_mark "S28"
+  # S28 (EXT4). A recall is quarantined while 30 people take stock out of
+  # Available at the same time. No bucket ever goes below zero, the recall
+  # quarantines at most what was there, and history explains everything.
+  reset
+  q "update inventory set available = 40 where product_id='$A'"
+  q "insert into inventory_adjustments (product_id, bucket, change_amount, reason) values ('$A','available',-960,'s28 start')"
+  q "insert into inventory_lots (id, product_id, lot_number, quantity_received, quantity_remaining) values ('a2800000-4444-4000-8000-000000000001','$A','S28-LOT',40,40)"
+  q "insert into recalls (id, lot_id, product_id, reason, status) values ('a2800000-5555-4000-8000-000000000001','a2800000-4444-4000-8000-000000000001','$A','S28','initiated')"
+  for i in $(seq 30); do call "select adjust_inventory('$A','available',-2,'s28');" & done
+  call "select quarantine_recall('a2800000-5555-4000-8000-000000000001');" &
+  wait
+  check "S28 no bucket below zero" "$(q "select (available >= 0 and recalled >= 0)::text from inventory where product_id='$A'")" true
+  check "S28 available + recalled + units taken = 40" "$(q "select (select available + recalled from inventory where product_id='$A') + 2 * (select count(*) from inventory_adjustments where reason='s28')")" 40
+  check "S28 recall quantity = recalled bucket" "$(q "select (coalesce((select quantity_quarantined from recalls where id='a2800000-5555-4000-8000-000000000001'),0) = (select recalled from inventory where product_id='$A'))::text")" true
+  check "S28 history explains stock" "$(history_consistent)" 0
+  check "S28 data-integrity invariants hold" "$($PSQL -f "$(dirname "$0")/invariants.sql" | grep -c .)" 0
+
+  dl_mark "S29"
+  # S29 (EXT4). "Delete product" races a delivery for that product (10 of
+  # each). The product is either kept with its stock, or deleted with no
+  # stock, lot, line or history left pointing at it.
+  reset
+  q "insert into products (id, name, sku) values ('a2900000-6666-4000-8000-000000000001','S29','S29')"
+  q "insert into inventory (product_id) values ('a2900000-6666-4000-8000-000000000001')"
+  q "insert into purchase_orders (id, po_number, status, supplier_id) values ('a2900000-0000-4000-8000-000000000001','S29','shipped','99999999-0000-4000-8000-000000000000')"
+  local dl29=$(grep -c deadlock "$ERR")
+  for i in $(seq 10); do
+    call "select delete_unused_product('a2900000-6666-4000-8000-000000000001');" &
+    call "insert into purchase_order_items (purchase_order_id, product_id, description, quantity, unit_cost) select 'a2900000-0000-4000-8000-000000000001','a2900000-6666-4000-8000-000000000001','x',1,1 where not exists (select 1 from purchase_order_items where purchase_order_id='a2900000-0000-4000-8000-000000000001'); select receive_purchase_order('a2900000-0000-4000-8000-000000000001');" &
+  done; wait
+  check "S29 delete vs delivery: consistent outcome" "$(q "select case when exists (select 1 from products where id='a2900000-6666-4000-8000-000000000001')
+      then ((select available from inventory where product_id='a2900000-6666-4000-8000-000000000001') = coalesce((select sum(change_amount) from inventory_adjustments where product_id='a2900000-6666-4000-8000-000000000001'),0))::text
+      else (not exists (select 1 from inventory where product_id='a2900000-6666-4000-8000-000000000001') and not exists (select 1 from inventory_adjustments where product_id='a2900000-6666-4000-8000-000000000001')
+            and not exists (select 1 from purchase_order_items where product_id='a2900000-6666-4000-8000-000000000001'))::text end")" true
+  check "S29 no deadlock" "$(( $(grep -c deadlock "$ERR") - dl29 ))" 0
+
   dl_mark "end"
   local t1=$(date +%s%N)
-  echo "run $1: $pass passed, $fail failed, deadlocks seen: $(grep -c deadlock "$ERR"), $(( (t1 - t0) / 1000000 )) ms; S21 ladder:$S21_LADDER"
+  echo "run $1: $pass passed, $fail failed, deadlocks seen: $(grep -c deadlock "$ERR"), $(( (t1 - t0) / 1000000 )) ms; S21 ladder:$S21_LADDER; S27 unguarded races:$S27_UNGUARDED/20"
 }
 
 total_fail=0
