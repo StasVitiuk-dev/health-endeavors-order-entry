@@ -351,10 +351,36 @@
       return '';
     }
 
+    // ---- Date ranges (moved from the page, step 2d, EXT3). All use the
+    // viewer's own calendar (Central for the business); "now" can be given
+    // so tests can pin the date.
+    // Today's date (or the given date) as YYYY-MM-DD on the viewer's own
+    // calendar. toISOString() gives the UTC date instead, which in US time
+    // zones is already "tomorrow" every evening.
+    function localDateString(d){
+      const t = d || new Date();
+      return t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0');
+    }
+    // Accounting: start of Today / last 7 days / This Month (local midnight), or null for all time.
+    function acctRangeStart(range, now){
+      now = now || new Date();
+      if (range === 'today') return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      if (range === 'week') { const d = new Date(now); d.setDate(d.getDate() - 7); return d; }
+      if (range === 'month') return new Date(now.getFullYear(), now.getMonth(), 1);
+      return null; // all time
+    }
+    // Tax Records: This Year / Last Year as [start, end) at local midnight.
+    function taxRangeStart(range, now){
+      now = now || new Date();
+      if (range === 'year') return { start: new Date(now.getFullYear(), 0, 1), end: null };
+      if (range === 'lastyear') return { start: new Date(now.getFullYear() - 1, 0, 1), end: new Date(now.getFullYear(), 0, 1) };
+      return { start: null, end: null }; // all time
+    }
+
   // Bump API when a helper's name or arguments change, so a page that loaded
   // an older copy refuses to start instead of running mixed code.
   window.HE.helpers = Object.freeze({
-    API: 4,
+    API: 5,
     esc,
     csvCell,
     fmtMoney,
@@ -387,5 +413,8 @@
     uploadStamp,
     safeStorageName,
     numberInputError,
+    localDateString,
+    acctRangeStart,
+    taxRangeStart,
   });
 })();

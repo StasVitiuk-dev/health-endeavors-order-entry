@@ -267,3 +267,32 @@ test.describe('explainDbError: dropped connection (EXT3)', () => {
   });
 });
 
+test.describe('date ranges (step 2d): Central-time boundaries', () => {
+  // The business runs on Central time; the browser computes ranges on its own
+  // calendar. Pin this Node worker to Chicago for these checks.
+  const prevTz = process.env.TZ;
+  test.beforeAll(() => { process.env.TZ = 'America/Chicago'; });
+  test.afterAll(() => { if (prevTz === undefined) delete process.env.TZ; else process.env.TZ = prevTz; });
+  const D = load(['localDateString', 'acctRangeStart', 'taxRangeStart']);
+  test('localDateString gives the Central date, not the UTC date, on a US evening', () => {
+    expect(D.localDateString(new Date('2026-06-15T04:30:00Z'))).toBe('2026-06-14'); // 23:30 CDT on June 14
+    expect(D.localDateString(new Date('2026-06-15T05:30:00Z'))).toBe('2026-06-15');
+  });
+  test('"This Month" starts at local midnight on the 1st (05:00Z in summer, 06:00Z in winter)', () => {
+    expect(D.acctRangeStart('month', new Date('2026-06-15T15:00:00Z')).toISOString()).toBe('2026-06-01T05:00:00.000Z');
+    expect(D.acctRangeStart('month', new Date('2026-01-20T15:00:00Z')).toISOString()).toBe('2026-01-01T06:00:00.000Z');
+    expect(D.acctRangeStart('all', new Date())).toBeNull();
+  });
+  test('"Today" late in the evening is still today (not tomorrow in UTC)', () => {
+    expect(D.acctRangeStart('today', new Date('2026-06-15T04:30:00Z')).toISOString()).toBe('2026-06-14T05:00:00.000Z');
+  });
+  test('Tax years run from local midnight on Jan 1; "Last Year" ends where "This Year" starts', () => {
+    const now = new Date('2026-06-15T15:00:00Z');
+    expect(D.taxRangeStart('year', now).start.toISOString()).toBe('2026-01-01T06:00:00.000Z');
+    const last = D.taxRangeStart('lastyear', now);
+    expect(last.start.toISOString()).toBe('2025-01-01T06:00:00.000Z');
+    expect(last.end.toISOString()).toBe(D.taxRangeStart('year', now).start.toISOString());
+    expect(D.taxRangeStart('all', now)).toEqual({ start: null, end: null });
+  });
+});
+

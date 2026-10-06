@@ -81,3 +81,14 @@ I stopped before step 3 (the `HE` namespace + start registry + feature modules) 
 1. the upload flow (`uploadThenSave`) with `supabase` passed in (`confirmSecondPress` moved in step 2c)
 2. the access helpers, moved with `supabase` passed in
 3. the Tasks page (best tested)
+
+## Step 2d (2026-10-06, extension 3): date ranges, API 5
+
+Moved from `owner-login.html` to `assets/owner-login-helpers.js`:
+- `localDateString`
+- `acctRangeStart`
+- `taxRangeStart`
+
+All three are pure and now take an optional "now", so the Central-time boundaries (local midnight on the 1st, Jan 1, a US evening) are unit-tested directly (`helpers-unit.spec.js`, run with the Chicago time zone). The helpers file now holds 35 names; API 4 → 5, so a page with a cached older helpers file refuses to start and asks for a reload. Behaviour is unchanged: the request baseline is identical and the screenshots are unchanged.
+
+Also added in extension 3, without a step number: `numberInputError` (API 4).
