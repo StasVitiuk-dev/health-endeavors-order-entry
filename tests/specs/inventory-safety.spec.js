@@ -13,7 +13,7 @@
 // change), so a retry, double click or stale tab never moves stock twice.
 // What is still missing is all-or-nothing: stock and its history are two
 // writes. Those "wanted" tests stay test.fail() until the R2/R3/R4 database
-// functions exist (BLOCKED ON QUERY A/B).
+// functions are installed (drafts ready and tested; waiting for Query C and owner approval).
 // Purchase-order receiving is covered in po-receive.spec.js.
 
 const { test, expect, login, gotoPage } = require('../helpers/dashboard');
@@ -126,7 +126,7 @@ test.describe('recall quarantine', () => {
   });
 
   test('wanted: stock, history and recall status are saved together or not at all', async ({ page, backend }) => {
-    test.fail(true, 'Quarantine is not atomic yet: needs quarantine_recall (R2), BLOCKED ON QUERY A/B');
+    test.fail(true, 'Quarantine is not atomic yet: needs quarantine_recall (R2), drafted and tested; waits for Query C, owner approval and install (docs/ops/R1-R5-INSTALL-RUNBOOK.md)');
     backend.dropNext('inventory_adjustments', 'POST');
     await page.click('.recallQuarantineBtn');
     await expectError(page, 'did not finish');
@@ -175,7 +175,7 @@ test.describe('manual stock adjustment', () => {
   });
 
   test('wanted: stock and its history are saved together or not at all', async ({ page, backend }) => {
-    test.fail(true, 'Manual adjustment is not atomic yet: needs adjust_inventory (R4), BLOCKED ON QUERY A/B');
+    test.fail(true, 'Manual adjustment is not atomic yet: needs adjust_inventory (R4), drafted and tested; waits for Query C, owner approval and install (docs/ops/R1-R5-INSTALL-RUNBOOK.md)');
     backend.dropNext('inventory_adjustments', 'POST');
     await adjust(page, 7);
     await expectError(page, 'may or may not have been saved');
@@ -231,7 +231,7 @@ test.describe('return restock', () => {
   });
 
   test('wanted: return status, stock and history are saved together or not at all', async ({ page, backend }) => {
-    test.fail(true, 'Return restock is not atomic yet: needs receive_return (R3), BLOCKED ON QUERY A/B');
+    test.fail(true, 'Return restock is not atomic yet: needs receive_return (R3), drafted and tested; waits for Query C, owner approval and install (docs/ops/R1-R5-INSTALL-RUNBOOK.md)');
     backend.dropNext('inventory_adjustments', 'POST');
     await markReceived(page);
     await expectError(page, 'restock did not finish');

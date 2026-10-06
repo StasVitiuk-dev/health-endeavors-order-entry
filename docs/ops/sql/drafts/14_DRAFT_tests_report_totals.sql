@@ -1,5 +1,7 @@
 -- LOCAL ONLY tests for 13_DRAFT_report_totals.sql. Runs in a transaction and
--- rolls back. Adds the columns the guessed local schema lacks.
+-- rolls back. Since 2026-10-06 also runs on the REAL table shapes
+-- (local-test/01_REAL_SHAPE_…): orders need a channel, returns a reason.
+-- The "add column if not exists" lines only matter on the old guessed schema.
 begin;
 alter table orders   add column if not exists placed_at timestamptz, add column if not exists deleted_at timestamptz, add column if not exists tax_total numeric;
 alter table expenses add column if not exists deleted_at timestamptz;
@@ -7,20 +9,20 @@ alter table returns  add column if not exists refund_amount numeric, add column 
 \i docs/ops/sql/drafts/13_DRAFT_report_totals.sql
 delete from returns; delete from order_items; delete from orders; delete from expenses;
 
-insert into orders (id, order_number, status, total, tax_total, placed_at)
-select gen_random_uuid(), 'SYN-' || g, 'paid', 10, 0.5, '2026-03-01 12:00+00' from generate_series(1, 2500) g;
-insert into orders (id, order_number, status, total, placed_at) values
-  ('00000000-0000-0000-0000-0000000000a1', 'SYN-R', 'refunded', 50, '2026-03-01 12:00+00'),
-  ('00000000-0000-0000-0000-0000000000a2', 'SYN-C', 'Cancelled', 70, '2026-03-01 12:00+00'),
-  ('00000000-0000-0000-0000-0000000000a3', 'SYN-P', 'partially_refunded', 80, '2026-03-01 12:00+00'),
-  ('00000000-0000-0000-0000-0000000000a4', 'SYN-D', 'paid', 999, '2026-03-01 12:00+00');
+insert into orders (id, channel, order_number, status, total, tax_total, placed_at)
+select gen_random_uuid(), 'manual', 'SYN-' || g, 'paid', 10, 0.5, '2026-03-01 12:00+00' from generate_series(1, 2500) g;
+insert into orders (id, channel, order_number, status, total, placed_at) values
+  ('00000000-0000-0000-0000-0000000000a1', 'manual', 'SYN-R', 'refunded', 50, '2026-03-01 12:00+00'),
+  ('00000000-0000-0000-0000-0000000000a2', 'manual', 'SYN-C', 'Cancelled', 70, '2026-03-01 12:00+00'),
+  ('00000000-0000-0000-0000-0000000000a3', 'manual', 'SYN-P', 'partially_refunded', 80, '2026-03-01 12:00+00'),
+  ('00000000-0000-0000-0000-0000000000a4', 'manual', 'SYN-D', 'paid', 999, '2026-03-01 12:00+00');
 update orders set deleted_at = now() where order_number = 'SYN-D';
 insert into expenses (category, amount, expense_date) select 'packaging', 1, '2026-03-02' from generate_series(1, 1200);
 insert into expenses (category, amount, expense_date, deleted_at) values ('packaging', 500, '2026-03-02', now());
-insert into returns (order_id, status, refund_amount, refunded_at) values
-  ((select id from orders where order_number = 'SYN-1'), 'refunded', 30, '2026-03-05 12:00+00'),
-  ('00000000-0000-0000-0000-0000000000a1', 'refunded', 50, '2026-03-05 12:00+00'),
-  ('00000000-0000-0000-0000-0000000000a3', 'refunded', 20, '2026-03-05 12:00+00');
+insert into returns (order_id, reason, status, refund_amount, refunded_at) values
+  ((select id from orders where order_number = 'SYN-1'), 'other', 'refunded', 30, '2026-03-05 12:00+00'),
+  ('00000000-0000-0000-0000-0000000000a1', 'other', 'refunded', 50, '2026-03-05 12:00+00'),
+  ('00000000-0000-0000-0000-0000000000a3', 'other', 'refunded', 20, '2026-03-05 12:00+00');
 
 do $$
 declare t jsonb;

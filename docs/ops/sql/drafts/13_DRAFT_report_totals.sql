@@ -1,7 +1,9 @@
 -- =============================================================================
--- DRAFT — NOT FOR PRODUCTION YET.  BLOCKED ON QUERY A/B (real column names and
--- status values). Written against the guessed local schema; tested only on a
--- local PostgreSQL 16 (see 14_DRAFT_tests_report_totals.sql).
+-- DRAFT — NOT FOR PRODUCTION YET. 2026-10-06: installs and passes its tests on
+-- the REAL table shapes from Query A (local copy, synthetic data; see
+-- 14_DRAFT_tests_report_totals.sql). Still needs the owner's refund decision
+-- (N4) and approval before it is installed; the dashboard keeps paging until then.
+-- (Superseded note: this file used to say "BLOCKED ON QUERY A/B".)
 --
 -- Finding N14: Accounting / Tax Records / Business Health add rows up in the
 -- browser. The dashboard now pages through every row (fetchAllRows), which is

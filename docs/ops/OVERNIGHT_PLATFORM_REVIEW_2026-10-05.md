@@ -1,5 +1,7 @@
 # Overnight platform review: 2026-10-05
 
+> **Superseded in parts (2026-10-06).** Queries A and B have since been run; the R1–R5 drafts were reconciled and hardened, and many "BLOCKED ON QUERY A/B" items below were completed. The current picture is in `OWNER_REVIEW_2026-10-06.md`, `LAUNCH_READINESS_2026-10-06.md` and `MASTER_PLATFORM_BACKLOG_2026-10-06.md`. This file is kept unchanged as the record of that night.
+
 **Scope:** the internal dashboard and platform only. The website repository, Real Estate OS, production Supabase, Shopify, agents, backups, money and customer messages were not touched.
 
 **Labels used:**

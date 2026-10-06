@@ -28,7 +28,7 @@
 
 **Tests:**
 - `tests/specs/refund-policy.spec.js`: unit tests for both options, plus a browser test of each option on the Accounting page
-- `docs/ops/sql/drafts/13_DRAFT_report_totals.sql`: the same rule in SQL, for when totals move into the database (BLOCKED ON QUERY A/B), with local tests in `14_…`
+- `docs/ops/sql/drafts/13_DRAFT_report_totals.sql`: the same rule in SQL, for when totals move into the database (2026-10-06: passes on the real table shapes; waits for this N4 decision and approval), with local tests in `14_…`
 
 ## 4. Questions for the owner (or the accountant)
 

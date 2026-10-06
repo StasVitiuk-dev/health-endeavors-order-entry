@@ -214,7 +214,7 @@ test.describe('claim-first receiving (current behaviour)', () => {
 
 test.describe('all-or-nothing (wanted behaviour; needs the R1 database function)', () => {
   test('a dropped connection part-way leaves nothing half-saved', async ({ page, backend }) => {
-    test.fail(true, 'Receiving is not atomic yet: needs receive_purchase_order (R1), BLOCKED ON QUERY A/B');
+    test.fail(true, 'Receiving is not atomic yet: needs receive_purchase_order (R1), drafted and tested; waits for Query C, owner approval and install (docs/ops/R1-R5-INSTALL-RUNBOOK.md)');
     backend.dropNext('inventory', 'PATCH', { applied: true });
     await clickReceive(page);
     await expect(page.locator('body')).toContainText('stopped part-way');

@@ -34,7 +34,7 @@ Malformed inputs (zero, negative, decimal, unknown bucket, injection-looking tex
 
 **What was tested:** the DRAFT functions in `docs/ops/sql/drafts/10_DRAFT_stock_functions.sql` (R1–R5).
 - **Where:** a throwaway local PostgreSQL 16, using the **guessed** schema (`local-test/00_GUESSED_…`).
-- **Not tested:** Supabase. **This is not production evidence.** The functions are BLOCKED ON QUERY A/B until they are reconciled with the real schema.
+- **Not tested:** Supabase. **This is not production evidence.** The functions were BLOCKED ON QUERY A/B at the time. *(Superseded 2026-10-06: reconciled with the real schema and re-tested; see the CURRENT section above.)*
 
 **Script:** `docs/ops/sql/local-test/stress_test.sh <runs> <psql args>`. Real parallel database sessions, each logged in as a synthetic staff user with row-level security on.
 

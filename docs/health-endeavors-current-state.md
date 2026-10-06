@@ -53,7 +53,7 @@ Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (fro
 
 1. Stock can be double-counted or lost on retries or concurrent edits: R1–R4.
    - On `main`: unprotected.
-   - On the overnight branch: protected browser-side (no double counting, no lost updates). A connection drop can still leave work half-done, so the all-or-nothing database functions are still needed: BLOCKED ON QUERY A/B. **Blocks** automatic Shopify stock sync.
+   - On the overnight branch: protected browser-side (no double counting, no lost updates). A connection drop can still leave work half-done, so the all-or-nothing database functions are still needed: drafted, reconciled with Query A and tested locally (2026-10-06); they wait for Query C and the owner's approval to install. **Blocks** automatic Shopify stock sync.
 2. Product delete wipes stock first (R5). The overnight branch refuses while stock remains; the full fix needs Query A.
 3. Unescaped output on `search.html` / `dashboard.html` (R6): fix in PR #7, plus a broad XSS test on the overnight branch.
 4. Supabase library unpinned (R7): pinned with an integrity hash on the overnight branch (not merged).
