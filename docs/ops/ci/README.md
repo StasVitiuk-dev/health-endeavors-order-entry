@@ -51,3 +51,28 @@ The branch is unchanged: commit `662d46b`, one file. It matches the draft here l
 3. **Nothing is required yet.** A failing check doesn't block merging until the owner adds `Playwright (behaviour)` as a required status check in `protect-main` (a settings change only the owner can make).
 4. **Rollback:** delete `.github/workflows/tests.yml` in a PR (or revert the merge commit). No other state is created.
 5. **Cost and limits:** public repository, so GitHub-hosted runners are free. Fork PRs still need your approval to run (current Actions setting).
+
+## Review, 2026-10-06 (extension 3)
+
+**Reviewed:** `claude/tests-only-ci` (`662d46b`, unchanged). An improved copy is on **`claude/tests-only-ci-v2`** (`2182bf0`). Neither is active: a workflow runs only once a PR that adds it is merged, and no PR is opened.
+
+| Check | Result |
+|---|---|
+| Deterministic | `npm ci` from the lockfile, browser version fixed by the lockfile, screenshots informational (font rendering differs on GitHub runners) |
+| No secrets needed | Yes. The SQL job's database password exists only inside its own throwaway container |
+| Read-only token | `permissions: contents: read`, `persist-credentials: false` |
+| No deployment | No deploy step; nothing reaches Supabase, Shopify or the live site (the test mock blocks outside requests) |
+| Dependency pinning | Actions pinned to commits; `npm ci --ignore-scripts`. **OWNER CHECK (CI-03):** confirm the pinned commits match the release tags (other repositories are out of this session's scope) |
+| Cache safety | npm cache keyed by the lockfile; no cache writes from untrusted forks beyond GitHub's defaults (fork workflows need approval, per repository settings) |
+| Artifacts | Failure screenshots and traces, kept 7 days; synthetic data only |
+| Failure visibility | `--reporter=list,github` annotates failures on the PR |
+| Test splitting / time | One job, 40-minute timeout. The full suite takes about 16 minutes locally on 2 workers, so sharding is not needed yet |
+| Concurrency | `cancel-in-progress` per branch |
+| Branch-only use | Triggers: pull requests to `main`, plus manual runs. A push to a branch runs nothing |
+
+**v2 adds (CI-04):** an informational `sql-drafts` job (continue-on-error) on a `postgres:16` service container. It runs:
+- the R1–R5 draft tests and the report-totals tests;
+- the Query C mock tests, failing if a planted fake secret appears in the output;
+- the install package tests, the SQL mutation check and one stress run.
+
+Each step is skipped when its files are not in the commit being tested. Making any job **required** is your decision (CI-02) and a repository-settings change; this session does not make it.
