@@ -88,3 +88,15 @@ test('Query C owner guide: checksum, line count and first/last lines match the f
   expect(guide).toContain('`' + lines[0] + '`');
   expect(guide).toContain('`' + lines[lines.length - 1] + '`');
 });
+
+// EXT5 (workstream 44): Query D reads function source only to answer yes/no
+// questions (pattern matches) and to count lines; it never outputs it.
+test('Query D: function source is only pattern-matched or counted, never output', () => {
+  const sql = fs.readFileSync(path.join(DIR, FILES.find(f => f.startsWith('03_'))), 'utf8');
+  const lines = sql.split('\n').filter(l => !/^\s*--/.test(l));
+  const uses = lines.filter(x => /prosrc/.test(x));
+  expect(uses.length).toBeGreaterThan(0);
+  for (const l of uses) expect(/p\.prosrc ~\*|regexp_split_to_array\(p\.prosrc, E'\\n'\)/.test(l), l).toBe(true);
+  expect(sql).not.toMatch(/pg_get_functiondef|pg_get_triggerdef/);
+  expect(sql).toMatch(/from pg_proc p/);
+});

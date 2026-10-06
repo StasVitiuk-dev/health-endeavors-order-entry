@@ -285,6 +285,24 @@ a('X4-25','Tests','Mutation testing extended: 47 page / 10 SQL mutations','Prove
 a('X4-26','Time','Force Central time for viewers in another time zone','Only matters if someone works from elsewhere','P4','Low','M','owner decision','Y','Y','N','DEFERRED')
 a('X4-27','Performance','Inventory page with 10,000 products renders slowly (beyond the 1,000-row server limit, so not reachable today)','Future catalogue growth','P4','Low','M','—','Y','N','N','DEFERRED')
 
+# ---------------- Extension 5 (2026-10-06, deep readiness continued)
+a('X5-01','Purchasing','Receive used the lines / shipping / tax the page had loaded (another tab\'s changes ignored: removed lines stocked and charged)','Stock and expenses wrong after stale-tab receive (live on main)','P1','High','S','—','Y','N','N','DONE')
+a('X5-02','Purchasing','A line change landing while receiving is reported (cause named; final re-check); the editor is warned too','False clean success','P1','High','S','—','Y','N','N','DONE')
+a('X5-03','Purchasing','Line guard extended to add and quantity change (5 and 6 of 20 races broke the match even with R1); lock order deadlock-free; forced interleavings','Order vs stock mismatch','P1','High','S','R1; approval','P','Y','Y','BLOCKED-PROD',['X4-15'])
+a('X5-04','Orders','Manual order retry adopted a same-number order (numbers are not unique)','A whole order merged into another','P1','High','S','—','Y','N','N','DONE')
+a('X5-05','Orders','Orders saved without items listed on sign-in (works across tabs, devices, restarts)','Silently empty orders after a closed tab','P2','Medium','S','—','Y','N','N','DONE')
+a('X5-06','Install','A double Run of the install failed with a catalog duplicate-key error; advisory lock added to install / rollback / guard','Alarming error for the owner','P2','Medium','S','—','Y','N','N','DONE')
+a('X5-07','Install','Adversarial install tests: concurrent, third install, wrong body, extra index, partial rollback, reads during install, missing auth.uid (61 checks)','Install safety evidence','P3','Medium','S','—','Y','N','N','DONE')
+a('X5-08','Customer service','Inquiry reply drafts overwrote each other silently','Lost reply text','P2','Medium','S','—','Y','N','N','DONE')
+a('X5-09','Accounting','Money totals paged by position: a record created mid-read was counted twice / another missed','Silent wrong totals','P1','High','S','—','Y','N','N','DONE')
+a('X5-10','Audit','Activity "Load more" and export repeated rows when changes arrived meanwhile','Duplicate audit rows in exports','P2','Medium','S','—','Y','N','N','DONE')
+a('X5-11','Idempotency','Request keys (unique client_request_id) for record-creating writes (25 paths)','A lost reply plus a retry can still create a duplicate record (mitigated: lock + honest message)','P2','Medium','M','approval (schema change)','N','Y','Y','BLOCKED-PROD')
+a('X5-12','Validation','Unreadable number text ($12.50, 12-) reported as "empty"','Confusing message','P3','Low','S','—','Y','N','N','DONE')
+a('X5-13','Privacy','Manual-order attempt record kept customer name / e-mail in browser storage','PII on shared devices','P3','Low','S','—','Y','N','N','DONE')
+a('X5-14','Tests','Failure matrix 14 actions x 14 kinds (silent refusal, empty reply, offline added); state machines from one fixture; mutation 57 + SQL 11','Evidence breadth','P3','Medium','M','—','Y','N','N','DONE')
+a('X5-15','Audit','employee_activity ordering ties: the RPC\'s ORDER BY (needs happened_at, id) is not visible from the dashboard','Possible skip at equal timestamps (owner/Query C check)','P3','Low','S','Query C / owner','N','Y','N','BLOCKED-QC')
+a('X5-16','Inventory','Low-stock threshold save is last-write-wins between two tabs (config value)','Minor overwrite','P3','Low','S','—','Y','N','N','QUEUED')
+
 if __name__ == '__main__':
     import collections, os
     order = {'P0':0,'P1':1,'P2':2,'P3':3,'P4':4}

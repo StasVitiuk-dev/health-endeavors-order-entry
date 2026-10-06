@@ -1,8 +1,27 @@
 # Owner decisions: what is waiting on you (next)
 
-**Status:** CURRENT (2026-10-06, extension 4). This is the one place listing decisions only you (Stas) can make. Each has a recommendation; nothing here has been decided for you. Answer in the chat in any order, for example "D-ops-4: yes". Nothing changes in production until you approve the specific step.
+**Status:** CURRENT (2026-10-06, extension 5; extension 4 list kept below). This is the one place listing decisions only you (Stas) can make. Each has a recommendation; nothing here has been decided for you. Answer in the chat in any order, for example "D-ops-4: yes". Nothing changes in production until you approve the specific step.
 
 **OWNER DECISION REQUIRED** on every row below.
+
+## At a glance (EXT5): risk of waiting, launch impact, production action
+
+| Decision | Why it matters | Risk if nobody decides | Blocks launch? | Production action after deciding? |
+|---|---|---|---|---|
+| N4 refund accounting | Revenue and tax figures after refunds | Reports keep today's rule (refunds not subtracted); possible mis-statement | Yes, before real refunds | No (dashboard change only) |
+| D-ops-5 partial returns | Returning 1 of 3 restocks 3 today | Stock overstated after partial returns | Before returns volume | Part of R3 install |
+| D-ops-4 one recall per lot | Two recalls could quarantine a lot twice | Over-quarantine (stock wrongly unavailable) | No | Small database rule (INV-16) |
+| D-ops-1/2/6 stock-function rollout | Order and scope of R1–R5 | Stock races stay in the browser path | **Yes** (R1–R4 are launch blockers) | Yes (install) |
+| PO line guard (drafts/17) | Line add / remove / quantity change during a receive breaks the order-vs-stock match, even with R1 | Rare mismatches after concurrent edits; the dashboard now detects and reports them | Recommended with R1 | Yes (one trigger) |
+| Request keys for creates (X5-11) | A lost reply plus a retry can create a duplicate expense / return / recall | Rare duplicates; mitigated by the lock + "check before trying again" message | No | Yes (schema change per table) |
+| Legal hold vs delete | Litigation / regulator requests | A held record could be deleted (documents lose their file) | Depends on legal advice | Option 1 needs a database rule |
+| Document categories | Filing | Some documents filed under "other" | No | Small database rule change |
+| Product delete policy (X3-16) | History preservation | None today (delete refused for anything used) | No | No |
+| Manual-order product picker (F3-02) | SKUs on manual orders | Manual sales can't drive stock / returns by SKU | Before relying on manual orders for stock | No |
+| Contrast / "This Week" label (F3-01/F3-07) | Readability | Minor | No | No |
+| CI required check / pinned actions (CI-02/03) | Every merge tested automatically | A broken change could be merged | Recommended before launch | GitHub setting (owner only) |
+| Backup check (X3-25) | Recovery if something goes wrong | **Unknown backup health** | **Yes, before any production change** | No (read-only look) |
+| Time zone (optional) | Viewers outside Central | Dates follow the viewer's own calendar | No | No |
 
 ## Business / accounting (please decide first)
 
