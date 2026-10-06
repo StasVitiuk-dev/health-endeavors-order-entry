@@ -219,6 +219,9 @@ a('X3-23','Auth','Threshold save had no role check (employee request sent, refus
 a('X3-24','Tests','SQL mutation run found 3 untested rules (recalled floor, fully received lines, unapproved return)','Test gaps','P2','Medium','S','—','Y','N','N','DONE')
 a('X3-25','Docs','Backup health unverified; records disagree (kept on vs last ran Sept 13)','Restore readiness unknown','P1','High','S','owner check','N','Y','N','BLOCKED-OWNER')
 
+a('X3-26','Storage','Zero-byte files uploaded and saved as empty receipts/documents','Useless record looks saved','P3','Low','S','—','Y','N','N','DONE')
+a('X3-27','Storage','Document delete from a stale tab removed record + old file, orphaning a replaced file','Orphan file','P3','Low','S','—','Y','N','N','DONE')
+
 # ---------------- Docs / process / owner
 a('DOC-01','Docs','Audits recorded (state machine, mutations, storage, pagination, launch readiness)','Durable record','P3','Medium','S','—','Y','N','N','DONE')
 a('DOC-02','Docs','Merge order for open PRs #5–#24 and this branch','Safe rollout','P2','High','S','owner','Y','Y','N','BLOCKED-OWNER',['pr-merge-order.md'])

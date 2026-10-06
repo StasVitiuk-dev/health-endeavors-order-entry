@@ -23,3 +23,20 @@ Double clicks: every upload form disables its button during the save (test: "a d
 2. **Storage policies:** who may upload, read and delete in each bucket? Two checks matter. Can an employee delete a document's file even though only the Owner/Administrator may delete the record? And can anyone signed in read any file?
 3. **Orphans already in storage:** a read-only listing comparing stored object names with `documents.file_path`, `evidence_locker.file_path` and `expenses.receipt_path` would show files left behind before these fixes.
 4. **Receipt file delete** (`expense-receipts`) already removes the file, then clears `receipt_path` only if unchanged. If clearing fails, the record points at a removed file; the page says so. Acceptable; noted.
+
+## Extension 3 (2026-10-06): lifecycle review, branch only
+
+| Case | Result | Test |
+|---|---|---|
+| Duplicate, huge, Unicode or hostile file names | Safe, short, collision-free names (earlier round) | storage-safety "hostile…", "two uploads…" |
+| **Zero-byte file** | **Was uploaded and saved as an empty "receipt" or document. Now refused before anything is sent (X3-26)** | "an empty (0-byte) file…" |
+| Oversized file, or a type that can run code | Refused before upload (earlier round) | helpers-unit `uploadProblem` |
+| Upload fails | Nothing saved, plain error | storage-safety |
+| Database refuses after upload | File removed again (earlier round) | storage-safety |
+| Reply lost after the record was saved | File kept; the record counts as added (earlier round) | storage-safety |
+| Document delete: storage delete fails | Record gone; the page says the file remains and names it | "if the stored file cannot be removed…" |
+| **Document delete from a stale tab whose file was replaced elsewhere** | **Was: deleted the record by id plus the OLD file, orphaning the new one. Now only while the record still has the file shown; otherwise "already changed" and nothing is removed (X3-27)** | "a document whose file was replaced…" |
+| Receipt removal | Unlink first, then delete the file (ST-04) | "removing a receipt" |
+| Orphan detection in real storage | Read-only listing prepared, **not run** (ST-08) | PRODUCTION VERIFY |
+| Real bucket privacy, size and type rules | **Not verified** (ST-07) | PRODUCTION VERIFY |
+| Legal hold blocks deletes? | **OWNER DECISION** (no check today) | — |

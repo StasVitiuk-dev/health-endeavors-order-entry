@@ -188,14 +188,18 @@ test.describe('Documents: permanent delete', () => {
     expect(writes(backend, 'documents')).toEqual([]);
   });
 
-  test('with the password the document row is deleted (by id only)', async ({ page, backend }) => {
+  test('with the password the document row is deleted (by id, while it still has the file shown)', async ({ page, backend }) => {
     page.once('dialog', d => d.accept());
     await page.locator('#documentsPanel [data-id="doc-1"] .docDeleteBtn').click();
     await confirmPassword(page);
     await expect.poll(() => writes(backend, 'documents').length).toBe(1);
     expect(writes(backend, 'documents')[0].method).toBe('DELETE');
-    // by id only; select=id asks for the deleted row back, so a silent refusal is noticed
-    expect(Object.fromEntries(writes(backend, 'documents')[0].params)).toEqual({ id: 'eq.doc-1', select: 'id' });
+    // by id, and only while it still has the file this page showed (EXT3);
+    // select=id asks for the deleted row back, so a silent refusal is noticed
+    const params = Object.fromEntries(writes(backend, 'documents')[0].params);
+    expect(params.id).toBe('eq.doc-1');
+    expect(params.select).toBe('id');
+    expect(params.file_path).toMatch(/^(eq\.|is\.null)/);
   });
 });
 

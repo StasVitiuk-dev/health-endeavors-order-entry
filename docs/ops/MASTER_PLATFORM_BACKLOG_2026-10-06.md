@@ -2,16 +2,16 @@
 
 Internal dashboard/platform only. Generated from `docs/ops/backlog/items.py` (edit the data there, then run `python3 docs/ops/backlog/items.py`). No production secrets or private business data.
 
-**187 deduplicated items** from 242 raw candidates (55 duplicates merged: the same item recorded in PROJECT_RECORD, the overnight review, PRs, owner lists, decision registers and tests).
+**189 deduplicated items** from 244 raw candidates (55 duplicates merged: the same item recorded in PROJECT_RECORD, the overnight review, PRs, owner lists, decision registers and tests).
 
-Status counts: BLOCKED-EXT 2, BLOCKED-OWNER 26, BLOCKED-PROD 12, BLOCKED-QC 10, DEFERRED 13, DONE 118, QUEUED 6
+Status counts: BLOCKED-EXT 2, BLOCKED-OWNER 26, BLOCKED-PROD 12, BLOCKED-QC 10, DEFERRED 13, DONE 120, QUEUED 6
 
 | Priority | Items | Done (branch) | Remaining |
 |---|---|---|---|
 | P0 | 14 | 4 | 10 |
 | P1 | 52 | 36 | 16 |
 | P2 | 61 | 43 | 18 |
-| P3 | 53 | 35 | 18 |
+| P3 | 55 | 37 | 18 |
 | P4 | 7 | 0 | 7 |
 
 Priorities: P0 data loss / security / financial corruption / destructive · P1 launch blocker / correctness / concurrency / permission · P2 reliability / scale / accessibility / major UX · P3 maintainability / tests / docs · P4 future.
@@ -218,6 +218,8 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | X3-10 | Tests | Hostile-filename test raced the form reset under load | Flake | Low | S | — | Y | N | N | DONE |
 | X3-14 | Inventory | Product with a quality check could be deleted (dashboard); database FK unknown | Orphan QC rows | Low | S | Query C §9 | Y | N | N | DONE |
 | X3-23 | Auth | Threshold save had no role check (employee request sent, refused by database) | Inconsistent with other stock actions | Low | S | — | Y | N | N | DONE |
+| X3-26 | Storage | Zero-byte files uploaded and saved as empty receipts/documents | Useless record looks saved | Low | S | — | Y | N | N | DONE |
+| X3-27 | Storage | Document delete from a stale tab removed record + old file, orphaning a replaced file | Orphan file | Low | S | — | Y | N | N | DONE |
 
 ## P4
 

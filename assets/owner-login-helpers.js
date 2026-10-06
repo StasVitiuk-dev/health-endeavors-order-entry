@@ -284,6 +284,9 @@
     const UPLOAD_MAX_BYTES = 50 * 1024 * 1024;
     function uploadProblem(file){
       if (!file) return null;
+      // An empty (0-byte) file is almost always a failed download or a broken
+      // export; storing it would look like a saved receipt with nothing in it.
+      if (file.size === 0) return 'That file is empty (0 bytes), so it was not uploaded. Open it on your computer to check it, then try again. Nothing was saved.';
       if (file.size > UPLOAD_MAX_BYTES) return 'That file is ' + Math.ceil(file.size / 1048576) + ' MB; the limit is 50 MB. Nothing was uploaded.';
       if (/\.(html?|xhtml|svg|js|mjs|php|exe|bat|cmd|sh|msi)$/i.test(file.name || '')) {
         return 'Files of that type (web pages, scripts, programs) can’t be uploaded. Save it as a PDF or an image instead. Nothing was uploaded.';

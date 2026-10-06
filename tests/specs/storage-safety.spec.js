@@ -255,3 +255,55 @@ test('two uploads of the same file name get different storage paths', async ({ p
   const [a, b] = uploads(backend, 'document-files').map(r => uploadedPath(r, 'document-files'));
   expect(a).not.toBe(b);
 });
+
+// ---- EXT3 workstream 11 ------------------------------------------------------
+test('an empty (0-byte) file is refused before anything is uploaded or saved', async ({ page, backend }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'run once');
+  backend.tables.documents = [];
+  backend.tables.suppliers = [];
+  enableWrites(backend, ['documents']);
+  await login(page);
+  await openDocuments(page);
+  await fillDocument(page, { name: 'empty.pdf', mimeType: 'application/pdf', buffer: Buffer.alloc(0) });
+  await page.click('#addDocumentForm button[type="submit"]');
+  await expect(page.locator('#dashError')).toContainText('empty (0 bytes)');
+  expect(uploads(backend, 'document-files')).toEqual([]);
+  expect(backend.tables.documents).toEqual([]);
+});
+
+test.describe('deleting a document', () => {
+  const doc = { id: 'doc-1', title: 'SYNTHETIC certificate', category: 'certification', related_type: 'general', related_id: null,
+    file_path: 'SYN/cert-v1.pdf', external_url: null, issued_at: null, expires_at: null, notes: null, created_at: '2026-06-01T00:00:00Z' };
+  test.beforeEach(async ({ page, backend }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'run once');
+    backend.tables.documents = [{ ...doc }];
+    backend.tables.suppliers = [];
+    enableWrites(backend, ['documents']);
+    page.on('dialog', d => d.accept());
+    await login(page);
+    await openDocuments(page);
+  });
+  async function del(page) {
+    await page.locator('[data-id="doc-1"] .docDeleteBtn').click();
+    await expect(page.locator('#reauthOverlay')).toBeVisible();
+    await page.fill('#reauthPassword', OWNER_USER.password);
+    await page.click('#reauthConfirmBtn');
+  }
+
+  test('a document whose file was replaced in another tab is not deleted, and no file is removed', async ({ page, backend }) => {
+    backend.tables.documents[0].file_path = 'SYN/cert-v2.pdf'; // replaced elsewhere
+    await del(page);
+    await expect(page.locator('#dashError')).toContainText('already changed');
+    expect(backend.tables.documents).toHaveLength(1);
+    expect(removals(backend, 'document-files')).toEqual([]);
+  });
+
+  test('if the stored file cannot be removed, the page says the record is gone but the file remains', async ({ page, backend }) => {
+    await page.route(/\/storage\/v1\/object\/document-files/, route => route.request().method() === 'DELETE'
+      ? route.fulfill({ status: 500, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify({ statusCode: '500', error: 'SYNTHETIC', message: 'SYNTHETIC storage failure' }) })
+      : route.fallback());
+    await del(page);
+    await expect(page.locator('#dashError')).toContainText('its file could not be removed from storage');
+    await expect(page.locator('#toastHost .toast.ok')).toHaveCount(0);
+  });
+});
