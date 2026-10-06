@@ -91,7 +91,7 @@
       <main class="contentArea">
       <div id="systemModeBanner" style="display:none;padding:10px 14px;border-radius:8px;margin-bottom:14px;font-size:14px;font-weight:600;"></div>
       <div id="pausedAgentsBanner" style="display:none;padding:10px 14px;border-radius:8px;margin-bottom:14px;font-size:14px;font-weight:600;background:#fff4dd;color:#8a5b00;border:1px solid #f2d999;"></div>
-      <div id="dashError" class="bannerBox"></div>
+      <div id="dashError" class="bannerBox" role="alert"></div>
 
       <!-- Needs Your Attention -->
       <section class="panel" id="attentionPanel">
@@ -1888,10 +1888,15 @@
     // ---- Toasts ----
     const toastHost = document.createElement('div');
     toastHost.id = 'toastHost';
+    // Screen readers announce confirmations politely. Error toasts repeat the
+    // error banner (role="alert", already announced), so they stay silent.
+    toastHost.setAttribute('role', 'status');
+    toastHost.setAttribute('aria-live', 'polite');
     document.body.appendChild(toastHost);
     function toast(message, kind){
       const el = document.createElement('div');
       el.className = 'toast' + (kind ? ' ' + kind : '');
+      if (kind === 'err') el.setAttribute('aria-hidden', 'true');
       el.innerHTML = '<span class="dot"></span><span></span>';
       el.lastChild.textContent = message;
       toastHost.appendChild(el);
@@ -2527,6 +2532,33 @@
       return d.toISOString();
     }
 
+    // The filters the Activity page shows right now (search, person, area,
+    // date range) — shared by the list and the spreadsheet export.
+    function activityFilters(){
+      const box = document.getElementById('activitySearch');
+      const q = box ? (box.value || '').trim() : '';
+      return {
+        p_search: q || null,
+        p_person: ACTIVITY_PERSON,
+        p_area: document.getElementById('activityArea').value || null,
+        p_from: activityFromDate(),
+      };
+    }
+    // Every activity row for these filters, page by page (the feed returns at
+    // most what is asked for), up to `cap`. Returns { rows, capped }.
+    async function fetchAllActivity(filters, cap){
+      const PAGE = 500;
+      const rows = [];
+      for (;;) {
+        const { data, error } = await supabase.rpc('employee_activity', Object.assign({}, filters, { p_limit: PAGE, p_offset: rows.length }));
+        if (error) throw error;
+        const batch = data || [];
+        rows.push(...batch);
+        if (batch.length < PAGE) return { rows, capped: false };
+        if (rows.length >= cap) return { rows: rows.slice(0, cap), capped: true };
+      }
+    }
+
     async function loadActivity(reset){
       const box = document.getElementById('activitySearch');
       const q = box ? (box.value || '').trim() : '';
@@ -2612,6 +2644,9 @@
         });
         if (error) throw error;
         const rows = data || [];
+        // The digest reads at most 500 changes; past that it says "500+"
+        // instead of an exact-looking undercount.
+        const atCap = rows.length >= 500;
         const el = document.getElementById('activityDigest');
         if (!rows.length) {
           el.style.display = 'block';
@@ -2628,7 +2663,7 @@
           .map(a => `${esc(a)} (${areaCount[a]})`).join(', ');
         const deletes = rows.filter(r => r.action === 'DELETE').length;
         el.style.display = 'block';
-        el.innerHTML = `<b>Today:</b> ${rows.length} change${rows.length === 1 ? '' : 's'}` +
+        el.innerHTML = `<b>Today:</b> ${rows.length}${atCap ? '+' : ''} change${rows.length === 1 ? '' : 's'}` +
           ` · ${people.size} ${people.size === 1 ? 'person' : 'people'} signed in` +
           (deletes ? ` · <span style="color:var(--danger);font-weight:600;">${deletes} deletion${deletes === 1 ? '' : 's'}</span>` : '') +
           (top ? ` · busiest: ${top}` : '');
@@ -2725,11 +2760,11 @@
       document.getElementById('insBody').innerHTML = '<p class="empty">Loading history…</p>';
       document.getElementById('inspectorOverlay').classList.add('open');
       try {
-        const { data, error } = await supabase.rpc('employee_activity', {
-          p_search: recordId, p_area: tableName, p_limit: 200, p_offset: 0,
-        });
-        if (error) throw error;
-        INSPECTOR_HISTORY = (data || []).filter(h => h.record_id === recordId);
+        // All matches, page by page: other records whose text mentions this id
+        // also match the search, and a 200-row cut could hide this record's
+        // older history.
+        const found = await fetchAllActivity({ p_search: recordId, p_area: tableName }, 5000);
+        INSPECTOR_HISTORY = found.rows.filter(h => h.record_id === recordId);
         if (!INSPECTOR_HISTORY.length) {
           document.getElementById('insBody').innerHTML =
             '<p class="empty">No recorded history for this record yet.</p>' +
@@ -2861,10 +2896,25 @@
       if (keys.length > 1) keys = keys.filter(k => k !== 'updated_at');
       return keys.map(k => `${k}: ${jsonPreview(od[k])} → ${jsonPreview(nd[k])}`).join('; ');
     }
-    function exportActivityCsv(){
-      if (!ACTIVITY_ROWS.length) { showDashError('Nothing to export — the list is empty.'); return; }
+    // Exports EVERY change matching the current filters, not just the rows
+    // loaded on screen so far (it used to export only those, silently).
+    async function exportActivityCsv(){
+      const exportBtn = document.getElementById('activityExportBtn');
+      let all;
+      try {
+        if (exportBtn) exportBtn.disabled = true;
+        all = await fetchAllActivity(activityFilters(), 20000);
+      } catch (err) {
+        showDashError('Could not export Employee Activity: ' + (err && err.message ? err.message : err));
+        return;
+      } finally {
+        if (exportBtn) exportBtn.disabled = false;
+      }
+      const exportRows = all.rows;
+      if (!exportRows.length) { showDashError('Nothing to export — no changes match these filters.'); return; }
+      if (all.capped) showDashError('The export holds the newest 20,000 changes only. Narrow the date range or filters to export older ones.');
       const head = ['When','Person','Account number','Role','Area','Action','Record','What changed'];
-      const lines = [head].concat(ACTIVITY_ROWS.map(r => [
+      const lines = [head].concat(exportRows.map(r => [
         fmtDate(r.happened_at),
         r.person_name,
         r.person_account_number || '',
@@ -3085,7 +3135,8 @@
           tile(pendingApprovals, 'Pending approvals', approvalsClass),
           tile(overdueTasks, 'Overdue tasks', tasksClass),
           tile(criticalIncidents, 'Open high/critical incidents', incidentsClass),
-          tile(pausedAgents, 'Paused agents', agentsClass),
+          // Unknown is not zero: if the switches couldn't be read, say so.
+          agentControlsState === 'ok' ? tile(pausedAgents, 'Paused agents', agentsClass) : tile('?', 'Paused agents (switches could not be read)', 'statWarn'),
           tile(esc(fmtMoney(monthAiSpend, 'USD')) + ' / ' + esc(fmtMoney(AI_SPEND_CAP, 'USD')), 'AI spend this month', aiClass),
           tile(activeSessions, 'Active sessions', ''),
         ].join('');
@@ -5977,8 +6028,12 @@
           .order('label', { ascending: true });
         if (error) throw error;
 
+        // The one launch-critical switch: if its row is missing, its state is
+        // unknown (not "off"), and the page says so.
+        const syncMissingNote = flags.some(f => f.flag_key === 'shopify_order_sync') ? '' :
+          '<p class="hint flagSyncMissing" style="color:var(--danger);margin-top:8px;">The Shopify Order Sync switch was not found in the database, so its state is unknown (not configured), not "off". Emergency mode cannot switch it off either.</p>';
         if (!flags.length) {
-          document.getElementById('flagsWrap').innerHTML = '<p class="empty">No feature flags exist yet.</p>';
+          document.getElementById('flagsWrap').innerHTML = '<p class="empty">No feature flags exist yet.</p>' + syncMissingNote;
         } else {
           document.getElementById('flagsWrap').innerHTML = flags.map(f => `
             <div class="flagRow" data-id="${esc(f.id)}" data-key="${esc(f.flag_key || '')}">
@@ -5991,7 +6046,7 @@
                 <input type="checkbox" class="flagToggle" ${f.enabled ? 'checked' : ''}>
                 <span class="slider"></span>
               </label>
-            </div>`).join('');
+            </div>`).join('') + syncMissingNote;
           document.querySelectorAll('.flagToggle').forEach(cb => {
             cb.addEventListener('change', async () => {
               const row = cb.closest('.flagRow');

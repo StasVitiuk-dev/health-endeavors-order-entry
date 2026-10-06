@@ -78,3 +78,43 @@ test('the password prompt takes keyboard focus, and Escape closes it without doi
   await expect(page.locator('#reauthOverlay')).toBeHidden();
   expect(backend.tableWrites().filter(r => r.table === 'orders')).toEqual([]);
 });
+
+test('errors are announced once (alert banner), confirmations politely (status region)', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'markup; run once');
+  await login(page);
+  await expect(page.locator('#dashError')).toHaveAttribute('role', 'alert');
+  await expect(page.locator('#toastHost')).toHaveAttribute('aria-live', 'polite');
+  await page.evaluate(() => { window.toastErr('SYNTHETIC error'); window.toastOk('SYNTHETIC ok'); });
+  await expect(page.locator('#toastHost .toast.err')).toHaveAttribute('aria-hidden', 'true');
+  await expect(page.locator('#toastHost .toast.ok')).not.toHaveAttribute('aria-hidden', 'true');
+});
+
+test('every overlay closes with Escape', async ({ page, backend }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'keyboard; desktop only');
+  seedBusiness(backend);
+  await page.clock.setFixedTime(NOW);
+  await login(page);
+  await gotoPage(page, 'ordersPanel');
+  const overlays = [
+    ['command palette', async () => { await page.keyboard.press('ControlOrMeta+k'); }, '#paletteOverlay.open'],
+    ['shortcut list', async () => { await page.locator('body').click({ position: { x: 5, y: 5 } }); await page.keyboard.press('Shift+Slash'); }, '#shortcutOverlay.open'],
+    ['quick add', async () => { await page.keyboard.press('ControlOrMeta+n'); }, '#quickAddOverlay.open'],
+    ['password prompt', async () => { await page.locator('#ordersTableWrap .deleteOrderBtn').first().click(); }, '#reauthOverlay'],
+  ];
+  const stuck = [];
+  for (const [name, openIt, sel] of overlays) {
+    await openIt();
+    const el = page.locator(sel).first();
+    await expect(el).toBeVisible();
+    await page.keyboard.press('Escape');
+    if (await el.isVisible()) stuck.push(name);
+  }
+  // Record Inspector: opened from a row, closed with Escape
+  await page.locator('#ordersTableWrap tbody tr').first().click();
+  if (await page.locator('#inspectorOverlay.open').count()) {
+    await page.keyboard.press('Escape');
+    if (await page.locator('#inspectorOverlay.open').count()) stuck.push('record inspector');
+  }
+  expect(stuck).toEqual([]);
+  expect(backend.tableWrites()).toEqual([]);
+});

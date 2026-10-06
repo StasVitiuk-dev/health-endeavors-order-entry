@@ -99,3 +99,30 @@ test('looking around the activity page writes nothing', async ({ page, backend }
   await page.waitForLoadState('networkidle');
   expect(backend.tableWrites()).toEqual([]);
 });
+
+// SC-02 / SC-03 (2026-10-06): the export and the daily digest must not
+// silently stop at what happens to be loaded.
+const feed = all => body => all.slice(body.p_offset || 0, (body.p_offset || 0) + (body.p_limit || 50));
+
+test('"Export to spreadsheet" contains every matching change (1,200), not only the 50 on screen', async ({ page, backend }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'download; run once');
+  const fs = require('fs');
+  backend.rpc.employee_activity = feed(Array.from({ length: 1200 }, (_, i) => entry(i + 1)));
+  await page.click('#activitySearchBtn');
+  await expect(page.locator('#activityMoreWrap')).toBeVisible(); // only 50 loaded on screen
+  const [file] = await Promise.all([page.waitForEvent('download'), page.click('#activityExportBtn')]);
+  const csv = fs.readFileSync(await file.path(), 'utf8');
+  expect(csv.trim().split('\r\n').length).toBe(1201); // header + 1,200
+  // the export keeps the page's filters
+  const exportCalls = backend.requests.filter(r => r.rpc === 'employee_activity' && r.body.p_limit === 500 && r.body.p_from !== undefined && 'p_person' in r.body);
+  expect(exportCalls.length).toBe(3);
+});
+
+test('the "Today" digest says 500+ when it hits its limit, not an exact-looking 500', async ({ page, backend }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'wording; run once');
+  backend.rpc.employee_activity = feed(Array.from({ length: 900 }, (_, i) => entry(i + 1)));
+  await page.reload();
+  await expect(page.locator('#dash')).toBeVisible();
+  await gotoPage(page, 'activityPanel');
+  await expect(page.locator('#activityDigest')).toContainText('500+ changes');
+});

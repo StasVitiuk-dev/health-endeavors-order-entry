@@ -170,7 +170,10 @@ class FakeSupabase {
     if (url.pathname.startsWith('/rest/v1/rpc/')) {
       entry.rpc = url.pathname.slice('/rest/v1/rpc/'.length);
       this.requests.push(entry);
-      const result = Object.prototype.hasOwnProperty.call(this.rpc, entry.rpc) ? this.rpc[entry.rpc] : [];
+      // A test may give a function to answer like the real function would
+      // (e.g. honouring p_limit / p_offset); otherwise a fixed reply.
+      const v = Object.prototype.hasOwnProperty.call(this.rpc, entry.rpc) ? this.rpc[entry.rpc] : [];
+      const result = typeof v === 'function' ? v(entry.body || {}) : v;
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(result) });
     }
     if (url.pathname.startsWith('/rest/v1/')) {

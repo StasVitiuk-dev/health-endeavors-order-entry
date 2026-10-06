@@ -59,3 +59,21 @@ test('with no system-mode row saved, the page says Normal is only the default', 
   await gotoPage(page, 'flagsPanel');
   await expect(page.locator('#systemModeWrap')).toContainText('No mode has been saved in the database yet');
 });
+
+// EM-03 / EM-05 (2026-10-06): unknown must never read as zero or "off".
+test('Business Health shows "?" for paused agents when the agent switches cannot be read', async ({ page, backend }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'wording; run once');
+  await page.route(url => new URL(url).pathname.endsWith('/rest/v1/agent_controls'), route =>
+    route.request().method() === 'GET' ? route.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"SYNTHETIC outage"}' }) : route.fallback());
+  await login(page);
+  await gotoPage(page, 'attentionPanel');
+  await expect(page.locator('#attentionPanel')).toContainText('Paused agents (switches could not be read)');
+});
+
+test('with no Shopify Order Sync switch row, the flags page says its state is unknown', async ({ page, backend }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'wording; run once');
+  backend.tables.feature_flags = [{ id: 'ff-x', flag_key: 'other_flag', label: 'SYNTHETIC other', description: null, enabled: false }];
+  await login(page);
+  await gotoPage(page, 'flagsPanel');
+  await expect(page.locator('.flagSyncMissing')).toContainText('not configured');
+});
