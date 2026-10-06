@@ -298,7 +298,15 @@ test.describe('product delete', () => {
     backend.tables.profiles[0].role = 'employee';
     await page.reload(); // the page reads the signed-in person's role when it loads
     await expect(page.locator('#dash')).toBeVisible();
-    await pressDeleteTwice(page);
+    // After a reload the background loads restart, so "network idle" (used by
+    // openPanel) sometimes never came within the time limit (1 in 30 runs).
+    // Wait for the buttons this test needs instead.
+    await gotoPage(page, 'inventoryPanel');
+    await expect(page.locator('.editProductBtn').first()).toBeVisible();
+    await closeInspectorIfOpen(page);
+    await page.click('.editProductBtn');
+    await page.click('.deleteProductBtn');
+    await page.click('.deleteProductBtn'); // "Really delete?"
     await expectError(page, 'Only the Owner or an Administrator can delete a product');
     expect(backend.requests.filter(r => r.method === 'DELETE')).toEqual([]);
   });
