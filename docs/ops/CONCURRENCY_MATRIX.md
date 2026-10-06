@@ -13,7 +13,7 @@ Labels: **SAFE** = tested, nothing lost or doubled · **SAFE (R1)** = safe once 
 | Two people adjust the same product's stock | SAFE for the numbers: compare-and-swap on every bucket read, up to 5 retries (`changeStock`). GAP: the history row is a second request, so a lost reply can leave stock changed without its history | SAFE (R1): stock and history in one transaction; ladder 2 … 200 people, exact | `inventory-safety.spec.js`, stress S1, S21 |
 | Receive the same PO twice (two tabs) | SAFE: claim-first (status condition), one expense | SAFE (R1) | `po-receive.spec.js`, stress S2, S20 |
 | Cancel vs receive the same PO | SAFE: both are status-conditional; one wins | SAFE (R1): all-or-nothing | stress S25 |
-| Remove a PO line while the order is received | GAP: status read, then delete (two requests) | GAP even with R1 (2–6 of every 20 races left stock that no line explains, across 4 runs); **SAFE with the draft guard `drafts/17_…`** | stress S27 |
+| Remove a PO line while the order is received | GAP: status read, then delete (two requests) | GAP even with R1 (2–7 of every 20 races left stock that no line explains, across 7 runs); **SAFE with the draft guard `drafts/17_…`** | stress S27 |
 | Same new lot number arrives on several POs at once | n/a (dashboard: lot lookup then insert) | SAFE (R1): one lot row, quantities add up | stress S26 |
 | Recall quarantine vs people taking stock out | GAP: browser steps | SAFE (R2): no bucket below zero | stress S28 |
 | Delete product vs delivery for it | SAFE: fresh checks; foreign keys refuse; lost reply now looks first | SAFE (R5) | stress S15, S29, `session-expiry-midway.spec.js` |

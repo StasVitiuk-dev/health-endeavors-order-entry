@@ -271,7 +271,7 @@ a('X4-11','Scale','Whole-table lists silently stop at 1,000 rows: notice added',
 a('X4-12','Money','PO grand total saved with floating-point junk / fractions of a cent (dashboard and R1)','Expense 0.30000000000000004','P2','Medium','S','—','Y','N','N','DONE')
 a('X4-13','Money','Refund amount accepted fractions of a cent and huge values','Accounting data quality','P2','Medium','S','—','Y','N','N','DONE')
 a('X4-14','Validation','Add-product prices had no upper limit; numeric contract for every number box','Typos saved','P3','Low','S','—','Y','N','N','DONE')
-a('X4-15','Inventory','Removing a PO line while the order is received leaves stock no line explains (2–6 of 20 races, even with R1)','Stock vs records mismatch','P1','High','S','R1; approval','P','Y','Y','BLOCKED-PROD',['CONCURRENCY_MATRIX'])
+a('X4-15','Inventory','Removing a PO line while the order is received leaves stock no line explains (2–7 of 20 races, even with R1)','Stock vs records mismatch','P1','High','S','R1; approval','P','Y','Y','BLOCKED-PROD',['CONCURRENCY_MATRIX'])
 a('X4-16','Inventory','R1–R5 install preflight checks column types; install tests for missing table, hostile search_path, owner, reinstall','Wrong shape installs and fails later','P2','Medium','S','—','Y','N','N','DONE')
 a('X4-17','Emergency','Emergency mode skipped switching off Order Sync / pausing Agent #7 when recording the mode failed','In an emergency the sync could stay on','P1','High','S','—','Y','N','N','DONE')
 a('X4-18','Accessibility','Skip link and keyboard focus kept inside dialogs','WCAG 2.4.1 / 2.4.3','P2','Medium','S','—','Y','N','N','DONE')

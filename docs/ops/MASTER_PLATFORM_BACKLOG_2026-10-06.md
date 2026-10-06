@@ -58,7 +58,7 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | ST-07 | Storage | Read-only check of bucket privacy, size limits, MIME rules and storage policies | Unknown production settings | Medium | S | owner runs a read-only check | N | Y | Y | BLOCKED-PROD |
 | X3-17 | Agents | Emergency Order Sync switch-off writes updated_by/updated_at to feature_flags (columns unverified) | Switch-off could always fail; branch fallback added | High | S | Query C §10 | P | N | N | BLOCKED-QC |
 | X3-25 | Docs | Backup health unverified; records disagree (kept on vs last ran Sept 13) | Restore readiness unknown | High | S | owner check | N | Y | N | BLOCKED-OWNER |
-| X4-15 | Inventory | Removing a PO line while the order is received leaves stock no line explains (2–6 of 20 races, even with R1) | Stock vs records mismatch | High | S | R1; approval | P | Y | Y | BLOCKED-PROD |
+| X4-15 | Inventory | Removing a PO line while the order is received leaves stock no line explains (2–7 of 20 races, even with R1) | Stock vs records mismatch | High | S | R1; approval | P | Y | Y | BLOCKED-PROD |
 | AG-02 | Agents | Truthful agent state (Unknown/Failed/Stale/Dry run) | No optimistic defaults | High | M | — | Y | N | N | DONE |
 | AG-05 | Agents | Shopify sync interlock + wording; Emergency switches it off | Premature sync | High | S | — | Y | N | N | DONE |
 | AG-06 | Agents | No-send tripwires (email, Shopify) | No customer messages | High | S | — | Y | N | N | DONE |

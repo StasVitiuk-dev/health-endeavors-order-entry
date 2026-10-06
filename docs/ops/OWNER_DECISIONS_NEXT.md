@@ -20,7 +20,7 @@
 | D-ops-2 | R5 as a database function or a quick dashboard-only stop-gap | Database function (the only version that can never lose the stock row) |
 | D-ops-3 | Expense date for a received delivery | **Already handled on the branch:** the dashboard and R1 both use the Central calendar day. Please just confirm |
 | D-ops-6 | Do any agents or automations change stock directly? | Query C sections 5–7 answer this; then you confirm |
-| **NEW: PO line guard** | Install `drafts/17_DRAFT_po_line_delete_guard.sql` after R1? It stops a purchase-order line being removed while that order is being received. Locally, that race left stock no line explains in 2–6 of every 20 tries, even with R1 | Yes, right after R1 (small, one trigger, no data change, has a rollback) |
+| **NEW: PO line guard** | Install `drafts/17_DRAFT_po_line_delete_guard.sql` after R1? It stops a purchase-order line being removed while that order is being received. Locally, that race left stock no line explains in 2–7 of every 20 tries, even with R1 | Yes, right after R1 (small, one trigger, no data change, has a rollback) |
 
 ## Records and documents
 

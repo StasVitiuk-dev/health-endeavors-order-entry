@@ -22,7 +22,7 @@ The most important ones:
 - **Lists that look complete but aren't.** Some lists read a whole table in one request, and the server silently stops at 1,000 rows. The page now says so when that happens. Totals were already read in full.
 - **Plain words for confusing failures.** Gateway error pages showed raw web-page code, and cut-off replies showed raw data. Both now say "we can't tell whether this was saved; reload and check".
 - **Keyboard users** can now skip straight to the content, and Tab no longer escapes an open dialog.
-- **Found by load testing, not yet fixable without you:** removing a line from a purchase order while that order is being received can leave stock that no line explains. This happened in 2–6 of every 20 tries, even with the R1 function. A small, tested database guard is drafted (`drafts/17_…`) and needs your approval to install after R1.
+- **Found by load testing, not yet fixable without you:** removing a line from a purchase order while that order is being received can leave stock that no line explains. This happened in 2–7 of every 20 tries, even with the R1 function. A small, tested database guard is drafted (`drafts/17_…`) and needs your approval to install after R1.
 
 ## 2. Commits (oldest first)
 
@@ -55,7 +55,7 @@ The most important ones:
 | X4-04 | P1 | Manual order retry matched on the total only | **Fixed** |
 | INV-18 / X4-09 | P1 | Delivery expense dated with the UTC day (wrong month after 7 pm on the last day) | **Fixed** (dashboard and R1 draft) |
 | X4-17 | P1 | Emergency switch-offs skipped when the mode was not recorded | **Fixed** |
-| X4-15 | P1 | PO line removed while the order is received (2–6 of 20 races, even with R1) | **Draft guard, needs approval** (BLOCKED-PROD) |
+| X4-15 | P1 | PO line removed while the order is received (2–7 of 20 races, even with R1) | **Draft guard, needs approval** (BLOCKED-PROD) |
 | X4-01 | P2 | Stale "Mark in progress" on a feature request could jump it to done | **Fixed** |
 | X4-06 | P2 | Reload after an unknown save invited a duplicate order | **Fixed** |
 | X4-07 | P2 | Gateway pages / cut-off replies shown raw | **Fixed** |
@@ -109,7 +109,23 @@ Full list with evidence: `MASTER_PLATFORM_BACKLOG_2026-10-06.md` (ids X4-…).
 
 ## 5. Final evidence (run with nothing else competing)
 
-FINAL_EVIDENCE_TABLE
+| Check | Result |
+|---|---|
+| **Full suite** (desktop 1100 px + iPhone 390 px), nothing else running | **1,702 tests: 1,173 passed, 0 failed, 529 skipped** in 29.1 min. Skips are by design: matrix and static tests run once, at desktop size. Start of extension 4: 1,358 / 991 / 367 |
+| High-risk specs ×3 (failure injection 1+2, transitions 1+2, manual orders, sessions, session expiry, roles, storage, safety, write-path gate, admin/Emergency) | **1,185 passed, 0 failed, 0 flaky** |
+| Same specs that do not pin a time zone, under UTC+14 (German) and UTC−11 (French) | 418 / 418 passed each |
+| SQL draft tests 15, 16, 14 on the real shapes | all pass |
+| Install package tests | **42 / 42** (was 34) |
+| Stress (29 scenarios, 91 checks per run), final set | **3 runs, 0 failed, 0 deadlocks**, about 39 s each. Ladder up to 200 callers about 2.4–2.5 s. Unguarded PO-line race 4–7 of 20; guarded 0 |
+| Query C v3 on mock catalogs (with / without pg_cron); Query D mock | 0 errors; planted fake secrets never appear |
+| Mutation: page | **47 / 47 caught** (was 31) |
+| Mutation: SQL | **10 / 10 caught** (was 8) |
+| Accessibility | contrast (light/dark), names, focus return, dialog roles, Escape, **skip link, focus trap, headings, table headers**: pass |
+| Responsive | 280, 320, 344, 360, 375, 390, 414, 430, 640, 768, 800, 1024, 1100, 1280, 1366, 1440, 2560 px, very tall, short: pass |
+| Scale | exact totals 0 … 20,000; row-limit notice; palette over 10,000 records; leaks: zero growth |
+| Merge check | `main` and all 20 PR heads unchanged; the branch contains all 20 |
+| Secret / e-mail scan of the extension diff | clean: only `@example.test` addresses, no keys or tokens, no model names |
+| Branch / remote | see the chat summary (the remote equals the local head; clean tree) |
 
 ## 6. Unresolved, by who acts next
 
