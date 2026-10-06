@@ -70,14 +70,20 @@ async function gotoPage(page, pageId) {
   // The sidebar is re-drawn whenever a background load finishes (badge
   // counts). Under heavy CPU load a click can land just as the link is
   // replaced and be lost (seen once in 3 repeat runs, EXT5). A person would
-  // click again; so does this, and the page must still really open. Each try
-  // waits the normal 5 s first (a 10,000-row page takes seconds to draw, and
-  // re-clicking it sooner only starts the drawing again), and a page that
-  // has opened is never clicked again.
+  // click again; so does this, and the page must still really open.
+  // - The first click always happens: on a phone it is also what closes the
+  //   menu, even when the page is already the open one.
+  // - Each try waits the normal 5 s before clicking again (a 10,000-row page
+  //   takes seconds to draw; re-clicking sooner only restarts the drawing).
+  // - A retry re-opens the phone menu first, never clicks a page that has
+  //   opened, and gives up its click after 5 s instead of hanging the test.
   const section = page.locator(`section#${pageId}`);
+  const link = page.locator(`#sidebarGroups .sidebarLink[data-page="${pageId}"]`).first();
+  await link.click();
   await expect(async () => {
     if (!/\bactivePage\b/.test(await section.getAttribute('class') || '')) {
-      await page.locator(`#sidebarGroups .sidebarLink[data-page="${pageId}"]`).first().click();
+      await openMenuIfMobile(page);
+      await link.click({ timeout: 5000 });
     }
     await expect(section).toHaveClass(/activePage/, { timeout: 5000 });
   }).toPass({ timeout: 20000 });
