@@ -175,6 +175,13 @@ test.describe('error and upload helpers', () => {
     expect(E.explainDbError(rls)).toBe(rls);
     expect(E.explainDbError('JWT expired')).toContain('Sign in again');
     expect(E.explainDbError('Something else')).toBe('Something else');
+    // internal names are replaced (MU-09)
+    expect(rls).not.toContain('row-level security policy');
+    expect(rls).not.toContain('"x"');
+    expect(E.explainDbError('new row for relation "documents" violates check constraint "documents_category_check"')).toBe('a value the database does not accept');
+    expect(E.explainDbError('permission denied for table inventory')).toContain('only the Owner or an Administrator');
+    expect(E.explainDbError('permission denied for table inventory')).not.toContain('inventory');
+    expect(E.explainDbError('duplicate key value violates unique constraint "products_sku_unique"')).toBe('that value is already used by another record');
     expect(E.explainDbError(null)).toBe('');
   });
   test('uploadProblem: size limit and blocked types', () => {

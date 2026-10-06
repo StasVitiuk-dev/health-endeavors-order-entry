@@ -246,11 +246,18 @@
     }
 
     // Database refusals arrive as technical text ("new row violates
-    // row-level security policy…", "JWT expired"). Keep it (it helps when
-    // reporting a problem) and add what it means in plain words.
+    // row-level security policy for table …", "violates check constraint
+    // …", "JWT expired"). Replace the internal part (table, policy and
+    // constraint names) with plain words, and say what it means.
     function explainDbError(text){
-      const t = String(text == null ? '' : text);
-      if (/row-level security|permission denied for|insufficient_privilege/i.test(t) && !/only the Owner or an Administrator/i.test(t)) {
+      let t = String(text == null ? '' : text);
+      const isPermission = /row-level security|permission denied for|insufficient_privilege/i.test(t);
+      t = t.replace(/new row violates row-level security policy( for table "[^"]*")?/gi, 'not permitted')
+           .replace(/permission denied for (table|relation|function|schema|sequence) "?[\w.]+"?/gi, 'not permitted')
+           .replace(/(new row for relation "[^"]*" )?violates check constraint "[^"]*"/gi, 'a value the database does not accept')
+           .replace(/violates foreign key constraint "[^"]*"( on table "[^"]*")?/gi, 'it is still linked to other records')
+           .replace(/duplicate key value violates unique constraint "[^"]*"/gi, 'that value is already used by another record');
+      if (isPermission && !/only the Owner or an Administrator/i.test(t)) {
         return t + ' — You don’t have permission for this; only the Owner or an Administrator can do it. Nothing was changed by this step.';
       }
       if (/JWT expired|invalid JWT|PGRST301/i.test(t) && !/sign in again/i.test(t)) {

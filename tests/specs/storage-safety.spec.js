@@ -145,7 +145,7 @@ test.describe('evidence and receipts', () => {
   });
 });
 
-test('a raw "row-level security" refusal is explained in plain words', async ({ page, backend }, testInfo) => {
+test('a raw "row-level security" refusal is explained in plain words, without internal names', async ({ page, backend }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop', 'message text; run once');
   backend.tables.incidents = [{ id: 'inc-1', incident_number: 'INC-1', title: 'SYNTHETIC incident', created_at: '2026-09-20T00:00:00Z' }];
   backend.tables.evidence_locker = [];
@@ -156,7 +156,9 @@ test('a raw "row-level security" refusal is explained in plain words', async ({ 
   await page.fill('#evidenceTitle', 'SYNTHETIC note');
   await page.selectOption('#evidenceIncident', 'inc-1');
   await page.click('#addEvidenceForm button[type=submit]');
-  await expect(page.locator('#dashError')).toContainText('row-level security');
+  // plain words instead of the internal table / policy name
+  await expect(page.locator('#dashError')).not.toContainText('evidence_locker');
+  await expect(page.locator('#dashError')).not.toContainText('row-level security policy');
   await expect(page.locator('#dashError')).toContainText('only the Owner or an Administrator can do it');
 });
 
