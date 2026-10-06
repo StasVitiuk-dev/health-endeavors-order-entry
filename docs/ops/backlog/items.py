@@ -229,6 +229,23 @@ a('X3-31','Search','Guide matching is single-word fuzzy: gibberish with a common
 
 a('X3-32','Orders','Manual order date stored as midnight UTC = 7 pm the PREVIOUS day in Central (wrong day; on the 1st the wrong month) and default date was "tomorrow" after 7 pm','Live on main: misplaced revenue in Accounting/Tax','P1','High','S','—','Y','N','N','DONE')
 
+# ---------------- Extension 3 final review: future items (each with evidence)
+a('F3-01','Accessibility','Input and control borders in light mode ~1.4:1 (37 inline #cfd8d6 + theme --field-border) vs WCAG 1.4.11 3:1','Hard to see field edges','P3','Low','S','design decision','Y','Y','N','BLOCKED-OWNER')
+a('F3-02','Orders','Manual orders record no SKU (product name only): returns of manual orders cannot restock by SKU; sold-product check cannot see manual sales','manual-order-entry itemsPayload has no sku','P2','Medium','M','owner: product picker','P','Y','N','BLOCKED-OWNER')
+a('F3-03','Orders','Manual order number has 1-second resolution (M-YYYYMMDD-HHMMSS): two devices in the same second collide','generateOrderNumber','P3','Low','S','Query C §9 (is order_number unique?)','Y','N','N','BLOCKED-QC')
+a('F3-04','Auth','dashboard.html / search.html / manual-order-entry.html do not react to sign-out in another tab','no onAuthStateChange (order entry re-checks the user before saving)','P3','Low','S','—','Y','N','N','DONE')
+a('F3-05','Search','Palette record results cap at 30 without saying "more…"','searchEverything slice(0,30)','P4','Low','S','—','Y','N','N','DEFERRED')
+a('F3-06','Agents','Agent error text shown on the agents page is not masked like in Query C (emails/tokens)','last_error rendered as text','P3','Low','S','—','Y','N','N','QUEUED')
+a('F3-07','Reports','Accounting "This Week" is the last 7×24 h, not Monday–Sunday; label could mislead','acctRangeStart week = now − 7 days','P3','Low','S','owner wording','Y','Y','N','BLOCKED-OWNER')
+a('F3-08','Storage','Receipt/document file type is checked by extension only (not content)','uploadProblem uses the name','P3','Low','S','—','Y','N','N','DEFERRED')
+a('F3-09','Inventory','Low-stock threshold has no stale-tab guard (last write wins on a config value)','upsert without condition','P4','Low','S','—','Y','N','N','DEFERRED')
+a('F3-10','Tests','Visual baselines exist for 2 sizes only; device matrix checks layout, not pixels','visual.spec','P4','Low','M','—','Y','N','N','DEFERRED')
+a('F3-11','CI','Mutation harnesses are not in CI (20 min page run)','run-page-mutations.js','P4','Low','S','CI-02','Y','Y','N','DEFERRED')
+a('F3-12','Docs','Owner-facing "what each page does" guide is spread across Guide articles; no printable one-pager','help entries in page','P4','Low','M','—','Y','N','N','DEFERRED')
+a('F3-13','Performance','owner-login.html still ~500 KB in one file; first load parses everything','file size','P3','Low','L','modularization step 3','Y','Y','N','BLOCKED-OWNER')
+a('F3-14','Security','No Content-Security-Policy meta on the pages (GitHub Pages cannot set headers)','pages have no CSP','P3','Medium','M','test inline handlers first','Y','N','N','QUEUED')
+a('F3-15','Data','Existing manual orders entered before X3-32 may sit one day early','date bug on main','P3','Low','S','owner (pre-launch: likely none)','N','Y','Y','BLOCKED-OWNER')
+
 # ---------------- Docs / process / owner
 a('DOC-01','Docs','Audits recorded (state machine, mutations, storage, pagination, launch readiness)','Durable record','P3','Medium','S','—','Y','N','N','DONE')
 a('DOC-02','Docs','Merge order for open PRs #5–#24 and this branch','Safe rollout','P2','High','S','owner','Y','Y','N','BLOCKED-OWNER',['pr-merge-order.md'])

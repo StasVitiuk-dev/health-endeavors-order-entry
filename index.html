@@ -172,6 +172,8 @@
   const SUPABASE_URL = 'https://uizrazyehilyzmwttsrn.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_n0sEzZK0JMtwgk280a3YXA_zxtnheqj';
   const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  // Signed out (here or in another tab): back to the login view (EXT3).
+  sb.auth.onAuthStateChange(event => { if (event === 'SIGNED_OUT' && typeof showLogin === 'function') showLogin(); });
 
   const loginView = document.getElementById('loginView');
   const appView = document.getElementById('appView');

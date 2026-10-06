@@ -2,17 +2,17 @@
 
 Internal dashboard/platform only. Generated from `docs/ops/backlog/items.py` (edit the data there, then run `python3 docs/ops/backlog/items.py`). No production secrets or private business data.
 
-**194 deduplicated items** from 249 raw candidates (55 duplicates merged: the same item recorded in PROJECT_RECORD, the overnight review, PRs, owner lists, decision registers and tests).
+**209 deduplicated items** from 264 raw candidates (55 duplicates merged: the same item recorded in PROJECT_RECORD, the overnight review, PRs, owner lists, decision registers and tests).
 
-Status counts: BLOCKED-EXT 2, BLOCKED-OWNER 26, BLOCKED-PROD 12, BLOCKED-QC 10, DEFERRED 14, DONE 124, QUEUED 6
+Status counts: BLOCKED-EXT 2, BLOCKED-OWNER 31, BLOCKED-PROD 12, BLOCKED-QC 11, DEFERRED 20, DONE 125, QUEUED 8
 
 | Priority | Items | Done (branch) | Remaining |
 |---|---|---|---|
 | P0 | 14 | 4 | 10 |
 | P1 | 53 | 37 | 16 |
-| P2 | 63 | 45 | 18 |
-| P3 | 56 | 38 | 18 |
-| P4 | 8 | 0 | 8 |
+| P2 | 64 | 45 | 19 |
+| P3 | 65 | 39 | 26 |
+| P4 | 13 | 0 | 13 |
 
 Priorities: P0 data loss / security / financial corruption / destructive · P1 launch blocker / correctness / concurrency / permission · P2 reliability / scale / accessibility / major UX · P3 maintainability / tests / docs · P4 future.
 
@@ -107,6 +107,7 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | DOC-02 | Docs | Merge order for open PRs #5–#24 and this branch | Safe rollout | High | S | owner | Y | Y | N | BLOCKED-OWNER |
 | DOC-05 | Docs | Task v2 live checks (refresh, audit_log, Cancel, iPhone, 2nd account) | Pending owner checks | Medium | S | owner | N | Y | N | BLOCKED-OWNER |
 | DOC-06 | Docs | Document category list decision | DB rule vs wishes | Low | S | owner | N | Y | Y | BLOCKED-OWNER |
+| F3-02 | Orders | Manual orders record no SKU (product name only): returns of manual orders cannot restock by SKU; sold-product check cannot see manual sales | manual-order-entry itemsPayload has no sku | Medium | M | owner: product picker | P | Y | N | BLOCKED-OWNER |
 | INV-15 | Inventory | R-functions: recalled stock cannot be restocked/adjusted below zero by recall paths; quarantine twice on two recalls of one lot | Edge of over-quarantine (D-ops-4) | Medium | S | D-ops-4 | Y | Y | N | QUEUED |
 | INV-17 | Inventory | Partial-quantity returns in the dashboard (p_quantity) | Today the whole line is restocked | Medium | M | D-ops-5 | P | Y | N | BLOCKED-OWNER |
 | INV-18 | Inventory | Expense date for received PO uses business date (Central) | UTC date wrong in US evenings | Medium | S | D-ops-3 | P | Y | N | BLOCKED-OWNER |
@@ -171,6 +172,14 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | AX-09 | Accessibility | Contrast of text inside plain divs/spans (test covers badges, buttons, hints, empty states, labels, links, stat labels) | Remaining coverage gap | Low | S | — | Y | N | N | QUEUED |
 | CI-04 | CI | Optional SQL job (local Postgres service) for draft tests | Draft regressions caught in CI | Low | M | CI-02 | Y | Y | N | QUEUED |
 | DOC-09 | Docs | Invoice status decision (issued vs draft) | Agent #1 output | Low | S | owner | N | Y | N | BLOCKED-OWNER |
+| F3-01 | Accessibility | Input and control borders in light mode ~1.4:1 (37 inline #cfd8d6 + theme --field-border) vs WCAG 1.4.11 3:1 | Hard to see field edges | Low | S | design decision | Y | Y | N | BLOCKED-OWNER |
+| F3-03 | Orders | Manual order number has 1-second resolution (M-YYYYMMDD-HHMMSS): two devices in the same second collide | generateOrderNumber | Low | S | Query C §9 (is order_number unique?) | Y | N | N | BLOCKED-QC |
+| F3-06 | Agents | Agent error text shown on the agents page is not masked like in Query C (emails/tokens) | last_error rendered as text | Low | S | — | Y | N | N | QUEUED |
+| F3-07 | Reports | Accounting "This Week" is the last 7×24 h, not Monday–Sunday; label could mislead | acctRangeStart week = now − 7 days | Low | S | owner wording | Y | Y | N | BLOCKED-OWNER |
+| F3-08 | Storage | Receipt/document file type is checked by extension only (not content) | uploadProblem uses the name | Low | S | — | Y | N | N | DEFERRED |
+| F3-13 | Performance | owner-login.html still ~500 KB in one file; first load parses everything | file size | Low | L | modularization step 3 | Y | Y | N | BLOCKED-OWNER |
+| F3-14 | Security | No Content-Security-Policy meta on the pages (GitHub Pages cannot set headers) | pages have no CSP | Medium | M | test inline handlers first | Y | N | N | QUEUED |
+| F3-15 | Data | Existing manual orders entered before X3-32 may sit one day early | date bug on main | Low | S | owner (pre-launch: likely none) | N | Y | Y | BLOCKED-OWNER |
 | INV-28 | Inventory | Wanted (test.fail) atomicity tests flip to passing once dashboard calls R1–R4 | Keeps the goal visible | Low | S | INV-06 | Y | N | N | BLOCKED-PROD |
 | MD-03 | Modularization | HE namespace + start registry + feature modules | Plan step 3 | Low | L | open PRs merged | N | Y | N | BLOCKED-OWNER |
 | MD-04 | Modularization | Upload helpers (uploadThenSave) to a module with supabase injected | Reuse/testing | Low | S | — | Y | N | N | QUEUED |
@@ -193,6 +202,7 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | DOC-01 | Docs | Audits recorded (state machine, mutations, storage, pagination, launch readiness) | Durable record | Medium | S | — | Y | N | N | DONE |
 | DOC-04 | Docs | Mark superseded statements in older docs (guessed schema, "BLOCKED ON QUERY A/B") | Stale docs | Low | S | — | Y | N | N | DONE |
 | EM-06 | Empty states | Product without inventory row: Inventory page shows it with "no stock row" warning | Broken invariant visible | Low | S | — | Y | N | N | DONE |
+| F3-04 | Auth | dashboard.html / search.html / manual-order-entry.html do not react to sign-out in another tab | no onAuthStateChange (order entry re-checks the user before saving) | Low | S | — | Y | N | N | DONE |
 | INV-27 | Inventory | SQL draft tests for lot numbers with only whitespace / unicode / mixed case duplicates | Lot identity edge cases | Low | S | — | Y | N | N | DONE |
 | MD-01 | Modularization | Steps 1, 2, 2b (CSS, icon, 28 pure helpers) | Smaller main file | Low | M | — | Y | N | N | DONE |
 | MD-02 | Modularization | Move confirmSecondPress + small DOM helpers | Next safe slice | Low | S | — | Y | N | N | DONE |
@@ -232,6 +242,11 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | AG-07 | Agents | Agent run-history view | Operational visibility | Low | M | — | Y | N | N | DEFERRED |
 | AG-08 | Agents | Agent #8 migration to Supabase with dedupe | Reliability | Low | L | owner | N | Y | Y | DEFERRED |
 | DOC-08 | Docs | Activity-log retention policy | Storage growth / privacy | Low | S | owner | N | Y | N | DEFERRED |
+| F3-05 | Search | Palette record results cap at 30 without saying "more…" | searchEverything slice(0,30) | Low | S | — | Y | N | N | DEFERRED |
+| F3-09 | Inventory | Low-stock threshold has no stale-tab guard (last write wins on a config value) | upsert without condition | Low | S | — | Y | N | N | DEFERRED |
+| F3-10 | Tests | Visual baselines exist for 2 sizes only; device matrix checks layout, not pixels | visual.spec | Low | M | — | Y | N | N | DEFERRED |
+| F3-11 | CI | Mutation harnesses are not in CI (20 min page run) | run-page-mutations.js | Low | S | CI-02 | Y | Y | N | DEFERRED |
+| F3-12 | Docs | Owner-facing "what each page does" guide is spread across Guide articles; no printable one-pager | help entries in page | Low | M | — | Y | N | N | DEFERRED |
 | SC-08 | Scale | Search (sidebar/palette) loads only already-loaded records — document | Search scope | Low | S | — | Y | N | N | DEFERRED |
 | SE-13 | Security | Failed-login history / login alerts | Detect account abuse | Low | M | server side | N | Y | Y | DEFERRED |
 | ST-10 | Storage | Signed-URL lifetime (60 s) and download link behaviour documented | Expired links | Low | S | — | Y | N | N | DEFERRED |

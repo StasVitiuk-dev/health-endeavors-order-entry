@@ -221,6 +221,12 @@
   const SUPABASE_URL = "https://uizrazyehilyzmwttsrn.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_n0sEzZK0JMtwgk280a3YXA_zxtnheqj";
   const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  // Signed out in another tab: reload into the signed-out view instead of
+  // staying on a page whose requests now go out without a sign-in (EXT3).
+  sb.auth.onAuthStateChange(event => {
+    const app = document.getElementById('app');
+    if (event === 'SIGNED_OUT' && app && app.style.display === 'block') window.location.reload();
+  });
 
   // Turns text from the database into plain text before it is placed on the
   // page, so a name or message containing <, >, & or quotes is shown as

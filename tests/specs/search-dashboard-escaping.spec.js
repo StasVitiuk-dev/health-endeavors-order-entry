@@ -91,3 +91,21 @@ test('search.html: a permission refusal is explained in plain words, without the
   await expect(page.locator('#results')).toContainText('Search failed: your account is not allowed to see this.');
   await expect(page.locator('#results')).not.toContainText('permission denied for function');
 });
+
+for (const file of ['dashboard.html', 'search.html']) {
+  test(`${file}: signed out in another tab → the signed-out view, not a page without a sign-in (EXT3)`, async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'session logic; run once');
+    await login(page);
+    await page.goto('/' + file);
+    await expect(page.locator('#app')).toBeVisible();
+    const other = await page.context().newPage();
+    for (const host of ['https://fonts.googleapis.com/**', 'https://fonts.gstatic.com/**']) {
+      await other.route(host, route => route.fulfill({ status: 200, contentType: 'text/css', body: '' }));
+    }
+    await other.goto('/owner-login.html');
+    await expect(other.locator('#dash')).toBeVisible();
+    await other.click('#signout');
+    await expect(page.locator('#signed-out')).toBeVisible();
+    await expect(page.locator('#app')).toBeHidden();
+  });
+}
