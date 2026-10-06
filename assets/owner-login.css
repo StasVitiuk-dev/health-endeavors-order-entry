@@ -339,7 +339,7 @@
   .actItem.isDelete{ background:var(--danger-bg); }
   .actItem.isDelete .actWhat b:first-child{ color:var(--danger); }
   .actItem.hovered{ background:var(--panel-2); }
-  .actHint{ font-size:11px; color:var(--muted-2); margin-left:4px; }
+  .actHint{ font-size:11px; color:var(--muted); margin-left:4px; }
   .digestLine{
     background:var(--panel-2); border:1px solid var(--line); border-radius:10px;
     padding:9px 13px; font-size:12.5px; color:var(--navy); margin-bottom:12px;
@@ -469,7 +469,7 @@
   .badge.sev-high, .badge.sev-critical, .priorityPill.high{ background:var(--danger-bg); color:var(--danger); }
   .badge.sev-medium{ background:var(--warn-bg); color:var(--warn); }
   .badge.sev-low{ background:var(--good-bg); color:var(--good); }
-  table th{ color:var(--muted-2); font-weight:500; font-size:11.5px; letter-spacing:0; text-transform:none; }
+  table th{ color:var(--muted); font-weight:500; font-size:11.5px; letter-spacing:0; text-transform:none; }
   th, td{ border-bottom:1px solid var(--line); }
   .empty{ text-align:center; padding:34px 16px; border:none; background:transparent; color:var(--muted); font-size:13.5px; } /* AA contrast (was --muted-2, 3.6:1) */
   .empty .emptyIcon{ display:none; }
@@ -755,7 +755,7 @@
   .actItem.isDelete .actWhat b:first-child{ color:var(--danger); }
 
   /* ================= Calendar ================= */
-  .calHintKeys{ font-size:11px; color:var(--muted-2); white-space:nowrap; }
+  .calHintKeys{ font-size:11px; color:var(--muted); white-space:nowrap; }
   .calFilters{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:16px; }
   .calChipBtn{
     display:inline-flex; align-items:center; gap:6px; padding:4px 11px; font-size:12px;
@@ -772,7 +772,7 @@
     border-bottom:1px solid var(--line); margin-bottom:5px;
   }
   .calDayHead .dName{ font-weight:600; font-size:13.5px; color:var(--ink); }
-  .calDayHead .dMeta{ font-size:12px; color:var(--muted-2); }
+  .calDayHead .dMeta{ font-size:12px; color:var(--muted); }
   .calDayHead.isToday .dName{ color:var(--accent); }
 
   .calEvent{

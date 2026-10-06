@@ -124,9 +124,8 @@ test('every overlay closes with Escape', async ({ page, backend }, testInfo) => 
   expect(backend.tableWrites()).toEqual([]);
 });
 
-// AX-06 (2026-10-06): text contrast meets WCAG AA (4.5:1 for normal text,
-// 3:1 for large) on every page, light and dark, for badges, buttons, hints,
-// empty states, labels and links.
+// AX-06 / AX-09 (2026-10-06): text contrast meets WCAG AA (4.5:1 for normal
+// text, 3:1 for large) on every page, light and dark, for all visible text.
 for (const scheme of ['light', 'dark']) {
   test(`text contrast meets AA on every page (${scheme})`, async ({ page, backend }, testInfo) => {
     test.skip(testInfo.project.name !== 'desktop', 'colours; run once');
@@ -151,8 +150,11 @@ for (const scheme of ['light', 'dark']) {
           return base;
         };
         const out = [];
-        root.querySelectorAll('.badge, button, .hint, .empty, label, .lbl, a').forEach(el => {
-          if (!el.textContent.trim() || el.offsetParent === null || el.disabled) return;
+        // Every visible element that has text of its own (AX-09, EXT3: was
+        // only badges, buttons, hints, empty states, labels and links).
+        root.querySelectorAll('*').forEach(el => {
+          const ownText = [...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim());
+          if (!ownText || el.offsetParent === null || el.disabled) return;
           const fg = parse(getComputedStyle(el).color); if (!fg) return;
           const L1 = lum(fg), L2 = lum(bgOf(el));
           const ratio = (Math.max(L1, L2) + 0.05) / (Math.min(L1, L2) + 0.05);

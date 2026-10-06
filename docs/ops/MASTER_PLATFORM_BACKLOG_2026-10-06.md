@@ -4,14 +4,14 @@ Internal dashboard/platform only. Generated from `docs/ops/backlog/items.py` (ed
 
 **209 deduplicated items** from 264 raw candidates (55 duplicates merged: the same item recorded in PROJECT_RECORD, the overnight review, PRs, owner lists, decision registers and tests).
 
-Status counts: BLOCKED-EXT 2, BLOCKED-OWNER 31, BLOCKED-PROD 12, BLOCKED-QC 11, DEFERRED 20, DONE 125, QUEUED 8
+Status counts: BLOCKED-EXT 2, BLOCKED-OWNER 31, BLOCKED-PROD 12, BLOCKED-QC 11, DEFERRED 20, DONE 126, QUEUED 7
 
 | Priority | Items | Done (branch) | Remaining |
 |---|---|---|---|
 | P0 | 14 | 4 | 10 |
 | P1 | 53 | 37 | 16 |
 | P2 | 64 | 45 | 19 |
-| P3 | 65 | 39 | 26 |
+| P3 | 65 | 40 | 25 |
 | P4 | 13 | 0 | 13 |
 
 Priorities: P0 data loss / security / financial corruption / destructive · P1 launch blocker / correctness / concurrency / permission · P2 reliability / scale / accessibility / major UX · P3 maintainability / tests / docs · P4 future.
@@ -169,7 +169,6 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 
 | ID | Area | Item | Why it matters | Launch impact | Effort | Depends on | Safe in branch | Owner | Prod | Status |
 |---|---|---|---|---|---|---|---|---|---|---|
-| AX-09 | Accessibility | Contrast of text inside plain divs/spans (test covers badges, buttons, hints, empty states, labels, links, stat labels) | Remaining coverage gap | Low | S | — | Y | N | N | QUEUED |
 | CI-04 | CI | Optional SQL job (local Postgres service) for draft tests | Draft regressions caught in CI | Low | M | CI-02 | Y | Y | N | QUEUED |
 | DOC-09 | Docs | Invoice status decision (issued vs draft) | Agent #1 output | Low | S | owner | N | Y | N | BLOCKED-OWNER |
 | F3-01 | Accessibility | Input and control borders in light mode ~1.4:1 (37 inline #cfd8d6 + theme --field-border) vs WCAG 1.4.11 3:1 | Hard to see field edges | Low | S | design decision | Y | Y | N | BLOCKED-OWNER |
@@ -198,6 +197,7 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | AX-03 | Accessibility | Toasts announced (aria-live polite) | Success not announced | Low | S | — | Y | N | N | DONE |
 | AX-04 | Accessibility | prefers-reduced-motion respected for animations | Motion sensitivity | Low | S | — | Y | N | N | DONE |
 | AX-06 | Accessibility | Colour contrast check of badges in light/dark | Readability | Low | S | — | Y | N | N | DONE |
+| AX-09 | Accessibility | Contrast of text inside plain divs/spans (test covers badges, buttons, hints, empty states, labels, links, stat labels) | Remaining coverage gap | Low | S | — | Y | N | N | DONE |
 | CI-05 | CI | Secret/PII scan step in CI | Public repo hygiene | Low | S | — | Y | N | N | DONE |
 | DOC-01 | Docs | Audits recorded (state machine, mutations, storage, pagination, launch readiness) | Durable record | Medium | S | — | Y | N | N | DONE |
 | DOC-04 | Docs | Mark superseded statements in older docs (guessed schema, "BLOCKED ON QUERY A/B") | Stale docs | Low | S | — | Y | N | N | DONE |

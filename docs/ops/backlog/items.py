@@ -161,7 +161,7 @@ a('AX-05','Accessibility','Keyboard: every overlay closes with Escape and return
 a('AX-06','Accessibility','Colour contrast check of badges in light/dark','Readability','P3','Low','S','—','Y','N','N','DONE')
 a('AX-07','Accessibility','Dark theme: white text on bright blue/red fills (buttons 3.0:1, Delete 2.8:1) and default-blue links (1.8:1)','Found by the AA contrast test (2026-10-06)','P2','Medium','S','—','Y','N','N','DONE')
 a('AX-08','Accessibility','64 hard-coded grey inline text colours ignored the theme (labels 1.6:1 in dark; dates 3.1:1 in light)','Found by the AA contrast test (2026-10-06)','P2','Medium','S','—','Y','N','N','DONE')
-a('AX-09','Accessibility','Contrast of text inside plain divs/spans (test covers badges, buttons, hints, empty states, labels, links, stat labels)','Remaining coverage gap','P3','Low','S','—','Y','N','N','QUEUED')
+a('AX-09','Accessibility','Contrast of text inside plain divs/spans (test covers badges, buttons, hints, empty states, labels, links, stat labels)','Remaining coverage gap','P3','Low','S','—','Y','N','N','DONE')
 a('RS-01','Responsive','Key workflows at narrow desktop (800px) and tablet (768px)','Untested widths','P2','Medium','S','—','Y','N','N','DONE')
 a('RS-02','Responsive','Phone swipe in tables; PO tap opens history','PR #12, #14','P2','Medium','S','—','Y','N','N','DONE',['PR #12','PR #14'])
 a('RS-03','Responsive','Real iPhone Safari check of task buttons','Chromium only in tests','P2','Medium','S','owner','N','Y','N','BLOCKED-OWNER',['pending check 1'])
