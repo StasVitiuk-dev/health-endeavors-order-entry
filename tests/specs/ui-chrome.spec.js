@@ -55,16 +55,23 @@ test.describe('command palette and keyboard', () => {
     await expect(page.locator('#paletteOverlay')).not.toHaveClass(/open/);
   });
 
-  test('KNOWN BUG: typing a page name and pressing Enter opens a guide article, not the page', async ({ page }) => {
-    // Same cause as the sidebar-search fixme in general.spec.js: guide
-    // matches are listed first, so Enter picks the guide.
+  test('typing a page name and pressing Enter opens that page (was: a Guide article; fixed EXT3)', async ({ page }) => {
     await gotoPage(page, 'tasksPanel');
     await page.keyboard.press('ControlOrMeta+k');
     await page.keyboard.type('Expenses');
+    await expect(page.locator('#paletteResults .pResult.sel')).not.toContainText('Guide');
+    await page.keyboard.press('Enter');
+    await expect(page.locator('#helpOverlay')).not.toHaveClass(/open/);
+    await isPage(page, 'expensesPanel');
+  });
+
+  test('a question still opens the Guide first (Enter → help article)', async ({ page }) => {
+    await gotoPage(page, 'tasksPanel');
+    await page.keyboard.press('ControlOrMeta+k');
+    await page.keyboard.type('how do returns work');
     await expect(page.locator('#paletteResults .pResult.sel')).toContainText('Guide');
     await page.keyboard.press('Enter');
     await expect(page.locator('#helpOverlay')).toHaveClass(/open/);
-    await isPage(page, 'tasksPanel');
   });
 
   test('the palette finds records too (a task by its title)', async ({ page }) => {

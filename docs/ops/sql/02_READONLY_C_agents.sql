@@ -29,6 +29,9 @@
 --   8 direct writes     which API roles may write stock tables directly
 --   9 value rules       every CHECK rule and enum list on public tables (the
 --                       allowed status/category values; schema only, no data)
+--  10 audit coverage    per public table: is there an audit trigger (one whose
+--                       function name mentions "audit"), and which who/when
+--                       columns exist (names only; added in version 3)
 --
 -- Limits: agents that run outside the database (GitHub workflows, edge
 -- functions) are only visible through what they record (agent_controls,
@@ -237,4 +240,16 @@ join pg_class c on c.oid = a.attrelid and c.relkind in ('r','p')
 join pg_namespace n on n.oid = c.relnamespace
 join pg_type t on t.oid = a.atttypid and t.typtype = 'e'
 where n.nspname = 'public' and a.attnum > 0 and not a.attisdropped
+-- 10 audit coverage -----------------------------------------------------------
+union all
+select '10 audit coverage', c.relname,
+       concat_ws('; ',
+         'audit_trigger=' || coalesce((select string_agg(t.tgname || case when t.tgenabled = 'D' then ' (DISABLED)' else '' end, ', ')
+                                        from pg_trigger t join pg_proc p on p.oid = t.tgfoid
+                                        where t.tgrelid = c.oid and not t.tgisinternal and p.proname ilike '%audit%'), 'NONE'),
+         'who_when_columns=' || coalesce((select string_agg(a.attname, ', ' order by a.attname) from pg_attribute a
+                                          where a.attrelid = c.oid and a.attnum > 0 and not a.attisdropped
+                                            and a.attname ~ '(_by|_at)$'), 'none'))
+from pg_class c join pg_namespace n on n.oid = c.relnamespace
+where n.nspname = 'public' and c.relkind in ('r','p') and c.relname <> 'audit_log'
 order by 1, 2;

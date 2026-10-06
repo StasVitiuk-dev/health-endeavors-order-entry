@@ -249,6 +249,20 @@ begin
     if _test_snapshot() <> before then raise exception 'R4 %: failure part-way left changes behind', fp; end if;
   end loop;
 
+  -- R5 sold product (EXT3): order lines refer by SKU text only, so the
+  -- function itself must refuse; the product and its stock row stay.
+  declare px uuid; resx jsonb;
+  begin
+    insert into products (name, sku) values ('TEST sold', 'T-SOLD') returning id into px;
+    insert into inventory (product_id) values (px);
+    insert into order_items (order_id, sku, quantity) values (o, 't-sold', 1);
+    resx := delete_unused_product(px);
+    if resx->>'reason' is distinct from 'sold' then raise exception 'R5: sold product not refused: %', resx; end if;
+    if not exists (select 1 from products where id = px) or not exists (select 1 from inventory where product_id = px) then
+      raise exception 'R5: sold product or its stock row was removed';
+    end if;
+  end;
+
   raise notice 'ALL HARDENING AND FAILURE TESTS PASSED';
 end $$;
 rollback;

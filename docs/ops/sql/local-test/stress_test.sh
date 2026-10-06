@@ -341,9 +341,87 @@ run_once() {
           or i.recalled <> coalesce((select sum(change_amount) from inventory_adjustments a where a.product_id=i.product_id and a.bucket='recalled'),0)")" 0
   check "S20 deleted-or-kept products consistent (no orphan stock, history only on kept ones)" "$(q "select count(*) from inventory_adjustments a where a.reason='s20-del' and not exists (select 1 from products p where p.id=a.product_id)")/$(q "select count(*) from inventory i where not exists (select 1 from products p where p.id=i.product_id)")" "0/0"
 
+  dl_mark "S21"
+  # S21 (EXT3). Operator ladder: 2, 5, 10, 25, 50, 100 people adjust the same
+  # product at once. Every level: nothing lost, nothing doubled, history
+  # explains the stock; the time per level is printed so a slowdown that
+  # grows faster than the load would show up.
+  local ladder=""
+  for n in 2 5 10 25 50 100; do
+    reset
+    local l0=$(date +%s%N)
+    for i in $(seq $n); do call "select adjust_inventory('$A','available',1,'s21');" & done; wait
+    local l1=$(date +%s%N)
+    check "S21 $n operators: stock = 1000 + $n" "$(q "select available from inventory where product_id='$A'")" "$((1000 + n))"
+    check "S21 $n operators: $n history rows" "$(q "select count(*) from inventory_adjustments where reason='s21'")" "$n"
+    ladder="$ladder $n:$(( (l1 - l0) / 1000000 ))ms"
+  done
+  [ -n "$VERBOSE" ] && echo "  S21 ladder:$ladder"
+  S21_LADDER="$ladder"
+
+  dl_mark "S22"
+  # S22 (EXT3). The dashboard's stale-tab protection is a conditional update
+  # ("approve only while still pending"). Prove the database lets exactly one
+  # of many simultaneous conditional updates win: 100 Approve + 20 Reject on
+  # one request at the same moment. The audit trigger writes one row per
+  # real change, so it counts the winners.
+  reset
+  q "delete from approval_requests; insert into approval_requests (id, action_type, summary, status) values ('a2200000-0000-4000-8000-000000000001','stress','S22','pending')"
+  for i in $(seq 100); do call "update approval_requests set status='approved', reviewed_at=now() where id='a2200000-0000-4000-8000-000000000001' and status='pending';" & done
+  for i in $(seq 20); do call "update approval_requests set status='rejected', reviewed_at=now() where id='a2200000-0000-4000-8000-000000000001' and status='pending';" & done
+  wait
+  check "S22 120 simultaneous decisions: exactly one changed the request" "$(q "select count(*) from audit_log where table_name='approval_requests' and record_id='a2200000-0000-4000-8000-000000000001' and action='UPDATE'")" 1
+  check "S22 final status is a decision" "$(q "select status in ('approved','rejected') from approval_requests where id='a2200000-0000-4000-8000-000000000001'")" t
+
+  dl_mark "S23"
+  # S23 (EXT3). Task buttons from many tabs: 50 "Mark in progress" (only from
+  # open) and 50 "Mark done" (only from open / in progress) at once. Done is
+  # final: it can never be moved back to in progress, whatever the order.
+  reset
+  q "delete from tasks; insert into tasks (id, title, status) values ('a2300000-0000-4000-8000-000000000001','S23','open')"
+  for i in $(seq 50); do
+    call "update tasks set status='in_progress' where id='a2300000-0000-4000-8000-000000000001' and status in ('open');" &
+    call "update tasks set status='done' where id='a2300000-0000-4000-8000-000000000001' and status in ('open','in_progress');" &
+  done; wait
+  check "S23 100 task clicks: ends done" "$(q "select status from tasks where id='a2300000-0000-4000-8000-000000000001'")" done
+  check "S23 at most one move to in progress and exactly one to done (2 or fewer changes)" "$(q "select (count(*) filter (where new_data->>'status'='done'))::text || '/' || (count(*) filter (where new_data->>'status'='in_progress') <= 1)::text from audit_log where table_name='tasks' and record_id='a2300000-0000-4000-8000-000000000001' and action='UPDATE'")" "1/true"
+  check "S23 never moved backwards (no change away from done)" "$(q "select count(*) from audit_log where table_name='tasks' and record_id='a2300000-0000-4000-8000-000000000001' and action='UPDATE' and old_data->>'status'='done'")" 0
+
+  dl_mark "S24"
+  # S24 (EXT3). Return decision from many tabs: 30 Approve + 30 Reject, each
+  # only while still "requested": exactly one wins.
+  reset
+  q "insert into orders (id, channel, order_number) values ('a2400000-1111-4000-8000-000000000001','manual','S24')"
+  q "insert into order_items (id, order_id, sku, quantity) values ('a2400000-2222-4000-8000-000000000001','a2400000-1111-4000-8000-000000000001','S-A',1)"
+  q "insert into returns (id, order_id, order_item_id, reason, status) values ('a2400000-3333-4000-8000-000000000001','a2400000-1111-4000-8000-000000000001','a2400000-2222-4000-8000-000000000001','other','requested')"
+  for i in $(seq 30); do
+    call "update returns set status='approved' where id='a2400000-3333-4000-8000-000000000001' and status='requested';" &
+    call "update returns set status='rejected' where id='a2400000-3333-4000-8000-000000000001' and status='requested';" &
+  done; wait
+  check "S24 60 simultaneous return decisions: exactly one change" "$(q "select count(*) from audit_log where table_name='returns' and record_id='a2400000-3333-4000-8000-000000000001' and action='UPDATE'")" 1
+
+  dl_mark "S25"
+  # S25 (EXT3). Cancel racing Receive on the same shipped purchase order (20
+  # of each at once). It must end fully received (stock +10 once, one
+  # expense) or fully cancelled (no stock, no expense) — never both, never
+  # half.
+  reset
+  q "insert into purchase_orders (id, po_number, status, supplier_id) values ('a2500000-0000-4000-8000-000000000001','S25','shipped','99999999-0000-4000-8000-000000000000')"
+  q "insert into purchase_order_items (purchase_order_id, product_id, description, quantity, unit_cost) values ('a2500000-0000-4000-8000-000000000001','$A','x',10,1)"
+  local dl25=$(grep -c deadlock "$ERR")
+  for i in $(seq 20); do
+    call "update purchase_orders set status='cancelled' where id='a2500000-0000-4000-8000-000000000001' and status in ('draft','ordered','shipped') and deleted_at is null;" &
+    call "select receive_purchase_order('a2500000-0000-4000-8000-000000000001');" &
+  done; wait
+  check "S25 cancel vs receive: all-or-nothing outcome" "$(q "select case (select status from purchase_orders where id='a2500000-0000-4000-8000-000000000001')
+      when 'received' then ((select available from inventory where product_id='$A') = 1010 and (select count(*) from expenses where note='Purchase order S25') = 1)::text
+      when 'cancelled' then ((select available from inventory where product_id='$A') = 1000 and (select count(*) from expenses) = 0)::text
+      else 'unexpected status' end")" true
+  check "S25 no deadlock" "$(( $(grep -c deadlock "$ERR") - dl25 ))" 0
+
   dl_mark "end"
   local t1=$(date +%s%N)
-  echo "run $1: $pass passed, $fail failed, deadlocks seen: $(grep -c deadlock "$ERR"), $(( (t1 - t0) / 1000000 )) ms"
+  echo "run $1: $pass passed, $fail failed, deadlocks seen: $(grep -c deadlock "$ERR"), $(( (t1 - t0) / 1000000 )) ms; S21 ladder:$S21_LADDER"
 }
 
 total_fail=0

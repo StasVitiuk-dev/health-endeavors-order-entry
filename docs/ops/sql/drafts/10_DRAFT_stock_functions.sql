@@ -506,6 +506,14 @@ begin
      or exists (select 1 from recalls where product_id = p_product_id) then
     return jsonb_build_object('deleted', false, 'reason', 'in_use');
   end if;
+  -- Sold products: order lines refer to products by SKU text, not by a
+  -- foreign key, so the database alone would let a sold product be deleted
+  -- (EXT3, 2026-10-06). Its sales history and any later return restock rely
+  -- on it, so refuse as "sold".
+  if exists (select 1 from order_items oi join products p on lower(p.sku) = lower(oi.sku)
+             where p.id = p_product_id and p.sku is not null and btrim(p.sku) <> '') then
+    return jsonb_build_object('deleted', false, 'reason', 'sold');
+  end if;
   perform 1 from products where id = p_product_id for update;
   if not found then
     return jsonb_build_object('deleted', false, 'reason', 'not_found');

@@ -185,6 +185,31 @@ test.describe('System Mode', () => {
     await expect(page.locator('#dashError')).toContainText('Agent #7 (Customer Service) could NOT be paused');
   });
 
+  test('Emergency: if the flag table has no who/when columns, Order Sync is still switched off (X3-17 fallback)', async ({ page, backend }) => {
+    seed(backend);
+    backend.tables.feature_flags[0].enabled = true;
+    backend.tables.agent_controls = [{ agent_num: 7, enabled: false }];
+    await login(page);
+    await open(page, 'flagsPanel');
+    let first = true;
+    // First switch-off attempt (with updated_by / updated_at) is refused the way
+    // PostgREST refuses an unknown column; the retry without them goes through.
+    await page.route(url => new URL(url).pathname.endsWith('/rest/v1/feature_flags'), route => {
+      if (route.request().method() !== 'PATCH') return route.fallback();
+      const body = JSON.parse(route.request().postData() || '{}');
+      if (first && 'updated_by' in body) {
+        first = false;
+        return route.fulfill({ status: 400, contentType: 'application/json', body: JSON.stringify({ code: 'PGRST204', message: "Could not find the 'updated_by' column of 'feature_flags' in the schema cache" }) });
+      }
+      return route.fallback();
+    });
+    await goEmergency(page);
+    await expect(page.locator('.toast', { hasText: 'System mode changed to Emergency' })).toBeVisible();
+    await expect(page.locator('#dashError')).toBeHidden();
+    const flagWrites = writes(backend, 'feature_flags');
+    expect(flagWrites.map(w => Object.keys(w.body).sort().join(','))).toContain('enabled');
+  });
+
   test('Emergency: when both follow-ups really happen, it reports success and no error', async ({ page, backend }) => {
     seed(backend);
     backend.tables.agent_controls = [{ agent_num: 7, enabled: true }];

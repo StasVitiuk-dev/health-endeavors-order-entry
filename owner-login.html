@@ -1871,12 +1871,19 @@
       if (e.key !== 'Enter') return;
       const q = e.target.value.trim().toLowerCase();
       if (!q) return;
+      // Order (EXT3): a page whose name starts with what was typed; then a
+      // record (order, task, …); then a Guide topic's page; then any page
+      // whose name contains the text. Before, a Guide match always won, so
+      // "incidents" + Enter opened Quality Control.
+      const allPages = [].concat(...SIDEBAR_GROUPS.map(g => g.pages));
+      const named = allPages.find(p => p.label.toLowerCase().startsWith(q));
+      if (named) { showPage(named.id); return; }
       const dataResults = searchEverything(q);
+      const record = dataResults.find(r => r.type !== 'Guide');
+      if (record) { showPage(record.pageId); return; }
       if (dataResults.length) { showPage(dataResults[0].pageId); return; }
-      for (const group of SIDEBAR_GROUPS) {
-        const match = group.pages.find(p => p.label.toLowerCase().includes(q));
-        if (match) { showPage(match.id); return; }
-      }
+      const match = allPages.find(p => p.label.toLowerCase().includes(q));
+      if (match) { showPage(match.id); return; }
     });
 
     // On a phone/narrow screen, the sidebar is hidden by default; this menu
@@ -2155,10 +2162,15 @@
         }
       }));
       if (query) {
+        // A page whose name is what was typed (or starts with it) comes first,
+        // so "Expenses" + Enter opens Expenses, not a Guide article about it.
+        // Questions ("how do returns work") still list the Guide first (EXT3).
+        const named = pages.filter(p => p.label.toLowerCase().startsWith(query));
+        items.push.apply(items, named);
         helpMatches(query).forEach(e => items.push({
           kind: 'Guide', label: e.title, pageId: e.page, help: e, icon: pageIconSvg(e.page),
         }));
-        items.push.apply(items, pages);
+        items.push.apply(items, pages.filter(p => !named.includes(p)));
         // Guides were added above; skip the copies the record search returns.
         searchEverything(query).filter(r => r.type !== 'Guide').forEach(r => items.push({
           kind: r.type, label: r.label, pageId: r.pageId,
@@ -3215,12 +3227,6 @@
       // All-day events: use the date exactly as stored (avoids timezone shifting them a day off).
       if (ev.all_day && ev.starts_at) return ev.starts_at.slice(0, 10);
       return dateKey(new Date(ev.starts_at));
-    }
-    function fmtEventTime(ev){
-      if (ev.all_day) return 'All day';
-      const d = new Date(ev.starts_at);
-      if (isNaN(d.getTime())) return '';
-      return d.toLocaleTimeString(undefined, { hour:'numeric', minute:'2-digit' });
     }
 
 
@@ -6202,10 +6208,19 @@
           // it is still on.
           const leftOn = [];
           if (newMode === 'EMERGENCY') {
-            const { data: flagRows, error: flagErr } = await supabase.from('feature_flags')
+            let { data: flagRows, error: flagErr } = await supabase.from('feature_flags')
               .update({ enabled: false, updated_by: uid, updated_at: new Date().toISOString() })
               .eq('flag_key', 'shopify_order_sync')
               .select('id, enabled');
+            // The flag table may not have who/when columns (not verified: Query A
+            // did not cover it; X3-17). If the database says a column doesn't
+            // exist, switch the flag off without them rather than not at all.
+            if (flagErr && (String(flagErr.code) === 'PGRST204' || String(flagErr.code) === '42703' || /column .* (does not exist|of 'feature_flags')/i.test(flagErr.message || ''))) {
+              ({ data: flagRows, error: flagErr } = await supabase.from('feature_flags')
+                .update({ enabled: false })
+                .eq('flag_key', 'shopify_order_sync')
+                .select('id, enabled'));
+            }
             if (flagErr || noRowsChanged(flagRows) || flagRows.some(r => r.enabled !== false)) {
               leftOn.push('Shopify Order Sync could NOT be switched off' + (flagErr ? ' (' + flagErr.message + ')' : ' (nothing was changed — no permission, or the flag row is missing)') + '. Switch it off by hand on this page now.');
             }
@@ -7601,14 +7616,25 @@
                 showDashError('"' + name + '" still has stock (' + held.map(b => INVENTORY_BUCKET_LABELS[b] + ': ' + Number(invNow[b])).join(', ') + '), so it can\'t be deleted. Use Deactivate instead, or move the stock out first.');
                 return;
               }
-              const inUseMsg = '"' + name + '" can\'t be deleted because it\'s already used somewhere — a purchase order, a lot, a recall or a stock adjustment. Use Deactivate instead, which hides it without losing that history.';
+              const inUseMsg = '"' + name + '" can\'t be deleted because it\'s already used somewhere — a purchase order, a lot, a recall, a quality check or a stock adjustment. Use Deactivate instead, which hides it without losing that history.';
               // Anything that refers to the product blocks the delete (plain
               // foreign keys, Query A). Ask first, so nothing is touched for a
               // product that is in use.
-              for (const t of ['purchase_order_items', 'inventory_lots', 'inventory_adjustments', 'recalls']) {
+              for (const t of ['purchase_order_items', 'inventory_lots', 'inventory_adjustments', 'recalls', 'quality_checks']) {
                 const { count, error: refErr } = await supabase.from(t).select('id', { count: 'exact', head: true }).eq('product_id', id);
                 if (refErr) throw refErr;
                 if (count) { showDashError(inUseMsg); return; }
+              }
+              // Sold products: order lines name the product by its SKU (text, no
+              // database link), so nothing would stop the delete and the sales
+              // history would point at nothing (X3-13). Fresh SKU from the database.
+              const { data: prodNow, error: prodNowErr } = await supabase.from('products').select('sku').eq('id', id).maybeSingle();
+              if (prodNowErr) throw prodNowErr;
+              const skuNow = prodNow && prodNow.sku ? String(prodNow.sku).trim() : '';
+              if (skuNow) {
+                const { count: soldCount, error: soldErr } = await supabase.from('order_items').select('id', { count: 'exact', head: true }).ilike('sku', likeLiteral(skuNow));
+                if (soldErr) throw soldErr;
+                if (soldCount) { showDashError('"' + name + '" can\'t be deleted because it has already been sold (order lines use its SKU ' + skuNow + '). Use Deactivate instead, which hides it without losing the sales history.'); return; }
               }
               // Remove the stock row only while every bucket is still 0, so
               // stock that arrived a moment ago is never thrown away.
@@ -7654,6 +7680,9 @@
             const productId = row.getAttribute('data-product-id');
             const input = row.querySelector('.invThresholdInput');
             const raw = input.value.trim();
+            // Stock settings are Owner/Administrator only (row-level security on
+            // inventory); say so before sending, like the other stock actions.
+            if (!canChangeStock()) { showDashError('Only the Owner or an Administrator can change stock settings. Nothing was changed.'); return; }
             const thresholdProblem = numberInputError(raw, { label: 'The low-stock alert level', allowBlank: true, integer: true, max: 1000000 });
             if (thresholdProblem) { showDashError(thresholdProblem + ' Nothing was saved.'); return; }
             const value = raw === '' ? null : parseInt(raw, 10);

@@ -52,6 +52,7 @@ Export → **Download CSV**. Before sending it, scroll through and check:
 | `7 triggers` | Every trigger on the stock, order, purchasing and returns tables | A trigger with `writes stock=true` changes stock automatically. |
 | `8 direct writes` | Whether the public (`anon`) and signed-in (`authenticated`) roles may write the stock tables directly, and whether row-level security is on | Used later to remove direct writes once R1–R5 are the only path (backlog INV-20). |
 | `9 value rules` | Every database rule on allowed values (status lists, categories) | Fills in the tables Query A did not cover (incidents, legal holds, inquiries, …). |
+| `10 audit coverage` | For every table: is there an audit trigger, and which who/when columns exist (names only) | Shows which actions record who did them (`AUDITABILITY_REVIEW.md`), and whether the flag table has the `updated_by` / `updated_at` columns the Emergency switch-off writes (finding X3-17). |
 
 **Pattern flags are hints, not proof.** "writes stock" means the function's text matches a pattern such as `update inventory`. A person reads anything flagged before acting. Code that builds its SQL at run time (`EXECUTE format(…)`) is not detected; that limitation is stated in the file header.
 
@@ -66,6 +67,7 @@ Export → **Download CSV**. Before sending it, scroll through and check:
 | incidents.severity `normal` question (escalation could fail) | Section 9 |
 | Agent #1 "enabled" question | Section 3 |
 | Catalogue populated? | Section 0 |
+| X3-17: will the Emergency switch-off of Order Sync work without the fallback? / X3-18: who-did-it on compliance actions | Section 10 |
 
 ## What happens after you send it
 
