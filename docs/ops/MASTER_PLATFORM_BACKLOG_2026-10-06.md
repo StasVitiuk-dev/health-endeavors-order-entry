@@ -2,21 +2,21 @@
 
 Internal dashboard/platform only. Generated from `docs/ops/backlog/items.py` (edit the data there, then run `python3 docs/ops/backlog/items.py`). No production secrets or private business data.
 
-**209 deduplicated items** from 264 raw candidates (55 duplicates merged: the same item recorded in PROJECT_RECORD, the overnight review, PRs, owner lists, decision registers and tests).
+**235 deduplicated items** from 294 raw candidates (59 duplicates merged: the same item recorded in PROJECT_RECORD, the overnight review, PRs, owner lists, decision registers and tests).
 
-Status counts: BLOCKED-EXT 2, BLOCKED-OWNER 31, BLOCKED-PROD 12, BLOCKED-QC 11, DEFERRED 20, DONE 131, QUEUED 2
+Status counts: BLOCKED-EXT 2, BLOCKED-OWNER 30, BLOCKED-PROD 13, BLOCKED-QC 11, DEFERRED 22, DONE 155, QUEUED 2
 
 | Priority | Items | Done (branch) | Remaining |
 |---|---|---|---|
 | P0 | 14 | 4 | 10 |
-| P1 | 53 | 37 | 16 |
-| P2 | 64 | 45 | 19 |
-| P3 | 65 | 45 | 20 |
-| P4 | 13 | 0 | 13 |
+| P1 | 58 | 41 | 17 |
+| P2 | 73 | 55 | 18 |
+| P3 | 75 | 55 | 20 |
+| P4 | 15 | 0 | 15 |
 
 Priorities: P0 data loss / security / financial corruption / destructive · P1 launch blocker / correctness / concurrency / permission · P2 reliability / scale / accessibility / major UX · P3 maintainability / tests / docs · P4 future.
 
-"Done" = implemented and tested on `claude/platform-overnight-implementation` — **not merged, not live**.
+"Done" = implemented and tested on the branch chain ending at `claude/platform-deep-readiness-extension-4` — **not merged, not live**.
 
 
 ## P0
@@ -58,6 +58,7 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | ST-07 | Storage | Read-only check of bucket privacy, size limits, MIME rules and storage policies | Unknown production settings | Medium | S | owner runs a read-only check | N | Y | Y | BLOCKED-PROD |
 | X3-17 | Agents | Emergency Order Sync switch-off writes updated_by/updated_at to feature_flags (columns unverified) | Switch-off could always fail; branch fallback added | High | S | Query C §10 | P | N | N | BLOCKED-QC |
 | X3-25 | Docs | Backup health unverified; records disagree (kept on vs last ran Sept 13) | Restore readiness unknown | High | S | owner check | N | Y | N | BLOCKED-OWNER |
+| X4-15 | Inventory | Removing a PO line while the order is received leaves stock no line explains (2–6 of 20 races, even with R1) | Stock vs records mismatch | High | S | R1; approval | P | Y | Y | BLOCKED-PROD |
 | AG-02 | Agents | Truthful agent state (Unknown/Failed/Stale/Dry run) | No optimistic defaults | High | M | — | Y | N | N | DONE |
 | AG-05 | Agents | Shopify sync interlock + wording; Emergency switches it off | Premature sync | High | S | — | Y | N | N | DONE |
 | AG-06 | Agents | No-send tripwires (email, Shopify) | No customer messages | High | S | — | Y | N | N | DONE |
@@ -69,6 +70,7 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | INV-11 | Inventory | delete_unused_product: permission + any-bucket stock + 0-row check | False success under RLS; +5/−5 read as empty | Medium | S | — | Y | N | N | DONE |
 | INV-12 | Inventory | Failure injection at every write of R1–R4 (fingerprint unchanged) | Prove all-or-nothing | High | M | — | Y | N | N | DONE |
 | INV-13 | Inventory | Stress S10–S19 (60 stale tabs, hot row, delete races, killed connection…) | Concurrency proof | High | M | — | Y | N | N | DONE |
+| INV-18 | Inventory | Expense date for received PO uses business date (Central) | UTC date wrong in US evenings: a delivery received after 7 pm on the 30th was logged in the next month (fixed in dashboard and R1, EXT4; D-ops-3 to confirm) | High | S | D-ops-3 (confirm) | Y | N | N | DONE |
 | INV-23 | Inventory | Browser: claim-first receive/return/recall; compare-and-set stock | Interim protection until R1–R5 | High | M | — | Y | N | N | DONE |
 | INV-24 | Inventory | Product delete: permission, in-use check, stock row restore | False success; lost stock row | High | S | — | Y | N | N | DONE |
 | INV-25 | Inventory | Whole-unit catalogue PO lines; deleted POs locked; case-insensitive SKU | Real schema alignment | High | S | Query A | Y | N | N | DONE |
@@ -95,6 +97,9 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | X3-09 | Inventory | R1–R5 install had no schema preflight (wrong shape installs, fails at first click) | Install safety | High | S | — | Y | N | N | DONE |
 | X3-20 | Orders | Manual order retry after a failure created a SECOND order (duplicate revenue) | Two-step save, lost reply | High | S | — | Y | N | N | DONE |
 | X3-32 | Orders | Manual order date stored as midnight UTC = 7 pm the PREVIOUS day in Central (wrong day; on the 1st the wrong month) and default date was "tomorrow" after 7 pm | Live on main: misplaced revenue in Accounting/Tax | High | S | — | Y | N | N | DONE |
+| X4-04 | Orders | Manual order retry matched on the total only | Changed lines were silently dropped or attached to the first attempt | High | S | — | Y | N | N | DONE |
+| X4-05 | Orders | Two tabs saving in the same second adopted each other's order | A whole order could be lost (merged into another) | High | S | — | Y | N | N | DONE |
+| X4-17 | Emergency | Emergency mode skipped switching off Order Sync / pausing Agent #7 when recording the mode failed | In an emergency the sync could stay on | High | S | — | Y | N | N | DONE |
 
 ## P2
 
@@ -110,7 +115,6 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | F3-02 | Orders | Manual orders record no SKU (product name only): returns of manual orders cannot restock by SKU; sold-product check cannot see manual sales | manual-order-entry itemsPayload has no sku | Medium | M | owner: product picker | P | Y | N | BLOCKED-OWNER |
 | INV-15 | Inventory | R-functions: recalled stock cannot be restocked/adjusted below zero by recall paths; quarantine twice on two recalls of one lot | Edge of over-quarantine (D-ops-4) | Medium | S | D-ops-4 | Y | Y | N | QUEUED |
 | INV-17 | Inventory | Partial-quantity returns in the dashboard (p_quantity) | Today the whole line is restocked | Medium | M | D-ops-5 | P | Y | N | BLOCKED-OWNER |
-| INV-18 | Inventory | Expense date for received PO uses business date (Central) | UTC date wrong in US evenings | Medium | S | D-ops-3 | P | Y | N | BLOCKED-OWNER |
 | INV-19 | Inventory | Optional CHECK constraints (recalled >= 0, one expense per PO note) | Database-level safety net; Query B shows they apply cleanly | Medium | S | approval | N | Y | Y | BLOCKED-PROD |
 | RP-08 | Reporting | Partial refunds counted in full (listed for review) | Known limitation | Medium | M | N4 | P | Y | N | BLOCKED-OWNER |
 | RP-09 | Reporting | Sales tax by state requires state field on real orders | Unverified until first real order | Medium | S | first real order | N | Y | N | BLOCKED-EXT |
@@ -164,6 +168,16 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | X3-24 | Tests | SQL mutation run found 3 untested rules (recalled floor, fully received lines, unapproved return) | Test gaps | Medium | S | — | Y | N | N | DONE |
 | X3-28 | Accessibility | Keyboard focus not returned to the opener when a dialog closed (6 dialogs) | WCAG 2.4.3; keyboard users lost their place | Medium | S | — | Y | N | N | DONE |
 | X3-29 | Accessibility | No dialog was announced as a dialog (role, aria-modal, label) | Screen readers did not say a dialog opened | Medium | S | — | Y | N | N | DONE |
+| X4-01 | State machine | Feature request "Mark in progress" from a stale tab could jump to done | It re-read the database status instead of the shown one | Medium | S | — | Y | N | N | DONE |
+| X4-06 | Orders | Unfinished manual-order attempt survives a reload, with a warning | Re-entering after a reload created a duplicate | Medium | S | — | Y | N | N | DONE |
+| X4-07 | Errors | Gateway error pages / cut-off replies / rate limits shown as raw text | Raw HTML on screen; outcome unknown not said | Medium | S | — | Y | N | N | DONE |
+| X4-08 | Inventory | Product delete: lost reply on the final step put a stock row back for a deleted product | Stray stock row / "not deleted" when it was | Medium | S | — | Y | N | N | DONE |
+| X4-10 | Accounting | Accounting "Last 7 days" left out expenses dated 7 days ago after 7 pm; UTC slices for viewers east of UTC | Totals off by a day | Medium | S | — | Y | N | N | DONE |
+| X4-11 | Scale | Whole-table lists silently stop at 1,000 rows: notice added | A list could look complete when it is not | Medium | S | — | Y | N | N | DONE |
+| X4-12 | Money | PO grand total saved with floating-point junk / fractions of a cent (dashboard and R1) | Expense 0.30000000000000004 | Medium | S | — | Y | N | N | DONE |
+| X4-13 | Money | Refund amount accepted fractions of a cent and huge values | Accounting data quality | Medium | S | — | Y | N | N | DONE |
+| X4-16 | Inventory | R1–R5 install preflight checks column types; install tests for missing table, hostile search_path, owner, reinstall | Wrong shape installs and fails later | Medium | S | — | Y | N | N | DONE |
+| X4-18 | Accessibility | Skip link and keyboard focus kept inside dialogs | WCAG 2.4.1 / 2.4.3 | Medium | S | — | Y | N | N | DONE |
 
 ## P3
 
@@ -234,6 +248,16 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | X3-26 | Storage | Zero-byte files uploaded and saved as empty receipts/documents | Useless record looks saved | Low | S | — | Y | N | N | DONE |
 | X3-27 | Storage | Document delete from a stale tab removed record + old file, orphaning a replaced file | Orphan file | Low | S | — | Y | N | N | DONE |
 | X3-30 | Tests | "Every overlay closes with Escape" silently skipped the Record Inspector (opened by click, which never opens it) | False confidence | Low | S | — | Y | N | N | DONE |
+| X4-02 | State machine | Expense and feature-request Restore only while still deleted | Stale restore wrote over newer state | Low | S | — | Y | N | N | DONE |
+| X4-03 | Double submit | Procedure form had no double-submit lock (found by the write-path inventory) | Duplicate procedures | Low | S | — | Y | N | N | DONE |
+| X4-14 | Validation | Add-product prices had no upper limit; numeric contract for every number box | Typos saved | Low | S | — | Y | N | N | DONE |
+| X4-19 | Search | Command palette order: pages, records, then Guide | Requested order | Low | S | — | Y | N | N | DONE |
+| X4-20 | Errors | Developer wording on screen ("send me the exact message"); static check added | Confusing for staff | Low | S | — | Y | N | N | DONE |
+| X4-21 | Tests | Mock value rules must match the schema evidence (drift gate) | Tests passing against rules the database lacks | Medium | S | — | Y | N | N | DONE |
+| X4-22 | Tests | Write-path inventory (98 paths) with stale / read-back / lock gate | New write paths can't skip a guard silently | Medium | M | — | Y | N | N | DONE |
+| X4-23 | Docs | Runbook fingerprint and Query C checksum checked automatically against the files | Owner never checks against an outdated value | Medium | S | — | Y | N | N | DONE |
+| X4-24 | Tests | Data-integrity invariants (invariants.sql) after the busiest stress scenarios | Catches silent corruption under load | Medium | S | — | Y | N | N | DONE |
+| X4-25 | Tests | Mutation testing extended: 47 page / 10 SQL mutations | Proves the new tests guard the new rules | Medium | S | — | Y | N | N | DONE |
 
 ## P4
 
@@ -252,6 +276,8 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | ST-10 | Storage | Signed-URL lifetime (60 s) and download link behaviour documented | Expired links | Low | S | — | Y | N | N | DEFERRED |
 | UX-05 | UX | "Recently done + Reopen" on Tasks | Owner wish | Low | M | — | Y | N | N | DEFERRED |
 | X3-31 | Search | Guide matching is single-word fuzzy: gibberish with a common word lists unrelated articles | Relevance | Low | S | — | Y | N | N | DEFERRED |
+| X4-26 | Time | Force Central time for viewers in another time zone | Only matters if someone works from elsewhere | Low | M | owner decision | Y | Y | N | DEFERRED |
+| X4-27 | Performance | Inventory page with 10,000 products renders slowly (beyond the 1,000-row server limit, so not reachable today) | Future catalogue growth | Low | M | — | Y | N | N | DEFERRED |
 
 ## Merged duplicates (provenance)
 
@@ -262,7 +288,7 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 - INV-05: R5, known bug 5
 - INV-16: D-ops-4
 - INV-17: D-ops-5
-- INV-18: D-ops-3, PR #11 note
+- INV-18: D-ops-3, PR #11 note, X4-09
 - INV-21: D-ops-1
 - INV-22: D-ops-6
 - INV-23: overnight 10-05
@@ -299,3 +325,6 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 - DOC-05: pending check 1
 - DOC-08: owner list
 - DOC-09: owner list
+- X4-05: F3-03 (partly)
+- X4-11: pagination audit "watch later"
+- X4-15: CONCURRENCY_MATRIX
