@@ -26,6 +26,7 @@ All with tests that fail on the old code; full suite numbers in the owner review
 | Scale | Calendar notes and inquiry orders no longer build over-long URLs (earlier: Accounting/Tax/Business Health/Daily Summary complete beyond 1,000 rows) | `pagination-scale-audit.md` |
 | Agents display | "error"/"fail" statuses show Failed; Agent #1 says "Switch on", not "Enabled" | — |
 | Accessibility, empty-database and first-launch states | Labels added; every page clean on empty data | — |
+| Extension (2026-10-06, later the same day) | Emergency/No-AI mode reports switch-offs that did not happen; silent-refusal sweep finished (9 more writes); session revoke re-checked; error text never shows internal table/policy names; Activity export complete beyond 500 rows; "unknown" no longer shown as 0 / "off"; one failing table no longer blanks a page; AA text contrast in light and dark; Business Rules, inquiry severity and service status only overwrite what the page showed; safe upload names; bidi-override characters dropped from displayed text | `OWNER_REVIEW_2026-10-06.md` (extension section), `MASTER_PLATFORM_BACKLOG_2026-10-06.md` |
 | Supabase library pinned with integrity hash (R7); broad XSS tests (R6); Shopify-sync interlock (R9); no-send tripwires (R10) | earlier rounds | `OVERNIGHT_PLATFORM_REVIEW_2026-10-05.md` |
 
 ## NEEDS QUERY C

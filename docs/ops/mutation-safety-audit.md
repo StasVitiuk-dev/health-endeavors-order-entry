@@ -51,7 +51,7 @@ Every new test above was run against the code before the fix and fails there (co
 | Document permanent delete | DB + silent-refusal check | confirm + password (no legal-hold check: see owner decision below) | n/a (row gone); stored file now removed too | yes | audit trigger |
 | Product delete | page + DB | two presses | buckets still 0; in-use check | yes | audit trigger |
 | Expense delete / restore | DB + silent-refusal check | none (soft delete, recycle bin) | not already deleted | yes | audit trigger |
-| Receipt file delete | DB | two presses | guarded | yes | — |
+| Receipt file delete | DB | two presses | guarded; unlink first, then delete the file (tested: ST-04) | yes | — |
 | PO cancel | DB | two presses | guarded status | yes | audit trigger |
 | PO receive (stock + expense) | page + DB | **two presses (new)** | claim-first | yes | audit trigger |
 | Return restock (Mark Received) | page (restock) + DB | disposition required | claim-first | yes | audit trigger |
@@ -60,7 +60,7 @@ Every new test above was run against the code before the fix and fails there (co
 | Legal hold release | DB | password | only an active hold | yes | — |
 | Mark reported to FDA | DB | two presses | only if not set | yes | — |
 | Approve / deny request | DB | password | only while pending | yes | audit trigger |
-| Agent switch, feature flag, system mode, business rules | DB | password | guarded | yes | — |
+| Agent switch, feature flag, system mode, business rules | DB | password | guarded (business-rule values too, since the extension: MU-14) | yes | — |
 | Manual stock adjustment | page + DB | — | compare-and-set | yes | history row |
 
 "Audit trigger" = the database's audit trigger (Query A confirmed one on each of the 18 core tables). Tables outside Query A (legal holds, FDA reports, flags…) need Query C to confirm their audit coverage.
@@ -68,3 +68,11 @@ Every new test above was run against the code before the fix and fails there (co
 ## OWNER DECISION REQUIRED
 
 - **Should an active legal hold block deleting related records?** Today legal holds are records only: nothing (order delete, document delete, expense delete) checks them. The usual meaning of a legal hold is "don't delete anything related". The dashboard could refuse deletes of records linked to an active hold (e.g. a supplier's documents); the database is the stronger place for it. Not changed without your decision.
+
+## Extension round (2026-10-06, later the same day)
+
+- **Emergency / No-AI mode (MU-06):** the follow-up switch-offs (Shopify Order Sync, Agent #7) are now read back. If one did not really happen, the page says which one instead of only "System mode changed".
+- **Silent-refusal sweep finished (MU-07):** 9 more writes (reminder dismiss, receive landed cost and received line, calendar note delete, personal event edit and delete, inquiry severity and draft, service status) now detect "the database changed nothing".
+- **Session revoke (MU-13):** after "Log out device", the list is read again. If the device is still there, the page says it was NOT logged out.
+- **Business Rules values (MU-14):** Save only writes while the rule still has the settings the page showed.
+- **Mutation harness** (`tests/mutation/run-page-mutations.js`): 12 deliberate breaks of safety guards, all caught by the tests. The harness now fails if a mutation cannot be applied (two entries had gone stale after the step 2c helper move; fixed).
