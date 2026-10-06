@@ -53,7 +53,7 @@ Their rules are unknown, so these values are **not verified yet**. Query C versi
 | system_mode.mode | NORMAL, LIMITED_AI, NO_AI, EMERGENCY | could be an enum |
 | adverse_event_reports (outcome type) | death, hospitalization, disability, birth_defect, disfigurement, medical_intervention, other | |
 | evidence_locker.evidence_type | Email, Photo, Document, Other | no CHECK in Query A (free text) |
-| orders.channel (enum) | `manual-order-entry.html`: wholesale, physical, other | If the enum lacks one of these, that manual sale is refused. Check against section 9 |
+| orders.channel (enum) | `manual-order-entry.html` (and its identical copy `index.html`): wholesale, physical, other | If the enum lacks one of these, that manual sale is refused. Check against section 9 |
 | orders.status (no CHECK in Query A) | `manual-order-entry.html`: paid, pending, refunded, cancelled | Free text in the database; Accounting/Tax classify these words (`classifyOrderStatus`), so they must stay in that list |
 | profiles.role (enum app_role) | not written by the dashboard | `is_owner_or_admin()` decides owner/administrator; the dashboard's `canChangeStock()` mirrors it |
 
