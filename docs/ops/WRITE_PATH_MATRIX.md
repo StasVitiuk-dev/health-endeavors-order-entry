@@ -96,12 +96,12 @@ Columns: **Stale** = conditional on the value the page showed (stale-tab / optim
 | 86 | owner-login:8514 | deleteExpense | expenses | update | ✓ | ✓ | ✓ | ✓ | — | — | guarded: a repeat changes nothing | audit trigger (Query A) | no (single write) | yes |  |
 | 87 | owner-login:8552 | click .restoreExpenseBtn | expenses | update | ✓ | ✓ | ✓ | ✓ | — | — | guarded: a repeat changes nothing | audit trigger (Query A) | no (single write) | yes |  |
 | 88 | owner-login:8594 | submit addExpenseForm | expenses | insert | ✓ | — | — | ✓ | — | — | not idempotent: one save at a time (button lock) | audit trigger (Query A) | file then record; orphan cleanup on refusal (S1-S3) | yes |  |
-| 89 | manual-order-entry:366 | click signOutBtn | auth | auth.signOut | — | — | — | — | — | — | repeat harmless | sign-in system log | no (single write) | yes |  |
-| 90 | manual-order-entry:459 | submit orderForm | orders | insert | — | — | ✓ | ✓ | — | — | retry-safe: same order number, items only if none (X3-20) | audit trigger (Query A) | order then items; a retry completes the same order (X3-20) | yes |  |
-| 91 | manual-order-entry:484 | submit orderForm | order_items | insert | — | — | — | ✓ | — | — | retry-safe: same order number, items only if none (X3-20) | audit trigger (Query A) | order then items; a retry completes the same order (X3-20) | yes |  |
-| 92 | index:366 | click signOutBtn | auth | auth.signOut | — | — | — | — | — | — | repeat harmless | sign-in system log | no (single write) | yes |  |
-| 93 | index:459 | submit orderForm | orders | insert | — | — | ✓ | ✓ | — | — | retry-safe: same order number, items only if none (X3-20) | audit trigger (Query A) | order then items; a retry completes the same order (X3-20) | yes |  |
-| 94 | index:484 | submit orderForm | order_items | insert | — | — | — | ✓ | — | — | retry-safe: same order number, items only if none (X3-20) | audit trigger (Query A) | order then items; a retry completes the same order (X3-20) | yes |  |
+| 89 | manual-order-entry:375 | click signOutBtn | auth | auth.signOut | — | — | — | — | — | — | repeat harmless | sign-in system log | no (single write) | yes |  |
+| 90 | manual-order-entry:468 | submit orderForm | orders | insert | — | — | ✓ | ✓ | — | — | retry-safe: same order number, items only if none (X3-20) | audit trigger (Query A) | order then items; a retry completes the same order (X3-20) | yes |  |
+| 91 | manual-order-entry:493 | submit orderForm | order_items | insert | — | — | — | ✓ | — | — | retry-safe: same order number, items only if none (X3-20) | audit trigger (Query A) | order then items; a retry completes the same order (X3-20) | yes |  |
+| 92 | index:375 | click signOutBtn | auth | auth.signOut | — | — | — | — | — | — | repeat harmless | sign-in system log | no (single write) | yes |  |
+| 93 | index:468 | submit orderForm | orders | insert | — | — | ✓ | ✓ | — | — | retry-safe: same order number, items only if none (X3-20) | audit trigger (Query A) | order then items; a retry completes the same order (X3-20) | yes |  |
+| 94 | index:493 | submit orderForm | order_items | insert | — | — | — | ✓ | — | — | retry-safe: same order number, items only if none (X3-20) | audit trigger (Query A) | order then items; a retry completes the same order (X3-20) | yes |  |
 | 95 | dashboard:395 | click sign-out-btn | auth | auth.signOut | — | — | — | — | — | — | repeat harmless | sign-in system log | no (single write) | yes |  |
 | 96 | change-password:324 | (top level) | auth | auth.signOut | — | — | — | ✓ | — | — | repeat harmless | sign-in system log | no (single write) | yes |  |
 | 97 | change-password:339 | (top level) | auth | auth.updateUser | — | — | — | ✓ | — | — | repeat harmless | sign-in system log | no (single write) | yes |  |

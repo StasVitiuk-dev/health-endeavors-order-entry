@@ -378,3 +378,17 @@ test('sign-in expired while saving the items: says so; the identical retry adds 
   expect(backend.tables.orders).toHaveLength(1);
   expect(backend.tables.order_items).toHaveLength(1);
 });
+
+test('the unfinished-attempt record in the browser holds no customer name or e-mail', async ({ page, backend }) => {
+  setup(backend);
+  await signIn(page);
+  await fillOrder(page);
+  await page.fill('#customerEmail', 'synthetic.buyer@example.test');
+  backend.dropNext('orders', 'POST', { applied: false });
+  await save(page);
+  await expect(page.locator('#formMsg')).toBeVisible();
+  const stored = await page.evaluate(() => sessionStorage.getItem('he.manualOrder.pending'));
+  expect(stored).toBeTruthy();
+  expect(stored).not.toContain('SYNTHETIC Walk-in');
+  expect(stored).not.toContain('synthetic.buyer@example.test');
+});

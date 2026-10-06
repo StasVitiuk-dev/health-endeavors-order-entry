@@ -238,9 +238,18 @@
   function storePending(v){ try { if (v) sessionStorage.setItem(PENDING_KEY, JSON.stringify(v)); else sessionStorage.removeItem(PENDING_KEY); } catch (_) {} }
   let pending = loadPending(); // { orderNumber, fingerprint, total, warned }
   let saving = false;
+  // EXT5: only a hash is kept (in this tab's session storage), never the
+  // customer's name or e-mail; it is only ever compared for equality.
   function orderFingerprint(p, items){
-    return JSON.stringify([p.channel, p.customer_name, p.customer_email, p.status, p.currency, orderDate.value,
+    const text = JSON.stringify([p.channel, p.customer_name, p.customer_email, p.status, p.currency, orderDate.value,
       p.subtotal, p.shipping_total, p.tax_total, p.total, items.map(i => [i.product_name, i.quantity, i.unit_price])]);
+    let h1 = 0x811c9dc5, h2 = 0x01000193;
+    for (let i = 0; i < text.length; i++) {
+      const c = text.charCodeAt(i);
+      h1 = Math.imul(h1 ^ c, 16777619) >>> 0;
+      h2 = Math.imul(h2 ^ c, 2246822519) >>> 0;
+    }
+    return 'fp1-' + h1.toString(16) + '-' + h2.toString(16) + '-' + text.length;
   }
   function hideError(el){ el.hidden = true; }
   function money(n){ return '$' + (Math.round(n * 100) / 100).toFixed(2); }
