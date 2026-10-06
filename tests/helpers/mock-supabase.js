@@ -10,6 +10,7 @@
 // Nothing in here holds a real key, password or customer record.
 
 const fs = require('fs');
+const { checkWrite } = require('./db-constraints');
 const path = require('path');
 const { buildTables, OWNER_USER } = require('../fixtures/synthetic-data');
 
@@ -139,6 +140,9 @@ class FakeSupabase {
     this.cdnBody = null;       // optional replacement bytes for the library (integrity tests)
     this.maxRows = null;       // optional per-reply row cap, like Supabase's "Max rows" (default 1000 there)
     this.maxUrlLength = null;  // optional URL length limit (real gateways reject very long URLs)
+    this.constraintViolations = []; // writes the real database would refuse (db-constraints.js)
+    this.expectViolations = false;  // a test that provokes one on purpose sets this
+    this.allowImpossibleData = false; // a test seeding deliberately impossible rows (XSS payloads) sets this
   }
 
   // Changes the page asked for on any table (updates, inserts, deletes).
@@ -175,6 +179,20 @@ class FakeSupabase {
       // Like the real gateway, refuse very long URLs (e.g. a huge .in() list).
       if (this.maxUrlLength != null && req.url().length > this.maxUrlLength) {
         return route.fulfill({ status: 414, contentType: 'text/plain', headers: { 'access-control-allow-origin': '*' }, body: 'URI Too Long' });
+      }
+      // Like the real database: refuse a write that breaks a value rule.
+      if (entry.method === 'POST' || entry.method === 'PATCH') {
+        const isInsert = entry.method === 'POST' && !String(entry.headers['prefer'] || '').includes('merge-duplicates');
+        const bad = checkWrite(entry.table, entry.body, { isInsert });
+        if (bad.length) {
+          this.constraintViolations.push(...bad);
+          const b = bad[0];
+          return route.fulfill({
+            status: 400, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' },
+            body: JSON.stringify({ code: '23514', details: null, hint: null,
+              message: `new row for relation "${b.table}" violates check constraint "${b.constraint}"` }),
+          });
+        }
       }
       const delay = this.delayMs[entry.table];
       if (delay) await new Promise(r => setTimeout(r, delay));
@@ -259,7 +277,9 @@ class FakeSupabase {
       // Inserts are recorded but not stored: no test here needs them to persist.
       return respond(201, prefer.includes('return=representation') ? [] : undefined);
     }
-    if (method === 'DELETE') return respond(204, undefined);
+    // Deletes are recorded but not applied; with return=representation the
+    // rows that would be deleted come back, like PostgREST.
+    if (method === 'DELETE') return prefer.includes('return=representation') ? respond(200, applyFilters(rows, params)) : respond(204, undefined);
     return respond(200, []);
   }
 }

@@ -75,7 +75,7 @@ test.describe('Orders', () => {
     const [w] = writes(backend, 'orders');
     expect(w.method).toBe('PATCH');
     expect(Object.keys(w.body)).toEqual(['deleted_at']);
-    expect(filtersOf(w)).toEqual({ id: 'eq.o1' });
+    expect(filtersOf(w)).toEqual({ id: 'eq.o1', deleted_at: 'is.null' }); // only if not already deleted
   });
 
   test('Escape closes the password prompt without deleting', async ({ page, backend }) => {
@@ -168,7 +168,7 @@ test.describe('Expenses', () => {
     await expect.poll(() => writes(backend, 'expenses').length).toBe(1);
     const [w] = writes(backend, 'expenses');
     expect(Object.keys(w.body)).toEqual(['deleted_at']);
-    expect(filtersOf(w)).toEqual({ id: 'eq.e3' });
+    expect(filtersOf(w)).toEqual({ id: 'eq.e3', deleted_at: 'is.null' });
     await expect(page.locator('#reauthOverlay')).toBeHidden();
   });
 });
@@ -330,4 +330,42 @@ test('a page whose data fails to load shows an error message', async ({ page, ba
   await expect(page.locator('#dash')).toBeVisible();
   await expect(page.locator('#dashError')).toContainText(/Could not load/);
   await expect(page.locator('#dashError')).toContainText('Synthetic server error');
+});
+
+// ----------------------------------------- refusals that change nothing (2026-10-06)
+// Row-level security doesn't raise an error for an update/delete it refuses;
+// it just changes no rows. The page used to say "done" anyway. Each test
+// answers the write with "0 rows changed" and expects an honest message.
+test.describe('a write the database quietly refuses is never reported as done', () => {
+  const zeroRows = (page, table, method) => page.route(url => new URL(url).pathname.endsWith('/rest/v1/' + table), route =>
+    route.request().method() === method
+      ? route.fulfill({ status: 200, contentType: 'application/json', body: '[]' })
+      : route.fallback());
+
+  test('product edit', async ({ page }) => {
+    await open(page, 'inventoryPanel');
+    await zeroRows(page, 'products', 'PATCH');
+    const row = page.locator('#inventoryWrap [data-product-id="prod-b"]');
+    await row.locator('.editProductBtn').click();
+    await row.locator('.peRetail').fill('21.5');
+    await row.locator('.saveProductBtn').click();
+    await expect(page.locator('#dashError')).toContainText("don't have permission");
+    await expect(page.locator('.toast', { hasText: 'Product updated' })).toHaveCount(0);
+  });
+
+  test('order delete (after the password)', async ({ page }) => {
+    await open(page, 'ordersPanel');
+    await zeroRows(page, 'orders', 'PATCH');
+    await page.locator('#ordersTableWrap tr[data-id="o1"] .deleteOrderBtn').click();
+    await confirmPassword(page, OWNER_USER.password);
+    await expect(page.locator('#dashError')).toContainText("don't have permission");
+    await expect(page.locator('.toast', { hasText: 'recycle bin' })).toHaveCount(0);
+  });
+
+  test('expense delete', async ({ page }) => {
+    await open(page, 'expensesPanel');
+    await zeroRows(page, 'expenses', 'PATCH');
+    await page.locator('#expensesWrap .approvalRow[data-id="e3"] .expDeleteBtn').click();
+    await expect(page.locator('#dashError')).toContainText("don't have permission");
+  });
 });

@@ -103,6 +103,18 @@ test.describe('Documents: link types and uploads', () => {
     expect(await page.locator('#docRelated optgroup').evaluateAll(gs => gs.map(g => g.label))).toEqual(['Suppliers']);
   });
 
+  test('the category list is exactly what the database accepts (state-machine audit, 2026-10-06)', async ({ page, backend }) => {
+    const values = await page.locator('#docCategory option').evaluateAll(os => os.map(o => o.value).filter(Boolean));
+    expect(values.sort()).toEqual(['certification', 'contract', 'insurance', 'license', 'manufacturing_agreement', 'other', 'tax']);
+    // A category that used to be refused by the database is now offered and saves.
+    await page.fill('#docTitle', 'SYNTHETIC licence');
+    await page.selectOption('#docCategory', 'license');
+    await page.click('#addDocumentForm button[type="submit"]');
+    await expect.poll(() => writes(backend, 'documents').length).toBe(1);
+    expect(writes(backend, 'documents')[0].body).toMatchObject({ category: 'license' });
+    expect(backend.constraintViolations).toEqual([]);
+  });
+
   test('saving with a supplier link sends related_type "supplier"', async ({ page, backend }) => {
     await page.fill('#docTitle', 'SYNTHETIC certificate');
     await page.selectOption('#docCategory', 'certification');
@@ -286,6 +298,7 @@ test.describe('Purchase orders: whole units and deleted orders', () => {
     await openPo(page);
     backend.tables.purchase_orders[0].deleted_at = '2026-10-05T00:00:00Z'; // deleted in another tab
     await page.locator('.poReceiveBtn').click();
+    await page.locator('.poReceiveBtn').click(); // confirm
     await expect(page.locator('#dashError')).toContainText('already changed');
     expect(backend.tables.purchase_orders[0].status).toBe('shipped');
     expect(backend.tables.inventory[0].available).toBe(5);

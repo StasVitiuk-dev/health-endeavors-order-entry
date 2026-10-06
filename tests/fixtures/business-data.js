@@ -42,7 +42,7 @@ function seedBusiness(backend) {
       { id: 'e5', category: 'other', amount: 999, expense_date: '2026-06-01', vendor: 'SYNTHETIC deleted', note: null, receipt_path: null, deleted_at: iso(-1 * D) },
     ],
     returns: ['requested', 'approved', 'rejected', 'received'].map((status, i) => ({
-      id: 'ret-' + status, order_id: 'o1', order_item_id: 'oi1', reason: 'damaged', status, product_condition: 'unopened',
+      id: 'ret-' + status, order_id: 'o1', order_item_id: 'oi1', reason: 'damaged', status, product_condition: 'resalable',
       disposition: status === 'received' ? 'restock_available' : null, refund_amount: null, approved_at: null, received_at: null,
       refunded_at: null, notes: null, created_at: iso(-(i + 1) * H),
       orders: { order_number: 'SYN-1001', customer_name: 'SYNTHETIC Customer One' },

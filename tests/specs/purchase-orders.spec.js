@@ -119,6 +119,17 @@ test('saving the payment status sends only that status', async ({ page, backend 
   await expect.poll(() => writes(backend, 'purchase_orders').length).toBe(1);
   expect(Object.keys(writes(backend, 'purchase_orders')[0].body).sort()).toEqual(['payment_status', 'updated_at']);
   expect(writes(backend, 'purchase_orders')[0].body.payment_status).toBe('partial');
+  // only over the payment status the page showed (stale-tab audit, 2026-10-06)
+  expect(filtersOf(writes(backend, 'purchase_orders')[0])).toEqual({ id: 'eq.syn-ordered', payment_status: 'eq.unpaid', deleted_at: 'is.null' });
+});
+
+test('a stale page cannot turn a payment marked "Paid" elsewhere back into something else', async ({ page, backend }) => {
+  const box = await openPo(page, 'syn-ordered');
+  backend.tables.purchase_orders.find(p => p.id === 'syn-ordered').payment_status = 'paid';
+  await box.locator('.poPayment').selectOption('partial');
+  await box.locator('.poSavePayment').click();
+  await expect(page.locator('#dashError')).toContainText('already changed');
+  expect(backend.tables.purchase_orders.find(p => p.id === 'syn-ordered').payment_status).toBe('paid');
 });
 
 test('each status offers only its next steps', async ({ page }) => {

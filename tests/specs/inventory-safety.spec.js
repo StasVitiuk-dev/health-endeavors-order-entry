@@ -39,7 +39,7 @@ function seed(backend) {
       products: { name: 'SYNTHETIC product A', sku: 'SYN-A' }, inventory_lots: { lot_number: 'SYN-LOT-1' }, incidents: null,
     }],
     returns: [{
-      id: RETURN, order_id: 'order-syn-1', order_item_id: 'oi-syn-1', reason: 'damaged', status: 'approved', product_condition: 'unopened',
+      id: RETURN, order_id: 'order-syn-1', order_item_id: 'oi-syn-1', reason: 'damaged', status: 'approved', product_condition: 'resalable',
       disposition: null, refund_amount: null, approved_at: '2026-09-21T00:00:00Z', received_at: null, refunded_at: null, notes: null,
       created_at: '2026-09-20T00:00:00Z', orders: { order_number: 'SYN-1001', customer_name: 'SYNTHETIC Customer' },
       order_items: { product_name: 'SYNTHETIC product A', sku: 'SYN-A', quantity: 3 },
@@ -241,6 +241,11 @@ test.describe('return restock', () => {
 
 // ------------------------------------------------------------ product delete
 test.describe('product delete', () => {
+  // The shared seed gives product A a lot and a recall, i.e. a product in
+  // use, which the real database (and now the page) never deletes. These
+  // tests start from a product with no history; the in-use case adds some.
+  test.beforeEach(({ backend }) => { backend.tables.inventory_lots = []; backend.tables.recalls = []; });
+
   async function pressDeleteTwice(page) {
     await openPanel(page, 'inventoryPanel', '.editProductBtn');
     await closeInspectorIfOpen(page);
@@ -257,14 +262,53 @@ test.describe('product delete', () => {
     expect(backend.requests.filter(r => r.method === 'DELETE')).toEqual([]);
   });
 
-  test('current behaviour (R5 remainder): a zero-stock product in use loses its empty stock row', async ({ page, backend }) => {
-    Object.assign(inv(backend), { available: 0 });
+  test('if the product delete is refused anyway, its stock row is put back exactly as it was (2026-10-06)', async ({ page, backend }) => {
+    Object.assign(inv(backend), { available: 0, low_stock_threshold: 7 });
     backend.failNext('products', 'DELETE', { status: 409, body: { code: '23503', message: 'violates foreign key constraint' } });
     await pressDeleteTwice(page);
     await expectError(page, "can't be deleted because it's already used");
     expect(backend.tables.products).toHaveLength(1);
-    // Only an all-zero row (and its low-stock threshold) is lost now; the
-    // full fix is delete_unused_product (R5), BLOCKED ON QUERY A/B.
+    // Used to be lost (with its low-stock threshold); now restored.
+    expect(backend.tables.inventory).toHaveLength(1);
+    expect(inv(backend)).toMatchObject({ available: 0, low_stock_threshold: 7 });
+  });
+
+  test('a product that is already used (stock history) is refused before anything is deleted', async ({ page, backend }) => {
+    Object.assign(inv(backend), { available: 0 });
+    backend.tables.inventory_adjustments.push({ id: 'adj-old', product_id: A, bucket: 'available', change_amount: 5, reason: 'old', created_at: '2026-09-01T00:00:00Z' });
+    await pressDeleteTwice(page);
+    await expectError(page, "can't be deleted because it's already used");
+    expect(backend.requests.filter(r => r.method === 'DELETE')).toEqual([]);
+    expect(backend.tables.products).toHaveLength(1);
+    expect(backend.tables.inventory).toHaveLength(1);
+  });
+
+  test('stock that arrives between the check and the delete is never thrown away', async ({ page, backend }) => {
+    Object.assign(inv(backend), { available: 0 });
+    backend.beforeNext('inventory', 'DELETE', tables => { tables.inventory.find(r => r.product_id === A).available = 3; });
+    await pressDeleteTwice(page);
+    await expectError(page, 'changed');
+    expect(inv(backend).available).toBe(3);
+    expect(backend.tables.products).toHaveLength(1);
+    expect(backend.requests.filter(r => r.method === 'DELETE' && r.table === 'products')).toEqual([]);
+  });
+
+  test('an employee is told plainly that only the Owner or an Administrator can delete; nothing is sent', async ({ page, backend }) => {
+    Object.assign(inv(backend), { available: 0 });
+    backend.tables.profiles[0].role = 'employee';
+    await page.reload(); // the page reads the signed-in person's role when it loads
+    await expect(page.locator('#dash')).toBeVisible();
+    await pressDeleteTwice(page);
+    await expectError(page, 'Only the Owner or an Administrator can delete a product');
+    expect(backend.requests.filter(r => r.method === 'DELETE')).toEqual([]);
+  });
+
+  test('an unused zero-stock product is deleted, stock row first, product second', async ({ page, backend }) => {
+    Object.assign(inv(backend), { available: 0 });
+    await pressDeleteTwice(page);
+    await expect.poll(() => backend.tables.products.length).toBe(0);
     expect(backend.tables.inventory).toHaveLength(0);
+    const dels = backend.requests.filter(r => r.method === 'DELETE').map(r => r.table);
+    expect(dels).toEqual(['inventory', 'products']);
   });
 });

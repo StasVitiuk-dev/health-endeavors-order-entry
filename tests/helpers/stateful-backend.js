@@ -82,8 +82,11 @@ function enableWrites(backend, tables) {
       return reply(200, matched);
     }
     if (entry.method === 'DELETE') {
-      const keep = rows.filter(r => !entry.params.every(([k, v]) => !v.startsWith('eq.') || String(r[k]) === v.slice(3)));
-      backend.tables[entry.table] = keep;
+      const hit = r => entry.params.every(([k, v]) => !v.startsWith('eq.') || String(r[k]) === v.slice(3));
+      const deleted = rows.filter(hit);
+      backend.tables[entry.table] = rows.filter(r => !hit(r));
+      // Like PostgREST: with return=representation the deleted rows come back.
+      if (prefer.includes('return=representation')) return reply(200, deleted);
       return route.fulfill({ status: 204, body: '' });
     }
     return originalRest(route, entry);

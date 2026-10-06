@@ -101,6 +101,9 @@ test.describe('Returns', () => {
     await open(page, 'returnsPanel');
     await page.fill('.refundAmountInput', '30');
     await page.click('.markRefundedBtn');
+    await expect(page.locator('.markRefundedBtn')).toContainText('Confirm refund of $30.00?');
+    expect(writes(backend, 'returns')).toEqual([]); // the first press records nothing
+    await page.click('.markRefundedBtn');
     await expect.poll(() => backend.tables.returns[0].status).toBe('refunded');
     const [w] = writes(backend, 'returns');
     expect(w.body.refund_amount).toBe(30);
@@ -132,7 +135,9 @@ test.describe('Purchase orders', () => {
     backend.delayMs.purchase_orders = 1200;
     const btn = page.locator('.poReceiveBtn');
     await btn.click();
-    await btn.click({ force: true }).catch(() => {}); // the button is disabled; a forced second click must not matter
+    expect(backend.requests.filter(r => r.method === 'PATCH' && r.table === 'purchase_orders')).toHaveLength(0); // first press only asks
+    await btn.click();
+    await btn.click({ force: true }).catch(() => {}); // the button is disabled; a forced third click must not matter
     await expect.poll(() => backend.tables.expenses.length, { timeout: 15000 }).toBe(1);
     expect(backend.tables.inventory[0].available).toBe(15);
     expect(backend.requests.filter(r => r.method === 'PATCH' && r.table === 'purchase_orders')).toHaveLength(1);
@@ -189,7 +194,8 @@ test.describe('Documents: permanent delete', () => {
     await confirmPassword(page);
     await expect.poll(() => writes(backend, 'documents').length).toBe(1);
     expect(writes(backend, 'documents')[0].method).toBe('DELETE');
-    expect(Object.fromEntries(writes(backend, 'documents')[0].params)).toEqual({ id: 'eq.doc-1' });
+    // by id only; select=id asks for the deleted row back, so a silent refusal is noticed
+    expect(Object.fromEntries(writes(backend, 'documents')[0].params)).toEqual({ id: 'eq.doc-1', select: 'id' });
   });
 });
 

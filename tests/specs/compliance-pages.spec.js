@@ -31,10 +31,10 @@ test.describe('Quality Control', () => {
     // The incident insert asks for the new id back; answer it here and keep
     // what was sent so the test can check it.
     incidentInserts.length = 0;
-    await page.route('**/rest/v1/incidents?select=id', route => {
+    await page.route(url => new URL(url).pathname.endsWith('/rest/v1/incidents'), route => {
       if (route.request().method() !== 'POST') return route.fallback();
       incidentInserts.push(JSON.parse(route.request().postData()));
-      return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 'inc-new' }) });
+      return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 'inc-new', incident_number: 'INC-NEW' }) });
     });
     await login(page);
     await open(page, 'qualityControlPanel');
@@ -71,7 +71,37 @@ test.describe('Quality Control', () => {
     expect(incidentInserts[0]).toMatchObject({ category: 'product_safety', severity: 'critical', status: 'open', requires_approval: false, created_by: OWNER_USER.id });
     const link = writes(backend, 'quality_checks')[0];
     expect(link.body.incident_id).toBe('inc-new');
-    expect(filtersOf(link)).toEqual({ id: 'eq.qc-fail' });
+    // linked only while still unlinked (stale-tab audit, 2026-10-06)
+    expect(filtersOf(link)).toEqual({ id: 'eq.qc-fail', incident_id: 'is.null' });
+  });
+
+  test('a check escalated meanwhile in another tab creates no second incident', async ({ page, backend }) => {
+    backend.tables.quality_checks[0].incident_id = 'inc-elsewhere';
+    await page.locator('#qcWrap [data-id="qc-fail"] .qcEscalateBtn').click();
+    await expect(page.locator('#dashError')).toContainText('already changed');
+    expect(incidentInserts).toHaveLength(0);
+    expect(writes(backend, 'quality_checks')).toHaveLength(0);
+    expect(backend.tables.quality_checks[0].incident_id).toBe('inc-elsewhere');
+  });
+
+  test('if two people escalate at the same moment, the extra incident is named so it can be closed', async ({ page, backend }) => {
+    // the fresh read still sees it unlinked; the link is then made elsewhere
+    await page.route(url => new URL(url).pathname.endsWith('/rest/v1/quality_checks'), async route => {
+      if (route.request().method() === 'PATCH') backend.tables.quality_checks[0].incident_id = 'inc-other';
+      return route.fallback();
+    });
+    await page.locator('#qcWrap [data-id="qc-fail"] .qcEscalateBtn').click();
+    await expect(page.locator('#dashError')).toContainText('INC-NEW is an extra copy');
+    expect(backend.tables.quality_checks[0].incident_id).toBe('inc-other');
+  });
+
+  test('Mark resolved on a stale page does not overwrite a resolution written elsewhere', async ({ page, backend }) => {
+    backend.tables.quality_checks[0].resolution = 'SYNTHETIC fixed by someone else';
+    const row = page.locator('#qcWrap [data-id="qc-fail"]');
+    await row.locator('.qcResolutionInput').fill('SYNTHETIC my note');
+    await row.locator('.qcResolveBtn').click();
+    await expect(page.locator('#dashError')).toContainText('already changed');
+    expect(backend.tables.quality_checks[0].resolution).toBe('SYNTHETIC fixed by someone else');
   });
 
   test('Mark resolved sends only the resolution note and time', async ({ page, backend }) => {

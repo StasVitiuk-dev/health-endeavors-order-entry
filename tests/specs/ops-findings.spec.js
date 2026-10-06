@@ -109,6 +109,7 @@ test.describe('Purchase orders: Cancel on a stale page, and Cancel confirmation'
     const box = await openPo(page, 'syn-shipped');
     await box.locator('.poLineLot[data-line="line-a"]').fill('A_1');
     await box.locator('.poReceiveBtn').click();
+    await box.locator('.poReceiveBtn').click(); // confirm
     await expect.poll(() => reads(backend, 'inventory_lots').filter(r => filtersOf(r).lot_number).length).toBeGreaterThan(0);
     const lookup = reads(backend, 'inventory_lots').find(r => filtersOf(r).lot_number);
     expect(filtersOf(lookup).lot_number).toBe('ilike.A\\_1');

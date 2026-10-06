@@ -852,7 +852,21 @@
       loginMsg.textContent = text;
       loginMsg.className = 'msg error';
     }
+    // Database refusals arrive as technical text ("new row violates
+    // row-level security policy…", "JWT expired"). Keep it (it helps when
+    // reporting a problem) and add what it means in plain words.
+    function explainDbError(text){
+      const t = String(text == null ? '' : text);
+      if (/row-level security|permission denied for|insufficient_privilege/i.test(t) && !/only the Owner or an Administrator/i.test(t)) {
+        return t + ' — You don’t have permission for this; only the Owner or an Administrator can do it. Nothing was changed by this step.';
+      }
+      if (/JWT expired|invalid JWT|PGRST301/i.test(t) && !/sign in again/i.test(t)) {
+        return t + ' — Your sign-in has expired. Sign in again, then retry.';
+      }
+      return t;
+    }
     function showDashError(text){
+      text = explainDbError(text);
       dashErrorEl.textContent = text;
       dashErrorEl.style.display = 'block';
       if (window.toastErr) window.toastErr(text);
@@ -1008,9 +1022,50 @@
       const m = String((err && err.message) || err || '');
       return /Failed to fetch|NetworkError|Load failed|network|connection/i.test(m) && !(err && err.code);
     }
+
+    // Uploads: checked before anything is sent. Web pages, scripts and
+    // programs could run code when the stored file is opened, and a very
+    // large file would only fail after a long upload.
+    const UPLOAD_MAX_BYTES = 50 * 1024 * 1024;
+    function uploadProblem(file){
+      if (!file) return null;
+      if (file.size > UPLOAD_MAX_BYTES) return 'That file is ' + Math.ceil(file.size / 1048576) + ' MB; the limit is 50 MB. Nothing was uploaded.';
+      if (/\.(html?|xhtml|svg|js|mjs|php|exe|bat|cmd|sh|msi)$/i.test(file.name || '')) {
+        return 'Files of that type (web pages, scripts, programs) can’t be uploaded. Save it as a PDF or an image instead. Nothing was uploaded.';
+      }
+      return null;
+    }
+    // Uploads a file, then saves the record that points at it
+    // (saveRecord(path) → { error }). If the record is refused, the file is
+    // removed again, so nothing is left that no page can show. If the
+    // connection dropped while saving, the record may have been saved anyway
+    // (only the reply lost): it looks first, so a saved record never loses
+    // its file. Returns normally only when the record is saved.
+    async function uploadThenSave(bucket, table, column, path, file, saveRecord){
+      const { error: uploadErr } = await supabase.storage.from(bucket).upload(path, file);
+      if (uploadErr) throw uploadErr;
+      const { error } = await saveRecord(path);
+      if (!error) return;
+      if (isNetworkError(error)) {
+        const { data: saved, error: checkErr } = await supabase.from(table).select('id').eq(column, path).maybeSingle();
+        if (!checkErr && saved) return;
+        if (checkErr) {
+          throw new Error('The connection dropped while saving, so it isn’t clear whether it was saved. The uploaded file was kept ("' + path + '"). Reload and check the list before trying again.');
+        }
+      }
+      const { error: cleanupErr } = await supabase.storage.from(bucket).remove([path]);
+      if (cleanupErr) {
+        throw new Error((error.message || error) + ' — and the uploaded file could not be removed again; tell the owner it is left in storage as "' + path + '".');
+      }
+      throw error;
+    }
     // Guard for an on/off column as the page showed it: "on" must still be
     // true; "off" may be false or empty (null).
     function boolGuard(shownOn){ return shownOn ? true : { notIs: true }; }
+    // An update/delete that row-level security refuses doesn't error: it
+    // just changes nothing. Ask for the changed rows back (.select('id')) and
+    // call this, so the page never says "done" when nothing was done.
+    function noRowsChanged(data){ return !data || (Array.isArray(data) && data.length === 0); }
     function staleMessage(what){
       return (what || 'That item') + ' was already changed — by someone else, another tab or an agent — or you don\'t have permission to change it. Nothing was overwritten; the list has been refreshed.';
     }
@@ -2166,6 +2221,10 @@
       renderPalette();
       const inp = document.getElementById('paletteInput');
       inp.value = '';
+      // Focus straight away so the first keys typed after Cmd+K aren't lost
+      // (Cmd+K's own keypress is already cancelled); the delayed call stays
+      // as a fallback for browsers that ignore focus during the keydown.
+      inp.focus();
       setTimeout(() => inp.focus(), 10);
     }
     function closePalette(){ paletteOverlay.classList.remove('open'); }
@@ -3077,6 +3136,11 @@
       const priorityInput = document.getElementById('reminderPriority');
       const title = titleInput.value.trim();
       if (!title) return;
+      // One save at a time: a double click or a second Enter must not add the
+      // reminder twice.
+      const btn = e.target.querySelector('button[type=submit]');
+      if (btn && btn.disabled) return;
+      if (btn) btn.disabled = true;
       try {
         const { data: sessionData } = await supabase.auth.getSession();
         const uid = sessionData && sessionData.session ? sessionData.session.user.id : null;
@@ -3093,7 +3157,7 @@
         loadAttention();
       } catch (err) {
         showDashError('Could not add that reminder: ' + (err && err.message ? err.message : err));
-      }
+      } finally { if (btn) btn.disabled = false; }
     });
 
     // ---------- calendar mode ----------
@@ -3218,6 +3282,9 @@
       if (!title) { closeQuickAdd(); return; }
       const priority = document.getElementById('quickAddPriority').value;
       const btn = document.getElementById('quickAddSave');
+      // Enter calls this directly, so the disabled button alone doesn't stop
+      // a second Enter from adding the reminder twice.
+      if (btn.disabled) return;
       btn.disabled = true;
       try {
         const uid = await currentUserId();
@@ -3424,6 +3491,25 @@
       const { data, error } = await supabase.from('purchase_orders').select('status').eq('id', poId).maybeSingle();
       if (error) throw error;
       return data ? data.status : null;
+    }
+    // "Escalate to Incident" for a quality check or a recall, at most once.
+    // A tab opened earlier (or a second person) must not create a second
+    // incident and silently re-point the record at it, leaving the first one
+    // orphaned. Re-reads the link first, then links only while still unlinked.
+    // Returns true when this call made the link.
+    async function escalateToIncidentOnce(table, id, incidentRow){
+      const { data: now, error: readErr } = await supabase.from(table).select('incident_id').eq('id', id).maybeSingle();
+      if (readErr) throw readErr;
+      if (!now || now.incident_id) { showDashError(staleMessage('That record')); return false; }
+      const { data: incident, error: incErr } = await supabase.from('incidents').insert(incidentRow).select('id, incident_number').single();
+      if (incErr) throw incErr;
+      const linked = await updateIfUnchanged(table, id, { incident_id: incident.id, updated_at: new Date().toISOString() }, { incident_id: null });
+      if (!linked) {
+        showDashError('Someone escalated this at the same moment, so incident ' + (incident.incident_number || '') +
+          ' is an extra copy. Close it on the Incidents page.');
+        return false;
+      }
+      return true;
     }
     const QC_TYPE_LABELS = {
       incoming_inspection: 'Incoming inspection', packaging_defect: 'Packaging defect',
@@ -3732,8 +3818,9 @@
               loadPurchaseOrders();
               return;
             }
-            const { error } = await supabase.from('purchase_order_items').delete().eq('id', btn.getAttribute('data-line'));
+            const { data: gone, error } = await supabase.from('purchase_order_items').delete().eq('id', btn.getAttribute('data-line')).select('id');
             if (error) throw error;
+            if (noRowsChanged(gone)) { showDashError(staleMessage('That line')); loadPurchaseOrders(); return; }
             loadPurchaseOrders();
           } catch (err) {
             btn.disabled = false;
@@ -3764,12 +3851,14 @@
       if (savePay) savePay.addEventListener('click', async () => {
         savePay.disabled = true;
         try {
-          const { error } = await supabase.from('purchase_orders').update({
+          // Only over the payment status this page showed: a tab opened
+          // earlier must not turn "Paid" back into "Unpaid" unnoticed.
+          const changed = await updateIfUnchanged('purchase_orders', po.id, {
             payment_status: box.querySelector('.poPayment').value,
             updated_at: new Date().toISOString(),
-          }).eq('id', po.id);
-          if (error) throw error;
-          toastOk('Payment status saved.');
+          }, { payment_status: po.payment_status, deleted_at: null });
+          if (changed) toastOk('Payment status saved.');
+          else showDashError(staleMessage('That purchase order'));
           loadPurchaseOrders();
         } catch (err) {
           savePay.disabled = false;
@@ -3808,6 +3897,9 @@
           return;
         }
         if (!canChangeStock()) { showDashError('Only the Owner or an Administrator can change stock. Nothing was changed.'); return; }
+        // Receiving adds stock and logs the expense, and can't be undone from
+        // here: a second, deliberate press (same as Cancel).
+        if (!confirmSecondPress(recvBtn, 'Confirm: add stock + log expense?')) return;
         recvBtn.disabled = true;
         // Claim first: the order is marked Received only if it is still
         // Ordered or Shipped. A double click, a second tab, a stale page or a
@@ -4067,10 +4159,12 @@
             const note = row.querySelector('.qcResolutionInput').value.trim() || 'Resolved.';
             btn.disabled = true;
             try {
-              const { error } = await supabase.from('quality_checks')
-                .update({ resolution: note, updated_at: new Date().toISOString() }).eq('id', id);
-              if (error) throw error;
-              toastOk('Marked resolved.');
+              // Only while still unresolved: a stale page must not overwrite
+              // the resolution someone else already wrote.
+              const changed = await updateIfUnchanged('quality_checks', id,
+                { resolution: note, updated_at: new Date().toISOString() }, { resolution: null });
+              if (changed) toastOk('Marked resolved.');
+              else showDashError(staleMessage('That quality check'));
               loadQualityChecks();
               safeRun(loadAttention);
             } catch (err) {
@@ -4090,7 +4184,7 @@
             try {
               const uid = await currentUserId();
               const prod = (check.products && check.products.name) || 'Unlinked product';
-              const { data: incident, error: incErr } = await supabase.from('incidents').insert({
+              const done = await escalateToIncidentOnce('quality_checks', id, {
                 category: qcIncidentCategory(check),
                 severity: check.severity,
                 status: 'open',
@@ -4098,12 +4192,8 @@
                 description: check.description,
                 requires_approval: false,
                 created_by: uid,
-              }).select('id').single();
-              if (incErr) throw incErr;
-              const { error: qcErr } = await supabase.from('quality_checks')
-                .update({ incident_id: incident.id, updated_at: new Date().toISOString() }).eq('id', id);
-              if (qcErr) throw qcErr;
-              toastOk('Escalated to Incidents.');
+              });
+              if (done) toastOk('Escalated to Incidents.');
               loadQualityChecks();
               safeRun(loadIncidents);
             } catch (err) {
@@ -4294,7 +4384,7 @@
               const uid = await currentUserId();
               const prod = (recall.products && recall.products.name) || 'Unlinked product';
               const lot = (recall.inventory_lots && recall.inventory_lots.lot_number) || '?';
-              const { data: incident, error: incErr } = await supabase.from('incidents').insert({
+              const done = await escalateToIncidentOnce('recalls', id, {
                 category: 'product_safety',
                 severity: recall.severity,
                 status: 'open',
@@ -4302,12 +4392,8 @@
                 description: recall.reason,
                 requires_approval: false,
                 created_by: uid,
-              }).select('id').single();
-              if (incErr) throw incErr;
-              const { error: recErr } = await supabase.from('recalls')
-                .update({ incident_id: incident.id, updated_at: new Date().toISOString() }).eq('id', id);
-              if (recErr) throw recErr;
-              toastOk('Escalated to Incidents.');
+              });
+              if (done) toastOk('Escalated to Incidents.');
               loadRecalls();
               safeRun(loadIncidents);
             } catch (err) {
@@ -4761,9 +4847,12 @@
         // Notes are optional — if the table isn't there yet, the calendar still works.
         const uids = calEvents.map(e => e.uid).filter(Boolean);
         calNotes = {};
-        if (uids.length) {
+        // In small batches: event ids can be long, and one URL holding
+        // hundreds of them is refused by the gateway (all notes vanished).
+        // It used to stop at 300 events, silently.
+        for (let i = 0; i < uids.length; i += 50) {
           const { data: notes } = await supabase.from('calendar_notes')
-            .select('event_uid, note').in('event_uid', uids.slice(0, 300));
+            .select('event_uid, note').in('event_uid', uids.slice(i, i + 50));
           (notes || []).forEach(n => { calNotes[n.event_uid] = n.note; });
         }
         renderCalFilters();
@@ -4917,9 +5006,10 @@
                 // Soft delete, same as Feature Requests and Expenses: stamps
                 // deleted_at instead of removing the row, so it lands in the
                 // recycle bin below and Restore puts it right back.
-                const { error } = await supabase.from('orders')
-                  .update({ deleted_at: new Date().toISOString() }).eq('id', id);
+                const { data: changed, error } = await supabase.from('orders')
+                  .update({ deleted_at: new Date().toISOString() }).eq('id', id).is('deleted_at', null).select('id');
                 if (error) throw error;
+                if (noRowsChanged(changed)) { showDashError(staleMessage('That order')); loadOrders(); return; }
                 toast('Order moved to the recycle bin');
                 loadOrders();
               } catch (err) {
@@ -4958,8 +5048,9 @@
               if (!ok) return;
               btn.disabled = true;
               try {
-                const { error } = await supabase.from('orders').update({ deleted_at: null }).eq('id', id);
+                const { data: changed, error } = await supabase.from('orders').update({ deleted_at: null }).eq('id', id).select('id');
                 if (error) throw error;
+                if (noRowsChanged(changed)) showDashError(staleMessage('That order'));
                 loadOrders();
               } catch (err) {
                 btn.disabled = false;
@@ -5170,7 +5261,9 @@
         return { key: 'disabled', label: 'Disabled', cls: 'sev-medium',
           detail: a.enforced ? 'Paused: its own code checks this switch.' : 'Switch is off, but this agent does not check its switch yet — make sure its runner is off too.' };
       }
-      if (ctrl.last_run_status === 'failed') return { key: 'failed', label: 'Failed', cls: 'sev-high', detail: 'The last run failed' + (ctrl.last_error ? ': ' + ctrl.last_error : '.') };
+      // Agents word it differently ("failed", "error", "failure"…); any of
+      // them is a failure, never a quiet "Enabled".
+      if (/fail|error/i.test(String(ctrl.last_run_status || ''))) return { key: 'failed', label: 'Failed', cls: 'sev-high', detail: 'The last run failed' + (ctrl.last_error ? ': ' + ctrl.last_error : '.') };
       if (a.cronJobName) {
         const job = cronJobStatusByName[a.cronJobName];
         if (!job || !job.active) return { key: 'stale', label: 'Stale', cls: 'sev-high', detail: job ? 'Its scheduled job is not active, so it will not run.' : 'Its scheduled job could not be confirmed.' };
@@ -5181,7 +5274,9 @@
         if (a.dryRun) return { key: 'dryrun', label: 'Dry run', cls: 'sev-medium', detail: 'Running, but only logs what it would send — no email service is connected.' };
         return { key: 'enabled', label: 'Enabled', cls: 'sev-low', detail: 'Switch on and running on schedule.' };
       }
-      if (a.trigger) return { key: 'enabled', label: 'Enabled', cls: 'sev-low', detail: 'Switch on. Runs on order changes; the dashboard cannot see its last run.' };
+      // The switch is on, but the database trigger itself (which could be
+      // disabled) and its last run are invisible here: say exactly that.
+      if (a.trigger) return { key: 'enabled', label: 'Switch on', cls: 'sev-low', detail: 'Switch on. Runs inside the database on order changes; this page cannot see whether the trigger itself is enabled or when it last ran (Query C checks the trigger).' };
       // Agents that run on GitHub Actions (outside this dashboard's view) and
       // don't check their switch yet: "on" here proves nothing about reality.
       return { key: 'unknown', label: 'Unknown', cls: '', detail: 'Switch on, but this agent runs on GitHub Actions, which this dashboard cannot see, and it does not check its switch yet. Check GitHub → Actions.' };
@@ -5465,9 +5560,9 @@
         const orderIds = [...new Set(ALL_INQUIRIES.map(i => i.order_id).filter(Boolean))];
         INQUIRY_ORDER_BY_ID = {};
         if (orderIds.length) {
-          const { data: orders, error: ordersErr } = await supabase.from('orders').select('id, order_number').in('id', orderIds);
-          if (ordersErr) throw ordersErr;
-          (orders || []).forEach(o => { INQUIRY_ORDER_BY_ID[o.id] = o; });
+          // chunked: up to 200 ids would make one URL too long for the gateway
+          const orders = await fetchAllRowsIn('orders', 'id, order_number', 'id', orderIds);
+          orders.forEach(o => { INQUIRY_ORDER_BY_ID[o.id] = o; });
         }
 
         renderInquiries();
@@ -5895,7 +5990,7 @@
     // says why it is blocked. (The real protection is the database's own
     // permissions; this only prevents an accidental click.)
     const LAUNCH_BLOCKED_FLAGS = {
-      shopify_order_sync: 'Blocked until launch checks: keep off until the stock fixes (R1–R4) are live and Agent #1 (invoices) is confirmed on — otherwise real orders can be miscounted or left without an invoice.',
+      shopify_order_sync: 'Off on purpose before launch. Blocked until launch checks: keep off until the stock fixes (R1–R4) are live and Agent #1 (invoices) is confirmed on — otherwise real orders can be miscounted or left without an invoice. Turning it on here only flips the switch; nothing is sent to Shopify from this page.',
     };
 
     async function loadFlags(){
@@ -6175,11 +6270,13 @@
             btn.disabled = true;
             try {
               const uid = await currentUserId();
-              const { error } = await supabase
+              const { data: saved, error } = await supabase
                 .from('business_rules')
                 .update({ config: newConfig, updated_by: uid })
-                .eq('id', id);
+                .eq('id', id)
+                .select('id');
               if (error) throw error;
+              if (noRowsChanged(saved)) { showDashError(staleMessage('That rule')); return; }
               btn.style.display = 'none';
             } catch (err) {
               showDashError('Could not save that rule: ' + (err && err.message ? err.message : err));
@@ -6492,8 +6589,9 @@
       try {
         // Soft delete: just stamps deleted_at instead of removing the row, so
         // it drops out of the main list but can still be restored below.
-        const { error } = await supabase.from('feature_requests').update({ deleted_at: new Date().toISOString() }).eq('id', id);
+        const { data: changed, error } = await supabase.from('feature_requests').update({ deleted_at: new Date().toISOString() }).eq('id', id).is('deleted_at', null).select('id');
         if (error) throw error;
+        if (noRowsChanged(changed)) { showDashError(staleMessage('That request')); loadFeatureRequests(); return; }
         loadFeatureRequests();
         loadDeletedFeatureRequests();
       } catch (err) {
@@ -6528,8 +6626,9 @@
             const id = row.getAttribute('data-id');
             btn.disabled = true;
             try {
-              const { error } = await supabase.from('feature_requests').update({ deleted_at: null }).eq('id', id);
+              const { data: changed, error } = await supabase.from('feature_requests').update({ deleted_at: null }).eq('id', id).select('id');
               if (error) throw error;
+              if (noRowsChanged(changed)) { showDashError(staleMessage('That request')); loadFeatureRequests(); return; }
               loadFeatureRequests();
               loadDeletedFeatureRequests();
             } catch (err) {
@@ -6550,6 +6649,11 @@
       const priorityInput = document.getElementById('frPriority');
       const title = titleInput.value.trim();
       if (!title) return;
+      // One save at a time: a double click or a second Enter must not add the
+      // reminder twice.
+      const btn = e.target.querySelector('button[type=submit]');
+      if (btn && btn.disabled) return;
+      if (btn) btn.disabled = true;
       try {
         const { data: sessionData } = await supabase.auth.getSession();
         const uid = sessionData && sessionData.session ? sessionData.session.user.id : null;
@@ -6676,6 +6780,9 @@
         showDashError('That link can’t be saved: links starting with javascript:, data: or vbscript: can run code when clicked. Paste a normal web, email or Photos/Drive link instead.');
         return;
       }
+      const evFile = fileInput.files && fileInput.files[0];
+      const evFileProblem = uploadProblem(evFile);
+      if (evFileProblem) { showDashError(evFileProblem); return; }
       const submitBtn = e.target.querySelector('button[type="submit"]');
       const originalBtnText = submitBtn.textContent;
       submitBtn.disabled = true;
@@ -6683,18 +6790,7 @@
         const { data: sessionData } = await supabase.auth.getSession();
         const uid = sessionData && sessionData.session ? sessionData.session.user.id : null;
 
-        let filePath = null;
-        const file = fileInput.files && fileInput.files[0];
-        if (file) {
-          submitBtn.textContent = 'Uploading file…';
-          const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-          const path = `${incidentId}/${Date.now()}_${safeName}`;
-          const { error: uploadErr } = await supabase.storage.from('evidence-files').upload(path, file);
-          if (uploadErr) throw uploadErr;
-          filePath = path;
-        }
-
-        const { error } = await supabase.from('evidence_locker').insert({
+        const saveEvidence = filePath => supabase.from('evidence_locker').insert({
           incident_id: incidentId,
           title,
           description: descriptionInput.value.trim() || null,
@@ -6703,7 +6799,15 @@
           file_path: filePath,
           added_by: uid,
         });
-        if (error) throw error;
+        // Used to leave the uploaded file behind whenever the record was refused.
+        if (evFile) {
+          submitBtn.textContent = 'Uploading file…';
+          const safeName = evFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+          await uploadThenSave('evidence-files', 'evidence_locker', 'file_path', `${incidentId}/${Date.now()}_${safeName}`, evFile, saveEvidence);
+        } else {
+          const { error } = await saveEvidence(null);
+          if (error) throw error;
+        }
         titleInput.value = '';
         descriptionInput.value = '';
         typeInput.value = '';
@@ -6727,16 +6831,16 @@
     // live via information_schema before writing any of this.
     // The document link types the database accepts besides "not linked" (Query A).
     const DOCUMENT_LINK_TYPES = ['supplier'];
+    // Exactly the categories the database accepts (documents_category_check,
+    // Query A). Lab reports, invoices, packaging specs etc. go under the
+    // closest one or "Other" until the owner decides to widen that rule.
     const DOCUMENT_CATEGORY_LABELS = {
       contract: 'Contract',
       insurance: 'Insurance',
       certification: 'Certification',
-      lab_testing: 'Lab / Testing Document',
+      license: 'License / Permit',
       tax: 'Tax Document',
-      packaging_spec: 'Packaging Spec',
-      wholesale_agreement: 'Wholesale Agreement',
-      invoice: 'Invoice',
-      employee: 'Employee Document',
+      manufacturing_agreement: 'Manufacturing Agreement',
       other: 'Other',
     };
     (function initDocCategorySelect(){
@@ -6845,8 +6949,20 @@
             if (!ok) return;
             btn.disabled = true;
             try {
-              const { error: delErr } = await supabase.from('documents').delete().eq('id', id);
+              const filePathToRemove = row.getAttribute('data-file-path') || '';
+              const { data: gone, error: delErr } = await supabase.from('documents').delete().eq('id', id).select('id');
               if (delErr) throw delErr;
+              if (noRowsChanged(gone)) { showDashError(staleMessage('That document')); loadDocuments(); return; }
+              // The record is gone; remove its stored file too (it used to be
+              // left in storage with nothing pointing at it).
+              if (filePathToRemove) {
+                const { error: fileErr } = await supabase.storage.from('document-files').remove([filePathToRemove]);
+                if (fileErr) {
+                  showDashError('The document was deleted, but its file could not be removed from storage ("' + filePathToRemove + '"). Tell the owner so it can be cleaned up.');
+                  loadDocuments();
+                  return;
+                }
+              }
               toastOk('Document deleted.');
               loadDocuments();
             } catch (err) {
@@ -6897,23 +7013,16 @@
         return;
       }
 
+      const docFile = fileInput.files && fileInput.files[0];
+      const docFileProblem = uploadProblem(docFile);
+      if (docFileProblem) { showDashError(docFileProblem); return; }
+
       const btn = e.target.querySelector('button[type="submit"]');
       const originalText = btn.textContent;
       btn.disabled = true;
       try {
-        let filePath = null;
-        const file = fileInput.files && fileInput.files[0];
-        if (file) {
-          btn.textContent = 'Uploading file…';
-          const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-          const path = `${Date.now()}_${safeName}`;
-          const { error: uploadErr } = await supabase.storage.from('document-files').upload(path, file);
-          if (uploadErr) throw uploadErr;
-          filePath = path;
-        }
-
         const uid = await currentUserId();
-        const { error } = await supabase.from('documents').insert({
+        const saveDoc = filePath => supabase.from('documents').insert({
           title,
           category,
           related_type: relatedType,
@@ -6925,16 +7034,13 @@
           notes: notesInput.value.trim() || null,
           uploaded_by: uid,
         });
-        if (error) {
-          // The file is already in storage but its record was refused: remove
-          // the just-uploaded file so nothing is left that no page can show.
-          if (filePath) {
-            const { error: cleanupErr } = await supabase.storage.from('document-files').remove([filePath]);
-            if (cleanupErr) {
-              throw new Error((error.message || error) + ' — and the uploaded file could not be removed again; tell the owner it is left in storage as "' + filePath + '".');
-            }
-          }
-          throw error;
+        if (docFile) {
+          btn.textContent = 'Uploading file…';
+          const safeName = docFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+          await uploadThenSave('document-files', 'documents', 'file_path', `${Date.now()}_${safeName}`, docFile, saveDoc);
+        } else {
+          const { error } = await saveDoc(null);
+          if (error) throw error;
         }
 
         titleInput.value = ''; categoryInput.value = ''; relatedInput.value = '';
@@ -7326,7 +7432,7 @@
             if (!name) { toast('A product needs a name.'); return; }
             btn.disabled = true;
             try {
-              const { error } = await supabase.from('products').update({
+              const { data: saved, error } = await supabase.from('products').update({
                 name: name,
                 sku: val('.peSku').trim() || null,
                 status: val('.peStatus'),
@@ -7335,7 +7441,8 @@
                 wholesale_price: num('.peWholesale'),
                 packaging_info: val('.pePackaging').trim() || null,
                 updated_at: new Date().toISOString(),
-              }).eq('id', id);
+              }).eq('id', id).select('id');
+              if (!error && noRowsChanged(saved)) { showDashError(staleMessage('That product')); loadInventory(); return; }
               if (error) {
                 if (String(error.message || '').includes('products_sku_unique')) {
                   showDashError('Another product already uses that SKU. SKUs have to be unique, because deliveries and returns find products by them.');
@@ -7387,6 +7494,13 @@
               }, 4000);
               return;
             }
+            // Deleting is Owner/Administrator only (row-level security, Query A).
+            // Without this check an employee's delete quietly removed nothing
+            // and the page still said "Product deleted."
+            if (!canChangeStock()) {
+              showDashError('Only the Owner or an Administrator can delete a product. Nothing was changed.');
+              return;
+            }
             btn.disabled = true;
             try {
               // Never delete a product that still has stock: the stock row is
@@ -7401,15 +7515,39 @@
                 showDashError('"' + name + '" still has stock (' + held.map(b => INVENTORY_BUCKET_LABELS[b] + ': ' + Number(invNow[b])).join(', ') + '), so it can\'t be deleted. Use Deactivate instead, or move the stock out first.');
                 return;
               }
-              // clear its inventory row first, which exists for every product
-              await supabase.from('inventory').delete().eq('product_id', id);
-              const { error } = await supabase.from('products').delete().eq('id', id);
-              if (error) {
-                if (String(error.code) === '23503') {
-                  showDashError('"' + name + '" can\'t be deleted because it\'s already used somewhere — a purchase order, a return or a stock adjustment. Use Deactivate instead, which hides it without losing that history.');
-                  return;
+              const inUseMsg = '"' + name + '" can\'t be deleted because it\'s already used somewhere — a purchase order, a lot, a recall or a stock adjustment. Use Deactivate instead, which hides it without losing that history.';
+              // Anything that refers to the product blocks the delete (plain
+              // foreign keys, Query A). Ask first, so nothing is touched for a
+              // product that is in use.
+              for (const t of ['purchase_order_items', 'inventory_lots', 'inventory_adjustments', 'recalls']) {
+                const { count, error: refErr } = await supabase.from(t).select('id', { count: 'exact', head: true }).eq('product_id', id);
+                if (refErr) throw refErr;
+                if (count) { showDashError(inUseMsg); return; }
+              }
+              // Remove the stock row only while every bucket is still 0, so
+              // stock that arrived a moment ago is never thrown away.
+              if (invNow) {
+                let delInv = supabase.from('inventory').delete().eq('product_id', id);
+                Object.keys(INVENTORY_BUCKET_LABELS).forEach(b => { delInv = delInv.eq(b, 0); });
+                const { data: invGone, error: delInvErr } = await delInv.select('product_id');
+                if (delInvErr) throw delInvErr;
+                if (!invGone || !invGone.length) { showDashError(staleMessage('That product')); loadInventory(); return; }
+              }
+              const { data: prodGone, error } = await supabase.from('products').delete().eq('id', id).select('id');
+              if (error || !prodGone || !prodGone.length) {
+                // The product stays, so put its stock row back exactly as it was
+                // (every product has one; Query B checks that).
+                if (invNow) {
+                  const { error: restoreErr } = await supabase.from('inventory').insert(invNow);
+                  if (restoreErr) {
+                    showDashError('"' + name + '" was not deleted, and its stock row could not be put back (' + (restoreErr.message || restoreErr) + '). Its stock was all 0. Reload, then save its low-stock threshold on Inventory to recreate the stock row.');
+                    return;
+                  }
                 }
-                throw error;
+                if (error && String(error.code) === '23503') { showDashError(inUseMsg); return; }
+                if (error) throw error;
+                showDashError('"' + name + '" was not deleted (not permitted). Nothing was changed.');
+                return;
               }
               toastOk('Product deleted.');
               loadInventory();
@@ -7779,6 +7917,9 @@
               showDashError('That refund (' + fmtMoney(amount) + ') is more than this order line was worth (' + fmtMoney(lineValue) + '). Check the amount — nothing was saved.');
               return;
             }
+            // Recording a refund is final (it feeds Accounting): a second,
+            // deliberate press that shows the amount being recorded.
+            if (!confirmSecondPress(btn, amount !== null ? 'Confirm refund of ' + fmtMoney(amount) + '?' : 'Confirm: refunded (no amount)?')) return;
             btn.disabled = true;
             try {
               // Only from Received, and only once: a second click or a stale
@@ -7977,8 +8118,9 @@
       try {
         // Soft delete, same as Feature Requests and Orders: stamps deleted_at
         // instead of removing the row, so it's recoverable from the recycle bin.
-        const { error } = await supabase.from('expenses').update({ deleted_at: new Date().toISOString() }).eq('id', id);
+        const { data: changed, error } = await supabase.from('expenses').update({ deleted_at: new Date().toISOString() }).eq('id', id).is('deleted_at', null).select('id');
         if (error) throw error;
+        if (noRowsChanged(changed)) { showDashError(staleMessage('That expense')); loadExpenses(); return; }
         loadExpenses();
         loadDeletedExpenses();
       } catch (err) {
@@ -8013,8 +8155,9 @@
             const id = row.getAttribute('data-id');
             btn.disabled = true;
             try {
-              const { error } = await supabase.from('expenses').update({ deleted_at: null }).eq('id', id);
+              const { data: changed, error } = await supabase.from('expenses').update({ deleted_at: null }).eq('id', id).select('id');
               if (error) throw error;
+              if (noRowsChanged(changed)) { showDashError(staleMessage('That expense')); loadExpenses(); return; }
               loadExpenses();
               loadDeletedExpenses();
             } catch (err) {
@@ -8046,23 +8189,14 @@
         showDashError('Enter an amount greater than $0.');
         return;
       }
+      const receiptFile = receiptInput.files && receiptInput.files[0];
+      const receiptProblem = uploadProblem(receiptFile);
+      if (receiptProblem) { showDashError(receiptProblem); return; }
       const submitBtn = e.target.querySelector('button[type="submit"]');
       const originalBtnText = submitBtn.textContent;
       submitBtn.disabled = true;
       try {
-        let receiptPath = null;
-        const file = receiptInput.files && receiptInput.files[0];
-        if (file) {
-          submitBtn.textContent = 'Uploading receipt…';
-          const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-          const path = `${Date.now()}_${safeName}`;
-          const { error: uploadErr } = await supabase.storage.from('expense-receipts').upload(path, file);
-          if (uploadErr) throw uploadErr;
-          receiptPath = path;
-          submitBtn.textContent = 'Saving…';
-        }
-
-        const { error } = await supabase.from('expenses').insert({
+        const saveExpense = receiptPath => supabase.from('expenses').insert({
           category,
           amount,
           expense_date: dateInput.value || new Date().toISOString().slice(0, 10),
@@ -8070,7 +8204,20 @@
           note: noteInput.value.trim() || null,
           receipt_path: receiptPath,
         });
-        if (error) throw error;
+        // Used to leave the receipt file behind whenever the expense was refused.
+        if (receiptFile) {
+          submitBtn.textContent = 'Uploading receipt…';
+          const safeName = receiptFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+          await uploadThenSave('expense-receipts', 'expenses', 'receipt_path', `${Date.now()}_${safeName}`, receiptFile, saveExpense);
+        } else {
+          const { error } = await saveExpense(null);
+          if (error) {
+            // No reply at all: it may have been saved. Saying "try again"
+            // here is how an expense gets logged twice.
+            if (isNetworkError(error)) throw new Error('The connection dropped, so the expense may or may not have been saved. Check the list below before adding it again.');
+            throw error;
+          }
+        }
         categoryInput.value = '';
         amountInput.value = '';
         vendorInput.value = '';

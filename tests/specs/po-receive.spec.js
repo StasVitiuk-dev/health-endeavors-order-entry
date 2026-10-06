@@ -46,7 +46,7 @@ function setUpReceiving(backend) {
     // rows, so updates to a line show up when the order is reloaded.
     purchase_orders: [{
       id: PO_ID, po_number: 'PO-SYN-0001', status: 'shipped', currency: 'USD',
-      shipping_cost: 15, tax: 5, expense_category: 'inventory',
+      shipping_cost: 15, tax: 5, expense_category: 'packaging',
       ordered_at: '2026-09-01T00:00:00Z', expected_at: '2026-09-20', received_at: null,
       payment_status: 'unpaid', notes: null, created_at: '2026-09-01T00:00:00Z',
       suppliers: { name: 'SYNTHETIC Supplier Co' },
@@ -129,6 +129,8 @@ async function reloadAndReopen(page) {
 }
 
 async function clickReceive(page) {
+  // second, deliberate press (receiving adds stock and logs the expense)
+  await page.locator('.poReceiveBtn').click();
   await page.locator('.poReceiveBtn').click();
 }
 

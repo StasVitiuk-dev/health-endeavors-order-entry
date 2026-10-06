@@ -5,6 +5,7 @@
 
 const base = require('@playwright/test');
 const { installMocks, OWNER_USER } = require('./mock-supabase');
+const { checkWrite } = require('./db-constraints');
 
 const test = base.test.extend({
   // auto: installed for every test, even ones that never mention it, so no
@@ -13,6 +14,13 @@ const test = base.test.extend({
     const backend = await installMocks(page);
     await use(backend);
     base.expect(backend.blocked, 'the page tried to reach something outside the mock').toEqual([]);
+    if (!backend.expectViolations) {
+      base.expect(backend.constraintViolations, 'the page wrote a value the real database refuses (tests/helpers/db-constraints.js)').toEqual([]);
+      // The mock's tables (including rows a test seeded) must also be a state
+      // the real database could actually hold.
+      const impossible = backend.allowImpossibleData ? [] : Object.entries(backend.tables).flatMap(([t, rows]) => Array.isArray(rows) ? checkWrite(t, rows) : []);
+      base.expect(impossible, 'the test data holds a value the real database refuses').toEqual([]);
+    }
   }, { auto: true }],
   pageErrors: async ({ page }, use) => {
     const errors = [];

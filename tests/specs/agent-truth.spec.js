@@ -32,7 +32,7 @@ test('each agent shows the state its data supports', async ({ page, backend }) =
   seed(backend);
   await login(page);
   await gotoPage(page, 'aiPanel');
-  const expected = { 1: 'Enabled', 2: 'Unknown', 3: 'Unknown', 4: 'Enabled', 5: 'Stale', 6: 'Dry run', 7: 'Disabled', 8: 'Failed', 9: 'Calculated here', 10: 'Calculated here' };
+  const expected = { 1: 'Switch on', 2: 'Unknown', 3: 'Unknown', 4: 'Enabled', 5: 'Stale', 6: 'Dry run', 7: 'Disabled', 8: 'Failed', 9: 'Calculated here', 10: 'Calculated here' };
   for (const [n, label] of Object.entries(expected)) {
     await expect(card(page, n).locator('.agentTruthBadge')).toHaveText(label);
   }
@@ -73,4 +73,12 @@ test('if the switches cannot be read, every agent is "Unknown", switches are dis
   }
   await expect(page.locator('#pausedAgentsBanner')).toContainText('Agent switches could not be read');
   expect(backend.tableWrites()).toEqual([]);
+});
+
+test('a last run recorded as "error" (not the exact word "failed") still shows Failed, never Enabled', async ({ page, backend }) => {
+  seed(backend);
+  backend.tables.agent_controls.find(r => r.agent_num === 4).last_run_status = 'error';
+  await login(page);
+  await gotoPage(page, 'aiPanel');
+  await expect(card(page, 4).locator('.agentTruthBadge')).toHaveText('Failed');
 });
