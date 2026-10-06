@@ -189,6 +189,18 @@ test.describe('error and upload helpers', () => {
     expect(E.explainDbError('duplicate key value violates unique constraint "products_sku_unique"')).toBe('that value is already used by another record');
     expect(E.explainDbError(null)).toBe('');
   });
+  test('explainDbError: gateway pages, cut-off replies and rate limits (EXT4)', () => {
+    const page = E.explainDbError('Could not save: <!DOCTYPE html><html><body><h1>502 Bad Gateway</h1></body></html>');
+    expect(page).toMatch(/^Could not save — The server sent back an error page/);
+    expect(page).toContain('cannot tell whether');
+    expect(page).not.toMatch(/<|Bad Gateway/);
+    const cut = E.explainDbError('Could not save: [{"id":"x","sta');
+    expect(cut).toBe('Could not save — The server’s reply was cut off, so the dashboard cannot tell whether this was saved. Wait a minute, reload the page and check before trying again.');
+    expect(E.explainDbError('Could not save: {"a":1}')).toBe('Could not save: {"a":1}'); // a whole value is left alone
+    expect(E.explainDbError('Agent [3] is off')).toBe('Agent [3] is off');
+    expect(E.explainDbError('Could not save: Too Many Requests')).toBe('Could not save — The server is busy right now (too many requests). Nothing was changed by this step. Wait a minute, then try again.');
+    for (const t of [page, cut]) expect(E.explainDbError(t)).toBe(t); // idempotent
+  });
   test('uploadProblem: size limit and blocked types', () => {
     expect(E.uploadProblem(null)).toBe(null);
     expect(E.uploadProblem({ name: 'a.pdf', size: 1000 })).toBe(null);

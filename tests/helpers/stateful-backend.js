@@ -16,6 +16,12 @@
 //   backend.beforeNext(table, method, fn)
 //       runs fn(tables) just before the next matching request is handled,
 //       to simulate another person changing the data in between
+//   backend.replyNext(table, method, { status, contentType, body, applied })
+//       the next matching request gets this exact raw reply (for example an
+//       HTML gateway page or a cut-off JSON body); with applied: true the
+//       database saves it first (EXT4)
+//   backend.delayNext(table, method, ms)
+//       the next matching request is answered normally, but only after ms
 //
 // Everything stays inside the test browser; nothing reaches the internet.
 
@@ -27,6 +33,9 @@ function enableWrites(backend, tables) {
   backend.failNext = (table, method, { status = 500, body = { message: 'Synthetic server error' } } = {}) =>
     addHook('fail', table, method, { status, body });
   backend.beforeNext = (table, method, fn) => addHook('before', table, method, { fn });
+  backend.replyNext = (table, method, { status = 200, contentType = 'application/json', body = '', applied = false } = {}) =>
+    addHook('reply', table, method, { status, contentType, body, applied });
+  backend.delayNext = (table, method, ms) => addHook('delay', table, method, { ms });
 
   const originalHandle = backend.handle.bind(backend);
   backend.handle = async route => {
@@ -39,6 +48,15 @@ function enableWrites(backend, tables) {
     if (hook.kind === 'before') {
       hook.fn(backend.tables);
       return originalHandle(route);
+    }
+    if (hook.kind === 'delay') {
+      await new Promise(r => setTimeout(r, hook.ms));
+      return originalHandle(route);
+    }
+    if (hook.kind === 'reply') {
+      if (hook.applied) await originalHandle({ request: () => req, fulfill: async () => {} });
+      backend.requests.push({ method: req.method(), table, rawReply: true, applied: hook.applied });
+      return route.fulfill({ status: hook.status, contentType: hook.contentType, body: hook.body });
     }
     if (hook.kind === 'fail') {
       backend.requests.push({ method: req.method(), table, failed: true });

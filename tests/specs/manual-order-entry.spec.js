@@ -143,3 +143,124 @@ test('at 9 pm Central the date field shows today, not tomorrow; a today order ke
   await expect(page.locator('#successMsg')).toContainText('Saved');
   expect(backend.tables.orders[0].placed_at).toBe('2026-06-16T02:00:00.000Z');
 });
+
+// ---- EXT4 (workstream D): deeper manual-order hardening ----
+
+test('Enter pressed again while saving: one order, not two', async ({ page, backend }) => {
+  setup(backend);
+  await signIn(page);
+  await fillOrder(page);
+  backend.delayNext('orders', 'POST', 800);
+  await page.locator('#customerName').press('Enter');
+  await page.locator('#orderForm').evaluate(f => { f.requestSubmit(); f.requestSubmit(); });
+  await expect(page.locator('#successMsg')).toContainText('Saved — order M-');
+  await page.waitForLoadState('networkidle');
+  expect(inserts(backend, 'orders')).toHaveLength(1);
+  expect(backend.tables.order_items).toHaveLength(1);
+});
+
+test('same total but different lines after a lost reply: stops once, never adds the new lines to the old order', async ({ page, backend }) => {
+  setup(backend);
+  await signIn(page);
+  await fillOrder(page, { qty: '2', price: '10' }); // $20
+  backend.dropNext('orders', 'POST', { applied: true });
+  await save(page);
+  await expect(page.locator('#formMsg')).toContainText('may or may not');
+  await page.fill('.item-row .item-qty', '1');
+  await page.fill('.item-row .item-price', '20'); // still $20, different line
+  await save(page);
+  await expect(page.locator('#formMsg')).toContainText('may already be saved');
+  expect(backend.tables.order_items, 'nothing attached to the first order').toHaveLength(0);
+  // Pressing again after checking saves it as a separate order with its own number.
+  await save(page);
+  await expect(page.locator('#successMsg')).toContainText('Saved — order M-');
+  expect(backend.tables.orders).toHaveLength(2);
+  expect(new Set(backend.tables.orders.map(o => o.order_number)).size).toBe(2);
+  expect(backend.tables.order_items).toHaveLength(1);
+  expect(backend.tables.order_items[0].order_id).toBe(backend.tables.orders[1].id);
+  expect(backend.tables.order_items[0].quantity).toBe(1);
+});
+
+test('reloaded after a lost reply: the page warns, and entering the same order again creates no second copy', async ({ page, backend }) => {
+  setup(backend);
+  await signIn(page);
+  await fillOrder(page);
+  backend.dropNext('orders', 'POST', { applied: true });
+  await save(page);
+  await expect(page.locator('#formMsg')).toBeVisible();
+  const date = await page.inputValue('#orderDate');
+  await page.reload();
+  await expect(page.locator('#appView')).toBeVisible();
+  await expect(page.locator('#formMsg')).toContainText('may not have finished before this page was reloaded');
+  await expect(page.locator('#formMsg')).toContainText(backend.tables.orders[0].order_number);
+  await fillOrder(page);
+  await page.fill('#orderDate', date);
+  await save(page);
+  await expect(page.locator('#successMsg')).toContainText(backend.tables.orders[0].order_number);
+  expect(backend.tables.orders).toHaveLength(1);
+  expect(backend.tables.order_items).toHaveLength(1);
+  // Done: a further reload shows no warning.
+  await page.reload();
+  await expect(page.locator('#appView')).toBeVisible();
+  await expect(page.locator('#formMsg')).toBeHidden();
+});
+
+test('another tab saved an order in the same second: this order gets its own number and is not merged into it', async ({ page, backend }) => {
+  setup(backend);
+  await page.clock.setFixedTime(new Date('2026-06-15T17:00:05Z')); // 12:00:05 CDT
+  backend.tables.orders.push({ id: 'other-tab', order_number: 'M-20260615-120005', entered_by: OWNER_USER.id, total: 99, source: 'manual' });
+  await signIn(page);
+  await fillOrder(page);
+  await save(page);
+  await expect(page.locator('#successMsg')).toContainText('M-20260615-120005-2');
+  expect(backend.tables.orders).toHaveLength(2);
+  expect(backend.tables.order_items).toHaveLength(1);
+  expect(backend.tables.order_items[0].order_id, 'not added to the other tab\'s order').not.toBe('other-tab');
+});
+
+test('order number taken a moment ago (unique refusal): plain words, nothing saved, the next press uses a new number', async ({ page, backend }) => {
+  setup(backend);
+  await signIn(page);
+  await fillOrder(page);
+  backend.failNext('orders', 'POST', { status: 409, body: { code: '23505', message: 'duplicate key value violates unique constraint "orders_order_number_key"' } });
+  await save(page);
+  await expect(page.locator('#formMsg')).toContainText('taken by another order');
+  await expect(page.locator('#formMsg')).not.toContainText('orders_order_number_key');
+  expect(backend.tables.orders).toHaveLength(0);
+  await save(page);
+  await expect(page.locator('#successMsg')).toContainText('Saved');
+  expect(backend.tables.orders).toHaveLength(1);
+});
+
+test('a gateway error page after the order was saved: plain words; the retry creates no second order', async ({ page, backend }) => {
+  setup(backend);
+  await signIn(page);
+  await fillOrder(page);
+  backend.replyNext('orders', 'POST', { status: 502, contentType: 'text/html', body: '<!DOCTYPE html><html><body><h1>502 Bad Gateway</h1></body></html>', applied: true });
+  await save(page);
+  await expect(page.locator('#formMsg')).toContainText('may or may not have been saved');
+  await expect(page.locator('#formMsg')).not.toContainText('<');
+  await save(page);
+  await expect(page.locator('#successMsg')).toContainText('Saved');
+  expect(backend.tables.orders).toHaveLength(1);
+  expect(backend.tables.order_items).toHaveLength(1);
+});
+
+test('one bad line refuses all items (one statement), and the retry adds every line once', async ({ page, backend }) => {
+  setup(backend);
+  await signIn(page);
+  await fillOrder(page);
+  await page.click('#addItemBtn');
+  await page.locator('.item-row').nth(1).locator('.item-name').fill('SYNTHETIC Soap');
+  await page.locator('.item-row').nth(1).locator('.item-qty').fill('3');
+  await page.locator('.item-row').nth(1).locator('.item-price').fill('4');
+  backend.failNext('order_items', 'POST', { status: 400, body: { code: '23514', message: 'new row for relation "order_items" violates check constraint "order_items_synthetic_check"' } });
+  await save(page);
+  await expect(page.locator('#formMsg')).toContainText('The order was saved, but one of its items');
+  expect(backend.tables.orders).toHaveLength(1);
+  expect(backend.tables.order_items).toHaveLength(0);
+  await save(page);
+  await expect(page.locator('#successMsg')).toContainText('Saved');
+  expect(backend.tables.orders).toHaveLength(1);
+  expect(backend.tables.order_items).toHaveLength(2);
+});

@@ -275,6 +275,22 @@
         return t.replace(/:?\s*(TypeError:\s*)?(Failed to fetch|Load failed|NetworkError when attempting to fetch resource\.?)/i, '')
           + ' — The connection dropped before the dashboard heard back, so it cannot tell whether this was saved. Reload the page and check before trying again.';
       }
+      // A gateway or hosting problem (502 / 503 / 504) arrives as a whole web
+      // page, and a reply cut off half-way arrives as a fragment of data.
+      // Neither says whether the database already saved the change, and the
+      // raw text means nothing to a person (EXT4).
+      const UNKNOWN = ' so the dashboard cannot tell whether this was saved. Wait a minute, reload the page and check before trying again.';
+      const html = t.search(/<!DOCTYPE|<html[\s>]|<head[\s>]|<body[\s>]/i);
+      if (html !== -1) {
+        return t.slice(0, html).replace(/[\s:—-]+$/, '') + ' — The server sent back an error page instead of an answer (it may be briefly unavailable),' + UNKNOWN;
+      }
+      const fragment = t.search(/[[{]\s*("|\{|\[|$)/);
+      if (fragment !== -1 && !/[\]}]\s*$/.test(t.slice(fragment))) {
+        return t.slice(0, fragment).replace(/[\s:—-]+$/, '') + ' — The server’s reply was cut off,' + UNKNOWN;
+      }
+      if (/Too Many Requests|rate limit/i.test(t) && !/wait a minute/i.test(t)) {
+        return t.replace(/:?\s*Too Many Requests\.?/i, '') + ' — The server is busy right now (too many requests). Nothing was changed by this step. Wait a minute, then try again.';
+      }
       return t;
     }
 
