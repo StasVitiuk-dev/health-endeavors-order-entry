@@ -1,6 +1,6 @@
 # Rollback and backup review (internal platform)
 
-**Status:** CURRENT (2026-10-06, extension 3). Written from files in this repository only. The private backups repository was **not** accessed, and nothing about backups was changed.
+**Status:** CURRENT (2026-10-06, extension 3; extension 4 adds the owner checklist and the PO line guard row). Written from files in this repository only. The private backups repository was **not** accessed, and nothing about backups was changed.
 
 ## Backup health: UNKNOWN (no evidence here)
 
@@ -11,6 +11,19 @@ The repository's records disagree, and neither is verified:
 
 **OWNER CHECK (read-only, 2 minutes):** private backups repository → Actions → did the last nightly backup and the last monthly restore test succeed, and when? Until then, treat backups as **unverified**.
 
+## Owner backup checklist (EXT4; read-only, nothing to change)
+
+Do this once before the first production change (R1 install), and after any long pause in Actions minutes. Claude sessions must not open the backups repository; only you look.
+
+1. GitHub → the private Health Endeavors backups repository → **Actions**.
+2. Find the newest **nightly backup** run: note its date and whether it shows a green tick.
+3. Find the newest **monthly restore test** run: note its date and whether it is green.
+4. Settings → Billing (or the Actions usage page): is there Actions time left this month?
+5. Tell the session only: "nightly: green/red, date; restore test: green/red, date; minutes: OK/out". **Don't paste logs, file names or contents.** They may contain database details.
+6. If anything is red or older than 2 days: **stop** before any production change, and tell the session. The session will then write a plan, but cannot fix the backups itself (that repository is off-limits).
+
+The session records your answer as REPORTED (not verified), in `PROJECT_RECORD.md` and here.
+
 ## What each production step would need
 
 | Step (all need your approval) | Changes data? | Backup needed first? | Rollback | Rollback tested? |
@@ -19,6 +32,7 @@ The repository's records disagree, and neither is verified:
 | Run Query C / Query D | No (one read-only SELECT) | No | Nothing to roll back | Read-only proven: `sql-readonly.spec.js` |
 | Install R1–R5 | No (creates 6 functions; no table or row touched) | Recommended as a precaution: confirm the last backup succeeded | `11_DRAFT_rollback_stock_functions.sql` (removes only the functions, one transaction) | Yes: `install_package_test.sh` (rollback, rollback twice, re-install, failure halfway) |
 | Switch the dashboard to R1–R5 (INV-06) | Normal business writes from then on | Confirm the last backup | Revert the dashboard PR **first**, then (optionally) the function rollback | Planned with that PR |
+| PO line delete guard (`drafts/17_…`, EXT4, after R1) | No (adds one trigger and its function) | No | `drafts/18_DRAFT_rollback_po_line_delete_guard.sql` (one transaction) | Yes: stress S27 installs it, checks it, rolls it back and checks no trigger is left |
 | Optional CHECK rules (INV-19) | No (adds rules) | No | `alter table … drop constraint …` (to be written with the draft) | Not yet: **PROPOSED**, written together with the draft |
 | Remove direct stock-table writes (INV-20) | No (permissions) | No | Re-grant script, written together with the change | Not yet: **PROPOSED** |
 | Extend the audit trigger to compliance tables (X3-18) | No | No | Drop the added triggers | Not yet: **PROPOSED** |
