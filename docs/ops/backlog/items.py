@@ -227,6 +227,8 @@ a('X3-29','Accessibility','No dialog was announced as a dialog (role, aria-modal
 a('X3-30','Tests','"Every overlay closes with Escape" silently skipped the Record Inspector (opened by click, which never opens it)','False confidence','P3','Low','S','—','Y','N','N','DONE')
 a('X3-31','Search','Guide matching is single-word fuzzy: gibberish with a common word lists unrelated articles','Relevance','P4','Low','S','—','Y','N','N','DEFERRED')
 
+a('X3-32','Orders','Manual order date stored as midnight UTC = 7 pm the PREVIOUS day in Central (wrong day; on the 1st the wrong month) and default date was "tomorrow" after 7 pm','Live on main: misplaced revenue in Accounting/Tax','P1','High','S','—','Y','N','N','DONE')
+
 # ---------------- Docs / process / owner
 a('DOC-01','Docs','Audits recorded (state machine, mutations, storage, pagination, launch readiness)','Durable record','P3','Medium','S','—','Y','N','N','DONE')
 a('DOC-02','Docs','Merge order for open PRs #5–#24 and this branch','Safe rollout','P2','High','S','owner','Y','Y','N','BLOCKED-OWNER',['pr-merge-order.md'])

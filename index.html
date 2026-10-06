@@ -262,8 +262,24 @@
     orderForm.reset();
     itemsContainer.innerHTML = '';
     makeItemRow();
-    orderDate.valueAsDate = new Date();
+    orderDate.value = localYmd(new Date()); // local date (valueAsDate used UTC: "tomorrow" after 7 pm Central)
     recalcTotals();
+  }
+
+  // Dates on this page are the viewer's own calendar (Central for the
+  // business). new Date('YYYY-MM-DD') means midnight UTC, i.e. 7 pm the
+  // PREVIOUS evening in Central, which put a manual order on the wrong day
+  // (and on the 1st, in the wrong month) in Accounting and Tax (EXT3).
+  function localYmd(d){
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  // An order dated today keeps the current time; any other date is stored at
+  // local noon, safely inside that day in every US time zone.
+  function placedAtFor(ymd){
+    const now = new Date();
+    if (ymd === localYmd(now)) return now.toISOString();
+    const [y, m, d] = ymd.split('-').map(Number);
+    return new Date(y, m - 1, d, 12, 0, 0).toISOString();
   }
 
   function generateOrderNumber(){
@@ -341,7 +357,7 @@
         shipping_total: ship,
         tax_total: tax,
         total: total,
-        placed_at: new Date(orderDate.value).toISOString(),
+        placed_at: placedAtFor(orderDate.value),
         entered_by: user.id
       };
 

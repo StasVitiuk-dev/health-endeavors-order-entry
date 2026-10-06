@@ -2,14 +2,14 @@
 
 Internal dashboard/platform only. Generated from `docs/ops/backlog/items.py` (edit the data there, then run `python3 docs/ops/backlog/items.py`). No production secrets or private business data.
 
-**193 deduplicated items** from 248 raw candidates (55 duplicates merged: the same item recorded in PROJECT_RECORD, the overnight review, PRs, owner lists, decision registers and tests).
+**194 deduplicated items** from 249 raw candidates (55 duplicates merged: the same item recorded in PROJECT_RECORD, the overnight review, PRs, owner lists, decision registers and tests).
 
-Status counts: BLOCKED-EXT 2, BLOCKED-OWNER 26, BLOCKED-PROD 12, BLOCKED-QC 10, DEFERRED 14, DONE 123, QUEUED 6
+Status counts: BLOCKED-EXT 2, BLOCKED-OWNER 26, BLOCKED-PROD 12, BLOCKED-QC 10, DEFERRED 14, DONE 124, QUEUED 6
 
 | Priority | Items | Done (branch) | Remaining |
 |---|---|---|---|
 | P0 | 14 | 4 | 10 |
-| P1 | 52 | 36 | 16 |
+| P1 | 53 | 37 | 16 |
 | P2 | 63 | 45 | 18 |
 | P3 | 56 | 38 | 18 |
 | P4 | 8 | 0 | 8 |
@@ -94,6 +94,7 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | X3-03 | Reporting | Expenses page count and money total summed from the newest 200 only | Silent wrong money total beyond 200 expenses | High | S | — | Y | N | N | DONE |
 | X3-09 | Inventory | R1–R5 install had no schema preflight (wrong shape installs, fails at first click) | Install safety | High | S | — | Y | N | N | DONE |
 | X3-20 | Orders | Manual order retry after a failure created a SECOND order (duplicate revenue) | Two-step save, lost reply | High | S | — | Y | N | N | DONE |
+| X3-32 | Orders | Manual order date stored as midnight UTC = 7 pm the PREVIOUS day in Central (wrong day; on the 1st the wrong month) and default date was "tomorrow" after 7 pm | Live on main: misplaced revenue in Accounting/Tax | High | S | — | Y | N | N | DONE |
 
 ## P2
 

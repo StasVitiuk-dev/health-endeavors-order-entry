@@ -54,3 +54,12 @@ This is an independent re-read of the dashboard code and the master backlog, don
   - Used for: expense amount, PO shipping and tax, PO line quantity and cost, product cost / retail / wholesale, Business Rules values, stock adjustment, low-stock threshold.
   - Tests: blank rule refused; negative shipping refused; negative price refused; 2.7 units never applied.
 - **X3-07:** a cleared expense date now falls back to today's local date (`localDateString`), not the UTC date.
+
+## Later finding: manual order dates (X3-32, P1, fixed on branch)
+
+**Live on `main` today.**
+- **Stored date:** `manual-order-entry.html` (and its copy `index.html`) stored the chosen date as `new Date('YYYY-MM-DD')`, which is midnight UTC = **7 pm the previous evening in Central**. A manual order dated the 6th was counted on the 5th in Accounting's "Today"; on the 1st of a month, in the **previous month** (Tax years likewise on Jan 1).
+- **Default date:** the field was pre-filled with the UTC date, so after 7 pm Central it showed **tomorrow**.
+- **Fix:** an order dated today keeps the current time; any other date is stored at local noon. The field defaults to today's local date.
+- **Tests:** 2 in `manual-order-entry.spec.js`; both fail on the old page.
+- **Existing manual orders:** any entered on main before this fix may sit one day early. Query B ran clean, and Health Endeavors is pre-launch with 0 real orders reported, so likely none are affected. If any exist, correcting them is a data change you would approve.

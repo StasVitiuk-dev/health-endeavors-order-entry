@@ -120,3 +120,26 @@ test('permission refused on the order: plain words, nothing saved, no internal n
   await expect(page.locator('#formMsg')).not.toContainText('row-level security');
   expect(backend.tables.orders).toHaveLength(0);
 });
+
+// EXT3: dates on the order form are the viewer's own calendar (Central).
+test('an order dated June 1 is stored inside June 1 Central (not May 31 at 7 pm)', async ({ page, backend }) => {
+  setup(backend);
+  await page.clock.setFixedTime(new Date('2026-06-15T15:00:00Z'));
+  await signIn(page);
+  await fillOrder(page);
+  await page.fill('#orderDate', '2026-06-01');
+  await save(page);
+  await expect(page.locator('#successMsg')).toContainText('Saved');
+  expect(backend.tables.orders[0].placed_at).toBe('2026-06-01T17:00:00.000Z'); // noon CDT
+});
+
+test('at 9 pm Central the date field shows today, not tomorrow; a today order keeps the current time', async ({ page, backend }) => {
+  setup(backend);
+  await page.clock.setFixedTime(new Date('2026-06-16T02:00:00Z')); // 21:00 CDT on June 15
+  await signIn(page);
+  await expect(page.locator('#orderDate')).toHaveValue('2026-06-15');
+  await fillOrder(page);
+  await save(page);
+  await expect(page.locator('#successMsg')).toContainText('Saved');
+  expect(backend.tables.orders[0].placed_at).toBe('2026-06-16T02:00:00.000Z');
+});
