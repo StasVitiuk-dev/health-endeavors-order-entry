@@ -1,6 +1,6 @@
 # Health Endeavors — current state (cross-project summary)
 
-**Last updated:** October 6, 2026, extension 4 (platform §1 and §5; website sections unchanged from Sept 30). **Keep this short.** Details live in the linked documents; update this file whenever the verified state changes materially.
+**Last updated:** October 6, 2026, extension 5 (platform §1 and §5; website sections unchanged from Sept 30). **Keep this short.** Details live in the linked documents; update this file whenever the verified state changes materially.
 
 Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (from the owner's earlier chats, not re-checked) · **PROPOSED** · **OWNER DECISION REQUIRED** · **DEPRECATED**.
 
@@ -38,6 +38,18 @@ Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (fro
   - Database drafts (local only): R1 expense rounded to cents and a column-type preflight (new fingerprint `3df2bf7a07b451f12f9359ceca1c85df`). Also a new draft guard (17/18) for a PO-line-vs-receive race found in stress, and stress S26–S29 with data-integrity invariants.
   - See `docs/ops/DEEP_PLATFORM_EXTENSION_4_2026-10-06.md` and `docs/ops/OWNER_DECISIONS_NEXT.md`.
   - Query C still not run, Query D not run, R1–R5 and the guard not installed, production untouched, Shopify Order Sync off.
+- **Extension 5 (Oct 6, not merged, not live):** `claude/platform-deep-readiness-extension-5`, branched from extension 4 at `82c2582`. Every fix has tests that fail on the old code:
+  - Receive now uses the saved order: another tab's line or shipping changes were ignored. In-flight line edits are reported on both sides.
+  - Money totals no longer double-count a record created mid-read; Employee Activity no longer repeats rows.
+  - Manual orders: a retry never adopts a same-number order, and orders saved without items are listed on sign-in.
+  - Inquiry reply drafts no longer overwrite each other; unreadable number text gets a clear message; no customer details kept in browser storage.
+  - Database drafts (local only):
+    - the PO line guard now also covers adding a line and changing a quantity (each broke the match in 5–6 of 20 races, even with R1)
+    - the install survives a double Run
+    - install tests 61, forced race orderings, SQL mutations 11
+  - Evidence: failure matrix 14 actions × 14 failure kinds, state machines from one fixture, 57 page mutations.
+  - See `docs/ops/DEEP_PLATFORM_EXTENSION_5_2026-10-06.md`, `PO_RECEIVE_RACE_REVIEW.md`, `READINESS_GATE.md`.
+  - Query C/D not run; R1–R5 and the guard not installed; production untouched; Shopify Order Sync off.
 - **Store not launched:** 0 real orders, real products not yet added, the Shopify order sync and agents #2/#3/#7/#8 switched off on purpose until products exist (REPORTED). Agent #1's on/off state is **unverified**.
 
 ## 2. Public website (customer storefront)
@@ -71,6 +83,7 @@ Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (fro
   - `claude/platform-overnight-implementation`: the 20 PRs plus tested fixes for stale state, double actions, R7, report totals and agent truth, plus modularization steps 1–2. Its full suite: 553 passed, 0 failed
   - `claude/platform-overnight-extension-3`: extension 3 (see §1)
   - `claude/platform-deep-readiness-extension-4`: extension 4 (see §1)
+  - `claude/platform-deep-readiness-extension-5`: extension 5 (see §1)
   - `claude/tests-only-ci`: the CI workflow, not active
 
 ## 6. Known bugs and risks (top items)
