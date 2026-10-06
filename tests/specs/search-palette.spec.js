@@ -111,3 +111,31 @@ test('10,000 records: each keystroke updates the palette quickly, and the cap ho
   expect(kinds.length).toBeLessThanOrEqual(40);
   expect(kinds.filter(k => k !== 'Guide').length).toBeGreaterThan(0);
 });
+
+// EXT5 (workstream 13): odd input and reopening.
+test('a 5,000-character query and Unicode / right-to-left text do not break the palette', async ({ page, backend }) => {
+  backend.tables.tasks = [task('t-u', 'SYNTHETIC Café 日本 עברית task')];
+  await login(page);
+  await loadTasksThenLeave(page);
+  await page.keyboard.press('ControlOrMeta+k');
+  await page.locator('#paletteInput').fill('x'.repeat(5000));
+  await expect(page.locator('#paletteResults')).toContainText('Nothing matches that.');
+  await page.locator('#paletteInput').fill('עברית');
+  await expect(page.locator('#paletteResults .pResult', { hasText: 'SYNTHETIC Café 日本 עברית task' })).toHaveCount(1);
+  await page.locator('#paletteInput').fill('<img src=x onerror=alert(1)>');
+  await expect(page.locator('#paletteResults img')).toHaveCount(0);
+});
+
+test('reopening the palette starts empty, with fresh results (no stale list from last time)', async ({ page, backend }) => {
+  backend.tables.tasks = [task('t-1', 'SYNTHETIC alpha task')];
+  await login(page);
+  await loadTasksThenLeave(page);
+  await page.keyboard.press('ControlOrMeta+k');
+  await page.keyboard.type('alpha');
+  await expect(page.locator('#paletteResults .pResult', { hasText: 'SYNTHETIC alpha task' })).toHaveCount(1);
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#paletteOverlay.open')).toHaveCount(0);
+  await page.keyboard.press('ControlOrMeta+k');
+  await expect(page.locator('#paletteInput')).toHaveValue('');
+  await expect(page.locator('#paletteResults .pResult', { hasText: 'SYNTHETIC alpha task' })).toHaveCount(0);
+});
