@@ -7699,7 +7699,18 @@
                 if (delInvErr) throw delInvErr;
                 if (!invGone || !invGone.length) { showDashError(staleMessage('That product')); loadInventory(); return; }
               }
-              const { data: prodGone, error } = await supabase.from('products').delete().eq('id', id).select('id');
+              let { data: prodGone, error } = await supabase.from('products').delete().eq('id', id).select('id');
+              if (error && isNetworkError(error)) {
+                // The reply was lost: the product may already be gone. Look
+                // before putting the stock row back, or a deleted product would
+                // get a stray stock row (or be reported as "not deleted") (EXT4).
+                const { data: stillThere, error: lookErr } = await supabase.from('products').select('id').eq('id', id).maybeSingle();
+                if (lookErr) {
+                  showDashError('The connection dropped, so the dashboard cannot tell whether "' + name + '" was deleted. Its stock row (all 0) was removed. Reload the page: if the product is still listed, save its low-stock threshold on Inventory to recreate the stock row.');
+                  return;
+                }
+                if (!stillThere) { prodGone = [{ id }]; error = null; }
+              }
               if (error || !prodGone || !prodGone.length) {
                 // The product stays, so put its stock row back exactly as it was
                 // (every product has one; Query B checks that).

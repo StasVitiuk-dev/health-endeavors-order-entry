@@ -221,3 +221,38 @@ test.describe('all-or-nothing (wanted behaviour; needs the R1 database function)
     expect(snapshot(backend)).toEqual(BEFORE);
   });
 });
+
+// EXT4 (workstream R): the sign-in expires part-way. From the chosen request
+// on, every database request is refused, including any clean-up.
+test.describe('sign-in expires while receiving', () => {
+  async function expireAt(page, table, method) {
+    let expired = false;
+    await page.route(/\/rest\/v1\//, route => {
+      const req = route.request();
+      const t = new URL(req.url()).pathname.slice('/rest/v1/'.length);
+      if (!expired && t === table && req.method() === method) expired = true;
+      if (!expired) return route.fallback();
+      return route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ code: 'PGRST301', message: 'JWT expired' }) });
+    });
+  }
+
+  test('on the claim: nothing saved, the page says to sign in again', async ({ page, backend }) => {
+    await expireAt(page, 'purchase_orders', 'PATCH');
+    await clickReceive(page);
+    // (the list cannot reload either, so the Receive button may disappear)
+    await expect(page.locator('body')).toContainText('Could not receive that delivery');
+    await expect(page.locator('body')).toContainText('Sign in again');
+    expect(snapshot(backend)).toEqual(BEFORE);
+  });
+
+  test('after the claim: the order is Received, the page says what is missing and to sign in, and offers no second Receive', async ({ page, backend }) => {
+    await expireAt(page, 'inventory', 'PATCH');
+    await clickReceive(page);
+    await expect(page.locator('body')).toContainText('stopped part-way');
+    await expect(page.locator('body')).toContainText('expense NOT logged');
+    await expect(page.locator('body')).toContainText('Sign in again');
+    await expect(page.locator('#toastHost .toast.ok')).toHaveCount(0);
+    expect(snapshot(backend)).toEqual({ ...BEFORE, poStatus: 'received' });
+    await expect(page.locator('.poReceiveBtn')).toHaveCount(0);
+  });
+});
