@@ -337,3 +337,42 @@ test('Receive: a line update the database quietly refuses is reported, not hidde
   await page.locator('.poReceiveBtn').click(); // confirm
   await expect(page.locator('#dashError')).toContainText('could not be marked received');
 });
+
+// MU-10 (2026-10-06): the three roles tested side by side. An Administrator
+// may change stock exactly like the Owner (database rule is_owner_or_admin);
+// an employee may not, and is told so before anything is sent.
+test.describe('roles: Administrator allowed, employee refused', () => {
+  const asAdmin = backend => { backend.tables.profiles[0].role = 'administrator'; };
+
+  test('an Administrator can restock a return', async ({ page, backend }) => {
+    seedReturn(backend); asAdmin(backend);
+    await login(page);
+    await open(page, 'returnsPanel');
+    await page.selectOption('.dispositionSelect', 'restock_available');
+    await page.click('.markReceivedBtn');
+    await expect.poll(() => backend.tables.returns[0].status).toBe('received');
+    await expect.poll(() => backend.tables.inventory[0].available).toBe(13);
+  });
+
+  test('an Administrator can receive a delivery (with the second press)', async ({ page, backend }) => {
+    seedPo(backend); asAdmin(backend);
+    await login(page);
+    await openPo(page);
+    await page.locator('.poReceiveBtn').click();
+    await page.locator('.poReceiveBtn').click();
+    await expect.poll(() => backend.tables.purchase_orders[0].status).toBe('received');
+    await expect(page.locator('#dashError')).toBeHidden();
+  });
+
+  test('an employee is refused recall quarantine before anything is sent', async ({ page, backend }) => {
+    backend.tables.products = [{ id: 'prod-a', name: 'SYNTHETIC A', sku: 'SYN-A' }];
+    backend.tables.inventory_lots = [{ id: 'lot-1', product_id: 'prod-a', lot_number: 'L1', quantity_received: 5, quantity_remaining: 5 }];
+    backend.tables.recalls = [{ id: 'rc-1', lot_id: 'lot-1', product_id: 'prod-a', status: 'initiated', severity: 'high', reason: 'SYNTHETIC', quantity_quarantined: null, resolution: null, resolved_at: null, incident_id: null, created_at: '2026-09-20T00:00:00Z', products: { name: 'SYNTHETIC A', sku: 'SYN-A' }, inventory_lots: { lot_number: 'L1' }, incidents: null }];
+    asEmployee(backend);
+    await login(page);
+    await open(page, 'recallsPanel');
+    await page.click('.recallQuarantineBtn');
+    await expect(page.locator('#dashError')).toContainText('Only the Owner or an Administrator can change stock');
+    expect(backend.tableWrites()).toEqual([]);
+  });
+});
