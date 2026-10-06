@@ -29,7 +29,7 @@
 <title>Health Endeavors — Owner Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous" onerror="window.__sbLoadFailed=true"></script>
 <link rel="stylesheet" href="assets/owner-login.css?v=fb8c7e08fd">
-<script src="assets/owner-login-helpers.js?v=afe02cd444" onerror="window.__heHelpersLoadFailed=true"></script>
+<script src="assets/owner-login-helpers.js?v=46d05e7f37" onerror="window.__heHelpersLoadFailed=true"></script>
 <script>
   // Applied before anything renders so there's no flash of the wrong theme.
   (function(){
@@ -98,6 +98,7 @@
       <div id="systemModeBanner" style="display:none;padding:10px 14px;border-radius:8px;margin-bottom:14px;font-size:14px;font-weight:600;"></div>
       <div id="pausedAgentsBanner" style="display:none;padding:10px 14px;border-radius:8px;margin-bottom:14px;font-size:14px;font-weight:600;background:#fff4dd;color:#8a5b00;border:1px solid #f2d999;"></div>
       <div id="dashError" class="bannerBox" role="alert"></div>
+      <div id="rowCapNotice" class="bannerBox" role="status"></div>
 
       <!-- Needs Your Attention -->
       <section class="panel" id="attentionPanel">
@@ -193,7 +194,7 @@
             <option value="active">Active</option>
             <option value="discontinued">Discontinued</option>
           </select>
-          <input type="number" id="prodCost" placeholder="Cost" step="0.01" min="0" style="flex:0 1 110px;">
+          <input type="number" id="prodCost" placeholder="Cost" step="0.0001" min="0" max="1000000" style="flex:0 1 110px;">
           <input type="number" id="prodRetail" placeholder="Retail price" step="0.01" min="0" style="flex:0 1 130px;">
           <input type="number" id="prodWholesale" placeholder="Wholesale" step="0.01" min="0" style="flex:0 1 130px;">
           <input type="text" id="prodPackaging" placeholder="Packaging (optional)">
@@ -849,7 +850,38 @@
       taxRangeStart,
       maskSensitive,
     } = window.HE.helpers;
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // Safety net (EXT4): Supabase returns at most 1,000 rows per request and
+    // does not say when it cut a list short. Totals and money use complete
+    // paged reads (fetchAllRows); the plain lists (products, lots, purchase
+    // orders, compliance records) read the whole table in one request. If
+    // one of those ever comes back with 1,000 rows, say the list may be
+    // incomplete instead of letting it look whole. Reads with an explicit
+    // limit or page (offset/limit) are not affected.
+    const ROW_CAP = 1000;
+    const rowCapTables = new Set();
+    function noteRowCap(table){
+      if (rowCapTables.has(table)) return;
+      rowCapTables.add(table);
+      const el = document.getElementById('rowCapNotice');
+      if (!el) return;
+      el.textContent = 'A list on this dashboard reached the 1,000-record reading limit (' + Array.from(rowCapTables).join(', ') + '), so it may be missing older records. Totals and money figures are not affected: they are read in full. The list needs paging; please report this.';
+      el.style.display = 'block';
+    }
+    function capAwareFetch(input, init){
+      return fetch(input, init).then(res => {
+        try {
+          const method = String((init && init.method) || 'GET').toUpperCase();
+          const url = new URL(typeof input === 'string' ? input : input.url);
+          if (method === 'GET' && res.ok && url.pathname.indexOf('/rest/v1/') === 0 && !url.searchParams.has('limit')) {
+            res.clone().json().then(rows => {
+              if (Array.isArray(rows) && rows.length >= ROW_CAP) noteRowCap(url.pathname.slice('/rest/v1/'.length));
+            }).catch(() => {});
+          }
+        } catch (_) { /* never break a read over the notice */ }
+        return res;
+      });
+    }
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { global: { fetch: capAwareFetch } });
     const verifyOnly = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       auth: {
         persistSession: false,
@@ -3496,6 +3528,12 @@
           const v = document.getElementById(id).value;
           return v === '' ? null : Number(v);
         };
+        // Same checks as editing a product (EXT4): the add form only had the
+        // browser's own checks, with no upper limit.
+        const priceProblem = numberInputError(document.getElementById('prodCost').value, { label: 'Cost', allowBlank: true, max: 1000000, decimals: 4 })
+          || numberInputError(document.getElementById('prodRetail').value, { label: 'Retail price', allowBlank: true, max: 1000000, decimals: 2 })
+          || numberInputError(document.getElementById('prodWholesale').value, { label: 'Wholesale price', allowBlank: true, max: 1000000, decimals: 2 });
+        if (priceProblem) { showDashError(priceProblem + ' Nothing was saved.'); return; }
         const { error } = await supabase.from('products').insert({
           name: name,
           sku: sku || null,
@@ -3851,7 +3889,7 @@
         if (!description) { toast('Say what you\'re buying first.'); return; }
         if (!(quantity > 0)) { toast('Quantity needs to be more than zero.'); return; }
         const lineProblem = numberInputError(box.querySelector('.poLineQty').value, { label: 'Quantity', min: 0, minExclusive: true, max: 1000000 })
-          || numberInputError(box.querySelector('.poLineCost').value, { label: 'Unit cost', allowBlank: true, max: 10000000 });
+          || numberInputError(box.querySelector('.poLineCost').value, { label: 'Unit cost', allowBlank: true, max: 10000000, decimals: 4 });
         if (lineProblem) { toast(lineProblem); return; }
         // Stock is counted in whole units (inventory columns are integers), so a
         // catalogue product line can't be 2.5. Non-catalogue lines (freight,
@@ -3902,8 +3940,8 @@
 
       const saveTotals = box.querySelector('.poSaveTotals');
       if (saveTotals) saveTotals.addEventListener('click', async () => {
-        const totalsProblem = numberInputError(box.querySelector('.poShipping').value, { label: 'Shipping', allowBlank: true, max: 10000000 })
-          || numberInputError(box.querySelector('.poTax').value, { label: 'Tax', allowBlank: true, max: 10000000 });
+        const totalsProblem = numberInputError(box.querySelector('.poShipping').value, { label: 'Shipping', allowBlank: true, max: 10000000, decimals: 2 })
+          || numberInputError(box.querySelector('.poTax').value, { label: 'Tax', allowBlank: true, max: 10000000, decimals: 2 });
         if (totalsProblem) { showDashError(totalsProblem + ' Nothing was saved.'); return; }
         saveTotals.disabled = true;
         try {
@@ -7527,7 +7565,7 @@
                       ${['draft','active','discontinued'].map(s =>
                         `<option value="${s}"${p.status === s ? ' selected' : ''}>${s.charAt(0).toUpperCase() + s.slice(1)}</option>`).join('')}
                     </select></label>
-                    <label>Cost<input type="number" class="peCost" step="0.01" min="0" value="${p.cost != null ? Number(p.cost) : ''}" placeholder="—"></label>
+                    <label>Cost<input type="number" class="peCost" step="0.0001" min="0" value="${p.cost != null ? Number(p.cost) : ''}" placeholder="—"></label>
                     <label>Retail<input type="number" class="peRetail" step="0.01" min="0" value="${p.retail_price != null ? Number(p.retail_price) : ''}" placeholder="—"></label>
                     <label>Wholesale<input type="number" class="peWholesale" step="0.01" min="0" value="${p.wholesale_price != null ? Number(p.wholesale_price) : ''}" placeholder="—"></label>
                     <label class="wide">Packaging<input type="text" class="pePackaging" value="${esc(p.packaging_info || '')}" placeholder="—"></label>
@@ -7578,9 +7616,9 @@
             const num = (cls) => { const v = val(cls); return v === '' ? null : Number(v); };
             const name = val('.peName').trim();
             if (!name) { toast('A product needs a name.'); return; }
-            const priceProblem = numberInputError(val('.peCost'), { label: 'Cost', allowBlank: true, max: 1000000 })
-              || numberInputError(val('.peRetail'), { label: 'Retail price', allowBlank: true, max: 1000000 })
-              || numberInputError(val('.peWholesale'), { label: 'Wholesale price', allowBlank: true, max: 1000000 });
+            const priceProblem = numberInputError(val('.peCost'), { label: 'Cost', allowBlank: true, max: 1000000, decimals: 4 })
+              || numberInputError(val('.peRetail'), { label: 'Retail price', allowBlank: true, max: 1000000, decimals: 2 })
+              || numberInputError(val('.peWholesale'), { label: 'Wholesale price', allowBlank: true, max: 1000000, decimals: 2 });
             if (priceProblem) { showDashError(priceProblem + ' Nothing was saved.'); return; }
             btn.disabled = true;
             try {
@@ -7947,7 +7985,7 @@
             actionHtml = `<button type="button" class="small advanceReturnBtn" data-next="closed">Close</button>`;
           } else if (r.status === 'received') {
             actionHtml = `
-              <input type="number" class="refundAmountInput" min="0" step="0.01" placeholder="Refund $ (optional)" style="width:130px;padding:5px 7px;border-radius:6px;border:1px solid #cfd8d6;font-family:inherit;font-size:12px;">
+              <input type="number" class="refundAmountInput" min="0" max="1000000" step="0.01" placeholder="Refund $ (optional)" style="width:130px;padding:5px 7px;border-radius:6px;border:1px solid #cfd8d6;font-family:inherit;font-size:12px;">
               <button type="button" class="small markRefundedBtn">Mark Refunded</button>
               <button type="button" class="small advanceReturnBtn" data-next="closed">Close without refund</button>`;
           } else if (r.status === 'refunded') {
@@ -8114,8 +8152,10 @@
             const amountInput = row.querySelector('.refundAmountInput');
             const raw = amountInput ? amountInput.value.trim() : '';
             const amount = raw === '' ? null : Number(raw);
-            if (raw !== '' && (isNaN(amount) || amount < 0)) {
-              showDashError("That refund amount doesn't look like a valid number.");
+            // Whole cents, not negative, not absurd (EXT4: 10.009 used to be saved).
+            const refundProblem = numberInputError(raw, { label: 'The refund amount', allowBlank: true, max: 1000000, decimals: 2 });
+            if (refundProblem) {
+              showDashError(refundProblem + ' Nothing was saved.');
               return;
             }
             const lineValueAttr = row.getAttribute('data-line-value');
@@ -8396,7 +8436,7 @@
         showDashError('Pick a category for this expense.');
         return;
       }
-      const amountProblem = numberInputError(amountInput.value, { label: 'The amount', min: 0, minExclusive: true, max: 10000000 });
+      const amountProblem = numberInputError(amountInput.value, { label: 'The amount', min: 0, minExclusive: true, max: 10000000, decimals: 2 });
       if (amountProblem) {
         showDashError(amountProblem + ' Enter an amount greater than $0.');
         return;

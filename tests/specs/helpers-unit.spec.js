@@ -84,6 +84,12 @@ test.describe('purchase order totals', () => {
     expect(H.poGrandTotal(po)).toBe(220);
     expect(H.poGrandTotal({})).toBe(0);
   });
+  test('grand total is whole cents (it is saved as the expense) (EXT4)', () => {
+    expect(H.poGrandTotal({ purchase_order_items: [{ quantity: 3, unit_cost: 0.1 }] })).toBe(0.3); // not 0.30000000000000004
+    expect(H.poGrandTotal({ purchase_order_items: [{ quantity: 3, unit_cost: 0.125 }] })).toBe(0.38); // 0.375 rounds half up
+    expect(H.poGrandTotal({ shipping_cost: 0.1, tax: 0.2, purchase_order_items: [] })).toBe(0.3);
+    expect(H.poGrandTotal({ purchase_order_items: Array.from({ length: 1000 }, () => ({ quantity: 1, unit_cost: 0.01 })) })).toBe(10);
+  });
 });
 
 test.describe('small formatters', () => {
@@ -242,6 +248,19 @@ test.describe('upload names and two-press confirmation', () => {
 test.describe('numberInputError (typed numbers, X3-05/06)', () => {
   const N = load(['numberInputError']);
   const E = (raw, o) => N.numberInputError(raw, o);
+  test('decimals: money is whole cents; unit costs may go to 4 places (EXT4)', () => {
+    expect(E('10.00', { decimals: 2 })).toBe('');
+    expect(E('10.1', { decimals: 2 })).toBe('');
+    expect(E('0.07', { decimals: 2 })).toBe(''); // 0.07 * 100 = 7.000000000000001 in floating point
+    expect(E('1234567.89', { decimals: 2, max: 1e7 })).toBe('');
+    expect(E('10.005', { label: 'Refund', decimals: 2 })).toBe('Refund can only go down to whole cents (2 decimal places).');
+    expect(E('1e-3', { decimals: 2 })).toContain('whole cents');
+    expect(E('0.1255', { label: 'Cost', decimals: 4 })).toBe('');
+    expect(E('0.12555', { label: 'Cost', decimals: 4 })).toBe('Cost can have at most 4 decimal places.');
+    expect(E('', { allowBlank: true, decimals: 2 })).toBe('');
+    expect(E('-0.01', { decimals: 2 })).toContain('cannot be less than 0');
+    expect(E('Infinity', { decimals: 2 })).toBe('That value must be a number.');
+  });
   test('a blank box is refused unless blank is allowed (it used to save as 0)', () => {
     expect(E('', { label: 'Amount' })).toBe('Amount is empty. Enter a number.');
     expect(E('   ', { label: 'Amount' })).toContain('empty');

@@ -152,11 +152,11 @@
           <div class="totals-row"><span>Subtotal</span><span id="subtotalOut">$0.00</span></div>
           <div class="totals-row">
             <span>Shipping</span>
-            <input id="shippingTotal" type="number" step="0.01" min="0" value="0" style="width:100px;text-align:right;padding:4px 8px;" />
+            <input id="shippingTotal" type="number" step="0.01" min="0" max="1000000" value="0" style="width:100px;text-align:right;padding:4px 8px;" />
           </div>
           <div class="totals-row">
             <span>Tax</span>
-            <input id="taxTotal" type="number" step="0.01" min="0" value="0" style="width:100px;text-align:right;padding:4px 8px;" />
+            <input id="taxTotal" type="number" step="0.01" min="0" max="1000000" value="0" style="width:100px;text-align:right;padding:4px 8px;" />
           </div>
           <div class="totals-row grand"><span>Total</span><span id="totalOut">$0.00</span></div>
         </div>
@@ -249,8 +249,8 @@
     row.className = 'item-row';
     row.innerHTML = `
       <div><label>Product</label><input type="text" class="item-name" required placeholder="e.g. Lavender Body Lotion 8oz" /></div>
-      <div><label>Qty</label><input type="number" class="item-qty" min="1" step="1" value="1" required /></div>
-      <div><label>Unit price</label><input type="number" class="item-price" min="0" step="0.01" value="0.00" required /></div>
+      <div><label>Qty</label><input type="number" class="item-qty" min="1" max="100000" step="1" value="1" required /></div>
+      <div><label>Unit price</label><input type="number" class="item-price" min="0" max="1000000" step="0.01" value="0.00" required /></div>
       <button type="button" class="btn-remove" title="Remove item">&times;</button>
     `;
     row.querySelector('.btn-remove').addEventListener('click', () => { row.remove(); recalcTotals(); });

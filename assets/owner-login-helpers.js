@@ -85,8 +85,11 @@
         .reduce((s, l) => s + Number(l.quantity || 0) * Number(l.unit_cost || 0), 0);
     }
 
+    // Rounded to whole cents: this amount is saved as the delivery's expense,
+    // and 3 x 0.10 in floating point is 0.30000000000000004 (EXT4). A unit
+    // cost with fractions of a cent (0.125) still adds up exactly per line.
     function poGrandTotal(po){
-      return poLinesTotal(po) + Number(po.shipping_cost || 0) + Number(po.tax || 0);
+      return Math.round((poLinesTotal(po) + Number(po.shipping_cost || 0) + Number(po.tax || 0)) * 100) / 100;
     }
 
     function timeAgo(iso){
@@ -364,6 +367,12 @@
       if (o.minExclusive ? n <= min : n < min) return label + (o.minExclusive ? ' must be more than ' : ' cannot be less than ') + min + '.';
       if (n > max) return label + ' is too large (more than ' + max.toLocaleString('en-US') + ').';
       if (o.integer && !Number.isInteger(n)) return label + ' must be a whole number.';
+      // Money: at most this many decimal places (2 = whole cents), so a
+      // typo like 10.005 is caught instead of saved as a fraction of a cent.
+      if (!o.integer && o.decimals !== undefined) {
+        const f = Math.pow(10, o.decimals);
+        if (Math.abs(Math.round(n * f) - n * f) > 1e-6) return label + (o.decimals === 2 ? ' can only go down to whole cents (2 decimal places).' : ' can have at most ' + o.decimals + ' decimal places.');
+      }
       return '';
     }
 

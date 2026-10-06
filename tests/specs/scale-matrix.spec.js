@@ -78,3 +78,38 @@ for (const n of [0, 1, 999, 1000, 1001]) {
     else await expect(page.locator('#returnsWrap .returnsCutNote')).toHaveCount(0);
   });
 }
+
+// EXT4 (workstream F): whole-table lists (products, lots, purchase orders,
+// compliance records) are read in one request. At 1,000 rows the reply may
+// have been cut, so the page must say the list may be incomplete. Complete
+// paged reads (totals) never trigger the notice.
+for (const n of [0, 1, 999, 1000, 1001, 5000]) {
+  test(`Inventory with ${n} products: the "may be incomplete" notice shows only at the 1,000-row limit`, async ({ page, backend }) => {
+    test.setTimeout(120000);
+    backend.tables.products = Array.from({ length: n }, (_, i) => ({ id: 'p-' + pad(i), name: 'SYNTHETIC ' + i, sku: 'SYN-' + i, is_active: true, status: 'active', cost: null, retail_price: null, wholesale_price: null, packaging_info: null }));
+    backend.tables.inventory = backend.tables.products.map(p => ({ product_id: p.id, available: 1, reserved: 0, damaged: 0, sample: 0, wholesale: 0, promotional: 0, returned: 0, recalled: 0, low_stock_threshold: null }));
+    backend.maxRows = 1000;
+    await login(page);
+    await gotoPage(page, 'inventoryPanel');
+    await page.waitForLoadState('networkidle');
+    const notice = page.locator('#rowCapNotice');
+    if (n >= 1000) {
+      await expect(notice).toBeVisible({ timeout: 60000 });
+      await expect(notice).toContainText('products');
+      await expect(notice).toContainText('Totals and money figures are not affected');
+    } else {
+      await expect(notice).toBeHidden();
+    }
+  });
+}
+
+test('20,000 orders read in pages for Accounting never trigger the "may be incomplete" notice', async ({ page, backend }) => {
+  test.setTimeout(120000);
+  Object.assign(backend.tables, { orders: orders(20000), expenses: [], returns: [], order_items: [] });
+  backend.maxRows = 1000;
+  await login(page);
+  await gotoPage(page, 'accountingPanel');
+  await page.click('#acctToggle button[data-range="all"]');
+  await expect(page.locator('#acctStats .stat').first().locator('.num')).toHaveText(money(20000 * 1.25), { timeout: 60000 });
+  await expect(page.locator('#rowCapNotice')).toBeHidden();
+});

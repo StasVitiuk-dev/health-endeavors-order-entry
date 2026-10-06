@@ -94,6 +94,21 @@ test.describe('Returns', () => {
     expect(writes(backend, 'returns')).toEqual([]);
   });
 
+  for (const [typed, says] of [['10.009', 'whole cents'], ['-1', 'cannot be less than 0'], ['abc', 'must be a number']]) {
+    test(`a refund of "${typed}" is refused before anything is sent (EXT4)`, async ({ page, backend }) => {
+      backend.tables.returns[0].status = 'received';
+      await page.reload();
+      await expect(page.locator('#dash')).toBeVisible();
+      await open(page, 'returnsPanel');
+      // type=number inputs drop text the browser cannot read; set the raw value
+      await page.locator('.refundAmountInput').evaluate((el, v) => { el.type = 'text'; el.value = v; }, typed);
+      await page.click('.markRefundedBtn');
+      await expect(page.locator('#dashError')).toContainText(says);
+      await expect(page.locator('#dashError')).toContainText('Nothing was saved');
+      expect(writes(backend, 'returns')).toEqual([]);
+    });
+  }
+
   test('a refund within the line value is recorded once, only from Received', async ({ page, backend }) => {
     backend.tables.returns[0].status = 'received';
     await page.reload();
