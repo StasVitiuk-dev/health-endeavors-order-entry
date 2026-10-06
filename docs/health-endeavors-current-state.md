@@ -1,6 +1,6 @@
 # Health Endeavors — current state (cross-project summary)
 
-**Last updated:** October 6, 2026 (platform §1; website sections unchanged from Sept 30). **Keep this short.** Details live in the linked documents; update this file whenever the verified state changes materially.
+**Last updated:** October 6, 2026, extension 4 (platform §1 and §5; website sections unchanged from Sept 30). **Keep this short.** Details live in the linked documents; update this file whenever the verified state changes materially.
 
 Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (from the owner's earlier chats, not re-checked) · **PROPOSED** · **OWNER DECISION REQUIRED** · **DEPRECATED**.
 
@@ -26,6 +26,18 @@ Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (fro
   - Also added: a state-machine rule in every test, a failure-injection matrix, a role matrix and a scale matrix up to 20,000 rows; stress at 25 scenarios; mutation checks for the page and SQL; Query C v3 (runs without pg_cron, adds audit coverage) with an owner guide; an R1–R5 install preflight with package tests; and the readiness checklist.
   - See `docs/ops/OVERNIGHT_PLATFORM_EXTENSION_3_2026-10-06.md`.
   - Query C still not run, Query D not run, R1–R5 not installed, production untouched, Shopify Order Sync off.
+- **Extension 4 (Oct 6, not merged, not live):** `claude/platform-deep-readiness-extension-4`, branched from extension 3 at `3d5f1cc`. Deep-readiness pass, every fix with tests:
+  - Manual orders: retries now need an exact match; two tabs in the same second no longer merge; the attempt survives a reload.
+  - Delivery expenses and the Accounting "Last 7 days" figure use the Central calendar day. A delivery received after 7 pm on the 30th used to land in the next month.
+  - Emergency mode always tries to switch off Order Sync and pause Agent #7, even if the mode itself cannot be recorded.
+  - Totals saved to the database are whole cents; refund amounts are checked; a stale feature-request button can no longer jump to done.
+  - Gateway error pages and cut-off replies get plain words; lists at the 1,000-row server limit say they may be incomplete.
+  - Accessibility: skip link and keyboard focus kept inside dialogs. The palette lists pages, then records, then Guide.
+  - New gates: a write-path inventory, mock-vs-schema drift, numeric contract, error language, and runbook/Query C checksum checks.
+  - Mutation testing: 47 page and 10 SQL mutations.
+  - Database drafts (local only): R1 expense rounded to cents and a column-type preflight (new fingerprint `3df2bf7a07b451f12f9359ceca1c85df`). Also a new draft guard (17/18) for a PO-line-vs-receive race found in stress, and stress S26–S29 with data-integrity invariants.
+  - See `docs/ops/DEEP_PLATFORM_EXTENSION_4_2026-10-06.md` and `docs/ops/OWNER_DECISIONS_NEXT.md`.
+  - Query C still not run, Query D not run, R1–R5 and the guard not installed, production untouched, Shopify Order Sync off.
 - **Store not launched:** 0 real orders, real products not yet added, the Shopify order sync and agents #2/#3/#7/#8 switched off on purpose until products exist (REPORTED). Agent #1's on/off state is **unverified**.
 
 ## 2. Public website (customer storefront)
@@ -58,6 +70,7 @@ Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (fro
   - `claude/ops-readiness`: the operations review and the read-only Queries A/B/C
   - `claude/platform-overnight-implementation`: the 20 PRs plus tested fixes for stale state, double actions, R7, report totals and agent truth, plus modularization steps 1–2. Its full suite: 553 passed, 0 failed
   - `claude/platform-overnight-extension-3`: extension 3 (see §1)
+  - `claude/platform-deep-readiness-extension-4`: extension 4 (see §1)
   - `claude/tests-only-ci`: the CI workflow, not active
 
 ## 6. Known bugs and risks (top items)
