@@ -155,3 +155,38 @@ test.describe('tax categories', () => {
     for (const v of values) expect(H.TAX_CATEGORY_MAP[v], v).toBeTruthy();
   });
 });
+
+// Moved to assets/owner-login-helpers.js on 2026-10-06 (modularization step 3).
+test.describe('error and upload helpers', () => {
+  const E = load(['isNetworkError', 'boolGuard', 'noRowsChanged', 'staleMessage', 'explainDbError', 'UPLOAD_MAX_BYTES', 'uploadProblem']);
+  test('isNetworkError: a missing reply, not a database refusal', () => {
+    expect(E.isNetworkError({ message: 'TypeError: Failed to fetch' })).toBe(true);
+    expect(E.isNetworkError({ message: 'Failed to fetch', code: '23514' })).toBe(false);
+    expect(E.isNetworkError({ message: 'new row violates check constraint' })).toBe(false);
+  });
+  test('noRowsChanged: empty or missing reply means nothing changed', () => {
+    expect(E.noRowsChanged([])).toBe(true);
+    expect(E.noRowsChanged(null)).toBe(true);
+    expect(E.noRowsChanged([{ id: 1 }])).toBe(false);
+  });
+  test('explainDbError adds plain words to permission and expired-session text, once', () => {
+    const rls = E.explainDbError('Could not save: new row violates row-level security policy for table "x"');
+    expect(rls).toContain('only the Owner or an Administrator can do it');
+    expect(E.explainDbError(rls)).toBe(rls);
+    expect(E.explainDbError('JWT expired')).toContain('Sign in again');
+    expect(E.explainDbError('Something else')).toBe('Something else');
+    expect(E.explainDbError(null)).toBe('');
+  });
+  test('uploadProblem: size limit and blocked types', () => {
+    expect(E.uploadProblem(null)).toBe(null);
+    expect(E.uploadProblem({ name: 'a.pdf', size: 1000 })).toBe(null);
+    expect(E.uploadProblem({ name: 'a.pdf', size: E.UPLOAD_MAX_BYTES + 1 })).toContain('limit is 50 MB');
+    for (const n of ['x.html', 'X.HTM', 'a.svg', 'run.js', 'setup.exe']) expect(E.uploadProblem({ name: n, size: 10 })).toContain('can’t be uploaded');
+    expect(E.uploadProblem({ name: 'photo.jpeg', size: 10 })).toBe(null);
+  });
+  test('boolGuard and staleMessage', () => {
+    expect(E.boolGuard(true)).toBe(true);
+    expect(E.boolGuard(false)).toEqual({ notIs: true });
+    expect(E.staleMessage('That order')).toMatch(/^That order was already changed/);
+  });
+});

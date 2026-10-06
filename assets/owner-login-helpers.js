@@ -222,10 +222,60 @@
     };
 
   window.HE = window.HE || {};
+
+    // ---------- moved from owner-login.html on 2026-10-06 (modularization step 3) ----------
+    // A browser-level network failure (no reply at all). The request may or
+    // may not have reached the database, so the honest advice is "check
+    // before retrying", not "try again".
+    function isNetworkError(err){
+      const m = String((err && err.message) || err || '');
+      return /Failed to fetch|NetworkError|Load failed|network|connection/i.test(m) && !(err && err.code);
+    }
+
+    // Guard for an on/off column as the page showed it: "on" must still be
+    // true; "off" may be false or empty (null).
+    function boolGuard(shownOn){ return shownOn ? true : { notIs: true }; }
+
+    // An update/delete that row-level security refuses doesn't error: it
+    // just changes nothing. Ask for the changed rows back (.select('id')) and
+    // call this, so the page never says "done" when nothing was done.
+    function noRowsChanged(data){ return !data || (Array.isArray(data) && data.length === 0); }
+
+    function staleMessage(what){
+      return (what || 'That item') + ' was already changed — by someone else, another tab or an agent — or you don\'t have permission to change it. Nothing was overwritten; the list has been refreshed.';
+    }
+
+    // Database refusals arrive as technical text ("new row violates
+    // row-level security policy…", "JWT expired"). Keep it (it helps when
+    // reporting a problem) and add what it means in plain words.
+    function explainDbError(text){
+      const t = String(text == null ? '' : text);
+      if (/row-level security|permission denied for|insufficient_privilege/i.test(t) && !/only the Owner or an Administrator/i.test(t)) {
+        return t + ' — You don’t have permission for this; only the Owner or an Administrator can do it. Nothing was changed by this step.';
+      }
+      if (/JWT expired|invalid JWT|PGRST301/i.test(t) && !/sign in again/i.test(t)) {
+        return t + ' — Your sign-in has expired. Sign in again, then retry.';
+      }
+      return t;
+    }
+
+    // Uploads: checked before anything is sent. Web pages, scripts and
+    // programs could run code when the stored file is opened, and a very
+    // large file would only fail after a long upload.
+    const UPLOAD_MAX_BYTES = 50 * 1024 * 1024;
+    function uploadProblem(file){
+      if (!file) return null;
+      if (file.size > UPLOAD_MAX_BYTES) return 'That file is ' + Math.ceil(file.size / 1048576) + ' MB; the limit is 50 MB. Nothing was uploaded.';
+      if (/\.(html?|xhtml|svg|js|mjs|php|exe|bat|cmd|sh|msi)$/i.test(file.name || '')) {
+        return 'Files of that type (web pages, scripts, programs) can’t be uploaded. Save it as a PDF or an image instead. Nothing was uploaded.';
+      }
+      return null;
+    }
+
   // Bump API when a helper's name or arguments change, so a page that loaded
   // an older copy refuses to start instead of running mixed code.
   window.HE.helpers = Object.freeze({
-    API: 1,
+    API: 2,
     esc,
     csvCell,
     fmtMoney,
@@ -247,5 +297,12 @@
     BUSINESS_RULE_WHOLE_NUMBER_LIMITS,
     businessRuleValueError,
     TAX_CATEGORY_MAP,
+    isNetworkError,
+    boolGuard,
+    noRowsChanged,
+    staleMessage,
+    explainDbError,
+    UPLOAD_MAX_BYTES,
+    uploadProblem,
   });
 })();

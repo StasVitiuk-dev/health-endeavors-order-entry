@@ -21,5 +21,5 @@ Double clicks: every upload form disables its button during the save (test: "a d
 
 1. **Bucket settings:** is each bucket private, and what are its file-size limit and allowed MIME types? The page now assumes 50 MB; it should match the bucket.
 2. **Storage policies:** who may upload, read and delete in each bucket? Two checks matter. Can an employee delete a document's file even though only the Owner/Administrator may delete the record? And can anyone signed in read any file?
-3. **Orphans already in storage:** a read-only listing comparing stored object names with `documents.file_path`, `evidence_locker.file_path` and `expenses.receipt_path` would show files left behind before these fixes. Query B suggests there's little or no data yet.
+3. **Orphans already in storage:** a read-only listing comparing stored object names with `documents.file_path`, `evidence_locker.file_path` and `expenses.receipt_path` would show files left behind before these fixes.
 4. **Receipt file delete** (`expense-receipts`) already removes the file, then clears `receipt_path` only if unchanged. If clearing fails, the record points at a removed file; the page says so. Acceptable; noted.

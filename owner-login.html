@@ -23,7 +23,7 @@
 <title>Health Endeavors — Owner Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous" onerror="window.__sbLoadFailed=true"></script>
 <link rel="stylesheet" href="assets/owner-login.css?v=71e9d86dca">
-<script src="assets/owner-login-helpers.js?v=4ef61f2455" onerror="window.__heHelpersLoadFailed=true"></script>
+<script src="assets/owner-login-helpers.js?v=95b9079aee" onerror="window.__heHelpersLoadFailed=true"></script>
 <script>
   // Applied before anything renders so there's no flash of the wrong theme.
   (function(){
@@ -104,7 +104,7 @@
         <div id="attentionWrap"><p class="empty">Loading…</p></div>
         <form class="reminderForm" id="addReminderForm">
           <input type="text" id="reminderTitle" placeholder="Add a reminder…" required>
-          <input type="datetime-local" id="reminderDue">
+          <input type="datetime-local" id="reminderDue" aria-label="Due date and time (optional)">
           <select id="reminderPriority">
             <option value="normal">Normal</option>
             <option value="high">High</option>
@@ -283,7 +283,7 @@
           <input type="text" id="expVendor" placeholder="Vendor (optional — e.g. Uline, Meta Ads)">
           <textarea id="expNote" placeholder="Note (optional)" rows="2" style="width:100%;padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;resize:vertical;"></textarea>
           <label style="font-size:12px;color:#6b7877;">Receipt (optional) — photo, screenshot, or PDF</label>
-          <input type="file" id="expReceipt" accept="image/*,.pdf">
+          <input type="file" id="expReceipt" accept="image/*,.pdf" aria-label="Receipt file (optional)">
           <button type="submit" class="small" style="align-self:flex-start;">Add expense</button>
         </form>
 
@@ -373,7 +373,7 @@
             <option value="Document">Document</option>
             <option value="Other">Other</option>
           </select>
-          <input type="file" id="evidenceFile" style="font-size:13px;">
+          <input type="file" id="evidenceFile" style="font-size:13px;" aria-label="Evidence file (optional)">
           <p class="hint" style="margin:-4px 0 0;">Upload a file here, or paste a link below — you don't need both.</p>
           <input type="text" id="evidenceLink" placeholder="Link to the file (optional — e.g. a link to the email, photo, or document)">
           <button type="submit" class="small" style="align-self:flex-start;">Add evidence</button>
@@ -403,7 +403,7 @@
             </label>
           </div>
           <textarea id="docNotes" placeholder="Notes (optional)…" rows="2" style="width:100%;padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;resize:vertical;"></textarea>
-          <input type="file" id="docFile" style="font-size:13px;">
+          <input type="file" id="docFile" style="font-size:13px;" aria-label="Document file (optional)">
           <p class="hint" style="margin:-4px 0 0;">Upload a file here, or paste a link below — you don't need both.</p>
           <input type="text" id="docUrl" placeholder="Link to the document (optional — e.g. a Drive or email link)">
           <button type="submit" class="small" style="align-self:flex-start;">Add document</button>
@@ -793,7 +793,7 @@
     showBanner('The sign-in helper library did not load from the internet, so this page cannot work yet. Check that your Mac is online, then fully reload this page (press Cmd+R). If this keeps happening, a content blocker or ad blocker extension in Safari may be blocking cdn.jsdelivr.net — try turning it off for this page and reloading.');
   } else if (window.__heHelpersLoadFailed || !window.HE || !window.HE.helpers) {
     showBanner('Part of this page (assets/owner-login-helpers.js) did not load, so it cannot start. Check that you are online, then fully reload this page (press Cmd+R).');
-  } else if (window.HE.helpers.API !== 1) {
+  } else if (window.HE.helpers.API !== 2) {
     showBanner('The dashboard was just updated and this page loaded a mix of old and new files. Fully reload this page (press Cmd+R) — nothing was changed.');
   } else {
     initApp();
@@ -823,6 +823,13 @@
       BUSINESS_RULE_WHOLE_NUMBER_LIMITS,
       businessRuleValueError,
       TAX_CATEGORY_MAP,
+      isNetworkError,
+      boolGuard,
+      noRowsChanged,
+      staleMessage,
+      explainDbError,
+      UPLOAD_MAX_BYTES,
+      uploadProblem,
     } = window.HE.helpers;
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const verifyOnly = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -851,19 +858,6 @@
     function showLoginError(text){
       loginMsg.textContent = text;
       loginMsg.className = 'msg error';
-    }
-    // Database refusals arrive as technical text ("new row violates
-    // row-level security policy…", "JWT expired"). Keep it (it helps when
-    // reporting a problem) and add what it means in plain words.
-    function explainDbError(text){
-      const t = String(text == null ? '' : text);
-      if (/row-level security|permission denied for|insufficient_privilege/i.test(t) && !/only the Owner or an Administrator/i.test(t)) {
-        return t + ' — You don’t have permission for this; only the Owner or an Administrator can do it. Nothing was changed by this step.';
-      }
-      if (/JWT expired|invalid JWT|PGRST301/i.test(t) && !/sign in again/i.test(t)) {
-        return t + ' — Your sign-in has expired. Sign in again, then retry.';
-      }
-      return t;
     }
     function showDashError(text){
       text = explainDbError(text);
@@ -1015,26 +1009,7 @@
     // (Query A). The page checks first so it never starts a change it can't finish.
     function canChangeStock(){ return currentUserRole === 'owner' || currentUserRole === 'administrator'; }
 
-    // A browser-level network failure (no reply at all). The request may or
-    // may not have reached the database, so the honest advice is "check
-    // before retrying", not "try again".
-    function isNetworkError(err){
-      const m = String((err && err.message) || err || '');
-      return /Failed to fetch|NetworkError|Load failed|network|connection/i.test(m) && !(err && err.code);
-    }
 
-    // Uploads: checked before anything is sent. Web pages, scripts and
-    // programs could run code when the stored file is opened, and a very
-    // large file would only fail after a long upload.
-    const UPLOAD_MAX_BYTES = 50 * 1024 * 1024;
-    function uploadProblem(file){
-      if (!file) return null;
-      if (file.size > UPLOAD_MAX_BYTES) return 'That file is ' + Math.ceil(file.size / 1048576) + ' MB; the limit is 50 MB. Nothing was uploaded.';
-      if (/\.(html?|xhtml|svg|js|mjs|php|exe|bat|cmd|sh|msi)$/i.test(file.name || '')) {
-        return 'Files of that type (web pages, scripts, programs) can’t be uploaded. Save it as a PDF or an image instead. Nothing was uploaded.';
-      }
-      return null;
-    }
     // Uploads a file, then saves the record that points at it
     // (saveRecord(path) → { error }). If the record is refused, the file is
     // removed again, so nothing is left that no page can show. If the
@@ -1058,16 +1033,6 @@
         throw new Error((error.message || error) + ' — and the uploaded file could not be removed again; tell the owner it is left in storage as "' + path + '".');
       }
       throw error;
-    }
-    // Guard for an on/off column as the page showed it: "on" must still be
-    // true; "off" may be false or empty (null).
-    function boolGuard(shownOn){ return shownOn ? true : { notIs: true }; }
-    // An update/delete that row-level security refuses doesn't error: it
-    // just changes nothing. Ask for the changed rows back (.select('id')) and
-    // call this, so the page never says "done" when nothing was done.
-    function noRowsChanged(data){ return !data || (Array.isArray(data) && data.length === 0); }
-    function staleMessage(what){
-      return (what || 'That item') + ' was already changed — by someone else, another tab or an agent — or you don\'t have permission to change it. Nothing was overwritten; the list has been refreshed.';
     }
     // Two-press confirmation for actions that are hard to undo: the first
     // press only re-labels the button; a second press within 4 seconds
@@ -5990,7 +5955,7 @@
     // says why it is blocked. (The real protection is the database's own
     // permissions; this only prevents an accidental click.)
     const LAUNCH_BLOCKED_FLAGS = {
-      shopify_order_sync: 'Off on purpose before launch. Blocked until launch checks: keep off until the stock fixes (R1–R4) are live and Agent #1 (invoices) is confirmed on — otherwise real orders can be miscounted or left without an invoice. Turning it on here only flips the switch; nothing is sent to Shopify from this page.',
+      shopify_order_sync: 'Kept off on purpose. Blocked until launch checks: keep off until the stock fixes (R1–R4) are live and Agent #1 (invoices) is confirmed on — otherwise real orders can be miscounted or left without an invoice. Turning it on here only flips the switch; nothing is sent to Shopify from this page.',
     };
 
     async function loadFlags(){
@@ -6078,7 +6043,8 @@
         const wrap = document.getElementById('systemModeWrap');
         if (wrap) {
           const when = row && row.changed_at ? new Date(row.changed_at).toLocaleString() : null;
-          const changedLine = (who && when) ? `Last changed by ${who} on ${when}.`
+          const changedLine = !row ? 'No mode has been saved in the database yet, so this shows the default (Normal).'
+            : (who && when) ? `Last changed by ${who} on ${when}.`
             : when ? `Last changed on ${when}.` : 'No change recorded yet.';
           wrap.innerHTML = `
             <div style="display:inline-block;padding:6px 12px;border-radius:999px;font-weight:700;font-size:13px;
