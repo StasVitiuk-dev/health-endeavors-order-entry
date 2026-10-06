@@ -194,6 +194,30 @@
   const orderDate = document.getElementById('orderDate');
 
   function showError(el, text){ el.textContent = text; el.hidden = false; }
+  // Plain words instead of raw database / browser text (EXT3, 2026-10-06).
+  function explainSaveError(err, stage){
+    const m = String((err && err.message) || err || '');
+    if (/Failed to fetch|Load failed|NetworkError/i.test(m)) {
+      return 'The connection dropped before the page heard back, so this order may or may not have been saved. Press "Save order" again: the page checks first and will not create a second copy.';
+    }
+    if (/row-level security|permission denied|42501/i.test(m) || (err && err.code === '42501')) {
+      return stage === 'items'
+        ? 'The order was saved, but its items were refused: your account is not allowed to add them. Ask the owner to check order ' + (err.orderNumber || '') + ' on the Orders page.'
+        : 'Your account is not allowed to add orders. Nothing was saved.';
+    }
+    if (/JWT expired|PGRST301/i.test(m)) return 'Your sign-in has expired. Sign in again, then press "Save order" again (it will not create a second copy).';
+    if (/violates check constraint|invalid input value for enum|23514|22P02/i.test(m)) {
+      return stage === 'items'
+        ? 'The order was saved, but one of its items has a value the database does not accept. Fix it and press "Save order" again: the page adds the items to the same order.'
+        : 'One of the values (for example the sale type or status) is not accepted by the database. Nothing was saved.';
+    }
+    return m || 'Something went wrong saving this order.';
+  }
+  // The same order number is kept until the order is saved completely, so a
+  // retry after a failure finds the order saved the first time instead of
+  // creating a second one (duplicate revenue), and only adds missing items.
+  let pendingOrderNumber = null;
+  let pendingTotal = null;
   function hideError(el){ el.hidden = true; }
   function money(n){ return '$' + (Math.round(n * 100) / 100).toFixed(2); }
 
@@ -296,10 +320,19 @@
       const tax = parseFloat(taxTotal.value) || 0;
       const total = Math.round((subtotal + ship + tax) * 100) / 100;
 
+      if (pendingOrderNumber && pendingTotal !== total) {
+        // The form was changed after a failed save; the first attempt may
+        // already be saved with the old amounts. Don't guess: stop and say so.
+        throw new Error('The previous attempt (order ' + pendingOrderNumber + ', ' + money(pendingTotal) + ') may already be saved, and the amounts have changed since. Check the Orders page in the dashboard first; if it is there, delete it or leave it, then reload this page to enter the order again.');
+      }
+      const orderNumber = pendingOrderNumber || generateOrderNumber();
+      pendingOrderNumber = orderNumber;
+      pendingTotal = total;
+
       const orderPayload = {
         source: 'manual',
         channel: document.getElementById('channel').value,
-        order_number: generateOrderNumber(),
+        order_number: orderNumber,
         customer_name: document.getElementById('customerName').value.trim(),
         customer_email: document.getElementById('customerEmail').value.trim() || null,
         status: document.getElementById('status').value,
@@ -312,12 +345,23 @@
         entered_by: user.id
       };
 
-      const { data: newOrder, error: orderErr } = await sb
-        .from('orders')
-        .insert(orderPayload)
-        .select()
-        .single();
-      if (orderErr) throw orderErr;
+      // A retry: was the order already saved the first time?
+      let stage = 'order';
+      let newOrder = null;
+      const { data: already, error: findErr } = await sb.from('orders').select('id')
+        .eq('order_number', orderNumber).eq('entered_by', user.id).limit(1);
+      if (findErr) throw findErr;
+      if (already && already.length) {
+        newOrder = already[0];
+      } else {
+        const { data: inserted, error: orderErr } = await sb
+          .from('orders')
+          .insert(orderPayload)
+          .select()
+          .single();
+        if (orderErr) throw orderErr;
+        newOrder = inserted;
+      }
 
       const itemsPayload = items.map(i => ({
         order_id: newOrder.id,
@@ -326,14 +370,24 @@
         unit_price: i.unit_price,
         line_total: i.line_total
       }));
-      const { error: itemsErr } = await sb.from('order_items').insert(itemsPayload);
-      if (itemsErr) throw itemsErr;
+      stage = 'items';
+      // Items only if this order has none yet (a retry after the items were
+      // saved but the reply was lost must not add them twice).
+      const { count: itemCount, error: countErr } = await sb.from('order_items')
+        .select('id', { count: 'exact', head: true }).eq('order_id', newOrder.id);
+      if (countErr) { countErr.stage = stage; throw countErr; }
+      if (!itemCount) {
+        const { error: itemsErr } = await sb.from('order_items').insert(itemsPayload);
+        if (itemsErr) { itemsErr.stage = stage; itemsErr.orderNumber = orderNumber; throw itemsErr; }
+      }
+      pendingOrderNumber = null;
+      pendingTotal = null;
 
       successMsg.textContent = `Saved — order ${orderPayload.order_number} for ${money(total)}.`;
       successMsg.hidden = false;
       resetForm();
     } catch (err) {
-      showError(formMsg, err.message || 'Something went wrong saving this order.');
+      showError(formMsg, explainSaveError(err, err && err.stage));
     } finally {
       submitBtn.disabled = false;
       submitBtn.textContent = 'Save order';

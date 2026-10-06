@@ -267,6 +267,14 @@
       if (/JWT expired|invalid JWT|PGRST301/i.test(t) && !/sign in again/i.test(t)) {
         return t + ' — Your sign-in has expired. Sign in again, then retry.';
       }
+      // A dropped connection ("Failed to fetch" in Chrome, "Load failed" in
+      // Safari, "NetworkError" in Firefox) says nothing about whether the
+      // database already saved the change. Say so plainly instead of the raw
+      // browser text, so nobody assumes "not saved" and does it twice (EXT3).
+      if (/Failed to fetch|Load failed|NetworkError when attempting to fetch/i.test(t) && !/may or may not|cannot tell whether/i.test(t)) {
+        return t.replace(/:?\s*(TypeError:\s*)?(Failed to fetch|Load failed|NetworkError when attempting to fetch resource\.?)/i, '')
+          + ' — The connection dropped before the dashboard heard back, so it cannot tell whether this was saved. Reload the page and check before trying again.';
+      }
       return t;
     }
 

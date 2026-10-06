@@ -23,7 +23,7 @@
 <title>Health Endeavors — Owner Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous" onerror="window.__sbLoadFailed=true"></script>
 <link rel="stylesheet" href="assets/owner-login.css?v=2f20e9d637">
-<script src="assets/owner-login-helpers.js?v=1c2bd98456" onerror="window.__heHelpersLoadFailed=true"></script>
+<script src="assets/owner-login-helpers.js?v=4257a4b74e" onerror="window.__heHelpersLoadFailed=true"></script>
 <script>
   // Applied before anything renders so there's no flash of the wrong theme.
   (function(){
@@ -1294,8 +1294,24 @@
       });
     }
 
+    // Signed out somewhere else (another tab, or the sign-in could not be
+    // renewed): leave the dashboard at once and say why, instead of staying
+    // on a page whose requests now go out without a sign-in. The database
+    // answers those with empty lists, which would look like "no data", and
+    // with refusals that look like someone else's change (EXT3, W14).
+    let signingOutHere = false;
+    supabase.auth.onAuthStateChange((event) => {
+      if (event !== 'SIGNED_OUT' || signingOutHere || dash.style.display !== 'flex') return;
+      dash.style.display = 'none';
+      loginScreen.style.display = 'flex';
+      loginForm.reset();
+      showLoginError('You were signed out (in another tab, or your sign-in expired). Anything not already saved on that page was not sent. Sign in again to continue.');
+    });
+
     document.getElementById('signout').addEventListener('click', async () => {
+      signingOutHere = true;
       await supabase.auth.signOut();
+      signingOutHere = false;
       dash.style.display = 'none';
       loginScreen.style.display = 'flex';
       loginForm.reset();
@@ -2764,7 +2780,7 @@
         renderInspector();
       } catch (err) {
         document.getElementById('insBody').innerHTML =
-          '<p class="empty">Could not load this record\'s history: ' + esc(err && err.message ? err.message : String(err)) + '</p>';
+          '<p class="empty">' + esc(explainDbError('Could not load this record\'s history: ' + (err && err.message ? err.message : String(err)))) + '</p>';
       }
     }
     async function openInspector(row){

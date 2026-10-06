@@ -226,6 +226,14 @@
   // page, so a name or message containing <, >, & or quotes is shown as
   // written instead of being treated as page code. Same helper as
   // owner-login.html.
+  // Plain words instead of raw database / browser text (EXT3, 2026-10-06).
+  function plainError(err){
+    const m = String((err && err.message) || err || '');
+    if (/Failed to fetch|Load failed|NetworkError/i.test(m)) return 'the connection dropped. Check you are online and reload the page.';
+    if (/row-level security|permission denied|42501/i.test(m)) return 'your account is not allowed to see this.';
+    if (/JWT expired|PGRST301/i.test(m)) return 'your sign-in has expired. Sign in again.';
+    return m.replace(/ for (table|relation) "[^"]*"/gi, '').replace(/ constraint "[^"]*"/gi, ' rule');
+  }
   function esc(s) {
     if (s === null || s === undefined) return '';
     return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -285,7 +293,7 @@
       .single();
 
     if (summaryErr) {
-      document.getElementById('stat-grid').innerHTML = `<div class="error">Couldn't load summary: ${esc(summaryErr.message)}</div>`;
+      document.getElementById('stat-grid').innerHTML = `<div class="error">Couldn't load summary: ${esc(plainError(summaryErr))}</div>`;
     } else {
       renderStats(summaryRows);
     }
@@ -295,7 +303,7 @@
       .select('*');
 
     if (activityErr) {
-      document.getElementById('activity-list').innerHTML = `<div class="error">Couldn't load activity: ${esc(activityErr.message)}</div>`;
+      document.getElementById('activity-list').innerHTML = `<div class="error">Couldn't load activity: ${esc(plainError(activityErr))}</div>`;
     } else {
       renderActivity(activityRows);
     }

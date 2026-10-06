@@ -251,3 +251,19 @@ test.describe('numberInputError (typed numbers, X3-05/06)', () => {
   });
 });
 
+test.describe('explainDbError: dropped connection (EXT3)', () => {
+  const X = load(['explainDbError']);
+  test('Chrome, Safari and Firefox network failures say the outcome is unknown, not the raw browser text', () => {
+    for (const raw of ['Could not change that rule: TypeError: Failed to fetch', 'Could not change that rule: Load failed', 'Could not change that rule: NetworkError when attempting to fetch resource.']) {
+      const t = X.explainDbError(raw);
+      expect(t).toContain('cannot tell whether this was saved');
+      expect(t).toContain('Could not change that rule');
+      expect(t).not.toMatch(/Failed to fetch|Load failed|NetworkError/);
+    }
+  });
+  test('a message that already explains the uncertainty is left alone', () => {
+    const t = 'That expense may or may not have been saved: Failed to fetch';
+    expect(X.explainDbError(t)).toBe(t);
+  });
+});
+

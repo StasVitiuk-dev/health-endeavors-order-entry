@@ -77,3 +77,17 @@ test('dashboard.html shows database error messages literally', async ({ page, ba
   await expect(page.locator('#stat-grid')).toContainText("Couldn't load summary");
   await expectNoInjectedElement(page);
 });
+
+test('search.html: a permission refusal is explained in plain words, without the internal policy text (EXT3)', async ({ page, backend }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'message text; run once');
+  await login(page);
+  await page.route(/\/rest\/v1\/rpc\/global_search/, route => route.fulfill({
+    status: 403, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' },
+    body: JSON.stringify({ code: '42501', message: 'permission denied for function global_search' }),
+  }));
+  await page.goto('/search.html');
+  await expect(page.locator('#app')).toBeVisible();
+  await page.fill('#search-input', 'SYNTHETIC');
+  await expect(page.locator('#results')).toContainText('Search failed: your account is not allowed to see this.');
+  await expect(page.locator('#results')).not.toContainText('permission denied for function');
+});
