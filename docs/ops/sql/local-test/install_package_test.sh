@@ -10,7 +10,7 @@ CONN=("$@")
 SRC_DB=he_real
 DB=he_pkg_test
 ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
-INSTALL="$ROOT/docs/ops/sql/drafts/10_DRAFT_stock_functions.sql"
+INSTALL="${INSTALL_FILE:-$ROOT/docs/ops/sql/drafts/10_DRAFT_stock_functions.sql}"  # INSTALL_FILE: mutation runs only
 ROLLBACK="$ROOT/docs/ops/sql/drafts/11_DRAFT_rollback_stock_functions.sql"
 FUNCS="'_he_apply_stock_change','adjust_inventory','receive_purchase_order','quarantine_recall','receive_return','delete_unused_product'"
 PASS=0; FAIL=0

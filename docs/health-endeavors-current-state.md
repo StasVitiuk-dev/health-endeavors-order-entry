@@ -16,6 +16,16 @@ Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (fro
 - **CURRENT:** the owner dashboard (`owner-login.html` + 5 other pages) on GitHub Pages from `main`, backed by the production Supabase project (public anon key + staff login + row-level security).
 - **REPORTED:** broad operations features are live: orders, inventory with batch/lot tracking, purchase orders, returns, recalls, quality control, adverse event reports (15-business-day deadline), legal holds, customer inquiries, accounting and tax records, tasks, calendar, employee activity, audit log, security pages, and agents #4/#5/#6 running hourly in Supabase. See PROJECT_RECORD §2.
 - **Branch work (not merged, not live), Oct 5–6:** `claude/platform-overnight-implementation` holds the Query A fixes, hardened R1–R5 stock-function drafts (tested locally only) and the state-machine, stale-tab, storage, scale, XSS, accessibility and empty-database audits, each with fixes and tests. Query B ran clean; no existing data repair is required. Queries C and D are prepared, not run. See `docs/ops/OWNER_REVIEW_2026-10-06.md`.
+- **Extension 3 (Oct 6, not merged, not live):** `claude/platform-overnight-extension-3`, branched from the above at `37050c6`. Second-pass audit and fixes, all with tests:
+  - Expenses totals were cut at 200; open returns were cut at 200.
+  - A manual order retry could create a duplicate order.
+  - A tab signed out elsewhere kept showing the dashboard.
+  - A sold product could be deleted.
+  - Search Enter opened the Guide instead of the page.
+  - Raw error text leaked; some number inputs were unchecked.
+  - Also added: a state-machine rule in every test, a failure-injection matrix, a role matrix and a scale matrix up to 20,000 rows; stress at 25 scenarios; mutation checks for the page and SQL; Query C v3 (runs without pg_cron, adds audit coverage) with an owner guide; an R1–R5 install preflight with package tests; and the readiness checklist.
+  - See `docs/ops/OVERNIGHT_PLATFORM_EXTENSION_3_2026-10-06.md`.
+  - Query C still not run, Query D not run, R1–R5 not installed, production untouched, Shopify Order Sync off.
 - **Store not launched:** 0 real orders, real products not yet added, the Shopify order sync and agents #2/#3/#7/#8 switched off on purpose until products exist (REPORTED). Agent #1's on/off state is **unverified**.
 
 ## 2. Public website (customer storefront)
@@ -47,6 +57,7 @@ Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (fro
 - **Review branches (no PRs):**
   - `claude/ops-readiness`: the operations review and the read-only Queries A/B/C
   - `claude/platform-overnight-implementation`: the 20 PRs plus tested fixes for stale state, double actions, R7, report totals and agent truth, plus modularization steps 1–2. Its full suite: 553 passed, 0 failed
+  - `claude/platform-overnight-extension-3`: extension 3 (see §1)
   - `claude/tests-only-ci`: the CI workflow, not active
 
 ## 6. Known bugs and risks (top items)
@@ -54,7 +65,7 @@ Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (fro
 1. Stock can be double-counted or lost on retries or concurrent edits: R1–R4.
    - On `main`: unprotected.
    - On the overnight branch: protected browser-side (no double counting, no lost updates). A connection drop can still leave work half-done, so the all-or-nothing database functions are still needed: drafted, reconciled with Query A and tested locally (2026-10-06); they wait for Query C and the owner's approval to install. **Blocks** automatic Shopify stock sync.
-2. Product delete wipes stock first (R5). The overnight branch refuses while stock remains; the full fix needs Query A.
+2. Product delete wipes stock first (R5). The overnight branch refuses while stock remains. *Superseded 2026-10-06:* Query A has run and R5 is reconciled with it; extension 3 also refuses sold products and products with quality checks (`docs/ops/PRODUCT_LIFECYCLE_REVIEW.md`). The R5 install still waits for Query C and your approval.
 3. Unescaped output on `search.html` / `dashboard.html` (R6): fix in PR #7, plus a broad XSS test on the overnight branch.
 4. Supabase library unpinned (R7): pinned with an integrity hash on the overnight branch (not merged).
 5. Approval, PO, return, recall, legal-hold, flag and agent-switch actions don't check the current state (main). Fixed on the overnight branch.

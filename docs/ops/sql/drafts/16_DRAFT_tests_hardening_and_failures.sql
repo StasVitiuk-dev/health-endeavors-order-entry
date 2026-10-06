@@ -263,6 +263,43 @@ begin
     end if;
   end;
 
+  -- Gaps found by the SQL mutation run (EXT3, tests/mutation/run-sql-mutations.sh):
+  declare pg uuid; pgl1 uuid; pgl2 uuid; rq uuid; resg jsonb; snap text;
+  begin
+    -- (1) "recalled" has no >= 0 database rule: only the function stops it
+    --     going below zero.
+    insert into products (name, sku) values ('TEST recalled floor', 'T-RF') returning id into pg;
+    insert into inventory (product_id) values (pg);
+    begin perform adjust_inventory(pg, 'recalled', -1, 'x'); raise exception 'recalled went below zero';
+    exception when sqlstate '23514' then null; end;
+    if (select recalled from inventory where product_id = pg) <> 0 then raise exception 'recalled changed after a refused change'; end if;
+
+    -- (2) a delivery whose first line was already fully received (by hand)
+    --     stocks only the outstanding line, without error.
+    insert into purchase_orders (po_number, supplier_id, status) values ('HX-PO-PARTIAL', s, 'shipped') returning id into po;
+    insert into purchase_order_items (purchase_order_id, product_id, description, quantity, unit_cost, quantity_received)
+      values (po, pg, 'done already', 4, 1, 4) returning id into pgl1;
+    insert into purchase_order_items (purchase_order_id, product_id, description, quantity, unit_cost, quantity_received)
+      values (po, pg, 'outstanding', 3, 1, 0) returning id into pgl2;
+    resg := receive_purchase_order(po);
+    if (select available from inventory where product_id = pg) <> 3 then
+      raise exception 'partial delivery: expected only the 3 outstanding units, stock is %', (select available from inventory where product_id = pg);
+    end if;
+
+    -- (3) a return that was never approved (requested / rejected) is not
+    --     received or restocked.
+    foreach code in array array['requested', 'rejected'] loop
+      insert into returns (order_id, order_item_id, reason, status) values (o, oi, 'other', code) returning id into rq;
+      snap := _test_snapshot();
+      begin
+        resg := receive_return(rq, 'restock_available');
+      exception when others then resg := jsonb_build_object('refused', true);
+      end;
+      if (select status from returns where id = rq) <> code then raise exception 'a % return was received', code; end if;
+      if _test_snapshot() <> snap then raise exception 'a % return changed stock or records', code; end if;
+    end loop;
+  end;
+
   raise notice 'ALL HARDENING AND FAILURE TESTS PASSED';
 end $$;
 rollback;

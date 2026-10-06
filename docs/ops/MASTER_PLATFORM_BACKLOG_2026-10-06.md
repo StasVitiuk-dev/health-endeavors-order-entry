@@ -2,16 +2,16 @@
 
 Internal dashboard/platform only. Generated from `docs/ops/backlog/items.py` (edit the data there, then run `python3 docs/ops/backlog/items.py`). No production secrets or private business data.
 
-**162 deduplicated items** from 217 raw candidates (55 duplicates merged: the same item recorded in PROJECT_RECORD, the overnight review, PRs, owner lists, decision registers and tests).
+**187 deduplicated items** from 242 raw candidates (55 duplicates merged: the same item recorded in PROJECT_RECORD, the overnight review, PRs, owner lists, decision registers and tests).
 
-Status counts: BLOCKED-EXT 2, BLOCKED-OWNER 25, BLOCKED-PROD 12, BLOCKED-QC 7, DEFERRED 10, DONE 100, QUEUED 6
+Status counts: BLOCKED-EXT 2, BLOCKED-OWNER 26, BLOCKED-PROD 12, BLOCKED-QC 10, DEFERRED 13, DONE 118, QUEUED 6
 
 | Priority | Items | Done (branch) | Remaining |
 |---|---|---|---|
 | P0 | 14 | 4 | 10 |
-| P1 | 47 | 33 | 14 |
-| P2 | 53 | 36 | 17 |
-| P3 | 41 | 27 | 14 |
+| P1 | 52 | 36 | 16 |
+| P2 | 61 | 43 | 18 |
+| P3 | 53 | 35 | 18 |
 | P4 | 7 | 0 | 7 |
 
 Priorities: P0 data loss / security / financial corruption / destructive · P1 launch blocker / correctness / concurrency / permission · P2 reliability / scale / accessibility / major UX · P3 maintainability / tests / docs · P4 future.
@@ -56,6 +56,8 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | SM-05 | State machine | incidents.severity accepts "normal"? (recall/QC escalation) | Escalation could fail for normal severity | Medium | S | Query C §9 | Y | N | N | BLOCKED-QC |
 | SM-06 | State machine | orders.channel enum vs manual order entry values | A manual sale type could be refused | Medium | S | Query C §9 | Y | N | N | BLOCKED-QC |
 | ST-07 | Storage | Read-only check of bucket privacy, size limits, MIME rules and storage policies | Unknown production settings | Medium | S | owner runs a read-only check | N | Y | Y | BLOCKED-PROD |
+| X3-17 | Agents | Emergency Order Sync switch-off writes updated_by/updated_at to feature_flags (columns unverified) | Switch-off could always fail; branch fallback added | High | S | Query C §10 | P | N | N | BLOCKED-QC |
+| X3-25 | Docs | Backup health unverified; records disagree (kept on vs last ran Sept 13) | Restore readiness unknown | High | S | owner check | N | Y | N | BLOCKED-OWNER |
 | AG-02 | Agents | Truthful agent state (Unknown/Failed/Stale/Dry run) | No optimistic defaults | High | M | — | Y | N | N | DONE |
 | AG-05 | Agents | Shopify sync interlock + wording; Emergency switches it off | Premature sync | High | S | — | Y | N | N | DONE |
 | AG-06 | Agents | No-send tripwires (email, Shopify) | No customer messages | High | S | — | Y | N | N | DONE |
@@ -89,6 +91,9 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | SM-14 | State machine | Legal hold release only active; FDA flag only once | Compliance | Medium | S | — | Y | N | N | DONE |
 | SM-17 | State machine | Agent switch / flag / system mode guarded | Stale tab flips | High | S | — | Y | N | N | DONE |
 | ST-02 | Storage | Evidence/receipt orphan cleanup; document delete removes file | Orphans | Medium | S | — | Y | N | N | DONE |
+| X3-03 | Reporting | Expenses page count and money total summed from the newest 200 only | Silent wrong money total beyond 200 expenses | High | S | — | Y | N | N | DONE |
+| X3-09 | Inventory | R1–R5 install had no schema preflight (wrong shape installs, fails at first click) | Install safety | High | S | — | Y | N | N | DONE |
+| X3-20 | Orders | Manual order retry after a failure created a SECOND order (duplicate revenue) | Two-step save, lost reply | High | S | — | Y | N | N | DONE |
 
 ## P2
 
@@ -111,6 +116,7 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | SE-12 | Security | Task access hardening before more staff | Least privilege | Medium | M | owner | N | Y | Y | BLOCKED-OWNER |
 | SH-03 | Shopify | Order status words match Accounting/Tax classification after launch | Revenue classification | Medium | S | first real orders | N | Y | N | BLOCKED-EXT |
 | SM-09 | State machine | Feature requests: status advance guard + values vs DB | Unverified values | Low | S | Query C §9 | Y | N | N | BLOCKED-QC |
+| X3-18 | Audit | Compliance actions record when but not who (legal hold, FDA, QC, inquiries) | Who-did-it lost if no audit trigger | Medium | M | Query C §10; approval | N | Y | Y | BLOCKED-QC |
 | AG-03 | Agents | "error"/"fail" statuses show Failed; Agent #1 "Switch on" | Overclaim | Medium | S | — | Y | N | N | DONE |
 | AX-01 | Accessibility | Accessible names, unique ids, phone tap targets, dialog focus | Screen readers / phone | Medium | S | — | Y | N | N | DONE |
 | AX-02 | Accessibility | Status/error banner announced to screen readers (role=alert / aria-live) | Errors not announced | Medium | S | — | Y | N | N | DONE |
@@ -147,6 +153,13 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | ST-03 | Storage | Size/type check before upload | Late failure; active content | Low | S | — | Y | N | N | DONE |
 | ST-05 | Storage | Malicious filenames (path traversal, unicode, very long) produce safe storage paths | Path safety | Medium | S | — | Y | N | N | DONE |
 | UX-03 | UX | US-evening dates (expense/AE defaults, lot expiry, file names, tax receipt list) | Off by one day | Medium | S | — | Y | N | N | DONE |
+| X3-01 | State machine | Product edit form wrote status unguarded (stale tab flips discontinued/active) | Found by the mock state rule | Medium | S | — | Y | N | N | DONE |
+| X3-04 | Scale | Returns page listed and counted the newest 200 only (old open returns vanished) | Open work hidden | Medium | S | — | Y | N | N | DONE |
+| X3-08 | Query C | Query C failed without pg_cron; tokens not masked in agent errors | Owner run could stop with an error | Medium | S | — | Y | N | N | DONE |
+| X3-13 | Inventory | Sold product (order lines by SKU text) could be deleted (dashboard + R5) | Sales history points at nothing; returns can't restock | Medium | S | — | Y | N | N | DONE |
+| X3-21 | Auth | Signed out in another tab: dashboard stayed open showing empty lists as if no data | Unknown shown as empty | Medium | S | — | Y | N | N | DONE |
+| X3-22 | Errors | Raw "Failed to fetch" / database text on dropped connections and other pages | Misleading "not saved"; internal names | Medium | S | — | Y | N | N | DONE |
+| X3-24 | Tests | SQL mutation run found 3 untested rules (recalled floor, fully received lines, unapproved return) | Test gaps | Medium | S | — | Y | N | N | DONE |
 
 ## P3
 
@@ -164,8 +177,12 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | SC-06 | Scale | Lot pickers truncate after 1,000 lots | Older lots missing from pickers | Low | S | — | Y | N | N | DEFERRED |
 | ST-08 | Storage | Read-only listing of orphaned objects created before the fixes | Cleanup scope | Low | S | owner | N | Y | Y | BLOCKED-PROD |
 | ST-09 | Storage | Server-side atomic upload+record (signed upload + DB function) design | Browser cannot make two systems atomic | Low | M | design only | Y | N | N | QUEUED |
-| UX-01 | UX | Sidebar search: typing a page name + Enter opens that page (test.fixme) | Known behaviour gap; owner said palette Enter→guide looks deliberate | Low | S | owner decision | Y | Y | N | BLOCKED-OWNER |
 | UX-06 | UX | Administrator tries personal calendar | Pending check | Low | S | owner | N | Y | N | BLOCKED-OWNER |
+| X3-11 | Scale | Return-form order picker lists newest 200 orders only | Old order returns can't be logged | Low | S | volume | Y | N | N | DEFERRED |
+| X3-12 | Scale | Evidence form incident picker newest 200 only | Years away | Low | S | volume | Y | N | N | DEFERRED |
+| X3-15 | Inventory | Tasks can name a deleted product by id (free text) | Low impact | Low | S | — | Y | N | N | DEFERRED |
+| X3-16 | Inventory | Keep permanent product delete limited to never-used products, or archive only? | Policy | Low | S | owner | N | Y | N | BLOCKED-OWNER |
+| X3-19 | Audit | Send actor fields on more writes once columns are confirmed | Blind columns break writes | Low | S | Query C §10 | Y | N | N | BLOCKED-QC |
 | AX-03 | Accessibility | Toasts announced (aria-live polite) | Success not announced | Low | S | — | Y | N | N | DONE |
 | AX-04 | Accessibility | prefers-reduced-motion respected for animations | Motion sensitivity | Low | S | — | Y | N | N | DONE |
 | AX-06 | Accessibility | Colour contrast check of badges in light/dark | Readability | Low | S | — | Y | N | N | DONE |
@@ -191,8 +208,16 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | TQ-03 | Tests | Mock: DELETE representation, ilike, constraints, URL limits | Realism | Medium | S | — | Y | N | N | DONE |
 | TQ-04 | Tests | Mock refuses NOT NULL omissions for all Query A columns (not only status columns) | Inserts missing required fields | Medium | S | — | Y | N | N | DONE |
 | TQ-05 | Tests | Request baseline kept current | Unexpected requests | Low | S | — | Y | N | N | DONE |
+| UX-01 | UX | Sidebar search: typing a page name + Enter opens that page (test.fixme) | Fixed EXT3: page name wins on Enter (sidebar + palette); questions still open the Guide | Low | S | owner decision | Y | Y | N | DONE |
 | UX-02 | UX | Palette first keys lost after Cmd+K | Typing lost | Low | S | — | Y | N | N | DONE |
 | UX-04 | UX | Stale agent status text #2/#3/#7/#8 | Wording | Low | S | — | Y | N | N | DONE |
+| X3-02 | State machine | Order Restore without "still deleted" condition | Found by the mock state rule | Low | S | — | Y | N | N | DONE |
+| X3-05 | Validation | Blank Business Rules value saved as 0 | Number("") is 0 | Low | S | — | Y | N | N | DONE |
+| X3-06 | Validation | Negative / infinite numbers accepted on button-saved fields (PO shipping/tax, prices, threshold) | No browser form check on plain buttons | Low | S | — | Y | N | N | DONE |
+| X3-07 | Dates | Cleared expense date fell back to the UTC date | "Tomorrow" on US evenings | Low | S | — | Y | N | N | DONE |
+| X3-10 | Tests | Hostile-filename test raced the form reset under load | Flake | Low | S | — | Y | N | N | DONE |
+| X3-14 | Inventory | Product with a quality check could be deleted (dashboard); database FK unknown | Orphan QC rows | Low | S | Query C §9 | Y | N | N | DONE |
+| X3-23 | Auth | Threshold save had no role check (employee request sent, refused by database) | Inconsistent with other stock actions | Low | S | — | Y | N | N | DONE |
 
 ## P4
 
