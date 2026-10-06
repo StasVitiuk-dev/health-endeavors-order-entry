@@ -64,8 +64,23 @@ const NOT_NULL = {
 // NOT NULL columns with no default among the ones above: an insert that
 // leaves them out is refused by the real database.
 const INSERT_REQUIRED = {
-  approval_requests: ['action_type'], audit_log: ['action'], expenses: ['category'],
-  inventory_adjustments: ['bucket'], recalls: ['reason'], returns: ['reason'],
+  // every NOT NULL column without a default, per Query A (TQ-04, 2026-10-06)
+  approval_requests: ['action_type', 'summary'],
+  documents: ['title'],
+  evidence_locker: ['title'],
+  expenses: ['category', 'amount'],
+  inventory: ['product_id'],
+  inventory_adjustments: ['product_id', 'bucket', 'change_amount'],
+  inventory_lots: ['product_id', 'lot_number', 'quantity_received'],
+  order_items: ['order_id'],
+  orders: ['channel'],
+  products: ['name'],
+  purchase_order_items: ['purchase_order_id', 'description', 'quantity'],
+  purchase_orders: ['supplier_id'],
+  recalls: ['lot_id', 'reason'],
+  returns: ['order_id', 'reason'],
+  suppliers: ['name'],
+  tasks: ['title'],
 };
 
 // "recalled" has no ">= 0" rule in the real database (Query A), so it is
