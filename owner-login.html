@@ -4097,7 +4097,7 @@
             const { error: expErr } = await supabase.from('expenses').insert({
               category: po.expense_category,
               amount: total,
-              expense_date: new Date().toISOString().slice(0, 10),
+              expense_date: localDateString(new Date()), // Central calendar day (UTC was "tomorrow" after 7 pm) (EXT4)
               vendor: (po.suppliers && po.suppliers.name) || null,
               note: 'Purchase order ' + po.po_number,
             });
@@ -6019,7 +6019,7 @@
         }));
       } else if (reportHistoryView === 'weekly') {
         firstColLabel = 'Week';
-        rows = rollupReports(REPORT_HISTORY_DATA, d => startOfWeekMonday(d).toISOString().slice(0, 10), d => weekGroupLabel(startOfWeekMonday(d)))
+        rows = rollupReports(REPORT_HISTORY_DATA, d => localDateString(startOfWeekMonday(d)), d => weekGroupLabel(startOfWeekMonday(d)))
           .map(g => ({ ...g, emailed: '—' }));
       } else {
         firstColLabel = 'Month';
@@ -8484,7 +8484,7 @@
         });
         const expenses = await fetchAllRows('expenses', 'id, amount, expense_date, deleted_at, note', q => {
           q = q.is('deleted_at', null);
-          if (start) q = q.gte('expense_date', start.toISOString().slice(0, 10));
+          if (start) q = q.gte('expense_date', localDateString(start));
           return q;
         });
 
@@ -8579,8 +8579,8 @@
         const expenses = await fetchAllRows('expenses',
           'id, category, amount, expense_date, vendor, receipt_path, deleted_at', q => {
             q = q.is('deleted_at', null);
-            if (start) q = q.gte('expense_date', start.toISOString().slice(0, 10));
-            if (end) q = q.lt('expense_date', end.toISOString().slice(0, 10));
+            if (start) q = q.gte('expense_date', localDateString(start));
+            if (end) q = q.lt('expense_date', localDateString(end));
             return q;
           });
 

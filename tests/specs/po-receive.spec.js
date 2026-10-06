@@ -256,3 +256,16 @@ test.describe('sign-in expires while receiving', () => {
     await expect(page.locator('.poReceiveBtn')).toHaveCount(0);
   });
 });
+
+// EXT4 (workstream E): the delivery's expense is dated with the Central
+// calendar day. It used the UTC date, so a delivery received after 7 pm on
+// the last day of a month was logged in the NEXT month.
+test.describe('expense date', () => {
+  test.use({ timezoneId: 'America/Chicago' });
+  test('received at 9 pm Central on Sept 30: the expense is dated Sept 30', async ({ page, backend }) => {
+    await page.clock.setFixedTime(new Date('2026-10-01T02:00:00Z'));
+    await clickReceive(page);
+    await expect.poll(() => snapshot(backend)).toEqual(AFTER_ONE_RECEIVE);
+    expect(backend.tables.expenses[0].expense_date).toBe('2026-09-30');
+  });
+});
