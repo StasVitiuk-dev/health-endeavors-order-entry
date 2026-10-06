@@ -34,7 +34,10 @@ const MUTATIONS = [
     "if (rec && (nowRow.ai_draft_reply || '') !== (rec.ai_draft_reply || '')) {", "if (false) {",
     'guarded-toggles -g "draft edited elsewhere"'],
   ['money totals page by position again (double count when rows arrive)', 'owner-login.html',
-    "if (lastId !== null) q = q.gt('id', lastId);\n        q = q.order('id', { ascending: true }).range(0, PAGE - 1);", "q = q.order('id', { ascending: true }).range(pageNo * PAGE, pageNo * PAGE + PAGE - 1);",
+    // keyset paging AND the repeated-id skip are two independent protections;
+    // removing only one is equivalent (a 56/57 run showed it), so remove both.
+    "if (lastId !== null) q = q.gt('id', lastId);\n        q = q.order('id', { ascending: true }).range(0, PAGE - 1);\n        const { data, error, count } = await q;\n        if (error) throw error;\n        if (pageNo === 0) total = (typeof count === 'number') ? count : null;\n        const batch = data || [];\n        for (const r of batch) if (!seen.has(r.id)) { seen.add(r.id); rows.push(r); }",
+    "q = q.order('id', { ascending: true }).range(rows.length, rows.length + PAGE - 1);\n        const { data, error, count } = await q;\n        if (error) throw error;\n        if (pageNo === 0) total = (typeof count === 'number') ? count : null;\n        const batch = data || [];\n        rows.push(...batch); if (total !== null && rows.length >= total) return rows;",
     'report-totals -g "created while"'],
   ['activity "Load more" repeats rows already shown', 'owner-login.html',
     "ACTIVITY_ROWS = ACTIVITY_ROWS.concat(rows.filter(r => r.id == null || !shown.has(r.id)));", "ACTIVITY_ROWS = ACTIVITY_ROWS.concat(rows);",
