@@ -1022,9 +1022,10 @@
     // EXT5: pages continue AFTER the last id read (keyset), not at a position.
     // With positions, a record created or soft-deleted between two pages
     // shifted everything by one, so one record was counted twice and another
-    // missed, silently, in money totals. Reads until a page comes back empty
-    // (the server may cap a page below PAGE); the first page's exact count is
-    // then used only to notice records that went missing.
+    // missed, silently, in money totals. Stops at a short page once every
+    // counted record is in, otherwise reads on to an empty page (a server set
+    // to cap pages below PAGE is still read to the end); the first page's
+    // exact count is used to notice records that went missing.
     async function fetchAllRows(table, columns, applyFilters){
       const PAGE = 1000;
       const rows = [];
@@ -1040,6 +1041,11 @@
         if (pageNo === 0) total = (typeof count === 'number') ? count : null;
         const batch = data || [];
         for (const r of batch) if (!seen.has(r.id)) { seen.add(r.id); rows.push(r); }
+        // A page shorter than asked for is the end of the data (PAGE equals
+        // Supabase's default per-reply limit, so a capped page is never short),
+        // once every counted record is in. Saves an extra request, and keeps a
+        // long id list (fetchAllRowsIn) from growing past URL limits.
+        if (batch.length && batch.length < PAGE && (total === null || rows.length >= total)) return rows;
         if (!batch.length) {
           if (total !== null && rows.length < total) {
             throw new Error('Only ' + rows.length + ' of ' + total + ' ' + table + ' records could be read, so this total would be wrong. Refresh to try again.');

@@ -67,8 +67,14 @@ async function gotoPage(page, pageId) {
   await openMenuIfMobile(page);
   if (await page.inputValue('#sidebarSearch')) await page.fill('#sidebarSearch', '');
   await unfoldSidebar(page);
-  await page.locator(`#sidebarGroups .sidebarLink[data-page="${pageId}"]`).first().click();
-  await expect(page.locator(`section#${pageId}`)).toHaveClass(/activePage/);
+  // The sidebar is re-drawn whenever a background load finishes (badge
+  // counts). Under heavy CPU load a click can land just as the link is
+  // replaced and be lost (seen once in 3 repeat runs, EXT5). A person would
+  // click again; so does this, and the page must still really open.
+  await expect(async () => {
+    await page.locator(`#sidebarGroups .sidebarLink[data-page="${pageId}"]`).first().click();
+    await expect(page.locator(`section#${pageId}`)).toHaveClass(/activePage/, { timeout: 2000 });
+  }).toPass({ timeout: 15000 });
 }
 
 async function openTasks(page) {
