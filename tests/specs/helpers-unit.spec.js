@@ -207,6 +207,19 @@ test.describe('error and upload helpers', () => {
     expect(E.explainDbError('Could not save: Too Many Requests')).toBe('Could not save — The server is busy right now (too many requests). Nothing was changed by this step. Wait a minute, then try again.');
     for (const t of [page, cut]) expect(E.explainDbError(t)).toBe(t); // idempotent
   });
+  // EXT6: the database undid the step; say so with certainty (not "cannot tell").
+  test('explainDbError: deadlock, statement timeout and busy record say "nothing was changed by this step"', () => {
+    const dl = E.explainDbError('Could not remove the line: deadlock detected');
+    expect(dl).toBe('Could not remove the line — The database undid this step because two changes to the same records collided. Nothing was changed by this step. Wait a moment, reload the page and try again.');
+    expect(E.explainDbError(dl)).toBe(dl); // once only
+    expect(E.explainDbError('Could not save: canceling statement due to statement timeout')).toContain('because the database took too long. Nothing was changed by this step.');
+    expect(E.explainDbError('Could not save: canceling statement due to lock timeout')).toContain('because the record was busy with another change.');
+    expect(E.explainDbError('Could not save: could not obtain lock on row in relation "purchase_orders"')).toContain('because the record was busy with another change.');
+    expect(E.explainDbError('Could not save: could not obtain lock on row in relation "purchase_orders"')).not.toContain('purchase_orders');
+    // the line guard's own refusal is already plain and passes through untouched
+    const busy = 'Purchase order is being received or changed by someone else right now. Nothing was changed — wait a moment, reload the page and try again.';
+    expect(E.explainDbError(busy)).toBe(busy);
+  });
   test('uploadProblem: size limit and blocked types', () => {
     expect(E.uploadProblem(null)).toBe(null);
     expect(E.uploadProblem({ name: 'a.pdf', size: 1000 })).toBe(null);

@@ -291,6 +291,18 @@
       if (fragment !== -1 && !/[\]}]\s*$/.test(t.slice(fragment))) {
         return t.slice(0, fragment).replace(/[\s:—-]+$/, '') + ' — The server’s reply was cut off,' + UNKNOWN;
       }
+      // The database gave up on this one step and undid it: two changes
+      // collided (deadlock), it waited too long (statement timeout), or the
+      // record was busy (lock not available). Unlike a dropped connection,
+      // these are certain: the step was NOT saved (EXT6). Earlier steps of a
+      // multi-step action are reported by the caller, as before.
+      if (/deadlock detected|canceling statement due to (statement|lock) timeout|could not obtain lock on row/i.test(t) && !/try again/i.test(t)) {
+        const why = /deadlock/i.test(t) ? 'two changes to the same records collided'
+          : /lock timeout|could not obtain lock/i.test(t) ? 'the record was busy with another change'
+          : 'the database took too long';
+        return t.replace(/:?\s*(ERROR:\s*)?(deadlock detected|canceling statement due to (statement|lock) timeout|could not obtain lock on row in relation "[^"]*")\.?/i, '')
+          + ' — The database undid this step because ' + why + '. Nothing was changed by this step. Wait a moment, reload the page and try again.';
+      }
       if (/Too Many Requests|rate limit/i.test(t) && !/wait a minute/i.test(t)) {
         return t.replace(/:?\s*Too Many Requests\.?/i, '') + ' — The server is busy right now (too many requests). Nothing was changed by this step. Wait a minute, then try again.';
       }

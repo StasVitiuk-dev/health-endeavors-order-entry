@@ -71,7 +71,10 @@ test('adding a product with a cost above $1,000,000 is refused with plain words 
 // EXT5 (workstream 7): a browser number box empties text it can't read
 // ("$12.50", "1,200"); the page used to say "is empty". Typed for real with
 // the keyboard, as a person would.
-for (const typed of ['12-', '1e', '5..5']) { // typos Chromium accepts but cannot read (pasted "$12.50" ends the same way)
+// EXT6: '5..5' was dropped. Chromium turns it into 5.5 as it is typed (the
+// box shows 5.5), so the old conditional skip silently skipped that case in
+// every run. It is covered below as "what the box shows is what is saved".
+for (const typed of ['12-', '1e']) { // typos Chromium keeps in the box but cannot read
   test(`expense amount typed as "${typed}": told to type a plain number, nothing saved`, async ({ page, backend }, testInfo) => {
     test.skip(testInfo.project.name !== 'desktop', 'run once');
     const { enableWrites } = require('../helpers/stateful-backend');
@@ -83,10 +86,34 @@ for (const typed of ['12-', '1e', '5..5']) { // typos Chromium accepts but canno
     await page.locator('#expAmount').click();
     await page.keyboard.type(typed);
     const bad = await page.locator('#expAmount').evaluate(el => el.validity.badInput || el.value === '');
-    test.skip(!bad, 'this browser kept the text as a number');
+    // The premise of the test, asserted rather than skipped (EXT6): if the
+    // browser ever kept this text as a number, the test must say so, not vanish.
+    expect(bad, 'Chromium treats this text as unreadable').toBe(true);
     await page.locator('#expAmount').evaluate(el => el.form.noValidate = true); // reach the page's own check, as with a pasted value
     await page.locator('#addExpenseForm button[type=submit]').click();
     await expect(page.locator('#dashError')).toContainText('must be a plain number');
     expect(backend.tables.expenses).toHaveLength(0);
+  });
+}
+
+// EXT6: Chromium drops characters it cannot use while typing ("5..5" -> 5.5,
+// "1,200" -> 1200, "$12.50" -> 12.50, "1.2.3" -> 1.23). The page cannot see
+// what was typed, only what the box shows, so the promise is: exactly the
+// value shown in the box is saved, never something else.
+for (const [typed, shown] of [['5..5', '5.5'], ['1,200', '1200'], ['$12.50', '12.50']]) {
+  test(`expense amount typed as "${typed}": the box shows ${shown} and exactly that is saved`, async ({ page, backend }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'run once');
+    const { enableWrites } = require('../helpers/stateful-backend');
+    backend.tables.expenses = [];
+    enableWrites(backend, ['expenses']);
+    await login(page);
+    await gotoPage(page, 'expensesPanel');
+    await page.selectOption('#expCategory', { index: 1 });
+    await page.locator('#expAmount').click();
+    await page.keyboard.type(typed);
+    await expect(page.locator('#expAmount')).toHaveValue(shown);
+    await page.locator('#addExpenseForm button[type=submit]').click();
+    await expect.poll(() => backend.tables.expenses.length).toBe(1);
+    expect(Number(backend.tables.expenses[0].amount)).toBe(Number(shown));
   });
 }

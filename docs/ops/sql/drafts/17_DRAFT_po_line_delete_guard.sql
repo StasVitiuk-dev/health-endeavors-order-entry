@@ -1,6 +1,7 @@
--- DRAFT (2026-10-06, extension 4). NOT INSTALLED. Needs the owner's approval,
--- like R1–R5 (docs/ops/R1-R5-INSTALL-RUNBOOK.md); install only together with
--- or after R1. Rollback: 18_DRAFT_rollback_po_line_delete_guard.sql.
+-- DRAFT (2026-10-06, extension 4; revised extension 6). NOT INSTALLED. Needs
+-- the owner's approval, like R1–R5 (docs/ops/R1-R5-INSTALL-RUNBOOK.md). EXT6:
+-- safe before or after R1 (see below). Rollback:
+-- 18_DRAFT_rollback_po_line_delete_guard.sql.
 --
 -- Problem (reproduced on the local test database, 10 of 30 runs): removing
 -- a purchase-order line while that order is being received can delete the
@@ -15,6 +16,22 @@
 -- (the received quantity no longer matches the stock added). The guard now
 -- covers insert, update of those columns, and delete. The name is kept so the
 -- rollback file and the runbook stay valid.
+--
+-- EXT6 (2026-10-07): the guard now also protects the dashboard's receive as
+-- it runs today (claim, then line by line, as separate requests), not only
+-- R1. Before, a line deleted or re-quantified in the instant between the
+-- guard's check and its commit could still be stocked by a receive that
+-- claimed the order in that instant (forced each time locally:
+-- local-test/po_browser_path_races.sh, "guard delete/qty edit-holds").
+-- Line deletes and edits now hold a share lock on the order until they
+-- commit, taken with NOWAIT: if a receive, cancel or other change holds the
+-- order at that moment, the edit is refused at once with a clear "being
+-- received or changed right now, try again" message (hint po_busy) rather
+-- than waiting (which could deadlock with R1). This means the guard no
+-- longer depends on R1 being installed first.
+--
+-- The paragraph below ("Fix: ...") describes the EXT4/EXT5 version and is
+-- kept for the record; it is SUPERSEDED for DELETE/UPDATE by the above.
 --
 -- Fix: before a line is deleted, re-read its order's status. A receive locks
 -- every line of the order first, so a delete that races it waits for the
@@ -64,11 +81,23 @@ begin
     -- deadlock, and then sees the order's newest status.
     select status, po_number into v_status, v_number from purchase_orders where id = v_po for share;
   else
-    -- DELETE / UPDATE already hold this line's row lock. A receive locks the
-    -- order and then every line, so waiting for the order here could
-    -- deadlock. A plain re-read is enough: a receive in progress holds this
-    -- line's lock, so this statement only gets here after the receive has
-    -- committed, and a new query inside a trigger sees that commit.
+    -- DELETE / UPDATE already hold this line's row lock. EXT6: the order is
+    -- now locked too (FOR SHARE), so the status read below cannot change
+    -- until this edit commits: a receive (R1 or the dashboard's claim) waits
+    -- for the edit, or the edit sees "received". It must not WAIT for the
+    -- order: R1 holds the order and then waits for every line, so waiting
+    -- here could deadlock. NOWAIT refuses at once instead, with a clear
+    -- message, when someone holds the order right now (a receive, a cancel,
+    -- a shipping edit). The EXT4/EXT5 plain re-read was safe with R1 but not
+    -- with the dashboard's step-by-step receive (claim, then lines): there a
+    -- line could be deleted after its stock was added
+    -- (local-test/po_browser_path_races.sh).
+    begin
+      perform 1 from purchase_orders where id = v_po for share nowait;
+    exception when lock_not_available then
+      raise exception 'Purchase order is being received or changed by someone else right now. Nothing was changed — wait a moment, reload the page and try again.'
+        using errcode = '55P03', hint = 'po_busy';
+    end;
     select status, po_number into v_status, v_number from purchase_orders where id = v_po;
   end if;
   if found and v_status not in ('draft', 'ordered') then
@@ -77,7 +106,12 @@ begin
   end if;
   if tg_op = 'UPDATE' and new.purchase_order_id is distinct from old.purchase_order_id then
     -- moving a line to another order: that order must be editable as well
-    select status, po_number into v_status, v_number from purchase_orders where id = new.purchase_order_id for share;
+    begin
+      select status, po_number into v_status, v_number from purchase_orders where id = new.purchase_order_id for share nowait;
+    exception when lock_not_available then
+      raise exception 'Purchase order is being received or changed by someone else right now. Nothing was changed — wait a moment, reload the page and try again.'
+        using errcode = '55P03', hint = 'po_busy';
+    end;
     if found and v_status not in ('draft', 'ordered') then
       raise exception 'Purchase order % is "%" now, so lines can no longer be added to it. Nothing was changed — reload the page.', v_number, v_status
         using errcode = '55000', hint = 'po_not_editable';
