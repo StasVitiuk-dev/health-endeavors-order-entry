@@ -49,3 +49,22 @@ Nothing that exists today lacks a rollback.
 - No branch commit changes production data or schema: the database work is drafts plus local tests.
 - Each fix is one commit with its own tests. Helper-file changes always ship in the same commit as the page's version-guard update (API 3 → 4 in `b22c45b`), so reverting that commit restores a matching pair.
 - `claude/platform-overnight-implementation` (37050c6) is untouched by this extension: reverting the whole extension means dropping `claude/platform-overnight-extension-3`.
+
+## Disaster readiness: what is known, what is not (EXT6, 2026-10-07)
+
+Built only from documents in this repository. The private backups repository was **not** opened (off-limits), and no backup was read, run or changed.
+
+| Question | What the records say | Status |
+|---|---|---|
+| Who owns the backups | The owner. Backups run as GitHub Actions in the private backups repository | REPORTED (PROJECT_RECORD §2) |
+| Expected schedule | Nightly backup; monthly restore test | REPORTED |
+| Last **verified** backup | Unknown. Records disagree ("kept on" vs "last ran Sept 13", X3-25) | **UNKNOWN** |
+| Last verified restore test | Unknown | **UNKNOWN** |
+| Recovery point (most data that could be lost) | Up to about 24 hours *if* the nightly backup works | **PROPOSED**; owner to confirm after the check |
+| Recovery time (how long a restore takes) | Never measured from this repository | **UNKNOWN**; read the duration of the last restore-test run during the check |
+| Who can restore | The owner (backups repository admin, Supabase owner). Claude cannot and must not | CURRENT (CLAUDE.md) |
+| Preventing an accidental overwrite | Restore into a **new or scratch** Supabase project first, compare, then decide. Never restore over the live database without a fresh backup taken minutes before | **PROPOSED** procedure, owner decision |
+| A failed database change (R1–R5, guard, request keys) | Each draft runs in one transaction: a failure part-way changes nothing. A change that installs but misbehaves is removed with its rollback file (`11_`, `18_`, `20_`), and installs and rollbacks are both tested locally. Data written meanwhile stays (rollbacks never delete business data) | CURRENT (drafts) |
+| Rolling back the dashboard | Revert the merge commit on GitHub; Pages republishes in 1–5 minutes; hard refresh. The content hashes stop old and new files mixing | CURRENT |
+
+**Before any production database change:** (1) do the 2-minute backup check above; (2) note the time of the last green nightly backup; (3) run the read-only Query E and keep its output, as a "before" picture of stock and deliveries.

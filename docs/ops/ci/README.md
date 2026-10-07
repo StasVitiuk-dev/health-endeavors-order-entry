@@ -76,3 +76,32 @@ The branch is unchanged: commit `662d46b`, one file. It matches the draft here l
 - the install package tests, the SQL mutation check and one stress run.
 
 Each step is skipped when its files are not in the commit being tested. Making any job **required** is your decision (CI-02) and a repository-settings change; this session does not make it.
+
+## EXT6 review (2026-10-07): what the inactive copy is missing
+
+Re-read `claude/tests-only-ci-v2` (`33395f9`) line by line. Still correct: `permissions: contents: read`, `persist-credentials: false`, actions pinned to commit SHAs, `pull_request` (never `pull_request_target`), no `secrets.*`, no deploy step, artifacts kept 7 days, a throwaway PostgreSQL service with a job-local password.
+
+**Not changed here.** A workflow change needs its own owner-approved PR (CLAUDE.md), and pushing to the copy branch would not activate anything anyway. Proposed additions for when the owner wants CI:
+
+1. **Skip guard in the required job.** Write a JSON report and fail on any skip that no screen size ran (`tests/tools/skip-report.js`, EXT6). This catches tests that quietly stop running, like the `5..5` case EXT6 found:
+   ```yaml
+   - name: Run tests
+     run: PLAYWRIGHT_JSON_OUTPUT_NAME=results.json npx playwright test --config tests/playwright.config.js --ignore-snapshots --reporter=list,github,json
+   - name: Every skipped test must be a deliberate one-screen-size skip
+     run: node tests/tools/skip-report.js results.json
+   ```
+2. **New database checks in `sql-drafts`** (each guarded by "file exists", as the job already does):
+   ```yaml
+   - name: PO line guard, request keys, reconciliation, Query D
+     run: |
+       set -e
+       C="-h localhost -p 5432 -U postgres -d he_real"
+       for s in po_race_interleavings po_browser_path_races request_keys_test reconciliation_test; do
+         f=docs/ops/sql/local-test/$s.sh; [ -f "$f" ] && bash "$f" $C
+       done
+       f=docs/ops/sql/local-test/query_d_mock_test.sql; [ -f "$f" ] && psql -d he_real -v ON_ERROR_STOP=1 -f "$f" > /dev/null
+   ```
+3. **Pass the database name explicitly** to `install_package_test.sh` (`-d he_real`). The copy omits it, and the scripts are only verified with an explicit database.
+4. **Timeout:** the full suite is now over 2,000 tests (EXT6; exact count in the EXT6 report), about 28 minutes on 2 local workers. Keep 60 minutes.
+5. **Page mutations stay out of CI** (about 25 minutes, 65 mutants). Run them by hand or weekly (F3-11).
+6. **Test isolation lesson (EXT6):** local SQL scripts share one database. Each must use its own synthetic users and reset the roles it relies on (`stress_test.sh` now does). In CI each job gets a fresh service, so the risk is smaller there.
