@@ -2,9 +2,9 @@
 
 Internal dashboard/platform only. Generated from `docs/ops/backlog/items.py` (edit the data there, then run `python3 docs/ops/backlog/items.py`). No production secrets or private business data.
 
-**276 deduplicated items** from 341 raw candidates (65 duplicates merged: the same item recorded in PROJECT_RECORD, the overnight review, PRs, owner lists, decision registers and tests).
+**277 deduplicated items** from 342 raw candidates (65 duplicates merged: the same item recorded in PROJECT_RECORD, the overnight review, PRs, owner lists, decision registers and tests).
 
-Status counts: BLOCKED-EXT 2, BLOCKED-OWNER 34, BLOCKED-PROD 17, BLOCKED-QC 12, DEFERRED 23, DONE 186, QUEUED 2
+Status counts: BLOCKED-EXT 2, BLOCKED-OWNER 34, BLOCKED-PROD 17, BLOCKED-QC 12, DEFERRED 24, DONE 186, QUEUED 2
 
 | Priority | Items | Done (branch) | Remaining |
 |---|---|---|---|
@@ -12,7 +12,7 @@ Status counts: BLOCKED-EXT 2, BLOCKED-OWNER 34, BLOCKED-PROD 17, BLOCKED-QC 12, 
 | P1 | 67 | 47 | 20 |
 | P2 | 89 | 67 | 22 |
 | P3 | 89 | 67 | 22 |
-| P4 | 17 | 1 | 16 |
+| P4 | 18 | 1 | 17 |
 
 Priorities: P0 data loss / security / financial corruption / destructive · P1 launch blocker / correctness / concurrency / permission · P2 reliability / scale / accessibility / major UX · P3 maintainability / tests / docs · P4 future.
 
@@ -318,6 +318,7 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | X4-27 | Performance | Inventory page with 10,000 products renders slowly (beyond the 1,000-row server limit, so not reachable today) | Future catalogue growth | Low | M | — | Y | N | N | DEFERRED |
 | X6-23 | Validation | Chromium drops characters while typing in number boxes ("1.2.3" -> 1.23, "1,200" -> 1200); the box shows the result | Browser behaviour; "shown = saved" is tested | Low | S | — | N | N | N | DEFERRED |
 | X6-24 | Accounting | Range "This month" has no upper bound: a future-dated (imported / clock-skewed) order counts now | Data error case; documented | Low | S | — | Y | N | N | DEFERRED |
+| X6-26 | Inventory | Design note: a future function that inserts PO lines AND calls R1 in one transaction must lock the order (FOR UPDATE) before inserting, or two concurrent copies deadlock (foreign-key share lock then R1 row lock). Not reachable from the dashboard (separate requests); found as a stress-test artifact (S29) and fixed in the test | Avoid a future lock-upgrade deadlock | Low | S | — | Y | N | N | DEFERRED |
 | F3-09 | Inventory | Low-stock threshold has no stale-tab guard (last write wins on a config value) | upsert without condition (fixed in EXT5 as X5-16; status reconciled EXT6) | Low | S | — | Y | N | N | DONE |
 
 ## Merged duplicates (provenance)

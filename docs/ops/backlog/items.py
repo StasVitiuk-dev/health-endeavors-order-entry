@@ -328,6 +328,7 @@ a('X6-21','Concurrency','2 / 5 / 10 operators on one task / return at once','Exa
 a('X6-22','Browser','Signed file links open with window.open after an await: Safari (especially iPhone) may block the new tab silently','Needs a real-device check; same on main','P3','Medium','S','real iPhone check','N','Y','N','BLOCKED-OWNER',['RS-03'])
 a('X6-23','Validation','Chromium drops characters while typing in number boxes ("1.2.3" -> 1.23, "1,200" -> 1200); the box shows the result','Browser behaviour; "shown = saved" is tested','P4','Low','S','—','N','N','N','DEFERRED')
 a('X6-24','Accounting','Range "This month" has no upper bound: a future-dated (imported / clock-skewed) order counts now','Data error case; documented','P4','Low','S','—','Y','N','N','DEFERRED')
+a('X6-26','Inventory','Design note: a future function that inserts PO lines AND calls R1 in one transaction must lock the order (FOR UPDATE) before inserting, or two concurrent copies deadlock (foreign-key share lock then R1 row lock). Not reachable from the dashboard (separate requests); found as a stress-test artifact (S29) and fixed in the test','Avoid a future lock-upgrade deadlock','P4','Low','S','—','Y','N','N','DEFERRED')
 a('X6-25','Purchasing','PO cases A-J reviewed; permission removed mid-receive test added','Coverage map in PO_RECEIVE_RACE_REVIEW section 0','P2','Medium','S','—','Y','N','N','DONE')
 
 if __name__ == '__main__':

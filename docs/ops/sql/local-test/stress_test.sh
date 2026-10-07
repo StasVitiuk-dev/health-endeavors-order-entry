@@ -520,7 +520,14 @@ run_once() {
   local dl29=$(grep -c deadlock "$ERR")
   for i in $(seq 10); do
     call "select delete_unused_product('a2900000-6666-4000-8000-000000000001');" &
-    call "insert into purchase_order_items (purchase_order_id, product_id, description, quantity, unit_cost) select 'a2900000-0000-4000-8000-000000000001','a2900000-6666-4000-8000-000000000001','x',1,1 where not exists (select 1 from purchase_order_items where purchase_order_id='a2900000-0000-4000-8000-000000000001'); select receive_purchase_order('a2900000-0000-4000-8000-000000000001');" &
+    # EXT6: the line and the receive are two requests (two transactions), as
+    # in the dashboard. In ONE transaction, two deliveries each took the
+    # foreign key's share lock on the order and then both asked R1 for the
+    # row lock: a lock-upgrade deadlock between two copies of the test's own
+    # delivery (seen 9 times in 1 of 3 runs, 1 in 80 races alone), not
+    # delete vs delivery, and impossible through the dashboard.
+    { call "insert into purchase_order_items (purchase_order_id, product_id, description, quantity, unit_cost) select 'a2900000-0000-4000-8000-000000000001','a2900000-6666-4000-8000-000000000001','x',1,1 where not exists (select 1 from purchase_order_items where purchase_order_id='a2900000-0000-4000-8000-000000000001');"
+      call "select receive_purchase_order('a2900000-0000-4000-8000-000000000001');"; } &
   done; wait
   check "S29 delete vs delivery: consistent outcome" "$(q "select case when exists (select 1 from products where id='a2900000-6666-4000-8000-000000000001')
       then ((select available from inventory where product_id='a2900000-6666-4000-8000-000000000001') = coalesce((select sum(change_amount) from inventory_adjustments where product_id='a2900000-6666-4000-8000-000000000001'),0))::text
