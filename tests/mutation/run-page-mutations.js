@@ -223,6 +223,22 @@ const MUTATIONS = [
   ['document categories widened back to the old list', 'owner-login.html',
     "      license: 'License / Permit',", "      license: 'License / Permit',\n      invoice: 'Invoice',",
     'state-machine query-a-fixes -g "categor"'],
+  // EXT7
+  ['open tasks capped together with finished ones again', 'owner-login.html',
+    "          .not('status', 'in', CLOSED_IN)\n          .order('due_at'", "          .order('due_at'",
+    'owner-control-center -g "Tasks: 150|more than 100"'],
+  ['approval queue capped together with decided requests again', 'owner-login.html',
+    "          .not('status', 'in', CLOSED_IN)\n          .order('created_at', { ascending: false })", "          .order('created_at', { ascending: false })",
+    'owner-control-center -g "Approvals: 120"'],
+  ['open incidents capped together with resolved ones again', 'owner-login.html',
+    "          .or('status.is.null,status.not.in.' + CLOSED_IN)\n", '',
+    'owner-control-center -g "Incidents: 120"'],
+  ['Reopen allowed for cancelled tasks', 'owner-login.html',
+    "open: ['done'] };", "open: ['done', 'cancelled'] };",
+    'owner-control-center state-machine -g "only the finished one|done only reopens"'],
+  ['Reopen without the still-done condition', 'owner-login.html',
+    "          .in('status', allowedFrom)\n          .select('id, status');", "          .select('id, status');",
+    'owner-control-center tasks -g "cancelled elsewhere|already finished elsewhere"'],
 ];
 
 function sh(cmd, cwd) { return execSync(cmd, { cwd, stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }); }

@@ -360,6 +360,11 @@
         <h2>Tasks</h2>
         <p class="hint">Sorted by due date. Rows in red are overdue.</p>
         <div id="tasksTableWrap"><p class="empty">Loading…</p></div>
+        <details id="recentDoneTasks" style="margin-top:14px;">
+          <summary>Recently finished</summary>
+          <p class="hint">The 10 most recently changed finished or cancelled tasks. "Reopen" puts a finished task back to Open, only if nobody changed it since this list loaded.</p>
+          <div id="recentDoneWrap"><p class="empty">Loading…</p></div>
+        </details>
       </section>
 
       <section class="panel" id="incidentsPanel">
@@ -856,6 +861,8 @@
       maskSensitive,
       taxStateKey,
     } = window.HE.helpers;
+    // PostgREST list of the closed status words, for "status not in (...)" (EXT7).
+    const CLOSED_IN = '(' + CLOSED_WORDS.map(w => '"' + w + '"').join(',') + ')';
     // Safety net (EXT4): Supabase returns at most 1,000 rows per request and
     // does not say when it cut a list short. Totals and money use complete
     // paged reads (fetchAllRows); the plain lists (products, lots, purchase
@@ -5361,7 +5368,10 @@
       open: [{ to: 'done', label: 'Mark done' }, { to: 'in_progress', label: 'Mark in progress' }],
       in_progress: [{ to: 'done', label: 'Mark done' }],
     };
-    const TASK_ALLOWED_FROM = { in_progress: ['open'], done: ['open', 'in_progress'] };
+    // EXT7: "Reopen" (done -> open) from the Recently finished list. Only a
+    // task that is still "done" can be reopened; a cancelled task stays
+    // cancelled (agents cancel tasks for a reason the dashboard can't see).
+    const TASK_ALLOWED_FROM = { in_progress: ['open'], done: ['open', 'in_progress'], open: ['done'] };
 
     async function changeTaskStatus(btn){
       const row = btn.closest('tr');
@@ -5369,10 +5379,11 @@
       const to = btn.getAttribute('data-to');
       const allowedFrom = TASK_ALLOWED_FROM[to];
       if (!id || !allowedFrom) return;
-      if (to === 'done') {
+      if (to === 'done' || to === 'open') {
         const titleEl = row.querySelector('.taskTitle');
         const title = titleEl ? titleEl.textContent.trim() : 'this task';
-        if (!window.confirm('Mark this task done?\n\n' + title)) return;
+        const question = to === 'done' ? 'Mark this task done?' : 'Reopen this task? It goes back to the open list.';
+        if (!window.confirm(question + '\n\n' + title)) return;
       }
       row.querySelectorAll('.taskStatusBtn').forEach(b => { b.disabled = true; });
       try {
@@ -5393,24 +5404,61 @@
       }
     }
 
+    // Finished/cancelled tasks, newest change first (EXT7). Returns the rows
+    // so search can find them; a failure here never hides the open list.
+    async function loadRecentlyDoneTasks(){
+      const wrap = document.getElementById('recentDoneWrap');
+      try {
+        const { data, error } = await supabase
+          .from('tasks')
+          .select('id, title, priority, status, due_at, updated_at')
+          .in('status', ['done', 'cancelled'])
+          .order('updated_at', { ascending: false, nullsFirst: false })
+          .limit(10);
+        if (error) throw error;
+        const rows = data || [];
+        if (wrap) {
+          wrap.innerHTML = !rows.length ? '<p class="empty">No finished tasks yet.</p>' : `
+            <table><thead><tr><th>Title</th><th>Status</th><th>Last changed</th></tr></thead>
+            <tbody>${rows.map(t => `
+              <tr data-id="${esc(t.id)}">
+                <td style="white-space:normal;min-width:190px;">
+                  <div class="taskTitle">${esc(t.title)}</div>
+                  ${(TASK_ALLOWED_FROM.open || []).includes(t.status)
+                    ? '<div class="taskActions" style="margin-top:8px;"><button type="button" class="small taskStatusBtn" data-to="open">Reopen</button></div>' : ''}
+                </td>
+                <td>${esc(TASK_STATUS_LABELS[t.status] || t.status || '—')}</td>
+                <td>${esc(t.updated_at ? fmtDate(t.updated_at) : 'Unknown')}</td>
+              </tr>`).join('')}</tbody></table>`;
+          wrap.querySelectorAll('.taskStatusBtn').forEach(btn => btn.addEventListener('click', () => changeTaskStatus(btn)));
+        }
+        return rows;
+      } catch (err) {
+        if (wrap) wrap.innerHTML = '<p class="empty" style="color:var(--warn);">Could not load recently finished tasks: ' + esc(explainDbError(err)) + '</p>';
+        return [];
+      }
+    }
+
     async function loadTasks(){
       try {
         const { data: tasks, error, count } = await supabase
           .from('tasks')
           .select('id, title, priority, status, due_at', { count: 'exact' })
+          .not('status', 'in', CLOSED_IN)
           .order('due_at', { ascending: true, nullsFirst: false })
           .limit(100);
         if (error) throw error;
-        SEARCH_INDEX.tasks = tasks;
 
+        // EXT7: only open tasks are read, so the 100-row cap and the count
+        // apply to open tasks. Before, the newest 100 of ALL tasks were read
+        // and filtered here, so once enough finished tasks piled up, open ones
+        // silently fell off the list.
         const open = tasks.filter(t => !isClosedStatus(t.status));
-        // The 100-row fetch cap applies BEFORE this open/closed filter, so if
-        // there are more than 100 tasks total, some open ones could be sitting
-        // past the cutoff and never even get fetched here — worth a plain
-        // warning rather than silently looking like "nothing more to see."
         const truncated = count != null && count > tasks.length;
         const cutoffNote = truncated
-          ? `<p class="hint" style="margin:0 0 8px;color:var(--warn);">Showing the ${tasks.length} soonest-due of ${count} tasks total — some open tasks past this cutoff may not be listed below.</p>` : '';
+          ? `<p class="hint" style="margin:0 0 8px;color:var(--warn);">Showing the ${tasks.length} soonest-due of ${count} open tasks.</p>` : '';
+        const recent = await loadRecentlyDoneTasks();
+        SEARCH_INDEX.tasks = tasks.concat(recent);
         if (!open.length) {
           document.getElementById('tasksTableWrap').innerHTML = cutoffNote + '<p class="empty">No open tasks.</p>';
         } else {
@@ -5441,17 +5489,18 @@
         const { data: incidents, error, count } = await supabase
           .from('incidents')
           .select('id, incident_number, title, severity, status, due_at', { count: 'exact' })
+          // Open = no status yet, or a status that is not a closed word (EXT7,
+          // same reason as loadTasks). A row without a status stays visible.
+          .or('status.is.null,status.not.in.' + CLOSED_IN)
           .order('due_at', { ascending: true, nullsFirst: false })
           .limit(100);
         if (error) throw error;
         SEARCH_INDEX.incidents = incidents;
 
         const open = incidents.filter(i => !isClosedStatus(i.status));
-        // Same reasoning as loadTasks above: the 100-row cap applies before
-        // this filter, so a truncated fetch could be hiding open incidents.
         const truncated = count != null && count > incidents.length;
         const cutoffNote = truncated
-          ? `<p class="hint" style="margin:0 0 8px;color:var(--warn);">Showing the ${incidents.length} soonest-due of ${count} incidents total — some open incidents past this cutoff may not be listed below.</p>` : '';
+          ? `<p class="hint" style="margin:0 0 8px;color:var(--warn);">Showing the ${incidents.length} soonest-due of ${count} open incidents.</p>` : '';
         if (!open.length) {
           document.getElementById('incidentsTableWrap').innerHTML = cutoffNote + '<p class="empty">No open incidents.</p>';
         } else {
@@ -6694,19 +6743,19 @@
         const { data: reqs, error, count } = await supabase
           .from('approval_requests')
           .select('id, action_type, summary, status, created_at', { count: 'exact' })
+          .not('status', 'in', CLOSED_IN)
           .order('created_at', { ascending: false })
           .limit(100);
         if (error) throw error;
         SEARCH_INDEX.approvals = reqs;
 
+        // EXT7: only undecided requests are read (same reason as loadTasks).
+        // Before, 100 newer decided requests pushed an older pending one out
+        // of the approval queue, with only a vague warning.
         const pending = reqs.filter(r => !isClosedStatus(r.status));
-        // Same reasoning as Tasks/Incidents: the 100-row cap applies before
-        // this pending/closed filter, so a truncated fetch could be hiding a
-        // still-pending request — and this is the approval queue, so that's
-        // exactly the kind of thing that should never go silently missing.
         const truncated = count != null && count > reqs.length;
         const cutoffNote = truncated
-          ? `<p class="hint" style="margin:0 0 8px;color:var(--warn);">Showing the ${reqs.length} most recent of ${count} requests total — some pending requests past this cutoff may not be listed below.</p>` : '';
+          ? `<p class="hint" style="margin:0 0 8px;color:var(--warn);">Showing the ${reqs.length} most recent of ${count} pending requests.</p>` : '';
         if (!pending.length) {
           document.getElementById('approvalsWrap').innerHTML = cutoffNote + '<p class="empty">Nothing waiting for approval.</p>';
         } else {

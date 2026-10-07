@@ -11,10 +11,10 @@ const MACHINES = {
   tasks: {
     table: 'tasks', column: 'status',
     states: ['open', 'in_progress', 'done', 'cancelled'],
-    transitions: [[['open'], 'in_progress', 'Mark in progress'], [['open', 'in_progress'], 'done', 'Mark done']],
-    terminal: ['done', 'cancelled'],
+    transitions: [[['open'], 'in_progress', 'Mark in progress'], [['open', 'in_progress'], 'done', 'Mark done'], [['done'], 'open', 'Reopen (Recently finished list, EXT7)']],
+    terminal: ['cancelled'],
     pageConstant: 'TASK_ALLOWED_FROM',
-    notes: 'cancelled is a valid database value but no dashboard button sets it (agents may).',
+    notes: 'cancelled is a valid database value but no dashboard button sets it (agents may); a cancelled task cannot be reopened from the dashboard.',
   },
   purchase_orders: {
     table: 'purchase_orders', column: 'status',

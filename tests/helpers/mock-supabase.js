@@ -137,10 +137,31 @@ function matchesFilter(row, column, expr) {
   return negate ? !result : result;
 }
 
+// "or=(a.is.null,b.not.in.(x,y))": split at top-level commas only.
+function splitTopLevel(inner) {
+  const parts = []; let depth = 0, quoted = false, cur = '';
+  for (const ch of inner) {
+    if (ch === '"') quoted = !quoted;
+    if (!quoted && ch === '(') depth++;
+    if (!quoted && ch === ')') depth--;
+    if (!quoted && depth === 0 && ch === ',') { parts.push(cur); cur = ''; continue; }
+    cur += ch;
+  }
+  if (cur) parts.push(cur);
+  return parts;
+}
+function matchesOr(row, expr) {
+  return splitTopLevel(expr.replace(/^\(/, '').replace(/\)$/, '')).some(part => {
+    const dot = part.indexOf('.');
+    return matchesFilter(row, part.slice(0, dot), part.slice(dot + 1));
+  });
+}
+
 function applyFilters(rows, params) {
   let out = rows;
   for (const [key, expr] of params) {
-    if (NON_FILTER_PARAMS.has(key) || key === 'or' || key === 'and') continue;
+    if (key === 'or') { out = out.filter(row => matchesOr(row, expr)); continue; }
+    if (NON_FILTER_PARAMS.has(key) || key === 'and') continue;
     out = out.filter(row => matchesFilter(row, key, expr));
   }
   return out;

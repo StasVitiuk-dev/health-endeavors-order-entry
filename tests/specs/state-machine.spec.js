@@ -82,16 +82,18 @@ test.describe('status maps and transitions', () => {
       expect(from).not.toContain(to);
     }
   });
-  test('tasks: labels, next-step buttons and allowed-from lists use valid statuses; done/cancelled are final', () => {
+  test('tasks: labels, next-step buttons and allowed-from lists use valid statuses; cancelled is final, done only reopens', () => {
     expect(subsetOf(Object.keys(M.TASK_STATUS_LABELS), ALLOWED.tasks.status)).toEqual([]);
     const buttons = Object.entries(M.TASK_NEXT_ACTIONS).flatMap(([from, list]) => [from, ...list.map(a => a.to)]);
     expect(subsetOf(buttons, ALLOWED.tasks.status)).toEqual([]);
     const allowed = [...Object.keys(M.TASK_ALLOWED_FROM), ...Object.values(M.TASK_ALLOWED_FROM).flat()];
     expect(subsetOf(allowed, ALLOWED.tasks.status)).toEqual([]);
-    for (const from of Object.values(M.TASK_ALLOWED_FROM)) {
-      expect(from).not.toContain('done');
+    // EXT7: the only way out of "done" is Reopen (back to open); nothing leaves "cancelled".
+    for (const [to, from] of Object.entries(M.TASK_ALLOWED_FROM)) {
+      if (to !== 'open') expect(from).not.toContain('done');
       expect(from).not.toContain('cancelled');
     }
+    expect(M.TASK_ALLOWED_FROM.open).toEqual(['done']);
     // every button has a matching database-side guard
     for (const list of Object.values(M.TASK_NEXT_ACTIONS)) for (const a of list) expect(M.TASK_ALLOWED_FROM[a.to]).toBeTruthy();
   });

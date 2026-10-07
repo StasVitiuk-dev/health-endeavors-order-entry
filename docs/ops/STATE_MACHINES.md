@@ -4,16 +4,17 @@
 
 ## tasks (`tasks.status`)
 
-States: `open`, `in_progress`, `done`, `cancelled`. Terminal: `done`, `cancelled`.
+States: `open`, `in_progress`, `done`, `cancelled`. Terminal: `cancelled`.
 
 | From | To | Button |
 |---|---|---|
 | `open` | `in_progress` | Mark in progress |
 | `open`, `in_progress` | `done` | Mark done |
+| `done` | `open` | Reopen (Recently finished list, EXT7) |
 
-Not possible from the dashboard: `in_progress→open`, `done→open`, `cancelled→open`, `done→in_progress`, `cancelled→in_progress`, `cancelled→done`, `open→cancelled`, `in_progress→cancelled`, `done→cancelled`.
+Not possible from the dashboard: `in_progress→open`, `cancelled→open`, `done→in_progress`, `cancelled→in_progress`, `cancelled→done`, `open→cancelled`, `in_progress→cancelled`, `done→cancelled`.
 
-cancelled is a valid database value but no dashboard button sets it (agents may).
+cancelled is a valid database value but no dashboard button sets it (agents may); a cancelled task cannot be reopened from the dashboard.
 
 ## purchase_orders (`purchase_orders.status`)
 
