@@ -260,6 +260,15 @@ const MUTATIONS = [
   ['supplier same-name check removed', 'owner-login.html',
     "        if (same && same.length && !window.confirm(", "        if (false && !window.confirm(",
     'stale-tab-gaps -g "same name in any case"'],
+  ['dashboard keeps showing the previous person after a sign-in switch', 'owner-login.html',
+    "      if (uid && shownUserId && uid !== shownUserId) {\n        wipeAfterSignOut(", "      if (false) {\n        wipeAfterSignOut(",
+    'auth-chaos -g "signed-in person changes"'],
+  ['dashboard wipes on every sign-in event (same person too)', 'owner-login.html',
+    "      if (uid && shownUserId && uid !== shownUserId) {\n        wipeAfterSignOut(", "      if (uid) {\n        wipeAfterSignOut(",
+    'auth-chaos -g "SAME person"'],
+  ['order page keeps the previous person\'s attempt after a switch', 'manual-order-entry.html',
+    "      pending = null;\n      storePending(null);\n      leavingOnPurpose = true;\n      window.location.reload();\n    }\n  });", "      leavingOnPurpose = true;\n      window.location.reload();\n    }\n  });",
+    'auth-chaos -g "manual order page"'],
 ];
 
 function sh(cmd, cwd) { return execSync(cmd, { cwd, stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }); }

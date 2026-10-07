@@ -1182,7 +1182,9 @@
     }
 
     // ---------- login ----------
+    let shownUserId = null; // whose data this page is showing (EXT7)
     async function showDashboardFor(user){
+      shownUserId = user && user.id;
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('role, is_active, display_name')
@@ -1449,9 +1451,19 @@
       const note = sessionStorage.getItem(SIGNED_OUT_NOTE);
       if (note) { sessionStorage.removeItem(SIGNED_OUT_NOTE); showLoginError(note); }
     } catch (_) { /* storage blocked */ }
-    supabase.auth.onAuthStateChange((event) => {
-      if (event !== 'SIGNED_OUT' || signingOutHere || dash.style.display !== 'flex') return;
-      wipeAfterSignOut('You were signed out (in another tab, or your sign-in expired). Anything not already saved on that page was not sent. Sign in again to continue.');
+    supabase.auth.onAuthStateChange((event, session) => {
+      if (signingOutHere || dash.style.display !== 'flex') return;
+      if (event === 'SIGNED_OUT') {
+        wipeAfterSignOut('You were signed out (in another tab, or your sign-in expired). Anything not already saved on that page was not sent. Sign in again to continue.');
+        return;
+      }
+      // EXT7: a different person signed in on this computer (another tab)
+      // without a sign-out here. Never keep showing the previous person's
+      // data to them: wipe, and the page reloads for whoever is signed in.
+      const uid = session && session.user && session.user.id;
+      if (uid && shownUserId && uid !== shownUserId) {
+        wipeAfterSignOut('A different person signed in on this computer, so this page was cleared. Anything not already saved was not sent.');
+      }
     });
 
     document.getElementById('signout').addEventListener('click', async () => {

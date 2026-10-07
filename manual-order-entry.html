@@ -180,9 +180,20 @@
   // EXT7: set just before the page reloads on purpose, so the unsaved-order
   // question below never holds up a sign-out.
   let leavingOnPurpose = false;
-  sb.auth.onAuthStateChange(event => {
+  let shownUserId = null; // whose order form this tab is showing (EXT7)
+  sb.auth.onAuthStateChange((event, session) => {
     const app = document.getElementById('appView');
-    if (event === 'SIGNED_OUT' && app && !app.hidden) { leavingOnPurpose = true; window.location.reload(); }
+    if (!app || app.hidden) return;
+    if (event === 'SIGNED_OUT') { leavingOnPurpose = true; window.location.reload(); return; }
+    // EXT7: a different person signed in on this computer (another tab):
+    // clear this tab, including the previous person's unfinished attempt.
+    const uid = session && session.user && session.user.id;
+    if (uid && shownUserId && uid !== shownUserId) {
+      pending = null;
+      storePending(null);
+      leavingOnPurpose = true;
+      window.location.reload();
+    }
   });
 
   const loginView = document.getElementById('loginView');
@@ -344,6 +355,7 @@
   }
 
   async function showApp(user){
+    shownUserId = user && user.id;
     loginView.hidden = true;
     appView.hidden = false;
     whoEmail.textContent = user.email;
