@@ -2,21 +2,21 @@
 
 Internal dashboard/platform only. Generated from `docs/ops/backlog/items.py` (edit the data there, then run `python3 docs/ops/backlog/items.py`). No production secrets or private business data.
 
-**277 deduplicated items** from 342 raw candidates (65 duplicates merged: the same item recorded in PROJECT_RECORD, the overnight review, PRs, owner lists, decision registers and tests).
+**293 deduplicated items** from 359 raw candidates (66 duplicates merged: the same item recorded in PROJECT_RECORD, the overnight review, PRs, owner lists, decision registers and tests).
 
-Status counts: BLOCKED-EXT 2, BLOCKED-OWNER 34, BLOCKED-PROD 17, BLOCKED-QC 12, DEFERRED 24, DONE 186, QUEUED 2
+Status counts: BLOCKED-EXT 2, BLOCKED-OWNER 36, BLOCKED-PROD 17, BLOCKED-QC 12, DEFERRED 24, DONE 199, OPEN 1, QUEUED 2
 
 | Priority | Items | Done (branch) | Remaining |
 |---|---|---|---|
 | P0 | 14 | 4 | 10 |
-| P1 | 67 | 47 | 20 |
-| P2 | 89 | 67 | 22 |
-| P3 | 89 | 67 | 22 |
+| P1 | 72 | 51 | 21 |
+| P2 | 96 | 73 | 23 |
+| P3 | 93 | 70 | 23 |
 | P4 | 18 | 1 | 17 |
 
 Priorities: P0 data loss / security / financial corruption / destructive · P1 launch blocker / correctness / concurrency / permission · P2 reliability / scale / accessibility / major UX · P3 maintainability / tests / docs · P4 future.
 
-"Done" = implemented and tested on the branch chain ending at `claude/platform-deep-readiness-extension-4` — **not merged, not live**.
+"Done" = implemented and tested on the branch chain ending at `claude/platform-deep-readiness-extension-7` — **not merged, not live**.
 
 
 ## P0
@@ -62,6 +62,7 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | X5-03 | Purchasing | Line guard extended to add and quantity change (5 and 6 of 20 races broke the match even with R1); lock order deadlock-free; forced interleavings | Order vs stock mismatch | High | S | R1; approval | P | Y | Y | BLOCKED-PROD |
 | X6-01 | Purchasing | PO line guard did not protect the dashboard's step-by-step receive (only R1): a line deleted / re-quantified in the instant between the guard's check and its commit was still stocked | Forced every time locally (po_browser_path_races.sh); NOWAIT order lock drafted, 12/12 agree | High | S | approval | N | Y | Y | BLOCKED-PROD |
 | X6-17 | Security | This session's GitHub credential has ADMIN rights on the repository (CLAUDE.md expects the non-admin stasvitiuk-reos); the protect-main ruleset lets admins bypass. Not used | Least privilege for automated sessions | High | S | owner: connect Claude with a non-admin account | N | Y | N | BLOCKED-OWNER |
+| X7-16 | Recovery | Restore drill into a throwaway Supabase project never recorded | Only proof that backups work | High | S | owner backup check first | N | Y | Y | BLOCKED-OWNER |
 | AG-02 | Agents | Truthful agent state (Unknown/Failed/Stale/Dry run) | No optimistic defaults | High | M | — | Y | N | N | DONE |
 | AG-05 | Agents | Shopify sync interlock + wording; Emergency switches it off | Premature sync | High | S | — | Y | N | N | DONE |
 | AG-06 | Agents | No-send tripwires (email, Shopify) | No customer messages | High | S | — | Y | N | N | DONE |
@@ -109,6 +110,10 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | X5-09 | Accounting | Money totals paged by position: a record created mid-read was counted twice / another missed | Silent wrong totals | High | S | — | Y | N | N | DONE |
 | X6-05 | Privacy | Sign-out only hid the dashboard: customer names, e-mails, figures stayed in the page / memory for the next person on a shared computer; live on main | Sign-out reloads the page | High | S | — | Y | N | N | DONE |
 | X6-11 | Accounting | Daily Summary and home "Today's revenue" counted Canceled / CANCELLED / refunded orders (rule: only the exact word "cancelled"); live on main | Same classifyOrderStatus rule as Accounting | High | S | — | Y | N | N | DONE |
+| X7-01 | Reports | Tax Records "by state" split one state into several rows ("CA", "California", " california ") | One row per state; independent oracle test | High | S | — | Y | N | N | DONE |
+| X7-02 | Reports | Tax Records cost estimate matched SKUs case-sensitively ("syn-a" missed "SYN-A") | Estimate exact; oracle test | High | S | — | Y | N | N | DONE |
+| X7-04 | Workflows | Tasks, Approvals and Incidents read the first 100 rows of every status, so enough closed rows hid open ones | Open-only reads; 4 tests fail on the old code | High | S | — | Y | N | N | DONE |
+| X7-11 | Security | A different person signing in elsewhere left the previous person's data in the open tab (dashboard and order page) | Tab wipes on user change; same-person refresh ignored | High | S | — | Y | N | N | DONE |
 
 ## P2
 
@@ -136,6 +141,7 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | X6-14 | Orders | Orders saved without items still count as revenue in Accounting | Now listed on Accounting ("Orders saved without items"), on the manual-order page for the person who entered them, and in Query E; whether to exclude them from revenue is an accounting decision | Medium | S | owner / accountant | P | Y | N | BLOCKED-OWNER |
 | X6-15 | Idempotency | Request keys drafted (drafts/19 + rollback 20) for the 22 create tables; local test 23/23 | Retried creates cannot duplicate once installed and the dashboard sends keys | High | M | approval; then dashboard PR | N | Y | Y | BLOCKED-PROD |
 | X6-16 | Inventory | Read-only stock reconciliation (Query E) prepared with owner guide; local test 24/24 | Staff / owner can see stock vs history, deliveries vs stock and expense | High | S | owner runs | N | Y | N | BLOCKED-OWNER |
+| X7-14 | Permissions | Employees can approve requests in the database; admin switches have no page-side role check; policies of tables outside the export unknown | ROLE_PERMISSION_MATRIX.md §4; Query D answers | High | S | owner decision + Query D | N | Y | Y | BLOCKED-OWNER |
 | AG-03 | Agents | "error"/"fail" statuses show Failed; Agent #1 "Switch on" | Overclaim | Medium | S | — | Y | N | N | DONE |
 | AX-01 | Accessibility | Accessible names, unique ids, phone tap targets, dialog focus | Screen readers / phone | Medium | S | — | Y | N | N | DONE |
 | AX-02 | Accessibility | Status/error banner announced to screen readers (role=alert / aria-live) | Errors not announced | Medium | S | — | Y | N | N | DONE |
@@ -203,6 +209,12 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | X6-12 | Accounting | Orders page "Total revenue" = newest 300 orders only, cancelled included, labelled as the total; live on main | Accounting rule + honest label when capped | High | S | — | Y | N | N | DONE |
 | X6-19 | SQL | No automatic safety check over the SQL drafts (search_path, definer, grants, RLS, dynamic SQL, rollback named) | sql-drafts-static.spec.js (26 checks) | Medium | S | — | Y | N | N | DONE |
 | X6-25 | Purchasing | PO cases A-J reviewed; permission removed mid-receive test added | Coverage map in PO_RECEIVE_RACE_REVIEW section 0 | Medium | S | — | Y | N | N | DONE |
+| X7-03 | Reports | A money figure could freeze part-way through its count-up animation under load | Timer fallback; test fails without it | Medium | S | — | Y | N | N | DONE |
+| X7-05 | Owner UX | No way to see recently finished tasks or reopen one | Recently finished + guarded Reopen (done -> open only) | Medium | S | — | Y | N | N | DONE |
+| X7-06 | Owner UX | One failed Business Health read blanked the whole panel | Per-tile "?" with a plain reason; work tiles open their page | Medium | S | — | Y | N | N | DONE |
+| X7-07 | Owner UX | Typed-but-unsaved work was lost silently on close / reload / sign out | Question first; forced sign-out never waits | Medium | S | — | Y | N | N | DONE |
+| X7-08 | Truthfulness | Business Continuity showed an unknown or missing status as "Operational" and left it out of the counts | Shown and counted as Unknown; guarded on the real value | Medium | S | — | Y | N | N | DONE |
+| X7-13 | Concurrency | R1-R5 had fixed-order stress only | random_interleavings.sh: no guard 75/300 failing, both guards 0/300, minimal repro found | Medium | S | — | Y | N | N | DONE |
 
 ## P3
 
@@ -230,6 +242,7 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | X3-19 | Audit | Send actor fields on more writes once columns are confirmed | Blind columns break writes | Low | S | Query C §10 | Y | N | N | BLOCKED-QC |
 | X5-15 | Audit | employee_activity ordering ties: the RPC's ORDER BY (needs happened_at, id) is not visible from the dashboard | Possible skip at equal timestamps (owner/Query C check) | Low | S | Query C / owner | N | Y | N | BLOCKED-QC |
 | X6-22 | Browser | Signed file links open with window.open after an await: Safari (especially iPhone) may block the new tab silently | Needs a real-device check; same on main | Medium | S | real iPhone check | N | Y | N | BLOCKED-OWNER |
+| X7-15 | Owner UX | Wide tables scroll sideways at 390 / 320 px (last column cut until scrolled) | Pre-existing; card layout for phones later | Low | M | — | Y | N | N | OPEN |
 | AX-03 | Accessibility | Toasts announced (aria-live polite) | Success not announced | Low | S | — | Y | N | N | DONE |
 | AX-04 | Accessibility | prefers-reduced-motion respected for animations | Motion sensitivity | Low | S | — | Y | N | N | DONE |
 | AX-06 | Accessibility | Colour contrast check of badges in light/dark | Readability | Low | S | — | Y | N | N | DONE |
@@ -297,6 +310,9 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | X6-18 | SQL | drafts/13 (report totals) was three statements without a transaction | Now all-or-nothing | Low | S | — | Y | N | N | DONE |
 | X6-20 | Tests | Local SQL scripts shared test users; one left a role behind and made the stress test fail 79 checks | Own users per script; stress resets roles | Medium | S | — | Y | N | N | DONE |
 | X6-21 | Concurrency | 2 / 5 / 10 operators on one task / return at once | Exactly one change; others told; no false success | Medium | S | — | Y | N | N | DONE |
+| X7-09 | Concurrency | SOP agent switch guessed its state after a stale refusal | Re-reads | Low | S | — | Y | N | N | DONE |
+| X7-10 | Idempotency | Adding a supplier after a lost reply could duplicate it | Same-name question (case-insensitive, literal); full fix = request keys (X6-15) | Medium | S | — | Y | N | N | DONE |
+| X7-12 | Idempotency | No machine-readable list of write paths with a retry class | MUTATION_WRITE_PATH_INVENTORY.json: 70 safe, 6 client-side, 23 request key, 0 unresolved; kept current by a test | Medium | S | — | Y | N | N | DONE |
 
 ## P4
 
@@ -375,3 +391,4 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 - X6-01: X5-03, X4-15
 - X6-15: X5-11
 - X6-22: RS-03
+- X7-10: X6-15

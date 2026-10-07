@@ -331,6 +331,24 @@ a('X6-24','Accounting','Range "This month" has no upper bound: a future-dated (i
 a('X6-26','Inventory','Design note: a future function that inserts PO lines AND calls R1 in one transaction must lock the order (FOR UPDATE) before inserting, or two concurrent copies deadlock (foreign-key share lock then R1 row lock). Not reachable from the dashboard (separate requests); found as a stress-test artifact (S29) and fixed in the test','Avoid a future lock-upgrade deadlock','P4','Low','S','—','Y','N','N','DEFERRED')
 a('X6-25','Purchasing','PO cases A-J reviewed; permission removed mid-receive test added','Coverage map in PO_RECEIVE_RACE_REVIEW section 0','P2','Medium','S','—','Y','N','N','DONE')
 
+# Extension 7 (2026-10-07)
+a('X7-01','Reports','Tax Records "by state" split one state into several rows ("CA", "California", " california ")','One row per state; independent oracle test','P1','High','S','—','Y','N','N','DONE')
+a('X7-02','Reports','Tax Records cost estimate matched SKUs case-sensitively ("syn-a" missed "SYN-A")','Estimate exact; oracle test','P1','High','S','—','Y','N','N','DONE')
+a('X7-03','Reports','A money figure could freeze part-way through its count-up animation under load','Timer fallback; test fails without it','P2','Medium','S','—','Y','N','N','DONE')
+a('X7-04','Workflows','Tasks, Approvals and Incidents read the first 100 rows of every status, so enough closed rows hid open ones','Open-only reads; 4 tests fail on the old code','P1','High','S','—','Y','N','N','DONE')
+a('X7-05','Owner UX','No way to see recently finished tasks or reopen one','Recently finished + guarded Reopen (done -> open only)','P2','Medium','S','—','Y','N','N','DONE')
+a('X7-06','Owner UX','One failed Business Health read blanked the whole panel','Per-tile "?" with a plain reason; work tiles open their page','P2','Medium','S','—','Y','N','N','DONE')
+a('X7-07','Owner UX','Typed-but-unsaved work was lost silently on close / reload / sign out','Question first; forced sign-out never waits','P2','Medium','S','—','Y','N','N','DONE')
+a('X7-08','Truthfulness','Business Continuity showed an unknown or missing status as "Operational" and left it out of the counts','Shown and counted as Unknown; guarded on the real value','P2','Medium','S','—','Y','N','N','DONE')
+a('X7-09','Concurrency','SOP agent switch guessed its state after a stale refusal','Re-reads','P3','Low','S','—','Y','N','N','DONE')
+a('X7-10','Idempotency','Adding a supplier after a lost reply could duplicate it','Same-name question (case-insensitive, literal); full fix = request keys (X6-15)','P3','Medium','S','—','Y','N','N','DONE',['X6-15'])
+a('X7-11','Security','A different person signing in elsewhere left the previous person\'s data in the open tab (dashboard and order page)','Tab wipes on user change; same-person refresh ignored','P1','High','S','—','Y','N','N','DONE')
+a('X7-12','Idempotency','No machine-readable list of write paths with a retry class','MUTATION_WRITE_PATH_INVENTORY.json: 70 safe, 6 client-side, 23 request key, 0 unresolved; kept current by a test','P3','Medium','S','—','Y','N','N','DONE')
+a('X7-13','Concurrency','R1-R5 had fixed-order stress only','random_interleavings.sh: no guard 75/300 failing, both guards 0/300, minimal repro found','P2','Medium','S','—','Y','N','N','DONE')
+a('X7-14','Permissions','Employees can approve requests in the database; admin switches have no page-side role check; policies of tables outside the export unknown','ROLE_PERMISSION_MATRIX.md §4; Query D answers','P2','High','S','owner decision + Query D','N','Y','Y','BLOCKED-OWNER')
+a('X7-15','Owner UX','Wide tables scroll sideways at 390 / 320 px (last column cut until scrolled)','Pre-existing; card layout for phones later','P3','Low','M','—','Y','N','N','OPEN')
+a('X7-16','Recovery','Restore drill into a throwaway Supabase project never recorded','Only proof that backups work','P1','High','S','owner backup check first','N','Y','Y','BLOCKED-OWNER')
+
 if __name__ == '__main__':
     import collections, os
     order = {'P0':0,'P1':1,'P2':2,'P3':3,'P4':4}
@@ -348,7 +366,7 @@ if __name__ == '__main__':
         rows.append(f'| {p} | {tot} | {done} | {tot-done} |')
     out.append('| Priority | Items | Done (branch) | Remaining |\n|---|---|---|---|\n' + '\n'.join(rows) + '\n')
     out.append('Priorities: P0 data loss / security / financial corruption / destructive · P1 launch blocker / correctness / concurrency / permission · P2 reliability / scale / accessibility / major UX · P3 maintainability / tests / docs · P4 future.\n')
-    out.append('"Done" = implemented and tested on the branch chain ending at `claude/platform-deep-readiness-extension-4` — **not merged, not live**.\n')
+    out.append('"Done" = implemented and tested on the branch chain ending at `claude/platform-deep-readiness-extension-7` — **not merged, not live**.\n')
     for p in ['P0','P1','P2','P3','P4']:
         out.append(f'\n## {p}\n')
         out.append('| ID | Area | Item | Why it matters | Launch impact | Effort | Depends on | Safe in branch | Owner | Prod | Status |')

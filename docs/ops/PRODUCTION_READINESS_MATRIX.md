@@ -1,6 +1,6 @@
 # Production readiness matrix (one honest page)
 
-**Status:** CURRENT (2026-10-07, extension 6). Supersedes the stage table in `READINESS_GATE.md` where the two differ (the gate keeps the blocker list). Documentation and drafts are **never** counted as deployed. Percentages are not used here; see `docs/health-endeavors-progress.md`, where they are not raised for unmerged work.
+**Status:** CURRENT (2026-10-07, extension 7; EXT7 rows added, earlier rows unchanged unless marked). Supersedes the stage table in `READINESS_GATE.md` where the two differ (the gate keeps the blocker list). Documentation and drafts are **never** counted as deployed. Percentages are not used here; see `docs/health-endeavors-progress.md`, where they are not raised for unmerged work.
 
 Legend: **LIVE** = on `main` now · **BRANCH** = fixed and tested on the extension branch only, so it needs a merge · **SQL** = needs an approved production database change · **OWNER** = needs a decision · **MANUAL** = needs a person to check (device, real data) · **EVIDENCE** = blocked by missing facts (Query C, backups) · **NOT BUILT** = not implemented anywhere.
 
@@ -26,6 +26,21 @@ Legend: **LIVE** = on `main` now · **BRANCH** = fixed and tested on the extensi
 | One active recall per lot | NOT BUILT | OWNER (D-ops-4) + SQL |
 | Legal hold blocks related deletes | NOT BUILT (planned only) | OWNER (MU-11) |
 | CI on every pull request | Drafted (inactive branch) | OWNER (CI-02) |
+
+### Added in extension 7
+
+| Area | State | What is still needed |
+|---|---|---|
+| Tax Records by state + cost estimate exact (independent oracle) | BRANCH | Merge |
+| Open tasks / approvals / incidents never hidden behind closed ones | BRANCH | Merge |
+| Recently finished tasks + guarded Reopen | BRANCH | Merge |
+| Business Health: "?" per tile, tiles open their page | BRANCH | Merge |
+| Unsaved typing protected (dashboard + order page) | BRANCH | Merge |
+| Different person signs in elsewhere → tab wipes | BRANCH | Merge |
+| Unknown service status shown as Unknown | BRANCH | Merge |
+| Employee approvals / admin switches role rule | OWNER + EVIDENCE | Decision; Query D |
+| Phone layout of wide tables (sideways scroll) | NOT BUILT | Card layout later (X7-15) |
+| Backups proven by a restore drill | EVIDENCE | Owner check + drill (X7-16) |
 
 ## B. Business operations
 

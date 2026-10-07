@@ -1,6 +1,6 @@
 # Database drafts: what depends on what
 
-**Status:** CURRENT (2026-10-07, extension 6). **Nothing here is installed.** Every install is a production change that needs the owner's approval, run by the owner in the Supabase SQL editor, one file at a time. Claude never runs SQL against production.
+**Status:** CURRENT (2026-10-07, extension 7: no new draft; new local evidence in §4). **Nothing here is installed.** Every install is a production change that needs the owner's approval, run by the owner in the Supabase SQL editor, one file at a time. Claude never runs SQL against production.
 
 ## 1. The files
 
@@ -66,3 +66,15 @@ Each step can stop on its own; nothing later is needed to keep an earlier step s
 | Mutation-tested | 9 (8 rule mutations + the install type check) | 2 | 1 |
 
 **Not verifiable here:** Supabase's own settings (statement timeout, pooler), timings, and whether production tables have column-level grants (the request-key install checks this itself and stops if so).
+
+### Extension 7 local evidence (2026-10-07)
+
+`local-test/random_interleavings.sh` (randomized parallel mixes of R1–R5 calls and stale-tab PO line changes, invariants checked each round, failures shrunk to a minimal repro). Seed 2026, 300 rounds each:
+
+| Scenario | Without guard | EXT5 guard draft | Current guard draft (`17_`) | Revised draft | Expected |
+|---|---|---|---|---|---|
+| Random mixes, R1 receive + stale-tab line edit/delete/add | **75 / 300 rounds broke "received order with an unreceived line"**; minimal repro: line add + R1 receive of the same order | 0 / 300 (1,262 changes refused) | 0 / 300 (1,186 refused) | not needed (no gap found) | 0 broken rounds |
+| Browser step-by-step receive vs stale-tab edit (EXT6 `po_browser_path_races.sh`, forced orderings; `PO_RECEIVE_RACE_REVIEW.md` §0) | 1 SILENT, 5 reported | 2 reported, 0 silent | all agree | not needed | all agree |
+| Deadlocks in any of the above | 0 | 0 | 0 | — | 0 |
+
+So the current guard draft stays the recommendation. It still needs owner approval to install.

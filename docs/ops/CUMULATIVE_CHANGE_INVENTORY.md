@@ -1,6 +1,6 @@
 # Cumulative change inventory: what would reach `main`
 
-**Status:** CURRENT (2026-10-07, extension 6). Compares `main` (`d3db7bc`) with the extension branches. Line-level detail lives in the backlog (`MASTER_PLATFORM_BACKLOG_2026-10-06.md`, 168+ items marked DONE) and in each extension report. This file answers one question: **if the owner merged the newest extension branch, what would change for the people using the dashboard, and what would that need?**
+**Status:** CURRENT (2026-10-07, extension 7 addendum in §7; sections 1–6 are from extension 6). Compares `main` (`d3db7bc`) with the extension branches. Line-level detail lives in the backlog (`MASTER_PLATFORM_BACKLOG_2026-10-06.md`, 168+ items marked DONE) and in each extension report. This file answers one question: **if the owner merged the newest extension branch, what would change for the people using the dashboard, and what would that need?**
 
 ## 1. Ancestry: one branch contains everything
 
@@ -72,3 +72,21 @@
 - Reverting the merge commit restores the old pages exactly. The content hashes stop browsers mixing versions; a hard refresh (Cmd+Shift+R) clears anything cached.
 - If request keys (19) were installed **and** a future dashboard sends them, roll back the dashboard **before** the SQL (otherwise every save fails on the missing column). Today no dashboard code sends them.
 - The guard (17) and R1–R5 roll back independently. Rolling back R1 while the guard stays is safe (EXT6 guard does not depend on R1).
+
+## 7. Extension 7 addendum (2026-10-07)
+
+`claude/platform-deep-readiness-extension-7` was created from extension 6 (`444e00c`), so it contains everything in sections 1–6. `main` is still `d3db7bc`. EXT7 adds (all page files, tests, tools and docs; **no SQL draft, no workflow file**):
+
+| Change | Who notices | Needs SQL first? |
+|---|---|---|
+| Tax Records: one row per state; SKU costs match any case | Owner, accountant | No |
+| Money figures never freeze mid-animation | Everyone | No |
+| Tasks / Approvals / Incidents show every open item | Everyone | No |
+| Recently finished tasks + Reopen | Owner, staff | No |
+| Business Health "?" per tile; tiles open their page | Owner | No |
+| "Not saved yet" question on close / sign out | Everyone | No |
+| Another person signing in elsewhere wipes the tab | Shared computers | No |
+| Business Continuity shows Unknown statuses | Owner | No |
+| SOP switch re-reads after a conflict; supplier same-name question | Owner | No |
+
+Helper file API is 7 (was 6); the page refuses a mix of old and new files. `manual-order-entry.html` and `index.html` stay identical. Rollback: revert the merge commit.

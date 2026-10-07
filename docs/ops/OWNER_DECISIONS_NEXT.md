@@ -1,8 +1,18 @@
 # Owner decisions: what is waiting on you (next)
 
-**Status:** CURRENT (2026-10-07, extension 6; EXT5 and EXT4 lists kept below). This is the one place listing decisions only you (Stas) can make. Each has a recommendation; nothing here has been decided for you. Answer in the chat in any order, for example "D-ops-4: yes". Nothing changes in production until you approve the specific step.
+**Status:** CURRENT (2026-10-07, extension 7; EXT6, EXT5 and EXT4 lists kept below). This is the one place listing decisions only you (Stas) can make. Each has a recommendation; nothing here has been decided for you. Answer in the chat in any order, for example "D-ops-4: yes". Nothing changes in production until you approve the specific step.
 
 **OWNER DECISION REQUIRED** on every row below.
+
+## New in extension 7 (2026-10-07)
+
+| Decision | Why it matters | Risk if nobody decides | Blocks launch? | Production action after deciding? |
+|---|---|---|---|---|
+| **X6-17 (re-checked): GitHub admin credential** | Still true today: the session acts as the owner account, with admin rights, and GitHub reports it can **always bypass** `protect-main`. Full write-up: `docs/security/GITHUB_CREDENTIAL_ADMIN_FINDING_2026-10-07.md`. Not used | A mistaken or manipulated session could deploy with no review | Recommended before launch | Owner only: connect Claude with `stasvitiuk-reos` (Write role), and set the admin bypass to "pull requests only" |
+| **X7-14a: can employees approve requests?** | The database lets any active staff approve or reject (`ROLE_PERMISSION_MATRIX.md` §4) | An employee could approve something meant for you | No (no employees yet) | If owner-only: a policy draft + rollback, then approval |
+| **X7-14b: admin-only switches** (Emergency mode, flags, agent switches, business rules) | No page-side role check; the database rule is UNKNOWN until Query D | An employee might flip them | Before hiring staff | Run Query D (read-only), then decide |
+| **X7-16: restore drill** | Backups have never been proven to restore | A real data loss might not be recoverable | Recommended before launch | Owner: backup check, then one restore into a throwaway Supabase project |
+| **K-list: which automations next?** | `AUTOMATION_AND_AGENT_REVIEW.md` proposes K1–K11; nothing is installed | None (status quo) | No | Each item has its own approval step |
 
 ## New in extension 6 (2026-10-07)
 
