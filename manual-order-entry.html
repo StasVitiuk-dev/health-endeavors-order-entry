@@ -236,7 +236,8 @@
   const PENDING_KEY = 'he.manualOrder.pending';
   function loadPending(){ try { return JSON.parse(sessionStorage.getItem(PENDING_KEY) || 'null'); } catch (_) { return null; } }
   function storePending(v){ try { if (v) sessionStorage.setItem(PENDING_KEY, JSON.stringify(v)); else sessionStorage.removeItem(PENDING_KEY); } catch (_) {} }
-  let pending = loadPending(); // { orderNumber, fingerprint, total, warned }
+  let pending = loadPending(); // { orderNumber, fingerprint, total, warned } or { orderNumber, total, resume } (EXT6)
+  let lastUser = null;
   let saving = false;
   // EXT5: only a hash is kept (in this tab's session storage), never the
   // customer's name or e-mail; it is only ever compared for equality.
@@ -338,6 +339,8 @@
   async function checkUnfinished(user){
     const box = document.getElementById('unfinishedMsg');
     if (!box) return;
+    lastUser = user;
+    if (pending && pending.resume) return; // finishing one now: keep its note
     try {
       const since = new Date(Date.now() - 7 * 86400000).toISOString();
       const { data: recent, error } = await sb.from('orders').select('id, order_number, total')
@@ -349,9 +352,43 @@
       const withLines = new Set((lines || []).map(l => l.order_id));
       const empty = recent.filter(o => !withLines.has(o.id));
       if (!empty.length) { box.hidden = true; return; }
-      showError(box, 'Saved without any items: ' + empty.map(o => 'order ' + (o.order_number || o.id) + ' (' + money(Number(o.total) || 0) + ')').join(', ')
-        + '. Its items were not saved (for example the connection dropped or the page was closed). Re-enter exactly the same order on this device to finish it, or ask the owner to delete it on the Orders page.');
+      // EXT6: the old advice ("re-enter the same order on this device") made
+      // a SECOND order once the tab had been closed, because the attempt in
+      // progress lives only in that tab. Each order now has its own button:
+      // finishing adds the items to that very order, or refuses.
+      box.textContent = 'Saved without any items: ';
+      empty.forEach((o, i) => {
+        const label = document.createElement('span');
+        label.textContent = (i ? '; ' : '') + 'order ' + (o.order_number || o.id) + ' (' + money(Number(o.total) || 0) + ') ';
+        box.append(label);
+        if (o.order_number) {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'secondary finishOrderBtn';
+          b.textContent = 'Finish this order';
+          b.addEventListener('click', () => startFinishing(o));
+          box.append(b);
+        }
+      });
+      box.append(document.createTextNode('. Its items were not saved (for example the connection dropped or the page was closed), but the order counts in the totals. '
+        + 'To finish it, press "Finish this order", enter the same customer, items and total, and save: the items are added to that order and no second order is made. '
+        + 'If it should not exist, ask the owner to delete it on the Orders page.'));
+      box.hidden = false;
     } catch (e) { /* a check only: never block entering orders */ }
+  }
+
+  function startFinishing(o){
+    pending = { orderNumber: o.order_number, total: Number(o.total) || 0, resume: true };
+    storePending(pending);
+    const box = document.getElementById('unfinishedMsg');
+    box.textContent = 'Finishing order ' + o.order_number + ' (' + money(Number(o.total) || 0) + '): enter the same customer, items and total, then press "Save order". ';
+    const stop = document.createElement('button');
+    stop.type = 'button';
+    stop.className = 'secondary stopFinishingBtn';
+    stop.textContent = 'Stop finishing';
+    stop.addEventListener('click', () => { pending = null; storePending(null); box.hidden = true; if (lastUser) checkUnfinished(lastUser); });
+    box.append(stop);
+    box.hidden = false;
   }
 
   function showLogin(){
@@ -415,8 +452,8 @@
       const fingerprint = orderFingerprint(orderPayload, items);
 
       let isRetry = false;
-      if (pending && pending.fingerprint === fingerprint) {
-        isRetry = true;
+      if (pending && (pending.resume || pending.fingerprint === fingerprint)) {
+        isRetry = true; // the same attempt again, or finishing an order saved without items (EXT6)
       } else if (pending && !pending.warned) {
         // The form was changed after a failed save; the first attempt may
         // already be saved with the old details. Don't guess: stop and say
@@ -439,8 +476,15 @@
         const { data: already, error: findErr } = await sb.from('orders').select('id, customer_name, total')
           .eq('order_number', orderNumber).eq('entered_by', user.id).is('deleted_at', null).limit(5);
         if (findErr) throw findErr;
-        const mine = (already || []).filter(o => Number(o.total) === Number(pending.total) && (o.customer_name || '') === orderPayload.customer_name);
+        // Compare with THIS form. For a plain retry the fingerprint already
+        // proves the form is unchanged; when finishing a listed order there
+        // is no fingerprint, so the form's own total must match (EXT6).
+        const mine = (already || []).filter(o => Number(o.total) === Number(pending.resume ? total : pending.total) && (o.customer_name || '') === orderPayload.customer_name);
         if (mine.length > 1) throw new Error('More than one order is saved under number ' + orderNumber + ' with the same customer and total, so the page cannot tell which is this one. Nothing more was saved. Check the Orders page in the dashboard and delete the extra copy.');
+        if (pending.resume && mine.length === 0) {
+          // Finishing a listed order: never make a new one instead (EXT6).
+          throw new Error('This form does not match order ' + orderNumber + ' (' + money(pending.total) + '): the customer name and the total must be the same as the first time. Nothing was saved. Correct the form, or press "Stop finishing" to save it as a new order.');
+        }
         if (mine.length === 1) newOrder = mine[0];
         else if (already && already.length) {
           // Same number, but someone else's order (different customer or total): never add to it.

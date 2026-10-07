@@ -325,6 +325,74 @@ test('an order saved without its items is listed on sign-in, even after the tab 
   await expect(page2.locator('#unfinishedMsg')).toContainText('Saved without any items: order ' + num);
 });
 
+// EXT6: the listing used to say "re-enter exactly the same order on this
+// device". Once the tab is closed that made a SECOND order (the attempt in
+// progress lives only in that tab) and left the empty one counting in the
+// totals. Each listed order now has "Finish this order".
+async function orderSavedWithoutItemsThenTabClosed(page, backend, context) {
+  setup(backend);
+  await signIn(page);
+  await fillOrder(page);
+  backend.failNext('order_items', 'POST', { status: 500, body: { message: 'Synthetic server error' } });
+  await save(page);
+  await expect(page.locator('#formMsg')).toBeVisible();
+  backend.tables.orders[0].created_at = new Date().toISOString();
+  const first = backend.tables.orders[0];
+  await page.close();
+  const page2 = await context.newPage();
+  await page2.goto('/manual-order-entry.html');
+  await expect(page2.locator('#appView')).toBeVisible();
+  await expect(page2.locator('#unfinishedMsg')).toContainText('Saved without any items: order ' + first.order_number);
+  return { page2, first };
+}
+
+test('an order saved without items can be finished in a new tab: the items join that order, no second order', async ({ page, backend, context }) => {
+  const { page2, first } = await orderSavedWithoutItemsThenTabClosed(page, backend, context);
+  await expect(page2.locator('#unfinishedMsg')).not.toContainText('Re-enter');
+  await page2.locator('#unfinishedMsg .finishOrderBtn').click();
+  await expect(page2.locator('#unfinishedMsg')).toContainText('Finishing order ' + first.order_number);
+  await fillOrder(page2);
+  await save(page2);
+  await expect(page2.locator('#successMsg')).toContainText('Saved — order ' + first.order_number);
+  expect(backend.tables.orders).toHaveLength(1);
+  expect(backend.tables.order_items).toHaveLength(1);
+  expect(backend.tables.order_items[0].order_id).toBe(first.id);
+  await expect(page2.locator('#unfinishedMsg')).toBeHidden();
+});
+
+test('finishing refuses a form that does not match the listed order, and saves nothing', async ({ page, backend, context }) => {
+  const { page2 } = await orderSavedWithoutItemsThenTabClosed(page, backend, context);
+  await page2.locator('#unfinishedMsg .finishOrderBtn').click();
+  await fillOrder(page2, { qty: '3' }); // $30, not the $20 that was saved
+  await save(page2);
+  await expect(page2.locator('#formMsg')).toContainText('does not match order');
+  await expect(page2.locator('#formMsg')).toContainText('Nothing was saved');
+  expect(backend.tables.orders).toHaveLength(1);
+  expect(backend.tables.order_items).toHaveLength(0);
+});
+
+test('finishing also refuses the same total for a different customer', async ({ page, backend, context }) => {
+  const { page2 } = await orderSavedWithoutItemsThenTabClosed(page, backend, context);
+  await page2.locator('#unfinishedMsg .finishOrderBtn').click();
+  await fillOrder(page2);
+  await page2.fill('#customerName', 'SYNTHETIC Someone Else');
+  await save(page2);
+  await expect(page2.locator('#formMsg')).toContainText('does not match order');
+  expect(backend.tables.order_items).toHaveLength(0);
+});
+
+test('"Stop finishing" goes back to the list, and the next save is a separate new order', async ({ page, backend, context }) => {
+  const { page2, first } = await orderSavedWithoutItemsThenTabClosed(page, backend, context);
+  await page2.locator('#unfinishedMsg .finishOrderBtn').click();
+  await page2.locator('#unfinishedMsg .stopFinishingBtn').click();
+  await expect(page2.locator('#unfinishedMsg')).toContainText('Saved without any items: order ' + first.order_number);
+  await fillOrder(page2, { qty: '3' });
+  await save(page2);
+  await expect(page2.locator('#successMsg')).toContainText('Saved — order M-');
+  expect(backend.tables.orders).toHaveLength(2);
+  expect(backend.tables.order_items.every(i => i.order_id !== first.id)).toBe(true);
+});
+
 test('no warning when every recent order has its items', async ({ page, backend }) => {
   setup(backend);
   backend.tables.orders.push({ id: 'done-1', order_number: 'M-1', entered_by: OWNER_USER.id, total: 5, source: 'manual', deleted_at: null, created_at: new Date().toISOString() });
