@@ -134,6 +134,8 @@ test('if the finished-tasks list cannot load, the open list still shows', async 
   await openTasks(page);
   await page.click('#recentDoneTasks summary');
   await expect(page.locator('#recentDoneWrap')).toContainText('Could not load recently finished tasks');
+  await expect(page.locator('#recentDoneWrap')).toContainText('synthetic failure');
+  await expect(page.locator('#recentDoneWrap')).not.toContainText('[object');
   await expect(taskRow(page, 'task-open-1')).toHaveCount(1);
 });
 
@@ -149,6 +151,8 @@ test.describe('Business Health: one failed read shows "?" on its own tile only',
     await expect(tiles.locator('.stat', { hasText: "Today's orders" }).locator('.num')).toHaveText(/^\d+$/);
     await expect(tiles).not.toContainText('Could not load Business Health');
     await expect(page.locator('#dashError')).toContainText('Some Business Health figures could not be read');
+    await expect(page.locator('#dashError')).toContainText('synthetic failure');
+    await expect(page.locator('#dashError')).not.toContainText('[object');
   });
 
   test('the work tiles open their page', async ({ page }) => {

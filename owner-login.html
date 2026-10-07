@@ -3313,7 +3313,7 @@
         ]);
         const failed = [ordersR, approvalsR, tasksR, incidentsR, monthAiR, sessionsR].filter(r => !r.ok);
         if (failed.length) {
-          showDashError('Some Business Health figures could not be read and show "?": ' + explainDbError(failed[0].e));
+          showDashError('Some Business Health figures could not be read and show "?": ' + explainDbError((failed[0].e && failed[0].e.message) || String(failed[0].e)));
         }
 
         let todayRevenue = null, todayCurrency = 'USD', todayOrderCount = null;
@@ -5508,7 +5508,7 @@
         }
         return rows;
       } catch (err) {
-        if (wrap) wrap.innerHTML = '<p class="empty" style="color:var(--warn);">Could not load recently finished tasks: ' + esc(explainDbError(err)) + '</p>';
+        if (wrap) wrap.innerHTML = '<p class="empty" style="color:var(--warn);">Could not load recently finished tasks: ' + esc(explainDbError((err && err.message) || String(err))) + '</p>';
         return [];
       }
     }
