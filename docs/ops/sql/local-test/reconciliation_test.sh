@@ -75,6 +75,13 @@ reset
 r=$(q "insert into inventory_adjustments (product_id, bucket, change_amount, reason) values (gen_random_uuid(),'available',1,'orphan')")
 if grep -q 'foreign key' <<<"$r"; then echo "  (history for a missing product is already impossible: foreign key)"; else check "history for a missing product is found" "$(result 'history rows for a product that no longer exists')" 1; fi
 
+reset
+check "no order without items on consistent data" "$(result 'orders with no items (not deleted) — counted in Accounting revenue')" 0
+q "insert into orders (id, order_number, total, source, status, channel) values ('a6000000-0000-4000-8000-0000000000c1','M-RECON-1',20,'manual','paid','in_person');
+   insert into orders (id, order_number, total, source, status, channel, deleted_at) values ('a6000000-0000-4000-8000-0000000000c2','M-RECON-2',9,'manual','paid','in_person',now())" >/dev/null
+check "an order saved without items is found (the deleted one is not)" "$(result 'orders with no items (not deleted) — counted in Accounting revenue')" 1
+check "and named with its total" "$(result 'first 25 orders with no items (order number, total)')" "M-RECON-1 20"
+
 echo "3 read-only proof"
 before=$(q "select md5(string_agg(t::text, ',' order by t::text)) from (select * from inventory) t")
 $P -f "$QE" >/dev/null 2>&1

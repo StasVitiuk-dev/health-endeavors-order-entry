@@ -1,4 +1,5 @@
 -- =============================================================================
+-- Rollback: 11_DRAFT_rollback_stock_functions.sql (tested; safe to run twice). [EXT6: reference added]
 -- DRAFT — DO NOT RUN ON SUPABASE YET.
 -- R1–R5 all-or-nothing stock functions for Health Endeavors.
 -- 2026-10-05: reconciled with the REAL table shapes from the owner's read-only

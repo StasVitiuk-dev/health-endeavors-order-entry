@@ -21,6 +21,9 @@
 --     (owner decision N4), with the same "never subtract twice" rule
 -- SECURITY INVOKER: row-level security applies exactly as for today's reads.
 -- =============================================================================
+-- EXT6: one transaction, so the function and its permissions arrive together or not at all.
+begin;
+
 create or replace function public.report_totals(
   p_orders_from   timestamptz default null,
   p_orders_to     timestamptz default null,
@@ -79,6 +82,8 @@ $$;
 
 revoke all on function public.report_totals(timestamptz, timestamptz, date, date, text) from public, anon;
 grant execute on function public.report_totals(timestamptz, timestamptz, date, date, text) to authenticated;
+
+commit;
 
 -- Rollback: drop function if exists public.report_totals(timestamptz, timestamptz, date, date, text);
 -- (Revert the dashboard PR that calls it first; the paged browser version keeps working.)

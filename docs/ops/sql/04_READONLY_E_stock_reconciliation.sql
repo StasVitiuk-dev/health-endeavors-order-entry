@@ -8,7 +8,8 @@
 -- example of every problem it looks for (local-test/reconciliation_test.sh).
 --
 -- What it answers: does each product's stock agree with its stock history,
--- and does each received delivery agree with its stock and its expense?
+-- does each received delivery agree with its stock and its expense, and are
+-- there orders saved without their items (they still count as revenue)?
 --
 -- HOW TO READ THE RESULT
 --   * "0" or "none" in a check = nothing found. That is the goal.
@@ -92,4 +93,11 @@ union all select '4 lots', 'lots with remaining below zero or above received',
        count(*)::text from inventory_lots where quantity_remaining < 0 or quantity_remaining > quantity_received
 union all select '4 lots', 'products whose lots hold more than available + recalled (information)',
        count(*)::text from inventory i
-         where (select coalesce(sum(quantity_remaining), 0) from inventory_lots l where l.product_id = i.product_id) > i.available + i.recalled;
+         where (select coalesce(sum(quantity_remaining), 0) from inventory_lots l where l.product_id = i.product_id) > i.available + i.recalled
+union all select '5 orders', 'orders with no items (not deleted) — counted in Accounting revenue',
+       count(*)::text from orders o where o.deleted_at is null and not exists (select 1 from order_items oi where oi.order_id = o.id)
+union all select '5 orders', 'first 25 orders with no items (order number, total)',
+       coalesce((select string_agg(coalesce(order_number, '(no number)') || ' ' || total, '; ' order by order_number)
+                 from (select order_number, total from orders o where o.deleted_at is null
+                         and not exists (select 1 from order_items oi where oi.order_id = o.id)
+                       order by order_number limit 25) d), 'none');
