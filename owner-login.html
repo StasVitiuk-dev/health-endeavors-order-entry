@@ -3410,6 +3410,17 @@
     function attnSeenSet(v){ try { localStorage.setItem(ATTN_SEEN_KEY, JSON.stringify(v)); } catch (_) { /* storage blocked: just not remembered */ } }
     const attnSignature = f => f.key + '|' + f.count + '|' + (f.oldest || '');
     let ATTN_SHOW_HIDDEN = false;
+    // One rule, used by Accounting and by the Home checks (EXT6 / EXT8):
+    // manual orders that count as revenue but have no order lines.
+    async function manualOrdersWithoutItems(orders){
+      const counted = orders.filter(o => {
+        const c = classifyOrderStatus(o.status);
+        return o.source === 'manual' && !(c.isCancelled || (c.isRefund && !c.isPartialRefund));
+      });
+      const lines = counted.length ? await fetchAllRowsIn('order_items', 'id, order_id', 'order_id', counted.map(o => o.id)) : [];
+      const withItems = new Set(lines.map(l => l.order_id));
+      return counted.filter(o => !withItems.has(o.id));
+    }
     async function loadAttentionChecks(){
       const wrap = document.getElementById('attnChecksWrap');
       if (!wrap) return;
@@ -3417,13 +3428,8 @@
         if (v && v.error) throw v.error;
         return { ok: true, rows: Array.isArray(v) ? v : (v && v.data) || [] };
       }).catch(e => ({ ok: false, error: e }));
-      const manualOrdersWithoutItems = async () => {
-        const orders = await fetchAllRows('orders', 'id, order_number, total, currency, status, placed_at', q => q.eq('source', 'manual').is('deleted_at', null));
-        const counted = orders.filter(o => { const c = classifyOrderStatus(o.status); return !(c.isCancelled || (c.isRefund && !c.isPartialRefund)); });
-        const lines = counted.length ? await fetchAllRowsIn('order_items', 'id, order_id', 'order_id', counted.map(o => o.id)) : [];
-        const withItems = new Set(lines.map(l => l.order_id));
-        return counted.filter(o => !withItems.has(o.id));
-      };
+      const allManualWithoutItems = async () => manualOrdersWithoutItems(
+        await fetchAllRows('orders', 'id, order_number, total, currency, status, placed_at, source', q => q.eq('source', 'manual').is('deleted_at', null)));
       const [inventory, receivedPOs, openPOs, poExpenses, openTasks, pendingApprovals, openIncidents, waitingQuestions, openReturns, ordersWithoutItems, services, orderSyncFlag] = await Promise.all([
         settle(fetchAllRows('inventory', 'id, product_id, available, reserved, damaged, sample, wholesale, promotional, returned, recalled, low_stock_threshold', q => q)),
         settle(fetchAllRows('purchase_orders', 'id, po_number, status, purchase_order_items(product_id, quantity, quantity_received)', q => q.eq('status', 'received'))),
@@ -3434,7 +3440,7 @@
         settle(fetchAllRows('incidents', 'id, severity, status, created_at', q => q.or('status.is.null,status.not.in.' + CLOSED_IN))),
         settle(fetchAllRows('customer_inquiries', 'id, status, created_at', q => q.in('status', ['needs_review', 'new']))),
         settle(fetchAllRows('returns', 'id, status, created_at', q => q.in('status', ['requested', 'approved', 'received']))),
-        settle(manualOrdersWithoutItems()),
+        settle(allManualWithoutItems()),
         settle(supabase.from('service_status').select('id, status')),
         settle(supabase.from('feature_flags').select('flag_key, enabled').eq('flag_key', 'shopify_order_sync')),
         loadAgentControls().catch(() => {}),
@@ -9252,14 +9258,8 @@
         // their items), so only those are checked: a small extra read.
         const noItemsWrap = document.getElementById('acctNoItemsWrap');
         try {
-          const counted = orders.filter(o => {
-            const c = classifyOrderStatus(o.status);
-            return o.source === 'manual' && !(c.isCancelled || (c.isRefund && !c.isPartialRefund));
-          });
-          const lines = counted.length ? await fetchAllRowsIn('order_items', 'id, order_id', 'order_id', counted.map(o => o.id)) : [];
+          const empty = await manualOrdersWithoutItems(orders);
           if (!isLatest()) return;
-          const withItems = new Set(lines.map(l => l.order_id));
-          const empty = counted.filter(o => !withItems.has(o.id));
           noItemsWrap.innerHTML = !empty.length
             ? '<p class="empty">None found.</p>'
             : empty.map(o => `
