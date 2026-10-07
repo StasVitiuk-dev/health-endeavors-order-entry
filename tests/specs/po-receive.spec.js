@@ -295,6 +295,8 @@ test.describe('order changed in another tab before Receive', () => {
     backend.tables.purchase_order_items.push(extra); // the order's embedded list is the same array in this fixture
     await clickReceive(page);
     await expect.poll(() => snapshot(backend).availableB).toBe(23);
+    // the expense is written after the stock, so wait for it too
+    await expect.poll(() => backend.tables.expenses.length).toBe(1);
     expect(backend.tables.expenses[0].amount).toBe(100 + 100 + 15 + 15 + 5);
   });
   test('shipping changed elsewhere: the expense uses the saved figure', async ({ page, backend }) => {
