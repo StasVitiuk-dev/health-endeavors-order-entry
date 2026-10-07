@@ -43,7 +43,19 @@ case "$GUARD" in
   current) $P -f "$DIR/../drafts/17_DRAFT_po_line_delete_guard.sql" >/dev/null 2>>"$ERR" || { echo "could not install the current guard"; exit 2; } ;;
   *) echo "guard must be none, ext5 or current"; exit 2 ;;
 esac
-trap 'rm -f "$ERR" "$ACT"; $P -f "$DIR/../drafts/18_DRAFT_rollback_po_line_delete_guard.sql" >/dev/null 2>&1' EXIT
+# On exit: remove the guard and every row this script made, so the other
+# local scripts start from what they expect (their clean-up does not know
+# about recalls, returns or orders left here).
+cleanup() {
+  rm -f "$ERR" "$ACT"
+  $P -f "$DIR/../drafts/18_DRAFT_rollback_po_line_delete_guard.sql" >/dev/null 2>&1
+  psql $CONN -qtAX -v ON_ERROR_STOP=1 >/dev/null 2>&1 <<'SQL'
+set session_replication_role = replica;
+delete from inventory_adjustments; delete from expenses; delete from recalls; delete from returns; delete from order_items; delete from orders;
+delete from inventory_lots; delete from purchase_order_items; delete from purchase_orders; delete from inventory; delete from products; delete from suppliers;
+SQL
+}
+trap cleanup EXIT
 
 # The clean-up runs with triggers off (session_replication_role = replica), so
 # a guard that refuses deleting lines of a received order cannot leave the
