@@ -237,13 +237,55 @@ function markdown(rows, classes) {
   return lines.join('\n') + '\n';
 }
 
-module.exports = { extract, all, markdown, STATE_COLUMNS, PAGES };
+// EXT7 (workstream C): the retry class of each path, from its hand-checked
+// idempotency text plus what the database itself guarantees.
+//   SAFE ALREADY                 a repeat changes nothing (condition, same value,
+//                                upsert, or a unique key refuses a second row)
+//   CLIENT-SIDE MITIGATION ONLY  the page recognises the attempt; another device
+//                                or a cleared tab could still duplicate
+//   DATABASE REQUEST KEY NEEDED  a repeat creates a second record; fixed by
+//                                docs/ops/sql/drafts/19_DRAFT_request_keys.sql
+//                                (OWNER APPROVAL REQUIRED) + a dashboard change
+//   UNRESOLVED                   none of the above
+const REQUEST_KEY_TABLES = new Set(['expenses', 'inventory_adjustments', 'inventory_lots', 'returns', 'recalls',
+  'products', 'suppliers', 'documents', 'evidence_locker', 'adverse_event_reports', 'legal_holds', 'quality_checks',
+  'incidents', 'sop_documents', 'feature_requests', 'manual_attention_items', 'personal_calendar_events', 'tasks',
+  'orders', 'order_items', 'purchase_orders', 'purchase_order_items']);
+// Unique keys that already refuse a second identical create (Query A shape).
+const UNIQUE_CREATE_KEYS = { inventory: 'UNIQUE (product_id)' };
+function retryClass(row, cls) {
+  const idem = String((cls && cls.idempotency) || '');
+  if (/^(guarded|repeat harmless|upsert)/.test(idem)) return { retryClass: 'SAFE ALREADY', why: idem };
+  if (UNIQUE_CREATE_KEYS[row.table]) return { retryClass: 'SAFE ALREADY', why: 'database ' + UNIQUE_CREATE_KEYS[row.table] + ' refuses a second row' };
+  if (/^retry-safe/.test(idem)) return { retryClass: 'CLIENT-SIDE MITIGATION ONLY', why: idem + '; a request key (draft 19) would make it hold across devices' };
+  if (/^not idempotent/.test(idem) && REQUEST_KEY_TABLES.has(row.table)) return { retryClass: 'DATABASE REQUEST KEY NEEDED', why: idem + '; draft 19 covers ' + row.table };
+  return { retryClass: 'UNRESOLVED', why: idem || 'not classified' };
+}
+
+function inventoryJson(rows, classes) {
+  const items = rows.map((r, i) => {
+    const c = classes[r.key] || {};
+    return { n: i + 1, key: r.key, page: r.file, line: r.line, where: r.context, table: r.table, op: r.op,
+      writesState: r.writesState, staleCondition: r.staleCondition, readBack: r.readBack, doubleClickLock: r.doubleClickLock,
+      confirmation: r.confirmation, rolePrecheck: r.rolePrecheck, idempotency: c.idempotency || null, audit: c.audit || null,
+      partialFailure: c.partial || null, sensitive: c.sensitive || null, ...retryClass(r, c) };
+  });
+  const totals = {};
+  for (const it of items) totals[it.retryClass] = (totals[it.retryClass] || 0) + 1;
+  return { generatedBy: 'node tests/tools/write-paths.js --json', status: 'CURRENT (branch work, not live)', paths: items.length, retryClassTotals: totals, items };
+}
+
+module.exports = { extract, all, markdown, inventoryJson, retryClass, STATE_COLUMNS, PAGES };
 
 if (require.main === module) {
   const rows = all();
   const classPath = path.join(ROOT, 'docs', 'ops', 'write-paths.classification.json');
   const classes = fs.existsSync(classPath) ? JSON.parse(fs.readFileSync(classPath, 'utf8')) : {};
-  if (process.argv.includes('--md')) {
+  if (process.argv.includes('--json')) {
+    const inv = inventoryJson(rows, classes);
+    fs.writeFileSync(path.join(ROOT, 'docs', 'ops', 'MUTATION_WRITE_PATH_INVENTORY.json'), JSON.stringify(inv, null, 1) + '\n');
+    console.log('wrote docs/ops/MUTATION_WRITE_PATH_INVENTORY.json', JSON.stringify(inv.retryClassTotals));
+  } else if (process.argv.includes('--md')) {
     fs.writeFileSync(path.join(ROOT, 'docs', 'ops', 'WRITE_PATH_MATRIX.md'), markdown(rows, classes));
     console.log('wrote docs/ops/WRITE_PATH_MATRIX.md with', rows.length, 'paths');
   } else {

@@ -76,6 +76,15 @@ test.describe('write-path inventory', () => {
     const current = fs.readFileSync(path.join(ROOT, 'docs', 'ops', 'WRITE_PATH_MATRIX.md'), 'utf8');
     expect(current).toBe(markdown(ROWS, CLASSES));
   });
+
+  // EXT7 (workstream C): machine-readable inventory with a retry class per path.
+  test('the JSON inventory is up to date, and no write path has an UNRESOLVED retry class', () => {
+    const { inventoryJson } = require('../tools/write-paths');
+    const want = inventoryJson(ROWS, CLASSES);
+    const current = JSON.parse(fs.readFileSync(path.join(ROOT, 'docs', 'ops', 'MUTATION_WRITE_PATH_INVENTORY.json'), 'utf8'));
+    expect(current).toEqual(want);
+    expect(want.items.filter(i => i.retryClass === 'UNRESOLVED').map(i => i.key)).toEqual([]);
+  });
 });
 
 // Found by the inventory (EXT4): the procedure form had no double-submit lock.
