@@ -79,6 +79,35 @@ if [ -f "$TMP/17_noguard.sql" ]; then
   if GUARD_FILE="$TMP/17_noguard.sql" bash "$ROOT/docs/ops/sql/local-test/po_race_interleavings.sh" "${CONN[@]}" -d "$DB" > "$TMP/race.out" 2>&1; then echo "MISS PO line guard disabled → NOT CAUGHT"; missed=$((missed+1)); else echo "OK   PO line guard disabled → CAUGHT ($(grep -o 'GUARDED FAILURES: [0-9]*' "$TMP/race.out"))"; caught=$((caught+1)); fi
 else echo "MISS PO line guard disabled → MUTATION NOT APPLIED"; missed=$((missed+1)); fi
 
+# EXT6: the guard's NOWAIT order lock (the fix for the dashboard's
+# step-by-step receive) is checked by the browser-path interleavings. The
+# mutant is the EXT5 version: a plain re-read with no lock.
+python3 - "$GUARD" "$TMP/17_nolock.sql" <<'PY'
+import sys
+s=open(sys.argv[1]).read()
+f="      perform 1 from purchase_orders where id = v_po for share nowait;"
+if s.count(f)!=1: print('NOTFOUND'); sys.exit(0)
+open(sys.argv[2],'w').write(s.replace(f, "      null;", 1))
+PY
+if [ -f "$TMP/17_nolock.sql" ]; then
+  psql "${CONN[@]}" -d postgres -qX -c "drop database if exists $DB" >/dev/null 2>&1
+  psql "${CONN[@]}" -d postgres -qX -v ON_ERROR_STOP=1 -c "create database $DB template $SRC_DB" >/dev/null
+  if ONLY=guard KINDS="delete qty" GUARD_FILE="$TMP/17_nolock.sql" bash "$ROOT/docs/ops/sql/local-test/po_browser_path_races.sh" "${CONN[@]}" -d "$DB" > "$TMP/browser.out" 2>&1; then echo "MISS PO line guard order lock removed → NOT CAUGHT"; missed=$((missed+1)); else echo "OK   PO line guard order lock removed → CAUGHT ($(grep -o 'GUARDED: .*' "$TMP/browser.out"))"; caught=$((caught+1)); fi
+else echo "MISS PO line guard order lock removed → MUTATION NOT APPLIED"; missed=$((missed+1)); fi
+
+# EXT6: the request-key unique index (drafts/19) is checked by its own test.
+KEYS="$ROOT/docs/ops/sql/drafts/19_DRAFT_request_keys.sql"
+sed 's/create unique index if not exists %I/create index if not exists %I/' "$KEYS" > "$TMP/19_notunique.sql"
+if grep -q "create index if not exists %I" "$TMP/19_notunique.sql"; then
+  mkdir -p "$TMP/keys/drafts" "$TMP/keys/local-test"
+  cp "$TMP/19_notunique.sql" "$TMP/keys/drafts/19_DRAFT_request_keys.sql"
+  cp "$ROOT/docs/ops/sql/drafts/20_DRAFT_rollback_request_keys.sql" "$TMP/keys/drafts/"
+  cp "$ROOT/docs/ops/sql/local-test/request_keys_test.sh" "$TMP/keys/local-test/"
+  psql "${CONN[@]}" -d postgres -qX -c "drop database if exists $DB" >/dev/null 2>&1
+  psql "${CONN[@]}" -d postgres -qX -v ON_ERROR_STOP=1 -c "create database $DB template $SRC_DB" >/dev/null
+  if bash "$TMP/keys/local-test/request_keys_test.sh" "${CONN[@]}" -d "$DB" > "$TMP/keys.out" 2>&1; then echo "MISS request-key index not unique → NOT CAUGHT"; missed=$((missed+1)); else echo "OK   request-key index not unique → CAUGHT ($(grep -c FAIL "$TMP/keys.out") failing checks)"; caught=$((caught+1)); fi
+else echo "MISS request-key index not unique → MUTATION NOT APPLIED"; missed=$((missed+1)); fi
+
 psql "${CONN[@]}" -d postgres -qX -c "drop database if exists $DB" >/dev/null 2>&1
 rm -rf "$TMP"
 echo "SQL MUTATIONS: $caught caught, $missed missed"
