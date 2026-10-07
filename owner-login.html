@@ -1495,6 +1495,18 @@
       }
     });
 
+    // EXT8: a page brought back by the browser's Back button from its cache
+    // may have missed a sign-out (or a different sign-in) meanwhile: check
+    // the sign-in again before showing anything.
+    window.addEventListener('pageshow', async (e) => {
+      if (!e.persisted || dash.style.display !== 'flex') return;
+      let session = null;
+      try { ({ data: { session } } = await supabase.auth.getSession()); } catch (_) { session = null; }
+      const uid = session && session.user && session.user.id;
+      if (!uid) wipeAfterSignOut('You were signed out while this page was in the background. Sign in again to continue.');
+      else if (shownUserId && uid !== shownUserId) wipeAfterSignOut('A different person signed in on this computer, so this page was cleared. Anything not already saved was not sent.');
+    });
+
     document.getElementById('signout').addEventListener('click', async () => {
       if (hasUnsavedTyping() && !window.confirm('Something you typed is not saved yet. Sign out anyway? It will be lost.')) return;
       signingOutHere = true;
@@ -2032,12 +2044,40 @@
     // starting over at "Needs Your Attention". Stored only in this browser,
     // on this device — never sent anywhere, never stored in the database.
     function getLastPage(){
+      // EXT8: a link to a page (#page=<id>) wins; only page names are ever
+      // put in the address bar, never record data.
+      const linked = pageFromHash();
+      if (linked) return linked;
       try {
         const saved = localStorage.getItem('he_last_page');
         if (saved && allPageIds().includes(saved)) return saved;
       } catch (e) { /* private browsing or blocked storage — fine, just default */ }
       return 'attentionPanel';
     }
+    function pageFromHash(){
+      const m = /^#page=([A-Za-z]+)$/.exec(location.hash || '');
+      return m && allPageIds().includes(m[1]) ? m[1] : null;
+    }
+    // EXT8: the browser's Back / Forward move between dashboard pages
+    // instead of leaving the dashboard.
+    let HISTORY_STARTED = false, HISTORY_SUPPRESS = false;
+    function recordPageInHistory(pageId){
+      if (HISTORY_SUPPRESS) return;
+      const want = '#page=' + pageId;
+      try {
+        if (location.hash !== want) {
+          if (HISTORY_STARTED) history.pushState({ hePage: pageId }, '', want);
+          else history.replaceState({ hePage: pageId }, '', want);
+        }
+      } catch (_) { /* history not available: page still works */ }
+      HISTORY_STARTED = true;
+    }
+    window.addEventListener('popstate', () => {
+      const pageId = pageFromHash();
+      if (!pageId || pageId === currentPageId || dash.style.display !== 'flex') return;
+      HISTORY_SUPPRESS = true;
+      try { showPage(pageId); } finally { HISTORY_SUPPRESS = false; }
+    });
     function saveLastPage(pageId){
       try { localStorage.setItem('he_last_page', pageId); } catch (e) { /* not critical */ }
     }
@@ -2057,6 +2097,7 @@
       });
       currentPageId = pageId;
       saveLastPage(pageId);
+      recordPageInHistory(pageId);
       renderSidebar(document.getElementById('sidebarSearch').value);
       closeMobileSidebar();
       document.querySelector('main.contentArea').scrollTop = 0;
@@ -7048,6 +7089,7 @@
           { status: decision, reviewed_by: uid, reviewed_at: new Date().toISOString() },
           { status: seenStatus });
         if (!changed) showDashError(staleMessage('That request'));
+        else toastOk(decision === 'approved' ? 'Request approved.' : 'Request rejected.');
         loadApprovals();
       } catch (err) {
         row.querySelectorAll('button').forEach(b => b.disabled = false);

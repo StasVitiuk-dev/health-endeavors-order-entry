@@ -70,3 +70,23 @@ test('manual order page: a different person signing in elsewhere clears the type
 });
 
 test.afterEach(({ backend }) => { backend.blocked = backend.blocked.filter(u => !u.startsWith('https://fonts.googleapis.com/')); });
+
+test('restored from the Back-button cache after a sign-out elsewhere: the page is wiped', async ({ page }) => {
+  await login(page);
+  await gotoPage(page, 'tasksPanel');
+  const key = await storedSessionKey(page);
+  // The sign-out happened while the page was frozen: the session is gone.
+  await page.evaluate(k => localStorage.removeItem(k), key);
+  await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })));
+  await expect(page.locator('#loginScreen')).toBeVisible();
+  await expect(page.locator('#loginMsg')).toContainText('signed out while this page was in the background');
+});
+
+test('restored from the Back-button cache, still signed in as the same person: nothing changes', async ({ page }) => {
+  await login(page);
+  await gotoPage(page, 'tasksPanel');
+  await page.evaluate(() => { window.__marker = 1; window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })); });
+  await page.waitForTimeout(800);
+  expect(await page.evaluate(() => window.__marker)).toBe(1);
+  await expect(page.locator('#tasksTableWrap')).toContainText('SYNTHETIC open task one');
+});
