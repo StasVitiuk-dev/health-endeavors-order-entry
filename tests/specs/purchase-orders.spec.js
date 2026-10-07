@@ -109,7 +109,19 @@ test('saving shipping and tax sends only those two numbers', async ({ page, back
   expect(w.body).toMatchObject({ shipping_cost: 20, tax: 2.5 });
   // Only while the order can still be edited, so a stale page can't change
   // the total of an order whose expense has already been logged.
-  expect(filtersOf(w)).toEqual({ id: 'eq.syn-draft', status: 'in.(draft,ordered)', deleted_at: 'is.null' });
+  expect(filtersOf(w)).toMatchObject({ id: 'eq.syn-draft', status: 'in.(draft,ordered)', deleted_at: 'is.null' });
+});
+
+// EXT8: two people editing one order's shipping / tax no longer overwrite
+// each other (the save carries the amounts the form loaded).
+test('shipping changed in another tab meanwhile: this save is refused and nothing is overwritten', async ({ page, backend }) => {
+  const box = await openPo(page, 'syn-draft');
+  const row = backend.tables.purchase_orders.find(p => p.id === 'syn-draft');
+  row.shipping_cost = 33; // someone else saved after this page loaded
+  await box.locator('.poShipping').fill('20');
+  await box.locator('.poSaveTotals').click();
+  await expect(page.locator('#dashError')).toContainText('already changed');
+  expect(row.shipping_cost).toBe(33);
 });
 
 test('saving the payment status sends only that status', async ({ page, backend }) => {

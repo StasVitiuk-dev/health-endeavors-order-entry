@@ -319,7 +319,22 @@ test.describe('Inventory', () => {
     expect(Object.keys(w.body).sort()).toEqual(['cost', 'name', 'packaging_info', 'retail_price', 'sku', 'status', 'updated_at', 'wholesale_price']);
     expect(w.body.retail_price).toBe(21.5);
     // Only while the status is still the one the form opened with (EXT3)
-    expect(filtersOf(w)).toEqual({ id: 'eq.prod-b', status: 'eq.active' });
+    expect(filtersOf(w)).toEqual({ id: 'eq.prod-b', status: 'eq.active', updated_at: 'is.null' }); // fixture row has no updated_at
+  });
+
+  test('EXT8: a product saved in another tab meanwhile is not overwritten by an older edit form', async ({ page, backend }) => {
+    const prod = backend.tables.products.find(p => p.id === 'prod-b');
+    prod.updated_at = '2026-10-07T10:00:00.000Z';
+    await page.click('#refreshBtn');
+    const row = page.locator('#inventoryWrap [data-product-id="prod-b"]');
+    await expect(row).toHaveAttribute('data-updated-at', '2026-10-07T10:00:00.000Z');
+    await row.locator('.editProductBtn').click();
+    // Someone else saves a new cost after this form opened.
+    prod.cost = 9; prod.updated_at = '2026-10-07T10:05:00.000Z';
+    await row.locator('.peCost').fill('6');
+    await row.locator('.saveProductBtn').click();
+    await expect(page.locator('#dashError')).toContainText('already changed');
+    expect(prod.cost).toBe(9);
   });
 
   test('a product whose status changed in another tab is not flipped back by a stale edit form', async ({ page, backend }) => {

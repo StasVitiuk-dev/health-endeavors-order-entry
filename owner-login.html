@@ -4330,7 +4330,10 @@
             shipping_cost: Number(box.querySelector('.poShipping').value || 0),
             tax: Number(box.querySelector('.poTax').value || 0),
             updated_at: new Date().toISOString(),
-          }, { status: PO_EDITABLE, deleted_at: null });
+          // EXT8: also only if shipping and tax are still what this form
+          // loaded: two people editing the same order no longer overwrite
+          // each other's amounts (money) without noticing.
+          }, { status: PO_EDITABLE, deleted_at: null, shipping_cost: po.shipping_cost, tax: po.tax });
           if (changed) toastOk('Saved.');
           else showDashError(staleMessage('That purchase order'));
           loadPurchaseOrders();
@@ -8077,7 +8080,7 @@
         // in one round trip, using the foreign key link between the two tables.
         const { data: products, error } = await supabase
           .from('products')
-          .select('id, sku, name, is_active, status, cost, retail_price, wholesale_price, packaging_info, inventory(available, reserved, damaged, sample, wholesale, promotional, returned, recalled, low_stock_threshold), inventory_lots(lot_number, quantity_remaining, received_at, expires_at)')
+          .select('id, sku, name, is_active, status, cost, retail_price, wholesale_price, packaging_info, updated_at, inventory(available, reserved, damaged, sample, wholesale, promotional, returned, recalled, low_stock_threshold), inventory_lots(lot_number, quantity_remaining, received_at, expires_at)')
           .order('name', { ascending: true });
         if (error) throw error;
 
@@ -8123,7 +8126,7 @@
                   }).join('')}
                 </div>` : '';
           return `
-            <div class="deletedRow" data-product-id="${esc(p.id)}" data-status="${esc(p.status || '')}" style="align-items:flex-start;">
+            <div class="deletedRow" data-product-id="${esc(p.id)}" data-status="${esc(p.status || '')}" data-updated-at="${esc(p.updated_at || '')}" style="align-items:flex-start;">
               <div class="info" style="flex:1;">
                 <b>${esc(p.name)}</b>${p.sku ? ' <span style="color:var(--muted);font-size:12px;">(' + esc(p.sku) + ')</span>' : ''}
                 ${isLow ? ' <span class="badge sev-high">Low stock</span>' : ''}
@@ -8213,7 +8216,13 @@
               // Only while the status is still the one this form opened with,
               // so a stale tab can't flip a product back (e.g. discontinued
               // → active) without noticing.
-              }).eq('id', id).eq('status', row.getAttribute('data-status')).select('id');
+              // EXT8: ...and only if nobody saved this product since the form
+              // loaded (updated_at, set on every save). Before, a second
+              // editor working from an old form silently overwrote the first
+              // one's cost, price, name or SKU.
+              }).eq('id', id).eq('status', row.getAttribute('data-status'))
+                [row.getAttribute('data-updated-at') ? 'eq' : 'is']('updated_at', row.getAttribute('data-updated-at') || null)
+                .select('id');
               if (!error && noRowsChanged(saved)) { showDashError(staleMessage('That product')); loadInventory(); return; }
               if (error) {
                 if (String(error.message || '').includes('products_sku_unique')) {

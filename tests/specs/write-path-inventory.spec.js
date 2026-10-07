@@ -85,6 +85,13 @@ test.describe('write-path inventory', () => {
     expect(current).toEqual(want);
     expect(want.items.filter(i => i.retryClass === 'UNRESOLVED').map(i => i.key)).toEqual([]);
   });
+
+  test('WRITE_PATH_INVENTORY.md is up to date; every write path is named by at least one test file', () => {
+    const { inventoryJson, inventoryMarkdown } = require('../tools/write-paths');
+    const inv = inventoryJson(ROWS, CLASSES);
+    expect(fs.readFileSync(path.join(ROOT, 'docs', 'ops', 'WRITE_PATH_INVENTORY.md'), 'utf8')).toBe(inventoryMarkdown(inv));
+    expect(inv.items.filter(i => !i.testFiles.length).map(i => i.key)).toEqual([]);
+  });
 });
 
 // Found by the inventory (EXT4): the procedure form had no double-submit lock.
