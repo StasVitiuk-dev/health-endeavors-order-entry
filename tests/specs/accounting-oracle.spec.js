@@ -248,3 +248,28 @@ test.describe('Orders page revenue figure', () => {
     await expect(page.locator('#orderStats .stat').first().locator('.num')).toHaveText('450');
   });
 });
+
+// EXT6 (X6-14): manual orders saved without items count as revenue; the
+// Accounting page lists them so they are not invisible.
+test('Accounting lists manual orders saved without items (counted in revenue), not Shopify ones or cancelled ones', async ({ page, backend }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'run once');
+  const now = new Date().toISOString();
+  const o = (id, source, status, total) => ({ id, order_number: id.toUpperCase(), total, tax_total: '0', currency: 'USD', status, placed_at: now,
+    deleted_at: null, source, raw_data: null, customer_name: 'SYNTHETIC', created_at: now });
+  backend.tables.orders = [o('m-ok', 'manual', 'paid', '10.00'), o('m-empty', 'manual', 'paid', '20.00'), o('m-cancel', 'manual', 'cancelled', '5.00'), o('s-noitems', 'shopify', 'paid', '7.00')];
+  backend.tables.order_items = [{ id: 'oi-1', order_id: 'm-ok', product_name: 'SYNTHETIC', quantity: 1, unit_price: 10, line_total: 10 }];
+  backend.tables.expenses = [];
+  await login(page);
+  await openAllTime(page);
+  await expect(page.locator('#acctNoItemsWrap .acctNoItemsRow')).toHaveCount(1);
+  await expect(page.locator('#acctNoItemsWrap')).toContainText('M-EMPTY');
+  await expect(page.locator('#acctNoItemsWrap')).toContainText('$20.00');
+});
+
+test('Accounting: every manual order has its items: "None found."', async ({ page, backend }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'run once');
+  serve(backend, { orders: [{ id: 'ord-x', order_number: 'X', totalCents: 1000, status: 'paid', deleted: false }], expenses: [] });
+  await login(page);
+  await openAllTime(page);
+  await expect(page.locator('#acctNoItemsWrap')).toContainText('None found.');
+});

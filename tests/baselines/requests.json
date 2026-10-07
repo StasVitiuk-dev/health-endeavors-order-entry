@@ -37,7 +37,7 @@
   "GET needs_attention?order=due_at.asc.nullslast&select=*",
   "GET order_items?limit=1000&offset=0&order=id.asc&order_id=in.(o1,o3)&select=id,order_id,sku,product_name,quantity",
   "GET orders?deleted_at=is.null&limit=1000&offset=0&order=id.asc&placed_at=gte.2026-01-01T06:00:00.000Z&select=id,order_number,total,tax_total,currency,status,placed_at,deleted_at,source,raw_data",
-  "GET orders?deleted_at=is.null&limit=1000&offset=0&order=id.asc&placed_at=gte.2026-06-15T05:00:00.000Z&select=id,order_number,total,currency,status,placed_at,deleted_at",
+  "GET orders?deleted_at=is.null&limit=1000&offset=0&order=id.asc&placed_at=gte.2026-06-15T05:00:00.000Z&select=id,order_number,total,currency,status,placed_at,deleted_at,source",
   "GET orders?deleted_at=is.null&limit=200&order=placed_at.desc&select=id,order_number,customer_name",
   "GET orders?deleted_at=is.null&limit=300&order=placed_at.desc&select=id,order_number,customer_name,customer_email,status,currency,total,placed_at,deleted_at",
   "GET orders?deleted_at=not.is.null&limit=50&order=deleted_at.desc&select=id,order_number,customer_name,customer_email,total,currency,deleted_at",

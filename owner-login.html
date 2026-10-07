@@ -316,6 +316,10 @@
         <p class="hint" style="margin-top:-2px;">These have a partial-refund status but no exact refunded amount on file, so they're counted at full value above — check Shopify if the real number matters for this period.</p>
         <div id="acctReviewWrap"><p class="empty">Loading…</p></div>
 
+        <h3 style="font-size:13px;color:var(--navy);margin:18px 0 6px;">Orders saved without items</h3>
+        <p class="hint" style="margin-top:-2px;">Manual orders whose items were never saved (for example the connection dropped). They are counted in Revenue above. The person who entered one can finish it on the manual order page ("Finish this order"); if it should not exist, delete it on the Orders page.</p>
+        <div id="acctNoItemsWrap"><p class="empty">Loading…</p></div>
+
         <h3 style="font-size:13px;color:var(--navy);margin:18px 0 6px;">Possible duplicate delivery costs</h3>
         <p class="hint" style="margin-top:-2px;">Each received purchase order should add its cost to Expenses once. These have more than one cost entry, so check whether one is a duplicate. They are counted as they are in the totals above; nothing is changed automatically.</p>
         <div id="acctDupWrap"><p class="empty">Loading…</p></div>
@@ -8741,7 +8745,7 @@
       try {
         const start = acctRangeStart(acctRange);
 
-        const orders = await fetchAllRows('orders', 'id, order_number, total, currency, status, placed_at, deleted_at', q => {
+        const orders = await fetchAllRows('orders', 'id, order_number, total, currency, status, placed_at, deleted_at, source', q => {
           q = q.is('deleted_at', null);
           if (start) q = q.gte('placed_at', start.toISOString());
           return q;
@@ -8799,6 +8803,29 @@
               <div class="info"><b>Purchase order ${esc(k)}</b> — logged ${poCosts[k].length} times, ${esc(fmtMoney(poCosts[k].reduce((s, e) => s + Number(e.amount || 0), 0), currency))} in total<br>
               <span style="font-size:11px;color:var(--muted);">${poCosts[k].map(e => esc(fmtDateOnly(e.expense_date)) + ': ' + esc(fmtMoney(e.amount, currency))).join(' · ')}</span></div>
             </div>`).join('');
+
+        // EXT6: manual orders saved without their items still count as revenue.
+        // Only manual orders can end up like this (Shopify orders arrive with
+        // their items), so only those are checked: a small extra read.
+        const noItemsWrap = document.getElementById('acctNoItemsWrap');
+        try {
+          const counted = orders.filter(o => {
+            const c = classifyOrderStatus(o.status);
+            return o.source === 'manual' && !(c.isCancelled || (c.isRefund && !c.isPartialRefund));
+          });
+          const lines = counted.length ? await fetchAllRowsIn('order_items', 'id, order_id', 'order_id', counted.map(o => o.id)) : [];
+          const withItems = new Set(lines.map(l => l.order_id));
+          const empty = counted.filter(o => !withItems.has(o.id));
+          noItemsWrap.innerHTML = !empty.length
+            ? '<p class="empty">None found.</p>'
+            : empty.map(o => `
+              <div class="deletedRow acctNoItemsRow">
+                <div class="info"><b>${esc(o.order_number || o.id)}</b> — ${esc(fmtMoney(o.total, o.currency))}<br>
+                <span style="font-size:11px;color:var(--muted);">Status: ${esc(o.status)} — Placed ${esc(fmtDate(o.placed_at))}</span></div>
+              </div>`).join('');
+        } catch (noItemsErr) {
+          noItemsWrap.innerHTML = '<p class="empty">Could not check for orders without items: ' + esc(explainDbError((noItemsErr && noItemsErr.message) || String(noItemsErr))) + '</p>';
+        }
 
         if (!needsReview.length) {
           document.getElementById('acctReviewWrap').innerHTML = '<p class="empty">Nothing needs review right now.</p>';

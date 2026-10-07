@@ -2,17 +2,17 @@
 
 Internal dashboard/platform only. Generated from `docs/ops/backlog/items.py` (edit the data there, then run `python3 docs/ops/backlog/items.py`). No production secrets or private business data.
 
-**251 deduplicated items** from 311 raw candidates (60 duplicates merged: the same item recorded in PROJECT_RECORD, the overnight review, PRs, owner lists, decision registers and tests).
+**276 deduplicated items** from 341 raw candidates (65 duplicates merged: the same item recorded in PROJECT_RECORD, the overnight review, PRs, owner lists, decision registers and tests).
 
-Status counts: BLOCKED-EXT 2, BLOCKED-OWNER 30, BLOCKED-PROD 15, BLOCKED-QC 12, DEFERRED 22, DONE 168, QUEUED 2
+Status counts: BLOCKED-EXT 2, BLOCKED-OWNER 34, BLOCKED-PROD 17, BLOCKED-QC 12, DEFERRED 23, DONE 186, QUEUED 2
 
 | Priority | Items | Done (branch) | Remaining |
 |---|---|---|---|
 | P0 | 14 | 4 | 10 |
-| P1 | 63 | 45 | 18 |
-| P2 | 78 | 59 | 19 |
-| P3 | 81 | 60 | 21 |
-| P4 | 15 | 0 | 15 |
+| P1 | 67 | 47 | 20 |
+| P2 | 89 | 67 | 22 |
+| P3 | 89 | 67 | 22 |
+| P4 | 17 | 1 | 16 |
 
 Priorities: P0 data loss / security / financial corruption / destructive · P1 launch blocker / correctness / concurrency / permission · P2 reliability / scale / accessibility / major UX · P3 maintainability / tests / docs · P4 future.
 
@@ -60,6 +60,8 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | X3-25 | Docs | Backup health unverified; records disagree (kept on vs last ran Sept 13) | Restore readiness unknown | High | S | owner check | N | Y | N | BLOCKED-OWNER |
 | X4-15 | Inventory | Removing / adding / re-quantifying a PO line while the order is received makes order and stock disagree (delete 4–7, add 5, qty 6 of 20 races, even with R1); guard extended in EXT5 | Stock vs records mismatch | High | S | R1; approval | P | Y | Y | BLOCKED-PROD |
 | X5-03 | Purchasing | Line guard extended to add and quantity change (5 and 6 of 20 races broke the match even with R1); lock order deadlock-free; forced interleavings | Order vs stock mismatch | High | S | R1; approval | P | Y | Y | BLOCKED-PROD |
+| X6-01 | Purchasing | PO line guard did not protect the dashboard's step-by-step receive (only R1): a line deleted / re-quantified in the instant between the guard's check and its commit was still stocked | Forced every time locally (po_browser_path_races.sh); NOWAIT order lock drafted, 12/12 agree | High | S | approval | N | Y | Y | BLOCKED-PROD |
+| X6-17 | Security | This session's GitHub credential has ADMIN rights on the repository (CLAUDE.md expects the non-admin stasvitiuk-reos); the protect-main ruleset lets admins bypass. Not used | Least privilege for automated sessions | High | S | owner: connect Claude with a non-admin account | N | Y | N | BLOCKED-OWNER |
 | AG-02 | Agents | Truthful agent state (Unknown/Failed/Stale/Dry run) | No optimistic defaults | High | M | — | Y | N | N | DONE |
 | AG-05 | Agents | Shopify sync interlock + wording; Emergency switches it off | Premature sync | High | S | — | Y | N | N | DONE |
 | AG-06 | Agents | No-send tripwires (email, Shopify) | No customer messages | High | S | — | Y | N | N | DONE |
@@ -105,6 +107,8 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | X5-02 | Purchasing | A line change landing while receiving is reported (cause named; final re-check); the editor is warned too | False clean success | High | S | — | Y | N | N | DONE |
 | X5-04 | Orders | Manual order retry adopted a same-number order (numbers are not unique) | A whole order merged into another | High | S | — | Y | N | N | DONE |
 | X5-09 | Accounting | Money totals paged by position: a record created mid-read was counted twice / another missed | Silent wrong totals | High | S | — | Y | N | N | DONE |
+| X6-05 | Privacy | Sign-out only hid the dashboard: customer names, e-mails, figures stayed in the page / memory for the next person on a shared computer; live on main | Sign-out reloads the page | High | S | — | Y | N | N | DONE |
+| X6-11 | Accounting | Daily Summary and home "Today's revenue" counted Canceled / CANCELLED / refunded orders (rule: only the exact word "cancelled"); live on main | Same classifyOrderStatus rule as Accounting | High | S | — | Y | N | N | DONE |
 
 ## P2
 
@@ -129,6 +133,9 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | SM-09 | State machine | Feature requests: status advance guard + values vs DB | Unverified values | Low | S | Query C §9 | Y | N | N | BLOCKED-QC |
 | X3-18 | Audit | Compliance actions record when but not who (legal hold, FDA, QC, inquiries) | Who-did-it lost if no audit trigger | Medium | M | Query C §10; approval | N | Y | Y | BLOCKED-QC |
 | X5-11 | Idempotency | Request keys (unique client_request_id) for record-creating writes (25 paths) | A lost reply plus a retry can still create a duplicate record (mitigated: lock + honest message) | Medium | M | approval (schema change) | N | Y | Y | BLOCKED-PROD |
+| X6-14 | Orders | Orders saved without items still count as revenue in Accounting | Detected by Query E and listed for the person who entered them; whether to exclude them from revenue is an accounting decision | Medium | S | owner / accountant | P | Y | N | BLOCKED-OWNER |
+| X6-15 | Idempotency | Request keys drafted (drafts/19 + rollback 20) for the 22 create tables; local test 23/23 | Retried creates cannot duplicate once installed and the dashboard sends keys | High | M | approval; then dashboard PR | N | Y | Y | BLOCKED-PROD |
+| X6-16 | Inventory | Read-only stock reconciliation (Query E) prepared with owner guide; local test 24/24 | Staff / owner can see stock vs history, deliveries vs stock and expense | High | S | owner runs | N | Y | N | BLOCKED-OWNER |
 | AG-03 | Agents | "error"/"fail" statuses show Failed; Agent #1 "Switch on" | Overclaim | Medium | S | — | Y | N | N | DONE |
 | AX-01 | Accessibility | Accessible names, unique ids, phone tap targets, dialog focus | Screen readers / phone | Medium | S | — | Y | N | N | DONE |
 | AX-02 | Accessibility | Status/error banner announced to screen readers (role=alert / aria-live) | Errors not announced | Medium | S | — | Y | N | N | DONE |
@@ -188,6 +195,14 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | X5-06 | Install | A double Run of the install failed with a catalog duplicate-key error; advisory lock added to install / rollback / guard | Alarming error for the owner | Medium | S | — | Y | N | N | DONE |
 | X5-08 | Customer service | Inquiry reply drafts overwrote each other silently | Lost reply text | Medium | S | — | Y | N | N | DONE |
 | X5-10 | Audit | Activity "Load more" and export repeated rows when changes arrived meanwhile | Duplicate audit rows in exports | Medium | S | — | Y | N | N | DONE |
+| X6-02 | Accounting | A total that is really zero showed "-$0.00" (0.30 - (0.10+0.20) in floating point); live on main | fmtMoney rounds to cents, no minus on zero | Medium | S | — | Y | N | N | DONE |
+| X6-04 | Orders | Notice "re-enter the same order on this device" made a SECOND order once the tab was closed (attempt lives in the tab only) | "Finish this order" adds the items to that order or refuses | High | S | — | Y | N | N | DONE |
+| X6-06 | Privacy | Manual-order sign-out left the typed customer name / e-mail in the hidden form | Sign-out reloads; deliberate sign-out forgets the attempt | Medium | S | — | Y | N | N | DONE |
+| X6-09 | Tests | Hidden conditional skip: the "5..5" number-box case never ran (Chromium turns it into 5.5) | Premise asserted; "box shows X, X is saved" tested | Medium | S | — | Y | N | N | DONE |
+| X6-10 | Tests | No tool accounted for skipped tests: a test could silently stop running | tests/tools/skip-report.js; every skip classified | Medium | S | — | Y | N | N | DONE |
+| X6-12 | Accounting | Orders page "Total revenue" = newest 300 orders only, cancelled included, labelled as the total; live on main | Accounting rule + honest label when capped | High | S | — | Y | N | N | DONE |
+| X6-19 | SQL | No automatic safety check over the SQL drafts (search_path, definer, grants, RLS, dynamic SQL, rollback named) | sql-drafts-static.spec.js (26 checks) | Medium | S | — | Y | N | N | DONE |
+| X6-25 | Purchasing | PO cases A-J reviewed; permission removed mid-receive test added | Coverage map in PO_RECEIVE_RACE_REVIEW section 0 | Medium | S | — | Y | N | N | DONE |
 
 ## P3
 
@@ -214,6 +229,7 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | X3-16 | Inventory | Keep permanent product delete limited to never-used products, or archive only? | Policy | Low | S | owner | N | Y | N | BLOCKED-OWNER |
 | X3-19 | Audit | Send actor fields on more writes once columns are confirmed | Blind columns break writes | Low | S | Query C §10 | Y | N | N | BLOCKED-QC |
 | X5-15 | Audit | employee_activity ordering ties: the RPC's ORDER BY (needs happened_at, id) is not visible from the dashboard | Possible skip at equal timestamps (owner/Query C check) | Low | S | Query C / owner | N | Y | N | BLOCKED-QC |
+| X6-22 | Browser | Signed file links open with window.open after an await: Safari (especially iPhone) may block the new tab silently | Needs a real-device check; same on main | Medium | S | real iPhone check | N | Y | N | BLOCKED-OWNER |
 | AX-03 | Accessibility | Toasts announced (aria-live polite) | Success not announced | Low | S | — | Y | N | N | DONE |
 | AX-04 | Accessibility | prefers-reduced-motion respected for animations | Motion sensitivity | Low | S | — | Y | N | N | DONE |
 | AX-06 | Accessibility | Colour contrast check of badges in light/dark | Readability | Low | S | — | Y | N | N | DONE |
@@ -274,6 +290,13 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | X5-13 | Privacy | Manual-order attempt record kept customer name / e-mail in browser storage | PII on shared devices | Low | S | — | Y | N | N | DONE |
 | X5-14 | Tests | Failure matrix 14 actions x 14 kinds (silent refusal, empty reply, offline added); state machines from one fixture; mutation 57 + SQL 11 | Evidence breadth | Medium | M | — | Y | N | N | DONE |
 | X5-16 | Inventory | Low-stock threshold save was last-write-wins between two tabs; now only over the level shown | Minor overwrite | Low | S | — | Y | N | N | DONE |
+| X6-03 | Accounting | Count-up animation re-formatted figures in the browser language ("$25.000,00" on a German computer); live on main | Last frame shows the exact target in US format | Low | S | — | Y | N | N | DONE |
+| X6-07 | Emergency | A lost reply on the Order Sync / Agent #7 safety step was reported as "could NOT", although it may have happened | Says "may or may not", check by hand | Medium | S | — | Y | N | N | DONE |
+| X6-08 | Errors | Deadlock / statement timeout / busy row shown as raw database text | Plain words: the step was undone, nothing changed by it | Low | S | — | Y | N | N | DONE |
+| X6-13 | Accounting | Totals labelled with the first order's currency and summed across currencies without warning | Plain warning on Accounting, Tax Records, Daily Summary, Orders | Medium | S | — | Y | N | N | DONE |
+| X6-18 | SQL | drafts/13 (report totals) was three statements without a transaction | Now all-or-nothing | Low | S | — | Y | N | N | DONE |
+| X6-20 | Tests | Local SQL scripts shared test users; one left a role behind and made the stress test fail 79 checks | Own users per script; stress resets roles | Medium | S | — | Y | N | N | DONE |
+| X6-21 | Concurrency | 2 / 5 / 10 operators on one task / return at once | Exactly one change; others told; no false success | Medium | S | — | Y | N | N | DONE |
 
 ## P4
 
@@ -283,7 +306,6 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | AG-08 | Agents | Agent #8 migration to Supabase with dedupe | Reliability | Low | L | owner | N | Y | Y | DEFERRED |
 | DOC-08 | Docs | Activity-log retention policy | Storage growth / privacy | Low | S | owner | N | Y | N | DEFERRED |
 | F3-05 | Search | Palette record results cap at 30 without saying "more…" | searchEverything slice(0,30) | Low | S | — | Y | N | N | DEFERRED |
-| F3-09 | Inventory | Low-stock threshold has no stale-tab guard (last write wins on a config value) | upsert without condition | Low | S | — | Y | N | N | DEFERRED |
 | F3-10 | Tests | Visual baselines exist for 2 sizes only; device matrix checks layout, not pixels | visual.spec | Low | M | — | Y | N | N | DEFERRED |
 | F3-11 | CI | Mutation harnesses are not in CI (20 min page run) | run-page-mutations.js | Low | S | CI-02 | Y | Y | N | DEFERRED |
 | F3-12 | Docs | Owner-facing "what each page does" guide is spread across Guide articles; no printable one-pager | help entries in page | Low | M | — | Y | N | N | DEFERRED |
@@ -294,6 +316,9 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | X3-31 | Search | Guide matching is single-word fuzzy: gibberish with a common word lists unrelated articles | Relevance | Low | S | — | Y | N | N | DEFERRED |
 | X4-26 | Time | Force Central time for viewers in another time zone | Only matters if someone works from elsewhere | Low | M | owner decision | Y | Y | N | DEFERRED |
 | X4-27 | Performance | Inventory page with 10,000 products renders slowly (beyond the 1,000-row server limit, so not reachable today) | Future catalogue growth | Low | M | — | Y | N | N | DEFERRED |
+| X6-23 | Validation | Chromium drops characters while typing in number boxes ("1.2.3" -> 1.23, "1,200" -> 1200); the box shows the result | Browser behaviour; "shown = saved" is tested | Low | S | — | N | N | N | DEFERRED |
+| X6-24 | Accounting | Range "This month" has no upper bound: a future-dated (imported / clock-skewed) order counts now | Data error case; documented | Low | S | — | Y | N | N | DEFERRED |
+| F3-09 | Inventory | Low-stock threshold has no stale-tab guard (last write wins on a config value) | upsert without condition (fixed in EXT5 as X5-16; status reconciled EXT6) | Low | S | — | Y | N | N | DONE |
 
 ## Merged duplicates (provenance)
 
@@ -337,6 +362,7 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 - UX-04: PR #8
 - UX-05: owner list
 - UX-06: pending check 2
+- F3-09: X5-16
 - DOC-02: pr-merge-order.md
 - DOC-05: pending check 1
 - DOC-08: owner list
@@ -345,3 +371,6 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 - X4-11: pagination audit "watch later"
 - X4-15: CONCURRENCY_MATRIX
 - X5-03: X4-15
+- X6-01: X5-03, X4-15
+- X6-15: X5-11
+- X6-22: RS-03
