@@ -29,7 +29,7 @@
 <title>Health Endeavors — Owner Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous" onerror="window.__sbLoadFailed=true"></script>
 <link rel="stylesheet" href="assets/owner-login.css?v=665ff419f0">
-<script src="assets/owner-login-helpers.js?v=06fd1d7287" onerror="window.__heHelpersLoadFailed=true"></script>
+<script src="assets/owner-login-helpers.js?v=d6c0d11f89" onerror="window.__heHelpersLoadFailed=true"></script>
 <script>
   // Applied before anything renders so there's no flash of the wrong theme.
   (function(){
@@ -2045,9 +2045,17 @@
         const t = Math.min(1, (now - start) / dur);
         const eased = 1 - Math.pow(1 - t, 3);
         const v = target * eased;
-        el.textContent = m[1] + v.toLocaleString(undefined, {
-          minimumFractionDigits: decimals, maximumFractionDigits: decimals }) + m[3];
-        if (t < 1) requestAnimationFrame(step); else delete el.dataset.animating;
+        // US number format, like the figure itself; the last frame puts back
+        // the page's exact text, so the settled number is always what the
+        // page computed, whatever language the browser is set to (EXT6).
+        if (t < 1) {
+          el.textContent = m[1] + v.toLocaleString('en-US', {
+            minimumFractionDigits: decimals, maximumFractionDigits: decimals }) + m[3];
+          requestAnimationFrame(step);
+        } else {
+          el.textContent = raw;
+          delete el.dataset.animating;
+        }
       }
       requestAnimationFrame(step);
     }

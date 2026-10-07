@@ -48,6 +48,17 @@ test.describe('fmtMoney', () => {
   });
   test('negative amounts keep their sign', () => {
     expect(H.fmtMoney(-20, 'USD')).toBe('-$20.00');
+    expect(H.fmtMoney(-0.004, 'USD')).toBe('$0.00'); // rounds to zero: no minus
+  });
+  // EXT6: found by the generated Accounting test (accounting-oracle.spec.js).
+  test('a total that is really zero never shows "-$0.00"', () => {
+    expect(H.fmtMoney(0.30 - (0.10 + 0.20), 'USD')).toBe('$0.00'); // -5.55e-17 in floating point
+    expect(H.fmtMoney(-0, 'USD')).toBe('$0.00');
+    expect(H.fmtMoney(0.1 + 0.2, 'USD')).toBe('$0.30');
+    expect(H.fmtMoney(1.005, 'USD')).toBe('$1.01');
+    expect(H.fmtMoney(-1.005, 'USD')).toBe('-$1.01'); // half a cent rounds away from zero, as before
+    expect(H.fmtMoney(NaN, 'USD')).toBe('$0.00');
+    expect(H.fmtMoney(123456789.99, 'USD')).toBe('$123,456,789.99');
   });
 });
 

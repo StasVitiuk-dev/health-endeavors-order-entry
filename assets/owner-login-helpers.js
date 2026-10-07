@@ -29,7 +29,14 @@
     }
 
     function fmtMoney(amount, currency){
-      const n = Number(amount || 0);
+      // Round to whole cents first, and never show "-$0.00": a total that is
+      // really zero can come out as -0.00000000000000005 in floating point
+      // (0.30 − (0.10 + 0.20)), which the formatter prints with a minus (EXT6).
+      // (toPrecision(15) first, so 12.345 → 1234.5 → $12.35, not 1234.4999… → $12.34)
+      // Half a cent rounds away from zero, as the currency formatter itself does.
+      const c = Number((Number(amount || 0) * 100).toPrecision(15));
+      let n = Math.sign(c) * Math.round(Math.abs(c)) / 100;
+      if (n === 0 || !isFinite(n)) n = 0;
       try {
         return new Intl.NumberFormat('en-US', { style: 'currency', currency: currency || 'USD' }).format(n);
       } catch (e) {
