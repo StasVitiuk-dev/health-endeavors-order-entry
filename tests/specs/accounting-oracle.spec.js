@@ -153,3 +153,68 @@ test.describe('a browser set to German', () => {
       .toEqual({ revenue: '$25,000.00', spent: '$1,234.56', net: '$23,765.44', excluded: '$0.00', review: 0 });
   });
 });
+
+// EXT6: the Daily Summary counted revenue with its own rule (everything but
+// the exact word "cancelled"), so "Canceled" and fully refunded orders were
+// revenue there but not on Accounting. One rule everywhere now.
+test.describe('Daily Summary uses the same revenue rule as Accounting', () => {
+  test.use({ timezoneId: 'America/Chicago' });
+  test('yesterday: paid $10 counts; "Canceled" $7, "refunded" $5 and "CANCELLED" $3 do not; a partial refund $2 does', async ({ page, backend }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'arithmetic, run once');
+    await page.clock.setFixedTime(new Date('2026-06-15T17:00:00Z')); // noon in Chicago
+    const y = '2026-06-14T17:00:00Z'; // yesterday noon in Chicago
+    backend.tables.orders = [['paid', 1000], ['Canceled', 700], ['refunded', 500], ['CANCELLED', 300], ['partially_refunded', 200]].map(([status, c], i) => ({
+      id: 'ord-ds' + i, order_number: 'DS-' + i, total: (c / 100).toFixed(2), tax_total: '0', currency: 'USD', status,
+      placed_at: y, deleted_at: null, source: 'manual', raw_data: null, customer_name: 'SYNTHETIC', created_at: y,
+    }));
+    await login(page);
+    await gotoPage(page, 'dailySummaryPanel');
+    const revenue = page.locator('#dailySummaryStats .stat', { hasText: 'Revenue' }).locator('.num');
+    await expect.poll(async () => (await page.locator('#dailySummaryStats [data-animating]').count()) ? 'moving' : revenue.textContent(), { timeout: 20000 }).toBe('$12.00');
+  });
+});
+
+// EXT6: totals are labelled with the first order's currency and add every
+// amount together. With more than one currency the sum means nothing, so the
+// page says so instead of showing it as if it were right.
+for (const [panel, button, where] of [['accountingPanel', '#accountingPanel button[data-range="all"]', 'Accounting'], ['taxRecordsPanel', null, 'Tax Records']]) {
+  test(`${where}: orders in two currencies trigger a plain warning`, async ({ page, backend }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'run once');
+    const now = new Date().toISOString();
+    backend.tables.orders = [['USD', '10.00'], ['CAD', '20.00']].map(([currency, total], i) => ({
+      id: 'ord-cur' + i, order_number: 'CUR-' + i, total, tax_total: '0', currency, status: 'paid',
+      placed_at: now, deleted_at: null, source: 'manual', raw_data: null, customer_name: 'SYNTHETIC', created_at: now,
+    }));
+    backend.tables.expenses = [];
+    await login(page);
+    await gotoPage(page, panel);
+    if (button) await page.click(button);
+    await expect(page.locator('#dashError')).toContainText(where + ': these orders are in more than one currency (CAD, USD)');
+    await expect(page.locator('#dashError')).toContainText('Do not rely on these totals');
+  });
+}
+
+test('one currency only: no currency warning', async ({ page, backend }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'run once');
+  serve(backend, { orders: [{ id: 'ord-one', order_number: 'ONE', totalCents: 1000, status: 'paid', deleted: false }], expenses: [] });
+  await login(page);
+  await openAllTime(page);
+  await expect.poll(() => readFigures(page), { timeout: 30000 }).toMatchObject({ revenue: '$10.00' });
+  await expect(page.locator('#dashError')).not.toContainText('more than one currency');
+});
+
+test.describe('home page "Today\'s revenue" uses the same rule', () => {
+  test.use({ timezoneId: 'America/Chicago' });
+  test('today: paid $10 counts; "Canceled" $7 and "refunded" $5 do not', async ({ page, backend }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'arithmetic, run once');
+    await page.clock.setFixedTime(new Date('2026-06-15T17:00:00Z'));
+    const t = '2026-06-15T15:00:00Z';
+    backend.tables.orders = [['paid', '10.00'], ['Canceled', '7.00'], ['refunded', '5.00']].map(([status, total], i) => ({
+      id: 'ord-td' + i, order_number: 'TD-' + i, total, tax_total: '0', currency: 'USD', status,
+      placed_at: t, deleted_at: null, source: 'manual', raw_data: null, customer_name: 'SYNTHETIC', created_at: t,
+    }));
+    await login(page);
+    const tileNum = page.locator('.stat', { hasText: "Today's revenue" }).locator('.num');
+    await expect.poll(async () => (await page.locator('.stat [data-animating]').count()) ? 'moving' : tileNum.first().textContent(), { timeout: 20000 }).toBe('$10.00');
+  });
+});

@@ -19,7 +19,7 @@ const MUTATIONS = [
     "if (n === 0 || !isFinite(n)) n = 0;", "if (!isFinite(n)) n = 0;",
     'accounting-oracle -g "exactly zero"'],
   ['count-up animation no longer restores the exact figure at the end', 'owner-login.html',
-    "el.textContent = raw;\n          delete el.dataset.animating;", "delete el.dataset.animating;",
+    "const shown = t < 1 ? v : target;", "const shown = t < 1 ? v : target; if (t >= 1) { delete el.dataset.animating; return; }",
     'accounting-oracle -g "German|seed 7"'],
   ['finishing an order compares the saved total with itself (any total attaches)', 'manual-order-entry.html',
     "Number(pending.resume ? total : pending.total)", "Number(pending.total)",

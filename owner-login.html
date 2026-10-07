@@ -2053,17 +2053,14 @@
         const t = Math.min(1, (now - start) / dur);
         const eased = 1 - Math.pow(1 - t, 3);
         const v = target * eased;
-        // US number format, like the figure itself; the last frame puts back
-        // the page's exact text, so the settled number is always what the
-        // page computed, whatever language the browser is set to (EXT6).
-        if (t < 1) {
-          el.textContent = m[1] + v.toLocaleString('en-US', {
-            minimumFractionDigits: decimals, maximumFractionDigits: decimals }) + m[3];
-          requestAnimationFrame(step);
-        } else {
-          el.textContent = raw;
-          delete el.dataset.animating;
-        }
+        // Always US number format, like the money figures themselves. The
+        // last frame shows exactly the target value (with thousands commas),
+        // whatever language the browser is set to: it used to follow the
+        // browser's language ("$25.000,00" on a German computer) (EXT6).
+        const shown = t < 1 ? v : target;
+        el.textContent = m[1] + shown.toLocaleString('en-US', {
+          minimumFractionDigits: decimals, maximumFractionDigits: decimals }) + m[3];
+        if (t < 1) requestAnimationFrame(step); else delete el.dataset.animating;
       }
       requestAnimationFrame(step);
     }
@@ -3249,7 +3246,12 @@
         if (sessionsRes.error) throw sessionsRes.error;
 
         const todayOrders = (ordersRes.data || []).filter(o => !o.deleted_at);
-        const revenueOrders = todayOrders.filter(o => o.status !== 'cancelled');
+        // EXT6: the same revenue rule as Accounting (it excluded only the exact
+        // word "cancelled", so "Canceled" and refunded orders were counted).
+        const revenueOrders = todayOrders.filter(o => {
+          const c = classifyOrderStatus(o.status);
+          return !(c.isCancelled || (c.isRefund && !c.isPartialRefund));
+        });
         const todayRevenue = revenueOrders.reduce((sum, o) => sum + Number(o.total || 0), 0);
         const todayCurrency = (todayOrders[0] && todayOrders[0].currency) || 'USD';
 
@@ -6121,6 +6123,16 @@
       return { start: startOfYesterday, end: startOfToday };
     }
 
+    // EXT6: totals add every order's amount as one currency, labelled with the
+    // first order's currency. Say so plainly if the orders are in more than
+    // one currency, instead of showing a confident but meaningless sum.
+    function mixedCurrencyNote(orders, where, shown){
+      const set = [...new Set((orders || []).map(o => String(o.currency || 'USD').toUpperCase()))].sort();
+      if (set.length < 2) return '';
+      return where + ': these orders are in more than one currency (' + set.join(', ') + '), but the totals add them together and show them as ' + shown
+        + '. Do not rely on these totals until the amounts are converted (ask your accountant).';
+    }
+
     async function loadDailySummary(){
       try {
         const { start, end } = getYesterdayRange();
@@ -6142,9 +6154,17 @@
         const incidentsRes = { data: incidentsRows }, aiRes = { data: aiRows };
 
         const orders = (ordersRes.data || []).filter(o => !o.deleted_at);
-        const revenueOrders = orders.filter(o => o.status !== 'cancelled');
+        // EXT6: the same rule as Accounting and Tax Records (classifyOrderStatus).
+        // It used to exclude only the exact word "cancelled", so "Canceled",
+        // "CANCELLED" and fully refunded orders were counted as revenue here.
+        const revenueOrders = orders.filter(o => {
+          const c = classifyOrderStatus(o.status);
+          return !(c.isCancelled || (c.isRefund && !c.isPartialRefund));
+        });
         const revenue = revenueOrders.reduce((sum, o) => sum + Number(o.total || 0), 0);
         const currency = (orders[0] && orders[0].currency) || 'USD';
+        const dailyMixed = mixedCurrencyNote(orders, 'Daily Summary', currency);
+        if (dailyMixed) showDashError(dailyMixed);
 
         const aiLogs = aiRes.data || [];
         const aiCost = aiLogs.reduce((sum, l) => sum + Number(l.cost_usd || 0), 0);
@@ -8721,6 +8741,8 @@
         });
 
         const currency = (orders[0] && orders[0].currency) || 'USD';
+        const acctMixed = mixedCurrencyNote(orders, 'Accounting', currency);
+        if (acctMixed) showDashError(acctMixed);
         let revenue = 0;
         let excluded = 0;
         const needsReview = [];
@@ -8817,6 +8839,8 @@
           });
 
         const currency = (orders[0] && orders[0].currency) || 'USD';
+        const taxMixed = mixedCurrencyNote(orders, 'Tax Records', currency);
+        if (taxMixed) showDashError(taxMixed);
 
         // Revenue + sales tax — same cancelled/refunded exclusion as Accounting,
         // so the two pages never quietly disagree on what counts as a real sale.
