@@ -460,3 +460,17 @@ test('the unfinished-attempt record in the browser holds no customer name or e-m
   expect(stored).not.toContain('SYNTHETIC Walk-in');
   expect(stored).not.toContain('synthetic.buyer@example.test');
 });
+
+// EXT6 (workstream 10): a shared computer. Signing out left the customer's
+// name and e-mail typed into the (hidden) form.
+test('signing out clears the form: no customer name or e-mail is left in the page', async ({ page, backend }) => {
+  setup(backend);
+  await signIn(page);
+  await fillOrder(page);
+  await page.fill('#customerEmail', 'walk-in.private@example.test');
+  await page.click('#signOutBtn');
+  await expect(page.locator('#loginView')).toBeVisible();
+  await expect.poll(() => page.evaluate(() => document.documentElement.innerHTML.includes('walk-in.private@example.test')
+    || [...document.querySelectorAll('input')].some(i => i.value === 'SYNTHETIC Walk-in' || i.value === 'walk-in.private@example.test'))).toBe(false);
+  expect(await page.evaluate(() => sessionStorage.getItem('he.manualOrder.pending'))).toBe(null);
+});

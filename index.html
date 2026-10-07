@@ -174,7 +174,13 @@
   const SUPABASE_ANON_KEY = 'sb_publishable_n0sEzZK0JMtwgk280a3YXA_zxtnheqj';
   const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   // Signed out (here or in another tab): back to the login view (EXT3).
-  sb.auth.onAuthStateChange(event => { if (event === 'SIGNED_OUT' && typeof showLogin === 'function') showLogin(); });
+  // EXT6: leaving reloads the page, so the customer name / e-mail typed into
+  // the form (and any notice) does not stay hidden in the page for the next
+  // person on a shared computer.
+  sb.auth.onAuthStateChange(event => {
+    const app = document.getElementById('appView');
+    if (event === 'SIGNED_OUT' && app && !app.hidden) window.location.reload();
+  });
 
   const loginView = document.getElementById('loginView');
   const appView = document.getElementById('appView');
@@ -409,8 +415,12 @@
   });
 
   signOutBtn.addEventListener('click', async () => {
-    await sb.auth.signOut();
-    showLogin();
+    // A deliberate sign-out also forgets this tab's attempt in progress, so
+    // the next person on this tab does not inherit it (EXT6). An order saved
+    // without items is still listed for its owner at their next sign-in.
+    pending = null;
+    storePending(null);
+    try { await sb.auth.signOut(); } finally { window.location.reload(); }
   });
 
   orderForm.addEventListener('submit', async (e) => {
