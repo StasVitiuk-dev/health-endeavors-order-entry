@@ -2100,7 +2100,22 @@
     // figure stayed part-way, e.g. $99,745.45 instead of $100,000.00, even
     // with a timer fallback. A fade that stops part-way still shows the exact
     // amount.
+    // The old count-up also wrote every figure in US format with thousands
+    // commas ("1000" -> "1,000"). That is kept as a one-time step that never
+    // changes the value, and now also applies with Reduce Motion on (which
+    // used to show "1000").
+    function formatFigure(el){
+      const raw = (el.textContent || '').trim();
+      const m = raw.match(/^([^0-9-]*)(-?\d[\d,]*(?:\.\d+)?)(.*)$/);
+      if (!m || !/\d{4}/.test(m[2].split('.')[0].replace(/,/g, '')) || /,/.test(m[2])) return;
+      if (/^[-/:]\d/.test(m[3])) return; // a date or time, not an amount
+      const n = Number(m[2]);
+      if (!isFinite(n)) return;
+      const decimals = (m[2].split('.')[1] || '').length;
+      el.textContent = m[1] + n.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals }) + m[3];
+    }
     function animateNumber(el){
+      formatFigure(el);
       if (reduceMotion.matches) return;
       el.classList.remove('numIn');
       void el.offsetWidth; // restart the fade when a figure is redrawn

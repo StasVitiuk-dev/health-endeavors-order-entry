@@ -324,3 +324,19 @@ test('a figure copied while counting up still ends on the exact value', async ({
   });
   expect(final).toBe('$100,000.00');
 });
+
+// EXT7: figures are written once in US format with thousands commas (the old
+// count-up did it as a side effect, except with Reduce Motion); dates are not.
+test('figures get thousands commas once, also with Reduce Motion; dates are left alone', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'run once');
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await login(page);
+  const out = await page.evaluate(async () => {
+    const box = document.createElement('div');
+    box.innerHTML = ['1000', '$1234.50', '$1,234.50', '12', '2026-10-07', '?'].map(t => '<div class="stat"><div class="num">' + t + '</div></div>').join('');
+    document.body.appendChild(box);
+    await new Promise(r => setTimeout(r, 100));
+    return [...box.querySelectorAll('.num')].map(n => n.textContent);
+  });
+  expect(out).toEqual(['1,000', '$1,234.50', '$1,234.50', '12', '2026-10-07', '?']);
+});
