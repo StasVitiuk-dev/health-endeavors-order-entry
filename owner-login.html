@@ -1409,7 +1409,37 @@
     // session stays in the page or in memory for the next person on a shared
     // computer. The reason note survives the reload (this tab only).
     const SIGNED_OUT_NOTE = 'he.signedOutNote';
+    // EXT7: unsaved typing. A form counts as unsaved when the person typed
+    // in it (page-made changes don't count) and a text box in it still holds
+    // text. Pressing its Save button clears that (the form's own error shows
+    // if the save fails). Closing or reloading the tab then asks first, and
+    // so does Sign out. A forced sign-out (other tab, expired sign-in) never
+    // waits: wiping the page matters more there.
+    const typedForms = new Set();
+    const NOT_GUARDED_FORMS = new Set(['loginForm', 'forgotForm']);
+    document.addEventListener('input', e => {
+      if (!e.isTrusted) return;
+      const f = e.target && e.target.closest ? e.target.closest('form') : null;
+      if (f && !NOT_GUARDED_FORMS.has(f.id)) typedForms.add(f);
+    }, true);
+    document.addEventListener('submit', e => { typedForms.delete(e.target); }, true);
+    function hasUnsavedTyping(){
+      for (const f of typedForms) {
+        if (!f.isConnected) { typedForms.delete(f); continue; }
+        const boxes = f.querySelectorAll('textarea, input[type="text"], input:not([type])');
+        if ([...boxes].some(el => el.value.trim() !== '')) return true;
+      }
+      return false;
+    }
+    let leavingOnPurpose = false;
+    window.addEventListener('beforeunload', e => {
+      if (leavingOnPurpose || !hasUnsavedTyping()) return;
+      e.preventDefault();
+      e.returnValue = '';
+    });
+
     function wipeAfterSignOut(note){
+      leavingOnPurpose = true;
       dash.style.display = 'none';
       loginScreen.style.display = 'flex';
       try { if (note) sessionStorage.setItem(SIGNED_OUT_NOTE, note); } catch (_) { /* private window: no note */ }
@@ -1425,6 +1455,7 @@
     });
 
     document.getElementById('signout').addEventListener('click', async () => {
+      if (hasUnsavedTyping() && !window.confirm('Something you typed is not saved yet. Sign out anyway? It will be lost.')) return;
       signingOutHere = true;
       try { await supabase.auth.signOut(); } finally { wipeAfterSignOut(null); }
     });

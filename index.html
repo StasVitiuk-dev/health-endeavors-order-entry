@@ -177,9 +177,12 @@
   // EXT6: leaving reloads the page, so the customer name / e-mail typed into
   // the form (and any notice) does not stay hidden in the page for the next
   // person on a shared computer.
+  // EXT7: set just before the page reloads on purpose, so the unsaved-order
+  // question below never holds up a sign-out.
+  let leavingOnPurpose = false;
   sb.auth.onAuthStateChange(event => {
     const app = document.getElementById('appView');
-    if (event === 'SIGNED_OUT' && app && !app.hidden) window.location.reload();
+    if (event === 'SIGNED_OUT' && app && !app.hidden) { leavingOnPurpose = true; window.location.reload(); }
   });
 
   const loginView = document.getElementById('loginView');
@@ -298,7 +301,19 @@
   taxTotal.addEventListener('input', recalcTotals);
   addItemBtn.addEventListener('click', () => { makeItemRow(); recalcTotals(); });
 
+  // EXT7: an order the person typed into and has not saved. Closing or
+  // reloading the tab asks first; it stays protected after a failed save and
+  // clears only when the form is reset after a successful one.
+  let orderTyped = false;
+  orderForm.addEventListener('input', e => { if (e.isTrusted) orderTyped = true; });
+  window.addEventListener('beforeunload', e => {
+    if (leavingOnPurpose || !orderTyped) return;
+    e.preventDefault();
+    e.returnValue = '';
+  });
+
   function resetForm(){
+    orderTyped = false;
     orderForm.reset();
     itemsContainer.innerHTML = '';
     makeItemRow();
@@ -418,8 +433,10 @@
     // A deliberate sign-out also forgets this tab's attempt in progress, so
     // the next person on this tab does not inherit it (EXT6). An order saved
     // without items is still listed for its owner at their next sign-in.
+    if (orderTyped && !window.confirm('This order is not saved yet. Sign out anyway? What you typed will be lost.')) return;
     pending = null;
     storePending(null);
+    leavingOnPurpose = true;
     try { await sb.auth.signOut(); } finally { window.location.reload(); }
   });
 

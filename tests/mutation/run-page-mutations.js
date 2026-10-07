@@ -242,6 +242,15 @@ const MUTATIONS = [
   ['one failed Business Health read blanks the whole panel again', 'owner-login.html',
     "        }).catch(e => ({ ok: false, e }));", "        });",
     'owner-control-center -g "Overdue tasks is"'],
+  ['unsaved typing no longer protected when closing the tab', 'owner-login.html',
+    "      if (leavingOnPurpose || !hasUnsavedTyping()) return;", "      return;",
+    'unsaved-changes -g "did not save"'],
+  ['forced sign-out waits on the unsaved-typing question', 'owner-login.html',
+    "      leavingOnPurpose = true;\n      dash.style.display = 'none';", "      dash.style.display = 'none';",
+    'unsaved-changes -g "another tab"'],
+  ['manual order stays "unsaved" after a successful save', 'manual-order-entry.html',
+    "    orderTyped = false;\n    orderForm.reset();", "    orderForm.reset();",
+    'unsaved-changes -g "FAILED save"'],
 ];
 
 function sh(cmd, cwd) { return execSync(cmd, { cwd, stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }); }

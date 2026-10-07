@@ -468,6 +468,8 @@ test('signing out clears the form: no customer name or e-mail is left in the pag
   await signIn(page);
   await fillOrder(page);
   await page.fill('#customerEmail', 'walk-in.private@example.test');
+  // EXT7: the order is not saved, so Sign out asks first; the person says yes.
+  page.once('dialog', d => d.accept());
   await page.click('#signOutBtn');
   await expect(page.locator('#loginView')).toBeVisible();
   await expect.poll(() => page.evaluate(() => document.documentElement.innerHTML.includes('walk-in.private@example.test')
