@@ -5220,16 +5220,28 @@
         if (error) throw error;
         SEARCH_INDEX.orders = orders;
 
-        const totalRevenue = orders.reduce((sum, o) => sum + Number(o.total || 0), 0);
+        // EXT6: the order count is exact (Supabase's count), but this read
+        // holds the newest 300 orders only. The revenue used to add up just
+        // those 300, cancelled and refunded included, under the label "Total
+        // revenue". It now uses the Accounting rule, and says plainly when it
+        // covers only the newest orders (full totals: Accounting).
+        const counted = orders.filter(o => {
+          const c = classifyOrderStatus(o.status);
+          return !(c.isCancelled || (c.isRefund && !c.isPartialRefund));
+        });
+        const totalRevenue = counted.reduce((sum, o) => sum + Number(o.total || 0), 0);
         const currency = (orders[0] && orders[0].currency) || 'USD';
         const totalOrders = (count != null ? count : orders.length);
+        const partialRevenue = totalOrders > orders.length;
+        const revenueLabel = partialRevenue
+          ? 'Revenue of the newest ' + orders.length + ' orders (all orders: Accounting)'
+          : 'Total revenue (cancelled and refunded excluded)';
         document.getElementById('orderStats').innerHTML = `
           <div class="stat"><div class="num">${totalOrders}</div><div class="lbl">Orders on file</div></div>
-          <div class="stat"><div class="num">${esc(fmtMoney(totalRevenue, currency))}</div><div class="lbl">Total revenue</div></div>
+          <div class="stat"><div class="num">${esc(fmtMoney(totalRevenue, currency))}</div><div class="lbl">${esc(revenueLabel)}</div></div>
         `;
-        // The revenue/order-count stats above always reflect the TRUE total
-        // (via Supabase's exact count, independent of the 300-row query cap)
-        // — only the table below is ever capped for display.
+        const ordersMixed = mixedCurrencyNote(orders, 'Orders', currency);
+        if (ordersMixed) showDashError(ordersMixed);
 
         const recent = orders.slice(0, 15);
         if (!recent.length) {

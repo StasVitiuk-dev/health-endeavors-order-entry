@@ -41,7 +41,11 @@ test.describe('Orders', () => {
 
   test('shows the order count, revenue, recent orders and the recycle bin', async ({ page }) => {
     await expect(page.locator('#orderStats')).toContainText('5');
-    await expect(page.locator('#orderStats')).toContainText('$470.00'); // all non-deleted orders, any status
+    // EXT6: the same rule as Accounting (its all-time Revenue below is $380.00 too):
+    // $470 of non-deleted orders minus cancelled $50 and refunded $40. It used to be
+    // $470 here ('any status') while Accounting said $380 for the same orders.
+    await expect(page.locator('#orderStats')).toContainText('$380.00');
+    await expect(page.locator('#orderStats')).toContainText('cancelled and refunded excluded');
     const numbers = await page.locator('#ordersTableWrap tbody tr td:first-child').allInnerTexts();
     expect(numbers).toEqual(['SYN-1001', 'SYN-1002', 'SYN-1003', 'SYN-1004', 'SYN-1005']);
     await expect(page.locator('#deletedOrdersWrap')).toContainText('SYN-0999');

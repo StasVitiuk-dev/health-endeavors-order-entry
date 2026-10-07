@@ -218,3 +218,33 @@ test.describe('home page "Today\'s revenue" uses the same rule', () => {
     await expect.poll(async () => (await page.locator('.stat [data-animating]').count()) ? 'moving' : tileNum.first().textContent(), { timeout: 20000 }).toBe('$10.00');
   });
 });
+
+// EXT6: the Orders page's "Total revenue" added up only the newest 300 orders
+// it had read (cancelled and refunded included) while claiming to be the
+// true total. Now: the Accounting rule, and an honest label when capped.
+test.describe('Orders page revenue figure', () => {
+  const ordersOf = (n, statusOf) => Array.from({ length: n }, (_, i) => ({
+    id: 'ord-op' + String(i).padStart(4, '0'), order_number: 'OP-' + i, customer_name: 'SYNTHETIC', customer_email: null,
+    status: statusOf(i), currency: 'USD', total: '1.00', tax_total: '0', source: 'manual', raw_data: null,
+    placed_at: new Date(Date.UTC(2026, 0, 1) + i * 60000).toISOString(), deleted_at: null, created_at: '2026-01-01T00:00:00Z',
+  }));
+  async function figure(page) {
+    await gotoPage(page, 'ordersPanel');
+    const stat = page.locator('#orderStats .stat').nth(1);
+    await expect.poll(async () => (await page.locator('#orderStats [data-animating]').count()) ? 'moving' : stat.innerText(), { timeout: 20000 }).not.toBe('moving');
+    return (await stat.innerText()).replace(/\s+/g, ' ').trim();
+  }
+  test('10 orders, 2 cancelled / refunded: $8.00 "Total revenue (cancelled and refunded excluded)"', async ({ page, backend }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'arithmetic, run once');
+    backend.tables.orders = ordersOf(10, i => (i === 3 ? 'Canceled' : i === 7 ? 'refunded' : 'paid'));
+    await login(page);
+    expect(await figure(page)).toBe('$8.00 Total revenue (cancelled and refunded excluded)');
+  });
+  test('450 orders: the figure says it covers the newest 300 only (never "Total")', async ({ page, backend }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'arithmetic, run once');
+    backend.tables.orders = ordersOf(450, () => 'paid');
+    await login(page);
+    expect(await figure(page)).toBe('$300.00 Revenue of the newest 300 orders (all orders: Accounting)');
+    await expect(page.locator('#orderStats .stat').first().locator('.num')).toHaveText('450');
+  });
+});
