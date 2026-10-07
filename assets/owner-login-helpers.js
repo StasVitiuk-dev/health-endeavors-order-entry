@@ -458,10 +458,114 @@
       return US_STATE_CODES[up] || name;
     }
 
+    // EXT8: "Needs attention" checks. Pure: given what the page could read,
+    // returns the findings to show. Each input is { ok: true, rows } or
+    // { ok: false, error }; a failed read becomes an UNKNOWN finding (never
+    // a silent zero). Levels: critical (data that cannot be right), action
+    // (a person must do something), info (worth knowing; includes things
+    // switched off on purpose), unknown (could not check).
+    const ATTN_BUCKETS = ['available', 'reserved', 'damaged', 'sample', 'wholesale', 'promotional', 'returned', 'recalled'];
+    const DAY_MS = 86400000;
+    function attentionFindings(inp, nowMs){
+      const now = typeof nowMs === 'number' ? nowMs : Date.now();
+      const out = [];
+      const oldestOf = (rows, col) => rows.reduce((m, r) => (r[col] && (!m || r[col] < m) ? r[col] : m), null);
+      function check(key, input, fn){
+        if (!input) return;
+        if (!input.ok) {
+          out.push({ key, level: 'unknown', title: ATTN_TITLES[key] + ': could not check', count: null, oldest: null,
+            page: ATTN_PAGES[key], why: 'The dashboard could not read this just now, so it cannot say whether anything is wrong. Not the same as "nothing found".' });
+          return;
+        }
+        const f = fn(input.rows || []);
+        if (f && f.count > 0) out.push(Object.assign({ key, title: ATTN_TITLES[key], page: ATTN_PAGES[key] }, f));
+      }
+      check('negativeStock', inp.inventory, rows => {
+        const bad = rows.filter(r => ATTN_BUCKETS.some(b => r[b] !== null && r[b] !== undefined && Number(r[b]) < 0));
+        return { level: 'critical', count: bad.length, oldest: null, why: 'A stock count is below zero, which cannot be true. Something changed stock without a matching check. Look at the product\'s stock history.' };
+      });
+      check('receivedNotStocked', inp.receivedPOs, rows => {
+        const bad = rows.filter(po => (po.purchase_order_items || []).some(l => l.product_id && Number(l.quantity_received || 0) !== Number(l.quantity || 0)));
+        return { level: 'critical', count: bad.length, oldest: null, why: 'A purchase order is marked received, but some lines were not (fully) added to stock. Stock and the order disagree.' };
+      });
+      check('duplicatePoExpense', inp.poExpenses, rows => {
+        const byNote = {};
+        rows.forEach(e => { const k = String(e.note || ''); if (k) byNote[k] = (byNote[k] || 0) + 1; });
+        const dups = Object.keys(byNote).filter(k => byNote[k] > 1);
+        return { level: 'critical', count: dups.length, oldest: null, why: 'The cost of a purchase order was logged more than once, so expenses are overstated. Delete the extra entry on Expenses.' };
+      });
+      check('overdueTasks', inp.openTasks, rows => {
+        const late = rows.filter(t => t.due_at && Date.parse(t.due_at) < now);
+        return { level: 'action', count: late.length, oldest: oldestOf(late, 'due_at'), why: 'Open tasks past their due date.' };
+      });
+      check('pendingApprovals', inp.pendingApprovals, rows => ({ level: 'action', count: rows.length, oldest: oldestOf(rows, 'created_at'),
+        why: 'Requests waiting for your decision. Nothing happens until someone approves or rejects them.' }));
+      check('urgentIncidents', inp.openIncidents, rows => {
+        const hot = rows.filter(i => ['high', 'critical'].includes(String(i.severity || '').toLowerCase()));
+        return { level: 'action', count: hot.length, oldest: oldestOf(hot, 'created_at'), why: 'Open incidents marked high or critical.' };
+      });
+      check('questionsToReview', inp.waitingQuestions, rows => {
+        const r = rows.filter(q => q.status === 'needs_review' || q.status === 'new');
+        return { level: 'action', count: r.length, oldest: oldestOf(r, 'created_at'), why: 'Customer questions with no reply sent yet (needs review, or no draft). Replies are never sent automatically.' };
+      });
+      check('lowStock', inp.inventory, rows => {
+        const low = rows.filter(r => r.low_stock_threshold !== null && r.low_stock_threshold !== undefined && Number(r.available || 0) < Number(r.low_stock_threshold));
+        return { level: 'action', count: low.length, oldest: null, why: 'Products below the low-stock level you set. Nothing is reordered automatically.' };
+      });
+      check('lateDeliveries', inp.openPOs, rows => {
+        const today = new Date(now); today.setHours(0, 0, 0, 0);
+        const late = rows.filter(po => ['ordered', 'shipped'].includes(po.status) && po.expected_at && new Date(po.expected_at + 'T00:00:00') < today);
+        return { level: 'action', count: late.length, oldest: oldestOf(late, 'expected_at'), why: 'Ordered or shipped purchase orders past their expected date and not received yet.' };
+      });
+      check('returnsWaiting', inp.openReturns, rows => {
+        const w = rows.filter(r => ['requested', 'approved', 'received'].includes(r.status));
+        return { level: 'action', count: w.length, oldest: oldestOf(w, 'created_at'), why: 'Returns waiting for a step: decide (requested), receive (approved) or refund / close (received).' };
+      });
+      check('ordersWithoutItems', inp.ordersWithoutItems, rows => ({ level: 'action', count: rows.length, oldest: oldestOf(rows, 'placed_at'),
+        why: 'Manual orders saved without their items. They count as revenue until finished or deleted (owner decision X6-14).' }));
+      check('otherIncidents', inp.openIncidents, rows => {
+        const r = rows.filter(i => !['high', 'critical'].includes(String(i.severity || '').toLowerCase()));
+        return { level: 'info', count: r.length, oldest: oldestOf(r, 'created_at'), why: 'Other open incidents.' };
+      });
+      check('unknownServices', inp.services, rows => {
+        const u = rows.filter(s => !['operational', 'degraded', 'down'].includes(s.status));
+        return { level: 'info', count: u.length, oldest: null, why: 'Services whose status is not set or not recognised. Unknown is not the same as working.' };
+      });
+      check('servicesDown', inp.services, rows => {
+        const d = rows.filter(s => s.status === 'down' || s.status === 'degraded');
+        return { level: 'action', count: d.length, oldest: null, why: 'Services you marked down or degraded.' };
+      });
+      check('agentsPaused', inp.agentsPaused, rows => ({ level: 'info', count: rows.length, oldest: null,
+        why: 'Agents switched off. If that was on purpose, nothing is wrong.' }));
+      check('orderSyncOff', inp.orderSyncFlag, rows => {
+        const f = rows[0];
+        return { level: 'info', count: f && f.enabled === false ? 1 : 0, oldest: null,
+          why: 'Shopify order sync is off on purpose until the launch checks are done. Intentionally disabled, not broken.' };
+      });
+      // Backups cannot be seen from the dashboard at all: always say so.
+      out.push({ key: 'backups', level: 'info', title: ATTN_TITLES.backups, count: null, oldest: null, page: null,
+        why: 'The dashboard cannot see the backup jobs. Status: UNKNOWN until you check them (2 minutes, read-only; see the owner backup checklist).' });
+      const rank = { critical: 0, unknown: 1, action: 2, info: 3 };
+      return out.sort((a, b) => rank[a.level] - rank[b.level]);
+    }
+    const ATTN_TITLES = {
+      negativeStock: 'Stock below zero', receivedNotStocked: 'Received orders not fully in stock', duplicatePoExpense: 'Purchase-order cost logged twice',
+      overdueTasks: 'Overdue tasks', pendingApprovals: 'Approvals waiting', urgentIncidents: 'Urgent incidents open', questionsToReview: 'Customer questions waiting',
+      lowStock: 'Low stock', lateDeliveries: 'Late deliveries', returnsWaiting: 'Returns waiting for a step', ordersWithoutItems: 'Orders saved without items',
+      otherIncidents: 'Other open incidents', unknownServices: 'Service status unknown', servicesDown: 'Services down or degraded',
+      agentsPaused: 'Agents switched off', orderSyncOff: 'Shopify order sync is off', backups: 'Backups: not verified here',
+    };
+    const ATTN_PAGES = {
+      negativeStock: 'inventoryPanel', receivedNotStocked: 'purchaseOrdersPanel', duplicatePoExpense: 'expensesPanel', overdueTasks: 'tasksPanel',
+      pendingApprovals: 'approvalsPanel', urgentIncidents: 'incidentsPanel', questionsToReview: 'inquiriesPanel', lowStock: 'inventoryPanel',
+      lateDeliveries: 'purchaseOrdersPanel', returnsWaiting: 'returnsPanel', ordersWithoutItems: 'accountingPanel', otherIncidents: 'incidentsPanel',
+      unknownServices: 'continuityPanel', servicesDown: 'continuityPanel', agentsPaused: 'aiPanel', orderSyncOff: 'flagsPanel', backups: null,
+    };
+
   // Bump API when a helper's name or arguments change, so a page that loaded
   // an older copy refuses to start instead of running mixed code.
   window.HE.helpers = Object.freeze({
-    API: 7, // EXT7: taxStateKey added
+    API: 8, // EXT8: attentionFindings added
     esc,
     csvCell,
     fmtMoney,
@@ -499,5 +603,6 @@
     taxRangeStart,
     maskSensitive,
     taxStateKey,
+    attentionFindings,
   });
 })();

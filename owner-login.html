@@ -28,8 +28,8 @@
 <meta http-equiv="Expires" content="0">
 <title>Health Endeavors — Owner Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous" onerror="window.__sbLoadFailed=true"></script>
-<link rel="stylesheet" href="assets/owner-login.css?v=f8e6a13fa4">
-<script src="assets/owner-login-helpers.js?v=290c8964e7" onerror="window.__heHelpersLoadFailed=true"></script>
+<link rel="stylesheet" href="assets/owner-login.css?v=3b506e1f31">
+<script src="assets/owner-login-helpers.js?v=7efab7ed94" onerror="window.__heHelpersLoadFailed=true"></script>
 <script>
   // Applied before anything renders so there's no flash of the wrong theme.
   (function(){
@@ -106,6 +106,10 @@
         <h2>Business health — right now</h2>
         <p class="hint" style="margin-bottom:10px;">A 30-second read on the business, computed fresh every time this page loads. A colored tile means it's worth a look; a plain one is normal.</p>
         <div class="statRow" id="businessHealthStats"></div>
+
+        <h2 style="margin-top:22px;">Checks: what needs a look</h2>
+        <p class="hint">Fixed checks on your data, run each time this page loads. Red: data that cannot be right. Amber: something to do. Grey: worth knowing (including things switched off on purpose). "Could not check" is not the same as "fine".</p>
+        <div id="attnChecksWrap" aria-live="polite"><p class="empty">Checking…</p></div>
 
         <h2 style="margin-top:22px;">Needs your attention</h2>
         <p class="hint">Tasks, approvals, compliance items, incidents, calendar events, and your own reminders — soonest due first.</p>
@@ -819,7 +823,7 @@
     showBanner('The sign-in helper library did not load from the internet, so this page cannot work yet. Check that your Mac is online, then fully reload this page (press Cmd+R). If this keeps happening, a content blocker or ad blocker extension in Safari may be blocking cdn.jsdelivr.net — try turning it off for this page and reloading.');
   } else if (window.__heHelpersLoadFailed || !window.HE || !window.HE.helpers) {
     showBanner('Part of this page (assets/owner-login-helpers.js) did not load, so it cannot start. Check that you are online, then fully reload this page (press Cmd+R).');
-  } else if (window.HE.helpers.API !== 7) {
+  } else if (window.HE.helpers.API !== 8) {
     showBanner('The dashboard was just updated and this page loaded a mix of old and new files. Fully reload this page (press Cmd+R) — nothing was changed.');
   } else {
     initApp();
@@ -865,6 +869,7 @@
       taxRangeStart,
       maskSensitive,
       taxStateKey,
+      attentionFindings,
     } = window.HE.helpers;
     // PostgREST list of the closed status words, for "status not in (...)" (EXT7).
     const CLOSED_IN = '(' + CLOSED_WORDS.map(w => '"' + w + '"').join(',') + ')';
@@ -2173,7 +2178,7 @@
     // everything else fills in behind it, a few at a time. Before this, nothing
     // appeared until all ~30 queries had finished.
     const PANEL_LOADERS = {
-      attentionPanel: [loadAttention, loadBusinessHealth],
+      attentionPanel: [loadAttention, loadBusinessHealth, loadAttentionChecks],
       calendarPanel: [loadCalendarMonth],
       dailySummaryPanel: [loadDailySummary],
       reportHistoryPanel: [loadReportHistory],
@@ -3348,6 +3353,90 @@
       const now = new Date();
       const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       return { start, end: now };
+    }
+
+    // EXT8: "Checks: what needs a look" (helpers: attentionFindings). Every
+    // read settles on its own; a failed one shows as "could not check".
+    const ATTN_SEEN_KEY = 'he.attnSeen';
+    function attnSeenGet(){ try { return JSON.parse(localStorage.getItem(ATTN_SEEN_KEY) || '{}') || {}; } catch (_) { return {}; } }
+    function attnSeenSet(v){ try { localStorage.setItem(ATTN_SEEN_KEY, JSON.stringify(v)); } catch (_) { /* storage blocked: just not remembered */ } }
+    const attnSignature = f => f.key + '|' + f.count + '|' + (f.oldest || '');
+    let ATTN_SHOW_HIDDEN = false;
+    async function loadAttentionChecks(){
+      const wrap = document.getElementById('attnChecksWrap');
+      if (!wrap) return;
+      const settle = p => Promise.resolve(p).then(v => {
+        if (v && v.error) throw v.error;
+        return { ok: true, rows: Array.isArray(v) ? v : (v && v.data) || [] };
+      }).catch(e => ({ ok: false, error: e }));
+      const manualOrdersWithoutItems = async () => {
+        const orders = await fetchAllRows('orders', 'id, order_number, total, currency, status, placed_at', q => q.eq('source', 'manual').is('deleted_at', null));
+        const counted = orders.filter(o => { const c = classifyOrderStatus(o.status); return !(c.isCancelled || (c.isRefund && !c.isPartialRefund)); });
+        const lines = counted.length ? await fetchAllRowsIn('order_items', 'id, order_id', 'order_id', counted.map(o => o.id)) : [];
+        const withItems = new Set(lines.map(l => l.order_id));
+        return counted.filter(o => !withItems.has(o.id));
+      };
+      const [inventory, receivedPOs, openPOs, poExpenses, openTasks, pendingApprovals, openIncidents, waitingQuestions, openReturns, ordersWithoutItems, services, orderSyncFlag] = await Promise.all([
+        settle(fetchAllRows('inventory', 'id, product_id, available, reserved, damaged, sample, wholesale, promotional, returned, recalled, low_stock_threshold', q => q)),
+        settle(fetchAllRows('purchase_orders', 'id, po_number, status, purchase_order_items(product_id, quantity, quantity_received)', q => q.eq('status', 'received'))),
+        settle(fetchAllRows('purchase_orders', 'id, po_number, status, expected_at', q => q.in('status', ['ordered', 'shipped']))),
+        settle(fetchAllRows('expenses', 'id, note', q => q.is('deleted_at', null).like('note', 'Purchase order %'))),
+        settle(fetchAllRows('tasks', 'id, status, due_at', q => q.not('status', 'in', CLOSED_IN))),
+        settle(fetchAllRows('approval_requests', 'id, status, created_at', q => q.not('status', 'in', CLOSED_IN))),
+        settle(fetchAllRows('incidents', 'id, severity, status, created_at', q => q.or('status.is.null,status.not.in.' + CLOSED_IN))),
+        settle(fetchAllRows('customer_inquiries', 'id, status, created_at', q => q.in('status', ['needs_review', 'new']))),
+        settle(fetchAllRows('returns', 'id, status, created_at', q => q.in('status', ['requested', 'approved', 'received']))),
+        settle(manualOrdersWithoutItems()),
+        settle(supabase.from('service_status').select('id, status')),
+        settle(supabase.from('feature_flags').select('flag_key, enabled').eq('flag_key', 'shopify_order_sync')),
+        loadAgentControls().catch(() => {}),
+      ]);
+      // Agent switches come from the AI Agent Activity loader (Business Health runs it).
+      const agentsPaused = agentControlsState === 'ok'
+        ? { ok: true, rows: AGENT_REGISTRY.filter(a => agentControlsByNum[a.num] && agentControlsByNum[a.num].enabled === false) }
+        : { ok: false, error: 'switches could not be read' };
+      ATTN_FINDINGS = attentionFindings({ inventory, receivedPOs, openPOs, poExpenses, openTasks, pendingApprovals, openIncidents,
+        waitingQuestions, openReturns, ordersWithoutItems, services, orderSyncFlag, agentsPaused }, Date.now());
+      renderAttentionChecks();
+    }
+    let ATTN_FINDINGS = [];
+    function renderAttentionChecks(){
+      const wrap = document.getElementById('attnChecksWrap');
+      if (!wrap) return;
+      const seen = attnSeenGet();
+      // Data problems, "could not check" and the backups line stay visible.
+      const canHide = f => (f.level === 'action' || f.level === 'info') && f.key !== 'backups';
+      const isHidden = f => canHide(f) && seen[f.key] === attnSignature(f);
+      const shown = ATTN_FINDINGS.filter(f => ATTN_SHOW_HIDDEN || !isHidden(f));
+      const hiddenCount = ATTN_FINDINGS.length - ATTN_FINDINGS.filter(f => !isHidden(f)).length;
+      const LEVEL = { critical: 'Data problem', unknown: 'Could not check', action: 'To do', info: 'Info' };
+      const rows = shown.map(f => `
+        <div class="approvalRow attnCheck attn-${esc(f.level)}" data-key="${esc(f.key)}">
+          <div class="info">
+            <span class="badge attnLevel">${esc(LEVEL[f.level])}</span>
+            <b>${esc(f.title)}${f.count != null ? ': ' + esc(String(f.count)) : ''}</b>
+            ${f.oldest ? `<span class="attnAge"> · oldest ${esc(timeAgo(f.oldest))}</span>` : ''}
+            <details class="attnWhy"><summary>Why is this here?</summary><p>${esc(f.why)}</p></details>
+          </div>
+          <div class="actions">
+            ${f.page ? `<button type="button" class="small attnOpen" data-goto="${esc(f.page)}">Open</button>` : ''}
+            ${canHide(f) ? (isHidden(f) ? '<button type="button" class="small secondary attnUnhide">Show again</button>' : '<button type="button" class="small secondary attnHide" title="Hidden on this device until the number changes">Hide until it changes</button>') : ''}
+          </div>
+        </div>`).join('');
+      const nothing = !ATTN_FINDINGS.some(f => f.level !== 'info');
+      wrap.innerHTML = (nothing ? '<p class="empty" style="margin:0 0 8px;">No data problems or to-dos found by these checks.</p>' : '') + rows +
+        (hiddenCount ? `<p class="hint" style="margin:8px 0 0;">${hiddenCount} hidden until they change. <button type="button" class="small secondary" id="attnToggleHidden">${ATTN_SHOW_HIDDEN ? 'Hide them' : 'Show them'}</button></p>` : '');
+      wrap.querySelectorAll('.attnOpen').forEach(b => b.addEventListener('click', () => showPage(b.getAttribute('data-goto'))));
+      wrap.querySelectorAll('.attnHide, .attnUnhide').forEach(b => b.addEventListener('click', () => {
+        const key = b.closest('.attnCheck').getAttribute('data-key');
+        const f = ATTN_FINDINGS.find(x => x.key === key);
+        const v = attnSeenGet();
+        if (b.classList.contains('attnHide')) v[key] = attnSignature(f); else delete v[key];
+        attnSeenSet(v);
+        renderAttentionChecks();
+      }));
+      const t = document.getElementById('attnToggleHidden');
+      if (t) t.addEventListener('click', () => { ATTN_SHOW_HIDDEN = !ATTN_SHOW_HIDDEN; renderAttentionChecks(); });
     }
 
     async function loadBusinessHealth(){

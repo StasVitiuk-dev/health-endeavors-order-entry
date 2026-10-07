@@ -11,8 +11,8 @@ const iso = ms => new Date(NOW.getTime() + ms).toISOString();
 const H = 3600 * 1000, D = 24 * H;
 
 function seedBusiness(backend) {
-  const invA = { product_id: 'prod-a', available: 3, reserved: 1, damaged: 2, sample: 0, wholesale: 0, promotional: 0, returned: 0, recalled: 0, low_stock_threshold: 5 };
-  const invB = { product_id: 'prod-b', available: 50, reserved: 0, damaged: 0, sample: 4, wholesale: 0, promotional: 0, returned: 0, recalled: 0, low_stock_threshold: null };
+  const invA = { id: 'inv-a', product_id: 'prod-a', available: 3, reserved: 1, damaged: 2, sample: 0, wholesale: 0, promotional: 0, returned: 0, recalled: 0, low_stock_threshold: 5 };
+  const invB = { id: 'inv-b', product_id: 'prod-b', available: 50, reserved: 0, damaged: 0, sample: 4, wholesale: 0, promotional: 0, returned: 0, recalled: 0, low_stock_threshold: null };
   Object.assign(backend.tables, {
     orders: [
       { id: 'o1', order_number: 'SYN-1001', customer_name: 'SYNTHETIC Customer One', customer_email: 'one@example.test', status: 'paid', currency: 'USD', total: 100, tax_total: 8, placed_at: iso(-1 * H), deleted_at: null, source: 'shopify', raw_data: { shipping_address: { province: 'TX' } } },
