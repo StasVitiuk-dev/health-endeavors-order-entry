@@ -6449,7 +6449,10 @@
                 .eq('flag_key', 'shopify_order_sync')
                 .select('id, enabled'));
             }
-            if (flagErr || noRowsChanged(flagRows) || flagRows.some(r => r.enabled !== false)) {
+            if (flagErr && isNetworkError(flagErr)) {
+              // EXT6: a lost reply does not mean "not switched off"; say it is unknown.
+              leftOn.push('Shopify Order Sync may or may not have been switched off: the connection dropped before the answer came back. Check it on this page now and switch it off by hand if it is still on.');
+            } else if (flagErr || noRowsChanged(flagRows) || flagRows.some(r => r.enabled !== false)) {
               leftOn.push('Shopify Order Sync could NOT be switched off' + (flagErr ? ' (' + flagErr.message + ')' : ' (nothing was changed — no permission, or the flag row is missing)') + '. Switch it off by hand on this page now.');
             }
           }
@@ -6464,7 +6467,9 @@
               .update({ enabled: false, updated_by: uid, updated_at: new Date().toISOString() })
               .eq('agent_num', 7)
               .select('agent_num, enabled');
-            if (agentErr || noRowsChanged(agentRows) || agentRows.some(r => r.enabled !== false)) {
+            if (agentErr && isNetworkError(agentErr)) {
+              leftOn.push('Agent #7 (Customer Service) may or may not have been paused: the connection dropped before the answer came back. Check it on the AI Agent Activity page now and pause it by hand if it is still on.');
+            } else if (agentErr || noRowsChanged(agentRows) || agentRows.some(r => r.enabled !== false)) {
               leftOn.push('Agent #7 (Customer Service) could NOT be paused' + (agentErr ? ' (' + agentErr.message + ')' : ' (nothing was changed — no permission, or its switch row is missing)') + '. Pause it by hand on the AI Agent Activity page now.');
             }
           }

@@ -249,6 +249,79 @@ test.describe('System Mode', () => {
     expect(flagWrites.map(w => Object.keys(w.body).sort().join(','))).toContain('enabled');
   });
 
+  // EXT6 (workstream 13): each protective step failing in other ways than
+  // "0 rows". The page must never report success, must name the step, and
+  // must not claim "NOT switched off" when it simply cannot know.
+  const stepFault = {
+    'a server error': route => route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ message: 'Synthetic server error' }) }),
+    'a lost reply': route => route.abort('connectionreset'),
+    'an expired sign-in': route => route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ code: 'PGRST301', message: 'JWT expired' }) }),
+  };
+  const stepWords = {
+    feature_flags: { not: 'Shopify Order Sync could NOT be switched off', unknown: 'Shopify Order Sync may or may not have been switched off' },
+    agent_controls: { not: 'Agent #7 (Customer Service) could NOT be paused', unknown: 'Agent #7 (Customer Service) may or may not have been paused' },
+  };
+  for (const table of ['feature_flags', 'agent_controls']) {
+    for (const [fault, reply] of Object.entries(stepFault)) {
+      test(`Emergency: ${table === 'feature_flags' ? 'Order Sync switch-off' : 'Agent #7 pause'} fails with ${fault}: named, never reported as done`, async ({ page, backend }) => {
+        seed(backend);
+        backend.tables.feature_flags[0].enabled = true;
+        backend.tables.agent_controls = [{ agent_num: 7, enabled: true }];
+        await login(page);
+        await open(page, 'flagsPanel');
+        await page.route(url => new URL(url).pathname.endsWith('/rest/v1/' + table), route =>
+          route.request().method() === 'PATCH' ? reply(route) : route.fallback());
+        await goEmergency(page);
+        const err = page.locator('#dashError');
+        await expect(err).toContainText('System mode is now Emergency, but:');
+        await expect(err).toContainText(fault === 'a lost reply' ? stepWords[table].unknown : stepWords[table].not);
+        if (fault === 'a lost reply') await expect(err).not.toContainText('could NOT');
+        if (fault === 'an expired sign-in') await expect(err).toContainText('Sign in again');
+        await expect(err).not.toContainText('Synthetic server error'.toUpperCase());
+        await expect(page.locator('.toast', { hasText: 'System mode changed to' })).toHaveCount(0);
+        // the other protective step still ran
+        const other = table === 'feature_flags' ? 'agent_controls' : 'feature_flags';
+        expect(writes(backend, other).some(w => w.body.enabled === false)).toBe(true);
+      });
+    }
+  }
+
+  test('Emergency: both protective steps fail: both are named, no success message', async ({ page, backend }) => {
+    seed(backend);
+    backend.tables.agent_controls = [{ agent_num: 7, enabled: true }];
+    await login(page);
+    await open(page, 'flagsPanel');
+    await zeroRowsOn(page, 'feature_flags');
+    await page.route(url => new URL(url).pathname.endsWith('/rest/v1/agent_controls'), route =>
+      route.request().method() === 'PATCH' ? route.abort('connectionreset') : route.fallback());
+    await goEmergency(page);
+    await expect(page.locator('#dashError')).toContainText('Shopify Order Sync could NOT be switched off');
+    await expect(page.locator('#dashError')).toContainText('Agent #7 (Customer Service) may or may not have been paused');
+    await expect(page.locator('.toast', { hasText: 'System mode changed to' })).toHaveCount(0);
+  });
+
+  test('Emergency with a slow database: no success message until both steps are confirmed', async ({ page, backend }) => {
+    seed(backend);
+    backend.tables.feature_flags[0].enabled = true;
+    backend.tables.agent_controls = [{ agent_num: 7, enabled: true }];
+    await login(page);
+    await open(page, 'flagsPanel');
+    let release;
+    const gate = new Promise(r => { release = r; });
+    await page.route(url => new URL(url).pathname.endsWith('/rest/v1/agent_controls'), async route => {
+      if (route.request().method() !== 'PATCH') return route.fallback();
+      await gate; // Agent #7 answers late
+      return route.fallback();
+    });
+    await goEmergency(page);
+    await expect.poll(() => writes(backend, 'feature_flags').length).toBe(1);
+    await page.waitForTimeout(800);
+    await expect(page.locator('.toast', { hasText: 'System mode changed to' })).toHaveCount(0);
+    release();
+    await expect(page.locator('.toast', { hasText: 'System mode changed to Emergency' })).toBeVisible();
+    await expect(page.locator('#dashError')).toBeHidden();
+  });
+
   test('Emergency: when both follow-ups really happen, it reports success and no error', async ({ page, backend }) => {
     seed(backend);
     backend.tables.agent_controls = [{ agent_num: 7, enabled: true }];
