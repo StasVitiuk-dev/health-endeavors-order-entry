@@ -1,6 +1,6 @@
 # Rollback and backup review (internal platform)
 
-**Status:** CURRENT (2026-10-06, extension 3; extension 4 adds the owner checklist and the PO line guard row). Written from files in this repository only. The private backups repository was **not** accessed, and nothing about backups was changed.
+**Status:** CURRENT for the per-change rollback table (2026-10-06, extension 3; extension 4 adds the owner checklist and the PO line guard row). **From extension 8, the authoritative recovery page is `RECOVERY_AND_BACKUP_READINESS.md`**; the backup sections below are kept as history. Written from files in this repository only. The private backups repository was **not** accessed, and nothing about backups was changed.
 
 ## Backup health: UNKNOWN (no evidence here)
 
