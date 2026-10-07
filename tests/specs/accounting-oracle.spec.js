@@ -261,6 +261,7 @@ test('Accounting lists manual orders saved without items (counted in revenue), n
   backend.tables.expenses = [];
   await login(page);
   await openAllTime(page);
+  await expect.poll(() => readFigures(page), { timeout: 30000 }).toMatchObject({ revenue: '$37.00' }); // 10 + 20 + 7 (cancelled excluded): All Time is in
   await expect(page.locator('#acctNoItemsWrap .acctNoItemsRow')).toHaveCount(1);
   await expect(page.locator('#acctNoItemsWrap')).toContainText('M-EMPTY');
   await expect(page.locator('#acctNoItemsWrap')).toContainText('$20.00');
@@ -269,7 +270,33 @@ test('Accounting lists manual orders saved without items (counted in revenue), n
 test('Accounting: every manual order has its items: "None found."', async ({ page, backend }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop', 'run once');
   serve(backend, { orders: [{ id: 'ord-x', order_number: 'X', totalCents: 1000, status: 'paid', deleted: false }], expenses: [] });
+  // EXT7: the order really has its item (the first version had none, and only
+  // passed by reading the "Today" result before the All Time one arrived).
+  backend.tables.order_items = [{ id: 'oi-x', order_id: 'ord-x', product_name: 'SYNTHETIC', quantity: 1, unit_price: 10, line_total: 10 }];
   await login(page);
   await openAllTime(page);
+  await expect.poll(() => readFigures(page), { timeout: 30000 }).toMatchObject({ revenue: '$10.00' }); // the All Time result is in
   await expect(page.locator('#acctNoItemsWrap')).toContainText('None found.');
+  await expect(page.locator('#acctNoItemsWrap .acctNoItemsRow')).toHaveCount(0);
+});
+
+// EXT7: when the browser stops delivering animation frames part-way (heavy
+// load, a background tab, power saving), a money figure stayed frozen at an
+// in-between value ($99,949.17 for $100,000.00). It must always settle on
+// the exact figure.
+test('figures settle on the exact amount even if animation frames stop part-way', async ({ page, backend }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'run once');
+  await page.addInitScript(() => {
+    const orig = window.requestAnimationFrame.bind(window);
+    let frames = 0;
+    window.requestAnimationFrame = cb => (frames++ < 40 ? orig(cb) : 0); // then no more frames, ever
+  });
+  serve(backend, {
+    orders: Array.from({ length: 4 }, (_, i) => ({ id: 'ord-raf' + i, order_number: 'RAF-' + i, totalCents: 2500000, status: 'paid', deleted: false })),
+    expenses: [{ id: 'exp-raf', amountCents: 999999, deleted: false }],
+  });
+  await login(page);
+  await openAllTime(page);
+  await expect.poll(() => readFigures(page), { timeout: 15000 })
+    .toEqual({ revenue: '$100,000.00', spent: '$9,999.99', net: '$90,000.01', excluded: '$0.00', review: 0 });
 });

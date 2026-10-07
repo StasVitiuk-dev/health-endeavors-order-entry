@@ -29,7 +29,7 @@
 <title>Health Endeavors — Owner Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous" onerror="window.__sbLoadFailed=true"></script>
 <link rel="stylesheet" href="assets/owner-login.css?v=665ff419f0">
-<script src="assets/owner-login-helpers.js?v=d6c0d11f89" onerror="window.__heHelpersLoadFailed=true"></script>
+<script src="assets/owner-login-helpers.js?v=290c8964e7" onerror="window.__heHelpersLoadFailed=true"></script>
 <script>
   // Applied before anything renders so there's no flash of the wrong theme.
   (function(){
@@ -809,7 +809,7 @@
     showBanner('The sign-in helper library did not load from the internet, so this page cannot work yet. Check that your Mac is online, then fully reload this page (press Cmd+R). If this keeps happening, a content blocker or ad blocker extension in Safari may be blocking cdn.jsdelivr.net — try turning it off for this page and reloading.');
   } else if (window.__heHelpersLoadFailed || !window.HE || !window.HE.helpers) {
     showBanner('Part of this page (assets/owner-login-helpers.js) did not load, so it cannot start. Check that you are online, then fully reload this page (press Cmd+R).');
-  } else if (window.HE.helpers.API !== 6) {
+  } else if (window.HE.helpers.API !== 7) {
     showBanner('The dashboard was just updated and this page loaded a mix of old and new files. Fully reload this page (press Cmd+R) — nothing was changed.');
   } else {
     initApp();
@@ -854,6 +854,7 @@
       acctRangeStart,
       taxRangeStart,
       maskSensitive,
+      taxStateKey,
     } = window.HE.helpers;
     // Safety net (EXT4): Supabase returns at most 1,000 rows per request and
     // does not say when it cut a list short. Totals and money use complete
@@ -2053,20 +2054,28 @@
       const decimals = (m[2].split('.')[1] || '').length;
       const start = performance.now(), dur = 520;
       el.dataset.animating = '1';
+      // Always US number format, like the money figures themselves. The end
+      // shows exactly the target value (with thousands commas), whatever
+      // language the browser is set to: it used to follow the browser's
+      // language ("$25.000,00" on a German computer) (EXT6).
+      const fmt = n => m[1] + n.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals }) + m[3];
+      function finish(){
+        if (!el.dataset.animating) return;
+        el.textContent = fmt(target);
+        delete el.dataset.animating;
+      }
       function step(now){
+        if (!el.dataset.animating) return;
         const t = Math.min(1, (now - start) / dur);
-        const eased = 1 - Math.pow(1 - t, 3);
-        const v = target * eased;
-        // Always US number format, like the money figures themselves. The
-        // last frame shows exactly the target value (with thousands commas),
-        // whatever language the browser is set to: it used to follow the
-        // browser's language ("$25.000,00" on a German computer) (EXT6).
-        const shown = t < 1 ? v : target;
-        el.textContent = m[1] + shown.toLocaleString('en-US', {
-          minimumFractionDigits: decimals, maximumFractionDigits: decimals }) + m[3];
-        if (t < 1) requestAnimationFrame(step); else delete el.dataset.animating;
+        if (t >= 1) { finish(); return; }
+        el.textContent = fmt(target * (1 - Math.pow(1 - t, 3)));
+        requestAnimationFrame(step);
       }
       requestAnimationFrame(step);
+      // EXT7: animation frames can stop (heavy load, a background tab, power
+      // saving), which left a money figure frozen part-way, e.g. $99,949.17
+      // instead of $100,000.00. The exact figure is written by this timer too.
+      setTimeout(finish, dur + 80);
     }
     new MutationObserver(muts => {
       muts.forEach(mu => {
@@ -8893,7 +8902,8 @@
           revenue += Number(o.total || 0);
           const tax = Number(o.tax_total || 0);
           salesTax += tax;
-          const province = o.raw_data && o.raw_data.shipping_address && o.raw_data.shipping_address.province;
+          // EXT7: one row per state whatever the spelling (taxStateKey).
+          const province = taxStateKey(o.raw_data && o.raw_data.shipping_address);
           if (province) stateTax[province] = (stateTax[province] || 0) + tax;
           else stateUnknownTax += tax;
         });
@@ -8949,14 +8959,19 @@
           // Chunked and paged: every line of every order counts, and the
           // request URLs stay short however many orders there are.
           const items = await fetchAllRowsIn('order_items', 'id, order_id, sku, product_name, quantity', 'order_id', orderIds);
-          const skus = [...new Set((items || []).map(i => i.sku).filter(Boolean))];
+          // EXT7: SKUs match ignoring case and outer spaces, as everywhere
+          // else (products are unique by lower(sku); returns match that way).
+          // An exact match listed "SYN-a" as having no cost although
+          // "SYN-A" does. The catalogue is read whole (it is small) instead
+          // of by exact SKU.
+          const skuKey = s => String(s || '').trim().toLowerCase();
           const costBySku = {};
-          if (skus.length) {
-            const products = await fetchAllRowsIn('products', 'id, sku, cost', 'sku', skus);
-            (products || []).forEach(p => { if (p.sku) costBySku[p.sku] = p.cost; });
+          if ((items || []).some(i => skuKey(i.sku))) {
+            const products = await fetchAllRows('products', 'id, sku, cost', q => q);
+            (products || []).forEach(p => { if (skuKey(p.sku)) costBySku[skuKey(p.sku)] = p.cost; });
           }
           (items || []).forEach(it => {
-            const cost = it.sku ? costBySku[it.sku] : null;
+            const cost = skuKey(it.sku) ? costBySku[skuKey(it.sku)] : null;
             const qty = Number(it.quantity || 0);
             if (cost === null || cost === undefined) {
               unmatchedCount += qty;

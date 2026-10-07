@@ -431,10 +431,37 @@
       return t.length > 300 ? t.slice(0, 300) + '…' : t;
     }
 
+    // EXT7: one key per US state for "Sales tax by state". Shopify sends the
+    // full name ("California") and a code ("CA"); other sources may send
+    // either, in any case or spacing. Grouping by the raw text split one
+    // state into several rows. Outside the US: "Ontario (CA)".
+    const US_STATE_CODES = {
+      ALABAMA:'AL', ALASKA:'AK', ARIZONA:'AZ', ARKANSAS:'AR', CALIFORNIA:'CA', COLORADO:'CO', CONNECTICUT:'CT', DELAWARE:'DE',
+      'DISTRICT OF COLUMBIA':'DC', FLORIDA:'FL', GEORGIA:'GA', HAWAII:'HI', IDAHO:'ID', ILLINOIS:'IL', INDIANA:'IN', IOWA:'IA',
+      KANSAS:'KS', KENTUCKY:'KY', LOUISIANA:'LA', MAINE:'ME', MARYLAND:'MD', MASSACHUSETTS:'MA', MICHIGAN:'MI', MINNESOTA:'MN',
+      MISSISSIPPI:'MS', MISSOURI:'MO', MONTANA:'MT', NEBRASKA:'NE', NEVADA:'NV', 'NEW HAMPSHIRE':'NH', 'NEW JERSEY':'NJ',
+      'NEW MEXICO':'NM', 'NEW YORK':'NY', 'NORTH CAROLINA':'NC', 'NORTH DAKOTA':'ND', OHIO:'OH', OKLAHOMA:'OK', OREGON:'OR',
+      PENNSYLVANIA:'PA', 'RHODE ISLAND':'RI', 'SOUTH CAROLINA':'SC', 'SOUTH DAKOTA':'SD', TENNESSEE:'TN', TEXAS:'TX', UTAH:'UT',
+      VERMONT:'VT', VIRGINIA:'VA', WASHINGTON:'WA', 'WEST VIRGINIA':'WV', WISCONSIN:'WI', WYOMING:'WY', 'PUERTO RICO':'PR',
+    };
+    const US_CODES = new Set(Object.values(US_STATE_CODES));
+    function taxStateKey(addr){
+      if (!addr || typeof addr !== 'object') return null;
+      const country = String(addr.country_code || '').trim().toUpperCase();
+      const code = String(addr.province_code || '').trim().toUpperCase();
+      const name = String(addr.province || '').trim().replace(/\s+/g, ' ');
+      if (!code && !name) return null;
+      if (country && country !== 'US') return (name || code) + ' (' + country + ')';
+      if (US_CODES.has(code)) return code;
+      const up = name.toUpperCase();
+      if (US_CODES.has(up)) return up;
+      return US_STATE_CODES[up] || name;
+    }
+
   // Bump API when a helper's name or arguments change, so a page that loaded
   // an older copy refuses to start instead of running mixed code.
   window.HE.helpers = Object.freeze({
-    API: 6,
+    API: 7, // EXT7: taxStateKey added
     esc,
     csvCell,
     fmtMoney,
@@ -471,5 +498,6 @@
     acctRangeStart,
     taxRangeStart,
     maskSensitive,
+    taxStateKey,
   });
 })();

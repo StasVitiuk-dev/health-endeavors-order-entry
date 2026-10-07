@@ -55,7 +55,7 @@ base.test.describe('pure helpers file', () => {
     base.expect(src).not.toMatch(/\bdocument\b|\bsupabase\b|localStorage|fetch\(/);
     const window = {};
     new Function('window', src)(window);
-    base.expect(window.HE.helpers.API).toBe(6); // 6 since 2026-10-06 (maskSensitive, EXT3)
+    base.expect(window.HE.helpers.API).toBe(7); // 7 since 2026-10-07 (taxStateKey, EXT7)
     base.expect(Object.isFrozen(window.HE.helpers)).toBe(true);
     base.expect(window.HE.helpers.esc('<b>')).toBe('&lt;b&gt;');
     base.expect(window.HE.helpers.likeLiteral('A_1%')).toBe('A\\_1\\%');
@@ -68,7 +68,7 @@ base.test.describe('pure helpers file', () => {
     const m = html().match(/const \{\n([\s\S]*?)\n    \} = window\.HE\.helpers;/);
     base.expect(m).not.toBeNull();
     const names = m[1].split(',').map(x => x.trim()).filter(Boolean);
-    base.expect(names.length).toBe(36);
+    base.expect(names.length).toBe(37); // 37 since EXT7 (taxStateKey)
     for (const n of names) {
       base.expect(window.HE.helpers[n], n).toBeDefined();
       base.expect(html(), n).not.toMatch(new RegExp('^    (async )?function ' + n + '\\s*\\(|^    const ' + n + '\\s*=', 'm'));
@@ -83,7 +83,7 @@ test('if the helpers file fails to load, the page says so and does not start', a
 });
 
 test('an old helpers file (wrong API) is refused with a "reload" message', async ({ page }) => {
-  const src = fs.readFileSync(path.join(ROOT, 'assets', 'owner-login-helpers.js'), 'utf8').replace('API: 6,', 'API: 5,'); // an older copy
+  const src = fs.readFileSync(path.join(ROOT, 'assets', 'owner-login-helpers.js'), 'utf8').replace('API: 7,', 'API: 6,'); // an older copy
   await page.route('**/assets/owner-login-helpers.js*', route => route.fulfill({ status: 200, contentType: 'application/javascript', body: src }));
   await page.goto('/owner-login.html');
   await expect(page.locator('body')).toContainText('loaded a mix of old and new files');
