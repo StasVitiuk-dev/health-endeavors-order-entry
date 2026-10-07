@@ -121,7 +121,12 @@ test('the sign-in refresh fails after the computer wakes from sleep: the page le
     route.fulfill({ status: 400, contentType: 'application/json', body: JSON.stringify({ error: 'invalid_grant', error_description: 'Invalid Refresh Token: Refresh Token Not Found' }) }));
   // Two hours later (the access token lasts one): the client tries to refresh.
   await page.clock.fastForward('02:00:00');
-  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  // EXT6: leaving the dashboard now reloads the page (nothing from the
+  // session stays behind), so this nudge may be cut off by that reload.
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange'))).catch(e => {
+    if (!/Execution context was destroyed|navigation/i.test(String(e))) throw e;
+  });
   await expect(page.locator('#loginScreen')).toBeVisible({ timeout: 15000 });
   await expect(page.locator('#dash')).toBeHidden();
+  await expect(page.locator('#loginMsg')).toContainText('You were signed out');
 });
