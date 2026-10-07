@@ -877,6 +877,10 @@
     // EXT8: lists that show only the most recent rows (recycle bins, history)
     // say how many there are in all and can show more, so nothing - an old
     // deleted order to restore, say - is out of reach.
+    // EXT8: "latest request wins". A slow, older load (e.g. the Today figures
+    // after you already clicked All Time) must not draw over a newer one.
+    const LOAD_TOKENS = {};
+    function newLoadToken(key){ const t = (LOAD_TOKENS[key] || 0) + 1; LOAD_TOKENS[key] = t; return () => LOAD_TOKENS[key] === t; }
     const LIST_LIMITS = {};
     const listLimit = key => LIST_LIMITS[key] || 50;
     function appendMore(wrapId, key, shown, total, noun, reload){
@@ -2841,6 +2845,7 @@
     }
 
     async function loadActivity(reset){
+      const isLatest = newLoadToken('activity'); // EXT8: an older reply never draws over a newer one
       const box = document.getElementById('activitySearch');
       const q = box ? (box.value || '').trim() : '';
       if (reset) {
@@ -2858,6 +2863,7 @@
           p_offset: ACTIVITY_OFFSET,
         });
         if (error) throw error;
+        if (!isLatest()) return;
         const rows = data || [];
         // EXT5: "Load more" after new changes were recorded would repeat the
         // last rows (pages are counted by position); skip ids already shown.
@@ -2868,6 +2874,7 @@
           rows.length === ACTIVITY_PAGE_SIZE ? 'block' : 'none';
         renderActivity();
       } catch (err) {
+        if (!isLatest()) return;
         document.getElementById('activityWrap').innerHTML = '';
         showDashError('Could not load Employee Activity: ' + (err && err.message ? err.message : err));
       }
@@ -5351,6 +5358,7 @@
     }
 
     async function loadCalendarMonth(){
+      const isLatest = newLoadToken('calendar'); // EXT8: an older reply never draws over a newer one
       applyCalendarMode();
       try {
         const { start, end } = calRange();
@@ -5368,6 +5376,7 @@
             .lt('starts_at', end.toISOString())
             .order('starts_at', { ascending: true });
           if (error) throw error;
+          if (!isLatest()) return;
           // Reshape into the same form the Apple calendar uses, so the exact
           // same Day / Week / Month views draw them.
           calEvents = (rows || []).map(r => ({
@@ -5393,6 +5402,7 @@
           .lt('starts_at', end.toISOString())
           .order('starts_at', { ascending: true });
         if (error) throw error;
+        if (!isLatest()) return;
         calEvents = events || [];
 
         // Notes are optional — if the table isn't there yet, the calendar still works.
@@ -5406,9 +5416,11 @@
             .select('event_uid, note').in('event_uid', uids.slice(i, i + 50));
           (notes || []).forEach(n => { calNotes[n.event_uid] = n.note; });
         }
+        if (!isLatest()) return;
         renderCalFilters();
         renderCalendar();
       } catch (err) {
+        if (!isLatest()) return;
         document.getElementById('calBody').innerHTML = '';
         showDashError('Could not load the calendar: ' + (err && err.message ? err.message : err));
       }
@@ -7424,6 +7436,7 @@
     // documents, emails, whatever backs up what happened), with a link to where
     // the actual file lives rather than storing the file itself.
     async function loadEvidenceLocker(){
+      const isLatest = newLoadToken('evidence'); // EXT8: an older reply never draws over a newer one
       try {
         // EXT8: every open incident (any age) plus the newest 200, so
         // evidence can always be filed against an open incident.
@@ -7432,6 +7445,7 @@
           supabase.from('incidents').select('id, incident_number, title, created_at').order('created_at', { ascending: false }).limit(200),
         ]);
         if (recentRes.error) throw recentRes.error;
+        if (!isLatest()) return;
         const seenInc = new Set();
         const incidents = openIncidents.concat(recentRes.data || [])
           .filter(i => !seenInc.has(i.id) && seenInc.add(i.id))
@@ -7460,6 +7474,7 @@
         if (currentFilter) evidenceQuery = evidenceQuery.eq('incident_id', currentFilter);
         const { data: evidence, error, count: evidenceCount } = await evidenceQuery;
         if (error) throw error;
+        if (!isLatest()) return;
         // Names for evidence filed against incidents outside the list above.
         const missingInc = [...new Set((evidence || []).map(e => e.incident_id).filter(id => id && !incidentById[id]))];
         if (missingInc.length) {
@@ -7514,6 +7529,7 @@
           });
         });
       } catch (err) {
+        if (!isLatest()) return;
         showDashError('Could not load the evidence locker: ' + (err && err.message ? err.message : err));
       }
     }
@@ -7565,6 +7581,7 @@
         } else {
           const { error } = await saveEvidence(null);
           if (error) throw error;
+        if (!isLatest()) return;
         }
         titleInput.value = '';
         descriptionInput.value = '';
@@ -9165,6 +9182,7 @@
     }
 
     async function loadAccounting(){
+      const isLatest = newLoadToken('accounting');
       try {
         const start = acctRangeStart(acctRange);
 
@@ -9179,6 +9197,7 @@
           return q;
         });
 
+        if (!isLatest()) return;
         const currency = (orders[0] && orders[0].currency) || 'USD';
         const acctMixed = mixedCurrencyNote(orders, 'Accounting', currency);
         if (acctMixed) showDashError(acctMixed);
@@ -9197,6 +9216,7 @@
           if (isPartialRefund) needsReview.push(o);
         });
         const returnRefundTotal = refundsToSubtract(orders, await returnRefundsIn(start, null), ACCOUNTING_REFUND_POLICY);
+        if (!isLatest()) return; // a newer period was chosen meanwhile
         revenue -= returnRefundTotal;
 
         const totalExpenses = expenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
@@ -9237,6 +9257,7 @@
             return o.source === 'manual' && !(c.isCancelled || (c.isRefund && !c.isPartialRefund));
           });
           const lines = counted.length ? await fetchAllRowsIn('order_items', 'id, order_id', 'order_id', counted.map(o => o.id)) : [];
+          if (!isLatest()) return;
           const withItems = new Set(lines.map(l => l.order_id));
           const empty = counted.filter(o => !withItems.has(o.id));
           noItemsWrap.innerHTML = !empty.length
@@ -9260,6 +9281,7 @@
             </div>`).join('');
         }
       } catch (err) {
+        if (!isLatest()) return; // an older load: its error no longer matters
         showDashError('Could not load Accounting: ' + (err && err.message ? err.message : err));
       }
     }
@@ -9282,6 +9304,7 @@
     let TAX_REPORT = null; // kept around so the Export button doesn't have to re-query
 
     async function loadTaxRecords(){
+      const isLatest = newLoadToken('tax');
       try {
         const { start, end } = taxRangeStart(taxRange);
 
@@ -9322,6 +9345,7 @@
           else stateUnknownTax += tax;
         });
         const returnRefundTotal = refundsToSubtract(orders, await returnRefundsIn(start, end), ACCOUNTING_REFUND_POLICY);
+        if (!isLatest()) return; // a newer period was chosen meanwhile
         revenue -= returnRefundTotal;
 
         // Expenses by category, split into COGS vs Operating.
@@ -9373,6 +9397,7 @@
           // Chunked and paged: every line of every order counts, and the
           // request URLs stay short however many orders there are.
           const items = await fetchAllRowsIn('order_items', 'id, order_id, sku, product_name, quantity', 'order_id', orderIds);
+          if (!isLatest()) return;
           // EXT7: SKUs match ignoring case and outer spaces, as everywhere
           // else (products are unique by lower(sku); returns match that way).
           // An exact match listed "SYN-a" as having no cost although
@@ -9382,6 +9407,7 @@
           const costBySku = {};
           if ((items || []).some(i => skuKey(i.sku))) {
             const products = await fetchAllRows('products', 'id, sku, cost', q => q);
+            if (!isLatest()) return;
             (products || []).forEach(p => { if (skuKey(p.sku)) costBySku[skuKey(p.sku)] = p.cost; });
           }
           (items || []).forEach(it => {
@@ -9432,6 +9458,7 @@
 
         TAX_REPORT = { currency, revenue, cogsTotal, operatingTotal, netProfit, salesTax, catRows, estCogs, unmatchedCount, stateTax, stateUnknownTax, missing };
       } catch (err) {
+        if (!isLatest()) return; // an older load: its error no longer matters
         showDashError('Could not load Tax Records: ' + (err && err.message ? err.message : err));
       }
     }
