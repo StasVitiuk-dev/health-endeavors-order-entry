@@ -9,14 +9,14 @@ DIR="$(cd "$(dirname "$0")" && pwd)"
 INSTALL="$DIR/../drafts/19_DRAFT_request_keys.sql"
 ROLLBACK="$DIR/../drafts/20_DRAFT_rollback_request_keys.sql"
 OWNER="set role authenticated; set request.jwt.claim.sub to '00000000-0000-4000-8000-000000000001';"
-STAFF="set role authenticated; set request.jwt.claim.sub to '00000000-0000-4000-8000-000000000002';"
+STAFF="set role authenticated; set request.jwt.claim.sub to '00000000-0000-4000-8000-0000000000e2';"  # its own staff user: never change a role other tests rely on
 K=a5000000-0000-4000-8000-000000000001
 pass=0; failn=0
 check() { if [ "$2" = "$3" ]; then echo "  ok   $1"; pass=$((pass+1)); else echo "  FAIL $1 (got '$2', want '$3')"; failn=$((failn+1)); fi; }
 q() { $P -c "$1" 2>&1; }
 
 q "insert into profiles (id,email,role) values ('00000000-0000-4000-8000-000000000001','keys-owner@example.test','owner'),
-     ('00000000-0000-4000-8000-000000000002','keys-staff@example.test','employee') on conflict (id) do update set role=excluded.role" >/dev/null
+     ('00000000-0000-4000-8000-0000000000e2','keys-staff@example.test','employee') on conflict (id) do update set role=excluded.role" >/dev/null
 $P -f "$ROLLBACK" >/dev/null 2>&1
 q "delete from expenses where note like 'KEYS%'; delete from returns where reason like 'KEYS%'" >/dev/null
 TABLES=$(q "select count(*) from unnest(array['expenses','inventory_adjustments','inventory_lots','returns','recalls','products','suppliers','documents','evidence_locker','adverse_event_reports','legal_holds','quality_checks','incidents','sop_documents','feature_requests','manual_attention_items','personal_calendar_events','tasks','orders','order_items','purchase_orders','purchase_order_items']) t where to_regclass('public.'||t) is not null")

@@ -40,8 +40,8 @@ delete from inventory_adjustments; delete from expenses; delete from recalls; de
 delete from inventory_lots; delete from purchase_orders; delete from purchase_order_items; delete from inventory; delete from products; delete from suppliers;
 delete from audit_log;
 insert into profiles (id, email, role) select ('00000000-0000-4000-8000-00000000000' || g)::uuid, 'stress' || g || '@example.test', 'owner'
-  from generate_series(1, 9) g on conflict (id) do nothing;
-insert into profiles (id, email, role) values ('$EMP', 'stress-employee@example.test', 'employee') on conflict (id) do nothing;
+  from generate_series(1, 9) g on conflict (id) do update set role = 'owner';  -- EXT6: reset, never trust a role another test left behind
+insert into profiles (id, email, role) values ('$EMP', 'stress-employee@example.test', 'employee') on conflict (id) do update set role = 'employee';
 insert into suppliers (id, name) values ('99999999-0000-4000-8000-000000000000', 'STRESS supplier');
 insert into products (id, name, sku) values ('$A','STRESS A','S-A'), ('$B','STRESS B','S-B'), ('$C','STRESS C','S-C');
 insert into inventory (product_id, available) values ('$A', 1000), ('$B', 1000), ('$C', 1000);
