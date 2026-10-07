@@ -68,3 +68,30 @@ Built only from documents in this repository. The private backups repository was
 | Rolling back the dashboard | Revert the merge commit on GitHub; Pages republishes in 1–5 minutes; hard refresh. The content hashes stop old and new files mixing | CURRENT |
 
 **Before any production database change:** (1) do the 2-minute backup check above; (2) note the time of the last green nightly backup; (3) run the read-only Query E and keep its output, as a "before" picture of stock and deliveries.
+
+## Extension 7 recovery review (2026-10-07, workstream Q)
+
+**Backup health: still UNKNOWN.** Nothing new could be verified: the backups repository is off-limits and was not opened, and no production system was read. The owner check above (2 minutes, read-only) is still the first step before any production change.
+
+What EXT7 adds or changes for recovery:
+
+| Item | Recovery impact | Rollback |
+|---|---|---|
+| EXT7 dashboard changes (open-items lists, Recently finished + Reopen, Business Health "?" tiles, unsaved-typing question, user-switch wipe, service-status Unknown, SOP re-read, supplier same-name question, Tax Records fixes, animation timer) | Page files only. No data, schema or permission change | Revert the merge commit; Pages republishes in 1–5 minutes; hard refresh. The helper version guard (API 7) refuses a mix of old and new files |
+| Reopen (done → open) | A normal guarded task update, recorded by the existing `tasks` audit trigger. A wrong reopen is undone with "Mark done" | Nothing extra |
+| New tests and tools (`random_interleavings.sh`, inventory JSON) | Local only; never connect to Supabase | Delete the files |
+| No new SQL draft in EXT7 | — | — |
+
+Recovery scenarios checked on paper (no production access):
+
+| Scenario | How it is recovered today | Status |
+|---|---|---|
+| A bad dashboard release | Revert the merge commit (above) | READY (tested revert path) |
+| A stock action stopped part-way (before R1–R5) | The page names what was done and what to finish by hand; reconciliation query finds the gap (`reconciliation_test.sh`) | READY on the branch; atomic fix needs R1–R5 (OWNER APPROVAL REQUIRED) |
+| A duplicate record after a lost reply | Visible in the list; delete or archive by hand. 23 create paths can still duplicate (`IDEMPOTENCY_AND_RETRY_POLICY.md` §5) | MITIGATED; full fix needs request keys (OWNER APPROVAL REQUIRED) |
+| Rows deleted by mistake | Soft-delete + restore for orders, expenses, feature requests; others need the backup | PARTLY READY; depends on backup health (UNKNOWN) |
+| Database lost or corrupted | Restore from the nightly backup | **UNKNOWN** until the owner check |
+| Supabase project credentials leaked | Rotate keys in Supabase; the page holds only the public anon key | Owner procedure (private System Documentation); not verifiable here |
+| GitHub account misuse (admin credential, X6-17) | Revert commits; restore ruleset; rotate the connection | See `docs/security/GITHUB_CREDENTIAL_ADMIN_FINDING_2026-10-07.md` |
+
+Recommended next recovery step: the owner backup check, then a single **restore drill into a separate, throwaway Supabase project** (never the production one), recorded with its date and duration. Claude can write the drill checklist; only the owner can run it.
