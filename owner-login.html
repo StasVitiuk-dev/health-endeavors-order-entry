@@ -239,9 +239,14 @@
 
         <form id="logReturnForm" style="display:flex;flex-direction:column;gap:8px;margin-top:14px;padding-top:16px;border-top:1px solid var(--line);">
           <h3 style="font-size:13px;color:var(--navy);margin:0 0 2px;">Log a new return</h3>
-          <select id="retOrder" required style="padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;">
+          <select id="retOrder" required aria-label="Order" style="padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;">
             <option value="">Order…</option>
           </select>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+            <input type="text" id="retOrderFind" aria-label="Find an older order by its number" placeholder="Older order? Type its number" style="flex:1 1 160px;">
+            <button type="button" class="small" id="retOrderFindBtn">Find order</button>
+          </div>
+          <p class="hint" id="retOrderHint" style="margin:0;"></p>
           <select id="retOrderItem" required disabled style="padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;">
             <option value="">Pick an order first…</option>
           </select>
@@ -863,6 +868,25 @@
     } = window.HE.helpers;
     // PostgREST list of the closed status words, for "status not in (...)" (EXT7).
     const CLOSED_IN = '(' + CLOSED_WORDS.map(w => '"' + w + '"').join(',') + ')';
+    const RET_ORDER_CAP = 200; // orders offered in the "log a return" menu (EXT8)
+    // EXT8: lists that show only the most recent rows (recycle bins, history)
+    // say how many there are in all and can show more, so nothing - an old
+    // deleted order to restore, say - is out of reach.
+    const LIST_LIMITS = {};
+    const listLimit = key => LIST_LIMITS[key] || 50;
+    function appendMore(wrapId, key, shown, total, noun, reload){
+      const wrap = document.getElementById(wrapId);
+      if (!wrap || total == null || total <= shown) return;
+      const p = document.createElement('p');
+      p.className = 'hint listMore';
+      p.style.margin = '8px 0 0';
+      p.textContent = 'Showing the ' + shown + ' most recent of ' + total + ' ' + noun + '. ';
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'small secondary'; b.textContent = 'Show more';
+      b.addEventListener('click', () => { b.disabled = true; LIST_LIMITS[key] = listLimit(key) + 50; reload(); });
+      p.appendChild(b);
+      wrap.appendChild(p);
+    }
     // Safety net (EXT4): Supabase returns at most 1,000 rows per request and
     // does not say when it cut a list short. Totals and money use complete
     // paged reads (fetchAllRows); the plain lists (products, lots, purchase
@@ -1920,6 +1944,16 @@
         }
       }
 
+      // EXT8: search runs over what this page has loaded (open work, the
+      // newest orders, ...). Say so, and offer a lookup in ALL orders, so an
+      // older order is never reported as "no match".
+      if (q && q.length >= 2) {
+        html += `<div class="sidebarGroup" style="--groupColor:var(--teal);" id="orderLookupGroup">
+          <p class="hint" style="margin:4px 10px;">Searches the records loaded here (open work, newest orders).</p>
+          <button type="button" class="small secondary" id="orderLookupBtn" style="margin:2px 10px 6px;">Look up “${esc(q)}” in all orders</button>
+          <div id="orderLookupResults">${ORDER_LOOKUP.q === q ? ORDER_LOOKUP.html : ''}</div></div>`;
+      }
+
       SIDEBAR_GROUPS.forEach(group => {
         const pages = group.pages.filter(p => !q || p.label.toLowerCase().includes(q));
         if (!pages.length) return;
@@ -1964,6 +1998,9 @@
       });
       // A "Person" search result also drops that person's account number into
       // the Employee Activity search, so clicking it lands on their history.
+      const lookupBtn = document.getElementById('orderLookupBtn');
+      if (lookupBtn) lookupBtn.addEventListener('click', () => lookUpAllOrders(q));
+      bindOrderLookupLinks();
       wrap.querySelectorAll('.searchResultLink').forEach(link => {
         link.addEventListener('click', () => {
           const r = LAST_SEARCH_RESULTS[Number(link.getAttribute('data-result-index'))];
@@ -2948,6 +2985,45 @@
     // area it belongs to and its id. Everything it shows comes back through the
     // same protected function as the Employee Activity list, so this can never
     // reveal more than that list already would.
+    // The sidebar is redrawn when background loads finish; the lookup's
+    // answer is kept (for the same search text) so it does not vanish.
+    let ORDER_LOOKUP = { q: null, html: '' };
+    function bindOrderLookupLinks(){
+      document.querySelectorAll('#orderLookupResults .orderLookupLink').forEach(a => a.addEventListener('click', () =>
+        openInspectorFor('orders', a.getAttribute('data-id'), a.getAttribute('data-num'))));
+    }
+    // EXT8: order number or customer name, in every (not deleted) order,
+    // matched literally; newest 20 shown. Opens the order's history.
+    async function lookUpAllOrders(q){
+      const btn = document.getElementById('orderLookupBtn');
+      if (!btn || btn.disabled) return;
+      btn.disabled = true;
+      const show = html => {
+        ORDER_LOOKUP = { q, html };
+        const box = document.getElementById('orderLookupResults'); // may have been redrawn
+        if (box) { box.innerHTML = html; bindOrderLookupLinks(); }
+      };
+      show('<p class="hint" style="margin:4px 10px;">Looking…</p>');
+      try {
+        const pat = '%' + likeLiteral(q) + '%';
+        // Inside PostgREST's quoted value, backslash and double quote are escaped.
+        const quoted = '"' + pat.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
+        const { data, error } = await supabase.from('orders')
+          .select('id, order_number, customer_name, status, total, currency, placed_at')
+          .is('deleted_at', null).or('order_number.ilike.' + quoted + ',customer_name.ilike.' + quoted)
+          .order('placed_at', { ascending: false }).limit(20);
+        if (error) throw error;
+        if (!data || !data.length) { show('<p class="hint" style="margin:4px 10px;">No order number or customer name contains this.</p>'); return; }
+        show((data.length === 20 ? '<p class="hint" style="margin:4px 10px;">The newest 20 matches:</p>' : '') + data.map(o =>
+          `<a class="sidebarLink orderLookupLink" data-id="${esc(o.id)}" data-num="${esc(o.order_number || '')}"><span class="resultType">Order</span><br>${esc(o.order_number || o.id)} — ${esc(o.customer_name || '—')} · ${esc(fmtMoney(o.total, o.currency))} · ${esc(o.status || '—')} · ${esc(fmtDate(o.placed_at))}</a>`).join(''));
+      } catch (err) {
+        show('<p class="hint" style="margin:4px 10px;color:var(--warn);">Could not search orders: ' + esc(explainDbError((err && err.message) || String(err))) + '</p>');
+      } finally {
+        const b = document.getElementById('orderLookupBtn'); if (b) b.disabled = false;
+        btn.disabled = false;
+      }
+    }
+
     async function openInspectorFor(tableName, recordId, titleHint){
       if (!tableName || !recordId) return;
       INSPECTOR_TAB = 'history';
@@ -5376,12 +5452,12 @@
         logCustomerAccess(recent, 'Viewed in Owner Dashboard – Orders panel');
 
         // deleted / recycle bin
-        const { data: deleted, error: delErr } = await supabase
+        const { data: deleted, error: delErr, count: delCount } = await supabase
           .from('orders')
-          .select('id, order_number, customer_name, customer_email, total, currency, deleted_at')
+          .select('id, order_number, customer_name, customer_email, total, currency, deleted_at', { count: 'exact' })
           .not('deleted_at', 'is', null)
           .order('deleted_at', { ascending: false })
-          .limit(50);
+          .limit(listLimit('delOrders'));
         if (delErr) throw delErr;
 
         if (!deleted.length) {
@@ -5393,6 +5469,7 @@
               <span style="font-size:11px;color:var(--muted);">Deleted ${esc(fmtDate(o.deleted_at))}</span></div>
               <button class="small restoreOrderBtn">Restore</button>
             </div>`).join('');
+        appendMore('deletedOrdersWrap', 'delOrders', deleted.length, delCount, 'deleted orders', loadOrders);
           logCustomerAccess(deleted, 'Viewed in Owner Dashboard – Recycle bin');
           document.querySelectorAll('.restoreOrderBtn').forEach(btn => {
             btn.addEventListener('click', async () => {
@@ -5942,17 +6019,29 @@
       return '';
     }
     let ALL_INQUIRIES = [];
+    const INQ_ANSWERED_CAP = 100;
+    let INQ_ANSWERED_TOTAL = 0, INQ_ANSWERED_SHOWN = 0;
     let INQUIRY_ORDER_BY_ID = {};
 
     async function loadInquiries(){
       try {
-        const { data: inquiries, error } = await supabase
-          .from('customer_inquiries')
-          .select('id, order_id, customer_name, customer_email, channel, question_text, status, ai_draft_reply, ai_confidence, sensitive, sensitive_reasons, severity, created_at, drafted_at, answered_at')
-          .order('created_at', { ascending: false })
-          .limit(200);
-        if (error) throw error;
-        ALL_INQUIRIES = inquiries || [];
+        // EXT8: every question still waiting (not answered, or no status) is
+        // read in full, a page at a time; answered ones only the newest
+        // INQ_ANSWERED_CAP, with the database's exact count. Before, the
+        // newest 200 of ALL statuses were read, so once 200 newer answered
+        // questions existed an older unanswered one vanished and the
+        // "Needs review" / "New" figures undercounted.
+        const INQ_COLS = 'id, order_id, customer_name, customer_email, channel, question_text, status, ai_draft_reply, ai_confidence, sensitive, sensitive_reasons, severity, created_at, drafted_at, answered_at';
+        const [waiting, answeredRes] = await Promise.all([
+          fetchAllRows('customer_inquiries', INQ_COLS, q => q.or('status.is.null,status.neq.answered')),
+          supabase.from('customer_inquiries').select(INQ_COLS, { count: 'exact' })
+            .eq('status', 'answered').order('created_at', { ascending: false }).limit(INQ_ANSWERED_CAP),
+        ]);
+        if (answeredRes.error) throw answeredRes.error;
+        const answered = answeredRes.data || [];
+        INQ_ANSWERED_TOTAL = answeredRes.count != null ? answeredRes.count : answered.length;
+        INQ_ANSWERED_SHOWN = answered.length;
+        ALL_INQUIRIES = waiting.concat(answered);
 
         const orderIds = [...new Set(ALL_INQUIRIES.map(i => i.order_id).filter(Boolean))];
         INQUIRY_ORDER_BY_ID = {};
@@ -5971,6 +6060,7 @@
     function renderInquiries(){
       const counts = { new: 0, drafted: 0, needs_review: 0, answered: 0 };
       ALL_INQUIRIES.forEach(i => { if (counts[i.status] !== undefined) counts[i.status]++; });
+      counts.answered = INQ_ANSWERED_TOTAL; // exact, though only the newest are listed
       document.getElementById('inqStats').innerHTML = `
         <div class="stat"><div class="num">${counts.needs_review}</div><div class="lbl">Needs review</div></div>
         <div class="stat"><div class="num">${counts.drafted}</div><div class="lbl">Drafted</div></div>
@@ -5980,6 +6070,8 @@
 
       const filterVal = document.getElementById('inqFilter').value;
       const filtered = filterVal ? ALL_INQUIRIES.filter(i => i.status === filterVal) : ALL_INQUIRIES;
+      const answeredNote = (filterVal === '' || filterVal === 'answered') && INQ_ANSWERED_TOTAL > INQ_ANSWERED_SHOWN
+        ? `<p class="hint" style="margin:0 0 8px;">Every question still waiting is listed. Answered: the newest ${INQ_ANSWERED_SHOWN} of ${INQ_ANSWERED_TOTAL}.</p>` : '';
 
       // Worst-first ordering: highest severity floats to the top so the most
       // urgent questions are the first thing you see, with newest-first as
@@ -5998,7 +6090,7 @@
         return;
       }
 
-      document.getElementById('inquiriesWrap').innerHTML = list.map(i => {
+      document.getElementById('inquiriesWrap').innerHTML = answeredNote + list.map(i => {
         const order = i.order_id ? INQUIRY_ORDER_BY_ID[i.order_id] : null;
         return `
         <div class="approvalRow" style="align-items:flex-start;" data-id="${esc(i.id)}">
@@ -7121,12 +7213,12 @@
 
     async function loadDeletedFeatureRequests(){
       try {
-        const { data: deleted, error } = await supabase
+        const { data: deleted, error, count } = await supabase
           .from('feature_requests')
-          .select('id, title, deleted_at')
+          .select('id, title, deleted_at', { count: 'exact' })
           .not('deleted_at', 'is', null)
           .order('deleted_at', { ascending: false })
-          .limit(50);
+          .limit(listLimit('delFR'));
         if (error) throw error;
 
         if (!deleted || !deleted.length) {
@@ -7139,6 +7231,7 @@
             <span style="font-size:11px;color:var(--muted);">Deleted ${esc(fmtDate(r.deleted_at))}</span></div>
             <button class="small restoreFeatureRequestBtn">Restore</button>
           </div>`).join('');
+        appendMore('deletedFeatureRequestsWrap', 'delFR', deleted.length, count, 'deleted requests', loadDeletedFeatureRequests);
         document.querySelectorAll('.restoreFeatureRequestBtn').forEach(btn => {
           btn.addEventListener('click', async () => {
             const row = btn.closest('.deletedRow');
@@ -7198,12 +7291,17 @@
     // the actual file lives rather than storing the file itself.
     async function loadEvidenceLocker(){
       try {
-        const { data: incidents, error: incErr } = await supabase
-          .from('incidents')
-          .select('id, incident_number, title')
-          .order('created_at', { ascending: false })
-          .limit(200);
-        if (incErr) throw incErr;
+        // EXT8: every open incident (any age) plus the newest 200, so
+        // evidence can always be filed against an open incident.
+        const [openIncidents, recentRes] = await Promise.all([
+          fetchAllRows('incidents', 'id, incident_number, title, created_at', q => q.or('status.is.null,status.not.in.' + CLOSED_IN)),
+          supabase.from('incidents').select('id, incident_number, title, created_at').order('created_at', { ascending: false }).limit(200),
+        ]);
+        if (recentRes.error) throw recentRes.error;
+        const seenInc = new Set();
+        const incidents = openIncidents.concat(recentRes.data || [])
+          .filter(i => !seenInc.has(i.id) && seenInc.add(i.id))
+          .sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')));
 
         const incidentOptionsHtml = (incidents || []).map(i => `<option value="${esc(i.id)}">${esc(i.incident_number || 'Incident')} — ${esc(i.title)}</option>`).join('');
 
@@ -7222,12 +7320,17 @@
 
         let evidenceQuery = supabase
           .from('evidence_locker')
-          .select('id, incident_id, title, description, evidence_type, external_link, file_path, created_at')
+          .select('id, incident_id, title, description, evidence_type, external_link, file_path, created_at', { count: 'exact' })
           .order('created_at', { ascending: false })
-          .limit(200);
+          .limit(listLimit('evidence') * 4);
         if (currentFilter) evidenceQuery = evidenceQuery.eq('incident_id', currentFilter);
-        const { data: evidence, error } = await evidenceQuery;
+        const { data: evidence, error, count: evidenceCount } = await evidenceQuery;
         if (error) throw error;
+        // Names for evidence filed against incidents outside the list above.
+        const missingInc = [...new Set((evidence || []).map(e => e.incident_id).filter(id => id && !incidentById[id]))];
+        if (missingInc.length) {
+          (await fetchAllRowsIn('incidents', 'id, incident_number, title', 'id', missingInc)).forEach(i => { incidentById[i.id] = i; });
+        }
         if (!currentFilter) SEARCH_INDEX.evidence = evidence;
 
         if (!evidence || !evidence.length) {
@@ -7255,6 +7358,7 @@
             </div>
           </div>`;
         }).join('');
+        appendMore('evidenceWrap', 'evidence', evidence.length, evidenceCount, 'evidence entries', loadEvidenceLocker);
 
         document.querySelectorAll('.evidenceFileLink').forEach(link => {
           link.addEventListener('click', async (ev) => {
@@ -7769,12 +7873,12 @@
 
     async function loadReleasedLegalHolds(){
       try {
-        const { data: holds, error } = await supabase
+        const { data: holds, error, count } = await supabase
           .from('legal_holds')
-          .select('id, title, released_at')
+          .select('id, title, released_at', { count: 'exact' })
           .eq('status', 'released')
           .order('released_at', { ascending: false })
-          .limit(50);
+          .limit(listLimit('relHolds'));
         if (error) throw error;
 
         if (!holds || !holds.length) {
@@ -7786,6 +7890,7 @@
             <div class="info"><b>${esc(h.title)}</b><br>
             <span style="font-size:11px;color:var(--muted);">Released ${esc(fmtDate(h.released_at))}</span></div>
           </div>`).join('');
+        appendMore('releasedLegalHoldsWrap', 'relHolds', holds.length, count, 'released holds', loadReleasedLegalHolds);
       } catch (err) {
         showDashError('Could not load released holds: ' + (err && err.message ? err.message : err));
       }
@@ -8175,11 +8280,11 @@
 
     async function loadInventoryAdjustments(){
       try {
-        const { data: adjustments, error } = await supabase
+        const { data: adjustments, error, count } = await supabase
           .from('inventory_adjustments')
-          .select('id, product_id, bucket, change_amount, reason, adjusted_at, products(name, sku)')
+          .select('id, product_id, bucket, change_amount, reason, adjusted_at, products(name, sku)', { count: 'exact' })
           .order('adjusted_at', { ascending: false })
-          .limit(50);
+          .limit(listLimit('invAdj'));
         if (error) throw error;
 
         if (!adjustments.length) {
@@ -8198,6 +8303,7 @@
               </div>
             </div>`;
         }).join('');
+        appendMore('inventoryAdjustmentsWrap', 'invAdj', adjustments.length, count, 'adjustments', loadInventoryAdjustments);
       } catch (err) {
         showDashError('Could not load inventory adjustments: ' + (err && err.message ? err.message : err));
       }
@@ -8301,11 +8407,16 @@
             .select('id, order_number, customer_name')
             .is('deleted_at', null)
             .order('placed_at', { ascending: false })
-            .limit(200);
+            .limit(RET_ORDER_CAP);
           if (ordersErr) throw ordersErr;
           orderSelect.innerHTML = '<option value="">Order…</option>' +
             (recentOrders || []).map(o => `<option value="${esc(o.id)}">${esc(o.order_number || o.id)}${o.customer_name ? ' — ' + esc(o.customer_name) : ''}</option>`).join('');
           orderSelect.dataset.loaded = '1';
+          // EXT8: the menu holds the newest RET_ORDER_CAP orders only; a
+          // customer returning an older order must still be findable.
+          const hint = document.getElementById('retOrderHint');
+          if (hint) hint.textContent = (recentOrders || []).length >= RET_ORDER_CAP
+            ? 'The menu lists the newest ' + RET_ORDER_CAP + ' orders. For an older one, type its number and press Find order.' : '';
         }
 
         const openCount = read.openCount != null ? read.openCount : read.openShown;
@@ -8557,6 +8668,40 @@
     // specific line item (its full quantity), never a raw product pick,
     // since that's how the real returns table links back to what was
     // actually sold.
+    // EXT8: find any (not deleted) order by its number, matched literally.
+    async function findReturnOrder(){
+      const input = document.getElementById('retOrderFind');
+      const btn = document.getElementById('retOrderFindBtn');
+      const hint = document.getElementById('retOrderHint');
+      const select = document.getElementById('retOrder');
+      const text = input.value.trim();
+      if (!text || btn.disabled) return;
+      btn.disabled = true;
+      try {
+        const { data, error } = await supabase.from('orders').select('id, order_number, customer_name')
+          .is('deleted_at', null).ilike('order_number', '%' + likeLiteral(text) + '%')
+          .order('placed_at', { ascending: false }).limit(20);
+        if (error) throw error;
+        if (!data || !data.length) { hint.textContent = 'No order number contains "' + text + '".'; return; }
+        for (const o of data) {
+          if (![...select.options].some(op => op.value === o.id)) {
+            const op = document.createElement('option');
+            op.value = o.id;
+            op.textContent = (o.order_number || o.id) + (o.customer_name ? ' — ' + o.customer_name : '');
+            select.insertBefore(op, select.options[1] || null);
+          }
+        }
+        select.value = data[0].id;
+        select.dispatchEvent(new Event('change'));
+        hint.textContent = data.length === 1 ? 'Found order ' + (data[0].order_number || '') + '.'
+          : 'Found ' + data.length + (data.length === 20 ? ' or more' : '') + ' orders; the newest is selected. Check the menu.';
+      } catch (err) {
+        showDashError('Could not search orders: ' + explainDbError((err && err.message) || String(err)));
+      } finally { btn.disabled = false; }
+    }
+    document.getElementById('retOrderFindBtn').addEventListener('click', findReturnOrder);
+    document.getElementById('retOrderFind').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); findReturnOrder(); } });
+
     document.getElementById('retOrder').addEventListener('change', async (e) => {
       const orderItemSelect = document.getElementById('retOrderItem');
       const orderId = e.target.value;
@@ -8746,12 +8891,12 @@
 
     async function loadDeletedExpenses(){
       try {
-        const { data: deleted, error } = await supabase
+        const { data: deleted, error, count } = await supabase
           .from('expenses')
-          .select('id, category, amount, deleted_at, receipt_path')
+          .select('id, category, amount, deleted_at, receipt_path', { count: 'exact' })
           .not('deleted_at', 'is', null)
           .order('deleted_at', { ascending: false })
-          .limit(50);
+          .limit(listLimit('delExpenses'));
         if (error) throw error;
 
         if (!deleted || !deleted.length) {
@@ -8764,6 +8909,7 @@
             <span style="font-size:11px;color:var(--muted);">Deleted ${esc(fmtDate(r.deleted_at))}</span></div>
             <button class="small restoreExpenseBtn">Restore</button>
           </div>`).join('');
+        appendMore('deletedExpensesWrap', 'delExpenses', deleted.length, count, 'deleted expenses', loadDeletedExpenses);
         document.querySelectorAll('.restoreExpenseBtn').forEach(btn => {
           btn.addEventListener('click', async () => {
             const row = btn.closest('.deletedRow');

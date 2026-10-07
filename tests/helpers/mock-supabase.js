@@ -150,10 +150,15 @@ function splitTopLevel(inner) {
   if (cur) parts.push(cur);
   return parts;
 }
+// A quoted value inside or=(...) is unquoted the PostgREST way: \\ and \" .
+function unquoteOrValue(expr) {
+  const m = /^((?:not\.)?[a-z]+\.)"((?:[^"\\]|\\.)*)"$/.exec(expr);
+  return m ? m[1] + m[2].replace(/\\(.)/g, '$1') : expr;
+}
 function matchesOr(row, expr) {
   return splitTopLevel(expr.replace(/^\(/, '').replace(/\)$/, '')).some(part => {
     const dot = part.indexOf('.');
-    return matchesFilter(row, part.slice(0, dot), part.slice(dot + 1));
+    return matchesFilter(row, part.slice(0, dot), unquoteOrValue(part.slice(dot + 1)));
   });
 }
 
