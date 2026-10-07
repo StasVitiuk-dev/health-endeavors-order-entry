@@ -136,3 +136,28 @@ test('if the finished-tasks list cannot load, the open list still shows', async 
   await expect(page.locator('#recentDoneWrap')).toContainText('Could not load recently finished tasks');
   await expect(taskRow(page, 'task-open-1')).toHaveCount(1);
 });
+
+test.describe('Business Health: one failed read shows "?" on its own tile only', () => {
+  test('tasks read fails: Overdue tasks is "?", the other figures still show', async ({ page }) => {
+    await page.context().route(/\/rest\/v1\/tasks\?.*select=id%2Cstatus%2Cdue_at|\/rest\/v1\/tasks\?.*select=id,status,due_at/, route =>
+      route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ message: 'synthetic failure' }) }));
+    await login(page);
+    const tiles = page.locator('#businessHealthStats');
+    await expect(tiles.locator('.stat', { hasText: 'Overdue tasks' }).locator('.num')).toHaveText('?');
+    await expect(tiles.locator('.stat', { hasText: 'Overdue tasks' })).toContainText('could not be read');
+    await expect(tiles.locator('.stat', { hasText: 'Pending approvals' }).locator('.num')).not.toHaveText('?');
+    await expect(tiles.locator('.stat', { hasText: "Today's orders" }).locator('.num')).toHaveText(/^\d+$/);
+    await expect(tiles).not.toContainText('Could not load Business Health');
+    await expect(page.locator('#dashError')).toContainText('Some Business Health figures could not be read');
+  });
+
+  test('the work tiles open their page', async ({ page }) => {
+    await login(page);
+    const tile = page.locator('#businessHealthStats button.statLink[data-goto="tasksPanel"]');
+    await expect(tile).toHaveAccessibleName(/^Overdue tasks: \d+\. Open that page\.$/);
+    await page.waitForLoadState('networkidle');
+    await tile.click();
+    await expect(page.locator('section#tasksPanel')).toHaveClass(/activePage/);
+    await expect(page.locator('#businessHealthStats button.statLink')).toHaveCount(3);
+  });
+});

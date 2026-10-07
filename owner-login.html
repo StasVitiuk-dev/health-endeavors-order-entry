@@ -28,7 +28,7 @@
 <meta http-equiv="Expires" content="0">
 <title>Health Endeavors — Owner Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous" onerror="window.__sbLoadFailed=true"></script>
-<link rel="stylesheet" href="assets/owner-login.css?v=665ff419f0">
+<link rel="stylesheet" href="assets/owner-login.css?v=afbdccf423">
 <script src="assets/owner-login-helpers.js?v=290c8964e7" onerror="window.__heHelpersLoadFailed=true"></script>
 <script>
   // Applied before anything renders so there's no flash of the wrong theme.
@@ -3250,67 +3250,88 @@
         // Counted from every row, read a page at a time (fetchAllRows): a
         // month of AI decision logs or years of approvals easily passes the
         // 1,000 rows one request can return, and the tiles would undercount.
+        // EXT7: each read settles on its own. One failed read used to blank
+        // the whole panel ("Could not load Business Health"); now only its
+        // own tile shows "?" (unknown, not zero) and the rest still show.
+        const settle = p => Promise.resolve(p).then(v => {
+          if (v && v.error) throw v.error;
+          return { ok: true, v };
+        }).catch(e => ({ ok: false, e }));
         const [
-          ordersRows, approvalsRows, tasksRows, incidentsRows, monthAiRows, sessionsRes,
+          ordersR, approvalsR, tasksR, incidentsR, monthAiR, sessionsR,
         ] = await Promise.all([
-          fetchAllRows('orders', 'id, total, currency, status, deleted_at, placed_at', q => q.gte('placed_at', startIso)),
-          fetchAllRows('approval_requests', 'id, status', q => q),
-          fetchAllRows('tasks', 'id, status, due_at', q => q),
-          fetchAllRows('incidents', 'id, severity, status', q => q),
-          fetchAllRows('ai_decision_log', 'id, cost_usd', q => q.gte('created_at', startOfMonth.toISOString())),
-          supabase.rpc('list_my_sessions'),
+          settle(fetchAllRows('orders', 'id, total, currency, status, deleted_at, placed_at', q => q.gte('placed_at', startIso))),
+          settle(fetchAllRows('approval_requests', 'id, status', q => q)),
+          settle(fetchAllRows('tasks', 'id, status, due_at', q => q)),
+          settle(fetchAllRows('incidents', 'id, severity, status', q => q)),
+          settle(fetchAllRows('ai_decision_log', 'id, cost_usd', q => q.gte('created_at', startOfMonth.toISOString()))),
+          settle(supabase.rpc('list_my_sessions')),
           loadAgentControls(), // populates agentControlsByNum + AGENT_REGISTRY's paused count, also refreshes the paused-agents banner
         ]);
-        const ordersRes = { data: ordersRows }, approvalsRes = { data: approvalsRows }, tasksRes = { data: tasksRows };
-        const incidentsRes = { data: incidentsRows }, monthAiRes = { data: monthAiRows };
-        if (sessionsRes.error) throw sessionsRes.error;
+        const failed = [ordersR, approvalsR, tasksR, incidentsR, monthAiR, sessionsR].filter(r => !r.ok);
+        if (failed.length) {
+          showDashError('Some Business Health figures could not be read and show "?": ' + explainDbError(failed[0].e));
+        }
 
-        const todayOrders = (ordersRes.data || []).filter(o => !o.deleted_at);
-        // EXT6: the same revenue rule as Accounting (it excluded only the exact
-        // word "cancelled", so "Canceled" and refunded orders were counted).
-        const revenueOrders = todayOrders.filter(o => {
-          const c = classifyOrderStatus(o.status);
-          return !(c.isCancelled || (c.isRefund && !c.isPartialRefund));
-        });
-        const todayRevenue = revenueOrders.reduce((sum, o) => sum + Number(o.total || 0), 0);
-        const todayCurrency = (todayOrders[0] && todayOrders[0].currency) || 'USD';
+        let todayRevenue = null, todayCurrency = 'USD', todayOrderCount = null;
+        if (ordersR.ok) {
+          const todayOrders = (ordersR.v || []).filter(o => !o.deleted_at);
+          // EXT6: the same revenue rule as Accounting (it excluded only the exact
+          // word "cancelled", so "Canceled" and refunded orders were counted).
+          const revenueOrders = todayOrders.filter(o => {
+            const c = classifyOrderStatus(o.status);
+            return !(c.isCancelled || (c.isRefund && !c.isPartialRefund));
+          });
+          todayRevenue = revenueOrders.reduce((sum, o) => sum + Number(o.total || 0), 0);
+          todayCurrency = (todayOrders[0] && todayOrders[0].currency) || 'USD';
+          todayOrderCount = todayOrders.length;
+        }
 
-        const pendingApprovals = (approvalsRes.data || []).filter(r => !isClosedStatus(r.status)).length;
-        const overdueTasks = (tasksRes.data || []).filter(t => isOverdue(t.due_at, t.status)).length;
-        const criticalIncidents = (incidentsRes.data || []).filter(i =>
+        const pendingApprovals = approvalsR.ok ? (approvalsR.v || []).filter(r => !isClosedStatus(r.status)).length : null;
+        const overdueTasks = tasksR.ok ? (tasksR.v || []).filter(t => isOverdue(t.due_at, t.status)).length : null;
+        const criticalIncidents = incidentsR.ok ? (incidentsR.v || []).filter(i =>
           !isClosedStatus(i.status) && ['high', 'critical'].includes(String(i.severity || '').toLowerCase())
-        ).length;
+        ).length : null;
 
         const pausedAgents = AGENT_REGISTRY.filter(a =>
           agentControlsByNum[a.num] && agentControlsByNum[a.num].enabled === false
         ).length;
 
-        const monthAiSpend = (monthAiRes.data || []).reduce((sum, l) => sum + Number(l.cost_usd || 0), 0);
-        const activeSessions = (sessionsRes.data || []).length;
+        const monthAiSpend = monthAiR.ok ? (monthAiR.v || []).reduce((sum, l) => sum + Number(l.cost_usd || 0), 0) : null;
+        const activeSessions = sessionsR.ok ? ((sessionsR.v && sessionsR.v.data) || []).length : null;
 
         // Tiles get a color only when there's actually something to look at —
         // a healthy or neutral number stays plain, matching the severity
-        // colors already used for badges and incidents elsewhere.
+        // colors already used for badges and incidents elsewhere. Unknown
+        // ("?") is always amber: it needs a look, and it is not zero.
         const approvalsClass = pendingApprovals > 0 ? 'statWarn' : '';
         const tasksClass = overdueTasks > 0 ? 'statCritical' : '';
         const incidentsClass = criticalIncidents > 0 ? 'statCritical' : '';
         const agentsClass = pausedAgents > 0 ? 'statWarn' : '';
-        const aiClass = monthAiSpend >= AI_SPEND_CAP ? 'statCritical'
+        const aiClass = monthAiSpend === null ? '' : monthAiSpend >= AI_SPEND_CAP ? 'statCritical'
           : (monthAiSpend >= AI_SPEND_CAP * 0.8 ? 'statWarn' : '');
 
-        const tile = (num, lbl, cls) => `<div class="stat ${cls}"><div class="num">${num}</div><div class="lbl">${esc(lbl)}</div></div>`;
+        // goto: tiles about work open the page where it is done (EXT7).
+        const tile = (num, lbl, cls, goto) => {
+          if (num === null) return `<div class="stat statWarn statUnknown"><div class="num">?</div><div class="lbl">${esc(lbl)} (could not be read)</div></div>`;
+          const inner = `<div class="num">${num}</div><div class="lbl">${esc(lbl)}</div>`;
+          return goto
+            ? `<button type="button" class="stat statLink ${cls}" data-goto="${esc(goto)}" aria-label="${esc(lbl)}: ${esc(String(num).replace(/<[^>]*>/g, ''))}. Open that page.">${inner}</button>`
+            : `<div class="stat ${cls}">${inner}</div>`;
+        };
 
         wrap.innerHTML = [
-          tile(esc(fmtMoney(todayRevenue, todayCurrency)), "Today's revenue", ''),
-          tile(todayOrders.length, "Today's orders", ''),
-          tile(pendingApprovals, 'Pending approvals', approvalsClass),
-          tile(overdueTasks, 'Overdue tasks', tasksClass),
-          tile(criticalIncidents, 'Open high/critical incidents', incidentsClass),
+          tile(todayRevenue === null ? null : esc(fmtMoney(todayRevenue, todayCurrency)), "Today's revenue", ''),
+          tile(todayOrderCount, "Today's orders", ''),
+          tile(pendingApprovals, 'Pending approvals', approvalsClass, 'approvalsPanel'),
+          tile(overdueTasks, 'Overdue tasks', tasksClass, 'tasksPanel'),
+          tile(criticalIncidents, 'Open high/critical incidents', incidentsClass, 'incidentsPanel'),
           // Unknown is not zero: if the switches couldn't be read, say so.
           agentControlsState === 'ok' ? tile(pausedAgents, 'Paused agents', agentsClass) : tile('?', 'Paused agents (switches could not be read)', 'statWarn'),
-          tile(esc(fmtMoney(monthAiSpend, 'USD')) + ' / ' + esc(fmtMoney(AI_SPEND_CAP, 'USD')), 'AI spend this month', aiClass),
+          tile(monthAiSpend === null ? null : esc(fmtMoney(monthAiSpend, 'USD')) + ' / ' + esc(fmtMoney(AI_SPEND_CAP, 'USD')), 'AI spend this month', aiClass),
           tile(activeSessions, 'Active sessions', ''),
         ].join('');
+        wrap.querySelectorAll('.statLink').forEach(btn => btn.addEventListener('click', () => showPage(btn.getAttribute('data-goto'))));
       } catch (err) {
         wrap.innerHTML = '<p class="empty">Could not load Business Health.</p>';
         showDashError('Could not load Business Health: ' + (err && err.message ? err.message : err));

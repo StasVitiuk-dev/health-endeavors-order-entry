@@ -239,6 +239,9 @@ const MUTATIONS = [
   ['Reopen without the still-done condition', 'owner-login.html',
     "          .in('status', allowedFrom)\n          .select('id, status');", "          .select('id, status');",
     'owner-control-center tasks -g "cancelled elsewhere|already finished elsewhere"'],
+  ['one failed Business Health read blanks the whole panel again', 'owner-login.html',
+    "        }).catch(e => ({ ok: false, e }));", "        });",
+    'owner-control-center -g "Overdue tasks is"'],
 ];
 
 function sh(cmd, cwd) { return execSync(cmd, { cwd, stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }); }
