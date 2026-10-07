@@ -89,7 +89,10 @@ test.describe('shared computer: nothing from the last session stays after sign-o
       status: 'paid', currency: 'USD', total: '123.45', tax_total: '0', placed_at: new Date().toISOString(), deleted_at: null,
       source: 'manual', raw_data: null, created_at: new Date().toISOString() }];
   }
-  const pageHolds = (page, text) => page.evaluate(t => document.documentElement.innerHTML.includes(t), text);
+  // Sign-out reloads the page: while it is reloading, answer "still loading"
+  // (never false), so the polls below wait for the page that remains.
+  const pageHolds = (page, text) => page.evaluate(t => document.readyState === 'complete' ? document.documentElement.innerHTML.includes(t) : 'still loading', text)
+    .catch(e => { if (/Execution context was destroyed|navigation/i.test(String(e))) return 'still loading'; throw e; });
 
   test("after this tab's Sign out button, the page holds none of the previous data", async ({ page, backend }) => {
     seedPrivate(backend);
