@@ -1,8 +1,19 @@
 # Owner decisions: what is waiting on you (next)
 
-**Status:** CURRENT (2026-10-06, extension 5; extension 4 list kept below). This is the one place listing decisions only you (Stas) can make. Each has a recommendation; nothing here has been decided for you. Answer in the chat in any order, for example "D-ops-4: yes". Nothing changes in production until you approve the specific step.
+**Status:** CURRENT (2026-10-07, extension 6; EXT5 and EXT4 lists kept below). This is the one place listing decisions only you (Stas) can make. Each has a recommendation; nothing here has been decided for you. Answer in the chat in any order, for example "D-ops-4: yes". Nothing changes in production until you approve the specific step.
 
 **OWNER DECISION REQUIRED** on every row below.
+
+## New in extension 6 (2026-10-07)
+
+| Decision | Why it matters | Risk if nobody decides | Blocks launch? | Production action after deciding? |
+|---|---|---|---|---|
+| **X6-17: GitHub access for Claude sessions** | This session's GitHub connection has **admin** rights on the repository. CLAUDE.md expects the non-admin `stasvitiuk-reos`. The `protect-main` ruleset lets admins bypass review. Claude did not use these rights | An automated session *could* push to `main` or change settings without review. Only these written rules prevent it | Recommended before launch | Yes, owner only: connect Claude Code with the non-admin account (claude.ai → Settings → Connectors / GitHub), or remove the admin bypass from the ruleset |
+| **X6-14: orders saved without items** | They count as revenue. They are now listed on Accounting and on the manual-order page | Revenue slightly overstated until each is finished or deleted | No | No (dashboard choice: keep counting and listing, or exclude from revenue, with your accountant) |
+| Request keys (drafts/19, revised X5-11) | Now drafted and tested locally (23 checks) | Rare duplicates on a lost reply + retry | No | Yes (adds empty columns + indexes), then a dashboard PR |
+| PO line guard (drafts/17) | EXT6 revision also protects today's receive; install order is free | Rare order / stock mismatches | Recommended | Yes (one trigger) |
+| Query E (read-only) | Stock vs history and deliveries vs expense, as a "before" picture | You can't see reconciliation problems that may already exist | No | No (you run it, read-only) |
+| Merge path (DOC-02) | The newest extension branch contains every open PR (#5–#24) | Live bugs on `main` stay live (see the EXT6 report: revenue figures, sign-out data) | Yes, to fix the live bugs | Yes (merge = deploy) |
 
 ## At a glance (EXT5): risk of waiting, launch impact, production action
 

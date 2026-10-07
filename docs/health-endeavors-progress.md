@@ -58,3 +58,10 @@ The weights are a judgement call: the platform is the largest body of work, and 
   - a manual-order retry could adopt a same-number order
 
   Still needing approval: the PO line guard now covers add and quantity change too. Every remaining P0/P1 is blocked on Query C, an owner decision or a production change (`docs/ops/READINESS_GATE.md`).
+- **Oct 7, 2026 (extension 6, branch `claude/platform-deep-readiness-extension-6`):** platform rows only; website rows unchanged. **Percentages unchanged on purpose** (unmerged branch; drafts and documents are not counted as done). Found and fixed on the branch, several live on `main`:
+  - Daily Summary, home tile and Orders revenue counted cancelled / refunded orders or only 300 orders
+  - sign-out left the previous person's data in the page
+  - "-$0.00" for zero totals
+  - manual-order recovery could make a second order
+
+  New drafts, not installed: the PO line guard (revised: protects today's receive too, so it can be installed on its own), request keys and Query E. Extension 5 was re-verified clean on its own commit. See `docs/ops/DEEP_PLATFORM_EXTENSION_6_2026-10-07.md` and `docs/ops/PRODUCTION_READINESS_MATRIX.md`.

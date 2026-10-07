@@ -1,6 +1,6 @@
 # Health Endeavors — current state (cross-project summary)
 
-**Last updated:** October 6, 2026, extension 5 (platform §1 and §5; website sections unchanged from Sept 30). **Keep this short.** Details live in the linked documents; update this file whenever the verified state changes materially.
+**Last updated:** October 7, 2026, extension 6 (platform §1, §5, §8; website sections unchanged from Sept 30). **Keep this short.** Details live in the linked documents; update this file whenever the verified state changes materially.
 
 Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (from the owner's earlier chats, not re-checked) · **PROPOSED** · **OWNER DECISION REQUIRED** · **DEPRECATED**.
 
@@ -51,6 +51,13 @@ Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (fro
   - Final verification: the full suite has 1,990 tests (1,329 passed, 660 skipped by design). Its one failure was a test-timing mistake, fixed and repeated clean. 57/57 page mutations caught; database checks all pass. Details in §6 of the report.
   - See `docs/ops/DEEP_PLATFORM_EXTENSION_5_2026-10-06.md`, `PO_RECEIVE_RACE_REVIEW.md`, `READINESS_GATE.md`.
   - Query C/D not run; R1–R5 and the guard not installed; production untouched; Shopify Order Sync off.
+- **Extension 6 (Oct 7, not merged, not live):** `claude/platform-deep-readiness-extension-6`, branched from extension 5 at `ae8e9aa`. Extension 5 was re-verified clean on its own commit (1,990 tests, 0 failed; every skip accounted for). Fixed with tests that fail on the old code:
+  - **Revenue figures (live on `main`):** Daily Summary and the home tile counted cancelled / refunded orders; Orders "Total revenue" covered only the newest 300 orders; zero showed "-$0.00".
+  - **Shared computer (live on `main`):** signing out left the previous person's data in the page.
+  - Manual-order recovery could create a second order; Emergency mode, error wording and other smaller fixes.
+  - Drafts, not installed: PO line guard revised (now protects today's receive and needs no R1 first), request keys, Query E.
+  - **Security note:** this session's GitHub connection has admin rights (owner decision X6-17); they were not used.
+  - See `docs/ops/DEEP_PLATFORM_EXTENSION_6_2026-10-07.md`, `PRODUCTION_READINESS_MATRIX.md`, `CUMULATIVE_CHANGE_INVENTORY.md`.
 - **Store not launched:** 0 real orders, real products not yet added, the Shopify order sync and agents #2/#3/#7/#8 switched off on purpose until products exist (REPORTED). Agent #1's on/off state is **unverified**.
 
 ## 2. Public website (customer storefront)
@@ -107,7 +114,8 @@ No merging or deploying by Claude · no production Supabase, SQL, cron, RLS or p
 
 ## 8. Pending owner decisions (most important first)
 
-1. Review and merge order for PRs #5–#24.
+0. **(EXT6) GitHub access for Claude sessions:** connect with the non-admin account, or remove the admin bypass (X6-17). Platform decisions in full: `docs/ops/OWNER_DECISIONS_NEXT.md`.
+1. Review and merge order for PRs #5–#24 (the newest extension branch contains them all).
 2. R1–R4: run a read-only schema query, then approve the SQL drafts.
 3. Approve the website architecture and a separate website repository.
 4. Visual direction, approved product copy/claims, and real photography for the website.

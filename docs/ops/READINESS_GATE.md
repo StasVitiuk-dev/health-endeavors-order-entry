@@ -1,6 +1,6 @@
 # Dashboard production-readiness gate
 
-**Status:** CURRENT (2026-10-06, extension 5). Branch work is **not live** until merged. A draft is never counted as done. Full item list: `MASTER_PLATFORM_BACKLOG_2026-10-06.md`.
+**Status:** CURRENT (2026-10-07, extension 6; the area-by-area view is now `PRODUCTION_READINESS_MATRIX.md`). Branch work is **not live** until merged. A draft is never counted as done. Full item list: `MASTER_PLATFORM_BACKLOG_2026-10-06.md`.
 
 | Stage | Meaning | Items |
 |---|---|---|
@@ -21,6 +21,13 @@
 | Backup health unknown (X3-25) | Owner read-only check |
 | Refund accounting rule (N4) | Owner / accountant |
 | Live bugs on `main` fixed only on the branch:<ul><li>manual-order dates and duplicates</li><li>same-second merges</li><li>stale-tab receive</li><li>wrong-month delivery expense</li><li>Emergency switch-off gap</li><li>double-counted totals mid-read</li></ul> | Owner merge |
+
+## Extension 6 changes to this gate
+
+- Stage 2 (merge) now means `claude/platform-deep-readiness-extension-6`. It contains extension 5 and every open PR.
+- New live-on-`main` bugs fixed on the branch: revenue rules (X6-11/12), "-$0.00" (X6-02), sign-out data left in the page (X6-05).
+- Stage 3 adds X6-17 (GitHub admin credential) and X6-14 (orders without items in revenue).
+- Stage 5: the PO line guard no longer needs R1 first; request keys are now drafted (drafts/19).
 
 ## Remaining safe branch-only work
 

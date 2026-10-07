@@ -339,6 +339,8 @@ These are counts, not hours. Time depends on review and SQL-run turnaround.
 - Query C v3 with an owner guide (not run)
 - Readiness checklist, auditability, product lifecycle, rollback/backup reviews
 - See `docs/ops/OVERNIGHT_PLATFORM_EXTENSION_3_2026-10-06.md` |
+| Oct 6 (extensions 4 and 5) | [REPO] Branches `claude/platform-deep-readiness-extension-4` and `-5`, not merged, nothing deployed. Deep-readiness passes; details and evidence in `docs/ops/DEEP_PLATFORM_EXTENSION_4_2026-10-06.md` and `docs/ops/DEEP_PLATFORM_EXTENSION_5_2026-10-06.md` (row added in EXT6; the reports are authoritative) |
+| Oct 7 (extension 6) | [REPO] Branch `claude/platform-deep-readiness-extension-6` (from `ae8e9aa`), not merged, nothing deployed. EXT5 re-verified clean on its own commit. Fixed on the branch (several live on `main`): revenue counted cancelled / refunded orders on Daily Summary, the home tile and Orders; Orders revenue covered 300 orders; sign-out left the previous data in the page; "-$0.00"; manual-order recovery could duplicate. Drafts, not installed: PO line guard revision, request keys, Query E. See `docs/ops/DEEP_PLATFORM_EXTENSION_6_2026-10-07.md` |
 
 ---
 
