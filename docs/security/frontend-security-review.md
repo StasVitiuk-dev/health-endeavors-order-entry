@@ -69,3 +69,8 @@ No secrets were found. The Supabase key in the pages is the public "publishable"
 - Are `search.html`, `dashboard.html`, `index.html` and `manual-order-entry.html` still used? Retiring unused pages removes S1 entirely.
 - Which extra actions should ask for your password (S6)?
 - OK to prepare the read-only RLS query (S5/S11)?
+
+
+## Update 2026-10-07 (extension 8): S7 done on the branch
+
+S7 (no Content-Security-Policy) is **DONE on the branch** `claude/platform-deep-readiness-extension-8-2026-10-07`: every page now carries a policy allowing only this site, the pinned CDN (`cdn.jsdelivr.net`, SRI-pinned), the Supabase project and, where used, Google Fonts; `object-src 'none'`, `frame-src 'none'`, `base-uri 'self'`, `form-action 'self'`. `'unsafe-inline'` is still needed for the inline scripts and styles (removing it needs the scripts moved to files: see `MODULARIZATION_ROADMAP.md`). Tests: `csp.spec.js` (static rules + no violation while the pages work). The earlier status line for S7 above is superseded. Not live until merged.
