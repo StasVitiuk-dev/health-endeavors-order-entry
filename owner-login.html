@@ -28,7 +28,7 @@
 <meta http-equiv="Expires" content="0">
 <title>Health Endeavors — Owner Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous" onerror="window.__sbLoadFailed=true"></script>
-<link rel="stylesheet" href="assets/owner-login.css?v=afbdccf423">
+<link rel="stylesheet" href="assets/owner-login.css?v=f8e6a13fa4">
 <script src="assets/owner-login-helpers.js?v=290c8964e7" onerror="window.__heHelpersLoadFailed=true"></script>
 <script>
   // Applied before anything renders so there's no flash of the wrong theme.
@@ -2094,38 +2094,17 @@
 
     // ---- Numbers settle instead of snapping ----
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    // EXT7: figures appear with a short fade (CSS class numIn) and their text
+    // is never changed. The old count-up rewrote the number frame by frame;
+    // when frames and timers stopped (heavy load, background tab) a money
+    // figure stayed part-way, e.g. $99,745.45 instead of $100,000.00, even
+    // with a timer fallback. A fade that stops part-way still shows the exact
+    // amount.
     function animateNumber(el){
       if (reduceMotion.matches) return;
-      const raw = (el.textContent || '').trim();
-      const m = raw.match(/^([^0-9-]*)(-?[\d,]+(?:\.\d+)?)(.*)$/);
-      if (!m) return;
-      const target = parseFloat(m[2].replace(/,/g, ''));
-      if (!isFinite(target) || Math.abs(target) < 1) return;
-      const decimals = (m[2].split('.')[1] || '').length;
-      const start = performance.now(), dur = 520;
-      el.dataset.animating = '1';
-      // Always US number format, like the money figures themselves. The end
-      // shows exactly the target value (with thousands commas), whatever
-      // language the browser is set to: it used to follow the browser's
-      // language ("$25.000,00" on a German computer) (EXT6).
-      const fmt = n => m[1] + n.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals }) + m[3];
-      function finish(){
-        if (!el.dataset.animating) return;
-        el.textContent = fmt(target);
-        delete el.dataset.animating;
-      }
-      function step(now){
-        if (!el.dataset.animating) return;
-        const t = Math.min(1, (now - start) / dur);
-        if (t >= 1) { finish(); return; }
-        el.textContent = fmt(target * (1 - Math.pow(1 - t, 3)));
-        requestAnimationFrame(step);
-      }
-      requestAnimationFrame(step);
-      // EXT7: animation frames can stop (heavy load, a background tab, power
-      // saving), which left a money figure frozen part-way, e.g. $99,949.17
-      // instead of $100,000.00. The exact figure is written by this timer too.
-      setTimeout(finish, dur + 80);
+      el.classList.remove('numIn');
+      void el.offsetWidth; // restart the fade when a figure is redrawn
+      el.classList.add('numIn');
     }
     new MutationObserver(muts => {
       muts.forEach(mu => {

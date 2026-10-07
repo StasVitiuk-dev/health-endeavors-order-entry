@@ -650,6 +650,9 @@
   @media (prefers-reduced-motion: no-preference){
     section.panel.activePage{ animation:panelIn .26s cubic-bezier(.22,.61,.36,1) both; }
     @keyframes panelIn{ from{ opacity:0; transform:translateY(6px); } to{ opacity:1; transform:none; } }
+    /* EXT7: figures fade in; the number itself is never animated (it must always be exact). */
+    .stat .num.numIn{ animation:numIn .45s cubic-bezier(.2,.7,.2,1) both; }
+    @keyframes numIn{ from{ opacity:0; transform:translateY(4px); } to{ opacity:1; transform:none; } }
   }
   :focus-visible{ outline:2px solid var(--accent); outline-offset:2px; border-radius:6px; }
   button:focus-visible, a:focus-visible{ outline-offset:3px; }

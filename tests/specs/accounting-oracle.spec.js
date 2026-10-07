@@ -187,6 +187,9 @@ for (const [panel, button, where] of [['accountingPanel', '#accountingPanel butt
     }));
     backend.tables.expenses = [];
     await login(page);
+    // The page has one banner and the last message wins: let the background
+    // loads (Accounting warns about the same orders) finish first (EXT7).
+    await page.waitForLoadState('networkidle');
     await gotoPage(page, panel);
     if (button) await page.click(button);
     await expect(page.locator('#dashError')).toContainText(where + ': these orders are in more than one currency (CAD, USD)');
@@ -299,4 +302,25 @@ test('figures settle on the exact amount even if animation frames stop part-way'
   await openAllTime(page);
   await expect.poll(() => readFigures(page), { timeout: 15000 })
     .toEqual({ revenue: '$100,000.00', spent: '$9,999.99', net: '$90,000.01', excluded: '$0.00', review: 0 });
+});
+
+// EXT7: a figure that is moved or copied in the page while it counts up must
+// end on the exact value, not freeze on the part-way text it had at that moment.
+test('a figure copied while counting up still ends on the exact value', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'run once');
+  await login(page);
+  const final = await page.evaluate(async () => {
+    const box = document.createElement('div'); box.className = 'stat';
+    box.innerHTML = '<div class="num">$100,000.00</div>';
+    const holder = document.createElement('div');
+    document.body.appendChild(holder);
+    holder.appendChild(box);                                 // starts counting up
+    await new Promise(r => setTimeout(r, 200));              // part-way
+    const other = document.createElement('div'); document.body.appendChild(other);
+    other.innerHTML = holder.innerHTML;                      // copied part-way (re-render from HTML)
+    holder.remove();
+    await new Promise(r => setTimeout(r, 1500));
+    return other.querySelector('.num').textContent;
+  });
+  expect(final).toBe('$100,000.00');
 });
