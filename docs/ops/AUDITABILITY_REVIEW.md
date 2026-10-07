@@ -41,3 +41,20 @@ Audit-trigger coverage of these is **unknown** until Query C runs. Version 3 add
 - Failed or refused actions leave no business change, so there is nothing to audit. The page shows them as plain errors (fault-injection matrix).
 - Deletes in the core tables are captured by the audit trigger with the full old row (product delete, document delete, expense soft delete).
 - Stock changes have a second, purpose-built trail: `inventory_adjustments` (who, bucket, amount, reason, lot), checked by the history invariant in every stress run.
+
+## Extension 8: gaps ranked by risk (2026-10-07)
+
+**What is recorded today (Query A shape):** an audit trigger on 18 core tables (products, inventory, suppliers, purchase orders and lines, lots, stock history, expenses, recalls, orders and lines, returns, approval requests, evidence, documents, tasks, profiles, audit_log) writes who / when / old row / new row. The stock history table adds a written reason per change. EXT8 adds no new write without a trail: Reopen, product and PO edits, and the supplier question all go to tables that are already audited.
+
+| Risk | Area | Gap | Why it matters | Fix (production change = owner approval) |
+|---|---|---|---|---|
+| **High** | Feature flags, agent switches, Emergency / system mode | Not in the export; who flipped a switch is UNKNOWN (the page writes `updated_by` where the column exists) | Security and AI-control changes must be explainable | Extend the audit trigger (roadmap L2) after Query D confirms the tables |
+| **High** | Business rules (refund limits etc.) | Same | Money rules | Same |
+| **High** | Legal holds, adverse-event reports | Release / "reported to FDA" record a date, not who | Compliance evidence | Same; plus `released_by` / `reported_by` columns |
+| **Medium** | Customer inquiries (reply drafts, severity) | Not audited; drafts overwrite each other only with a short window left (EXT5) | Customer-facing text, personal data | Audit trigger; later a draft version history |
+| **Medium** | Quality checks, incidents | Resolution: who resolved is not recorded | Quality trail | Audit trigger + `resolved_by` |
+| **Medium** | Reasons | Reopen, soft-delete and restore carry no reason | "Why was this undone?" | Optional reason field when the owner wants it (avoid noise: optional, not required) |
+| **Low** | Service status, SOPs, feature requests | Not audited | Low impact | Audit trigger when convenient |
+| **Low** | Read access to customer data | Logged by `log_customer_data_access` for Orders views | Already covered for the main page | Extend to Inquiries when the agent goes live |
+
+Not recommended: logging every read or every page view (noise without decision value).
