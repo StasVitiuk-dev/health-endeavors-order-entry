@@ -51,3 +51,7 @@ Both harnesses exit with an error if any mutation is missed **or cannot be appli
 node tests/mutation/run-page-mutations.js            # about 20 minutes
 tests/mutation/run-sql-mutations.sh -h <socket> -p <port> -U postgres   # local PostgreSQL only
 ```
+
+## Extension 7 (2026-10-07)
+
+Page mutations: **82 / 82 caught** on the frozen EXT7 code (`1bbaa3f`). New: open-items caps (3), Reopen from cancelled, Reopen without the still-done condition, Business Health blanking, unsaved typing (3), unknown service status, SOP re-read, supplier same-name, user switch (3), figure effect changes the number, thousands commas. Two EXT3/EXT6 sign-out mutants retargeted to the rewritten handlers. SQL mutations: 13 / 13 caught.

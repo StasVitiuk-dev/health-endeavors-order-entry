@@ -67,7 +67,7 @@ Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (fro
   - New for the owner: Recently finished tasks with a guarded Reopen; "?" per Business Health tile; work tiles open their page; "not saved yet" question.
   - Evidence: write-path inventory with retry classes (0 unresolved); randomized R1–R5 stress (no guard 75/300 rounds broken, guard 0/300); role matrix; agent/automation proposals (nothing installed); screenshots in `design-review/dashboard-extension-7-2026-10-07/`.
   - **Security:** the GitHub credential is still admin and can bypass `protect-main` (X6-17, `docs/security/GITHUB_CREDENTIAL_ADMIN_FINDING_2026-10-07.md`). Not used.
-  - Final verification: see `docs/ops/DEEP_PLATFORM_EXTENSION_7_2026-10-07.md` §Final evidence.
+  - Final verification on the final code: 2,216 tests, 1,465 passed, 0 failed (0 unexplained skips); high-risk ×3 0 failed; 82/82 page and 13/13 SQL mutations caught; database tests and stress (5 × 98) clean. Details: `docs/ops/DEEP_PLATFORM_EXTENSION_7_2026-10-07.md` §9.
 - **Store not launched:** 0 real orders, real products not yet added, the Shopify order sync and agents #2/#3/#7/#8 switched off on purpose until products exist (REPORTED). Agent #1's on/off state is **unverified**.
 
 ## 2. Public website (customer storefront)

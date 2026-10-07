@@ -103,4 +103,33 @@ Production blockers (none can be closed on the branch): R1–R5 install, PO line
 
 ## 9. Final evidence
 
-(Filled in after the final verification on the frozen code; see below.)
+Code frozen at **`1bbaa3f`** (later commits change only tests' tooling and docs; no page, helper or CSS file changed after it). Everything below ran on that code, on synthetic data, locally. Nothing touched production.
+
+| Check | Result |
+|---|---|
+| Full suite (desktop 1100 px + iPhone 390 px) | **2,216 tests: 1,465 passed, 0 failed, 0 flaky**, 751 skipped by design, 8 expected failures |
+| Skip classification (workstream P) | EXPECTED DEVICE/SIZE: 751 (each ran at the other size; `skip-report.js`: "NOT run at any size: 0") · KNOWN BLOCKED BUG: 8 (`test.fail`: the 3 stock workflows and PO receive are not all-or-nothing until R1–R5 are installed) · ENVIRONMENT LIMITATION: 0 · **UNEXPLAINED: 0** |
+| High-risk specs ×3 (18 files: oracles, report totals, owner control center, unsaved changes, auth chaos, stale-tab gaps, tasks, sessions, manual orders, fault injection ×2, state transitions ×2, PO receive, concurrent operators, scale, write-path inventory) | **1,680 passed, 0 failed** (1,368 skipped by design) |
+| Page mutations | **82 / 82 caught** (66 from EXT6 + 16 new; two older mutants retargeted to the rewritten sign-out code) |
+| SQL mutations | **13 / 13 caught** |
+| Local database tests | install package 61/61 · PO forced orderings with R1: 0 guarded failures · browser-path races: 0 silent, 0 reported (guarded) · request keys 23/23 · reconciliation 24/24 |
+| Stress | **5 runs × 98 checks, 0 failed, 0 deadlocks** |
+| Randomized R1–R5 interleavings | seed 2026 × 300 rounds: no guard 75 broken; EXT5 guard 0; current guard 0; 0 deadlocks |
+| R1–R5 fingerprint (local install) | `3df2bf7a07b451f12f9359ceca1c85df` (unchanged) |
+| Secret scan of the EXT7 diff | no keys, tokens or real e-mail addresses (only `@example.test`); no model identifiers in files |
+| Screenshots | 19 in `design-review/dashboard-extension-7-2026-10-07/` (1100 / 390 / 320 px, synthetic, `MANIFEST.md`) |
+| `main` | `d3db7bc`, unchanged; nothing merged or deployed |
+
+### What the final verification itself found (fixed before freezing)
+
+1. **The count-up animation could still freeze a money figure** ($99,745.45 for $100,000.00) despite the first EXT7 fix: the trace showed frames *and* the fallback timer stopped. Replaced by a fade that never changes the number (X7-03).
+2. Removing the count-up also removed thousands commas it had added as a side effect (6 scale tests). Kept as a one-time format step; it now also applies with Reduce Motion.
+3. A two-currency warning test raced the single error banner (both messages true); the test now waits for background loads.
+4. The new random stress script left rows behind that invalidated other local scripts' results until it was made to clean up after itself. Results above are from clean re-runs.
+5. Two older page mutants no longer applied after the sign-out rewrite; retargeted and caught.
+
+### Lessons recorded for the next session
+- Never remove `postmaster.pid` while the local server runs (it shuts the server down).
+- Never `pkill -f` with a pattern that also matches your own command line.
+- A new local SQL script must clean up after itself; other scripts' resets do not know its rows.
+- Regenerate the write-path matrix/JSON after any line move in the pages.
