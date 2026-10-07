@@ -474,3 +474,16 @@ test('signing out clears the form: no customer name or e-mail is left in the pag
     || [...document.querySelectorAll('input')].some(i => i.value === 'SYNTHETIC Walk-in' || i.value === 'walk-in.private@example.test'))).toBe(false);
   expect(await page.evaluate(() => sessionStorage.getItem('he.manualOrder.pending'))).toBe(null);
 });
+
+test('a sign-out in another tab clears this tab too: no customer details left in the page', async ({ page, backend, context }) => {
+  setup(backend);
+  await signIn(page);
+  await fillOrder(page);
+  await page.fill('#customerEmail', 'walk-in.private@example.test');
+  const other = await context.newPage();
+  await other.goto('/manual-order-entry.html');
+  await expect(other.locator('#appView')).toBeVisible();
+  await other.click('#signOutBtn');
+  await expect(page.locator('#loginView')).toBeVisible({ timeout: 15000 });
+  await expect.poll(() => page.evaluate(() => [...document.querySelectorAll('input')].some(i => i.value === 'SYNTHETIC Walk-in' || i.value === 'walk-in.private@example.test')).catch(() => true)).toBe(false);
+});

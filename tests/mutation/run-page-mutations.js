@@ -28,8 +28,14 @@ const MUTATIONS = [
     "if (pending.resume && mine.length === 0) {", "if (false) {",
     'manual-order-entry -g "finishing also refuses"'],
   ['manual order sign-out leaves the typed customer in the page', 'manual-order-entry.html',
-    "try { await sb.auth.signOut(); } finally { window.location.reload(); }", "await sb.auth.signOut(); showLogin();",
+    // EXT6 runner fix: the sign-out event listener reloads the page too, so a
+    // mutant that still signs out is wiped by the listener (equivalent).
+    // This one breaks the button's wipe without triggering the listener.
+    "try { await sb.auth.signOut(); } finally { window.location.reload(); }", "showLogin();",
     'manual-order-entry -g "signing out clears"'],
+  ['manual order: a sign-out in another tab leaves the typed customer in the page', 'manual-order-entry.html',
+    "if (event === 'SIGNED_OUT' && app && !app.hidden) window.location.reload();", "if (event === 'SIGNED_OUT' && app && !app.hidden) showLogin();",
+    'manual-order-entry -g "another tab clears"'],
   ['dashboard sign-out only hides the page (previous data left behind)', 'owner-login.html',
     "try { if (note) sessionStorage.setItem(SIGNED_OUT_NOTE, note); } catch (_) { /* private window: no note */ }\n      window.location.reload();",
     "try { if (note) sessionStorage.setItem(SIGNED_OUT_NOTE, note); } catch (_) { /* private window: no note */ }\n      if (note) showLoginError(note);",
@@ -85,7 +91,7 @@ const MUTATIONS = [
     'if (html !== -1) {', 'if (false) {',
     'fault-injection-2 -g "gateway502"'],
   ['manual order retry matches on the total only (changed lines silently dropped)', 'manual-order-entry.html',
-    'if (pending && pending.fingerprint === fingerprint) {', 'if (pending) {',
+    'if (pending && (pending.resume || pending.fingerprint === fingerprint)) {', 'if (pending) {',
     'manual-order-entry -g "same total"'],
   ['manual order reuses an order number another tab already has', 'manual-order-entry.html',
     'if (!taken || !taken.length) orderNumber = candidate;', 'orderNumber = candidate;',
@@ -229,7 +235,9 @@ function fixHelpersHash(dir) {
 }
 
 const results = [];
-for (const [name, file, find, repl, specs] of MUTATIONS) {
+// MUT_ONLY=<regex> runs only the mutants whose name matches (spot checks).
+const ONLY = process.env.MUT_ONLY ? new RegExp(process.env.MUT_ONLY, 'i') : null;
+for (const [name, file, find, repl, specs] of MUTATIONS.filter(m => !ONLY || ONLY.test(m[0]))) {
   try { sh(`git worktree remove --force "${SCRATCH}"`, ROOT); } catch (e) { /* not there */ }
   fs.rmSync(SCRATCH, { recursive: true, force: true });
   sh(`git worktree add --detach "${SCRATCH}" HEAD`, ROOT);
