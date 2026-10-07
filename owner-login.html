@@ -1392,21 +1392,29 @@
     // answers those with empty lists, which would look like "no data", and
     // with refusals that look like someone else's change (EXT3, W14).
     let signingOutHere = false;
-    supabase.auth.onAuthStateChange((event) => {
-      if (event !== 'SIGNED_OUT' || signingOutHere || dash.style.display !== 'flex') return;
+    // EXT6: leaving the dashboard reloads the page instead of only hiding it,
+    // so no customer name, inquiry, figure, search entry or export from this
+    // session stays in the page or in memory for the next person on a shared
+    // computer. The reason note survives the reload (this tab only).
+    const SIGNED_OUT_NOTE = 'he.signedOutNote';
+    function wipeAfterSignOut(note){
       dash.style.display = 'none';
       loginScreen.style.display = 'flex';
-      loginForm.reset();
-      showLoginError('You were signed out (in another tab, or your sign-in expired). Anything not already saved on that page was not sent. Sign in again to continue.');
+      try { if (note) sessionStorage.setItem(SIGNED_OUT_NOTE, note); } catch (_) { /* private window: no note */ }
+      window.location.reload();
+    }
+    try {
+      const note = sessionStorage.getItem(SIGNED_OUT_NOTE);
+      if (note) { sessionStorage.removeItem(SIGNED_OUT_NOTE); showLoginError(note); }
+    } catch (_) { /* storage blocked */ }
+    supabase.auth.onAuthStateChange((event) => {
+      if (event !== 'SIGNED_OUT' || signingOutHere || dash.style.display !== 'flex') return;
+      wipeAfterSignOut('You were signed out (in another tab, or your sign-in expired). Anything not already saved on that page was not sent. Sign in again to continue.');
     });
 
     document.getElementById('signout').addEventListener('click', async () => {
       signingOutHere = true;
-      await supabase.auth.signOut();
-      signingOutHere = false;
-      dash.style.display = 'none';
-      loginScreen.style.display = 'flex';
-      loginForm.reset();
+      try { await supabase.auth.signOut(); } finally { wipeAfterSignOut(null); }
     });
 
     document.getElementById('refreshBtn').addEventListener('click', loadDashboard);

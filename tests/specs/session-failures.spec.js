@@ -77,3 +77,57 @@ test('opening the page directly with no session reads no business data', async (
   await page.waitForLoadState('networkidle');
   expect(tableReads(backend)).toEqual([]);
 });
+
+// EXT6 (workstream 10): a shared computer. Signing out used to only HIDE the
+// dashboard: every customer name, inquiry and figure already loaded stayed
+// in the page (and in memory: search, export), visible to the next person
+// who opens the browser's tools or signs in on the same tab.
+test.describe('shared computer: nothing from the last session stays after sign-out', () => {
+  const PRIVATE = 'SYNTHETIC Private Customer Q';
+  function seedPrivate(backend) {
+    backend.tables.orders = [{ id: 'ord-priv', order_number: 'PRIV-1', customer_name: PRIVATE, customer_email: 'private.q@example.test',
+      status: 'paid', currency: 'USD', total: '123.45', tax_total: '0', placed_at: new Date().toISOString(), deleted_at: null,
+      source: 'manual', raw_data: null, created_at: new Date().toISOString() }];
+  }
+  const pageHolds = (page, text) => page.evaluate(t => document.documentElement.innerHTML.includes(t), text);
+
+  test("after this tab's Sign out button, the page holds none of the previous data", async ({ page, backend }) => {
+    seedPrivate(backend);
+    await login(page);
+    await expect.poll(() => pageHolds(page, PRIVATE)).toBe(true); // loaded somewhere on the dashboard
+    await page.click('#signout');
+    await expect(page.locator('#loginScreen')).toBeVisible();
+    await expect.poll(() => pageHolds(page, PRIVATE)).toBe(false);
+    expect(await pageHolds(page, 'private.q@example.test')).toBe(false);
+    expect(await pageHolds(page, '$123.45')).toBe(false);
+  });
+
+  test('after a sign-out in another tab, this tab holds none of the previous data, and says why', async ({ page, backend }) => {
+    seedPrivate(backend);
+    await login(page);
+    await expect.poll(() => pageHolds(page, PRIVATE)).toBe(true);
+    const other = await page.context().newPage();
+    await other.goto(page.url());
+    await expect(other.locator('#dash')).toBeVisible();
+    await other.click('#signout');
+    await expect(page.locator('#loginScreen')).toBeVisible();
+    await expect(page.locator('#loginMsg')).toContainText('You were signed out');
+    await expect.poll(() => pageHolds(page, PRIVATE)).toBe(false);
+  });
+
+  test('the next person signing in on the same tab (an employee) never sees the previous data', async ({ page, backend }) => {
+    seedPrivate(backend);
+    await login(page);
+    await expect.poll(() => pageHolds(page, PRIVATE)).toBe(true);
+    await page.click('#signout');
+    await expect(page.locator('#loginScreen')).toBeVisible();
+    backend.tables.orders = []; // the employee's account cannot read these orders
+    backend.tables.profiles[0].role = 'employee';
+    await login(page);
+    await page.waitForLoadState('networkidle');
+    expect(await pageHolds(page, PRIVATE)).toBe(false);
+    await page.keyboard.press('ControlOrMeta+k');
+    await page.keyboard.type('Private Customer');
+    await expect(page.locator('#paletteResults')).not.toContainText(PRIVATE);
+  });
+});
