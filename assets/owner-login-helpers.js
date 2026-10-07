@@ -409,7 +409,10 @@
     function acctRangeStart(range, now){
       now = now || new Date();
       if (range === 'today') return new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      if (range === 'week') { const d = new Date(now); d.setDate(d.getDate() - 7); return d; }
+      // EXT8: local midnight 7 days ago, for orders AND expenses. It used to
+      // be "now minus 7 x 24 h" for orders while expenses took that whole
+      // day, so net profit compared two different windows.
+      if (range === 'week') return new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
       if (range === 'month') return new Date(now.getFullYear(), now.getMonth(), 1);
       return null; // all time
     }
