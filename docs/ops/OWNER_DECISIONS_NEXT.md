@@ -12,7 +12,7 @@
 | D-ops-5 partial returns | Returning 1 of 3 restocks 3 today | Stock overstated after partial returns | Before returns volume | Part of R3 install |
 | D-ops-4 one recall per lot | Two recalls could quarantine a lot twice | Over-quarantine (stock wrongly unavailable) | No | Small database rule (INV-16) |
 | D-ops-1/2/6 stock-function rollout | Order and scope of R1–R5 | Stock races stay in the browser path | **Yes** (R1–R4 are launch blockers) | Yes (install) |
-| PO line guard (drafts/17) | Line add / remove / quantity change during a receive breaks the order-vs-stock match, even with R1 | Rare mismatches after concurrent edits; the dashboard now detects and reports them | Recommended with R1 | Yes (one trigger) |
+| PO line guard (drafts/17, revised EXT6) | Line add / remove / quantity change during a receive breaks the order-vs-stock match, with or without R1 | Rare mismatches after concurrent edits; the dashboard detects and reports them but cannot prevent them | Recommended; EXT6: can be installed on its own, before or after R1 | Yes (one trigger) |
 | Request keys for creates (X5-11) | A lost reply plus a retry can create a duplicate expense / return / recall | Rare duplicates; mitigated by the lock + "check before trying again" message | No | Yes (schema change per table) |
 | Legal hold vs delete | Litigation / regulator requests | A held record could be deleted (documents lose their file) | Depends on legal advice | Option 1 needs a database rule |
 | Document categories | Filing | Some documents filed under "other" | No | Small database rule change |

@@ -257,6 +257,30 @@ test.describe('sign-in expires while receiving', () => {
   });
 });
 
+// EXT6 (PO race J): the person's permission is taken away part-way (an
+// administrator demotes them, or a policy changes). From the stock step on,
+// every write is refused by row-level security, as Supabase does it.
+test.describe('permission removed while receiving', () => {
+  test('after the claim: no success, the page says it stopped part-way and that this needs permission', async ({ page, backend }) => {
+    let refusing = false;
+    await page.route(/\/rest\/v1\//, route => {
+      const req = route.request();
+      const t = new URL(req.url()).pathname.slice('/rest/v1/'.length);
+      if (!refusing && t === 'inventory' && req.method() === 'PATCH') refusing = true;
+      if (!refusing || req.method() === 'GET') return route.fallback();
+      return route.fulfill({ status: 403, contentType: 'application/json',
+        body: JSON.stringify({ code: '42501', message: `new row violates row-level security policy for table "${t}"` }) });
+    });
+    await clickReceive(page);
+    await expect(page.locator('body')).toContainText('stopped part-way');
+    await expect(page.locator('body')).toContainText('permission');
+    await expect(page.locator('body')).not.toContainText('row-level security');
+    await expect(page.locator('#toastHost .toast.ok')).toHaveCount(0);
+    expect(snapshot(backend)).toEqual({ ...BEFORE, poStatus: 'received' });
+    await expect(page.locator('.poReceiveBtn')).toHaveCount(0);
+  });
+});
+
 // EXT4 (workstream E): the delivery's expense is dated with the Central
 // calendar day. It used the UTC date, so a delivery received after 7 pm on
 // the last day of a month was logged in the NEXT month.

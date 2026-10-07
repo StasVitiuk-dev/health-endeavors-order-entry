@@ -1,6 +1,54 @@
 # Purchase-order receive vs line changes: race review
 
-**Status:** CURRENT (2026-10-06, extension 5). The dashboard fixes are on branch `claude/platform-deep-readiness-extension-5`; not live until merged. The database guard is a **draft, not installed**, and needs the owner's approval (after R1).
+**Status:** CURRENT (2026-10-07, extension 6; first written in extension 5). The dashboard fixes are on the extension branches; not live until merged. The database guard is a **draft, not installed**, and needs the owner's approval. **EXT6 changed the guard and the install order: see section 0.** Sections 3 and 4 below are kept as the EXT5 record; where they disagree with section 0, section 0 wins.
+
+## 0. Extension 6 update (read this first)
+
+### 0a. The gap EXT6 found
+The EXT5 guard re-read the order's status **without locking it** when a line was deleted or changed. That is safe with R1, because R1 locks every line before it receives. It is **not safe with the dashboard's receive as it runs today**, which claims the order in one request and then stocks the lines one request at a time. A line deleted in the instant between the guard's check and its commit could still be stocked by a receive that claimed the order in that instant.
+
+The new test `local-test/po_browser_path_races.sh` copies today's receive step by step and forces each ordering:
+
+| Edit made in another tab | No guard | EXT5 guard | **EXT6 guard** |
+|---|---|---|---|
+| delete a line (edit held open while the receive runs) | reported | **reported** (stock added for a deleted line) | agree |
+| delete a line (receive first) | reported | agree | agree |
+| add a line (edit held open) | SILENT (EXT5 editor warning not in this path) | agree | agree |
+| add a line (receive first) | reported | agree | agree |
+| change quantity (edit held open) | reported | **reported** | agree |
+| change quantity (receive first) | reported | agree | agree |
+| change price (either order) | agree * | agree | agree |
+| shipping change (either order) | agree | agree | agree |
+| cancel (either order) | agree | agree | agree |
+
+"reported" = order and stock disagree, but the dashboard tells someone (EXT5 detection). "agree" = they match. \* the expense is computed after the change, so it matched in this test; the guard refuses price changes on a received order anyway.
+
+With R1 (`po_race_interleavings.sh`), the EXT6 guard keeps every forced ordering consistent (12/12), with no deadlock.
+
+### 0b. The fix (in `drafts/17`, still NOT installed)
+Line deletes and edits now take a **share lock on the order, with NOWAIT**, before reading its status. The lock is held until the edit commits, so a receive (R1 or the dashboard's claim) either waits for the edit or the edit sees "received". NOWAIT means the edit never *waits* on the order: if someone holds the order at that moment (a receive, a cancel, a shipping edit), the edit is refused at once: "Purchase order is being received or changed by someone else right now. Nothing was changed — wait a moment, reload the page and try again." Waiting could deadlock with R1 (which holds the order and waits for the lines), and refusing cannot. Inserts still wait (they hold no line lock), as before.
+
+**Cost:** a line edit made in the same instant as another change to the same order is refused and must be repeated. This is rare and safe. The dashboard already shows the message in plain words, and `explainDbError` (EXT6) also explains a raw "could not obtain lock" or "deadlock detected" as "nothing was changed by this step".
+
+### 0c. Install order (supersedes section 4, points 2–3)
+The guard **no longer needs R1 first**. It protects the receive path in use today, so it can be installed on its own (after approval), before or after R1. Rollback is unchanged (`drafts/18`).
+
+### 0d. Every case in the request, and where it is covered
+
+| | Race | Outcome / protection | Evidence |
+|---|---|---|---|
+| A | receive vs line delete | EXT6 guard: consistent in every ordering, browser path and R1 | `po_browser_path_races.sh`, `po_race_interleavings.sh`, S27 |
+| B | receive vs line insert | guard (insert waits on the order) | same |
+| C | receive vs quantity change | EXT6 guard | same |
+| D | receive vs price change | guard covers `unit_cost`; the dashboard re-reads after the claim (EXT5) | `po_browser_path_races.sh` (price), `po-receive.spec.js` |
+| E | receive vs cancel | both are "only if still …" status writes on the same row; exactly one wins | `po_browser_path_races.sh` (cancel), S25, `state-transitions.spec.js` |
+| F | receive vs approval | "approval" here is Mark ordered (draft → ordered); a receive cannot start from draft (`PO_ALLOWED_FROM`), so the two cannot overlap on one order | code review; `state-machine.spec.js` |
+| G | receive vs receive | claim-first (only one claim can win); R1 locks the order | `po-receive.spec.js` (second click, second tab, stale page), stress |
+| H | receive vs reload | the claimed order offers no second Receive after a reload | `po-receive.spec.js` |
+| I | receive vs network loss | lost reply / drop after stock: says what was done, never "done" | `po-receive.spec.js`, `fault-injection*.spec.js`; all-or-nothing needs R1 (wanted test marked `test.fail`) |
+| J | receive vs permission change | **EXT6 test:** permission refused after the claim: "stopped part-way", plain words, no success, no second Receive | `po-receive.spec.js` "permission removed while receiving" |
+
+Still not atomic without R1: a receive that stops part-way leaves the order "Received" with some lines stocked. It is reported clearly and is visible in the new read-only **Query E** (`04_READONLY_E_stock_reconciliation.sql`), but only R1 removes it.
 
 ## 1. The problem in one paragraph
 

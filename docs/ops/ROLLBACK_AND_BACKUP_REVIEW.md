@@ -32,7 +32,7 @@ The session records your answer as REPORTED (not verified), in `PROJECT_RECORD.m
 | Run Query C / Query D | No (one read-only SELECT) | No | Nothing to roll back | Read-only proven: `sql-readonly.spec.js` |
 | Install R1–R5 | No (creates 6 functions; no table or row touched) | Recommended as a precaution: confirm the last backup succeeded | `11_DRAFT_rollback_stock_functions.sql` (removes only the functions, one transaction) | Yes: `install_package_test.sh` (rollback, rollback twice, re-install, failure halfway) |
 | Switch the dashboard to R1–R5 (INV-06) | Normal business writes from then on | Confirm the last backup | Revert the dashboard PR **first**, then (optionally) the function rollback | Planned with that PR |
-| PO line delete guard (`drafts/17_…`, EXT4, after R1) | No (adds one trigger and its function) | No | `drafts/18_DRAFT_rollback_po_line_delete_guard.sql` (one transaction) | Yes: stress S27 installs it, checks it, rolls it back and checks no trigger is left |
+| PO line delete guard (`drafts/17_…`, EXT4; EXT6: no longer needs R1 first) | No (adds one trigger and its function) | No | `drafts/18_DRAFT_rollback_po_line_delete_guard.sql` (one transaction) | Yes: stress S27 installs it, checks it, rolls it back and checks no trigger is left |
 | Optional CHECK rules (INV-19) | No (adds rules) | No | `alter table … drop constraint …` (to be written with the draft) | Not yet: **PROPOSED**, written together with the draft |
 | Remove direct stock-table writes (INV-20) | No (permissions) | No | Re-grant script, written together with the change | Not yet: **PROPOSED** |
 | Extend the audit trigger to compliance tables (X3-18) | No | No | Drop the added triggers | Not yet: **PROPOSED** |
