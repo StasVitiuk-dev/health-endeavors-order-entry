@@ -72,7 +72,12 @@ Also fixed (not on `main` yet, EXT4/EXT5 code):
 | `b48b678` | One revenue rule (Daily Summary, home tile); mixed-currency warning; animation follow-up |
 | `95cb16a` | Orders page revenue (newest 300, honest label) |
 | `56f24ea` | Accounting lists orders without items; backlog +25 |
-| (final) | Status documents and this report |
+| `7a46a31`, `7da5455` | Report (evidence pending), readiness matrix, owner package, status docs; backlog note |
+| `b6973ca` | 6 screenshot baselines + write-path matrix (intended changes) |
+| `dd90a99`, `79a285c` | Session tests wait out the sign-out reload |
+| `0db9718` | Page mutations 66/66 (2 misses fixed, MUT_ONLY filter, other-tab sign-out test) |
+| `f792e66` | Stress S29 test artifact fixed; backlog X6-26 |
+| (final) | This report, final evidence |
 
 ## 5. Bugs found and fixed
 
@@ -105,7 +110,7 @@ Counted as **15 product bugs**: the 13 rows from X6-11 to X6-01, plus the two se
 | New spec `accounting-oracle` | 19 tests: generated orders and expenses (0–2,500 rows, 1,000-row cap) compared with an independent whole-cent calculation; zero / small amounts; German-locale settle; Daily Summary and home-tile rule; mixed currencies; Orders figure; orders without items |
 | New spec `concurrent-operators` | 6 (2 / 5 / 10 tabs; tasks; returns Approve vs Reject) |
 | New spec `sql-drafts-static` | 26 static checks over every SQL draft |
-| `manual-order-entry` | +5 (finish in a new tab, two refusals, stop finishing, sign-out wipe) |
+| `manual-order-entry` | +6 (finish in a new tab, two refusals, stop finishing, sign-out wipe, sign-out in another tab) |
 | `session-failures` | +3 (shared-computer sign-out) |
 | `admin-pages` | +8 (Emergency safety steps: server error / lost reply / expired; both fail; slow database) |
 | `po-receive` | +2 (permission removed mid-receive, both sizes) |
@@ -113,7 +118,7 @@ Counted as **15 product bugs**: the 13 rows from X6-11 to X6-01, plus the two se
 | `helpers-unit` | +2 (zero / rounding; deadlock text) |
 | `pages-data` | 1 expectation corrected to the one revenue rule ($470 "any status" → $380, the same as Accounting) |
 | Local SQL | new `po_browser_path_races.sh` (14 orderings × guard states), `request_keys_test.sh` (23), `reconciliation_test.sh` (24); stress S27 now with the revised guard |
-| Mutations | page 57 → 65; SQL 11 → 13 |
+| Mutations | page 57 → 66; SQL 11 → 13 |
 
 Exact totals: section 8.
 
@@ -149,7 +154,40 @@ Exact totals: section 8.
 
 ## 8. Final evidence
 
-**Pending:** the final verification on the frozen commit `56f24ea` is running (full suite, high-risk specs ×3, page mutations, then the local database checks). This section is filled in by the next commit.
+All runs below are on this machine, in a separate worktree, on the commit named. The test mock blocks every outside host.
+
+| Check | Result |
+|---|---|
+| **Full suite** on `0db9718` (desktop 1100 px + iPhone 390 px) | **2,138 tests: 1,414 passed, 0 failed, 0 flaky, 724 skipped**, 30.3 min |
+| Skip report on that run | **724 / 724** skips are deliberate one-screen-size skips (the other size ran each); **0 unexplained**; 8 expected failures (the 4 known atomicity bugs × 2 sizes, waiting for R1–R4) |
+| Commits after `0db9718` | `79a285c` (one test helper) and `f792e66` (stress script, backlog). **No runtime file changed** after `56f24ea`; verified with `git diff --stat 56f24ea HEAD -- '*.html' assets/` (empty) |
+| **High-risk specs ×3** on `56f24ea` (fault-injection ×2, state-transitions ×2, manual orders, sessions ×2, PO receive, POs, report totals, accounting oracle, concurrent operators, admin/Emergency, activity, guarded toggles, roles, storage, safety) | 3,256 runs: **2,014 passed, 2 failed, 1,242 skipped**. Both failures were one test (wake-from-sleep sign-out): the test raced the new sign-out reload. Test-only fix in `dd90a99`, then ×10: 10/10 |
+| Touched specs ×3 on `0db9718` (sessions, manual orders, screenshots) | 215 passed, **1 failed** (shared-computer test, same reload race). Test-only fix in `79a285c`, then ×10: 30/30 |
+| Session / manual-order / general specs ×3 on `79a285c` | **255 passed, 0 failed**, 177 skipped by design |
+| **Page mutations** (on `56f24ea`, same runtime) | **63 / 65**, then the 2 misses fixed (one equivalent mutant; one target moved by this session) + 1 new mutant: **66 / 66** (spot run 4/4) |
+| SQL tests (15, 16, 14 with draft 13) | all PASSED; R1–R5 fingerprint unchanged `3df2bf7a07b451f12f9359ceca1c85df` |
+| Install package | **61 / 61** (also 61/61 with request keys installed) |
+| PO forced orderings with R1 | 0 failures with the EXT6 guard |
+| PO forced orderings, browser path | EXT6 guard: **0 silent, 0 merely reported** (EXT5 guard: 2 reported) |
+| Request keys | **23 / 23** |
+| Reconciliation (Query E) | **24 / 24** |
+| Query C / C without cron / D mocks | 0 errors, 0 fake secrets in output |
+| Static checks | `sql-drafts-static` 26/26, `sql-readonly` 10/10 (in the full suite) |
+| **Stress** | Final run ×3: 1 failed check (S29 deadlock, a test artifact, see below). After the test fix (`f792e66`): **5 × 98 passed, 0 failed, 0 deadlocks** |
+| **SQL mutations** | **13 caught, 0 missed** |
+| Secret scan (whole branch diff from `ae8e9aa`) | clean: no keys, tokens, real e-mails or model identifiers |
+| **New tests** | **+148 test cases** (1,990 → 2,138, both sizes); **+84 that run** (1,330 → 1,414 passed). Plus 3 new local SQL scripts and 26 static SQL checks |
+| **Bugs fixed** | **15 product bugs** (section 5) + test-harness defects listed below |
+
+### Verification history (nothing hidden)
+
+1. **Final run on `56f24ea`: 7 failures**, all expected consequences of intended changes. 6 screenshot baselines (Orders, Accounting, dark Orders; both sizes) and the generated write-path matrix. Each screenshot difference was inspected: only the new revenue label and figure, and the new Accounting section, changed. Updated in `b6973ca`.
+2. **High-risk ×3: 2 failures** in the wake-from-sleep test. The sign-out reload (X6-05) cut off the test's own page command. The test now accepts that navigation and checks the end state more strictly (`dd90a99`).
+3. **Page mutations: 2 misses.** One mutant was equivalent: the sign-out event listener also wipes the page, so a second protection hid the break. One target was moved by this session. Both fixed, plus a new test and mutant for the listener (`0db9718`).
+4. **Touched specs ×3: 1 failure**, the same reload race in a new shared-computer test. The check now waits out the reload (`79a285c`).
+5. **Stress: S29 "no deadlock" failed once.** The server log showed two copies of the test's own delivery deadlocking. The test inserted a line and called R1 in one transaction, which the dashboard never does. S29 now uses two transactions (`f792e66`). R1/R5 are unchanged; a design note for any future combined function is recorded as backlog X6-26.
+
+**What this means:** every failure in the final verification came from test code or from expected test artifacts (screenshots, generated list). None was a dashboard defect. The runtime code verified is `56f24ea` = `0db9718` = `79a285c` = `f792e66` (identical runtime files).
 
 ## 9. Known limitations (not hidden)
 

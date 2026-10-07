@@ -57,6 +57,7 @@ Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (fro
   - Manual-order recovery could create a second order; Emergency mode, error wording and other smaller fixes.
   - Drafts, not installed: PO line guard revised (now protects today's receive and needs no R1 first), request keys, Query E.
   - **Security note:** this session's GitHub connection has admin rights (owner decision X6-17); they were not used.
+  - Final verification on the final code: 2,138 tests, 1,414 passed, 0 failed (every skip deliberate); 66/66 page mutations and 13/13 SQL mutations caught; database checks clean (stress 5 × 98).
   - See `docs/ops/DEEP_PLATFORM_EXTENSION_6_2026-10-07.md`, `PRODUCTION_READINESS_MATRIX.md`, `CUMULATIVE_CHANGE_INVENTORY.md`.
 - **Store not launched:** 0 real orders, real products not yet added, the Shopify order sync and agents #2/#3/#7/#8 switched off on purpose until products exist (REPORTED). Agent #1's on/off state is **unverified**.
 
