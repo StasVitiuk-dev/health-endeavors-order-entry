@@ -251,6 +251,15 @@ const MUTATIONS = [
   ['manual order stays "unsaved" after a successful save', 'manual-order-entry.html',
     "    orderTyped = false;\n    orderForm.reset();", "    orderForm.reset();",
     'unsaved-changes -g "FAILED save"'],
+  ['unknown service status shown as Operational again', 'owner-login.html',
+    "                  ${['operational', 'degraded', 'down'].includes(s.status) ? '' : `<option value=\"${esc(s.status || '')}\" selected disabled>Unknown (${esc(s.status || 'not set')})</option>`}\n", '',
+    'stale-tab-gaps -g "never as Operational"'],
+  ['SOP switch guesses instead of re-reading after a refusal', 'owner-login.html',
+    "                showDashError(staleMessage('That procedure'));\n                loadSops();\n                return;", "                throw new Error(staleMessage('That procedure'));",
+    'stale-tab-gaps -g "shows it ON"'],
+  ['supplier same-name check removed', 'owner-login.html',
+    "        if (same && same.length && !window.confirm(", "        if (false && !window.confirm(",
+    'stale-tab-gaps -g "same name in any case"'],
 ];
 
 function sh(cmd, cwd) { return execSync(cmd, { cwd, stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }); }

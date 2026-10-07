@@ -3842,11 +3842,21 @@
     document.getElementById('addSupplierForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const btn = e.target.querySelector('button[type=submit]');
+      if (btn.disabled) return; // a second Enter while saving
       btn.disabled = true;
       try {
+        const name = document.getElementById('supName').value.trim();
+        // EXT7: adding a supplier can't be undone from here and a lost reply
+        // invites a second press, so look for the same name first (any case).
+        const { data: same, error: sameErr } = await supabase.from('suppliers').select('id').ilike('name', likeLiteral(name)).limit(1);
+        if (sameErr) throw sameErr;
+        if (same && same.length && !window.confirm('A supplier named "' + name + '" already exists (it may have been saved a moment ago). Add another one anyway?')) {
+          loadSuppliers();
+          return;
+        }
         const uid = await currentUserId();
         const { error } = await supabase.from('suppliers').insert({
-          name: document.getElementById('supName').value.trim(),
+          name,
           supplier_type: document.getElementById('supType').value,
           contact_name: document.getElementById('supContact').value.trim() || null,
           email: document.getElementById('supEmail').value.trim() || null,
@@ -6169,12 +6179,16 @@
           lastAiCall = aiRow ? aiRow.created_at : null;
         } catch (e) { /* no real AI calls logged yet — that's fine, just no signal */ }
 
+        // EXT7: a status other than the three (or none) is counted and shown
+        // as "Unknown", never folded into Operational.
         const counts = { operational: 0, degraded: 0, down: 0 };
-        (services || []).forEach(s => { if (counts[s.status] !== undefined) counts[s.status]++; });
+        let unknownCount = 0;
+        (services || []).forEach(s => { if (counts[s.status] !== undefined) counts[s.status]++; else unknownCount++; });
         document.getElementById('continuityStats').innerHTML = `
           <div class="stat"><div class="num">${counts.operational}</div><div class="lbl">Operational</div></div>
           <div class="stat"><div class="num">${counts.degraded}</div><div class="lbl">Degraded</div></div>
           <div class="stat"><div class="num">${counts.down}</div><div class="lbl">Down</div></div>
+          ${unknownCount ? `<div class="stat statWarn"><div class="num">${unknownCount}</div><div class="lbl">Unknown / not set</div></div>` : ''}
         `;
 
         if (!services || !services.length) {
@@ -6198,7 +6212,7 @@
             <div class="info">
               <b>${esc(s.service_name)}</b>
               ${s.category ? `<span class="badge">${esc(s.category)}</span>` : ''}
-              <span class="badge ${continuityBadgeClass(s.status)}">${esc(s.status)}</span>
+              <span class="badge ${continuityBadgeClass(s.status)}">${esc(s.status || 'not set')}</span>
               ${s.notes ? `<div style="font-size:12px;color:var(--muted);margin-top:3px;">${esc(s.notes)}</div>` : ''}
               ${liveSignal}
               <div style="font-size:11px;color:var(--muted);margin-top:3px;">Status last set ${esc(fmtDate(s.updated_at))}</div>
@@ -6206,6 +6220,7 @@
             <div class="actions">
               <label style="font-size:11.5px;color:var(--muted);">
                 <select class="continuityStatusSelect" data-id="${esc(s.id)}" style="padding:4px 7px;border-radius:6px;border:1px solid #cfd8d6;font-family:inherit;font-size:12.5px;">
+                  ${['operational', 'degraded', 'down'].includes(s.status) ? '' : `<option value="${esc(s.status || '')}" selected disabled>Unknown (${esc(s.status || 'not set')})</option>`}
                   <option value="operational" ${s.status === 'operational' ? 'selected' : ''}>Operational</option>
                   <option value="degraded" ${s.status === 'degraded' ? 'selected' : ''}>Degraded</option>
                   <option value="down" ${s.status === 'down' ? 'selected' : ''}>Down</option>
@@ -6941,7 +6956,13 @@
             cb.disabled = true;
             try {
               const changed = await updateIfUnchanged('sop_documents', id, { agent_visible: newVal }, { agent_visible: boolGuard(!newVal) });
-              if (!changed) throw new Error(staleMessage('That procedure'));
+              if (!changed) {
+                // EXT7: re-read instead of guessing: the other change may have
+                // set the very value this click wanted, or something else.
+                showDashError(staleMessage('That procedure'));
+                loadSops();
+                return;
+              }
             } catch (err) {
               cb.checked = !newVal;
               showDashError('Could not update that procedure: ' + (err && err.message ? err.message : err));
