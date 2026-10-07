@@ -66,7 +66,11 @@ Most important:
 | `5f99649`, `d2496a2` | Readiness gate, owner decisions, backlog, Query D check, status docs |
 | `fc653db` | Low-stock alert level guarded |
 | `f1e8d4e` | Totals paging stops at a short page (URL-length fix); test helper re-clicks a lost click |
-| (final) | This report |
+| `5900eeb` | Owner reporting preference recorded in the current-state doc |
+| `ce9152b` | This report (evidence pending) |
+| `3feeb2d`, `6161964` | Test helper: wait 5 s before a re-click; always make the first click (closes the phone menu) |
+| `314eb9c` | Test: wait for the expense before reading it |
+| (final) | This report, final evidence |
 
 Files changed: about 47 (pages, helpers, tests, SQL drafts and local tests, docs).
 
@@ -114,7 +118,34 @@ Exact totals: see section 6.
 
 ## 6. Final evidence
 
-**Pending:** the final verification run (full suite of 1,990 tests, local database checks, repeats) is still running. This section is filled in by the next commit on this branch.
+All runs below are on this machine. The mock blocks every outside host, so no test reached production.
+
+| Check | Result |
+|---|---|
+| **Full suite** (desktop 1100 px + iPhone 390 px), final run on `6161964` | **1,990 tests: 1,329 passed, 1 failed, 660 skipped by design**, 25.7 min. The single failure was a timing mistake in a new EXT5 test (see "Verification history" below), fixed in `314eb9c` |
+| **High-risk specs ×3** (17 specs: fault injection ×2, state transitions ×2, manual order, session failures and expiry, PO receive, purchase orders, report totals, activity, guarded toggles, role matrix, storage, safety, write-path inventory, admin pages) | **3,054 runs: 1,884 passed, 3 failed (the same test), 1,167 skipped by design** |
+| **After the fix (`314eb9c`)** | that test ×20: **40/40 passed**; the whole `po-receive` spec ×5: **150/150 passed** |
+| **Page mutations** (on `314eb9c`) | **57/57 caught** |
+| **SQL tests** (14, 15, 16) | all PASSED |
+| **Install package** | **61 passed, 0 failed** |
+| **PO line race orderings** | with the guard: **0 failures**; without it, "receive first, edit second" fails, as expected |
+| **Stress ×3** | **3 × 98 checks passed, 0 failed, 0 deadlocks.** Unguarded S27 races broke the order-vs-stock match: delete 4/6/7, add 5/9/10, quantity 1/3/4 out of 20 per run (the reason for the guard draft) |
+| **Query C / Query D mocks** | C: 122 rows; C without pg_cron: 119 rows; D: 10 rows. 0 errors, 0 secrets in any of them |
+| **SQL mutations** | **11 caught, 0 missed** |
+| **Secret scan** of the branch diff (47 files) | clean: no keys, tokens, real e-mails or model identifiers (only the required commit trailer) |
+| **`main`** | `d3db7bc`, unchanged |
+| **Extension 4 branch** | `82c2582`, unchanged |
+| **New tests** | **+288 test cases** (1,702 → 1,990, counting both screen sizes); **+156 that run** (1,173 → 1,329 passed; the rest are by-design skips). Database: install checks 42 → 61, a new race-ordering script with 12 orderings, stress S27 |
+| **Bugs fixed** | **12** dashboard / draft bugs (section 4), plus **3 test-harness defects** found and fixed during verification (below). 1 more bug (X5-03) needs the database guard (owner approval) |
+
+### Verification history (nothing hidden)
+
+1. **First full run** (on `f1e8d4e`): 1 failure, the 10,000-record palette speed test. Cause: the `gotoPage` helper re-click, added that same day, waited only 2 s, which is shorter than a 10,000-row page takes to draw. Fixed in `3feeb2d`.
+2. **Second full run** (on `3feeb2d`): 20 failures, all from that fix. It skipped the click when the page was already open, but on a phone that click is what closes the menu, so the open menu covered the next button. Fixed in `6161964` (the first click always happens). The specs that had failed then passed 348/348 over 2 runs.
+3. **Third run**: lost to a container restart and run again.
+4. **Final run** (on `6161964`): 1 test failed intermittently (4 of 8 runs). Cause: "a line added elsewhere is received too" read the expense before the page had written it (the page writes stock first, then the expense). Test-only; fixed in `314eb9c` and proven over 20 + 5 repeats.
+
+**What this means:** none of the 4 rounds found a dashboard defect. All three causes were in test code written this session. The full suite was not run a fifth time after `314eb9c`, because that commit changes one wait in one test; the affected spec was repeated instead.
 
 ## 7. Concurrency and local database results
 

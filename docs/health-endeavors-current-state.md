@@ -48,6 +48,7 @@ Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (fro
     - the install survives a double Run
     - install tests 61, forced race orderings, SQL mutations 11
   - Evidence: failure matrix 14 actions × 14 failure kinds, state machines from one fixture, 57 page mutations.
+  - Final verification: the full suite has 1,990 tests (1,329 passed, 660 skipped by design). Its one failure was a test-timing mistake, fixed and repeated clean. 57/57 page mutations caught; database checks all pass. Details in §6 of the report.
   - See `docs/ops/DEEP_PLATFORM_EXTENSION_5_2026-10-06.md`, `PO_RECEIVE_RACE_REVIEW.md`, `READINESS_GATE.md`.
   - Query C/D not run; R1–R5 and the guard not installed; production untouched; Shopify Order Sync off.
 - **Store not launched:** 0 real orders, real products not yet added, the Shopify order sync and agents #2/#3/#7/#8 switched off on purpose until products exist (REPORTED). Agent #1's on/off state is **unverified**.
