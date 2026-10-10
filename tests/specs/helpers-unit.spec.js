@@ -358,11 +358,14 @@ test.describe('date ranges (step 2d): Central-time boundaries', () => {
     expect(D.acctRangeStart('today', new Date('2026-11-02T05:30:00Z')).toISOString()).toBe('2026-11-01T05:00:00.000Z'); // midnight was still CDT
     expect(D.acctRangeStart('today', new Date('2026-03-09T04:00:00Z')).toISOString()).toBe('2026-03-08T06:00:00.000Z'); // midnight was still CST
   });
-  test('"Last 7 days" keeps the wall-clock time across a DST change and gives the right first day', () => {
+  // EXT8 (X8-08): "Last 7 days" starts at local midnight 7 calendar days ago
+  // (was: the same clock time 7 days ago), the same window on every page.
+  test('"Last 7 days" starts at local midnight 7 days ago, also across a DST change', () => {
     expect(D.localDateString(D.acctRangeStart('week', new Date('2026-10-07T02:00:00Z')))).toBe('2026-09-29'); // 21:00 CDT Oct 6
     const w = D.acctRangeStart('week', new Date('2026-11-03T18:00:00Z')); // 12:00 CST Nov 3
     expect(D.localDateString(w)).toBe('2026-10-27');
-    expect(w.getHours()).toBe(12);
+    expect([w.getHours(), w.getMinutes()]).toEqual([0, 0]);
+    expect(w.toISOString()).toBe('2026-10-27T05:00:00.000Z'); // midnight was still CDT
   });
   test('leap day, 11:59 pm and midnight, month and year ends', () => {
     expect(D.localDateString(new Date('2028-03-01T05:30:00Z'))).toBe('2028-02-29'); // 23:30 CST Feb 29

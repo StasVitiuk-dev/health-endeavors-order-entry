@@ -1,11 +1,12 @@
 // Screenshot capture for design review (EXT7, workstream R). Not part of the
 // test suite. Synthetic data only (the same mock as the tests); nothing is
 // fetched from the live site.
-//   npx playwright test -c tests/tools/screenshots.config.js
+//   npx playwright test -c tests/tools/screenshots.config.js            (EXT7 set)
+//   SHOT_SPEC=capture-screenshots-ext8 npx playwright test -c …         (EXT8 set)
 const { defineConfig, devices } = require('@playwright/test');
 module.exports = defineConfig({
   testDir: '.',
-  testMatch: /capture-screenshots\.spec\.js/,
+  testMatch: new RegExp((process.env.SHOT_SPEC || 'capture-screenshots') + '\\.spec\\.js$'),
   outputDir: '../../test-results/screenshots',
   workers: 2,
   reporter: [['dot']],

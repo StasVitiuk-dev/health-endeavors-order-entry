@@ -26,10 +26,12 @@ test('requests to the production Supabase address are answered by the mock', asy
   expect(backend.requests.some(r => r.table === 'tasks')).toBe(true);
 });
 
+test.describe('mock blocking layer', () => {
+  // Every page now has a Content-Security-Policy (EXT8), which refuses these
+  // addresses in the browser before the mock sees them (csp.spec.js). This
+  // test proves the mock's own second layer, so the policy is bypassed here.
+  test.use({ bypassCSP: true });
 test('any other internet address is blocked', async ({ page, backend }) => {
-  // Proves the test mock's own blocking layer, so it runs on a page without a
-  // Content-Security-Policy (the dashboard's policy now refuses these even
-  // earlier, in the browser: see the CSP test below).
   await page.goto('/change-password.html');
   const outcomes = await page.evaluate(async () => {
     const urls = ['https://example.com/', 'https://api.github.com/', 'https://admin.shopify.com/', 'https://gmail.googleapis.com/'];
@@ -42,6 +44,7 @@ test('any other internet address is blocked', async ({ page, backend }) => {
   expect(outcomes).toEqual(['blocked', 'blocked', 'blocked', 'blocked']);
   expect(backend.blocked).toHaveLength(4);
   backend.blocked.length = 0; // expected in this test only
+});
 });
 
 test('the dashboard only ever talks to the mock during a full session', async ({ page, backend }) => {

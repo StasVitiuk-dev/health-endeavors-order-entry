@@ -1,8 +1,21 @@
 # Owner decisions: what is waiting on you (next)
 
-**Status:** CURRENT (2026-10-07, extension 7; EXT6, EXT5 and EXT4 lists kept below). This is the one place listing decisions only you (Stas) can make. Each has a recommendation; nothing here has been decided for you. Answer in the chat in any order, for example "D-ops-4: yes". Nothing changes in production until you approve the specific step.
+**Status:** CURRENT (2026-10-10, extension 8; EXT7, EXT6, EXT5 and EXT4 lists kept below). This is the one place listing decisions only you (Stas) can make. Each has a recommendation; nothing here has been decided for you. Answer in the chat in any order, for example "D-ops-4: yes". Nothing changes in production until you approve the specific step.
 
 **OWNER DECISION REQUIRED** on every row below.
+
+## New in extension 8 (2026-10-10)
+
+| Decision | Why it matters | Risk if nobody decides | Blocks launch? | Production action after deciding? |
+|---|---|---|---|---|
+| **X6-17 (re-checked 2026-10-10): GitHub admin credential** | Still true: this session acts as `StasVitiuk-dev` (the owner) with admin, maintain and push rights (read-only check). Not used. **Minimum permission recommended:** connect Claude with `stasvitiuk-reos` at **Write** role (push to branches, open PRs; cannot merge to `main`, change settings or bypass the ruleset), and set the ruleset's bypass to "pull requests only" or remove it | A mistaken or manipulated session could deploy or change protection without review | Recommended before launch | Owner only: claude.ai → Settings → Connectors → GitHub, sign in as `stasvitiuk-reos` |
+| **X8-D1: staging review copy: where may it be shown?** | A synthetic-data copy is built and tested (`STAGING_REVIEW_PLAN.md`) | You review changes only from screenshots | No | Pick one: private claude.ai page (smallest), local on your Mac, or a separate staging repository |
+| **X8-D2: "Last 7 days" vs calendar week** | EXT8 made every "This Week" mean the rolling last 7 days (label renamed, F3-07). Some owners prefer Monday–Sunday | None (consistent now) | No | No (dashboard choice) |
+| **X8-D3: orders saved without items (X6-14), policy A or B** | Both policies are now tested (`money-periods.spec.js`): A = keep counting them as revenue and list them (today), B = exclude until items are added | Revenue slightly overstated under A while any exist | No | No (dashboard change after you choose, with your accountant) |
+| **X8-D4: Query F thresholds** | "Stuck" means (defaults in `05_READONLY_F_…`): task in progress unchanged 14+ days, open task 7+ days past due, approval pending 7+ days, recall "initiated" 14+ days, purchase order 7+ days past its expected date and not received | Too many or too few findings | No | No (read-only query) |
+| **X8-D5: recovery targets (RPO / RTO)** | How much work may be lost, and how long the dashboard may be down | Nobody knows if today's backups are good enough | Recommended before launch | Suggestion: RPO 24 h, RTO 4 h; then the restore drill (`RECOVERY_AND_BACKUP_READINESS.md` §4) |
+| **X8-D6: backup status row on Home (D5)** | Lets Home show HEALTHY / NEEDS REVIEW instead of UNKNOWN | Backup failures stay invisible on the dashboard | No | Yes: one read-only table + a change in the private backup job (you or an approved session for that repository only) |
+| **X8-D7: which automation next?** | `AUTOMATION_AND_AGENT_ARCHITECTURE.md` D1–D11 (supersedes the K-list); recommended first: run Query E + F once, then schedule Query F nightly | None (status quo) | No | Each item has its own approval |
 
 ## New in extension 7 (2026-10-07)
 
@@ -12,7 +25,7 @@
 | **X7-14a: can employees approve requests?** | The database lets any active staff approve or reject (`ROLE_PERMISSION_MATRIX.md` §4) | An employee could approve something meant for you | No (no employees yet) | If owner-only: a policy draft + rollback, then approval |
 | **X7-14b: admin-only switches** (Emergency mode, flags, agent switches, business rules) | No page-side role check; the database rule is UNKNOWN until Query D | An employee might flip them | Before hiring staff | Run Query D (read-only), then decide |
 | **X7-16: restore drill** | Backups have never been proven to restore | A real data loss might not be recoverable | Recommended before launch | Owner: backup check, then one restore into a throwaway Supabase project |
-| **K-list: which automations next?** | `AUTOMATION_AND_AGENT_REVIEW.md` proposes K1–K11; nothing is installed | None (status quo) | No | Each item has its own approval step |
+| **K-list: which automations next?** (superseded by X8-D7) | `AUTOMATION_AND_AGENT_REVIEW.md` proposes K1–K11; nothing is installed | None (status quo) | No | Each item has its own approval step |
 
 ## New in extension 6 (2026-10-07)
 
@@ -76,7 +89,7 @@
 |---|---|---|
 | F3-02 | Manual orders: pick products from the catalogue (fills in the SKU) instead of typing names? | Yes, before you rely on manual orders for stock or returns |
 | F3-01 | Input borders are light grey (low contrast for some eyes). Darken them? | Yes (a visual change you can see in screenshots first) |
-| F3-07 | The "This Week" label means the last 7 days. Rename to "Last 7 days"? | Yes |
+| F3-07 | The "This Week" label means the last 7 days. Rename to "Last 7 days"? | Yes. **Done on the EXT8 branch** (see X8-D2) |
 | Time zone (optional) | Will anyone use the dashboard regularly from outside Central time? If yes, all dates can be forced to Central | Only if yes (`TIMEZONE_CONTRACT.md`) |
 
 ## GitHub / process

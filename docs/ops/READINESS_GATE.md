@@ -1,6 +1,6 @@
 # Dashboard production-readiness gate
 
-**Status:** CURRENT (2026-10-07, extension 7; the area-by-area view is now `PRODUCTION_READINESS_MATRIX.md`). Branch work is **not live** until merged. A draft is never counted as done. Full item list: `MASTER_PLATFORM_BACKLOG_2026-10-06.md`.
+**Status:** CURRENT (2026-10-10, extension 8; the area-by-area view is `PRODUCTION_READINESS_MATRIX.md`, the per-workflow integrity view is `DATA_INTEGRITY_AND_CONCURRENCY_MATRIX.md`). Branch work is **not live** until merged. A draft is never counted as done. Full item list: `MASTER_PLATFORM_BACKLOG_2026-10-06.md`.
 
 | Stage | Meaning | Items |
 |---|---|---|
@@ -21,6 +21,17 @@
 | Backup health unknown (X3-25) | Owner read-only check |
 | Refund accounting rule (N4) | Owner / accountant |
 | Live bugs on `main` fixed only on the branch:<ul><li>manual-order dates and duplicates</li><li>same-second merges</li><li>stale-tab receive</li><li>wrong-month delivery expense</li><li>Emergency switch-off gap</li><li>double-counted totals mid-read</li></ul> | Owner merge |
+
+## Extension 8 changes to this gate
+
+- Stage 2 (merge) now means `claude/platform-deep-readiness-extension-8-2026-10-07`, which contains extension 7 (stage 2 above names extension 7: **superseded**).
+- Stage 1 adds X8-01…X8-12 (bugs fixed on the branch): questions waiting hidden behind answered ones, older orders unreachable for returns, sidebar search silently missing older orders, recycle bins / history unreachable beyond 50, evidence picker missing old open incidents, browser Back leaving the dashboard, sign-in not re-checked after the Back-button cache, "This Week" meaning two different windows, product edit lost update, PO shipping/tax lost update, slower old replies drawing over newer ones (5 pages), missing Content-Security-Policy on 5 pages.
+- Stage 1 also adds features: Home "Checks: what needs a look" (17 deterministic checks; UNKNOWN distinct from fine; backups always UNKNOWN), order finder for returns, all-orders lookup in search, Show more on capped lists, page history and deep links (`#page=`), approval toast.
+- Stage 4 (read-only, owner runs) adds **Query F** (daily integrity, 15 checks, tested locally 33/33).
+- Stage 3 adds the EXT8 owner decisions X8-D1…X8-D7 (`OWNER_DECISIONS_NEXT.md`).
+- A staging review copy (synthetic data, no production contact) is built and tested; publishing it needs an owner choice (`STAGING_REVIEW_PLAN.md`).
+- No new production change was drafted in EXT8; Query F is read-only.
+- Launch blockers above are unchanged; none can be closed on the branch. The backup line is now visibly UNKNOWN on Home until the owner check (`RECOVERY_AND_BACKUP_READINESS.md`).
 
 ## Extension 7 changes to this gate
 

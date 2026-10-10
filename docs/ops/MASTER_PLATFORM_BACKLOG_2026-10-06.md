@@ -2,15 +2,15 @@
 
 Internal dashboard/platform only. Generated from `docs/ops/backlog/items.py` (edit the data there, then run `python3 docs/ops/backlog/items.py`). No production secrets or private business data.
 
-**293 deduplicated items** from 359 raw candidates (66 duplicates merged: the same item recorded in PROJECT_RECORD, the overnight review, PRs, owner lists, decision registers and tests).
+**311 deduplicated items** from 379 raw candidates (68 duplicates merged: the same item recorded in PROJECT_RECORD, the overnight review, PRs, owner lists, decision registers and tests).
 
-Status counts: BLOCKED-EXT 2, BLOCKED-OWNER 36, BLOCKED-PROD 17, BLOCKED-QC 12, DEFERRED 24, DONE 199, OPEN 1, QUEUED 2
+Status counts: BLOCKED-EXT 2, BLOCKED-OWNER 39, BLOCKED-PROD 17, BLOCKED-QC 12, DEFERRED 24, DONE 214, OPEN 1, QUEUED 2
 
 | Priority | Items | Done (branch) | Remaining |
 |---|---|---|---|
 | P0 | 14 | 4 | 10 |
-| P1 | 72 | 51 | 21 |
-| P2 | 96 | 73 | 23 |
+| P1 | 81 | 59 | 22 |
+| P2 | 105 | 80 | 25 |
 | P3 | 93 | 70 | 23 |
 | P4 | 18 | 1 | 17 |
 
@@ -63,6 +63,7 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | X6-01 | Purchasing | PO line guard did not protect the dashboard's step-by-step receive (only R1): a line deleted / re-quantified in the instant between the guard's check and its commit was still stocked | Forced every time locally (po_browser_path_races.sh); NOWAIT order lock drafted, 12/12 agree | High | S | approval | N | Y | Y | BLOCKED-PROD |
 | X6-17 | Security | This session's GitHub credential has ADMIN rights on the repository (CLAUDE.md expects the non-admin stasvitiuk-reos); the protect-main ruleset lets admins bypass. Not used | Least privilege for automated sessions | High | S | owner: connect Claude with a non-admin account | N | Y | N | BLOCKED-OWNER |
 | X7-16 | Recovery | Restore drill into a throwaway Supabase project never recorded | Only proof that backups work | High | S | owner backup check first | N | Y | Y | BLOCKED-OWNER |
+| X8-15 | Integrity | Run Query F once, then schedule it nightly | Baseline + ongoing detection | High | S | owner runs; pg_cron approval | N | Y | Y | BLOCKED-OWNER |
 | AG-02 | Agents | Truthful agent state (Unknown/Failed/Stale/Dry run) | No optimistic defaults | High | M | — | Y | N | N | DONE |
 | AG-05 | Agents | Shopify sync interlock + wording; Emergency switches it off | Premature sync | High | S | — | Y | N | N | DONE |
 | AG-06 | Agents | No-send tripwires (email, Shopify) | No customer messages | High | S | — | Y | N | N | DONE |
@@ -114,6 +115,14 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | X7-02 | Reports | Tax Records cost estimate matched SKUs case-sensitively ("syn-a" missed "SYN-A") | Estimate exact; oracle test | High | S | — | Y | N | N | DONE |
 | X7-04 | Workflows | Tasks, Approvals and Incidents read the first 100 rows of every status, so enough closed rows hid open ones | Open-only reads; 4 tests fail on the old code | High | S | — | Y | N | N | DONE |
 | X7-11 | Security | A different person signing in elsewhere left the previous person's data in the open tab (dashboard and order page) | Tab wipes on user change; same-person refresh ignored | High | S | — | Y | N | N | DONE |
+| X8-01 | Owner UX | Waiting customer questions could be hidden behind answered ones | All waiting read; answered capped at 100 with exact count | High | S | — | Y | N | N | DONE |
+| X8-02 | Returns | Returns only possible for the newest 200 orders | Older-order finder | High | S | — | Y | N | N | DONE |
+| X8-07 | Security | Back-button cache could show the page after sign-out | Session re-checked on back-cache return | High | S | — | Y | N | N | DONE |
+| X8-09 | Concurrency | Product edit lost update across tabs | Conditional on updated_at | High | S | — | Y | N | N | DONE |
+| X8-10 | Concurrency | PO shipping/tax lost update across tabs | Conditional on values shown | High | S | — | Y | N | N | DONE |
+| X8-11 | Reporting | Slower older replies drew over newer ones (5 pages) | Latest request wins | High | S | — | Y | N | N | DONE |
+| X8-13 | Owner UX | No single list of what needs a look | Home Checks card: 17 deterministic checks, UNKNOWN distinct from fine | High | M | — | Y | N | N | DONE |
+| X8-14 | Integrity | No daily integrity check | Query F (read-only, 15 checks, 33/33 local) | High | S | — | Y | N | N | DONE |
 
 ## P2
 
@@ -142,6 +151,8 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | X6-15 | Idempotency | Request keys drafted (drafts/19 + rollback 20) for the 22 create tables; local test 23/23 | Retried creates cannot duplicate once installed and the dashboard sends keys | High | M | approval; then dashboard PR | N | Y | Y | BLOCKED-PROD |
 | X6-16 | Inventory | Read-only stock reconciliation (Query E) prepared with owner guide; local test 24/24 | Staff / owner can see stock vs history, deliveries vs stock and expense | High | S | owner runs | N | Y | N | BLOCKED-OWNER |
 | X7-14 | Permissions | Employees can approve requests in the database; admin switches have no page-side role check; policies of tables outside the export unknown | ROLE_PERMISSION_MATRIX.md §4; Query D answers | High | S | owner decision + Query D | N | Y | Y | BLOCKED-OWNER |
+| X8-17 | Review | No safe staging review copy | Synthetic-data build + test; publishing needs owner choice | Medium | M | owner choice of host (X8-D1) | Y | Y | N | BLOCKED-OWNER |
+| X8-18 | Recovery | Backup status visible on Home | Backup job writes one read-only status row (D5) | Medium | M | owner approval; private repo change | N | Y | Y | BLOCKED-OWNER |
 | AG-03 | Agents | "error"/"fail" statuses show Failed; Agent #1 "Switch on" | Overclaim | Medium | S | — | Y | N | N | DONE |
 | AX-01 | Accessibility | Accessible names, unique ids, phone tap targets, dialog focus | Screen readers / phone | Medium | S | — | Y | N | N | DONE |
 | AX-02 | Accessibility | Status/error banner announced to screen readers (role=alert / aria-live) | Errors not announced | Medium | S | — | Y | N | N | DONE |
@@ -215,6 +226,13 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | X7-07 | Owner UX | Typed-but-unsaved work was lost silently on close / reload / sign out | Question first; forced sign-out never waits | Medium | S | — | Y | N | N | DONE |
 | X7-08 | Truthfulness | Business Continuity showed an unknown or missing status as "Operational" and left it out of the counts | Shown and counted as Unknown; guarded on the real value | Medium | S | — | Y | N | N | DONE |
 | X7-13 | Concurrency | R1-R5 had fixed-order stress only | random_interleavings.sh: no guard 75/300 failing, both guards 0/300, minimal repro found | Medium | S | — | Y | N | N | DONE |
+| X8-03 | Search | Sidebar search silently missed older orders | Look up in all orders (literal match) | Medium | S | — | Y | N | N | DONE |
+| X8-04 | Owner UX | Recycle bins / histories stopped at 50 with no hint | Showing N of M + Show more on 6 lists | Medium | S | — | Y | N | N | DONE |
+| X8-05 | Compliance | Evidence picker missed older open incidents | Open incidents of any age + newest 200 | Medium | S | — | Y | N | N | DONE |
+| X8-06 | Navigation | Browser Back left the dashboard | Page history, Back/Forward, deep links | Medium | S | — | Y | N | N | DONE |
+| X8-08 | Reporting | This Week meant different windows on Orders and Expenses | One Last 7 days window; Central-clock oracle | Medium | S | — | Y | N | N | DONE |
+| X8-12 | Security | No Content-Security-Policy on 5 pages | Strict policy on every page | Medium | S | — | Y | N | N | DONE |
+| X8-16 | Recovery | Restore procedure never rehearsed | Local restore drill 6/6 (production drill = X7-16) | Medium | S | — | Y | N | N | DONE |
 
 ## P3
 
@@ -392,3 +410,5 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 - X6-15: X5-11
 - X6-22: RS-03
 - X7-10: X6-15
+- X8-08: F3-07
+- X8-12: S7

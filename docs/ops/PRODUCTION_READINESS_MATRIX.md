@@ -1,6 +1,6 @@
 # Production readiness matrix (one honest page)
 
-**Status:** CURRENT (2026-10-07, extension 7; EXT7 rows added, earlier rows unchanged unless marked). Supersedes the stage table in `READINESS_GATE.md` where the two differ (the gate keeps the blocker list). Documentation and drafts are **never** counted as deployed. Percentages are not used here; see `docs/health-endeavors-progress.md`, where they are not raised for unmerged work.
+**Status:** CURRENT (2026-10-10, extension 8; EXT8 rows added, earlier rows unchanged unless marked). Supersedes the stage table in `READINESS_GATE.md` where the two differ (the gate keeps the blocker list). Documentation and drafts are **never** counted as deployed. Percentages are not used here; see `docs/health-endeavors-progress.md`, where they are not raised for unmerged work.
 
 Legend: **LIVE** = on `main` now · **BRANCH** = fixed and tested on the extension branch only, so it needs a merge · **SQL** = needs an approved production database change · **OWNER** = needs a decision · **MANUAL** = needs a person to check (device, real data) · **EVIDENCE** = blocked by missing facts (Query C, backups) · **NOT BUILT** = not implemented anywhere.
 
@@ -41,6 +41,25 @@ Legend: **LIVE** = on `main` now · **BRANCH** = fixed and tested on the extensi
 | Employee approvals / admin switches role rule | OWNER + EVIDENCE | Decision; Query D |
 | Phone layout of wide tables (sideways scroll) | NOT BUILT | Card layout later (X7-15) |
 | Backups proven by a restore drill | EVIDENCE | Owner check + drill (X7-16) |
+
+### Added in extension 8
+
+| Area | State | What is still needed |
+|---|---|---|
+| Home "Checks: what needs a look" (17 deterministic checks; "could not check" ≠ fine; switched-off ≠ broken; backups always UNKNOWN) | BRANCH | Merge |
+| Every waiting customer question listed (answered ones capped with a count) | BRANCH | Merge |
+| Returns for older orders (order finder); search can look up all orders | BRANCH | Merge |
+| Capped lists say "Showing N of M" with Show more (recycle bins, histories, evidence) | BRANCH | Merge |
+| Browser Back / deep links stay inside the dashboard; sign-in re-checked after Back-button cache | BRANCH | Merge |
+| "Last 7 days" means the same window everywhere | BRANCH | Merge (X8-D2 if a calendar week is preferred) |
+| Product edit and PO shipping/tax refuse to overwrite a newer save | BRANCH | Merge |
+| Slower old replies no longer draw over newer ones (Accounting, Tax, Activity, Calendar, Evidence) | BRANCH | Merge |
+| Content-Security-Policy on the 5 other pages | BRANCH | Merge |
+| Daily integrity check (Query F, read-only) | Prepared, tested locally | OWNER runs it; scheduling = SQL approval |
+| Staging review copy (synthetic data) | Built and tested | OWNER chooses where to show it (X8-D1) |
+| Backup health on Home | UNKNOWN shown on purpose | OWNER check; status row (X8-D6) |
+| Real VoiceOver / iPhone Safari | Not testable here | MANUAL |
+| GitHub access least privilege | **Admin credential still in use** (re-checked 2026-10-10; not used) | OWNER (X6-17): `stasvitiuk-reos`, Write role |
 
 ## B. Business operations
 
