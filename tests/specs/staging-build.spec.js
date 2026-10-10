@@ -62,6 +62,9 @@ test('banner, synthetic sign-in, seeded pages; nothing outside is contacted', as
   page.on('pageerror', e => errors.push(String(e)));
   await page.goto(ORIGIN + '/');
   await expect(page.locator('#stagingBanner')).toContainText('DEVELOPMENT / STAGING — NOT PRODUCTION');
+  // No real password can be typed into the staging copy.
+  await expect(page.locator('#email')).toHaveJSProperty('readOnly', true);
+  await expect(page.locator('#password')).toHaveJSProperty('readOnly', true);
   await page.locator('#stagingSignIn').click();
   await expect(page.locator('#attnChecksWrap')).toContainText('Backups', { timeout: 15000 });
   // Seed facts show up: a low-stock product and the manual order without items.

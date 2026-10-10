@@ -111,7 +111,7 @@ bundle += `
     if (form && !document.getElementById('stagingSignIn')) {
       var box = document.createElement('div');
       box.style.cssText = 'margin:12px 0;padding:10px 12px;border-radius:10px;background:#fff4dd;color:#5c3b00;font-size:13px';
-      box.innerHTML = '<b>Staging review copy.</b> Do not type a real password here. Use the button: it signs in as the synthetic owner.<br>';
+      box.innerHTML = '<b>Staging review copy.</b> Typing is switched off here. Use the button: it signs in as the synthetic owner.<br>';
       var btn = document.createElement('button');
       btn.type = 'button'; btn.id = 'stagingSignIn'; btn.textContent = 'Sign in as the synthetic owner';
       btn.style.marginTop = '8px';
@@ -122,6 +122,12 @@ bundle += `
       });
       box.appendChild(btn);
       form.parentNode.insertBefore(box, form);
+      // Nobody can type a password into the staging copy: the fields are
+      // read-only and only the button fills them with the synthetic owner.
+      ['email', 'password'].forEach(function (id) {
+        var f = document.getElementById(id);
+        if (f) { f.readOnly = true; f.placeholder = 'staging: use the button above'; f.autocomplete = 'off'; }
+      });
     }
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', banner); else banner();
