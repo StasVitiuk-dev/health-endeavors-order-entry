@@ -8,10 +8,11 @@ const path = require('path');
 const { test, expect } = require('@playwright/test');
 
 const DIR = path.resolve(__dirname, '..', '..', 'docs', 'ops', 'sql', 'drafts');
-const INSTALLS = ['10_DRAFT_stock_functions.sql', '13_DRAFT_report_totals.sql', '17_DRAFT_po_line_delete_guard.sql', '19_DRAFT_request_keys.sql'];
+const INSTALLS = ['10_DRAFT_stock_functions.sql', '13_DRAFT_report_totals.sql', '17_DRAFT_po_line_delete_guard.sql', '19_DRAFT_request_keys.sql', '21_DRAFT_stock_function_switches.sql'];
 const ROLLBACKS = { '10_DRAFT_stock_functions.sql': '11_DRAFT_rollback_stock_functions.sql',
   '17_DRAFT_po_line_delete_guard.sql': '18_DRAFT_rollback_po_line_delete_guard.sql',
-  '19_DRAFT_request_keys.sql': '20_DRAFT_rollback_request_keys.sql' };
+  '19_DRAFT_request_keys.sql': '20_DRAFT_rollback_request_keys.sql',
+  '21_DRAFT_stock_function_switches.sql': '22_DRAFT_rollback_stock_function_switches.sql' };
 const ALL = fs.readdirSync(DIR).filter(f => /^\d\d_DRAFT_.*\.sql$/.test(f) && !/_tests?_/.test(f));
 
 // Remove comments and quoted text so words inside them are not mistaken for SQL.
@@ -44,7 +45,12 @@ for (const f of ALL) {
     expect(sql, 'row-level security never switched off').not.toMatch(/disable\s+row\s+level\s+security|no\s+force\s+row\s+level/);
     expect(sql, 'policies never created, changed or dropped').not.toMatch(/\b(create|alter|drop)\s+policy\b/);
     expect(sql, 'no table or schema is dropped').not.toMatch(/\bdrop\s+(table|schema)\b/);
-    expect(sql, 'no data deleted or truncated').not.toMatch(/\btruncate\b|^\s*delete\s+from\b/m);
+    // The one allowed delete (EXT9): the switches rollback removes exactly the
+    // five stock_fn_* rows its install added, nothing else.
+    const allowed = f === '22_DRAFT_rollback_stock_function_switches.sql'
+      ? sql.replace(/delete from public\.feature_flags\s+where flag_key in \('stock_fn_receive_po', 'stock_fn_recall', 'stock_fn_return', 'stock_fn_adjust', 'stock_fn_delete_product'\);/, '')
+      : sql;
+    expect(allowed, 'no data deleted or truncated').not.toMatch(/\btruncate\b|^\s*delete\s+from\b/m);
   });
 
   test(`${f}: every function pins its search path; elevated (definer) functions are not used`, () => {
