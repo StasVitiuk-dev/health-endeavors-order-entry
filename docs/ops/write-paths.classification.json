@@ -844,5 +844,60 @@
   "partial": "no (single write)",
   "sensitive": "no",
   "note": "EXT5: only over the alert level the page showed; 0 rows -> looks, then creates the stock record or reports the change"
+ },
+ "owner-login.html|click recvBtn|rpc:receive_purchase_order|rpc|1": {
+  "audit": "inventory_adjustments rows written inside the function (who, when, reason) + audit trigger (Query A)",
+  "partial": "no (one database transaction: all or nothing)",
+  "sensitive": "yes",
+  "note": "EXT9: used only when its stock_fn_* switch is on (drafts/21); off = the older path above",
+  "guards": "doubleClickLock,confirmation",
+  "idempotency": "guarded: a repeat changes nothing (already_received)",
+  "justify": {
+   "lock": "Button disabled before the call; the function also locks the row in the database."
+  }
+ },
+ "owner-login.html|click .recallQuarantineBtn|rpc:quarantine_recall|rpc|1": {
+  "audit": "inventory_adjustments rows written inside the function (who, when, reason) + audit trigger (Query A)",
+  "partial": "no (one database transaction: all or nothing)",
+  "sensitive": "yes",
+  "note": "EXT9: used only when its stock_fn_* switch is on (drafts/21); off = the older path above",
+  "guards": "doubleClickLock",
+  "idempotency": "guarded: a repeat changes nothing (already_done)",
+  "justify": {
+   "lock": "Button disabled before the call; the function also locks the row in the database."
+  }
+ },
+ "owner-login.html|click .markReceivedBtn|rpc:receive_return|rpc|1": {
+  "audit": "inventory_adjustments rows written inside the function (who, when, reason) + audit trigger (Query A)",
+  "partial": "no (one database transaction: all or nothing)",
+  "sensitive": "yes",
+  "note": "EXT9: used only when its stock_fn_* switch is on (drafts/21); off = the older path above",
+  "guards": "doubleClickLock",
+  "idempotency": "guarded: a repeat changes nothing (already_done; never restocked twice)",
+  "justify": {
+   "lock": "Button disabled before the call; the function also locks the row in the database."
+  }
+ },
+ "owner-login.html|click .deleteProductBtn|rpc:delete_unused_product|rpc|1": {
+  "audit": "inventory_adjustments rows written inside the function (who, when, reason) + audit trigger (Query A)",
+  "partial": "no (one database transaction: all or nothing)",
+  "sensitive": "yes",
+  "note": "EXT9: used only when its stock_fn_* switch is on (drafts/21); off = the older path above",
+  "guards": "doubleClickLock,confirmation",
+  "idempotency": "repeat harmless (second call: not_found)",
+  "justify": {
+   "lock": "Button disabled before the call; the function also locks the row in the database."
+  }
+ },
+ "owner-login.html|submit adjustInventoryForm|rpc:adjust_inventory|rpc|1": {
+  "audit": "inventory_adjustments rows written inside the function (who, when, reason) + audit trigger (Query A)",
+  "partial": "no (one database transaction: all or nothing)",
+  "sensitive": "yes",
+  "note": "EXT9: used only when its stock_fn_* switch is on (drafts/21); off = the older path above",
+  "guards": "doubleClickLock",
+  "idempotency": "guarded: a repeat changes nothing (p_expected = the number shown; a repeat finds it changed)",
+  "justify": {
+   "lock": "Submit button disabled before the call; p_expected refuses a change on top of a newer number."
+  }
  }
 }

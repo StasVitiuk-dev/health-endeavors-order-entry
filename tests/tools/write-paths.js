@@ -16,7 +16,9 @@ const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..', '..');
 const PAGES = ['owner-login.html', 'manual-order-entry.html', 'index.html', 'dashboard.html', 'search.html', 'change-password.html'];
-const MUTATING_RPCS = new Set(['log_customer_data_access', 'revoke_my_session']);
+const MUTATING_RPCS = new Set(['log_customer_data_access', 'revoke_my_session',
+  // EXT9: the all-or-nothing stock functions R1–R5, called through callStockFunction()
+  'receive_purchase_order', 'adjust_inventory', 'quarantine_recall', 'receive_return', 'delete_unused_product']);
 // Workflow-state columns (kept in step with STATE_COLUMNS in tests/helpers/mock-supabase.js)
 const STATE_COLUMNS = {
   tasks: ['status'], purchase_orders: ['status', 'payment_status'], returns: ['status'], recalls: ['status'],
@@ -174,6 +176,7 @@ function extract(file) {
     { re: /updateIfUnchanged\(\s*'([a-z_]+)'/g, op: 'updateIfUnchanged' },
     { re: /\.(insert|update|upsert|delete)\(/g, op: null },
     { re: /\.rpc\(\s*'([a-z_]+)'/g, op: 'rpc' },
+    { re: /callStockFunction\(\s*'([a-z_]+)'/g, op: 'rpc' },
     { re: /\.storage\.from\(\s*'([a-z-]+)'\s*\)\s*\.(upload|remove)\(/g, op: 'storage' },
     { re: /\.auth\.(updateUser|resetPasswordForEmail|signOut)\(/g, op: 'auth' },
   ];
@@ -263,8 +266,9 @@ function retryClass(row, cls) {
 }
 
 // EXT8 (workstream A): what each write touches and how it is protected.
-const MONEY_TABLES = new Set(['orders', 'order_items', 'expenses', 'purchase_orders', 'purchase_order_items', 'returns', 'business_rules']);
-const STOCK_TABLES = new Set(['inventory', 'inventory_adjustments', 'inventory_lots', 'recalls', 'purchase_order_items', 'products']);
+const MONEY_TABLES = new Set(['orders', 'order_items', 'expenses', 'purchase_orders', 'purchase_order_items', 'returns', 'business_rules', 'rpc:receive_purchase_order']);
+const STOCK_TABLES = new Set(['inventory', 'inventory_adjustments', 'inventory_lots', 'recalls', 'purchase_order_items', 'products',
+  'rpc:receive_purchase_order', 'rpc:adjust_inventory', 'rpc:quarantine_recall', 'rpc:receive_return', 'rpc:delete_unused_product']);
 const PII_TABLES = new Set(['orders', 'customer_inquiries', 'returns', 'adverse_event_reports', 'profiles', 'manual_attention_items', 'personal_calendar_events', 'calendar_notes']);
 // Server-side rule per table, from the Query A export mirrored in the local
 // real-shape schema (local-test/01_REAL_SHAPE...): owner/admin only, any

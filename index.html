@@ -4,6 +4,10 @@
 <meta charset="UTF-8" />
 <!-- EXT8 (security review S7): only this site, the pinned CDN, the Supabase project and Google Fonts may load or be contacted. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://uizrazyehilyzmwttsrn.supabase.co wss://uizrazyehilyzmwttsrn.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'">
+<meta name="referrer" content="no-referrer">
+<!-- EXT9: never shown inside another site's frame (clickjacking). GitHub Pages cannot send the
+     header that forbids framing, so the page hides itself and leaves the frame instead. -->
+<script id="frameGuard">if (window.top !== window.self) { document.documentElement.style.display = 'none'; try { window.top.location.replace(window.self.location.href); } catch (e) {} }</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Health Endeavors — Manual Order Entry</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">

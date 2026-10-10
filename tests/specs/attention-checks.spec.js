@@ -111,3 +111,58 @@ test('the backups line cannot be hidden', async ({ page }, ti) => {
   await expect(page.locator('#attnChecksWrap .attnCheck[data-key="backups"]')).toHaveCount(1);
   await expect(page.locator('#attnChecksWrap .attnCheck[data-key="backups"] button')).toHaveCount(0);
 });
+
+// EXT9: freshness. A result from a while ago must not look current.
+test.describe('Checks card freshness', () => {
+  test.beforeEach(({}, ti) => { test.skip(ti.project.name !== 'desktop', 'page logic; run once'); });
+  const fresh = page => page.locator('#attnChecksWrap .attnFresh');
+  const checkReads = backend => backend.requests.filter(r => r.table === 'approval_requests' && /status=not\.in/.test(decodeURIComponent(r.query))).length;
+
+  test('says when it checked; after 15 minutes it says the results may be out of date', async ({ page }) => {
+    await page.clock.install();
+    await login(page);
+    await expect(fresh(page)).toContainText('Checked at');
+    await expect(fresh(page)).not.toHaveClass(/attnStale/);
+    // The 5-minute background refresh keeps a visible tab fresh; a hidden tab
+    // (another app in front, laptop asleep) is skipped, so its results age.
+    await page.evaluate(() => Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' }));
+    await page.clock.fastForward('16:00');
+    await page.evaluate(() => Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'visible' }));
+    // any redraw (here: hiding a to-do) recomputes the age
+    await page.locator('#attnChecksWrap .attnCheck[data-key="overdueTasks"]').getByRole('button', { name: 'Hide until it changes' }).click();
+    await expect(fresh(page)).toHaveClass(/attnStale/);
+    await expect(fresh(page)).toContainText('may be out of date');
+  });
+
+  test('"Check again" re-runs the checks', async ({ page, backend }) => {
+    await login(page);
+    await expect(fresh(page)).toBeVisible();
+    const before = checkReads(backend);
+    await page.click('#attnRecheck');
+    await expect.poll(() => checkReads(backend)).toBeGreaterThan(before);
+    await expect(fresh(page)).toContainText('Checked at');
+  });
+
+  test('coming back to a tab with stale results re-runs them by itself', async ({ page, backend }) => {
+    await page.clock.install();
+    await login(page);
+    await expect(fresh(page)).toBeVisible();
+    const before = checkReads(backend);
+    await page.evaluate(() => Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' }));
+    await page.clock.fastForward('20:00');
+    expect(checkReads(backend)).toBe(before); // hidden: the background refresh skipped it
+    await page.evaluate(() => Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'visible' }));
+    await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+    await expect.poll(() => checkReads(backend)).toBeGreaterThan(before);
+  });
+
+  test('coming back while results are still fresh does not re-run them', async ({ page, backend }) => {
+    await login(page);
+    await expect(fresh(page)).toBeVisible();
+    await page.waitForLoadState('networkidle');
+    const before = checkReads(backend);
+    await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+    await page.waitForTimeout(500);
+    expect(checkReads(backend)).toBe(before);
+  });
+});

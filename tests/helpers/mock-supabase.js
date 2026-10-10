@@ -234,6 +234,12 @@ class FakeSupabase {
       // (e.g. honouring p_limit / p_offset); otherwise a fixed reply.
       const v = Object.prototype.hasOwnProperty.call(this.rpc, entry.rpc) ? this.rpc[entry.rpc] : [];
       const result = typeof v === 'function' ? v(entry.body || {}) : v;
+      // A function may answer like PostgREST does when the database raises an
+      // error: { __error: { status, code, message, hint } } (EXT9).
+      if (result && result.__error) {
+        const e = result.__error;
+        return route.fulfill({ status: e.status || 400, contentType: 'application/json', body: JSON.stringify({ code: e.code, message: e.message, hint: e.hint || null, details: null }) });
+      }
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(result) });
     }
     if (url.pathname.startsWith('/rest/v1/')) {

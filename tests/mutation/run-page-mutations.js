@@ -14,6 +14,31 @@ const SCRATCH = path.resolve(process.argv[2] || path.join(require('os').tmpdir()
 
 // [name, file, exact text to find, replacement, specs + grep]
 const MUTATIONS = [
+  // ---- EXT9 additions (2026-10-10): stock buttons and the R1–R5 switches ----
+  ['a missing stock switch counts as ON', 'owner-login.html',
+    "return !error && !!data && data.enabled === true;", "return !error && (!data || data.enabled !== false);",
+    'stock-functions -g "no switch row"'],
+  ['an unreadable stock switch counts as ON', 'owner-login.html',
+    "return !error && !!data && data.enabled === true;", "return !!error || (!!data && data.enabled === true);",
+    'stock-functions -g "cannot be read"'],
+  ['a function that is not installed is reported as a refusal (no "turn the switch off")', 'owner-login.html',
+    "er.kind = (code === 'PGRST202' || code === '42883' || /could not find the function/i.test(err.message || '')) ? 'missing'", "er.kind = false ? 'missing'",
+    'stock-functions -g "not installed"'],
+  ['a lost reply on a stock function is reported as "nothing was changed"', 'owner-login.html',
+    ": (isNetworkError(err) || /^5\\d\\d$/.test(code) || !code) ? 'unknown' : 'refused';", ": 'refused';",
+    'stock-functions -g "lost reply"'],
+  ['the adjustment no longer sends the number shown (stale tab applied on top)', 'owner-login.html',
+    "p_reason: reasonInput.value.trim() || null, p_expected: shown });", "p_reason: reasonInput.value.trim() || null, p_expected: null });",
+    'stock-functions -g "saved elsewhere since"'],
+  ['the adjustment invites a blind retry after a lost reply', 'owner-login.html',
+    "stockFunctionError(err, 'the adjustment', false)", "stockFunctionError(err, 'the adjustment', true)",
+    'stock-functions -g "never invites a blind retry"'],
+  ['receive also runs the old browser path after the function', 'owner-login.html',
+    "          safeRun(loadExpenses);\n          return;\n        }\n", "          safeRun(loadExpenses);\n        }\n",
+    'stock-functions -g "one call does everything"'],
+  ['return sends the page quantity instead of the whole line (D-ops-5 decided silently)', 'owner-login.html',
+    "p_disposition: disposition, p_quantity: null });", "p_disposition: disposition, p_quantity: quantity });",
+    'stock-functions -g "whole line"'],
   // ---- EXT6 additions (2026-10-07) ----
   ['a total that is really zero shows "-$0.00" again', 'assets/owner-login-helpers.js',
     "if (n === 0 || !isFinite(n)) n = 0;", "if (!isFinite(n)) n = 0;",

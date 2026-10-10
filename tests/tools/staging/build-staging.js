@@ -139,6 +139,11 @@ let html = read('owner-login.html');
 const before = html.length;
 html = scrub(html);
 html = html.replace(/<title>([^<]*)<\/title>/, '<title>STAGING — $1</title>');
+// The live page refuses to be shown inside a frame (clickjacking guard). A
+// review page (e.g. a private claude.ai page) is shown in one, so the staging
+// copy, which has no real data or actions, drops that guard.
+html = html.replace(/<script id="frameGuard">[^<]*<\/script>\n?/, '');
+if (html.includes('frameGuard')) throw new Error('could not remove the frame guard from the staging copy');
 // The stand-in must be installed before the Supabase library and the page.
 html = html.replace(/(<script src="https:\/\/cdn\.jsdelivr\.net\/npm\/@supabase)/, '<script src="staging-runtime.js"></script>\n$1');
 if (!html.includes('staging-runtime.js')) throw new Error('could not insert the staging runtime');

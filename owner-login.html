@@ -23,6 +23,10 @@
      code could not load outside scripts or send data to another site.
      ('unsafe-inline' stays because the page's own code and styles are inline.) -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://uizrazyehilyzmwttsrn.supabase.co wss://uizrazyehilyzmwttsrn.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'">
+<meta name="referrer" content="no-referrer">
+<!-- EXT9: never shown inside another site's frame (clickjacking). GitHub Pages cannot send the
+     header that forbids framing, so the page hides itself and leaves the frame instead. -->
+<script id="frameGuard">if (window.top !== window.self) { document.documentElement.style.display = 'none'; try { window.top.location.replace(window.self.location.href); } catch (e) {} }</script>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -1055,6 +1059,49 @@
         }
       }
       throw new Error('The stock for this product kept changing while saving (someone else is adjusting it right now). Nothing was changed on this try — refresh and try again.');
+    }
+
+    // EXT9: the stock buttons can use the all-or-nothing database functions
+    // R1–R5 (docs/ops/sql/drafts/10_…) instead of the chains of browser
+    // requests above. Each button switches only after the owner has installed
+    // the functions AND turned on its own switch on Feature Switches
+    // (drafts/21_… adds the switches, all off). A switch that is off, missing
+    // or cannot be read means today's path, unchanged. Read at every click, so
+    // turning a switch off takes effect at once (rollback without a deploy).
+    const STOCK_FN_FLAGS = {
+      receive: 'stock_fn_receive_po', recall: 'stock_fn_recall', ret: 'stock_fn_return',
+      adjust: 'stock_fn_adjust', deleteProduct: 'stock_fn_delete_product',
+    };
+    async function stockFunctionOn(kind){
+      try {
+        const { data, error } = await supabase.from('feature_flags').select('enabled').eq('flag_key', STOCK_FN_FLAGS[kind]).maybeSingle();
+        return !error && !!data && data.enabled === true;
+      } catch (e) { return false; }
+    }
+    // Calls one of the functions. Throws an Error whose .kind says what the
+    // person can do next: 'missing' (switched on, not installed: nothing ran),
+    // 'unknown' (no reply: it may or may not have happened) or 'refused' (the
+    // database said no inside its transaction: nothing was changed).
+    async function callStockFunction(name, args){
+      let res;
+      try { res = await supabase.rpc(name, args); }
+      catch (e) { const er = new Error(String((e && e.message) || e)); er.kind = 'unknown'; throw er; }
+      const err = res && res.error;
+      if (err) {
+        const code = String(err.code || '');
+        const er = new Error(explainDbError(err.message || String(err)));
+        er.code = code; er.hint = err.hint || '';
+        er.kind = (code === 'PGRST202' || code === '42883' || /could not find the function/i.test(err.message || '')) ? 'missing'
+          : (isNetworkError(err) || /^5\d\d$/.test(code) || !code) ? 'unknown' : 'refused';
+        throw er;
+      }
+      return (res && res.data) || {};
+    }
+    function stockFunctionError(err, what, retrySafe){
+      if (err.kind === 'missing') return 'The all-or-nothing database function for ' + what + ' is switched on but is not installed, so nothing was changed. Turn its switch off on Feature Switches (or install the function), then try again.';
+      if (err.kind === 'unknown') return 'The connection dropped, so the dashboard cannot tell whether ' + what + ' happened. '
+        + (retrySafe ? 'Reload and look first; trying again is safe — the database does it only once.' : 'Reload the page and check the stock and its history before trying again.');
+      return 'Nothing was changed: ' + err.message;
     }
     // Reads every matching row, a page at a time. One request returns at most
     // Supabase's "Max rows" setting (1,000 by default) and does NOT say when it
@@ -3451,9 +3498,28 @@
         : { ok: false, error: 'switches could not be read' };
       ATTN_FINDINGS = attentionFindings({ inventory, receivedPOs, openPOs, poExpenses, openTasks, pendingApprovals, openIncidents,
         waitingQuestions, openReturns, ordersWithoutItems, services, orderSyncFlag, agentsPaused }, Date.now());
+      ATTN_CHECKED_AT = Date.now();
       renderAttentionChecks();
     }
     let ATTN_FINDINGS = [];
+    // EXT9: when the checks last ran. Results older than ATTN_STALE_MS say so
+    // plainly (never look current), and re-run when the tab is looked at again.
+    let ATTN_CHECKED_AT = null;
+    const ATTN_STALE_MS = 15 * 60 * 1000;
+    function attnFreshnessHtml(){
+      if (!ATTN_CHECKED_AT) return '';
+      const age = Date.now() - ATTN_CHECKED_AT;
+      const at = new Date(ATTN_CHECKED_AT).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+      const mins = Math.round(age / 60000);
+      return age > ATTN_STALE_MS
+        ? `<p class="hint attnFresh attnStale" role="status">These results are from ${esc(at)} (${mins} minutes ago) and may be out of date. <button type="button" class="small" id="attnRecheck">Check again</button></p>`
+        : `<p class="hint attnFresh">Checked at ${esc(at)}. <button type="button" class="small secondary" id="attnRecheck">Check again</button></p>`;
+    }
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && ATTN_CHECKED_AT && Date.now() - ATTN_CHECKED_AT > ATTN_STALE_MS && currentPageId === 'attentionPanel') {
+        safeRun(loadAttentionChecks);
+      }
+    });
     function renderAttentionChecks(){
       const wrap = document.getElementById('attnChecksWrap');
       if (!wrap) return;
@@ -3479,7 +3545,10 @@
         </div>`).join('');
       const nothing = !ATTN_FINDINGS.some(f => f.level !== 'info');
       wrap.innerHTML = (nothing ? '<p class="empty" style="margin:0 0 8px;">No data problems or to-dos found by these checks.</p>' : '') + rows +
-        (hiddenCount ? `<p class="hint" style="margin:8px 0 0;">${hiddenCount} hidden until they change. <button type="button" class="small secondary" id="attnToggleHidden">${ATTN_SHOW_HIDDEN ? 'Hide them' : 'Show them'}</button></p>` : '');
+        (hiddenCount ? `<p class="hint" style="margin:8px 0 0;">${hiddenCount} hidden until they change. <button type="button" class="small secondary" id="attnToggleHidden">${ATTN_SHOW_HIDDEN ? 'Hide them' : 'Show them'}</button></p>` : '') +
+        attnFreshnessHtml();
+      const recheck = document.getElementById('attnRecheck');
+      if (recheck) recheck.addEventListener('click', () => { recheck.disabled = true; safeRun(loadAttentionChecks); });
       wrap.querySelectorAll('.attnOpen').forEach(b => b.addEventListener('click', () => showPage(b.getAttribute('data-goto'))));
       wrap.querySelectorAll('.attnHide, .attnUnhide').forEach(b => b.addEventListener('click', () => {
         const key = b.closest('.attnCheck').getAttribute('data-key');
@@ -4410,6 +4479,31 @@
         // here: a second, deliberate press (same as Cancel).
         if (!confirmSecondPress(recvBtn, 'Confirm: add stock + log expense?')) return;
         recvBtn.disabled = true;
+        // EXT9: R1 (receive_purchase_order) when its switch is on: one
+        // database transaction locks the order, adds the stock, records the
+        // lots, history and expense, or does nothing at all; a second press or
+        // a retry gets "already received" and adds nothing.
+        if (await stockFunctionOn('receive')) {
+          const lots = [...box.querySelectorAll('.poLineLot[data-line]')]
+            .map(i => ({ line_id: i.getAttribute('data-line'), lot_number: i.value.trim() }))
+            .filter(l => l.lot_number);
+          try {
+            const r = await callStockFunction('receive_purchase_order', { p_po_id: po.id, p_lots: lots, p_expense_date: localDateString(new Date()) });
+            if (r.already_received) {
+              toast('Purchase order ' + (r.po_number || po.po_number) + ' was already received — nothing was added again.');
+            } else {
+              const n = Number(r.stocked || 0);
+              toastOk((n ? `Received — ${n} ${n === 1 ? 'item' : 'items'} added to Inventory, cost logged to Expenses, true unit costs worked out.` : 'Received — cost logged to Expenses, true unit costs worked out.'));
+              if (Number(r.skipped || 0)) toast(`${r.skipped} line${Number(r.skipped) === 1 ? '' : 's'} weren't catalogue products, so no stock was added for them.`);
+            }
+          } catch (err) {
+            showDashError('Could not receive purchase order ' + po.po_number + '. ' + stockFunctionError(err, 'the delivery', true));
+          }
+          loadPurchaseOrders();
+          safeRun(loadInventory);
+          safeRun(loadExpenses);
+          return;
+        }
         // Claim first: the order is marked Received only if it is still
         // Ordered or Shipped. A double click, a second tab, a stale page or a
         // retry after a lost reply then gets "already changed" and adds
@@ -4881,6 +4975,23 @@
             const lotId = row.getAttribute('data-lot');
             if (!canChangeStock()) { showDashError('Only the Owner or an Administrator can change stock. Nothing was changed.'); return; }
             btn.disabled = true;
+            // EXT9: R2 (quarantine_recall) when its switch is on: the recall
+            // status, both stock buckets and their history in one transaction.
+            if (await stockFunctionOn('recall')) {
+              try {
+                const r = await callStockFunction('quarantine_recall', { p_recall_id: id });
+                if (r.already_done) toast('That recall was already handled — no stock was moved again.');
+                else toastOk(Number(r.quantity_quarantined || 0) + ' units quarantined.');
+              } catch (err) {
+                showDashError(err.hint === 'nothing_to_quarantine'
+                  ? 'There’s nothing left in Available for this lot to quarantine — check Inventory directly if stock needs adjusting by hand. Nothing was changed.'
+                  : 'Could not quarantine that stock. ' + stockFunctionError(err, 'the quarantine', true));
+              }
+              loadRecalls();
+              safeRun(loadInventory);
+              safeRun(loadAttention);
+              return;
+            }
             try {
               const uid = await currentUserId();
               const { data: lot, error: lotErr } = await supabase.from('inventory_lots')
@@ -8306,6 +8417,28 @@
               return;
             }
             btn.disabled = true;
+            // EXT9: R5 (delete_unused_product) when its switch is on: every
+            // check and both deletes in one transaction, so stock can never be
+            // lost and a product with any history is never deleted.
+            if (await stockFunctionOn('deleteProduct')) {
+              try {
+                const r = await callStockFunction('delete_unused_product', { p_product_id: id });
+                if (r.deleted) { toastOk('Product deleted.'); }
+                else {
+                  const why = { has_stock: 'still has stock' + (r.units != null ? ' (' + Number(r.units) + ' units in total)' : '') + ', so it can\'t be deleted. Use Deactivate instead, or move the stock out first.',
+                    in_use: 'can\'t be deleted because it\'s already used somewhere — a purchase order, a lot, a recall, a quality check or a stock adjustment. Use Deactivate instead, which hides it without losing that history.',
+                    sold: 'can\'t be deleted because it has already been sold. Use Deactivate instead, which hides it without losing the sales history.',
+                    not_found: 'was already deleted (by someone else or another tab).' }[r.reason] || 'was not deleted. Nothing was changed.';
+                  showDashError('"' + name + '" ' + why);
+                }
+              } catch (err) {
+                showDashError('Could not delete "' + name + '". ' + stockFunctionError(err, 'the delete', true));
+              }
+              btn.disabled = false;
+              loadInventory();
+              safeRun(loadPurchaseOrders);
+              return;
+            }
             try {
               // Never delete a product that still has stock: the stock row is
               // removed first (it exists for every product), so a product that
@@ -8493,6 +8626,30 @@
       const submitBtn = e.target.querySelector('button[type="submit"]');
       const originalBtnText = submitBtn.textContent;
       submitBtn.disabled = true;
+      // EXT9: R4 (adjust_inventory) when its switch is on: the stock and its
+      // history in one transaction. It sends the number this page shows, so a
+      // change saved elsewhere meanwhile (or a repeat after a lost reply) is
+      // refused instead of applied twice.
+      if (await stockFunctionOn('adjust')) {
+        const shownRow = (SEARCH_INDEX.inventory || []).find(p => p.id === productId);
+        const shownInv = shownRow ? (Array.isArray(shownRow.inventory) ? shownRow.inventory[0] : shownRow.inventory) : null;
+        const shown = shownInv && shownInv[bucket] != null && Number.isInteger(Number(shownInv[bucket])) ? Number(shownInv[bucket]) : null;
+        try {
+          await callStockFunction('adjust_inventory', { p_product_id: productId, p_bucket: bucket, p_change: changeAmount, p_reason: reasonInput.value.trim() || null, p_expected: shown });
+          bucketSelect.value = ''; amountInput.value = ''; reasonInput.value = '';
+          toastOk('Stock adjusted.');
+        } catch (err) {
+          showDashError(err.hint === 'stale_value'
+            ? 'This stock changed since the page loaded, so nothing was changed. The numbers have been refreshed: check them and save again if still needed.'
+            : err.hint === 'below_zero' ? err.message.replace(/^Nothing was changed: /, '') + ' Nothing was changed.'
+            : 'Could not save that adjustment. ' + stockFunctionError(err, 'the adjustment', false));
+        }
+        loadInventory();
+        loadInventoryAdjustments();
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalBtnText;
+        return;
+      }
       try {
         // Compare-and-set: never overwrites a change someone else saved in
         // between, and refuses to go below zero using fresh numbers.
@@ -8725,6 +8882,25 @@
               return;
             }
             btn.disabled = true;
+            // EXT9: R3 (receive_return) when its switch is on: the Received
+            // status and the restock in one transaction; a return received
+            // once is never restocked again.
+            if (await stockFunctionOn('ret')) {
+              try {
+                const r = await callStockFunction('receive_return', { p_return_id: id, p_disposition: disposition, p_quantity: null }); // whole line, as today (partial returns wait on owner decision D-ops-5)
+                if (r.already_done) toast('That return was already received — no stock was added again.');
+                else if (r.restocked) toastOk('Return received — ' + Number(r.quantity || 0) + ' added back to Inventory.');
+                else if (r.note === 'no_sku') showDashError('This return has no SKU on file, so it was marked Received without an automatic restock — please adjust Inventory manually.');
+                else if (r.note === 'no_product_with_sku') showDashError('No product currently has SKU "' + (r.sku || sku) + '" — this return was marked Received, but you’ll need to adjust Inventory by hand.');
+                else toastOk('Return received.');
+              } catch (err) {
+                showDashError('Could not mark that return Received. ' + stockFunctionError(err, 'receiving the return', true));
+              }
+              loadReturns();
+              loadInventory();
+              loadInventoryAdjustments();
+              return;
+            }
             // Claim first: mark the return Received only if it is still
             // Approved. Only the click that wins the claim restocks, so a
             // double click, a second tab or a retry can't restock twice.
