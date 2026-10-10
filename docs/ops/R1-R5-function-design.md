@@ -1,5 +1,7 @@
 # R1–R5: all-or-nothing stock functions — design (DRAFT)
 
+> **EXT9 note (2026-10-10):** §4 "one dashboard PR per function, after the SQL is live" is **SUPERSEDED BY EXT9**: the dashboard side is built behind per-button switches (off by default), see `CURRENT_PLATFORM_STATE_EXT9.md` §4.
+
 **Status:** design and SQL drafts only. Nothing has been run on Supabase. SQL: `docs/ops/sql/drafts/10_DRAFT_stock_functions.sql` (functions), `11_…rollback.sql`, `12_…tests.sql`. Written against a **guessed** schema. It must be reconciled with the owner's read-only Query A output before it becomes a real migration.
 
 **Builds on:** PR #16 (inventory safety audit and atomic plan) and the owner decisions of 2026-09-29: a read-only schema check first; "already received" changes nothing; no partial deliveries.

@@ -1,6 +1,6 @@
 # Health Endeavors — current state (cross-project summary)
 
-**Last updated:** October 10, 2026, extension 8 (platform §1, §8; website sections unchanged from Sept 30). **Keep this short.** Details live in the linked documents; update this file whenever the verified state changes materially.
+**Last updated:** October 10, 2026, extension 9 (platform §1, §8; website sections unchanged from Sept 30). Internal-platform entry point from now on: `docs/ops/CURRENT_PLATFORM_STATE_EXT9.md`. **Keep this short.** Details live in the linked documents; update this file whenever the verified state changes materially.
 
 Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (from the owner's earlier chats, not re-checked) · **PROPOSED** · **OWNER DECISION REQUIRED** · **DEPRECATED**.
 
@@ -76,6 +76,11 @@ Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (fro
   - Prepared, not run: **Query F** (read-only daily integrity check). Local restore drill 6/6. Staging review copy built on synthetic data; publishing it needs an owner choice (`docs/ops/STAGING_REVIEW_PLAN.md`).
   - **Security:** GitHub credential still admin (X6-17); recommended `stasvitiuk-reos` with Write role. Not used.
   - Report: `docs/ops/DEEP_PLATFORM_EXTENSION_8_2026-10-07.md`.
+- **Extension 9 (Oct 10, not merged, not live):** `claude/platform-deep-completion-extension-9-2026-10-10`, built on extension 8 (`8aa24a9`).
+  - Stock buttons (receive, recall, return, adjust, delete product) are ready to use the all-or-nothing database functions R1–R5, **one switch per button, all off**; a switch cannot be turned on before its function is installed. Same pattern for duplicate-proof creates (request keys) on 5 forms.
+  - Fixed: calendar notes/events overwritten by another tab; currency warnings shown on the wrong page; older expenses unreachable; dashboard could be shown inside another site's frame; Home checks looked current when hours old; CSV formula edge cases.
+  - Prepared (not run/installed): Query G (permissions inventory), integrity rules (draft 23), nightly Query F (draft 25), switch rows (drafts 21, 27), each with rollback and a local test.
+  - Owner one-pager: `docs/ops/OWNER_UNBLOCK_CENTER_EXT9.md`. Report: `docs/ops/DEEP_PLATFORM_EXTENSION_9_2026-10-10.md`.
 - **Store not launched:** 0 real orders, real products not yet added, the Shopify order sync and agents #2/#3/#7/#8 switched off on purpose until products exist (REPORTED). Agent #1's on/off state is **unverified**.
 
 ## 2. Public website (customer storefront)
@@ -134,7 +139,7 @@ No merging or deploying by Claude · no production Supabase, SQL, cron, RLS or p
 
 ## 8. Pending owner decisions (most important first)
 
-0. **(EXT6, re-checked EXT7 and EXT8: still open) GitHub access for Claude sessions:** connect with the non-admin account, or remove the admin bypass (X6-17). Platform decisions in full: `docs/ops/OWNER_DECISIONS_NEXT.md`.
+0. **(EXT6, re-checked EXT7, EXT8 and EXT9: still open) GitHub access for Claude sessions:** connect with the non-admin account, or remove the admin bypass (X6-17). Platform decisions in full: `docs/ops/OWNER_DECISIONS_NEXT.md`.
 1. Review and merge order for PRs #5–#24 (the newest extension branch contains them all).
 2. R1–R4: run a read-only schema query, then approve the SQL drafts.
 3. Approve the website architecture and a separate website repository.

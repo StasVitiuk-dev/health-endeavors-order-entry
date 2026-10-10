@@ -43,3 +43,16 @@ npx playwright test --config tests/playwright.config.js staging-build
 3. **A separate staging repository with its own Pages site:** owner creates an empty repository (e.g. `health-endeavors-dashboard-staging`), adds the Claude account as a collaborator, turns on Pages. Claude then pushes only the built staging folder there. Never this repository, never `main`.
 
 Do not point any staging copy at the production Supabase project, and do not create a staging Supabase project with copied production data.
+
+## 5. Staging approaches ranked (EXT9)
+
+Scored 1 (worst) to 5 (best). All use only synthetic data, the "DEVELOPMENT / STAGING — NOT PRODUCTION" banner, no production keys, no customer messages, no money actions, no cron; removal = delete the page or folder.
+
+| Approach | Safety | Simplicity | Cost | Maintenance | Production similarity | Notes |
+|---|---|---|---|---|---|---|
+| **Private claude.ai page** (this build, in-browser stand-in) | 5 | 5 | 5 (free) | 4 (rebuild per branch) | 2 (fake database in the browser) | Recommended first step; the frame guard is removed in this build only |
+| Local on your Mac (`npx serve staging-build`) | 5 | 3 (one Terminal line) | 5 | 3 | 2 | No hosting at all |
+| Separate staging repository + its own GitHub Pages | 4 | 3 | 5 | 3 | 2 | Needs a new repo and Claude added as collaborator (owner) |
+| Separate **Supabase staging project** with the real schema and synthetic data | 4 (if never seeded from production) | 2 | 3 (free tier possible) | 2 (keep schema in step) | **5** (real RLS, functions, triggers) | Best for rehearsing R1–R5 and Query G fixes; needs owner setup; never copy production data or keys |
+
+The EXT9 build also contains the stock switches (all off, no switch rows in the synthetic data), so it behaves like the merged dashboard on day one.

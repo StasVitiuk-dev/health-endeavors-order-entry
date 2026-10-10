@@ -108,3 +108,21 @@ Helper file API is 7 (was 6); the page refuses a mix of old and new files. `manu
 
 Helper file API is 8 (was 7); the page refuses a mix of old and new files. Products are read with `updated_at` (an existing column). Rollback: revert the merge commit.
 
+## 9. Extension 9 addendum (2026-10-10)
+
+`claude/platform-deep-completion-extension-9-2026-10-10` was created from extension 8 (`8aa24a9`), so it contains everything above. `main` is still `d3db7bc`. EXT9 adds page code, tests, tools, docs, one read-only query (G) and drafts 21–28 (not installed); **no workflow file**.
+
+| Change | Who notices | Needs SQL first? |
+|---|---|---|
+| Stock buttons can use R1–R5 (switch per button) | Nobody until a switch is turned on | Yes: drafts/10 then drafts/21, then a switch |
+| Request keys on 5 create forms (switch) | Nobody until the switch is on | Yes: drafts/19 then drafts/27 |
+| Feature Switches refuses to turn those switches on early | Owner | No |
+| Frame guard + no-referrer | Nobody (invisible) | No |
+| Home checks: time, stale warning, re-run | Owner | No |
+| Calendar note / personal event conflict refusal | Owner, staff | No |
+| Currency warning only on its own page | Owner | No |
+| Expenses: Show more past 200 | Owner | No |
+| CSV: more formula starters neutralised | Accountant | No |
+
+Helpers file unchanged in API (8); its hash changed (CSV guard). `index.html` = `manual-order-entry.html`. Rollback: revert the merge commit (and, if any switch was turned on, turn it off first).
+

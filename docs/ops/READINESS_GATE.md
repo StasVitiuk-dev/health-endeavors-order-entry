@@ -1,6 +1,6 @@
 # Dashboard production-readiness gate
 
-**Status:** CURRENT (2026-10-10, extension 8; the area-by-area view is `PRODUCTION_READINESS_MATRIX.md`, the per-workflow integrity view is `DATA_INTEGRITY_AND_CONCURRENCY_MATRIX.md`). Branch work is **not live** until merged. A draft is never counted as done. Full item list: `MASTER_PLATFORM_BACKLOG_2026-10-06.md`.
+**Status:** CURRENT (2026-10-10, extension 9 section added; the single owner list is now `OWNER_UNBLOCK_CENTER_EXT9.md`, the entry point `CURRENT_PLATFORM_STATE_EXT9.md`. Earlier: extension 8; the area-by-area view is `PRODUCTION_READINESS_MATRIX.md`, the per-workflow integrity view is `DATA_INTEGRITY_AND_CONCURRENCY_MATRIX.md`). Branch work is **not live** until merged. A draft is never counted as done. Full item list: `MASTER_PLATFORM_BACKLOG_2026-10-06.md`.
 
 | Stage | Meaning | Items |
 |---|---|---|
@@ -21,6 +21,14 @@
 | Backup health unknown (X3-25) | Owner read-only check |
 | Refund accounting rule (N4) | Owner / accountant |
 | Live bugs on `main` fixed only on the branch:<ul><li>manual-order dates and duplicates</li><li>same-second merges</li><li>stale-tab receive</li><li>wrong-month delivery expense</li><li>Emergency switch-off gap</li><li>double-counted totals mid-read</li></ul> | Owner merge |
+
+## Extension 9 changes to this gate
+
+- Stage 2 (merge) now means `claude/platform-deep-completion-extension-9-2026-10-10` (contains EXT8; stage 2 naming extension 7/8 above is **superseded**).
+- Stage 1 adds X9-01…X9-13: stock buttons ready for R1–R5 behind per-button switches; a switch cannot turn on before its function exists; frame guard + no-referrer; Home checks freshness; calendar lost updates; CSV guard; Show more on Expenses; hard-wall tests; request keys on 5 create forms behind a switch; per-page currency warnings (X8-19).
+- Stage 4 adds **Query G** (permissions inventory).
+- Stage 5 adds drafts 21–28 (switch rows, integrity rules, nightly Query F, request-key switch), each with rollback and a local test; INV-06 (dashboard side) is no longer blocked on a separate PR.
+- Launch blockers are unchanged in kind; the full list with owners is `OWNER_UNBLOCK_CENTER_EXT9.md`.
 
 ## Extension 8 changes to this gate
 

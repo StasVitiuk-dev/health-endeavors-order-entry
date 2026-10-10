@@ -1,6 +1,6 @@
 # Data integrity and concurrency matrix (per workflow)
 
-**Status:** CURRENT (2026-10-10, extension 8). One row per business workflow, summarising the 99 write paths in `WRITE_PATH_INVENTORY.md` (generated, per call site) and its machine-readable twin `MUTATION_WRITE_PATH_INVENTORY.json`. Race-by-race detail from EXT4/EXT5 stays in `CONCURRENCY_MATRIX.md` (still accurate; this page adds the EXT8 findings and the per-workflow view). Retry rules: `IDEMPOTENCY_AND_RETRY_POLICY.md`.
+**Status:** CURRENT (2026-10-10, extension 8; EXT9 note below). Rule catalog: `DATA_INTEGRITY_RULES_EXT9.md`. One row per business workflow, summarising the 99 write paths in `WRITE_PATH_INVENTORY.md` (generated, per call site) and its machine-readable twin `MUTATION_WRITE_PATH_INVENTORY.json`. Race-by-race detail from EXT4/EXT5 stays in `CONCURRENCY_MATRIX.md` (still accurate; this page adds the EXT8 findings and the per-workflow view). Retry rules: `IDEMPOTENCY_AND_RETRY_POLICY.md`.
 
 Legend: **✓** protected and tested · **R1** safe once the drafted database functions are installed (not installed) · **KEY** needs the drafted request keys (draft 19, not installed) · **GAP** known and recorded · **—** not applicable. "Server" = what the database enforces (Query A export); "UI" = what the page checks. UI checks are convenience only; the database is the real lock.
 
@@ -38,3 +38,10 @@ Stuck work, duplicate risks (same PO expense twice, same supplier name, same man
 - **Request keys (draft 19)**: removes every **KEY** above; until then a lost reply on a create can duplicate, which Query F lists.
 - **Query D**: replaces every "UNKNOWN until Query D" server rule with fact.
 - Agents writing at the same time as people: not tested (needs Query C results).
+
+## Extension 9 changes
+
+- Every "GAP until R1/R2/R3" and "R1"/"R5" cell above becomes closable **without a dashboard PR**: the buttons switch to the functions one at a time (`stock_fn_*`), after the SQL is installed.
+- "KEY" cells for expenses, products, suppliers, purchase orders and recalls are covered by the dashboard once drafts/19 + 27 are installed and `request_keys` is on; the other create paths still rely on the lock + check-first message.
+- Calendar notes and personal events moved from last-write-wins to "only if unchanged".
+

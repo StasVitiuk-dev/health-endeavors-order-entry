@@ -1,6 +1,6 @@
 # Production readiness matrix (one honest page)
 
-**Status:** CURRENT (2026-10-10, extension 8; EXT8 rows added, earlier rows unchanged unless marked). Supersedes the stage table in `READINESS_GATE.md` where the two differ (the gate keeps the blocker list). Documentation and drafts are **never** counted as deployed. Percentages are not used here; see `docs/health-endeavors-progress.md`, where they are not raised for unmerged work.
+**Status:** CURRENT (2026-10-10, extension 9 rows added; per-area labels are now in `CURRENT_PLATFORM_STATE_EXT9.md` §3. Earlier: extension 8; EXT8 rows added, earlier rows unchanged unless marked). Supersedes the stage table in `READINESS_GATE.md` where the two differ (the gate keeps the blocker list). Documentation and drafts are **never** counted as deployed. Percentages are not used here; see `docs/health-endeavors-progress.md`, where they are not raised for unmerged work.
 
 Legend: **LIVE** = on `main` now · **BRANCH** = fixed and tested on the extension branch only, so it needs a merge · **SQL** = needs an approved production database change · **OWNER** = needs a decision · **MANUAL** = needs a person to check (device, real data) · **EVIDENCE** = blocked by missing facts (Query C, backups) · **NOT BUILT** = not implemented anywhere.
 
@@ -60,6 +60,21 @@ Legend: **LIVE** = on `main` now · **BRANCH** = fixed and tested on the extensi
 | Backup health on Home | UNKNOWN shown on purpose | OWNER check; status row (X8-D6) |
 | Real VoiceOver / iPhone Safari | Not testable here | MANUAL |
 | GitHub access least privilege | **Admin credential still in use** (re-checked 2026-10-10; not used) | OWNER (X6-17): `stasvitiuk-reos`, Write role |
+
+### Added in extension 9
+
+| Area | State | What is still needed |
+|---|---|---|
+| Stock buttons use R1–R5 (one switch each, off) | BRANCH | Merge; install R1–R5 (SQL); drafts/21; turn switches on one at a time |
+| A stock / request-key switch cannot turn on before its database part exists | BRANCH | Merge |
+| Request keys on new expenses, products, suppliers, POs, recalls (switch, off) | BRANCH | Merge; drafts/19 + 27 (SQL); switch on |
+| Frame guard + no-referrer on every page | BRANCH | Merge |
+| Home checks freshness (time, stale warning, re-run) | BRANCH | Merge |
+| Calendar note / personal event never overwrite a newer save | BRANCH | Merge |
+| Currency warning only on its own page (X8-19) | BRANCH | Merge |
+| Database integrity rules (4) | SQL draft 23 | Query E/F = 0, then install |
+| Query G permissions inventory | Prepared | OWNER runs it |
+| Nightly Query F | SQL draft 25 | X8-D4, then install |
 
 ## B. Business operations
 

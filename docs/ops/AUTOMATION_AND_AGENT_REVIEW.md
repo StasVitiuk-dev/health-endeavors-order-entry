@@ -1,5 +1,7 @@
 # Automation and agent review: proposals (extension 7, workstream K)
 
+> **SUPERSEDED BY EXT9** for agent states: `AGENT_CURRENT_STATE_EXT9.md`. HISTORICAL ONLY.
+
 **Status:** PROPOSED, 2026-10-07. Review and recommendations only. **No agent, cron job, workflow, switch or schedule was installed, turned on, changed or run.** The existing agents (#1–#10) and their reported states are described in `agents-review-and-owner-checklist.md` (still CURRENT for what exists). This page proposes what to add next and how risky each item is.
 
 Classes:

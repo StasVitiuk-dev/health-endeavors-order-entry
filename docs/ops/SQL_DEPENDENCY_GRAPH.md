@@ -1,5 +1,7 @@
 # Database drafts: what depends on what
 
+> **EXT9 note (2026-10-10):** the install order is now `PRODUCTION_CHANGE_PACKAGE_EXT9.md` (adds drafts 21–28 and Query G). This page keeps the per-file detail.
+
 **Status:** CURRENT (2026-10-07, extension 7: no new draft; new local evidence in §4). **Nothing here is installed.** Every install is a production change that needs the owner's approval, run by the owner in the Supabase SQL editor, one file at a time. Claude never runs SQL against production.
 
 ## 1. The files
@@ -12,10 +14,15 @@
 | `03_READONLY_D_definer_function_identity_check.sql` | Query D: which elevated functions anyone can call | No | — | `query_d_mock_test.sql`, static check |
 | `04_READONLY_E_stock_reconciliation.sql` | **New EXT6.** Query E: stock vs history, deliveries vs stock and expense | No | — | `reconciliation_test.sh` (21 checks), static check |
 | `05_READONLY_F_daily_integrity_check.sql` | **New EXT8.** Query F: stuck work, duplicate risks, wrong references, impossible values (15 checks) | No | — | `integrity_check_test.sh` (33), static read-only check |
+| `06_READONLY_G_permissions_inventory.sql` | **New EXT9.** Query G: policies, anon rights, duplicate read policies, tables without RLS (PASS/WARN/FAIL) | No | — | `permissions_inventory_test.sh` (11), static read-only check |
 | `drafts/10_DRAFT_stock_functions.sql` | R1–R5: all-or-nothing receive, recall quarantine, return restock, stock adjustment, product delete | Adds 6 functions; no data | `drafts/11_…` | SQL tests 12/15/16, `install_package_test.sh` (61), `stress_test.sh` (98 × 3), SQL mutations |
 | `drafts/13_DRAFT_report_totals.sql` | Optional server-side totals function (Accounting / Tax); EXT6: now one transaction | Adds 1 function | drop function | `drafts/14_…` |
 | `drafts/17_DRAFT_po_line_delete_guard.sql` | PO line guard (revised EXT6: NOWAIT order lock) | Adds 1 trigger + function | `drafts/18_…` | `po_race_interleavings.sh`, `po_browser_path_races.sh`, S27, install section 13 |
 | `drafts/19_DRAFT_request_keys.sql` | **New EXT6.** Request keys: one empty column + unique index on 22 tables | Adds columns + indexes; no data | `drafts/20_…` | `request_keys_test.sh` (23) |
+| `drafts/21_DRAFT_stock_function_switches.sql` | **New EXT9.** Five stock switches, all off; refuses without R1–R5 | Inserts 5 rows | `drafts/22_…` (refuses while a switch is on) | `stock_switches_test.sh` (23) |
+| `drafts/23_DRAFT_integrity_constraints.sql` | **New EXT9.** recalled ≥ 0, lot and PO-line ranges, refund ≥ 0; stops if data already breaks a rule | Adds 4 CHECK rules | `drafts/24_…` | `integrity_constraints_test.sh` (17) |
+| `drafts/25_DRAFT_integrity_check_schedule.sql` | **New EXT9.** Query F nightly (view + results table + pg_cron job) | Adds 1 view, 1 table, 1 function, 1 job | `drafts/26_…` | `integrity_schedule_test.sh` (12) |
+| `drafts/27_DRAFT_request_keys_switch.sql` | **New EXT9.** `request_keys` switch, off; refuses before drafts/19 | Inserts 1 row | `drafts/28_…` (refuses while on) | `request_keys_switch_test.sh` (10) |
 
 ## 2. Dependencies (read top to bottom)
 

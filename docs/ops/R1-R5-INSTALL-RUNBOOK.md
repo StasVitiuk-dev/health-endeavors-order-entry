@@ -1,5 +1,7 @@
 # R1–R5 stock functions: install and rollback runbook (owner steps)
 
+> **EXT9 note (2026-10-10):** the dashboard switch-over is no longer a separate PR. It is in the EXT9 branch behind one `stock_fn_*` switch per button (off). After installing R1–R5, run `drafts/21` (adds the switches) and turn them on one at a time on Feature Switches; rollback of a button = switch off. Order and checks: `PRODUCTION_CHANGE_PACKAGE_EXT9.md` P2–P4. Statements below about "a separate dashboard PR" are **SUPERSEDED BY EXT9**.
+
 **Status:** PROPOSED. Do **not** run until:
 1. Query C has been run and reviewed, and shows no agent, trigger or scheduled job writing stock directly (or each one has been dealt with).
 2. You have approved this specific change in writing in a session.
