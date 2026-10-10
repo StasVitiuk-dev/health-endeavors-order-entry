@@ -100,9 +100,9 @@ Page code frozen at **`fc203cb`**: no page, helper or CSS file changed after it.
 | Full suite, desktop 1100 px + iPhone 390 px, commit `574fb03` | **2,332 tests: 1,527 passed, 0 failed, 0 flaky**, 805 skipped by design, 8 expected failures |
 | Skip ledger (`skip-report.js`) | EXPECTED DEVICE/SIZE 805 (each ran at the other size) · KNOWN BLOCKED BUG 8 (`test.fail`: the 3 stock workflows and PO receive are not all-or-nothing until R1–R5) · ENVIRONMENT LIMITATION 0 · **UNEXPLAINED 0** |
 | High-risk specs ×3 (27 files: oracles, report totals, owner control center, unsaved changes, auth chaos, stale tabs, tasks, sessions, manual orders, fault injection, state transitions, PO receive, purchase orders, concurrency, scale, write paths, pages data, and all EXT8 specs) | 4,266 runs: **2,573 passed, 1 failed** (see 3 below; fixed in `c7466b8`, then that file ran 5 × 110 = 550 times with 0 failures) |
-| Page mutations | MUTATIONS_PENDING |
+| Page mutations (commit `c7466b8`) | **95 / 95 caught** (82 from EXT7 + 13 new EXT8) |
 | SQL mutations | **13 / 13 caught** |
-| Local database tests | Query F 33/33 · restore drill 6/6 · request keys 23/23 · reconciliation 24/24 · PO forced orderings: 0 guarded failures · browser-path races: 0 silent, 0 reported · install package INSTALL_PENDING |
+| Local database tests | Query F 33/33 · restore drill 6/6 · request keys 23/23 · reconciliation 24/24 · PO forced orderings: 0 guarded failures · browser-path races: 0 silent, 0 reported · install package **61/61** (twice on its own; 59/61 once under load, see 2 below) |
 | Stress | **5 runs × 98 checks, 0 failed, 0 deadlocks** (unguarded S27 control still breaks 9–11 of 20, as expected) |
 | Randomized interleavings | seed 808 × 40 rounds, current guard: 0 failing, 0 deadlocks |
 | R1–R5 fingerprint (local install) | `3df2bf7a07b451f12f9359ceca1c85df` (unchanged) |
