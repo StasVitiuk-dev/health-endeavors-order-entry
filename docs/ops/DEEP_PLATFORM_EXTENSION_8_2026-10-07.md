@@ -93,4 +93,35 @@ Dependency order runs top to bottom inside each priority.
 
 ## 9. Final evidence
 
-PENDING (filled in after the frozen-commit verification).
+Page code frozen at **`fc203cb`**: no page, helper or CSS file changed after it. Later commits change only tests, tools and docs. Test files frozen at `574fb03` for the full run; `c7466b8` changed one test afterwards (below). Everything ran locally on synthetic data. Nothing touched production.
+
+| Check | Result |
+|---|---|
+| Full suite, desktop 1100 px + iPhone 390 px, commit `574fb03` | **2,332 tests: 1,527 passed, 0 failed, 0 flaky**, 805 skipped by design, 8 expected failures |
+| Skip ledger (`skip-report.js`) | EXPECTED DEVICE/SIZE 805 (each ran at the other size) · KNOWN BLOCKED BUG 8 (`test.fail`: the 3 stock workflows and PO receive are not all-or-nothing until R1–R5) · ENVIRONMENT LIMITATION 0 · **UNEXPLAINED 0** |
+| High-risk specs ×3 (27 files: oracles, report totals, owner control center, unsaved changes, auth chaos, stale tabs, tasks, sessions, manual orders, fault injection, state transitions, PO receive, purchase orders, concurrency, scale, write paths, pages data, and all EXT8 specs) | 4,266 runs: **2,573 passed, 1 failed** (see 3 below; fixed in `c7466b8`, then that file ran 5 × 110 = 550 times with 0 failures) |
+| Page mutations | MUTATIONS_PENDING |
+| SQL mutations | **13 / 13 caught** |
+| Local database tests | Query F 33/33 · restore drill 6/6 · request keys 23/23 · reconciliation 24/24 · PO forced orderings: 0 guarded failures · browser-path races: 0 silent, 0 reported · install package INSTALL_PENDING |
+| Stress | **5 runs × 98 checks, 0 failed, 0 deadlocks** (unguarded S27 control still breaks 9–11 of 20, as expected) |
+| Randomized interleavings | seed 808 × 40 rounds, current guard: 0 failing, 0 deadlocks |
+| R1–R5 fingerprint (local install) | `3df2bf7a07b451f12f9359ceca1c85df` (unchanged) |
+| Secret scan of the EXT8 diff | no keys, tokens or private keys; e-mails only `@example.test`; no model identifiers. The only key string is the dashboard's **public** publishable key (already in `owner-login.html`), named in the staging builder so it can be replaced |
+| Screenshots | 57 in `design-review/dashboard-extension-8-2026-10-10/` (1100 / 390 / 320 px, synthetic, `MANIFEST.md`); EXT7 package untouched |
+| `main` | `d3db7bc`, unchanged; nothing merged or deployed |
+
+### What the final verification itself found
+
+1. **The first full run (on `fc203cb`) had 3 failures**, all in older tests still expecting pre-EXT8 behaviour:
+   - a date test expected the old "Last 7 days" rule (same clock time 7 days ago; X8-08 made it local midnight);
+   - the mock-blocking safety test ran on `change-password.html` assuming it had no Content-Security-Policy, which EXT8 added. It now bypasses the policy so it again proves the mock's own layer (the policy itself is tested in `csp.spec.js`).
+   
+   Both tests were updated; no page change was needed.
+2. **The install-package test gave 59/61** while running alongside the full suite (the failing lines were not captured), then **61/61** on its own. Recorded as a timing sensitivity under heavy load, not as a pass.
+3. **High-risk ×3: one failure in 3 runs.** Tax Records' two-currency warning was replaced a moment later by the same, true warning from a background Accounting load (one shared banner, newest message wins). The test now records every banner message. The UX issue is backlog **X8-19** (show a page's warning only while that page is open), not fixed after the freeze.
+4. The local database server stopped twice when the container restarted; it was restarted and the affected checks were re-run.
+
+### Lessons recorded for the next session
+- Run the full suite once **before** the freeze, not only targeted specs: two stale tests were found only by the full run.
+- When adding a policy to a page, search the tests for comments that assume that page has none.
+- Do not run timing-sensitive database tests while the browser suite is running.
