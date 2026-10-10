@@ -46,6 +46,20 @@ q "alter table feature_flags alter column id drop default" >/dev/null
 ok "refused when id has no default" "$(run "$DIR/drafts/21_DRAFT_stock_function_switches.sql")" "3"
 ok "  and nothing inserted" "$(q "select count(*) from feature_flags where flag_key like 'stock_fn_%'")" "0"
 
+fresh
+# The dashboard's install probes (owner-login.html STOCK_FN_PROBES) must never change anything.
+q "insert into profiles (id, email, role) values ('00000000-0000-4000-8000-0000000000a9','own9@example.test','owner') on conflict (id) do update set role='owner'" >/dev/null
+SNAP="select (select count(*) from inventory_adjustments)||'/'||(select coalesce(sum(available),0) from inventory)||'/'||(select count(*) from expenses)||'/'||(select count(*) from purchase_orders where status='received')||'/'||(select count(*) from products)||'/'||(select count(*) from returns where status='received')||'/'||(select count(*) from recalls where status='quarantined')"
+before=$(q "$SNAP")
+probe() { psql "${CONN[@]}" -d "$DB" -qtAX -c "set role authenticated; select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-0000000000a9',false); $1" 2>&1 | grep -v "^CONTEXT\|^00000000-0000-4000" | head -1; }
+Z=00000000-0000-0000-0000-000000000000
+ok "R1 probe refused at its first check" "$(probe "select public.receive_purchase_order('$Z', '\"not-a-list\"'::jsonb)" | grep -c 'must be a list')" "1"
+ok "R2 probe finds nothing" "$(probe "select public.quarantine_recall('$Z')" | grep -c 'no longer exists')" "1"
+ok "R3 probe refused at its first check" "$(probe "select public.receive_return('$Z', '')" | grep -c 'Pick what happens')" "1"
+ok "R4 probe finds no product" "$(probe "select public.adjust_inventory('$Z', 'available', 0)" | grep -c 'no longer exists')" "1"
+ok "R5 probe finds nothing to delete" "$(probe "select public.delete_unused_product('$Z')")" '{"reason": "not_found", "deleted": false}'
+ok "the probes changed nothing" "$(q "$SNAP")" "$before"
+
 psql "${CONN[@]}" -d postgres -qX -c "drop database if exists $DB" >/dev/null 2>&1
 rm -f "$ERRF"
 echo "TOTAL: $pass passed, $fail failed"

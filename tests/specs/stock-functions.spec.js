@@ -295,3 +295,43 @@ test.describe('R2 quarantine_recall, R3 receive_return, R5 delete_unused_product
     expect(backend.stockFunctionCalls.map(c => c.name)).toEqual(['delete_unused_product']);
   });
 });
+
+test.describe('Feature Switches: a stock switch cannot be turned on before its function exists', () => {
+  test.beforeEach(({}, ti) => { test.skip(ti.project.name !== 'desktop', 'page logic; run once'); });
+  const addOff = backend => { backend.tables.feature_flags = [{ id: 'ff-fn-r1', flag_key: 'stock_fn_receive_po', label: 'Stock: all-or-nothing receive', description: 'SYNTHETIC', enabled: false }]; };
+
+  test('not installed: left off, plain reason, no password asked, nothing written', async ({ page, backend }) => {
+    addOff(backend);
+    backend.rpc.receive_purchase_order = functionMissing();
+    await login(page);
+    await gotoPage(page, 'flagsPanel');
+    await page.locator('.flagRow[data-key="stock_fn_receive_po"] .slider').click();
+    await expect(page.locator('#dashError')).toContainText('its database function (receive_purchase_order) is not installed yet');
+    await expect(page.locator('#reauthOverlay')).toBeHidden();
+    await expect(page.locator('.flagRow[data-key="stock_fn_receive_po"] .flagToggle')).not.toBeChecked();
+    expect(backend.tableWrites().filter(w => w.table === 'feature_flags')).toEqual([]);
+  });
+
+  test('installed: the harmless check changes nothing, then the password is asked as for any switch', async ({ page, backend }) => {
+    addOff(backend);
+    await login(page);
+    await gotoPage(page, 'flagsPanel');
+    const before = JSON.stringify([backend.tables.inventory, backend.tables.expenses, backend.tables.purchase_orders]);
+    await page.locator('.flagRow[data-key="stock_fn_receive_po"] .slider').click();
+    await expect(page.locator('#reauthOverlay')).toBeVisible();
+    expect(backend.stockFunctionCalls.map(c => c.name)).toEqual(['receive_purchase_order']);
+    expect(JSON.stringify([backend.tables.inventory, backend.tables.expenses, backend.tables.purchase_orders])).toBe(before);
+  });
+
+  test('every probe is refused by the real functions\' first check (never reaches a write)', () => {
+    const src = require('fs').readFileSync(require('path').join(__dirname, '..', '..', 'owner-login.html'), 'utf8');
+    expect(src).toContain("p_lots: 'not-a-list'");          // R1: "Lot details must be a list" (first statement)
+    expect(src).toContain("p_disposition: '' }");            // R3: "Pick what happens…" (first statement)
+    expect(src).toContain("p_bucket: 'available', p_change: 0 }"); // R4: product check, then non-zero check; zero id = no product
+    const sql = require('fs').readFileSync(require('path').join(__dirname, '..', '..', 'docs', 'ops', 'sql', 'drafts', '10_DRAFT_stock_functions.sql'), 'utf8');
+    const r1 = sql.slice(sql.indexOf('function public.receive_purchase_order('));
+    expect(r1.indexOf("Lot details must be a list.")).toBeLessThan(r1.indexOf('for update'));
+    const r3 = sql.slice(sql.indexOf('function public.receive_return('));
+    expect(r3.indexOf('Pick what happens to the stock')).toBeLessThan(r3.indexOf('for update'));
+  });
+});

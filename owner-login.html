@@ -1097,6 +1097,24 @@
       }
       return (res && res.data) || {};
     }
+    // Before a stock switch can be turned ON: is its function installed? Each
+    // probe is a call the function refuses at its very first check (or finds
+    // nothing to do), so it never changes anything. true = installed, false =
+    // not installed, null = could not tell (connection).
+    const ZERO_ID = '00000000-0000-0000-0000-000000000000';
+    const STOCK_FN_PROBES = {
+      stock_fn_receive_po: ['receive_purchase_order', { p_po_id: ZERO_ID, p_lots: 'not-a-list' }],
+      stock_fn_recall: ['quarantine_recall', { p_recall_id: ZERO_ID }],
+      stock_fn_return: ['receive_return', { p_return_id: ZERO_ID, p_disposition: '' }],
+      stock_fn_adjust: ['adjust_inventory', { p_product_id: ZERO_ID, p_bucket: 'available', p_change: 0 }],
+      stock_fn_delete_product: ['delete_unused_product', { p_product_id: ZERO_ID }],
+    };
+    async function stockFunctionInstalled(flagKey){
+      const probe = STOCK_FN_PROBES[flagKey];
+      if (!probe) return true;
+      try { await callStockFunction(probe[0], probe[1]); return true; }
+      catch (err) { return err.kind === 'missing' ? false : err.kind === 'unknown' ? null : true; }
+    }
     function stockFunctionError(err, what, retrySafe){
       if (err.kind === 'missing') return 'The all-or-nothing database function for ' + what + ' is switched on but is not installed, so nothing was changed. Turn its switch off on Feature Switches (or install the function), then try again.';
       if (err.kind === 'unknown') return 'The connection dropped, so the dashboard cannot tell whether ' + what + ' happened. '
@@ -6821,6 +6839,19 @@
               // password, so it doesn't visually take effect until confirmed.
               cb.checked = !newVal;
               const blockedReason = newVal ? LAUNCH_BLOCKED_FLAGS[row.getAttribute('data-key')] : null;
+              // EXT9: a stock switch can only be turned on once its database
+              // function is installed (otherwise that button would refuse every press).
+              if (newVal && STOCK_FN_PROBES[row.getAttribute('data-key')]) {
+                cb.disabled = true;
+                const installed = await stockFunctionInstalled(row.getAttribute('data-key'));
+                cb.disabled = false;
+                if (installed !== true) {
+                  showDashError(installed === false
+                    ? 'This switch was left off: its database function (' + STOCK_FN_PROBES[row.getAttribute('data-key')][0] + ') is not installed yet. Install it first (docs/ops/PRODUCTION_CHANGE_PACKAGE_EXT9.md), then turn the switch on.'
+                    : 'This switch was left off: the dashboard could not confirm that its database function is installed (connection problem). Try again in a moment.');
+                  return;
+                }
+              }
               if (blockedReason && !confirm(blockedReason + '\n\nTurn it ON anyway?')) return;
               const ok = await requireReauth(newVal ? 'turn this feature ON' : 'turn this feature OFF');
               if (!ok) return;
