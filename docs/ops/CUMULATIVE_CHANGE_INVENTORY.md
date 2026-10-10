@@ -90,3 +90,21 @@
 | SOP switch re-reads after a conflict; supplier same-name question | Owner | No |
 
 Helper file API is 7 (was 6); the page refuses a mix of old and new files. `manual-order-entry.html` and `index.html` stay identical. Rollback: revert the merge commit.
+
+## 8. Extension 8 addendum (2026-10-10)
+
+`claude/platform-deep-readiness-extension-8-2026-10-07` was created from extension 7 (`f868903`), so it contains everything above. `main` is still `d3db7bc`. EXT8 adds page files, tests, tools and docs, plus one **read-only** query (Query F); **no SQL draft that changes data, no workflow file**:
+
+| Change | Who notices | Needs SQL first? |
+|---|---|---|
+| Home "Checks: what needs a look" | Owner | No |
+| Every waiting customer question listed; answered capped with a count | Owner, staff | No |
+| Older-order finder (returns), all-orders lookup (search), Show more on capped lists | Everyone | No |
+| Browser Back / deep links inside the dashboard; sign-in re-checked after Back-button cache | Everyone | No |
+| "Last 7 days" one window everywhere | Owner | No |
+| Product edit and PO shipping/tax refuse to overwrite a newer save | Owner, staff | No |
+| Latest request wins on Accounting, Tax, Activity, Calendar, Evidence | Owner | No |
+| Content-Security-Policy on the other 5 pages | Nobody (invisible) | No |
+
+Helper file API is 8 (was 7); the page refuses a mix of old and new files. Products are read with `updated_at` (an existing column). Rollback: revert the merge commit.
+

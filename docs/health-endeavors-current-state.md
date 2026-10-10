@@ -1,6 +1,6 @@
 # Health Endeavors — current state (cross-project summary)
 
-**Last updated:** October 7, 2026, extension 7 (platform §1, §5, §8; website sections unchanged from Sept 30). **Keep this short.** Details live in the linked documents; update this file whenever the verified state changes materially.
+**Last updated:** October 10, 2026, extension 8 (platform §1, §8; website sections unchanged from Sept 30). **Keep this short.** Details live in the linked documents; update this file whenever the verified state changes materially.
 
 Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (from the owner's earlier chats, not re-checked) · **PROPOSED** · **OWNER DECISION REQUIRED** · **DEPRECATED**.
 
@@ -68,6 +68,14 @@ Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (fro
   - Evidence: write-path inventory with retry classes (0 unresolved); randomized R1–R5 stress (no guard 75/300 rounds broken, guard 0/300); role matrix; agent/automation proposals (nothing installed); screenshots in `design-review/dashboard-extension-7-2026-10-07/`.
   - **Security:** the GitHub credential is still admin and can bypass `protect-main` (X6-17, `docs/security/GITHUB_CREDENTIAL_ADMIN_FINDING_2026-10-07.md`). Not used.
   - Final verification on the final code: 2,216 tests, 1,465 passed, 0 failed (0 unexplained skips); high-risk ×3 0 failed; 82/82 page and 13/13 SQL mutations caught; database tests and stress (5 × 98) clean. Details: `docs/ops/DEEP_PLATFORM_EXTENSION_7_2026-10-07.md` §9.
+- **Extension 8 (Oct 7–10, not merged, not live):** `claude/platform-deep-readiness-extension-8-2026-10-07`, branched from extension 7 at `f868903`. Fixed with tests that fail on the old code (all live on `main`):
+  - waiting customer questions hidden behind answered ones; returns only for the newest 200 orders; search missing older orders; recycle bins / histories cut at 50; evidence picker missing old open incidents
+  - browser Back leaving the dashboard; Back-button cache after sign-out; "This Week" meaning two windows
+  - product edits and PO shipping/tax overwriting a newer save; slower old replies drawing over newer ones (5 pages); missing Content-Security-Policy on 5 pages
+  - New for the owner: Home **"Checks: what needs a look"** (17 deterministic checks; "could not check" never shown as fine; backups always UNKNOWN), older-order finders, Show more, page history and deep links.
+  - Prepared, not run: **Query F** (read-only daily integrity check). Local restore drill 6/6. Staging review copy built on synthetic data; publishing it needs an owner choice (`docs/ops/STAGING_REVIEW_PLAN.md`).
+  - **Security:** GitHub credential still admin (X6-17); recommended `stasvitiuk-reos` with Write role. Not used.
+  - Report: `docs/ops/DEEP_PLATFORM_EXTENSION_8_2026-10-07.md`.
 - **Store not launched:** 0 real orders, real products not yet added, the Shopify order sync and agents #2/#3/#7/#8 switched off on purpose until products exist (REPORTED). Agent #1's on/off state is **unverified**.
 
 ## 2. Public website (customer storefront)
@@ -126,7 +134,7 @@ No merging or deploying by Claude · no production Supabase, SQL, cron, RLS or p
 
 ## 8. Pending owner decisions (most important first)
 
-0. **(EXT6, re-checked EXT7: still open) GitHub access for Claude sessions:** connect with the non-admin account, or remove the admin bypass (X6-17). Platform decisions in full: `docs/ops/OWNER_DECISIONS_NEXT.md`.
+0. **(EXT6, re-checked EXT7 and EXT8: still open) GitHub access for Claude sessions:** connect with the non-admin account, or remove the admin bypass (X6-17). Platform decisions in full: `docs/ops/OWNER_DECISIONS_NEXT.md`.
 1. Review and merge order for PRs #5–#24 (the newest extension branch contains them all).
 2. R1–R4: run a read-only schema query, then approve the SQL drafts.
 3. Approve the website architecture and a separate website repository.

@@ -11,6 +11,7 @@
 | `02_READONLY_C_agents.sql` | Query C: agents, scheduled jobs, other stock writers, rules | No | — | `query_c_mock_test.sql`, `query_c_no_cron_test.sql`, static read-only check |
 | `03_READONLY_D_definer_function_identity_check.sql` | Query D: which elevated functions anyone can call | No | — | `query_d_mock_test.sql`, static check |
 | `04_READONLY_E_stock_reconciliation.sql` | **New EXT6.** Query E: stock vs history, deliveries vs stock and expense | No | — | `reconciliation_test.sh` (21 checks), static check |
+| `05_READONLY_F_daily_integrity_check.sql` | **New EXT8.** Query F: stuck work, duplicate risks, wrong references, impossible values (15 checks) | No | — | `integrity_check_test.sh` (33), static read-only check |
 | `drafts/10_DRAFT_stock_functions.sql` | R1–R5: all-or-nothing receive, recall quarantine, return restock, stock adjustment, product delete | Adds 6 functions; no data | `drafts/11_…` | SQL tests 12/15/16, `install_package_test.sh` (61), `stress_test.sh` (98 × 3), SQL mutations |
 | `drafts/13_DRAFT_report_totals.sql` | Optional server-side totals function (Accounting / Tax); EXT6: now one transaction | Adds 1 function | drop function | `drafts/14_…` |
 | `drafts/17_DRAFT_po_line_delete_guard.sql` | PO line guard (revised EXT6: NOWAIT order lock) | Adds 1 trigger + function | `drafts/18_…` | `po_race_interleavings.sh`, `po_browser_path_races.sh`, S27, install section 13 |
@@ -31,6 +32,7 @@ Query D (read-only, owner runs)  ──►  decides: permission fixes (SE-01/SE-
 PO line guard (drafts/17)   — independent since EXT6 (protects today's receive and R1)
 Request keys (drafts/19)    — independent; then a dashboard PR that SENDS the keys
 Query E (read-only)         — any time; most useful before and after each install
+Query F (read-only, EXT8)   — any time; nightly once scheduling is approved (pg_cron, read-only)
 ```
 
 - **R1–R5 needs Query C first.** If an agent or script writes stock directly (INV-22), R1–R5 do not cover it.
