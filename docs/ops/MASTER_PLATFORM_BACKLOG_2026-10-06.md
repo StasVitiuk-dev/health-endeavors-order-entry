@@ -2,16 +2,16 @@
 
 Internal dashboard/platform only. Generated from `docs/ops/backlog/items.py` (edit the data there, then run `python3 docs/ops/backlog/items.py`). No production secrets or private business data.
 
-**311 deduplicated items** from 379 raw candidates (68 duplicates merged: the same item recorded in PROJECT_RECORD, the overnight review, PRs, owner lists, decision registers and tests).
+**312 deduplicated items** from 380 raw candidates (68 duplicates merged: the same item recorded in PROJECT_RECORD, the overnight review, PRs, owner lists, decision registers and tests).
 
-Status counts: BLOCKED-EXT 2, BLOCKED-OWNER 39, BLOCKED-PROD 17, BLOCKED-QC 12, DEFERRED 24, DONE 214, OPEN 1, QUEUED 2
+Status counts: BLOCKED-EXT 2, BLOCKED-OWNER 39, BLOCKED-PROD 17, BLOCKED-QC 12, DEFERRED 24, DONE 214, OPEN 2, QUEUED 2
 
 | Priority | Items | Done (branch) | Remaining |
 |---|---|---|---|
 | P0 | 14 | 4 | 10 |
 | P1 | 81 | 59 | 22 |
 | P2 | 105 | 80 | 25 |
-| P3 | 93 | 70 | 23 |
+| P3 | 94 | 70 | 24 |
 | P4 | 18 | 1 | 17 |
 
 Priorities: P0 data loss / security / financial corruption / destructive · P1 launch blocker / correctness / concurrency / permission · P2 reliability / scale / accessibility / major UX · P3 maintainability / tests / docs · P4 future.
@@ -261,6 +261,7 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | X5-15 | Audit | employee_activity ordering ties: the RPC's ORDER BY (needs happened_at, id) is not visible from the dashboard | Possible skip at equal timestamps (owner/Query C check) | Low | S | Query C / owner | N | Y | N | BLOCKED-QC |
 | X6-22 | Browser | Signed file links open with window.open after an await: Safari (especially iPhone) may block the new tab silently | Needs a real-device check; same on main | Medium | S | real iPhone check | N | Y | N | BLOCKED-OWNER |
 | X7-15 | Owner UX | Wide tables scroll sideways at 390 / 320 px (last column cut until scrolled) | Pre-existing; card layout for phones later | Low | M | — | Y | N | N | OPEN |
+| X8-19 | Owner UX | One shared warning banner: a background Accounting load can replace the Tax Records currency warning with the same warning labelled Accounting | Show each page currency warning only while that page is open (found by the EXT8 x3 run; test made race-free) | Low | S | — | Y | N | N | OPEN |
 | AX-03 | Accessibility | Toasts announced (aria-live polite) | Success not announced | Low | S | — | Y | N | N | DONE |
 | AX-04 | Accessibility | prefers-reduced-motion respected for animations | Motion sensitivity | Low | S | — | Y | N | N | DONE |
 | AX-06 | Accessibility | Colour contrast check of badges in light/dark | Readability | Low | S | — | Y | N | N | DONE |

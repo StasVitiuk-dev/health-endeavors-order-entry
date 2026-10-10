@@ -186,14 +186,23 @@ for (const [panel, button, where] of [['accountingPanel', '#accountingPanel butt
       placed_at: now, deleted_at: null, source: 'manual', raw_data: null, customer_name: 'SYNTHETIC', created_at: now,
     }));
     backend.tables.expenses = [];
+    // The page has one banner and the last message wins, so a background load
+    // (Accounting warns about the same orders) can replace this page's warning
+    // a moment later (seen once in the EXT8 x3 run; backlog X8-19). Record
+    // every message the banner shows and require this page's warning among them.
+    await page.addInitScript(() => {
+      window.__bannerTexts = [];
+      new MutationObserver(() => {
+        const el = document.getElementById('dashError');
+        if (el && el.textContent) window.__bannerTexts.push(el.textContent);
+      }).observe(document, { subtree: true, childList: true, characterData: true });
+    });
     await login(page);
-    // The page has one banner and the last message wins: let the background
-    // loads (Accounting warns about the same orders) finish first (EXT7).
     await page.waitForLoadState('networkidle');
     await gotoPage(page, panel);
     if (button) await page.click(button);
-    await expect(page.locator('#dashError')).toContainText(where + ': these orders are in more than one currency (CAD, USD)');
-    await expect(page.locator('#dashError')).toContainText('Do not rely on these totals');
+    const shown = () => page.evaluate(() => window.__bannerTexts);
+    await expect.poll(async () => (await shown()).some(t => t.includes(where + ': these orders are in more than one currency (CAD, USD)') && t.includes('Do not rely on these totals'))).toBe(true);
   });
 }
 

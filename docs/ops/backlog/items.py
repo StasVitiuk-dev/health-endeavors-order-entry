@@ -367,6 +367,7 @@ a('X8-15','Integrity','Run Query F once, then schedule it nightly','Baseline + o
 a('X8-16','Recovery','Restore procedure never rehearsed','Local restore drill 6/6 (production drill = X7-16)','P2','Medium','S','—','Y','N','N','DONE')
 a('X8-17','Review','No safe staging review copy','Synthetic-data build + test; publishing needs owner choice','P2','Medium','M','owner choice of host (X8-D1)','Y','Y','N','BLOCKED-OWNER')
 a('X8-18','Recovery','Backup status visible on Home','Backup job writes one read-only status row (D5)','P2','Medium','M','owner approval; private repo change','N','Y','Y','BLOCKED-OWNER')
+a('X8-19','Owner UX','One shared warning banner: a background Accounting load can replace the Tax Records currency warning with the same warning labelled Accounting','Show each page currency warning only while that page is open (found by the EXT8 x3 run; test made race-free)','P3','Low','S','—','Y','N','N','OPEN')
 
 if __name__ == '__main__':
     import collections, os
