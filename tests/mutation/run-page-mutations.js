@@ -15,6 +15,15 @@ const SCRATCH = path.resolve(process.argv[2] || path.join(require('os').tmpdir()
 // [name, file, exact text to find, replacement, specs + grep]
 const MUTATIONS = [
   // ---- EXT9 additions (2026-10-10): stock buttons and the R1–R5 switches ----
+  ['a retry gets a new request key (the repeat is saved twice)', 'owner-login.html',
+    "if (!form.dataset.requestKey) form.dataset.requestKey = newRequestKey();", "form.dataset.requestKey = newRequestKey();",
+    'request-keys -g "lost reply"'],
+  ['a refused repeat is shown as a failure instead of "already saved"', 'owner-login.html',
+    "if (isRequestKeyRepeat(error)) { toast('That expense' + REPEAT_NOTE); error = null; }", "",
+    'request-keys -g "lost reply"'],
+  ['the request-key switch can be turned on without the columns', 'owner-login.html',
+    "if (newVal && row.getAttribute('data-key') === 'request_keys') {", "if (false) {",
+    'request-keys -g "stays off until the columns exist"'],
   ['a background load puts its currency warning on another page again', 'owner-login.html',
     "if (text && currentPageId === pageId) showDashError(text);", "if (text) showDashError(text);",
     'accounting-oracle -g "never appear on a different page"'],

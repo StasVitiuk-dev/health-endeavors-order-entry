@@ -8,13 +8,14 @@ const path = require('path');
 const { test, expect } = require('@playwright/test');
 
 const DIR = path.resolve(__dirname, '..', '..', 'docs', 'ops', 'sql', 'drafts');
-const INSTALLS = ['10_DRAFT_stock_functions.sql', '13_DRAFT_report_totals.sql', '17_DRAFT_po_line_delete_guard.sql', '19_DRAFT_request_keys.sql', '21_DRAFT_stock_function_switches.sql', '23_DRAFT_integrity_constraints.sql', '25_DRAFT_integrity_check_schedule.sql'];
+const INSTALLS = ['10_DRAFT_stock_functions.sql', '13_DRAFT_report_totals.sql', '17_DRAFT_po_line_delete_guard.sql', '19_DRAFT_request_keys.sql', '21_DRAFT_stock_function_switches.sql', '23_DRAFT_integrity_constraints.sql', '25_DRAFT_integrity_check_schedule.sql', '27_DRAFT_request_keys_switch.sql'];
 const ROLLBACKS = { '10_DRAFT_stock_functions.sql': '11_DRAFT_rollback_stock_functions.sql',
   '17_DRAFT_po_line_delete_guard.sql': '18_DRAFT_rollback_po_line_delete_guard.sql',
   '19_DRAFT_request_keys.sql': '20_DRAFT_rollback_request_keys.sql',
   '21_DRAFT_stock_function_switches.sql': '22_DRAFT_rollback_stock_function_switches.sql',
   '23_DRAFT_integrity_constraints.sql': '24_DRAFT_rollback_integrity_constraints.sql',
-  '25_DRAFT_integrity_check_schedule.sql': '26_DRAFT_rollback_integrity_check_schedule.sql' };
+  '25_DRAFT_integrity_check_schedule.sql': '26_DRAFT_rollback_integrity_check_schedule.sql',
+  '27_DRAFT_request_keys_switch.sql': '28_DRAFT_rollback_request_keys_switch.sql' };
 const ALL = fs.readdirSync(DIR).filter(f => /^\d\d_DRAFT_.*\.sql$/.test(f) && !/_tests?_/.test(f));
 
 // Remove comments and quoted text so words inside them are not mistaken for SQL.
@@ -53,7 +54,9 @@ for (const f of ALL) {
     // five stock_fn_* rows its install added, nothing else.
     const allowed = f === '22_DRAFT_rollback_stock_function_switches.sql'
       ? sql.replace(/delete from public\.feature_flags\s+where flag_key in \('stock_fn_receive_po', 'stock_fn_recall', 'stock_fn_return', 'stock_fn_adjust', 'stock_fn_delete_product'\);/, '')
-      : sql;
+      : f === '28_DRAFT_rollback_request_keys_switch.sql'
+        ? sql.replace("delete from public.feature_flags where flag_key = 'request_keys';", '')
+        : sql;
     expect(allowed, 'no data deleted or truncated').not.toMatch(/\btruncate\b|^\s*delete\s+from\b/m);
   });
 

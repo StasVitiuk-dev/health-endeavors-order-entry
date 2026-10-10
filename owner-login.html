@@ -1115,6 +1115,34 @@
       try { await callStockFunction(probe[0], probe[1]); return true; }
       catch (err) { return err.kind === 'missing' ? false : err.kind === 'unknown' ? null : true; }
     }
+    // EXT9: request keys (drafts/19). With the 'request_keys' switch on, a
+    // create sends a random key made for that attempt and kept until it
+    // succeeds, so a repeat after a lost reply is refused by the database's
+    // unique index instead of saving a second record. Off, missing or
+    // unreadable switch = no key is sent (today's behaviour). Must stay off
+    // until drafts/19 is installed (an unknown column fails every save).
+    async function requestKeysOn(){
+      try {
+        const { data, error } = await supabase.from('feature_flags').select('enabled').eq('flag_key', 'request_keys').maybeSingle();
+        return !error && !!data && data.enabled === true;
+      } catch (e) { return false; }
+    }
+    function newRequestKey(){
+      const b = new Uint8Array(16); crypto.getRandomValues(b);
+      b[6] = (b[6] & 0x0f) | 0x40; b[8] = (b[8] & 0x3f) | 0x80;
+      const h = [...b].map(x => x.toString(16).padStart(2, '0')).join('');
+      return h.slice(0, 8) + '-' + h.slice(8, 12) + '-' + h.slice(12, 16) + '-' + h.slice(16, 20) + '-' + h.slice(20);
+    }
+    // The key belongs to the form until a save succeeds (a retry reuses it).
+    async function formRequestKey(form){
+      if (!(await requestKeysOn())) return null;
+      if (!form.dataset.requestKey) form.dataset.requestKey = newRequestKey();
+      return form.dataset.requestKey;
+    }
+    function clearRequestKey(form){ if (form) delete form.dataset.requestKey; }
+    function withRequestKey(row, key){ return key ? Object.assign({}, row, { client_request_id: key }) : row; }
+    function isRequestKeyRepeat(err){ return !!err && String(err.code) === '23505' && /client_request_id/.test(String(err.message || '') + String(err.details || '')); }
+    const REPEAT_NOTE = ' was already saved by an earlier attempt (its reply was lost), so it was not added again. Check the list: if you changed anything since, those changes were not saved.';
     function stockFunctionError(err, what, retrySafe){
       if (err.kind === 'missing') return 'The all-or-nothing database function for ' + what + ' is switched on but is not installed, so nothing was changed. Turn its switch off on Feature Switches (or install the function), then try again.';
       if (err.kind === 'unknown') return 'The connection dropped, so the dashboard cannot tell whether ' + what + ' happened. '
@@ -3991,7 +4019,8 @@
           || numberInputError(numVal(document.getElementById('prodRetail')), { label: 'Retail price', allowBlank: true, max: 1000000, decimals: 2 })
           || numberInputError(numVal(document.getElementById('prodWholesale')), { label: 'Wholesale price', allowBlank: true, max: 1000000, decimals: 2 });
         if (priceProblem) { showDashError(priceProblem + ' Nothing was saved.'); return; }
-        const { error } = await supabase.from('products').insert({
+        const rk = await formRequestKey(e.target);
+        const { error: insErr } = await supabase.from('products').insert(withRequestKey({
           name: name,
           sku: sku || null,
           status: document.getElementById('prodStatus').value,
@@ -4000,7 +4029,10 @@
           wholesale_price: num('prodWholesale'),
           packaging_info: document.getElementById('prodPackaging').value.trim() || null,
           created_by: uid,
-        });
+        }, rk));
+        const repeat = isRequestKeyRepeat(insErr);
+        const error = repeat ? null : insErr;
+        if (repeat) toast('That product' + REPEAT_NOTE);
         if (error) {
           // The unique index on sku is case-insensitive, so say so plainly
           if (String(error.message || '').includes('products_sku_unique')) {
@@ -4011,7 +4043,8 @@
         }
         ['prodName','prodSku','prodCost','prodRetail','prodWholesale','prodPackaging']
           .forEach(id => document.getElementById(id).value = '');
-        toastOk('Product added.');
+        clearRequestKey(e.target);
+        if (!repeat) toastOk('Product added.');
         loadInventory();
         safeRun(loadPurchaseOrders);
       } catch (err) {
@@ -4176,7 +4209,8 @@
           return;
         }
         const uid = await currentUserId();
-        const { error } = await supabase.from('suppliers').insert({
+        const rk = await formRequestKey(e.target);
+        const { error: insErr } = await supabase.from('suppliers').insert(withRequestKey({
           name,
           supplier_type: document.getElementById('supType').value,
           contact_name: document.getElementById('supContact').value.trim() || null,
@@ -4184,10 +4218,12 @@
           phone: document.getElementById('supPhone').value.trim() || null,
           notes: document.getElementById('supNotes').value.trim() || null,
           created_by: uid,
-        });
-        if (error) throw error;
+        }, rk));
+        const repeat = isRequestKeyRepeat(insErr);
+        if (insErr && !repeat) throw insErr;
         ['supName','supContact','supEmail','supPhone','supNotes'].forEach(id => document.getElementById(id).value = '');
-        toastOk('Supplier added.');
+        clearRequestKey(e.target);
+        if (repeat) toast('That supplier' + REPEAT_NOTE); else toastOk('Supplier added.');
         loadSuppliers();
       } catch (err) {
         showDashError('Could not add that supplier: ' + (err && err.message ? err.message : err));
@@ -4742,17 +4778,26 @@
       btn.disabled = true;
       try {
         const uid = await currentUserId();
-        const { data, error } = await supabase.from('purchase_orders').insert({
+        const rk = await formRequestKey(e.target);
+        let { data, error } = await supabase.from('purchase_orders').insert(withRequestKey({
           supplier_id: supplierId,
           expected_at: document.getElementById('poExpected').value || null,
           expense_category: document.getElementById('poCategory').value,
           notes: document.getElementById('poNotes').value.trim() || null,
           created_by: uid,
-        }).select('id, po_number').single();
+        }, rk)).select('id, po_number').single();
+        let repeated = false;
+        if (isRequestKeyRepeat(error)) {
+          // The earlier attempt created it: open that one instead of a second.
+          ({ data, error } = await supabase.from('purchase_orders').select('id, po_number').eq('client_request_id', rk).single());
+          repeated = !error;
+        }
         if (error) throw error;
+        clearRequestKey(e.target);
         document.getElementById('poNotes').value = '';
         PO_OPEN_ID = data.id;
-        toastOk(data.po_number + ' created — add what you\'re ordering.');
+        if (repeated) toast('Purchase order ' + (data.po_number || '') + REPEAT_NOTE + ' It is open below.');
+        else toastOk(data.po_number + ' created — add what you\'re ordering.');
         loadPurchaseOrders();
       } catch (err) {
         showDashError('Could not create that purchase order: ' + (err && err.message ? err.message : err));
@@ -5148,16 +5193,19 @@
         const { data: lot, error: lotErr } = await supabase.from('inventory_lots')
           .select('product_id').eq('id', lotId).single();
         if (lotErr) throw lotErr;
-        const { error } = await supabase.from('recalls').insert({
+        const rk = await formRequestKey(e.target);
+        const { error: insErr } = await supabase.from('recalls').insert(withRequestKey({
           lot_id: lotId,
           product_id: lot.product_id,
           reason: reason,
           severity: document.getElementById('recallSeverity').value,
           created_by: uid,
-        });
-        if (error) throw error;
+        }, rk));
+        const repeat = isRequestKeyRepeat(insErr);
+        if (insErr && !repeat) throw insErr;
         document.getElementById('recallReason').value = '';
-        toastOk('Recall initiated.');
+        clearRequestKey(e.target);
+        if (repeat) toast('That recall' + REPEAT_NOTE); else toastOk('Recall initiated.');
         loadRecalls();
         safeRun(loadAttention);
       } catch (err) {
@@ -6874,6 +6922,23 @@
               const blockedReason = newVal ? LAUNCH_BLOCKED_FLAGS[row.getAttribute('data-key')] : null;
               // EXT9: a stock switch can only be turned on once its database
               // function is installed (otherwise that button would refuse every press).
+              // EXT9: the request-key switch needs drafts/19 (the client_request_id
+              // columns); otherwise every save would fail. A harmless read tells.
+              if (newVal && row.getAttribute('data-key') === 'request_keys') {
+                cb.disabled = true;
+                let colOk = null;
+                try {
+                  const { error: colErr } = await supabase.from('expenses').select('client_request_id').limit(1);
+                  colOk = !colErr ? true : (String(colErr.code) === '42703' || String(colErr.code) === 'PGRST204' || /client_request_id/.test(colErr.message || '')) ? false : null;
+                } catch (e) { colOk = null; }
+                cb.disabled = false;
+                if (colOk !== true) {
+                  showDashError(colOk === false
+                    ? 'This switch was left off: the request-key columns (drafts/19) are not installed yet. Install them first, then turn the switch on.'
+                    : 'This switch was left off: the dashboard could not confirm the request-key columns are installed (connection problem). Try again in a moment.');
+                  return;
+                }
+              }
               if (newVal && STOCK_FN_PROBES[row.getAttribute('data-key')]) {
                 cb.disabled = true;
                 const installed = await stockFunctionInstalled(row.getAttribute('data-key'));
@@ -9363,21 +9428,30 @@
       const originalBtnText = submitBtn.textContent;
       submitBtn.disabled = true;
       try {
-        const saveExpense = receiptPath => supabase.from('expenses').insert({
+        const rk = await formRequestKey(e.target);
+        const saveExpense = receiptPath => supabase.from('expenses').insert(withRequestKey({
           category,
           amount,
           expense_date: dateInput.value || localDateString(new Date()),
           vendor: vendorInput.value.trim() || null,
           note: noteInput.value.trim() || null,
           receipt_path: receiptPath,
-        });
+        }, rk));
         // Used to leave the receipt file behind whenever the expense was refused.
         if (receiptFile) {
           submitBtn.textContent = 'Uploading receipt…';
           const safeName = safeStorageName(receiptFile.name);
-          await uploadThenSave('expense-receipts', 'expenses', 'receipt_path', `${uploadStamp()}_${safeName}`, receiptFile, saveExpense);
+          try {
+            await uploadThenSave('expense-receipts', 'expenses', 'receipt_path', `${uploadStamp()}_${safeName}`, receiptFile, saveExpense);
+          } catch (upErr) {
+            // A repeat of a saved attempt: this upload was removed again by
+            // uploadThenSave; the earlier expense keeps its own receipt.
+            if (!isRequestKeyRepeat(upErr)) throw upErr;
+            toast('That expense' + REPEAT_NOTE);
+          }
         } else {
-          const { error } = await saveExpense(null);
+          let { error } = await saveExpense(null);
+          if (isRequestKeyRepeat(error)) { toast('That expense' + REPEAT_NOTE); error = null; }
           if (error) {
             // No reply at all: it may have been saved. Saying "try again"
             // here is how an expense gets logged twice.
@@ -9391,6 +9465,7 @@
         noteInput.value = '';
         receiptInput.value = '';
         dateInput.value = localDateString();
+        clearRequestKey(e.target);
         loadExpenses();
       } catch (err) {
         showDashError('Could not save that expense: ' + (err && err.message ? err.message : err));

@@ -4,12 +4,12 @@ Internal dashboard/platform only. Generated from `docs/ops/backlog/items.py` (ed
 
 **326 deduplicated items** from 397 raw candidates (71 duplicates merged: the same item recorded in PROJECT_RECORD, the overnight review, PRs, owner lists, decision registers and tests).
 
-Status counts: BLOCKED-EXT 2, BLOCKED-OWNER 41, BLOCKED-PROD 20, BLOCKED-QC 12, DEFERRED 24, DONE 223, OPEN 1, QUEUED 3
+Status counts: BLOCKED-EXT 2, BLOCKED-OWNER 41, BLOCKED-PROD 19, BLOCKED-QC 12, DEFERRED 24, DONE 225, OPEN 1, QUEUED 2
 
 | Priority | Items | Done (branch) | Remaining |
 |---|---|---|---|
-| P0 | 16 | 5 | 11 |
-| P1 | 87 | 62 | 25 |
+| P0 | 16 | 6 | 10 |
+| P1 | 87 | 63 | 24 |
 | P2 | 110 | 83 | 27 |
 | P3 | 95 | 72 | 23 |
 | P4 | 18 | 1 | 17 |
@@ -29,11 +29,11 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | INV-02 | Inventory | Install R2 quarantine_recall | Quarantine twice / partial on drop | Blocker | M | Query C; approval | N | Y | Y | BLOCKED-PROD |
 | INV-03 | Inventory | Install R3 receive_return | Double restock on drop | Blocker | M | Query C; approval | N | Y | Y | BLOCKED-PROD |
 | INV-04 | Inventory | Install R4 adjust_inventory | Lost updates / below-zero race in the browser path | Blocker | M | Query C; approval | N | Y | Y | BLOCKED-PROD |
-| INV-06 | Inventory | Dashboard PR: call R1–R5 instead of multi-step table writes | The browser path stays non-atomic until switched | Blocker | L | INV-01..05 installed | P | Y | N | BLOCKED-PROD |
 | INV-22 | Inventory | Agents/automations writing stock directly (D-ops-6) | Would bypass R1–R5 | Blocker | S | Query C §5–7 | N | Y | N | BLOCKED-QC |
 | SE-01 | Security | Query D: elevated functions callable by anon — classify and review | Possible unauthenticated writes | High | S | owner runs Query D | N | Y | Y | BLOCKED-OWNER |
 | SE-02 | Security | Permission fixes from Query D (revoke/grant, gates) | Depends on Query D | High | M | SE-01; approval | N | Y | Y | BLOCKED-PROD |
 | X9-02 | Inventory | Stock switch rows + rollback (drafts/21–22) | Needed before any switch can exist | Blocker | S | drafts/10 installed | Y | Y | Y | BLOCKED-PROD |
+| INV-06 | Inventory | Dashboard PR: call R1–R5 instead of multi-step table writes (EXT9: built behind stock_fn_* switches, off by default; X9-01) | The browser path stays non-atomic until switched | Blocker | L | INV-01..05 installed, then one switch at a time | Y | Y | N | DONE |
 | RP-01 | Reporting | Totals complete beyond 1,000 rows (Accounting, Tax, Business Health, Daily Summary) | Silent undercount | High | M | — | Y | N | N | DONE |
 | SM-07 | State machine | Approval Deny writes "rejected"; rejected = closed everywhere | Live bug (Query A) | High | S | — | Y | N | N | DONE |
 | SM-12 | State machine | Document link types: supplier or none | Live bug (Query A) | High | S | — | Y | N | N | DONE |
@@ -67,7 +67,6 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | X7-16 | Recovery | Restore drill into a throwaway Supabase project never recorded | Only proof that backups work | High | S | owner backup check first | N | Y | Y | BLOCKED-OWNER |
 | X8-15 | Integrity | Run Query F once, then schedule it nightly | Baseline + ongoing detection | High | S | owner runs; pg_cron approval | N | Y | Y | BLOCKED-OWNER |
 | X9-10 | Security | Query G permissions inventory (read-only) | Open task updates, anon grants, duplicate read policies, tables without RLS | High | S | owner runs it | Y | Y | N | BLOCKED-OWNER |
-| X9-13 | Idempotency | Request-key dashboard change (send client_request_id) behind a switch | Turns draft 19 into real duplicate prevention | High | M | drafts/19 installed | Y | Y | N | QUEUED |
 | X9-14 | Permissions | Permission fix drafts from Query G output | Close any FAIL rows | High | S | Query G CSV | N | Y | Y | BLOCKED-OWNER |
 | AG-02 | Agents | Truthful agent state (Unknown/Failed/Stale/Dry run) | No optimistic defaults | High | M | — | Y | N | N | DONE |
 | AG-05 | Agents | Shopify sync interlock + wording; Emergency switches it off | Premature sync | High | S | — | Y | N | N | DONE |
@@ -131,6 +130,7 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | X9-03 | Inventory | A stock switch cannot be turned on before its function exists | Prevents a button refusing every press | High | S | — | Y | N | N | DONE |
 | X9-04 | Security | Frame guard + no-referrer on every page | Clickjacking; GitHub Pages cannot send X-Frame-Options | High | S | — | Y | N | N | DONE |
 | X9-09 | Safety | Hard-wall tests: no send path, no payment provider, no accounting/tax writes, reviewed function list | Keeps DRAFT ≠ SEND and read-only accounting true over time | High | S | — | Y | N | N | DONE |
+| X9-13 | Idempotency | Request-key dashboard change behind a request_keys switch (expenses, products, suppliers, POs, recalls); switch drafts 27/28 | Turns draft 19 into real duplicate prevention; other creates still rely on the lock + check-first message | High | M | drafts/19 + 27 installed, switch on | Y | Y | N | DONE |
 
 ## P2
 
