@@ -15,6 +15,12 @@ const SCRATCH = path.resolve(process.argv[2] || path.join(require('os').tmpdir()
 // [name, file, exact text to find, replacement, specs + grep]
 const MUTATIONS = [
   // ---- EXT9 additions (2026-10-10): stock buttons and the R1–R5 switches ----
+  ['a background load puts its currency warning on another page again', 'owner-login.html',
+    "if (text && currentPageId === pageId) showDashError(text);", "if (text) showDashError(text);",
+    'accounting-oracle -g "never appear on a different page"'],
+  ['opening a page no longer shows its own warning', 'owner-login.html',
+    "if (PAGE_WARNINGS[pageId]) showDashError(PAGE_WARNINGS[pageId]);", "",
+    'accounting-oracle -g "never appear on a different page"'],
   ['a calendar note edit overwrites a note changed elsewhere', 'owner-login.html',
     ".eq('event_uid', uid).eq('note', box.getAttribute('data-shown')).select('event_uid');", ".eq('event_uid', uid).select('event_uid');",
     'calendar-owner -g "still the text shown"'],

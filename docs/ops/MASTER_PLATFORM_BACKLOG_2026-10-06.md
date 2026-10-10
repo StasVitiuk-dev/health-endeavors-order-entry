@@ -2,16 +2,16 @@
 
 Internal dashboard/platform only. Generated from `docs/ops/backlog/items.py` (edit the data there, then run `python3 docs/ops/backlog/items.py`). No production secrets or private business data.
 
-**312 deduplicated items** from 380 raw candidates (68 duplicates merged: the same item recorded in PROJECT_RECORD, the overnight review, PRs, owner lists, decision registers and tests).
+**326 deduplicated items** from 397 raw candidates (71 duplicates merged: the same item recorded in PROJECT_RECORD, the overnight review, PRs, owner lists, decision registers and tests).
 
-Status counts: BLOCKED-EXT 2, BLOCKED-OWNER 39, BLOCKED-PROD 17, BLOCKED-QC 12, DEFERRED 24, DONE 214, OPEN 2, QUEUED 2
+Status counts: BLOCKED-EXT 2, BLOCKED-OWNER 41, BLOCKED-PROD 20, BLOCKED-QC 12, DEFERRED 24, DONE 223, OPEN 1, QUEUED 3
 
 | Priority | Items | Done (branch) | Remaining |
 |---|---|---|---|
-| P0 | 14 | 4 | 10 |
-| P1 | 81 | 59 | 22 |
-| P2 | 105 | 80 | 25 |
-| P3 | 94 | 70 | 24 |
+| P0 | 16 | 5 | 11 |
+| P1 | 87 | 62 | 25 |
+| P2 | 110 | 83 | 27 |
+| P3 | 95 | 72 | 23 |
 | P4 | 18 | 1 | 17 |
 
 Priorities: P0 data loss / security / financial corruption / destructive · P1 launch blocker / correctness / concurrency / permission · P2 reliability / scale / accessibility / major UX · P3 maintainability / tests / docs · P4 future.
@@ -33,10 +33,12 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | INV-22 | Inventory | Agents/automations writing stock directly (D-ops-6) | Would bypass R1–R5 | Blocker | S | Query C §5–7 | N | Y | N | BLOCKED-QC |
 | SE-01 | Security | Query D: elevated functions callable by anon — classify and review | Possible unauthenticated writes | High | S | owner runs Query D | N | Y | Y | BLOCKED-OWNER |
 | SE-02 | Security | Permission fixes from Query D (revoke/grant, gates) | Depends on Query D | High | M | SE-01; approval | N | Y | Y | BLOCKED-PROD |
+| X9-02 | Inventory | Stock switch rows + rollback (drafts/21–22) | Needed before any switch can exist | Blocker | S | drafts/10 installed | Y | Y | Y | BLOCKED-PROD |
 | RP-01 | Reporting | Totals complete beyond 1,000 rows (Accounting, Tax, Business Health, Daily Summary) | Silent undercount | High | M | — | Y | N | N | DONE |
 | SM-07 | State machine | Approval Deny writes "rejected"; rejected = closed everywhere | Live bug (Query A) | High | S | — | Y | N | N | DONE |
 | SM-12 | State machine | Document link types: supplier or none | Live bug (Query A) | High | S | — | Y | N | N | DONE |
 | ST-01 | Storage | Saved record never loses its file on dropped reply | Data loss | High | S | — | Y | N | N | DONE |
+| X9-01 | Inventory | Dashboard can use R1–R5 per button behind stock_fn_* switches (off by default) | All-or-nothing stock the moment the owner installs R1–R5 and turns a switch on; instant rollback by switch | Blocker | L | R1–R5 installed (INV-01..05) | Y | Y | N | DONE |
 
 ## P1
 
@@ -64,6 +66,9 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | X6-17 | Security | This session's GitHub credential has ADMIN rights on the repository (CLAUDE.md expects the non-admin stasvitiuk-reos); the protect-main ruleset lets admins bypass. Not used | Least privilege for automated sessions | High | S | owner: connect Claude with a non-admin account | N | Y | N | BLOCKED-OWNER |
 | X7-16 | Recovery | Restore drill into a throwaway Supabase project never recorded | Only proof that backups work | High | S | owner backup check first | N | Y | Y | BLOCKED-OWNER |
 | X8-15 | Integrity | Run Query F once, then schedule it nightly | Baseline + ongoing detection | High | S | owner runs; pg_cron approval | N | Y | Y | BLOCKED-OWNER |
+| X9-10 | Security | Query G permissions inventory (read-only) | Open task updates, anon grants, duplicate read policies, tables without RLS | High | S | owner runs it | Y | Y | N | BLOCKED-OWNER |
+| X9-13 | Idempotency | Request-key dashboard change (send client_request_id) behind a switch | Turns draft 19 into real duplicate prevention | High | M | drafts/19 installed | Y | Y | N | QUEUED |
+| X9-14 | Permissions | Permission fix drafts from Query G output | Close any FAIL rows | High | S | Query G CSV | N | Y | Y | BLOCKED-OWNER |
 | AG-02 | Agents | Truthful agent state (Unknown/Failed/Stale/Dry run) | No optimistic defaults | High | M | — | Y | N | N | DONE |
 | AG-05 | Agents | Shopify sync interlock + wording; Emergency switches it off | Premature sync | High | S | — | Y | N | N | DONE |
 | AG-06 | Agents | No-send tripwires (email, Shopify) | No customer messages | High | S | — | Y | N | N | DONE |
@@ -123,6 +128,9 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | X8-11 | Reporting | Slower older replies drew over newer ones (5 pages) | Latest request wins | High | S | — | Y | N | N | DONE |
 | X8-13 | Owner UX | No single list of what needs a look | Home Checks card: 17 deterministic checks, UNKNOWN distinct from fine | High | M | — | Y | N | N | DONE |
 | X8-14 | Integrity | No daily integrity check | Query F (read-only, 15 checks, 33/33 local) | High | S | — | Y | N | N | DONE |
+| X9-03 | Inventory | A stock switch cannot be turned on before its function exists | Prevents a button refusing every press | High | S | — | Y | N | N | DONE |
+| X9-04 | Security | Frame guard + no-referrer on every page | Clickjacking; GitHub Pages cannot send X-Frame-Options | High | S | — | Y | N | N | DONE |
+| X9-09 | Safety | Hard-wall tests: no send path, no payment provider, no accounting/tax writes, reviewed function list | Keeps DRAFT ≠ SEND and read-only accounting true over time | High | S | — | Y | N | N | DONE |
 
 ## P2
 
@@ -153,6 +161,8 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | X7-14 | Permissions | Employees can approve requests in the database; admin switches have no page-side role check; policies of tables outside the export unknown | ROLE_PERMISSION_MATRIX.md §4; Query D answers | High | S | owner decision + Query D | N | Y | Y | BLOCKED-OWNER |
 | X8-17 | Review | No safe staging review copy | Synthetic-data build + test; publishing needs owner choice | Medium | M | owner choice of host (X8-D1) | Y | Y | N | BLOCKED-OWNER |
 | X8-18 | Recovery | Backup status visible on Home | Backup job writes one read-only status row (D5) | Medium | M | owner approval; private repo change | N | Y | Y | BLOCKED-OWNER |
+| X9-11 | Integrity | Draft 23/24: recalled >= 0, lot and PO-line ranges, refund >= 0 | Database refuses impossible values whatever writes them | Medium | S | Query E/F show 0 | Y | Y | Y | BLOCKED-PROD |
+| X9-12 | Integrity | Draft 25/26: Query F nightly with saved results (pg_cron) | Problems noticed without anyone remembering to run it | Medium | S | X8-D4 thresholds | Y | Y | Y | BLOCKED-PROD |
 | AG-03 | Agents | "error"/"fail" statuses show Failed; Agent #1 "Switch on" | Overclaim | Medium | S | — | Y | N | N | DONE |
 | AX-01 | Accessibility | Accessible names, unique ids, phone tap targets, dialog focus | Screen readers / phone | Medium | S | — | Y | N | N | DONE |
 | AX-02 | Accessibility | Status/error banner announced to screen readers (role=alert / aria-live) | Errors not announced | Medium | S | — | Y | N | N | DONE |
@@ -233,6 +243,9 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | X8-08 | Reporting | This Week meant different windows on Orders and Expenses | One Last 7 days window; Central-clock oracle | Medium | S | — | Y | N | N | DONE |
 | X8-12 | Security | No Content-Security-Policy on 5 pages | Strict policy on every page | Medium | S | — | Y | N | N | DONE |
 | X8-16 | Recovery | Restore procedure never rehearsed | Local restore drill 6/6 (production drill = X7-16) | Medium | S | — | Y | N | N | DONE |
+| X9-05 | Owner UX | Home checks say when they ran, warn when stale, re-run on return | A result from hours ago looked current | Medium | S | — | Y | N | N | DONE |
+| X9-06 | Concurrency | Calendar note upsert overwrote a note saved in another tab; personal events unguarded | Lost update of typed text | Medium | S | — | Y | N | N | DONE |
+| X9-08 | Owner UX | Older expenses unreachable past the newest 200 | Receipts and corrections out of reach | Medium | S | — | Y | N | N | DONE |
 
 ## P3
 
@@ -261,7 +274,6 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | X5-15 | Audit | employee_activity ordering ties: the RPC's ORDER BY (needs happened_at, id) is not visible from the dashboard | Possible skip at equal timestamps (owner/Query C check) | Low | S | Query C / owner | N | Y | N | BLOCKED-QC |
 | X6-22 | Browser | Signed file links open with window.open after an await: Safari (especially iPhone) may block the new tab silently | Needs a real-device check; same on main | Medium | S | real iPhone check | N | Y | N | BLOCKED-OWNER |
 | X7-15 | Owner UX | Wide tables scroll sideways at 390 / 320 px (last column cut until scrolled) | Pre-existing; card layout for phones later | Low | M | — | Y | N | N | OPEN |
-| X8-19 | Owner UX | One shared warning banner: a background Accounting load can replace the Tax Records currency warning with the same warning labelled Accounting | Show each page currency warning only while that page is open (found by the EXT8 x3 run; test made race-free) | Low | S | — | Y | N | N | OPEN |
 | AX-03 | Accessibility | Toasts announced (aria-live polite) | Success not announced | Low | S | — | Y | N | N | DONE |
 | AX-04 | Accessibility | prefers-reduced-motion respected for animations | Motion sensitivity | Low | S | — | Y | N | N | DONE |
 | AX-06 | Accessibility | Colour contrast check of badges in light/dark | Readability | Low | S | — | Y | N | N | DONE |
@@ -332,6 +344,8 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | X7-09 | Concurrency | SOP agent switch guessed its state after a stale refusal | Re-reads | Low | S | — | Y | N | N | DONE |
 | X7-10 | Idempotency | Adding a supplier after a lost reply could duplicate it | Same-name question (case-insensitive, literal); full fix = request keys (X6-15) | Medium | S | — | Y | N | N | DONE |
 | X7-12 | Idempotency | No machine-readable list of write paths with a retry class | MUTATION_WRITE_PATH_INVENTORY.json: 70 safe, 6 client-side, 23 request key, 0 unresolved; kept current by a test | Medium | S | — | Y | N | N | DONE |
+| X8-19 | Owner UX | One shared warning banner: a background Accounting load can replace the Tax Records currency warning with the same warning labelled Accounting | Show each page currency warning only while that page is open (found by the EXT8 x3 run; test made race-free) | Low | S | — | Y | N | N | DONE |
+| X9-07 | Security | CSV guard: leading line feed and full-width formula starters | Formula injection in some spreadsheet locales | Low | S | — | Y | N | N | DONE |
 
 ## P4
 
@@ -411,5 +425,8 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 - X6-15: X5-11
 - X6-22: RS-03
 - X7-10: X6-15
+- X9-01: INV-06
+- X9-12: X8-15
+- X9-13: X6-15
 - X8-08: F3-07
 - X8-12: S7

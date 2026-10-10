@@ -349,3 +349,28 @@ test('figures get thousands commas once, also with Reduce Motion; dates are left
   });
   expect(out).toEqual(['1,000', '$1,234.50', '$1,234.50', '12', '2026-10-07', '?']);
 });
+
+// X8-19 (EXT9): one shared banner. A page's currency warning shows only while
+// that page is open; a background load never puts it on another page.
+test('currency warnings never appear on a different page (background loads stay quiet)', async ({ page, backend }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'run once');
+  const now = new Date().toISOString();
+  backend.tables.orders = [['USD', '10.00'], ['CAD', '20.00']].map(([currency, total], i) => ({
+    id: 'ord-cur' + i, order_number: 'CUR-' + i, total, tax_total: '0', currency, status: 'paid',
+    placed_at: now, deleted_at: null, source: 'manual', raw_data: null, customer_name: 'SYNTHETIC', created_at: now,
+  }));
+  await page.addInitScript(() => {
+    window.__bannerTexts = [];
+    new MutationObserver(() => { const el = document.getElementById('dashError'); if (el && el.textContent) window.__bannerTexts.push(el.textContent); })
+      .observe(document, { subtree: true, childList: true, characterData: true });
+  });
+  await login(page);
+  await page.waitForLoadState('networkidle');
+  await gotoPage(page, 'tasksPanel');
+  await page.waitForLoadState('networkidle');
+  const texts = await page.evaluate(() => window.__bannerTexts);
+  expect(texts.filter(t => /more than one currency/.test(t))).toEqual([]);
+  // ...and on its own page it still shows
+  await gotoPage(page, 'taxRecordsPanel');
+  await expect(page.locator('#dashError')).toContainText('Tax Records: these orders are in more than one currency');
+});

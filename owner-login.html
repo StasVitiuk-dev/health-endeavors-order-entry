@@ -2156,6 +2156,14 @@
       document.getElementById('sidebarOverlay').classList.remove('visible');
     }
 
+    // X8-19 (EXT9): one shared banner. A page's own warning (e.g. orders in
+    // several currencies) is kept per page and shown while that page is open
+    // or when it is opened, never on another page by a background load.
+    const PAGE_WARNINGS = {};
+    function showPageWarning(pageId, text){
+      PAGE_WARNINGS[pageId] = text || null;
+      if (text && currentPageId === pageId) showDashError(text);
+    }
     function showPage(pageId){
       // If a password prompt is still open, leaving the page cancels it.
       // Otherwise it floats over whatever you navigate to, looking like it
@@ -2165,6 +2173,7 @@
         sec.classList.toggle('activePage', sec.id === pageId);
       });
       currentPageId = pageId;
+      if (PAGE_WARNINGS[pageId]) showDashError(PAGE_WARNINGS[pageId]); // X8-19: that page's own warning
       saveLastPage(pageId);
       recordPageInHistory(pageId);
       renderSidebar(document.getElementById('sidebarSearch').value);
@@ -5709,7 +5718,7 @@
           <div class="stat"><div class="num">${esc(fmtMoney(totalRevenue, currency))}</div><div class="lbl">${esc(revenueLabel)}</div></div>
         `;
         const ordersMixed = mixedCurrencyNote(orders, 'Orders', currency);
-        if (ordersMixed) showDashError(ordersMixed);
+        showPageWarning('ordersPanel', ordersMixed); // X8-19
 
         const recent = orders.slice(0, 15);
         if (!recent.length) {
@@ -6707,7 +6716,7 @@
         const revenue = revenueOrders.reduce((sum, o) => sum + Number(o.total || 0), 0);
         const currency = (orders[0] && orders[0].currency) || 'USD';
         const dailyMixed = mixedCurrencyNote(orders, 'Daily Summary', currency);
-        if (dailyMixed) showDashError(dailyMixed);
+        showPageWarning('dailySummaryPanel', dailyMixed); // X8-19
 
         const aiLogs = aiRes.data || [];
         const aiCost = aiLogs.reduce((sum, l) => sum + Number(l.cost_usd || 0), 0);
@@ -9438,7 +9447,7 @@
         if (!isLatest()) return;
         const currency = (orders[0] && orders[0].currency) || 'USD';
         const acctMixed = mixedCurrencyNote(orders, 'Accounting', currency);
-        if (acctMixed) showDashError(acctMixed);
+        showPageWarning('accountingPanel', acctMixed); // X8-19
         let revenue = 0;
         let excluded = 0;
         const needsReview = [];
@@ -9557,7 +9566,7 @@
 
         const currency = (orders[0] && orders[0].currency) || 'USD';
         const taxMixed = mixedCurrencyNote(orders, 'Tax Records', currency);
-        if (taxMixed) showDashError(taxMixed);
+        showPageWarning('taxRecordsPanel', taxMixed); // X8-19
 
         // Revenue + sales tax — same cancelled/refunded exclusion as Accounting,
         // so the two pages never quietly disagree on what counts as a real sale.
