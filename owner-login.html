@@ -9181,7 +9181,7 @@
           .select('id, category, amount, expense_date, vendor, note, receipt_path')
           .is('deleted_at', null)
           .order('expense_date', { ascending: false })
-          .limit(200);
+          .limit(LIST_LIMITS.expenses = LIST_LIMITS.expenses || 200); // EXT9: Show more reaches older ones
         if (error) throw error;
         SEARCH_INDEX.expenses = rows;
 
@@ -9214,6 +9214,7 @@
               <button class="small deny expDeleteBtn">Delete</button>
             </div>
           </div>`).join('');
+        appendMore('expensesWrap', 'expenses', rows.length, allAmounts.length, 'expenses', loadExpenses);
         document.querySelectorAll('.expDeleteBtn').forEach(btn => btn.addEventListener('click', () => deleteExpense(btn)));
         document.querySelectorAll('.expRemoveReceiptBtn').forEach(btn => btn.addEventListener('click', () => removeExpenseReceipt(btn)));
         document.querySelectorAll('.expFileLink').forEach(link => {

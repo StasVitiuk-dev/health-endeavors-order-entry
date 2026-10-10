@@ -24,6 +24,10 @@ test('Expenses: count and money total include every expense, not just the 200 li
   await expect(page.locator('#expenseStats .stat').nth(1).locator('.num')).toHaveText('$500.00'); // deleted 999 excluded
   await expect(page.locator('#expenseStats .expensesCutNote')).toContainText('newest 200 of 250');
   await expect(page.locator('#expensesWrap .approvalRow')).toHaveCount(200);
+  // EXT9: the older 50 are reachable (to see a receipt or correct one)
+  await page.locator('#expensesWrap .listMore').getByRole('button', { name: 'Show more' }).click();
+  await expect(page.locator('#expensesWrap .approvalRow')).toHaveCount(250);
+  await expect(page.locator('#expensesWrap .listMore')).toHaveCount(0);
 });
 
 test('Expenses: with fewer than 200 there is no "newest of" note', async ({ page, backend }) => {
