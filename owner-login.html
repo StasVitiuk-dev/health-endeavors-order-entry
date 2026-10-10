@@ -33,7 +33,7 @@
 <title>Health Endeavors — Owner Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous" onerror="window.__sbLoadFailed=true"></script>
 <link rel="stylesheet" href="assets/owner-login.css?v=3b506e1f31">
-<script src="assets/owner-login-helpers.js?v=978e95f2bb" onerror="window.__heHelpersLoadFailed=true"></script>
+<script src="assets/owner-login-helpers.js?v=086b091c12" onerror="window.__heHelpersLoadFailed=true"></script>
 <script>
   // Applied before anything renders so there's no flash of the wrong theme.
   (function(){
@@ -5251,7 +5251,9 @@
     // Inline editor for a personal (manually-entered) event: change title or
     // times, or delete it. Shown when you click one of your own events.
     function personalEventEditorHtml(ev){
-      return '<div class="calNoteBox" data-personaluid="' + esc(ev.uid) + '">' +
+      // EXT9: the values shown, so a save never overwrites a change made elsewhere meanwhile.
+      const shown = JSON.stringify({ title: ev.summary == null ? null : ev.summary, starts_at: ev.starts_at || null, ends_at: ev.ends_at || null, all_day: !!ev.all_day });
+      return '<div class="calNoteBox" data-personaluid="' + esc(ev.uid) + '" data-shown="' + esc(shown) + '">' +
         '<label style="margin-bottom:4px;">Title</label>' +
         '<input type="text" class="personalEditTitle" value="' + esc(ev.summary || '') + '" style="margin-bottom:10px;">' +
         '<label style="margin-bottom:4px;">Starts</label>' +
@@ -5292,7 +5294,8 @@
       };
     }
     function noteEditorHtml(ev){
-      return '<div class="calNoteBox" data-noteuid="' + esc(ev.uid) + '">' +
+      // EXT9: data-had / data-shown = the note as shown (none, or its text).
+      return '<div class="calNoteBox" data-noteuid="' + esc(ev.uid) + '" data-had="' + (calNotes[ev.uid] != null ? '1' : '0') + '" data-shown="' + esc(calNotes[ev.uid] || '') + '">' +
         '<textarea class="calNoteText" placeholder="Add a note for yourself about this appointment…">' +
           esc(calNotes[ev.uid] || '') + '</textarea>' +
         '<div class="calNoteRow">' +
@@ -5403,10 +5406,29 @@
           saveBtn.disabled = true;
           try {
             const uidUser = await currentUserId();
-            const { error } = await supabase.from('calendar_notes')
-              .upsert({ event_uid: uid, note: text, created_by: uidUser, updated_at: new Date().toISOString() },
-                      { onConflict: 'event_uid' });
-            if (error) throw error;
+            // EXT9: never overwrite a note saved elsewhere meanwhile (was an
+            // upsert: the last save silently replaced the other one). A new
+            // note is an insert (refused if one appeared meanwhile); an edit
+            // only applies while the note is still the one shown.
+            let saved = false;
+            if (box.getAttribute('data-had') === '1') {
+              const { data: rows, error } = await supabase.from('calendar_notes')
+                .update({ note: text, updated_at: new Date().toISOString() })
+                .eq('event_uid', uid).eq('note', box.getAttribute('data-shown')).select('event_uid');
+              if (error) throw error;
+              saved = !noRowsChanged(rows);
+            } else {
+              const { error } = await supabase.from('calendar_notes')
+                .insert({ event_uid: uid, note: text, created_by: uidUser, updated_at: new Date().toISOString() });
+              if (error && String(error.code) !== '23505') throw error;
+              saved = !error;
+            }
+            if (!saved) {
+              showDashError('That note was changed or added somewhere else (another tab or person) since you opened it, so yours was not saved and nothing was overwritten. The calendar has been refreshed: open the note again to see the latest text. Your text: “' + text + '”');
+              saveBtn.disabled = false;
+              loadCalendarMonth();
+              return;
+            }
             calNotes[uid] = text;
             toastOk('Note saved.');
             calOpenUid = null;
@@ -5454,15 +5476,17 @@
           saveBtn.disabled = true;
           try {
             const times = personalTimesFromInputs(startInput.value, endInput.value, allDayInput.checked);
-            const { data: changed, error } = await supabase.from('personal_calendar_events').update({
+            // EXT9: only while the event is still as shown (another tab may have changed it).
+            let shownEv = null;
+            try { shownEv = JSON.parse(box.getAttribute('data-shown') || 'null'); } catch (e) { shownEv = null; }
+            const ok = await updateIfUnchanged('personal_calendar_events', id, {
               title,
               starts_at: times.starts_at,
               ends_at: times.ends_at,
               all_day: !!allDayInput.checked,
               updated_at: new Date().toISOString(),
-            }).eq('id', id).select('id');
-            if (error) throw error;
-            if (noRowsChanged(changed)) { showDashError(staleMessage('That event')); saveBtn.disabled = false; loadCalendarMonth(); return; }
+            }, shownEv || {});
+            if (!ok) { showDashError(staleMessage('That event')); saveBtn.disabled = false; loadCalendarMonth(); return; }
             toastOk('Event updated.');
             calOpenUid = null;
             loadCalendarMonth();

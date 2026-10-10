@@ -404,6 +404,13 @@ test.describe('csvCell (CSV export safety)', () => {
     }
     expect(cell('=HYPERLINK("http://x.test","click")')).toBe('"\'=HYPERLINK(""http://x.test"",""click"")"');
   });
+  test('EXT9: a leading line feed and full-width formula starters are neutralised too', () => {
+    for (const v of ['\n=1+1', '\uFF1D1+1', '\uFF0BSUM(A1)', '\uFF0D2+3', '\uFF20SUM(A1)']) {
+      expect(cell(v).startsWith('"\''), JSON.stringify(v)).toBe(true);
+    }
+    // ordinary text that merely contains these characters later is untouched
+    for (const v of ['Smith = Jones', 'a\n=b', 'Price \uFF1D 5', 'SYNTHETIC Co.']) expect(cell(v), v).toBe('"' + v.replace(/"/g, '""') + '"');
+  });
   test('money and plain numbers stay numbers', () => {
     for (const v of ['-12.50', '+3', '-$1,234.56', '$0.00', '15%', '-0.01', '1,000']) expect(cell(v), v).toBe('"' + v + '"');
   });

@@ -24,7 +24,9 @@
     // negatives like -$20.00) are left exactly as they are.
     function csvCell(c){
       let s = String(c === null || c === undefined ? '' : c);
-      if (/^[=+\-@\t\r]/.test(s) && !/^[-+]?\$?[\d,]+(\.\d+)?%?$/.test(s)) s = "'" + s;
+      // EXT9: also a leading line feed and the full-width forms (＝＋－＠), which
+      // some spreadsheet programs (East Asian locales) also read as formulas.
+      if (/^[=+\-@\t\r\n\uFF1D\uFF0B\uFF0D\uFF20]/.test(s) && !/^[-+]?\$?[\d,]+(\.\d+)?%?$/.test(s)) s = "'" + s;
       return '"' + s.replace(/"/g, '""') + '"';
     }
 

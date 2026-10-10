@@ -71,7 +71,43 @@ test('saving a note on an event stores it by the event\'s id (so it survives the
   const [w] = backend.tableWrites().filter(r => r.table === 'calendar_notes');
   expect(Object.keys(w.body).sort()).toEqual(['created_by', 'event_uid', 'note', 'updated_at']);
   expect(w.body).toMatchObject({ event_uid: 'uid-work', note: 'SYNTHETIC bring notes', created_by: OWNER_USER.id });
-  expect(new URLSearchParams(w.query).get('on_conflict')).toBe('event_uid');
+  // EXT9: a new note is a plain insert (an upsert silently replaced a note saved elsewhere).
+  expect(w.method).toBe('POST');
+  expect(new URLSearchParams(w.query).get('on_conflict')).toBeNull();
   // The synced events themselves are never written to.
   expect(backend.tableWrites().filter(r => r.table === 'calendar_events')).toEqual([]);
+});
+
+// EXT9: two tabs (or two people) editing the same note or event never
+// silently overwrite each other.
+test.describe('calendar edits made elsewhere are never overwritten', () => {
+  test('a note added in another tab meanwhile: this one is refused, nothing overwritten, the text is kept in the message', async ({ page, backend }) => {
+    await page.context().route(/\/rest\/v1\/calendar_notes(\?|$)/, r => r.request().method() === 'POST'
+      ? r.fulfill({ status: 409, contentType: 'application/json', body: JSON.stringify({ code: '23505', message: 'duplicate key value violates unique constraint "calendar_notes_event_uid_key"' }) })
+      : r.fallback());
+    await page.locator('#calBody .calEvent[data-uid="uid-work"] .eTitle').click();
+    const box = page.locator('.calNoteBox[data-noteuid="uid-work"]');
+    await box.locator('.calNoteText').fill('SYNTHETIC mine');
+    await box.locator('.calNoteSave').click();
+    await expect(page.locator('#dashError')).toContainText('changed or added somewhere else');
+    await expect(page.locator('#dashError')).toContainText('SYNTHETIC mine');
+  });
+
+  test('editing an existing note only applies while it is still the text shown', async ({ page, backend }) => {
+    backend.tables.calendar_notes = [{ id: 'cn-1', event_uid: 'uid-work', note: 'SYNTHETIC old note' }];
+    await page.reload();
+    await gotoPage(page, 'calendarPanel');
+    await page.locator('#calBody .calEvent[data-uid="uid-work"] .eTitle').click();
+    const box = page.locator('.calNoteBox[data-noteuid="uid-work"]');
+    await expect(box.locator('.calNoteText')).toHaveValue('SYNTHETIC old note');
+    await box.locator('.calNoteText').fill('SYNTHETIC edited');
+    await box.locator('.calNoteSave').click();
+    await expect.poll(() => backend.tableWrites().filter(r => r.table === 'calendar_notes').length).toBe(1);
+    const [w] = backend.tableWrites().filter(r => r.table === 'calendar_notes');
+    expect(w.method).toBe('PATCH');
+    expect(w.body).toMatchObject({ note: 'SYNTHETIC edited' });
+    const p = new URLSearchParams(w.query);
+    expect(p.get('event_uid')).toBe('eq.uid-work');
+    expect(p.get('note')).toBe('eq.SYNTHETIC old note');
+  });
 });

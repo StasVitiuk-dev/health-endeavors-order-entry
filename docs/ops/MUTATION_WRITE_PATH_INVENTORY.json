@@ -1,9 +1,9 @@
 {
  "generatedBy": "node tests/tools/write-paths.js --json",
  "status": "CURRENT (branch work, not live)",
- "paths": 104,
+ "paths": 105,
  "retryClassTotals": {
-  "SAFE ALREADY": 75,
+  "SAFE ALREADY": 76,
   "DATABASE REQUEST KEY NEEDED": 23,
   "CLIENT-SIDE MITIGATION ONLY": 6
  },
@@ -117,6 +117,7 @@
     "csp",
     "error-language",
     "general",
+    "hard-walls",
     "library-pin",
     "login-session",
     "manual-order-entry",
@@ -159,6 +160,7 @@
     "csp",
     "error-language",
     "general",
+    "hard-walls",
     "library-pin",
     "login-session",
     "manual-order-entry",
@@ -201,6 +203,7 @@
     "csp",
     "error-language",
     "general",
+    "hard-walls",
     "library-pin",
     "login-session",
     "manual-order-entry",
@@ -243,6 +246,7 @@
     "csp",
     "error-language",
     "general",
+    "hard-walls",
     "library-pin",
     "login-session",
     "manual-order-entry",
@@ -689,6 +693,7 @@
    "serverRule": "sign-in system / storage / function rules",
    "pageRoleCheck": true,
    "testFiles": [
+    "hard-walls",
     "stock-functions"
    ]
   },
@@ -1059,6 +1064,7 @@
    "serverRule": "sign-in system / storage / function rules",
    "pageRoleCheck": true,
    "testFiles": [
+    "hard-walls",
     "stock-functions"
    ]
   },
@@ -1241,24 +1247,24 @@
   },
   {
    "n": 36,
-   "key": "owner-login.html|click saveBtn|calendar_notes|upsert|1",
+   "key": "owner-login.html|click saveBtn|calendar_notes|update|1",
    "page": "owner-login.html",
-   "line": 5407,
+   "line": 5416,
    "where": "click saveBtn",
    "table": "calendar_notes",
-   "op": "upsert",
+   "op": "update",
    "writesState": false,
-   "staleCondition": false,
-   "readBack": false,
+   "staleCondition": true,
+   "readBack": true,
    "doubleClickLock": true,
    "confirmation": false,
    "rolePrecheck": false,
-   "idempotency": "upsert: repeat converges",
+   "idempotency": "guarded: a repeat changes nothing",
    "audit": "unknown until Query C §10",
    "partialFailure": "no (single write)",
    "sensitive": "no",
    "retryClass": "SAFE ALREADY",
-   "why": "upsert: repeat converges",
+   "why": "guarded: a repeat changes nothing",
    "money": false,
    "stock": false,
    "customerData": true,
@@ -1271,9 +1277,39 @@
   },
   {
    "n": 37,
-   "key": "owner-login.html|click delBtn|calendar_notes|delete|1",
+   "key": "owner-login.html|click saveBtn|calendar_notes|insert|1",
    "page": "owner-login.html",
    "line": 5422,
+   "where": "click saveBtn",
+   "table": "calendar_notes",
+   "op": "insert",
+   "writesState": false,
+   "staleCondition": false,
+   "readBack": false,
+   "doubleClickLock": true,
+   "confirmation": false,
+   "rolePrecheck": false,
+   "idempotency": "guarded: a repeat changes nothing (one note per event: unique event_uid refuses a second)",
+   "audit": "unknown until Query C §10",
+   "partialFailure": "no (single write)",
+   "sensitive": "no",
+   "retryClass": "SAFE ALREADY",
+   "why": "guarded: a repeat changes nothing (one note per event: unique event_uid refuses a second)",
+   "money": false,
+   "stock": false,
+   "customerData": true,
+   "serverRule": "UNKNOWN until Query D (table outside the export)",
+   "pageRoleCheck": false,
+   "testFiles": [
+    "calendar-owner",
+    "scale-urls"
+   ]
+  },
+  {
+   "n": 38,
+   "key": "owner-login.html|click delBtn|calendar_notes|delete|1",
+   "page": "owner-login.html",
+   "line": 5444,
    "where": "click delBtn",
    "table": "calendar_notes",
    "op": "delete",
@@ -1300,15 +1336,15 @@
    ]
   },
   {
-   "n": 38,
-   "key": "owner-login.html|click saveBtn|personal_calendar_events|update|1",
+   "n": 39,
+   "key": "owner-login.html|click saveBtn|personal_calendar_events|updateIfUnchanged|1",
    "page": "owner-login.html",
-   "line": 5457,
+   "line": 5482,
    "where": "click saveBtn",
    "table": "personal_calendar_events",
-   "op": "update",
+   "op": "updateIfUnchanged",
    "writesState": false,
-   "staleCondition": false,
+   "staleCondition": true,
    "readBack": true,
    "doubleClickLock": true,
    "confirmation": false,
@@ -1329,10 +1365,10 @@
    ]
   },
   {
-   "n": 39,
+   "n": 40,
    "key": "owner-login.html|click delBtn|personal_calendar_events|delete|1",
    "page": "owner-login.html",
-   "line": 5478,
+   "line": 5502,
    "where": "click delBtn",
    "table": "personal_calendar_events",
    "op": "delete",
@@ -1358,10 +1394,10 @@
    ]
   },
   {
-   "n": 40,
+   "n": 41,
    "key": "owner-login.html|submit addPersonalEventForm|personal_calendar_events|insert|1",
    "page": "owner-login.html",
-   "line": 5598,
+   "line": 5622,
    "where": "submit addPersonalEventForm",
    "table": "personal_calendar_events",
    "op": "insert",
@@ -1387,10 +1423,10 @@
    ]
   },
   {
-   "n": 41,
+   "n": 42,
    "key": "owner-login.html|logCustomerAccess|rpc:log_customer_data_access|rpc|1",
    "page": "owner-login.html",
-   "line": 5648,
+   "line": 5672,
    "where": "logCustomerAccess",
    "table": "rpc:log_customer_data_access",
    "op": "rpc",
@@ -1412,14 +1448,15 @@
    "serverRule": "sign-in system / storage / function rules",
    "pageRoleCheck": false,
    "testFiles": [
+    "hard-walls",
     "pages-data"
    ]
   },
   {
-   "n": 42,
+   "n": 43,
    "key": "owner-login.html|click .deleteOrderBtn|orders|update|1",
    "page": "owner-login.html",
-   "line": 5720,
+   "line": 5744,
    "where": "click .deleteOrderBtn",
    "table": "orders",
    "op": "update",
@@ -1452,10 +1489,10 @@
    ]
   },
   {
-   "n": 43,
+   "n": 44,
    "key": "owner-login.html|click .restoreOrderBtn|orders|update|1",
    "page": "owner-login.html",
-   "line": 5763,
+   "line": 5787,
    "where": "click .restoreOrderBtn",
    "table": "orders",
    "op": "update",
@@ -1488,10 +1525,10 @@
    ]
   },
   {
-   "n": 44,
+   "n": 45,
    "key": "owner-login.html|changeTaskStatus|tasks|update|1",
    "page": "owner-login.html",
-   "line": 5817,
+   "line": 5841,
    "where": "changeTaskStatus",
    "table": "tasks",
    "op": "update",
@@ -1527,10 +1564,10 @@
    ]
   },
   {
-   "n": 45,
+   "n": 46,
    "key": "owner-login.html|change .agentToggle|agent_controls|updateIfUnchanged|1",
    "page": "owner-login.html",
-   "line": 6118,
+   "line": 6142,
    "where": "change .agentToggle",
    "table": "agent_controls",
    "op": "updateIfUnchanged",
@@ -1559,10 +1596,10 @@
    ]
   },
   {
-   "n": 46,
+   "n": 47,
    "key": "owner-login.html|setInquirySeverity|customer_inquiries|updateIfUnchanged|1",
    "page": "owner-login.html",
-   "line": 6442,
+   "line": 6466,
    "where": "setInquirySeverity",
    "table": "customer_inquiries",
    "op": "updateIfUnchanged",
@@ -1585,15 +1622,16 @@
    "pageRoleCheck": false,
    "testFiles": [
     "guarded-toggles",
+    "hard-walls",
     "no-live-send",
     "operations-pages"
    ]
   },
   {
-   "n": 47,
+   "n": 48,
    "key": "owner-login.html|saveInquiryDraft|customer_inquiries|update|1",
    "page": "owner-login.html",
-   "line": 6474,
+   "line": 6498,
    "where": "saveInquiryDraft",
    "table": "customer_inquiries",
    "op": "update",
@@ -1616,15 +1654,16 @@
    "pageRoleCheck": false,
    "testFiles": [
     "guarded-toggles",
+    "hard-walls",
     "no-live-send",
     "operations-pages"
    ]
   },
   {
-   "n": 48,
+   "n": 49,
    "key": "owner-login.html|markInquiryAnswered|customer_inquiries|updateIfUnchanged|1",
    "page": "owner-login.html",
-   "line": 6506,
+   "line": 6530,
    "where": "markInquiryAnswered",
    "table": "customer_inquiries",
    "op": "updateIfUnchanged",
@@ -1647,15 +1686,16 @@
    "pageRoleCheck": false,
    "testFiles": [
     "guarded-toggles",
+    "hard-walls",
     "no-live-send",
     "operations-pages"
    ]
   },
   {
-   "n": 49,
+   "n": 50,
    "key": "owner-login.html|setServiceStatus|service_status|updateIfUnchanged|1",
    "page": "owner-login.html",
-   "line": 6623,
+   "line": 6647,
    "where": "setServiceStatus",
    "table": "service_status",
    "op": "updateIfUnchanged",
@@ -1681,10 +1721,10 @@
    ]
   },
   {
-   "n": 50,
+   "n": 51,
    "key": "owner-login.html|change .flagToggle|feature_flags|updateIfUnchanged|1",
    "page": "owner-login.html",
-   "line": 6861,
+   "line": 6885,
    "where": "change .flagToggle",
    "table": "feature_flags",
    "op": "updateIfUnchanged",
@@ -1711,10 +1751,10 @@
    ]
   },
   {
-   "n": 51,
+   "n": 52,
    "key": "owner-login.html|click systemModeChangeBtn|system_mode|updateIfUnchanged|1",
    "page": "owner-login.html",
-   "line": 6971,
+   "line": 6995,
    "where": "click systemModeChangeBtn",
    "table": "system_mode",
    "op": "updateIfUnchanged",
@@ -1740,40 +1780,10 @@
    ]
   },
   {
-   "n": 52,
+   "n": 53,
    "key": "owner-login.html|click systemModeChangeBtn|feature_flags|update|1",
    "page": "owner-login.html",
-   "line": 7000,
-   "where": "click systemModeChangeBtn",
-   "table": "feature_flags",
-   "op": "update",
-   "writesState": true,
-   "staleCondition": false,
-   "readBack": true,
-   "doubleClickLock": true,
-   "confirmation": true,
-   "rolePrecheck": false,
-   "idempotency": "guarded: a repeat changes nothing",
-   "audit": "unknown until Query C §10",
-   "partialFailure": "mode saved; each follow-up switch-off checked and reported (MU-06)",
-   "sensitive": "yes",
-   "retryClass": "SAFE ALREADY",
-   "why": "guarded: a repeat changes nothing",
-   "money": false,
-   "stock": false,
-   "customerData": false,
-   "serverRule": "UNKNOWN until Query D (table outside the export)",
-   "pageRoleCheck": false,
-   "testFiles": [
-    "admin-pages",
-    "stock-functions"
-   ]
-  },
-  {
-   "n": 53,
-   "key": "owner-login.html|click systemModeChangeBtn|feature_flags|update|2",
-   "page": "owner-login.html",
-   "line": 7008,
+   "line": 7024,
    "where": "click systemModeChangeBtn",
    "table": "feature_flags",
    "op": "update",
@@ -1801,9 +1811,39 @@
   },
   {
    "n": 54,
+   "key": "owner-login.html|click systemModeChangeBtn|feature_flags|update|2",
+   "page": "owner-login.html",
+   "line": 7032,
+   "where": "click systemModeChangeBtn",
+   "table": "feature_flags",
+   "op": "update",
+   "writesState": true,
+   "staleCondition": false,
+   "readBack": true,
+   "doubleClickLock": true,
+   "confirmation": true,
+   "rolePrecheck": false,
+   "idempotency": "guarded: a repeat changes nothing",
+   "audit": "unknown until Query C §10",
+   "partialFailure": "mode saved; each follow-up switch-off checked and reported (MU-06)",
+   "sensitive": "yes",
+   "retryClass": "SAFE ALREADY",
+   "why": "guarded: a repeat changes nothing",
+   "money": false,
+   "stock": false,
+   "customerData": false,
+   "serverRule": "UNKNOWN until Query D (table outside the export)",
+   "pageRoleCheck": false,
+   "testFiles": [
+    "admin-pages",
+    "stock-functions"
+   ]
+  },
+  {
+   "n": 55,
    "key": "owner-login.html|click systemModeChangeBtn|agent_controls|update|1",
    "page": "owner-login.html",
-   "line": 7027,
+   "line": 7051,
    "where": "click systemModeChangeBtn",
    "table": "agent_controls",
    "op": "update",
@@ -1832,10 +1872,10 @@
    ]
   },
   {
-   "n": 55,
+   "n": 56,
    "key": "owner-login.html|click .ruleSaveBtn|business_rules|updateIfUnchanged|1",
    "page": "owner-login.html",
-   "line": 7156,
+   "line": 7180,
    "where": "click .ruleSaveBtn",
    "table": "business_rules",
    "op": "updateIfUnchanged",
@@ -1862,10 +1902,10 @@
    ]
   },
   {
-   "n": 56,
+   "n": 57,
    "key": "owner-login.html|change .ruleActiveToggle|business_rules|updateIfUnchanged|1",
    "page": "owner-login.html",
-   "line": 7183,
+   "line": 7207,
    "where": "change .ruleActiveToggle",
    "table": "business_rules",
    "op": "updateIfUnchanged",
@@ -1892,10 +1932,10 @@
    ]
   },
   {
-   "n": 57,
+   "n": 58,
    "key": "owner-login.html|decideApproval|approval_requests|updateIfUnchanged|1",
    "page": "owner-login.html",
-   "line": 7251,
+   "line": 7275,
    "where": "decideApproval",
    "table": "approval_requests",
    "op": "updateIfUnchanged",
@@ -1927,10 +1967,10 @@
    ]
   },
   {
-   "n": 58,
+   "n": 59,
    "key": "owner-login.html|revokeSession|rpc:revoke_my_session|rpc|1",
    "page": "owner-login.html",
-   "line": 7294,
+   "line": 7318,
    "where": "revokeSession",
    "table": "rpc:revoke_my_session",
    "op": "rpc",
@@ -1952,14 +1992,15 @@
    "serverRule": "sign-in system / storage / function rules",
    "pageRoleCheck": false,
    "testFiles": [
+    "hard-walls",
     "operations-pages"
    ]
   },
   {
-   "n": 59,
+   "n": 60,
    "key": "owner-login.html|change .sopAgentToggle|sop_documents|updateIfUnchanged|1",
    "page": "owner-login.html",
-   "line": 7350,
+   "line": 7374,
    "where": "change .sopAgentToggle",
    "table": "sop_documents",
    "op": "updateIfUnchanged",
@@ -1986,10 +2027,10 @@
    ]
   },
   {
-   "n": 60,
+   "n": 61,
    "key": "owner-login.html|submit addSopForm|sop_documents|insert|1",
    "page": "owner-login.html",
-   "line": 7388,
+   "line": 7412,
    "where": "submit addSopForm",
    "table": "sop_documents",
    "op": "insert",
@@ -2016,10 +2057,10 @@
    ]
   },
   {
-   "n": 61,
+   "n": 62,
    "key": "owner-login.html|advanceFeatureRequest|feature_requests|updateIfUnchanged|1",
    "page": "owner-login.html",
-   "line": 7481,
+   "line": 7505,
    "where": "advanceFeatureRequest",
    "table": "feature_requests",
    "op": "updateIfUnchanged",
@@ -2045,10 +2086,10 @@
    ]
   },
   {
-   "n": 62,
+   "n": 63,
    "key": "owner-login.html|deleteFeatureRequest|feature_requests|update|1",
    "page": "owner-login.html",
-   "line": 7497,
+   "line": 7521,
    "where": "deleteFeatureRequest",
    "table": "feature_requests",
    "op": "update",
@@ -2074,10 +2115,10 @@
    ]
   },
   {
-   "n": 63,
+   "n": 64,
    "key": "owner-login.html|click .restoreFeatureRequestBtn|feature_requests|update|1",
    "page": "owner-login.html",
-   "line": 7536,
+   "line": 7560,
    "where": "click .restoreFeatureRequestBtn",
    "table": "feature_requests",
    "op": "update",
@@ -2103,10 +2144,10 @@
    ]
   },
   {
-   "n": 64,
+   "n": 65,
    "key": "owner-login.html|submit addFeatureRequestForm|feature_requests|insert|1",
    "page": "owner-login.html",
-   "line": 7567,
+   "line": 7591,
    "where": "submit addFeatureRequestForm",
    "table": "feature_requests",
    "op": "insert",
@@ -2132,10 +2173,10 @@
    ]
   },
   {
-   "n": 65,
+   "n": 66,
    "key": "owner-login.html|submit addEvidenceForm|evidence_locker|insert|1",
    "page": "owner-login.html",
-   "line": 7715,
+   "line": 7739,
    "where": "submit addEvidenceForm",
    "table": "evidence_locker",
    "op": "insert",
@@ -2162,10 +2203,10 @@
    ]
   },
   {
-   "n": 66,
+   "n": 67,
    "key": "owner-login.html|click .docDeleteBtn|documents|delete|1",
    "page": "owner-login.html",
-   "line": 7879,
+   "line": 7903,
    "where": "click .docDeleteBtn",
    "table": "documents",
    "op": "delete",
@@ -2195,10 +2236,10 @@
    ]
   },
   {
-   "n": 67,
+   "n": 68,
    "key": "owner-login.html|click .docDeleteBtn|storage:document-files|storage.remove|1",
    "page": "owner-login.html",
-   "line": 7887,
+   "line": 7911,
    "where": "click .docDeleteBtn",
    "table": "storage:document-files",
    "op": "storage.remove",
@@ -2224,10 +2265,10 @@
    ]
   },
   {
-   "n": 68,
+   "n": 69,
    "key": "owner-login.html|submit addDocumentForm|documents|insert|1",
    "page": "owner-login.html",
-   "line": 7953,
+   "line": 7977,
    "where": "submit addDocumentForm",
    "table": "documents",
    "op": "insert",
@@ -2257,10 +2298,10 @@
    ]
   },
   {
-   "n": 69,
+   "n": 70,
    "key": "owner-login.html|click .aeMarkReportedBtn|adverse_event_reports|updateIfUnchanged|1",
    "page": "owner-login.html",
-   "line": 8050,
+   "line": 8074,
    "where": "click .aeMarkReportedBtn",
    "table": "adverse_event_reports",
    "op": "updateIfUnchanged",
@@ -2288,10 +2329,10 @@
    ]
   },
   {
-   "n": 70,
+   "n": 71,
    "key": "owner-login.html|submit addAdverseEventForm|adverse_event_reports|insert|1",
    "page": "owner-login.html",
-   "line": 8086,
+   "line": 8110,
    "where": "submit addAdverseEventForm",
    "table": "adverse_event_reports",
    "op": "insert",
@@ -2319,10 +2360,10 @@
    ]
   },
   {
-   "n": 71,
+   "n": 72,
    "key": "owner-login.html|click .lhReleaseBtn|legal_holds|updateIfUnchanged|1",
    "page": "owner-login.html",
-   "line": 8156,
+   "line": 8180,
    "where": "click .lhReleaseBtn",
    "table": "legal_holds",
    "op": "updateIfUnchanged",
@@ -2350,10 +2391,10 @@
    ]
   },
   {
-   "n": 72,
+   "n": 73,
    "key": "owner-login.html|submit addLegalHoldForm|legal_holds|insert|1",
    "page": "owner-login.html",
-   "line": 8215,
+   "line": 8239,
    "where": "submit addLegalHoldForm",
    "table": "legal_holds",
    "op": "insert",
@@ -2381,10 +2422,10 @@
    ]
   },
   {
-   "n": 73,
+   "n": 74,
    "key": "owner-login.html|click .saveProductBtn|products|update|1",
    "page": "owner-login.html",
-   "line": 8372,
+   "line": 8396,
    "where": "click .saveProductBtn",
    "table": "products",
    "op": "update",
@@ -2420,10 +2461,10 @@
    ]
   },
   {
-   "n": 74,
+   "n": 75,
    "key": "owner-login.html|click .toggleProductBtn|products|updateIfUnchanged|1",
    "page": "owner-login.html",
-   "line": 8414,
+   "line": 8438,
    "where": "click .toggleProductBtn",
    "table": "products",
    "op": "updateIfUnchanged",
@@ -2459,10 +2500,10 @@
    ]
   },
   {
-   "n": 75,
+   "n": 76,
    "key": "owner-login.html|click .deleteProductBtn|rpc:delete_unused_product|rpc|1",
    "page": "owner-login.html",
-   "line": 8456,
+   "line": 8480,
    "where": "click .deleteProductBtn",
    "table": "rpc:delete_unused_product",
    "op": "rpc",
@@ -2484,14 +2525,15 @@
    "serverRule": "sign-in system / storage / function rules",
    "pageRoleCheck": true,
    "testFiles": [
+    "hard-walls",
     "stock-functions"
    ]
   },
   {
-   "n": 76,
+   "n": 77,
    "key": "owner-login.html|click .deleteProductBtn|inventory|delete|1",
    "page": "owner-login.html",
-   "line": 8509,
+   "line": 8533,
    "where": "click .deleteProductBtn",
    "table": "inventory",
    "op": "delete",
@@ -2528,10 +2570,10 @@
    ]
   },
   {
-   "n": 77,
+   "n": 78,
    "key": "owner-login.html|click .deleteProductBtn|products|delete|1",
    "page": "owner-login.html",
-   "line": 8515,
+   "line": 8539,
    "where": "click .deleteProductBtn",
    "table": "products",
    "op": "delete",
@@ -2567,10 +2609,10 @@
    ]
   },
   {
-   "n": 78,
+   "n": 79,
    "key": "owner-login.html|click .deleteProductBtn|inventory|insert|1",
    "page": "owner-login.html",
-   "line": 8531,
+   "line": 8555,
    "where": "click .deleteProductBtn",
    "table": "inventory",
    "op": "insert",
@@ -2607,10 +2649,10 @@
    ]
   },
   {
-   "n": 79,
+   "n": 80,
    "key": "owner-login.html|click .saveThresholdBtn|inventory|update|1",
    "page": "owner-login.html",
-   "line": 8574,
+   "line": 8598,
    "where": "click .saveThresholdBtn",
    "table": "inventory",
    "op": "update",
@@ -2647,10 +2689,10 @@
    ]
   },
   {
-   "n": 80,
+   "n": 81,
    "key": "owner-login.html|click .saveThresholdBtn|inventory|upsert|1",
    "page": "owner-login.html",
-   "line": 8586,
+   "line": 8610,
    "where": "click .saveThresholdBtn",
    "table": "inventory",
    "op": "upsert",
@@ -2687,10 +2729,10 @@
    ]
   },
   {
-   "n": 81,
+   "n": 82,
    "key": "owner-login.html|submit adjustInventoryForm|rpc:adjust_inventory|rpc|1",
    "page": "owner-login.html",
-   "line": 8669,
+   "line": 8693,
    "where": "submit adjustInventoryForm",
    "table": "rpc:adjust_inventory",
    "op": "rpc",
@@ -2712,14 +2754,15 @@
    "serverRule": "sign-in system / storage / function rules",
    "pageRoleCheck": true,
    "testFiles": [
+    "hard-walls",
     "stock-functions"
    ]
   },
   {
-   "n": 82,
+   "n": 83,
    "key": "owner-login.html|submit adjustInventoryForm|inventory_adjustments|insert|1",
    "page": "owner-login.html",
-   "line": 8697,
+   "line": 8721,
    "where": "submit adjustInventoryForm",
    "table": "inventory_adjustments",
    "op": "insert",
@@ -2752,10 +2795,10 @@
    ]
   },
   {
-   "n": 83,
+   "n": 84,
    "key": "owner-login.html|click .decideReturnBtn|returns|updateIfUnchanged|1",
    "page": "owner-login.html",
-   "line": 8858,
+   "line": 8882,
    "where": "click .decideReturnBtn",
    "table": "returns",
    "op": "updateIfUnchanged",
@@ -2789,10 +2832,10 @@
    ]
   },
   {
-   "n": 84,
+   "n": 85,
    "key": "owner-login.html|click .advanceReturnBtn|returns|updateIfUnchanged|1",
    "page": "owner-login.html",
-   "line": 8879,
+   "line": 8903,
    "where": "click .advanceReturnBtn",
    "table": "returns",
    "op": "updateIfUnchanged",
@@ -2826,10 +2869,10 @@
    ]
   },
   {
-   "n": 85,
+   "n": 86,
    "key": "owner-login.html|click .markReceivedBtn|rpc:receive_return|rpc|1",
    "page": "owner-login.html",
-   "line": 8921,
+   "line": 8945,
    "where": "click .markReceivedBtn",
    "table": "rpc:receive_return",
    "op": "rpc",
@@ -2851,14 +2894,15 @@
    "serverRule": "sign-in system / storage / function rules",
    "pageRoleCheck": true,
    "testFiles": [
+    "hard-walls",
     "stock-functions"
    ]
   },
   {
-   "n": 86,
+   "n": 87,
    "key": "owner-login.html|click .markReceivedBtn|returns|updateIfUnchanged|1",
    "page": "owner-login.html",
-   "line": 8941,
+   "line": 8965,
    "where": "click .markReceivedBtn",
    "table": "returns",
    "op": "updateIfUnchanged",
@@ -2892,10 +2936,10 @@
    ]
   },
   {
-   "n": 87,
+   "n": 88,
    "key": "owner-login.html|click .markReceivedBtn|inventory_adjustments|insert|1",
    "page": "owner-login.html",
-   "line": 8975,
+   "line": 8999,
    "where": "click .markReceivedBtn",
    "table": "inventory_adjustments",
    "op": "insert",
@@ -2928,10 +2972,10 @@
    ]
   },
   {
-   "n": 88,
+   "n": 89,
    "key": "owner-login.html|click .markRefundedBtn|returns|updateIfUnchanged|1",
    "page": "owner-login.html",
-   "line": 9020,
+   "line": 9044,
    "where": "click .markRefundedBtn",
    "table": "returns",
    "op": "updateIfUnchanged",
@@ -2965,10 +3009,10 @@
    ]
   },
   {
-   "n": 89,
+   "n": 90,
    "key": "owner-login.html|submit logReturnForm|returns|insert|1",
    "page": "owner-login.html",
-   "line": 9127,
+   "line": 9151,
    "where": "submit logReturnForm",
    "table": "returns",
    "op": "insert",
@@ -3002,10 +3046,10 @@
    ]
   },
   {
-   "n": 90,
+   "n": 91,
    "key": "owner-login.html|removeExpenseReceipt|expenses|updateIfUnchanged|1",
    "page": "owner-login.html",
-   "line": 9233,
+   "line": 9257,
    "where": "removeExpenseReceipt",
    "table": "expenses",
    "op": "updateIfUnchanged",
@@ -3041,10 +3085,10 @@
    ]
   },
   {
-   "n": 91,
+   "n": 92,
    "key": "owner-login.html|removeExpenseReceipt|storage:expense-receipts|storage.remove|1",
    "page": "owner-login.html",
-   "line": 9235,
+   "line": 9259,
    "where": "removeExpenseReceipt",
    "table": "storage:expense-receipts",
    "op": "storage.remove",
@@ -3070,10 +3114,10 @@
    ]
   },
   {
-   "n": 92,
+   "n": 93,
    "key": "owner-login.html|deleteExpense|expenses|update|1",
    "page": "owner-login.html",
-   "line": 9251,
+   "line": 9275,
    "where": "deleteExpense",
    "table": "expenses",
    "op": "update",
@@ -3109,10 +3153,10 @@
    ]
   },
   {
-   "n": 93,
+   "n": 94,
    "key": "owner-login.html|click .restoreExpenseBtn|expenses|update|1",
    "page": "owner-login.html",
-   "line": 9290,
+   "line": 9314,
    "where": "click .restoreExpenseBtn",
    "table": "expenses",
    "op": "update",
@@ -3148,10 +3192,10 @@
    ]
   },
   {
-   "n": 94,
+   "n": 95,
    "key": "owner-login.html|submit addExpenseForm|expenses|insert|1",
    "page": "owner-login.html",
-   "line": 9332,
+   "line": 9356,
    "where": "submit addExpenseForm",
    "table": "expenses",
    "op": "insert",
@@ -3187,7 +3231,7 @@
    ]
   },
   {
-   "n": 95,
+   "n": 96,
    "key": "manual-order-entry.html|click signOutBtn|auth|auth.signOut|1",
    "page": "manual-order-entry.html",
    "line": 458,
@@ -3215,6 +3259,7 @@
     "csp",
     "error-language",
     "general",
+    "hard-walls",
     "library-pin",
     "login-session",
     "manual-order-entry",
@@ -3229,7 +3274,7 @@
    ]
   },
   {
-   "n": 96,
+   "n": 97,
    "key": "manual-order-entry.html|submit orderForm|orders|insert|1",
    "page": "manual-order-entry.html",
    "line": 557,
@@ -3265,7 +3310,7 @@
    ]
   },
   {
-   "n": 97,
+   "n": 98,
    "key": "manual-order-entry.html|submit orderForm|order_items|insert|1",
    "page": "manual-order-entry.html",
    "line": 582,
@@ -3295,7 +3340,7 @@
    ]
   },
   {
-   "n": 98,
+   "n": 99,
    "key": "index.html|click signOutBtn|auth|auth.signOut|1",
    "page": "index.html",
    "line": 458,
@@ -3323,6 +3368,7 @@
     "csp",
     "error-language",
     "general",
+    "hard-walls",
     "library-pin",
     "login-session",
     "manual-order-entry",
@@ -3337,7 +3383,7 @@
    ]
   },
   {
-   "n": 99,
+   "n": 100,
    "key": "index.html|submit orderForm|orders|insert|1",
    "page": "index.html",
    "line": 557,
@@ -3373,7 +3419,7 @@
    ]
   },
   {
-   "n": 100,
+   "n": 101,
    "key": "index.html|submit orderForm|order_items|insert|1",
    "page": "index.html",
    "line": 582,
@@ -3403,7 +3449,7 @@
    ]
   },
   {
-   "n": 101,
+   "n": 102,
    "key": "dashboard.html|click sign-out-btn|auth|auth.signOut|1",
    "page": "dashboard.html",
    "line": 401,
@@ -3431,6 +3477,7 @@
     "csp",
     "error-language",
     "general",
+    "hard-walls",
     "library-pin",
     "login-session",
     "manual-order-entry",
@@ -3445,7 +3492,7 @@
    ]
   },
   {
-   "n": 102,
+   "n": 103,
    "key": "change-password.html|(top level)|auth|auth.signOut|1",
    "page": "change-password.html",
    "line": 330,
@@ -3473,6 +3520,7 @@
     "csp",
     "error-language",
     "general",
+    "hard-walls",
     "library-pin",
     "login-session",
     "manual-order-entry",
@@ -3487,7 +3535,7 @@
    ]
   },
   {
-   "n": 103,
+   "n": 104,
    "key": "change-password.html|(top level)|auth|auth.updateUser|1",
    "page": "change-password.html",
    "line": 345,
@@ -3515,6 +3563,7 @@
     "csp",
     "error-language",
     "general",
+    "hard-walls",
     "library-pin",
     "login-session",
     "manual-order-entry",
@@ -3529,7 +3578,7 @@
    ]
   },
   {
-   "n": 104,
+   "n": 105,
    "key": "change-password.html|(top level)|auth|auth.signOut|2",
    "page": "change-password.html",
    "line": 365,
@@ -3557,6 +3606,7 @@
     "csp",
     "error-language",
     "general",
+    "hard-walls",
     "library-pin",
     "login-session",
     "manual-order-entry",

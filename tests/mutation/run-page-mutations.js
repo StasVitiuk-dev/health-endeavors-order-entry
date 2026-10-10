@@ -15,6 +15,18 @@ const SCRATCH = path.resolve(process.argv[2] || path.join(require('os').tmpdir()
 // [name, file, exact text to find, replacement, specs + grep]
 const MUTATIONS = [
   // ---- EXT9 additions (2026-10-10): stock buttons and the R1–R5 switches ----
+  ['a calendar note edit overwrites a note changed elsewhere', 'owner-login.html',
+    ".eq('event_uid', uid).eq('note', box.getAttribute('data-shown')).select('event_uid');", ".eq('event_uid', uid).select('event_uid');",
+    'calendar-owner -g "still the text shown"'],
+  ['a new calendar note is upserted again (replaces one added elsewhere)', 'owner-login.html',
+    "if (error && String(error.code) !== '23505') throw error;\n              saved = !error;", "if (error && String(error.code) !== '23505') throw error;\n              saved = true;",
+    'calendar-owner -g "added in another tab"'],
+  ['the page can be framed again (no frame guard)', 'owner-login.html',
+    "<script id=\"frameGuard\">if (window.top !== window.self) {", "<script id=\"frameGuard\">if (false) {",
+    'csp -g "framed by another site"'],
+  ['the CSV guard forgets the full-width equals sign', 'assets/owner-login-helpers.js',
+    "\\uFF1D\\uFF0B", "\\uFF0B",
+    'helpers-unit -g "full-width"'],
   ['a missing stock switch counts as ON', 'owner-login.html',
     "return !error && !!data && data.enabled === true;", "return !error && (!data || data.enabled !== false);",
     'stock-functions -g "no switch row"'],

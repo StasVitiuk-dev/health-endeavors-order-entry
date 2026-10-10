@@ -278,17 +278,6 @@
   "sensitive": "yes",
   "note": ""
  },
- "owner-login.html|click saveBtn|calendar_notes|upsert|1": {
-  "guards": "doubleClickLock",
-  "idempotency": "upsert: repeat converges",
-  "audit": "unknown until Query C §10",
-  "partial": "no (single write)",
-  "sensitive": "no",
-  "note": "",
-  "justify": {
-   "readBack": "Upsert of a private note: an RLS refusal of the update arm raises an error (no silent 0-row outcome) and the error is shown."
-  }
- },
  "owner-login.html|click delBtn|calendar_notes|delete|1": {
   "guards": "readBack,doubleClickLock",
   "idempotency": "guarded: a repeat changes nothing",
@@ -299,14 +288,6 @@
   "justify": {
    "stale": "A private note keyed by the calendar event; it has no workflow state. Deleting twice or after another tab deleted it is reported by the read-back."
   }
- },
- "owner-login.html|click saveBtn|personal_calendar_events|update|1": {
-  "guards": "readBack,doubleClickLock",
-  "idempotency": "guarded: a repeat changes nothing",
-  "audit": "unknown until Query C §10",
-  "partial": "no (single write)",
-  "sensitive": "no",
-  "note": ""
  },
  "owner-login.html|click delBtn|personal_calendar_events|delete|1": {
   "guards": "readBack,doubleClickLock,confirmation",
@@ -899,5 +880,32 @@
   "justify": {
    "lock": "Submit button disabled before the call; p_expected refuses a change on top of a newer number."
   }
+ },
+ "owner-login.html|click saveBtn|calendar_notes|update|1": {
+  "audit": "unknown until Query C §10",
+  "partial": "no (single write)",
+  "sensitive": "no",
+  "note": "EXT9: never overwrites a change made elsewhere",
+  "guards": "staleCondition,readBack,doubleClickLock",
+  "idempotency": "guarded: a repeat changes nothing"
+ },
+ "owner-login.html|click saveBtn|calendar_notes|insert|1": {
+  "audit": "unknown until Query C §10",
+  "partial": "no (single write)",
+  "sensitive": "no",
+  "note": "EXT9: never overwrites a change made elsewhere",
+  "guards": "doubleClickLock",
+  "idempotency": "guarded: a repeat changes nothing (one note per event: unique event_uid refuses a second)",
+  "justify": {
+   "lock": "Save button disabled during the save; the unique event_uid makes a second insert fail (23505), which the page reports instead of overwriting."
+  }
+ },
+ "owner-login.html|click saveBtn|personal_calendar_events|updateIfUnchanged|1": {
+  "audit": "unknown until Query C §10",
+  "partial": "no (single write)",
+  "sensitive": "no",
+  "note": "EXT9: never overwrites a change made elsewhere",
+  "guards": "staleCondition,readBack,doubleClickLock",
+  "idempotency": "guarded: a repeat changes nothing"
  }
 }
