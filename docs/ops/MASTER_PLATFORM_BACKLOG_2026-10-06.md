@@ -2,15 +2,15 @@
 
 Internal dashboard/platform only. Generated from `docs/ops/backlog/items.py` (edit the data there, then run `python3 docs/ops/backlog/items.py`). No production secrets or private business data.
 
-**355 deduplicated items** from 433 raw candidates (78 duplicates merged: the same item recorded in PROJECT_RECORD, the overnight review, PRs, owner lists, decision registers and tests).
+**356 deduplicated items** from 434 raw candidates (78 duplicates merged: the same item recorded in PROJECT_RECORD, the overnight review, PRs, owner lists, decision registers and tests).
 
-Status counts: BLOCKED-EXT 2, BLOCKED-OWNER 42, BLOCKED-PROD 19, BLOCKED-QC 12, DEFERRED 27, DONE 249, OPEN 1, QUEUED 3
+Status counts: BLOCKED-EXT 2, BLOCKED-OWNER 42, BLOCKED-PROD 19, BLOCKED-QC 12, DEFERRED 27, DONE 250, OPEN 1, QUEUED 3
 
 | Priority | Items | Done (branch) | Remaining |
 |---|---|---|---|
 | P0 | 16 | 6 | 10 |
 | P1 | 96 | 72 | 24 |
-| P2 | 123 | 95 | 28 |
+| P2 | 124 | 96 | 28 |
 | P3 | 102 | 75 | 27 |
 | P4 | 18 | 1 | 17 |
 
@@ -221,6 +221,7 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | X10-24 | Mobile | On a phone the new System status table hid the end of its values off the right edge (sideways scroll inside the table) | Status facts such as UNKNOWN backups were cut off on the phone | Medium | S | — | Y | N | N | DONE |
 | X11-04 | Reports | Report History showed 0 / $0.00 for a figure missing from a daily report and week/month totals looked complete | Unknown shown as zero | Medium | S | — | Y | N | N | DONE |
 | X11-05 | Operations | System status shows which database steps are installed and flags a switch that is ON without its step | Drift between switches and the database is visible to the owner | Medium | S | — | Y | N | N | DONE |
+| X11-06 | Returns | A received return was labelled "Outcome: Restocked to Available" even when the restock had not run (lost connection, partial failure); now "Chosen outcome: Restock to Available" | Label claimed stock moved that may not have | Medium | S | — | Y | N | N | DONE |
 | X3-01 | State machine | Product edit form wrote status unguarded (stale tab flips discontinued/active) | Found by the mock state rule | Medium | S | — | Y | N | N | DONE |
 | X3-04 | Scale | Returns page listed and counted the newest 200 only (old open returns vanished) | Open work hidden | Medium | S | — | Y | N | N | DONE |
 | X3-08 | Query C | Query C failed without pg_cron; tokens not masked in agent errors | Owner run could stop with an error | Medium | S | — | Y | N | N | DONE |

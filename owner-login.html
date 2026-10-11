@@ -1900,10 +1900,13 @@
       used: 'Used but functional',
       unknown: 'Unknown / not yet inspected',
     };
+    // X11-06: these name what was CHOSEN on Mark Received, not proof that the
+    // stock moved (a restock can fail after the return is saved; Inventory's
+    // adjustment history is the proof).
     const RETURN_DISPOSITION_LABELS = {
-      restock_available: 'Restocked to Available',
-      restock_damaged: 'Moved to Damaged',
-      discard: 'Discarded (no restock)',
+      restock_available: 'Restock to Available',
+      restock_damaged: 'Move to Damaged',
+      discard: 'Discard (no restock)',
     };
 
     // Expense category values (must match the database check constraint) mapped
@@ -9383,7 +9386,7 @@
           const detailLine = [
             r.reason ? 'Reason: ' + esc(RETURN_REASON_LABELS[r.reason] || r.reason) : '',
             r.product_condition ? 'Condition: ' + esc(RETURN_CONDITION_LABELS[r.product_condition] || r.product_condition) : '',
-            r.disposition ? 'Outcome: ' + esc(RETURN_DISPOSITION_LABELS[r.disposition] || r.disposition) : '',
+            r.disposition ? 'Chosen outcome: ' + esc(RETURN_DISPOSITION_LABELS[r.disposition] || r.disposition) : '',
           ].filter(Boolean).join(' · ');
 
           return `

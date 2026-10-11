@@ -86,6 +86,9 @@ test.describe('Returns', () => {
     await expect(page.locator('#dashError')).not.toContainText('nothing was changed');
     expect(backend.tables.returns[0].status).toBe('received');
     expect(backend.tables.inventory[0].available).toBe(10);
+    // X11-06: the row names the choice, never claims the stock was restocked
+    await expect(page.locator('[data-return-id="ret-1"]')).toContainText('Chosen outcome: Restock to Available', { timeout: 15000 });
+    await expect(page.locator('[data-return-id="ret-1"]')).not.toContainText('Restocked');
   });
 
   test('X11-02: claim not saved (connection dropped first): says so and allows a second press', async ({ page, backend }) => {

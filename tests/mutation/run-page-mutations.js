@@ -15,6 +15,9 @@ const SCRATCH = path.resolve(process.argv[2] || path.join(require('os').tmpdir()
 // [name, file, exact text to find, replacement, specs + grep]
 const MUTATIONS = [
   // ---- EXT11 additions (2026-10-11): unknown is never $0, lost-reply read-back, installation status ----
+  ['a received return claims "Restocked" again although the restock may not have run (X11-06)', 'owner-login.html',
+    "'Chosen outcome: ' + esc(RETURN_DISPOSITION_LABELS", "'Outcome: Restocked ' + esc(RETURN_DISPOSITION_LABELS",
+    'failure-recovery -g "X11-02: claim saved"'],
   ['orders without a total are counted as $0 again (X11-01)', 'owner-login.html',
     "return (orders || []).filter(o => o.total === null", "return 0 && (orders || []).filter(o => o.total === null",
     'missing-totals-ext11'],

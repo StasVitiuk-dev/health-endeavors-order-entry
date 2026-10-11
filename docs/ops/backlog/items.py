@@ -394,6 +394,7 @@ a('X11-02','Returns','Mark Received after a lost connection said nothing was cha
 a('X11-03','Recalls','Quarantine after a lost connection said nothing was changed although the recall could be Quarantined with its stock never moved','Recalled stock could stay sellable','P1','High','S','—','Y','N','N','DONE')
 a('X11-04','Reports','Report History showed 0 / $0.00 for a figure missing from a daily report and week/month totals looked complete','Unknown shown as zero','P2','Medium','S','—','Y','N','N','DONE')
 a('X11-05','Operations','System status shows which database steps are installed and flags a switch that is ON without its step','Drift between switches and the database is visible to the owner','P2','Medium','S','—','Y','N','N','DONE')
+a('X11-06','Returns','A received return was labelled "Outcome: Restocked to Available" even when the restock had not run (lost connection, partial failure); now "Chosen outcome: Restock to Available"','Label claimed stock moved that may not have','P2','Medium','S','—','Y','N','N','DONE')
 a('X8-01','Owner UX','Waiting customer questions could be hidden behind answered ones','All waiting read; answered capped at 100 with exact count','P1','High','S','—','Y','N','N','DONE')
 a('X8-02','Returns','Returns only possible for the newest 200 orders','Older-order finder','P1','High','S','—','Y','N','N','DONE')
 a('X8-03','Search','Sidebar search silently missed older orders','Look up in all orders (literal match)','P2','Medium','S','—','Y','N','N','DONE')
