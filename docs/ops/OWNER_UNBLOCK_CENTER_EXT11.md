@@ -6,7 +6,7 @@
 
 | | |
 |---|---|
-| **Do now** | 1. Backup look (card 1, 2 minutes) · 2. Reconnect GitHub as `stasvitiuk-reos` (card 4, 5 minutes) · 3. Read-only session (card 2, about 20 minutes) · 4. Review and merge the EXT11 draft PR (it replaces #26) |
+| **Do now** | 1. Backup look (card 1, 2 minutes) · 2. Reconnect GitHub as `stasvitiuk-reos` (card 4, 5 minutes) · 3. Read-only session (card 2, about 20 minutes) · 4. Review and merge the EXT11 **draft PR #27** (it replaces #26) |
 | **Safe** | every SAFE READ-ONLY CHECK card in `OWNER_CHECKS_EXT11.md`; merging the PR (every new switch stays OFF; System status shows "OK: all of these switches are OFF") |
 | **Still unknown** | backups · agent #1 · who may do what in the database (Query G) · which tables keep an audit trail · whether production matches what was reviewed (Query H) |
 | **Do not touch** | the backups repository (look only) · any SQL file not named in a card · any switch until its SQL step is done and checked |

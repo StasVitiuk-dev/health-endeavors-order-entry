@@ -4,7 +4,7 @@
 
 ## 1. In one paragraph
 
-`main` (the live dashboard) is unchanged at `d3db7bc`. Everything from extensions 1–11 is on the branch `claude/platform-ext11-final-readiness-2026-10-11` (built on the final EXT10 commit `56a927c`; EXT10 draft PR #26 is superseded by the EXT11 draft PR). It is **tested locally, not merged, not deployed**. EXT11 fixes five more real problems:
+`main` (the live dashboard) is unchanged at `d3db7bc`. Everything from extensions 1–11 is on the branch `claude/platform-ext11-final-readiness-2026-10-11` (built on the final EXT10 commit `56a927c`; EXT10 draft PR #26 is superseded by the EXT11 **draft PR #27**). It is **tested locally, not merged, not deployed**. EXT11 fixes five more real problems:
 
 - orders without a total no longer counted as $0;
 - return receive after a lost connection says whether it was saved;
