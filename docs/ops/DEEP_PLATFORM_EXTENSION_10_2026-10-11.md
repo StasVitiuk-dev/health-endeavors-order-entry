@@ -2,7 +2,7 @@
 
 **Status:** CURRENT. Branch `claude/platform-ext10-operations-hardening-2026-10-11`, created from extension 9 (`f9e4850`). **Not merged, not deployed. Production not touched.** `main` unchanged at `d3db7bc`. Internal dashboard/platform only: no website, Real Estate OS, backups repository, production Supabase, Shopify or Gmail was opened.
 
-Plain-English summary for Stas: phones now show wide lists as cards, and Home rows no longer squeeze their text. Every create form can refuse a duplicate after a lost reply, once you install the request-key step and turn on its switch. Home can show the nightly integrity check with honest states. Every Home check now says what to do next. Agents switched off on purpose say so. A Receive whose reply was lost locks itself and offers a safe "Check this order now". The Continuity page has a System status card with a copyable diagnostic summary. Lists no longer stop silently at the database's 1,000-row reply limit. **Ten real problems were fixed.** Nothing new is switched on, and nothing touches production. Your next steps are in **`OWNER_UNBLOCK_CENTER_EXT10.md`**; daily use is in **`OPERATIONS_CENTER_EXT10.md`**.
+Plain-English summary for Stas: phones now show wide lists as cards, and Home rows no longer squeeze their text. Every create form can refuse a duplicate after a lost reply, once you install the request-key step and turn on its switch. Home can show the nightly integrity check with honest states. Every Home check now says what to do next. Agents switched off on purpose say so. A Receive whose reply was lost locks itself and offers a safe "Check this order now". The Continuity page has a System status card with a copyable diagnostic summary. Lists no longer stop silently at the database's 1,000-row reply limit. **Eleven real problems were fixed.** Nothing new is switched on, and nothing touches production. Your next steps are in **`OWNER_UNBLOCK_CENTER_EXT10.md`**; daily use is in **`OPERATIONS_CENTER_EXT10.md`**.
 
 Note on the branch: the session's assigned branch (`claude/sweet-hamilton-5ty3zp`) is the head of open PR #5 (CLAUDE.md rules). As with extensions 4–9, EXT10 uses its own feature branch so it does not stack onto that PR.
 
@@ -30,6 +30,7 @@ Note on the branch: the session's assigned branch (`claude/sweet-hamilton-5ty3zp
 | X10-21 | Search and dashboard pages went blank when the pinned library was refused | library-pin |
 | X10-22 | Tax export pressed while a newly picked period was loading produced a file named for the new period with the old figures | report-totals |
 | X10-23 | On a phone, Home checks, approvals, recently-deleted and session rows squeezed their text to one word per line | mobile-cards-ext10 "X10-23" (fails at 26% width on the old CSS) |
+| X10-24 | On a phone, the new System status table hid the end of its values off the right edge (found by reviewing the final screenshots) | system-status-ext10 "X10-24" |
 
 Test-harness problems found and fixed (not dashboard bugs): session-failures race; phone-swipe test used a table that is now a card list; the write-path extractor did not read scripts moved into `assets/`; three local database scripts relied on rows left by other scripts (integrity constraints, integrity performance, install package: 59/61 on an empty database, now 61/61); report-totals timing under load (X10-11); an outdated scale test that expected the 1,000-row notice for products, which X10-15 removed on purpose (rewritten to prove that all 5,000 products are offered, plus a new test that keeps the notice covered for lists still read in one request).
 
@@ -37,7 +38,7 @@ Test-harness problems found and fixed (not dashboard bugs): session-failures rac
 
 | Capability | Switch / SQL needed first |
 |---|---|
-| Phone card layout for wide tables (U38); stacked rows on phones (X10-23) | none |
+| Phone card layout for wide tables (U38); stacked rows and wrapped System status on phones (X10-23, X10-24) | none |
 | Request keys on all 18 create paths, plus escalation that happens at most once (U42) | `request_keys` switch (off), drafts 19 + 27 NOT INSTALLED |
 | Nightly integrity check card on Home: NOT VERIFIED / PASS / WARN / FAIL / STALE / UNKNOWN (U43) | drafts 25 + 29 + 30 NOT INSTALLED, then `integrity_results_home` |
 | "Next step" on every Home check; new checks: low-stock level not set (CONFIG REQUIRED), retired products with stock, agents unhealthy, agents unknown | none |

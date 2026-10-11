@@ -114,7 +114,7 @@
 
 ## 3b. Added by the second EXT10 mission (operations)
 
-Operations entry point: **`OPERATIONS_CENTER_EXT10.md`** (5-minute morning check, weekly and month-end routines, status vocabulary, incident runbooks). Maps for maintainers: `OPERATIONS_MAPS_EXT10.md`. Decisions grouped by DEPLOYMENT / OPERATIONS / AUTOMATION / ACCOUNTING / STAGING with consequences: `OWNER_DECISION_PACKETS_EXT10.md` §6. Six more real bugs fixed (X10-12…15, X10-21 search/dashboard went blank when the library was refused, X10-22 tax export mislabelled a period, X10-23 phone rows squeezed their text); ten in EXT10 in total.
+Operations entry point: **`OPERATIONS_CENTER_EXT10.md`** (5-minute morning check, weekly and month-end routines, status vocabulary, incident runbooks). Maps for maintainers: `OPERATIONS_MAPS_EXT10.md`. Decisions grouped by DEPLOYMENT / OPERATIONS / AUTOMATION / ACCOUNTING / STAGING with consequences: `OWNER_DECISION_PACKETS_EXT10.md` §6. Seven more real bugs fixed (X10-12…15, X10-21 search/dashboard went blank when the library was refused, X10-22 tax export mislabelled a period, X10-23 phone rows squeezed their text, X10-24 System status cut off on phones); eleven in EXT10 in total.
 
 ## 4. Claude-safe work still remaining
 

@@ -150,6 +150,7 @@ Helpers file unchanged in API (8); its hash changed (CSV guard). `index.html` = 
 | Search/dashboard pages say so when the library is refused instead of going blank (X10-21) | Everyone (rare) | No |
 | Tax export refuses while a newly picked period is still loading (X10-22) | Owner, accountant | No |
 | Phone: check/approval/session rows stack instead of squeezing the text (X10-23) | Everyone on a phone | No |
+| Phone: System status values wrap instead of running off the screen (X10-24) | Owner on a phone | No |
 | Query H (drift check) + result interpreter tool | Owner (read-only, runs nothing) | No |
 
 Helper file API is 9 (was 8); the page refuses a mix of old and new files. Rollback: revert the merge commit.
