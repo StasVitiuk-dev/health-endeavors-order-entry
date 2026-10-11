@@ -6,6 +6,8 @@
 
 `main` (the live dashboard) is unchanged since `d3db7bc`. Everything from extensions 1–10 is on the branch `claude/platform-ext10-operations-hardening-2026-10-11` (built on EXT9 `f9e4850`), **tested locally, not merged, not deployed**. EXT10 (two missions) makes phones show wide tables as cards, adds a next step to every Home check, honest agent health, a receipt-status lock after a lost reply on Receive, a System status card, complete pick-lists past the database reply limit, a read-only production drift check, lets every create form refuse duplicates after a lost reply, puts the nightly integrity check on Home with honest states, removes inline scripts from the change-password, search and dashboard pages, and fixes eleven real problems (X10-01, 02, 03, 12, 13, 14, 15, 21, 22, 23, 24). All new database-dependent features stay **off** until Stas installs the matching SQL. No production system was touched.
 
+Review: **draft PR #26** (contains everything in EXT9 draft PR #25 plus EXT10; review #26 instead of #25). Final frozen code `e3268a6`.
+
 ## 2. Where to look
 
 | Need | Document |
