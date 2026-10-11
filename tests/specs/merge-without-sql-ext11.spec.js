@@ -97,3 +97,13 @@ test('a switch turned ON by mistake while its function is missing: the button re
   await gotoPage(page, 'continuityPanel');
   await expect(page.locator('#systemStatusWrap')).toContainText('PROBLEM: switched ON but its database step is missing: R4 adjust');
 });
+
+test('the sign-in screen reads no business data before anyone signs in (no reliance on anonymous access)', async ({ page }) => {
+  const rest = [];
+  page.on('request', r => { if (/\/rest\/v1\//.test(r.url())) rest.push(r.method() + ' ' + new URL(r.url()).pathname); });
+  await page.goto('/owner-login.html');
+  await expect(page.locator('#loginForm')).toBeVisible();
+  await page.waitForLoadState('networkidle');
+  await page.waitForTimeout(1000);
+  expect(rest).toEqual([]);
+});
