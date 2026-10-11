@@ -90,4 +90,22 @@ Automatic fallback to the old stock path when a switched-on function is missing 
 
 ## 9. Final evidence
 
-PENDING (filled in after the frozen-commit verification).
+Page code frozen at **`51df9dc`** (no page, helper or CSS change after it). Later commits change only tests, tools, SQL drafts and docs. All runs local, synthetic data; production not touched.
+
+| Check | Result |
+|---|---|
+| Full suite on `51df9dc` (desktop 1100 + iPhone 390) | **2,514 tests: 1,632 passed, 3 failed, 0 flaky**, 879 skipped by design, 8 expected failures; the 3 failures were the outdated Home visual reference (×2, new "Checked at" line) and one SQL draft rule (draft 26 used a plain `execute`); both fixed in `000c912` (test reference + SQL draft only), then visual + SQL-static specs 75/75 |
+| Skip ledger | EXPECTED DEVICE/SIZE 879 · KNOWN BLOCKED BUG 8 (`test.fail`, the browser stock paths until R1–R5 are switched on) · **UNEXPLAINED 0** |
+| High-risk specs ×3 (26 files incl. all EXT9 specs) on `000c912` | **2,472 passed, 0 failed** |
+| Page mutations | **112 / 112 caught** (95 EXT8 + 17 EXT9; 3 older mutants retargeted because their lines changed) |
+| SQL mutations | **13 / 13 caught** |
+| Local database tests | install package 61/61 · PO forced orderings 0 guarded failures · browser-path races 0/0 · request keys 23/23 · reconciliation 24/24 · Query F 33/33 · restore drill 6/6 · **new:** stock switches 23/23 · Query G 11/11 · integrity rules 17/17 (after the test seeded its own PO line; it had borrowed shared rows: 10/17, then fixed) · nightly Query F 12/12 · request-key switch 10/10 |
+| Stress / random | 5 runs × 98 checks, 0 failed, 0 deadlocks · seed 909 × 40 rounds: 0 failing |
+| R1–R5 fingerprint | `3df2bf7a07b451f12f9359ceca1c85df` (unchanged) |
+| Secret scan (EXT9 diff) | clean: no keys, tokens, private keys, real e-mails or model identifiers |
+| Screenshots | 30 in `design-review/dashboard-extension-9-2026-10-10/` (`MANIFEST.md`) |
+| `main` | `d3db7bc`, unchanged; nothing merged or deployed |
+
+### Lessons recorded
+- Run the visual spec after any Home change before freezing.
+- A local test must create its own rows; other scripts clean the shared database.

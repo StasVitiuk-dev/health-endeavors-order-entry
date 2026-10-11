@@ -36,7 +36,9 @@ ok "recalled 0 allowed" "$(rc "update inventory set recalled = 0 where product_i
 ok "lot remaining above received refused" "$(rc "update inventory_lots set quantity_remaining = quantity_received + 1 where id = '$LOT'")" "1"
 ok "lot remaining below 0 refused" "$(rc "update inventory_lots set quantity_remaining = -1 where id = '$LOT'")" "1"
 ok "lot remaining 0 allowed" "$(rc "update inventory_lots set quantity_remaining = 0 where id = '$LOT'")" "0"
-LINE=$(q "select id from purchase_order_items limit 1")
+SUP=$(q "insert into suppliers (name) values ('SYNTHETIC constraint supplier') returning id" | head -1)
+PO=$(q "insert into purchase_orders (supplier_id) values ('$SUP') returning id" | head -1)
+LINE=$(q "insert into purchase_order_items (purchase_order_id, description, quantity) values ('$PO', 'SYNTHETIC line', 5) returning id" | head -1)
 ok "PO line received above ordered refused" "$(rc "update purchase_order_items set quantity_received = quantity + 1 where id = '$LINE'")" "1"
 ok "PO line received equal to ordered allowed" "$(rc "update purchase_order_items set quantity_received = quantity where id = '$LINE'")" "0"
 RET=$(q "select id from returns limit 1")
