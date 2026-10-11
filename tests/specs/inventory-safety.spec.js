@@ -94,12 +94,21 @@ test.describe('recall quarantine', () => {
   test('the recall is claimed first: a dropped claim changes nothing, and a retry quarantines once', async ({ page, backend }) => {
     backend.dropNext('recalls', 'PATCH');
     await page.click('.recallQuarantineBtn');
-    await expectError(page, 'nothing was changed');
+    await expectError(page, 'was NOT marked Quarantined. Nothing was changed'); // X11-03: read back, not assumed
     expect(inv(backend)).toMatchObject({ available: 100, recalled: 0 });
     expect(backend.tables.recalls[0].status).toBe('initiated');
     await page.click('.recallQuarantineBtn');
     await expect.poll(() => adjustments(backend)).toEqual(['available:-40', 'recalled:40']);
     expect(inv(backend)).toMatchObject({ available: 60, recalled: 40 });
+  });
+
+  test('X11-03: claim saved but the reply lost: says the stock move did NOT run, never "nothing was changed"', async ({ page, backend }) => {
+    backend.dropNext('recalls', 'PATCH', { applied: true });
+    await page.click('.recallQuarantineBtn');
+    await expectError(page, 'moving the stock did NOT run from this screen');
+    await expect(page.locator('#dashError')).not.toContainText('nothing was changed');
+    expect(backend.tables.recalls[0].status).toBe('quarantined');
+    expect(inv(backend)).toMatchObject({ available: 100, recalled: 0 });
   });
 
   test('a second tab cannot quarantine the same recall again', async ({ page, backend }) => {
@@ -205,7 +214,7 @@ test.describe('return restock', () => {
   test('the return is claimed first: a dropped claim changes nothing, and a retry restocks once', async ({ page, backend }) => {
     backend.dropNext('returns', 'PATCH');
     await markReceived(page);
-    await expectError(page, 'nothing was changed');
+    await expectError(page, 'was NOT marked Received. Nothing was changed'); // X11-02: read back, not assumed
     expect(inv(backend).available).toBe(100);
     expect(backend.tables.returns[0].status).toBe('approved');
     await page.click('.markReceivedBtn');

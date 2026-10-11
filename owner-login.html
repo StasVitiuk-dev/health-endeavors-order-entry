@@ -1043,6 +1043,19 @@
     //   deltas: { available: 5, recalled: -5 }
     // Throws an Error with .belowZero = { bucket, current, result } when a
     // bucket would go negative; nothing is written in that case.
+    // X11-02/03: after a dropped connection on a claim (a status change that
+    // gates a stock move), read the row back once: 'not_saved' (still in the
+    // old status), 'saved' (already in the new one: the stock step after the
+    // claim never ran from this screen) or 'unknown' (could not read).
+    async function claimOutcomeAfterDrop(table, id, fromStatus, toStatus){
+      try {
+        const { data, error } = await supabase.from(table).select('status').eq('id', id).maybeSingle();
+        if (error || !data) return 'unknown';
+        if (data.status === fromStatus) return 'not_saved';
+        if (data.status === toStatus) return 'saved';
+        return 'unknown';
+      } catch (_) { return 'unknown'; }
+    }
     async function changeStock(productId, deltas, uid){
       const buckets = Object.keys(deltas);
       for (let attempt = 0; attempt < 5; attempt++) {
@@ -5420,6 +5433,19 @@
               safeRun(loadAttention);
             } catch (err) {
               btn.disabled = false;
+              if (isNetworkError(err)) {
+                const outcome = await claimOutcomeAfterDrop('recalls', id, 'initiated', 'quarantined');
+                if (outcome === 'not_saved') {
+                  showDashError('The connection dropped and the recall was NOT marked Quarantined. Nothing was changed; you can press Quarantine again.');
+                } else if (outcome === 'saved') {
+                  btn.disabled = true;
+                  showDashError('The connection dropped after the recall was marked Quarantined, so moving the stock did NOT run from this screen. Check Inventory for this product: if the units are still in Available, move them to Recalled by hand (reason: "Recall — quarantined"). Do not quarantine again.');
+                  loadRecalls();
+                } else {
+                  showDashError('The connection dropped and the dashboard cannot tell whether this recall was marked Quarantined. Reload the page and check its status before pressing again; if it shows Quarantined, check Inventory too.');
+                }
+                return;
+              }
               showDashError('Could not quarantine that stock — nothing was changed: ' + (err && err.message ? err.message : err));
             }
           });
@@ -9433,14 +9459,10 @@
                 // lost. The restock runs after the claim, so in that case it
                 // never ran, and a second press is refused as "changed
                 // elsewhere". Read the return back and say exactly which.
-                let now = null, readOk = false;
-                try {
-                  const { data, error } = await supabase.from('returns').select('status').eq('id', id).maybeSingle();
-                  if (!error) { now = data; readOk = true; }
-                } catch (_) { /* stays unknown */ }
-                if (readOk && now && now.status === 'approved') {
+                const outcome = await claimOutcomeAfterDrop('returns', id, 'approved', 'received');
+                if (outcome === 'not_saved') {
                   showDashError('The connection dropped and the return was NOT marked Received. Nothing was changed; you can press Mark Received again.');
-                } else if (readOk && now && now.status === 'received') {
+                } else if (outcome === 'saved') {
                   btn.disabled = true;
                   showDashError(restocks
                     ? 'The connection dropped after the return was marked Received, so its restock did NOT run from this screen. Check Inventory for SKU "' + sku + '": if the ' + quantity + ' unit' + (quantity === 1 ? ' was' : 's were') + ' not added, adjust it by hand (reason: "Return received, order ' + orderLabel + '"). Do not press Mark Received again.'
