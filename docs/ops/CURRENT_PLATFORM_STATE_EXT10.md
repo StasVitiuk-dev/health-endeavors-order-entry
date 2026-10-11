@@ -1,5 +1,7 @@
 # Internal platform: current state (EXT10 entry point)
 
+> **SUPERSEDED (2026-10-11, EXT11):** the current entry point is `CURRENT_PLATFORM_STATE_EXT11.md`. This file stays as history and keeps its detail; nothing in it was rewritten.
+
 **Status:** CURRENT and AUTHORITATIVE for the internal dashboard/platform as of 2026-10-11 (extension 10). Start here. Supersedes `CURRENT_PLATFORM_STATE_EXT9.md` (kept as history). Short cross-project summary: `docs/health-endeavors-current-state.md` (kept in step).
 
 ## 1. In one paragraph

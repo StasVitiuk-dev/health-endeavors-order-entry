@@ -1,5 +1,7 @@
 # Owner unblock center (EXT10): everything still unfinished, in one place
 
+> **SUPERSEDED (2026-10-11, EXT11):** the current entry point is `OWNER_UNBLOCK_CENTER_EXT11.md`. This file stays as history and keeps its detail; nothing in it was rewritten.
+
 **Status:** CURRENT (2026-10-11, extension 10). Supersedes `OWNER_UNBLOCK_CENTER_EXT9.md` (kept as history; U-numbers are the same). For Stas: every unfinished item of the internal platform is here once, with who does the next step. Nothing in production was changed by Claude.
 
 **Classes:** **A** Claude can safely complete now · **B** owner decision · **C** read-only production check · **D** owner production action · **E** outside provider or person · **F** deliberately deferred.

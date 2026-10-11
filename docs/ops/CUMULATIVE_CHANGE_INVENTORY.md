@@ -154,3 +154,19 @@ Helpers file unchanged in API (8); its hash changed (CSV guard). `index.html` = 
 | Query H (drift check) + result interpreter tool | Owner (read-only, runs nothing) | No |
 
 Helper file API is 9 (was 8); the page refuses a mix of old and new files. Rollback: revert the merge commit.
+
+
+## 11. Extension 11 addendum (2026-10-11)
+
+`claude/platform-ext11-final-readiness-2026-10-11` was created from the final EXT10 commit (`56a927c`), so it contains everything above. `main` is still `d3db7bc`. EXT11 changes page code (`owner-login.html`, `assets/owner-login-helpers.js`), tests, one tool and docs; **no SQL, no workflow file**.
+
+| Change | Who notices | Needs SQL first? |
+|---|---|---|
+| Orders without a total are named on Home, Daily Summary, Accounting, Tax Records and in the tax export, never counted as $0 (X11-01) | Owner, accountant | No |
+| Return Mark Received after a lost connection says whether it was saved and that the restock did not run (X11-02) | Owner, staff | No |
+| Recall Quarantine after a lost connection, same (X11-03) | Owner | No |
+| Report History shows "—" for a figure missing from a daily report; the week/month total is unknown too (X11-04) | Owner | No |
+| System status: database steps installed / not installed / UNKNOWN and "Switch safety" (only while the page is open) | Owner | No |
+| Interpreter: one-sitting read-only session summary, backup intake, evidence expiry | Owner (via Claude) | No |
+
+Rollback: revert the merge commit.

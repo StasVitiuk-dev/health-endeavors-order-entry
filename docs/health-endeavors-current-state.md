@@ -1,6 +1,6 @@
 # Health Endeavors — current state (cross-project summary)
 
-**Last updated:** October 11, 2026, extension 10 (platform §1, §8; website sections unchanged from Sept 30). Internal-platform entry point from now on: `docs/ops/CURRENT_PLATFORM_STATE_EXT10.md`. **Keep this short.** Details live in the linked documents; update this file whenever the verified state changes materially.
+**Last updated:** October 11, 2026, extension 11 (platform §1, §8; website sections unchanged from Sept 30). Internal-platform entry point from now on: `docs/ops/CURRENT_PLATFORM_STATE_EXT11.md`. **Keep this short.** Details live in the linked documents; update this file whenever the verified state changes materially.
 
 Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (from the owner's earlier chats, not re-checked) · **PROPOSED** · **OWNER DECISION REQUIRED** · **DEPRECATED**.
 
@@ -91,6 +91,10 @@ Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (fro
   - Fixed later in EXT10: received order claimed "stock added" though lines were short (X10-12); Receive offered again after "do not press again" (X10-13); unreadable schedule shown as stale (X10-14); silent truncation at the reply limit (X10-15); search/dashboard blank when the library was refused (X10-21); tax export mislabelled a period (X10-22); phone rows squeezed their text (X10-23); System status cut off on phones (X10-24). Eleven real problems fixed in EXT10 in total.
   - Operations entry point: `docs/ops/OPERATIONS_CENTER_EXT10.md`.
   - Owner one-pager: `docs/ops/OWNER_UNBLOCK_CENTER_EXT10.md`. Report: `docs/ops/DEEP_PLATFORM_EXTENSION_10_2026-10-11.md`.
+- **Extension 11 (Oct 11, not merged, not live):** `claude/platform-ext11-final-readiness-2026-10-11`, built on the final EXT10 commit (`56a927c`); its draft PR replaces EXT10's #26.
+  - Fixed: orders without a total counted as $0 in revenue (X11-01); return receive and recall quarantine after a lost connection said "nothing was changed" when the save may have happened and the stock step had not run (X11-02, X11-03); report figures missing from a daily report shown as 0 (X11-04).
+  - System status now shows which database steps are installed and flags a switch that is ON without its step; tested that merging the code before any SQL is safe.
+  - Owner entry points: `docs/ops/OWNER_UNBLOCK_CENTER_EXT11.md` and `docs/ops/PRODUCTION_READINESS_BOARD_EXT11.md` (why production is ~15% and the exact order to fix it). Report: `docs/ops/DEEP_PLATFORM_EXTENSION_11_2026-10-11.md`.
 - **Store not launched:** 0 real orders, real products not yet added, the Shopify order sync and agents #2/#3/#7/#8 switched off on purpose until products exist (REPORTED). Agent #1's on/off state is **unverified**.
 
 ## 2. Public website (customer storefront)

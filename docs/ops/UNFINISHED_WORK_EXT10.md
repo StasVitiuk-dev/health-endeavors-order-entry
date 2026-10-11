@@ -1,5 +1,7 @@
 # Unfinished work and workstream classification (EXT10)
 
+> **SUPERSEDED (2026-10-11, EXT11):** the current entry point is `UNFINISHED_WORK_EXT11.md`. This file stays as history and keeps its detail; nothing in it was rewritten.
+
 **Status:** CURRENT (2026-10-11). The EXT10 request listed about 400 workstreams. This page says, for each group, what was **done** in EXT10, what was **checked and found already covered** (by earlier extensions, with the evidence), and what **remains** with its class. No item disappears because code exists: production items stay open until PRODUCTION VERIFIED.
 
 **Classes:** **A** Claude-safe, can be done next · **B** owner decision · **C** read-only production check · **D** owner production action · **E** outside party · **F** deliberately deferred · **DONE** (branch, tested locally) · **COVERED** (earlier extension, evidence named).
