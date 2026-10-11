@@ -397,6 +397,17 @@ test.describe('receipt status unknown (lost claim reply and lost read-back)', ()
     expect(snapshot(backend).adjustments).toBe(0);
   });
 
+  test('order still not received but a line already shows stock: the check asks a person, never offers Receive', async ({ page, backend }) => {
+    backend.dropNext('purchase_orders', 'PATCH');
+    await dropReadBack(page);
+    await clickReceive(page);
+    await expect(page.locator('.poReceiptUnknown')).toBeVisible({ timeout: 30000 });
+    backend.tables.purchase_order_items[0].quantity_received = 5; // something else wrote stock meanwhile
+    await page.locator('.poCheckReceipt').click();
+    await expect(page.locator('#dashError')).toContainText('This needs a person to look');
+    await expect(page.locator('.poReceiveBtn')).toHaveCount(0);
+  });
+
   test('still offline: the check keeps the order locked', async ({ page, backend }) => {
     backend.dropNext('purchase_orders', 'PATCH');
     await dropReadBack(page);
