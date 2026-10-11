@@ -32,7 +32,7 @@
 <meta http-equiv="Expires" content="0">
 <title>Health Endeavors — Owner Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous" onerror="window.__sbLoadFailed=true"></script>
-<link rel="stylesheet" href="assets/owner-login.css?v=836d9e9b62">
+<link rel="stylesheet" href="assets/owner-login.css?v=820addb6f6">
 <script src="assets/owner-login-helpers.js?v=c7aaa1dd71" onerror="window.__heHelpersLoadFailed=true"></script>
 <script>
   // Applied before anything renders so there's no flash of the wrong theme.
@@ -516,6 +516,15 @@
         <p class="hint">The health of every outside service this system depends on, in one place. Status is yours to set — change it the moment you notice something's wrong. Two rows also show a real "last seen" timestamp pulled live from actual activity, not just your own memory.</p>
         <div class="statRow" id="continuityStats"></div>
         <div id="continuityWrap"><p class="empty">Loading…</p></div>
+
+        <h2 style="margin-top:22px;">System status</h2>
+        <p class="hint">Read-only facts about this dashboard right now. Anything it cannot see says UNKNOWN or NOT VERIFIED — never a green tick it cannot prove. The diagnostic summary is safe to paste into a message: it holds no names, e-mails, record contents, keys or tokens.</p>
+        <div id="systemStatusWrap" aria-live="polite"><p class="empty">Loading…</p></div>
+        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+          <button type="button" class="small secondary" id="sysStatusRefresh">Check again</button>
+          <button type="button" class="small secondary" id="copyDiagBtn">Copy diagnostic summary</button>
+        </div>
+        <pre id="diagText" class="codeBlock" style="display:none;white-space:pre-wrap;"></pre>
       </section>
 
       <!-- Daily Owner Business Health Summary -->
@@ -968,8 +977,20 @@
       loginMsg.textContent = text;
       loginMsg.className = 'msg error';
     }
+    // EXT10b (missions 66-68): the KIND of the last error shown, for the
+    // diagnostic summary (never its text, which can name records).
+    let LAST_ERROR_KIND = null, LAST_ERROR_AT = null;
+    function errorKind(text){
+      const t = String(text || '');
+      if (/connection|network|offline|dropped|cannot tell|may or may not/i.test(t)) return 'connection / outcome unknown';
+      if (/permission|not permitted|row-level|only the owner|sign in again/i.test(t)) return 'permission / sign-in';
+      if (/changed since|changed elsewhere|already changed|someone else/i.test(t)) return 'conflict (changed elsewhere)';
+      if (/not installed|switch/i.test(t)) return 'switch / database step missing';
+      return 'other';
+    }
     function showDashError(text){
       text = explainDbError(text);
+      LAST_ERROR_KIND = errorKind(text); LAST_ERROR_AT = new Date();
       dashErrorEl.textContent = text;
       dashErrorEl.style.display = 'block';
       if (window.toastErr) window.toastErr(text);
@@ -2410,7 +2431,7 @@
       adverseEventsPanel: [loadAdverseEvents],
       inquiriesPanel: [loadInquiries],
       aiPanel: [loadAI],
-      continuityPanel: [loadContinuity],
+      continuityPanel: [loadContinuity, loadSystemStatus],
       flagsPanel: [loadFlags, loadSystemMode],
       businessRulesPanel: [loadBusinessRules],
       approvalsPanel: [loadApprovals],
@@ -3776,6 +3797,68 @@
         wrap.innerHTML = card('UNKNOWN', 'Could not read the nightly check', `<p class="hint">${esc(explainDbError(err && err.message ? err.message : String(err)))}</p>`);
       }
     }
+
+    // EXT10b (missions 63-66): read-only System status + a safe diagnostic summary.
+    function environmentLabel(){
+      if (/staging-demo\.invalid/.test(SUPABASE_URL)) return { key: 'STAGING', text: 'STAGING (synthetic data, not production)' };
+      if (location.host === 'stasvitiuk-dev.github.io') return { key: 'PRODUCTION', text: 'PRODUCTION (live dashboard)' };
+      return { key: 'OTHER', text: 'NOT PRODUCTION (' + (location.host || 'local file') + ')' };
+    }
+    function assetVersions(){
+      const pick = re => { const el = [...document.querySelectorAll('script[src], link[href]')].map(e => e.getAttribute('src') || e.getAttribute('href')).find(u => re.test(u || '')); const m = el && el.match(/[?&]v=([0-9a-f]+)/); return m ? m[1] : 'unknown'; };
+      return 'helpers API ' + window.HE.helpers.API + ', helpers ' + pick(/owner-login-helpers\.js/) + ', styles ' + pick(/owner-login\.css/);
+    }
+    let SYS_STATUS = null;
+    async function loadSystemStatus(){
+      const wrap = document.getElementById('systemStatusWrap');
+      if (!wrap) return;
+      const isLatest = newLoadToken('sysstatus');
+      const t0 = performance.now();
+      let db;
+      try {
+        const { error } = await supabase.from('feature_flags').select('flag_key').limit(1);
+        db = error ? { ok: false, text: 'Could not read: ' + errorKind(explainDbError(error.message || String(error))) } : { ok: true, text: 'Reading works (' + Math.round(performance.now() - t0) + ' ms just now)' };
+      } catch (e) { db = { ok: false, text: 'Could not read: ' + errorKind(e && e.message) }; }
+      if (!isLatest()) return;
+      const counts = {};
+      if (agentControlsState === 'ok') AGENT_REGISTRY.forEach(a => { const t = agentTruth(a, agentControlsByNum[a.num]).label; counts[t] = (counts[t] || 0) + 1; });
+      const agents = agentControlsState === 'ok' ? Object.entries(counts).map(([k, v]) => v + ' ' + k).join(' · ') : 'UNKNOWN (agent switches could not be read)';
+      const nightlyEl = document.querySelector('#nightlyCheckWrap .nightlyCard');
+      const nightly = nightlyEl ? nightlyEl.getAttribute('data-state') : 'NOT VERIFIED (open Home first)';
+      const env = environmentLabel();
+      SYS_STATUS = {
+        env, db, agents, nightly,
+        rows: [
+          ['Environment', env.text],
+          ['Database', db.ok ? db.text : db.text + ' — UNKNOWN whether data is current'],
+          ['Signed-in role', currentUserRole || 'UNKNOWN'],
+          ['Nightly integrity check', nightly],
+          ['Backups', 'UNKNOWN — the dashboard cannot see the backup jobs (owner check V1)'],
+          ['Agents', agents],
+          ['Page version', assetVersions()],
+          ['Last error on screen', LAST_ERROR_KIND ? LAST_ERROR_KIND + ' at ' + LAST_ERROR_AT.toLocaleTimeString() : 'none since this page opened'],
+        ],
+      };
+      wrap.innerHTML = `<table class="sysStatus"><tbody>${SYS_STATUS.rows.map(([k, v]) => `<tr><th scope="row">${esc(k)}</th><td>${esc(v)}</td></tr>`).join('')}</tbody></table>`;
+    }
+    function diagnosticSummary(){
+      const s = SYS_STATUS || { rows: [] };
+      return ['Health Endeavors dashboard — diagnostic summary',
+        'Time: ' + new Date().toISOString(),
+        'Page open: ' + (currentPageId || 'unknown'),
+        ...s.rows.map(([k, v]) => k + ': ' + v),
+        'Browser: ' + navigator.userAgent.replace(/\s+/g, ' ').slice(0, 160),
+        '(No names, e-mails, record contents, keys or tokens are included.)'].join('\n');
+    }
+    document.getElementById('sysStatusRefresh').addEventListener('click', () => safeRun(loadSystemStatus));
+    document.getElementById('copyDiagBtn').addEventListener('click', async () => {
+      await safeRun(loadSystemStatus);
+      const text = diagnosticSummary();
+      const pre = document.getElementById('diagText');
+      pre.textContent = text; pre.style.display = 'block';
+      try { await navigator.clipboard.writeText(text); toastOk('Diagnostic summary copied. It is also shown below.'); }
+      catch (e) { toast('Could not copy automatically: select the text below and copy it.'); }
+    });
 
     async function loadBusinessHealth(){
       const wrap = document.getElementById('businessHealthStats');
