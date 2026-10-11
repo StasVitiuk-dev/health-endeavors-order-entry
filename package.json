@@ -3,7 +3,14 @@
   "private": true,
   "description": "Local regression tests for the Health Endeavors dashboard. Not part of the live site.",
   "scripts": {
-    "test": "playwright test --config tests/playwright.config.js"
+    "test": "playwright test --config tests/playwright.config.js",
+    "evidence:interpret": "node tests/tools/evidence.js interpret",
+    "evidence:intake": "node tests/tools/evidence.js intake",
+    "evidence:status": "node tests/tools/evidence.js status",
+    "evidence:diff": "node tests/tools/evidence.js diff",
+    "deploy:sim": "node tests/tools/deploy-sim.js",
+    "incident": "node tests/tools/incidents.js",
+    "docs:check": "node tests/tools/doc-check.js --current"
   },
   "devDependencies": {
     "@playwright/test": "1.56.1",
