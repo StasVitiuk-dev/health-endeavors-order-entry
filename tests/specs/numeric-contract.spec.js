@@ -18,7 +18,7 @@ test.describe('numeric contract (static)', () => {
   test.beforeEach(({}, testInfo) => { test.skip(testInfo.project.name !== 'desktop', 'static; run once'); });
 
   const inputs = PAGES.flatMap(file => {
-    const src = fs.readFileSync(path.join(ROOT, file), 'utf8');
+    const src = require('../helpers/page-source').pageSource(file); // EXT14: boxes drawn by the moved page script too
     return [...src.matchAll(/<input\b[^>]*type="number"[^>]*>/g)].map(m => {
       const tag = m[0];
       const name = (tag.match(/\bid="([^"]+)"/) || tag.match(/\bclass="([^" ]+)/) || [])[1];
@@ -40,7 +40,7 @@ test.describe('numeric contract (static)', () => {
     expect(inputs.filter(i => !/\bmax="/.test(i.tag) && !CHECKED_IN_CODE.includes(i.name)).map(i => `${i.file} ${i.name}`)).toEqual([]);
   });
   test('every box listed as checked in code really is checked', () => {
-    const src = fs.readFileSync(path.join(ROOT, 'owner-login.html'), 'utf8');
+    const src = require('../helpers/page-source').pageSource('owner-login.html');
     for (const name of CHECKED_IN_CODE) {
       // near a mention of the box, a numberInputError call (it always applies a
       // max: the one given, or 1,000,000,000 by default; business rules also

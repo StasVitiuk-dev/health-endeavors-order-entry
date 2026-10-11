@@ -60,7 +60,7 @@ for (const f of ['dashboard.html', 'search.html', 'change-password.html']) {
 // EXT10 (U39/M5): the first page with no inline script: its policy allows
 // only files from this site, the pinned CDN and the frame guard by its exact
 // hash (no 'unsafe-inline'), and nothing on the page needs more.
-for (const [f, asset] of [['change-password.html', 'change-password'], ['search.html', 'search-page'], ['dashboard.html', 'dashboard-page']]) {
+for (const [f, asset] of [['change-password.html', 'change-password'], ['search.html', 'search-page'], ['dashboard.html', 'dashboard-page'], ['owner-login.html', 'owner-login-app']]) { // EXT14 M5d: the owner dashboard too
   test(`${f}: script policy without unsafe-inline; only the frame guard is allowed, by hash`, () => {
     const crypto = require('crypto');
     const src = fs.readFileSync(path.join(ROOT, f), 'utf8');

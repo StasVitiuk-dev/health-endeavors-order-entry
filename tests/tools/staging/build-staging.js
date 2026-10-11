@@ -154,5 +154,24 @@ for (const bad of [PROD_HOST, PROD_KEY, 'uizrazyehilyzmwttsrn']) {
 fs.mkdirSync(path.join(OUT, 'assets'), { recursive: true });
 fs.writeFileSync(path.join(OUT, 'index.html'), html);
 fs.writeFileSync(path.join(OUT, 'staging-runtime.js'), bundle);
-for (const a of fs.readdirSync(path.join(ROOT, 'assets'))) fs.copyFileSync(path.join(ROOT, 'assets', a), path.join(OUT, 'assets', a));
+// EXT14: the page script moved to assets/owner-login-app.js, so text assets are
+// scrubbed too, and the ?v= hashes in the page are recomputed for the scrubbed files.
+const crypto = require('crypto');
+for (const a of fs.readdirSync(path.join(ROOT, 'assets'))) {
+  const src = path.join(ROOT, 'assets', a), dst = path.join(OUT, 'assets', a);
+  if (/\.(js|css)$/.test(a)) fs.writeFileSync(dst, scrub(fs.readFileSync(src, 'utf8'))); else fs.copyFileSync(src, dst);
+}
+html = html.replace(/((?:href|src)=")(assets\/[^"?]+)\?v=[0-9a-f]+"/g, (all, pre, file) =>
+  pre + file + '?v=' + crypto.createHash('sha256').update(fs.readFileSync(path.join(OUT, file))).digest('hex').slice(0, 10) + '"');
+fs.writeFileSync(path.join(OUT, 'index.html'), html);
+// Final guard over EVERY output file: no production address, project ref or key.
+(function walk(dir) {
+  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+    const f = path.join(dir, e.name);
+    if (e.isDirectory()) { walk(f); continue; }
+    if (!/\.(html|js|css|json|txt|md)$/.test(e.name)) continue;
+    const text = fs.readFileSync(f, 'utf8');
+    for (const bad of [PROD_HOST, PROD_KEY, 'uizrazyehilyzmwttsrn']) if (text.includes(bad)) { fs.rmSync(OUT, { recursive: true, force: true }); throw new Error('production trace left in the staging build (' + path.relative(OUT, f) + '): ' + bad); }
+  }
+})(OUT);
 console.log('staging build written to', OUT, '(page', before, '->', html.length, 'bytes; runtime', bundle.length, 'bytes)');

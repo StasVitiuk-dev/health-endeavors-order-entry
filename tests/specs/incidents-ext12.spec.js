@@ -7,7 +7,7 @@ const fs = require('fs');
 const path = require('path');
 const I = require('../tools/incidents');
 test.beforeEach(({}, ti) => { test.skip(ti.project.name !== 'desktop', 'Node-only; run once'); });
-const PAGE = fs.readFileSync(path.join(__dirname, '..', '..', 'owner-login.html'), 'utf8');
+const PAGE = require('../helpers/page-source').pageSource('owner-login.html');
 
 test('the map passes its own rules', () => {
   expect(I.validate()).toEqual([]);

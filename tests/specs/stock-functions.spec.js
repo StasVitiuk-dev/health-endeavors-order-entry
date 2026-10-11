@@ -324,7 +324,7 @@ test.describe('Feature Switches: a stock switch cannot be turned on before its f
   });
 
   test('every probe is refused by the real functions\' first check (never reaches a write)', () => {
-    const src = require('fs').readFileSync(require('path').join(__dirname, '..', '..', 'owner-login.html'), 'utf8');
+    const src = require('../helpers/page-source').pageSource('owner-login.html');
     expect(src).toContain("p_lots: 'not-a-list'");          // R1: "Lot details must be a list" (first statement)
     expect(src).toContain("p_disposition: '' }");            // R3: "Pick what happens…" (first statement)
     expect(src).toContain("p_bucket: 'available', p_change: 0 }"); // R4: product check, then non-zero check; zero id = no product

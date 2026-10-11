@@ -13,7 +13,10 @@
     "docs:check": "node tests/tools/doc-check.js --current",
     "sql:lint": "node tests/tools/sql-lint.js",
     "sql:headers": "node tests/tools/sql-lint.js --headers",
-    "sql:graph": "node tests/tools/sql-lint.js --graph"
+    "sql:graph": "node tests/tools/sql-lint.js --graph",
+    "ci:local": "bash tests/tools/ci-local.sh",
+    "secrets:scan": "node tests/tools/secret-scan.js",
+    "db:suite": "bash tests/tools/run-db-suite.sh"
   },
   "devDependencies": {
     "@playwright/test": "1.56.1",

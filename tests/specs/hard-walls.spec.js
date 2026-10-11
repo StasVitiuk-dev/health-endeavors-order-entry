@@ -32,11 +32,11 @@ const ALLOWED_RPCS = ['employee_activity', 'employee_activity_people', 'employee
 
 for (const f of HTML) {
   test(`${f}: no code path can send a message or move money`, () => {
-    const src = fs.readFileSync(path.join(ROOT, f), 'utf8');
+    const src = require('../helpers/page-source').pageSource(f); // EXT14: HTML + its moved scripts (was HTML only)
     for (const re of SEND.concat(MONEY_PROVIDERS)) expect(src, String(re)).not.toMatch(re);
   });
   test(`${f}: every database function it calls is on the reviewed list`, () => {
-    const src = fs.readFileSync(path.join(ROOT, f), 'utf8');
+    const src = require('../helpers/page-source').pageSource(f); // EXT14: HTML + its moved scripts (was HTML only)
     const called = [...src.matchAll(/(?:\.rpc|callStockFunction)\(\s*'([a-z_]+)'/g)].map(m => m[1]);
     const probes = [...src.matchAll(/\['([a-z_]+)', \{ p_/g)].map(m => m[1]); // STOCK_FN_PROBES
     for (const name of called.concat(probes)) expect(ALLOWED_RPCS, name).toContain(name);
@@ -50,7 +50,7 @@ test('no page writes an accounting, tax, payment or outbound-message table', () 
 });
 
 test('the customer-service draft is never sent by the page: it can only be saved or copied', () => {
-  const src = fs.readFileSync(path.join(ROOT, 'owner-login.html'), 'utf8');
+  const src = require('../helpers/page-source').pageSource('owner-login.html');
   // The only writes to inquiries change the draft / status fields, never a "sent" channel.
   const inquiryWrites = extract('owner-login.html').filter(r => r.table === 'customer_inquiries');
   expect(inquiryWrites.length).toBeGreaterThan(0);

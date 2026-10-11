@@ -12,6 +12,8 @@ const { test, expect, login } = require('../helpers/dashboard');
 
 const ROOT = path.resolve(__dirname, '..', '..');
 const html = () => fs.readFileSync(path.join(ROOT, 'owner-login.html'), 'utf8');
+// EXT14 (M5d): the page script lives in assets/owner-login-app.js
+const pageCode = () => html() + '\n' + fs.readFileSync(path.join(ROOT, 'assets', 'owner-login-app.js'), 'utf8');
 
 base.test.describe('local assets are versioned by content', () => {
   base.test.beforeEach(({}, testInfo) => { base.test.skip(testInfo.project.name !== 'desktop', 'source check; run once'); });
@@ -65,13 +67,13 @@ base.test.describe('pure helpers file', () => {
     const src = fs.readFileSync(path.join(ROOT, 'assets', 'owner-login-helpers.js'), 'utf8');
     const window = {};
     new Function('window', src)(window);
-    const m = html().match(/const \{\n([\s\S]*?)\n    \} = window\.HE\.helpers;/);
+    const m = pageCode().match(/const \{\n([\s\S]*?)\n    \} = window\.HE\.helpers;/);
     base.expect(m).not.toBeNull();
     const names = m[1].split(',').map(x => x.trim()).filter(Boolean);
     base.expect(names.length).toBe(43); // 43 since EXT10 (request keys, nightly check)
     for (const n of names) {
       base.expect(window.HE.helpers[n], n).toBeDefined();
-      base.expect(html(), n).not.toMatch(new RegExp('^    (async )?function ' + n + '\\s*\\(|^    const ' + n + '\\s*=', 'm'));
+      base.expect(pageCode(), n).not.toMatch(new RegExp('^    (async )?function ' + n + '\\s*\\(|^    const ' + n + '\\s*=', 'm'));
     }
   });
 });
@@ -87,4 +89,33 @@ test('an old helpers file (wrong API) is refused with a "reload" message', async
   await page.route('**/assets/owner-login-helpers.js*', route => route.fulfill({ status: 200, contentType: 'application/javascript', body: src }));
   await page.goto('/owner-login.html');
   await expect(page.locator('body')).toContainText('loaded a mix of old and new files');
+});
+
+// ---- EXT14 (M5d): the page script is a file; the shell fails safely ----
+test('if the page script fails to load, a plain message appears instead of a blank page', async ({ page }) => {
+  await page.route('**/assets/owner-login-app.js*', route => route.fulfill({ status: 404, body: 'not found' }));
+  await page.goto('/owner-login.html');
+  const msg = page.locator('#appNotLoaded');
+  await expect(msg).toBeVisible({ timeout: 15000 });
+  await expect(msg).toContainText('has not loaded');
+  await expect(page.locator('#dash')).toBeHidden();
+});
+
+test('when the page script runs, the not-loaded message is removed at once', async ({ page }) => {
+  await page.goto('/owner-login.html');
+  await expect(page.locator('#appNotLoaded')).toHaveCount(0);
+});
+
+test('a broken page script (syntax error) shows the not-loaded message, never a half-working page', async ({ page }) => {
+  await page.route('**/assets/owner-login-app.js*', route => route.fulfill({ status: 200, contentType: 'application/javascript', body: 'this is not javascript (' }));
+  await page.goto('/owner-login.html');
+  await expect(page.locator('#appNotLoaded')).toBeVisible({ timeout: 15000 });
+});
+
+test('a failure inside one feature does not blank the shell: the error banner names it', async ({ page, backend }) => {
+  // the page reports uncaught errors in its banner instead of going blank (error handler in the page script)
+  await login(page);
+  await page.evaluate(() => setTimeout(() => { throw new Error('synthetic feature failure'); }, 0));
+  await expect(page.locator('#scriptError')).toContainText('synthetic feature failure');
+  await expect(page.locator('#dash')).toBeVisible();
 });

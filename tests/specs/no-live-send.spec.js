@@ -19,7 +19,7 @@ base.test.describe('page source cannot send anything by itself', () => {
   base.test.beforeEach(({}, testInfo) => { base.test.skip(testInfo.project.name !== 'desktop', 'source scan; run once'); });
   for (const file of PAGES) {
     base.test(`${file}: no fetch/XHR/beacon, no Edge Function calls, no mailto/sms links`, () => {
-      let html = fs.readFileSync(path.join(ROOT, file), 'utf8');
+      let html = require('../helpers/page-source').pageSource(file); // EXT14: HTML + its moved scripts (was HTML only)
       // The one deliberate exception (EXT4, reviewed): the owner dashboard hands
       // the database client a wrapper that passes each of the client's own
       // requests straight through and only reads the reply to notice the
@@ -39,7 +39,7 @@ base.test.describe('page source cannot send anything by itself', () => {
     });
   }
   base.test('owner dashboard: the only window.open calls open short-lived signed file links', () => {
-    const html = fs.readFileSync(path.join(ROOT, 'owner-login.html'), 'utf8');
+    const html = require('../helpers/page-source').pageSource('owner-login.html');
     const calls = [...html.matchAll(/window\.open\(([^)]*)\)/g)].map(m => m[1].trim());
     base.expect(calls.length).toBeGreaterThan(0);
     for (const c of calls) base.expect(c).toMatch(/^data\.signedUrl, '_blank', 'noopener,noreferrer'$/);

@@ -1006,3 +1006,8 @@ table.sysStatus td{ overflow-wrap:anywhere; }
 .nightlyItem{ padding:6px 0; border-top:1px solid var(--line); font-size:13.5px; }
 .nightlyItem[data-level="FAIL"] .badge{ background:var(--danger-bg); color:var(--danger); }
 .nightlyItem[data-level="WARN"] .badge{ background:var(--warn-bg, #fff4dd); color:var(--warn, #8a5b00); }
+
+/* EXT14 (M5d): shown only if assets/owner-login-app.js never runs (it removes this
+   element first thing). Pure CSS so it works when no script can run at all. */
+.appNotLoaded{ display:block; visibility:hidden; animation: heAppNotLoaded 0s linear 8s forwards; }
+@keyframes heAppNotLoaded{ to { visibility:visible; } }

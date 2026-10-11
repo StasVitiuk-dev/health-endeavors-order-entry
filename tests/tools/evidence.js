@@ -230,7 +230,7 @@ function nextSteps(type, result) {
 // ---------- ledger, status, staleness, conflicts, diff ----------
 function pageFingerprint() {
   const h = crypto.createHash('sha256');
-  for (const f of ['owner-login.html', 'assets/owner-login.css', 'assets/owner-login-helpers.js']) h.update(fs.readFileSync(path.join(ROOT, f)));
+  for (const f of ['owner-login.html', 'assets/owner-login.css', 'assets/owner-login-helpers.js', 'assets/owner-login-theme.js', 'assets/owner-login-app.js']) h.update(fs.readFileSync(path.join(ROOT, f)));
   return h.digest('hex').slice(0, 12);
 }
 function makeRecord(type, text, opts) {

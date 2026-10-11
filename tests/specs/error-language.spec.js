@@ -17,7 +17,7 @@ const BANNED = /send me|I'll fix|I will fix|ask Claude|tell Claude|Claude sessio
 test('no on-screen message talks like a developer', () => {
   const bad = [];
   for (const file of PAGES) {
-    const src = fs.readFileSync(path.join(ROOT, file), 'utf8');
+    const src = require('../helpers/page-source').pageSource(file);
     for (const m of src.matchAll(/(showDashError|toastOk|toastErr|toast|showError)\(([^;]{0,600})\)/g)) {
       // only the literal text, not variable names around it
       const literals = [...m[2].matchAll(/'((?:[^'\\]|\\.)*)'|"((?:[^"\\]|\\.)*)"|`((?:[^`\\]|\\.)*)`/g)].map(x => x[1] || x[2] || x[3] || '').join(' ');

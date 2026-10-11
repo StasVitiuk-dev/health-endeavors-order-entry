@@ -14,8 +14,8 @@ const path = require('path');
 // assets/owner-login-helpers.js (same 4-space indentation, so the same rules
 // find them in either file).
 const ROOT = path.resolve(__dirname, '..', '..');
-const SOURCE = fs.readFileSync(path.join(ROOT, 'owner-login.html'), 'utf8')
-  + '\n' + fs.readFileSync(path.join(ROOT, 'assets', 'owner-login-helpers.js'), 'utf8');
+// EXT14: the page script now lives in assets/owner-login-app.js (M5d).
+const SOURCE = require('./page-source').pageSource('owner-login.html');
 
 // The dashboard code is consistently indented, so a top-level helper inside
 // initApp() starts on a line indented by 4 spaces and ends at the next line

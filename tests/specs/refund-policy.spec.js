@@ -68,9 +68,12 @@ test("Accounting today: a $30 refund recorded on Returns does not reduce revenue
 
 test("Accounting with 'subtract_return_refunds': revenue $70 and the refund tile shows $30 (the $50 on an already-refunded order is not taken twice)", async ({ page, backend }) => {
   seed(backend);
-  const file = path.resolve(__dirname, '..', '..', 'owner-login.html');
-  const html = fs.readFileSync(file, 'utf8').replace("const ACCOUNTING_REFUND_POLICY = 'status_only';", "const ACCOUNTING_REFUND_POLICY = 'subtract_return_refunds';");
-  await page.route('**/owner-login.html', route => route.fulfill({ status: 200, contentType: 'text/html; charset=utf-8', body: html }));
+  // EXT14: the page script lives in assets/owner-login-app.js (M5d)
+  const file = path.resolve(__dirname, '..', '..', 'assets', 'owner-login-app.js');
+  const src = fs.readFileSync(file, 'utf8');
+  const js = src.replace("const ACCOUNTING_REFUND_POLICY = 'status_only';", "const ACCOUNTING_REFUND_POLICY = 'subtract_return_refunds';");
+  expect(js).not.toBe(src);
+  await page.route('**/assets/owner-login-app.js*', route => route.fulfill({ status: 200, contentType: 'application/javascript; charset=utf-8', body: js }));
   await login(page);
   await accountingAllTime(page);
   await expect(page.locator('#acctStats .stat', { hasText: 'Revenue' }).first()).toContainText('$70.00');
