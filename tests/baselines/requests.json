@@ -25,6 +25,7 @@
   "GET expenses?deleted_at=is.null&limit=1000&offset=0&order=id.asc&select=id,amount",
   "GET expenses?deleted_at=is.null&limit=200&order=expense_date.desc&select=id,category,amount,expense_date,vendor,note,receipt_path",
   "GET expenses?deleted_at=not.is.null&limit=50&order=deleted_at.desc&select=id,category,amount,deleted_at,receipt_path",
+  "GET feature_flags?flag_key=eq.integrity_results_home&select=enabled",
   "GET feature_flags?flag_key=eq.shopify_order_sync&select=flag_key,enabled",
   "GET feature_flags?order=label.asc&select=id,flag_key,label,description,enabled",
   "GET feature_requests?deleted_at=is.null&order=requested_at.desc&select=id,title,description,status,priority,requested_at,updated_at,resolution_notes",

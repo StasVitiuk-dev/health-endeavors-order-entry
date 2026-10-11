@@ -988,3 +988,9 @@
 .attnCheck .attnWhy{ margin-top:4px; font-size:12.5px; color:var(--muted); }
 .attnCheck .attnWhy summary{ cursor:pointer; }
 .attnCheck .attnWhy p{ margin:4px 0 0; }
+/* EXT10: nightly integrity check card */
+.nightlyCard .nightlyFresh{ margin:6px 0 0; }
+.nightlyList{ list-style:none; padding:0; margin:8px 0 0; }
+.nightlyItem{ padding:6px 0; border-top:1px solid var(--line); font-size:13.5px; }
+.nightlyItem[data-level="FAIL"] .badge{ background:var(--danger-bg); color:var(--danger); }
+.nightlyItem[data-level="WARN"] .badge{ background:var(--warn-bg, #fff4dd); color:var(--warn, #8a5b00); }

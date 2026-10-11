@@ -8,14 +8,15 @@ const path = require('path');
 const { test, expect } = require('@playwright/test');
 
 const DIR = path.resolve(__dirname, '..', '..', 'docs', 'ops', 'sql', 'drafts');
-const INSTALLS = ['10_DRAFT_stock_functions.sql', '13_DRAFT_report_totals.sql', '17_DRAFT_po_line_delete_guard.sql', '19_DRAFT_request_keys.sql', '21_DRAFT_stock_function_switches.sql', '23_DRAFT_integrity_constraints.sql', '25_DRAFT_integrity_check_schedule.sql', '27_DRAFT_request_keys_switch.sql'];
+const INSTALLS = ['10_DRAFT_stock_functions.sql', '13_DRAFT_report_totals.sql', '17_DRAFT_po_line_delete_guard.sql', '19_DRAFT_request_keys.sql', '21_DRAFT_stock_function_switches.sql', '23_DRAFT_integrity_constraints.sql', '25_DRAFT_integrity_check_schedule.sql', '27_DRAFT_request_keys_switch.sql', '29_DRAFT_integrity_results_on_home.sql'];
 const ROLLBACKS = { '10_DRAFT_stock_functions.sql': '11_DRAFT_rollback_stock_functions.sql',
   '17_DRAFT_po_line_delete_guard.sql': '18_DRAFT_rollback_po_line_delete_guard.sql',
   '19_DRAFT_request_keys.sql': '20_DRAFT_rollback_request_keys.sql',
   '21_DRAFT_stock_function_switches.sql': '22_DRAFT_rollback_stock_function_switches.sql',
   '23_DRAFT_integrity_constraints.sql': '24_DRAFT_rollback_integrity_constraints.sql',
   '25_DRAFT_integrity_check_schedule.sql': '26_DRAFT_rollback_integrity_check_schedule.sql',
-  '27_DRAFT_request_keys_switch.sql': '28_DRAFT_rollback_request_keys_switch.sql' };
+  '27_DRAFT_request_keys_switch.sql': '28_DRAFT_rollback_request_keys_switch.sql',
+  '29_DRAFT_integrity_results_on_home.sql': '30_DRAFT_rollback_integrity_results_on_home.sql' };
 const ALL = fs.readdirSync(DIR).filter(f => /^\d\d_DRAFT_.*\.sql$/.test(f) && !/_tests?_/.test(f));
 
 // Remove comments and quoted text so words inside them are not mistaken for SQL.
@@ -46,9 +47,18 @@ for (const f of ALL) {
     expect(sql.trim(), 'ends with commit').toMatch(/commit\s*;$/);
     expect(sql, 'no grant to anon / public').not.toMatch(/grant\s[^;]*\bto\s+[^;]*\b(anon|public)\b/);
     expect(sql, 'row-level security never switched off').not.toMatch(/disable\s+row\s+level\s+security|no\s+force\s+row\s+level/);
-    expect(sql, 'policies never created, changed or dropped').not.toMatch(/\b(create|alter|drop)\s+policy\b/);
+    // The one allowed pair of policies (EXT10, drafts/29 + 30): owner/admin may
+    // READ the nightly check's own two tables; nothing else, no other command.
+    const READ_RULES = [
+      'drop policy if exists integrity_runs_owner_admin_read on public.integrity_check_runs;',
+      'create policy integrity_runs_owner_admin_read on public.integrity_check_runs for select to authenticated using (public.is_owner_or_admin());',
+      'drop policy if exists integrity_results_owner_admin_read on public.integrity_check_results;',
+      'create policy integrity_results_owner_admin_read on public.integrity_check_results for select to authenticated using (public.is_owner_or_admin());'];
+    const policyOk = /^(29|30)_/.test(f) ? READ_RULES.reduce((t, r) => t.split(r).join(''), sql) : sql;
+    expect(policyOk, 'policies never created, changed or dropped').not.toMatch(/\b(create|alter|drop)\s+policy\b/);
     // The one allowed drop (EXT9): the schedule rollback removes its own results table.
-    const dropOk = f === '26_DRAFT_rollback_integrity_check_schedule.sql' ? sql.replace('drop table if exists public.integrity_check_results;', '') : sql;
+    const dropOk = f === '26_DRAFT_rollback_integrity_check_schedule.sql' ? sql.replace('drop table if exists public.integrity_check_results;', '')
+      : f === '30_DRAFT_rollback_integrity_results_on_home.sql' ? sql.replace('drop table if exists public.integrity_check_runs;', '') : sql;
     expect(dropOk, 'no table or schema is dropped').not.toMatch(/\bdrop\s+(table|schema)\b/);
     // The one allowed delete (EXT9): the switches rollback removes exactly the
     // five stock_fn_* rows its install added, nothing else.
@@ -56,7 +66,9 @@ for (const f of ALL) {
       ? sql.replace(/delete from public\.feature_flags\s+where flag_key in \('stock_fn_receive_po', 'stock_fn_recall', 'stock_fn_return', 'stock_fn_adjust', 'stock_fn_delete_product'\);/, '')
       : f === '28_DRAFT_rollback_request_keys_switch.sql'
         ? sql.replace("delete from public.feature_flags where flag_key = 'request_keys';", '')
-        : sql;
+        : f === '30_DRAFT_rollback_integrity_results_on_home.sql'
+          ? sql.replace("delete from public.feature_flags where flag_key = 'integrity_results_home';", '')
+          : sql;
     expect(allowed, 'no data deleted or truncated').not.toMatch(/\btruncate\b|^\s*delete\s+from\b/m);
   });
 

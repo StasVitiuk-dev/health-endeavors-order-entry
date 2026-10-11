@@ -32,7 +32,7 @@
 <meta http-equiv="Expires" content="0">
 <title>Health Endeavors — Owner Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous" onerror="window.__sbLoadFailed=true"></script>
-<link rel="stylesheet" href="assets/owner-login.css?v=d80525fb3d">
+<link rel="stylesheet" href="assets/owner-login.css?v=74e1239370">
 <script src="assets/owner-login-helpers.js?v=086b091c12" onerror="window.__heHelpersLoadFailed=true"></script>
 <script>
   // Applied before anything renders so there's no flash of the wrong theme.
@@ -114,6 +114,10 @@
         <h2 style="margin-top:22px;">Checks: what needs a look</h2>
         <p class="hint">Fixed checks on your data, run each time this page loads. Red: data that cannot be right. Amber: something to do. Grey: worth knowing (including things switched off on purpose). "Could not check" is not the same as "fine".</p>
         <div id="attnChecksWrap" aria-live="polite"><p class="empty">Checking…</p></div>
+
+        <h2 style="margin-top:22px;">Nightly integrity check</h2>
+        <p class="hint">A deeper check the database runs on its own every night (stuck work, probable duplicates, records pointing at the wrong thing, impossible values). Read-only: it never changes anything.</p>
+        <div id="nightlyCheckWrap" aria-live="polite"><p class="empty">Checking…</p></div>
 
         <h2 style="margin-top:22px;">Needs your attention</h2>
         <p class="hint">Tasks, approvals, compliance items, incidents, calendar events, and your own reminders — soonest due first.</p>
@@ -2400,7 +2404,7 @@
     // everything else fills in behind it, a few at a time. Before this, nothing
     // appeared until all ~30 queries had finished.
     const PANEL_LOADERS = {
-      attentionPanel: [loadAttention, loadBusinessHealth, loadAttentionChecks],
+      attentionPanel: [loadAttention, loadBusinessHealth, loadAttentionChecks, loadNightlyCheck],
       calendarPanel: [loadCalendarMonth],
       dailySummaryPanel: [loadDailySummary],
       reportHistoryPanel: [loadReportHistory],
@@ -3690,6 +3694,108 @@
       }));
       const t = document.getElementById('attnToggleHidden');
       if (t) t.addEventListener('click', () => { ATTN_SHOW_HIDDEN = !ATTN_SHOW_HIDDEN; renderAttentionChecks(); });
+    }
+
+    // EXT10 (U43): the nightly integrity check (Query F run by the database,
+    // drafts/25 + 29) on Home. Read-only. Off / not installed = says so (NOT
+    // VERIFIED), never "fine". States per check: PASS (0 found), WARN (stuck
+    // work or a probable duplicate), FAIL (a record pointing at the wrong
+    // thing or an impossible value). The whole card is STALE when the last
+    // successful run is older than NIGHTLY_STALE_MS, FAIL when the last
+    // attempt failed, UNKNOWN when it cannot be read.
+    const NIGHTLY_STALE_MS = 26 * 60 * 60 * 1000; // PROPOSED default (owner decision X8-D4): one missed night + slack
+    const NIGHTLY_FAIL_SECTIONS = /points at the wrong thing|impossible value/i;
+    const NIGHTLY_PAGES = { F01: 'tasksPanel', F02: 'tasksPanel', F03: 'approvalsPanel', F04: 'recallsPanel', F05: 'purchaseOrdersPanel',
+      F06: 'ordersPanel', F07: 'suppliersPanel', F08: 'inventoryPanel', F09: 'expensesPanel', F10: 'returnsPanel', F11: 'ordersPanel',
+      F12: 'ordersPanel', F13: 'ordersPanel', F14: 'inventoryPanel', F15: 'returnsPanel' };
+    function nightlyCheckLevel(row){
+      const n = Number(row.found);
+      if (!Number.isFinite(n) || n < 0) return 'UNKNOWN';
+      if (n === 0) return 'PASS';
+      return NIGHTLY_FAIL_SECTIONS.test(String(row.section || '')) ? 'FAIL' : 'WARN';
+    }
+    function nightlyOverall(lastAttempt, lastOk, results, now){
+      if (!lastAttempt) return 'NOT VERIFIED';
+      if (lastAttempt.status === 'failed') return 'FAIL';
+      if (!lastOk) return lastAttempt.status === 'running' ? 'NOT VERIFIED' : 'UNKNOWN';
+      if (now - new Date(lastOk.started_at).getTime() > NIGHTLY_STALE_MS) return 'STALE';
+      const levels = results.map(nightlyCheckLevel);
+      if (levels.includes('FAIL')) return 'FAIL';
+      if (levels.includes('UNKNOWN')) return 'UNKNOWN';
+      if (levels.includes('WARN')) return 'WARN';
+      return 'PASS';
+    }
+    const isMissingRelation = err => !!err && (['42P01', 'PGRST205', 'PGRST200'].includes(String(err.code)) || /does not exist|could not find the table/i.test(String(err.message || '')));
+    async function loadNightlyCheck(){
+      const wrap = document.getElementById('nightlyCheckWrap');
+      if (!wrap) return;
+      const isLatest = newLoadToken('nightly');
+      const LEVEL_CLASS = { PASS: 'attn-info', WARN: 'attn-action', FAIL: 'attn-critical', UNKNOWN: 'attn-unknown', STALE: 'attn-unknown', 'NOT VERIFIED': 'attn-info' };
+      const card = (level, title, body) => `<div class="approvalRow attnCheck nightlyCard ${LEVEL_CLASS[level]}" data-state="${esc(level)}"><div class="info"><span class="badge attnLevel">${esc(level)}</span> <b>${esc(title)}</b>${body || ''}</div></div>`;
+      try {
+        const { data: flag, error: flagErr } = await supabase.from('feature_flags').select('enabled').eq('flag_key', 'integrity_results_home').maybeSingle();
+        if (!isLatest()) return;
+        if (flagErr) { wrap.innerHTML = card('UNKNOWN', 'Could not check whether the nightly check is set up', `<p class="hint">${esc(explainDbError(flagErr.message || String(flagErr)))}</p>`); return; }
+        if (flag && flag.enabled === true && !['owner', 'administrator'].includes(currentUserRole)) {
+          // The read rule (drafts/29) shows these results to owner/admin only;
+          // an empty answer here would wrongly read as "has not run yet".
+          wrap.innerHTML = card('NOT VERIFIED', 'Only the owner and administrators can see the nightly check', '');
+          return;
+        }
+        if (!flag || flag.enabled !== true) {
+          wrap.innerHTML = card('NOT VERIFIED', 'Not set up yet', '<p class="hint">The nightly check is not installed, or its Home switch ("Nightly integrity check on Home") is off. Until it is, nothing here means "fine": run the daily check by hand (Query F, docs/ops/PRODUCTION_READONLY_VERIFICATION_EXT10.md).</p>');
+          return;
+        }
+        const [att, okRun] = await Promise.all([
+          supabase.from('integrity_check_runs').select('id, started_at, finished_at, status, checks, error').order('started_at', { ascending: false }).limit(1),
+          supabase.from('integrity_check_runs').select('id, started_at, finished_at, status, checks').eq('status', 'ok').order('started_at', { ascending: false }).limit(1),
+        ]);
+        if (!isLatest()) return;
+        const readErr = att.error || okRun.error;
+        if (readErr) {
+          wrap.innerHTML = isMissingRelation(readErr)
+            ? card('NOT VERIFIED', 'Switched on, but the nightly check is not installed', '<p class="hint">Turn the Home switch off, or install drafts/25 and drafts/29 first (docs/ops/PRODUCTION_CHANGE_PACKAGE_EXT10.md).</p>')
+            : card('UNKNOWN', 'Could not read the nightly check', `<p class="hint">${esc(explainDbError(readErr.message || String(readErr)))}</p>`);
+          return;
+        }
+        const lastAttempt = (att.data || [])[0] || null;
+        const lastOk = (okRun.data || [])[0] || null;
+        let results = [];
+        if (lastOk) {
+          const { data: rows, error: resErr } = await supabase.from('integrity_check_results').select('section, check_name, found, examples').eq('run_id', lastOk.id).order('section', { ascending: true }).limit(200);
+          if (!isLatest()) return;
+          if (resErr) { wrap.innerHTML = card('UNKNOWN', 'Could not read the nightly check results', `<p class="hint">${esc(explainDbError(resErr.message || String(resErr)))}</p>`); return; }
+          results = rows || [];
+        }
+        const now = Date.now();
+        const overall = nightlyOverall(lastAttempt, lastOk, results, now);
+        const when = r => r ? `${esc(fmtDate(r.started_at))} (${esc(timeAgo(r.started_at))})` : 'never';
+        const fresh = `<p class="hint nightlyFresh">Last success: ${when(lastOk)} · Last attempt: ${when(lastAttempt)}${lastAttempt ? ' — ' + esc(lastAttempt.status === 'ok' ? 'worked' : lastAttempt.status === 'failed' ? 'FAILED' : 'still running') : ''} · Counts as out of date after ${Math.round(NIGHTLY_STALE_MS / 3600000)} hours.</p>`;
+        const counts = { PASS: 0, WARN: 0, FAIL: 0, UNKNOWN: 0 };
+        results.forEach(r => { counts[nightlyCheckLevel(r)]++; });
+        const TITLES = {
+          PASS: 'All ' + results.length + ' checks passed',
+          WARN: counts.WARN + ' check' + (counts.WARN === 1 ? '' : 's') + ' found something to look at',
+          FAIL: lastAttempt && lastAttempt.status === 'failed' ? 'Last night\'s run FAILED' : counts.FAIL + ' check' + (counts.FAIL === 1 ? '' : 's') + ' found data that cannot be right',
+          STALE: 'Out of date: the last successful run is too old',
+          UNKNOWN: 'Some results could not be read',
+          'NOT VERIFIED': lastAttempt ? 'Installed, first run still in progress' : 'Installed, but it has not run yet',
+        };
+        const failNote = lastAttempt && lastAttempt.status === 'failed'
+          ? `<p class="hint">The run at ${esc(fmtDate(lastAttempt.started_at))} stopped with: ${esc(lastAttempt.error || 'no error text')}. ${lastOk ? 'The results below are from the last run that worked.' : 'No run has worked yet.'}</p>` : '';
+        const list = results.length ? `<details class="nightlyDetails"${overall === 'FAIL' || overall === 'WARN' ? ' open' : ''}><summary>Each check (${counts.PASS} pass · ${counts.WARN} warning · ${counts.FAIL} problem${counts.UNKNOWN ? ' · ' + counts.UNKNOWN + ' unreadable' : ''})</summary>
+          <ul class="nightlyList">${results.map(r => {
+            const lv = nightlyCheckLevel(r);
+            const code = String(r.section || '').slice(0, 3);
+            const pg = NIGHTLY_PAGES[code];
+            return `<li class="nightlyItem" data-level="${esc(lv)}" data-section="${esc(code)}"><span class="badge">${esc(lv)}</span> ${esc(r.check_name)}: <b>${esc(String(r.found))}</b>${r.examples && Number(r.found) > 0 ? `<div class="hint">For example: ${esc(String(r.examples).slice(0, 300))}</div>` : ''}${pg && Number(r.found) > 0 ? ` <button type="button" class="small secondary nightlyOpen" data-goto="${esc(pg)}">Open</button>` : ''}</li>`;
+          }).join('')}</ul></details>` : '';
+        wrap.innerHTML = card(overall, TITLES[overall], failNote + fresh + list);
+        wrap.querySelectorAll('.nightlyOpen').forEach(b => b.addEventListener('click', () => showPage(b.getAttribute('data-goto'))));
+      } catch (err) {
+        if (!isLatest()) return;
+        wrap.innerHTML = card('UNKNOWN', 'Could not read the nightly check', `<p class="hint">${esc(explainDbError(err && err.message ? err.message : String(err)))}</p>`);
+      }
     }
 
     async function loadBusinessHealth(){
@@ -7017,6 +7123,22 @@
                   showDashError(colOk === false
                     ? 'This switch was left off: the request-key columns (drafts/19) are not installed yet. Install them first, then turn the switch on.'
                     : 'This switch was left off: the dashboard could not confirm the request-key columns are installed (connection problem). Try again in a moment.');
+                  return;
+                }
+              }
+              // EXT10: the Home switch for the nightly check needs drafts/25 + 29.
+              if (newVal && row.getAttribute('data-key') === 'integrity_results_home') {
+                cb.disabled = true;
+                let tblOk = null;
+                try {
+                  const { error: tErr } = await supabase.from('integrity_check_runs').select('id').limit(1);
+                  tblOk = !tErr ? true : isMissingRelation(tErr) ? false : null;
+                } catch (e) { tblOk = null; }
+                cb.disabled = false;
+                if (tblOk !== true) {
+                  showDashError(tblOk === false
+                    ? 'This switch was left off: the nightly check (drafts/25 and drafts/29) is not installed yet. Install it first, then turn the switch on.'
+                    : 'This switch was left off: the dashboard could not confirm the nightly check is installed (connection problem or no permission). Try again in a moment.');
                   return;
                 }
               }
