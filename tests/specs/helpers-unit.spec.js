@@ -41,6 +41,10 @@ test.describe('fmtMoney', () => {
     expect(H.fmtMoney(1234.5, 'USD')).toBe('$1,234.50');
     expect(H.fmtMoney(0)).toBe('$0.00');
     expect(H.fmtMoney(null)).toBe('$0.00');
+    // EXT10 (X10-03): unreadable is not zero
+    for (const bad of [NaN, 'abc', Infinity, -Infinity, '12,50']) expect(H.fmtMoney(bad, 'USD')).toBe('—');
+    expect(H.fmtMoney(undefined)).toBe('$0.00');
+    expect(H.fmtMoney('')).toBe('$0.00');
     expect(H.fmtMoney('12.345', 'USD')).toBe('$12.35');
   });
   test('an unknown currency code falls back to a plain $ amount', () => {
@@ -57,7 +61,7 @@ test.describe('fmtMoney', () => {
     expect(H.fmtMoney(0.1 + 0.2, 'USD')).toBe('$0.30');
     expect(H.fmtMoney(1.005, 'USD')).toBe('$1.01');
     expect(H.fmtMoney(-1.005, 'USD')).toBe('-$1.01'); // half a cent rounds away from zero, as before
-    expect(H.fmtMoney(NaN, 'USD')).toBe('$0.00');
+    expect(H.fmtMoney(NaN, 'USD')).toBe('—'); // EXT10 (X10-03): unreadable, not zero
     expect(H.fmtMoney(123456789.99, 'USD')).toBe('$123,456,789.99');
   });
 });

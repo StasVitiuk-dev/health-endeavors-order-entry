@@ -36,6 +36,9 @@
       // (0.30 − (0.10 + 0.20)), which the formatter prints with a minus (EXT6).
       // (toPrecision(15) first, so 12.345 → 1234.5 → $12.35, not 1234.4999… → $12.34)
       // Half a cent rounds away from zero, as the currency formatter itself does.
+      // EXT10 (X10-03): an amount that is present but not a number (NaN, text,
+      // Infinity) is unreadable: show "—", never a zero that looks real.
+      if (amount !== null && amount !== undefined && amount !== '' && !Number.isFinite(Number(amount))) return '—';
       const c = Number((Number(amount || 0) * 100).toPrecision(15));
       let n = Math.sign(c) * Math.round(Math.abs(c)) / 100;
       if (n === 0 || !isFinite(n)) n = 0;
