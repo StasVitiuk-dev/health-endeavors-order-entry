@@ -387,6 +387,7 @@ a('X10-19','Scale','Server-side pagination for Orders / PO lists','Needed only p
 a('X10-20','Data quality','Duplicate customer watcher','Needs an owner-chosen matching key (emails optional, not normalized)','P3','Low','M','owner decision','P','Y','N','BLOCKED-OWNER')
 a('X10-21','Security','Search and dashboard pages went blank (script error) when the pinned library was refused or offline; now a plain message, and no inline script (strict CSP)','Silent failure; inline scripts allowed','P2','Medium','S','—','Y','N','N','DONE')
 a('X10-22','Tax','Tax export pressed while a newly picked period was loading produced a file named for the new period with the old period figures','A mislabelled file could be handed to the accountant','P1','High','S','—','Y','N','N','DONE')
+a('X10-23','Mobile','On a phone, Home checks, approvals, recently-deleted and session rows squeezed their text into a sliver beside the buttons (titles one word per line)','Hard to read on the phone; next steps unreadable','P2','Medium','S','—','Y','N','N','DONE')
 a('X8-01','Owner UX','Waiting customer questions could be hidden behind answered ones','All waiting read; answered capped at 100 with exact count','P1','High','S','—','Y','N','N','DONE')
 a('X8-02','Returns','Returns only possible for the newest 200 orders','Older-order finder','P1','High','S','—','Y','N','N','DONE')
 a('X8-03','Search','Sidebar search silently missed older orders','Look up in all orders (literal match)','P2','Medium','S','—','Y','N','N','DONE')

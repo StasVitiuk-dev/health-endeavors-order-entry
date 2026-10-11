@@ -642,6 +642,8 @@
      screen readers but is not drawn. Cells without a heading (row buttons)
      sit at the bottom of the card. */
   @media (max-width: 600px){
+    /* X10-23: the text takes the whole line so buttons wrap below it (min-width:0 let it shrink to a sliver) */
+    .approvalRow .info, .deletedRow .info, .sessionRow .info{ flex-basis:100%; }
     section.panel table.phoneCards{ display:block; overflow:visible; white-space:normal; }
     table.phoneCards thead{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); clip-path:inset(50%); white-space:nowrap; }
     table.phoneCards tbody{ display:block; }

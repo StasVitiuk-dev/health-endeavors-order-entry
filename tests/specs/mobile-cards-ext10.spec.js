@@ -89,3 +89,19 @@ test('purchase order lines are cards on a phone, lot field inside the screen', a
   expect(r).toEqual({ over: 0, lot: true });
   await expect(page.locator('#poDetail_po-c td[data-label="Lot #"] .poLineLot')).toBeVisible();
 });
+
+test('X10-23: Home check rows use the full phone width; the buttons go below the text', async ({ page, backend }, ti) => {
+  test.skip(ti.project.name !== 'iphone', 'phone only');
+  const now = Date.now();
+  backend.tables.tasks = [0, 1].map(i => ({ id: 'tk-w' + i, title: 'SYNTHETIC overdue task ' + i, status: 'open', priority: 'normal', due_at: new Date(now - (i + 1) * 86400000).toISOString(), created_at: new Date(now - 5 * 86400000).toISOString() }));
+  await login(page);
+  const row = page.locator('#attnChecksWrap .attnCheck[data-key]').first();
+  await expect(row).toBeVisible();
+  const r = await row.evaluate(el => {
+    const info = el.querySelector('.info').getBoundingClientRect(), box = el.getBoundingClientRect();
+    const btn = el.querySelector('.actions button');
+    return { share: info.width / box.width, below: btn ? btn.getBoundingClientRect().top >= info.bottom - 1 : true };
+  });
+  expect(r.share).toBeGreaterThan(0.8);
+  expect(r.below).toBe(true);
+});
