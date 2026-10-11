@@ -14,6 +14,28 @@ const SCRATCH = path.resolve(process.argv[2] || path.join(require('os').tmpdir()
 
 // [name, file, exact text to find, replacement, specs + grep]
 const MUTATIONS = [
+  // ---- EXT11 additions (2026-10-11): unknown is never $0, lost-reply read-back, installation status ----
+  ['orders without a total are counted as $0 again (X11-01)', 'owner-login.html',
+    "return (orders || []).filter(o => o.total === null", "return 0 && (orders || []).filter(o => o.total === null",
+    'missing-totals-ext11'],
+  ['return receive after a lost reply assumes "not saved" (X11-02)', 'owner-login.html',
+    "const outcome = await claimOutcomeAfterDrop('returns', id, 'approved', 'received');", "const outcome = 'not_saved';",
+    'failure-recovery -g "X11-02"'],
+  ['recall quarantine after a lost reply assumes "not saved" (X11-03)', 'owner-login.html',
+    "const outcome = await claimOutcomeAfterDrop('recalls', id, 'initiated', 'quarantined');", "const outcome = 'not_saved';",
+    'inventory-safety -g "X11-03"'],
+  ['a count missing from a report shows 0 again (X11-04)', 'owner-login.html',
+    "      if (v === null || v === undefined || String(v).trim() === '') return '—';\n      const n = Number(v);", "      if (v === null || v === undefined || String(v).trim() === '') return 0;\n      const n = Number(v);",
+    'missing-totals-ext11 -g "Report History"'],
+  ['a missing report amount counts as $0 in the week total (X11-04)', 'assets/owner-login-helpers.js',
+    "g[f] = (v === null || v === undefined || String(v).trim() === '') ? NaN : g[f] + Number(v);", "g[f] = g[f] + Number(v || 0);",
+    'helpers-unit -g "EXT11"'],
+  ['switch safety misses a switch that is ON without its step (X11-05)', 'owner-login.html',
+    "const broken = DB_STEPS.filter(([flag], i) => on.has(flag) && installed[i] === false)", "const broken = DB_STEPS.filter(([flag], i) => false)",
+    'system-status-ext10 -g "partial install"'],
+  ['installation probes run in the background at every sign-in (X11-05)', 'owner-login.html',
+    "const dbSteps = currentPageId === 'continuityPanel'", "const dbSteps = true",
+    'merge-without-sql-ext11 -g "today\'s path"'],
   // ---- EXT10b additions (2026-10-11): receipt recovery, Home next steps, agent health, system status, no silent caps ----
   ['phone rows squeeze their text beside the buttons again (X10-23)', 'assets/owner-login.css',
     "    .approvalRow .info, .deletedRow .info, .sessionRow .info{ flex-basis:100%; }\n", "",
