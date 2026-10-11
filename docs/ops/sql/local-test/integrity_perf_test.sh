@@ -18,6 +18,8 @@ psql "${CONN[@]}" -d postgres -qX -c "drop database if exists $DB" >/dev/null 2>
 psql "${CONN[@]}" -d postgres -qX -v ON_ERROR_STOP=1 -c "create database $DB template $SRC" >/dev/null || { echo "cannot copy $SRC"; exit 2; }
 q "create table if not exists public.feature_flags (id uuid primary key default gen_random_uuid(), flag_key text not null, label text, description text, enabled boolean not null default false)" >/dev/null
 echo "Nightly integrity check at scale: $N orders (throwaway database $DB)"
+# its own products (another local test empties the shared source database)
+q "insert into products (name, sku) values ('SYN perf product A', 'SYN-PERF-A'), ('SYN perf product B', 'SYN-PERF-B')" >/dev/null
 q "alter table orders disable trigger user; alter table order_items disable trigger user; alter table tasks disable trigger user; alter table expenses disable trigger user; alter table returns disable trigger user" >/dev/null
 q "insert into orders (channel, order_number, status, subtotal, shipping_total, tax_total, total, placed_at, source)
    select 'manual', 'SYN-' || g, 'paid', 10, 2, 1, case when g % 10000 = 7 then 99 else 13 end, now() - (g || ' minutes')::interval, 'manual' from generate_series(1, $N) g" >/dev/null
@@ -42,7 +44,9 @@ ok "planted unknown SKU found" "$(q "select found from integrity_check_results w
 ok "planted wrong totals found" "$(q "select found from integrity_check_results where section like 'F13%' order by id desc limit 1")" "$((N/10000))"
 ok "planted stuck tasks found" "$(q "select found from integrity_check_results where section like 'F01%' order by id desc limit 1")" "$((N/2/1000))"
 ok "business data unchanged" "$(q "$SNAP")" "$before"
-ok "Home's reads are index-backed and small (latest run)" "$(q "explain select id from integrity_check_runs order by started_at desc limit 1" | grep -c 'Index Scan')" "1"
+# 90 nights of runs (the retention limit), fresh statistics, then the plan
+q "insert into integrity_check_runs (started_at, finished_at, status, checks) select now() - (g || ' days')::interval, now() - (g || ' days')::interval, 'ok', 15 from generate_series(1, 2000) g; analyze integrity_check_runs" >/dev/null
+ok "Home's 'latest run' read uses the index (2,000 runs)" "$(q "explain select id from integrity_check_runs order by started_at desc limit 1" | grep -c 'Index Scan')" "1"
 psql "${CONN[@]}" -d postgres -qX -c "drop database if exists $DB" >/dev/null 2>&1
 echo "TOTAL: $pass passed, $fail failed"
 [ "$fail" = 0 ]

@@ -359,3 +359,71 @@ test('a line removed after the last line was marked (just before the expense): t
   await expect(page.locator('#dashError')).toContainText('lines of this order changed while it was being received', { timeout: 15000 });
   await expect(page.locator('#toastHost .toast.ok')).toHaveCount(0);
 });
+
+// EXT10b (missions 23/24/70): when the outcome is unknown, the page must not
+// offer Receive again until a read-only check proves what happened.
+// Drops the page's own read-back of the order's status (select=status,received_at)
+// the next n times, whatever other reads happen meanwhile. The library
+// itself retries a failed read, so "offline" means every retry fails too.
+async function dropReadBack(page, n = 5) {
+  let left = n;
+  await page.route(/\/rest\/v1\/purchase_orders\?.*select=status(%2C|,)received_at(&|$)/, r => (left-- > 0 ? r.abort('connectionreset') : r.fallback()));
+}
+test.describe('receipt status unknown (lost claim reply and lost read-back)', () => {
+  test.setTimeout(90000); // the library retries a failed read with growing delays before giving up
+  test('not saved: Receive is withheld, the check says safe, then it receives once', async ({ page, backend }) => {
+    backend.dropNext('purchase_orders', 'PATCH');
+    await dropReadBack(page);
+    await clickReceive(page);
+    await expect(page.locator('#dashError')).toContainText('Do not press Receive again', { timeout: 30000 });
+    await expect(page.locator('.poReceiptUnknown')).toBeVisible();
+    await expect(page.locator('.poReceiveBtn')).toHaveCount(0);
+    expect(snapshot(backend)).toEqual(BEFORE);
+    await page.locator('.poCheckReceipt').click();
+    await expect(page.locator('.toast', { hasText: 'was NOT received' })).toBeVisible();
+    await expect(page.locator('.poReceiveBtn')).toBeVisible();
+    await clickReceive(page);
+    await expect.poll(() => snapshot(backend)).toEqual(AFTER_ONE_RECEIVE);
+  });
+
+  test('claim saved but nothing else: the check says received but not in stock, and never offers Receive', async ({ page, backend }) => {
+    backend.dropNext('purchase_orders', 'PATCH', { applied: true });
+    await dropReadBack(page);
+    await clickReceive(page);
+    await expect(page.locator('.poReceiptUnknown')).toBeVisible({ timeout: 30000 });
+    await page.locator('.poCheckReceipt').click();
+    await expect(page.locator('#dashError')).toContainText('IS marked received, but 2 catalogue lines were not');
+    await expect(page.locator('.poReceiveBtn')).toHaveCount(0);
+    expect(snapshot(backend).adjustments).toBe(0);
+  });
+
+  test('still offline: the check keeps the order locked', async ({ page, backend }) => {
+    backend.dropNext('purchase_orders', 'PATCH');
+    await dropReadBack(page);
+    await clickReceive(page);
+    await expect(page.locator('.poReceiptUnknown')).toBeVisible({ timeout: 30000 });
+    await page.route(/\/rest\/v1\/purchase_orders\?.*select=status(%2C|,)received_at(%2C|,)purchase_order_items/, r => r.abort('connectionreset'), { times: 5 });
+    await page.locator('.poCheckReceipt').click();
+    await expect(page.locator('#dashError')).toContainText('receipt status stays unknown', { timeout: 30000 });
+    await expect(page.locator('.poReceiveBtn')).toHaveCount(0);
+  });
+});
+
+test('an interrupted receive never shows "stock added" on the order (even after a reload)', async ({ page, backend }) => {
+  backend.dropNext('inventory', 'PATCH', { applied: true });
+  await clickReceive(page);
+  await expect(page.locator('body')).toContainText('stopped part-way');
+  await expect(page.locator('.poShort')).toContainText('not fully in stock');
+  await reloadAndReopenReceived(page);
+  await expect(page.locator('.poShort')).toContainText('not fully in stock');
+  await expect(page.locator('.poActions')).not.toContainText('stock added to Inventory');
+});
+
+async function reloadAndReopenReceived(page) {
+  await page.reload();
+  await expect(page.locator('#dash')).toBeVisible();
+  await gotoPage(page, 'purchaseOrdersPanel');
+  await page.locator(`.poItem[data-id="${PO_ID}"] .poRow`).click();
+  const overlay = page.locator('#inspectorOverlay');
+  if (await overlay.evaluate(el => el.classList.contains('open'))) await page.click('#insCloseBtn');
+}

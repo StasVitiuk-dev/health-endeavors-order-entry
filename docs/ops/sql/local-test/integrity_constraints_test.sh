@@ -20,7 +20,10 @@ echo "Integrity constraints (throwaway database $DB)"
 NCON="select count(*) from pg_constraint where conname in ('inventory_recalled_check','inventory_lots_remaining_range_check','purchase_order_items_received_range_check','returns_refund_amount_check')"
 
 ok "copy starts clean of the four problems" "$(q "select (select count(*) from inventory where recalled<0)+(select count(*) from inventory_lots where quantity_remaining<0 or quantity_remaining>quantity_received)+(select count(*) from purchase_order_items where quantity_received<0 or quantity_received>quantity)+(select count(*) from returns where refund_amount<0)")" "0"
-PID0=$(q "select id from products limit 1")
+# EXT10: the test makes its own product and stock row (another local test
+# empties the shared source database when it finishes, so nothing is borrowed).
+PID0=$(q "insert into products (name, sku) values ('SYNTHETIC constraint product', 'SYN-CONSTRAINT') returning id" | head -1)
+q "insert into inventory (product_id, available) values ('$PID0', 0)" >/dev/null
 LOT=$(q "insert into inventory_lots (product_id, lot_number, quantity_received, quantity_remaining) values ('$PID0', 'SYN-CONSTRAINT-LOT', 10, 10) returning id" | head -1)
 q "update inventory_lots set quantity_remaining = quantity_received + 1 where id = '$LOT'" >/dev/null
 ok "existing bad data: install stops" "$(run "$DIR/drafts/23_DRAFT_integrity_constraints.sql")" "3"
@@ -30,7 +33,7 @@ q "update inventory_lots set quantity_remaining = quantity_received where id = '
 
 ok "clean data: install succeeds" "$(run "$DIR/drafts/23_DRAFT_integrity_constraints.sql")" "0"
 ok "four rules present" "$(q "$NCON")" "4"
-PID=$(q "select product_id from inventory limit 1")
+PID=$PID0
 ok "recalled below 0 refused" "$(rc "update inventory set recalled = -1 where product_id = '$PID'")" "1"
 ok "recalled 0 allowed" "$(rc "update inventory set recalled = 0 where product_id = '$PID'")" "0"
 ok "lot remaining above received refused" "$(rc "update inventory_lots set quantity_remaining = quantity_received + 1 where id = '$LOT'")" "1"
