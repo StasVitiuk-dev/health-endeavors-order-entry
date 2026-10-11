@@ -3908,7 +3908,7 @@
           showDashError('Some Business Health figures could not be read and show "?": ' + explainDbError((failed[0].e && failed[0].e.message) || String(failed[0].e)));
         }
 
-        let todayRevenue = null, todayCurrency = 'USD', todayOrderCount = null;
+        let todayRevenue = null, todayCurrency = 'USD', todayOrderCount = null, todayMissingTotals = 0;
         if (ordersR.ok) {
           const todayOrders = (ordersR.v || []).filter(o => !o.deleted_at);
           // EXT6: the same revenue rule as Accounting (it excluded only the exact
@@ -3918,6 +3918,7 @@
             return !(c.isCancelled || (c.isRefund && !c.isPartialRefund));
           });
           todayRevenue = revenueOrders.reduce((sum, o) => sum + Number(o.total || 0), 0);
+          todayMissingTotals = missingTotalCount(revenueOrders);
           todayCurrency = (todayOrders[0] && todayOrders[0].currency) || 'USD';
           todayOrderCount = todayOrders.length;
         }
@@ -3956,7 +3957,7 @@
         };
 
         wrap.innerHTML = [
-          tile(todayRevenue === null ? null : esc(fmtMoney(todayRevenue, todayCurrency)), "Today's revenue", ''),
+          tile(todayRevenue === null ? null : esc(fmtMoney(todayRevenue, todayCurrency)), todayMissingTotals ? "Today's revenue (" + todayMissingTotals + ' order' + (todayMissingTotals === 1 ? '' : 's') + ' without a total not counted)' : "Today's revenue", todayMissingTotals ? 'statWarn' : ''),
           tile(todayOrderCount, "Today's orders", ''),
           tile(pendingApprovals, 'Pending approvals', approvalsClass, 'approvalsPanel'),
           tile(overdueTasks, 'Overdue tasks', tasksClass, 'tasksPanel'),
@@ -7048,6 +7049,17 @@
     // EXT6: totals add every order's amount as one currency, labelled with the
     // first order's currency. Say so plainly if the orders are in more than
     // one currency, instead of showing a confident but meaningless sum.
+    // X11-01: an order saved without a total used to add $0.00 to revenue
+    // silently (Number(null) is 0). Count those so each page can say the
+    // figure leaves them out, instead of looking complete.
+    function missingTotalCount(orders){
+      return (orders || []).filter(o => o.total === null || o.total === undefined || String(o.total).trim() === '').length;
+    }
+    function missingTotalNote(orders, where){
+      const n = missingTotalCount(orders);
+      if (!n) return '';
+      return where + ': ' + n + ' order' + (n === 1 ? ' has' : 's have') + ' no total saved, so ' + (n === 1 ? 'it is' : 'they are') + ' left out of the revenue figure (not counted as $0 sales on purpose). Open Orders and correct ' + (n === 1 ? 'it' : 'them') + '.';
+    }
     function mixedCurrencyNote(orders, where, shown){
       const set = [...new Set((orders || []).map(o => String(o.currency || 'USD').toUpperCase()))].sort();
       if (set.length < 2) return '';
@@ -7086,7 +7098,7 @@
         const revenue = revenueOrders.reduce((sum, o) => sum + Number(o.total || 0), 0);
         const currency = (orders[0] && orders[0].currency) || 'USD';
         const dailyMixed = mixedCurrencyNote(orders, 'Daily Summary', currency);
-        showPageWarning('dailySummaryPanel', dailyMixed); // X8-19
+        showPageWarning('dailySummaryPanel', [dailyMixed, missingTotalNote(revenueOrders, 'Daily Summary')].filter(Boolean).join(' ') || null); // X8-19, X11-01
 
         const aiLogs = aiRes.data || [];
         const aiCost = aiLogs.reduce((sum, l) => sum + Number(l.cost_usd || 0), 0);
@@ -9416,8 +9428,30 @@
               }
             } catch (err) {
               btn.disabled = false;
-              showDashError('Could not mark that return Received — nothing was changed: ' + (err && err.message ? err.message : err)
-                + ' If the connection dropped, reload first: the return may already show Received.');
+              if (isNetworkError(err)) {
+                // X11-02: the claim may have been saved with only its reply
+                // lost. The restock runs after the claim, so in that case it
+                // never ran, and a second press is refused as "changed
+                // elsewhere". Read the return back and say exactly which.
+                let now = null, readOk = false;
+                try {
+                  const { data, error } = await supabase.from('returns').select('status').eq('id', id).maybeSingle();
+                  if (!error) { now = data; readOk = true; }
+                } catch (_) { /* stays unknown */ }
+                if (readOk && now && now.status === 'approved') {
+                  showDashError('The connection dropped and the return was NOT marked Received. Nothing was changed; you can press Mark Received again.');
+                } else if (readOk && now && now.status === 'received') {
+                  btn.disabled = true;
+                  showDashError(restocks
+                    ? 'The connection dropped after the return was marked Received, so its restock did NOT run from this screen. Check Inventory for SKU "' + sku + '": if the ' + quantity + ' unit' + (quantity === 1 ? ' was' : 's were') + ' not added, adjust it by hand (reason: "Return received, order ' + orderLabel + '"). Do not press Mark Received again.'
+                    : 'The connection dropped, but the return is marked Received. Nothing else was needed for this disposition.');
+                  loadReturns();
+                } else {
+                  showDashError('The connection dropped and the dashboard cannot tell whether this return was marked Received. Reload the page and check its status before pressing again; if it shows Received, check Inventory too.');
+                }
+                return;
+              }
+              showDashError('Could not mark that return Received — nothing was changed: ' + (err && err.message ? err.message : err));
               return;
             }
             try {
@@ -9890,7 +9924,8 @@
         if (!isLatest()) return;
         const currency = (orders[0] && orders[0].currency) || 'USD';
         const acctMixed = mixedCurrencyNote(orders, 'Accounting', currency);
-        showPageWarning('accountingPanel', acctMixed); // X8-19
+        const acctCounted = orders.filter(o => { const c = classifyOrderStatus(o.status); return !(c.isCancelled || (c.isRefund && !c.isPartialRefund)); });
+        showPageWarning('accountingPanel', [acctMixed, missingTotalNote(acctCounted, 'Accounting')].filter(Boolean).join(' ') || null); // X8-19, X11-01
         let revenue = 0;
         let excluded = 0;
         const needsReview = [];
@@ -10010,7 +10045,8 @@
 
         const currency = (orders[0] && orders[0].currency) || 'USD';
         const taxMixed = mixedCurrencyNote(orders, 'Tax Records', currency);
-        showPageWarning('taxRecordsPanel', taxMixed); // X8-19
+        const taxCounted = orders.filter(o => { const c = classifyOrderStatus(o.status); return !(c.isCancelled || (c.isRefund && !c.isPartialRefund)); });
+        showPageWarning('taxRecordsPanel', [taxMixed, missingTotalNote(taxCounted, 'Tax Records')].filter(Boolean).join(' ') || null); // X8-19, X11-01
 
         // Revenue + sales tax — same cancelled/refunded exclusion as Accounting,
         // so the two pages never quietly disagree on what counts as a real sale.
@@ -10142,7 +10178,7 @@
         }
 
         document.getElementById('taxStats').dataset.range = loadRange; // which period the figures on screen are for
-        TAX_REPORT = { range: loadRange, currency, revenue, cogsTotal, operatingTotal, netProfit, salesTax, catRows, estCogs, unmatchedCount, stateTax, stateUnknownTax, missing };
+        TAX_REPORT = { range: loadRange, currency, revenue, missingTotals: missingTotalCount(taxCounted), cogsTotal, operatingTotal, netProfit, salesTax, catRows, estCogs, unmatchedCount, stateTax, stateUnknownTax, missing };
       } catch (err) {
         if (!isLatest()) return; // an older load: its error no longer matters
         showDashError('Could not load Tax Records: ' + (err && err.message ? err.message : err));
@@ -10171,6 +10207,7 @@
         [],
         ['Summary'],
         ['Revenue', fmtMoney(r.revenue, r.currency)],
+        ...(r.missingTotals ? [['Orders with no total saved (NOT included in revenue)', r.missingTotals]] : []),
         ['Cost of Goods Sold (logged)', fmtMoney(r.cogsTotal, r.currency)],
         ['Operating expenses', fmtMoney(r.operatingTotal, r.currency)],
         ['Net profit', fmtMoney(r.netProfit, r.currency)],

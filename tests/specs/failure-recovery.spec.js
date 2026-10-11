@@ -73,6 +73,40 @@ test.describe('Returns', () => {
     await open(page, 'returnsPanel');
   });
 
+  // X11-02: a dropped connection on the claim used to say "nothing was
+  // changed" even when the return had been marked Received (only the reply
+  // was lost). The restock never ran, and a second press is refused, so the
+  // stock could silently stay missing.
+  test('X11-02: claim saved but the reply lost: says the restock did NOT run, never "nothing was changed"', async ({ page, backend }) => {
+    backend.dropNext('returns', 'PATCH', { applied: true });
+    await page.selectOption('.dispositionSelect', 'restock_available');
+    await page.click('.markReceivedBtn');
+    await expect(page.locator('#dashError')).toContainText('its restock did NOT run from this screen', { timeout: 30000 });
+    await expect(page.locator('#dashError')).toContainText('SKU "SYN-A"');
+    await expect(page.locator('#dashError')).not.toContainText('nothing was changed');
+    expect(backend.tables.returns[0].status).toBe('received');
+    expect(backend.tables.inventory[0].available).toBe(10);
+  });
+
+  test('X11-02: claim not saved (connection dropped first): says so and allows a second press', async ({ page, backend }) => {
+    backend.dropNext('returns', 'PATCH');
+    await page.selectOption('.dispositionSelect', 'restock_available');
+    await page.click('.markReceivedBtn');
+    await expect(page.locator('#dashError')).toContainText('was NOT marked Received', { timeout: 30000 });
+    expect(backend.tables.returns[0].status).toBe('approved');
+    await expect(page.locator('.markReceivedBtn')).toBeEnabled();
+  });
+
+  test('X11-02: claim reply lost and the read-back fails too: says it cannot tell', async ({ page, backend }) => {
+    test.setTimeout(90000); // the library retries a failed read before giving up
+    backend.dropNext('returns', 'PATCH', { applied: true });
+    let left = 5;
+    await page.route(/\/rest\/v1\/returns\?select=status&/, r => (left-- > 0 ? r.abort('connectionreset') : r.fallback()));
+    await page.selectOption('.dispositionSelect', 'restock_available');
+    await page.click('.markReceivedBtn');
+    await expect(page.locator('#dashError')).toContainText('cannot tell whether this return was marked Received', { timeout: 60000 });
+  });
+
   test('row-level security refusing the claim (no rows changed) restocks nothing and says why', async ({ page, backend }) => {
     replyOnce(backend, 'returns', 'PATCH', 200, []);
     await page.selectOption('.dispositionSelect', 'restock_available');
