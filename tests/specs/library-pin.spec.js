@@ -21,7 +21,10 @@ test.describe('every page loads one pinned, integrity-checked copy of the librar
       expect(tags[0]).toContain(`src="${PINNED}"`);
       expect(tags[0]).toContain(`integrity="${SRI}"`);
       expect(tags[0]).toContain('crossorigin="anonymous"');
-      expect(tags[0]).toContain('onerror="window.__sbLoadFailed=true"');
+      // EXT10 (M5): change-password.html has no inline code left (strict
+      // policy); its script notices a missing library by window.supabase alone.
+      if (file === 'change-password.html') expect(tags[0]).not.toContain('onerror=');
+      else expect(tags[0]).toContain('onerror="window.__sbLoadFailed=true"');
       expect(html).not.toMatch(/supabase-js@2["']/); // no floating "@2" left anywhere
     });
   }

@@ -567,10 +567,57 @@
       unknownServices: 'continuityPanel', servicesDown: 'continuityPanel', agentsPaused: 'aiPanel', orderSyncOff: 'flagsPanel', backups: null,
     };
 
+  // ---- EXT10: request keys (U42) ----
+  // A random key for one save attempt (UUID v4 from crypto.getRandomValues).
+  function newRequestKey(){
+    const b = new Uint8Array(16); crypto.getRandomValues(b);
+    b[6] = (b[6] & 0x0f) | 0x40; b[8] = (b[8] & 0x3f) | 0x80;
+    const h = [...b].map(x => x.toString(16).padStart(2, '0')).join('');
+    return h.slice(0, 8) + '-' + h.slice(8, 12) + '-' + h.slice(12, 16) + '-' + h.slice(16, 20) + '-' + h.slice(20);
+  }
+  // What is being saved, in a stable form (key order does not matter).
+  function keyFingerprint(row){
+    try { return JSON.stringify(row, Object.keys(row || {}).sort()); } catch (e) { return ''; }
+  }
+  // A key made from a fixed text, for an action that may happen only once per
+  // record: every tab and every retry makes the same key. A 128-bit FNV-1a mix
+  // (crypto.subtle is unavailable on plain http test pages), shaped like a UUID.
+  function fixedRequestKey(text){
+    const parts = [0x811c9dc5, 0x01000193 ^ 0x9e3779b9, 0x85ebca6b, 0xc2b2ae35].map(seed => {
+      let h = seed >>> 0;
+      for (let i = 0; i < text.length; i++) { h ^= text.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+      return h.toString(16).padStart(8, '0');
+    }).join('');
+    return parts.slice(0, 8) + '-' + parts.slice(8, 12) + '-8' + parts.slice(13, 16) + '-' + ((parseInt(parts[16], 16) & 3) | 8).toString(16) + parts.slice(17, 20) + '-' + parts.slice(20, 32);
+  }
+
+  // ---- EXT10: nightly integrity check states (U43) ----
+  // One check: PASS (0 found), WARN (stuck work / probable duplicate), FAIL
+  // (points at the wrong thing / impossible value), UNKNOWN (unreadable count).
+  function nightlyCheckLevel(row){
+    const n = Number(row && row.found);
+    if (row == null || row.found == null || !Number.isFinite(n) || n < 0) return 'UNKNOWN';
+    if (n === 0) return 'PASS';
+    return /points at the wrong thing|impossible value/i.test(String(row.section || '')) ? 'FAIL' : 'WARN';
+  }
+  // The whole card. lastAttempt / lastOk: newest run and newest successful run.
+  function nightlyOverall(lastAttempt, lastOk, results, now, staleMs){
+    if (!lastAttempt) return 'NOT VERIFIED';
+    if (lastAttempt.status === 'failed') return 'FAIL';
+    if (!lastOk) return lastAttempt.status === 'running' ? 'NOT VERIFIED' : 'UNKNOWN';
+    const t = new Date(lastOk.started_at).getTime();
+    if (!Number.isFinite(t) || now - t > staleMs) return 'STALE';
+    const levels = (results || []).map(nightlyCheckLevel);
+    if (levels.includes('FAIL')) return 'FAIL';
+    if (levels.includes('UNKNOWN') || !levels.length) return 'UNKNOWN';
+    if (levels.includes('WARN')) return 'WARN';
+    return 'PASS';
+  }
+
   // Bump API when a helper's name or arguments change, so a page that loaded
   // an older copy refuses to start instead of running mixed code.
   window.HE.helpers = Object.freeze({
-    API: 8, // EXT8: attentionFindings added
+    API: 9, // EXT10: request-key and nightly-check helpers added
     esc,
     csvCell,
     fmtMoney,
@@ -609,5 +656,10 @@
     maskSensitive,
     taxStateKey,
     attentionFindings,
+    newRequestKey,
+    fixedRequestKey,
+    keyFingerprint,
+    nightlyCheckLevel,
+    nightlyOverall,
   });
 })();

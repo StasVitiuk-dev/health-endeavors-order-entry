@@ -52,3 +52,39 @@
 3. Bump the helpers API number and the asset hash in the same commit.
 4. Never touch the sign-in / sign-out / user-switch code in an extraction commit.
 5. Visual snapshots must not change (or only for a stated, reviewed reason).
+
+## 6. Extension 10 (2026-10-11): steps done and the remaining map (U39)
+
+**Status:** CURRENT. Branch `claude/platform-ext10-operations-hardening-2026-10-11`; not merged.
+
+### Done in EXT10 (each behaviour-preserving, each one revert)
+
+| Step | What | Protection |
+|---|---|---|
+| M5 (first page) | `change-password.html`: its script moved to `assets/change-password.js` (content-hash URL); the page's policy now allows scripts only from this site, the pinned CDN and the frame guard **by its exact hash**; `'unsafe-inline'` removed from `script-src`; the inline `onerror` attribute removed (the script already checks `window.supabase`) | `csp.spec` (policy text, hash match, no inline handlers, sign-in under the strict policy, no violation), `library-pin` (altered library bytes still refused and reported) |
+| Helpers API 9 | five pure functions moved to `assets/owner-login-helpers.js`: `newRequestKey`, `fixedRequestKey`, `keyFingerprint`, `nightlyCheckLevel`, `nightlyOverall`; unit-tested in Node (`helpers-unit` "EXT10 helpers"); an old cached helpers file is refused (API check) | `assets.spec` (43 names, none still defined in the page), mutants retargeted to the helpers file |
+| Shared request-key path | the 13 remaining creates go through one `insertOnce(el, table, row, what)` instead of 13 hand-written insert + error blocks | `request-keys-ext10` (30 tests), 12 mutants |
+| Phone tables | one `labelPhoneCards()` + one CSS block instead of per-table phone code | `mobile-cards-ext10` |
+
+### Measurements after EXT10
+
+`owner-login.html` ≈ 9,950 lines (+≈110 for the Home card and request-key helpers, −≈60 moved out); helpers 43 exports (API 9); new asset `assets/change-password.js`.
+
+### Remaining map (safest first; not started)
+
+| Step | What | Risk | Before starting |
+|---|---|---|---|
+| M5b | Same as change-password for `search.html`, then `dashboard.html` (small pages, one inline block each) | Low | csp + page specs per page |
+| M5c | `manual-order-entry.html` (+ identical `index.html`): move its script to one shared asset so the copy rule becomes "both load the same file" | Medium (order entry is money) | manual-order-entry spec (deep), the identical-copy test rewritten to compare the script reference |
+| M5d | `owner-login.html`: the big inline script (≈9,000 lines) into `assets/owner-login.js` as ONE file first (no splitting), then `'unsafe-inline'` off for scripts. Inline `onclick`/`onerror` attributes must go first (inventory needed) | Medium–high (one huge move; must be done right after a merge, never parallel to other page work) | full suite + visual + staging build (it rewrites the page) |
+| M1 | `newLoadToken`, `appendMore`, `LIST_LIMITS`, `pageFromHash` → `assets/owner-login-ui.js` | Low | out-of-order, capped-reads, nav-history |
+| M2 | totals out of `loadTaxRecords` / `loadAccounting` into helpers | Low–medium | money oracles |
+| M3 | `notClosed(q)` query wrapper | Low | owner-control-center, attention |
+| M4 | split `wirePoDetail` (≈400 lines) into receive / lines / totals / payment | Medium | PO specs + PO mutants |
+
+### Safety notes for any next step
+
+- **Init order:** helpers must load before the page script (`<script src=helpers>` precedes the inline block; the API check stops start-up otherwise). Any new asset must be added the same way with a content hash, or a cached old copy runs with new code.
+- **Globals:** page state lives inside `initApp` (closure); moved code must receive what it needs as arguments (helpers file is not allowed to touch `document`, `supabase`, storage or `fetch` — enforced by `assets.spec`).
+- **Build order:** there is no build step; GitHub Pages serves files as they are. The staging build (`tests/tools/staging/build-staging.js`) rewrites `owner-login.html` and its helpers only; a moved owner-login script must be added to it in the same change (M5d).
+- **Merge conflicts:** big moves only directly after the EXT1–10 branch is merged, never alongside other open page work.

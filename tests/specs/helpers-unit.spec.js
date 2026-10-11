@@ -431,3 +431,54 @@ test.describe('csvCell (CSV export safety)', () => {
     expect(csv.length).toBeGreaterThan(20000 * 60);
   });
 });
+
+// EXT10: request-key and nightly-check helpers (assets/owner-login-helpers.js).
+test.describe('EXT10 helpers', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const win = { };
+  new Function('window', 'crypto', fs.readFileSync(path.join(__dirname, '..', '..', 'assets', 'owner-login-helpers.js'), 'utf8'))(win, require('crypto').webcrypto);
+  const X = win.HE.helpers;
+  const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+
+  test('newRequestKey: UUID v4, different every time', () => {
+    const keys = new Set(Array.from({ length: 2000 }, () => X.newRequestKey()));
+    expect(keys.size).toBe(2000);
+    for (const k of [...keys].slice(0, 50)) expect(k).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  });
+  test('fixedRequestKey: same text → same key; different record → different key; valid uuid shape', () => {
+    const a = X.fixedRequestKey('escalate|quality_checks|qc-1');
+    expect(X.fixedRequestKey('escalate|quality_checks|qc-1')).toBe(a);
+    expect(a).toMatch(UUID);
+    const many = new Set(Array.from({ length: 5000 }, (_, i) => X.fixedRequestKey('escalate|recalls|' + i)));
+    expect(many.size).toBe(5000);
+    expect(X.fixedRequestKey('escalate|recalls|1')).not.toBe(X.fixedRequestKey('escalate|quality_checks|1'));
+  });
+  test('keyFingerprint: field order does not matter, values do', () => {
+    expect(X.keyFingerprint({ a: 1, b: 'x' })).toBe(X.keyFingerprint({ b: 'x', a: 1 }));
+    expect(X.keyFingerprint({ a: 1 })).not.toBe(X.keyFingerprint({ a: 2 }));
+    expect(X.keyFingerprint(null)).toBe('null');
+  });
+  test('nightlyCheckLevel: PASS / WARN / FAIL / UNKNOWN', () => {
+    expect(X.nightlyCheckLevel({ section: 'F01 stuck work', found: 0 })).toBe('PASS');
+    expect(X.nightlyCheckLevel({ section: 'F01 stuck work', found: 2 })).toBe('WARN');
+    expect(X.nightlyCheckLevel({ section: 'F07 probable duplicate', found: '1' })).toBe('WARN');
+    expect(X.nightlyCheckLevel({ section: 'F10 points at the wrong thing', found: 1 })).toBe('FAIL');
+    expect(X.nightlyCheckLevel({ section: 'F14 impossible value', found: 3 })).toBe('FAIL');
+    for (const found of [null, undefined, 'x', -1, NaN]) expect(X.nightlyCheckLevel({ section: 'F01', found })).toBe('UNKNOWN');
+  });
+  test('nightlyOverall: never PASS without a fresh, complete, successful run', () => {
+    const now = Date.parse('2026-10-11T12:00:00Z'), STALE = 26 * 3600000;
+    const ok = (h) => ({ status: 'ok', started_at: new Date(now - h * 3600000).toISOString() });
+    const pass = [{ section: 'F01 stuck work', found: 0 }];
+    expect(X.nightlyOverall(null, null, [], now, STALE)).toBe('NOT VERIFIED');
+    expect(X.nightlyOverall({ status: 'running' }, null, [], now, STALE)).toBe('NOT VERIFIED');
+    expect(X.nightlyOverall({ status: 'failed' }, ok(2), pass, now, STALE)).toBe('FAIL');
+    expect(X.nightlyOverall(ok(2), ok(2), pass, now, STALE)).toBe('PASS');
+    expect(X.nightlyOverall(ok(27), ok(27), pass, now, STALE)).toBe('STALE');
+    expect(X.nightlyOverall(ok(2), ok(2), [], now, STALE)).toBe('UNKNOWN'); // a run with no results is not "fine"
+    expect(X.nightlyOverall(ok(2), { status: 'ok', started_at: 'garbage' }, pass, now, STALE)).toBe('STALE');
+    expect(X.nightlyOverall(ok(2), ok(2), [...pass, { section: 'F02 stuck work', found: 1 }], now, STALE)).toBe('WARN');
+    expect(X.nightlyOverall(ok(2), ok(2), [{ section: 'F02 stuck work', found: 1 }, { section: 'F14 impossible value', found: 1 }], now, STALE)).toBe('FAIL');
+  });
+});
