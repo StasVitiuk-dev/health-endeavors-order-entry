@@ -69,7 +69,10 @@ test.describe('build output', () => {
     const listing = execFileSync('unzip', ['-Z1', ZIP], { encoding: 'utf8' }).split('\n').filter(Boolean);
     for (const f of ['index.html', 'staging-runtime.js', 'vendor/supabase.js', 'README-STAGING.txt', 'assets/owner-login-app.js']) expect(listing).toContain(f);
     const all = execFileSync('unzip', ['-p', ZIP], { maxBuffer: 64 * 1024 * 1024 }).toString('latin1');
-    for (const bad of ['uizrazyehilyzmwttsrn', 'sb_publishable_', 'service_role']) expect(all, bad).not.toContain(bad);
+    expect(all).not.toContain('uizrazyehilyzmwttsrn');
+    // The bundled library mentions the key PREFIXES (it checks key shapes); a real key has a value after them.
+    expect(all).not.toMatch(/sb_(publishable|secret)_[A-Za-z0-9_-]{8,}/);
+    expect(all).not.toMatch(/eyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}/);
   });
 
   test('scenario list: 13 entries, unique ids, every one applies to a fresh seed', () => {
