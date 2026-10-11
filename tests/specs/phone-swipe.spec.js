@@ -1,5 +1,5 @@
 // Phone: "swipe sideways to change page" must not fire when the finger is
-// dragging something that scrolls sideways itself (the wide Orders table).
+// dragging something that scrolls sideways itself (EXT10: e.g. the AI model setup table; Orders is cards on a phone).
 // It also stays inactive while a window like the quick reminder is open. Swiping elsewhere on the
 // page still changes page, as before. Phone size only; synthetic data only.
 
@@ -33,13 +33,29 @@ test.beforeEach(async ({ page, backend }) => {
   if (await overlay.evaluate(el => el.classList.contains('open'))) await page.click('#insCloseBtn');
 });
 
-test('swiping the wide Orders table sideways stays on Orders', async ({ page }) => {
-  const table = page.locator('#ordersTableWrap table');
-  const box = await table.boundingBox();
-  // The table really is wider than the phone screen (it scrolls sideways).
+// EXT10 (U38): Orders is now one card per row on a phone (nothing scrolls
+// sideways there), so the "a sideways-scrolling table keeps the swipe" rule is
+// checked on a table that still scrolls sideways on purpose (AI model setup).
+test('swiping a table that scrolls sideways (AI model setup) stays on that page', async ({ page, backend }) => {
+  backend.tables.ai_model_config = [{ agent_name: 'SYNTHETIC customer_service_agent_with_a_long_name', provider: 'synthetic-provider-with-long-name',
+    model: 'synthetic-model-name-that-is-quite-long-2026-10', fallback_provider: null, fallback_model: 'synthetic-fallback-model-also-long-2026' }];
+  await gotoPage(page, 'aiPanel');
+  await page.click('#refreshBtn'); // the page loaded before this test added its row
+  await page.waitForLoadState('networkidle');
+  const table = page.locator('#aiModelConfigWrap table');
+  await expect(table).toBeVisible();
   expect(await table.evaluate(el => el.scrollWidth > el.clientWidth)).toBe(true);
-  await swipeLeft(page, box.y + 60);
-  expect(await active(page)).toBe('ordersPanel');
+  const box = await table.boundingBox();
+  await swipeLeft(page, box.y + Math.min(40, box.height / 2));
+  expect(await active(page)).toBe('aiPanel');
+});
+
+test('Orders on a phone: cards, nothing scrolls sideways, so a swipe there changes page like elsewhere', async ({ page }) => {
+  const table = page.locator('#ordersTableWrap table');
+  expect(await table.evaluate(el => el.scrollWidth > el.clientWidth + 1)).toBe(false);
+  const box = await table.boundingBox();
+  await swipeLeft(page, box.y + 40);
+  expect(await active(page)).not.toBe('ordersPanel');
 });
 
 test('swiping outside any sideways-scrolling area still changes page', async ({ page }) => {

@@ -169,8 +169,11 @@ function guardsFor(src, idx, stmt, op, table, ctxStart) {
   };
 }
 
+// EXT10 (U39/M5): a page whose script moved to an asset is scanned together
+// with that asset, under the page's name, so its write paths keep their keys.
+const PAGE_SCRIPTS = { 'change-password.html': ['assets/change-password.js'] };
 function extract(file) {
-  const src = fs.readFileSync(path.join(ROOT, file), 'utf8');
+  const src = [file, ...(PAGE_SCRIPTS[file] || [])].map(f => fs.readFileSync(path.join(ROOT, f), 'utf8')).join('\n');
   const out = [];
   const patterns = [
     { re: /updateIfUnchanged\(\s*'([a-z_]+)'/g, op: 'updateIfUnchanged' },

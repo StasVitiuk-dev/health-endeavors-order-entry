@@ -51,7 +51,10 @@ test('sign-in expired while a page loads: an error, never an empty "No open task
   enableWrites(backend, ['tasks']);
   await login(page);
   await page.waitForLoadState('networkidle'); // the first load has finished
-  backend.failNext('tasks', 'GET', { status: 401, body: { code: 'PGRST301', message: 'JWT expired' } });
+  // An expired sign-in refuses every read, not just one: a single injected
+  // failure could be used up by a background check (Home reads tasks too)
+  // when the machine is busy (EXT10 full run), leaving the Tasks load fine.
+  for (let i = 0; i < 6; i++) backend.failNext('tasks', 'GET', { status: 401, body: { code: 'PGRST301', message: 'JWT expired' } });
   await gotoPage(page, 'tasksPanel');
   await page.click('#refreshBtn');
   await expect(page.locator('#dashError')).toContainText('Sign in again');
