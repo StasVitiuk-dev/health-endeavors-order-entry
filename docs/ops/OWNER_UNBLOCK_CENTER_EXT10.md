@@ -8,7 +8,7 @@
 
 1. **U01 — the 2-minute backup look** (`PRODUCTION_READONLY_VERIFICATION_EXT10.md` §1). Nothing in the database should change until this is green.
 2. **U03 — reconnect GitHub as `stasvitiuk-reos`** (Write role), so no session can bypass review (claude.ai → Settings → Connectors → GitHub).
-3. **U02 — review and merge the EXT10 pull request** (contains EXT1–10). Every new safety feature ships switched off; it fixes many problems that are live today.
+3. **U02 — review and merge the EXT10 pull request, draft PR #26** (contains EXT1–10). Every new safety feature ships switched off; it fixes many problems that are live today.
 
 **Single best action:** the backup look (U01). It costs two minutes, needs no technical step, and is the gate for every production change after the merge.
 
@@ -18,7 +18,7 @@
 |---|---|---|
 | 0–2 | U01 backup look | one line (green/red + dates) |
 | 2–5 | U03 reconnect GitHub as `stasvitiuk-reos` | screenshot of Collaborators (V10) |
-| 5–10 | Open the PR, read the plain-English summary and "Known limitations"; look at the 12 screenshots in `design-review/dashboard-extension-10-2026-10-11/` | "approved to merge" or questions |
+| 5–10 | Open the PR, read the plain-English summary and "Known limitations"; look at the 32 screenshots in `design-review/dashboard-extension-10-2026-10-11/` (`MANIFEST.md`) | "approved to merge" or questions |
 
 ## 1. The list (changes since EXT9 in **bold**)
 
