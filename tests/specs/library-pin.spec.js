@@ -23,7 +23,7 @@ test.describe('every page loads one pinned, integrity-checked copy of the librar
       expect(tags[0]).toContain('crossorigin="anonymous"');
       // EXT10 (M5): change-password.html has no inline code left (strict
       // policy); its script notices a missing library by window.supabase alone.
-      if (file === 'change-password.html') expect(tags[0]).not.toContain('onerror=');
+      if (['change-password.html', 'search.html', 'dashboard.html'].includes(file)) expect(tags[0]).not.toContain('onerror=');
       else expect(tags[0]).toContain('onerror="window.__sbLoadFailed=true"');
       expect(html).not.toMatch(/supabase-js@2["']/); // no floating "@2" left anywhere
     });
@@ -69,3 +69,14 @@ test('change-password page: altered library bytes are refused and the page says 
   await page.goto('/change-password.html');
   await expect(page.locator('#scriptError')).toContainText("couldn't load a required file");
 });
+
+// EXT10b: search and dashboard pages used to go blank (a script error) when the
+// library was refused; now they say so.
+for (const f of ['search.html', 'dashboard.html']) {
+  test(`${f}: altered library bytes are refused and the page says so`, async ({ page, backend }) => {
+    backend.cdnBody = '/* tampered */ window.supabase = { createClient: () => ({}) };';
+    await page.goto('/' + f);
+    await expect(page.locator('#libraryError')).toContainText("couldn't load a required file");
+    backend.blocked = backend.blocked.filter(u => !u.startsWith('https://fonts.')); // these pages use Google Fonts (blocked in tests)
+  });
+}

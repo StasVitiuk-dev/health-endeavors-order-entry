@@ -60,19 +60,21 @@ for (const f of ['dashboard.html', 'search.html', 'change-password.html']) {
 // EXT10 (U39/M5): the first page with no inline script: its policy allows
 // only files from this site, the pinned CDN and the frame guard by its exact
 // hash (no 'unsafe-inline'), and nothing on the page needs more.
-test('change-password.html: script policy without unsafe-inline; only the frame guard is allowed, by hash', () => {
-  const crypto = require('crypto');
-  const src = fs.readFileSync(path.join(ROOT, 'change-password.html'), 'utf8');
-  const scriptSrc = src.match(/script-src ([^;]*);/)[1];
-  expect(scriptSrc).not.toContain("'unsafe-inline'");
-  const guard = src.match(/<script id="frameGuard">([^<]*)<\/script>/)[1];
-  expect(scriptSrc).toContain("'sha256-" + crypto.createHash('sha256').update(guard).digest('base64') + "'");
-  const inline = [...src.matchAll(/<script(?![^>]*\bsrc=)[^>]*>/g)].map(m => m[0]);
-  expect(inline).toEqual(['<script id="frameGuard">']);
-  expect(src).not.toMatch(/\son[a-z]+="/); // no inline event handlers
-  const ref = src.match(/src="(assets\/change-password\.js)\?v=([0-9a-f]+)"/);
-  expect(ref[2]).toBe(crypto.createHash('sha256').update(fs.readFileSync(path.join(ROOT, ref[1]))).digest('hex').slice(0, 10));
-});
+for (const [f, asset] of [['change-password.html', 'change-password'], ['search.html', 'search-page'], ['dashboard.html', 'dashboard-page']]) {
+  test(`${f}: script policy without unsafe-inline; only the frame guard is allowed, by hash`, () => {
+    const crypto = require('crypto');
+    const src = fs.readFileSync(path.join(ROOT, f), 'utf8');
+    const scriptSrc = src.match(/script-src ([^;]*);/)[1];
+    expect(scriptSrc).not.toContain("'unsafe-inline'");
+    const guard = src.match(/<script id="frameGuard">([^<]*)<\/script>/)[1];
+    expect(scriptSrc).toContain("'sha256-" + crypto.createHash('sha256').update(guard).digest('base64') + "'");
+    const inline = [...src.matchAll(/<script(?![^>]*\bsrc=)[^>]*>/g)].map(m => m[0]);
+    expect(inline).toEqual(['<script id="frameGuard">']);
+    expect(src).not.toMatch(/\son[a-z]+="/); // no inline event handlers
+    const ref = src.match(new RegExp('src="(assets/' + asset + '\\.js)\\?v=([0-9a-f]+)"'));
+    expect(ref[2]).toBe(crypto.createHash('sha256').update(fs.readFileSync(path.join(ROOT, ref[1]))).digest('hex').slice(0, 10));
+  });
+}
 
 test('change-password.html: signing in and changing the password works under the strict policy', async ({ page, backend }) => {
   await watchViolations(page);

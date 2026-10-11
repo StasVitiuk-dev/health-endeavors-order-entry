@@ -106,7 +106,7 @@ test('docs, SQL drafts and helpers contain no secrets or real e-mail addresses',
     const rel = path.relative(ROOT, file);
     // EXT10 (M5): page scripts moved out of the HTML carry the public project
     // address on purpose, like the pages themselves; every other pattern applies.
-    const pageScript = /^assets\/change-password\.js$/.test(rel.split(path.sep).join('/'));
+    const pageScript = /^assets\/(change-password|search-page|dashboard-page)\.js$/.test(rel.split(path.sep).join('/'));
     for (const re of secrets) if (re.test(text) && !(pageScript && /supabase/.test(String(re)))) problems.push(`${rel} matches ${re}`);
     for (const email of text.match(emailPattern) || []) if (!allowedEmail.test(email)) problems.push(`${rel} has e-mail ${email}`);
   }
