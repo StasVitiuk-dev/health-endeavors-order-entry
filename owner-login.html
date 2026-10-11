@@ -1132,6 +1132,17 @@
     // nothing to do), so it never changes anything. true = installed, false =
     // not installed, null = could not tell (connection).
     const ZERO_ID = '00000000-0000-0000-0000-000000000000';
+    // EXT10b (missions 75-79): what each high-risk switch depends on, shown on
+    // Feature Switches. Off is always safe; on is refused until this exists.
+    const FLAG_DEPENDS = {
+      stock_fn_receive_po: 'database function receive_purchase_order (R1, drafts/10) installed and verified (V8 fingerprint)',
+      stock_fn_recall: 'database function quarantine_recall (R2, drafts/10) installed and verified (V8)',
+      stock_fn_return: 'database function receive_return (R3, drafts/10) installed and verified (V8)',
+      stock_fn_adjust: 'database function adjust_inventory (R4, drafts/10) installed and verified (V8)',
+      stock_fn_delete_product: 'database function delete_unused_product (R5, drafts/10) installed and verified (V8)',
+      request_keys: 'request-key columns (drafts/19) installed (V11)',
+      integrity_results_home: 'nightly check tables (drafts/25 + drafts/29) installed with a first run (V12)',
+    };
     const STOCK_FN_PROBES = {
       stock_fn_receive_po: ['receive_purchase_order', { p_po_id: ZERO_ID, p_lots: 'not-a-list' }],
       stock_fn_recall: ['quarantine_recall', { p_recall_id: ZERO_ID }],
@@ -7207,6 +7218,7 @@
                 <div class="k">${esc(f.label || f.flag_key)}${LAUNCH_BLOCKED_FLAGS[f.flag_key] ? ' <span class="badge sev-high flagBlockedBadge">Blocked until launch checks</span>' : ''}</div>
                 <div class="d">${esc(f.description || f.flag_key)}</div>
                 ${LAUNCH_BLOCKED_FLAGS[f.flag_key] ? `<div class="d flagBlockedReason" style="color:var(--danger);">${esc(LAUNCH_BLOCKED_FLAGS[f.flag_key])}</div>` : ''}
+                ${FLAG_DEPENDS[f.flag_key] ? `<div class="d flagDepends"><span class="badge flagState">${f.enabled ? 'ON' : 'OFF'}</span> Needs first: ${esc(FLAG_DEPENDS[f.flag_key])}. The page checks this before it lets the switch turn on; turning it off is always safe (work already done stays done).</div>` : ''}
               </div>
               <label class="switch">
                 <input type="checkbox" class="flagToggle" ${f.enabled ? 'checked' : ''}>

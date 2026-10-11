@@ -166,3 +166,15 @@ test('turning the Home switch on when installed: asks for the password like any 
   await page.locator('.flagRow[data-key="integrity_results_home"] .slider').click();
   await expect(page.locator('#reauthOverlay')).toBeVisible();
 });
+
+test('Feature Switches: each high-risk switch says ON/OFF and what it needs first', async ({ page, backend }) => {
+  seed(backend, { on: false });
+  backend.tables.feature_flags.push({ id: 'ff-rk', flag_key: 'request_keys', label: 'Request keys', description: 'SYNTHETIC', enabled: true });
+  await login(page);
+  await gotoPage(page, 'flagsPanel');
+  const ih = page.locator('.flagRow[data-key="integrity_results_home"] .flagDepends');
+  await expect(ih).toContainText('OFF');
+  await expect(ih).toContainText('drafts/25 + drafts/29');
+  await expect(page.locator('.flagRow[data-key="request_keys"] .flagDepends')).toContainText('ON');
+  await expect(page.locator('.flagRow[data-key="request_keys"] .flagDepends')).toContainText('drafts/19');
+});
