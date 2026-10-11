@@ -31,9 +31,15 @@ ok "re-install keeps a switch the owner turned on" "$(run "$DIR/drafts/21_DRAFT_
 ok "rollback refused while a switch is on" "$(run "$DIR/drafts/22_DRAFT_rollback_stock_function_switches.sql")" "3"
 ok "  with a plain message" "$(grep -c 'still on' "$ERRF")" "1"
 ok "  and nothing removed" "$(q "select count(*) from feature_flags where flag_key like 'stock_fn_%'")" "5"
+# EXT14: the R1–R5 rollback (drafts/11) also refuses while a stock switch is on
+ok "R1–R5 rollback refused while a switch is on" "$(run "$DIR/drafts/11_DRAFT_rollback_stock_functions.sql")" "3"
+ok "  with a plain message" "$(grep -c 'still on' "$ERRF")" "1"
+ok "  and the functions stay" "$(q "select count(*) from pg_proc where proname in ('receive_purchase_order','adjust_inventory','quarantine_recall','receive_return','delete_unused_product')")" "5"
 q "update feature_flags set enabled = false where flag_key like 'stock_fn_%'" >/dev/null
 ok "rollback succeeds once all are off" "$(run "$DIR/drafts/22_DRAFT_rollback_stock_function_switches.sql")" "0"
 ok "rollback removed exactly the five" "$(q "select count(*) from feature_flags where flag_key like 'stock_fn_%'")||$(q "select count(*) from feature_flags")" "0||1"
+ok "R1–R5 rollback succeeds once the switches are gone" "$(run "$DIR/drafts/11_DRAFT_rollback_stock_functions.sql")" "0"
+ok "  and removes the five functions" "$(q "select count(*) from pg_proc where proname in ('receive_purchase_order','adjust_inventory','quarantine_recall','receive_return','delete_unused_product')")" "0"
 
 fresh
 q "drop function public.receive_purchase_order(uuid, jsonb, date)" >/dev/null

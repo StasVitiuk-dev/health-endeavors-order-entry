@@ -1,4 +1,14 @@
 -- DRAFT (2026-10-10, extension 9). NOT INSTALLED. Rollback of
+-- @@ metadata (generated from docs/ops/sql/MANIFEST.json by `npm run sql:headers`; do not edit by hand) @@
+-- @migration:   28   (ROLLBACK, rolls back 27)
+-- @environment: production only after the owner's written approval; tested on the local throwaway database
+-- @depends-on:  none
+-- @risk:        LOW
+-- @precheck:    refuses while the switch is ON
+-- @effect:      removes the row
+-- @postcheck:   0 rows
+-- @rollback:    (this file is the rollback of drafts/27)
+-- @@ end metadata @@
 -- 27_DRAFT_request_keys_switch.sql: removes the request_keys switch. Refuses
 -- (changes nothing) while it is ON: turn it off on Feature Switches first.
 -- Run this BEFORE drafts/20 (which removes the columns) if both are rolled back.

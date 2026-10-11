@@ -1,6 +1,16 @@
 -- =============================================================================
 -- Rollback: 11_DRAFT_rollback_stock_functions.sql (tested; safe to run twice). [EXT6: reference added]
 -- DRAFT — DO NOT RUN ON SUPABASE YET.
+-- @@ metadata (generated from docs/ops/sql/MANIFEST.json by `npm run sql:headers`; do not edit by hand) @@
+-- @migration:   10   (PRODUCTION-CHANGE-DRAFT, step P2)
+-- @environment: production only after the owner's written approval; tested on the local throwaway database
+-- @depends-on:  none
+-- @risk:        LOW
+-- @precheck:    built-in preflight stops if any table, column, function or index is missing; Query C shows no other stock writer; backup look green today
+-- @effect:      6 stock functions (R1-R5 + helper), security invoker, EXECUTE to authenticated only
+-- @postcheck:   V8 fingerprint 3df2bf7a07b451f12f9359ceca1c85df; grants: 6 rows, anon false; Query H H01-H02 PASS
+-- @rollback:    drafts/11
+-- @@ end metadata @@
 -- R1–R5 all-or-nothing stock functions for Health Endeavors.
 -- 2026-10-05: reconciled with the REAL table shapes from the owner's read-only
 -- Query A (columns, statuses, CHECK/UNIQUE constraints, RLS: stock tables are

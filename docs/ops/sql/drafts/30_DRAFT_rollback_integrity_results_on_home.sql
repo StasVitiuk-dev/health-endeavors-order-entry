@@ -1,4 +1,14 @@
 -- DRAFT (2026-10-11, extension 10). NOT INSTALLED. Rollback of
+-- @@ metadata (generated from docs/ops/sql/MANIFEST.json by `npm run sql:headers`; do not edit by hand) @@
+-- @migration:   30   (ROLLBACK, rolls back 29)
+-- @environment: production only after the owner's written approval; tested on the local throwaway database
+-- @depends-on:  none
+-- @risk:        LOW
+-- @precheck:    refuses while the Home switch is ON or if 25 is already gone
+-- @effect:      removes 29's objects
+-- @postcheck:   objects absent
+-- @rollback:    (this file is the rollback of drafts/29)
+-- @@ end metadata @@
 -- 29_DRAFT_integrity_results_on_home.sql: removes the Home switch (refuses,
 -- changing nothing, while it is ON), the two read rules, the run log and the
 -- run_id column, and puts back drafts/25's function. The saved nightly

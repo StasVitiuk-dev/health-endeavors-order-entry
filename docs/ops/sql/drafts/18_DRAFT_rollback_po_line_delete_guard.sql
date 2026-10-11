@@ -1,4 +1,14 @@
 -- PRODUCTION CHANGE - DO NOT RUN WITHOUT THE OWNER'S APPROVAL (rollback; tested locally only).
+-- @@ metadata (generated from docs/ops/sql/MANIFEST.json by `npm run sql:headers`; do not edit by hand) @@
+-- @migration:   18   (ROLLBACK, rolls back 17)
+-- @environment: production only after the owner's written approval; tested on the local throwaway database
+-- @depends-on:  none
+-- @risk:        LOW
+-- @precheck:    none needed
+-- @effect:      drops the trigger and its function
+-- @postcheck:   trigger absent
+-- @rollback:    (this file is the rollback of drafts/17)
+-- @@ end metadata @@
 -- DRAFT rollback for 17_DRAFT_po_line_delete_guard.sql. Removes the trigger
 -- and its function only; no data is touched. One transaction.
 begin;

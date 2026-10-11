@@ -1,4 +1,14 @@
 -- DRAFT (2026-10-10, extension 9). NOT INSTALLED. PRODUCTION CHANGE: needs the
+-- @@ metadata (generated from docs/ops/sql/MANIFEST.json by `npm run sql:headers`; do not edit by hand) @@
+-- @migration:   23   (PRODUCTION-CHANGE-DRAFT, step P6)
+-- @environment: production only after the owner's written approval; tested on the local throwaway database
+-- @depends-on:  none
+-- @risk:        LOW
+-- @precheck:    stops with counts if existing rows already break a rule; Query E and F show 0 for these rules
+-- @effect:      4 CHECK constraints
+-- @postcheck:   4 constraints (Query H H11)
+-- @rollback:    drafts/24
+-- @@ end metadata @@
 -- owner's approval. Rollback: 24_DRAFT_rollback_integrity_constraints.sql.
 -- Tested only on the local throwaway database (local-test/integrity_constraints_test.sh).
 --

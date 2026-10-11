@@ -1,4 +1,14 @@
 -- DRAFT (2026-10-07, extension 6). NOT INSTALLED. PRODUCTION CHANGE: needs
+-- @@ metadata (generated from docs/ops/sql/MANIFEST.json by `npm run sql:headers`; do not edit by hand) @@
+-- @migration:   19   (PRODUCTION-CHANGE-DRAFT, step P7)
+-- @environment: production only after the owner's written approval; tested on the local throwaway database
+-- @depends-on:  none
+-- @risk:        LOW
+-- @precheck:    reports and skips missing tables; stops if the dashboard role cannot write the new column
+-- @effect:      nullable client_request_id + partial unique index on each create table
+-- @postcheck:   V11; Query H H08
+-- @rollback:    drafts/20
+-- @@ end metadata @@
 -- the owner's approval. Rollback: 20_DRAFT_rollback_request_keys.sql.
 -- Tested only on the local throwaway database (local-test/request_keys_test.sh).
 -- EXT13 note (2026-10-11, comment only): the "dashboard change must ship AFTER

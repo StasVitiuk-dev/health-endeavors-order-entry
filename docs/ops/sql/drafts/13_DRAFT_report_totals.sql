@@ -1,5 +1,15 @@
 -- =============================================================================
 -- DRAFT — NOT FOR PRODUCTION YET. 2026-10-06: installs and passes its tests on
+-- @@ metadata (generated from docs/ops/sql/MANIFEST.json by `npm run sql:headers`; do not edit by hand) @@
+-- @migration:   13   (PRODUCTION-CHANGE-DRAFT, step optional (not in the plan))
+-- @environment: production only after the owner's written approval; tested on the local throwaway database
+-- @depends-on:  none
+-- @risk:        LOW
+-- @precheck:    refund rule N4 decided; a dashboard PR that calls it
+-- @effect:      1 read-only reporting function (security invoker)
+-- @postcheck:   function present; anon cannot run it
+-- @rollback:    drafts/31
+-- @@ end metadata @@
 -- the REAL table shapes from Query A (local copy, synthetic data; see
 -- 14_DRAFT_tests_report_totals.sql). Still needs the owner's refund decision
 -- (N4) and approval before it is installed; the dashboard keeps paging until then.
@@ -20,6 +30,11 @@
 --   * p_refund_policy: 'status_only' (today) or 'subtract_return_refunds'
 --     (owner decision N4), with the same "never subtract twice" rule
 -- SECURITY INVOKER: row-level security applies exactly as for today's reads.
+-- EXT14 (2026-10-11): an order with NO total is no longer added as $0 (it was
+-- coalesce(total, 0)): it is left out of every sum and counted in
+-- orders_missing_total, the same rule the dashboard follows since EXT11 (X11-01).
+-- (expenses.amount is NOT NULL in the real schema, so expenses need no such count.)
+-- Rollback: 31_DRAFT_rollback_report_totals.sql (tested: install, rollback, reinstall, twice).
 -- =============================================================================
 -- EXT6: one transaction, so the function and its permissions arrive together or not at all.
 begin;
@@ -44,7 +59,7 @@ begin
   end if;
 
   with o as (
-    select id, coalesce(total, 0) as total, coalesce(tax_total, 0) as tax_total,
+    select id, total, coalesce(tax_total, 0) as tax_total,
            (lower(coalesce(status, '')) like '%cancel%'
             or (lower(coalesce(status, '')) like '%refund%' and lower(coalesce(status, '')) not like '%partial%')) as excluded
       from orders
@@ -52,7 +67,7 @@ begin
        and (p_orders_from is null or placed_at >= p_orders_from)
        and (p_orders_to   is null or placed_at <  p_orders_to)
   ), e as (
-    select coalesce(amount, 0) as amount
+    select amount
       from expenses
      where deleted_at is null
        and (p_expenses_from is null or expense_date >= p_expenses_from)
@@ -68,6 +83,7 @@ begin
   )
   select jsonb_build_object(
     'orders_count',    (select count(*) from o),
+    'orders_missing_total', (select count(*) from o where total is null),
     'revenue_gross',   (select coalesce(sum(total) filter (where not excluded), 0) from o),
     'excluded',        (select coalesce(sum(total) filter (where excluded), 0) from o),
     'sales_tax',       (select coalesce(sum(tax_total) filter (where not excluded), 0) from o),
@@ -85,5 +101,5 @@ grant execute on function public.report_totals(timestamptz, timestamptz, date, d
 
 commit;
 
--- Rollback: drop function if exists public.report_totals(timestamptz, timestamptz, date, date, text);
--- (Revert the dashboard PR that calls it first; the paged browser version keeps working.)
+-- Rollback: 31_DRAFT_rollback_report_totals.sql (drops only this function; nothing calls it today:
+-- the dashboard keeps paging in the browser until a PR switches it over).

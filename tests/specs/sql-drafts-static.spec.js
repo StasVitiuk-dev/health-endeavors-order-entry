@@ -16,7 +16,8 @@ const ROLLBACKS = { '10_DRAFT_stock_functions.sql': '11_DRAFT_rollback_stock_fun
   '23_DRAFT_integrity_constraints.sql': '24_DRAFT_rollback_integrity_constraints.sql',
   '25_DRAFT_integrity_check_schedule.sql': '26_DRAFT_rollback_integrity_check_schedule.sql',
   '27_DRAFT_request_keys_switch.sql': '28_DRAFT_rollback_request_keys_switch.sql',
-  '29_DRAFT_integrity_results_on_home.sql': '30_DRAFT_rollback_integrity_results_on_home.sql' };
+  '29_DRAFT_integrity_results_on_home.sql': '30_DRAFT_rollback_integrity_results_on_home.sql',
+  '13_DRAFT_report_totals.sql': '31_DRAFT_rollback_report_totals.sql' }; // EXT14: 13 now has its rollback
 const ALL = fs.readdirSync(DIR).filter(f => /^\d\d_DRAFT_.*\.sql$/.test(f) && !/_tests?_/.test(f));
 
 // Remove comments and quoted text so words inside them are not mistaken for SQL.
@@ -38,6 +39,11 @@ test.beforeEach(({}, testInfo) => { test.skip(testInfo.project.name !== 'desktop
 
 test('the list of drafts is the one this check knows (a new draft must be added here on purpose)', () => {
   expect(ALL.sort()).toEqual([...INSTALLS, ...Object.values(ROLLBACKS)].sort());
+});
+
+test('EXT14: drafts/ holds only install and rollback files; local tests live in local-test/', () => {
+  expect(fs.readdirSync(DIR).filter(f => /_tests?_/.test(f))).toEqual([]);
+  for (const i of INSTALLS) expect(ROLLBACKS[i], i + ' has a rollback').toBeTruthy();
 });
 
 for (const f of ALL) {

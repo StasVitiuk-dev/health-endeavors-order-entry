@@ -1,4 +1,14 @@
 -- DRAFT (2026-10-11, extension 10). NOT INSTALLED. PRODUCTION CHANGE: needs the
+-- @@ metadata (generated from docs/ops/sql/MANIFEST.json by `npm run sql:headers`; do not edit by hand) @@
+-- @migration:   29   (PRODUCTION-CHANGE-DRAFT, step P9b)
+-- @environment: production only after the owner's written approval; tested on the local throwaway database
+-- @depends-on:  25
+-- @risk:        LOW
+-- @precheck:    refuses without drafts/25, is_owner_or_admin() or feature_flags
+-- @effect:      runs table, run_id column, owner/admin read policies, Home switch row OFF
+-- @postcheck:   V12; Query H H09
+-- @rollback:    drafts/30
+-- @@ end metadata @@
 -- owner's approval. Rollback: 30_DRAFT_rollback_integrity_results_on_home.sql.
 -- Tested only on the local throwaway database (local-test/integrity_home_test.sh).
 --

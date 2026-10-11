@@ -1,4 +1,14 @@
 -- DRAFT (2026-10-10, extension 9). NOT INSTALLED. Rollback of
+-- @@ metadata (generated from docs/ops/sql/MANIFEST.json by `npm run sql:headers`; do not edit by hand) @@
+-- @migration:   22   (ROLLBACK, rolls back 21)
+-- @environment: production only after the owner's written approval; tested on the local throwaway database
+-- @depends-on:  none
+-- @risk:        LOW
+-- @precheck:    refuses while any stock_fn_* switch is ON
+-- @effect:      removes the 5 rows
+-- @postcheck:   0 stock_fn_* rows
+-- @rollback:    (this file is the rollback of drafts/21)
+-- @@ end metadata @@
 -- 21_DRAFT_stock_function_switches.sql. Removes the five stock_fn_* switches.
 -- Refuses (changes nothing) while any of them is still ON: turn them off on the
 -- Feature Switches page first, so no button changes behaviour mid-rollback.

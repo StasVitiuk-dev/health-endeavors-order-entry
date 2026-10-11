@@ -1,4 +1,14 @@
 -- DRAFT (2026-10-10, extension 9). NOT INSTALLED. PRODUCTION CHANGE: needs the
+-- @@ metadata (generated from docs/ops/sql/MANIFEST.json by `npm run sql:headers`; do not edit by hand) @@
+-- @migration:   21   (PRODUCTION-CHANGE-DRAFT, step P3)
+-- @environment: production only after the owner's written approval; tested on the local throwaway database
+-- @depends-on:  10
+-- @risk:        LOW
+-- @precheck:    refuses without drafts/10 or without feature_flags (and its id default)
+-- @effect:      5 stock_fn_* switch rows, all OFF
+-- @postcheck:   5 rows, enabled = false (V9)
+-- @rollback:    drafts/22
+-- @@ end metadata @@
 -- owner's approval. Rollback: 22_DRAFT_rollback_stock_function_switches.sql.
 -- Tested only on the local throwaway database (local-test/stock_switches_test.sh).
 --

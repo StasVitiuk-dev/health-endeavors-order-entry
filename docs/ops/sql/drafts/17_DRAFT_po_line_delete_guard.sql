@@ -1,4 +1,14 @@
 -- DRAFT (2026-10-06, extension 4; revised extension 6). NOT INSTALLED. Needs
+-- @@ metadata (generated from docs/ops/sql/MANIFEST.json by `npm run sql:headers`; do not edit by hand) @@
+-- @migration:   17   (PRODUCTION-CHANGE-DRAFT, step P5)
+-- @environment: production only after the owner's written approval; tested on the local throwaway database
+-- @depends-on:  none
+-- @risk:        LOW
+-- @precheck:    stops if purchase_orders / purchase_order_items are missing
+-- @effect:      1 trigger refusing PO line add/change/delete during a receive
+-- @postcheck:   trigger present (Query H H10)
+-- @rollback:    drafts/18
+-- @@ end metadata @@
 -- the owner's approval, like R1–R5 (docs/ops/R1-R5-INSTALL-RUNBOOK.md). EXT6:
 -- safe before or after R1 (see below). Rollback:
 -- 18_DRAFT_rollback_po_line_delete_guard.sql.

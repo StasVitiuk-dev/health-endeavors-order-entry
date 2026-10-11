@@ -1,4 +1,14 @@
 -- DRAFT (2026-10-10, extension 9). NOT INSTALLED. PRODUCTION CHANGE: needs the
+-- @@ metadata (generated from docs/ops/sql/MANIFEST.json by `npm run sql:headers`; do not edit by hand) @@
+-- @migration:   27   (PRODUCTION-CHANGE-DRAFT, step P7)
+-- @environment: production only after the owner's written approval; tested on the local throwaway database
+-- @depends-on:  19
+-- @risk:        LOW
+-- @precheck:    refuses without drafts/19 or feature_flags
+-- @effect:      request_keys switch row, OFF
+-- @postcheck:   1 row, enabled = false
+-- @rollback:    drafts/28
+-- @@ end metadata @@
 -- owner's approval. Rollback: 28_DRAFT_rollback_request_keys_switch.sql.
 -- Tested only on the local throwaway database (local-test/request_keys_switch_test.sh).
 --

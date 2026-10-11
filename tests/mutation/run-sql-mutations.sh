@@ -12,8 +12,8 @@ SRC_DB=he_real
 DB=he_sqlmut
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 DRAFT="$ROOT/docs/ops/sql/drafts/10_DRAFT_stock_functions.sql"
-T15="$ROOT/docs/ops/sql/drafts/15_DRAFT_tests_stock_functions_real_shape.sql"
-T16="$ROOT/docs/ops/sql/drafts/16_DRAFT_tests_hardening_and_failures.sql"
+T15="$ROOT/docs/ops/sql/local-test/draft-tests/15_DRAFT_tests_stock_functions_real_shape.sql"
+T16="$ROOT/docs/ops/sql/local-test/draft-tests/16_DRAFT_tests_hardening_and_failures.sql"
 PKG="$ROOT/docs/ops/sql/local-test/install_package_test.sh"
 TMP=$(mktemp -d)
 

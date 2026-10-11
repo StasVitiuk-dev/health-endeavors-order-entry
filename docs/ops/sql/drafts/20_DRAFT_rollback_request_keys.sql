@@ -1,3 +1,14 @@
+-- PRODUCTION CHANGE - DO NOT RUN WITHOUT THE OWNER'S APPROVAL (rollback; tested locally only).
+-- @@ metadata (generated from docs/ops/sql/MANIFEST.json by `npm run sql:headers`; do not edit by hand) @@
+-- @migration:   20   (ROLLBACK, rolls back 19)
+-- @environment: production only after the owner's written approval; tested on the local throwaway database
+-- @depends-on:  28
+-- @risk:        LOW
+-- @precheck:    request_keys switch OFF and its row removed (drafts/28) first
+-- @effect:      drops the indexes and columns
+-- @postcheck:   no client_request_id column remains
+-- @rollback:    (this file is the rollback of drafts/19)
+-- @@ end metadata @@
 -- DRAFT ROLLBACK (2026-10-07, extension 6) for 19_DRAFT_request_keys.sql.
 -- NOT RUN ANYWHERE BUT THE LOCAL TEST DATABASE.
 --

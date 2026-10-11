@@ -1,4 +1,14 @@
 -- DRAFT (2026-10-10, extension 9). NOT INSTALLED. PRODUCTION CHANGE: needs the
+-- @@ metadata (generated from docs/ops/sql/MANIFEST.json by `npm run sql:headers`; do not edit by hand) @@
+-- @migration:   25   (PRODUCTION-CHANGE-DRAFT, step P9)
+-- @environment: production only after the owner's written approval; tested on the local throwaway database
+-- @depends-on:  none
+-- @risk:        LOW
+-- @precheck:    thresholds decision; notes if pg_cron is missing (then not scheduled)
+-- @effect:      results table, Query F view, check function, one named nightly job
+-- @postcheck:   cron.job has exactly 1 integrity_check_nightly row; first run writes rows
+-- @rollback:    drafts/26
+-- @@ end metadata @@
 -- owner's approval (and the thresholds decision X8-D4). Rollback:
 -- 26_DRAFT_rollback_integrity_check_schedule.sql.
 -- Tested only on the local throwaway database (local-test/integrity_schedule_test.sh).

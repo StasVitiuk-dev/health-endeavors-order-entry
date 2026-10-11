@@ -1,12 +1,16 @@
--- LOCAL ONLY tests for 13_DRAFT_report_totals.sql. Runs in a transaction and
--- rolls back. Since 2026-10-06 also runs on the REAL table shapes
+-- LOCAL ONLY tests for 13_DRAFT_report_totals.sql. Installs the draft, then
+-- runs its data and checks in a transaction that is rolled back. Since 2026-10-06 also runs on the REAL table shapes
 -- (local-test/01_REAL_SHAPE_…): orders need a channel, returns a reason.
 -- The "add column if not exists" lines only matter on the old guessed schema.
-begin;
+-- EXT14 fix: the draft has its own BEGIN/COMMIT (EXT6), so including it inside
+-- this file's transaction committed everything after it (the synthetic rows
+-- below were kept). Now: install first (idempotent, committed), then the test
+-- data and checks in their own transaction, which is rolled back.
 alter table orders   add column if not exists placed_at timestamptz, add column if not exists deleted_at timestamptz, add column if not exists tax_total numeric;
 alter table expenses add column if not exists deleted_at timestamptz;
 alter table returns  add column if not exists refund_amount numeric, add column if not exists refunded_at timestamptz;
 \i docs/ops/sql/drafts/13_DRAFT_report_totals.sql
+begin;
 delete from returns; delete from order_items; delete from orders; delete from expenses;
 
 insert into orders (id, channel, order_number, status, total, tax_total, placed_at)
@@ -17,6 +21,8 @@ insert into orders (id, channel, order_number, status, total, placed_at) values
   ('00000000-0000-0000-0000-0000000000a3', 'manual', 'SYN-P', 'partially_refunded', 80, '2026-03-01 12:00+00'),
   ('00000000-0000-0000-0000-0000000000a4', 'manual', 'SYN-D', 'paid', 999, '2026-03-01 12:00+00');
 update orders set deleted_at = now() where order_number = 'SYN-D';
+-- EXT14: an order saved without a total must not count as $0 and must be reported
+insert into orders (id, channel, order_number, status, total, placed_at) values ('00000000-0000-0000-0000-0000000000a5', 'manual', 'SYN-NOTOTAL', 'paid', null, '2026-03-01 12:00+00');
 insert into expenses (category, amount, expense_date) select 'packaging', 1, '2026-03-02' from generate_series(1, 1200);
 insert into expenses (category, amount, expense_date, deleted_at) values ('packaging', 500, '2026-03-02', now());
 insert into returns (order_id, reason, status, refund_amount, refunded_at) values
@@ -33,6 +39,7 @@ begin
   if (t->>'sales_tax')::numeric <> 1250 then raise exception 'tax %', t; end if;
   if (t->>'expenses_total')::numeric <> 1200 then raise exception 'expenses %', t; end if;   -- deleted 500 ignored
   if (t->>'return_refunds')::numeric <> 0 then raise exception 'refunds %', t; end if;
+  if coalesce((t->>'orders_missing_total')::int, -1) <> 1 then raise exception 'missing total not reported %', t; end if;
   t := report_totals(null, null, null, null, 'subtract_return_refunds');
   if (t->>'return_refunds')::numeric <> 50 then raise exception 'refunds B %', t; end if;    -- 30 + 20, not the 50 on the refunded order
   if (t->>'revenue')::numeric <> 25030 then raise exception 'revenue B %', t; end if;

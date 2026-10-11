@@ -10,7 +10,10 @@
     "evidence:diff": "node tests/tools/evidence.js diff",
     "deploy:sim": "node tests/tools/deploy-sim.js",
     "incident": "node tests/tools/incidents.js",
-    "docs:check": "node tests/tools/doc-check.js --current"
+    "docs:check": "node tests/tools/doc-check.js --current",
+    "sql:lint": "node tests/tools/sql-lint.js",
+    "sql:headers": "node tests/tools/sql-lint.js --headers",
+    "sql:graph": "node tests/tools/sql-lint.js --graph"
   },
   "devDependencies": {
     "@playwright/test": "1.56.1",
