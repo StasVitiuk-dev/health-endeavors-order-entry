@@ -2,15 +2,15 @@
 
 Internal dashboard/platform only. Generated from `docs/ops/backlog/items.py` (edit the data there, then run `python3 docs/ops/backlog/items.py`). No production secrets or private business data.
 
-**349 deduplicated items** from 427 raw candidates (78 duplicates merged: the same item recorded in PROJECT_RECORD, the overnight review, PRs, owner lists, decision registers and tests).
+**350 deduplicated items** from 428 raw candidates (78 duplicates merged: the same item recorded in PROJECT_RECORD, the overnight review, PRs, owner lists, decision registers and tests).
 
-Status counts: BLOCKED-EXT 2, BLOCKED-OWNER 42, BLOCKED-PROD 19, BLOCKED-QC 12, DEFERRED 27, DONE 243, OPEN 1, QUEUED 3
+Status counts: BLOCKED-EXT 2, BLOCKED-OWNER 42, BLOCKED-PROD 19, BLOCKED-QC 12, DEFERRED 27, DONE 244, OPEN 1, QUEUED 3
 
 | Priority | Items | Done (branch) | Remaining |
 |---|---|---|---|
 | P0 | 16 | 6 | 10 |
 | P1 | 93 | 69 | 24 |
-| P2 | 120 | 92 | 28 |
+| P2 | 121 | 93 | 28 |
 | P3 | 102 | 75 | 27 |
 | P4 | 18 | 1 | 17 |
 
@@ -215,6 +215,7 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | X10-16 | Owner UX | Home checks: next step per item; low-stock level not set (CONFIG REQUIRED); deactivated products with stock; agent health | Fewer mystery badges; operator knows what to do | Medium | S | — | Y | N | N | DONE |
 | X10-21 | Security | Search and dashboard pages went blank (script error) when the pinned library was refused or offline; now a plain message, and no inline script (strict CSP) | Silent failure; inline scripts allowed | Medium | S | — | Y | N | N | DONE |
 | X10-23 | Mobile | On a phone, Home checks, approvals, recently-deleted and session rows squeezed their text into a sliver beside the buttons (titles one word per line) | Hard to read on the phone; next steps unreadable | Medium | S | — | Y | N | N | DONE |
+| X10-24 | Mobile | On a phone the new System status table hid the end of its values off the right edge (sideways scroll inside the table) | Status facts such as UNKNOWN backups were cut off on the phone | Medium | S | — | Y | N | N | DONE |
 | X3-01 | State machine | Product edit form wrote status unguarded (stale tab flips discontinued/active) | Found by the mock state rule | Medium | S | — | Y | N | N | DONE |
 | X3-04 | Scale | Returns page listed and counted the newest 200 only (old open returns vanished) | Open work hidden | Medium | S | — | Y | N | N | DONE |
 | X3-08 | Query C | Query C failed without pg_cron; tokens not masked in agent errors | Owner run could stop with an error | Medium | S | — | Y | N | N | DONE |

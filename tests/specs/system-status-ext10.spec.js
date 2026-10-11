@@ -3,7 +3,7 @@
 // contents, keys or tokens). Synthetic data only.
 const { test, expect, login, gotoPage } = require('../helpers/dashboard');
 
-test.beforeEach(({}, ti) => { test.skip(ti.project.name !== 'desktop', 'page logic; run once'); });
+test.beforeEach(({}, ti) => { test.skip(ti.project.name !== 'desktop' && !ti.title.startsWith('X10-24'), 'page logic; run once'); });
 const row = (page, name) => page.locator('#systemStatusWrap tr', { has: page.locator('th', { hasText: name }) }).locator('td');
 
 test('shows environment, database, role, nightly check, backups UNKNOWN, agents and version', async ({ page }) => {
@@ -44,4 +44,16 @@ test('the diagnostic summary holds the error KIND, never names, e-mails, keys or
   for (const bad of ['@', 'Private Person', 'SYN-SECRET', 'sb_publishable', 'eyJ', 'supabase.co', 'synthetic.owner']) expect(text, bad).not.toContain(bad);
   // plain-http test page: no clipboard API, so the page says to copy the text shown
   await expect(page.locator('.toast', { hasText: 'select the text below' })).toBeVisible();
+});
+
+test.describe('phone', () => {
+  test.beforeEach(({}, ti) => { test.skip(ti.project.name !== 'iphone', 'phone only'); });
+  test('X10-24: System status values wrap inside the screen instead of running off the right edge', async ({ page }) => {
+    await login(page);
+    await gotoPage(page, 'continuityPanel');
+    const t = page.locator('#systemStatusWrap table.sysStatus');
+    await expect(t).toBeVisible();
+    const r = await t.evaluate(el => ({ over: el.scrollWidth - el.clientWidth, cut: [...el.querySelectorAll('td')].filter(td => td.getBoundingClientRect().right > innerWidth + 1).length }));
+    expect(r).toEqual({ over: 0, cut: 0 });
+  });
 });

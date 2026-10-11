@@ -592,6 +592,8 @@
 
     /* Wide tables scroll sideways instead of squashing or overflowing */
     section.panel table{ display:block; width:100%; overflow-x:auto; white-space:nowrap; -webkit-overflow-scrolling:touch; }
+    /* X10-24: the two-column System status table wraps instead of hiding its values off the right edge */
+    section.panel table.sysStatus{ display:table; white-space:normal; overflow:visible; }
 
     /* Rows stack rather than crush */
     .actRow, .flagRow, .approvalRow, .deletedRow, .sessionRow{ flex-wrap:wrap; }
