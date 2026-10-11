@@ -66,20 +66,22 @@ Test-harness problems found and fixed (not dashboard bugs): session-failures rac
 
 ## 6. Final evidence (all local, synthetic data; production not touched)
 
-Page code frozen at **`2407328`**: no page, helper or CSS change after it. Later commits change only tests, tools, SQL-test scripts and docs.
+Page code frozen at **`e3268a6`** (final): no page, helper or CSS change after it. Later commits change only tests, tools, SQL-test scripts and docs. The earlier freeze `2407328` was replaced after the screenshot review found X10-24 (one CSS rule).
 
 | Check | Result |
 |---|---|
-| Full suite on `2407328` (desktop 1100 + iPhone 390) | **2,722 tests: 1,742 passed (including 8 expected failures), 6 failed, 0 flaky**, 974 skipped with a stated reason (device/size or run-once), **0 unexplained**. The 6 were test files out of date with the code: 3 in scale-matrix (expected the notice that X10-15 removed) and 3 generated write-path lists (line numbers). Fixed in `fe74e2f` (tests and lists only); scale-matrix 39/39 and write-path 10/10 afterwards |
+| Full suite on `e3268a6` (desktop 1100 + iPhone 390) | **2,726 tests: 1,749 passed (including 8 expected failures), 1 failed, 0 flaky**, 976 skipped with a stated reason (device/size or run-once), **0 unexplained**. The 1 failure was a test timing gap in money-periods: it read the "orders without items" list before it was drawn. Reproduced by slowing that read (the old test fails, the new one passes); fixed in `cd020ba` (test only); 30/30 over 5 repeats |
+| Earlier full suite on `2407328` | 2,722 tests: 1,742 passed, 6 failed (3 outdated scale tests and 3 generated lists; fixed in `fe74e2f`, tests only), 0 flaky |
 | High-risk specs ×3 (40 files, including every EXT10 spec) on `fe74e2f` | **2,427 passed, 0 failed, 0 flaky** |
-| Page mutations | MUT_RESULT |
+| Phone / layout / accessibility / visual / money specs ×3 on `cd020ba` (covers the X10-24 change) | **300 passed, 0 failed, 0 flaky** |
+| Page mutations | **145 / 145 caught** (full set on `099b530`), plus the X10-24 mutant caught on `e3268a6` = **146 / 146** |
 | SQL mutations | **13 / 13 caught** |
 | Local database tests | install package 61/61 (after the seeding fix) · PO forced orderings 0 guarded failures · browser-path races 0/0 · request keys 23/23 · reconciliation 24/24 · Query F 33/33 · restore drill 6/6 · stock switches 23/23 · Query G 11/11 · integrity rules 17/17 · nightly schedule 12/12 · request-key switch 10/10 · Home results 25/25 · 50k-order performance 10/10 · drift check 27/27 |
 | Stress / random | 5 runs, 0 failed checks · seed 909 × 40 rounds: 0 failing, 0 deadlocks |
 | R1–R5 fingerprint | `3df2bf7a07b451f12f9359ceca1c85df` (unchanged) |
 | Secret scan (`f9e4850..HEAD`) | clean: no keys, tokens, private keys, real e-mails or model identifiers |
-| Visual references | Home checks (desktop and phone) plus the Orders and Expenses phone pictures regenerated and reviewed by eye |
-| Screenshots | SHOTS_RESULT |
+| Visual references | Home checks (desktop and phone) plus the Orders and Expenses phone pictures regenerated and reviewed by eye; visual spec passes ×3 on the final code |
+| Screenshots | 32 in `design-review/dashboard-extension-10-2026-10-11/` (`MANIFEST.md`), captured on `e3268a6`; all reviewed by eye (the review found X10-24) |
 | `main` | `d3db7bc`, unchanged; nothing merged or deployed |
 
 ### What these results do NOT show
@@ -88,3 +90,5 @@ Local SQL tests are not a production install. Prepared RPCs are not installed. E
 ### Lessons recorded
 - Regenerate the write-path lists and run the scale and visual specs after any change to a page's reads or CSS, before freezing.
 - A local test must create its own rows; three scripts were caught borrowing them.
+- Review the final screenshots before freezing: that review found X10-24.
+- A test that waits for one figure must not assume a list drawn after it is ready.

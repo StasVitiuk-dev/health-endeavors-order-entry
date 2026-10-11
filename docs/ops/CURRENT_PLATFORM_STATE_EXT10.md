@@ -31,7 +31,7 @@
 
 | Area | State |
 |---|---|
-| Dashboard pages and workflows | IMPLEMENTED IN BRANCH, TESTED LOCALLY (full suite on the frozen commit: report §9); NOT DEPLOYED |
+| Dashboard pages and workflows | IMPLEMENTED IN BRANCH, TESTED LOCALLY (full suite on the frozen commit `e3268a6`: report §6); NOT DEPLOYED |
 | Phone layout | wide tables are cards below 600 px: IMPLEMENTED IN BRANCH, TESTED LOCALLY (Chromium 320–430 px); real iPhone NOT VERIFIED |
 | Stock all-or-nothing (R1–R5) | SQL TESTED LOCALLY, READY FOR OWNER DEPLOYMENT; dashboard behind `stock_fn_*` (off); NOT DEPLOYED |
 | Duplicate creates | request keys on all 18 create paths + escalation: IMPLEMENTED IN BRANCH behind `request_keys` (off); drafts 19 + 27 NOT INSTALLED |
