@@ -6,7 +6,7 @@
 ## Where we are (five lines)
 
 1. The live dashboard is **unchanged**. Nothing has been merged, deployed or run on production.
-2. All the work (extensions 1–13) waits in **one draft pull request, #28**. The older drafts #5–#27 are all inside it.
+2. All the work (extensions 1–13) waits in **one draft pull request, #28** (its branch now carries the EXT13 commits). The older drafts #5–#27 are all inside it.
 3. Merging it is safe before any database step: every new feature stays **off** until you install its SQL.
 4. Production readiness is about **15 / 100**. Four of your actions take it to about **53**: backup look, GitHub reconnect, read-only session, merge.
 5. Nothing more can be done safely without you: every remaining item needs your evidence, your decision, or a production step.

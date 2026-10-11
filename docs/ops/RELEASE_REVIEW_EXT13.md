@@ -86,7 +86,7 @@ Local tools: evidence intake, deployment simulator, incident map, doc checker, q
 
 | PR | Branch | Purpose | Contained in #28? | Recommendation |
 |---|---|---|---|---|
-| **#28** | `claude/platform-ext12-preproduction-simulation-2026-10-11` (EXT13 continues on `claude/platform-ext13-owner-attention-final-audit-2026-10-11`) | everything EXT1–12 | — | **review and merge this one only** (updated to the EXT13 head if the owner prefers one PR) |
+| **#28** | `claude/platform-ext12-preproduction-simulation-2026-10-11` (EXT13 continues on `claude/platform-ext13-owner-attention-final-audit-2026-10-11`) | everything EXT1–12 | — | **review and merge this one only**. Its branch was fast-forwarded to the EXT13 commit, so #28 now carries EXT1–13 (no history rewritten) |
 | #27, #26, #25 | EXT11, EXT10, EXT9 branches | previous all-in-one drafts | YES | close after #28 is merged |
 | #24 … #19 | `claude/tests-*` | tests only (Sept 29) | YES | close after merge |
 | #18, #17 | modularization plan, frontend security review | docs only | YES | close after merge |
