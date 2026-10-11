@@ -87,4 +87,59 @@ function stagingTables(nowMs) {
   };
 }
 
-if (typeof module !== 'undefined') module.exports = { stagingTables };
+// ---- EXT14: switchable synthetic scenarios (STAGING ONLY) -------------------
+// Chosen with ?scenario=<id> or the selector in the staging banner. Each one
+// changes the synthetic data, or tells the in-page stand-in to answer one
+// request in a particular way. None of this exists in the live dashboard: it
+// is part of staging-runtime.js, which only the staging build contains.
+const SCENARIOS = [
+  { id: 'default', label: 'Default synthetic day (overdue task, pending approvals, open incidents, a return, low stock)', look: 'Home' },
+  { id: 'healthy', label: 'Healthy day (nothing overdue, nothing pending)', look: 'Home: no red or amber rows' },
+  { id: 'backup-unknown', label: 'Backups unknown (as in production today)', look: 'Continuity → System status: Backups UNKNOWN' },
+  { id: 'integrity-failure', label: 'Nightly integrity check FAILED (stock below zero, duplicate order numbers)', look: 'Home: Nightly integrity check card' },
+  { id: 'agent-unknown', label: 'Agents: one unknown, one failed, one off on purpose', look: 'AI Agents / System status' },
+  { id: 'po-uncertain', label: 'PO receive reply lost (the first Receive delivery gets no answer)', look: 'Purchase Orders → PO-1031 → Receive delivery' },
+  { id: 'stale-edit', label: 'Someone else changes a task first (your edit is refused)', look: 'Tasks → change the first open task' },
+  { id: 'permission-denied', label: 'Every save is refused by the database (permission denied)', look: 'try any save' },
+  { id: 'overdue-task', label: 'Overdue task', look: 'Tasks / Home' },
+  { id: 'pending-approval', label: 'Approvals waiting', look: 'Approval Queue' },
+  { id: 'open-incident', label: 'Open incidents', look: 'Incidents' },
+  { id: 'return', label: 'A return waiting', look: 'Returns' },
+  { id: 'low-stock-unconfigured', label: 'Low stock + a product with no low-stock level', look: 'Inventory / Home checks' },
+];
+function applyScenario(id, tables, nowMs) {
+  const now = nowMs || Date.now();
+  const at = ms => new Date(now + ms).toISOString();
+  const D = 24 * 3600 * 1000;
+  const s = SCENARIOS.find(x => x.id === id) || SCENARIOS[0];
+  const hooks = {};
+  if (s.id === 'healthy') {
+    tables.tasks.forEach(t => { if (!['done', 'cancelled'].includes(t.status)) t.due_at = at(5 * D); });
+    tables.approval_requests.forEach(a => { a.status = 'approved'; });
+    tables.incidents.forEach(i => { i.status = 'resolved'; });
+    tables.returns = [];
+    tables.inventory.forEach(i => { i.available = 40; i.low_stock_threshold = 10; });
+    tables.customer_inquiries.forEach(q => { q.status = 'answered'; });
+  }
+  if (s.id === 'integrity-failure') {
+    const SECT = ['F01 stuck work','F02 stuck work','F03 stuck work','F04 stuck work','F05 stuck work','F06 probable duplicate','F07 probable duplicate','F08 probable duplicate','F09 probable duplicate','F10 points at the wrong thing','F11 points at the wrong thing','F12 impossible value','F13 impossible value','F14 impossible value','F15 impossible value'];
+    tables.feature_flags.push({ id: 'ff-ih', flag_key: 'integrity_results_home', label: 'Nightly integrity check on Home', description: 'SYNTHETIC', enabled: true });
+    tables.integrity_check_runs = [{ id: 100, started_at: at(-6 * 3600 * 1000), finished_at: at(-6 * 3600 * 1000 + 60000), status: 'ok', checks: 15, error: null }];
+    tables.integrity_check_results = SECT.map(section => ({ id: 10000 + Number(section.slice(1, 3)), run_id: 100, run_at: at(-6 * 3600 * 1000), section, check_name: 'SYNTHETIC ' + section,
+      found: section.startsWith('F14') ? 1 : section.startsWith('F06') ? 2 : 0, examples: section.startsWith('F14') ? 'SYNTHETIC Lavender Lotion' : section.startsWith('F06') ? 'SYN-2001' : null }));
+  }
+  if (s.id === 'agent-unknown') {
+    tables.agent_controls = [
+      { agent_num: 1, enabled: true, updated_by: null, updated_at: null },
+      { agent_num: 4, enabled: true, updated_by: null, updated_at: null, last_run_at: at(-10 * 60000), last_run_status: 'ok' },
+      { agent_num: 5, enabled: true, updated_by: null, updated_at: null, last_run_status: 'failed', last_error: 'SYNTHETIC timeout' },
+      { agent_num: 7, enabled: false, updated_by: null, updated_at: null },
+    ];
+  }
+  if (s.id === 'po-uncertain') hooks.dropFirstReceive = true;
+  if (s.id === 'stale-edit') hooks.staleTask = true;
+  if (s.id === 'permission-denied') hooks.denyWrites = true;
+  return { scenario: s, hooks };
+}
+
+if (typeof module !== 'undefined') module.exports = { stagingTables, SCENARIOS, applyScenario };
