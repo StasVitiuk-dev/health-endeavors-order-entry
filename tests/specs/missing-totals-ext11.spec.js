@@ -79,3 +79,20 @@ test('Tax export: the file says how many orders without a total are not in reven
   expect(plain).toContain('Orders with no total saved (NOT included in revenue),1');
   expect(plain).toContain('Revenue,$10.00');
 });
+
+test('Report History: a count or amount missing from a daily report shows "—", not 0 or $0.00, and the week total is unknown too', async ({ page, backend }) => {
+  backend.tables.daily_reports = [
+    { id: 'dr-1', report_date: '2026-10-05', orders_count: null, revenue: null, currency: 'USD', new_inquiries_count: 3, tasks_opened_count: 2, incidents_opened_count: 0, ai_calls_count: 4, ai_cost: '0.10', emailed_at: null },
+    { id: 'dr-2', report_date: '2026-10-06', orders_count: 2, revenue: '20.00', currency: 'USD', new_inquiries_count: 1, tasks_opened_count: 0, incidents_opened_count: 0, ai_calls_count: 1, ai_cost: '0.05', emailed_at: null },
+  ];
+  await login(page);
+  await gotoPage(page, 'reportHistoryPanel');
+  const row = page.locator('#reportHistoryPanel tbody tr', { hasText: 'Oct 5' });
+  await expect(row.locator('td').nth(1)).toHaveText('—');
+  await expect(row.locator('td').nth(2)).toHaveText('—');
+  await expect(row.locator('td').nth(3)).toHaveText('3');
+  await page.click('#reportHistoryToggle button[data-view="weekly"]');
+  const week = page.locator('#reportHistoryPanel tbody tr').first();
+  await expect(week.locator('td').nth(1)).toHaveText('—');
+  await expect(week.locator('td').nth(3)).toHaveText('4');
+});

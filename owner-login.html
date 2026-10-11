@@ -33,7 +33,7 @@
 <title>Health Endeavors — Owner Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous" onerror="window.__sbLoadFailed=true"></script>
 <link rel="stylesheet" href="assets/owner-login.css?v=585ab97547">
-<script src="assets/owner-login-helpers.js?v=c7aaa1dd71" onerror="window.__heHelpersLoadFailed=true"></script>
+<script src="assets/owner-login-helpers.js?v=2d393500a4" onerror="window.__heHelpersLoadFailed=true"></script>
 <script>
   // Applied before anything renders so there's no flash of the wrong theme.
   (function(){
@@ -7223,10 +7223,10 @@
         firstColLabel = 'Date';
         rows = REPORT_HISTORY_DATA.map(r => ({
           label: fmtDateOnly(r.report_date), currency: r.currency || 'USD',
-          orders_count: r.orders_count, revenue: r.revenue,
+          orders_count: r.orders_count, revenue: missingToNaN(r.revenue),
           new_inquiries_count: r.new_inquiries_count, tasks_opened_count: r.tasks_opened_count,
           incidents_opened_count: r.incidents_opened_count, ai_calls_count: r.ai_calls_count,
-          ai_cost: r.ai_cost, emailed: r.emailed_at ? '✓' : '—',
+          ai_cost: missingToNaN(r.ai_cost), emailed: r.emailed_at ? '✓' : '—',
         }));
       } else if (reportHistoryView === 'weekly') {
         firstColLabel = 'Week';
@@ -7246,17 +7246,24 @@
         <tbody>${rows.map(r => `
           <tr>
             <td>${esc(r.label)}</td>
-            <td>${Number(r.orders_count || 0)}</td>
+            <td>${reportCount(r.orders_count)}</td>
             <td>${esc(fmtMoney(r.revenue, r.currency || 'USD'))}</td>
-            <td>${Number(r.new_inquiries_count || 0)}</td>
-            <td>${Number(r.tasks_opened_count || 0)}</td>
-            <td>${Number(r.incidents_opened_count || 0)}</td>
-            <td>${Number(r.ai_calls_count || 0)}</td>
+            <td>${reportCount(r.new_inquiries_count)}</td>
+            <td>${reportCount(r.tasks_opened_count)}</td>
+            <td>${reportCount(r.incidents_opened_count)}</td>
+            <td>${reportCount(r.ai_calls_count)}</td>
             <td>${esc(fmtMoney(r.ai_cost, 'USD'))}</td>
             <td>${esc(r.emailed)}</td>
           </tr>`).join('')}</tbody></table>`;
     }
 
+    // EXT11: a count or amount missing from a report is shown as "—", never as 0 / $0.00.
+    function missingToNaN(v){ return (v === null || v === undefined || String(v).trim() === '') ? NaN : v; }
+    function reportCount(v){
+      if (v === null || v === undefined || String(v).trim() === '') return '—';
+      const n = Number(v);
+      return Number.isFinite(n) ? n : '—';
+    }
     document.getElementById('reportHistoryToggle').addEventListener('click', (e) => {
       const btn = e.target.closest('button[data-view]');
       if (!btn) return;

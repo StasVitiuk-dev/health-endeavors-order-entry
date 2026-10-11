@@ -150,7 +150,22 @@ test.describe('report rollups', () => {
     ];
     const byMonth = H.rollupReports(reports, d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'), () => 'label');
     expect(byMonth.map(g => [g.sortKey, g.orders_count, g.revenue])).toEqual([['2026-09', 3, 14.5], ['2026-08', 5, 100]]);
-    expect(byMonth[0].ai_cost).toBe(0.25);
+    // EXT11: before, a missing ai_cost on the 15th counted as $0 and the month
+    // showed $0.25 as if complete; a figure missing from any day makes that
+    // group's total unknown (shown as "—").
+    expect(byMonth[0].ai_cost).toBeNaN();
+  });
+  test('EXT11: a figure missing from one day makes only that group and that figure unknown', () => {
+    const reports = [
+      { report_date: '2026-09-01', orders_count: 2, revenue: '10', ai_cost: 0.25 },
+      { report_date: '2026-09-02', orders_count: null, revenue: '', ai_cost: 0.5 },
+      { report_date: '2026-08-31', orders_count: 5, revenue: 100, ai_cost: 0 },
+    ];
+    const g = H.rollupReports(reports, d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'), () => 'label');
+    expect(g[0].orders_count).toBeNaN();
+    expect(g[0].revenue).toBeNaN();
+    expect(g[0].ai_cost).toBe(0.75);
+    expect([g[1].orders_count, g[1].revenue, g[1].ai_cost]).toEqual([5, 100, 0]);
   });
 });
 

@@ -141,13 +141,10 @@
           });
         }
         const g = groups.get(key);
-        g.orders_count += Number(r.orders_count || 0);
-        g.revenue += Number(r.revenue || 0);
-        g.new_inquiries_count += Number(r.new_inquiries_count || 0);
-        g.tasks_opened_count += Number(r.tasks_opened_count || 0);
-        g.incidents_opened_count += Number(r.incidents_opened_count || 0);
-        g.ai_calls_count += Number(r.ai_calls_count || 0);
-        g.ai_cost += Number(r.ai_cost || 0);
+        // EXT11: a figure missing from one day's report makes that group's
+        // total unknown (NaN, shown as "—"), never a smaller number that looks complete.
+        const add = f => { const v = r[f]; g[f] = (v === null || v === undefined || String(v).trim() === '') ? NaN : g[f] + Number(v); };
+        ['orders_count', 'revenue', 'new_inquiries_count', 'tasks_opened_count', 'incidents_opened_count', 'ai_calls_count', 'ai_cost'].forEach(add);
       });
       return Array.from(groups.values()).sort((a, b) => b.sortKey.localeCompare(a.sortKey));
     }
