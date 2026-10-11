@@ -4,7 +4,7 @@
 const { test, expect, login, gotoPage } = require('../helpers/dashboard');
 
 test.beforeEach(({}, ti) => { test.skip(ti.project.name !== 'desktop' && !ti.title.startsWith('X10-24'), 'page logic; run once'); });
-const row = (page, name) => page.locator('#systemStatusWrap tr', { has: page.locator('th', { hasText: name }) }).locator('td');
+const row = (page, name) => page.locator('#systemStatusWrap tr', { has: page.locator('th', { hasText: new RegExp('^' + name.replace(/[()]/g, '\\$&') + '$') }) }).locator('td');
 
 test('shows environment, database, role, nightly check, backups UNKNOWN, agents and version', async ({ page }) => {
   await login(page);
@@ -37,6 +37,7 @@ test('the diagnostic summary holds the error KIND, never names, e-mails, keys or
   await expect(page.locator('#dashError')).toBeVisible();
   await gotoPage(page, 'continuityPanel');
   await page.click('#copyDiagBtn');
+  await expect(page.locator('#diagText')).toContainText('diagnostic summary', { timeout: 30000 });
   const text = await page.locator('#diagText').textContent();
   expect(text).toContain('Health Endeavors dashboard — diagnostic summary');
   expect(text).toContain('Environment: NOT PRODUCTION');
@@ -55,5 +56,50 @@ test.describe('phone', () => {
     await expect(t).toBeVisible();
     const r = await t.evaluate(el => ({ over: el.scrollWidth - el.clientWidth, cut: [...el.querySelectorAll('td')].filter(td => td.getBoundingClientRect().right > innerWidth + 1).length }));
     expect(r).toEqual({ over: 0, cut: 0 });
+  });
+});
+
+// EXT11: which database steps the page can see, and whether any switch is ON
+// without its step (read-only; the same harmless probes the switches use).
+test.describe('database steps and switch safety (EXT11)', () => {
+  const { installStockFunctions, functionMissing } = require('../helpers/stock-functions-mock');
+  const { preSqlProduction } = require('../helpers/pre-sql');
+  const switchOn = (backend, ...keys) => {
+    backend.tables.feature_flags = (backend.tables.feature_flags || []).filter(f => !keys.includes(f.flag_key))
+      .concat(keys.map((k, i) => ({ id: 'ff-x' + i, flag_key: k, label: k, description: 'SYNTHETIC', enabled: true })));
+  };
+  test('code merged, no SQL installed: every step "not installed", all switches OFF is OK', async ({ page, backend }) => {
+    await preSqlProduction(page, backend);
+    await login(page);
+    await gotoPage(page, 'continuityPanel');
+    await expect(row(page, 'Database steps (read-only check)')).toHaveText('R1 receive: not installed · R2 recall: not installed · R3 return: not installed · R4 adjust: not installed · R5 delete: not installed · request keys: not installed · nightly check: not installed');
+    await expect(row(page, 'Switch safety')).toHaveText('OK: all of these switches are OFF');
+  });
+  test('R1–R5 installed and the adjust switch ON: shown as installed and OK', async ({ page, backend }) => {
+    await preSqlProduction(page, backend);
+    installStockFunctions(backend);
+    switchOn(backend, 'stock_fn_adjust');
+    await login(page);
+    await gotoPage(page, 'continuityPanel');
+    await expect(row(page, 'Database steps (read-only check)')).toContainText('R1 receive: installed · R2 recall: installed · R3 return: installed · R4 adjust: installed · R5 delete: installed · request keys: not installed');
+    await expect(row(page, 'Switch safety')).toHaveText('OK: every switch that is ON has its database step (1 on)');
+    expect(backend.tables.inventory_adjustments || []).toEqual([]); // the probes changed nothing
+  });
+  test('partial install: R1 installed, R2 missing, R2 switch ON: PROBLEM names R2', async ({ page, backend }) => {
+    await preSqlProduction(page, backend);
+    installStockFunctions(backend);
+    backend.rpc.quarantine_recall = functionMissing();
+    switchOn(backend, 'stock_fn_recall', 'stock_fn_receive_po');
+    await login(page);
+    await gotoPage(page, 'continuityPanel');
+    await expect(row(page, 'Database steps (read-only check)')).toContainText('R1 receive: installed · R2 recall: not installed');
+    await expect(row(page, 'Switch safety')).toHaveText('PROBLEM: switched ON but its database step is missing: R2 recall. Turn that switch OFF on Feature Switches and tell the owner.');
+  });
+  test('switches unreadable: switch safety says UNKNOWN, never OK', async ({ page }) => {
+    await login(page);
+    await gotoPage(page, 'continuityPanel');
+    await page.context().route(/\/rest\/v1\/feature_flags\?select=flag_key%2Cenabled/, r => r.abort('connectionreset'));
+    await page.click('#sysStatusRefresh');
+    await expect(row(page, 'Switch safety')).toHaveText('UNKNOWN — the switches could not be read', { timeout: 30000 });
   });
 });
