@@ -988,6 +988,8 @@
 .attnCheck .attnWhy{ margin-top:4px; font-size:12.5px; color:var(--muted); }
 .attnCheck .attnWhy summary{ cursor:pointer; }
 .attnCheck .attnWhy p{ margin:4px 0 0; }
+.attnCheck .attnAction{ margin-top:3px; font-size:12.5px; }
+.attnCheck .attnActionLbl{ font-weight:600; }
 /* EXT10b: receive outcome unknown (Receive button withheld) */
 .poReceiptUnknown{ border-left:4px solid var(--warn); background:var(--warn-bg); padding:8px 10px; border-radius:6px; font-size:13.5px; flex-basis:100%; }
 .poReceiptUnknown .poCheckReceipt{ margin-left:6px; }

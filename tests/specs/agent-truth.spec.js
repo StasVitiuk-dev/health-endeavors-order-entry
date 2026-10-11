@@ -32,7 +32,7 @@ test('each agent shows the state its data supports', async ({ page, backend }) =
   seed(backend);
   await login(page);
   await gotoPage(page, 'aiPanel');
-  const expected = { 1: 'Switch on', 2: 'Unknown', 3: 'Unknown', 4: 'Enabled', 5: 'Stale', 6: 'Dry run', 7: 'Disabled', 8: 'Failed', 9: 'Calculated here', 10: 'Calculated here' };
+  const expected = { 1: 'Switch on', 2: 'Unknown', 3: 'Unknown', 4: 'Enabled', 5: 'Stale', 6: 'Dry run', 7: 'Off — on purpose', 8: 'Failed', 9: 'Calculated here', 10: 'Calculated here' };
   for (const [n, label] of Object.entries(expected)) {
     await expect(card(page, n).locator('.agentTruthBadge')).toHaveText(label);
   }
@@ -81,4 +81,27 @@ test('a last run recorded as "error" (not the exact word "failed") still shows F
   await login(page);
   await gotoPage(page, 'aiPanel');
   await expect(card(page, 4).locator('.agentTruthBadge')).toHaveText('Failed');
+});
+
+// EXT10b (missions 7-10, 252-256)
+test('the schedule list cannot be read: scheduled agents are "Unknown", never "Stale"', async ({ page, backend }) => {
+  seed(backend);
+  backend.rpc.get_agent_cron_status = { __error: { status: 500, code: 'XX000', message: 'SYNTHETIC failure' } };
+  await login(page);
+  await gotoPage(page, 'aiPanel');
+  for (const n of [4, 5, 6]) await expect(card(page, n).locator('.agentTruthBadge')).toHaveText('Unknown');
+  await expect(card(page, 4).locator('.agentTruthDetail')).toContainText('scheduled jobs could not be read');
+});
+
+test('Home lists failed / stale agents as a to-do and unknown agents as unknown, not as running', async ({ page, backend }) => {
+  seed(backend);
+  await login(page);
+  const bad = page.locator('#attnChecksWrap .attnCheck[data-key="agentsUnhealthy"]');
+  await expect(bad).toContainText('Agents failed or not running on schedule: 2');
+  await bad.locator('summary').click();
+  await expect(bad).toContainText('#5 stale');
+  await expect(bad).toContainText('#8 failed');
+  await expect(page.locator('#attnChecksWrap .attnCheck[data-key="agentsUnknown"]')).toContainText('Agents in an unknown state');
+  // #7 is off on purpose: not listed as "paused"
+  await expect(page.locator('#attnChecksWrap .attnCheck[data-key="agentsPaused"]')).toHaveCount(0);
 });

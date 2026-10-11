@@ -32,8 +32,8 @@
 <meta http-equiv="Expires" content="0">
 <title>Health Endeavors — Owner Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous" onerror="window.__sbLoadFailed=true"></script>
-<link rel="stylesheet" href="assets/owner-login.css?v=aa965f1467">
-<script src="assets/owner-login-helpers.js?v=6e2ff56799" onerror="window.__heHelpersLoadFailed=true"></script>
+<link rel="stylesheet" href="assets/owner-login.css?v=836d9e9b62">
+<script src="assets/owner-login-helpers.js?v=c7aaa1dd71" onerror="window.__heHelpersLoadFailed=true"></script>
 <script>
   // Applied before anything renders so there's no flash of the wrong theme.
   (function(){
@@ -3596,7 +3596,7 @@
       }).catch(e => ({ ok: false, error: e }));
       const allManualWithoutItems = async () => manualOrdersWithoutItems(
         await fetchAllRows('orders', 'id, order_number, total, currency, status, placed_at, source', q => q.eq('source', 'manual').is('deleted_at', null)));
-      const [inventory, receivedPOs, openPOs, poExpenses, openTasks, pendingApprovals, openIncidents, waitingQuestions, openReturns, ordersWithoutItems, services, orderSyncFlag] = await Promise.all([
+      const [inventory, receivedPOs, openPOs, poExpenses, openTasks, pendingApprovals, openIncidents, waitingQuestions, openReturns, ordersWithoutItems, services, orderSyncFlag, products] = await Promise.all([
         settle(fetchAllRows('inventory', 'id, product_id, available, reserved, damaged, sample, wholesale, promotional, returned, recalled, low_stock_threshold', q => q)),
         settle(fetchAllRows('purchase_orders', 'id, po_number, status, purchase_order_items(product_id, quantity, quantity_received)', q => q.eq('status', 'received'))),
         settle(fetchAllRows('purchase_orders', 'id, po_number, status, expected_at', q => q.in('status', ['ordered', 'shipped']))),
@@ -3609,14 +3609,24 @@
         settle(allManualWithoutItems()),
         settle(supabase.from('service_status').select('id, status')),
         settle(supabase.from('feature_flags').select('flag_key, enabled').eq('flag_key', 'shopify_order_sync')),
+        settle(fetchAllRows('products', 'id, is_active', q => q.eq('is_active', false))),
         loadAgentControls().catch(() => {}),
       ]);
       // Agent switches come from the AI Agent Activity loader (Business Health runs it).
+      // Agents off on purpose until launch (#2/#3/#7/#8) are not listed as "paused".
       const agentsPaused = agentControlsState === 'ok'
-        ? { ok: true, rows: AGENT_REGISTRY.filter(a => agentControlsByNum[a.num] && agentControlsByNum[a.num].enabled === false) }
+        ? { ok: true, rows: AGENT_REGISTRY.filter(a => !a.intendedOff && agentControlsByNum[a.num] && agentControlsByNum[a.num].enabled === false) }
+        : { ok: false, error: 'switches could not be read' };
+      // EXT10b (missions 7-10): the same honest state as the AI Agents page.
+      const truths = AGENT_REGISTRY.map(a => ({ a, t: agentTruth(a, agentControlsByNum[a.num]) }));
+      const agentsUnhealthy = agentControlsState === 'ok'
+        ? { ok: true, rows: truths.filter(x => x.t.key === 'failed' || x.t.key === 'stale').map(x => ({ num: x.a.num, state: x.t.key })) }
+        : { ok: false, error: 'switches could not be read' };
+      const agentsUnknown = agentControlsState === 'ok'
+        ? { ok: true, rows: truths.filter(x => x.t.key === 'unknown').map(x => ({ num: x.a.num })) }
         : { ok: false, error: 'switches could not be read' };
       ATTN_FINDINGS = attentionFindings({ inventory, receivedPOs, openPOs, poExpenses, openTasks, pendingApprovals, openIncidents,
-        waitingQuestions, openReturns, ordersWithoutItems, services, orderSyncFlag, agentsPaused }, Date.now());
+        waitingQuestions, openReturns, ordersWithoutItems, services, orderSyncFlag, agentsPaused, agentsUnhealthy, agentsUnknown, products }, Date.now());
       ATTN_CHECKED_AT = Date.now();
       renderAttentionChecks();
     }
@@ -3655,6 +3665,7 @@
             <span class="badge attnLevel">${esc(LEVEL[f.level])}</span>
             <b>${esc(f.title)}${f.count != null ? ': ' + esc(String(f.count)) : ''}</b>
             ${f.oldest ? `<span class="attnAge"> · oldest ${esc(timeAgo(f.oldest))}</span>` : ''}
+            ${f.action ? `<div class="attnAction"><span class="attnActionLbl">Next step:</span> ${esc(f.action)}</div>` : ''}
             <details class="attnWhy"><summary>Why is this here?</summary><p>${esc(f.why)}</p></details>
           </div>
           <div class="actions">
@@ -6234,11 +6245,11 @@
         desc: 'Generates, re-syncs, and voids invoices whenever an order is created or changes.',
         touches: ['orders (read)', 'invoices (write)'],
         limit: 'Fully automatic. Only ever creates paperwork — never touches money or sends anything. Its pause switch is real: turning it off stops it from creating, re-syncing, or voiding any invoice — new orders still save fine, they just won’t get invoiced until it’s back on.', enforced: true },
-      { num: 2, name: 'Order Intake Agent', ai: false, status: 'Last recorded state (September 26, 2026): switched off — its GitHub workflow was disabled until the store has products, so it should not start by itself when GitHub minutes reset on October 1. This dashboard cannot see GitHub, so check GitHub → Actions before relying on this; turning it back on is a deliberate step (Enable workflow).',
+      { num: 2, name: 'Order Intake Agent', ai: false, intendedOff: true, status: 'Last recorded state (September 26, 2026): switched off — its GitHub workflow was disabled until the store has products, so it should not start by itself when GitHub minutes reset on October 1. This dashboard cannot see GitHub, so check GitHub → Actions before relying on this; turning it back on is a deliberate step (Enable workflow).',
         desc: 'Flags missing info, financial mismatches, bad addresses, and duplicate order numbers.',
         touches: ['orders (read)', 'tasks (write)'],
         limit: 'Fully automatic. Only opens a task for you to look at — never edits or cancels an order itself.', enforced: false },
-      { num: 3, name: 'Order Monitoring Agent', ai: false, status: 'Last recorded state (September 26, 2026): switched off — its GitHub workflow was disabled until the store has products, so it should not start by itself when GitHub minutes reset on October 1. This dashboard cannot see GitHub, so check GitHub → Actions before relying on this; turning it back on is a deliberate step (Enable workflow).',
+      { num: 3, name: 'Order Monitoring Agent', ai: false, intendedOff: true, status: 'Last recorded state (September 26, 2026): switched off — its GitHub workflow was disabled until the store has products, so it should not start by itself when GitHub minutes reset on October 1. This dashboard cannot see GitHub, so check GitHub → Actions before relying on this; turning it back on is a deliberate step (Enable workflow).',
         desc: 'Flags large refunds/cancellations, Shopify fraud flags, and stuck-unfulfilled orders.',
         touches: ['orders (read)', 'approval_requests (write)', 'tasks (write)'],
         limit: 'Never acts alone above your threshold. A refund or cancellation over the limit opens a real approval request and waits for you — it cannot approve its own request.', enforced: false },
@@ -6254,11 +6265,11 @@
         desc: 'Logs what it would email a customer for each order event (received / shipped / delivered / delayed / cancelled / refunded).',
         touches: ['customer_notifications (write)'], dryRun: true,
         limit: 'Cannot actually send anything — no email service is connected yet. Right now it can only write a log entry of what it would have sent.', enforced: true, cronJobName: 'agent_6_customer_notifications' },
-      { num: 7, name: 'Customer Service Agent', ai: true, status: 'Last recorded state (September 26, 2026): switched off — its GitHub workflow was disabled until the store has products, so it should not start by itself when GitHub minutes reset on October 1. This dashboard cannot see GitHub, so check GitHub → Actions before relying on this; turning it back on is a deliberate step (Enable workflow).',
+      { num: 7, name: 'Customer Service Agent', ai: true, intendedOff: true, status: 'Last recorded state (September 26, 2026): switched off — its GitHub workflow was disabled until the store has products, so it should not start by itself when GitHub minutes reset on October 1. This dashboard cannot see GitHub, so check GitHub → Actions before relying on this; turning it back on is a deliberate step (Enable workflow).',
         desc: "Drafts a reply to a customer question using that order's context and any procedures you've marked visible to it.",
         touches: ['customer_inquiries (read/write)', 'orders (read)', 'sop_documents (read — opt-in per procedure only)', 'ai_decision_log (write)'],
         limit: 'Never sends anything itself — every reply is a draft you review, edit, and copy yourself. An independent keyword check (refunds, health/safety, anger, legal threats) forces human review even if the AI itself sounded confident. Capped at $30/month in AI spending; drafting pauses for the rest of the month if that’s hit.', enforced: false },
-      { num: 8, name: 'Supervisor Agent', ai: false, status: 'Last recorded state (September 26, 2026): switched off — its GitHub workflow was disabled until the store has products, so it should not start by itself when GitHub minutes reset on October 1. This dashboard cannot see GitHub, so check GitHub → Actions before relying on this; turning it back on is a deliberate step (Enable workflow).',
+      { num: 8, name: 'Supervisor Agent', ai: false, intendedOff: true, status: 'Last recorded state (September 26, 2026): switched off — its GitHub workflow was disabled until the store has products, so it should not start by itself when GitHub minutes reset on October 1. This dashboard cannot see GitHub, so check GitHub → Actions before relying on this; turning it back on is a deliberate step (Enable workflow).',
         desc: 'Checks for orders missing an invoice, stalled tasks, and orders/shipments that disagree with each other.',
         touches: ['orders (read)', 'invoices (read)', 'tasks (read/write)', 'shipments (read)', 'wholesale_inquiries (read)', 'contact_messages (read)'],
         limit: 'Fully automatic. Only opens a task when something looks wrong — never edits the records it’s checking.', enforced: false },
@@ -6288,6 +6299,10 @@
       if (agentControlsState === 'failed') return { key: 'unknown', label: 'Unknown', cls: '', detail: 'The agent switches could not be read, so the dashboard cannot say whether this agent is on.' };
       if (agentControlsState === 'loading') return { key: 'unknown', label: 'Checking…', cls: '', detail: '' };
       if (!ctrl) return { key: 'unknown', label: 'Unknown', cls: '', detail: 'No switch row for this agent in agent_controls.' };
+      if (ctrl.enabled === false && a.intendedOff) {
+        return { key: 'off-intended', label: 'Off — on purpose', cls: 'sev-low',
+          detail: 'Switched off on purpose until the store launches (recorded decision). Nothing is wrong.' };
+      }
       if (ctrl.enabled === false) {
         return { key: 'disabled', label: 'Disabled', cls: 'sev-medium',
           detail: a.enforced ? 'Paused: its own code checks this switch.' : 'Switch is off, but this agent does not check its switch yet — make sure its runner is off too.' };
@@ -6295,6 +6310,9 @@
       // Agents word it differently ("failed", "error", "failure"…); any of
       // them is a failure, never a quiet "Enabled".
       if (/fail|error/i.test(String(ctrl.last_run_status || ''))) return { key: 'failed', label: 'Failed', cls: 'sev-high', detail: 'The last run failed' + (ctrl.last_error ? ': ' + maskSensitive(ctrl.last_error) : '.') };
+      if (a.cronJobName && cronJobState !== 'ok') {
+        return { key: 'unknown', label: 'Unknown', cls: '', detail: 'The list of scheduled jobs could not be read, so the dashboard cannot say whether this agent is running.' };
+      }
       if (a.cronJobName) {
         const job = cronJobStatusByName[a.cronJobName];
         if (!job || !job.active) return { key: 'stale', label: 'Stale', cls: 'sev-high', detail: job ? 'Its scheduled job is not active, so it will not run.' : 'Its scheduled job could not be confirmed.' };
@@ -6315,6 +6333,9 @@
     // Populated from the get_agent_cron_status() RPC — jobname -> {jobname, schedule, active}.
     // Only ever has entries for agents actually migrated to pg_cron.
     let cronJobStatusByName = {};
+    // EXT10b: whether that schedule list could be read at all. If not, an
+    // agent's schedule is UNKNOWN, never "stale".
+    let cronJobState = 'loading';
 
     // One line of honest job-health text for an agent migrated to pg_cron.
     // Built from agent_controls' last_run_* columns (written by the agent's
@@ -6442,8 +6463,10 @@
           if (!cronErr && cronRows) {
             cronJobStatusByName = {};
             cronRows.forEach(j => { cronJobStatusByName[j.jobname] = j; });
-          }
+            cronJobState = 'ok';
+          } else cronJobState = 'failed';
         } catch (cronCatchErr) {
+          cronJobState = 'failed';
           console.warn('Could not load cron job status:', cronCatchErr && cronCatchErr.message ? cronCatchErr.message : cronCatchErr);
         }
 

@@ -46,12 +46,29 @@ test.describe('attentionFindings (pure)', () => {
       'agentsPaused:info:1', 'backups:info:null', 'duplicatePoExpense:critical:1', 'lateDeliveries:action:1', 'lowStock:action:1',
       'negativeStock:critical:1', 'orderSyncOff:info:1', 'ordersWithoutItems:action:1', 'otherIncidents:info:1', 'overdueTasks:action:1',
       'pendingApprovals:action:2', 'questionsToReview:action:2', 'receivedNotStocked:critical:1', 'returnsWaiting:action:1',
-      'servicesDown:action:1', 'unknownServices:info:2', 'urgentIncidents:action:1',
+      'servicesDown:action:1', 'unknownServices:info:2', 'urgentIncidents:action:1', 'lowStockNotSet:info:1',
     ].sort());
+    // EXT10b: every finding says what to do next
+    for (const x of f) expect(x.action, x.key).toBeTruthy();
     expect(f.find(x => x.key === 'pendingApprovals').oldest).toBe('2026-09-01T00:00:00Z');
     // critical first, then unknown, action, info
     const order = f.map(x => x.level);
     expect(order).toEqual([...order].sort((a, b) => ['critical', 'unknown', 'action', 'info'].indexOf(a) - ['critical', 'unknown', 'action', 'info'].indexOf(b)));
+  });
+
+  test('EXT10b: low-stock level not set is CONFIG REQUIRED, deactivated products are left out of it, and stock on them is listed', () => {
+    const f = attentionFindings({
+      inventory: ok([{ product_id: 'a', available: 2, low_stock_threshold: null }, { product_id: 'b', available: 4, low_stock_threshold: null },
+        { product_id: 'c', available: 0, damaged: 0, low_stock_threshold: 3 }]),
+      products: ok([{ id: 'b', is_active: false }, { id: 'c', is_active: false }]),
+    }, NOW);
+    const notSet = f.find(x => x.key === 'lowStockNotSet');
+    expect(notSet).toMatchObject({ level: 'info', count: 1, config: true });
+    expect(notSet.why).toContain('CONFIG REQUIRED');
+    expect(f.find(x => x.key === 'retiredWithStock')).toMatchObject({ level: 'info', count: 1 });
+    // products unreadable: the deactivated check says "could not check", never 0
+    const g = attentionFindings({ inventory: ok([{ product_id: 'a', available: 2, low_stock_threshold: 1 }]), products: { ok: false } }, NOW);
+    expect(g.find(x => x.key === 'retiredWithStock')).toMatchObject({ level: 'unknown', count: null });
   });
 
   test('order sync ON (or flag missing) is not listed', () => {

@@ -482,11 +482,12 @@
         if (!input) return;
         if (!input.ok) {
           out.push({ key, level: 'unknown', title: ATTN_TITLES[key] + ': could not check', count: null, oldest: null,
-            page: ATTN_PAGES[key], why: 'The dashboard could not read this just now, so it cannot say whether anything is wrong. Not the same as "nothing found".' });
+            page: ATTN_PAGES[key], why: 'The dashboard could not read this just now, so it cannot say whether anything is wrong. Not the same as "nothing found".',
+            action: 'Press "Check again". If it stays like this, the data may be unreadable for your account: tell the owner.' });
           return;
         }
         const f = fn(input.rows || []);
-        if (f && f.count > 0) out.push(Object.assign({ key, title: ATTN_TITLES[key], page: ATTN_PAGES[key] }, f));
+        if (f && f.count > 0) out.push(Object.assign({ key, title: ATTN_TITLES[key], page: ATTN_PAGES[key], action: ATTN_ACTIONS[key] }, f));
       }
       check('negativeStock', inp.inventory, rows => {
         const bad = rows.filter(r => ATTN_BUCKETS.some(b => r[b] !== null && r[b] !== undefined && Number(r[b]) < 0));
@@ -543,6 +544,22 @@
         const d = rows.filter(s => s.status === 'down' || s.status === 'degraded');
         return { level: 'action', count: d.length, oldest: null, why: 'Services you marked down or degraded.' };
       });
+      // EXT10b (missions 15/16): products known to be deactivated, when that read worked.
+      const inactiveIds = inp.products && inp.products.ok ? new Set((inp.products.rows || []).filter(p => p.is_active === false).map(p => p.id)) : null;
+      check('lowStockNotSet', inp.inventory, rows => {
+        const unset = rows.filter(r => (r.low_stock_threshold === null || r.low_stock_threshold === undefined) && !(inactiveIds && inactiveIds.has(r.product_id)));
+        return { level: 'info', count: unset.length, oldest: null, config: true,
+          why: 'CONFIG REQUIRED: these products have no low-stock level, so the dashboard cannot say when they run low. It never guesses one.' };
+      });
+      if (inp.products) check('retiredWithStock', inp.products.ok ? inp.inventory : inp.products, rows => {
+        const held = rows.filter(r => inactiveIds && inactiveIds.has(r.product_id) && ATTN_BUCKETS.some(b => Number(r[b] || 0) > 0));
+        return { level: 'info', count: held.length, oldest: null,
+          why: 'Deactivated products that still hold stock in some bucket. Not an error by itself: deactivating keeps history and stock.' };
+      });
+      check('agentsUnhealthy', inp.agentsUnhealthy, rows => ({ level: 'action', count: rows.length, oldest: null,
+        why: 'Agents whose last run failed, or that have not run on schedule. ' + rows.map(r => '#' + r.num + ' ' + r.state).join(', ') + '.' }));
+      check('agentsUnknown', inp.agentsUnknown, rows => ({ level: 'info', count: rows.length, oldest: null,
+        why: 'Agents whose real state the dashboard cannot see (for example they run on GitHub Actions, or the schedule list could not be read). Unknown is not the same as running: ' + rows.map(r => '#' + r.num).join(', ') + '.' }));
       check('agentsPaused', inp.agentsPaused, rows => ({ level: 'info', count: rows.length, oldest: null,
         why: 'Agents switched off. If that was on purpose, nothing is wrong.' }));
       check('orderSyncOff', inp.orderSyncFlag, rows => {
@@ -552,7 +569,8 @@
       });
       // Backups cannot be seen from the dashboard at all: always say so.
       out.push({ key: 'backups', level: 'info', title: ATTN_TITLES.backups, count: null, oldest: null, page: null,
-        why: 'The dashboard cannot see the backup jobs. Status: UNKNOWN until you check them (2 minutes, read-only; see the owner backup checklist).' });
+        why: 'The dashboard cannot see the backup jobs. Status: UNKNOWN until you check them (2 minutes, read-only; see the owner backup checklist).',
+        action: 'Owner: do the 2-minute backup look (docs/ops/PRODUCTION_READONLY_VERIFICATION_EXT10.md, V1).' });
       const rank = { critical: 0, unknown: 1, action: 2, info: 3 };
       return out.sort((a, b) => rank[a.level] - rank[b.level]);
     }
@@ -562,12 +580,38 @@
       lowStock: 'Low stock', lateDeliveries: 'Late deliveries', returnsWaiting: 'Returns waiting for a step', ordersWithoutItems: 'Orders saved without items',
       otherIncidents: 'Other open incidents', unknownServices: 'Service status unknown', servicesDown: 'Services down or degraded',
       agentsPaused: 'Agents switched off', orderSyncOff: 'Shopify order sync is off', backups: 'Backups: not verified here',
+      lowStockNotSet: 'Low-stock level not set', retiredWithStock: 'Deactivated products still holding stock',
+      agentsUnhealthy: 'Agents failed or not running on schedule', agentsUnknown: 'Agents in an unknown state',
+    };
+    // EXT10b (mission 3): the expected next step for each check, in plain words.
+    const ATTN_ACTIONS = {
+      negativeStock: 'Open Inventory, look at the product\'s stock history, then correct the count with a manual adjustment and a reason.',
+      receivedNotStocked: 'Open the purchase order: add the missing stock with a manual adjustment (reason: the PO number). Do not receive it again.',
+      duplicatePoExpense: 'Open Expenses and delete the extra copy of the purchase-order cost (it goes to the recycle bin).',
+      overdueTasks: 'Finish them, or reopen and change the due date.',
+      pendingApprovals: 'Approve or reject each request (your password is asked).',
+      urgentIncidents: 'Open each incident, work it, and record what was done.',
+      questionsToReview: 'Read each question and its draft; reply outside the dashboard, then mark it handled.',
+      lowStock: 'Decide whether to reorder (nothing is ordered automatically).',
+      lateDeliveries: 'Contact the supplier, or update the expected date.',
+      returnsWaiting: 'Take the next step on each return (approve or reject, receive, refund record or close).',
+      ordersWithoutItems: 'Add the missing items to each order, or delete the order if it was a mistake.',
+      otherIncidents: 'Review when there is time.',
+      unknownServices: 'Set each service\'s status on Continuity (operational, degraded or down).',
+      servicesDown: 'Check the service; update its status when it is back.',
+      agentsPaused: 'Nothing, if they were switched off on purpose.',
+      orderSyncOff: 'Nothing until launch: it is off on purpose.',
+      lowStockNotSet: 'Owner decision: set a low-stock level on each product that should have one (Products page), or leave it unset.',
+      retiredWithStock: 'Decide: sell it, write it off with a manual adjustment and a reason, or reactivate the product.',
+      agentsUnhealthy: 'Open AI Agents, read the last error; do not change data by hand to "catch up" — tell the owner.',
+      agentsUnknown: 'Owner: confirm with the read-only agent check (Query C, V2) or GitHub → Actions. Do not assume they are running.',
     };
     const ATTN_PAGES = {
       negativeStock: 'inventoryPanel', receivedNotStocked: 'purchaseOrdersPanel', duplicatePoExpense: 'expensesPanel', overdueTasks: 'tasksPanel',
       pendingApprovals: 'approvalsPanel', urgentIncidents: 'incidentsPanel', questionsToReview: 'inquiriesPanel', lowStock: 'inventoryPanel',
       lateDeliveries: 'purchaseOrdersPanel', returnsWaiting: 'returnsPanel', ordersWithoutItems: 'accountingPanel', otherIncidents: 'incidentsPanel',
       unknownServices: 'continuityPanel', servicesDown: 'continuityPanel', agentsPaused: 'aiPanel', orderSyncOff: 'flagsPanel', backups: null,
+      lowStockNotSet: 'inventoryPanel', retiredWithStock: 'inventoryPanel', agentsUnhealthy: 'aiPanel', agentsUnknown: 'aiPanel',
     };
 
   // ---- EXT10: request keys (U42) ----
