@@ -129,7 +129,7 @@ Helpers file unchanged in API (8); its hash changed (CSV guard). `index.html` = 
 
 ## 10. Extension 10 addendum (2026-10-11)
 
-`claude/platform-ext10-operations-hardening-2026-10-11` was created from extension 9 (`f9e4850`), so it contains everything above. `main` is still `d3db7bc`. EXT10 adds page code, one new asset (`assets/change-password.js`), tests, tools, docs and drafts 29–30 (not installed); **no workflow file**.
+`claude/platform-ext10-operations-hardening-2026-10-11` was created from extension 9 (`f9e4850`), so it contains everything above. `main` is still `d3db7bc`. EXT10 adds page code, three new assets (`assets/change-password.js`, `assets/search-page.js`, `assets/dashboard-page.js`), tests, tools, docs and drafts 29–30 (not installed); **no workflow file**.
 
 | Change | Who notices | Needs SQL first? |
 |---|---|---|
@@ -140,6 +140,16 @@ Helpers file unchanged in API (8); its hash changed (CSV guard). `index.html` = 
 | Feature request Add button works after the first add (X10-01) | Owner | No |
 | Evidence without a file no longer reports a failure after saving (X10-02) | Owner, staff | No |
 | Unreadable amounts show "—" instead of $0.00 (X10-03) | Owner | No |
-| change-password page: no inline script, strict policy | Nobody (invisible) | No |
+| change-password, search and dashboard pages: no inline script, strict policy | Nobody (invisible) | No |
+| Home checks say "Next step"; new checks: low-stock level not set, retired products with stock, agents unhealthy / unknown | Owner, staff | No |
+| Agents off on purpose show "Off — on purpose"; an unreadable schedule shows Unknown, not Stale (X10-14) | Owner | No |
+| Receive whose reply was lost: "Receipt status unknown — do not press again" + read-only "Check this order now" (X10-13); received line short of stock says so (X10-12) | Owner, staff receiving | No |
+| System status card on Continuity + "Copy diagnostic summary" | Owner | No |
+| Switches show ON/OFF and what they need first | Owner | No |
+| Lists and pick-lists no longer stop silently at the database reply limit (X10-15) | Everyone with large data | No |
+| Search/dashboard pages say so when the library is refused instead of going blank (X10-21) | Everyone (rare) | No |
+| Tax export refuses while a newly picked period is still loading (X10-22) | Owner, accountant | No |
+| Phone: check/approval/session rows stack instead of squeezing the text (X10-23) | Everyone on a phone | No |
+| Query H (drift check) + result interpreter tool | Owner (read-only, runs nothing) | No |
 
 Helper file API is 9 (was 8); the page refuses a mix of old and new files. Rollback: revert the merge commit.

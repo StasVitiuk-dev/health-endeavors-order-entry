@@ -4,7 +4,7 @@
 
 ## 1. In one paragraph
 
-`main` (the live dashboard) is unchanged since `d3db7bc`. Everything from extensions 1–10 is on the branch `claude/platform-ext10-operations-hardening-2026-10-11` (built on EXT9 `f9e4850`), **tested locally, not merged, not deployed**. EXT10 (two missions) makes phones show wide tables as cards, adds a next step to every Home check, honest agent health, a receipt-status lock after a lost reply on Receive, a System status card, complete pick-lists past the database reply limit, a read-only production drift check, lets every create form refuse duplicates after a lost reply, puts the nightly integrity check on Home with honest states, removes inline scripts from the change-password page, and fixes seven real problems. All new database-dependent features stay **off** until Stas installs the matching SQL. No production system was touched.
+`main` (the live dashboard) is unchanged since `d3db7bc`. Everything from extensions 1–10 is on the branch `claude/platform-ext10-operations-hardening-2026-10-11` (built on EXT9 `f9e4850`), **tested locally, not merged, not deployed**. EXT10 (two missions) makes phones show wide tables as cards, adds a next step to every Home check, honest agent health, a receipt-status lock after a lost reply on Receive, a System status card, complete pick-lists past the database reply limit, a read-only production drift check, lets every create form refuse duplicates after a lost reply, puts the nightly integrity check on Home with honest states, removes inline scripts from the change-password, search and dashboard pages, and fixes ten real problems (X10-01, 02, 03, 12, 13, 14, 15, 21, 22, 23). All new database-dependent features stay **off** until Stas installs the matching SQL. No production system was touched.
 
 ## 2. Where to look
 
@@ -42,7 +42,7 @@
 | Agents | #4/#5/#6 reported on; #1 UNVERIFIED; #2/#3/#7/#8 off on purpose; #9/#10 dashboard-only; PRODUCTION STATE REQUIRES READ-ONLY VERIFICATION |
 | Customer communication | no send path (tested) |
 | Accounting / tax | read-only (tested); refund rule N4 undecided |
-| Security | CSP + frame guard + no-referrer on every page; change-password without `'unsafe-inline'` scripts; pinned library; GitHub credential still admin (X6-17) |
+| Security | CSP + frame guard + no-referrer on every page; change-password, search and dashboard without `'unsafe-inline'` scripts; pinned library; GitHub credential still admin (X6-17) |
 | Permissions | expected vs known mapped; UNVERIFIED until Query G |
 | Staging | built and tested (includes EXT10); URL needs owner choice |
 | Accessibility | automated checks pass; real VoiceOver / Safari NOT VERIFIED (M-38 added) |
