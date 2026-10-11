@@ -6,7 +6,7 @@
 
 | Class | Items | Count |
 |---|---|---|
-| **FIX NOW (done in EXT11)** | X11-01 missing order totals counted as $0 · X11-02 return receive after a lost reply · X11-03 recall quarantine after a lost reply · X11-04 missing report figures shown as 0 / $0.00 · installation status + switch safety · merge-before-SQL test profile · sign-in screen reads no data (test) · one-session interpreter + backup intake + evidence expiry | 8 |
+| **FIX NOW (done in EXT11)** | X11-01 missing order totals counted as $0 · X11-02 return receive after a lost reply · X11-03 recall quarantine after a lost reply · X11-04 missing report figures shown as 0 / $0.00 · X11-06 received return labelled "Restocked" · installation status + switch safety · merge-before-SQL test profile · sign-in screen reads no data (test) · one-session interpreter + backup intake + evidence expiry | 8 |
 | **OWNER (decision)** | Query F thresholds · low-stock levels · partial returns · staging location · RPO/RTO · backup status row · week definition · employees approve? · one recall per lot · orders without items policy · document categories · order-number uniqueness rule (after Query C/F) | 12 |
 | **PRODUCTION VERIFY (read-only, owner runs)** | backup look · Query C, D, E, F, G, H · agent states · audit coverage · storage access rules · GitHub access check | 6 groups |
 | **DEPLOY (owner production step)** | merge · R1–R5 + switches · line guard · integrity rules · request keys · permission fixes · nightly check · revoke direct stock writes (later) | 8 |

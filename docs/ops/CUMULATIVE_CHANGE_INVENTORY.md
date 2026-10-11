@@ -166,6 +166,7 @@ Helper file API is 9 (was 8); the page refuses a mix of old and new files. Rollb
 | Return Mark Received after a lost connection says whether it was saved and that the restock did not run (X11-02) | Owner, staff | No |
 | Recall Quarantine after a lost connection, same (X11-03) | Owner | No |
 | Report History shows "—" for a figure missing from a daily report; the week/month total is unknown too (X11-04) | Owner | No |
+| A received return says "Chosen outcome: Restock to Available" instead of "Restocked to Available" (X11-06) | Owner, staff | No |
 | System status: database steps installed / not installed / UNKNOWN and "Switch safety" (only while the page is open) | Owner | No |
 | Interpreter: one-sitting read-only session summary, backup intake, evidence expiry | Owner (via Claude) | No |
 

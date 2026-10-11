@@ -2,14 +2,15 @@
 
 **Status:** CURRENT. Branch `claude/platform-ext11-final-readiness-2026-10-11`, created from the final EXT10 commit `56a927c` (EXT10 draft PR #26 stays as history; the EXT11 draft PR replaces it for review). **Not merged, not deployed. Production not touched.** `main` unchanged at `d3db7bc`. Internal dashboard/platform only.
 
-Plain-English summary for Stas: EXT11 looked for everything still worth doing before you start production checks, and found four real problems. The dashboard could:
+Plain-English summary for Stas: EXT11 looked for everything still worth doing before you start production checks, and found five real problems. The dashboard could:
 
 - count an order with no total as $0 of revenue;
 - after a lost connection on a return, say "nothing was changed" when the return had in fact been saved as Received but its stock never added back;
 - do the same on a recall, leaving recalled stock sellable;
-- show missing report figures as 0.
+- show missing report figures as 0;
+- label a received return "Restocked to Available" even when its restock had not run.
 
-All four are fixed and tested. System status now also shows which database steps are installed, and warns if a switch is ON without its step. A new test proves that merging the code before any SQL is safe.
+All five are fixed and tested. System status now also shows which database steps are installed, and warns if a switch is ON without its step. A new test proves that merging the code before any SQL is safe.
 
 Your remaining work is now a short, ordered list of checks and steps only you can do: **`OWNER_UNBLOCK_CENTER_EXT11.md`**, then **`PRODUCTION_READINESS_BOARD_EXT11.md`**.
 
@@ -32,6 +33,7 @@ Your remaining work is now a short, ordered list of checks and steps only you ca
 | X11-02 | Return Mark Received after a lost connection said "nothing was changed" although the return could be Received with its restock never run; a second press was refused | failure-recovery "X11-02" (3 tests) |
 | X11-03 | Recall Quarantine, same pattern: recall Quarantined, stock never moved | inventory-safety "X11-03" |
 | X11-04 | Report History showed 0 / $0.00 for a figure missing from a daily report, and week/month totals looked complete | missing-totals-ext11 "Report History", helpers-unit "EXT11" |
+| X11-06 | A received return was labelled "Outcome: Restocked to Available" even when the restock had not run (found by reviewing the final screenshots); now "Chosen outcome: Restock to Available" | failure-recovery "X11-02: claim saved" |
 
 **Test-harness problems found and fixed (not dashboard bugs):** the System status row helper matched "Database" inside "Database steps"; the diagnostic test read the text before it was written; the new merge-before-SQL adjustment test checked the history row before it was saved (reproduced with a delayed save). Two existing tests expected the old wording "nothing was changed" for the not-saved case and now expect the read-back wording (behaviour change on purpose).
 
@@ -52,7 +54,7 @@ New: `CURRENT_PLATFORM_STATE_EXT11` · `OWNER_UNBLOCK_CENTER_EXT11` · `PRODUCTI
 
 | Area | Estimate | Basis |
 |---|---|---|
-| Dashboard (branch) | ~89% (was 87%) | four more truth fixes, installation status |
+| Dashboard (branch) | ~89% (was 87%) | five more truth fixes, installation status |
 | Live dashboard | ~60% | `main` still lacks EXT1–11 |
 | **Production readiness** | **~15% (unchanged)** | `PRODUCTION_READINESS_BOARD_EXT11.md` §1: nothing merged, installed or checked in production |
 | Data integrity | ~74% (was 72%) | unknown-vs-zero and lost-reply read-back; database packages still not installed |
