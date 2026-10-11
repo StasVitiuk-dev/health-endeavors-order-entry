@@ -70,19 +70,21 @@ New: `CURRENT_PLATFORM_STATE_EXT11` · `OWNER_UNBLOCK_CENTER_EXT11` · `PRODUCTI
 
 ## 6. Final evidence (all local, synthetic data; production not touched)
 
-Page code frozen at **`ba2b055`**: no page, helper or CSS change after it. Later commits change only tests, tools and docs.
+Page code frozen at **`32c05e2`** (final): no page, helper or CSS change after it; later commits change only tests and docs. The earlier freeze `ba2b055` was replaced after the screenshot review found X11-06 (one label).
 
 | Check | Result |
 |---|---|
-| Full suite (desktop 1100 + iPhone 390) on `13cea22` (= frozen page code) | **2,786 tests: 1,778 passed (including 8 expected failures), 6 failed, 0 flaky**, 1,002 skipped with a stated reason, **0 unexplained**. The 6: 3 generated write-path lists out of date (line numbers), 1 new test checking a history row too early (harness; reproduced and fixed), 1 search-palette speed budget (593 ms vs 250 ms under three parallel workers) and 1 session reload aborted by the browser; both passed when re-run alone and are in the ×3 run below. After the fixes in `199ed38` (tests and lists only): those specs 38/38 |
-| High-risk specs ×3 | HR_RESULT |
-| Page mutations | 146 earlier + **7 new EXT11 mutants: 7 / 7 caught** (MUT_RESULT) |
+| Full suite on `32c05e2` (desktop 1100 + iPhone 390) | **2,786 tests: 1,783 passed (including 8 expected failures), 1 failed, 0 flaky**, 1,002 skipped with a stated reason, **0 unexplained**. The 1: the 10,000-record search-speed test, whose page switch can wait past 20 s while 10,000 rows are drawn; it fails **1 in 5 on the EXT10 code too** (measured), so not an EXT11 regression; fixed in the test (`eb8f31b`: wait for the drawing first), then 8/8 |
+| Earlier full suite on `13cea22` (freeze `ba2b055`) | 2,786 tests: 1,778 passed, 6 failed (3 generated lists, 1 new-test timing reproduced and fixed, the search-speed test and one session reload under load; both passed alone and ×3), 0 flaky |
+| High-risk specs ×3 (45 files incl. every EXT11 spec, search-palette, session-failures) on `199ed38` | **2,733 passed, 0 failed, 0 flaky** |
+| After X11-06: returns / stock / System status / write-path / request-baseline specs ×3 on `eb8f31b` | **966 passed, 0 failed** |
+| Page mutations | **153 / 153 caught** (full set on `199ed38`) + the X11-06 mutant on `32c05e2` = **154 / 154** |
 | SQL mutations | **13 / 13 caught** |
 | Local database tests (re-run; no SQL changed in EXT11) | install package 61/61 · PO forced orderings 0 guarded failures · browser-path races 0/0 · request keys 23/23 · reconciliation 24/24 · Query F 33/33 · restore drill 6/6 · stock switches 23/23 · Query G 11/11 · integrity rules 17/17 · nightly schedule 12/12 · request-key switch 10/10 · Home results 25/25 · 50k performance 10/10 · drift 27/27 |
 | Stress / random | 5 runs, 0 failed · seed 909 × 40 rounds: 0 failing, 0 deadlocks |
 | R1–R5 fingerprint | `3df2bf7a07b451f12f9359ceca1c85df` (unchanged) |
 | Secret scan (`56a927c..HEAD`) | clean: no keys, tokens, private keys, real e-mails or model identifiers |
-| Screenshots | SHOTS_RESULT |
+| Screenshots | 8 in `design-review/dashboard-extension-11-2026-10-11/` (`MANIFEST.md`), captured on `32c05e2`, reviewed by eye (the review found X11-06) |
 | `main` | `d3db7bc`, unchanged; nothing merged or deployed |
 
 ### What these results do NOT show
@@ -91,4 +93,5 @@ Local SQL tests are not a production install. Prepared RPCs are not installed. E
 ### Lessons recorded
 - Regenerate the write-path lists after the **last** page change, not an earlier one.
 - A test that waits for one write must not assume the next write has landed.
-- A speed budget measured under three parallel workers needs a solo re-run before it is called a regression.
+- A speed budget measured under three parallel workers needs a solo re-run, and a run on the previous code, before it is called a regression.
+- Review the final screenshots before freezing (found X10-24 in EXT10 and X11-06 here).

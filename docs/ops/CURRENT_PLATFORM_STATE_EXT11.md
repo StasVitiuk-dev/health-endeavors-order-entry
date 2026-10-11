@@ -39,7 +39,7 @@ All new database-dependent features stay **off** until Stas installs the matchin
 
 | Area | State |
 |---|---|
-| Dashboard pages and workflows | IMPLEMENTED IN BRANCH, TESTED LOCALLY (full suite on the frozen commit: report §6); NOT DEPLOYED |
+| Dashboard pages and workflows | IMPLEMENTED IN BRANCH, TESTED LOCALLY (full suite on the frozen commit `32c05e2`: report §6); NOT DEPLOYED |
 | Merge before any SQL | TESTED LOCALLY with a fixture that answers like today's production (`merge-without-sql-ext11`) |
 | Stock all-or-nothing (R1–R5) | SQL TESTED LOCALLY, READY FOR OWNER DEPLOYMENT; switches OFF; NOT DEPLOYED |
 | Duplicate creates | request keys on 18 create paths behind `request_keys` (OFF); drafts 19 + 27 NOT INSTALLED |
