@@ -106,6 +106,7 @@ expect_eq "8b nothing installed (missing table)" "$(count_funcs)" "0"
 
 # 8c. a hostile search_path cannot change who may change stock (EXT4) ----------------
 fresh_db; run "$INSTALL" >/dev/null
+q "insert into products (name, sku) values ('PKG SEED', 'PKG-SEED')" >/dev/null  # own row: other scripts empty he_real
 out=$(q "insert into profiles (id, email, role) values ('00000000-0000-4000-8000-0000000000e8','emp8@example.test','employee') on conflict (id) do update set role='employee';
   create schema if not exists evil; create or replace function evil.is_owner_or_admin() returns boolean language sql as 'select true';
   grant usage on schema evil to authenticated; grant execute on function evil.is_owner_or_admin() to authenticated;
@@ -122,6 +123,7 @@ expect_eq "8d the runbook's expected fingerprint matches this file (update the r
 
 # 9. permission refusal --------------------------------------------------------------
 fresh_db; run "$INSTALL" >/dev/null
+q "insert into products (name, sku) values ('PKG SEED', 'PKG-SEED')" >/dev/null  # own row: other scripts empty he_real
 out=$(q "set role anon; select public.adjust_inventory(gen_random_uuid(), 'available', 1, 'test', null)")
 echo "$out" | grep -q "permission denied" && ok "9 the public anon role is refused" || bad "9 anon: $out"
 out=$(q "insert into profiles (id, email, role) values ('00000000-0000-4000-8000-0000000000e9','emp9@example.test','employee') on conflict (id) do update set role='employee'; set role authenticated; select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-0000000000e9',false); select public.adjust_inventory((select id from products limit 1), 'available', 1, 'test', null)")
