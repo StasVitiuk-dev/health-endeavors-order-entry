@@ -15,6 +15,12 @@ const SCRATCH = path.resolve(process.argv[2] || path.join(require('os').tmpdir()
 // [name, file, exact text to find, replacement, specs + grep]
 const MUTATIONS = [
   // ---- EXT10b additions (2026-10-11): receipt recovery, Home next steps, agent health, system status, no silent caps ----
+  ['phone rows squeeze their text beside the buttons again (X10-23)', 'assets/owner-login.css',
+    "    .approvalRow .info, .deletedRow .info, .sessionRow .info{ flex-basis:100%; }\n", "",
+    'mobile-cards-ext10 -g "X10-23" --project=iphone'],
+  ['a list read in one request no longer warns at the reply limit', 'owner-login.html',
+    "if (Array.isArray(rows) && rows.length >= ROW_CAP) noteRowCap(", "if (false) noteRowCap(",
+    'scale-matrix -g "one request warns"'],
   ['an unknown receive outcome no longer locks the Receive button', 'owner-login.html',
     "            PO_RECEIPT_UNKNOWN[po.id] = true;\n", "",
     'po-receive -g "not saved: Receive is withheld"'],
