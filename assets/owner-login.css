@@ -637,6 +637,25 @@
     .sidebarOverlay.visible{ display:block; }
   }
 
+  /* EXT10 (U38): wide tables become one card per row on a phone. The cell's
+     column name is shown before its value; the header row stays available to
+     screen readers but is not drawn. Cells without a heading (row buttons)
+     sit at the bottom of the card. */
+  @media (max-width: 600px){
+    section.panel table.phoneCards{ display:block; overflow:visible; white-space:normal; }
+    table.phoneCards thead{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); clip-path:inset(50%); white-space:nowrap; }
+    table.phoneCards tbody{ display:block; }
+    table.phoneCards tr{ display:block; border:1px solid var(--line); border-radius:10px; padding:8px 12px; margin:0 0 10px; }
+    table.phoneCards td{ display:flex; gap:12px; justify-content:space-between; align-items:baseline; padding:5px 0; border:0; min-width:0 !important; white-space:normal !important; text-align:right; overflow-wrap:anywhere; }
+    table.phoneCards td[data-label]::before{ content:attr(data-label); color:var(--muted); font-size:12px; text-align:left; flex:0 0 auto; max-width:45%; }
+    table.phoneCards td:first-child{ display:block; text-align:left; font-weight:500; }
+    table.phoneCards td:first-child::before{ display:block; margin-bottom:2px; }
+    table.phoneCards td.cardActions{ justify-content:flex-start; }
+    table.phoneCards td input{ max-width:100%; }
+    table.phoneCards tr.overdue{ background:var(--danger-bg); border-color:var(--danger); }
+    table.phoneCards tr.overdue td{ background:transparent; }
+  }
+
   /* On a phone the record inspector opens by tapping, so make rows feel tappable */
   @media (hover: none){
     .actRow{ cursor:pointer; }

@@ -32,7 +32,7 @@
 <meta http-equiv="Expires" content="0">
 <title>Health Endeavors — Owner Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous" onerror="window.__sbLoadFailed=true"></script>
-<link rel="stylesheet" href="assets/owner-login.css?v=3b506e1f31">
+<link rel="stylesheet" href="assets/owner-login.css?v=d80525fb3d">
 <script src="assets/owner-login-helpers.js?v=086b091c12" onerror="window.__heHelpersLoadFailed=true"></script>
 <script>
   // Applied before anything renders so there's no flash of the wrong theme.
@@ -2320,6 +2320,30 @@
       });
     }).observe(document.body, { childList: true, subtree: true });
 
+    // EXT10 (U38): on a phone, wide tables marked "phoneCards" become one card
+    // per row (CSS below 600 px). Each cell gets its column name as a label,
+    // and explicit table roles keep screen readers reading it as a table even
+    // though the layout changes. Desktop is unaffected.
+    function labelPhoneCards(root){
+      const tables = root.matches && root.matches('table.phoneCards') ? [root] : (root.querySelectorAll ? root.querySelectorAll('table.phoneCards') : []);
+      tables.forEach(t => {
+        const heads = [...t.querySelectorAll('thead th')].map(th => th.textContent.trim());
+        t.setAttribute('role', 'table');
+        t.querySelectorAll('thead, tbody').forEach(g => g.setAttribute('role', 'rowgroup'));
+        t.querySelectorAll('tr').forEach(tr => {
+          tr.setAttribute('role', 'row');
+          [...tr.children].forEach((c, i) => {
+            if (c.tagName === 'TH') { c.setAttribute('role', 'columnheader'); return; }
+            c.setAttribute('role', 'cell');
+            if (heads[i]) c.setAttribute('data-label', heads[i]); else c.classList.add('cardActions');
+          });
+        });
+      });
+    }
+    new MutationObserver(muts => {
+      muts.forEach(mu => mu.addedNodes.forEach(n => { if (n.nodeType === 1) labelPhoneCards(n); }));
+    }).observe(document.body, { childList: true, subtree: true });
+
     // ---- Progressive loading ----
     // The page you are actually looking at loads first and appears immediately;
     // everything else fills in behind it, a few at a time. Before this, nothing
@@ -4311,7 +4335,7 @@
         const editable = po.status === 'draft' || po.status === 'ordered';
         const awaitingReceipt = po.status === 'ordered' || po.status === 'shipped';
         const linesHtml = items.length ? `
-          <table><thead><tr><th>Item</th><th>SKU</th><th>Qty</th><th>Unit cost</th><th>Line total</th><th title="Unit cost once shipping and tax are shared out">True cost</th><th title="Which production batch this stock came from">Lot #</th><th></th></tr></thead>
+          <table class="phoneCards"><thead><tr><th>Item</th><th>SKU</th><th>Qty</th><th>Unit cost</th><th>Line total</th><th title="Unit cost once shipping and tax are shared out">True cost</th><th title="Which production batch this stock came from">Lot #</th><th></th></tr></thead>
           <tbody>${items.map(l => {
             const outstanding = Number(l.quantity || 0) - Number(l.quantity_received || 0);
             const recordedLots = (PO_LOTS[po.id + '::' + l.product_id] || []);
@@ -5776,7 +5800,7 @@
             ? `<p class="hint" style="margin:0 0 8px;">Showing the ${recent.length} most recent of ${totalOrders} orders total.</p>` : '';
           document.getElementById('ordersTableWrap').innerHTML = `
             ${showingNote}
-            <table><thead><tr><th>Order #</th><th>Customer</th><th>Status</th><th>Total</th><th>Placed</th><th></th></tr></thead>
+            <table class="phoneCards"><thead><tr><th>Order #</th><th>Customer</th><th>Status</th><th>Total</th><th>Placed</th><th></th></tr></thead>
             <tbody>${recent.map(o => `
               <tr data-id="${esc(o.id)}">
                 <td>${esc(o.order_number || o.id)}</td>
@@ -5925,7 +5949,7 @@
         const rows = data || [];
         if (wrap) {
           wrap.innerHTML = !rows.length ? '<p class="empty">No finished tasks yet.</p>' : `
-            <table><thead><tr><th>Title</th><th>Status</th><th>Last changed</th></tr></thead>
+            <table class="phoneCards"><thead><tr><th>Title</th><th>Status</th><th>Last changed</th></tr></thead>
             <tbody>${rows.map(t => `
               <tr data-id="${esc(t.id)}">
                 <td style="white-space:normal;min-width:190px;">
@@ -5970,7 +5994,7 @@
         } else {
           document.getElementById('tasksTableWrap').innerHTML = `
             ${cutoffNote}
-            <table><thead><tr><th>Title</th><th>Priority</th><th>Status</th><th>Due</th></tr></thead>
+            <table class="phoneCards"><thead><tr><th>Title</th><th>Priority</th><th>Status</th><th>Due</th></tr></thead>
             <tbody>${open.map(t => `
               <tr class="${isOverdue(t.due_at, t.status) ? 'overdue' : ''}" data-id="${esc(t.id)}">
                 <td style="white-space:normal;min-width:190px;">
@@ -6012,7 +6036,7 @@
         } else {
           document.getElementById('incidentsTableWrap').innerHTML = `
             ${cutoffNote}
-            <table><thead><tr><th>#</th><th>Title</th><th>Severity</th><th>Status</th><th>Due</th></tr></thead>
+            <table class="phoneCards"><thead><tr><th>#</th><th>Title</th><th>Severity</th><th>Status</th><th>Due</th></tr></thead>
             <tbody>${open.map(i => `
               <tr class="${isOverdue(i.due_at, i.status) ? 'overdue' : ''}" data-id="${esc(i.id)}">
                 <td>${esc(i.incident_number || '—')}</td>
@@ -6353,7 +6377,7 @@
           document.getElementById('aiTableWrap').innerHTML = '<p class="empty">No AI activity logged yet.</p>';
         } else {
           document.getElementById('aiTableWrap').innerHTML = `
-            <table><thead><tr><th>Agent</th><th>Summary</th><th>Confidence</th><th>Escalated?</th><th>When</th></tr></thead>
+            <table class="phoneCards"><thead><tr><th>Agent</th><th>Summary</th><th>Confidence</th><th>Escalated?</th><th>When</th></tr></thead>
             <tbody>${logs.slice(0, 25).map(l => `
               <tr data-id="${esc(l.id)}">
                 <td>${esc(l.agent_key)}</td>
@@ -6831,7 +6855,7 @@
       }
 
       wrap.innerHTML = `
-        <table><thead><tr>
+        <table class="phoneCards"><thead><tr>
           <th>${esc(firstColLabel)}</th><th>Orders</th><th>Revenue</th><th>New questions</th>
           <th>Tasks opened</th><th>Incidents opened</th><th>AI calls</th><th>AI cost</th><th>Emailed</th>
         </tr></thead>
@@ -9762,7 +9786,7 @@
           document.getElementById('taxReceiptWrap').innerHTML = '<p class="empty">Every logged expense in this period has a receipt on file.</p>';
         } else {
           document.getElementById('taxReceiptWrap').innerHTML = `
-            <table><thead><tr><th>Date</th><th>Category</th><th>Vendor</th><th>Amount</th></tr></thead>
+            <table class="phoneCards"><thead><tr><th>Date</th><th>Category</th><th>Vendor</th><th>Amount</th></tr></thead>
             <tbody>${missing.map(e => `
               <tr>
                 <td>${esc(fmtDateOnly(e.expense_date))}</td>
