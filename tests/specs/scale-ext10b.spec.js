@@ -44,3 +44,21 @@ test('quality-check product picker and document supplier picker are complete', a
   await gotoPage(page, 'documentsPanel');
   await expect(page.locator('#docRelated option', { hasText: 'SYNTHETIC Supplier' })).toHaveCount(150);
 });
+
+test('Inventory lists all 300 products and Suppliers all 150, past the reply cap', async ({ page, backend }) => {
+  seed(backend);
+  await login(page);
+  await gotoPage(page, 'inventoryPanel');
+  await expect(page.locator('#invProduct option[value^="p-"]')).toHaveCount(300);
+  await gotoPage(page, 'suppliersPanel');
+  await expect(page.locator('#suppliersPanel').getByText('SYNTHETIC Supplier 149')).toBeVisible();
+});
+
+test('a capped compliance list says so (adverse events)', async ({ page, backend }) => {
+  backend.maxRows = 100;
+  backend.tables.adverse_event_reports = Array.from({ length: 130 }, (_, i) => ({ id: 'ae-' + i, product_name: 'SYNTHETIC lotion', date_received: '2026-09-01', description: 'SYNTHETIC',
+    outcome_type: null, fda_report_deadline: '2026-12-01', fda_reported: false, fda_reported_at: null, reporter_name: null, reporter_contact: null, created_by: null, created_at: '2026-09-01T00:00:00Z' }));
+  await login(page);
+  await gotoPage(page, 'adverseEventsPanel');
+  await expect(page.locator('#dashError')).toContainText('of 130 adverse event reports');
+});

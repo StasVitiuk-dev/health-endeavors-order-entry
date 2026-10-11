@@ -3576,11 +3576,12 @@
 
     async function loadAttention(){
       try {
-        const { data, error } = await supabase
+        const { data, error, count: capCount } = await supabase
           .from('needs_attention')
-          .select('*')
+          .select('*', { count: 'exact' })
           .order('due_at', { ascending: true, nullsFirst: false });
         if (error) throw error;
+        showPageWarning('attentionPanel', typeof capCount === 'number' && capCount > (data || []).length ? 'Showing the first ' + (data || []).length + ' of ' + capCount + ' items needing attention: the rest are not listed on this page.' : null);
         SEARCH_INDEX.attention = data;
         renderAttention(data);
       } catch (err) {
@@ -4403,10 +4404,9 @@
 
     async function loadSuppliers(){
       try {
-        const { data, error } = await supabase
-          .from('suppliers')
-          .select('id, name, supplier_type, contact_name, email, phone, notes, is_active')
-          .order('name', { ascending: true });
+        let data = null, error = null;
+        try { data = (await fetchAllRows('suppliers', 'id, name, supplier_type, contact_name, email, phone, notes, is_active', q => q)).sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''))); }
+        catch (e) { error = e; }
         if (error) throw error;
         const rows = data || [];
         SEARCH_INDEX.suppliers = rows;
@@ -5281,17 +5281,17 @@
     // ---------- Recalls ----------
     async function loadRecalls(){
       try {
-        const [{ data: recalls, error }, { data: lots }, { data: failedChecks }] = await Promise.all([
+        const [{ data: recalls, error, count: recallCount }, { data: lots }, { data: failedChecks }] = await Promise.all([
           supabase.from('recalls')
-            .select('id, reason, severity, status, quantity_quarantined, resolution, resolved_at, incident_id, created_at, lot_id, product_id, products(name, sku), inventory_lots(lot_number), incidents(incident_number, status)')
+            .select('id, reason, severity, status, quantity_quarantined, resolution, resolved_at, incident_id, created_at, lot_id, product_id, products(name, sku), inventory_lots(lot_number), incidents(incident_number, status)', { count: 'exact' })
             .order('created_at', { ascending: false }),
-          supabase.from('inventory_lots')
-            .select('id, lot_number, product_id, quantity_remaining, products(name, sku)')
-            .order('received_at', { ascending: false }),
+          fetchAllRows('inventory_lots', 'id, lot_number, product_id, quantity_remaining, received_at, products(name, sku)', q => q)
+            .then(rows => ({ data: rows.sort((a, b) => String(b.received_at || '').localeCompare(String(a.received_at || ''))) }), () => ({ data: [] })),
           supabase.from('quality_checks').select('lot_id, product_id').eq('result', 'fail').is('resolution', null),
         ]);
         if (error) throw error;
         const rows = recalls || [];
+        showPageWarning('recallsPanel', typeof recallCount === 'number' && recallCount > rows.length ? 'Showing the newest ' + rows.length + ' of ' + recallCount + ' recalls: older ones are not listed on this page.' : null);
         SEARCH_INDEX.recalls = rows;
 
         // Cross-link with Quality Control: flag when this same lot (or
@@ -7747,12 +7747,13 @@
     // reference now, and ready the moment anyone else needs to follow them.
     async function loadSops(){
       try {
-        const { data: sops, error } = await supabase
+        const { data: sops, error, count: capCount } = await supabase
           .from('sop_documents')
-          .select('id, title, category, content, updated_at, agent_visible')
+          .select('id, title, category, content, updated_at, agent_visible', { count: 'exact' })
           .order('category', { ascending: true, nullsFirst: false })
           .order('title', { ascending: true });
         if (error) throw error;
+        showPageWarning('sopsPanel', typeof capCount === 'number' && capCount > (sops || []).length ? 'Showing the first ' + (sops || []).length + ' of ' + capCount + ' procedures: the rest are not listed on this page.' : null);
         SEARCH_INDEX.sops = sops;
         if (!sops || !sops.length) {
           document.getElementById('sopsWrap').innerHTML = '<p class="empty">No procedures written yet — add your first one below.</p>';
@@ -7848,12 +7849,13 @@
 
     async function loadFeatureRequests(){
       try {
-        const { data: reqs, error } = await supabase
+        const { data: reqs, error, count: capCount } = await supabase
           .from('feature_requests')
-          .select('id, title, description, status, priority, requested_at, updated_at, resolution_notes')
+          .select('id, title, description, status, priority, requested_at, updated_at, resolution_notes', { count: 'exact' })
           .is('deleted_at', null)
           .order('requested_at', { ascending: false });
         if (error) throw error;
+        showPageWarning('featureRequestsPanel', typeof capCount === 'number' && capCount > (reqs || []).length ? 'Showing the first ' + (reqs || []).length + ' of ' + capCount + ' feature requests: the rest are not listed on this page.' : null);
         SEARCH_INDEX.featureRequests = reqs;
 
         const counts = { requested: 0, in_progress: 0, done: 0 };
@@ -8453,11 +8455,12 @@
 
     async function loadAdverseEvents(){
       try {
-        const { data: events, error } = await supabase
+        const { data: events, error, count: capCount } = await supabase
           .from('adverse_event_reports')
-          .select('id, product_name, date_received, description, outcome_type, fda_report_deadline, fda_reported, fda_reported_at, reporter_name, reporter_contact, created_at')
+          .select('id, product_name, date_received, description, outcome_type, fda_report_deadline, fda_reported, fda_reported_at, reporter_name, reporter_contact, created_at', { count: 'exact' })
           .order('fda_report_deadline', { ascending: true });
         if (error) throw error;
+        showPageWarning('adverseEventsPanel', typeof capCount === 'number' && capCount > (events || []).length ? 'Showing the first ' + (events || []).length + ' of ' + capCount + ' adverse event reports: the rest are not listed on this page.' : null);
         SEARCH_INDEX.adverseEvents = events;
 
         if (!events || !events.length) {
@@ -8572,12 +8575,13 @@
     // Legal Holds
     async function loadLegalHolds(){
       try {
-        const { data: holds, error } = await supabase
+        const { data: holds, error, count: capCount } = await supabase
           .from('legal_holds')
-          .select('id, title, description, related_type, related_reference, placed_at')
+          .select('id, title, description, related_type, related_reference, placed_at', { count: 'exact' })
           .eq('status', 'active')
           .order('placed_at', { ascending: false });
         if (error) throw error;
+        showPageWarning('legalHoldsPanel', typeof capCount === 'number' && capCount > (holds || []).length ? 'Showing the first ' + (holds || []).length + ' of ' + capCount + ' active legal holds: the rest are not listed on this page.' : null);
         SEARCH_INDEX.legalHolds = holds;
 
         if (!holds || !holds.length) {
@@ -8702,10 +8706,12 @@
       try {
         // Embedded select: pulls each product's matching inventory row (if any)
         // in one round trip, using the foreign key link between the two tables.
-        const { data: products, error } = await supabase
-          .from('products')
-          .select('id, sku, name, is_active, status, cost, retail_price, wholesale_price, packaging_info, updated_at, inventory(available, reserved, damaged, sample, wholesale, promotional, returned, recalled, low_stock_threshold), inventory_lots(lot_number, quantity_remaining, received_at, expires_at)')
-          .order('name', { ascending: true });
+        // EXT10b (X10-15): every product, also past the database's per-reply cap.
+        let products = null, error = null;
+        try {
+          products = (await fetchAllRows('products', 'id, sku, name, is_active, status, cost, retail_price, wholesale_price, packaging_info, updated_at, inventory(available, reserved, damaged, sample, wholesale, promotional, returned, recalled, low_stock_threshold), inventory_lots(lot_number, quantity_remaining, received_at, expires_at)', q => q))
+            .sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
+        } catch (e) { error = e; }
         if (error) throw error;
 
         SEARCH_INDEX.inventory = products;
