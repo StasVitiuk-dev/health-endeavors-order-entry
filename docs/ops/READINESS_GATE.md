@@ -1,0 +1,59 @@
+# Dashboard production-readiness gate
+
+**Status:** CURRENT (2026-10-10, extension 9 section added; the single owner list is now `OWNER_UNBLOCK_CENTER_EXT9.md`, the entry point `CURRENT_PLATFORM_STATE_EXT9.md`. Earlier: extension 8; the area-by-area view is `PRODUCTION_READINESS_MATRIX.md`, the per-workflow integrity view is `DATA_INTEGRITY_AND_CONCURRENCY_MATRIX.md`). Branch work is **not live** until merged. A draft is never counted as done. Full item list: `MASTER_PLATFORM_BACKLOG_2026-10-06.md`.
+
+| Stage | Meaning | Items |
+|---|---|---|
+| **1. Code complete and tested on the branch** | Implemented with tests that fail on the old code; waiting only for review and merge | 168 backlog items marked DONE, including every EXT3–EXT5 fix. Highlights:<ul><li>stale-tab guards on all 51 guarded status writes</li><li>manual-order retry safety</li><li>receive uses the saved order</li><li>money totals keyset-paged</li><li>Emergency always switches off Order Sync / Agent #7</li><li>cents everywhere</li><li>timezone contract</li><li>skip link / focus trap</li></ul> |
+| **2. Merge (owner)** | Review and merge the branch (or the PRs in the recommended order); check live | Branch `claude/platform-deep-readiness-extension-7` (EXT6 recorded extension 5 here; superseded); contains all 20 open PRs (`pr-merge-order.md`) |
+| **3. Owner decisions** | Business, legal or accounting choices | 30 items (`OWNER_DECISIONS_NEXT.md`): N4 refunds, D-ops-1…6, legal hold, document categories, CI required check, backup check, … |
+| **4. Query C (owner runs, read-only)** | Facts from production needed before any production change | 12 items:<ul><li>other stock writers (INV-22)</li><li>value rules for unverified tables (SM-04…09)</li><li>audit coverage (X3-18)</li><li>Emergency flag columns (X3-17)</li><li>activity ordering ties (X5-15)</li></ul> |
+| **5. Production database changes (each needs approval)** | Drafted, tested locally only, not installed | 15 items:<ul><li>R1–R5 install</li><li>PO line guard (drafts/17)</li><li>request keys (X5-11)</li><li>CHECK rules (INV-19)</li><li>revoke direct stock writes (INV-20)</li><li>audit trigger extension (X3-18)</li><li>one recall per lot (INV-16)</li><li>orphan-file sweep</li></ul> |
+| **6. Launch steps** | Store and integrations, not dashboard code | Real products; Shopify Order Sync (stays **off** until approved); agents #2/#3/#7/#8 |
+| **7. Future enhancements** | Deliberately deferred | 22 items (P4 / after launch), e.g. forcing Central time for remote viewers (X4-26), drawing inventory edit forms on demand (X4-27) |
+
+## Launch-blocking right now (none can be closed on the branch)
+
+| Blocker | Waiting on |
+|---|---|
+| Stock races in the browser path (R1–R4) | Query C, then owner approval, then install |
+| Other writers to stock (INV-22) | Query C sections 5–7 |
+| Backup health unknown (X3-25) | Owner read-only check |
+| Refund accounting rule (N4) | Owner / accountant |
+| Live bugs on `main` fixed only on the branch:<ul><li>manual-order dates and duplicates</li><li>same-second merges</li><li>stale-tab receive</li><li>wrong-month delivery expense</li><li>Emergency switch-off gap</li><li>double-counted totals mid-read</li></ul> | Owner merge |
+
+## Extension 9 changes to this gate
+
+- Stage 2 (merge) now means `claude/platform-deep-completion-extension-9-2026-10-10` (contains EXT8; stage 2 naming extension 7/8 above is **superseded**).
+- Stage 1 adds X9-01…X9-13: stock buttons ready for R1–R5 behind per-button switches; a switch cannot turn on before its function exists; frame guard + no-referrer; Home checks freshness; calendar lost updates; CSV guard; Show more on Expenses; hard-wall tests; request keys on 5 create forms behind a switch; per-page currency warnings (X8-19).
+- Stage 4 adds **Query G** (permissions inventory).
+- Stage 5 adds drafts 21–28 (switch rows, integrity rules, nightly Query F, request-key switch), each with rollback and a local test; INV-06 (dashboard side) is no longer blocked on a separate PR.
+- Launch blockers are unchanged in kind; the full list with owners is `OWNER_UNBLOCK_CENTER_EXT9.md`.
+
+## Extension 8 changes to this gate
+
+- Stage 2 (merge) now means `claude/platform-deep-readiness-extension-8-2026-10-07`, which contains extension 7 (stage 2 above names extension 7: **superseded**).
+- Stage 1 adds X8-01…X8-12 (bugs fixed on the branch): questions waiting hidden behind answered ones, older orders unreachable for returns, sidebar search silently missing older orders, recycle bins / history unreachable beyond 50, evidence picker missing old open incidents, browser Back leaving the dashboard, sign-in not re-checked after the Back-button cache, "This Week" meaning two different windows, product edit lost update, PO shipping/tax lost update, slower old replies drawing over newer ones (5 pages), missing Content-Security-Policy on 5 pages.
+- Stage 1 also adds features: Home "Checks: what needs a look" (17 deterministic checks; UNKNOWN distinct from fine; backups always UNKNOWN), order finder for returns, all-orders lookup in search, Show more on capped lists, page history and deep links (`#page=`), approval toast.
+- Stage 4 (read-only, owner runs) adds **Query F** (daily integrity, 15 checks, tested locally 33/33).
+- Stage 3 adds the EXT8 owner decisions X8-D1…X8-D7 (`OWNER_DECISIONS_NEXT.md`).
+- A staging review copy (synthetic data, no production contact) is built and tested; publishing it needs an owner choice (`STAGING_REVIEW_PLAN.md`).
+- No new production change was drafted in EXT8; Query F is read-only.
+- Launch blockers above are unchanged; none can be closed on the branch. The backup line is now visibly UNKNOWN on Home until the owner check (`RECOVERY_AND_BACKUP_READINESS.md`).
+
+## Extension 7 changes to this gate
+
+- Stage 1 adds 13 EXT7 items (X7-01…X7-13): Tax Records by state and cost estimate, frozen count-up, open items hidden behind closed ones, Recently finished + Reopen, Business Health "?" per tile, unsaved-typing question, service status Unknown, SOP re-read, supplier same-name question, user-switch wipe, write-path inventory, randomized R1–R5 stress.
+- Stage 3 adds X7-14 (employee approvals, admin switches) and X7-16 (restore drill). X6-17 re-checked: still open.
+- No new production change was drafted in EXT7.
+
+## Extension 6 changes to this gate
+
+- Stage 2 (merge) now means `claude/platform-deep-readiness-extension-6`. It contains extension 5 and every open PR.
+- New live-on-`main` bugs fixed on the branch: revenue rules (X6-11/12), "-$0.00" (X6-02), sign-out data left in the page (X6-05).
+- Stage 3 adds X6-17 (GitHub admin credential) and X6-14 (orders without items in revenue).
+- Stage 5: the PO line guard no longer needs R1 first; request keys are now drafted (drafts/19).
+
+## Remaining safe branch-only work
+
+Small: one queued P3 item (MD-04 upload-helper module, low value) and one P2 that waits on D-ops-4 (INV-15). X5-16 (threshold last-write-wins) was fixed in extension 5. Every P0 and P1 item that is not done is blocked on Query C, an owner decision or a production change.
