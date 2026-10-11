@@ -150,3 +150,62 @@ test('change-password page under the strict policy', async ({ page }, ti) => {
   await expect(page.locator('#loginStep')).toBeVisible();
   await shot(page, '12-change-password', ti);
 });
+
+// ---- second EXT10 mission ----
+const { seedBusiness } = require('../fixtures/business-data');
+
+test('home: checks with "Next step" and the new checks', async ({ page, backend }, ti) => {
+  deskAnd390(ti);
+  seedBusiness(backend);
+  await login(page);
+  await expect(page.locator('#attnChecksWrap .attnAction').first()).toBeVisible();
+  await toTop(page, '#attnChecksWrap');
+  await shot(page, '13-home-checks-next-step', ti);
+});
+
+test('purchase order: receipt status unknown after a lost reply, with the read-only check', async ({ page, backend }, ti) => {
+  deskAnd390(ti);
+  test.setTimeout(90000);
+  const items = [{ id: 'poi-u', purchase_order_id: 'po-u', product_id: 'prod-u', description: 'SYNTHETIC lavender oil, 500 ml', sku: 'SYN-LAV-500', quantity: 40, unit_cost: 3, quantity_received: 0, landed_unit_cost: null }];
+  Object.assign(backend.tables, {
+    products: [{ id: 'prod-u', name: 'SYNTHETIC Lavender', sku: 'SYN-LAV-500' }], inventory: [{ product_id: 'prod-u', available: 1 }],
+    inventory_adjustments: [], inventory_lots: [], expenses: [], purchase_order_items: items,
+    purchase_orders: [{ id: 'po-u', po_number: 'PO-SYN-8', status: 'shipped', currency: 'USD', shipping_cost: 10, tax: 2, expense_category: 'ingredients',
+      ordered_at: '2026-09-20T00:00:00Z', expected_at: '2026-10-01', received_at: null, payment_status: 'unpaid', notes: null, created_at: '2026-09-20T00:00:00Z',
+      suppliers: { name: 'SYNTHETIC Botanicals' }, purchase_order_items: items }],
+  });
+  await login(page);
+  await gotoPage(page, 'purchaseOrdersPanel');
+  await page.locator('.poItem[data-id="po-u"] .poRow').click();
+  const o = page.locator('#inspectorOverlay');
+  if (await o.evaluate(el => el.classList.contains('open'))) await page.click('#insCloseBtn');
+  await page.locator('.poLineLot').first().fill('SYN-LOT-1');
+  // the claim's reply is lost, and so is every read-back
+  await page.route(/\/rest\/v1\/purchase_orders/, r => (r.request().method() === 'PATCH' || /select=status(%2C|,)received_at/.test(r.request().url())) ? r.abort('connectionreset') : r.fallback());
+  await page.locator('.poReceiveBtn').click();
+  await page.locator('.poReceiveBtn').click();
+  await expect(page.locator('.poReceiptUnknown')).toBeVisible({ timeout: 60000 });
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await shot(page, '14-po-receipt-unknown', ti);
+});
+
+test('continuity: System status card', async ({ page }, ti) => {
+  deskAnd390(ti);
+  await login(page);
+  await gotoPage(page, 'continuityPanel');
+  await expect(page.locator('#systemStatusWrap tr').first()).toBeVisible();
+  await toTop(page, '#systemStatusWrap');
+  await shot(page, '15-system-status', ti);
+});
+
+test('feature switches: ON/OFF and what each needs first', async ({ page, backend }, ti) => {
+  deskAnd390(ti);
+  backend.tables.feature_flags = (backend.tables.feature_flags || []).concat([
+    { id: 'ff-ih', flag_key: 'integrity_results_home', label: 'Nightly integrity check on Home', description: 'SYNTHETIC: shows the nightly check on Home', enabled: false },
+    { id: 'ff-rk', flag_key: 'request_keys', label: 'Request keys', description: 'SYNTHETIC: duplicate-proof creates', enabled: false }]);
+  await login(page);
+  await gotoPage(page, 'flagsPanel');
+  await expect(page.locator('.flagDepends').first()).toBeVisible();
+  await toTop(page, '.flagRow[data-key="request_keys"]');
+  await shot(page, '16-switch-dependencies', ti);
+});
