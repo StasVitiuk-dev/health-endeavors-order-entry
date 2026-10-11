@@ -4,9 +4,10 @@
 --
 -- What it is: one on/off switch, request_keys, OFF. When the owner turns it on
 -- (Feature Switches page; the page first checks the columns exist), the
--- dashboard sends a request key with new expenses, products, suppliers,
--- purchase orders and recalls, so a repeat after a lost reply is refused
--- instead of saved twice. Off = no key is sent (today).
+-- dashboard sends a request key with every new record it creates (EXT9: expenses,
+-- products, suppliers, purchase orders, recalls; EXT10: all other create forms
+-- and incident escalation), so a repeat after a lost reply is refused instead
+-- of saved twice. Off = no key is sent (today).
 -- ORDER: drafts/19 (the columns) first; this file stops if they are missing.
 -- It changes no table, column, policy or existing row; running it twice
 -- changes nothing.
@@ -31,7 +32,7 @@ end $$;
 
 insert into public.feature_flags (flag_key, label, description, enabled)
 select 'request_keys', 'Request keys on new records',
-       'New expenses, products, suppliers, purchase orders and recalls carry a key, so a repeat after a lost reply is refused instead of saved twice. Needs drafts/19.', false
+       'Every new record the dashboard creates carries a key, so a repeat after a lost reply is refused instead of saved twice. Needs drafts/19.', false
  where not exists (select 1 from public.feature_flags where flag_key = 'request_keys');
 
 commit;

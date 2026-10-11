@@ -2,16 +2,16 @@
 
 Internal dashboard/platform only. Generated from `docs/ops/backlog/items.py` (edit the data there, then run `python3 docs/ops/backlog/items.py`). No production secrets or private business data.
 
-**326 deduplicated items** from 397 raw candidates (71 duplicates merged: the same item recorded in PROJECT_RECORD, the overnight review, PRs, owner lists, decision registers and tests).
+**337 deduplicated items** from 415 raw candidates (78 duplicates merged: the same item recorded in PROJECT_RECORD, the overnight review, PRs, owner lists, decision registers and tests).
 
-Status counts: BLOCKED-EXT 2, BLOCKED-OWNER 41, BLOCKED-PROD 19, BLOCKED-QC 12, DEFERRED 24, DONE 225, OPEN 1, QUEUED 2
+Status counts: BLOCKED-EXT 2, BLOCKED-OWNER 41, BLOCKED-PROD 19, BLOCKED-QC 12, DEFERRED 26, DONE 232, OPEN 1, QUEUED 4
 
 | Priority | Items | Done (branch) | Remaining |
 |---|---|---|---|
 | P0 | 16 | 6 | 10 |
-| P1 | 87 | 63 | 24 |
-| P2 | 110 | 83 | 27 |
-| P3 | 95 | 72 | 23 |
+| P1 | 89 | 65 | 24 |
+| P2 | 115 | 87 | 28 |
+| P3 | 99 | 73 | 26 |
 | P4 | 18 | 1 | 17 |
 
 Priorities: P0 data loss / security / financial corruption / destructive · P1 launch blocker / correctness / concurrency / permission · P2 reliability / scale / accessibility / major UX · P3 maintainability / tests / docs · P4 future.
@@ -102,6 +102,8 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | SM-14 | State machine | Legal hold release only active; FDA flag only once | Compliance | Medium | S | — | Y | N | N | DONE |
 | SM-17 | State machine | Agent switch / flag / system mode guarded | Stale tab flips | High | S | — | Y | N | N | DONE |
 | ST-02 | Storage | Evidence/receipt orphan cleanup; document delete removes file | Orphans | Medium | S | — | Y | N | N | DONE |
+| X10-02 | Compliance | Evidence without a file: saved, but the page said it failed (stray EXT8 check threw) and kept the form filled | Invites a second, duplicate evidence record | High | S | — | Y | N | N | DONE |
+| X10-07 | Idempotency | Request keys on every remaining create path + key lifecycle (U42) | Duplicates after a lost reply prevented on 18 creates once drafts/19 + 27 are installed | High | M | drafts/19 + 27, switch on | Y | Y | N | DONE |
 | X3-03 | Reporting | Expenses page count and money total summed from the newest 200 only | Silent wrong money total beyond 200 expenses | High | S | — | Y | N | N | DONE |
 | X3-09 | Inventory | R1–R5 install had no schema preflight (wrong shape installs, fails at first click) | Install safety | High | S | — | Y | N | N | DONE |
 | X3-20 | Orders | Manual order retry after a failure created a SECOND order (duplicate revenue) | Two-step save, lost reply | High | S | — | Y | N | N | DONE |
@@ -153,6 +155,7 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | SE-12 | Security | Task access hardening before more staff | Least privilege | Medium | M | owner | N | Y | Y | BLOCKED-OWNER |
 | SH-03 | Shopify | Order status words match Accounting/Tax classification after launch | Revenue classification | Medium | S | first real orders | N | Y | N | BLOCKED-EXT |
 | SM-09 | State machine | Feature requests: status advance guard + values vs DB | Unverified values | Low | S | Query C §9 | Y | N | N | BLOCKED-QC |
+| X10-05 | Idempotency | Request key on manual orders (manual-order-entry.html) | Covered today by the same-order match only (client side) | Medium | S | drafts/19 installed | Y | N | N | QUEUED |
 | X3-18 | Audit | Compliance actions record when but not who (legal hold, FDA, QC, inquiries) | Who-did-it lost if no audit trigger | Medium | M | Query C §10; approval | N | Y | Y | BLOCKED-QC |
 | X5-11 | Idempotency | Request keys (unique client_request_id) for record-creating writes (25 paths) | A lost reply plus a retry can still create a duplicate record (mitigated: lock + honest message) | Medium | M | approval (schema change) | N | Y | Y | BLOCKED-PROD |
 | X6-14 | Orders | Orders saved without items still count as revenue in Accounting | Now listed on Accounting ("Orders saved without items"), on the manual-order page for the person who entered them, and in Query E; whether to exclude them from revenue is an accounting decision | Medium | S | owner / accountant | P | Y | N | BLOCKED-OWNER |
@@ -199,6 +202,10 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | ST-03 | Storage | Size/type check before upload | Late failure; active content | Low | S | — | Y | N | N | DONE |
 | ST-05 | Storage | Malicious filenames (path traversal, unicode, very long) produce safe storage paths | Path safety | Medium | S | — | Y | N | N | DONE |
 | UX-03 | UX | US-evening dates (expense/AE defaults, lot expiry, file names, tax receipt list) | Off by one day | Medium | S | — | Y | N | N | DONE |
+| X10-01 | Owner UX | Feature request Add button stayed disabled after the first add (success or failure) until reload | Second request could not be added without reloading | Medium | S | — | Y | N | N | DONE |
+| X10-03 | Money | An unreadable amount (NaN / text) was shown as $0.00 | A broken figure looked like a real zero | Medium | S | — | Y | N | N | DONE |
+| X10-04 | Mobile | Wide tables become one card per row on phones (U38 / X7-15) | Buttons and values were off to the side on 320–430 px | Medium | M | — | Y | N | N | DONE |
+| X10-08 | Integrity | Nightly Query F results on Home (U43): drafts/29/30 + card with honest states | One place to see the nightly check, never "fine" when unknown | Medium | M | drafts/25 + 29 installed, switch on | Y | Y | N | DONE |
 | X3-01 | State machine | Product edit form wrote status unguarded (stale tab flips discontinued/active) | Found by the mock state rule | Medium | S | — | Y | N | N | DONE |
 | X3-04 | Scale | Returns page listed and counted the newest 200 only (old open returns vanished) | Open work hidden | Medium | S | — | Y | N | N | DONE |
 | X3-08 | Query C | Query C failed without pg_cron; tokens not masked in agent errors | Owner run could stop with an error | Medium | S | — | Y | N | N | DONE |
@@ -266,6 +273,9 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | SC-06 | Scale | Lot pickers truncate after 1,000 lots | Older lots missing from pickers | Low | S | — | Y | N | N | DEFERRED |
 | ST-08 | Storage | Read-only listing of orphaned objects created before the fixes | Cleanup scope | Low | S | owner | N | Y | Y | BLOCKED-PROD |
 | UX-06 | UX | Administrator tries personal calendar | Pending check | Low | S | owner | N | Y | N | BLOCKED-OWNER |
+| X10-06 | Idempotency | Bind request keys to the creating user in the unique index | Only matters for deliberate key reuse; needs reliable creator columns | Low | M | creator columns on every table | P | N | Y | DEFERRED |
+| X10-10 | Code structure | M5b–d: strict script policy on search, dashboard, manual order and owner pages | Remove unsafe-inline everywhere | Low | L | after the merge (conflicts) | Y | N | N | DEFERRED |
+| X10-11 | Testing | Heavy specs (report-totals) time out when 8 workers share the machine; pass serially | Load-sensitive timing; not a product bug | Low | S | — | Y | N | N | QUEUED |
 | X3-11 | Scale | Return-form order picker lists newest 200 orders only | Old order returns can't be logged | Low | S | volume | Y | N | N | DEFERRED |
 | X3-12 | Scale | Evidence form incident picker newest 200 only | Years away | Low | S | volume | Y | N | N | DEFERRED |
 | X3-15 | Inventory | Tasks can name a deleted product by id (free text) | Low impact | Low | S | — | Y | N | N | DEFERRED |
@@ -309,6 +319,7 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | UX-01 | UX | Sidebar search: typing a page name + Enter opens that page (test.fixme) | Fixed EXT3: page name wins on Enter (sidebar + palette); questions still open the Guide | Low | S | owner decision | Y | Y | N | DONE |
 | UX-02 | UX | Palette first keys lost after Cmd+K | Typing lost | Low | S | — | Y | N | N | DONE |
 | UX-04 | UX | Stale agent status text #2/#3/#7/#8 | Wording | Low | S | — | Y | N | N | DONE |
+| X10-09 | Code structure | change-password.html without inline script (strict CSP); helpers API 9 (U39) | First page with no unsafe-inline for scripts; pure logic unit-tested | Low | S | — | Y | N | N | DONE |
 | X3-02 | State machine | Order Restore without "still deleted" condition | Found by the mock state rule | Low | S | — | Y | N | N | DONE |
 | X3-05 | Validation | Blank Business Rules value saved as 0 | Number("") is 0 | Low | S | — | Y | N | N | DONE |
 | X3-06 | Validation | Negative / infinite numbers accepted on button-saved fields (PO shipping/tax, prices, threshold) | No browser form check on plain buttons | Low | S | — | Y | N | N | DONE |
@@ -428,5 +439,9 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 - X9-01: INV-06
 - X9-12: X8-15
 - X9-13: X6-15
+- X10-04: U38, X7-15
+- X10-07: U42
+- X10-08: U43, X9-12
+- X10-09: U39, M5
 - X8-08: F3-07
 - X8-12: S7
