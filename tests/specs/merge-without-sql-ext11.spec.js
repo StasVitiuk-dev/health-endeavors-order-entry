@@ -75,7 +75,8 @@ test('stock adjustment keeps using today\'s path (no function call) and still wo
   await page.fill('#invReason', 'SYNTHETIC count');
   await page.click('#adjustInventoryForm button[type="submit"]');
   await expect.poll(() => backend.tables.inventory[0].available).toBe(8);
-  expect(backend.tables.inventory_adjustments.map(a => a.change_amount)).toEqual([3]);
+  // the history row is a second request, saved just after the stock number
+  await expect.poll(() => backend.tables.inventory_adjustments.map(a => a.change_amount)).toEqual([3]);
   expect(rpcCalls.filter(u => /receive_purchase_order|quarantine_recall|receive_return|adjust_inventory|delete_unused_product/.test(u))).toEqual([]);
 });
 
