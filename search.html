@@ -2,12 +2,18 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
+<!-- EXT8 (security review S7): only this site, the pinned CDN, the Supabase project and Google Fonts may load or be contacted. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://uizrazyehilyzmwttsrn.supabase.co wss://uizrazyehilyzmwttsrn.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'">
+<meta name="referrer" content="no-referrer">
+<!-- EXT9: never shown inside another site's frame (clickjacking). GitHub Pages cannot send the
+     header that forbids framing, so the page hides itself and leaves the frame instead. -->
+<script id="frameGuard">if (window.top !== window.self) { document.documentElement.style.display = 'none'; try { window.top.location.replace(window.self.location.href); } catch (e) {} }</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Health Endeavors — Search</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous" onerror="window.__sbLoadFailed=true"></script>
 <style>
   :root {
     --ground: #F4F6F1;
@@ -156,6 +162,29 @@
   const SUPABASE_URL = "https://uizrazyehilyzmwttsrn.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_n0sEzZK0JMtwgk280a3YXA_zxtnheqj";
   const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  // Signed out in another tab: reload into the signed-out view instead of
+  // staying on a page whose requests now go out without a sign-in (EXT3).
+  sb.auth.onAuthStateChange(event => {
+    const app = document.getElementById('app');
+    if (event === 'SIGNED_OUT' && app && app.style.display === 'block') window.location.reload();
+  });
+
+  // Turns text from the database into plain text before it is placed on the
+  // page, so a name or message containing <, >, & or quotes is shown as
+  // written instead of being treated as page code. Same helper as
+  // owner-login.html.
+  // Plain words instead of raw database / browser text (EXT3, 2026-10-06).
+  function plainError(err){
+    const m = String((err && err.message) || err || '');
+    if (/Failed to fetch|Load failed|NetworkError/i.test(m)) return 'the connection dropped. Check you are online and reload the page.';
+    if (/row-level security|permission denied|42501/i.test(m)) return 'your account is not allowed to see this.';
+    if (/JWT expired|PGRST301/i.test(m)) return 'your sign-in has expired. Sign in again.';
+    return m.replace(/ for (table|relation) "[^"]*"/gi, '').replace(/ constraint "[^"]*"/gi, ' rule');
+  }
+  function esc(s) {
+    if (s === null || s === undefined) return '';
+    return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
 
   const typeLabels = {
     customer: 'Customer',
@@ -171,15 +200,15 @@
       return;
     }
     if (!rows || rows.length === 0) {
-      box.innerHTML = `<div class="empty">No matches for "${term}".</div>`;
+      box.innerHTML = `<div class="empty">No matches for "${esc(term)}".</div>`;
       return;
     }
     box.innerHTML = rows.map(r => `
       <div class="result-row">
-        <span class="badge">${typeLabels[r.result_type] || r.result_type}</span>
+        <span class="badge">${esc(typeLabels[r.result_type] || r.result_type)}</span>
         <div>
-          <div class="result-label">${r.label ?? ''}</div>
-          ${r.subtitle ? `<div class="result-subtitle">${r.subtitle}</div>` : ''}
+          <div class="result-label">${esc(r.label)}</div>
+          ${r.subtitle ? `<div class="result-subtitle">${esc(r.subtitle)}</div>` : ''}
         </div>
       </div>
     `).join('');
@@ -196,7 +225,7 @@
       }
       const { data, error } = await sb.rpc('global_search', { search_term: term });
       if (error) {
-        document.getElementById('results').innerHTML = `<div class="error">Search failed: ${error.message}</div>`;
+        document.getElementById('results').innerHTML = `<div class="error">Search failed: ${esc(plainError(error))}</div>`;
         return;
       }
       renderResults(data, term);

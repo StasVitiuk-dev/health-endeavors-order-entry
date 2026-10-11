@@ -10,6 +10,7 @@
 // Nothing in here holds a real key, password or customer record.
 
 const fs = require('fs');
+const { checkWrite } = require('./db-constraints');
 const path = require('path');
 const { buildTables, OWNER_USER } = require('../fixtures/synthetic-data');
 
@@ -55,6 +56,34 @@ function parseInList(raw) {
   return inner.split(',').map(v => v.trim().replace(/^"(.*)"$/, '$1'));
 }
 
+// Workflow-state columns: every UI change to one of these must be conditional
+// on the value the page showed. Plain data fields (notes, names) are not here.
+const STATE_COLUMNS = {
+  tasks: ['status'], purchase_orders: ['status', 'payment_status'], returns: ['status'],
+  recalls: ['status'], approval_requests: ['status'], feature_requests: ['status', 'deleted_at'],
+  legal_holds: ['status'], quality_checks: ['result'], incidents: ['status'],
+  customer_inquiries: ['status', 'severity'], service_status: ['status'],
+  system_mode: ['mode'], feature_flags: ['enabled'], agent_controls: ['enabled'],
+  business_rules: ['is_active', 'config'], sop_documents: ['agent_visible'],
+  products: ['status', 'is_active'], orders: ['status', 'deleted_at'],
+  expenses: ['deleted_at', 'receipt_path'], adverse_event_reports: ['fda_reported'],
+};
+// Writes that are safe without a condition, each with its reason.
+const STATE_WRITE_EXCEPTIONS = {
+  // Emergency / No-AI mode forces these OFF. Writing "off" twice is harmless
+  // and the result is read back and reported (MU-06).
+  feature_flags: [(e, c) => c === 'enabled' && e.body.enabled === false && e.params.some(([k, v]) => k === 'flag_key' && v === 'eq.shopify_order_sync')],
+  agent_controls: [(e, c) => c === 'enabled' && e.body.enabled === false && e.params.some(([k, v]) => k === 'agent_num' && v === 'eq.7') && !e.params.some(([k]) => k === 'enabled')],
+};
+
+function jsonEqual(a, b) {
+  if (a === b) return true;
+  if (a === null || b === null || typeof a !== 'object' || typeof b !== 'object') return false;
+  if (Array.isArray(a) !== Array.isArray(b)) return false;
+  const ka = Object.keys(a), kb = Object.keys(b);
+  return ka.length === kb.length && ka.every(k => Object.prototype.hasOwnProperty.call(b, k) && jsonEqual(a[k], b[k]));
+}
+
 function matchesFilter(row, column, expr) {
   const value = row[column];
   const dot = expr.indexOf('.');
@@ -71,7 +100,11 @@ function matchesFilter(row, column, expr) {
   let result;
   const str = value === null || value === undefined ? null : String(value);
   switch (op) {
-    case 'eq': result = str === arg; break;
+    case 'eq':
+      // jsonb columns compare by meaning (PostgREST casts the text to jsonb)
+      if (value !== null && typeof value === 'object') { try { result = jsonEqual(value, JSON.parse(arg)); } catch (e) { result = false; } }
+      else result = str === arg;
+      break;
     case 'neq': result = str !== arg; break;
     case 'in': result = parseInList(arg).includes(str); break;
     case 'is':
@@ -80,6 +113,20 @@ function matchesFilter(row, column, expr) {
       else if (arg === 'false') result = value === false;
       else result = true;
       break;
+    case 'ilike':
+    case 'like': {
+      // SQL LIKE: % = any run, _ = one character, backslash escapes the next one.
+      let re = '';
+      for (let i = 0; i < arg.length; i++) {
+        const ch = arg[i];
+        if (ch === '\\' && i + 1 < arg.length) { re += arg[++i].replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); continue; }
+        if (ch === '%') re += '[\\s\\S]*';
+        else if (ch === '_') re += '[\\s\\S]';
+        else re += ch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      }
+      result = str !== null && new RegExp('^' + re + '$', op === 'ilike' ? 'i' : '').test(str);
+      break;
+    }
     case 'gt': result = str !== null && str > arg; break;
     case 'gte': result = str !== null && str >= arg; break;
     case 'lt': result = str !== null && str < arg; break;
@@ -90,10 +137,36 @@ function matchesFilter(row, column, expr) {
   return negate ? !result : result;
 }
 
+// "or=(a.is.null,b.not.in.(x,y))": split at top-level commas only.
+function splitTopLevel(inner) {
+  const parts = []; let depth = 0, quoted = false, cur = '';
+  for (const ch of inner) {
+    if (ch === '"') quoted = !quoted;
+    if (!quoted && ch === '(') depth++;
+    if (!quoted && ch === ')') depth--;
+    if (!quoted && depth === 0 && ch === ',') { parts.push(cur); cur = ''; continue; }
+    cur += ch;
+  }
+  if (cur) parts.push(cur);
+  return parts;
+}
+// A quoted value inside or=(...) is unquoted the PostgREST way: \\ and \" .
+function unquoteOrValue(expr) {
+  const m = /^((?:not\.)?[a-z]+\.)"((?:[^"\\]|\\.)*)"$/.exec(expr);
+  return m ? m[1] + m[2].replace(/\\(.)/g, '$1') : expr;
+}
+function matchesOr(row, expr) {
+  return splitTopLevel(expr.replace(/^\(/, '').replace(/\)$/, '')).some(part => {
+    const dot = part.indexOf('.');
+    return matchesFilter(row, part.slice(0, dot), unquoteOrValue(part.slice(dot + 1)));
+  });
+}
+
 function applyFilters(rows, params) {
   let out = rows;
   for (const [key, expr] of params) {
-    if (NON_FILTER_PARAMS.has(key) || key === 'or' || key === 'and') continue;
+    if (key === 'or') { out = out.filter(row => matchesOr(row, expr)); continue; }
+    if (NON_FILTER_PARAMS.has(key) || key === 'and') continue;
     out = out.filter(row => matchesFilter(row, key, expr));
   }
   return out;
@@ -121,6 +194,15 @@ class FakeSupabase {
     this.blocked = [];         // every non-dashboard, non-Supabase request (should stay empty)
     this.delayMs = {};         // optional per-table response delay, for timing tests
     this.nextTaskUpdateHook = null;
+    this.cdnRequests = [];     // every request for the Supabase library
+    this.cdnBody = null;       // optional replacement bytes for the library (integrity tests)
+    this.maxRows = null;       // optional per-reply row cap, like Supabase's "Max rows" (default 1000 there)
+    this.maxUrlLength = null;  // optional URL length limit (real gateways reject very long URLs)
+    this.constraintViolations = []; // writes the real database would refuse (db-constraints.js)
+    this.expectViolations = false;  // a test that provokes one on purpose sets this
+    this.allowImpossibleData = false; // a test seeding deliberately impossible rows (XSS payloads) sets this
+    this.unguardedStateWrites = []; // state changes sent without "only if it is still …" (see STATE_COLUMNS)
+    this.allowUnguardedState = false; // a test that provokes one on purpose sets this
   }
 
   // Changes the page asked for on any table (updates, inserts, deletes).
@@ -148,12 +230,52 @@ class FakeSupabase {
     if (url.pathname.startsWith('/rest/v1/rpc/')) {
       entry.rpc = url.pathname.slice('/rest/v1/rpc/'.length);
       this.requests.push(entry);
-      const result = Object.prototype.hasOwnProperty.call(this.rpc, entry.rpc) ? this.rpc[entry.rpc] : [];
+      // A test may give a function to answer like the real function would
+      // (e.g. honouring p_limit / p_offset); otherwise a fixed reply.
+      const v = Object.prototype.hasOwnProperty.call(this.rpc, entry.rpc) ? this.rpc[entry.rpc] : [];
+      const result = typeof v === 'function' ? v(entry.body || {}) : v;
+      // A function may answer like PostgREST does when the database raises an
+      // error: { __error: { status, code, message, hint } } (EXT9).
+      if (result && result.__error) {
+        const e = result.__error;
+        return route.fulfill({ status: e.status || 400, contentType: 'application/json', body: JSON.stringify({ code: e.code, message: e.message, hint: e.hint || null, details: null }) });
+      }
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(result) });
     }
     if (url.pathname.startsWith('/rest/v1/')) {
       entry.table = url.pathname.slice('/rest/v1/'.length);
       this.requests.push(entry);
+      // Like the real gateway, refuse very long URLs (e.g. a huge .in() list).
+      if (this.maxUrlLength != null && req.url().length > this.maxUrlLength) {
+        return route.fulfill({ status: 414, contentType: 'text/plain', headers: { 'access-control-allow-origin': '*' }, body: 'URI Too Long' });
+      }
+      // Like the real database: refuse a write that breaks a value rule.
+      if (entry.method === 'POST' || entry.method === 'PATCH') {
+        const isInsert = entry.method === 'POST' && !String(entry.headers['prefer'] || '').includes('merge-duplicates');
+        const bad = checkWrite(entry.table, entry.body, { isInsert });
+        if (bad.length) {
+          this.constraintViolations.push(...bad);
+          const b = bad[0];
+          return route.fulfill({
+            status: 400, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' },
+            body: JSON.stringify({ code: '23514', details: null, hint: null,
+              message: `new row for relation "${b.table}" violates check constraint "${b.constraint}"` }),
+          });
+        }
+      }
+      // State-machine rule (2026-10-06, EXT3): a PATCH that changes a workflow
+      // state column must carry a condition on that same column (the value
+      // the page showed), so a stale tab can never move a record backwards
+      // or apply the same step twice. Recorded here; the shared test setup
+      // fails any test that leaves one behind.
+      if (entry.method === 'PATCH' && entry.body && typeof entry.body === 'object') {
+        for (const col of STATE_COLUMNS[entry.table] || []) {
+          if (!Object.prototype.hasOwnProperty.call(entry.body, col)) continue;
+          if (entry.params.some(([k]) => k === col)) continue;
+          if ((STATE_WRITE_EXCEPTIONS[entry.table] || []).some(fn => fn(entry, col))) continue;
+          this.unguardedStateWrites.push(`${entry.table}.${col} := ${JSON.stringify(entry.body[col])} with filters ${entry.query}`);
+        }
+      }
       const delay = this.delayMs[entry.table];
       if (delay) await new Promise(r => setTimeout(r, delay));
       return this.handleRest(route, entry);
@@ -192,8 +314,11 @@ class FakeSupabase {
     const rows = this.tables[table] || [];
     const prefer = headers['prefer'] || '';
     const wantsObject = (headers['accept'] || '').includes('vnd.pgrst.object');
+    // Like the real API gateway: cross-origin reads allowed, and Content-Range
+    // (where the exact row count travels) exposed to the page.
     const respond = (status, data, extraHeaders = {}) => route.fulfill({
-      status, contentType: 'application/json', headers: extraHeaders,
+      status, contentType: 'application/json',
+      headers: { 'access-control-allow-origin': '*', 'access-control-expose-headers': 'content-range', ...extraHeaders },
       body: data === undefined ? '' : JSON.stringify(data),
     });
 
@@ -203,6 +328,9 @@ class FakeSupabase {
       const offset = Number(search.get('offset') || 0);
       const limit = search.get('limit') != null ? Number(search.get('limit')) : undefined;
       matched = matched.slice(offset, limit != null ? offset + limit : undefined);
+      // Like Supabase's "Max rows" API setting: one reply never holds more
+      // than this many rows, and nothing in the reply says it was cut short.
+      if (this.maxRows != null) matched = matched.slice(0, this.maxRows);
       const extra = {};
       if (prefer.includes('count=')) {
         extra['content-range'] = matched.length ? `${offset}-${offset + matched.length - 1}/${total}` : `*/${total}`;
@@ -231,7 +359,9 @@ class FakeSupabase {
       // Inserts are recorded but not stored: no test here needs them to persist.
       return respond(201, prefer.includes('return=representation') ? [] : undefined);
     }
-    if (method === 'DELETE') return respond(204, undefined);
+    // Deletes are recorded but not applied; with return=representation the
+    // rows that would be deleted come back, like PostgREST.
+    if (method === 'DELETE') return prefer.includes('return=representation') ? respond(200, applyFilters(rows, params)) : respond(204, undefined);
     return respond(200, []);
   }
 }
@@ -252,7 +382,16 @@ async function installMocks(page) {
     const url = new URL(route.request().url());
     if (url.origin === DASHBOARD_ORIGIN) return serveRepoFile(route, url);
     if (url.href.startsWith(SUPABASE_CDN_PREFIX)) {
-      return route.fulfill({ status: 200, contentType: 'application/javascript; charset=utf-8', body: fs.readFileSync(SUPABASE_UMD) });
+      // The pages load the library with crossorigin="anonymous" + integrity,
+      // so (like the real CDN) the reply must allow cross-origin reads.
+      // backend.cdnBody lets a test serve altered bytes to prove the
+      // integrity check refuses them.
+      backend.cdnRequests.push(url.href);
+      return route.fulfill({
+        status: 200, contentType: 'application/javascript; charset=utf-8',
+        headers: { 'access-control-allow-origin': '*' },
+        body: backend.cdnBody != null ? backend.cdnBody : fs.readFileSync(SUPABASE_UMD),
+      });
     }
     if (url.host === SUPABASE_HOST) return backend.handle(route);
     backend.blocked.push(url.href);

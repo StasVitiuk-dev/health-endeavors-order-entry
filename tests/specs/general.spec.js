@@ -82,12 +82,9 @@ test('sidebar search finds a task; clicking the result opens the Tasks page', as
   await expect(page.locator('section#tasksPanel')).toHaveClass(/activePage/);
 });
 
-// Known issue found while writing these tests (see docs/code-quality):
-// pressing Enter in the sidebar search always opens the first *Guide* result
-// when there is one, instead of the page or record typed ("incidents" opens
-// Quality Control). Marked "fixme"
-// so it is reported but does not fail the suite until it is fixed.
-test.fixme('typing a page name in search and pressing Enter opens that page', async ({ page }) => {
+// Was a known issue (Enter opened the first Guide result, so "incidents"
+// opened Quality Control). Fixed 2026-10-06 (EXT3): a page name wins.
+test('typing a page name in search and pressing Enter opens that page', async ({ page }) => {
   await login(page);
   await openMenuIfMobile(page);
   await page.fill('#sidebarSearch', 'incidents');

