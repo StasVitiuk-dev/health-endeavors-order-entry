@@ -107,6 +107,9 @@ test('orders saved without items: revenue follows policy A; the listed orders eq
   await gotoPage(page, 'accountingPanel');
   await page.click('#accountingPanel button[data-range="all"]');
   await expect.poll(() => figures(page).then(f => f.revenue), { timeout: 15000 }).toBe(usd(policyA));
+  // The list is drawn after the figures (one more read), and Oct-5 orders give the same revenue
+  // for "this month" and "all", so wait for the list itself rather than reading it straight away.
+  await expect(page.locator('#acctNoItemsWrap .acctNoItemsRow')).toHaveCount(2, { timeout: 15000 });
   const listed = await page.locator('#acctNoItemsWrap .acctNoItemsRow').allTextContents();
   const listedCents = listed.reduce((n, t) => n + Math.round(Number((/\$([\d,]+\.\d\d)/.exec(t) || [, '0'])[1].replace(/,/g, '')) * 100), 0);
   expect(listed).toHaveLength(2);
