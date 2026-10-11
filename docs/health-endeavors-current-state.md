@@ -1,6 +1,6 @@
 # Health Endeavors — current state (cross-project summary)
 
-**Last updated:** October 11, 2026, extension 11 (platform §1, §8; website sections unchanged from Sept 30). Internal-platform entry point from now on: `docs/ops/CURRENT_PLATFORM_STATE_EXT11.md`. **Keep this short.** Details live in the linked documents; update this file whenever the verified state changes materially.
+**Last updated:** October 11, 2026, extension 12 (platform §1, §8; website sections unchanged from Sept 30). Internal-platform entry point from now on: `docs/ops/START_HERE_EXT12.md`. **Keep this short.** Details live in the linked documents; update this file whenever the verified state changes materially.
 
 Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (from the owner's earlier chats, not re-checked) · **PROPOSED** · **OWNER DECISION REQUIRED** · **DEPRECATED**.
 
@@ -95,6 +95,9 @@ Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (fro
   - Fixed: orders without a total counted as $0 in revenue (X11-01); return receive and recall quarantine after a lost connection said "nothing was changed" when the save may have happened and the stock step had not run (X11-02, X11-03); report figures missing from a daily report shown as 0 (X11-04); a received return labelled "Restocked" when the restock had not run (X11-06).
   - System status now shows which database steps are installed and flags a switch that is ON without its step; tested that merging the code before any SQL is safe.
   - Owner entry points: `docs/ops/OWNER_UNBLOCK_CENTER_EXT11.md` and `docs/ops/PRODUCTION_READINESS_BOARD_EXT11.md` (why production is ~15% and the exact order to fix it). Report: `docs/ops/DEEP_PLATFORM_EXTENSION_11_2026-10-11.md`.
+- **Extension 12 (Oct 11, not merged, not live):** `claude/platform-ext12-preproduction-simulation-2026-10-11`, built on the final EXT11 commit (`ad9a0ab`); its draft PR replaces #27. **No page code changed** (dashboard files identical to the EXT11 frozen commit `32c05e2`).
+  - New local tools (connect to nothing): an evidence intake that reads every result the owner sends back and labels it honestly (environment required, secrets refused, staleness, conflicts); a deployment simulator that rehearses the rollout and refuses wrong orders; an incident map in the page's own words.
+  - Owner entry point: `docs/ops/START_HERE_EXT12.md`. No production evidence has arrived yet; production readiness unchanged at ~15%.
 - **Store not launched:** 0 real orders, real products not yet added, the Shopify order sync and agents #2/#3/#7/#8 switched off on purpose until products exist (REPORTED). Agent #1's on/off state is **unverified**.
 
 ## 2. Public website (customer storefront)

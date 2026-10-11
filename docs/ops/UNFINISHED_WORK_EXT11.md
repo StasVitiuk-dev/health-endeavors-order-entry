@@ -1,6 +1,6 @@
 # Unfinished work (EXT11): the final sweep
 
-**Status:** CURRENT (2026-10-11, extension 11). Supersedes `UNFINISHED_WORK_EXT10.md` as the summary (that file keeps the per-workstream detail). Every remaining item is classified. **FIX NOW** items found in this sweep were done in EXT11 and are listed as DONE.
+**Status:** SUPERSEDED as the summary by `UNFINISHED_WORK_EXT12.md` (extension 12); the classification below stays the detail. Was: CURRENT (2026-10-11, extension 11). Supersedes `UNFINISHED_WORK_EXT10.md` as the summary (that file keeps the per-workstream detail). Every remaining item is classified. **FIX NOW** items found in this sweep were done in EXT11 and are listed as DONE.
 
 ## 1. Classification of everything still open
 

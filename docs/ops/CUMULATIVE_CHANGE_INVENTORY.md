@@ -171,3 +171,17 @@ Helper file API is 9 (was 8); the page refuses a mix of old and new files. Rollb
 | Interpreter: one-sitting read-only session summary, backup intake, evidence expiry | Owner (via Claude) | No |
 
 Rollback: revert the merge commit.
+
+
+## 12. Extension 12 addendum (2026-10-11)
+
+`claude/platform-ext12-preproduction-simulation-2026-10-11` was created from the final EXT11 commit (`ad9a0ab`), so it contains everything above. `main` is still `d3db7bc`. **EXT12 changes no page code, no SQL and no workflow file**: only tests, local tools, `package.json` scripts and docs. Merging it changes nothing a user sees beyond EXT11.
+
+| Change | Who notices | Needs SQL first? |
+|---|---|---|
+| `npm run evidence:interpret / intake / status / diff`: reads owner results; records sanitized lines in `docs/ops/evidence/ledger.jsonl` | Owner (via Claude) | No |
+| `npm run deploy:sim`: rehearses a rollout order; refuses wrong orders; simulation only | Owner (via Claude) | No |
+| `npm run incident`: incident cards and lookup by screen text | Owner, staff | No |
+
+Rollback: revert the merge commit.
+

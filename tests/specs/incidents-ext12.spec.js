@@ -51,3 +51,9 @@ test('every card states the retry rule and that no repair is automatic', () => {
     if (s.stop) expect(c).toContain('STOP.');
   }
 });
+
+test('INCIDENT_SIMULATION_EXT12.md lists every scenario id and every spec it names exists', () => {
+  const doc = fs.readFileSync(path.join(__dirname, '..', '..', 'docs', 'ops', 'INCIDENT_SIMULATION_EXT12.md'), 'utf8');
+  for (const s of I.SCENARIOS) expect(doc).toContain('`' + s.id + '`');
+  for (const m of doc.matchAll(/`([a-z0-9-]+\.spec\.js)`/g)) expect(fs.existsSync(path.join(__dirname, m[1])), m[1]).toBe(true);
+});

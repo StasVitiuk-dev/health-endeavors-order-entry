@@ -1,6 +1,6 @@
 # Internal platform: current state (EXT11 entry point)
 
-**Status:** CURRENT and AUTHORITATIVE for the internal dashboard/platform as of 2026-10-11 (extension 11). Start here. Supersedes `CURRENT_PLATFORM_STATE_EXT10.md` (kept as history). Short cross-project summary: `docs/health-endeavors-current-state.md`.
+**Status:** SUPERSEDED by `CURRENT_PLATFORM_STATE_EXT12.md` and `START_HERE_EXT12.md` (2026-10-11, extension 12; no page code changed in EXT12). Kept as history. Was: CURRENT and AUTHORITATIVE for the internal dashboard/platform as of 2026-10-11 (extension 11). Supersedes `CURRENT_PLATFORM_STATE_EXT10.md` (kept as history). Short cross-project summary: `docs/health-endeavors-current-state.md`.
 
 ## 1. In one paragraph
 

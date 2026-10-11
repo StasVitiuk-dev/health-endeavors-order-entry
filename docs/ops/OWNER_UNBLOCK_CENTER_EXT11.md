@@ -1,6 +1,6 @@
 # Owner unblock center (EXT11)
 
-**Status:** CURRENT (2026-10-11, extension 11). Supersedes `OWNER_UNBLOCK_CENTER_EXT10.md` as the entry point; that file keeps the full U01–U50 list (U-numbers unchanged) and stays the place for each item's detail. **Start here, then `PRODUCTION_READINESS_BOARD_EXT11.md`.** Claude changed nothing in production.
+**Status:** SUPERSEDED as the entry point by `OWNER_UNBLOCK_CENTER_EXT12.md` (extension 12). §3 packets and §1 boards remain the detail; §2 decisions are now in `OWNER_DECISION_STATUS_EXT12.md`. Was: CURRENT (2026-10-11, extension 11). Supersedes `OWNER_UNBLOCK_CENTER_EXT10.md` as the entry point; that file keeps the full U01–U50 list (U-numbers unchanged) and stays the place for each item's detail. **Start here, then `PRODUCTION_READINESS_BOARD_EXT11.md`.** Claude changed nothing in production.
 
 ## 0. What do I do now? (one page)
 

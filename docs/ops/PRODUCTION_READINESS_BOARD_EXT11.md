@@ -1,6 +1,6 @@
 # Production readiness board (EXT11)
 
-**Status:** CURRENT (2026-10-11, extension 11). One page that says **why production readiness is about 15%**, what exactly blocks the rest, and in what order the owner unblocks it. It does not repeat the step details: those stay in `PRODUCTION_CHANGE_PACKAGE_EXT10.md` (steps P0–P11, preconditions, stop conditions, observation window, owner dry run) and `PRODUCTION_READONLY_VERIFICATION_EXT10.md` (checks V1–V13). The owner's own checks and cards are in `OWNER_CHECKS_EXT11.md`.
+**Status:** CURRENT (2026-10-11; still current after extension 12, which added §6 only). One page that says **why production readiness is about 15%**, what exactly blocks the rest, and in what order the owner unblocks it. It does not repeat the step details: those stay in `PRODUCTION_CHANGE_PACKAGE_EXT10.md` (steps P0–P11, preconditions, stop conditions, observation window, owner dry run) and `PRODUCTION_READONLY_VERIFICATION_EXT10.md` (checks V1–V13). The owner's own checks and cards are in `OWNER_CHECKS_EXT11.md`.
 
 **Nothing on this page has been done in production.** Every row below is at most READY FOR OWNER DEPLOYMENT. Production readiness rises only when a production fact is checked or a production step is done, never because of work in the branch.
 
@@ -105,3 +105,23 @@ This is what step 1.1 relies on. Tested in `tests/specs/merge-without-sql-ext11.
 | | | | | | | | | |
 
 Critical install files (fingerprints so the pasted file is exactly the reviewed one): R1–R5 `drafts/10` → installed-function fingerprint `3df2bf7a07b451f12f9359ceca1c85df` (V8). Read-only files: SHA-256 prefixes in `PRODUCTION_READONLY_VERIFICATION_EXT10.md`.
+
+## 6. Which evidence moves which row (EXT12)
+
+A row's `done` changes only from evidence recorded by `npm run evidence:intake` (`OWNER_EVIDENCE_GUIDE_EXT12.md`) that is from **production**, not STALE, not CONFLICT, and PASS (WARN rows are read by a person first). A simulation (`DEPLOYMENT_SIMULATION_EXT12.md`) never moves a row.
+
+| Row | Evidence type(s) that can move it |
+|---|---|
+| G3 merge | the merge commit on `main` + the P0 postcheck screenshot |
+| G4 backups | `BACKUP` PASS (and again on the day of each database step) |
+| G5 read-only facts | `QUERY_C`, `QUERY_D`, `QUERY_E`, `QUERY_F`, `QUERY_G`, `QUERY_H` all received from production (any verdict: the row is about having the facts) |
+| G6 GitHub | `GITHUB_ACCESS` PASS |
+| G7 R1–R5 | checkpoint-log line with postcheck PASS + V8 fingerprint `3df2bf7a07b451f12f9359ceca1c85df` + `QUERY_H` PASS that day |
+| G8 / G9 | checkpoint-log lines for P7 / P6, P9, P9b with postcheck PASS + `QUERY_H` PASS |
+| G10 RLS | `QUERY_G` with no FAIL (after any fixes) |
+| G11 audit | `QUERY_C` §10 lists every table in `AUDIT_REQUIRED` with a trigger |
+| G12 agents | `QUERY_C` / `AGENT_STATUS` with no UNKNOWN and no CONFLICT |
+| G13 switches | each switch VERIFIED in the checkpoint log (one working day, canary, Query H PASS, Query E 0 mismatches for stock) |
+| G14 policies | `OWNER_DECISION` / `ACCOUNTANT_DECISION` for thresholds, partial returns, low-stock levels, N4 |
+| G15 real devices | `REAL_DEVICE` PASS on the deployed commit (STALE after any page change) |
+| G16 post-deploy | the final verification card |
