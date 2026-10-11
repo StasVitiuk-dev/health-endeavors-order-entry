@@ -1,6 +1,6 @@
 # Health Endeavors — current state (cross-project summary)
 
-**Last updated:** October 10, 2026, extension 9 (platform §1, §8; website sections unchanged from Sept 30). Internal-platform entry point from now on: `docs/ops/CURRENT_PLATFORM_STATE_EXT9.md`. **Keep this short.** Details live in the linked documents; update this file whenever the verified state changes materially.
+**Last updated:** October 11, 2026, extension 10 (platform §1, §8; website sections unchanged from Sept 30). Internal-platform entry point from now on: `docs/ops/CURRENT_PLATFORM_STATE_EXT10.md`. **Keep this short.** Details live in the linked documents; update this file whenever the verified state changes materially.
 
 Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (from the owner's earlier chats, not re-checked) · **PROPOSED** · **OWNER DECISION REQUIRED** · **DEPRECATED**.
 
@@ -81,6 +81,13 @@ Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (fro
   - Fixed: calendar notes/events overwritten by another tab; currency warnings shown on the wrong page; older expenses unreachable; dashboard could be shown inside another site's frame; Home checks looked current when hours old; CSV formula edge cases.
   - Prepared (not run/installed): Query G (permissions inventory), integrity rules (draft 23), nightly Query F (draft 25), switch rows (drafts 21, 27), each with rollback and a local test.
   - Owner one-pager: `docs/ops/OWNER_UNBLOCK_CENTER_EXT9.md`. Report: `docs/ops/DEEP_PLATFORM_EXTENSION_9_2026-10-10.md`.
+- **Extension 10 (Oct 11, not merged, not live):** `claude/platform-ext10-operations-hardening-2026-10-11`, built on extension 9 (`f9e4850`).
+  - Phones: wide tables (tasks, orders, PO lines, incidents, AI log, report history, tax receipts) are one card per row.
+  - Every create form (18) can refuse duplicates after a lost reply once request keys are installed and switched on; escalating to an incident happens at most once.
+  - Home: "Nightly integrity check" with PASS / WARN / FAIL / STALE / NOT VERIFIED; shows "Not set up yet" until drafts 25 + 29 are installed and its switch is on.
+  - Fixed: Feature request Add button stuck after the first add; evidence without a file reported a failure after saving; unreadable amounts shown as $0.00.
+  - change-password page runs without inline scripts (strict policy).
+  - Owner one-pager: `docs/ops/OWNER_UNBLOCK_CENTER_EXT10.md`. Report: `docs/ops/DEEP_PLATFORM_EXTENSION_10_2026-10-11.md`.
 - **Store not launched:** 0 real orders, real products not yet added, the Shopify order sync and agents #2/#3/#7/#8 switched off on purpose until products exist (REPORTED). Agent #1's on/off state is **unverified**.
 
 ## 2. Public website (customer storefront)
@@ -139,7 +146,7 @@ No merging or deploying by Claude · no production Supabase, SQL, cron, RLS or p
 
 ## 8. Pending owner decisions (most important first)
 
-0. **(EXT6, re-checked EXT7, EXT8 and EXT9: still open) GitHub access for Claude sessions:** connect with the non-admin account, or remove the admin bypass (X6-17). Platform decisions in full: `docs/ops/OWNER_DECISIONS_NEXT.md`.
+0. **(EXT6, re-checked EXT7–EXT10: still open) GitHub access for Claude sessions:** connect with the non-admin account, or remove the admin bypass (X6-17). Platform decisions in full: `docs/ops/OWNER_DECISIONS_NEXT.md`.
 1. Review and merge order for PRs #5–#24 (the newest extension branch contains them all).
 2. R1–R4: run a read-only schema query, then approve the SQL drafts.
 3. Approve the website architecture and a separate website repository.

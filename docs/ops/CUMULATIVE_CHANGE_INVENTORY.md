@@ -126,3 +126,20 @@ Helper file API is 8 (was 7); the page refuses a mix of old and new files. Produ
 
 Helpers file unchanged in API (8); its hash changed (CSV guard). `index.html` = `manual-order-entry.html`. Rollback: revert the merge commit (and, if any switch was turned on, turn it off first).
 
+
+## 10. Extension 10 addendum (2026-10-11)
+
+`claude/platform-ext10-operations-hardening-2026-10-11` was created from extension 9 (`f9e4850`), so it contains everything above. `main` is still `d3db7bc`. EXT10 adds page code, one new asset (`assets/change-password.js`), tests, tools, docs and drafts 29–30 (not installed); **no workflow file**.
+
+| Change | Who notices | Needs SQL first? |
+|---|---|---|
+| Wide tables are cards on phones | Everyone on a phone | No |
+| Request keys on every create form + escalation once (switch) | Nobody until the switch is on | Yes: drafts/19 then drafts/27 |
+| Lost-reply messages say whether pressing again is safe | Owner, staff | No |
+| Home "Nightly integrity check" card | Owner/admin: "Not set up yet" until installed | Yes for results: drafts/25 then drafts/29, then its switch |
+| Feature request Add button works after the first add (X10-01) | Owner | No |
+| Evidence without a file no longer reports a failure after saving (X10-02) | Owner, staff | No |
+| Unreadable amounts show "—" instead of $0.00 (X10-03) | Owner | No |
+| change-password page: no inline script, strict policy | Nobody (invisible) | No |
+
+Helper file API is 9 (was 8); the page refuses a mix of old and new files. Rollback: revert the merge commit.
