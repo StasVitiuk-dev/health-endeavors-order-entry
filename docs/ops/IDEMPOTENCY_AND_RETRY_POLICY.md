@@ -2,6 +2,8 @@
 
 **Status:** CURRENT (2026-10-06, extension 5, workstreams 18 and 39). Source of truth for each path: `docs/ops/write-paths.classification.json` (98 paths), summarised in `WRITE_PATH_MATRIX.md`. The extractor is a **heuristic static check**: it finds `supabase.from(...).insert/update/delete/upsert`, RPCs, storage and sign-out calls. It is a tripwire, not proof of security.
 
+> **EXT10 update (2026-10-11):** a fifth retry class, **REQUEST KEY IN PAGE**, marks the 18 creates that send a request key once drafts/19 + 27 are installed and `request_keys` is on (generated inventory: 76 SAFE ALREADY, 18 REQUEST KEY IN PAGE, 7 DATABASE REQUEST KEY NEEDED (browser stock steps covered by R1–R5), 4 CLIENT-SIDE MITIGATION ONLY (manual orders)). Lifecycle and tests: `REQUEST_KEYS_EXT10.md`.
+
 ## 1. The four classes
 
 | Class | Count | Meaning | Examples | What protects it |

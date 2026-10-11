@@ -45,3 +45,10 @@ Stuck work, duplicate risks (same PO expense twice, same supplier name, same man
 - "KEY" cells for expenses, products, suppliers, purchase orders and recalls are covered by the dashboard once drafts/19 + 27 are installed and `request_keys` is on; the other create paths still rely on the lock + check-first message.
 - Calendar notes and personal events moved from last-write-wins to "only if unchanged".
 
+
+## Extension 10 changes (2026-10-11)
+
+- Every remaining **KEY** cell (tasks/reminders, incidents via escalation, quality checks, legal holds, adverse events, SOPs, feature requests, documents, evidence, returns, personal events, PO lines) is now covered by the dashboard once drafts/19 + 27 are installed and `request_keys` is on (`REQUEST_KEYS_EXT10.md`). Manual orders keep their same-order match (X10-05 queued).
+- Escalation to an incident: at most one incident even across tabs and lost replies (key made from the record; I-21).
+- Request-key lifecycle tied to user and content (I-22); concurrency cases in `request-keys-ext10.spec.js`.
+- Nightly Query F results readable on Home (drafts/29; I-23, I-24). Rule catalog: `DATA_INTEGRITY_RULES_EXT10.md`.

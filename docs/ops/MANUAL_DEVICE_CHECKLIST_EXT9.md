@@ -9,8 +9,11 @@
 3. Home: scroll to "Checks: what needs a look". ✔ Each row's buttons can be tapped without zooming.
 4. Open a document or receipt link (Documents or Expenses). ✔ It opens (iPhone Safari may block pop-ups: if nothing happens, screenshot).
 5. Rotate the phone sideways and back. ✔ Nothing overlaps.
+6. (EXT10) Tap ☰ → Tasks, then Orders. ✔ Each row is a card with the column name before each value; buttons are inside the card; nothing scrolls sideways. Screenshot one card.
 
 ## B. iPhone, VoiceOver (5 minutes)
+
+(EXT10, M-38) On Orders, swipe through one card: ✔ VoiceOver reads each value once with its column ("Customer, SYNTHETIC…"), not the column name twice. If doubled, say so.
 
 Settings → Accessibility → VoiceOver → On (triple-click the side button toggles it if set up).
 

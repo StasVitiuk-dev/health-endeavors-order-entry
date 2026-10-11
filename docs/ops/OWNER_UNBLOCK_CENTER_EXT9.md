@@ -1,5 +1,7 @@
 # Owner unblock center (EXT9): everything still unfinished, in one place
 
+> **SUPERSEDED (2026-10-11, extension 10)** as the entry point by `OWNER_UNBLOCK_CENTER_EXT10.md`. Kept unchanged below as the EXT9 record.
+
 **Status:** CURRENT (2026-10-10, extension 9). For Stas: this page replaces searching through many documents. Every unfinished item of the internal platform is here once, with who does the next step. Detail lives in the linked files. Nothing in production was changed by Claude.
 
 **Classes:** **A** Claude can safely complete now · **B** needs an owner decision · **C** needs a read-only production check · **D** needs an owner production action · **E** needs an outside provider or person · **F** deliberately deferred.

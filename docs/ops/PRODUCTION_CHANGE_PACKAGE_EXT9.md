@@ -1,5 +1,7 @@
 # Production change package (EXT9)
 
+> **SUPERSEDED (2026-10-11, extension 10)** as the entry point by `PRODUCTION_CHANGE_PACKAGE_EXT10.md`. Kept unchanged below as the EXT9 record.
+
 **Status:** CURRENT (2026-10-10, extension 9). Every future production change, in the order it may be done. **None has been done.** Each step needs Stas's approval and is done by Stas (or by a session Stas explicitly authorises for that one step). Rule: one step at a time; check after each; stop if anything differs. Read-only checks referred to as V1…V10 are in `PRODUCTION_READONLY_VERIFICATION_EXT9.md`. Supersedes the order list in `SQL_DEPENDENCY_GRAPH.md` §3 where they differ (that file keeps the per-file detail).
 
 **Before any step:** V1 (backups) = VERIFIED HEALTHY. If not, stop.

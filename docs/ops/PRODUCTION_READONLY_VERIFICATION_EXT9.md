@@ -1,5 +1,7 @@
 # Production read-only checks: everything in one place (EXT9)
 
+> **SUPERSEDED (2026-10-11, extension 10)** as the entry point by `PRODUCTION_READONLY_VERIFICATION_EXT10.md`. Kept unchanged below as the EXT9 record.
+
 **Status:** CURRENT (2026-10-10, extension 9). Every check below **only reads**. None changes data, settings, policies, functions, schedules or backups. Claude never runs them: Stas runs them in the Supabase dashboard (SQL Editor) or looks at a page, and sends back the CSV or a screenshot. Superseded as the entry point: the scattered run guides (`QUERY_C_OWNER_RUN_GUIDE.md`, `QUERY_E_OWNER_RUN_GUIDE.md`) stay valid as detail.
 
 **How to run any query file (same every time):** Supabase → your project → **SQL Editor** → **New query** → paste the WHOLE file from GitHub (open the file → **Raw** → select all → copy) → **Run** → **Export → Download CSV** → send the CSV. If it stops with an error, send a screenshot of the error; nothing was changed.

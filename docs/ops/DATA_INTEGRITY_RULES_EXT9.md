@@ -1,5 +1,7 @@
 # Data integrity rules (EXT9 catalog)
 
+> **SUPERSEDED (2026-10-11, extension 10)** as the entry point by `DATA_INTEGRITY_RULES_EXT10.md`. Kept unchanged below as the EXT9 record.
+
 **Status:** CURRENT (2026-10-10, extension 9). The rules the platform must never break, each with where it is enforced and the test that proves it. "Page" = dashboard code (convenience and honesty); "DB" = the database itself (the real lock). "Today" = live on `main` / production; "Branch" = on the EXT9 branch; "Draft" = SQL written and tested locally, not installed. Per-workflow view: `DATA_INTEGRITY_AND_CONCURRENCY_MATRIX.md`.
 
 | # | Rule | Enforced by | State | Proof (tests) |

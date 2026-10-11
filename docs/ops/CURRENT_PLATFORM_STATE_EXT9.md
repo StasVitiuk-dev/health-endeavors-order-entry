@@ -1,5 +1,7 @@
 # Internal platform: current state (EXT9 entry point)
 
+> **SUPERSEDED (2026-10-11, extension 10)** as the entry point by `CURRENT_PLATFORM_STATE_EXT10.md`. Kept unchanged below as the EXT9 record.
+
 **Status:** CURRENT and AUTHORITATIVE for the internal dashboard/platform as of 2026-10-10 (extension 9). Start here. Older state pages stay as history and are marked superseded where they disagree: `docs/health-endeavors-current-state.md` (short cross-project summary, kept in step), `READINESS_GATE.md`, `PRODUCTION_READINESS_MATRIX.md`, the extension reports.
 
 ## 1. In one paragraph
