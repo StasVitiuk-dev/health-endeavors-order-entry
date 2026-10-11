@@ -79,12 +79,12 @@ for (const n of [0, 1, 999, 1000, 1001]) {
   });
 }
 
-// EXT4 (workstream F): whole-table lists (products, lots, purchase orders,
-// compliance records) are read in one request. At 1,000 rows the reply may
-// have been cut, so the page must say the list may be incomplete. Complete
-// paged reads (totals) never trigger the notice.
+// EXT4 (workstream F) said whole-table lists were read in one request and the
+// page warned at 1,000 rows. Since X10-15 (EXT10) products, lots and suppliers
+// are read page by page, so the list is complete and the notice stays hidden.
+// Lists still read in one request warn on their own page (count-based).
 for (const n of [0, 1, 999, 1000, 1001, 5000]) {
-  test(`Inventory with ${n} products: the "may be incomplete" notice shows only at the 1,000-row limit`, async ({ page, backend }) => {
+  test(`Inventory with ${n} products: every product is read in pages and no "may be incomplete" notice shows (X10-15)`, async ({ page, backend }) => {
     test.setTimeout(120000);
     backend.tables.products = Array.from({ length: n }, (_, i) => ({ id: 'p-' + pad(i), name: 'SYNTHETIC ' + i, sku: 'SYN-' + i, is_active: true, status: 'active', cost: null, retail_price: null, wholesale_price: null, packaging_info: null }));
     backend.tables.inventory = backend.tables.products.map(p => ({ product_id: p.id, available: 1, reserved: 0, damaged: 0, sample: 0, wholesale: 0, promotional: 0, returned: 0, recalled: 0, low_stock_threshold: null }));
@@ -92,16 +92,25 @@ for (const n of [0, 1, 999, 1000, 1001, 5000]) {
     await login(page);
     await gotoPage(page, 'inventoryPanel');
     await page.waitForLoadState('networkidle');
-    const notice = page.locator('#rowCapNotice');
-    if (n >= 1000) {
-      await expect(notice).toBeVisible({ timeout: 60000 });
-      await expect(notice).toContainText('products');
-      await expect(notice).toContainText('Totals and money figures are not affected');
-    } else {
-      await expect(notice).toBeHidden();
-    }
+    // Before X10-15 the product read stopped at the reply limit and the
+    // notice said so; it now reads every page, so all n products are offered.
+    await expect(page.locator('#invProduct option')).toHaveCount(n + 1, { timeout: 60000 });
+    await expect(page.locator('#rowCapNotice')).toBeHidden();
   });
 }
+
+test('a list still read in one request warns at the reply limit: page warning and the dashboard-wide notice', async ({ page, backend }) => {
+  test.setTimeout(120000);
+  backend.tables.sop_documents = Array.from({ length: 1200 }, (_, i) => ({ id: 'sop-' + pad(i), title: 'SYNTHETIC procedure ' + i, category: 'ops', content: 'x', updated_at: new Date().toISOString(), agent_visible: false }));
+  backend.maxRows = 1000;
+  await login(page);
+  await gotoPage(page, 'sopsPanel');
+  await expect(page.locator('#dashError')).toContainText('Showing the first 1000 of 1200 procedures', { timeout: 60000 });
+  const notice = page.locator('#rowCapNotice');
+  await expect(notice).toBeVisible();
+  await expect(notice).toContainText('sop_documents');
+  await expect(notice).toContainText('Totals and money figures are not affected');
+});
 
 test('20,000 orders read in pages for Accounting never trigger the "may be incomplete" notice', async ({ page, backend }) => {
   test.setTimeout(120000);
