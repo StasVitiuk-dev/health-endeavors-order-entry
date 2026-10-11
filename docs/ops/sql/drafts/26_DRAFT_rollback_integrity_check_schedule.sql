@@ -9,7 +9,7 @@ do $do$
 begin
   if to_regclass('cron.job') is not null then
     -- dynamic, so the statement is not even planned where pg_cron is missing
-    execute 'select cron.unschedule(jobid) from cron.job where jobname = ''integrity_check_nightly''';
+    execute format('select cron.unschedule(jobid) from cron.job where jobname = %L', 'integrity_check_nightly');
   end if;
 end $do$;
 
