@@ -5,7 +5,7 @@
 ## Where we are
 
 - The live dashboard (`main`, `d3db7bc`) is **unchanged**. Nothing has been merged, deployed or run on production.
-- All work from extensions 1–12 is on branch `claude/platform-ext12-preproduction-simulation-2026-10-11`, in one **draft** pull request that replaces #27 (its number is in `CURRENT_PLATFORM_STATE_EXT12.md` once opened).
+- All work from extensions 1–12 is on branch `claude/platform-ext12-preproduction-simulation-2026-10-11`, in one **draft** pull request, **#28**, which replaces #27.
 - The dashboard code is the same as the EXT11 frozen commit `32c05e2`, which the full test suite ran on. EXT12 added tools and documents only.
 - Production readiness is still about **15 / 100** (`PRODUCTION_READINESS_BOARD_EXT11.md`). It rises only when production evidence arrives or a production step is done.
 - No evidence from production has arrived yet.

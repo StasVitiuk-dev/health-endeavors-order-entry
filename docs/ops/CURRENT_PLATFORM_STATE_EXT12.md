@@ -4,7 +4,7 @@
 
 ## 1. In one paragraph
 
-`main` (the live dashboard) is unchanged at `d3db7bc`. Everything from extensions 1–12 is on the branch `claude/platform-ext12-preproduction-simulation-2026-10-11`, built on the final EXT11 commit `ad9a0ab`. EXT12 changes **no page code**: the dashboard files are byte-identical to the EXT11 frozen commit `32c05e2` that the full suite ran on. EXT12 adds three local tools, all tested and all connecting to nothing:
+`main` (the live dashboard) is unchanged at `d3db7bc`. Everything from extensions 1–12 is on the branch `claude/platform-ext12-preproduction-simulation-2026-10-11`, built on the final EXT11 commit `ad9a0ab`, in **draft PR #28** (replaces #27). EXT12 changes **no page code**: the dashboard files are byte-identical to the EXT11 frozen commit `32c05e2` that the full suite ran on. EXT12 adds three local tools, all tested and all connecting to nothing:
 
 - **evidence intake**: reads what the owner sends back, labels it honestly, records it without secrets;
 - **deployment simulator**: rehearses the rollout order and refuses wrong orders;

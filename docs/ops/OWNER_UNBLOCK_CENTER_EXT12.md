@@ -9,7 +9,7 @@
 | 1 | Backup look (card 1) | 2 min | `nightly green:DATE, restore green:DATE, minutes ok` | records it; database steps may be scheduled for that day |
 | 2 | Reconnect GitHub as `stasvitiuk-reos` (card 4) | 5 min | the four lines `account / role / backups_repo_visible / bypass` | closes X6-17 if all four are right; says which line is wrong otherwise |
 | 3 | Read-only session C, D, E, F, G, H (card 2) | 20–30 min | the six CSV downloads | reads each, lists findings, writes the drafts the findings call for (permission fixes, audit triggers, corrections list) as a draft PR |
-| 4 | Review and merge the EXT12 draft PR (replaces #27) | 15 min reading + 2 min clicking + 5 min postcheck | a screenshot of Home after the merge | compares it with the PR screenshots; if anything differs: revert card |
+| 4 | Review and merge the EXT12 draft PR #28 (replaces #27) | 15 min reading + 2 min clicking + 5 min postcheck | a screenshot of Home after the merge | compares it with the PR screenshots; if anything differs: revert card |
 | 5+ | One database step or switch per sitting | `DEPLOYMENT_SIMULATION_EXT12.md` §4 | the card's check result | interprets it; prepares the next card |
 
 How to send each result and what happens next: `OWNER_EVIDENCE_GUIDE_EXT12.md`. Decisions and the exact three lines to answer them: `OWNER_DECISION_STATUS_EXT12.md`.
