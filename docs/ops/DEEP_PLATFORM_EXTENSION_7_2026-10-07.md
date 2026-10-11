@@ -1,5 +1,7 @@
 # Deep platform readiness: extension 7 (2026-10-07)
 
+> **HISTORICAL (EXT13 navigation, 2026-10-11):** kept as the record of its time; not an entry point. Start at `START_HERE_EXT13.md`; authority per topic: `SOURCE_OF_TRUTH_MAP_EXT13.md`. Nothing below this line was changed by EXT13.
+
 **Status:** CURRENT. Branch `claude/platform-deep-readiness-extension-7`, created from extension 6 (`444e00c`). **Not merged, not deployed. Production not touched.** `main` is unchanged at `d3db7bc`. Internal dashboard only: the website repository, Real Estate OS, the backups repository, production Supabase and Shopify were not opened.
 
 Plain-English summary for Stas: this pass found and fixed **12 real problems** in the dashboard, two of them live on the site today, and added three owner features (Recently finished + Reopen, "?" tiles that open their page, a "not saved yet" question). It also re-checked the GitHub access problem (still open) and wrote the agent, role, compliance and recovery plans. Nothing needs a database change to merge.

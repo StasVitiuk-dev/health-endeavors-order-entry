@@ -1,5 +1,7 @@
 # Unfinished work (EXT11): the final sweep
 
+> **SUPERSEDED (EXT13 navigation, 2026-10-11)** by `UNFINISHED_WORK_EXT13.md`. Start at `START_HERE_EXT13.md`; authority per topic: `SOURCE_OF_TRUTH_MAP_EXT13.md`. Nothing below this line was changed by EXT13 except dated correction notes.
+
 **Status:** SUPERSEDED as the summary by `UNFINISHED_WORK_EXT12.md` (extension 12); the classification below stays the detail. Was: CURRENT (2026-10-11, extension 11). Supersedes `UNFINISHED_WORK_EXT10.md` as the summary (that file keeps the per-workstream detail). Every remaining item is classified. **FIX NOW** items found in this sweep were done in EXT11 and are listed as DONE.
 
 ## 1. Classification of everything still open

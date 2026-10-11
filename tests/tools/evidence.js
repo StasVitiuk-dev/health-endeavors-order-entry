@@ -132,9 +132,18 @@ const DECISIONS = {
   orders_without_items: { options: ['A: count as revenue (today)', 'B: exclude until items added'], safe: 'A: count as revenue (today)', unlocks: ['revenue rule on Accounting/Tax'] },
   document_categories: { options: ['keep 7', 'add categories'], safe: 'keep 7', unlocks: ['document form'] },
   order_number_rule: { options: ['unique in the database', 'page check only (today)'], safe: 'page check only (today)', unlocks: ['optional unique rule on orders (after Query C/F)'] },
+  // EXT13: decisions found in older documents and merged into OWNER_ATTENTION_SESSION_EXT13.md §6
+  rollout_order: { options: ['R1→R4→R2→R3→R5', 'R1-R4-R2-R3-R5', 'other'], safe: 'R1→R4→R2→R3→R5', unlocks: ['stock switch order (P4)'] },
+  switch_tables_owner_only: { options: ['owner/admin only', 'leave'], safe: 'leave', unlocks: ['owner-only policy draft for switch tables (after Query G)'] },
+  next_automation: { options: ['Query F nightly first', 'other D-item', 'none'], safe: 'none', unlocks: ['the chosen D-item package'] },
+  ci_required_check: { options: ['on', 'off'], safe: 'off', unlocks: ['CI workflow PR for owner review'] },
+  manual_order_catalogue_picker: { options: ['yes', 'no'], safe: 'no', unlocks: ['manual order product picker (post-launch)'] },
+  input_border_contrast: { options: ['darker', 'keep'], safe: 'keep', unlocks: ['form border colour (post-launch)'] },
   refund_rule_n4: { options: ['a', 'b', 'c'], safe: 'a', unlocks: ['refund subtraction on Accounting/Tax'], party: 'ACCOUNTANT_DECISION' },
+  tax_export_review: { options: ['ok', 'changes needed'], safe: null, unlocks: ['tax export confidence'], party: 'ACCOUNTANT_DECISION' },
   legal_hold_vs_delete: { options: ['1', '2'], safe: '2', unlocks: ['delete buttons check holds'], party: 'LAWYER_DECISION' },
   data_retention: { options: ['to be written'], safe: 'delete nothing', unlocks: ['none until decided'], party: 'LAWYER_DECISION' },
+  claims_review_queue: { options: ['needed', 'not needed'], safe: 'not built', unlocks: ['claims review queue D8 (website launch)'], party: 'LAWYER_DECISION' },
   email_provider: { options: ['provider name'], safe: 'none', unlocks: ['R10 adapter (no send until approved)'], party: 'PROVIDER_DECISION' },
 };
 function interpretDecision(text, type) {
@@ -167,6 +176,8 @@ function interpret(type, text, opts = {}) {
   if (!TYPES.includes(T)) return { status: 'MALFORMED', rows: [], note: 'unknown evidence type ' + type };
   const env = String(opts.env || '').toLowerCase();
   if (!ENVIRONMENTS.includes(env)) return { status: 'UNKNOWN', rows: [], note: 'environment not stated (production, staging or local): a result whose environment is unknown proves nothing' };
+  // A result that expires must say when it was run; otherwise its age (and so its validity) is unknown.
+  if (STALE_DAYS[T] && !/^\d{4}-\d{2}-\d{2}$/.test(String(opts.runDate || ''))) return { status: 'UNKNOWN', rows: [], note: 'run date missing or not written as YYYY-MM-DD (for example --run-date 2026-10-20): without it nobody can tell whether the result is still valid' };
   const p = privacyCheck(text);
   if (p.secret) return { status: 'MALFORMED', rows: [], note: 'REFUSED: the text contains what looks like a key, token or password. Nothing was stored. Remove it and send again.', refused: true };
   if (!String(text || '').trim()) return { status: 'NOT RECEIVED', rows: [], note: 'empty' };
@@ -244,7 +255,8 @@ function appendLedger(record, file = LEDGER) { fs.appendFileSync(file, JSON.stri
 function ageStatus(rec, today, currentFingerprint) {
   const limit = STALE_DAYS[rec.type];
   if (rec.type === 'REAL_DEVICE' && currentFingerprint && rec.pageFingerprint && rec.pageFingerprint !== currentFingerprint) return 'STALE';
-  if (!limit || !rec.runDate) return rec.status;
+  if (!limit) return rec.status;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(rec.runDate || ''))) return 'UNKNOWN'; // undated: never counts as fresh
   return (Date.parse(today) - Date.parse(rec.runDate)) / DAY > limit ? 'STALE' : rec.status;
 }
 // Facts the documents state as expected; evidence that says otherwise is a CONFLICT to be read by a person (never auto-fixed).

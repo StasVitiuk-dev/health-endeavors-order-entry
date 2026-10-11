@@ -1,5 +1,7 @@
 # Open PRs #5–#24: dependency map and recommended merge order
 
+> **SUPERSEDED (EXT13 navigation, 2026-10-11)** by `RELEASE_REVIEW_EXT13.md` §5. OBSOLETE: every PR listed below (#5–#24) is already inside draft PR #28; merge #28 only, never these one by one. Start at `START_HERE_EXT13.md`; authority per topic: `SOURCE_OF_TRUTH_MAP_EXT13.md`. Nothing below this line was changed by EXT13 except dated correction notes.
+
 **Status:** analysis only, 2026-10-04. Nothing was merged. Every branch was merged in this order into a **scratch copy** of `main` (a detached local worktree), with the full test suite run after each step. No real branch was changed.
 
 ## 1. Starting point

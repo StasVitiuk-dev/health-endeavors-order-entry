@@ -14,6 +14,16 @@ const SCRATCH = path.resolve(process.argv[2] || path.join(require('os').tmpdir()
 
 // [name, file, exact text to find, replacement, specs + grep]
 const MUTATIONS = [
+  // ---- EXT13 additions (2026-10-11): undated evidence, documentation integrity ----
+  ['an undated result is accepted as current evidence (EXT13)', 'tests/tools/evidence.js',
+    "if (STALE_DAYS[T] && !/^", "if (false && !/^",
+    'evidence-ext12 -g "EXT13: a result that expires"'],
+  ['the doc checker stops reporting missing files (EXT13)', 'tests/tools/doc-check.js',
+    "for (const r of refs) if (!exists(r, dir)) problems.push(", "for (const r of refs) if (false) problems.push(",
+    'docs-integrity-ext13 -g "catches"'],
+  ['the doc checker stops reporting unknown npm scripts (EXT13)', 'tests/tools/doc-check.js',
+    "if (!scripts.includes(m[1])) problems.push(", "if (false) problems.push(",
+    'docs-integrity-ext13 -g "catches"'],
   // ---- EXT12 additions (2026-10-11): evidence intake, deployment simulator, incident map (Node tools) ----
   ['evidence with no stated environment is interpreted anyway (EXT12)', 'tests/tools/evidence.js',
     "if (!ENVIRONMENTS.includes(env)) return { status: 'UNKNOWN'", "if (false) return { status: 'UNKNOWN'",

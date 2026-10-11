@@ -1,5 +1,7 @@
 # Internal platform: current state (EXT12)
 
+> **SUPERSEDED (EXT13 navigation, 2026-10-11)** by `CURRENT_PLATFORM_STATE_EXT13.md`. Start at `START_HERE_EXT13.md`; authority per topic: `SOURCE_OF_TRUTH_MAP_EXT13.md`. Nothing below this line was changed by EXT13 except dated correction notes.
+
 **Status:** CURRENT and AUTHORITATIVE for the internal dashboard/platform as of 2026-10-11 (extension 12). Supersedes `CURRENT_PLATFORM_STATE_EXT11.md` (kept as history). Entry point: `START_HERE_EXT12.md`.
 
 ## 1. In one paragraph

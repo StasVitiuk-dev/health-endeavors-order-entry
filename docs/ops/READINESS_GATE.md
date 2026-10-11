@@ -1,5 +1,7 @@
 # Dashboard production-readiness gate
 
+> **HISTORICAL (EXT13 navigation, 2026-10-11):** kept as the record of its time; not an entry point. Start at `START_HERE_EXT13.md`; authority per topic: `SOURCE_OF_TRUTH_MAP_EXT13.md`. Nothing below this line was changed by EXT13.
+
 **Status:** CURRENT (2026-10-10, extension 9 section added; the single owner list is now `OWNER_UNBLOCK_CENTER_EXT9.md`, the entry point `CURRENT_PLATFORM_STATE_EXT9.md`. Earlier: extension 8; the area-by-area view is `PRODUCTION_READINESS_MATRIX.md`, the per-workflow integrity view is `DATA_INTEGRITY_AND_CONCURRENCY_MATRIX.md`). Branch work is **not live** until merged. A draft is never counted as done. Full item list: `MASTER_PLATFORM_BACKLOG_2026-10-06.md`.
 
 | Stage | Meaning | Items |

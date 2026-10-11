@@ -1,5 +1,7 @@
 # Deep platform completion: extension 9 (2026-10-10)
 
+> **HISTORICAL (EXT13 navigation, 2026-10-11):** kept as the record of its time; not an entry point. Start at `START_HERE_EXT13.md`; authority per topic: `SOURCE_OF_TRUTH_MAP_EXT13.md`. Nothing below this line was changed by EXT13.
+
 **Status:** CURRENT. Branch `claude/platform-deep-completion-extension-9-2026-10-10`, created from extension 8 (`8aa24a9`). **Not merged, not deployed. Production not touched.** `main` unchanged at `d3db7bc`. Internal dashboard/platform only: no website, Real Estate OS, backups repository, production Supabase, Shopify or Gmail was opened.
 
 Plain-English summary for Stas: the biggest open technical risk (stock changes that can double or half-save) is now **ready to close without another code change**. Each stock button can use the all-or-nothing database function the moment you install it and flip that button's switch, and it can be switched back instantly. The same pattern now prevents duplicate records on the five most important create forms. Six smaller real problems were fixed, and every remaining step is listed with who does it in **`OWNER_UNBLOCK_CENTER_EXT9.md`**.

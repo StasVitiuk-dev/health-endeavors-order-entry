@@ -1,5 +1,7 @@
 # Launch readiness: internal platform (2026-10-06)
 
+> **HISTORICAL (EXT13 navigation, 2026-10-11):** kept as the record of its time; not an entry point. Start at `START_HERE_EXT13.md`; authority per topic: `SOURCE_OF_TRUTH_MAP_EXT13.md`. Nothing below this line was changed by EXT13.
+
 **Status:** CURRENT. Covers the internal dashboard/platform only (the public website has its own docs outside this repository). Uses Query A (schema) and Query B ("Query B ran clean; no existing data repair required"). Work on `claude/platform-overnight-implementation` is **not merged and not live**, so it is listed as FIXED ON BRANCH, never as done.
 
 ## READY / VERIFIED

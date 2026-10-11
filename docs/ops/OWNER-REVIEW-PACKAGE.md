@@ -1,5 +1,7 @@
 # Owner review package: dashboard / backend / operations session
 
+> **HISTORICAL (EXT13 navigation, 2026-10-11):** kept as the record of its time; not an entry point. Start at `START_HERE_EXT13.md`; authority per topic: `SOURCE_OF_TRUTH_MAP_EXT13.md`. Nothing below this line was changed by EXT13.
+
 **Date:** 2026-10-05. **Branch:** `claude/ops-readiness`. It is committed locally; **the push was refused (see §0)**. Nothing was merged, deployed, enabled or disabled. No production database or Shopify setting was touched, and no secrets were used. The website session's branches and files were not touched.
 
 ## 0. One blocker first: GitHub push access

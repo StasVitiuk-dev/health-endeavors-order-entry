@@ -1,5 +1,7 @@
 # Owner unblock center (EXT11)
 
+> **SUPERSEDED (EXT13 navigation, 2026-10-11)** by `OWNER_ATTENTION_SESSION_EXT13.md`. Start at `START_HERE_EXT13.md`; authority per topic: `SOURCE_OF_TRUTH_MAP_EXT13.md`. Nothing below this line was changed by EXT13 except dated correction notes.
+
 **Status:** SUPERSEDED as the entry point by `OWNER_UNBLOCK_CENTER_EXT12.md` (extension 12). §3 packets and §1 boards remain the detail; §2 decisions are now in `OWNER_DECISION_STATUS_EXT12.md`. Was: CURRENT (2026-10-11, extension 11). Supersedes `OWNER_UNBLOCK_CENTER_EXT10.md` as the entry point; that file keeps the full U01–U50 list (U-numbers unchanged) and stays the place for each item's detail. **Start here, then `PRODUCTION_READINESS_BOARD_EXT11.md`.** Claude changed nothing in production.
 
 ## 0. What do I do now? (one page)
@@ -54,13 +56,15 @@ Ranking rule: (1) gates every production step → (2) gives facts that change wh
 | Low-stock levels | operational | one level for all products / a level per product / no alerts | no alerts (today: "Low-stock level not set — CONFIG REQUIRED") | per product: Inventory → that product's low-stock field; Home then counts it. Nothing is ever ordered automatically | owner |
 | Partial returns (D-ops-5) | operational | allow a partial quantity / whole line only | whole line (today) | R3 would take a quantity; today the whole line is restocked. Example: 3 bottles sold, 1 returned damaged → whole line = 3 restocked into "damaged" (wrong by 2); partial = 1 | owner |
 | Refund rule N4 | accounting | a / b / c (`OWNER_DECISION_PACKETS_EXT10.md`) | a (today: the dashboard only records a refund made elsewhere) | how Accounting and Tax subtract refunds | owner + accountant |
-| Legal hold vs delete | legal | 1 / 2 | 2 (nothing deleted while a hold is open) | whether delete buttons check open holds. Not legal advice | owner + lawyer |
+| Legal hold vs delete | legal | 1 / 2 | 2 (nothing deleted while a hold is open) **[wrong: see the EXT13 correction under this table]** | whether delete buttons check open holds. Not legal advice | owner + lawyer |
 | Data retention | legal | to be decided | delete nothing | none until decided | owner + lawyer |
 | Staging location (X8-D1) | technical | (1) private Artifact page, best privacy, free, fully separate · (2) on your Mac only, simplest, nothing published · (3) a separate private repository, more setup | (1) | where the synthetic-data copy can be looked at; never connected to production | owner |
 | RPO / RTO (X8-D5) | technical | 24 h / 4 h suggested | suggested | how stale a backup may be, how fast a restore must be | owner |
 | Backup status row on Home (X8-D6) | technical | approve / not | not yet | Home could show backup health; needs a change in the private backup job | owner |
 | E-mail provider (R10) | provider | to be chosen | none | §3 packet D lists the requirements | owner |
 | Week definition (X8-D2) | operational | last 7 days / calendar week / both | last 7 days (labelled) | report windows | owner |
+
+> **EXT13 correction (2026-10-11):** the words in brackets were wrong. In the original decision (`OWNER_DECISIONS_NEXT.md`), option **1** = block deletes while a hold is active, option **2** = allow deletes with a warning and a record of who deleted. Today nothing checks holds. Corrected list: `OWNER_ATTENTION_SESSION_EXT13.md` §6.
 
 ## 3. Packets for outside help (smallest possible; each says what it unblocks)
 

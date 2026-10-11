@@ -1,5 +1,7 @@
 # Deep platform readiness, extension 5 (2026-10-06)
 
+> **HISTORICAL (EXT13 navigation, 2026-10-11):** kept as the record of its time; not an entry point. Start at `START_HERE_EXT13.md`; authority per topic: `SOURCE_OF_TRUTH_MAP_EXT13.md`. Nothing below this line was changed by EXT13.
+
 ## 1. Starting point, verified before any change
 
 | Check | Result |

@@ -1,5 +1,7 @@
 # Deep platform readiness: extension 8 (2026-10-07 → 2026-10-10)
 
+> **HISTORICAL (EXT13 navigation, 2026-10-11):** kept as the record of its time; not an entry point. Start at `START_HERE_EXT13.md`; authority per topic: `SOURCE_OF_TRUTH_MAP_EXT13.md`. Nothing below this line was changed by EXT13.
+
 **Status:** CURRENT. Branch `claude/platform-deep-readiness-extension-8-2026-10-07`, created from extension 7 (`f868903`). **Not merged, not deployed. Production not touched.** `main` is unchanged at `d3db7bc`. Dashboard / platform only: the website, Real Estate OS, the backups repository, production Supabase, Shopify and Gmail were not opened.
 
 Plain-English summary for Stas: this pass found and fixed **12 more real problems** (most of them are live on the site today), added an owner **"Checks: what needs a look"** list on Home, ways to reach older orders and records, browser Back that stays inside the dashboard, a read-only **daily integrity check** (Query F) and a rehearsed restore on a throwaway local database. It also built a **staging review copy** that runs on made-up data and cannot reach production; where to show it is your choice (§7). Nothing needs a database change to merge.

@@ -9,7 +9,8 @@
     "evidence:status": "node tests/tools/evidence.js status",
     "evidence:diff": "node tests/tools/evidence.js diff",
     "deploy:sim": "node tests/tools/deploy-sim.js",
-    "incident": "node tests/tools/incidents.js"
+    "incident": "node tests/tools/incidents.js",
+    "docs:check": "node tests/tools/doc-check.js --current"
   },
   "devDependencies": {
     "@playwright/test": "1.56.1",

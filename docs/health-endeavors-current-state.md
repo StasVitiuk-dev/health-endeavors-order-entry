@@ -1,6 +1,6 @@
 # Health Endeavors — current state (cross-project summary)
 
-**Last updated:** October 11, 2026, extension 12 (platform §1, §8; website sections unchanged from Sept 30). Internal-platform entry point from now on: `docs/ops/START_HERE_EXT12.md`. **Keep this short.** Details live in the linked documents; update this file whenever the verified state changes materially.
+**Last updated:** October 11, 2026, extension 13 (platform §1, §8; website sections unchanged from Sept 30). Internal-platform entry point from now on: `docs/ops/START_HERE_EXT13.md`. **Keep this short.** Details live in the linked documents; update this file whenever the verified state changes materially.
 
 Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (from the owner's earlier chats, not re-checked) · **PROPOSED** · **OWNER DECISION REQUIRED** · **DEPRECATED**.
 
@@ -98,6 +98,7 @@ Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (fro
 - **Extension 12 (Oct 11, not merged, not live):** `claude/platform-ext12-preproduction-simulation-2026-10-11`, built on the final EXT11 commit (`ad9a0ab`); its draft PR #28 replaces #27. **No page code changed** (dashboard files identical to the EXT11 frozen commit `32c05e2`).
   - New local tools (connect to nothing): an evidence intake that reads every result the owner sends back and labels it honestly (environment required, secrets refused, staleness, conflicts); a deployment simulator that rehearses the rollout and refuses wrong orders; an incident map in the page's own words.
   - Owner entry point: `docs/ops/START_HERE_EXT12.md`. No production evidence has arrived yet; production readiness unchanged at ~15%.
+- **Extension 13 (Oct 11, not merged, not live):** `claude/platform-ext13-owner-attention-final-audit-2026-10-11`, continuing EXT12 (draft PR #28). **No page code changed.** Final audit (SQL, stock functions, PR #28, history secret scan), one owner-tool bug fixed (undated evidence), the decision list consolidated to 24 with conflicts flagged, stale documents marked, and one owner attention session: `docs/ops/OWNER_ATTENTION_SESSION_EXT13.md`. Four owner actions (backup look, GitHub reconnect, read-only session, merge) would take production readiness from ~15% to ~53%.
 - **Store not launched:** 0 real orders, real products not yet added, the Shopify order sync and agents #2/#3/#7/#8 switched off on purpose until products exist (REPORTED). Agent #1's on/off state is **unverified**.
 
 ## 2. Public website (customer storefront)

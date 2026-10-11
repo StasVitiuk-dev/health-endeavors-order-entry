@@ -1,5 +1,7 @@
 # Production readiness matrix (one honest page)
 
+> **HISTORICAL (EXT13 navigation, 2026-10-11):** kept as the record of its time; not an entry point. Start at `START_HERE_EXT13.md`; authority per topic: `SOURCE_OF_TRUTH_MAP_EXT13.md`. Nothing below this line was changed by EXT13.
+
 **Status:** CURRENT (2026-10-10, extension 9 rows added; per-area labels are now in `CURRENT_PLATFORM_STATE_EXT9.md` §3. Earlier: extension 8; EXT8 rows added, earlier rows unchanged unless marked). Supersedes the stage table in `READINESS_GATE.md` where the two differ (the gate keeps the blocker list). Documentation and drafts are **never** counted as deployed. Percentages are not used here; see `docs/health-endeavors-progress.md`, where they are not raised for unmerged work.
 
 Legend: **LIVE** = on `main` now · **BRANCH** = fixed and tested on the extension branch only, so it needs a merge · **SQL** = needs an approved production database change · **OWNER** = needs a decision · **MANUAL** = needs a person to check (device, real data) · **EVIDENCE** = blocked by missing facts (Query C, backups) · **NOT BUILT** = not implemented anywhere.

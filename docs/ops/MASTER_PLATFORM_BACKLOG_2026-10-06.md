@@ -2,15 +2,15 @@
 
 Internal dashboard/platform only. Generated from `docs/ops/backlog/items.py` (edit the data there, then run `python3 docs/ops/backlog/items.py`). No production secrets or private business data.
 
-**359 deduplicated items** from 437 raw candidates (78 duplicates merged: the same item recorded in PROJECT_RECORD, the overnight review, PRs, owner lists, decision registers and tests).
+**361 deduplicated items** from 439 raw candidates (78 duplicates merged: the same item recorded in PROJECT_RECORD, the overnight review, PRs, owner lists, decision registers and tests).
 
-Status counts: BLOCKED-EXT 2, BLOCKED-OWNER 42, BLOCKED-PROD 19, BLOCKED-QC 12, DEFERRED 27, DONE 253, OPEN 1, QUEUED 3
+Status counts: BLOCKED-EXT 2, BLOCKED-OWNER 42, BLOCKED-PROD 19, BLOCKED-QC 12, DEFERRED 27, DONE 255, OPEN 1, QUEUED 3
 
 | Priority | Items | Done (branch) | Remaining |
 |---|---|---|---|
 | P0 | 16 | 6 | 10 |
 | P1 | 96 | 72 | 24 |
-| P2 | 127 | 99 | 28 |
+| P2 | 129 | 101 | 28 |
 | P3 | 102 | 75 | 27 |
 | P4 | 18 | 1 | 17 |
 
@@ -225,6 +225,8 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | X12-01 | Owner evidence | Owner results (backup, Query C–H, GitHub, devices, decisions, agent source) had no single reader: environment, staleness, conflicts and secrets were checked by hand | Local intake tool labels each result honestly and records it without secrets (tests/tools/evidence.js) | Medium | M | — | Y | N | N | DONE |
 | X12-02 | Deployment | The rollout order existed only as text; a wrong order (switch before SQL, skipped precheck, local evidence for production) was caught only by people | Local deployment simulator refuses wrong orders (tests/tools/deploy-sim.js); simulation only | Medium | M | — | Y | N | N | DONE |
 | X12-03 | Operations | Incident steps were spread over several documents and could drift from the page wording | Incident map in the page's own words, phrases checked against the page (tests/tools/incidents.js) | Medium | S | — | Y | N | N | DONE |
+| X13-01 | Owner evidence | An evidence result without a run date counted as fresh forever on the status board | Undated results are UNKNOWN until dated (tests/tools/evidence.js) | Medium | S | — | Y | N | N | DONE |
+| X13-02 | Docs | Owner documents could name files or commands that do not exist; old entry documents still said CURRENT; a decision was described wrongly | Doc checker (npm run docs:check), navigation lines on 30 old documents, dated correction notes | Medium | S | — | Y | N | N | DONE |
 | X3-01 | State machine | Product edit form wrote status unguarded (stale tab flips discontinued/active) | Found by the mock state rule | Medium | S | — | Y | N | N | DONE |
 | X3-04 | Scale | Returns page listed and counted the newest 200 only (old open returns vanished) | Open work hidden | Medium | S | — | Y | N | N | DONE |
 | X3-08 | Query C | Query C failed without pg_cron; tokens not masked in agent errors | Owner run could stop with an error | Medium | S | — | Y | N | N | DONE |

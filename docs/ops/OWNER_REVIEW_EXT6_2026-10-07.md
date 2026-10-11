@@ -1,5 +1,7 @@
 # Owner review package: extension 6 (2026-10-07)
 
+> **HISTORICAL (EXT13 navigation, 2026-10-11):** kept as the record of its time; not an entry point. Start at `START_HERE_EXT13.md`; authority per topic: `SOURCE_OF_TRUTH_MAP_EXT13.md`. Nothing below this line was changed by EXT13.
+
 Plain English, one page. The full evidence is in `DEEP_PLATFORM_EXTENSION_6_2026-10-07.md`.
 
 **A. What was fixed** (on the branch, with tests that fail on the old code)

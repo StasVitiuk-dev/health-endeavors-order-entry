@@ -1,5 +1,7 @@
 # Deep platform readiness, extension 4 (2026-10-06)
 
+> **HISTORICAL (EXT13 navigation, 2026-10-11):** kept as the record of its time; not an entry point. Start at `START_HERE_EXT13.md`; authority per topic: `SOURCE_OF_TRUTH_MAP_EXT13.md`. Nothing below this line was changed by EXT13.
+
 **Branch:** `claude/platform-deep-readiness-extension-4`, created from `claude/platform-overnight-extension-3` at **`3d5f1cc`**. That branch and every earlier one are unchanged.
 
 - **Not merged, not deployed, no PR opened.** `main` (`d3db7bc`) and production are untouched.

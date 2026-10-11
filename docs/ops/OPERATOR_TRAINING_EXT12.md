@@ -1,5 +1,7 @@
 # Operator training pack (EXT12)
 
+> **SUPERSEDED (EXT13 navigation, 2026-10-11)** by `OPERATIONS_HANDBOOK_EXT13.md`. Start at `START_HERE_EXT13.md`; authority per topic: `SOURCE_OF_TRUTH_MAP_EXT13.md`. Nothing below this line was changed by EXT13 except dated correction notes.
+
 **Status:** CURRENT (2026-10-11, extension 12). How to train a person (staff or the owner) to use the dashboard safely **after the merge**. Short on purpose. Day-to-day wording: `OPERATOR_QUICK_REFERENCE_EXT10.md` (unchanged). Incident cards: `INCIDENT_SIMULATION_EXT12.md`. Practise on the **staging copy** (synthetic data, never connected to production; `STAGING_REVIEW_PLAN.md`) once its location is decided, never on live records.
 
 ## 1. Basic training (30 minutes)

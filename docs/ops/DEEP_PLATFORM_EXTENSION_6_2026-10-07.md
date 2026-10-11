@@ -1,5 +1,7 @@
 # Deep platform readiness, extension 6 (2026-10-07)
 
+> **HISTORICAL (EXT13 navigation, 2026-10-11):** kept as the record of its time; not an entry point. Start at `START_HERE_EXT13.md`; authority per topic: `SOURCE_OF_TRUTH_MAP_EXT13.md`. Nothing below this line was changed by EXT13.
+
 Authoritative long-form report for this session. The owner prefers detailed evidence here and a short chat summary (`docs/health-endeavors-current-state.md` §7).
 
 ## 1. Starting point, verified before any change

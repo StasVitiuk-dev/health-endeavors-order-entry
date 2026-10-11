@@ -1,5 +1,7 @@
 # Deep platform completion: extension 10 (2026-10-11, two missions)
 
+> **HISTORICAL (EXT13 navigation, 2026-10-11):** kept as the record of its time; not an entry point. Start at `START_HERE_EXT13.md`; authority per topic: `SOURCE_OF_TRUTH_MAP_EXT13.md`. Nothing below this line was changed by EXT13.
+
 **Status:** CURRENT. Branch `claude/platform-ext10-operations-hardening-2026-10-11`, created from extension 9 (`f9e4850`). **Not merged, not deployed. Production not touched.** `main` unchanged at `d3db7bc`. Internal dashboard/platform only: no website, Real Estate OS, backups repository, production Supabase, Shopify or Gmail was opened.
 
 Plain-English summary for Stas: phones now show wide lists as cards, and Home rows no longer squeeze their text. Every create form can refuse a duplicate after a lost reply, once you install the request-key step and turn on its switch. Home can show the nightly integrity check with honest states. Every Home check now says what to do next. Agents switched off on purpose say so. A Receive whose reply was lost locks itself and offers a safe "Check this order now". The Continuity page has a System status card with a copyable diagnostic summary. Lists no longer stop silently at the database's 1,000-row reply limit. **Eleven real problems were fixed.** Nothing new is switched on, and nothing touches production. Your next steps are in **`OWNER_UNBLOCK_CENTER_EXT10.md`**; daily use is in **`OPERATIONS_CENTER_EXT10.md`**.

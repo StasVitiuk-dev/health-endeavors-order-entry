@@ -1,5 +1,7 @@
 # Owner decision status (EXT12)
 
+> **SUPERSEDED (EXT13 navigation, 2026-10-11)** by `OWNER_ATTENTION_SESSION_EXT13.md` §6 (decision list; the answer format here is unchanged). Start at `START_HERE_EXT13.md`; authority per topic: `SOURCE_OF_TRUTH_MAP_EXT13.md`. Nothing below this line was changed by EXT13 except dated correction notes.
+
 **Status:** CURRENT (2026-10-11, extension 12). Every open decision in one table, with its safe default, who answers, what it changes, and the exact text to send back. Supersedes the decision table in `OWNER_UNBLOCK_CENTER_EXT11.md` §2 (same decisions; the EXT10 packets in `OWNER_DECISION_PACKETS_EXT10.md` keep the long explanations). The machine copy is `DECISIONS` in `tests/tools/evidence.js`; `tests/specs/evidence-ext12.spec.js` checks the rules.
 
 **Received so far: none.** Every decision is OPEN. Until answered, the dashboard keeps today's behaviour (the safe default).
@@ -36,9 +38,11 @@ decided_by: Stas
 | `document_categories` | keep 7 / add categories | keep 7 | owner | the document form | OPEN |
 | `order_number_rule` | unique in the database / page check only (today) | page check only | owner | optional unique rule on orders (after Query C/F show no duplicates) | OPEN |
 | `refund_rule_n4` | a / b / c | a | **accountant** | how Accounting and Tax subtract refunds | OPEN |
-| `legal_hold_vs_delete` | 1 / 2 | 2 (nothing deleted while a hold is open) | **lawyer** | delete buttons check holds | OPEN |
+| `legal_hold_vs_delete` | 1 / 2 | 2 (nothing deleted while a hold is open) **[wrong: see the EXT13 correction under this table]** | **lawyer** | delete buttons check holds | OPEN |
 | `data_retention` | (to be written) | delete nothing | **lawyer** | none until decided | OPEN |
 | `email_provider` | provider name | none | owner (provider facts, packet D) | R10 adapter; still no sending until separately approved | OPEN |
+
+> **EXT13 correction (2026-10-11):** the words in brackets were wrong. In the original decision (`OWNER_DECISIONS_NEXT.md`), option **1** = block deletes while a hold is active, option **2** = allow deletes with a warning and a record of who deleted. Today nothing checks holds. Corrected list: `OWNER_ATTENTION_SESSION_EXT13.md` §6.
 
 ## 3. Staging host (the one decision with a recommendation)
 

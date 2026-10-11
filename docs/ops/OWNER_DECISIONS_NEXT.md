@@ -1,5 +1,7 @@
 # Owner decisions: what is waiting on you (next)
 
+> **SUPERSEDED (EXT13 navigation, 2026-10-11)** by `OWNER_ATTENTION_SESSION_EXT13.md` §6 (decision list). Start at `START_HERE_EXT13.md`; authority per topic: `SOURCE_OF_TRUTH_MAP_EXT13.md`. Nothing below this line was changed by EXT13 except dated correction notes.
+
 > **EXT9 note (2026-10-10):** the compressed, de-duplicated decision list is `OWNER_UNBLOCK_CENTER_EXT9.md` §3. This page keeps the full history.
 
 **Status:** CURRENT (2026-10-10, extension 8; EXT7, EXT6, EXT5 and EXT4 lists kept below). This is the one place listing decisions only you (Stas) can make. Each has a recommendation; nothing here has been decided for you. Answer in the chat in any order, for example "D-ops-4: yes". Nothing changes in production until you approve the specific step.

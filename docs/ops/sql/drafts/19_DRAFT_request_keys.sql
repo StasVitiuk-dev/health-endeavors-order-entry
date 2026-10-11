@@ -1,6 +1,11 @@
 -- DRAFT (2026-10-07, extension 6). NOT INSTALLED. PRODUCTION CHANGE: needs
 -- the owner's approval. Rollback: 20_DRAFT_rollback_request_keys.sql.
 -- Tested only on the local throwaway database (local-test/request_keys_test.sh).
+-- EXT13 note (2026-10-11, comment only): the "dashboard change must ship AFTER
+-- this file" sentence below predates the request_keys switch (EXT9/EXT10). The
+-- dashboard now ships first with the switch OFF (it sends no key), and the
+-- switch row (drafts/27) refuses to exist without this file. Order today:
+-- merge → this file → drafts/27 → switch on (PRODUCTION_CHANGE_PACKAGE_EXT10 P7/P7b).
 --
 -- Problem (backlog X5-11): when the database saves a new record but the reply
 -- never reaches the browser (dropped connection, timeout, closed laptop), the

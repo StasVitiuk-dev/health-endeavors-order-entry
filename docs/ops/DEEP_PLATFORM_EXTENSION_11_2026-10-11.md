@@ -1,5 +1,7 @@
 # Deep platform completion: extension 11 (2026-10-11)
 
+> **HISTORICAL (EXT13 navigation, 2026-10-11):** kept as the record of its time; not an entry point. Start at `START_HERE_EXT13.md`; authority per topic: `SOURCE_OF_TRUTH_MAP_EXT13.md`. Nothing below this line was changed by EXT13.
+
 **Status:** CURRENT. Branch `claude/platform-ext11-final-readiness-2026-10-11`, created from the final EXT10 commit `56a927c` (EXT10 draft PR #26 stays as history; the EXT11 draft PR replaces it for review). **Not merged, not deployed. Production not touched.** `main` unchanged at `d3db7bc`. Internal dashboard/platform only.
 
 Plain-English summary for Stas: EXT11 looked for everything still worth doing before you start production checks, and found five real problems. The dashboard could:

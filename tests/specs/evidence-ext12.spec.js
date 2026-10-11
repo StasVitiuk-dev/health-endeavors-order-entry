@@ -184,3 +184,15 @@ test('CLI: wrong directory / missing file gives a clear message; interpret store
   expect(out.stdout).toMatch(/STOP/);
   expect(fs.existsSync(path.join(__dirname, '..', '..', 'docs', 'ops', 'evidence', 'ledger.jsonl'))).toBe(before);
 });
+
+test('EXT13: a result that expires must carry its run date; an undated record never counts as fresh', () => {
+  for (const runDate of [undefined, '', '15/10/2026', '2026-1-5', 'yesterday'])
+    expect(E.interpret('QUERY_H', S.H.allExpected, { env: 'production', runDate }).status).toBe('UNKNOWN');
+  expect(E.interpret('BACKUP', S.BACKUP.healthy, { env: 'production' }).note).toMatch(/run date missing/);
+  // decisions do not expire, so they need no run date
+  expect(E.interpret('OWNER_DECISION', S.DECISION.partialWhole, { env: 'production' }).status).toBe('PASS');
+  // an old ledger line without a date (written before this rule) shows UNKNOWN, never PASS
+  const rec = E.makeRecord('QUERY_H', S.H.allExpected, P).record;
+  rec.runDate = null;
+  expect(E.statusBoard([rec], '2026-10-15').board.QUERY_H.status).toBe('UNKNOWN');
+});

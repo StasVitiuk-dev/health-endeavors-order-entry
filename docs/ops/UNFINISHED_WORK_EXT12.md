@@ -1,5 +1,7 @@
 # Unfinished work (EXT12)
 
+> **SUPERSEDED (EXT13 navigation, 2026-10-11)** by `UNFINISHED_WORK_EXT13.md`. Start at `START_HERE_EXT13.md`; authority per topic: `SOURCE_OF_TRUTH_MAP_EXT13.md`. Nothing below this line was changed by EXT13 except dated correction notes.
+
 **Status:** CURRENT (2026-10-11, extension 12). Supersedes `UNFINISHED_WORK_EXT11.md` as the summary; that file keeps the full classification, which is unchanged except for the rows below.
 
 ## 1. Done in EXT12

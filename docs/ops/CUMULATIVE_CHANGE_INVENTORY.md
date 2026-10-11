@@ -185,3 +185,14 @@ Rollback: revert the merge commit.
 
 Rollback: revert the merge commit.
 
+## 13. Extension 13 addendum (2026-10-11)
+
+`claude/platform-ext13-owner-attention-final-audit-2026-10-11` continues EXT12 (`bd574df`). `main` is still `d3db7bc`. **No page code, no executable SQL, no workflow file changed.** Changes: owner documents and matrices, a comment-only note in `drafts/19`, dated correction notes, navigation lines on 30 old documents, `tests/tools/doc-check.js` + `npm run docs:check`, evidence intake fix (undated results are UNKNOWN), 8 decisions added to the intake, tests and mutants.
+
+| Change | Who notices | Needs SQL first? |
+|---|---|---|
+| `npm run docs:check` | Claude sessions | No |
+| Evidence intake refuses undated results | Owner (via Claude) | No |
+
+Rollback: revert the merge commit.
+

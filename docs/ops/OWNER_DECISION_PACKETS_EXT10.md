@@ -1,5 +1,7 @@
 # Owner decision packets (EXT10)
 
+> **SUPERSEDED (EXT13 navigation, 2026-10-11)** by `OWNER_ATTENTION_SESSION_EXT13.md` §6 as the decision list (the packets below keep their explanations). Start at `START_HERE_EXT13.md`; authority per topic: `SOURCE_OF_TRUTH_MAP_EXT13.md`. Nothing below this line was changed by EXT13 except dated correction notes.
+
 **Status:** OWNER DECISION REQUIRED for each section (2026-10-11). Nothing here is decided or built beyond what is stated. Each packet shows the options side by side with a worked example; the safe default keeps today's behaviour.
 
 ## 1. Partial returns (D-ops-5)

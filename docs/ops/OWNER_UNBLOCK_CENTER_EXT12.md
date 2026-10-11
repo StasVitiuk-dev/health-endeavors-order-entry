@@ -1,5 +1,7 @@
 # Owner unblock center (EXT12)
 
+> **SUPERSEDED (EXT13 navigation, 2026-10-11)** by `OWNER_ATTENTION_SESSION_EXT13.md`. Start at `START_HERE_EXT13.md`; authority per topic: `SOURCE_OF_TRUTH_MAP_EXT13.md`. Nothing below this line was changed by EXT13 except dated correction notes.
+
 **Status:** CURRENT (2026-10-11, extension 12). Supersedes `OWNER_UNBLOCK_CENTER_EXT11.md` as the entry point. That file keeps the packets for outside help (§3) and the R1–R10 board. The step cards are still in `OWNER_CHECKS_EXT11.md`. Claude changed nothing in production.
 
 ## 0. What do I do now? (unchanged order; EXT12 makes each step's answer immediately usable)
