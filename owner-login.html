@@ -6014,6 +6014,8 @@
     async function loadDashboard(){
       clearDashError();
       paintSkeletons();
+      // EXT10b: a plain marker of whether the sign-in load of every page has finished
+      document.body.dataset.loaded = 'loading';
       const first = currentPageId || getLastPage();
       const firstSet = PANEL_LOADERS[first] || [];
       await Promise.all(firstSet.map(safeRun));
@@ -6024,6 +6026,7 @@
         await Promise.all(rest.slice(i, i + 4).map(safeRun));
         refreshChrome();
       }
+      document.body.dataset.loaded = 'all';
     }
 
     // Privacy Access Logging: records that customer personal info (name/email) was
@@ -9986,6 +9989,7 @@
 
     async function loadTaxRecords(){
       const isLatest = newLoadToken('tax');
+      const loadRange = taxRange; // EXT10b (X10-22): the report remembers which period it is for
       try {
         const { start, end } = taxRangeStart(taxRange);
 
@@ -10137,7 +10141,8 @@
               </tr>`).join('')}</tbody></table>`;
         }
 
-        TAX_REPORT = { currency, revenue, cogsTotal, operatingTotal, netProfit, salesTax, catRows, estCogs, unmatchedCount, stateTax, stateUnknownTax, missing };
+        document.getElementById('taxStats').dataset.range = loadRange; // which period the figures on screen are for
+        TAX_REPORT = { range: loadRange, currency, revenue, cogsTotal, operatingTotal, netProfit, salesTax, catRows, estCogs, unmatchedCount, stateTax, stateUnknownTax, missing };
       } catch (err) {
         if (!isLatest()) return; // an older load: its error no longer matters
         showDashError('Could not load Tax Records: ' + (err && err.message ? err.message : err));
@@ -10156,6 +10161,8 @@
 
     document.getElementById('taxExportBtn').addEventListener('click', () => {
       if (!TAX_REPORT) { showDashError('Nothing to export yet — let the page finish loading.'); return; }
+      // EXT10b (X10-22): never label one period's figures with another's name.
+      if (TAX_REPORT.range !== taxRange) { showDashError('The report for the period you picked is still loading. Press Export again when the figures on screen have updated.'); return; }
       const r = TAX_REPORT;
       const periodLabel = taxRange === 'year' ? 'This Year' : taxRange === 'lastyear' ? 'Last Year' : 'All Time';
       const lines = [

@@ -4,7 +4,13 @@
 // totals still include every row, and that a short read is reported instead of
 // shown as a smaller total. Synthetic data only.
 
-const { test, expect, login, gotoPage } = require('../helpers/dashboard');
+const { test, expect: baseExpect, login, gotoPage } = require('../helpers/dashboard');
+const expect = baseExpect.configure({ timeout: 30000 }); // EXT10b (X10-11): totals over thousands of rows can take longer than 5 s on a busy machine
+
+// EXT10b (X10-11): these tests read thousands of synthetic rows; on a busy
+// machine (several workers) they passed serially but hit the 30 s default.
+// More time, same checks.
+test.describe.configure({ timeout: 90000 });
 
 function seedMany(backend, nOrders, nExpenses) {
   backend.tables.orders = Array.from({ length: nOrders }, (_, i) => ({
@@ -21,12 +27,13 @@ function seedMany(backend, nOrders, nExpenses) {
 async function openAllTime(page, panel, backend) {
   await gotoPage(page, panel);
   await page.waitForLoadState('networkidle');
+  await page.locator('body[data-loaded="all"]').waitFor(); // EXT10b: no sign-in load still running in the background
   const since = backend ? backend.requests.length : 0;
   await page.click(`#${panel} button[data-range="all"]`);
   return since;
 }
 
-const ordersReads = (backend, since) => backend.requests.slice(since).filter(r => r.method === 'GET' && r.table === 'orders' && r.params.some(([k]) => k === 'offset'));
+const ordersReads = (backend, since) => backend.requests.slice(since).filter(r => r.method === 'GET' && r.table === 'orders' && r.params.some(([k]) => k === 'offset') && !r.params.some(([k]) => k === 'source' || k === 'placed_at'));
 
 for (const cap of [1000, 400]) {
   test(`Accounting "All Time" counts all 2,500 orders and 1,200 expenses with a ${cap}-row cap per reply`, async ({ page, backend }) => {
@@ -43,9 +50,25 @@ for (const cap of [1000, 400]) {
     const reads = ordersReads(backend, since);
     expect(reads.every(r => Object.fromEntries(r.params).order === 'id.asc')).toBe(true);
     const afters = reads.map(r => (Object.fromEntries(r.params).id || '').replace(/^gt\./, ''));
-    expect(afters[0]).toBe(''); // first page from the start
-    expect(afters.slice(1, 3).every(Boolean)).toBe(true);
-    expect([...afters.slice(1)].sort()).toEqual(afters.slice(1)); // always moving forward
+    // EXT10b (X10-11): on a busy machine another paged read of orders (still
+    // finishing from sign-in) can interleave with Accounting's. Each paged
+    // read must start from the beginning and always move forward; the
+    // requests of two such reads are told apart by their filters.
+    const seqs = {};
+    for (const r of reads) {
+      const key = JSON.stringify(r.params.filter(([k]) => !['id', 'offset', 'limit'].includes(k)));
+      (seqs[key] = seqs[key] || []).push((Object.fromEntries(r.params).id || '').replace(/^gt\./, ''));
+    }
+    const longest = Object.values(seqs).sort((x, y) => y.length - x.length)[0];
+    expect(longest.length).toBeGreaterThanOrEqual(3);
+    for (const seq of Object.values(seqs)) {
+      // a sequence may restart (a newer load of the same view): split at each fresh start
+      const runs = seq.reduce((acc, a) => { if (a === '') acc.push([]); acc[acc.length - 1].push(a); return acc; }, [[]]).filter(x => x.length);
+      for (const run of runs) {
+        expect(run[0]).toBe(''); // first page from the start
+        expect([...run.slice(1)].sort()).toEqual(run.slice(1)); // always moving forward
+      }
+    }
   });
 }
 
@@ -64,12 +87,13 @@ test('if rows go missing part-way, Accounting shows an error instead of a smalle
   await login(page);
   await gotoPage(page, 'accountingPanel');
   await page.waitForLoadState('networkidle');
+  await page.locator('body[data-loaded="all"]').waitFor(); // EXT10b
   // After the first page of the next read, most orders disappear (e.g. a
   // replica lagging, or rows deleted meanwhile): the count no longer adds up.
   const original = backend.handleRest.bind(backend);
   let served = 0;
   backend.handleRest = (route, entry) => {
-    if (entry.method === 'GET' && entry.table === 'orders' && entry.params.some(([k]) => k === 'offset')) {
+    if (entry.method === 'GET' && entry.table === 'orders' && entry.params.some(([k]) => k === 'offset') && !entry.params.some(([k]) => k === 'source' || k === 'placed_at') && entry.params.some(([k, v]) => k === 'order' && v === 'id.asc') /* EXT10b: only the All Time read (not the manual-orders read or a still-running period read, which can interleave on a busy machine) */) {
       served++;
       if (served === 2) backend.tables.orders = backend.tables.orders.slice(0, 1000);
     }
@@ -155,6 +179,8 @@ test('Tax CSV export at 2,500 orders / 1,200 expenses matches the screen and lis
   await login(page);
   await openAllTime(page, 'taxRecordsPanel');
   await expect(page.locator('#taxStats')).toContainText('$25,000.00');
+  // EXT10b: wait until the figures on screen are the All Time report
+  await expect(page.locator('#taxStats')).toHaveAttribute('data-range', 'all');
   const [file] = await Promise.all([page.waitForEvent('download'), page.click('#taxExportBtn')]);
   const csv = fs.readFileSync(await file.path(), 'utf8');
   expect(csv).toContain('"Revenue","$25,000.00"');
@@ -173,10 +199,11 @@ test('an order created while Accounting reads its pages is not double-counted', 
   await login(page);
   await gotoPage(page, 'accountingPanel');
   await page.waitForLoadState('networkidle');
+  await page.locator('body[data-loaded="all"]').waitFor(); // EXT10b
   const original = backend.handleRest.bind(backend);
   let served = 0;
   backend.handleRest = (route, entry) => {
-    if (entry.method === 'GET' && entry.table === 'orders' && entry.params.some(([k]) => k === 'offset')) {
+    if (entry.method === 'GET' && entry.table === 'orders' && entry.params.some(([k]) => k === 'offset') && !entry.params.some(([k]) => k === 'source' || k === 'placed_at') && entry.params.some(([k, v]) => k === 'order' && v === 'id.asc') /* EXT10b: only the All Time read (not the manual-orders read or a still-running period read, which can interleave on a busy machine) */) {
       served++;
       // before the 2nd page: a new order whose id sorts at the very start
       if (served === 2) backend.tables.orders.unshift({ ...backend.tables.orders[0], id: '0000-new', order_number: 'SYN-NEW', total: 10 });
@@ -187,5 +214,32 @@ test('an order created while Accounting reads its pages is not double-counted', 
   // The 2,500 orders that existed when the read began, each exactly once:
   // 2,499 x $10 + $500. (By position, order #1000 was counted twice and the last
   // one missed: $25,980.)
-  await expect(page.locator('#acctStats .stat').first().locator('.num')).toHaveText('$25,490.00');
+  // EXT10b (X10-11): on a busy machine the background loader can re-read
+  // Accounting once more after the first read finished; that later read
+  // rightly includes the new order ($25,500). Never a double count ($25,980).
+  const num = page.locator('#acctStats .stat').first().locator('.num');
+  await expect(num).toHaveText(/^\$25,(490|500)\.00$/);
+  await page.waitForLoadState('networkidle');
+  await expect(num).toHaveText(served > 3 ? '$25,500.00' : '$25,490.00');
+});
+
+// EXT10b (X10-22): pressing Export while a newer period is still loading used
+// to produce a file named for the new period with the previous period's figures.
+test('Tax export while the newly picked period is still loading: refused, never mislabelled', async ({ page, backend }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'run once');
+  seedMany(backend, 50, 5);
+  await login(page);
+  await gotoPage(page, 'taxRecordsPanel');
+  await page.waitForLoadState('networkidle');
+  // hold the next orders read so the All Time load cannot finish yet
+  let release;
+  const held = new Promise(r => { release = r; });
+  await page.context().route(/\/rest\/v1\/orders\?/, async route => { await held; return route.fallback(); }, { times: 1 });
+  await page.click('#taxRecordsPanel button[data-range="all"]');
+  let downloaded = false;
+  page.on('download', () => { downloaded = true; });
+  await page.click('#taxExportBtn');
+  await expect(page.locator('#dashError')).toContainText('still loading');
+  expect(downloaded).toBe(false);
+  release();
 });
