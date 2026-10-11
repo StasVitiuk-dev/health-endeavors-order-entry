@@ -45,3 +45,36 @@ test('Query H output from the local database parses (real column names)', () => 
 test('a file that is not the query output (e.g. an error message) is refused, never read as PASS', () => {
   expect(() => interpret('H', 'psql: ERROR:  relation "public.feature_flags" does not exist\n')).toThrow(/does not look like a Query H result/);
 });
+
+// ---- EXT11: backup intake, evidence expiry, one-session summary ----
+const T = require('../tools/interpret-query-results');
+test('backup intake: healthy within 2 / 35 days expires after 7 days; red is FAILED; old is STALE; incomplete is UNKNOWN', () => {
+  expect(T.backupStatus({ nightly: 'green:2026-10-14', restore: 'green:2026-10-01', minutes: 'ok', checkedOn: '2026-10-15' })).toMatchObject({ status: 'VERIFIED HEALTHY', expires: '2026-10-22' });
+  expect(T.backupStatus({ nightly: 'red:2026-10-14', restore: 'green:2026-10-01', minutes: 'ok', checkedOn: '2026-10-15' }).status).toBe('FAILED');
+  expect(T.backupStatus({ nightly: 'green:2026-10-10', restore: 'green:2026-10-01', minutes: 'ok', checkedOn: '2026-10-15' }).status).toBe('STALE');
+  expect(T.backupStatus({ nightly: 'green:2026-10-14', restore: 'green:2026-09-01', minutes: 'ok', checkedOn: '2026-10-15' }).status).toBe('STALE');
+  expect(T.backupStatus({ nightly: 'green:2026-10-14', restore: 'green:2026-10-01', minutes: 'out', checkedOn: '2026-10-15' }).status).toBe('STALE');
+  expect(T.backupStatus({ nightly: 'green', restore: 'green:2026-10-01', minutes: 'ok', checkedOn: '2026-10-15' }).status).toBe('UNKNOWN');
+  expect(T.backupStatus({ nightly: 'green:2026-10-20', restore: 'green:2026-10-01', minutes: 'ok', checkedOn: '2026-10-15' }).status).toBe('UNKNOWN');
+});
+test('evidence expiry: backups after 7 days, queries after 30 days; unknown kinds or dates are UNKNOWN, never CURRENT', () => {
+  expect(T.evidenceAge('backup', '2026-10-01', '2026-10-08')).toBe('CURRENT');
+  expect(T.evidenceAge('backup', '2026-10-01', '2026-10-09')).toBe('STALE');
+  expect(T.evidenceAge('G', '2026-10-01', '2026-10-31')).toBe('CURRENT');
+  expect(T.evidenceAge('G', '2026-10-01', '2026-11-01')).toBe('STALE');
+  expect(T.evidenceAge('fingerprint', '2026-10-01', '2026-10-01')).toBe('UNKNOWN');
+  expect(T.evidenceAge('H', 'yesterday', '2026-10-01')).toBe('UNKNOWN');
+});
+test('session summary: environment must be stated (fails closed); worst result wins; not-production is labelled', () => {
+  expect(T.sessionSummary({ env: undefined, runDate: '2026-10-15', results: {} }).overall).toBe('UNKNOWN');
+  expect(T.sessionSummary({ env: 'prod', runDate: '2026-10-15', results: {} }).overall).toBe('UNKNOWN');
+  const H = 'id,item,expected,observed,status,action\nH01,R1-R5,5,0,NOT INSTALLED,none\nH02,anon,0,0,PASS,none\n';
+  const ok = T.sessionSummary({ env: 'production', runDate: '2026-10-15', results: { H }, backup: { nightly: 'green:2026-10-14', restore: 'green:2026-10-01', minutes: 'ok' } });
+  expect(ok.overall).toBe('PASS');
+  expect(ok.lines.join('\n')).toContain('Query G: NOT RUN');
+  const bad = T.sessionSummary({ env: 'production', runDate: '2026-10-15', results: { H: H + 'H05,switch,OFF,ON without function,FAIL,turn it off\n' } });
+  expect(bad.overall).toBe('FAIL');
+  const noBackup = T.sessionSummary({ env: 'production', runDate: '2026-10-15', results: { H } });
+  expect(noBackup.overall).toBe('UNKNOWN'); // backups not checked is never PASS
+  expect(T.sessionSummary({ env: 'staging', runDate: '2026-10-15', results: { H } }).lines.join('\n')).toContain('does not verify production');
+});

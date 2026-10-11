@@ -6,6 +6,13 @@
 // stored in this public repository.
 //   node tests/tools/interpret-query-results.js <D|E|F|G|H> <file.csv> [--run-date YYYY-MM-DD]
 // Query C has no pass/fail meaning (it is an inventory): use it as reading.
+//
+// EXT11: one summary for a whole read-only session (missions 17, 19-24, 10):
+//   node tests/tools/interpret-query-results.js session --env production --run-date 2026-10-15 \
+//     [--D d.csv] [--E e.csv] [--F f.csv] [--G g.csv] [--H h.csv] \
+//     [--backup-nightly green:2026-10-14] [--backup-restore green:2026-10-01] [--backup-minutes ok|out]
+// --env is required (production / staging / local); anything else stops with
+// UNKNOWN: a result whose environment is not known proves nothing.
 const fs = require('fs');
 
 // RFC 4180 CSV (quotes, doubled quotes, commas and line breaks inside quotes).
@@ -64,9 +71,71 @@ function interpret(letter, text) {
   const privacy = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/.test(text) ? 'WARNING: this file contains an e-mail address. Do not commit it; send only the summary.' : 'No e-mail addresses found.';
   return { rows, overall: rows.length ? worst : 'UNKNOWN', privacy };
 }
-module.exports = { parseCsv, interpret };
+// EXT11: backup answer intake (V1). Thresholds from PRODUCTION_READONLY_VERIFICATION_EXT10 §1:
+// nightly backup <= 2 days old, restore test <= 35 days old, Actions minutes left.
+const DAY = 86400000;
+const toDay = v => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(v || '').trim()); return m ? Date.UTC(+m[1], +m[2] - 1, +m[3]) : null; };
+function parseRun(v) {
+  const m = /^(green|red):(\d{4}-\d{2}-\d{2})$/i.exec(String(v || '').trim());
+  return m ? { color: m[1].toLowerCase(), day: toDay(m[2]) } : null;
+}
+function backupStatus({ nightly, restore, minutes, checkedOn }) {
+  const n = parseRun(nightly), r = parseRun(restore), today = toDay(checkedOn);
+  if (!n || !r || !today || !/^(ok|out)$/i.test(String(minutes || ''))) return { status: 'UNKNOWN', why: 'answer incomplete: need nightly and restore as green|red:YYYY-MM-DD, minutes ok|out, and the date checked', expires: null };
+  if (n.color === 'red' || r.color === 'red') return { status: 'FAILED', why: (n.color === 'red' ? 'newest nightly backup is red' : 'newest restore test is red'), expires: null };
+  if (String(minutes).toLowerCase() === 'out') return { status: 'STALE', why: 'Actions minutes have run out, so the schedule will stop', expires: null };
+  const nAge = (today - n.day) / DAY, rAge = (today - r.day) / DAY;
+  if (nAge < 0 || rAge < 0) return { status: 'UNKNOWN', why: 'a run date is after the date checked', expires: null };
+  if (nAge > 2 || rAge > 35) return { status: 'STALE', why: 'nightly ' + nAge + ' days old (limit 2), restore test ' + rAge + ' days old (limit 35)', expires: null };
+  return { status: 'VERIFIED HEALTHY', why: 'nightly ' + nAge + ' days old, restore test ' + rAge + ' days old', expires: new Date(today + 7 * DAY).toISOString().slice(0, 10) };
+}
+// EXT11: how long a result may be used for planning (evidence expiry).
+// backups 7 days; the queries 30 days; a function fingerprint and the drift
+// check must be re-run after ANY production step, whatever their age.
+const EVIDENCE_DAYS = { backup: 7, C: 30, D: 30, E: 30, F: 30, G: 30, H: 30 };
+function evidenceAge(kind, runDate, today) {
+  const a = toDay(runDate), t = toDay(today);
+  if (a === null || t === null) return 'UNKNOWN';
+  const limit = EVIDENCE_DAYS[kind];
+  if (!limit) return 'UNKNOWN';
+  return (t - a) / DAY <= limit ? 'CURRENT' : 'STALE';
+}
+const ENVIRONMENTS = ['production', 'staging', 'local'];
+function sessionSummary({ env, runDate, results, backup }) {
+  if (!ENVIRONMENTS.includes(String(env || '').toLowerCase())) {
+    return { overall: 'UNKNOWN', lines: ['UNKNOWN: the environment was not stated (use --env production, staging or local). A result whose environment is not known proves nothing.'] };
+  }
+  if (!toDay(runDate)) return { overall: 'UNKNOWN', lines: ['UNKNOWN: --run-date YYYY-MM-DD is required.'] };
+  const lines = ['Read-only session — environment: ' + String(env).toUpperCase() + ', run ' + runDate];
+  let worst = 'PASS';
+  const bump = st => { if ((RANK[st] === undefined ? 1 : RANK[st]) > RANK[worst]) worst = RANK[st] === undefined ? 'UNKNOWN' : st; };
+  for (const L of ['D', 'E', 'F', 'G', 'H']) {
+    if (!results[L]) { lines.push('Query ' + L + ': NOT RUN'); continue; }
+    let r;
+    try { r = interpret(L, results[L]); } catch (e) { lines.push('Query ' + L + ': UNKNOWN — ' + e.message); bump('UNKNOWN'); continue; }
+    lines.push('Query ' + L + ': ' + r.overall + ' (' + r.rows.length + ' rows)' + (/WARNING/.test(r.privacy) ? ' — ' + r.privacy : ''));
+    bump(r.overall);
+  }
+  if (backup) {
+    const b = backupStatus(Object.assign({ checkedOn: runDate }, backup));
+    lines.push('Backups (V1): ' + b.status + ' — ' + b.why + (b.expires ? '; re-check by ' + b.expires + ' and on the day of any production step' : ''));
+    bump(b.status === 'VERIFIED HEALTHY' ? 'PASS' : b.status === 'STALE' ? 'WARN' : b.status === 'FAILED' ? 'FAIL' : 'UNKNOWN');
+  } else { lines.push('Backups (V1): NOT CHECKED'); bump('UNKNOWN'); }
+  if (String(env).toLowerCase() !== 'production') lines.push('NOTE: this was not production, so it does not verify production.');
+  lines.push('OVERALL: ' + worst);
+  return { overall: worst, lines };
+}
+module.exports = { parseCsv, interpret, backupStatus, evidenceAge, sessionSummary, EVIDENCE_DAYS };
 
-if (require.main === module) {
+if (require.main === module && process.argv[2] === 'session') {
+  const arg = k => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : undefined; };
+  const results = {};
+  for (const L of ['D', 'E', 'F', 'G', 'H']) if (arg('--' + L)) results[L] = fs.readFileSync(arg('--' + L), 'utf8');
+  const backup = arg('--backup-nightly') || arg('--backup-restore') ? { nightly: arg('--backup-nightly'), restore: arg('--backup-restore'), minutes: arg('--backup-minutes') } : null;
+  const res = sessionSummary({ env: arg('--env'), runDate: arg('--run-date'), results, backup });
+  console.log(res.lines.join('\n'));
+  process.exitCode = res.overall === 'FAIL' ? 1 : res.overall === 'UNKNOWN' ? 2 : 0;
+} else if (require.main === module) {
   const [letter, file] = process.argv.slice(2);
   const dIdx = process.argv.indexOf('--run-date');
   if (!letter || !file) { console.error('usage: node tests/tools/interpret-query-results.js <D|E|F|G|H> <file.csv> [--run-date YYYY-MM-DD]'); process.exit(2); }
