@@ -92,8 +92,12 @@ test('10,000 records: each keystroke updates the palette quickly, and the cap ho
   backend.tables.products = Array.from({ length: 10000 }, (_, i) => ({ id: 'p-' + i, name: 'SYNTHETIC scale product ' + i, sku: 'SC-' + i, is_active: true, status: 'active', cost: null, retail_price: null, wholesale_price: null, packaging_info: null }));
   backend.tables.inventory = backend.tables.products.map(p => ({ product_id: p.id, available: 1, reserved: 0, damaged: 0, sample: 0, wholesale: 0, promotional: 0, returned: 0, recalled: 0, low_stock_threshold: null }));
   await login(page);
-  await gotoPage(page, 'inventoryPanel');
+  // The inventory page is drawn in the background after sign-in; with 10,000
+  // rows that keeps the browser busy for a while, and a page switch requested
+  // meanwhile can wait past the helper's 20 s (failed 1 in 5 runs on EXT10 and
+  // EXT11 alike). This test measures typing speed, so wait for the drawing first.
   await expect(page.locator('#inventoryWrap [data-product-id="p-9999"]')).toHaveCount(1, { timeout: 90000 });
+  await gotoPage(page, 'inventoryPanel');
   await page.keyboard.press('ControlOrMeta+k');
   await expect(page.locator('#paletteInput')).toBeFocused();
   const ms = await page.evaluate(() => {
