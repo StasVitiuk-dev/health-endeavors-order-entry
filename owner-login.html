@@ -1134,12 +1134,63 @@
       return h.slice(0, 8) + '-' + h.slice(8, 12) + '-' + h.slice(12, 16) + '-' + h.slice(16, 20) + '-' + h.slice(20);
     }
     // The key belongs to the form until a save succeeds (a retry reuses it).
-    async function formRequestKey(form){
-      if (!(await requestKeysOn())) return null;
-      if (!form.dataset.requestKey) form.dataset.requestKey = newRequestKey();
-      return form.dataset.requestKey;
+    // EXT10 (U42) lifecycle: the key is also tied to the signed-in person
+    // (another person in the same tab gets a new key) and, when the caller
+    // passes what is being saved, to that content: different content more
+    // than KEY_FRESH_MS after the first attempt is a new entry, not a retry,
+    // so it gets a new key. Different content sooner keeps the key (a quick
+    // edit right after a lost reply is refused as a repeat and the person is
+    // told, rather than risking a duplicate). Reload = no key (the page then
+    // says to check the list first).
+    const KEY_FRESH_MS = 10 * 60 * 1000;
+    function keyFingerprint(row){
+      try { return JSON.stringify(row, Object.keys(row || {}).sort()); } catch (e) { return ''; }
     }
-    function clearRequestKey(form){ if (form) delete form.dataset.requestKey; }
+    async function formRequestKey(form, payload){
+      if (!(await requestKeysOn())) return null;
+      const d = form.dataset;
+      const uid = (await currentUserId().catch(() => null)) || '';
+      const fp = payload === undefined ? null : keyFingerprint(payload);
+      const stale = !!d.requestKey && (d.requestKeyUser !== uid
+        || (fp !== null && !!d.requestKeyFp && d.requestKeyFp !== fp && Date.now() - Number(d.requestKeyAt || 0) > KEY_FRESH_MS));
+      if (!d.requestKey || stale) { d.requestKey = newRequestKey(); d.requestKeyAt = String(Date.now()); }
+      d.requestKeyUser = uid;
+      if (fp !== null) d.requestKeyFp = fp;
+      return d.requestKey;
+    }
+    function clearRequestKey(form){
+      if (!form) return;
+      ['requestKey', 'requestKeyAt', 'requestKeyUser', 'requestKeyFp'].forEach(k => delete form.dataset[k]);
+    }
+    // A key made from a fixed text, for an action that may happen only once
+    // per record (escalating a check or recall to an incident): every tab and
+    // every retry makes the same key, so the database keeps one incident.
+    // A 128-bit FNV-1a mix (crypto.subtle is unavailable on plain http test
+    // pages), shaped like a UUID.
+    function fixedRequestKey(text){
+      const parts = [0x811c9dc5, 0x01000193 ^ 0x9e3779b9, 0x85ebca6b, 0xc2b2ae35].map(seed => {
+        let h = seed >>> 0;
+        for (let i = 0; i < text.length; i++) { h ^= text.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+        return h.toString(16).padStart(8, '0');
+      }).join('');
+      return parts.slice(0, 8) + '-' + parts.slice(8, 12) + '-8' + parts.slice(13, 16) + '-' + ((parseInt(parts[16], 16) & 3) | 8).toString(16) + parts.slice(17, 20) + '-' + parts.slice(20, 32);
+    }
+    // One create, with a request key when the switch is on. A repeat of an
+    // attempt that was in fact saved is reported (toast) and counts as done;
+    // a lost reply says whether pressing again is safe.
+    async function insertOnce(el, table, row, what){
+      const rk = el ? await formRequestKey(el, row) : null;
+      const { error } = await supabase.from(table).insert(withRequestKey(row, rk));
+      if (isRequestKeyRepeat(error)) { clearRequestKey(el); toast(what + REPEAT_NOTE); return { error: null, repeated: true }; }
+      if (!error) { clearRequestKey(el); return { error: null, repeated: false }; }
+      if (isNetworkError(error)) {
+        const it = what.charAt(0).toLowerCase() + what.slice(1);
+        return { error: new Error(rk
+          ? 'The connection dropped, so it is not clear whether ' + it + ' was saved. Pressing the button again is safe: it will not be added twice.'
+          : 'The connection dropped, so ' + it + ' may or may not have been saved. Check the list before adding it again.'), repeated: false };
+      }
+      return { error, repeated: false };
+    }
     function withRequestKey(row, key){ return key ? Object.assign({}, row, { client_request_id: key }) : row; }
     function isRequestKeyRepeat(err){ return !!err && String(err.code) === '23505' && /client_request_id/.test(String(err.message || '') + String(err.details || '')); }
     const REPEAT_NOTE = ' was already saved by an earlier attempt (its reply was lost), so it was not added again. Check the list: if you changed anything since, those changes were not saved.';
@@ -3757,12 +3808,12 @@
       try {
         const { data: sessionData } = await supabase.auth.getSession();
         const uid = sessionData && sessionData.session ? sessionData.session.user.id : null;
-        const { error } = await supabase.from('manual_attention_items').insert({
+        const { error } = await insertOnce(e.target, 'manual_attention_items', {
           title,
           due_at: dueInput.value ? new Date(dueInput.value).toISOString() : null,
           priority: priorityInput.value,
           created_by: uid,
-        });
+        }, 'That reminder');
         if (error) throw error;
         titleInput.value = '';
         dueInput.value = '';
@@ -3897,8 +3948,7 @@
       btn.disabled = true;
       try {
         const uid = await currentUserId();
-        const { error } = await supabase.from('manual_attention_items')
-          .insert({ title: title, priority: priority, created_by: uid });
+        const { error } = await insertOnce(btn, 'manual_attention_items', { title: title, priority: priority, created_by: uid }, 'That reminder');
         if (error) throw error;
         closeQuickAdd();
         toastOk('Reminder added.');
@@ -4130,7 +4180,14 @@
       const { data: now, error: readErr } = await supabase.from(table).select('incident_id').eq('id', id).maybeSingle();
       if (readErr) throw readErr;
       if (!now || now.incident_id) { showDashError(staleMessage('That record')); return false; }
-      const { data: incident, error: incErr } = await supabase.from('incidents').insert(incidentRow).select('id, incident_number').single();
+      // EXT10 (U42): with request keys on, the incident's key is made from the
+      // record, so a retry after a lost reply (or a second tab) finds the
+      // incident already made instead of making another.
+      const rk = (await requestKeysOn()) ? fixedRequestKey('escalate|' + table + '|' + id) : null;
+      let { data: incident, error: incErr } = await supabase.from('incidents').insert(withRequestKey(incidentRow, rk)).select('id, incident_number').single();
+      if (rk && isRequestKeyRepeat(incErr)) {
+        ({ data: incident, error: incErr } = await supabase.from('incidents').select('id, incident_number').eq('client_request_id', rk).single());
+      }
       if (incErr) throw incErr;
       const linked = await updateIfUnchanged(table, id, { incident_id: incident.id, updated_at: new Date().toISOString() }, { incident_id: null });
       if (!linked) {
@@ -4438,14 +4495,14 @@
             loadPurchaseOrders();
             return;
           }
-          const { error } = await supabase.from('purchase_order_items').insert({
+          const { error } = await insertOnce(addBtn, 'purchase_order_items', {
             purchase_order_id: po.id,
             product_id: productId,
             description: description,
             sku: productId && opt ? (opt.getAttribute('data-sku') || null) : null,
             quantity: quantity,
             unit_cost: unitCost,
-          });
+          }, 'That line');
           if (error) throw error;
           // EXT5: the status was checked before the insert, in a separate
           // request. If the order was received in between, this line is not
@@ -4976,7 +5033,7 @@
       btn.disabled = true;
       try {
         const uid = await currentUserId();
-        const { error } = await supabase.from('quality_checks').insert({
+        const { error } = await insertOnce((btn.form || btn), 'quality_checks', {
           check_type: document.getElementById('qcType').value,
           result: document.getElementById('qcResult').value,
           severity: document.getElementById('qcSeverity').value,
@@ -4984,7 +5041,7 @@
           lot_id: lotId,
           description: description,
           created_by: uid,
-        });
+        }, 'That quality check');
         if (error) throw error;
         document.getElementById('qcDescription').value = '';
         toastOk('Quality check logged.');
@@ -5700,13 +5757,13 @@
       try {
         const uid = await currentUserId();
         const times = personalTimesFromInputs(startEl.value, endEl.value, allDayEl.checked);
-        const { error } = await supabase.from('personal_calendar_events').insert({
+        const { error } = await insertOnce(addPersonalEventForm, 'personal_calendar_events', {
           owner_id: uid,
           title,
           starts_at: times.starts_at,
           ends_at: times.ends_at,
           all_day: !!allDayEl.checked,
-        });
+        }, 'That event');
         if (error) throw error;
         addPersonalEventForm.reset();
         toastOk('Event added.');
@@ -7507,13 +7564,13 @@
       try {
         const { data: sessionData } = await supabase.auth.getSession();
         const uid = sessionData && sessionData.session ? sessionData.session.user.id : null;
-        const { error } = await supabase.from('sop_documents').insert({
+        const { error } = await insertOnce(e.target, 'sop_documents', {
           title,
           category: categoryInput.value.trim() || null,
           content,
           agent_visible: agentVisibleInput.checked,
           created_by: uid,
-        });
+        }, 'That procedure');
         if (error) throw error;
         titleInput.value = '';
         categoryInput.value = '';
@@ -7686,12 +7743,12 @@
       try {
         const { data: sessionData } = await supabase.auth.getSession();
         const uid = sessionData && sessionData.session ? sessionData.session.user.id : null;
-        const { error } = await supabase.from('feature_requests').insert({
+        const { error } = await insertOnce(e.target, 'feature_requests', {
           title,
           description: descInput.value.trim() || null,
           priority: priorityInput.value,
           created_by: uid,
-        });
+        }, 'That request');
         if (error) throw error;
         titleInput.value = '';
         descInput.value = '';
@@ -7699,6 +7756,10 @@
         loadFeatureRequests();
       } catch (err) {
         showDashError('Could not add that request: ' + (err && err.message ? err.message : err));
+      } finally {
+        // EXT10 (X10-01): the button used to stay disabled after the first
+        // add, success or failure, until the page was reloaded.
+        if (btn) btn.disabled = false;
       }
     });
 
@@ -7834,7 +7895,8 @@
         const { data: sessionData } = await supabase.auth.getSession();
         const uid = sessionData && sessionData.session ? sessionData.session.user.id : null;
 
-        const saveEvidence = filePath => supabase.from('evidence_locker').insert({
+        const rk = await formRequestKey(e.target);
+        const saveEvidence = filePath => supabase.from('evidence_locker').insert(withRequestKey({
           incident_id: incidentId,
           title,
           description: descriptionInput.value.trim() || null,
@@ -7842,17 +7904,26 @@
           external_link: linkInput.value.trim() || null,
           file_path: filePath,
           added_by: uid,
-        });
+        }, rk));
         // Used to leave the uploaded file behind whenever the record was refused.
         if (evFile) {
           submitBtn.textContent = 'Uploading file…';
           const safeName = safeStorageName(evFile.name);
-          await uploadThenSave('evidence-files', 'evidence_locker', 'file_path', `${incidentId}/${uploadStamp()}_${safeName}`, evFile, saveEvidence);
+          try {
+            await uploadThenSave('evidence-files', 'evidence_locker', 'file_path', `${incidentId}/${uploadStamp()}_${safeName}`, evFile, saveEvidence);
+          } catch (upErr) {
+            if (!isRequestKeyRepeat(upErr)) throw upErr;
+            toast('That evidence' + REPEAT_NOTE);
+          }
         } else {
-          const { error } = await saveEvidence(null);
+          // EXT10 (X10-02): a stray "isLatest" check (EXT8) stood here and
+          // threw after a successful save, so the page said it failed.
+          let { error } = await saveEvidence(null);
+          if (isRequestKeyRepeat(error)) { toast('That evidence' + REPEAT_NOTE); error = null; }
+          if (error && isNetworkError(error)) throw new Error('The connection dropped, so the evidence may or may not have been saved. ' + (rk ? 'Pressing the button again is safe: it will not be added twice.' : 'Check the list before adding it again.'));
           if (error) throw error;
-        if (!isLatest()) return;
         }
+        clearRequestKey(e.target);
         titleInput.value = '';
         descriptionInput.value = '';
         typeInput.value = '';
@@ -8072,7 +8143,8 @@
       btn.disabled = true;
       try {
         const uid = await currentUserId();
-        const saveDoc = filePath => supabase.from('documents').insert({
+        const rk = await formRequestKey(e.target);
+        const saveDoc = filePath => supabase.from('documents').insert(withRequestKey({
           title,
           category,
           related_type: relatedType,
@@ -8083,15 +8155,23 @@
           expiration_date: expirationInput.value || null,
           notes: notesInput.value.trim() || null,
           uploaded_by: uid,
-        });
+        }, rk));
         if (docFile) {
           btn.textContent = 'Uploading file…';
           const safeName = safeStorageName(docFile.name);
-          await uploadThenSave('document-files', 'documents', 'file_path', `${uploadStamp()}_${safeName}`, docFile, saveDoc);
+          try {
+            await uploadThenSave('document-files', 'documents', 'file_path', `${uploadStamp()}_${safeName}`, docFile, saveDoc);
+          } catch (upErr) {
+            if (!isRequestKeyRepeat(upErr)) throw upErr;
+            toast('That document' + REPEAT_NOTE);
+          }
         } else {
-          const { error } = await saveDoc(null);
+          let { error } = await saveDoc(null);
+          if (isRequestKeyRepeat(error)) { toast('That document' + REPEAT_NOTE); error = null; }
+          if (error && isNetworkError(error)) throw new Error('The connection dropped, so the document may or may not have been saved. ' + (rk ? 'Pressing the button again is safe: it will not be added twice.' : 'Check the list before adding it again.'));
           if (error) throw error;
         }
+        clearRequestKey(e.target);
 
         titleInput.value = ''; categoryInput.value = ''; relatedInput.value = '';
         issuedInput.value = ''; expirationInput.value = ''; notesInput.value = '';
@@ -8205,7 +8285,7 @@
       try {
         const { data: sessionData } = await supabase.auth.getSession();
         const uid = sessionData && sessionData.session ? sessionData.session.user.id : null;
-        const { error } = await supabase.from('adverse_event_reports').insert({
+        const { error } = await insertOnce(e.target, 'adverse_event_reports', {
           product_name: product,
           date_received: dateInput.value,
           description,
@@ -8213,7 +8293,7 @@
           reporter_name: reporterNameInput.value.trim() || null,
           reporter_contact: reporterContactInput.value.trim() || null,
           created_by: uid,
-        });
+        }, 'That report');
         if (error) throw error;
         productInput.value = '';
         descriptionInput.value = '';
@@ -8334,13 +8414,13 @@
       try {
         const { data: sessionData } = await supabase.auth.getSession();
         const uid = sessionData && sessionData.session ? sessionData.session.user.id : null;
-        const { error } = await supabase.from('legal_holds').insert({
+        const { error } = await insertOnce(e.target, 'legal_holds', {
           title,
           description: descriptionInput.value.trim() || null,
           related_type: relatedTypeInput.value || null,
           related_reference: relatedReferenceInput.value.trim() || null,
           placed_by: uid,
-        });
+        }, 'That hold');
         if (error) throw error;
         titleInput.value = '';
         descriptionInput.value = '';
@@ -9244,16 +9324,14 @@
       submitBtn.disabled = true;
       try {
         const uid = await currentUserId();
-        const { error: insErr } = await supabase
-          .from('returns')
-          .insert({
+        const { error: insErr } = await insertOnce(e.target, 'returns', {
             order_id: orderId,
             order_item_id: orderItemId,
             reason: reasonSelect.value,
             product_condition: conditionSelect.value || null,
             notes: notesInput.value.trim() || null,
             created_by: uid,
-          });
+          }, 'That return');
         if (insErr) throw insErr;
 
         orderSelect.value = '';

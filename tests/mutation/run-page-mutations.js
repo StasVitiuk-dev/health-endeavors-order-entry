@@ -14,9 +14,46 @@ const SCRATCH = path.resolve(process.argv[2] || path.join(require('os').tmpdir()
 
 // [name, file, exact text to find, replacement, specs + grep]
 const MUTATIONS = [
+  // ---- EXT10 additions (2026-10-11): request-key lifecycle, new create paths, phone cards ----
+  ['different content long after a lost reply keeps the old key (stale key never dropped)', 'owner-login.html',
+    "Date.now() - Number(d.requestKeyAt || 0) > KEY_FRESH_MS", "false",
+    'request-keys-ext10 -g "more than 10 minutes"'],
+  ['different content right after a lost reply gets a new key (possible silent duplicate)', 'owner-login.html',
+    "> KEY_FRESH_MS));", ">= 0));",
+    'request-keys-ext10 -g "right after a lost reply"'],
+  ['a key is reused after another person signs in on the tab', 'owner-login.html',
+    "d.requestKeyUser !== uid\n        || ", "",
+    'request-keys-ext10 -g "another person"'],
+  ['a refused repeat on the new create forms is shown as a failure', 'owner-login.html',
+    "if (isRequestKeyRepeat(error)) { clearRequestKey(el); toast(what + REPEAT_NOTE); return { error: null, repeated: true }; }", "",
+    'request-keys-ext10 -g "reminder \\(Home\\): switch on"'],
+  ['a successful create keeps its key (the next real entry is refused)', 'owner-login.html',
+    "if (!error) { clearRequestKey(el); return { error: null, repeated: false }; }", "if (!error) { return { error: null, repeated: false }; }",
+    'request-keys-ext10 -g "same content again is a NEW entry"'],
+  ['a lost reply says "safe to press again" even with keys off', 'owner-login.html',
+    "return { error: new Error(rk\n", "return { error: new Error(true\n",
+    'request-keys-ext10 -g "reminder \\(Home\\): switch off"'],
+  ['escalation uses a random key (a retry makes a second incident)', 'owner-login.html',
+    "fixedRequestKey('escalate|' + table + '|' + id)", "newRequestKey()",
+    'request-keys-ext10 -g "escalate to incident twice"'],
+  ['escalation repeat does not find the incident already made', 'owner-login.html',
+    "if (rk && isRequestKeyRepeat(incErr)) {", "if (false) {",
+    'request-keys-ext10 -g "escalate to incident twice"'],
+  ['feature request Add button stays disabled after the first add (X10-01)', 'owner-login.html',
+    "// add, success or failure, until the page was reloaded.\n        if (btn) btn.disabled = false;", "",
+    'request-keys-ext10 -g "X10-01"'],
+  ['evidence without a file throws after saving again (X10-02)', 'owner-login.html',
+    "        clearRequestKey(e.target);\n        titleInput.value = '';\n        descriptionInput.value = '';\n        typeInput.value", "        if (!isLatest()) return;\n        clearRequestKey(e.target);\n        titleInput.value = '';\n        descriptionInput.value = '';\n        typeInput.value",
+    'request-keys-ext10 -g "X10-02"'],
+  ['phone card cells lose their column labels', 'owner-login.html',
+    "if (heads[i]) c.setAttribute('data-label', heads[i]); else c.classList.add('cardActions');", "",
+    'mobile-cards-ext10 -g "column name is shown" --project=iphone'],
+  ['wide tables are no longer cards on a phone', 'assets/owner-login.css',
+    "table.phoneCards tr{ display:block;", "table.phoneCards tr{",
+    'mobile-cards-ext10 -g "320 px" --project=iphone'],
   // ---- EXT9 additions (2026-10-10): stock buttons and the R1–R5 switches ----
   ['a retry gets a new request key (the repeat is saved twice)', 'owner-login.html',
-    "if (!form.dataset.requestKey) form.dataset.requestKey = newRequestKey();", "form.dataset.requestKey = newRequestKey();",
+    "if (!d.requestKey || stale) { d.requestKey = newRequestKey();", "{ d.requestKey = newRequestKey();",
     'request-keys -g "lost reply"'],
   ['a refused repeat is shown as a failure instead of "already saved"', 'owner-login.html',
     "if (isRequestKeyRepeat(error)) { toast('That expense' + REPEAT_NOTE); error = null; }", "",
@@ -395,7 +432,7 @@ for (const [name, file, find, repl, specs] of MUTATIONS.filter(m => !ONLY || ONL
   fs.writeFileSync(target, src.replace(find, repl));
   if (file.startsWith('assets/')) fixHelpersHash(SCRATCH);
   let out = '';
-  try { out = sh(`npx playwright test --config tests/playwright.config.js ${specs} --project=desktop --reporter=line`, SCRATCH); }
+  try { out = sh(`npx playwright test --config tests/playwright.config.js ${specs}${/--project=/.test(specs) ? '' : ' --project=desktop'} --reporter=line`, SCRATCH); }
   catch (e) { out = (e.stdout || '') + (e.stderr || ''); }
   const failed = (out.match(/(\d+) failed/) || [])[1];
   const passed = (out.match(/(\d+) passed/) || [])[1];

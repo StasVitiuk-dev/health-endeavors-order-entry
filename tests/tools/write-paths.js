@@ -177,6 +177,8 @@ function extract(file) {
     { re: /\.(insert|update|upsert|delete)\(/g, op: null },
     { re: /\.rpc\(\s*'([a-z_]+)'/g, op: 'rpc' },
     { re: /callStockFunction\(\s*'([a-z_]+)'/g, op: 'rpc' },
+    // EXT10: creates through insertOnce(el, 'table', row, what) (request keys)
+    { re: /insertOnce\(\s*[^'\n]*?,\s*'([a-z_]+)'/g, op: 'insertOnce' },
     { re: /\.storage\.from\(\s*'([a-z-]+)'\s*\)\s*\.(upload|remove)\(/g, op: 'storage' },
     { re: /\.auth\.(updateUser|resetPasswordForEmail|signOut)\(/g, op: 'auth' },
   ];
@@ -188,11 +190,13 @@ function extract(file) {
       let op = p.op, table;
       const stmt = statementAround(src, idx);
       if (op === 'updateIfUnchanged') table = m[1];
+      else if (op === 'insertOnce') { table = m[1]; op = 'insert'; }
       else if (op === 'rpc') { if (!MUTATING_RPCS.has(m[1])) continue; table = 'rpc:' + m[1]; }
       else if (op === 'storage') { table = 'storage:' + m[1]; op = 'storage.' + m[2]; }
       else if (op === 'auth') { table = 'auth'; op = 'auth.' + m[1]; }
       else {
         op = m[1];
+        if (/from\(table\)/.test(stmt)) continue; // inside the insertOnce helper itself
         // skip non-Supabase calls (e.g. Map.delete, Set.delete)
         if (!/(supabase|sb|verifyOnly|\bq\b|delQ|delInv|\)\s*\n?\s*)\s*[\s\S]{0,400}$/.test(src.slice(Math.max(0, idx - 400), idx)) && !/\.from\(/.test(src.slice(Math.max(0, idx - 600), idx))) continue;
         if (!/\.from\(\s*'/.test(src.slice(Math.max(0, idx - 600), idx)) && !/delQ|delInv/.test(stmt)) continue;
@@ -201,10 +205,12 @@ function extract(file) {
       const ctx = contextOf(src, idx);
       const ctxStart = Math.max(0, idx - 12000);
       const g = guardsFor(src, idx, stmt, op, table, ctxStart);
-      const body = /\.(update|insert|upsert)\(\s*\{([\s\S]*?)\}\s*[,)]/.exec(stmt) || (op === 'updateIfUnchanged' ? /,\s*\{([\s\S]*?)\}/.exec(stmt.slice(stmt.indexOf(',') + 1)) : null);
+      const body = /\.(update|insert|upsert)\(\s*(?:withRequestKey\(\s*)?\{([\s\S]*?)\}\s*[,)]/.exec(stmt) || /insertOnce\([^']*'[a-z_]+',\s*\{([\s\S]*?)\}\s*,/.exec(stmt) || (op === 'updateIfUnchanged' ? /,\s*\{([\s\S]*?)\}/.exec(stmt.slice(stmt.indexOf(',') + 1)) : null);
       const bodyText = body ? (body[2] || body[1] || '') : '';
       const writesState = (STATE_COLUMNS[table] || []).some(c => new RegExp('\\b' + c + '\\s*:').test(bodyText)) || (op === 'delete');
-      out.push({ file, line: lineOf(src, idx), context: ctx, table, op, writesState, ...g });
+      // EXT9/10: the create carries a request key when the switch is on
+      const requestKey = /insertOnce\(|withRequestKey\(|fixedRequestKey\(/.test(src.slice(idx - 60, idx + 40) + stmt);
+      out.push({ file, line: lineOf(src, idx), context: ctx, table, op, writesState, requestKey, ...g });
     }
   }
   out.sort((a, b) => a.line - b.line);
@@ -260,6 +266,7 @@ function retryClass(row, cls) {
   const idem = String((cls && cls.idempotency) || '');
   if (/^(guarded|repeat harmless|upsert)/.test(idem)) return { retryClass: 'SAFE ALREADY', why: idem };
   if (UNIQUE_CREATE_KEYS[row.table]) return { retryClass: 'SAFE ALREADY', why: 'database ' + UNIQUE_CREATE_KEYS[row.table] + ' refuses a second row' };
+  if (row.requestKey && REQUEST_KEY_TABLES.has(row.table)) return { retryClass: 'REQUEST KEY IN PAGE', why: 'sends a request key when the request_keys switch is on (drafts/19 + 27, NOT INSTALLED); until then: ' + (idem || 'button lock') };
   if (/^retry-safe/.test(idem)) return { retryClass: 'CLIENT-SIDE MITIGATION ONLY', why: idem + '; a request key (draft 19) would make it hold across devices' };
   if (/^not idempotent/.test(idem) && REQUEST_KEY_TABLES.has(row.table)) return { retryClass: 'DATABASE REQUEST KEY NEEDED', why: idem + '; draft 19 covers ' + row.table };
   return { retryClass: 'UNRESOLVED', why: idem || 'not classified' };
