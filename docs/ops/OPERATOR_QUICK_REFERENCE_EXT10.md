@@ -19,6 +19,9 @@
 | **changed since the page loaded / changed elsewhere** | someone (or another tab) saved first; your change was not applied | reload, look, decide again |
 | **—** instead of an amount | the figure could not be read (not zero) | tell the owner; do not treat as $0 |
 | **NOT VERIFIED / UNKNOWN** | the dashboard cannot prove it either way | never read as "fine" |
+| **Receipt status unknown — do not press Receive again** | a receive lost its connection | press "Check this order now" and follow what it says |
+| **Next step:** (on a Home check) | what is expected of you for that row | do that, or tell the owner |
+| **Off — on purpose** (agent) | switched off by decision until launch | nothing |
 
 ## 3. Incident (something is wrong)
 

@@ -1,3 +1,4 @@
+-- PRODUCTION CHANGE - DO NOT RUN WITHOUT THE OWNER'S APPROVAL (rollback; tested locally only).
 -- DRAFT rollback for 17_DRAFT_po_line_delete_guard.sql. Removes the trigger
 -- and its function only; no data is touched. One transaction.
 begin;

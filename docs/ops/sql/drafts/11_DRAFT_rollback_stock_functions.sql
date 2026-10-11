@@ -1,3 +1,4 @@
+-- PRODUCTION CHANGE - DO NOT RUN WITHOUT THE OWNER'S APPROVAL (rollback; tested locally only).
 -- DRAFT rollback for 10_DRAFT_stock_functions.sql. Removes the functions only;
 -- no table or data is touched. Run this only if the functions must be removed
 -- AFTER the dashboard has been switched back to its old code path (revert the

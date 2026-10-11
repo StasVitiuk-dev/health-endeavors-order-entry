@@ -97,3 +97,68 @@
 ## 4. Manual device item added
 
 **M-38** (add to `MANUAL_DEVICE_CHECKLIST_EXT9.md` section A): on a real iPhone with VoiceOver, open Orders and Tasks: each card reads "Customer, SYNTHETIC…" once (not "Customer Customer"). If doubled, Claude switches the label to an `aria-hidden` element.
+
+## 5. Second EXT10 mission (operations scale, reliability, usability): classification
+
+| Group (missions) | Outcome |
+|---|---|
+| Daily journey, Needs Attention, priority explanation, Home summary (1–4, 57–60) | DONE: Home checks are the attention view (WHAT / WHY / AGE / SEVERITY / PAGE / **NEXT STEP**); journey findings fixed (`OPERATIONS_CENTER_EXT10.md` §6). A second "attention" page was not built (would duplicate) |
+| Daily checklist, summary generator (5, 6, 230–232) | DONE as routines (operations center §2–4). Daily Summary page already exists (no revenue invention); no e-mail |
+| Automation / agent health, UNKNOWN first-class (7–10, 252–256) | DONE: AI Agents page states + "Off — on purpose"; schedule unreadable = Unknown (X10-14); Home failed/stale and unknown rows. No start/stop added beyond the existing switches |
+| Agent failure inbox (9) | DESIGN (maps §10 issue keys); needs agent source to wire (AGENT SOURCE) |
+| Reconciliation center / queue / dedupe / resolution (11–14) | COVERED read-only by Query E/F + Home checks + nightly card; a separate centre with ACKNOWLEDGED/RESOLVED states needs a new table (PRODUCTION WRITE/DEPLOY, owner approval) — design in maps §8/§10 |
+| Inventory exceptions, low stock, reorder view, history, provenance (15–20) | DONE: negative stock, received-not-stocked, low stock, level not set (CONFIG REQUIRED), deactivated with stock; history and provenance exist (adjustments: who/when/why/lot); no auto-ordering |
+| PO centre, exceptions, receipt recovery, request lookup, receipts (21–25, 70, 336–338) | DONE: receipt-unknown lock + read-only check (X10-13), honest received line (X10-12); request keys = operation receipts (maps §7) |
+| Returns centre, separation, partial preview (26–28) | DONE in docs (maps §6, decision packet §1); no policy implemented |
+| Customer questions, drafts, timelines (29–35) | COVERED: questions queue (waiting first, older reachable, EXT8); no send path. Timelines: NOT BUILT (data relations exist only partly; would mostly show nothing reliable) — DEFERRED |
+| Deep links, cross-entity nav, back, URL safety (36–39) | COVERED (EXT8 page deep links, Back); entity-level links DEFERRED (records have no stable record view) |
+| Filters, saved filters, counts (40–44) | COVERED (EXT8 tokens + Show more); saved filters NOT BUILT (no clear need; shared-computer privacy) |
+| Record finder, quick command, favourites, recently viewed (45–48) | COVERED (search palette, pins); recently viewed NOT BUILT (privacy on shared computers) |
+| Tasks, approvals, incidents queues (49–56) | COVERED (EXT7/8): open never hidden behind closed, recently done, reopen; no bulk actions exist (none invented) |
+| System status, environment badge, version, diagnostics, error IDs (63–69) | DONE: System status + diagnostic summary (X10-17); staging banner (EXT8); error reference = request key where present |
+| Network recovery, safe retry (71–72) | COVERED (offline bar, visibility refresh of reads; writes never repeated automatically) |
+| Rule / flag history, switch UI, dependencies, fallback, deprecation (73–83) | DONE: ON/OFF + "Needs first" per high-risk switch; Query H detects impossible combinations; legacy fallback reviewed (switch OFF = today's path, documented as not atomic; removal after production verification — DEFERRED, PRODUCTION) |
+| SQL rollout simulation, wrong steps, prod/staging guard, write warnings (84–89) | DONE (change package §2b–2f; static header test; System status environment) |
+| Query interpreter, redaction, versioning (90–92) | DONE (`interpret-query-results.js`, 9 tests) |
+| Backup workflow, expiry, restore states, DR (93–96) | COVERED + DONE in docs (V1 expiry 7 days; local drill ≠ real restore) |
+| Schema doc, write/read/side-effect maps, transaction boundaries, eventual consistency, repair philosophy (97–104) | DONE (`OPERATIONS_MAPS_EXT10.md` §1–5) |
+| Data quality centre, watchers, orphans, invalid statuses, fixtures (105–114) | COVERED read-only (Query F, Home, DB constraints) + DONE maps §8; duplicate customers BLOCKED (owner key), duplicate invoices BLOCKED (agent source) |
+| Scale 10×, 100 products, suppliers, years of history, budget, pagination, counts (115–125) | DONE: X10-15 fixed; scale-ext10b; budget in maps §12; server pagination DEFERRED |
+| Operator speed, keyboard, focus, announcements, mobile/tablet journeys, accessibility (126–144) | COVERED by existing a11y/mobile suites + full suite at 390 px; real VoiceOver NOT VERIFIED |
+| Business rules / flags UX, settings organisation, config export/diff (145–153) | COVERED (units in rule labels, EXT4); config export NOT BUILT (System status covers the safe part) |
+| State machines and server guards (154–162) | COVERED (`STATE_MACHINES.md`, generated and tested; DB CHECKs; conditional updates) |
+| Expenses, tax, accounting provenance, exports, CSV (163–175) | COVERED (EXT6–9 oracles, csv guard); X10-03 unreadable amount |
+| Security headers, frames, referrer, CSP reporting, dependencies (176–184) | COVERED (EXT8/9) + change-password strict policy |
+| Malformed data, escaping, URL/phone/email links, notes, clipboard, print, titles, shared computers (185–196) | COVERED (xss-everywhere, link-scheme-check, storage-safety); diagnostic copy shows its text before copying |
+| Multi-user, permission harness, roles, onboarding/offboarding, access review (197–204) | COVERED (role-matrix, concurrency specs); onboarding/offboarding notes below |
+| GitHub / CI safety (205–210) | VERIFIED: `.github/` has only CODEOWNERS; no workflow files; no auto-merge possible from this repository's config; CI draft inactive |
+| Suites, evidence, checksums, drift (211–221) | DONE: high-risk set (report), Query H, SQL fingerprints in V-table |
+| Runbooks (221–229) | DONE (operations center §7) |
+| Growth readiness, do-not-build, future extension points (233–241) | DONE (maps §12; multi-location not supported by schema; no ERP features built) |
+| Shopify intake contract (242–251) | DONE as contract (maps §11); no website work |
+| Source labels, provenance, human override (257–261) | PARTLY: tasks/incidents have no source column today — adding one is a schema change (PRODUCTION WRITE/DEPLOY); maps §10 rule 9 |
+| Owner decision centre, N4, lawyer, provider, agent source (262–272) | DONE (decision packets §6) |
+| PR relationship, review package (273–284) | DONE in the PR body |
+| Visual consistency, components, CSS, z-index, modals (285–309) | COVERED by existing suites; no redesign (design neutral) |
+| Copy, help text, UNKNOWN explanations (310–312) | DONE (status vocabulary, operations center §5) |
+| DB health, latency, fetch reduction, caching, refresh (313–330) | COVERED (latest-request tokens, one Home load, 5-min visible refresh); System status read |
+| Telemetry, audit vs error log (331–335) | DONE as contract (maps §9) |
+| Automation principles, schedules, issue keys, dry run (357–381) | DONE as rules (maps §10); nothing activated |
+
+### Remaining by category (requested labels)
+
+| Category | Items |
+|---|---|
+| CLAUDE SAFE | U46 strict policy on 5 pages; U47 manual-order key; X10-11 load-sensitive test waits; entity deep links / timelines when a record view exists |
+| OWNER DECISION | decision centre §6 (17 rows); duplicate-customer key (U50) |
+| PRODUCTION READ | V1–V13 |
+| PRODUCTION WRITE / DEPLOY | P0–P11; reconciliation-centre table; task/incident source column; legacy path removal after R1–R5 verified |
+| ACCOUNTANT | N4, orders without items |
+| LAWYER | legal hold vs delete (if unsure), claims queue D8 |
+| PROVIDER | e-mail service (R10) |
+| AGENT SOURCE | agent failure tests, failure inbox wiring, duplicate invoice watcher, Agent #1 behaviour |
+| DEFERRED | server pagination, saved filters, recently viewed, customer/order/PO/product timelines, config export |
+
+### Staff onboarding / offboarding / access review (missions 201–203)
+
+Onboarding: create the account in Supabase Auth (owner), set `profiles.role`, give `OPERATOR_QUICK_REFERENCE_EXT10.md`, walk the 5-minute morning check together. Offboarding: set the profile inactive, revoke sessions (Sessions page), remove the Auth user, review Query G for leftover grants. Quarterly access review: Supabase → Authentication users vs `profiles` roles; GitHub collaborators (V10). Claude makes no account changes.

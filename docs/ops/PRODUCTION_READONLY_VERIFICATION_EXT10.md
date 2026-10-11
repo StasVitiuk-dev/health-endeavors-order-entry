@@ -22,6 +22,11 @@
 | **V10** | **GitHub access** (X6-17) | the session can still bypass review | GitHub → repository → Settings → Collaborators and teams (look only) | `stasvitiuk-reos`: Write; Claude connected as that account | screenshot | merge confidence |
 | **V11** (NEW) | **Request-key columns and switch** (only after drafts/19 + 27) | the `request_keys` switch must find the columns, and start OFF | `select count(*) filter (where column_name = 'client_request_id') as tables_with_key from information_schema.columns where table_schema = 'public';` then `select flag_key, enabled from public.feature_flags where flag_key = 'request_keys';` | first: the number of tables drafts/19 reported (up to 22); second: 1 row, `false` | screenshot | turning on `request_keys` |
 | **V12** (NEW) | **Nightly check installed and readable** (only after drafts/25 + 29) | Home must have a first result before its switch is turned on | `select started_at, status, checks, error from public.integrity_check_runs order by started_at desc limit 3;` and `select flag_key, enabled from public.feature_flags where flag_key = 'integrity_results_home';` and, if pg_cron exists, `select jobname, schedule, active from cron.job where jobname = 'integrity_check_nightly';` | at least one row `ok`, 15 checks; switch `false`; job active | screenshot | turning on "Nightly integrity check on Home" |
+| **V13** (NEW, EXT10b) | **Drift check: does production match what was reviewed?** | catches a wrong function version, anon access, or a switch ON without its dependency | `docs/ops/sql/07_READONLY_H_drift_check.sql` (11 rows) | every row PASS or NOT INSTALLED (normal before that step); any FAIL = stop | CSV | every switch-on step; after every production step |
+
+**Reading a CSV without Claude:** `node tests/tools/interpret-query-results.js H downloaded.csv --run-date 2026-10-15` (also D, E, F, G) prints PASS / WARN / FAIL / UNKNOWN per row and overall, refuses a file that is not that query's output, and warns if the file contains an e-mail address (then do not store it; send only the summary). Query C is an inventory and is read as it is.
+
+**Every result is recorded with:** the query letter and the first 16 characters of its fingerprint (table above), the date it was run, and the overall verdict (`evidence/README.md`).
 
 ## 1. The 2-minute backup check (V1)
 

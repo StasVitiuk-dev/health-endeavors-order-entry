@@ -118,3 +118,12 @@ test('the nightly integrity view is exactly Query F (the two never drift apart)'
   const view = d.slice(d.indexOf('create view public.integrity_check_f as') + 'create view public.integrity_check_f as'.length, d.indexOf(';\n\ncreate table public.integrity_check_results'));
   expect(norm(view)).toBe(fBody);
 });
+
+// EXT10b (missions 89, 391-393): every production-change file says so at the top.
+test('every install and rollback draft carries a DRAFT / owner-approval warning in its first lines', () => {
+  for (const f of [...INSTALLS, ...Object.values(ROLLBACKS)]) {
+    const head = fs.readFileSync(path.join(DIR, f), 'utf8').split('\n').slice(0, 8).join('\n');
+    expect(head, f).toMatch(/DRAFT|PRODUCTION CHANGE/);
+    expect(head, f).toMatch(/approval|DO NOT RUN|NOT RUN|NOT INSTALLED|NOT FOR PRODUCTION/i);
+  }
+});

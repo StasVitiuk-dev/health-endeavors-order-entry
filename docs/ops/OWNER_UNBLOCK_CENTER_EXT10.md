@@ -71,6 +71,9 @@
 | U45 | Storage access rules | C | UNKNOWN | look only | Stas | NO | YES | NO |
 | **U46** | Strict script policy on the other 5 pages (M5b–d) | A (after merge) | change-password done | one page per PR | Claude | NO | NO | NO |
 | **U47** | Request key on manual orders (X10-05) | A (after U11) | same-order match today | small PR | Claude | NO | NO | NO |
+| **U48** | Drift check (Query H, V13) | C | PREPARED, tested locally 27/27 | run after each production step; first run any time (all NOT INSTALLED today) | Stas | NO | YES | NO |
+| **U49** | Server-side pagination for Orders / PO lists (X10-19) | F | lists say "Showing N of M" when capped | when real data passes ~1,000 rows | Claude | NO | NO | NO |
+| **U50** | Duplicate-customer watcher key (X10-20) | B | not built (emails optional, not normalized) | choose the matching rule (e.g. same e-mail ignoring case) | Stas | NO | NO | NO |
 
 ## 2. R1–R10 launch fixes: exact status
 
@@ -108,6 +111,10 @@
 | Can wait | Last 7 days vs week (X8-D2) | keep / calendar week / show both | keep | — |
 | Can wait | Document categories | keep / add | keep | — |
 | Can wait | CI required check (CI-02) | on / off | on | — |
+
+## 3b. Added by the second EXT10 mission (operations)
+
+Operations entry point: **`OPERATIONS_CENTER_EXT10.md`** (5-minute morning check, weekly and month-end routines, status vocabulary, incident runbooks). Maps for maintainers: `OPERATIONS_MAPS_EXT10.md`. Decisions grouped by DEPLOYMENT / OPERATIONS / AUTOMATION / ACCOUNTING / STAGING with consequences: `OWNER_DECISION_PACKETS_EXT10.md` §6. Four more real bugs fixed (X10-12…15).
 
 ## 4. Claude-safe work still remaining
 

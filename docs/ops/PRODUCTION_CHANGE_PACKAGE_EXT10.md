@@ -23,6 +23,7 @@
 | **P7b** | Turn on `request_keys` | P7 | page refuses if the column is missing | Feature Switches → `request_keys` → password | add one test reminder on Home, delete it; add one expense normally | any save fails → switch off (instant) | none | none | screenshot |
 | **P8** | Permission fixes | V5 output | — | drafts to be written from V5 | V5 re-run: no FAIL | staff locked out → each draft's rollback restores the exact old policy | none | **medium** | V5 CSV after |
 | **P9** | Nightly integrity check (`drafts/25`), optional 60 s timeout (§4 of `NIGHTLY_CHECK_PACKAGE_EXT10.md`) | X8-D4 thresholds | — | run `drafts/25`; then `select public.run_integrity_check();` once | first row in results | job errors → `select cron.unschedule('integrity_check_nightly');` or `drafts/26` | none | none (read-only checks) | screenshot |
+| **P9b-check** | Query H (V13) after every step from P2 on | — | — | run `07_READONLY_H_drift_check.sql` | no FAIL rows | any FAIL → the row's action (usually: switch off) | none | none | CSV |
 | **P9b** | Home card for it (`drafts/29`, switch OFF) then switch on | P9 | 29 refuses without 25 | run `drafts/29`; **V12**; Feature Switches → "Nightly integrity check on Home" | Home shows PASS / WARN / FAIL with "Last success" | wrong display → switch off; `drafts/30` (before 26) | none | none | Home screenshot |
 | **P10** | Revoke direct stock writes (INV-20) | all five stock switches on and stable; V2 | — | draft not written yet | — | grant back | none | medium (old path stops, intended) | — |
 | **P11** | Backup status row on Home (D5) | X8-D6 | — | needs a change in the private backups job (Claude must not open it) | Home shows HEALTHY / STALE / FAILED | drop the table | none | none | — |
@@ -30,6 +31,48 @@
 **Bundles (what may share one sitting):** {P1} · {P2, P3} · each P4 switch alone · {P5} · {P6} · {P7} · {P7b} alone · P8 one draft per sitting · {P9, P9b}. Never two switches in one sitting.
 
 **Canary rule for every switch:** first use = one small real action by Stas, checked on screen, before staff use it. If the number on screen differs from what was expected: switch off, screenshot, stop.
+
+## 2b. How to tell the two kinds of SQL apart (mission 89)
+
+| Kind | Where | First line says | Who may run it |
+|---|---|---|---|
+| **READ-ONLY QUERY** | `docs/ops/sql/0X_READONLY_*.sql` | "READ-ONLY" — one SELECT; proven by `sql-readonly.spec.js` | Stas, any time |
+| **PRODUCTION CHANGE — OWNER APPROVAL REQUIRED** | `docs/ops/sql/drafts/NN_DRAFT_*.sql` | "DRAFT … NOT INSTALLED / DO NOT RUN WITHOUT THE OWNER'S APPROVAL" (a static test fails if a draft lacks it) | Stas, one step at a time, after approval |
+
+## 2c. Risk per step (why, not fake precision)
+
+| Step | Risk | Why |
+|---|---|---|
+| P1, V-checks | NONE | read-only |
+| P0 merge | LOW | every new feature ships off; revert is one click |
+| P2 R1–R5 install | LOW | functions exist but nothing calls them until a switch is on |
+| P3 switch rows | LOW | rows are OFF |
+| P4 a stock switch on | MEDIUM | real stock moves through new code; mitigated by canary + instant switch-off |
+| P5 PO line guard | LOW | refuses only line edits during a receive |
+| P6 integrity rules | LOW | refuses impossible values; stops itself if data already breaks a rule |
+| P7 request keys | LOW | empty columns; switch separate |
+| P8 permission fixes | MEDIUM–HIGH | can lock staff out; exact rollback per policy |
+| P9 nightly check | LOW | reads business data, writes only its own tables |
+| P10 revoke direct writes | MEDIUM | old browser path stops (intended) |
+
+## 2d. Stop conditions (any one = stop, screenshot, ask)
+
+A precheck reports a count or message different from the file's header · a file stops with an error · the V8 fingerprint differs · Query H shows any FAIL · a permission error appears for the owner · a postcheck differs · the canary action gives a number you did not expect · anything on Home turns red that was not red before.
+
+## 2e. Observation window after each switch
+
+Before the next switch: at least one normal working day of real use, Home checks clean of new red rows, Query H all PASS, and for stock switches Query E (V6) shows 0 mismatches. One switch at a time, always.
+
+## 2f. Owner dry run of these instructions (missions 86–87)
+
+Walked step by step as a non-technical owner; confusing points fixed in the text above:
+- "Which file is read-only?" → §2b table and the first-line labels.
+- "What if I run a file twice?" → every draft is idempotent or refuses (tested: install → rollback → reinstall, already installed).
+- "What if I turn a switch on before installing?" → the page refuses with the reason; Query H reports FAIL for that combination.
+- "What if I paste an older rollback?" → rollbacks refuse while their switch is on and remove only their own objects; drafts/30 must run before 26 (it says so and refuses otherwise).
+- "Am I on production?" → Continuity → System status shows **PRODUCTION (live dashboard)** only on the live address; the staging copy shows STAGING and a permanent banner.
+
+Local rollout simulation (mission 84): install → verify → switch → synthetic action → switch off → rollback → verify old state is covered by `install_package_test.sh` (R1–R5), `stock_switches_test.sh` (switches), `request_keys_switch_test.sh`, `integrity_home_test.sh` and `drift_check_test.sh` (state reported at every stage). Rollback cannot undo real-world effects (stock received, money, messages): they are corrected by hand with a note.
 
 ## 3. Rules for every step
 

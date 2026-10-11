@@ -2,16 +2,16 @@
 
 Internal dashboard/platform only. Generated from `docs/ops/backlog/items.py` (edit the data there, then run `python3 docs/ops/backlog/items.py`). No production secrets or private business data.
 
-**337 deduplicated items** from 415 raw candidates (78 duplicates merged: the same item recorded in PROJECT_RECORD, the overnight review, PRs, owner lists, decision registers and tests).
+**346 deduplicated items** from 424 raw candidates (78 duplicates merged: the same item recorded in PROJECT_RECORD, the overnight review, PRs, owner lists, decision registers and tests).
 
-Status counts: BLOCKED-EXT 2, BLOCKED-OWNER 41, BLOCKED-PROD 19, BLOCKED-QC 12, DEFERRED 26, DONE 232, OPEN 1, QUEUED 4
+Status counts: BLOCKED-EXT 2, BLOCKED-OWNER 42, BLOCKED-PROD 19, BLOCKED-QC 12, DEFERRED 27, DONE 239, OPEN 1, QUEUED 4
 
 | Priority | Items | Done (branch) | Remaining |
 |---|---|---|---|
 | P0 | 16 | 6 | 10 |
-| P1 | 89 | 65 | 24 |
-| P2 | 115 | 87 | 28 |
-| P3 | 99 | 73 | 26 |
+| P1 | 92 | 68 | 24 |
+| P2 | 118 | 90 | 28 |
+| P3 | 102 | 74 | 28 |
 | P4 | 18 | 1 | 17 |
 
 Priorities: P0 data loss / security / financial corruption / destructive · P1 launch blocker / correctness / concurrency / permission · P2 reliability / scale / accessibility / major UX · P3 maintainability / tests / docs · P4 future.
@@ -104,6 +104,9 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | ST-02 | Storage | Evidence/receipt orphan cleanup; document delete removes file | Orphans | Medium | S | — | Y | N | N | DONE |
 | X10-02 | Compliance | Evidence without a file: saved, but the page said it failed (stray EXT8 check threw) and kept the form filled | Invites a second, duplicate evidence record | High | S | — | Y | N | N | DONE |
 | X10-07 | Idempotency | Request keys on every remaining create path + key lifecycle (U42) | Duplicates after a lost reply prevented on 18 creates once drafts/19 + 27 are installed | High | M | drafts/19 + 27, switch on | Y | Y | N | DONE |
+| X10-12 | Purchase orders | A received order said "stock added to Inventory" even when its own lines showed stock missing after an interrupted receive | Operator believes stock is complete | High | S | — | Y | N | N | DONE |
+| X10-13 | Purchase orders | After "Do not press Receive again" the page redrew an enabled Receive button | Invites the double receive the message warns about | High | S | — | Y | N | N | DONE |
+| X10-18 | Production readiness | Query H read-only drift check + offline result interpreter | Owner can prove production matches the reviewed state | High | M | owner runs it | Y | Y | N | DONE |
 | X3-03 | Reporting | Expenses page count and money total summed from the newest 200 only | Silent wrong money total beyond 200 expenses | High | S | — | Y | N | N | DONE |
 | X3-09 | Inventory | R1–R5 install had no schema preflight (wrong shape installs, fails at first click) | Install safety | High | S | — | Y | N | N | DONE |
 | X3-20 | Orders | Manual order retry after a failure created a SECOND order (duplicate revenue) | Two-step save, lost reply | High | S | — | Y | N | N | DONE |
@@ -206,6 +209,9 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | X10-03 | Money | An unreadable amount (NaN / text) was shown as $0.00 | A broken figure looked like a real zero | Medium | S | — | Y | N | N | DONE |
 | X10-04 | Mobile | Wide tables become one card per row on phones (U38 / X7-15) | Buttons and values were off to the side on 320–430 px | Medium | M | — | Y | N | N | DONE |
 | X10-08 | Integrity | Nightly Query F results on Home (U43): drafts/29/30 + card with honest states | One place to see the nightly check, never "fine" when unknown | Medium | M | drafts/25 + 29 installed, switch on | Y | Y | N | DONE |
+| X10-14 | Agents | Scheduled agents showed "Stale" when the schedule list simply could not be read | UNKNOWN shown as a failure state | Medium | S | — | Y | N | N | DONE |
+| X10-15 | Scale | Pick-lists and long lists stopped silently at the database reply limit (products, suppliers, lots, POs, QC, documents, recalls, SOPs, feature requests, adverse events, legal holds) | Records invisible without warning once a table passes ~1,000 rows | Medium | M | — | Y | N | N | DONE |
+| X10-16 | Owner UX | Home checks: next step per item; low-stock level not set (CONFIG REQUIRED); deactivated products with stock; agent health | Fewer mystery badges; operator knows what to do | Medium | S | — | Y | N | N | DONE |
 | X3-01 | State machine | Product edit form wrote status unguarded (stale tab flips discontinued/active) | Found by the mock state rule | Medium | S | — | Y | N | N | DONE |
 | X3-04 | Scale | Returns page listed and counted the newest 200 only (old open returns vanished) | Open work hidden | Medium | S | — | Y | N | N | DONE |
 | X3-08 | Query C | Query C failed without pg_cron; tokens not masked in agent errors | Owner run could stop with an error | Medium | S | — | Y | N | N | DONE |
@@ -276,6 +282,8 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | X10-06 | Idempotency | Bind request keys to the creating user in the unique index | Only matters for deliberate key reuse; needs reliable creator columns | Low | M | creator columns on every table | P | N | Y | DEFERRED |
 | X10-10 | Code structure | M5b–d: strict script policy on search, dashboard, manual order and owner pages | Remove unsafe-inline everywhere | Low | L | after the merge (conflicts) | Y | N | N | DEFERRED |
 | X10-11 | Testing | Heavy specs (report-totals) time out when 8 workers share the machine; pass serially | Load-sensitive timing; not a product bug | Low | S | — | Y | N | N | QUEUED |
+| X10-19 | Scale | Server-side pagination for Orders / PO lists | Needed only past ~1,000 real rows; lists already say when capped | Low | L | real volume | Y | N | N | DEFERRED |
+| X10-20 | Data quality | Duplicate customer watcher | Needs an owner-chosen matching key (emails optional, not normalized) | Low | M | owner decision | P | Y | N | BLOCKED-OWNER |
 | X3-11 | Scale | Return-form order picker lists newest 200 orders only | Old order returns can't be logged | Low | S | volume | Y | N | N | DEFERRED |
 | X3-12 | Scale | Evidence form incident picker newest 200 only | Years away | Low | S | volume | Y | N | N | DEFERRED |
 | X3-15 | Inventory | Tasks can name a deleted product by id (free text) | Low impact | Low | S | — | Y | N | N | DEFERRED |
@@ -320,6 +328,7 @@ Priorities: P0 data loss / security / financial corruption / destructive · P1 l
 | UX-02 | UX | Palette first keys lost after Cmd+K | Typing lost | Low | S | — | Y | N | N | DONE |
 | UX-04 | UX | Stale agent status text #2/#3/#7/#8 | Wording | Low | S | — | Y | N | N | DONE |
 | X10-09 | Code structure | change-password.html without inline script (strict CSP); helpers API 9 (U39) | First page with no unsafe-inline for scripts; pure logic unit-tested | Low | S | — | Y | N | N | DONE |
+| X10-17 | Owner UX | System status + safe diagnostic summary (Continuity) | Problem reports without personal data | Low | S | — | Y | N | N | DONE |
 | X3-02 | State machine | Order Restore without "still deleted" condition | Found by the mock state rule | Low | S | — | Y | N | N | DONE |
 | X3-05 | Validation | Blank Business Rules value saved as 0 | Number("") is 0 | Low | S | — | Y | N | N | DONE |
 | X3-06 | Validation | Negative / infinite numbers accepted on button-saved fields (PO shipping/tax, prices, threshold) | No browser form check on plain buttons | Low | S | — | Y | N | N | DONE |
