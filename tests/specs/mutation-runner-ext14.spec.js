@@ -56,3 +56,12 @@ test('Ctrl-C during a mutant removes the worktree and leaves the real tree untou
   expect(spawnSync('git', ['worktree', 'list'], { cwd: ROOT, encoding: 'utf8' }).stdout).not.toContain(dir);
   expect(spawnSync('git', ['status', '--porcelain=v1', '-uall'], { cwd: ROOT, encoding: 'utf8' }).stdout).toBe(before);
 });
+
+// EXT16: 17 mutants had silently stopped applying after their code moved
+// (found because the Ctrl-C test above waits for one of them). Every mutant's
+// text must be in its file exactly once, checked on every run.
+test('every mutant still applies: its text is in its file exactly once', () => {
+  const r = spawnSync(process.execPath, [RUNNER, '--check'], { cwd: ROOT, encoding: 'utf8' });
+  expect(r.status, r.stderr).toBe(0);
+  expect(r.stdout).toMatch(/ 0 not applicable, 0 duplicate names/);
+});

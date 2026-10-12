@@ -58,6 +58,44 @@
    "reproduced": "no",
    "status": "OPEN INTERMITTENT",
    "fix": "none yet; the 30 s action limit (EXT16) turns any recurrence into a named failure instead of a stall"
+  },
+  {
+   "id": "INT-4",
+   "test": "DB suite: docs/ops/sql/local-test/stress_test.sh › S29 no deadlock (delete product vs delivery)",
+   "firstSeen": {
+    "where": "GitHub CI database job, stress run 3 of 5",
+    "sha": "0722ae6",
+    "date": "2026-10-12"
+   },
+   "lastSeen": {
+    "where": "GitHub CI database job, stress run 3 of 5",
+    "sha": "0722ae6",
+    "date": "2026-10-12"
+   },
+   "classification": "PRODUCT",
+   "cause": "Lock-order cycle in the DRAFT function delete_unused_product (drafts/10, not installed anywhere): its 'in use?' checks run before it locks the product, so a delivery line committed in that instant is missed. The receive then holds the line and waits for the product; the delete holds the product and its foreign-key check waits for the line. PostgreSQL cancels one call and rolls it back: no data damage (the S29 consistency check passed). Only reachable when a line is added, the product deleted and the order received at the same moment.",
+   "reproduced": "deterministically: docs/ops/sql/local-test/s29_lock_cycle_repro.sh prints DEADLOCK every run (2 of 2); server log: receive waits for the product (key share), delete waits for the receive's transaction. Random S29 alone: 0 in 40 quiet rounds (timing-dependent).",
+   "status": "EXPLAINED",
+   "fix": "not applied in EXT16 (changes the reviewed R1-R5 fingerprint used in ~25 files, including read-only Query H). Proposed for EXT17: repeat the in-use checks right after locking the product. Prototype on a throwaway database: repro 3 of 3 without deadlock (delete answers in_use, receive succeeds). Until then S29 can fail rarely on GitHub."
+  },
+  {
+   "id": "INT-5",
+   "test": "tests/specs/mutation-runner-ext14.spec.js › Ctrl-C during a mutant removes the worktree and leaves the real tree untouched",
+   "firstSeen": {
+    "where": "GitHub CI browser shard 3",
+    "sha": "0722ae6",
+    "date": "2026-10-12"
+   },
+   "lastSeen": {
+    "where": "GitHub CI browser shard 3",
+    "sha": "0722ae6",
+    "date": "2026-10-12"
+   },
+   "classification": "HARNESS",
+   "cause": "Not timing: the test interrupts one named mutant, whose text EXT16 had replaced (PO receive state machine). A mutant that no longer applies leaves its worktree for milliseconds, so the test's wait for it ran out. The same check found 17 of 187 mutants no longer applicable (14 manual-order mutants after EXT16 moved that page's script into assets/manual-order-entry.js, 2 PO receive mutants, 1 agents mutant stale since EXT15); only subsets had been run, so nothing failed loudly.",
+   "reproduced": "node tests/mutation/run-page-mutations.js --check: 17 not applicable before the fix, 0 after",
+   "status": "FIXED",
+   "fix": "EXT16: 17 mutants retargeted (all 18 matching mutants CAUGHT on a real run); runner --check mode plus a test that every mutant applies exactly once; the order pages' ?v= fingerprints are refreshed inside mutant worktrees"
   }
  ]
 }

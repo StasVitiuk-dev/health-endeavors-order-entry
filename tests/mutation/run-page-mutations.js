@@ -97,13 +97,13 @@ const MUTATIONS = [
     "if (Array.isArray(rows) && rows.length >= ROW_CAP) noteRowCap(", "if (false) noteRowCap(",
     'scale-matrix -g "one request warns"'],
   ['an unknown receive outcome no longer locks the Receive button', 'assets/owner-login-app.js',
-    "            PO_RECEIPT_UNKNOWN[po.id] = true;\n", "",
+    "            poReceiveOps.unknown(po.id, 'claim reply lost, read-back failed');\n", "",
     'po-receive -g "not saved: Receive is withheld"'],
   ['the receipt check says "safe" without proving nothing was received', 'assets/owner-login-app.js',
     "} else if (PO_ALLOWED_FROM.received.includes(data.status) && !anyReceived) {", "} else if (true) {",
     'po-receive -g "already shows stock"'],
   ['a Received order claims stock was added even when lines are short', 'assets/owner-login-app.js',
-    "if (po.status === 'received' && !PO_RECEIPT_UNKNOWN[po.id]) actions += shortLines", "if (po.status === 'received' && !PO_RECEIPT_UNKNOWN[po.id]) actions += false",
+    "if (po.status === 'received' && !poReceiveOps.isUnknown(po.id)) actions += shortLines", "if (po.status === 'received' && !poReceiveOps.isUnknown(po.id)) actions += false",
     'po-receive -g "never shows .stock added."'],
   ['Home checks lose their next step', 'assets/owner-login-helpers.js',
     "page: ATTN_PAGES[key], action: ATTN_ACTIONS[key] }, f));", "page: ATTN_PAGES[key] }, f));",
@@ -115,7 +115,7 @@ const MUTATIONS = [
     "if (a.cronJobName && cronJobState !== 'ok') {", "if (false) {",
     'agent-truth -g "schedule list cannot be read"'],
   ['agents off on purpose are listed as paused', 'assets/owner-login-app.js',
-    "rows: AGENT_REGISTRY.filter(a => !a.intendedOff && agentControlsByNum", "rows: AGENT_REGISTRY.filter(a => agentControlsByNum",
+    "rows: AGENT_REGISTRY.filter(a => !a.intendedOff && agentControls().byNum", "rows: AGENT_REGISTRY.filter(a => agentControls().byNum",
     'agent-truth -g "Home lists failed"'],
   ['the diagnostic summary records the error text instead of its kind', 'assets/owner-login-app.js',
     "LAST_ERROR_KIND = errorKind(text); LAST_ERROR_AT", "LAST_ERROR_KIND = text; LAST_ERROR_AT",
@@ -293,19 +293,19 @@ const MUTATIONS = [
   ['manual order page policy blocks the database', 'manual-order-entry.html',
     "connect-src 'self' https://uizrazyehilyzmwttsrn.supabase.co wss://uizrazyehilyzmwttsrn.supabase.co;", "connect-src 'self';",
     'csp -g "manual order page works|manual-order-entry.html: has"'],
-  ['finishing an order compares the saved total with itself (any total attaches)', 'manual-order-entry.html',
+  ['finishing an order compares the saved total with itself (any total attaches)', 'assets/manual-order-entry.js',
     "Number(pending.resume ? total : pending.total)", "Number(pending.total)",
     'manual-order-entry -g "does not match"'],
-  ['finishing an order quietly makes a new order instead of refusing', 'manual-order-entry.html',
+  ['finishing an order quietly makes a new order instead of refusing', 'assets/manual-order-entry.js',
     "if (pending.resume && mine.length === 0) {", "if (false) {",
     'manual-order-entry -g "finishing also refuses"'],
-  ['manual order sign-out leaves the typed customer in the page', 'manual-order-entry.html',
+  ['manual order sign-out leaves the typed customer in the page', 'assets/manual-order-entry.js',
     // EXT6 runner fix: the sign-out event listener reloads the page too, so a
     // mutant that still signs out is wiped by the listener (equivalent).
     // This one breaks the button's wipe without triggering the listener.
     "try { await sb.auth.signOut(); } finally { window.location.reload(); }", "showLogin();",
     'manual-order-entry -g "signing out clears"'],
-  ['manual order: a sign-out in another tab leaves the typed customer in the page', 'manual-order-entry.html',
+  ['manual order: a sign-out in another tab leaves the typed customer in the page', 'assets/manual-order-entry.js',
     "if (event === 'SIGNED_OUT') { leavingOnPurpose = true; window.location.reload(); return; }", "if (event === 'SIGNED_OUT') { showLogin(); return; }",
     'manual-order-entry -g "another tab clears"'],
   ['dashboard sign-out only hides the page (previous data left behind)', 'assets/owner-login-app.js',
@@ -328,10 +328,10 @@ const MUTATIONS = [
   ['line add / remove no longer re-checks the status afterwards', 'assets/owner-login-app.js',
     "if (statusAfter && !PO_EDITABLE.includes(statusAfter)) {\n              showDashError('The line was removed,", "if (false) {\n              showDashError('The line was removed,",
     'purchase-orders -g "removing a line while"'],
-  ['manual order retry adopts any order with the same number', 'manual-order-entry.html',
+  ['manual order retry adopts any order with the same number', 'assets/manual-order-entry.js',
     "const mine = (already || []).filter(o => Number(o.total) === Number(pending.resume ? total : pending.total) && (o.customer_name || '') === orderPayload.customer_name);", "const mine = (already || []).slice(0, 1);",
     'manual-order-entry -g "another person|two identical"'],
-  ['orders saved without items are no longer listed on sign-in', 'manual-order-entry.html',
+  ['orders saved without items are no longer listed on sign-in', 'assets/manual-order-entry.js',
     "const empty = recent.filter(o => !withLines.has(o.id));", "const empty = [];",
     'manual-order-entry -g "without its items"'],
   ['inquiry draft overwrites a draft changed elsewhere', 'assets/owner-login-app.js',
@@ -349,7 +349,7 @@ const MUTATIONS = [
   ['unreadable number text reported as "empty" again', 'assets/owner-login-app.js',
     "if (el.validity && el.validity.badInput) return '(not a plain number)';", "",
     'numeric-contract -g "typed as"'],
-  ['manual order keeps the customer in browser storage', 'manual-order-entry.html',
+  ['manual order keeps the customer in browser storage', 'assets/manual-order-entry.js',
     "return 'fp1-' + h1.toString(16) + '-' + h2.toString(16) + '-' + text.length;", "return text;",
     'manual-order-entry -g "no customer name"'],
   // ---- EXT4 additions (2026-10-06) ----
@@ -362,13 +362,13 @@ const MUTATIONS = [
   ['gateway error page shown as raw HTML again', 'assets/owner-login-helpers.js',
     'if (html !== -1) {', 'if (false) {',
     'fault-injection-2 -g "gateway502"'],
-  ['manual order retry matches on the total only (changed lines silently dropped)', 'manual-order-entry.html',
+  ['manual order retry matches on the total only (changed lines silently dropped)', 'assets/manual-order-entry.js',
     'if (pending && (pending.resume || pending.fingerprint === fingerprint)) {', 'if (pending) {',
     'manual-order-entry -g "same total"'],
-  ['manual order reuses an order number another tab already has', 'manual-order-entry.html',
+  ['manual order reuses an order number another tab already has', 'assets/manual-order-entry.js',
     'if (!taken || !taken.length) orderNumber = candidate;', 'orderNumber = candidate;',
     'manual-order-entry -g "same second"'],
-  ['manual order: Enter while saving submits twice', 'manual-order-entry.html',
+  ['manual order: Enter while saving submits twice', 'assets/manual-order-entry.js',
     'if (saving) return; // Enter pressed again', 'void 0; // Enter pressed again',
     'manual-order-entry -g "Enter pressed"'],
   ['product delete restores the stock row without looking (deleted product gets a stray row)', 'assets/owner-login-app.js',
@@ -435,10 +435,10 @@ const MUTATIONS = [
   ['signed out in another tab: dashboard stays open', 'assets/owner-login-app.js',
     "      if (event === 'SIGNED_OUT') {\n        wipeAfterSignOut(", "      if (false) {\n        wipeAfterSignOut(",
     'session-failures -g "another tab"'],
-  ['manual order retry creates a second order again', 'manual-order-entry.html',
+  ['manual order retry creates a second order again', 'assets/manual-order-entry.js',
     'if (mine.length === 1) newOrder = mine[0];', 'if (false) newOrder = mine[0];',
     'manual-order-entry -g "SAME order|no second order"'],
-  ['manual order retry adds the items twice', 'manual-order-entry.html',
+  ['manual order retry adds the items twice', 'assets/manual-order-entry.js',
     'if (!itemCount) {', 'if (true) {',
     'manual-order-entry -g "items twice"'],
   ['employee may save the stock threshold (role check removed)', 'assets/owner-login-app.js',
@@ -520,7 +520,7 @@ const MUTATIONS = [
   ['forced sign-out waits on the unsaved-typing question', 'assets/owner-login-app.js',
     "      leavingOnPurpose = true;\n      dash.style.display = 'none';", "      dash.style.display = 'none';",
     'unsaved-changes -g "another tab"'],
-  ['manual order stays "unsaved" after a successful save', 'manual-order-entry.html',
+  ['manual order stays "unsaved" after a successful save', 'assets/manual-order-entry.js',
     "    orderTyped = false;\n    orderForm.reset();", "    orderForm.reset();",
     'unsaved-changes -g "FAILED save"'],
   ['unknown service status shown as Operational again', 'assets/owner-login-app.js',
@@ -538,7 +538,7 @@ const MUTATIONS = [
   ['dashboard wipes on every sign-in event (same person too)', 'assets/owner-login-app.js',
     "      if (uid && shownUserId && uid !== shownUserId) {\n        wipeAfterSignOut(", "      if (uid) {\n        wipeAfterSignOut(",
     'auth-chaos -g "SAME person"'],
-  ['order page keeps the previous person\'s attempt after a switch', 'manual-order-entry.html',
+  ['order page keeps the previous person\'s attempt after a switch', 'assets/manual-order-entry.js',
     "      pending = null;\n      storePending(null);\n      leavingOnPurpose = true;\n      window.location.reload();\n    }\n  });", "      leavingOnPurpose = true;\n      window.location.reload();\n    }\n  });",
     'auth-chaos -g "manual order page"'],
   // EXT14: diagnostics fuzz found the role copied verbatim into the summary.
@@ -601,12 +601,34 @@ const MUTATIONS = [
     'malformed-data-ext15 -g "clear on/off"'],
 ];
 
+// EXT16: `--check` only confirms that every mutant's text is still in its file
+// exactly once (no worktree, no test run; about a second). A mutant whose code
+// moved is otherwise found only by a full run: 17 had gone stale unnoticed
+// (14 manual-order mutants after EXT16 moved that page's script, 2 after the
+// PO receive state machine, 1 since EXT15) because only subsets were run.
+function mutantTarget(dir, file, find) {
+  const files = file === 'assets/owner-login-app.js'
+    ? [file, ...fs.readdirSync(path.join(dir, 'assets', 'app')).filter(f => f.endsWith('.js')).map(f => 'assets/app/' + f)]
+    : [file];
+  const hits = files.map(f => [f, fs.existsSync(path.join(dir, f)) ? fs.readFileSync(path.join(dir, f), 'utf8').split(find).length - 1 : 0]).filter(([, n]) => n > 0);
+  return { hits, total: hits.reduce((a, [, n]) => a + n, 0) };
+}
+if (process.argv[2] === '--check') {
+  const stale = MUTATIONS.filter(([, file, find]) => mutantTarget(ROOT, file, find).total !== 1);
+  for (const [name, file, find] of stale) console.error('NOT APPLICABLE (' + mutantTarget(ROOT, file, find).total + ' copies): ' + name + ' [' + file + ']');
+  const names = MUTATIONS.map(m => m[0]);
+  const dupes = names.filter((n, i) => names.indexOf(n) !== i);
+  for (const n of dupes) console.error('DUPLICATE NAME: ' + n);
+  console.log(MUTATIONS.length + ' mutants, ' + stale.length + ' not applicable, ' + dupes.length + ' duplicate names');
+  process.exit(stale.length || dupes.length ? 1 : 0);
+}
+
 function sh(cmd, cwd) { return execSync(cmd, { cwd, stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }); }
 
 // EXT14: refresh ?v= for every local asset a page references (the page script
 // moved to assets/owner-login-app.js, so most mutants now edit an asset).
 function fixHelpersHash(dir) {
-  for (const page of ['owner-login.html', 'change-password.html', 'search.html', 'dashboard.html']) {
+  for (const page of ['owner-login.html', 'change-password.html', 'search.html', 'dashboard.html', 'manual-order-entry.html', 'index.html']) { // EXT16: the order pages load assets too
     const p = path.join(dir, page);
     if (!fs.existsSync(p)) continue;
     const html = fs.readFileSync(p, 'utf8').replace(/((?:href|src)=")(assets\/[^"?]+)\?v=[0-9a-f]+"/g, (all, pre, file) =>

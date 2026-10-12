@@ -28,7 +28,7 @@ Date: 2026-10-12. Branch: `claude/platform-ext16-overnight-systems-hardening-202
 | Inline style attributes, all pages | 14 (small pages) | **0** |
 | Type-gated files | 18 (0 gated findings) | 21 (0 gated findings; 52 reported-only) |
 | Spec files | 118 | 121 |
-| Page mutants | 182 | ~187 (+7 EXT16, all caught) |
+| Page mutants | 182 (1 silently not applying) | 187 (+7 EXT16; 17 stale ones repaired; all 187 apply, checked by a test) |
 
 ## 3. Problems found and fixed
 
@@ -41,14 +41,19 @@ Date: 2026-10-12. Branch: `claude/platform-ext16-overnight-systems-hardening-202
 | 5 | Test tooling | shrinker simplification could replace a short value with a longer one | shrinker self-test | restart from the accepted value |
 | 6 | Test tooling | chaos replays started signed in and hung on the sign-in form | browser shrink self-test | fresh sign-in per replay; 30 s action limit |
 | 7 | Estimate | EXT15's 15–20% session-reuse estimate | A/B measurement | corrected to 5.6% |
+| 8 | Mutation harness | 17 of 187 planted bugs no longer applied (14 after the manual-order script moved, 2 after the receive state machine, 1 since EXT15), so they checked nothing | GitHub failure of the Ctrl-C runner test (INT-5) | retargeted, all 18 matching CAUGHT; `--check` mode + a test that every mutant applies exactly once |
+| 9 | Draft database function (not installed) | "delete product" can deadlock with a delivery being received at the same moment (one call is cancelled and rolled back; no damage) | GitHub DB job (INT-4), then a step-by-step reproduction | **not fixed in EXT16**: fix proven on a throwaway database, scheduled first in EXT17 |
+| 10 | Draft database function (not installed) | receiving an order with no lines fails with a raw "division by zero" | the INT-4 reproduction loop | **not fixed in EXT16**: EXT17 |
 
-No product bug that a person would see in normal use was found in EXT16 (item 2 only affects a page whose library fails to load).
+No bug that a person would see in normal use of the live dashboard was found in EXT16. Item 2 only affects a page whose library fails to load. Items 9–10 are in draft database functions that are not installed anywhere.
 
 ## 4. Intermittent failures
 
-INT-1 FIXED (EXT15), INT-2 FIXED (EXT16), INT-3 OPEN (one shrinker replay; unexplained). Register: `tests/forensics/intermittent-register.json`.
+INT-1 FIXED (EXT15), INT-2 FIXED (EXT16), INT-3 OPEN (one shrinker replay; unexplained), **INT-4 EXPLAINED, NOT FIXED** (draft-database lock cycle, reproduced on demand), INT-5 FIXED (stale mutant). Register: `tests/forensics/intermittent-register.json`; details: `CI_INTERMITTENT_EXT16.md`.
 
 ## 5. Not done in EXT16 (moved to EXT17)
+
+- **First:** the INT-4 lock-order fix in `delete_unused_product` and the empty-order message in `receive_purchase_order` (drafts/10), with the fingerprint updated everywhere it is quoted.
 
 - State machine for returns, recalls, adjustments, product lifecycle, approvals, escalation.
 - Program type-gating beyond the modules; Trusted Types evaluation; replacing easy `innerHTML` sinks.

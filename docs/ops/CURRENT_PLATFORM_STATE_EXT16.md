@@ -12,7 +12,8 @@ No owner evidence has arrived. Nothing in EXT16 touched production.
 | PO receiving | explicit operation state machine (`he-ops`), server calls unchanged (`STATE_MODEL_EXT16.md`) |
 | Program structure | 6,214 lines + 19 modules (admin and compliance pages moved) |
 | Random testing | automatic shrinking of failing sequences, verified on the real browser runner |
-| Intermittent failures | INT-2 explained and fixed; INT-3 open (minor, unexplained) |
+| Intermittent failures | INT-2 and INT-5 fixed; INT-3 open (minor, unexplained); **INT-4 explained, not fixed**: a rare lock cycle in the draft "delete product" function (not installed), fix scheduled for EXT17 |
+| Mutation testing | 17 stale planted bugs repaired; every mutant is now checked to apply |
 | Test speed | measured: session reuse −5.6%, 3 workers −7%; both off by default |
 | Everything else (SQL drafts, Queries C–H, backups, agents, real devices) | unchanged: drafts TESTED LOCALLY, NOT INSTALLED; production state UNKNOWN |
 
@@ -26,4 +27,4 @@ No owner evidence has arrived. Nothing in EXT16 touched production.
 | Engineering health | ~72% | ~75% | state machine, shrinker, CI intermittent closed, two more modules |
 | Security | ~65% | ~68% | strict policies on all pages |
 | CSP readiness | owner page only | all dashboard pages | — |
-| Test reliability | — | ~80% | 2 of 3 intermittents explained and fixed |
+| Test reliability | — | ~78% | 4 of 5 intermittents explained (3 fixed); one draft-SQL deadlock still open on GitHub |
