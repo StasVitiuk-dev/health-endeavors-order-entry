@@ -314,6 +314,23 @@ begin
     end if;
   end;
 
+  -- (EXT17) an order with no lines can be received: it used to fail with a raw
+  -- "division by zero" (the landed-cost formula divided by the line count).
+  -- Nothing is stocked; shipping is recorded as the expense, as on the page.
+  declare poe uuid; r jsonb;
+  begin
+    insert into purchase_orders (po_number, supplier_id, status, shipping_cost) values ('HX-PO-EMPTY', s, 'shipped', 12.5) returning id into poe;
+    -- The old failure only appeared while PostgreSQL planned the statement with
+    -- the actual values (the first calls in a session); after several calls it
+    -- switches to a generic plan and hides it. Force the revealing plan mode.
+    perform set_config('plan_cache_mode', 'force_custom_plan', true);
+    r := receive_purchase_order(poe);
+    perform set_config('plan_cache_mode', 'auto', true);
+    if (r->>'stocked')::int <> 0 or (r->>'already_received')::boolean then raise exception 'empty order: unexpected result %', r; end if;
+    if (select status from purchase_orders where id = poe) <> 'received' then raise exception 'empty order was not marked received'; end if;
+    if (select amount from expenses where note = 'Purchase order HX-PO-EMPTY') <> 12.50 then raise exception 'empty order: expense is not the shipping cost'; end if;
+  end;
+
   raise notice 'ALL HARDENING AND FAILURE TESTS PASSED';
 end $$;
 rollback;

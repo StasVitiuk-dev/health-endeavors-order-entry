@@ -20,10 +20,14 @@ const CHANGED = ['assetVersions', 'loadAttentionChecks', 'loadSystemStatus', 'lo
   // bug fix: a failed month-spend read showed $0.00 spent and the full cap remaining
   'loadAI',
   // EXT16: purchase-order receiving reports to the explicit operation state (he-ops)
-  'PO_RECEIPT_UNKNOWN', 'renderPoDetails', 'wirePoDetail'];
-const ADDED = ['setReportHistoryView', 'inquiriesList', 'agentControls', 'poReceiveOps'];
+  'PO_RECEIPT_UNKNOWN', 'renderPoDetails', 'wirePoDetail',
+  // EXT17: a lost reply on a stock write records what was attempted (for the adjustment read-back)
+  'changeStock'];
+const ADDED = ['setReportHistoryView', 'inquiriesList', 'agentControls', 'poReceiveOps',
+  // EXT17: manual stock adjustments report to an explicit operation state (he-ops, repeatable)
+  'adjustOps', 'adjustPending', 'adjustKey', 'checkUnknownAdjustment'];
 const NEW_MODULES = ['he-ops']; // EXT16: written new, not moved
-const CHANGED_TEXT = ["getAttribute('data-view')"]; // the report-view buttons now call setReportHistoryView
+const CHANGED_TEXT = ["getAttribute('data-view')", "getElementById('adjustInventoryForm').addEventListener('submit'"]; // the report-view buttons now call setReportHistoryView
 
 test('the module moves were byte-identical: every original statement once, only the named edits differ', ({}, ti) => {
   nodeOnly(ti);

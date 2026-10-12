@@ -175,10 +175,14 @@ test.describe('manual stock adjustment', () => {
     expect(adjustments(backend)).toEqual([]);
   });
 
-  test('a drop after the stock saved says it may or may not have been saved (no blind "try again")', async ({ page, backend }) => {
+  // EXT17: the stock change is KNOWN here (only the history line failed), so the
+  // page says so and tells the person not to save again; the old text ("may or
+  // may not have been saved") understated it and invited a second save.
+  test('a drop after the stock saved says the stock WAS changed and not to save again (no blind "try again")', async ({ page, backend }) => {
     backend.dropNext('inventory_adjustments', 'POST');
     await adjust(page, 7);
-    await expectError(page, 'may or may not have been saved');
+    await expectError(page, 'The stock WAS changed (+7)');
+    await expectError(page, 'Do not save it again');
     expect(inv(backend).available).toBe(107);
     expect(adjustments(backend)).toEqual([]);
   });
@@ -187,7 +191,7 @@ test.describe('manual stock adjustment', () => {
     test.fail(true, 'Manual adjustment is not atomic yet: needs adjust_inventory (R4), drafted and tested; waits for Query C, owner approval and install (docs/ops/R1-R5-INSTALL-RUNBOOK.md)');
     backend.dropNext('inventory_adjustments', 'POST');
     await adjust(page, 7);
-    await expectError(page, 'may or may not have been saved');
+    await expectError(page, 'The stock WAS changed (+7)');
     expect(inv(backend).available).toBe(100);
   });
 });

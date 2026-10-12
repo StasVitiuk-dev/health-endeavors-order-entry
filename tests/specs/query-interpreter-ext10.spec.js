@@ -38,7 +38,7 @@ test('privacy: a file with an e-mail address is flagged', () => {
   expect(interpret('G', 'check_id,level,object,detail\nG02,INFO,x,none\n').privacy).toMatch(/No e-mail/);
 });
 test('Query H output from the local database parses (real column names)', () => {
-  const sample = 'id,item,expected,observed,status,action\nH01,R1-R5 stock functions (drafts/10),"6 functions, fingerprint 3df2bf7a07b451f12f9359ceca1c85df","6 present, fingerprint 3df2bf7a07b451f12f9359ceca1c85df",PASS,Nothing to do.\n';
+  const sample = 'id,item,expected,observed,status,action\nH01,R1-R5 stock functions (drafts/10),"6 functions, fingerprint 3caf5c28beefd0d8dff1dfed078b6754","6 present, fingerprint 3caf5c28beefd0d8dff1dfed078b6754",PASS,Nothing to do.\n';
   expect(interpret('H', sample).rows[0]).toMatchObject({ status: 'PASS', name: 'H01 R1-R5 stock functions (drafts/10)' });
 });
 

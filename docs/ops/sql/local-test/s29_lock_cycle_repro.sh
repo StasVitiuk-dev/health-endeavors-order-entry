@@ -15,8 +15,9 @@
 #   S4 commits: S2 deletes the product; the foreign-key check must lock S3's
 #      line, and S3 waits for S2 -> deadlock. PostgreSQL cancels one call; its
 #      transaction is rolled back, so no data is damaged.
-# Prints "RESULT: DEADLOCK" with drafts/10 as of EXT16. Fix (EXT17): repeat the
-# in-use checks after locking the product.
+# Exit 1 + "RESULT: DEADLOCK" with drafts/10 as of EXT16; exit 0 + "no deadlock"
+# after the EXT17 fix (in-use checks repeated after locking the product);
+# exit 2 + INCONCLUSIVE when a call did not complete.
 # Usage: s29_lock_cycle_repro.sh <psql connection args...> -d <database with drafts/10 installed>
 PSQL="psql $* -qtA -v ON_ERROR_STOP=1"
 P=a2900000-6666-4000-8000-000000000001; PO=a2900000-0000-4000-8000-000000000001
@@ -50,5 +51,12 @@ $AS select receive_purchase_order('$PO');
 SQL
 wait
 for s in s2 s3; do echo "--- $s: $(tr '\n' ' ' < $D/$s | cut -c1-300)"; done
-grep -l deadlock $D/s2 $D/s3 >/dev/null && echo RESULT: DEADLOCK || echo RESULT: no deadlock
+# EXT17: "no deadlock" only counts when both calls really ran: the delete must
+# answer with its JSON result and the receive with its JSON result. Anything
+# else (no database, refused connection, another error) is INCONCLUSIVE, never
+# a pass (found when a stopped server printed "no deadlock").
+if grep -q deadlock $D/s2 $D/s3; then echo "RESULT: DEADLOCK"; rc=1
+elif grep -q '"deleted"' $D/s2 && grep -q '"already_received"' $D/s3; then echo "RESULT: no deadlock"; rc=0
+else echo "RESULT: INCONCLUSIVE (a call did not complete; see above)"; rc=2; fi
 rm -rf $D
+exit $rc

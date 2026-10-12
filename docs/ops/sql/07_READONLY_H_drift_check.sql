@@ -23,7 +23,7 @@ with fn as (
          count(*) filter (where has_function_privilege('anon', p.oid, 'EXECUTE')) as anon_n
     from pg_proc p join fn on fn.oid = p.oid
 ), fnok as (
-  select (n = 6 and v = '3df2bf7a07b451f12f9359ceca1c85df') as ok, n from fp
+  select (n = 6 and v = '3caf5c28beefd0d8dff1dfed078b6754') as ok, n from fp
 ), sw(flag_key, needs, ord) as (
   values ('stock_fn_receive_po', 'receive_purchase_order', 3), ('stock_fn_recall', 'quarantine_recall', 4), ('stock_fn_return', 'receive_return', 5),
          ('stock_fn_adjust', 'adjust_inventory', 6), ('stock_fn_delete_product', 'delete_unused_product', 7)
@@ -43,7 +43,7 @@ with fn as (
 )
 select id, item, expected, observed, status, action from (
   select 'H01' as id, 'R1-R5 stock functions (drafts/10)' as item,
-         '6 functions, fingerprint 3df2bf7a07b451f12f9359ceca1c85df' as expected,
+         '6 functions, fingerprint 3caf5c28beefd0d8dff1dfed078b6754' as expected,
          fp.n || ' present' || case when fp.n > 0 then ', fingerprint ' || fp.v else '' end as observed,
          case when fp.n = 0 then 'NOT INSTALLED' when fnok.ok then 'PASS' else 'FAIL' end as status,
          case when fp.n = 0 then 'Normal before step P2.' when fnok.ok then 'Nothing to do.'

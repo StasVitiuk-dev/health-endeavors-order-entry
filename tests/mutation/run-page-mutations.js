@@ -599,6 +599,19 @@ const MUTATIONS = [
   ['an agent switch that is not on/off counts as on again', 'assets/app/he-agents.js',
     "if (typeof ctrl.enabled !== 'boolean') return { key: 'unknown',", "if (false) return { key: 'unknown',",
     'malformed-data-ext15 -g "clear on/off"'],
+  // EXT17: manual stock adjustment state machine (he-ops, repeatable)
+  ['a lost adjustment reply is sent again without the read-back check', 'assets/owner-login-app.js',
+    "      if (adjustOps.isUnknown(key)) { await checkUnknownAdjustment(key, amountInput); return; }\n", "",
+    'adjust-ops-ext17 -g "sends NOTHING"'],
+  ['the adjustment read-back never recognises a saved adjustment', 'assets/owner-login-app.js',
+    "} else if (p.before != null && now === p.before + p.change) {", "} else if (false) {",
+    'adjust-ops-ext17 -g "sends NOTHING"'],
+  ['stock saved but history refused is reported as "could not save"', 'assets/owner-login-app.js',
+    "        if (stockDone) {", "        if (false) {",
+    'adjust-ops-ext17 -g "history line refused"'],
+  ['a confirmed adjustment blocks the next one on the same product', 'assets/app/he-ops.js',
+    "{ CONFIRMED: ['READY', 'SENDING'] }", "{ CONFIRMED: [] }",
+    'adjust-ops-ext17 -g "two normal adjustments"'],
 ];
 
 // EXT16: `--check` only confirms that every mutant's text is still in its file

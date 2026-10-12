@@ -27,12 +27,17 @@ window.HE.modules.define('he-ops', { api: 1, needs: [] }, function () {
     CONFIRMED: [],                                    // final for this record
     RESOLVED: ['READY'],                              // a read-back said it is safe to start again
   };
-  function createOpTracker(name) {
+  // EXT17: operations a person may repeat on the same record (a stock
+  // adjustment for the same product and bucket). CONFIRMED is not final there;
+  // everything else, above all RESULT_UNKNOWN, is exactly as strict.
+  const NEXT_REPEATABLE = Object.assign({}, NEXT, { CONFIRMED: ['READY', 'SENDING'] });
+  function createOpTracker(name, opts) {
+    const table = opts && opts.repeatable ? NEXT_REPEATABLE : NEXT;
     const rec = new Map(); // key -> { state, idempotent, history: [[from,to,reason]] }
     const get = key => rec.get(key) || { state: 'READY', idempotent: false, history: [] };
     function move(key, to, reason) {
       const r = get(key);
-      const ok = NEXT[r.state] && NEXT[r.state].includes(to);
+      const ok = table[r.state] && table[r.state].includes(to);
       if (!ok) throw new Error(name + ': refused transition ' + r.state + ' -> ' + to + ' for ' + key);
       const next = { state: to, idempotent: r.idempotent, history: r.history.concat([[r.state, to, reason || '']]).slice(-20) };
       rec.set(key, next);
@@ -40,6 +45,7 @@ window.HE.modules.define('he-ops', { api: 1, needs: [] }, function () {
     }
     return {
       name,
+      repeatable: table === NEXT_REPEATABLE,
       state: key => get(key).state,
       history: key => get(key).history.slice(),
       // Returns true when a send may start now; false (and nothing changes) when it may not.
@@ -48,7 +54,7 @@ window.HE.modules.define('he-ops', { api: 1, needs: [] }, function () {
         const idempotent = !!(opts && opts.idempotent);
         // one source of truth: the transition table (found by the mutation run: begin() kept its
         // own list, so a wrong table entry for CONFIRMED went unnoticed)
-        const allowed = NEXT[r.state].includes('SENDING')
+        const allowed = table[r.state].includes('SENDING')
           || (r.state === 'RESULT_UNKNOWN' && r.idempotent && idempotent);
         if (!allowed) return false;
         rec.set(key, { state: 'SENDING', idempotent, history: r.history.concat([[r.state, 'SENDING', 'begin']]).slice(-20) });
@@ -67,10 +73,10 @@ window.HE.modules.define('he-ops', { api: 1, needs: [] }, function () {
       resolved(key, why) { if (get(key).state !== 'READBACK_CHECKING') throw new Error(name + ': resolved outside a read-back for ' + key); return move(key, 'RESOLVED', why); },
       stillUnknown(key, why) { if (get(key).state !== 'READBACK_CHECKING') throw new Error(name + ': still-unknown outside a read-back for ' + key); return move(key, 'RESULT_UNKNOWN', why); },
       // After a conflict / expiry / refusal is shown and the list re-read.
-      reset(key, why) { const s = get(key).state; if (NEXT[s] && NEXT[s].includes('READY')) move(key, 'READY', why || 'reset'); return get(key).state; },
+      reset(key, why) { const s = get(key).state; if (table[s] && table[s].includes('READY')) move(key, 'READY', why || 'reset'); return get(key).state; },
       isUnknown: key => get(key).state === 'RESULT_UNKNOWN' && !get(key).idempotent,
       isInFlight: key => ['SENDING', 'READBACK_CHECKING'].includes(get(key).state),
     };
   }
-  return { createOpTracker, OP_STATES: STATES, OP_NEXT: NEXT };
+  return { createOpTracker, OP_STATES: STATES, OP_NEXT: NEXT, OP_NEXT_REPEATABLE: NEXT_REPEATABLE };
 });

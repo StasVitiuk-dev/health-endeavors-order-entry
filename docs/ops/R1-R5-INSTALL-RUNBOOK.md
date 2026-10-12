@@ -79,7 +79,7 @@ where n.nspname = 'public'
                     'quarantine_recall','receive_return','delete_unused_product');
 ```
 
-Expected for the version reviewed on 2026-10-06: `3df2bf7a07b451f12f9359ceca1c85df`. If the file changes later, the session recomputes this value locally and updates it here in the same pull request. A different value means a different version was pasted: roll back and ask.
+Expected for the version reviewed on 2026-10-12: `3caf5c28beefd0d8dff1dfed078b6754`. (EXT17 version: lock-order fix in `delete_unused_product`, INT-4; an order with no lines can be received.) The earlier value `3df2bf7a07b451f12f9359ceca1c85df` (2026-10-06 version) is no longer the reviewed one. If the file changes later, the session recomputes this value locally and updates it here in the same pull request. A different value means a different version was pasted: roll back and ask.
 
 ## Roll back (if anything looks wrong)
 

@@ -57,12 +57,12 @@ test('the operator rules', () => {
 });
 
 // Independent reference model: written from the rules above, not from the table.
-function model() {
+function model(repeatable) { // EXT17: repeatable = a confirmed result may be followed by a new send
   const st = new Map(); const get = k => st.get(k) || { s: 'READY', idem: false };
   return {
     begin(k, idem) {
       const r = get(k);
-      const ok = ['READY', 'VALIDATING', 'FAILED_BEFORE_EFFECT'].includes(r.s) || (r.s === 'RESULT_UNKNOWN' && r.idem && idem);
+      const ok = ['READY', 'VALIDATING', 'FAILED_BEFORE_EFFECT'].includes(r.s) || (repeatable && r.s === 'CONFIRMED') || (r.s === 'RESULT_UNKNOWN' && r.idem && idem);
       if (ok) st.set(k, { s: 'SENDING', idem });
       return ok;
     },
@@ -73,15 +73,15 @@ function model() {
     },
     readback(k) { const r = get(k); if (r.s !== 'RESULT_UNKNOWN') return false; st.set(k, { s: 'READBACK_CHECKING', idem: r.idem }); return true; },
     afterReadback(k, to) { const r = get(k); if (r.s !== 'READBACK_CHECKING') return false; st.set(k, { s: to, idem: r.idem }); return true; },
-    reset(k) { const r = get(k); if (['CONFLICT', 'SESSION_EXPIRED', 'PERMISSION_DENIED', 'RESOLVED', 'FAILED_BEFORE_EFFECT', 'VALIDATING'].includes(r.s)) st.set(k, { s: 'READY', idem: r.idem }); },
+    reset(k) { const r = get(k); if (['CONFLICT', 'SESSION_EXPIRED', 'PERMISSION_DENIED', 'RESOLVED', 'FAILED_BEFORE_EFFECT', 'VALIDATING'].includes(r.s) || (repeatable && r.s === 'CONFIRMED')) st.set(k, { s: 'READY', idem: r.idem }); },
     state: k => get(k).s,
   };
 }
 function rng(seed) { let s = seed >>> 0; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 2 ** 32); }
 
-for (const seed of [1601, 1602, 1603, 1604, 1605]) {
-  test(`random event sequences (seed ${seed}, 5,000 events over 4 records) match the reference model`, () => {
-    const r = rng(seed), t = createOpTracker('x'), m = model(), keys = ['a', 'b', 'c', 'd'];
+for (const [seed, repeatable] of [[1601, false], [1602, false], [1603, false], [1604, false], [1605, false], [1701, true], [1702, true], [1703, true]]) {
+  test(`random event sequences (seed ${seed}${repeatable ? ', repeatable' : ''}, 5,000 events over 4 records) match the reference model`, () => {
+    const r = rng(seed), t = createOpTracker('x', { repeatable }), m = model(repeatable), keys = ['a', 'b', 'c', 'd'];
     const OUT = ['CONFIRMED', 'FAILED_BEFORE_EFFECT', 'RESULT_UNKNOWN', 'CONFLICT', 'SESSION_EXPIRED', 'PERMISSION_DENIED'];
     const call = { CONFIRMED: 'confirmed', FAILED_BEFORE_EFFECT: 'failedBeforeEffect', RESULT_UNKNOWN: 'unknown', CONFLICT: 'conflict', SESSION_EXPIRED: 'sessionExpired', PERMISSION_DENIED: 'permissionDenied' };
     const fail = (where, msg) => { throw new Error(where + ': ' + msg); };
@@ -95,7 +95,8 @@ for (const seed of [1601, 1602, 1603, 1604, 1605]) {
       else { m.reset(k); t.reset(k); }
       if (t.state(k) !== m.state(k)) fail(where, `state ${t.state(k)}, model ${m.state(k)}`);
       if (!OP_STATES.includes(t.state(k))) fail(where, 'unknown state');
-      if (t.state(k) === 'CONFIRMED' && t.begin(k, { idempotent: true })) fail(where, 'confirmed is final');
+      if (!repeatable && t.state(k) === 'CONFIRMED' && t.begin(k, { idempotent: true })) fail(where, 'confirmed is final');
+      if (t.state(k) === 'RESULT_UNKNOWN' && !t.isInFlight(k) && t.isUnknown(k) && t.begin(k, { idempotent: false })) fail(where, 'a non-idempotent unknown result was sent again');
     }
   });
 }

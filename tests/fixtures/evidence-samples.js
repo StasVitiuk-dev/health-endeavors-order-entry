@@ -65,9 +65,9 @@ const G = {
 const H_HEAD = 'id,item,expected,observed,status,action\n';
 const H = {
   allExpected: H_HEAD + 'H01,R1-R5 stock functions (drafts/10),6,0 present,NOT INSTALLED,Normal before step P2.\nH02,anon cannot run stock functions,0,0,PASS,Nothing to do.\nH03,Switch stock_fn_receive_po (drafts/21),OFF,no switch row,NOT INSTALLED,Normal before step P3.\nH10,PO line guard,present after P5,absent,NOT INSTALLED,Normal before step P5.\n',
-  installedOk: H_HEAD + 'H01,R1-R5 stock functions (drafts/10),"6, fingerprint 3df2bf7a07b451f12f9359ceca1c85df","6 present, fingerprint 3df2bf7a07b451f12f9359ceca1c85df",PASS,Nothing to do.\nH03,Switch stock_fn_receive_po (drafts/21),OFF,OFF,PASS,Nothing to do.\n',
+  installedOk: H_HEAD + 'H01,R1-R5 stock functions (drafts/10),"6, fingerprint 3caf5c28beefd0d8dff1dfed078b6754","6 present, fingerprint 3caf5c28beefd0d8dff1dfed078b6754",PASS,Nothing to do.\nH03,Switch stock_fn_receive_po (drafts/21),OFF,OFF,PASS,Nothing to do.\n',
   missingFunction: H_HEAD + 'H01,R1-R5 stock functions (drafts/10),6,4 present,FAIL,STOP: send this CSV.\n',
-  wrongFingerprint: H_HEAD + 'H01,R1-R5 stock functions (drafts/10),fingerprint 3df2bf7a07b451f12f9359ceca1c85df,fingerprint 0000aaaa,FAIL,STOP: not the reviewed version. Turn every stock switch OFF.\n',
+  wrongFingerprint: H_HEAD + 'H01,R1-R5 stock functions (drafts/10),fingerprint 3caf5c28beefd0d8dff1dfed078b6754,fingerprint 0000aaaa,FAIL,STOP: not the reviewed version. Turn every stock switch OFF.\n',
   switchWithoutDependency: H_HEAD + 'H01,R1-R5 stock functions (drafts/10),6,0 present,NOT INSTALLED,Normal before step P2.\nH05,Switch stock_fn_recall (drafts/21),OFF,ON,FAIL,STOP: this switch is ON but its function is missing. Turn it OFF now.\n',
   warning: H_HEAD + 'H11,Integrity rules (drafts/23),4 or 0,2,WARN,Send this CSV.\n',
   unknown: H_HEAD + 'H08,Request keys,columns before switch,?,UNKNOWN,Run again.\n',

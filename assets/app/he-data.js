@@ -152,12 +152,13 @@ window.HE.modules.define('he-data', { api: 1, needs: ['INVENTORY_BUCKET_LABELS',
           const { error: insErr } = await supabase.from('inventory').insert({ product_id: productId, ...patch });
           if (!insErr) return { before, after };
           if (String(insErr.code) === '23505') continue; // created by someone else a moment ago: read it and retry
+          insErr.stockAttempt = { before, after }; // EXT17: lets a lost reply be checked afterwards
           throw insErr;
         }
         let q = supabase.from('inventory').update(patch).eq('product_id', productId);
         for (const b of buckets) q = (inv[b] === null || inv[b] === undefined) ? q.is(b, null) : q.eq(b, inv[b]);
         const { data: changed, error: updErr } = await q.select('product_id');
-        if (updErr) throw updErr;
+        if (updErr) { updErr.stockAttempt = { before, after }; throw updErr; } // EXT17: see above
         if (Array.isArray(changed) && changed.length === 1) return { before, after };
         // No row changed. Either someone changed the numbers (retry), or the
         // database's rules refused this user (row-level security answers with

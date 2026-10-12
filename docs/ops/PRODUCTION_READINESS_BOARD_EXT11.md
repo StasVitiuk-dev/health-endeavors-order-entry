@@ -50,7 +50,7 @@ Statuses: NOT STARTED · PREPARED · TESTED LOCALLY · READY FOR OWNER DEPLOYMEN
 | GitHub least privilege (X6-17) | NOT STARTED | session acts as admin (never used) | reconnect as `stasvitiuk-reos` (card 8) | re-run the start-of-session access check | reconnect as before | NO for merge, YES for production readiness |
 | Merge EXT1–11 code (P0) | READY FOR OWNER DEPLOYMENT | full suite on the frozen EXT11 commit; merge-before-SQL test profile (§4) | review draft PR #27, merge | post-merge checklist with the owner's screenshots | GitHub "Revert" | YES |
 | Read-only session (C, D, E, F, G, H) | PREPARED, TESTED LOCALLY | each file read-only (static test), each tested on the local database | run the session (card 2) | interpret, file evidence without customer data, draft permission fixes | — (read-only) | YES |
-| R1–R5 install (P2) | READY FOR OWNER DEPLOYMENT | install package 61/61 locally; fingerprint `3df2bf7a07b451f12f9359ceca1c85df` | run `drafts/10` per `R1-R5-INSTALL-RUNBOOK.md` | read V8 and Query H, confirm System status shows "installed" | `drafts/11` | YES for stock safety |
+| R1–R5 install (P2) | READY FOR OWNER DEPLOYMENT | install package 61/61 locally; fingerprint `3caf5c28beefd0d8dff1dfed078b6754` | run `drafts/10` per `R1-R5-INSTALL-RUNBOOK.md` | read V8 and Query H, confirm System status shows "installed" | `drafts/11` | YES for stock safety |
 | Stock switches (P3, P4) | READY FOR OWNER DEPLOYMENT | stock switches 23/23 locally; page refuses before install | run `drafts/21`; then one switch per sitting | check the canary action with the owner | switch OFF (instant); `drafts/22` | YES for stock safety |
 | PO line guard (P5) | READY FOR OWNER DEPLOYMENT | PO forced orderings: 0 guarded failures locally | run `drafts/17` | — | `drafts/18` | NO |
 | Integrity rules (P6) | READY FOR OWNER DEPLOYMENT | 17/17 locally; refuses if existing rows break a rule | run `drafts/23` after V6 + V7 = 0 | — | `drafts/24` | NO |
@@ -104,7 +104,7 @@ This is what step 1.1 relies on. Tested in `tests/specs/merge-without-sql-ext11.
 |---|---|---|---|---|---|---|---|---|
 | | | | | | | | | |
 
-Critical install files (fingerprints so the pasted file is exactly the reviewed one): R1–R5 `drafts/10` → installed-function fingerprint `3df2bf7a07b451f12f9359ceca1c85df` (V8). Read-only files: SHA-256 prefixes in `PRODUCTION_READONLY_VERIFICATION_EXT10.md`.
+Critical install files (fingerprints so the pasted file is exactly the reviewed one): R1–R5 `drafts/10` → installed-function fingerprint `3caf5c28beefd0d8dff1dfed078b6754` (V8). Read-only files: SHA-256 prefixes in `PRODUCTION_READONLY_VERIFICATION_EXT10.md`.
 
 ## 6. Which evidence moves which row (EXT12)
 
@@ -116,7 +116,7 @@ A row's `done` changes only from evidence recorded by `npm run evidence:intake` 
 | G4 backups | `BACKUP` PASS (and again on the day of each database step) |
 | G5 read-only facts | `QUERY_C`, `QUERY_D`, `QUERY_E`, `QUERY_F`, `QUERY_G`, `QUERY_H` all received from production (any verdict: the row is about having the facts) |
 | G6 GitHub | `GITHUB_ACCESS` PASS |
-| G7 R1–R5 | checkpoint-log line with postcheck PASS + V8 fingerprint `3df2bf7a07b451f12f9359ceca1c85df` + `QUERY_H` PASS that day |
+| G7 R1–R5 | checkpoint-log line with postcheck PASS + V8 fingerprint `3caf5c28beefd0d8dff1dfed078b6754` + `QUERY_H` PASS that day |
 | G8 / G9 | checkpoint-log lines for P7 / P6, P9, P9b with postcheck PASS + `QUERY_H` PASS |
 | G10 RLS | `QUERY_G` with no FAIL (after any fixes) |
 | G11 audit | `QUERY_C` §10 lists every table in `AUDIT_REQUIRED` with a trigger |

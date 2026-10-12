@@ -76,7 +76,7 @@ Each card: **before** (must be true) · **do** · **check** · **if it differs**
 
 **Card 1 — Read-only session (P1).** Before: none (read-only). Do: Query C, D, E, F, G, H (card 2 of `OWNER_CHECKS_EXT11.md`). Check: send the CSVs; Claude runs `evidence:interpret` on each. If it differs: nothing to undo (read-only). Record: date, verdicts.
 
-**Card R1–R5 install (P2) then switch rows (P3)** — two sittings. Before: backup green today; Query C shows no other stock writer. Do: `R1-R5-INSTALL-RUNBOOK.md` steps 1–6; next sitting `drafts/21`. Check: V8 fingerprint `3df2bf7a07b451f12f9359ceca1c85df`; grants 6 rows, anon false; V9 five rows false; Query H PASS. If it differs: `drafts/11` (P2) / `drafts/22` (P3). Record each.
+**Card R1–R5 install (P2) then switch rows (P3)** — two sittings. Before: backup green today; Query C shows no other stock writer. Do: `R1-R5-INSTALL-RUNBOOK.md` steps 1–6; next sitting `drafts/21`. Check: V8 fingerprint `3caf5c28beefd0d8dff1dfed078b6754` (EXT17 version; was `3df2bf7a…` before the INT-4 fix); grants 6 rows, anon false; V9 five rows false; Query H PASS. If it differs: `drafts/11` (P2) / `drafts/22` (P3). Record each.
 
 **Card R1 receive / R4 adjust / R2 recall / R3 return / R5 delete (P4)** — one switch per sitting, in this order. Before: previous switch VERIFIED; Query H PASS today. Do: Feature Switches → that switch → password. Check: one small real action (the canary) and the numbers in Inventory / Expenses / the PO; after one working day Query H PASS and Query E 0 mismatches → VERIFIED. If it differs: **switch off** (instant); correct the business effect by hand with a note. R3: whole line is restocked unless the partial-returns decision says otherwise.
 

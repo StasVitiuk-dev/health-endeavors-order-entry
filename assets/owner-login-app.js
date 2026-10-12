@@ -5262,6 +5262,52 @@
       }
     }
 
+    // EXT17: one explicit state per product + bucket for manual adjustments
+    // (he-ops, repeatable: a confirmed adjustment may be followed by another).
+    // The rule it adds: after a lost reply (RESULT_UNKNOWN) the same adjustment
+    // is never sent again until a read-back of the stock says whether the first
+    // one was saved. Before EXT17 the form stayed filled and Save was enabled,
+    // so a second press could add the stock twice (the page refreshes its
+    // numbers after an error, so even the R4 "expected value" check would accept
+    // the repeat).
+    const adjustOps = createOpTracker('stock adjustment', { repeatable: true });
+    const adjustPending = new Map(); // key -> { productId, bucket, before, change }
+    const adjustKey = (productId, bucket) => productId + '|' + bucket;
+
+    // Read-back after a lost reply: compare the stock now with the number just
+    // before the lost save. Exactly unchanged = not saved; exactly before +
+    // change = saved; anything else = someone else changed it too, so a person
+    // must look (the dashboard never guesses).
+    async function checkUnknownAdjustment(key, amountInput) {
+      const p = adjustPending.get(key);
+      if (!p || !adjustOps.startReadback(key)) return;
+      const label = (p.change > 0 ? '+' : '') + p.change;
+      let now;
+      try {
+        const { data, error } = await supabase.from('inventory').select(p.bucket).eq('product_id', p.productId).maybeSingle();
+        if (error) throw error;
+        now = data && data[p.bucket] != null ? Number(data[p.bucket]) : null;
+      } catch (err) {
+        adjustOps.stillUnknown(key, 'read failed');
+        showDashError('The dashboard still cannot tell whether the earlier adjustment (' + label + ') was saved: the stock could not be read. Nothing was sent. Try again when the connection is back.');
+        return;
+      }
+      if (p.before != null && now === p.before) {
+        adjustOps.resolved(key, 'not saved'); adjustOps.reset(key, 'safe to save'); adjustPending.delete(key);
+        showDashError('Checked: the earlier adjustment (' + label + ') was NOT saved — the stock is still ' + now + '. Nothing was sent now; press Save again to save it.');
+      } else if (p.before != null && now === p.before + p.change) {
+        adjustOps.resolved(key, 'saved'); adjustOps.reset(key, 'confirmed by read-back'); adjustPending.delete(key);
+        if (amountInput) amountInput.value = '';
+        showDashError('Checked: the earlier adjustment (' + label + ') WAS saved — the stock is now ' + now + '. Nothing more was sent. '
+          + (p.via === 'function' ? 'Its line is in the Adjustment history below.' : 'Its line in the Adjustment history was NOT written (the reply was lost before that step): add it by hand if needed.'));
+      } else {
+        adjustOps.stillUnknown(key, 'changed elsewhere');
+        showDashError('The dashboard cannot tell whether the earlier adjustment (' + label + ') was saved: the stock is now ' + (now == null ? 'unknown' : now) + (p.before != null ? ', it was ' + p.before + ' before,' : '') + ' and it changed in another way too. Nothing was sent. Check the Adjustment history below, then reload the page before saving again.');
+      }
+      loadInventory();
+      loadInventoryAdjustments();
+    }
+
     document.getElementById('adjustInventoryForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const productSelect = document.getElementById('invProduct');
@@ -5277,6 +5323,10 @@
 
       if (!productId) { showDashError('Pick a product to adjust.'); return; }
       if (!bucket) { showDashError('Pick which bucket this adjustment applies to.'); return; }
+      const key = adjustKey(productId, bucket);
+      // A lost reply is checked before anything else is sent (EXT17).
+      if (adjustOps.isUnknown(key)) { await checkUnknownAdjustment(key, amountInput); return; }
+      if (adjustOps.isInFlight(key)) { showDashError('An adjustment for this product and bucket is still being saved. Wait for it to finish.'); return; }
       if (!changeAmount) { showDashError('Enter a non-zero amount (positive to add, negative to remove).'); return; }
       if (!canChangeStock()) { showDashError('Only the Owner or an Administrator can change stock. Nothing was changed.'); return; }
 
@@ -5285,21 +5335,30 @@
       submitBtn.disabled = true;
       // EXT9: R4 (adjust_inventory) when its switch is on: the stock and its
       // history in one transaction. It sends the number this page shows, so a
-      // change saved elsewhere meanwhile (or a repeat after a lost reply) is
-      // refused instead of applied twice.
+      // change saved elsewhere meanwhile is refused instead of applied twice.
       if (await stockFunctionOn('adjust')) {
         const shownRow = (SEARCH_INDEX.inventory || []).find(p => p.id === productId);
         const shownInv = shownRow ? (Array.isArray(shownRow.inventory) ? shownRow.inventory[0] : shownRow.inventory) : null;
         const shown = shownInv && shownInv[bucket] != null && Number.isInteger(Number(shownInv[bucket])) ? Number(shownInv[bucket]) : null;
+        if (!adjustOps.begin(key)) { submitBtn.disabled = false; showDashError('An adjustment for this product and bucket is still being saved. Wait for it to finish.'); return; }
         try {
           await callStockFunction('adjust_inventory', { p_product_id: productId, p_bucket: bucket, p_change: changeAmount, p_reason: reasonInput.value.trim() || null, p_expected: shown });
+          adjustOps.confirmed(key, 'function');
           bucketSelect.value = ''; amountInput.value = ''; reasonInput.value = '';
           toastOk('Stock adjusted.');
         } catch (err) {
+          if (err && err.kind === 'unknown') {
+            adjustOps.unknown(key, 'reply lost (function)');
+            adjustPending.set(key, { productId, bucket, before: shown, change: changeAmount, via: 'function' });
+          } else if (err && err.hint === 'stale_value') { adjustOps.conflict(key, 'stale'); adjustOps.reset(key, 'shown'); }
+          else if (/JWT|expired|sign in again/i.test(String(err && err.message))) { adjustOps.sessionExpired(key, 'session'); adjustOps.reset(key, 'shown'); }
+          else if (/permission|row-level|not permitted/i.test(String(err && err.message))) { adjustOps.permissionDenied(key, 'permission'); adjustOps.reset(key, 'shown'); }
+          else { adjustOps.failedBeforeEffect(key, err && err.hint === 'below_zero' ? 'below zero' : 'refused'); adjustOps.reset(key, 'shown'); }
           showDashError(err.hint === 'stale_value'
             ? 'This stock changed since the page loaded, so nothing was changed. The numbers have been refreshed: check them and save again if still needed.'
             : err.hint === 'below_zero' ? err.message.replace(/^Nothing was changed: /, '') + ' Nothing was changed.'
-            : 'Could not save that adjustment. ' + stockFunctionError(err, 'the adjustment', false));
+            : 'Could not save that adjustment. ' + stockFunctionError(err, 'the adjustment', false)
+              + (adjustOps.isUnknown(key) ? ' Pressing Save again first checks whether it was saved; it never sends it twice.' : ''));
         }
         loadInventory();
         loadInventoryAdjustments();
@@ -5307,14 +5366,32 @@
         submitBtn.textContent = originalBtnText;
         return;
       }
+      if (!adjustOps.begin(key)) { submitBtn.disabled = false; showDashError('An adjustment for this product and bucket is still being saved. Wait for it to finish.'); return; }
+      let stockDone = false;
       try {
         // Compare-and-set: never overwrites a change someone else saved in
         // between, and refuses to go below zero using fresh numbers.
         const uid = await currentUserId();
         try {
           await changeStock(productId, { [bucket]: changeAmount }, uid);
+          stockDone = true;
         } catch (stockErr) {
-          if (stockErr && stockErr.belowZero) { showDashError(stockErr.message); return; }
+          if (stockErr && stockErr.belowZero) { adjustOps.failedBeforeEffect(key, 'below zero'); adjustOps.reset(key, 'shown'); showDashError(stockErr.message); return; }
+          // A dropped connection before any write was sent (the stock read)
+          // changed nothing; only a lost reply to the write itself is unknown.
+          if (isNetworkError(stockErr) && !stockErr.stockAttempt) {
+            adjustOps.failedBeforeEffect(key, 'read failed'); adjustOps.reset(key, 'shown');
+            showDashError('The connection dropped before anything was saved, so nothing was changed. You can press Save again.');
+            return;
+          }
+          if (isNetworkError(stockErr)) {
+            adjustOps.unknown(key, 'stock reply lost');
+            adjustPending.set(key, { productId, bucket, before: stockErr.stockAttempt.before[bucket], change: changeAmount, via: 'table' });
+            showDashError('The connection dropped while saving, so this adjustment may or may not have been saved. Pressing Save again first checks the stock and tells you which; it never sends the adjustment twice.');
+            loadInventory();
+            loadInventoryAdjustments();
+            return;
+          }
           throw stockErr;
         }
 
@@ -5323,15 +5400,32 @@
           .insert({ product_id: productId, bucket, change_amount: changeAmount, reason: reasonInput.value.trim() || null, adjusted_by: uid });
         if (logErr) throw logErr;
 
+        adjustOps.confirmed(key, 'saved');
         bucketSelect.value = '';
         amountInput.value = '';
         reasonInput.value = '';
         loadInventory();
         loadInventoryAdjustments();
       } catch (err) {
-        showDashError(isNetworkError(err)
-          ? 'The connection dropped while saving, so this adjustment may or may not have been saved. Check the stock and the Adjustment history below before saving it again.'
-          : 'Could not save that adjustment: ' + (err && err.message ? err.message : err));
+        if (stockDone) {
+          // EXT17: the stock WAS changed; only its history entry failed. This used
+          // to read "Could not save that adjustment", which invited a second save
+          // that would have changed the stock twice.
+          adjustOps.confirmed(key, 'stock saved, history not');
+          amountInput.value = '';
+          showDashError('The stock WAS changed (' + (changeAmount > 0 ? '+' : '') + changeAmount + '), but its line in the Adjustment history could not be saved'
+            + (isNetworkError(err) ? ' (or its reply was lost)' : '') + '. Do not save it again. Add a note to the history by hand if needed.');
+          loadInventory();
+          loadInventoryAdjustments();
+        } else {
+          if (adjustOps.state(key) === 'SENDING') {
+            if (/JWT|expired|sign in again/i.test(String(err && err.message))) adjustOps.sessionExpired(key, 'session');
+            else if (/permission|row-level|not permitted/i.test(String(err && err.message))) adjustOps.permissionDenied(key, 'permission');
+            else adjustOps.failedBeforeEffect(key, 'refused');
+            adjustOps.reset(key, 'shown');
+          }
+          showDashError('Could not save that adjustment: ' + (err && err.message ? err.message : err));
+        }
       } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = originalBtnText;

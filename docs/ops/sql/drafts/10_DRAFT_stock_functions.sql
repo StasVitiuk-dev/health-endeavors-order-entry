@@ -8,7 +8,7 @@
 -- @risk:        LOW
 -- @precheck:    built-in preflight stops if any table, column, function or index is missing; Query C shows no other stock writer; backup look green today
 -- @effect:      6 stock functions (R1-R5 + helper), security invoker, EXECUTE to authenticated only
--- @postcheck:   V8 fingerprint 3df2bf7a07b451f12f9359ceca1c85df; grants: 6 rows, anon false; Query H H01-H02 PASS
+-- @postcheck:   V8 fingerprint 3caf5c28beefd0d8dff1dfed078b6754; grants: 6 rows, anon false; Query H H01-H02 PASS
 -- @rollback:    drafts/11
 -- @@ end metadata @@
 -- R1–R5 all-or-nothing stock functions for Health Endeavors.
@@ -299,7 +299,7 @@ begin
   update purchase_order_items i
      set landed_unit_cost = round(((i.quantity * i.unit_cost)
            + case when v_items_value > 0 then (i.quantity * i.unit_cost) / v_items_value * v_extras
-                  else v_extras / v_line_count end) / i.quantity, 4)
+                  else v_extras / nullif(v_line_count, 0) end) / i.quantity, 4)  -- EXT17: an order with no lines no longer fails with "division by zero"
    where i.purchase_order_id = p_po_id and i.quantity > 0;
 
   for v_line in
@@ -553,6 +553,18 @@ begin
   perform 1 from products where id = p_product_id for update;
   if not found then
     return jsonb_build_object('deleted', false, 'reason', 'not_found');
+  end if;
+  -- EXT17 (INT-4): check again now that the product is locked. A delivery line
+  -- saved between the first check and the lock was invisible to it; without
+  -- this second look the delete's foreign-key check would wait for a receive
+  -- that holds that line while waiting for this product (a deadlock, found by
+  -- stress scenario S29; reproduced by local-test/s29_lock_cycle_repro.sh).
+  -- Nothing new can reference the product from here on: that needs the lock.
+  if exists (select 1 from purchase_order_items where product_id = p_product_id)
+     or exists (select 1 from inventory_lots where product_id = p_product_id)
+     or exists (select 1 from inventory_adjustments where product_id = p_product_id)
+     or exists (select 1 from recalls where product_id = p_product_id) then
+    return jsonb_build_object('deleted', false, 'reason', 'in_use');
   end if;
   select * into v_inv from inventory where product_id = p_product_id for update;
   -- Any non-zero bucket counts as stock ("recalled" has no >= 0 rule, so a

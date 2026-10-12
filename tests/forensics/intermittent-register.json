@@ -75,8 +75,9 @@
    "classification": "PRODUCT",
    "cause": "Lock-order cycle in the DRAFT function delete_unused_product (drafts/10, not installed anywhere): its 'in use?' checks run before it locks the product, so a delivery line committed in that instant is missed. The receive then holds the line and waits for the product; the delete holds the product and its foreign-key check waits for the line. PostgreSQL cancels one call and rolls it back: no data damage (the S29 consistency check passed). Only reachable when a line is added, the product deleted and the order received at the same moment.",
    "reproduced": "deterministically: docs/ops/sql/local-test/s29_lock_cycle_repro.sh prints DEADLOCK every run (2 of 2); server log: receive waits for the product (key share), delete waits for the receive's transaction. Random S29 alone: 0 in 40 quiet rounds (timing-dependent).",
-   "status": "EXPLAINED",
-   "fix": "not applied in EXT16 (changes the reviewed R1-R5 fingerprint used in ~25 files, including read-only Query H). Proposed for EXT17: repeat the in-use checks right after locking the product. Prototype on a throwaway database: repro 3 of 3 without deadlock (delete answers in_use, receive succeeds). Until then S29 can fail rarely on GitHub."
+   "status": "FIXED",
+   "fix": "EXT17: drafts/10 delete_unused_product repeats its in-use checks right after locking the product (nothing new can reference a locked product, and a line saved just before is visible to the second check). New reviewed fingerprint 3caf5c28beefd0d8dff1dfed078b6754 (was 3df2bf7a07b451f12f9359ceca1c85df), updated in the runbook, Query H, MANIFEST, deploy simulator and fixtures.",
+   "evidenceAfterFix": "forced interleaving (s29_lock_cycle_repro.sh): fixed draft 5/5 no deadlock with both calls verified complete, old draft 2/2 DEADLOCK; the repro is now a DB-suite step that must pass; full local DB suite: stress 5 runs pass. The repro used to print 'no deadlock' when it could not connect at all; it now reports INCONCLUSIVE (exit 2) unless both calls returned results. Remote CI: not run (GitHub Actions quota unavailable)."
   },
   {
    "id": "INT-5",
