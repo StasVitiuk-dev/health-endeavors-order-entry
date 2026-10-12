@@ -17,7 +17,8 @@
     "ci:local": "bash tests/tools/ci-local.sh",
     "secrets:scan": "node tests/tools/secret-scan.js",
     "db:suite": "bash tests/tools/run-db-suite.sh",
-    "staging:build": "node tests/tools/staging/build-staging.js staging-build --offline --zip"
+    "staging:build": "node tests/tools/staging/build-staging.js staging-build --offline --zip",
+    "status:check": "node tests/tools/status-validate.js"
   },
   "devDependencies": {
     "@playwright/test": "1.56.1",

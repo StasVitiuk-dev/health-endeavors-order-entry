@@ -53,10 +53,12 @@ jobs:
         run: node tests/tools/secret-scan.js
       - name: SQL package lint
         run: node tests/tools/sql-lint.js
+      - name: Status manifest is consistent (no production claim without production evidence)
+        run: node tests/tools/status-validate.js
       - name: Documentation check
         run: node tests/tools/doc-check.js --current
       - name: Node-only specs (tools, SQL static, docs, CI guard)
-        run: npx playwright test --config tests/playwright.config.js --project=desktop --reporter=list,github tests/specs/ci-guard-ext14.spec.js tests/specs/sql-package-ext14.spec.js tests/specs/sql-drafts-static.spec.js tests/specs/sql-readonly.spec.js tests/specs/docs-integrity-ext13.spec.js tests/specs/evidence-ext12.spec.js tests/specs/deploy-sim-ext12.spec.js tests/specs/incidents-ext12.spec.js tests/specs/query-interpreter-ext10.spec.js tests/specs/helpers-unit.spec.js
+        run: npx playwright test --config tests/playwright.config.js --project=desktop --reporter=list,github tests/specs/ci-guard-ext14.spec.js tests/specs/sql-package-ext14.spec.js tests/specs/sql-drafts-static.spec.js tests/specs/sql-readonly.spec.js tests/specs/docs-integrity-ext13.spec.js tests/specs/evidence-ext12.spec.js tests/specs/deploy-sim-ext12.spec.js tests/specs/incidents-ext12.spec.js tests/specs/query-interpreter-ext10.spec.js tests/specs/helpers-unit.spec.js tests/specs/status-manifest-ext14.spec.js tests/specs/screenshots-policy-ext14.spec.js tests/specs/safety.spec.js
 
   # The browser suite, split in three (Playwright shards; every test runs once).
   browser:
