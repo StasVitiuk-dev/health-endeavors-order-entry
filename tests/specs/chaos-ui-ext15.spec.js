@@ -75,18 +75,23 @@ for (const seed of [1501, 1502, 1503]) {
 // went offline on a narrow screen could not open the menu (the click never landed).
 test('offline: the offline bar never covers the menu button, Refresh or Sign out', async ({ page, context }, ti) => {
   await login(page);
-  if (ti.project.name === 'desktop') await page.setViewportSize({ width: 760, height: 800 });
+  if (ti.project.name === 'desktop') {
+    await page.setViewportSize({ width: 760, height: 800 });
+    // EXT16 root cause of the OPEN INTERMITTENT (GitHub shard 2, 079f378): crossing the 820 px
+    // breakpoint slides the sidebar away (0.22 s transform); a check inside that slide sees the
+    // sidebar over the menu button. Wait for running animations, then check strictly.
+    await page.evaluate(() => Promise.all(document.getAnimations().map(a => a.finished.catch(() => {}))));
+  }
   await context.setOffline(true);
   await expect(page.locator('#offlineBar')).toBeVisible();
   for (const sel of ['#menuToggleBtn', '#refreshBtn', '#signout']) {
     const el = page.locator(sel);
     if (!(await el.isVisible())) continue;
-    // re-checked for up to 5 s: a resize or sidebar animation may still be moving things;
-    // a permanent cover (the old top bar) still fails, and the message names what covers it
-    await expect.poll(() => el.evaluate(e => {
+    const hit = await el.evaluate(e => {
       const r = e.getBoundingClientRect(); const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
       return top === e || e.contains(top) ? 'ok' : 'covered by ' + (top ? top.tagName + '#' + top.id + '.' + String(top.className).slice(0, 60) : 'nothing');
-    }), { message: sel + ' must receive the click while offline', timeout: 5000 }).toBe('ok');
+    });
+    expect(hit, sel + ' must receive the click while offline').toBe('ok');
   }
   await page.locator('#menuToggleBtn').click({ timeout: 3000 }).catch(() => {}); // narrow layouts only
   await gotoPage(page, 'tasksPanel');

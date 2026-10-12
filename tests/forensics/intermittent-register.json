@@ -1,0 +1,28 @@
+{
+ "about": "Intermittent test failures: first seen, evidence, classification (PRODUCT / HARNESS / ENVIRONMENT / UNEXPLAINED) and status (OPEN INTERMITTENT / EXPLAINED / FIXED). A failure is never marked FIXED without a reproduced cause. Never delete an entry.",
+ "entries": [
+  {
+   "id": "INT-1",
+   "test": "tests/specs/stress (DB suite) S21 200 operators",
+   "firstSeen": { "where": "GitHub CI database job", "sha": "2d90113", "date": "2026-10-12" },
+   "lastSeen": { "where": "GitHub CI database job", "sha": "2e8da50", "date": "2026-10-12" },
+   "classification": "HARNESS",
+   "cause": "200 simultaneous psql callers against max_connections=100; refused callers ('too many clients already') were ignored, so their +1 never ran (1190 of 1200). The database lost nothing.",
+   "reproduced": "locally with max_connections=30: old harness 4 failures, new harness 98/98 (25 refusals retried)",
+   "status": "FIXED",
+   "fix": "3980d99: retry only connection refusals (before the session starts, so nothing can apply twice); refusal count reported",
+   "evidenceAfterFix": "GitHub database job green on 3980d99, f2b2d33 (x2)"
+  },
+  {
+   "id": "INT-2",
+   "test": "tests/specs/chaos-ui-ext15.spec.js › offline: the offline bar never covers the menu button, Refresh or Sign out (desktop)",
+   "firstSeen": { "where": "GitHub CI browser shard 2", "sha": "079f378", "date": "2026-10-12" },
+   "lastSeen": { "where": "GitHub CI browser shard 2", "sha": "079f378", "date": "2026-10-12" },
+   "classification": "HARNESS",
+   "cause": "The desktop test resizes 1100 -> 760 px, crossing the 820 px breakpoint; the sidebar then slides away with a 0.22 s transform. A check inside that slide finds the sidebar (its search box) over the menu button. The offline bar is not involved. Not a product bug: the drawer is meant to slide away when the window narrows.",
+   "reproduced": "tests/forensics/offline-bar.probe.spec.js: first-instant check without waiting for animations 64/150 covered (quiet) and 3/50 (CPU load, 4 workers); after waiting for running animations 0/50 (quiet) and 0/50 (CPU load, 4 workers)",
+   "status": "FIXED",
+   "fix": "EXT16: the test waits for running animations after the resize, then checks strictly at the first instant (the 5 s re-check added in EXT15 is removed)"
+  }
+ ]
+}
