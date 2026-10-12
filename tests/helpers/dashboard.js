@@ -36,13 +36,37 @@ const expect = base.expect;
 
 // Opens the owner dashboard and signs in with the synthetic owner account,
 // going through the real login form.
+// EXT16 prototype (opt-in, HE_FAST_LOGIN=1): the first sign-in in a worker saves the
+// synthetic session; later tests restore it before the page loads, instead of typing the
+// form. Each test still has its own fresh mock database (the session is only the
+// synthetic token). The restore runs once per page (a sessionStorage flag), so a test that
+// signs out and reloads really is signed out afterwards. Default: OFF (every test signs in
+// through the form, as before).
+let SAVED_SESSION = null;
 async function login(page) {
+  if (process.env.HE_FAST_LOGIN === '1' && SAVED_SESSION) {
+    await page.addInitScript(entries => {
+      try {
+        if (sessionStorage.getItem('__heFastLogin')) return;
+        sessionStorage.setItem('__heFastLogin', '1');
+        for (const [k, v] of entries) localStorage.setItem(k, v);
+      } catch (e) { /* storage blocked: the page then shows the sign-in form */ }
+    }, SAVED_SESSION);
+    await page.goto('/owner-login.html');
+    await expect(page.locator('#dash')).toBeVisible();
+    await expect(page.locator('#whoAmI')).toContainText('Synthetic Owner');
+    return;
+  }
   await page.goto('/owner-login.html');
   await page.fill('#email', OWNER_USER.email);
   await page.fill('#password', OWNER_USER.password);
   await page.click('#loginBtn');
   await expect(page.locator('#dash')).toBeVisible();
   await expect(page.locator('#whoAmI')).toContainText('Synthetic Owner');
+  if (process.env.HE_FAST_LOGIN === '1' && !SAVED_SESSION) {
+    SAVED_SESSION = await page.evaluate(() => Object.keys(localStorage).filter(k => /^sb-.*-auth-token$/.test(k)).map(k => [k, localStorage.getItem(k)]));
+    if (!SAVED_SESSION.length) SAVED_SESSION = null; // nothing to reuse: keep using the form
+  }
 }
 
 // Unfolds every folded sidebar section, so every page link is present.
