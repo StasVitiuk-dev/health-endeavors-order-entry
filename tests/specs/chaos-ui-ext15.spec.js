@@ -81,8 +81,12 @@ test('offline: the offline bar never covers the menu button, Refresh or Sign out
   for (const sel of ['#menuToggleBtn', '#refreshBtn', '#signout']) {
     const el = page.locator(sel);
     if (!(await el.isVisible())) continue;
-    const hit = await el.evaluate(e => { const r = e.getBoundingClientRect(); const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return top === e || e.contains(top); });
-    expect(hit, sel + ' must receive the click while offline').toBe(true);
+    // re-checked for up to 5 s: a resize or sidebar animation may still be moving things;
+    // a permanent cover (the old top bar) still fails, and the message names what covers it
+    await expect.poll(() => el.evaluate(e => {
+      const r = e.getBoundingClientRect(); const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      return top === e || e.contains(top) ? 'ok' : 'covered by ' + (top ? top.tagName + '#' + top.id + '.' + String(top.className).slice(0, 60) : 'nothing');
+    }), { message: sel + ' must receive the click while offline', timeout: 5000 }).toBe('ok');
   }
   await page.locator('#menuToggleBtn').click({ timeout: 3000 }).catch(() => {}); // narrow layouts only
   await gotoPage(page, 'tasksPanel');
