@@ -1,6 +1,6 @@
 # Release review (EXT17): owner review package
 
-**Branch:** `claude/platform-ext17-deep-reliability-2026-10-12` (from EXT16 final `bcf4f25`). Page code frozen at FROZEN_SHA. Base `main` `d3db7bc`. **Draft, not merged, not deployed.**
+**Branch:** `claude/platform-ext17-deep-reliability-2026-10-12` (from EXT16 final `bcf4f25`). **Page code frozen at `ed20b97`**: every later commit changes only tests, test tools and documents (verified: 0 lines of `*.html` / `assets/` differ). Base `main` `d3db7bc`. **Draft, not merged, not deployed.**
 
 ## 1. Is it safe to merge? (plain English)
 
@@ -19,13 +19,24 @@ The SQL drafts changed too: three fixes, and a new reviewed fingerprint `f6d9c2c
 | Dashboard | `assets/owner-login-app.js` (adjustment flow), `assets/app/he-ops.js` (repeatable mode), `assets/app/he-data.js` (records an attempted stock change on a lost reply), `assets/app/he-nav.js` (memory-first sidebar state), `owner-login.html` (asset versions) |
 | SQL drafts (not installed) | `docs/ops/sql/drafts/10_DRAFT_stock_functions.sql`, its tests, Query H expected fingerprint, MANIFEST |
 | Tests and tools | 6 new specs, `tests/db/inventory-model.js`, `tests/helpers/chaos.js`, Trusted Types probe, mutation runners (`--check` from EXT16, summary parsing, model detector), DB suite steps |
-| Docs | `docs/ops/*_EXT17.md` (8), runbook, check cards, project record, current state, progress |
+| Docs | `docs/ops/*_EXT17.md` (7), runbook, check cards, project record, current state, progress |
 
 **Not changed:** the CI workflow, any other screen's behaviour, the CSP policies, any production setting.
 
 ## 3. Tests run
 
-TESTS_TABLE
+| Check | Result |
+|---|---|
+| Full suite, desktop + iPhone, `9305b8a` (page code `ed20b97`) | **2,069 passed, 0 failed, 0 flaky**, 345 skipped on purpose (57.1 min) |
+| GitHub CI, `9305b8a` | **all green, 6/6** (static, screenshots, database suite, 3 browser shards) |
+| GitHub CI, `ed20b97` | 5/6; browser shard 1 failed on 3 freshness tests (write-path inventory not regenerated after my code change); fixed in `9305b8a` |
+| Page mutants, full round on `9305b8a` | **196/196 caught** (51 min; working tree unchanged) |
+| Full local database suite, `f90731d` (same SQL as the final head) | **29/29 steps PASS** (631 s), incl. stress, forced S29, inventory model + self-test, SQL mutants 15/15 |
+| 60-minute real-time soak | PASS: 3,775 steps, 715 adjustments, nothing grows, stock exact |
+| Chaos 40 / 250 / 500 / 1,000 steps | all PASS |
+| Static: secret scan, SQL lint, status, module graph, no inline styles, type gate, docs check | OK |
+
+**Evidence caveats:** the 250 / 500 / 1,000-step chaos runs ran on page code `2138643`, before the sidebar storage fix. The 60-minute soak (the same operation mix, plus more) ran on the frozen page code `ed20b97`. The full suite and the mutation round ran on the final head. The 40-step high-risk chaos run is part of the full suite.
 
 ## 4. Rollback (step by step)
 
