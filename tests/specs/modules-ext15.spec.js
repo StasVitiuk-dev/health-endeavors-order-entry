@@ -22,10 +22,13 @@ const CHANGED = ['assetVersions', 'loadAttentionChecks', 'loadSystemStatus', 'lo
   // EXT16: purchase-order receiving reports to the explicit operation state (he-ops)
   'PO_RECEIPT_UNKNOWN', 'renderPoDetails', 'wirePoDetail',
   // EXT17: a lost reply on a stock write records what was attempted (for the adjustment read-back)
-  'changeStock'];
+  'changeStock',
+  // EXT17: sidebar sections and pinned pages live in memory; storage is best-effort and validated
+  'openGroups', 'setGroupOpen', 'getPinnedPages', 'setPinnedPages'];
 const ADDED = ['setReportHistoryView', 'inquiriesList', 'agentControls', 'poReceiveOps',
   // EXT17: manual stock adjustments report to an explicit operation state (he-ops, repeatable)
-  'adjustOps', 'adjustPending', 'adjustKey', 'checkUnknownAdjustment'];
+  'adjustOps', 'adjustPending', 'adjustKey', 'checkUnknownAdjustment',
+  'openGroupsMem', 'pinnedMem'];
 const NEW_MODULES = ['he-ops']; // EXT16: written new, not moved
 const CHANGED_TEXT = ["getAttribute('data-view')", "getElementById('adjustInventoryForm').addEventListener('submit'"]; // the report-view buttons now call setReportHistoryView
 

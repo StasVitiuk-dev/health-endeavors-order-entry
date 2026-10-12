@@ -28,7 +28,7 @@ Why it matters: a smaller file is easier to review, a mistake in one area is les
 | 5 | `he-status` | system status: environment label, page versions, database-step checks, freshness limits, attention seen-state | 75 | he-config: 1, he-data: 3, page constant: 1 | 9 |
 | 6 | `he-time` | dates and calendar: today and yesterday ranges, date keys, calendar colours, event editor helpers, week and month labels | 110 | he-config: 1, helpers / program: 1 | 11 |
 | 7 | `he-format` | display rules: missing values never shown as zero, mixed-currency notes, badges, number fields | 84 | helpers / program: 3 | 11 |
-| 8 | `he-nav` | navigation state: page ids, deep links, last page, sidebar groups open and pinned, back/forward stacks, unsaved-typing guard | 112 | he-config: 1 | 18 |
+| 8 | `he-nav` | navigation state: page ids, deep links, last page, sidebar groups open and pinned, back/forward stacks, unsaved-typing guard | 131 | he-config: 1 | 18 |
 | 9 | `he-tasks` | Tasks page: list, recently done, status changes (guarded: only if still in the expected state) | 120 | he-format: 1, he-config: 4, helpers / program: 5, he-ui: 1, he-data: 1 | 1 |
 | 10 | `he-approvals` | Approval Queue: list and decisions (password re-check before a decision) | 73 | he-format: 1, he-config: 1, helpers / program: 5, he-ui: 1, he-data: 2 | 1 |
 | 11 | `he-incidents` | Incidents: list, and turning a failed quality check into one incident only once | 73 | he-format: 1, he-config: 1, helpers / program: 6, he-ui: 1, he-data: 5 | 2 |

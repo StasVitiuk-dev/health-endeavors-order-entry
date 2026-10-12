@@ -612,6 +612,13 @@ const MUTATIONS = [
   ['a confirmed adjustment blocks the next one on the same product', 'assets/app/he-ops.js',
     "{ CONFIRMED: ['READY', 'SENDING'] }", "{ CONFIRMED: [] }",
     'adjust-ops-ext17 -g "two normal adjustments"'],
+  // EXT17: browser storage that cannot be trusted
+  ['open sidebar sections are read back from storage after every click again', 'assets/app/he-nav.js',
+    "      return openGroupsMem.slice();", "      const r = openGroupsMem.slice(); openGroupsMem = null; return r;",
+    'storage-adversarial-ext17 -g "drawn again"'],
+  ['a stored open-sections value of any shape is trusted again', 'assets/app/he-nav.js',
+    "          openGroupsMem = Array.isArray(v) ? v.filter(x => typeof x === 'string') : [];", "          openGroupsMem = v;",
+    'storage-adversarial-ext17 -g "null|number|object"'],
   // EXT17: session-reuse isolation (test helper): the restore must run once per page
   ['session reuse restores the session again after sign-out', 'tests/helpers/dashboard.js',
     "        if (sessionStorage.getItem('__heFastLogin')) return;\n", "",

@@ -38,26 +38,45 @@ window.HE.modules.define('he-nav', { api: 1, needs: ['SIDEBAR_GROUPS'] }, functi
     // so your most-used pages are always one click away.
     // Which foldable sidebar sections you've opened. Remembered in this browser
     // only; starts folded.
+    // EXT17: the open sections live in memory; browser storage only remembers
+    // them for next time. They used to be read back from storage after every
+    // click, so when storage refused writes (full, or a private window that
+    // blocks it) a folded section could never be opened. And only a list of
+    // section names is accepted from storage: another shape (an older version,
+    // a corrupted write: {}, 5, null) used to break the whole sidebar render.
+    let openGroupsMem = null;
     function openGroups(){
-      try { return JSON.parse(localStorage.getItem('he_open_groups') || '[]'); }
-      catch (e) { return []; }
+      if (!openGroupsMem) {
+        try {
+          const v = JSON.parse(localStorage.getItem('he_open_groups') || '[]');
+          openGroupsMem = Array.isArray(v) ? v.filter(x => typeof x === 'string') : [];
+        } catch (e) { openGroupsMem = []; }
+      }
+      return openGroupsMem.slice();
     }
     function isGroupOpen(label){ return openGroups().includes(label); }
     function setGroupOpen(label, open){
       const set = new Set(openGroups());
       if (open) set.add(label); else set.delete(label);
-      try { localStorage.setItem('he_open_groups', JSON.stringify([...set])); } catch (e) { /* not critical */ }
+      openGroupsMem = [...set];
+      try { localStorage.setItem('he_open_groups', JSON.stringify(openGroupsMem)); } catch (e) { /* not remembered next time; works now */ }
     }
 
+    // EXT17: pinned pages, same rule: memory first, storage best-effort.
+    let pinnedMem = null;
     function getPinnedPages(){
-      try {
-        const raw = localStorage.getItem('he_pinned_pages');
-        const arr = raw ? JSON.parse(raw) : [];
-        return Array.isArray(arr) ? arr.filter(id => allPageIds().includes(id)) : [];
-      } catch (e) { return []; }
+      if (!pinnedMem) {
+        try {
+          const raw = localStorage.getItem('he_pinned_pages');
+          const arr = raw ? JSON.parse(raw) : [];
+          pinnedMem = Array.isArray(arr) ? arr.filter(id => typeof id === 'string') : [];
+        } catch (e) { pinnedMem = []; }
+      }
+      return pinnedMem.filter(id => allPageIds().includes(id));
     }
     function setPinnedPages(arr){
-      try { localStorage.setItem('he_pinned_pages', JSON.stringify(arr)); } catch (e) { /* not critical */ }
+      pinnedMem = arr.slice();
+      try { localStorage.setItem('he_pinned_pages', JSON.stringify(arr)); } catch (e) { /* not remembered next time; works now */ }
     }
 
     // All known page ids, used to make sure a remembered page still actually
