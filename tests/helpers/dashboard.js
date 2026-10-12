@@ -5,6 +5,7 @@
 
 const base = require('@playwright/test');
 const { installMocks, OWNER_USER } = require('./mock-supabase');
+const { checkWrite } = require('./db-constraints');
 
 const test = base.test.extend({
   // auto: installed for every test, even ones that never mention it, so no
@@ -13,6 +14,16 @@ const test = base.test.extend({
     const backend = await installMocks(page);
     await use(backend);
     base.expect(backend.blocked, 'the page tried to reach something outside the mock').toEqual([]);
+    if (!backend.allowUnguardedState) {
+      base.expect(backend.unguardedStateWrites, 'the page changed a workflow state without checking it was still what the page showed (STATE_COLUMNS in mock-supabase.js)').toEqual([]);
+    }
+    if (!backend.expectViolations) {
+      base.expect(backend.constraintViolations, 'the page wrote a value the real database refuses (tests/helpers/db-constraints.js)').toEqual([]);
+      // The mock's tables (including rows a test seeded) must also be a state
+      // the real database could actually hold.
+      const impossible = backend.allowImpossibleData ? [] : Object.entries(backend.tables).flatMap(([t, rows]) => Array.isArray(rows) ? checkWrite(t, rows) : []);
+      base.expect(impossible, 'the test data holds a value the real database refuses').toEqual([]);
+    }
   }, { auto: true }],
   pageErrors: async ({ page }, use) => {
     const errors = [];
@@ -56,8 +67,26 @@ async function gotoPage(page, pageId) {
   await openMenuIfMobile(page);
   if (await page.inputValue('#sidebarSearch')) await page.fill('#sidebarSearch', '');
   await unfoldSidebar(page);
-  await page.locator(`#sidebarGroups .sidebarLink[data-page="${pageId}"]`).first().click();
-  await expect(page.locator(`section#${pageId}`)).toHaveClass(/activePage/);
+  // The sidebar is re-drawn whenever a background load finishes (badge
+  // counts). Under heavy CPU load a click can land just as the link is
+  // replaced and be lost (seen once in 3 repeat runs, EXT5). A person would
+  // click again; so does this, and the page must still really open.
+  // - The first click always happens: on a phone it is also what closes the
+  //   menu, even when the page is already the open one.
+  // - Each try waits the normal 5 s before clicking again (a 10,000-row page
+  //   takes seconds to draw; re-clicking sooner only restarts the drawing).
+  // - A retry re-opens the phone menu first, never clicks a page that has
+  //   opened, and gives up its click after 5 s instead of hanging the test.
+  const section = page.locator(`section#${pageId}`);
+  const link = page.locator(`#sidebarGroups .sidebarLink[data-page="${pageId}"]`).first();
+  await link.click();
+  await expect(async () => {
+    if (!/\bactivePage\b/.test(await section.getAttribute('class') || '')) {
+      await openMenuIfMobile(page);
+      await link.click({ timeout: 5000 });
+    }
+    await expect(section).toHaveClass(/activePage/, { timeout: 5000 });
+  }).toPass({ timeout: 20000 });
 }
 
 async function openTasks(page) {
