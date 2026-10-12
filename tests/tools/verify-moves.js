@@ -16,7 +16,9 @@ const path = require('path');
 const ts = require('typescript');
 const ROOT = path.join(__dirname, '..', '..');
 const args = process.argv.slice(2);
-const rev = args.find((x, i) => !x.startsWith('--') && !['--changed', '--changed-text'].includes(args[i - 1])) || '3a40095';
+const rev = args.find((x, i) => !x.startsWith('--') && !['--changed', '--changed-text', '--new-modules'].includes(args[i - 1])) || '3a40095';
+// --new-modules: modules written new (EXT16 he-ops), not moved: left out of the proof.
+const NEW_MODULES = new Set(args.includes('--new-modules') ? args[args.indexOf('--new-modules') + 1].split(',').map(m => m.replace(/\.js$/, '') + '.js') : []);
 const CHANGED = new Set(args.includes('--changed') ? args[args.indexOf('--changed') + 1].split(',') : []);
 // --changed-text: unnamed top-level statements (event wiring) deliberately edited, matched by a fragment present before and after.
 const CHANGED_TEXT = args.includes('--changed-text') ? args[args.indexOf('--changed-text') + 1].split('||') : [];
@@ -36,7 +38,7 @@ const before = statements(reference, 'old.js', isInitApp);
 const now = statements(fs.readFileSync(path.join(ROOT, 'assets/owner-login-app.js'), 'utf8'), 'app.js', isInitApp)
   .filter(s => !/^const \{[^}]*\} = HE\.modules\.create\(/.test(s));
 const moved = [];
-for (const f of fs.readdirSync(path.join(ROOT, 'assets/app'))) {
+for (const f of fs.readdirSync(path.join(ROOT, 'assets/app')).filter(x => !NEW_MODULES.has(x))) {
   const st = statements(fs.readFileSync(path.join(ROOT, 'assets/app', f), 'utf8'), f, isFactory);
   moved.push(...st.filter(s => !/^const \{[^}]*\} = ctx;$/.test(s) && !/^return \{[^}]*\};$/.test(s)));
 }

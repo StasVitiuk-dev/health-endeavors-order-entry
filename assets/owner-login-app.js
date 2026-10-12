@@ -8,7 +8,7 @@
 
   // EXT15: the modules this program creates (assets/app/<name>.js) and the
   // compatibility number each must have; kept up to date by tests/tools/extract-module.js.
-  const APP_MODULES = { 'he-config': 1, 'he-ui': 1, 'he-data': 1, 'he-audit': 1, 'he-status': 1, 'he-time': 1, 'he-format': 1, 'he-nav': 1, 'he-tasks': 1, 'he-approvals': 1, 'he-incidents': 1, 'he-expenses': 1, 'he-suppliers': 1, 'he-reports': 1, 'he-inquiries': 1, 'he-agents': 1 };
+  const APP_MODULES = { 'he-config': 1, 'he-ui': 1, 'he-data': 1, 'he-audit': 1, 'he-status': 1, 'he-time': 1, 'he-format': 1, 'he-nav': 1, 'he-tasks': 1, 'he-approvals': 1, 'he-incidents': 1, 'he-expenses': 1, 'he-suppliers': 1, 'he-reports': 1, 'he-inquiries': 1, 'he-agents': 1, 'he-ops': 1 };
   const scriptErrorEl = document.getElementById('scriptError');
   function showBanner(text){
     if (!scriptErrorEl) return;
@@ -103,6 +103,7 @@
     const { setReportHistoryView, renderReportHistoryView, loadReportHistory } = HE.modules.create('he-reports', { esc, fmtDateOnly, fmtMoney, localDateString, missingToNaN, monthGroupLabel, reportCount, rollupReports, showDashError, startOfWeekMonday, supabase, weekGroupLabel });
     const { inquiriesList, loadInquiries, renderInquiries } = HE.modules.create('he-inquiries', { INQ_ANSWERED_CAP, INQ_STATUS_LABELS, esc, fetchAllRows, fetchAllRowsIn, fmtDate, inqStatusBadgeClass, noRowsChanged, showDashError, staleMessage, supabase, updateIfUnchanged });
     const { agentControls, agentTruth, loadAgentControls } = HE.modules.create('he-agents', { AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, currentUserId, esc, fmtDate, maskSensitive, requireReauth, showDashError, staleMessage, supabase, toast, updateIfUnchanged });
+    const { createOpTracker } = HE.modules.create('he-ops', {});
     // @@ end modules
 
     const loginScreen = document.getElementById('loginScreen');
@@ -2144,7 +2145,10 @@
     // an unknown outcome. Their Receive button is replaced by a "status
     // unknown, do not receive again" notice with a read-only "Check this order
     // now" until a fresh read proves what happened (kept until reload, by design).
-    const PO_RECEIPT_UNKNOWN = {};
+    // EXT16: was a plain { poId: true } flag; now the explicit operation state for receiving
+    // (assets/app/he-ops.js): no second send in flight, none after a confirmed receipt, none
+    // after an unknown result unless the database step refuses duplicates.
+    const poReceiveOps = createOpTracker('PO receive');
     let PO_PRODUCTS = [];
     let PO_LOTS = {};
 
@@ -2330,14 +2334,14 @@
         let actions = '<div class="poActions">';
         if (po.status === 'draft')    actions += '<button type="button" class="small poStatusBtn" data-next="ordered">Mark as ordered</button>';
         if (po.status === 'ordered')  actions += '<button type="button" class="small poStatusBtn" data-next="shipped">Mark as shipped</button>';
-        if (['ordered', 'shipped', 'received'].includes(po.status) && PO_RECEIPT_UNKNOWN[po.id]) {
+        if (['ordered', 'shipped', 'received'].includes(po.status) && poReceiveOps.isUnknown(po.id)) {
           actions += '<div class="poReceiptUnknown" role="status"><b>Receipt status unknown — do not press Receive again.</b> The connection dropped while this delivery was being received, so it is not known whether stock and the expense were added. <button type="button" class="small secondary poCheckReceipt">Check this order now</button></div>';
         } else if (po.status === 'ordered' || po.status === 'shipped') actions += '<button type="button" class="small approve poReceiveBtn">Receive delivery</button>';
         if (po.status !== 'received' && po.status !== 'cancelled') actions += '<button type="button" class="small secondary poStatusBtn" data-next="cancelled">Cancel</button>';
         // EXT10b: never claim the stock was added when the order's own lines say otherwise
         // (an interrupted receive leaves the order Received with lines short).
         const shortLines = items.filter(l => l.product_id && Number(l.quantity_received || 0) !== Number(l.quantity || 0)).length;
-        if (po.status === 'received' && !PO_RECEIPT_UNKNOWN[po.id]) actions += shortLines
+        if (po.status === 'received' && !poReceiveOps.isUnknown(po.id)) actions += shortLines
           ? `<span class="sMeta poShort" role="status">Received ${esc(fmtDate(po.received_at))} — but ${shortLines} catalogue line${shortLines === 1 ? ' is' : 's are'} not fully in stock. Do not receive again: add the missing stock with a manual adjustment and check Expenses.</span>`
           : `<span class="sMeta">Received ${esc(fmtDate(po.received_at))} — stock added to Inventory and cost logged to Expenses.</span>`;
         actions += '</div>';
@@ -2497,6 +2501,7 @@
       if (checkReceiptBtn) checkReceiptBtn.addEventListener('click', async () => {
         // Read-only: what the database says now about this order and its lines.
         checkReceiptBtn.disabled = true;
+        const rb = poReceiveOps.startReadback(po.id); // RESULT_UNKNOWN -> READBACK_CHECKING (null if it was not unknown)
         try {
           const { data, error } = await supabase.from('purchase_orders')
             .select('status, received_at, purchase_order_items(product_id, quantity, quantity_received)').eq('id', po.id).maybeSingle();
@@ -2505,19 +2510,21 @@
           const anyReceived = (data.purchase_order_items || []).some(l => Number(l.quantity_received || 0) > 0);
           const notStocked = (data.purchase_order_items || []).filter(l => l.product_id && Number(l.quantity_received || 0) !== Number(l.quantity || 0)).length;
           if (data.status === 'received' && notStocked) {
-            delete PO_RECEIPT_UNKNOWN[po.id];
+            if (rb) poReceiveOps.resolved(po.id, 'received, stock incomplete');
             showDashError('Checked: purchase order ' + po.po_number + ' IS marked received, but ' + notStocked + ' catalogue line' + (notStocked === 1 ? ' was' : 's were') + ' not (fully) added to stock, and the expense may be missing. Do not receive it again: add the missing stock with a manual adjustment (reason: "PO ' + po.po_number + ' receive interrupted") and check Expenses. Home lists it under "Received orders not fully in stock".');
           } else if (data.status === 'received') {
-            delete PO_RECEIPT_UNKNOWN[po.id];
+            if (rb) poReceiveOps.resolved(po.id, 'received');
             toast('Checked: purchase order ' + po.po_number + ' IS marked received (' + fmtDate(data.received_at) + ') and its lines are in stock. Do not receive it again; check Expenses shows the delivery once.');
           } else if (PO_ALLOWED_FROM.received.includes(data.status) && !anyReceived) {
-            delete PO_RECEIPT_UNKNOWN[po.id];
+            if (rb) { poReceiveOps.resolved(po.id, 'not received'); poReceiveOps.reset(po.id, 'safe to receive'); }
             toast('Checked: purchase order ' + po.po_number + ' was NOT received and no stock was added for it. It is safe to receive it now.');
           } else {
+            if (rb) poReceiveOps.stillUnknown(po.id, 'needs a person');
             showDashError('Checked: purchase order ' + po.po_number + ' is "' + (PO_STATUS_LABELS[data.status] || data.status) + '"' + (anyReceived ? ' but some lines show stock received' : '') + '. This needs a person to look: compare Inventory history and Expenses with the order before doing anything else. Do not press Receive.');
           }
           loadPurchaseOrders();
         } catch (err) {
+          if (rb && poReceiveOps.state(po.id) === 'READBACK_CHECKING') poReceiveOps.stillUnknown(po.id, 'read failed');
           showDashError('Still cannot read the order (' + explainDbError(err && err.message ? err.message : String(err)) + '). The receipt status stays unknown; try the check again when the connection is back. Do not press Receive.');
         } finally { checkReceiptBtn.disabled = false; }
       });
@@ -2535,16 +2542,25 @@
         // here: a second, deliberate press (same as Cancel).
         if (!confirmSecondPress(recvBtn, 'Confirm: add stock + log expense?')) return;
         recvBtn.disabled = true;
+        const viaFunction = await stockFunctionOn('receive');
+        if (!poReceiveOps.begin(po.id, { idempotent: viaFunction })) {
+          const st = poReceiveOps.state(po.id);
+          showDashError(st === 'SENDING' ? 'This delivery is already being received; wait for the result. Nothing new was sent.'
+            : st === 'CONFIRMED' ? 'This delivery was already received from this page. Nothing was sent again.'
+            : 'The result of the last attempt is unknown. Use "Check this order now" first; nothing was sent.');
+          return;
+        }
         // EXT9: R1 (receive_purchase_order) when its switch is on: one
         // database transaction locks the order, adds the stock, records the
         // lots, history and expense, or does nothing at all; a second press or
         // a retry gets "already received" and adds nothing.
-        if (await stockFunctionOn('receive')) {
+        if (viaFunction) {
           const lots = [...box.querySelectorAll('.poLineLot[data-line]')]
             .map(i => ({ line_id: i.getAttribute('data-line'), lot_number: i.value.trim() }))
             .filter(l => l.lot_number);
           try {
             const r = await callStockFunction('receive_purchase_order', { p_po_id: po.id, p_lots: lots, p_expense_date: localDateString(new Date()) });
+            poReceiveOps.confirmed(po.id, r.already_received ? 'already received' : 'received');
             if (r.already_received) {
               toast('Purchase order ' + (r.po_number || po.po_number) + ' was already received — nothing was added again.');
             } else {
@@ -2553,6 +2569,13 @@
               if (Number(r.skipped || 0)) toast(`${r.skipped} line${Number(r.skipped) === 1 ? '' : 's'} weren't catalogue products, so no stock was added for them.`);
             }
           } catch (err) {
+            if (poReceiveOps.state(po.id) === 'SENDING') {
+              if (err && err.kind === 'unknown') poReceiveOps.unknown(po.id, 'reply lost (function refuses duplicates)');
+              else if (/JWT|expired|sign in again/i.test(String(err && err.message))) poReceiveOps.sessionExpired(po.id, 'session');
+              else if (/permission|row-level|not permitted/i.test(String(err && err.message))) poReceiveOps.permissionDenied(po.id, 'permission');
+              else poReceiveOps.failedBeforeEffect(po.id, err && err.kind === 'missing' ? 'function missing' : 'refused');
+              if (['SESSION_EXPIRED', 'PERMISSION_DENIED'].includes(poReceiveOps.state(po.id))) poReceiveOps.reset(po.id, 'shown');
+            }
             showDashError('Could not receive purchase order ' + po.po_number + '. ' + stockFunctionError(err, 'the delivery', true));
           }
           loadPurchaseOrders();
@@ -2586,21 +2609,24 @@
           if (now && now.status === 'received' && now.received_at && Date.parse(now.received_at) === Date.parse(claimStamp)) {
             claimed = true; // our claim was saved; only the reply was lost
           } else if (now && PO_ALLOWED_FROM.received.includes(now.status)) {
+            poReceiveOps.failedBeforeEffect(po.id, 'claim not saved');
             recvBtn.disabled = false;
             showDashError('Could not receive that delivery. Nothing was changed, so it is safe to try again: ' + (err && err.message ? err.message : err));
             return;
           } else {
             showDashError('Could not receive that delivery, and the dashboard can\'t tell whether the order was marked received. Do not press Receive again: use "Check this order now" on the order, and look at Inventory and Expenses first. ' + (err && err.message ? err.message : err));
-            PO_RECEIPT_UNKNOWN[po.id] = true;
+            poReceiveOps.unknown(po.id, 'claim reply lost, read-back failed');
             loadPurchaseOrders();
             return;
           }
         }
         if (!claimed) {
+          poReceiveOps.conflict(po.id, 'already changed'); poReceiveOps.reset(po.id, 'list re-read');
           showDashError(staleMessage('That purchase order') + ' It may already have been received elsewhere — check Inventory and Expenses before doing anything else.');
           loadPurchaseOrders();
           return;
         }
+        poReceiveOps.confirmed(po.id, 'claimed'); // the receipt is recorded; a second Receive is refused from here on
 
         // EXT5: receive what is saved NOW, not what this page loaded. Another
         // tab (or person) may have added or removed a line, or changed the
