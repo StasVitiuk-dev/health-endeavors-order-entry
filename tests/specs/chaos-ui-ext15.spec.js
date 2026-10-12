@@ -6,78 +6,13 @@
 //   * no task status was sent twice for one click, and the page never claims a
 //     change the database did not record.
 // A failure names the seed and the last steps, so it can be replayed exactly.
-const { test, expect, login, gotoPage, openMenuIfMobile } = require('../helpers/dashboard');
+const { test, expect, login, gotoPage } = require('../helpers/dashboard');
 const { enableWrites } = require('../helpers/stateful-backend');
 
-function rng(seed) { let s = seed >>> 0; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 2 ** 32); }
-const pick = (r, a) => a[Math.floor(r() * a.length)];
-const OPS = ['page', 'page', 'page', 'back', 'forward', 'palette', 'search', 'resize', 'offline', 'task', 'task', 'slow'];
-
-// EXT16: the whole operation list is generated from the seed up front, so a failing run
-// can be replayed with operations removed. On a failure the test shrinks the sequence
-// (tests/helpers/shrink.js): each candidate runs on a fresh sign-in with the mock
-// database restored to its starting rows; the error names the seed, the failing step
-// and the smallest failing sequence found within the budget.
+// EXT17: the runner (operation generator, step runner, fresh sign-in) lives in
+// tests/helpers/chaos.js, shared with the long and high-risk runs.
+const { genOps, runOps, freshSignIn } = require('../helpers/chaos');
 const { shrink, describe } = require('../helpers/shrink');
-// A replay must start signed out: the synthetic session survives a reload, so without
-// clearing it the sign-in form is not there (replays used to hang on it).
-async function freshSignIn(page) {
-  await page.goto('/owner-login.html');
-  await page.evaluate(() => { try { localStorage.clear(); sessionStorage.clear(); } catch (e) {} });
-  await login(page);
-}
-function genOps(seed, n, ids) {
-  const r = rng(seed);
-  return Array.from({ length: n }, () => {
-    const op = pick(r, OPS);
-    if (op === 'page' || op === 'offline' || op === 'slow') return { op, page: pick(r, ids) };
-    if (op === 'palette') return { op, text: pick(r, ['ta', 'inv', 'SYN', '<b>', 'zz']) };
-    if (op === 'search') return { op, text: pick(r, ['SYN', 'task', '"; DROP', '中文', '']) };
-    if (op === 'resize') return { op, width: pick(r, [1100, 900, 760, 1280]) };
-    return { op };
-  });
-}
-async function runOps(page, backend, context, ops, phone, errors, plant) {
-  for (let step = 0; step < ops.length; step++) {
-    const { op } = ops[step];
-    const t0 = Date.now();
-    try {
-      if (op === 'page') await gotoPage(page, ops[step].page);
-      else if (op === 'back') await page.goBack({ waitUntil: 'commit' }).catch(() => {});
-      else if (op === 'forward') await page.goForward({ waitUntil: 'commit' }).catch(() => {});
-      else if (op === 'palette' && !phone) { await page.keyboard.press('Escape'); await page.keyboard.press('ControlOrMeta+k'); await page.keyboard.type(ops[step].text); await page.keyboard.press('Escape'); }
-      else if (op === 'search') { await openMenuIfMobile(page); await page.fill('#sidebarSearch', ops[step].text); await page.fill('#sidebarSearch', ''); await page.keyboard.press('Escape'); }
-      else if (op === 'resize' && !phone) await page.setViewportSize({ width: ops[step].width, height: 800 });
-      else if (op === 'offline') { await context.setOffline(true); await gotoPage(page, ops[step].page).catch(() => {}); await context.setOffline(false); }
-      else if (op === 'slow') { backend.delayNext('tasks', 'GET', 1200); await gotoPage(page, 'tasksPanel'); await gotoPage(page, ops[step].page); }
-      else if (op === 'task') {
-        await gotoPage(page, 'tasksPanel');
-        const btn = page.locator('#tasksTableWrap tr[data-id] .taskStatusBtn:not([disabled])').first();
-        if (await btn.count()) {
-          page.once('dialog', d => d.accept());
-          const before = backend.taskUpdates ? backend.taskUpdates().length : 0;
-          await btn.click({ timeout: 3000 }).catch(() => {});
-          await btn.click({ timeout: 500 }).catch(() => {}); // the same person's double click
-          await page.waitForLoadState('networkidle');
-          const after = backend.taskUpdates ? backend.taskUpdates().length : 0;
-          if (after - before > 1) return { step, message: 'one click sent ' + (after - before) + ' task updates' };
-        }
-      }
-      await page.waitForTimeout(80);
-      if (!(await page.locator('#dash').isVisible())) return { step, message: 'dashboard no longer shown' };
-      const active = await page.locator('section.panel.activePage').count();
-      if (active !== 1) return { step, message: active + ' active pages' };
-      if (errors.length) return { step, message: 'script error: ' + errors[0] };
-      if (plant) { const planted = plant(ops.slice(0, step + 1)); if (planted) return { step, message: planted }; }
-      const ms = Date.now() - t0;
-      if (ms > 20000) console.log(`CHAOS step ${step} ${op}: ${ms} ms`);
-      if (ms > 45000) return { step, message: `${op} took ${ms} ms: an operator action must not hang` };
-    } catch (e) {
-      return { step, message: String(e && e.message || e).split('\n')[0] };
-    }
-  }
-  return null;
-}
 
 for (const seed of [1501, 1502, 1503]) {
   test(`UI chaos seed ${seed}: 70 random steps keep every invariant`, async ({ page, backend, context }, ti) => {

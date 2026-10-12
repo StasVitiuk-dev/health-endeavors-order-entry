@@ -33,13 +33,17 @@ MUTATIONS=(
   "return restocked twice (status check removed)|  if v_ret.status <> 'approved' then|  if false then"
   "sold product can be deleted (X3-13)|  if exists (select 1 from order_items oi join products p on lower(p.sku) = lower(oi.sku)|  if false and exists (select 1 from order_items oi join products p on lower(p.sku) = lower(oi.sku)"
   "receive expense not rounded to cents (EXT4)|  v_total := round(v_items_value + v_extras, 2);|  v_total := v_items_value + v_extras;"
+  "below-zero refused only after the update (EXT17: raw rule error again)|  if p_bucket <> 'recalled' and coalesce(v_current, 0) + p_change < 0 then|  if false then"
   "unknown stock bucket accepted|  if p_bucket not in ('available','reserved','damaged','sample','wholesale','promotional','returned','recalled') then|  if false then"
 )
 
 run_tests() {  # prints "FAILED" if any SQL test raised
   local out
   out=$( { psql "${CONN[@]}" -d "$DB" -qX -v ON_ERROR_STOP=1 -f "$T15"; psql "${CONN[@]}" -d "$DB" -qX -v ON_ERROR_STOP=1 -f "$T16"; } 2>&1 )
-  echo "$out" | grep -q "ERROR" && echo FAILED || echo passed
+  echo "$out" | grep -q "ERROR" && { echo FAILED; return; }
+  # EXT17: the inventory property model also judges the mutated draft (its own throwaway database)
+  node "$ROOT/tests/db/inventory-model.js" "${CONN[@]}" --seeds 1-10 --ops 60 --quiet --draft "$MUT" >/dev/null 2>&1 || { echo FAILED; return; }
+  echo passed
 }
 
 caught=0; missed=0

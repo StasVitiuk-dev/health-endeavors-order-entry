@@ -95,7 +95,7 @@
       "rollback": "11",
       "precheck": "built-in preflight stops if any table, column, function or index is missing; Query C shows no other stock writer; backup look green today",
       "effect": "6 stock functions (R1-R5 + helper), security invoker, EXECUTE to authenticated only",
-      "postcheck": "V8 fingerprint 3caf5c28beefd0d8dff1dfed078b6754; grants: 6 rows, anon false; Query H H01-H02 PASS",
+      "postcheck": "V8 fingerprint f6d9c2c8be690710eeb721041f6779d9; grants: 6 rows, anon false; Query H H01-H02 PASS",
       "dynamicSql": "format('update inventory set %1$I …') with a bucket name checked against a fixed list first",
       "lock": "LOW: function creation only"
     },

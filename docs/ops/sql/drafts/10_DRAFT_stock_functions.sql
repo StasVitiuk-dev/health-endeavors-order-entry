@@ -8,7 +8,7 @@
 -- @risk:        LOW
 -- @precheck:    built-in preflight stops if any table, column, function or index is missing; Query C shows no other stock writer; backup look green today
 -- @effect:      6 stock functions (R1-R5 + helper), security invoker, EXECUTE to authenticated only
--- @postcheck:   V8 fingerprint 3caf5c28beefd0d8dff1dfed078b6754; grants: 6 rows, anon false; Query H H01-H02 PASS
+-- @postcheck:   V8 fingerprint f6d9c2c8be690710eeb721041f6779d9; grants: 6 rows, anon false; Query H H01-H02 PASS
 -- @rollback:    drafts/11
 -- @@ end metadata @@
 -- R1–R5 all-or-nothing stock functions for Health Endeavors.
@@ -177,13 +177,23 @@ begin
   insert into inventory (product_id) values (p_product_id) on conflict (product_id) do nothing;
   perform 1 from inventory where product_id = p_product_id for update;
 
+  execute format('select %1$I from inventory where product_id = $1', p_bucket) into v_current using p_product_id;
   if p_expected is not null then
-    execute format('select %1$I from inventory where product_id = $1', p_bucket) into v_current using p_product_id;
     if v_current is distinct from p_expected then
       raise exception '% changed since the page loaded: it is now %, not %. Nothing was changed — reload and try again.',
         initcap(p_bucket), v_current, p_expected
         using errcode = '55000', hint = 'stale_value';
     end if;
+  end if;
+  -- EXT17: refuse below zero BEFORE the update. Every bucket column has a
+  -- ">= 0" rule, so the update itself failed first with the raw rule error
+  -- (23514, internal constraint name) and the friendly check after it never
+  -- ran (found by the inventory property model, tests/db/inventory-model.js).
+  -- "recalled" has no such rule and keeps the check after the update.
+  if p_bucket <> 'recalled' and coalesce(v_current, 0) + p_change < 0 then
+    raise exception 'That would leave % at % — only % in that bucket right now.',
+      initcap(p_bucket), coalesce(v_current, 0) + p_change, coalesce(v_current, 0)
+      using errcode = '23514', hint = 'below_zero';
   end if;
 
   execute format(

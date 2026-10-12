@@ -6,7 +6,7 @@
   { "do": "evidence", "type": "QUERY_C", "status": "PASS", "date": "2026-10-20" },
   { "do": "precheck", "unit": "r15", "result": "PASS" },
   { "do": "install", "unit": "r15", "date": "2026-10-20", "sitting": 2 },
-  { "do": "postcheck", "unit": "r15", "result": "PASS", "fingerprint": "3caf5c28beefd0d8dff1dfed078b6754" },
+  { "do": "postcheck", "unit": "r15", "result": "PASS", "fingerprint": "f6d9c2c8be690710eeb721041f6779d9" },
   { "do": "evidence", "type": "QUERY_H", "status": "PASS", "date": "2026-10-20" },
   { "do": "switch_on", "switch": "stock_fn_receive_po", "date": "2026-10-20", "sitting": 3 }
 ]

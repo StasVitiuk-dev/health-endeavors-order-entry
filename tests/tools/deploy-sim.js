@@ -11,7 +11,7 @@
 //   const r = sim.apply(s, { do: 'install', unit: 'r15', date: '2026-10-20', sitting: 1 }); // r.ok, r.message
 const INSTALLS = {
   merge:           { label: 'Merge the code (P0)', needs: [], db: false },
-  r15:             { label: 'Install R1–R5 functions (P2, drafts/10)', needs: ['merge'], db: true, evidence: ['QUERY_C'], fingerprint: '3caf5c28beefd0d8dff1dfed078b6754', rollback: 'drafts/11' },
+  r15:             { label: 'Install R1–R5 functions (P2, drafts/10)', needs: ['merge'], db: true, evidence: ['QUERY_C'], fingerprint: 'f6d9c2c8be690710eeb721041f6779d9', rollback: 'drafts/11' },
   switch_rows:     { label: 'Add the five stock switch rows, all OFF (P3, drafts/21)', needs: ['r15'], db: true, rollback: 'drafts/22' },
   line_guard:      { label: 'PO line guard (P5, drafts/17)', needs: ['merge'], db: true, rollback: 'drafts/18' },
   integrity_rules: { label: 'Integrity rules (P6, drafts/23)', needs: ['merge'], db: true, evidence: ['QUERY_E', 'QUERY_F'], rollback: 'drafts/24' },

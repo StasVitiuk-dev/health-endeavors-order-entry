@@ -25,7 +25,7 @@ build() {
 }
 fingerprint() {
   local fp; fp=$(psql $C -d he_real -Atc "select md5(string_agg(p.proname || ':' || pg_get_function_identity_arguments(p.oid) || ':' || md5(p.prosrc), ',' order by p.proname)) from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname in ('_he_apply_stock_change','adjust_inventory','receive_purchase_order','quarantine_recall','receive_return','delete_unused_product')")
-  echo "fingerprint $fp"; [ "$fp" = "3caf5c28beefd0d8dff1dfed078b6754" ]
+  echo "fingerprint $fp"; [ "$fp" = "f6d9c2c8be690710eeb721041f6779d9" ]
 }
 sqlfile() { cd "$ROOT" && psql $C -d he_real -q -v ON_ERROR_STOP=1 -f "$1"; }
 t0=$(date +%s)
@@ -52,6 +52,8 @@ step "report totals rollback lifecycle" bash "$LT/report_totals_rollback_test.sh
 step "random interleavings (seed 909, 40 rounds)" bash "$LT/random_interleavings.sh" 909 40 current "$C -d he_real"
 step "stress (5 runs)" bash "$LT/stress_test.sh" 5 $C -d he_real
 step "S29 lock cycle, forced order (INT-4; must not deadlock)" bash "$LT/s29_lock_cycle_repro.sh" $C -d he_real
+step "inventory property model (30 seeds x 60 operations vs reference model)" node "$ROOT/tests/db/inventory-model.js" $C --seeds 1-30 --ops 60 --quiet
+step "inventory model self-test (planted model bug must be found and shrunk)" node "$ROOT/tests/db/inventory-model.js" $C --seeds 1-5 --ops 60 --quiet --selftest
 step "extreme stress (10/25/50 callers)" env SEED=14 bash "$LT/extreme_stress_test.sh" "$C -d he_real" 10 25 50
 step "SQL mutations" bash "$ROOT/tests/mutation/run-sql-mutations.sh" $C
 if [ "${QUICK:-0}" != "1" ]; then

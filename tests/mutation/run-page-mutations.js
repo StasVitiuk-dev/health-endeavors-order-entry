@@ -612,6 +612,18 @@ const MUTATIONS = [
   ['a confirmed adjustment blocks the next one on the same product', 'assets/app/he-ops.js',
     "{ CONFIRMED: ['READY', 'SENDING'] }", "{ CONFIRMED: [] }",
     'adjust-ops-ext17 -g "two normal adjustments"'],
+  // EXT17: session-reuse isolation (test helper): the restore must run once per page
+  ['session reuse restores the session again after sign-out', 'tests/helpers/dashboard.js',
+    "        if (sessionStorage.getItem('__heFastLogin')) return;\n", "",
+    'fast-login-isolation-ext17 --workers=1'],
+  // (Removing only the read-back check is not enough to double-count: begin() also
+  // refuses a send from RESULT_UNKNOWN, a second independent layer.)
+  ['high-risk chaos: a lost adjustment reply misread as "not saved" is sent twice', 'assets/owner-login-app.js',
+    "            adjustOps.unknown(key, 'stock reply lost');", "            adjustOps.failedBeforeEffect(key, 'x'); adjustOps.reset(key, 'x');",
+    'chaos-long-ext17'],
+  ['a lost adjustment reply misread as "not saved" (browser test)', 'assets/owner-login-app.js',
+    "            adjustOps.unknown(key, 'stock reply lost');", "            adjustOps.failedBeforeEffect(key, 'x'); adjustOps.reset(key, 'x');",
+    'adjust-ops-ext17 -g "sends NOTHING"'],
 ];
 
 // EXT16: `--check` only confirms that every mutant's text is still in its file
@@ -734,8 +746,11 @@ for (const [name, file, find, repl, specs] of MUTATIONS.filter(m => !ONLY || ONL
   const { out, signal, code } = await runTests(`npx playwright test --config tests/playwright.config.js ${specs}${/--project=/.test(specs) ? '' : ' --project=desktop'} --reporter=line`, SCRATCH);
   // An interrupted run is never a result: not CAUGHT, not MISSED.
   if (STOP || signal || code === 130 || code === 143 || /\d+ interrupted/.test(out)) interrupted(STOP || signal || 'SIGINT');
-  const failed = (out.match(/(\d+) failed/) || [])[1];
-  const passed = (out.match(/(\d+) passed/) || [])[1];
+  // EXT17: only Playwright's own summary lines count ("  1 failed", "  3 passed (12s)");
+  // a test's error text such as "seed 1711 failed at step 3" used to be read as the count.
+  const plain = out.replace(/\x1b\[[0-9;]*[A-Za-z]/g, ''); // terminal escape codes start some lines
+  const failed = (plain.match(/^\s*(\d+) failed\s*$/m) || [])[1];
+  const passed = (plain.match(/^\s*(\d+) passed\b/m) || [])[1];
   results.push([name, failed ? `CAUGHT (${failed} failed, ${passed || 0} passed)` : `NOT CAUGHT (${passed || 0} passed)`]);
   fs.writeFileSync(PROGRESS, JSON.stringify({ done: results.length, results }, null, 1));
 }
