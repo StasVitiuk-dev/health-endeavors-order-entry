@@ -10,7 +10,7 @@ const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..', '..');
 // Folders a short file name may live in (docs refer to each other by bare name).
-const SEARCH = ['', 'docs', 'docs/ops', 'docs/ops/sql', 'docs/ops/sql/drafts', 'docs/ops/sql/local-test', 'docs/ops/evidence',
+const SEARCH = ['', 'docs', 'docs/ops', 'docs/ops/sql', 'docs/ops/sql/drafts', 'docs/ops/sql/local-test', 'docs/ops/sql/local-test/draft-tests', 'docs/ops/evidence',
   'docs/security', 'docs/code-quality', 'tests', 'tests/specs', 'tests/tools', 'tests/helpers', 'tests/fixtures', 'tests/mutation', 'assets'];
 const FILE_RE = /\.(md|sql|js|json|jsonl|sh|html|css|py|csv|png)$/i;
 
