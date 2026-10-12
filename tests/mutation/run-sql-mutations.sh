@@ -16,6 +16,13 @@ T15="$ROOT/docs/ops/sql/local-test/draft-tests/15_DRAFT_tests_stock_functions_re
 T16="$ROOT/docs/ops/sql/local-test/draft-tests/16_DRAFT_tests_hardening_and_failures.sql"
 PKG="$ROOT/docs/ops/sql/local-test/install_package_test.sh"
 TMP=$(mktemp -d)
+# EXT14: never Supabase; always clean up (Ctrl-C included); the draft files
+# themselves must be byte-identical before and after the run.
+for a in "$@"; do case "$a" in *supabase.co*|*pooler.supabase*) echo "Refusing: this runner is for the local test database only."; exit 2;; esac; done
+cleanup() { psql "${CONN[@]}" -d postgres -qX -c "drop database if exists $DB" >/dev/null 2>&1; rm -rf "$TMP"; }
+trap 'cleanup; echo "interrupted: throwaway database and temp files removed"; exit 130' INT TERM HUP
+drafts_md5() { find "$ROOT/docs/ops/sql" -type f -name '*.sql' -print0 | sort -z | xargs -0 md5sum | md5sum | cut -d' ' -f1; }
+DRAFTS_BEFORE=$(drafts_md5)
 
 # name | exact text to find (one line) | replacement
 MUTATIONS=(
@@ -108,7 +115,16 @@ if grep -q "create index if not exists %I" "$TMP/19_notunique.sql"; then
   if bash "$TMP/keys/local-test/request_keys_test.sh" "${CONN[@]}" -d "$DB" > "$TMP/keys.out" 2>&1; then echo "MISS request-key index not unique → NOT CAUGHT"; missed=$((missed+1)); else echo "OK   request-key index not unique → CAUGHT ($(grep -c FAIL "$TMP/keys.out") failing checks)"; caught=$((caught+1)); fi
 else echo "MISS request-key index not unique → MUTATION NOT APPLIED"; missed=$((missed+1)); fi
 
-psql "${CONN[@]}" -d postgres -qX -c "drop database if exists $DB" >/dev/null 2>&1
-rm -rf "$TMP"
+# EXT14: the R1–R5 rollback (drafts/11) must refuse while a stock switch is on;
+# checked by the switch tests.
+R11="$ROOT/docs/ops/sql/drafts/11_DRAFT_rollback_stock_functions.sql"
+sed "s/where flag_key like 'stock_fn_%' and enabled is true) then/where false) then/" "$R11" > "$TMP/11_noguard.sql"
+if grep -q "where false) then" "$TMP/11_noguard.sql"; then
+  if ROLLBACK11_FILE="$TMP/11_noguard.sql" bash "$ROOT/docs/ops/sql/local-test/stock_switches_test.sh" "${CONN[@]}" > "$TMP/sw.out" 2>&1; then echo "MISS R1–R5 rollback switch guard removed → NOT CAUGHT"; missed=$((missed+1)); else echo "OK   R1–R5 rollback switch guard removed → CAUGHT ($(grep -c FAIL "$TMP/sw.out") failing checks)"; caught=$((caught+1)); fi
+else echo "MISS R1–R5 rollback switch guard removed → MUTATION NOT APPLIED"; missed=$((missed+1)); fi
+
+trap - INT TERM HUP
+cleanup
+if [ "$(drafts_md5)" != "$DRAFTS_BEFORE" ]; then echo "SQL FILES CHANGED DURING THE MUTATION RUN — investigate"; exit 3; fi
 echo "SQL MUTATIONS: $caught caught, $missed missed"
 [ "$missed" -eq 0 ]

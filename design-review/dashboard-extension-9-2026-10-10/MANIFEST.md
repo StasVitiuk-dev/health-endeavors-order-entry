@@ -31,6 +31,6 @@ Captured with `SHOT_SPEC=capture-screenshots-ext9 npx playwright test -c tests/t
 | `2026-10-10_ext9_09-request-key-already-saved_1100.png` | Request keys: repeated expense reported as already saved | 1100 | yes | no |
 | `2026-10-10_ext9_09-request-key-already-saved_320.png` | Request keys: repeated expense reported as already saved | 320 | yes | no |
 | `2026-10-10_ext9_09-request-key-already-saved_390.png` | Request keys: repeated expense reported as already saved | 390 | yes | no |
-| `2026-10-10_ext9_10-staging-home_1100.png` | Staging copy (EXT9 build) Home with banner | 1100 | yes | no |
-| `2026-10-10_ext9_10-staging-home_320.png` | Staging copy (EXT9 build) Home with banner | 320 | yes | no |
-| `2026-10-10_ext9_10-staging-home_390.png` | Staging copy (EXT9 build) Home with banner | 390 | yes | no |
+| ~~`2026-10-10_ext9_10-staging-home_1100.png`~~ removed in EXT14: byte-identical to `../dashboard-extension-8-2026-10-10/2026-10-10_ext8_19-staging-home_1100.png` (the screen did not change) | Staging copy (EXT9 build) Home with banner | 1100 | yes | no |
+| ~~`2026-10-10_ext9_10-staging-home_320.png`~~ removed in EXT14: byte-identical to `../dashboard-extension-8-2026-10-10/2026-10-10_ext8_19-staging-home_320.png` (the screen did not change) | Staging copy (EXT9 build) Home with banner | 320 | yes | no |
+| ~~`2026-10-10_ext9_10-staging-home_390.png`~~ removed in EXT14: byte-identical to `../dashboard-extension-8-2026-10-10/2026-10-10_ext8_19-staging-home_390.png` (the screen did not change) | Staging copy (EXT9 build) Home with banner | 390 | yes | no |

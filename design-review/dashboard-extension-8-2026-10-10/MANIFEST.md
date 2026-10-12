@@ -30,9 +30,9 @@ File names: `<date>_<round>_<nn>-<page>_<width>.png`; older packages (`dashboard
 | `2026-10-10_ext8_08-tasks_1100.png` | Tasks page | 1100 | yes | no |
 | `2026-10-10_ext8_08-tasks_320.png` | Tasks page | 320 | yes | no |
 | `2026-10-10_ext8_08-tasks_390.png` | Tasks page | 390 | yes | no |
-| `2026-10-10_ext8_09-approvals_1100.png` | Approval queue | 1100 | yes | no |
-| `2026-10-10_ext8_09-approvals_320.png` | Approval queue | 320 | yes | no |
-| `2026-10-10_ext8_09-approvals_390.png` | Approval queue | 390 | yes | no |
+| ~~`2026-10-10_ext8_09-approvals_1100.png`~~ removed in EXT14: byte-identical to `../dashboard-extension-7-2026-10-07/05-approvals-1100.png` (the screen did not change) | Approval queue | 1100 | yes | no |
+| ~~`2026-10-10_ext8_09-approvals_320.png`~~ removed in EXT14: byte-identical to `../dashboard-extension-7-2026-10-07/05-approvals-320.png` (the screen did not change) | Approval queue | 320 | yes | no |
+| ~~`2026-10-10_ext8_09-approvals_390.png`~~ removed in EXT14: byte-identical to `../dashboard-extension-7-2026-10-07/05-approvals-390.png` (the screen did not change) | Approval queue | 390 | yes | no |
 | `2026-10-10_ext8_10-incidents_1100.png` | Incidents page | 1100 | yes | no |
 | `2026-10-10_ext8_10-incidents_320.png` | Incidents page | 320 | yes | no |
 | `2026-10-10_ext8_10-incidents_390.png` | Incidents page | 390 | yes | no |
