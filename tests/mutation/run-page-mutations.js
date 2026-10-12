@@ -541,6 +541,10 @@ const MUTATIONS = [
   ['order page keeps the previous person\'s attempt after a switch', 'manual-order-entry.html',
     "      pending = null;\n      storePending(null);\n      leavingOnPurpose = true;\n      window.location.reload();\n    }\n  });", "      leavingOnPurpose = true;\n      window.location.reload();\n    }\n  });",
     'auth-chaos -g "manual order page"'],
+  // EXT14: diagnostics fuzz found the role copied verbatim into the summary.
+  ['diagnostic summary copies the database role value verbatim again', 'assets/owner-login-app.js',
+    "Object.prototype.hasOwnProperty.call(ROLE_LABELS, currentUserRole) ? currentUserRole : 'other (not a standard role)'", "currentUserRole",
+    'diagnostics-ext14'],
 ];
 
 function sh(cmd, cwd) { return execSync(cmd, { cwd, stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }); }

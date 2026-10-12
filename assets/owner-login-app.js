@@ -3089,7 +3089,9 @@
         rows: [
           ['Environment', env.text],
           ['Database', db.ok ? db.text : db.text + ' — UNKNOWN whether data is current'],
-          ['Signed-in role', currentUserRole || 'UNKNOWN'],
+          // EXT14 (diagnostics fuzz): only a known role word is copied; any other
+          // value (it comes from the database) could carry text from a record.
+          ['Signed-in role', !currentUserRole ? 'UNKNOWN' : Object.prototype.hasOwnProperty.call(ROLE_LABELS, currentUserRole) ? currentUserRole : 'other (not a standard role)'],
           ['Nightly integrity check', nightly],
           ['Backups', 'UNKNOWN — the dashboard cannot see the backup jobs (owner check V1)'],
           ['Agents', agents],
