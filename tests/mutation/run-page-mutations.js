@@ -337,7 +337,7 @@ const MUTATIONS = [
   ['inquiry draft overwrites a draft changed elsewhere', 'assets/owner-login-app.js',
     "if (rec && (nowRow.ai_draft_reply || '') !== (rec.ai_draft_reply || '')) {", "if (false) {",
     'guarded-toggles -g "draft edited elsewhere"'],
-  ['money totals page by position again (double count when rows arrive)', 'owner-login.html',
+  ['money totals page by position again (double count when rows arrive)', 'assets/owner-login-app.js',
     // keyset paging AND the repeated-id skip are two independent protections;
     // removing only one is equivalent (a 56/57 run showed it), so remove both.
     "if (lastId !== null) q = q.gt('id', lastId);\n        q = q.order('id', { ascending: true }).range(0, PAGE - 1);\n        const { data, error, count } = await q;\n        if (error) throw error;\n        if (pageNo === 0) total = (typeof count === 'number') ? count : null;\n        const batch = data || [];\n        for (const r of batch) if (!seen.has(r.id)) { seen.add(r.id); rows.push(r); }",
