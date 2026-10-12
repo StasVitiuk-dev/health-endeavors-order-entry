@@ -117,3 +117,11 @@ test('the static job runs only Node-only specs (no browser is installed there), 
   expect((local.match(/tests\/specs\/[\w.-]+\.spec\.js/g) || []).sort()).toEqual(listed.slice().sort());
   expect(local).toMatch(/PLAYWRIGHT_BROWSERS_PATH=\/nonexistent/);
 });
+
+// EXT15: GitHub shard 3 failed because the browser job checked out only the latest
+// commit, and the module move proof compares with the EXT14 commit 3a40095.
+test('the browser job checks out full history (the module move proof needs commit 3a40095)', () => {
+  const wf = fs.readFileSync(path.join(WF_DIR, 'ci.yml'), 'utf8');
+  const browserJob = wf.slice(wf.indexOf('\n  browser:\n'), wf.indexOf('\n  database:\n'));
+  expect(browserJob).toMatch(/fetch-depth: 0/);
+});
