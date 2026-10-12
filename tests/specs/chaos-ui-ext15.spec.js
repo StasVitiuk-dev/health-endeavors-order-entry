@@ -29,6 +29,7 @@ for (const seed of [1501, 1502, 1503]) {
     for (let step = 0; step < 70; step++) {
       const op = pick(r, OPS);
       log.push(op);
+      const t0 = Date.now();
       try {
         if (op === 'page') await gotoPage(page, pick(r, ids));
         else if (op === 'back') await page.goBack({ waitUntil: 'commit' }).catch(() => {});
@@ -57,6 +58,9 @@ for (const seed of [1501, 1502, 1503]) {
         const active = await page.locator('section.panel.activePage').count();
         expect(active, `seed ${seed} step ${step} (${log.slice(-6).join(',')}): exactly one active page`).toBe(1);
         expect(errors, `seed ${seed} step ${step} (${log.slice(-6).join(',')})`).toEqual([]);
+        const ms = Date.now() - t0;
+        if (ms > 20000) console.log(`CHAOS seed ${seed} step ${step} ${op}: ${ms} ms`);
+        expect(ms, `seed ${seed} step ${step} (${op}) took ${ms} ms: an operator action must not hang`).toBeLessThan(45000);
       } catch (e) {
         throw new Error(`UI chaos seed ${seed} failed at step ${step} after: ${log.slice(-10).join(', ')}\n${e.message}`);
       }
@@ -66,3 +70,22 @@ for (const seed of [1501, 1502, 1503]) {
     ti.annotations.push({ type: 'chaos', description: `seed ${seed}: 70 steps, ${taskClicks} task double-clicks: ${log.join(',')}` });
   });
 }
+
+// Found by seed 1501: the offline bar sat on top of the header, so an operator who
+// went offline on a narrow screen could not open the menu (the click never landed).
+test('offline: the offline bar never covers the menu button, Refresh or Sign out', async ({ page, context }, ti) => {
+  await login(page);
+  if (ti.project.name === 'desktop') await page.setViewportSize({ width: 760, height: 800 });
+  await context.setOffline(true);
+  await expect(page.locator('#offlineBar')).toBeVisible();
+  for (const sel of ['#menuToggleBtn', '#refreshBtn', '#signout']) {
+    const el = page.locator(sel);
+    if (!(await el.isVisible())) continue;
+    const hit = await el.evaluate(e => { const r = e.getBoundingClientRect(); const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return top === e || e.contains(top); });
+    expect(hit, sel + ' must receive the click while offline').toBe(true);
+  }
+  await page.locator('#menuToggleBtn').click({ timeout: 3000 }).catch(() => {}); // narrow layouts only
+  await gotoPage(page, 'tasksPanel');
+  await expect(page.locator('section#tasksPanel')).toHaveClass(/activePage/);
+  await context.setOffline(false);
+});

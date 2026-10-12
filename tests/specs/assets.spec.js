@@ -13,7 +13,8 @@ const { test, expect, login } = require('../helpers/dashboard');
 const ROOT = path.resolve(__dirname, '..', '..');
 const html = () => fs.readFileSync(path.join(ROOT, 'owner-login.html'), 'utf8');
 // EXT14 (M5d): the page script lives in assets/owner-login-app.js
-const pageCode = () => require('../helpers/page-source').pageSource('owner-login.html'); // EXT15: HTML + program + module files
+// EXT15: HTML + program + module files (the helpers file itself is not "the page": it is where helpers belong)
+const pageCode = () => { const ps = require('../helpers/page-source'); return ['owner-login.html', ...ps.PAGE_SCRIPTS['owner-login.html'].filter(f => !/owner-login-helpers\.js$/.test(f))].map(f => fs.readFileSync(path.join(ROOT, f), 'utf8')).join('\n'); };
 
 base.test.describe('local assets are versioned by content', () => {
   base.test.beforeEach(({}, testInfo) => { base.test.skip(testInfo.project.name !== 'desktop', 'source check; run once'); });

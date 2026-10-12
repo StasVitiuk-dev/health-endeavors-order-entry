@@ -924,11 +924,14 @@
   #quickAddInput{ width:100%; font-size:16px; padding:12px 13px; margin:0; }
   .quickAddRow{ display:flex; gap:9px; align-items:center; margin-top:11px; }
   .quickAddRow .grow{ flex:1; }
+  /* EXT15: at the bottom and click-through. At the top it covered the menu button,
+     Refresh and Sign out, so an operator who went offline on a narrow screen could
+     not open the menu at all (found by the UI chaos test). Toasts stay above it. */
   #offlineBar{
-    display:none; position:fixed; left:0; right:0; top:0; z-index:220;
+    display:none; position:fixed; left:0; right:0; bottom:0; z-index:190; pointer-events:none;
     background:var(--warn-bg); color:var(--warn); text-align:center;
     font-size:12.5px; font-weight:500; padding:7px 12px;
-    padding-top:max(7px, env(safe-area-inset-top));
+    padding-bottom:max(7px, env(safe-area-inset-bottom));
   }
   #offlineBar.show{ display:block; }
   #ptrIndicator{

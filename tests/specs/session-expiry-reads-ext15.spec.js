@@ -19,8 +19,9 @@ test('Home refresh after expiry: figures become "?" or an error, never a fresh-l
   await login(page);
   await page.waitForLoadState('networkidle');
   await expire(page);
-  await gotoPage(page, 'tasksPanel');
-  await gotoPage(page, 'attentionPanel'); // Home re-reads its figures when opened
+  // Home keeps the figures it read while signed in (switching pages does not re-read them);
+  // the Refresh button re-reads everything, which is when expiry must show.
+  await page.locator('#refreshBtn').click();
   await page.waitForLoadState('networkidle');
   const tiles = await page.locator('#businessHealthStats .stat').allTextContents();
   expect(tiles.length).toBeGreaterThan(0);

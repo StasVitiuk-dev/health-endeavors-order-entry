@@ -12,7 +12,8 @@ test.describe('320 px with text at 200%', () => {
   for (const id of ['attentionPanel', 'returnsPanel', 'accountingPanel', 'inquiriesPanel']) {
     test(`${id}: no sideways page scroll`, async ({ page }) => {
       await login(page);
-      await page.addStyleTag({ content: 'html { font-size: 200% !important; }' });
+      // EXT15: style-src 'self' blocks an injected <style>; a constructed stylesheet (CSSOM) is allowed, as for the page's own code
+      await page.evaluate(() => { const s = new CSSStyleSheet(); s.replaceSync('html { font-size: 200% !important; }'); document.adoptedStyleSheets = [...document.adoptedStyleSheets, s]; });
       await gotoPage(page, id);
       await page.waitForLoadState('networkidle');
       const over = await page.evaluate(() => document.scrollingElement.scrollWidth - document.scrollingElement.clientWidth);

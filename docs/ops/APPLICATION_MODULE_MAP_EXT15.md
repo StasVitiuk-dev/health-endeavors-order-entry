@@ -38,7 +38,7 @@ Why it matters: a smaller file is easier to review, a mistake in one area is les
 | 15 | `he-inquiries` | Customer questions: list, severity, saved drafts, copy reply, mark answered (never sends anything) | 223 | he-config: 2, helpers / program: 4, he-data: 4, he-ui: 1, he-format: 1 | 3 |
 | 16 | `he-agents` | AI agents: switch states, scheduled-job health, honest status (unknown is never 'running'), paused banner | 250 | he-config: 2, he-data: 3, helpers / program: 5, he-ui: 2 | 3 |
 
-Program file after extraction: `assets/owner-login-app.js` 6,782 lines, 389,821 bytes; 94 top-level functions; 47 mutable top-level variables (46 shared).
+Program file after extraction: `assets/owner-login-app.js` 6,783 lines, 390,053 bytes; 94 top-level functions; 47 mutable top-level variables (46 shared).
 
 Dependency graph (module ← modules it takes inputs from; the program creates them top to bottom):
 

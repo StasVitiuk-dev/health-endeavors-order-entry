@@ -41,8 +41,7 @@ test.describe('new scenarios', () => {
   test('session-expired: after sign-in every read is refused and the page says to sign in again, never zeros', async ({ page }) => {
     await open(page, 'session-expired');
     await page.waitForTimeout(1700);
-    await go(page, 'tasksPanel');
-    await go(page, 'attentionPanel');
+    await page.locator('#refreshBtn').click(); // pages keep what they read while signed in; Refresh re-reads
     await page.waitForLoadState('networkidle');
     await expect(page.locator('#dashError')).toContainText(/expired|sign in/i, { timeout: 15000 });
     expect((await events(page)).some(e => /^expired GET/.test(e))).toBe(true);
@@ -65,10 +64,10 @@ test.describe('new scenarios', () => {
     page.on('dialog', d => d.accept());
     await open(page, 'return-reply-lost');
     await go(page, 'returnsPanel');
-    const btn = page.locator('#returnsPanel button', { hasText: /received/i }).first();
+    const btn = page.locator('#returnsPanel .markReceivedBtn').first();
     await expect(btn).toBeVisible({ timeout: 15000 });
+    await page.locator('#returnsPanel .dispositionSelect').first().selectOption('discard');
     await btn.click();
-    await page.locator('#returnsPanel button', { hasText: /confirm|yes|received/i }).first().click({ timeout: 3000 }).catch(() => {});
     await expect.poll(() => events(page), { timeout: 15000 }).toContain('reply-lost returns');
     await page.waitForLoadState('networkidle');
     await expect(page.locator('body')).not.toContainText(/Nothing was changed, so it is safe to try again/);
@@ -81,8 +80,10 @@ test('switching scenarios starts from a fresh synthetic state (no carry-over)', 
   expect((await page.evaluate(() => window.__STAGING_SCENARIO))).toBe('switch-drift');
   await page.locator('#stagingScenario').selectOption('healthy');
   await expect(page).toHaveURL(/scenario=healthy/);
-  await page.locator('#stagingSignIn').click();
+  // the synthetic sign-in survives the reload (stored like a real session); the DATA starts over
+  if (await page.locator('#stagingSignIn').isVisible().catch(() => false)) await page.locator('#stagingSignIn').click();
   await expect(page.locator('#dash')).toBeVisible({ timeout: 15000 });
+  expect(await page.evaluate(() => window.__STAGING_SCENARIO)).toBe('healthy');
   expect(await events(page)).toEqual([]);
   await go(page, 'continuityPanel');
   await expect(page.locator('#systemStatusWrap')).not.toContainText('PROBLEM', { timeout: 15000 });

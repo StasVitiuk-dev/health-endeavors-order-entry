@@ -26,6 +26,13 @@ for (const seed of [151, 152, 153]) {
     const r = rng(seed);
     seedBusiness(backend);
     backend.allowImpossibleData = true;
+    // EXT15: the business seed has text only on tasks, orders, products, expenses and returns;
+    // add rows for the other pages the header promises (incidents, questions, suppliers, approvals)
+    const nowIso = new Date().toISOString();
+    backend.tables.incidents = (backend.tables.incidents || []).concat([1, 2].map(i => ({ id: 'inc-x' + i, title: 'SYNTHETIC incident ' + i, description: 'SYNTHETIC', severity: i === 1 ? 'high' : 'low', status: 'open', category: 'other', created_at: nowIso, updated_at: nowIso })));
+    backend.tables.customer_inquiries = (backend.tables.customer_inquiries || []).concat([1, 2].map(i => ({ id: 'inq-x' + i, customer_name: 'SYNTHETIC asker ' + i, customer_email: 'asker' + i + '@example.test', question_text: 'SYNTHETIC question', ai_draft_reply: 'SYNTHETIC draft', status: 'new', created_at: nowIso })));
+    backend.tables.suppliers = (backend.tables.suppliers || []).concat([1, 2].map(i => ({ id: 'sup-x' + i, name: 'SYNTHETIC supplier ' + i, notes: 'SYNTHETIC', is_active: true, created_at: nowIso })));
+    backend.tables.approval_requests = (backend.tables.approval_requests || []).concat([1, 2].map(i => ({ id: 'ap-x' + i, action_type: 'synthetic', summary: 'SYNTHETIC approval ' + i, status: 'pending', created_at: nowIso })));
     let planted = 0;
     for (const t of Object.keys(backend.tables)) {
       backend.tables[t] = (backend.tables[t] || []).map(row => {
@@ -35,7 +42,7 @@ for (const seed of [151, 152, 153]) {
         return out;
       });
     }
-    expect(planted).toBeGreaterThan(20);
+    expect(planted).toBeGreaterThan(25);
     const errors = [];
     page.on('pageerror', e => errors.push(String(e)));
     await page.clock.setFixedTime(NOW);

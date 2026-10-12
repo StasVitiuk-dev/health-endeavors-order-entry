@@ -16,7 +16,8 @@ for (const sz of SIZES) {
     test.setTimeout(240000);
     await page.setViewportSize({ width: sz.w, height: 800 });
     await login(page);
-    if (sz.zoom > 1) await page.addStyleTag({ content: `html { font-size: ${sz.zoom * 100}% !important; }` });
+    // EXT15: style-src 'self' blocks an injected <style>; a constructed stylesheet (CSSOM) is allowed
+    if (sz.zoom > 1) await page.evaluate(z => { const s = new CSSStyleSheet(); s.replaceSync(`html { font-size: ${z * 100}% !important; }`); document.adoptedStyleSheets = [...document.adoptedStyleSheets, s]; }, sz.zoom);
     const bad = [];
     for (const id of PANELS) {
       await gotoPage(page, id);

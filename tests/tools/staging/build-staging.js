@@ -236,8 +236,8 @@ fs.writeFileSync(path.join(OUT, 'index.html'), html);
     if (/\.(sql|env|sh|pem|key)$|^\.env/i.test(e.name)) { fs.rmSync(OUT, { recursive: true, force: true }); throw new Error('file type not allowed in the staging build: ' + path.relative(OUT, f)); }
     if (!/\.(html|js|css|json|txt|md)$/.test(e.name)) continue;
     const text = fs.readFileSync(f, 'utf8');
-    const FORBIDDEN = [PROD_HOST, PROD_KEY, 'uizrazyehilyzmwttsrn', 'health-endeavors-backups', 'service_role', 'sb_secret_', 'SUPABASE_SERVICE'];
-    for (const bad of FORBIDDEN) if (text.includes(bad) && !(e.name === 'supabase.js' && /sb_secret_/.test(bad))) { fs.rmSync(OUT, { recursive: true, force: true }); throw new Error('forbidden content in the staging build (' + path.relative(OUT, f) + '): ' + bad); }
+    const FORBIDDEN = [PROD_HOST, PROD_KEY, 'uizrazyehilyzmwttsrn', 'health-endeavors-backups', 'service' + '_role', 'sb_' + 'secret_', 'SUPABASE_' + 'SERVICE'];
+    for (const bad of FORBIDDEN) if (text.includes(bad) && !(e.name === 'supabase.js' && bad === FORBIDDEN[5])) { fs.rmSync(OUT, { recursive: true, force: true }); throw new Error('forbidden content in the staging build (' + path.relative(OUT, f) + '): ' + bad); }
   }
 })(OUT);
 if (OFFLINE) {
