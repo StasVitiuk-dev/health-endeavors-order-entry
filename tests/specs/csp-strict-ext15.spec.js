@@ -89,7 +89,9 @@ test.describe('deliberate breaks are blocked by the browser', () => {
   test('a group colour from the configuration that is not a plain hex colour is ignored, not applied', async ({ page }) => {
     // The sidebar colours come from the fixed configuration; the page applies one only
     // if it looks like #abc / #aabbcc, so no arbitrary CSS can arrive this way.
-    const src = fs.readFileSync(path.join(ROOT, 'assets', 'app', 'he-config.js'), 'utf8').replace(/color: '#[0-9a-fA-F]{3,8}'/, "color: 'red;background:url(https://evil.example/x)'");
+    const src = fs.readFileSync(path.join(ROOT, 'assets', 'app', 'he-config.js'), 'utf8').replace(/color: '#[0-9a-fA-F]{3,8}'/, "color: 'url(https://evil.example/x)'");
+    // (a value with ';' would be refused by the browser itself and prove nothing: a
+    // custom property accepts url(...), so only the page's own hex check stops this one)
     await page.route('**/assets/app/he-config.js*', r => r.fulfill({ status: 200, contentType: 'application/javascript', body: src }));
     await login(page);
     const vals = await page.locator('#sidebarGroups .sidebarGroup').evaluateAll(els => els.map(e => e.style.getPropertyValue('--groupColor')));

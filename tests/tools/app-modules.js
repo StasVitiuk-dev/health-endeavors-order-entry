@@ -38,6 +38,21 @@ function hiddenDependencies(file) {
     .map(d => ts.flattenDiagnosticMessageText(d.messageText, ' ') + ' (line ' + (d.file.getLineAndCharacterOfPosition(d.start).line + 1) + ')');
 }
 
+// EXT15: a module could also hide a dependency by reading it off window (the
+// TypeScript check only sees free names). Only the registry, the pinned library and
+// these browser features may be read from window in a module.
+const WINDOW_ALLOWED = new Set(['HE', 'supabase', 'open', 'matchMedia', 'confirm', 'alert', 'prompt', 'location', 'history', 'localStorage', 'sessionStorage', 'addEventListener', 'removeEventListener', 'getComputedStyle', 'requestAnimationFrame', 'cancelAnimationFrame', 'setTimeout', 'clearTimeout', 'innerWidth', 'innerHeight', 'scrollTo', 'navigator', 'performance', 'crypto', 'isSecureContext']);
+function windowReads(file) {
+  const sf = ts.createSourceFile(file, fs.readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
+  const out = [];
+  (function visit(n) {
+    const prop = ts.isPropertyAccessExpression(n) ? n.name.text : (ts.isElementAccessExpression(n) && n.argumentExpression && ts.isStringLiteralLike(n.argumentExpression) ? n.argumentExpression.text : (ts.isElementAccessExpression(n) ? '[computed]' : null));
+    if (prop && ts.isIdentifier(n.expression) && (n.expression.text === 'window' || n.expression.text === 'globalThis' || n.expression.text === 'self') && !WINDOW_ALLOWED.has(prop))
+      out.push({ name: prop, line: sf.getLineAndCharacterOfPosition(n.getStart()).line + 1 });
+    ts.forEachChild(n, visit);
+  })(sf);
+  return out;
+}
 function check() {
   const problems = [];
   const appText = fs.readFileSync(APP, 'utf8');
@@ -77,6 +92,7 @@ function check() {
     if (!t) problems.push(`assets/app/${m.name}.js is not loaded by owner-login.html`);
     else if (t.at < registryAt || t.at > appAt) problems.push(`assets/app/${m.name}.js must load after the registry and before the program`);
     for (const h of hiddenDependencies(m.file)) problems.push(`${m.name}: hidden dependency: ${h}`);
+    for (const w of windowReads(m.file)) problems.push(`${m.name}: hidden dependency through window.${w.name} (line ${w.line}): take it from ctx instead`);
   }
   for (const n of listed.keys()) if (!byName.has(n)) problems.push(`APP_MODULES lists ${n}, which has no file`);
   // cycle check over the module edges (a module may only use earlier ones, so
