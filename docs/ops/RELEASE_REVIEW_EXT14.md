@@ -31,7 +31,7 @@ The answer from EXT13 still holds, with EXT14 on top. Merging changes the dashbo
 | Page + tool mutants (170) | 170/170 caught |
 | SQL mutants (14) | 14/14 caught |
 | Database suite (26 steps, local PostgreSQL 16) | 26/26 PASS (421 s) |
-| High-risk specs × 3 | see the PR description |
+| High-risk specs × 3 (17 files: PO receive, fault injection ×2, inventory safety, manual order, auth chaos, stale tabs, double submit, concurrency, request keys ×2, assets, CSP, XSS, diagnostics fuzz, staging artifact, mutation runner) | 1,422 as expected (incl. the known-bug tests failing as marked), 45 skipped, **0 unexpected, 0 flaky** (34.3 min) |
 | Secret scan / SQL lint / status check / docs check | OK / OK / OK / OK |
 
 ## 4. Rollback (step by step)
