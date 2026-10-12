@@ -42,14 +42,14 @@ window.HE.modules.define('he-time', { api: 1, needs: ['CAL_COLORS','esc'] }, fun
       // EXT9: the values shown, so a save never overwrites a change made elsewhere meanwhile.
       const shown = JSON.stringify({ title: ev.summary == null ? null : ev.summary, starts_at: ev.starts_at || null, ends_at: ev.ends_at || null, all_day: !!ev.all_day });
       return '<div class="calNoteBox" data-personaluid="' + esc(ev.uid) + '" data-shown="' + esc(shown) + '">' +
-        '<label style="margin-bottom:4px;">Title</label>' +
-        '<input type="text" class="personalEditTitle" value="' + esc(ev.summary || '') + '" style="margin-bottom:10px;">' +
-        '<label style="margin-bottom:4px;">Starts</label>' +
-        '<input type="datetime-local" class="personalEditStart" value="' + esc(toDatetimeLocalValue(ev.starts_at, ev.all_day)) + '" style="margin-bottom:10px;">' +
-        '<label style="margin-bottom:4px;">Ends (optional)</label>' +
-        '<input type="datetime-local" class="personalEditEnd" value="' + esc(toDatetimeLocalValue(ev.ends_at, ev.all_day)) + '" style="margin-bottom:10px;">' +
-        '<label style="margin:0 0 10px;font-weight:400;display:flex;align-items:center;gap:6px;">' +
-          '<input type="checkbox" class="personalEditAllDay" style="width:auto;margin:0;"' + (ev.all_day ? ' checked' : '') + '> All day' +
+        '<label class="u-mb-4">Title</label>' +
+        '<input type="text" class="personalEditTitle u-mb-10" value="' + esc(ev.summary || '') + '">' +
+        '<label class="u-mb-4">Starts</label>' +
+        '<input type="datetime-local" class="personalEditStart u-mb-10" value="' + esc(toDatetimeLocalValue(ev.starts_at, ev.all_day)) + '">' +
+        '<label class="u-mb-4">Ends (optional)</label>' +
+        '<input type="datetime-local" class="personalEditEnd u-mb-10" value="' + esc(toDatetimeLocalValue(ev.ends_at, ev.all_day)) + '">' +
+        '<label class="u-m-0-0-10 u-fw-400 u-d-flex u-ai-center u-gap-6">' +
+          '<input type="checkbox" class="personalEditAllDay u-w-auto u-m-0"' + (ev.all_day ? ' checked' : '') + '> All day' +
         '</label>' +
         '<div class="calNoteRow">' +
           '<button type="button" class="small personalEditSave">Save</button>' +

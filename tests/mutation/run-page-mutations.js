@@ -545,6 +545,34 @@ const MUTATIONS = [
   ['diagnostic summary copies the database role value verbatim again', 'assets/owner-login-app.js',
     "Object.prototype.hasOwnProperty.call(ROLE_LABELS, currentUserRole) ? currentUserRole : 'other (not a standard role)'", "currentUserRole",
     'diagnostics-ext14'],
+  // EXT15: modules, strict style policy, honesty fixes found by the property tests.
+  ['the registry lets a module be created twice', 'assets/owner-login-modules.js',
+    "if (d.instance) throw new Error('Module created twice: ' + name);", "",
+    'modules-ext15 -g "registry refuses"'],
+  ['the start-up no longer refuses a missing module', 'assets/owner-login-app.js',
+    "  } else if (window.HE.modules.missing(APP_MODULES).length) {", "  } else if (false) {",
+    'modules-ext15 -g "does not load: plain message naming it"'],
+  ['a module uses a value it was not handed (hidden dependency)', 'assets/app/he-format.js',
+    "const { CLOSED_WORDS, esc, fmtDateOnly } = ctx;", "const { CLOSED_WORDS, fmtDateOnly } = ctx; const esc = window.__notHanded;",
+    'modules-ext15 -g "module graph"'],
+  ['the diagnostic summary stops naming the program version', 'assets/app/he-status.js',
+    "return 'program ' + pick(/owner-login-app\\.js/) + ', helpers API '", "return 'helpers API '",
+    'modules-ext15 -g "diagnostic summary names"'],
+  ['inline styles allowed again on the owner page', 'owner-login.html',
+    "style-src 'self';", "style-src 'self' 'unsafe-inline';",
+    'csp-strict-ext15 -g "the policy"'],
+  ['a sidebar group colour is applied without the hex check', 'assets/owner-login-app.js',
+    "if (/^#[0-9a-fA-F]{3,8}$/.test(c)) g.style.setProperty('--groupColor', c);", "g.style.setProperty('--groupColor', c);",
+    'csp-strict-ext15 -g "group colour"'],
+  ['the activity detail toggle reads the inline display again (never opens)', 'assets/owner-login-app.js',
+    "if (getComputedStyle(box).display === 'none') {\n            if (!box.innerHTML) box.innerHTML = describeChange(ACTIVITY_ROWS[i]);", "if (box.style.display === 'none') {\n            if (!box.innerHTML) box.innerHTML = describeChange(ACTIVITY_ROWS[i]);",
+    'activity-page'],
+  ['a blank nightly-check count reads as PASS again', 'assets/owner-login-helpers.js',
+    "const isCount = (typeof f === 'number' && Number.isInteger(f)) || (typeof f === 'string' && /^\\s*\\d+\\s*$/.test(f));", "const isCount = f != null && Number.isFinite(Number(f));",
+    'property-node-ext15 -g "nightly check"'],
+  ['an agent switch that is not on/off counts as on again', 'assets/app/he-agents.js',
+    "if (typeof ctrl.enabled !== 'boolean') return { key: 'unknown',", "if (false) return { key: 'unknown',",
+    'malformed-data-ext15 -g "clear on/off"'],
 ];
 
 function sh(cmd, cwd) { return execSync(cmd, { cwd, stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }); }
@@ -623,13 +651,23 @@ for (const [name, file, find, repl, specs] of MUTATIONS.filter(m => !ONLY || ONL
   fs.rmSync(path.join(SCRATCH, 'tests'), { recursive: true, force: true });
   sh(`cp -r "${path.join(ROOT, 'tests')}" "${path.join(SCRATCH, 'tests')}"`, ROOT);
   fs.symlinkSync(path.join(ROOT, 'node_modules'), path.join(SCRATCH, 'node_modules'));
-  const target = path.join(SCRATCH, file);
+  // EXT15: the owner program is split into assets/app/*.js modules. A mutant
+  // written for owner-login-app.js is applied to whichever of the owner page's
+  // code files holds its text, and only if exactly one of them does, exactly once.
+  let targetFile = file;
+  if (file === 'assets/owner-login-app.js') {
+    const ownerFiles = ['assets/owner-login-app.js', ...fs.readdirSync(path.join(SCRATCH, 'assets', 'app')).filter(f => f.endsWith('.js')).map(f => 'assets/app/' + f)];
+    const hits = ownerFiles.map(f => [f, fs.readFileSync(path.join(SCRATCH, f), 'utf8').split(find).length - 1]).filter(([, n]) => n > 0);
+    if (hits.length > 1) { results.push([name, 'MUTATION NOT APPLIED (text found in ' + hits.map(h => h[0]).join(' and ') + ')']); continue; }
+    if (hits.length === 1) targetFile = hits[0][0];
+  }
+  const target = path.join(SCRATCH, targetFile);
   const src = fs.readFileSync(target, 'utf8');
   if (!src.includes(find)) { results.push([name, 'MUTATION NOT APPLIED (text not found)']); continue; }
   // EXT4: the text must be unique, or the wrong copy could be broken.
   if (src.split(find).length !== 2) { results.push([name, 'MUTATION NOT APPLIED (text found more than once)']); continue; }
   fs.writeFileSync(target, src.replace(find, repl));
-  if (file.startsWith('assets/')) fixHelpersHash(SCRATCH);
+  if (targetFile.startsWith('assets/')) fixHelpersHash(SCRATCH);
   await new Promise(r => setImmediate(r)); // let a pending Ctrl-C land before the run starts
   if (STOP) interrupted(STOP);
   const { out, signal, code } = await runTests(`npx playwright test --config tests/playwright.config.js ${specs}${/--project=/.test(specs) ? '' : ' --project=desktop'} --reporter=line`, SCRATCH);

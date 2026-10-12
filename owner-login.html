@@ -22,7 +22,7 @@
      Supabase project. If a text-escaping bug ever slipped through, injected
      code could not load outside scripts or send data to another site.
      ('unsafe-inline' stays because the page's own code and styles are inline.) -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-/FjRE0R4xKhg0KIe7net9VToE2n3TUM6s5m1/uP2RqA=' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://uizrazyehilyzmwttsrn.supabase.co wss://uizrazyehilyzmwttsrn.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-/FjRE0R4xKhg0KIe7net9VToE2n3TUM6s5m1/uP2RqA=' https://cdn.jsdelivr.net; style-src 'self'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://uizrazyehilyzmwttsrn.supabase.co wss://uizrazyehilyzmwttsrn.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'">
 <meta name="referrer" content="no-referrer">
 <!-- EXT9: never shown inside another site's frame (clickjacking). GitHub Pages cannot send the
      header that forbids framing, so the page hides itself and leaves the frame instead. -->
@@ -32,18 +32,26 @@
 <meta http-equiv="Expires" content="0">
 <title>Health Endeavors — Owner Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous"></script>
-<link rel="stylesheet" href="assets/owner-login.css?v=586855742e">
-<script src="assets/owner-login-helpers.js?v=2d393500a4"></script>
+<link rel="stylesheet" href="assets/owner-login.css?v=913ebb87ac">
+<script src="assets/owner-login-helpers.js?v=9735a090cd"></script>
 <script src="assets/owner-login-modules.js?v=0d97adc58c"></script>
 <!-- @@ EXT15 module files (assets/app/*.js), added by tests/tools/extract-module.js @@ -->
 <script src="assets/app/he-config.js?v=239a6abc59"></script>
 <script src="assets/app/he-ui.js?v=26bea4458b"></script>
-<script src="assets/app/he-data.js?v=90a69c007d"></script>
-<script src="assets/app/he-audit.js?v=0ef737fbf2"></script>
-<script src="assets/app/he-status.js?v=b4ff42dac7"></script>
-<script src="assets/app/he-time.js?v=003c0aba47"></script>
+<script src="assets/app/he-data.js?v=2abdbda19a"></script>
+<script src="assets/app/he-audit.js?v=7bcfb51904"></script>
+<script src="assets/app/he-status.js?v=ecde6a6c30"></script>
+<script src="assets/app/he-time.js?v=56bf93dd60"></script>
 <script src="assets/app/he-format.js?v=30afedc013"></script>
 <script src="assets/app/he-nav.js?v=82c7300232"></script>
+<script src="assets/app/he-tasks.js?v=c8a1b31f5e"></script>
+<script src="assets/app/he-approvals.js?v=4a886d4ea9"></script>
+<script src="assets/app/he-incidents.js?v=f374fd2f12"></script>
+<script src="assets/app/he-expenses.js?v=6ea1d628e2"></script>
+<script src="assets/app/he-suppliers.js?v=3090fc00c3"></script>
+<script src="assets/app/he-reports.js?v=8d3b983e79"></script>
+<script src="assets/app/he-inquiries.js?v=dd0b6ade1c"></script>
+<script src="assets/app/he-agents.js?v=fe1377cc91"></script>
 <script src="assets/owner-login-theme.js?v=05a115a149"></script>
 </head>
 <body>
@@ -63,17 +71,17 @@
         <button type="submit" id="loginBtn">Log In</button>
       </form>
       <div id="loginMsg" class="msg"></div>
-      <p id="forgotPasswordRow" style="text-align:center;margin-top:14px;">
-        <a href="#" id="forgotPasswordLink" style="color:var(--muted);font-size:13px;">Forgot your password?</a>
+      <p id="forgotPasswordRow" class="u-ta-center u-mt-14">
+        <a href="#" id="forgotPasswordLink" class="u-c-muted u-fs-13">Forgot your password?</a>
       </p>
 
-      <form id="forgotForm" style="display:none;margin-top:4px;">
+      <form id="forgotForm" class="u-d-none u-mt-4">
         <label for="forgotEmail">Email</label>
         <input type="email" id="forgotEmail" autocomplete="username" required>
         <button type="submit" id="forgotBtn">Send Reset Link</button>
       </form>
-      <p id="backToLoginRow" style="display:none;text-align:center;margin-top:14px;">
-        <a href="#" id="backToLoginLink" style="color:var(--muted);font-size:13px;">Back to log in</a>
+      <p id="backToLoginRow" class="u-d-none u-ta-center u-mt-14">
+        <a href="#" id="backToLoginLink" class="u-c-muted u-fs-13">Back to log in</a>
       </p>
       <div id="forgotMsg" class="msg"></div>
     </div>
@@ -103,26 +111,26 @@
       </nav>
 
       <main class="contentArea" id="mainContent" tabindex="-1">
-      <div id="systemModeBanner" style="display:none;padding:10px 14px;border-radius:8px;margin-bottom:14px;font-size:14px;font-weight:600;"></div>
-      <div id="pausedAgentsBanner" style="display:none;padding:10px 14px;border-radius:8px;margin-bottom:14px;font-size:14px;font-weight:600;background:#fff4dd;color:#8a5b00;border:1px solid #f2d999;"></div>
+      <div id="systemModeBanner" class="u-d-none u-p-10-14 u-br-8 u-mb-14 u-fs-14 u-fw-600"></div>
+      <div id="pausedAgentsBanner" class="u-d-none u-p-10-14 u-br-8 u-mb-14 u-fs-14 u-fw-600 u-bg-xfff4dd u-c-x8a5b00 u-b-1-solid-xf2d999"></div>
       <div id="dashError" class="bannerBox" role="alert"></div>
       <div id="rowCapNotice" class="bannerBox" role="status"></div>
 
       <!-- Needs Your Attention -->
       <section class="panel" id="attentionPanel">
         <h2>Business health — right now</h2>
-        <p class="hint" style="margin-bottom:10px;">A 30-second read on the business, computed fresh every time this page loads. A colored tile means it's worth a look; a plain one is normal.</p>
+        <p class="hint u-mb-10">A 30-second read on the business, computed fresh every time this page loads. A colored tile means it's worth a look; a plain one is normal.</p>
         <div class="statRow" id="businessHealthStats"></div>
 
-        <h2 style="margin-top:22px;">Checks: what needs a look</h2>
+        <h2 class="u-mt-22">Checks: what needs a look</h2>
         <p class="hint">Fixed checks on your data, run each time this page loads. Red: data that cannot be right. Amber: something to do. Grey: worth knowing (including things switched off on purpose). "Could not check" is not the same as "fine".</p>
         <div id="attnChecksWrap" aria-live="polite"><p class="empty">Checking…</p></div>
 
-        <h2 style="margin-top:22px;">Nightly integrity check</h2>
+        <h2 class="u-mt-22">Nightly integrity check</h2>
         <p class="hint">A deeper check the database runs on its own every night (stuck work, probable duplicates, records pointing at the wrong thing, impossible values). Read-only: it never changes anything.</p>
         <div id="nightlyCheckWrap" aria-live="polite"><p class="empty">Checking…</p></div>
 
-        <h2 style="margin-top:22px;">Needs your attention</h2>
+        <h2 class="u-mt-22">Needs your attention</h2>
         <p class="hint">Tasks, approvals, compliance items, incidents, calendar events, and your own reminders — soonest due first.</p>
         <div id="attentionWrap"><p class="empty">Loading…</p></div>
         <form class="reminderForm" id="addReminderForm">
@@ -147,25 +155,25 @@
           </div>
         </div>
         <p class="hint" id="calHintText">Your synced Apple Calendar. Day and Week list every appointment with its time; Month gives you the overview. Use the chips to show or hide a calendar, and open any event to leave yourself a note — notes are yours and survive every sync.</p>
-        <form id="addPersonalEventForm" style="display:none;margin-bottom:16px;">
-          <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;">
-            <div style="flex:2 1 200px;">
-              <label for="personalEventTitle" style="margin-bottom:4px;">Event title</label>
-              <input type="text" id="personalEventTitle" placeholder="e.g. Dentist appointment" required style="margin-bottom:0;">
+        <form id="addPersonalEventForm" class="u-d-none u-mb-16">
+          <div class="u-d-flex u-fwr-wrap u-gap-8 u-ai-flex-end">
+            <div class="u-flex-2-1-200">
+              <label for="personalEventTitle" class="u-mb-4">Event title</label>
+              <input type="text" id="personalEventTitle" placeholder="e.g. Dentist appointment" required class="u-mb-0">
             </div>
-            <div style="flex:1 1 160px;">
-              <label for="personalEventStart" style="margin-bottom:4px;">Starts</label>
-              <input type="datetime-local" id="personalEventStart" required style="margin-bottom:0;">
+            <div class="u-flex-1-1-160">
+              <label for="personalEventStart" class="u-mb-4">Starts</label>
+              <input type="datetime-local" id="personalEventStart" required class="u-mb-0">
             </div>
-            <div style="flex:1 1 160px;">
-              <label for="personalEventEnd" style="margin-bottom:4px;">Ends (optional)</label>
-              <input type="datetime-local" id="personalEventEnd" style="margin-bottom:0;">
+            <div class="u-flex-1-1-160">
+              <label for="personalEventEnd" class="u-mb-4">Ends (optional)</label>
+              <input type="datetime-local" id="personalEventEnd" class="u-mb-0">
             </div>
-            <div style="flex:0 0 auto;display:flex;align-items:center;gap:6px;padding-bottom:9px;">
-              <input type="checkbox" id="personalEventAllDay" style="width:auto;margin:0;">
-              <label for="personalEventAllDay" style="margin:0;font-weight:400;">All day</label>
+            <div class="u-flex-0-0-auto u-d-flex u-ai-center u-gap-6 u-pb-9">
+              <input type="checkbox" id="personalEventAllDay" class="u-w-auto u-m-0">
+              <label for="personalEventAllDay" class="u-m-0 u-fw-400">All day</label>
             </div>
-            <div style="flex:0 0 auto;">
+            <div class="u-flex-0-0-auto">
               <button type="submit" class="small" id="addPersonalEventBtn">Add event</button>
             </div>
           </div>
@@ -188,10 +196,10 @@
         <div class="sectionHeadRow"><h2>Orders &amp; Revenue</h2></div>
         <p class="hint">Live totals from every order that hasn't been deleted.</p>
         <div class="statRow" id="orderStats"></div>
-        <h3 style="font-size:13px;color:var(--navy);margin:14px 0 6px;">Most recent orders</h3>
+        <h3 class="u-fs-13 u-c-navy u-m-14-0-6">Most recent orders</h3>
         <div id="ordersTableWrap"><p class="empty">Loading…</p></div>
 
-        <h3 style="font-size:13px;color:var(--navy);margin:20px 0 6px;">Recycle bin (deleted orders)</h3>
+        <h3 class="u-fs-13 u-c-navy u-m-20-0-6">Recycle bin (deleted orders)</h3>
         <p class="hint">These were deleted, not destroyed — restore puts them right back.</p>
         <div id="deletedOrdersWrap"><p class="empty">Loading…</p></div>
       </section>
@@ -202,7 +210,7 @@
         <p class="hint">Your product catalogue and how much of each you hold, split into Available, Reserved, Damaged, Sample, Wholesale, Promotional and Returned. Add a product before you can order or stock it — receiving a purchase order and restocking a return both find products by SKU, so give everything a SKU and use the same one in Shopify. Every change is logged with who made it, when and why.</p>
         <div class="statRow" id="inventoryStats"></div>
 
-        <form class="reminderForm" id="addProductForm" style="margin-top:14px;">
+        <form class="reminderForm u-mt-14" id="addProductForm">
           <input type="text" id="prodName" placeholder="Product name" required>
           <input type="text" id="prodSku" placeholder="SKU (e.g. HE-COCOA-8OZ)">
           <select id="prodStatus">
@@ -210,19 +218,19 @@
             <option value="active">Active</option>
             <option value="discontinued">Discontinued</option>
           </select>
-          <input type="number" id="prodCost" placeholder="Cost" step="0.0001" min="0" max="1000000" style="flex:0 1 110px;">
-          <input type="number" id="prodRetail" placeholder="Retail price" step="0.01" min="0" style="flex:0 1 130px;">
-          <input type="number" id="prodWholesale" placeholder="Wholesale" step="0.01" min="0" style="flex:0 1 130px;">
+          <input type="number" id="prodCost" placeholder="Cost" step="0.0001" min="0" max="1000000" class="u-flex-0-1-110">
+          <input type="number" id="prodRetail" placeholder="Retail price" step="0.01" min="0" class="u-flex-0-1-130">
+          <input type="number" id="prodWholesale" placeholder="Wholesale" step="0.01" min="0" class="u-flex-0-1-130">
           <input type="text" id="prodPackaging" placeholder="Packaging (optional)">
           <button type="submit" class="small">Add product</button>
         </form>
 
-        <form id="adjustInventoryForm" style="display:flex;flex-direction:column;gap:8px;margin-top:14px;padding-top:16px;border-top:1px solid var(--line);">
-          <h3 style="font-size:13px;color:var(--navy);margin:0 0 2px;">Adjust stock</h3>
-          <select id="invProduct" required style="padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;">
+        <form id="adjustInventoryForm" class="u-d-flex u-fd-column u-gap-8 u-mt-14 u-pt-16 u-bt-1-solid-line">
+          <h3 class="u-fs-13 u-c-navy u-m-0-0-2">Adjust stock</h3>
+          <select id="invProduct" required class="u-p-9-10 u-br-8 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-14">
             <option value="">Product…</option>
           </select>
-          <select id="invBucket" required style="padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;">
+          <select id="invBucket" required class="u-p-9-10 u-br-8 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-14">
             <option value="">Bucket…</option>
             <option value="available">Available</option>
             <option value="reserved">Reserved</option>
@@ -235,14 +243,14 @@
           </select>
           <input type="number" id="invAmount" placeholder="Change amount (e.g. 10 to add, -10 to remove)" step="1" required>
           <input type="text" id="invReason" placeholder="Reason (optional — e.g. new batch received, damaged in shipping)">
-          <button type="submit" class="small" style="align-self:flex-start;">Save adjustment</button>
+          <button type="submit" class="small u-as-flex-start">Save adjustment</button>
         </form>
 
-        <h3 style="font-size:13px;color:var(--navy);margin:20px 0 6px;">Stock by product</h3>
+        <h3 class="u-fs-13 u-c-navy u-m-20-0-6">Stock by product</h3>
         <div id="inventoryWrap"><p class="empty">Loading…</p></div>
 
-        <h3 style="font-size:13px;color:var(--navy);margin:20px 0 6px;">Recent adjustments</h3>
-        <p class="hint" style="margin-top:-2px;">A permanent log — never edited or deleted, so it always shows the true history of every change.</p>
+        <h3 class="u-fs-13 u-c-navy u-m-20-0-6">Recent adjustments</h3>
+        <p class="hint u-mt-n2">A permanent log — never edited or deleted, so it always shows the true history of every change.</p>
         <div id="inventoryAdjustmentsWrap"><p class="empty">Loading…</p></div>
       </section>
 
@@ -252,20 +260,20 @@
         <p class="hint">Track items customers send back, from request through refund. Status moves through: Requested → Approved or Rejected → Received → Refunded → Closed. Marking a return Received also records what happens to the stock — restocked, moved to Damaged, or discarded — and logs that change to Inventory automatically, so you never enter it twice. Each return is for one specific line item on an order (its full quantity), not a partial amount.</p>
         <div class="statRow" id="returnsStats"></div>
 
-        <form id="logReturnForm" style="display:flex;flex-direction:column;gap:8px;margin-top:14px;padding-top:16px;border-top:1px solid var(--line);">
-          <h3 style="font-size:13px;color:var(--navy);margin:0 0 2px;">Log a new return</h3>
-          <select id="retOrder" required aria-label="Order" style="padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;">
+        <form id="logReturnForm" class="u-d-flex u-fd-column u-gap-8 u-mt-14 u-pt-16 u-bt-1-solid-line">
+          <h3 class="u-fs-13 u-c-navy u-m-0-0-2">Log a new return</h3>
+          <select id="retOrder" required aria-label="Order" class="u-p-9-10 u-br-8 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-14">
             <option value="">Order…</option>
           </select>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
-            <input type="text" id="retOrderFind" aria-label="Find an older order by its number" placeholder="Older order? Type its number" style="flex:1 1 160px;">
+          <div class="u-d-flex u-gap-6 u-fwr-wrap u-ai-center">
+            <input type="text" id="retOrderFind" aria-label="Find an older order by its number" placeholder="Older order? Type its number" class="u-flex-1-1-160">
             <button type="button" class="small" id="retOrderFindBtn">Find order</button>
           </div>
-          <p class="hint" id="retOrderHint" style="margin:0;"></p>
-          <select id="retOrderItem" required disabled style="padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;">
+          <p class="hint u-m-0" id="retOrderHint"></p>
+          <select id="retOrderItem" required disabled class="u-p-9-10 u-br-8 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-14">
             <option value="">Pick an order first…</option>
           </select>
-          <select id="retReason" required style="padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;">
+          <select id="retReason" required class="u-p-9-10 u-br-8 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-14">
             <option value="">Reason…</option>
             <option value="wrong_item">Wrong item sent</option>
             <option value="damaged_in_transit">Damaged in transit</option>
@@ -273,7 +281,7 @@
             <option value="defective">Defective / didn't work as expected</option>
             <option value="other">Other</option>
           </select>
-          <select id="retCondition" style="padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;">
+          <select id="retCondition" class="u-p-9-10 u-br-8 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-14">
             <option value="">Condition reported by customer…</option>
             <option value="resalable">Resalable / unopened</option>
             <option value="damaged">Damaged</option>
@@ -281,10 +289,10 @@
             <option value="unknown">Unknown / not yet inspected</option>
           </select>
           <input type="text" id="retNotes" placeholder="Notes (optional)">
-          <button type="submit" class="small" style="align-self:flex-start;">Log return</button>
+          <button type="submit" class="small u-as-flex-start">Log return</button>
         </form>
 
-        <h3 style="font-size:13px;color:var(--navy);margin:20px 0 6px;">Return requests</h3>
+        <h3 class="u-fs-13 u-c-navy u-m-20-0-6">Return requests</h3>
         <div id="returnsWrap"><p class="empty">Loading…</p></div>
       </section>
 
@@ -295,8 +303,8 @@
         <div class="statRow" id="expenseStats"></div>
         <div id="expensesWrap"><p class="empty">Loading…</p></div>
 
-        <form id="addExpenseForm" style="display:flex;flex-direction:column;gap:8px;margin-top:14px;padding-top:16px;border-top:1px solid var(--line);">
-          <select id="expCategory" required style="padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;">
+        <form id="addExpenseForm" class="u-d-flex u-fd-column u-gap-8 u-mt-14 u-pt-16 u-bt-1-solid-line">
+          <select id="expCategory" required class="u-p-9-10 u-br-8 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-14">
             <option value="">Category…</option>
             <option value="packaging">Packaging</option>
             <option value="ingredients">Ingredients / Raw Materials</option>
@@ -309,14 +317,14 @@
           <input type="number" id="expAmount" placeholder="Amount ($)" step="0.01" min="0.01" required>
           <input type="date" id="expDate" required>
           <input type="text" id="expVendor" placeholder="Vendor (optional — e.g. Uline, Meta Ads)">
-          <textarea id="expNote" placeholder="Note (optional)" rows="2" style="width:100%;padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;resize:vertical;"></textarea>
-          <label style="font-size:12px;color:var(--muted);">Receipt (optional) — photo, screenshot, or PDF</label>
+          <textarea id="expNote" placeholder="Note (optional)" rows="2" class="u-w-100pct u-p-9-10 u-br-8 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-14 u-rs-vertical"></textarea>
+          <label class="u-fs-12 u-c-muted">Receipt (optional) — photo, screenshot, or PDF</label>
           <input type="file" id="expReceipt" accept="image/*,.pdf" aria-label="Receipt file (optional)">
-          <button type="submit" class="small" style="align-self:flex-start;">Add expense</button>
+          <button type="submit" class="small u-as-flex-start">Add expense</button>
         </form>
 
-        <h4 style="font-size:12px;color:var(--muted);margin:18px 0 6px;">Recently deleted expenses</h4>
-        <p class="hint" style="margin-top:-2px;">Deleted expenses land here instead of disappearing for good — restore puts them right back.</p>
+        <h4 class="u-fs-12 u-c-muted u-m-18-0-6">Recently deleted expenses</h4>
+        <p class="hint u-mt-n2">Deleted expenses land here instead of disappearing for good — restore puts them right back.</p>
         <div id="deletedExpensesWrap"><p class="empty">Loading…</p></div>
       </section>
 
@@ -332,16 +340,16 @@
         </div>
         <div class="statRow" id="acctStats"></div>
 
-        <h3 style="font-size:13px;color:var(--navy);margin:18px 0 6px;">Orders needing refund review</h3>
-        <p class="hint" style="margin-top:-2px;">These have a partial-refund status but no exact refunded amount on file, so they're counted at full value above — check Shopify if the real number matters for this period.</p>
+        <h3 class="u-fs-13 u-c-navy u-m-18-0-6">Orders needing refund review</h3>
+        <p class="hint u-mt-n2">These have a partial-refund status but no exact refunded amount on file, so they're counted at full value above — check Shopify if the real number matters for this period.</p>
         <div id="acctReviewWrap"><p class="empty">Loading…</p></div>
 
-        <h3 style="font-size:13px;color:var(--navy);margin:18px 0 6px;">Orders saved without items</h3>
-        <p class="hint" style="margin-top:-2px;">Manual orders whose items were never saved (for example the connection dropped). They are counted in Revenue above. The person who entered one can finish it on the manual order page ("Finish this order"); if it should not exist, delete it on the Orders page.</p>
+        <h3 class="u-fs-13 u-c-navy u-m-18-0-6">Orders saved without items</h3>
+        <p class="hint u-mt-n2">Manual orders whose items were never saved (for example the connection dropped). They are counted in Revenue above. The person who entered one can finish it on the manual order page ("Finish this order"); if it should not exist, delete it on the Orders page.</p>
         <div id="acctNoItemsWrap"><p class="empty">Loading…</p></div>
 
-        <h3 style="font-size:13px;color:var(--navy);margin:18px 0 6px;">Possible duplicate delivery costs</h3>
-        <p class="hint" style="margin-top:-2px;">Each received purchase order should add its cost to Expenses once. These have more than one cost entry, so check whether one is a duplicate. They are counted as they are in the totals above; nothing is changed automatically.</p>
+        <h3 class="u-fs-13 u-c-navy u-m-18-0-6">Possible duplicate delivery costs</h3>
+        <p class="hint u-mt-n2">Each received purchase order should add its cost to Expenses once. These have more than one cost entry, so check whether one is a duplicate. They are counted as they are in the totals above; nothing is changed automatically.</p>
         <div id="acctDupWrap"><p class="empty">Loading…</p></div>
       </section>
 
@@ -356,23 +364,23 @@
         </div>
         <div class="statRow" id="taxStats"></div>
 
-        <h3 style="font-size:13px;color:var(--navy);margin:18px 0 6px;">Expenses by category</h3>
-        <p class="hint" style="margin-top:-2px;">Split into Cost of Goods Sold (ingredients, packaging, manufacturing — the direct cost of what you make) and Operating expenses (everything else). <b>This split is a starting point based on how you've already been categorizing expenses, not tax advice</b> — have your accountant confirm the final categorization before filing anything.</p>
+        <h3 class="u-fs-13 u-c-navy u-m-18-0-6">Expenses by category</h3>
+        <p class="hint u-mt-n2">Split into Cost of Goods Sold (ingredients, packaging, manufacturing — the direct cost of what you make) and Operating expenses (everything else). <b>This split is a starting point based on how you've already been categorizing expenses, not tax advice</b> — have your accountant confirm the final categorization before filing anything.</p>
         <div id="taxCategoryWrap"><p class="empty">Loading…</p></div>
 
-        <h3 style="font-size:13px;color:var(--navy);margin:18px 0 6px;">Estimated cost of units sold</h3>
-        <p class="hint" style="margin-top:-2px;">A separate reference figure — quantity sold × each product's recorded cost — for comparing against the categorized expenses above. This is an estimate, not an authoritative Cost of Goods Sold figure (real COGS accounting also factors in beginning/ending inventory, which this system doesn't track). Items whose SKU doesn't match a product on file, or that have no cost recorded, are called out separately rather than silently left out.</p>
+        <h3 class="u-fs-13 u-c-navy u-m-18-0-6">Estimated cost of units sold</h3>
+        <p class="hint u-mt-n2">A separate reference figure — quantity sold × each product's recorded cost — for comparing against the categorized expenses above. This is an estimate, not an authoritative Cost of Goods Sold figure (real COGS accounting also factors in beginning/ending inventory, which this system doesn't track). Items whose SKU doesn't match a product on file, or that have no cost recorded, are called out separately rather than silently left out.</p>
         <div id="taxCogsWrap"><p class="empty">Loading…</p></div>
 
-        <h3 style="font-size:13px;color:var(--navy);margin:18px 0 6px;">Sales tax collected</h3>
-        <p class="hint" style="margin-top:-2px;">By state, where the state is known. <b>Honest limit:</b> orders don't yet have a dedicated state field — this reads it out of the raw synced order data instead, which hasn't been checked against a real order yet (none have synced as of this build). Treat the total as reliable and the by-state split as unverified until your first real Shopify order confirms the field is really there.</p>
+        <h3 class="u-fs-13 u-c-navy u-m-18-0-6">Sales tax collected</h3>
+        <p class="hint u-mt-n2">By state, where the state is known. <b>Honest limit:</b> orders don't yet have a dedicated state field — this reads it out of the raw synced order data instead, which hasn't been checked against a real order yet (none have synced as of this build). Treat the total as reliable and the by-state split as unverified until your first real Shopify order confirms the field is really there.</p>
         <div id="taxStateWrap"><p class="empty">Loading…</p></div>
 
-        <h3 style="font-size:13px;color:var(--navy);margin:18px 0 6px;">Expenses missing a receipt</h3>
-        <p class="hint" style="margin-top:-2px;">Real audit protection — if the IRS or a state ever asks, these are the ones without paperwork backing them up.</p>
+        <h3 class="u-fs-13 u-c-navy u-m-18-0-6">Expenses missing a receipt</h3>
+        <p class="hint u-mt-n2">Real audit protection — if the IRS or a state ever asks, these are the ones without paperwork backing them up.</p>
         <div id="taxReceiptWrap"><p class="empty">Loading…</p></div>
 
-        <button type="button" class="small" id="taxExportBtn" style="margin-top:16px;">Export this report as CSV</button>
+        <button type="button" class="small u-mt-16" id="taxExportBtn">Export this report as CSV</button>
       </section>
 
       <!-- Tasks & Incidents -->
@@ -380,7 +388,7 @@
         <h2>Tasks</h2>
         <p class="hint">Sorted by due date. Rows in red are overdue.</p>
         <div id="tasksTableWrap"><p class="empty">Loading…</p></div>
-        <details id="recentDoneTasks" style="margin-top:14px;">
+        <details id="recentDoneTasks" class="u-mt-14">
           <summary>Recently finished</summary>
           <p class="hint">The 10 most recently changed finished or cancelled tasks. "Reopen" puts a finished task back to Open, only if nobody changed it since this list loaded.</p>
           <div id="recentDoneWrap"><p class="empty">Loading…</p></div>
@@ -397,27 +405,27 @@
       <section class="panel" id="evidenceLockerPanel">
         <h2>Evidence Locker</h2>
         <p class="hint">A record of evidence tied to a specific incident — photos, documents, emails, whatever backs up what happened. Upload the file itself, or paste a link to where it lives.</p>
-        <select id="evidenceFilter" style="padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;margin-bottom:10px;">
+        <select id="evidenceFilter" class="u-p-9-10 u-br-8 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-14 u-mb-10">
           <option value="">Show evidence for: all incidents</option>
         </select>
         <div id="evidenceWrap"><p class="empty">Loading…</p></div>
-        <form id="addEvidenceForm" style="display:flex;flex-direction:column;gap:8px;margin-top:14px;padding-top:16px;border-top:1px solid var(--line);">
-          <select id="evidenceIncident" required style="padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;">
+        <form id="addEvidenceForm" class="u-d-flex u-fd-column u-gap-8 u-mt-14 u-pt-16 u-bt-1-solid-line">
+          <select id="evidenceIncident" required class="u-p-9-10 u-br-8 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-14">
             <option value="">Which incident is this evidence for?</option>
           </select>
           <input type="text" id="evidenceTitle" placeholder="Title (e.g. Customer complaint email)" required>
-          <textarea id="evidenceDescription" placeholder="More detail (optional)…" rows="3" style="width:100%;padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;resize:vertical;"></textarea>
-          <select id="evidenceType" style="padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;">
+          <textarea id="evidenceDescription" placeholder="More detail (optional)…" rows="3" class="u-w-100pct u-p-9-10 u-br-8 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-14 u-rs-vertical"></textarea>
+          <select id="evidenceType" class="u-p-9-10 u-br-8 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-14">
             <option value="">Type (optional)</option>
             <option value="Email">Email</option>
             <option value="Photo">Photo</option>
             <option value="Document">Document</option>
             <option value="Other">Other</option>
           </select>
-          <input type="file" id="evidenceFile" style="font-size:13px;" aria-label="Evidence file (optional)">
-          <p class="hint" style="margin:-4px 0 0;">Upload a file here, or paste a link below — you don't need both.</p>
+          <input type="file" id="evidenceFile" class="u-fs-13" aria-label="Evidence file (optional)">
+          <p class="hint u-m-n4-0-0">Upload a file here, or paste a link below — you don't need both.</p>
           <input type="text" id="evidenceLink" placeholder="Link to the file (optional — e.g. a link to the email, photo, or document)">
-          <button type="submit" class="small" style="align-self:flex-start;">Add evidence</button>
+          <button type="submit" class="small u-as-flex-start">Add evidence</button>
         </form>
       </section>
 
@@ -427,27 +435,27 @@
         <p class="hint">A central place for contracts, certifications, insurance, tax documents, packaging specs, and anything else worth keeping on file — separate from Evidence Locker, which is only for incident-specific evidence. Upload the file itself, or paste a link to where it lives (Drive, email, etc.).</p>
         <div class="statRow" id="documentsStats"></div>
         <div id="documentsWrap"><p class="empty">Loading…</p></div>
-        <form id="addDocumentForm" style="display:flex;flex-direction:column;gap:8px;margin-top:14px;padding-top:16px;border-top:1px solid var(--line);">
+        <form id="addDocumentForm" class="u-d-flex u-fd-column u-gap-8 u-mt-14 u-pt-16 u-bt-1-solid-line">
           <input type="text" id="docTitle" placeholder="Title (e.g. General Liability Insurance Policy)" required>
-          <select id="docCategory" required style="padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;">
+          <select id="docCategory" required class="u-p-9-10 u-br-8 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-14">
             <option value="">Category…</option>
           </select>
-          <select id="docRelated" style="padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;">
+          <select id="docRelated" class="u-p-9-10 u-br-8 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-14">
             <option value="">Not linked to a specific record</option>
           </select>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <label style="font-size:12px;color:var(--muted);flex:1;min-width:150px;">Issued / effective date (optional)
-              <input type="date" id="docIssuedDate" style="display:block;margin-top:4px;padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;width:100%;">
+          <div class="u-d-flex u-gap-8 u-fwr-wrap">
+            <label class="u-fs-12 u-c-muted u-flex-1 u-minw-150">Issued / effective date (optional)
+              <input type="date" id="docIssuedDate" class="u-d-block u-mt-4 u-p-9-10 u-br-8 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-14 u-w-100pct">
             </label>
-            <label style="font-size:12px;color:var(--muted);flex:1;min-width:150px;">Expiration date (optional)
-              <input type="date" id="docExpirationDate" style="display:block;margin-top:4px;padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;width:100%;">
+            <label class="u-fs-12 u-c-muted u-flex-1 u-minw-150">Expiration date (optional)
+              <input type="date" id="docExpirationDate" class="u-d-block u-mt-4 u-p-9-10 u-br-8 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-14 u-w-100pct">
             </label>
           </div>
-          <textarea id="docNotes" placeholder="Notes (optional)…" rows="2" style="width:100%;padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;resize:vertical;"></textarea>
-          <input type="file" id="docFile" style="font-size:13px;" aria-label="Document file (optional)">
-          <p class="hint" style="margin:-4px 0 0;">Upload a file here, or paste a link below — you don't need both.</p>
+          <textarea id="docNotes" placeholder="Notes (optional)…" rows="2" class="u-w-100pct u-p-9-10 u-br-8 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-14 u-rs-vertical"></textarea>
+          <input type="file" id="docFile" class="u-fs-13" aria-label="Document file (optional)">
+          <p class="hint u-m-n4-0-0">Upload a file here, or paste a link below — you don't need both.</p>
           <input type="text" id="docUrl" placeholder="Link to the document (optional — e.g. a Drive or email link)">
-          <button type="submit" class="small" style="align-self:flex-start;">Add document</button>
+          <button type="submit" class="small u-as-flex-start">Add document</button>
         </form>
       </section>
 
@@ -456,13 +464,13 @@
         <h2>Adverse Event Reports (FDA / MoCRA)</h2>
         <p class="hint">Log any report of a serious reaction to the product here. This calculates the FDA's 15-business-day reporting deadline automatically and opens a high-priority task so it can't be missed. This is a tracking tool, not legal advice — always confirm actual reporting decisions with a qualified regulatory professional.</p>
         <div id="adverseEventsWrap"><p class="empty">Loading…</p></div>
-        <form id="addAdverseEventForm" style="display:flex;flex-direction:column;gap:8px;margin-top:14px;padding-top:16px;border-top:1px solid var(--line);">
+        <form id="addAdverseEventForm" class="u-d-flex u-fd-column u-gap-8 u-mt-14 u-pt-16 u-bt-1-solid-line">
           <input type="text" id="aeProduct" placeholder="Product name (e.g. Cocoa Body Lotion)" required>
-          <label style="font-size:12px;color:var(--muted);">Date the report was received
-            <input type="date" id="aeDateReceived" required style="display:block;margin-top:4px;padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;">
+          <label class="u-fs-12 u-c-muted">Date the report was received
+            <input type="date" id="aeDateReceived" required class="u-d-block u-mt-4 u-p-9-10 u-br-8 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-14">
           </label>
-          <textarea id="aeDescription" placeholder="What was reported?" rows="3" required style="width:100%;padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;resize:vertical;"></textarea>
-          <select id="aeOutcomeType" style="padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;">
+          <textarea id="aeDescription" placeholder="What was reported?" rows="3" required class="u-w-100pct u-p-9-10 u-br-8 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-14 u-rs-vertical"></textarea>
+          <select id="aeOutcomeType" class="u-p-9-10 u-br-8 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-14">
             <option value="">Outcome type (optional)</option>
             <option value="death">Death</option>
             <option value="hospitalization">Hospitalization</option>
@@ -474,7 +482,7 @@
           </select>
           <input type="text" id="aeReporterName" placeholder="Reporter name (optional)">
           <input type="text" id="aeReporterContact" placeholder="Reporter contact (optional)">
-          <button type="submit" class="small" style="align-self:flex-start;">Log adverse event report</button>
+          <button type="submit" class="small u-as-flex-start">Log adverse event report</button>
         </form>
       </section>
 
@@ -483,17 +491,17 @@
         <h2>AI Agent Activity</h2>
         <p class="hint">What each of your 10 agents is allowed to do, what it's actually done, and what it's spent — all in one place.</p>
 
-        <h3 style="margin:18px 0 6px;font-size:15px;">Agent registry — what each one can touch, and what it can't do alone</h3>
-        <p class="hint" style="margin-top:0;">Of these 10, only Agent #7 (Customer Service) calls a paid AI model at all — the rest are rule-based checks with no AI model involved, so there's nothing for them to "get wrong" the way an AI reply could.</p>
-        <p class="hint" style="margin-top:0;">Each agent has its own On/Off switch below, separate from System Mode — so if one agent is misbehaving you can pause just that one without stopping everything else. Only the Owner or an Administrator can change these; the switch is recorded with who changed it and when. <b>Honest limit:</b> Agents marked "Switch enforced" really check the switch before doing anything. The rest still just record your decision for now; their own code doesn't check it yet, and that's being added one agent at a time. Until an agent says "Switch enforced" below, switching it off is a record of intent, not a guaranteed stop.</p>
+        <h3 class="u-m-18-0-6 u-fs-15">Agent registry — what each one can touch, and what it can't do alone</h3>
+        <p class="hint u-mt-0">Of these 10, only Agent #7 (Customer Service) calls a paid AI model at all — the rest are rule-based checks with no AI model involved, so there's nothing for them to "get wrong" the way an AI reply could.</p>
+        <p class="hint u-mt-0">Each agent has its own On/Off switch below, separate from System Mode — so if one agent is misbehaving you can pause just that one without stopping everything else. Only the Owner or an Administrator can change these; the switch is recorded with who changed it and when. <b>Honest limit:</b> Agents marked "Switch enforced" really check the switch before doing anything. The rest still just record your decision for now; their own code doesn't check it yet, and that's being added one agent at a time. Until an agent says "Switch enforced" below, switching it off is a record of intent, not a guaranteed stop.</p>
         <div id="agentRegistryWrap"><p class="empty">Loading…</p></div>
 
-        <h3 style="margin:22px 0 6px;font-size:15px;">Live AI spending &amp; model settings</h3>
-        <p class="hint" style="margin-top:0;">Pulled straight from the database, not typed in by hand — so this can never quietly go stale if a model or a limit is ever changed.</p>
+        <h3 class="u-m-22-0-6 u-fs-15">Live AI spending &amp; model settings</h3>
+        <p class="hint u-mt-0">Pulled straight from the database, not typed in by hand — so this can never quietly go stale if a model or a limit is ever changed.</p>
         <div class="statRow" id="aiSpendStats"></div>
         <div id="aiModelConfigWrap"></div>
 
-        <h3 style="margin:22px 0 6px;font-size:15px;">Recent activity log</h3>
+        <h3 class="u-m-22-0-6 u-fs-15">Recent activity log</h3>
         <div class="statRow" id="aiStats"></div>
         <div id="aiTableWrap"><p class="empty">Loading…</p></div>
       </section>
@@ -503,7 +511,7 @@
         <h2>Customer Inquiries</h2>
         <p class="hint">Every customer question, and the reply the Customer Service Agent drafted for it. Review the draft (edit it if needed), then mark it answered once you've sent it. Anything flagged sensitive needs your judgment before it goes out.</p>
         <div class="statRow" id="inqStats"></div>
-        <select id="inqFilter" style="margin-bottom:14px;padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:13.5px;">
+        <select id="inqFilter" class="u-mb-14 u-p-9-10 u-br-8 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-13p5">
           <option value="">Show: all inquiries</option>
           <option value="needs_review">Show: needs review</option>
           <option value="drafted">Show: drafted, not yet reviewed</option>
@@ -520,14 +528,14 @@
         <div class="statRow" id="continuityStats"></div>
         <div id="continuityWrap"><p class="empty">Loading…</p></div>
 
-        <h2 style="margin-top:22px;">System status</h2>
+        <h2 class="u-mt-22">System status</h2>
         <p class="hint">Read-only facts about this dashboard right now. Anything it cannot see says UNKNOWN or NOT VERIFIED — never a green tick it cannot prove. The diagnostic summary is safe to paste into a message: it holds no names, e-mails, record contents, keys or tokens.</p>
         <div id="systemStatusWrap" aria-live="polite"><p class="empty">Loading…</p></div>
-        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+        <div class="u-mt-10 u-d-flex u-gap-8 u-fwr-wrap">
           <button type="button" class="small secondary" id="sysStatusRefresh">Check again</button>
           <button type="button" class="small secondary" id="copyDiagBtn">Copy diagnostic summary</button>
         </div>
-        <pre id="diagText" class="codeBlock" style="display:none;white-space:pre-wrap;"></pre>
+        <pre id="diagText" class="codeBlock u-d-none u-ws-pre-wrap"></pre>
       </section>
 
       <!-- Daily Owner Business Health Summary -->
@@ -553,11 +561,11 @@
       <section class="panel" id="flagsPanel">
         <h2>Feature Flags</h2>
 
-        <h3 style="margin:0 0 6px;font-size:15px;">System mode</h3>
-        <p class="hint" style="margin-top:0;">The one master switch for the whole system. Changing it away from Normal shows a banner on every page until it's changed back. Only the Owner can change it; anyone active can see it.</p>
+        <h3 class="u-m-0-0-6 u-fs-15">System mode</h3>
+        <p class="hint u-mt-0">The one master switch for the whole system. Changing it away from Normal shows a banner on every page until it's changed back. Only the Owner can change it; anyone active can see it.</p>
         <div id="systemModeWrap"><p class="empty">Loading…</p></div>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px;padding-bottom:18px;border-bottom:1px solid var(--line);">
-          <select id="systemModeSelect" style="padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;">
+        <div class="u-d-flex u-gap-8 u-ai-center u-fwr-wrap u-mt-10 u-pb-18 u-bb-1-solid-line">
+          <select id="systemModeSelect" class="u-p-9-10 u-br-8 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-14">
             <option value="NORMAL">Normal — everything runs as usual</option>
             <option value="LIMITED_AI">Limited AI — only high-confidence, low-risk AI actions run</option>
             <option value="NO_AI">No AI — every AI agent is paused; rule-based automation keeps running</option>
@@ -565,10 +573,10 @@
           </select>
           <button type="button" id="systemModeChangeBtn" class="small">Change mode</button>
         </div>
-        <p class="hint" style="margin-top:10px;">Honest limits: choosing No AI or Emergency also best-effort pauses Agent #7 (Customer Service) on the AI Agent Activity page, since that's the only agent that calls a paid AI model — and Emergency also switches off the Shopify Order Sync flag below. It does not (yet) force-disable logins or revoke other people's sessions — that would need a server-side change beyond this dashboard. See the guide entry for what's actually enforced today.</p>
+        <p class="hint u-mt-10">Honest limits: choosing No AI or Emergency also best-effort pauses Agent #7 (Customer Service) on the AI Agent Activity page, since that's the only agent that calls a paid AI model — and Emergency also switches off the Shopify Order Sync flag below. It does not (yet) force-disable logins or revoke other people's sessions — that would need a server-side change beyond this dashboard. See the guide entry for what's actually enforced today.</p>
 
-        <h3 style="margin:18px 0 6px;font-size:15px;">Other switches</h3>
-        <p class="hint" style="margin-top:0;">Only the Owner role can change these.</p>
+        <h3 class="u-m-18-0-6 u-fs-15">Other switches</h3>
+        <p class="hint u-mt-0">Only the Owner role can change these.</p>
         <div id="flagsWrap"><p class="empty">Loading…</p></div>
       </section>
 
@@ -597,7 +605,7 @@
       <section class="panel" id="activityPanel">
         <h2>Employee Activity</h2>
         <p class="hint">Every change made in your system — who did it, when, and exactly what changed. Search by name, account number, area, or anything inside a change (an order number, a customer name). Changes made by automatic jobs show as "System / automatic" because no person was signed in. For areas holding customer personal information or your formula, only the field names are recorded, never the values.</p>
-        <div id="activityDigest" class="digestLine" style="display:none;"></div>
+        <div id="activityDigest" class="digestLine u-d-none"></div>
         <div id="activityPeople" class="peopleStrip"></div>
         <div class="activityControls">
           <input type="text" id="activitySearch" placeholder="Search people, account numbers, areas, order numbers…">
@@ -617,7 +625,7 @@
         </div>
         <div class="statRow" id="activityStats"></div>
         <div id="activityWrap"><p class="empty">Loading…</p></div>
-        <div id="activityMoreWrap" style="display:none; margin-top:12px;">
+        <div id="activityMoreWrap" class="u-d-none u-mt-12">
           <button class="small secondary" id="activityMoreBtn">Load more</button>
         </div>
       </section>
@@ -723,15 +731,15 @@
         <h2>Procedures (SOPs)</h2>
         <p class="hint">Your own written step-by-step procedures — useful for your reference now, and ready the moment you bring anyone else into the business.</p>
         <div id="sopsWrap"><p class="empty">Loading…</p></div>
-        <form id="addSopForm" style="display:flex;flex-direction:column;gap:8px;margin-top:14px;padding-top:16px;border-top:1px solid var(--line);">
+        <form id="addSopForm" class="u-d-flex u-fd-column u-gap-8 u-mt-14 u-pt-16 u-bt-1-solid-line">
           <input type="text" id="sopTitle" placeholder="Procedure title (e.g. How to process a return)" required>
           <input type="text" id="sopCategory" placeholder="Category (optional, e.g. Orders, Shipping)">
-          <textarea id="sopContent" placeholder="Write the steps here…" rows="4" required style="width:100%;padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;resize:vertical;"></textarea>
-          <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink);">
+          <textarea id="sopContent" placeholder="Write the steps here…" rows="4" required class="u-w-100pct u-p-9-10 u-br-8 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-14 u-rs-vertical"></textarea>
+          <label class="u-d-flex u-ai-center u-gap-8 u-fs-12p5 u-c-ink">
             <input type="checkbox" id="sopAgentVisible">
             Let the Customer Service Agent reference this when drafting customer replies
           </label>
-          <button type="submit" class="small" style="align-self:flex-start;">Add procedure</button>
+          <button type="submit" class="small u-as-flex-start">Add procedure</button>
         </form>
       </section>
 
@@ -741,18 +749,18 @@
         <p class="hint">Things you want added or changed to this system — track them here instead of only in chat, and watch each one move from requested to in progress to done.</p>
         <div class="statRow" id="frStats"></div>
         <div id="featureRequestsWrap"><p class="empty">Loading…</p></div>
-        <form id="addFeatureRequestForm" style="display:flex;flex-direction:column;gap:8px;margin-top:14px;padding-top:16px;border-top:1px solid var(--line);">
+        <form id="addFeatureRequestForm" class="u-d-flex u-fd-column u-gap-8 u-mt-14 u-pt-16 u-bt-1-solid-line">
           <input type="text" id="frTitle" placeholder="What do you want added or changed?" required>
-          <textarea id="frDescription" placeholder="More detail (optional)…" rows="3" style="width:100%;padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;resize:vertical;"></textarea>
-          <select id="frPriority" style="padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;">
+          <textarea id="frDescription" placeholder="More detail (optional)…" rows="3" class="u-w-100pct u-p-9-10 u-br-8 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-14 u-rs-vertical"></textarea>
+          <select id="frPriority" class="u-p-9-10 u-br-8 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-14">
             <option value="normal">Normal priority</option>
             <option value="high">High priority</option>
           </select>
-          <button type="submit" class="small" style="align-self:flex-start;">Add request</button>
+          <button type="submit" class="small u-as-flex-start">Add request</button>
         </form>
 
-        <h4 style="font-size:12px;color:var(--muted);margin:18px 0 6px;">Recently deleted requests</h4>
-        <p class="hint" style="margin-top:-2px;">Deleted requests land here instead of disappearing for good — restore puts them right back.</p>
+        <h4 class="u-fs-12 u-c-muted u-m-18-0-6">Recently deleted requests</h4>
+        <p class="hint u-mt-n2">Deleted requests land here instead of disappearing for good — restore puts them right back.</p>
         <div id="deletedFeatureRequestsWrap"><p class="empty">Loading…</p></div>
       </section>
 
@@ -761,10 +769,10 @@
         <h2>Legal Holds</h2>
         <p class="hint">If a dispute or investigation ever requires it, flag what needs to be preserved here so nothing gets edited or deleted while it's under hold.</p>
         <div id="legalHoldsWrap"><p class="empty">Loading…</p></div>
-        <form id="addLegalHoldForm" style="display:flex;flex-direction:column;gap:8px;margin-top:14px;padding-top:16px;border-top:1px solid var(--line);">
+        <form id="addLegalHoldForm" class="u-d-flex u-fd-column u-gap-8 u-mt-14 u-pt-16 u-bt-1-solid-line">
           <input type="text" id="lhTitle" placeholder="What's on hold (e.g. Order #1234, Customer Jane Doe's records)" required>
-          <textarea id="lhDescription" placeholder="Why is it on hold? (optional)" rows="3" style="width:100%;padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;resize:vertical;"></textarea>
-          <select id="lhRelatedType" style="padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:14px;">
+          <textarea id="lhDescription" placeholder="Why is it on hold? (optional)" rows="3" class="u-w-100pct u-p-9-10 u-br-8 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-14 u-rs-vertical"></textarea>
+          <select id="lhRelatedType" class="u-p-9-10 u-br-8 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-14">
             <option value="">Type (optional)</option>
             <option value="order">Order</option>
             <option value="customer">Customer</option>
@@ -773,11 +781,11 @@
             <option value="other">Other</option>
           </select>
           <input type="text" id="lhRelatedReference" placeholder="Reference (optional — order #, customer name, etc.)">
-          <button type="submit" class="small" style="align-self:flex-start;">Place legal hold</button>
+          <button type="submit" class="small u-as-flex-start">Place legal hold</button>
         </form>
 
-        <h4 style="font-size:12px;color:var(--muted);margin:18px 0 6px;">Recently released holds</h4>
-        <p class="hint" style="margin-top:-2px;">Holds you've released, kept here for reference.</p>
+        <h4 class="u-fs-12 u-c-muted u-m-18-0-6">Recently released holds</h4>
+        <p class="hint u-mt-n2">Holds you've released, kept here for reference.</p>
         <div id="releasedLegalHoldsWrap"><p class="empty">Loading…</p></div>
       </section>
       </main>
@@ -821,6 +829,6 @@
     </div>
   </div>
 
-<script src="assets/owner-login-app.js?v=797d4eda5d"></script>
+<script src="assets/owner-login-app.js?v=ff88310354"></script>
 </body>
 </html>

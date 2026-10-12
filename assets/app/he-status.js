@@ -31,7 +31,13 @@ window.HE.modules.define('he-status', { api: 1, needs: ['DB_STEPS','STOCK_FN_PRO
     }
     function assetVersions(){
       const pick = re => { const el = [...document.querySelectorAll('script[src], link[href]')].map(e => e.getAttribute('src') || e.getAttribute('href')).find(u => re.test(u || '')); const m = el && el.match(/[?&]v=([0-9a-f]+)/); return m ? m[1] : 'unknown'; };
-      return 'helpers API ' + window.HE.helpers.API + ', helpers ' + pick(/owner-login-helpers\.js/) + ', styles ' + pick(/owner-login\.css/);
+      // EXT15: the program file and every module are named too (the program's
+      // version was missing after EXT14 moved it out of the page). Versions are
+      // the ?v= fingerprints the page asked for: a short content hash, not a secret.
+      const mods = window.HE.modules ? window.HE.modules.list() : [];
+      const modText = mods.map(m => m.name + ' ' + pick(new RegExp('assets/app/' + m.name + '\\.js')) + (m.created ? '' : ' (NOT STARTED)')).join(', ');
+      return 'program ' + pick(/owner-login-app\.js/) + ', helpers API ' + window.HE.helpers.API + ', helpers ' + pick(/owner-login-helpers\.js/) + ', styles ' + pick(/owner-login\.css/)
+        + ', registry ' + pick(/owner-login-modules\.js/) + ', modules ' + mods.filter(m => m.created).length + '/' + mods.length + (modText ? ' (' + modText + ')' : '');
     }
     async function dbStepInstalled(flag){
       if (STOCK_FN_PROBES[flag]) return stockFunctionInstalled(flag);

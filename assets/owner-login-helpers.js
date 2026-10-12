@@ -470,7 +470,6 @@
     // (a person must do something), info (worth knowing; includes things
     // switched off on purpose), unknown (could not check).
     const ATTN_BUCKETS = ['available', 'reserved', 'damaged', 'sample', 'wholesale', 'promotional', 'returned', 'recalled'];
-    const DAY_MS = 86400000;
     function attentionFindings(inp, nowMs){
       const now = typeof nowMs === 'number' ? nowMs : Date.now();
       const out = [];
@@ -639,8 +638,13 @@
   // One check: PASS (0 found), WARN (stuck work / probable duplicate), FAIL
   // (points at the wrong thing / impossible value), UNKNOWN (unreadable count).
   function nightlyCheckLevel(row){
-    const n = Number(row && row.found);
-    if (row == null || row.found == null || !Number.isFinite(n) || n < 0) return 'UNKNOWN';
+    // EXT15 (property test): only a real whole-number count counts. Number('')
+    // and Number([]) are 0 and Number(true) is 1, so a blank, a list or a
+    // true/false used to read as PASS or WARN; anything else is UNKNOWN now.
+    const f = row && row.found;
+    const isCount = (typeof f === 'number' && Number.isInteger(f)) || (typeof f === 'string' && /^\s*\d+\s*$/.test(f));
+    const n = isCount ? Number(f) : NaN;
+    if (row == null || !isCount || !Number.isFinite(n) || n < 0) return 'UNKNOWN';
     if (n === 0) return 'PASS';
     return /points at the wrong thing|impossible value/i.test(String(row.section || '')) ? 'FAIL' : 'WARN';
   }

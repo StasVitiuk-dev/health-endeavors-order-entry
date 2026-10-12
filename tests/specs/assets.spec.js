@@ -13,7 +13,7 @@ const { test, expect, login } = require('../helpers/dashboard');
 const ROOT = path.resolve(__dirname, '..', '..');
 const html = () => fs.readFileSync(path.join(ROOT, 'owner-login.html'), 'utf8');
 // EXT14 (M5d): the page script lives in assets/owner-login-app.js
-const pageCode = () => html() + '\n' + fs.readFileSync(path.join(ROOT, 'assets', 'owner-login-app.js'), 'utf8');
+const pageCode = () => require('../helpers/page-source').pageSource('owner-login.html'); // EXT15: HTML + program + module files
 
 base.test.describe('local assets are versioned by content', () => {
   base.test.beforeEach(({}, testInfo) => { base.test.skip(testInfo.project.name !== 'desktop', 'source check; run once'); });

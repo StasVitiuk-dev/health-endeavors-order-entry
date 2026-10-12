@@ -103,7 +103,7 @@ Lookup by key: 0.051 ms at 10k rows (424 kB index), 0.078 ms at 100k (4.3 MB), 0
 
 ### 4.6 One command
 
-`npm run db:suite` builds the local real-shape database from scratch and runs 26 steps. Result: 26/26 PASS in 776 s. `QUICK=1` skips the volume steps (that is what CI runs). The runner refuses Supabase hosts.
+`npm run db:suite:local` builds the local real-shape database from scratch and runs 26 steps. Result: 26/26 PASS in 776 s. `QUICK=1` skips the volume steps (that is what CI runs). The runner refuses Supabase hosts.
 
 ## 5. CI (IMPLEMENTED IN BRANCH, not active until merged)
 

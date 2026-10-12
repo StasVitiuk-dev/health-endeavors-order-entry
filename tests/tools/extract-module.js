@@ -51,11 +51,17 @@ function extract(modName, description, names) {
   for (const n of names) {
     const d = a.byName.get(n);
     if (!d) throw new Error('not a top-level declaration: ' + n);
-    if (d.kind === 'let' || d.kind === 'var') throw new Error(n + ' is mutable state (' + d.kind + '); not moved');
+    // Mutable state may move only when every reader and writer moves with it:
+    // it then becomes private module state that nothing else can touch.
+    if (d.kind === 'let' || d.kind === 'var') {
+      const outside = [...d.readBy, ...d.writtenBy].filter(r => !set.has(r));
+      if (outside.length) throw new Error(n + ' is mutable state (' + d.kind + ') also used by ' + [...new Set(outside)].join(', ') + '; not moved');
+    }
     if (helperNames.has(n)) throw new Error(n + ' is a pure helper; it stays in owner-login-helpers.js');
     const st = /function/.test(d.kind) ? d.node : d.node.parent.parent;
     if (ts.isVariableStatement(st)) for (const decl of st.declarationList.declarations) for (const nm of [decl.name.text]) if (!set.has(nm)) throw new Error('statement declaring ' + n + ' also declares ' + nm + ' (list it too)');
-    if (d.writes.size) throw new Error(n + ' writes app state: ' + [...d.writes].join(', '));
+    const foreignWrites = [...d.writes].filter(w => !set.has(w));
+    if (foreignWrites.length) throw new Error(n + ' writes app state: ' + foreignWrites.join(', '));
     stmts.set(st, true);
   }
   const mods = existingModules();
@@ -63,10 +69,16 @@ function extract(modName, description, names) {
   for (const m of mods) for (const e of m.exports) fromModules.set(e, m.name);
   // needs
   const needs = new Set();
+  const appServices = new Set();
   for (const n of names) {
     for (const r of a.byName.get(n).reads) {
       if (set.has(r)) continue;
       if (helperNames.has(r) || fromModules.has(r)) { needs.add(r); continue; }
+      // A function declaration of the program is hoisted: it already exists when
+      // the modules are created, so it may be handed over as a program service.
+      // Program state (let/var/const values) may not.
+      const rd = a.byName.get(r);
+      if (process.env.ALLOW_APP_FUNCTIONS && rd && /function/.test(rd.kind)) { needs.add(r); appServices.add(r); continue; }
       throw new Error(n + ' reads ' + r + ', which is app code created later (move it first or with it)');
     }
   }
@@ -124,7 +136,7 @@ ${needList.length ? '    const { ' + needList.join(', ') + ' } = ctx;\n' : ''}${
   for (let m; (m = re.exec(shell)) && m.index === insertAt;) insertAt = m.index + m[0].length;
   fs.writeFileSync(shellPath, shell.slice(0, insertAt) + `<script src="assets/app/${modName}.js?v=0"></script>\n` + shell.slice(insertAt));
   require('./refresh-asset-versions').refresh(ROOT);
-  return { file: path.relative(ROOT, file), moved: names.length, lines: movedText.split('\n').length, needs: needList, exports: exportsList };
+  return { appServices: [...appServices], file: path.relative(ROOT, file), moved: names.length, lines: movedText.split('\n').length, needs: needList, exports: exportsList };
 }
 
 if (require.main === module) {

@@ -26,7 +26,8 @@ test('computed styles of every page', async ({ page, backend }, ti) => {
   await page.waitForLoadState('networkidle');
   const ids = await page.locator('#sidebarGroups .sidebarLink[data-page]').evaluateAll(els => [...new Set(els.map(e => e.getAttribute('data-page')))]);
   const out = { project: ti.project.name, pages: {} };
-  const snap = () => page.evaluate(props => {
+  // wait out CSS transitions (opacity fades) so timing never shows up as a difference
+  const snap = async () => { await page.waitForTimeout(600); return page.evaluate(props => {
     const rows = [];
     for (const el of document.querySelectorAll('body *')) {
       if (el.closest('#stagingBanner')) continue;
@@ -34,7 +35,7 @@ test('computed styles of every page', async ({ page, backend }, ti) => {
       rows.push([el.tagName + (el.id ? '#' + el.id : ''), props.map(p => cs.getPropertyValue(p))]);
     }
     return rows;
-  }, PROPS);
+  }, PROPS); };
   out.pages.__login_home = await snap();
   for (const id of ids) {
     await gotoPage(page, id);

@@ -420,7 +420,9 @@ window.HE.modules.define('he-data', { api: 1, needs: ['INVENTORY_BUCKET_LABELS',
     //       Returns, in the period of refunded_at — except for orders in the
     //       same list already excluded by their status, so nothing is taken
     //       off twice.
-    const ACCOUNTING_REFUND_POLICY = 'status_only';
+    // (typed as a plain string: the other policy is a real, owner-selectable option — N4 —
+    // not dead code; EXT15 type-check pilot)
+    const ACCOUNTING_REFUND_POLICY = /** @type {string} */ ('status_only');
     async function returnRefundsIn(start, end){
       if (ACCOUNTING_REFUND_POLICY !== 'subtract_return_refunds') return [];
       return fetchAllRows('returns', 'id, order_id, refund_amount, refunded_at', q => {

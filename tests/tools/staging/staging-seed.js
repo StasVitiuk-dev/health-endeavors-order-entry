@@ -106,6 +106,11 @@ const SCENARIOS = [
   { id: 'open-incident', label: 'Open incidents', look: 'Incidents' },
   { id: 'return', label: 'A return waiting', look: 'Returns' },
   { id: 'low-stock-unconfigured', label: 'Low stock + a product with no low-stock level', look: 'Inventory / Home checks' },
+  // EXT15
+  { id: 'session-expired', label: 'Sign-in expires right after you sign in (every read and save is refused)', look: 'any page: "sign in again", never zeros' },
+  { id: 'switch-drift', label: 'A stock switch is ON but its database function is missing (drift)', look: 'Continuity → System status: Switch safety PROBLEM' },
+  { id: 'nightly-stale', label: 'The nightly integrity check last ran 3 days ago', look: 'Home: Nightly integrity check card says STALE' },
+  { id: 'return-reply-lost', label: 'Return "Mark received" is saved but the reply is lost', look: 'Returns → approve r1 → Mark received' },
 ];
 function applyScenario(id, tables, nowMs) {
   const now = nowMs || Date.now();
@@ -137,6 +142,18 @@ function applyScenario(id, tables, nowMs) {
     ];
   }
   if (s.id === 'po-uncertain') hooks.dropFirstReceive = true;
+  if (s.id === 'session-expired') hooks.expireAfterSignIn = true;
+  if (s.id === 'switch-drift') {
+    tables.feature_flags.push({ id: 'ff-drift', flag_key: 'stock_fn_receive_po', label: 'Stock function: receive purchase order (R1)', description: 'SYNTHETIC', enabled: true });
+    hooks.missingFunctions = ['receive_purchase_order'];
+  }
+  if (s.id === 'nightly-stale') {
+    tables.feature_flags.push({ id: 'ff-ih', flag_key: 'integrity_results_home', label: 'Nightly integrity check on Home', description: 'SYNTHETIC', enabled: true });
+    const old = at(-3 * D);
+    tables.integrity_check_runs = [{ id: 90, started_at: old, finished_at: old, status: 'ok', checks: 15, error: null }];
+    tables.integrity_check_results = [{ id: 9001, run_id: 90, run_at: old, section: 'F01 stuck work', check_name: 'SYNTHETIC F01', found: 0, examples: null }];
+  }
+  if (s.id === 'return-reply-lost') { tables.returns.forEach(r => { r.status = 'approved'; r.disposition = 'restock'; r.approved_at = at(-D); }); hooks.dropFirstReturnReceive = true; }
   if (s.id === 'stale-edit') hooks.staleTask = true;
   if (s.id === 'permission-denied') hooks.denyWrites = true;
   return { scenario: s, hooks };

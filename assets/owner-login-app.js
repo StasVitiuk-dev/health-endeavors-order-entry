@@ -8,7 +8,7 @@
 
   // EXT15: the modules this program creates (assets/app/<name>.js) and the
   // compatibility number each must have; kept up to date by tests/tools/extract-module.js.
-  const APP_MODULES = { 'he-config': 1, 'he-ui': 1, 'he-data': 1, 'he-audit': 1, 'he-status': 1, 'he-time': 1, 'he-format': 1, 'he-nav': 1 };
+  const APP_MODULES = { 'he-config': 1, 'he-ui': 1, 'he-data': 1, 'he-audit': 1, 'he-status': 1, 'he-time': 1, 'he-format': 1, 'he-nav': 1, 'he-tasks': 1, 'he-approvals': 1, 'he-incidents': 1, 'he-expenses': 1, 'he-suppliers': 1, 'he-reports': 1, 'he-inquiries': 1, 'he-agents': 1 };
   const scriptErrorEl = document.getElementById('scriptError');
   function showBanner(text){
     if (!scriptErrorEl) return;
@@ -95,6 +95,14 @@
     const { getTodayRange, getYesterdayRange, colorForCalendar, dateKey, eventDateKey, fmtTimeShort, personalEventEditorHtml, personalTimesFromInputs, PERSONAL_CAL_HINT, weekGroupLabel, monthGroupLabel } = HE.modules.create('he-time', { CAL_COLORS, esc });
     const { missingToNaN, reportCount, missingTotalCount, missingTotalNote, mixedCurrencyNote, docExpiryBadge, inqStatusBadgeClass, continuityBadgeClass, qcIncidentCategory, numVal, CLOSED_IN } = HE.modules.create('he-format', { CLOSED_WORDS, esc, fmtDateOnly });
     const { isGroupOpen, setGroupOpen, getPinnedPages, setPinnedPages, allPageIds, getLastPage, pageFromHash, saveLastPage, PAGE_WARNINGS, PAGE_LABEL_BY_ID, NAV_BACK, NAV_FWD, rowsOnPage, typedForms, NOT_GUARDED_FORMS, hasUnsavedTyping, CHANGE_PASSWORD_URL, SIGNED_OUT_NOTE } = HE.modules.create('he-nav', { SIDEBAR_GROUPS });
+    const { loadTasks } = HE.modules.create('he-tasks', { CLOSED_IN, SEARCH_INDEX, TASK_ALLOWED_FROM, TASK_NEXT_ACTIONS, TASK_STATUS_LABELS, esc, explainDbError, fmtDate, isClosedStatus, isOverdue, showDashError, supabase });
+    const { loadApprovals } = HE.modules.create('he-approvals', { CLOSED_IN, SEARCH_INDEX, esc, fmtDate, isClosedStatus, requireReauth, showDashError, staleMessage, supabase, updateIfUnchanged });
+    const { escalateToIncidentOnce, loadIncidents } = HE.modules.create('he-incidents', { CLOSED_IN, SEARCH_INDEX, esc, fixedRequestKey, fmtDate, isClosedStatus, isOverdue, isRequestKeyRepeat, requestKeysOn, showDashError, staleMessage, supabase, updateIfUnchanged, withRequestKey });
+    const { loadExpenses, loadDeletedExpenses } = HE.modules.create('he-expenses', { EXPENSE_CATEGORY_LABELS, LIST_LIMITS, SEARCH_INDEX, appendMore, confirmSecondPress, esc, fetchAllRows, fmtDate, fmtDateOnly, fmtMoney, listLimit, noRowsChanged, showDashError, staleMessage, supabase, updateIfUnchanged });
+    const { loadSuppliers } = HE.modules.create('he-suppliers', { SEARCH_INDEX, SUPPLIER_TYPE_LABELS, boolGuard, esc, fetchAllRows, showDashError, staleMessage, updateIfUnchanged });
+    const { setReportHistoryView, renderReportHistoryView, loadReportHistory } = HE.modules.create('he-reports', { esc, fmtDateOnly, fmtMoney, localDateString, missingToNaN, monthGroupLabel, reportCount, rollupReports, showDashError, startOfWeekMonday, supabase, weekGroupLabel });
+    const { inquiriesList, loadInquiries, renderInquiries } = HE.modules.create('he-inquiries', { INQ_ANSWERED_CAP, INQ_STATUS_LABELS, esc, fetchAllRows, fetchAllRowsIn, fmtDate, inqStatusBadgeClass, noRowsChanged, showDashError, staleMessage, supabase, updateIfUnchanged });
+    const { agentControls, agentTruth, loadAgentControls } = HE.modules.create('he-agents', { AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, currentUserId, esc, fmtDate, maskSensitive, requireReauth, showDashError, staleMessage, supabase, toast, updateIfUnchanged });
     // @@ end modules
 
     const loginScreen = document.getElementById('loginScreen');
@@ -433,7 +441,7 @@
       switch (pageId) {
         case 'attentionPanel': return (SEARCH_INDEX.attention || []).length;
         case 'approvalsPanel': return (SEARCH_INDEX.approvals || []).filter(r => !isClosedStatus(r.status)).length;
-        case 'inquiriesPanel': return (ALL_INQUIRIES || []).filter(i => i.status === 'needs_review').length;
+        case 'inquiriesPanel': return (inquiriesList() || []).filter(i => i.status === 'needs_review').length;
         case 'tasksPanel': return (SEARCH_INDEX.tasks || []).filter(t => !isClosedStatus(t.status)).length;
         case 'incidentsPanel': return (SEARCH_INDEX.incidents || []).filter(i => !isClosedStatus(i.status)).length;
         case 'returnsPanel': return (SEARCH_INDEX.returns || []).filter(r => r.status !== 'closed').length;
@@ -460,7 +468,7 @@
           results.push({ pageId: 'ordersPanel', type: 'Order', label: `${o.order_number || o.id} — ${o.customer_name || o.customer_email || '—'}` });
         }
       });
-      (ALL_INQUIRIES || []).forEach(i => {
+      (inquiriesList() || []).forEach(i => {
         if (hit([i.customer_name, i.customer_email, i.question_text, i.order_id])) {
           results.push({ pageId: 'inquiriesPanel', type: 'Customer Inquiry', label: `${i.customer_name || i.customer_email || '—'} — ${(i.question_text || '').slice(0, 50)}` });
         }
@@ -599,7 +607,7 @@
       let html = '';
 
       if (pinnedIds.length) {
-        html += `<div class="sidebarGroup" style="--groupColor:var(--copper);"><div class="groupLabel">Pinned</div>`;
+        html += `<div class="sidebarGroup u-groupcolor-copper"><div class="groupLabel">Pinned</div>`;
         pinnedIds.forEach(id => {
           if (!PAGE_LABEL_BY_ID[id]) return;
           html += pageLinkHtml({ id, label: PAGE_LABEL_BY_ID[id] }, pinnedSet);
@@ -612,7 +620,7 @@
         const dataResults = searchEverything(q);
         LAST_SEARCH_RESULTS = dataResults;
         if (dataResults.length) {
-          html += `<div class="sidebarGroup" style="--groupColor:var(--teal);"><div class="groupLabel">Search results</div>`;
+          html += `<div class="sidebarGroup u-groupcolor-teal"><div class="groupLabel">Search results</div>`;
           dataResults.forEach((r, idx) => {
             html += `<a class="sidebarLink searchResultLink" data-page="${esc(r.pageId)}" data-result-index="${idx}">
               <span class="resultType">${esc(r.type)}</span><br>${esc(r.label)}
@@ -626,23 +634,25 @@
       // newest orders, ...). Say so, and offer a lookup in ALL orders, so an
       // older order is never reported as "no match".
       if (q && q.length >= 2) {
-        html += `<div class="sidebarGroup" style="--groupColor:var(--teal);" id="orderLookupGroup">
-          <p class="hint" style="margin:4px 10px;">Searches the records loaded here (open work, newest orders).</p>
-          <button type="button" class="small secondary" id="orderLookupBtn" style="margin:2px 10px 6px;">Look up “${esc(q)}” in all orders</button>
+        html += `<div class="sidebarGroup u-groupcolor-teal" id="orderLookupGroup">
+          <p class="hint u-m-4-10">Searches the records loaded here (open work, newest orders).</p>
+          <button type="button" class="small secondary u-m-2-10-6" id="orderLookupBtn">Look up “${esc(q)}” in all orders</button>
           <div id="orderLookupResults">${ORDER_LOOKUP.q === q ? ORDER_LOOKUP.html : ''}</div></div>`;
       }
 
       SIDEBAR_GROUPS.forEach(group => {
         const pages = group.pages.filter(p => !q || p.label.toLowerCase().includes(q));
         if (!pages.length) return;
-        const groupStyle = `--groupColor:${esc(group.color || '#1f7a8c')};`;
+        // EXT15: no inline style (strict style policy): the colour travels as data and is
+        // applied through the CSS object model below, only if it is a plain hex colour.
+        const groupStyle = `data-group-color="${esc(group.color || '#1f7a8c')}"`;
         if (group.collapsible && !q) {
           // Open if you've opened it, or if the page you're on lives here.
           const open = isGroupOpen(group.label) || pages.some(p => p.id === currentPageId);
           // Never hide something that needs attention: if a folded page has a
           // badge, the total shows on the section header.
           const hiddenBadges = open ? 0 : pages.reduce((n, p) => n + (getPageBadgeCount(p.id) || 0), 0);
-          html += `<div class="sidebarGroup" style="${groupStyle}">` +
+          html += `<div class="sidebarGroup" ${groupStyle}>` +
             `<button type="button" class="groupLabel groupToggle" data-group="${esc(group.label)}" aria-expanded="${open}">` +
               `<span class="groupChevron">${open ? '▾' : '▸'}</span>${esc(group.label)}` +
               (hiddenBadges > 0 ? `<span class="sidebarBadge">${hiddenBadges}</span>` : '') +
@@ -651,13 +661,17 @@
           html += `</div>`;
           return;
         }
-        html += `<div class="sidebarGroup" style="${groupStyle}"><div class="groupLabel">${esc(group.label)}</div>`;
+        html += `<div class="sidebarGroup" ${groupStyle}><div class="groupLabel">${esc(group.label)}</div>`;
         pages.forEach(p => { html += pageLinkHtml(p, pinnedSet); });
         html += `</div>`;
       });
 
       if (!html) html = '<p class="sidebarEmpty">No pages or records match your search.</p>';
       wrap.innerHTML = html;
+      wrap.querySelectorAll('.sidebarGroup[data-group-color]').forEach(g => {
+        const c = g.getAttribute('data-group-color');
+        if (/^#[0-9a-fA-F]{3,8}$/.test(c)) g.style.setProperty('--groupColor', c);
+      });
       wrap.querySelectorAll('.sidebarLink').forEach(link => {
         link.addEventListener('click', () => showPage(link.getAttribute('data-page')));
       });
@@ -1083,7 +1097,7 @@
               <button type="button" class="small secondary actToggle" data-index="${i}">Details</button>
             </div>
           </div>
-          <div class="actDetail" id="actDetail${i}" style="display:none;"></div>
+          <div class="actDetail u-d-none" id="actDetail${i}"></div>
         </div>`;
       }).join('');
 
@@ -1093,7 +1107,8 @@
           const i = Number(btn.getAttribute('data-index'));
           const box = document.getElementById('actDetail' + i);
           if (!box) return;
-          if (box.style.display === 'none') {
+          // EXT15: starts hidden by a class now (no inline style), so ask the computed style.
+          if (getComputedStyle(box).display === 'none') {
             if (!box.innerHTML) box.innerHTML = describeChange(ACTIVITY_ROWS[i]);
             box.style.display = 'block';
             btn.textContent = 'Hide';
@@ -1260,7 +1275,7 @@
         const box = document.getElementById('orderLookupResults'); // may have been redrawn
         if (box) { box.innerHTML = html; bindOrderLookupLinks(); }
       };
-      show('<p class="hint" style="margin:4px 10px;">Looking…</p>');
+      show('<p class="hint u-m-4-10">Looking…</p>');
       try {
         const pat = '%' + likeLiteral(q) + '%';
         // Inside PostgREST's quoted value, backslash and double quote are escaped.
@@ -1270,11 +1285,11 @@
           .is('deleted_at', null).or('order_number.ilike.' + quoted + ',customer_name.ilike.' + quoted)
           .order('placed_at', { ascending: false }).limit(20);
         if (error) throw error;
-        if (!data || !data.length) { show('<p class="hint" style="margin:4px 10px;">No order number or customer name contains this.</p>'); return; }
-        show((data.length === 20 ? '<p class="hint" style="margin:4px 10px;">The newest 20 matches:</p>' : '') + data.map(o =>
+        if (!data || !data.length) { show('<p class="hint u-m-4-10">No order number or customer name contains this.</p>'); return; }
+        show((data.length === 20 ? '<p class="hint u-m-4-10">The newest 20 matches:</p>' : '') + data.map(o =>
           `<a class="sidebarLink orderLookupLink" data-id="${esc(o.id)}" data-num="${esc(o.order_number || '')}"><span class="resultType">Order</span><br>${esc(o.order_number || o.id)} — ${esc(o.customer_name || '—')} · ${esc(fmtMoney(o.total, o.currency))} · ${esc(o.status || '—')} · ${esc(fmtDate(o.placed_at))}</a>`).join(''));
       } catch (err) {
-        show('<p class="hint" style="margin:4px 10px;color:var(--warn);">Could not search orders: ' + esc(explainDbError((err && err.message) || String(err))) + '</p>');
+        show('<p class="hint u-m-4-10 u-c-warn">Could not search orders: ' + esc(explainDbError((err && err.message) || String(err))) + '</p>');
       } finally {
         const b = document.getElementById('orderLookupBtn'); if (b) b.disabled = false;
         btn.disabled = false;
@@ -1532,15 +1547,15 @@
       ]);
       // Agent switches come from the AI Agent Activity loader (Business Health runs it).
       // Agents off on purpose until launch (#2/#3/#7/#8) are not listed as "paused".
-      const agentsPaused = agentControlsState === 'ok'
-        ? { ok: true, rows: AGENT_REGISTRY.filter(a => !a.intendedOff && agentControlsByNum[a.num] && agentControlsByNum[a.num].enabled === false) }
+      const agentsPaused = agentControls().state === 'ok'
+        ? { ok: true, rows: AGENT_REGISTRY.filter(a => !a.intendedOff && agentControls().byNum[a.num] && agentControls().byNum[a.num].enabled === false) }
         : { ok: false, error: 'switches could not be read' };
       // EXT10b (missions 7-10): the same honest state as the AI Agents page.
-      const truths = AGENT_REGISTRY.map(a => ({ a, t: agentTruth(a, agentControlsByNum[a.num]) }));
-      const agentsUnhealthy = agentControlsState === 'ok'
+      const truths = AGENT_REGISTRY.map(a => ({ a, t: agentTruth(a, agentControls().byNum[a.num]) }));
+      const agentsUnhealthy = agentControls().state === 'ok'
         ? { ok: true, rows: truths.filter(x => x.t.key === 'failed' || x.t.key === 'stale').map(x => ({ num: x.a.num, state: x.t.key })) }
         : { ok: false, error: 'switches could not be read' };
-      const agentsUnknown = agentControlsState === 'ok'
+      const agentsUnknown = agentControls().state === 'ok'
         ? { ok: true, rows: truths.filter(x => x.t.key === 'unknown').map(x => ({ num: x.a.num })) }
         : { ok: false, error: 'switches could not be read' };
       ATTN_FINDINGS = attentionFindings({ inventory, receivedPOs, openPOs, poExpenses, openTasks, pendingApprovals, openIncidents,
@@ -1591,8 +1606,8 @@
           </div>
         </div>`).join('');
       const nothing = !ATTN_FINDINGS.some(f => f.level !== 'info');
-      wrap.innerHTML = (nothing ? '<p class="empty" style="margin:0 0 8px;">No data problems or to-dos found by these checks.</p>' : '') + rows +
-        (hiddenCount ? `<p class="hint" style="margin:8px 0 0;">${hiddenCount} hidden until they change. <button type="button" class="small secondary" id="attnToggleHidden">${ATTN_SHOW_HIDDEN ? 'Hide them' : 'Show them'}</button></p>` : '') +
+      wrap.innerHTML = (nothing ? '<p class="empty u-m-0-0-8">No data problems or to-dos found by these checks.</p>' : '') + rows +
+        (hiddenCount ? `<p class="hint u-m-8-0-0">${hiddenCount} hidden until they change. <button type="button" class="small secondary" id="attnToggleHidden">${ATTN_SHOW_HIDDEN ? 'Hide them' : 'Show them'}</button></p>` : '') +
         attnFreshnessHtml();
       const recheck = document.getElementById('attnRecheck');
       if (recheck) recheck.addEventListener('click', () => { recheck.disabled = true; safeRun(loadAttentionChecks); });
@@ -1693,8 +1708,8 @@
       } catch (e) { db = { ok: false, text: 'Could not read: ' + errorKind(e && e.message) }; }
       if (!isLatest()) return;
       const counts = {};
-      if (agentControlsState === 'ok') AGENT_REGISTRY.forEach(a => { const t = agentTruth(a, agentControlsByNum[a.num]).label; counts[t] = (counts[t] || 0) + 1; });
-      const agents = agentControlsState === 'ok' ? Object.entries(counts).map(([k, v]) => v + ' ' + k).join(' · ') : 'UNKNOWN (agent switches could not be read)';
+      if (agentControls().state === 'ok') AGENT_REGISTRY.forEach(a => { const t = agentTruth(a, agentControls().byNum[a.num]).label; counts[t] = (counts[t] || 0) + 1; });
+      const agents = agentControls().state === 'ok' ? Object.entries(counts).map(([k, v]) => v + ' ' + k).join(' · ') : 'UNKNOWN (agent switches could not be read)';
       // The probes run only while this page is open (or on Check again / Copy),
       // never in the background load at sign-in: 7 requests nobody looks at.
       const dbSteps = currentPageId === 'continuityPanel'
@@ -1771,7 +1786,7 @@
           settle(fetchAllRows('incidents', 'id, severity, status', q => q)),
           settle(fetchAllRows('ai_decision_log', 'id, cost_usd', q => q.gte('created_at', startOfMonth.toISOString()))),
           settle(supabase.rpc('list_my_sessions')),
-          loadAgentControls(), // populates agentControlsByNum + AGENT_REGISTRY's paused count, also refreshes the paused-agents banner
+          loadAgentControls(), // populates agentControls().byNum + AGENT_REGISTRY's paused count, also refreshes the paused-agents banner
         ]);
         const failed = [ordersR, approvalsR, tasksR, incidentsR, monthAiR, sessionsR].filter(r => !r.ok);
         if (failed.length) {
@@ -1800,7 +1815,7 @@
         ).length : null;
 
         const pausedAgents = AGENT_REGISTRY.filter(a =>
-          agentControlsByNum[a.num] && agentControlsByNum[a.num].enabled === false
+          agentControls().byNum[a.num] && agentControls().byNum[a.num].enabled === false
         ).length;
 
         const monthAiSpend = monthAiR.ok ? (monthAiR.v || []).reduce((sum, l) => sum + Number(l.cost_usd || 0), 0) : null;
@@ -1833,7 +1848,7 @@
           tile(overdueTasks, 'Overdue tasks', tasksClass, 'tasksPanel'),
           tile(criticalIncidents, 'Open high/critical incidents', incidentsClass, 'incidentsPanel'),
           // Unknown is not zero: if the switches couldn't be read, say so.
-          agentControlsState === 'ok' ? tile(pausedAgents, 'Paused agents', agentsClass) : tile('?', 'Paused agents (switches could not be read)', 'statWarn'),
+          agentControls().state === 'ok' ? tile(pausedAgents, 'Paused agents', agentsClass) : tile('?', 'Paused agents (switches could not be read)', 'statWarn'),
           tile(monthAiSpend === null ? null : esc(fmtMoney(monthAiSpend, 'USD')) + ' / ' + esc(fmtMoney(AI_SPEND_CAP, 'USD')), 'AI spend this month', aiClass),
           tile(activeSessions, 'Active sessions', ''),
         ].join('');
@@ -1993,7 +2008,7 @@
       Promise.all(fns.map(safeRun)).then(refreshChrome);
     }, 5 * 60 * 1000);
     ptr.id = 'ptrIndicator';
-    ptr.innerHTML = '<span style="padding-bottom:6px;">Release to refresh</span>';
+    ptr.innerHTML = '<span class="u-pb-6">Release to refresh</span>';
     document.body.appendChild(ptr);
     (function(){
       const area = document.querySelector('main.contentArea');
@@ -2124,32 +2139,6 @@
         showDashError('Could not add that product: ' + (err && err.message ? err.message : err));
       } finally { btn.disabled = false; }
     });
-    // "Escalate to Incident" for a quality check or a recall, at most once.
-    // A tab opened earlier (or a second person) must not create a second
-    // incident and silently re-point the record at it, leaving the first one
-    // orphaned. Re-reads the link first, then links only while still unlinked.
-    // Returns true when this call made the link.
-    async function escalateToIncidentOnce(table, id, incidentRow){
-      const { data: now, error: readErr } = await supabase.from(table).select('incident_id').eq('id', id).maybeSingle();
-      if (readErr) throw readErr;
-      if (!now || now.incident_id) { showDashError(staleMessage('That record')); return false; }
-      // EXT10 (U42): with request keys on, the incident's key is made from the
-      // record, so a retry after a lost reply (or a second tab) finds the
-      // incident already made instead of making another.
-      const rk = (await requestKeysOn()) ? fixedRequestKey('escalate|' + table + '|' + id) : null;
-      let { data: incident, error: incErr } = await supabase.from('incidents').insert(withRequestKey(incidentRow, rk)).select('id, incident_number').single();
-      if (rk && isRequestKeyRepeat(incErr)) {
-        ({ data: incident, error: incErr } = await supabase.from('incidents').select('id, incident_number').eq('client_request_id', rk).single());
-      }
-      if (incErr) throw incErr;
-      const linked = await updateIfUnchanged(table, id, { incident_id: incident.id, updated_at: new Date().toISOString() }, { incident_id: null });
-      if (!linked) {
-        showDashError('Someone escalated this at the same moment, so incident ' + (incident.incident_number || '') +
-          ' is an extra copy. Close it on the Incidents page.');
-        return false;
-      }
-      return true;
-    }
     let PO_OPEN_ID = null;
     // EXT10b (missions 23/24/70): orders whose last receive attempt ended with
     // an unknown outcome. Their Receive button is replaced by a "status
@@ -2157,63 +2146,7 @@
     // now" until a fresh read proves what happened (kept until reload, by design).
     const PO_RECEIPT_UNKNOWN = {};
     let PO_PRODUCTS = [];
-    let PO_LOTS = {}; // key: `${purchase_order_id}::${product_id}` -> array of {lot_number, quantity_received}
-
-    async function loadSuppliers(){
-      try {
-        let data = null, error = null;
-        try { data = (await fetchAllRows('suppliers', 'id, name, supplier_type, contact_name, email, phone, notes, is_active', q => q)).sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''))); }
-        catch (e) { error = e; }
-        if (error) throw error;
-        const rows = data || [];
-        SEARCH_INDEX.suppliers = rows;
-
-        const active = rows.filter(s => s.is_active);
-        document.getElementById('supplierStats').innerHTML = `
-          <div class="stat"><div class="num">${active.length}</div><div class="lbl">Active suppliers</div></div>
-          <div class="stat"><div class="num">${active.filter(s => s.supplier_type === 'manufacturer').length}</div><div class="lbl">Manufacturers</div></div>`;
-
-        // keep the purchase-order dropdown in step
-        const sel = document.getElementById('poSupplier');
-        const keep = sel.value;
-        sel.innerHTML = '<option value="">Supplier…</option>' + active.map(s =>
-          `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('');
-        sel.value = keep;
-
-        document.getElementById('suppliersWrap').innerHTML = rows.length ? rows.map(s => `
-          <div class="supRow${s.is_active ? '' : ' inactive'}" data-id="${esc(s.id)}">
-            <div>
-              <div class="sName">${esc(s.name)} <span class="badge">${esc(SUPPLIER_TYPE_LABELS[s.supplier_type] || s.supplier_type)}</span></div>
-              <div class="sMeta">${[s.contact_name, s.email, s.phone].filter(Boolean).map(esc).join(' · ') || 'No contact details yet'}</div>
-              ${s.notes ? `<div class="sMeta">${esc(s.notes)}</div>` : ''}
-            </div>
-            <button type="button" class="small secondary supToggleBtn">${s.is_active ? 'Deactivate' : 'Reactivate'}</button>
-          </div>`).join('') : '<p class="empty">No suppliers yet. Add the manufacturer you\'re about to order from.</p>';
-
-        document.querySelectorAll('.supToggleBtn').forEach(btn => {
-          btn.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            const row = btn.closest('.supRow');
-            const id = row.getAttribute('data-id');
-            const nowActive = !row.classList.contains('inactive');
-            btn.disabled = true;
-            try {
-              const changed = await updateIfUnchanged('suppliers', id,
-                { is_active: !nowActive, updated_at: new Date().toISOString() }, { is_active: boolGuard(nowActive) });
-              if (changed) toastOk(nowActive ? 'Supplier deactivated.' : 'Supplier reactivated.');
-              else showDashError(staleMessage('That supplier'));
-              loadSuppliers();
-            } catch (err) {
-              btn.disabled = false;
-              showDashError('Could not update that supplier: ' + (err && err.message ? err.message : err));
-            }
-          });
-        });
-      } catch (err) {
-        document.getElementById('suppliersWrap').innerHTML = '';
-        showDashError('Could not load suppliers: ' + (err && err.message ? err.message : err));
-      }
-    }
+    let PO_LOTS = {};
 
     document.getElementById('addSupplierForm').addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -2307,7 +2240,7 @@
                 <span class="badge po-${esc(po.status)}">${esc(PO_STATUS_LABELS[po.status] || po.status)}</span>
               </div>
             </div>
-            <div class="poDetail" id="poDetail_${esc(po.id)}" style="display:none;"></div>
+            <div class="poDetail u-d-none" id="poDetail_${esc(po.id)}"></div>
           </div>`;
         }).join('') : '<p class="empty">No purchase orders yet. Add a supplier, then create a draft above.</p>';
 
@@ -2342,7 +2275,7 @@
             const recordedLots = (PO_LOTS[po.id + '::' + l.product_id] || []);
             let lotCell = '—';
             if (l.product_id && awaitingReceipt && outstanding > 0) {
-              lotCell = `<input type="text" class="poLineLot" data-line="${esc(l.id)}" placeholder="e.g. HE-2026-01" style="width:120px;">`;
+              lotCell = `<input type="text" class="poLineLot u-w-120" data-line="${esc(l.id)}" placeholder="e.g. HE-2026-01">`;
             } else if (recordedLots.length) {
               lotCell = recordedLots.map(rl => esc(rl.lot_number) + ' (' + Number(rl.quantity_received) + ')').join(', ');
             }
@@ -2358,7 +2291,7 @@
               <td>${editable ? `<button type="button" class="small secondary poDelLine" data-line="${esc(l.id)}">Remove</button>` : ''}</td>
             </tr>`;
           }).join('')}</tbody></table>
-          ${awaitingReceipt && items.some(l => l.product_id) ? '<p class="sMeta" style="margin-top:6px;">Lot # is optional — leave it blank if your manufacturer doesn\'t give you one for this delivery.</p>' : ''}`
+          ${awaitingReceipt && items.some(l => l.product_id) ? '<p class="sMeta u-mt-6">Lot # is optional — leave it blank if your manufacturer doesn\'t give you one for this delivery.</p>' : ''}`
           : '<p class="empty">Nothing on this order yet.</p>';
 
         const addLine = editable ? `
@@ -2379,7 +2312,7 @@
             <label>Shipping <input type="number" class="poShipping" step="0.01" min="0" value="${Number(po.shipping_cost || 0)}" ${editable ? '' : 'disabled'}></label>
             <label>Tax <input type="number" class="poTax" step="0.01" min="0" value="${Number(po.tax || 0)}" ${editable ? '' : 'disabled'}></label>
             ${editable ? '<button type="button" class="small secondary poSaveTotals">Save</button>' : ''}
-            <strong style="margin-left:auto;">Total ${fmtMoney(poGrandTotal(po), po.currency)}</strong>
+            <strong class="u-ml-auto">Total ${fmtMoney(poGrandTotal(po), po.currency)}</strong>
           </div>`;
 
         const payment = `
@@ -2391,7 +2324,7 @@
               </select>
             </label>
             <button type="button" class="small secondary poSavePayment">Save payment</button>
-            ${po.notes ? `<span class="sMeta" style="margin-left:auto;">${esc(po.notes)}</span>` : ''}
+            ${po.notes ? `<span class="sMeta u-ml-auto">${esc(po.notes)}</span>` : ''}
           </div>`;
 
         let actions = '<div class="poActions">';
@@ -2919,19 +2852,19 @@
           const incident = c.incidents;
           const alsoRecalled = (c.lot_id && recalledLots.has(c.lot_id)) || (!c.lot_id && c.product_id && recalledProducts.has(c.product_id));
           return `
-            <div class="deletedRow" data-id="${esc(c.id)}" style="align-items:flex-start;">
-              <div class="info" style="flex:1;">
+            <div class="deletedRow u-ai-flex-start" data-id="${esc(c.id)}">
+              <div class="info u-flex-1">
                 <b>${esc(QC_TYPE_LABELS[c.check_type] || c.check_type)}</b>
                 <span class="badge ${resultClass}">${esc(QC_RESULT_LABELS[c.result] || c.result)}</span>
                 <span class="badge">${esc(QC_SEVERITY_LABELS[c.severity] || c.severity)}</span>
-                <span style="color:var(--muted);font-size:12px;">${esc(prod)}${lot ? ' · lot ' + esc(lot) : ''} · ${esc(fmtDate(c.created_at))}</span>
-                <div style="margin-top:6px;">${esc(c.description)}</div>
-                ${c.resolution ? `<div style="margin-top:6px;color:#4d7c6a;"><b>Resolved:</b> ${esc(c.resolution)}</div>` : ''}
-                ${incident ? `<div style="margin-top:6px;"><span class="badge">Incident ${esc(incident.incident_number || '')} — ${esc(incident.status)}</span></div>` : ''}
-                ${alsoRecalled ? `<div style="margin-top:6px;"><span class="badge sev-high">This batch also has an active recall</span> <a href="#" class="qcViewRecallLink" style="font-size:12px;">View in Recalls →</a></div>` : ''}
+                <span class="u-c-muted u-fs-12">${esc(prod)}${lot ? ' · lot ' + esc(lot) : ''} · ${esc(fmtDate(c.created_at))}</span>
+                <div class="u-mt-6">${esc(c.description)}</div>
+                ${c.resolution ? `<div class="u-mt-6 u-c-x4d7c6a"><b>Resolved:</b> ${esc(c.resolution)}</div>` : ''}
+                ${incident ? `<div class="u-mt-6"><span class="badge">Incident ${esc(incident.incident_number || '')} — ${esc(incident.status)}</span></div>` : ''}
+                ${alsoRecalled ? `<div class="u-mt-6"><span class="badge sev-high">This batch also has an active recall</span> <a href="#" class="qcViewRecallLink u-fs-12">View in Recalls →</a></div>` : ''}
                 ${!c.resolution ? `
-                  <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-                    <input type="text" class="qcResolutionInput" placeholder="Resolution notes" style="flex:1;min-width:160px;padding:6px 9px;border-radius:6px;border:1px solid #cfd8d6;font-family:inherit;font-size:13px;">
+                  <div class="u-mt-10 u-d-flex u-gap-8 u-fwr-wrap u-ai-center">
+                    <input type="text" class="qcResolutionInput u-flex-1 u-minw-160 u-p-6-9 u-br-6 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-13" placeholder="Resolution notes">
                     <button type="button" class="small secondary qcResolveBtn">Mark resolved</button>
                     ${c.result === 'fail' && !c.incident_id ? '<button type="button" class="small deny qcEscalateBtn">Escalate to Incident</button>' : ''}
                   </div>` : ''}
@@ -3078,22 +3011,22 @@
           const statusClass = r.status === 'resolved' ? 'sev-low' : 'sev-high';
           const alsoFailedQc = (r.lot_id && failedLots.has(r.lot_id)) || (!r.lot_id && r.product_id && failedProducts.has(r.product_id));
           return `
-            <div class="deletedRow" data-id="${esc(r.id)}" data-status="${esc(r.status || '')}" data-lot="${esc(r.lot_id)}" style="align-items:flex-start;">
-              <div class="info" style="flex:1;">
+            <div class="deletedRow u-ai-flex-start" data-id="${esc(r.id)}" data-status="${esc(r.status || '')}" data-lot="${esc(r.lot_id)}">
+              <div class="info u-flex-1">
                 <b>${esc(prod)} — lot ${esc(lot)}</b>
                 <span class="badge ${statusClass}">${esc(RECALL_STATUS_LABELS[r.status] || r.status)}</span>
                 <span class="badge">${esc(QC_SEVERITY_LABELS[r.severity] || r.severity)}</span>
-                <span style="color:var(--muted);font-size:12px;">${esc(fmtDate(r.created_at))}</span>
-                <div style="margin-top:6px;">${esc(r.reason)}</div>
-                ${r.quantity_quarantined != null ? `<div style="margin-top:6px;">${Number(r.quantity_quarantined)} units pulled from Available into Recalled.</div>` : ''}
-                ${r.resolution ? `<div style="margin-top:6px;color:#4d7c6a;"><b>Resolved:</b> ${esc(r.resolution)}</div>` : ''}
-                ${incident ? `<div style="margin-top:6px;"><span class="badge">Incident ${esc(incident.incident_number || '')} — ${esc(incident.status)}</span></div>` : ''}
-                ${alsoFailedQc ? `<div style="margin-top:6px;"><span class="badge sev-high">This batch also has a failed quality check</span> <a href="#" class="recallViewQcLink" style="font-size:12px;">View in Quality Control →</a></div>` : ''}
+                <span class="u-c-muted u-fs-12">${esc(fmtDate(r.created_at))}</span>
+                <div class="u-mt-6">${esc(r.reason)}</div>
+                ${r.quantity_quarantined != null ? `<div class="u-mt-6">${Number(r.quantity_quarantined)} units pulled from Available into Recalled.</div>` : ''}
+                ${r.resolution ? `<div class="u-mt-6 u-c-x4d7c6a"><b>Resolved:</b> ${esc(r.resolution)}</div>` : ''}
+                ${incident ? `<div class="u-mt-6"><span class="badge">Incident ${esc(incident.incident_number || '')} — ${esc(incident.status)}</span></div>` : ''}
+                ${alsoFailedQc ? `<div class="u-mt-6"><span class="badge sev-high">This batch also has a failed quality check</span> <a href="#" class="recallViewQcLink u-fs-12">View in Quality Control →</a></div>` : ''}
                 ${r.status !== 'resolved' ? `
-                  <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                  <div class="u-mt-10 u-d-flex u-gap-8 u-fwr-wrap u-ai-center">
                     ${r.status === 'initiated' ? '<button type="button" class="small deny recallQuarantineBtn">Quarantine stock</button>' : ''}
                     ${!r.incident_id ? '<button type="button" class="small secondary recallEscalateBtn">Escalate to Incident</button>' : ''}
-                    <input type="text" class="recallResolutionInput" placeholder="Resolution notes" style="flex:1;min-width:160px;padding:6px 9px;border-radius:6px;border:1px solid #cfd8d6;font-family:inherit;font-size:13px;">
+                    <input type="text" class="recallResolutionInput u-flex-1 u-minw-160 u-p-6-9 u-br-6 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-13" placeholder="Resolution notes">
                     <button type="button" class="small secondary recallResolveBtn">Mark resolved</button>
                   </div>` : ''}
               </div>
@@ -3347,7 +3280,7 @@
       box.innerHTML = names.map(n => {
         const off = calHidden.has(n);
         return '<button type="button" class="calChipBtn' + (off ? ' off' : '') + '" data-cal="' + esc(n) + '">' +
-          '<span class="swatch" style="background:' + colorForCalendar(n) + '"></span>' + esc(n) + '</button>';
+          '<span class="swatch u-bg-colorforcalendar-n"></span>' + esc(n) + '</button>';
       }).join('');
       box.querySelectorAll('.calChipBtn').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -3362,12 +3295,12 @@
     function eventHtml(ev){
       const note = calNotes[ev.uid];
       const time = ev.all_day ? '<span class="calAllDay">All day</span>' : esc(fmtTimeShort(ev.starts_at)) +
-        (ev.ends_at && !ev.all_day ? '<br><span style="opacity:.65">' + esc(fmtTimeShort(ev.ends_at)) + '</span>' : '');
+        (ev.ends_at && !ev.all_day ? '<br><span class="u-op-65">' + esc(fmtTimeShort(ev.ends_at)) + '</span>' : '');
       const open = calOpenUid === ev.uid;
       const personal = calMode === 'personal';
       return '<div class="calEvent' + (open ? ' selected' : '') + '" data-uid="' + esc(ev.uid) + '">' +
           '<div class="eTime">' + time + '</div>' +
-          '<div class="eBar" style="background:' + colorForCalendar(ev.calendar_name) + '"></div>' +
+          '<div class="eBar u-bg-colorforcalendar-ev-calendar-name"></div>' +
           '<div class="eBody">' +
             '<div class="eTitle">' + esc(ev.summary || 'Event') + '</div>' +
             (ev.location ? '<div class="eSub">' + esc(ev.location) + '</div>' : '') +
@@ -3442,7 +3375,7 @@
         const todayKey = dateKey(new Date());
         let cells = '<div class="calGrid">' +
           ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => '<div class="calDow">' + d + '</div>').join('') +
-          '</div><div class="calGrid" style="margin-top:6px;">';
+          '</div><div class="calGrid u-mt-6">';
         for (let i = 0; i < 42; i++) {
           const d = new Date(start); d.setDate(start.getDate() + i);
           const key = dateKey(d);
@@ -3452,7 +3385,7 @@
             (key === todayKey ? ' today' : '') + '" data-daykey="' + key + '">' +
             '<div class="dNum">' + d.getDate() + '</div>' +
             shown.map(ev => '<span class="calChip" title="' + esc(ev.summary || 'Event') + '">' +
-              '<span class="cDot" style="background:' + colorForCalendar(ev.calendar_name) + '"></span>' +
+              '<span class="cDot u-bg-colorforcalendar-ev-calendar-name"></span>' +
               '<span class="cText">' + esc(ev.summary || 'Event') + '</span></span>').join('') +
             (evs.length > shown.length ? '<div class="calMore">+' + (evs.length - shown.length) + ' more</div>' : '') +
             '</div>';
@@ -3788,7 +3721,7 @@
           document.getElementById('ordersTableWrap').innerHTML = '<p class="empty">No orders yet.</p>';
         } else {
           const showingNote = totalOrders > recent.length
-            ? `<p class="hint" style="margin:0 0 8px;">Showing the ${recent.length} most recent of ${totalOrders} orders total.</p>` : '';
+            ? `<p class="hint u-m-0-0-8">Showing the ${recent.length} most recent of ${totalOrders} orders total.</p>` : '';
           document.getElementById('ordersTableWrap').innerHTML = `
             ${showingNote}
             <table class="phoneCards"><thead><tr><th>Order #</th><th>Customer</th><th>Status</th><th>Total</th><th>Placed</th><th></th></tr></thead>
@@ -3842,7 +3775,7 @@
           document.getElementById('deletedOrdersWrap').innerHTML = deleted.map(o => `
             <div class="deletedRow" data-id="${esc(o.id)}">
               <div class="info"><b>${esc(o.order_number || o.id)}</b> — ${esc(o.customer_name || '—')} — ${esc(fmtMoney(o.total, o.currency))}<br>
-              <span style="font-size:11px;color:var(--muted);">Deleted ${esc(fmtDate(o.deleted_at))}</span></div>
+              <span class="u-fs-11 u-c-muted">Deleted ${esc(fmtDate(o.deleted_at))}</span></div>
               <button class="small restoreOrderBtn">Restore</button>
             </div>`).join('');
         appendMore('deletedOrdersWrap', 'delOrders', deleted.length, delCount, 'deleted orders', loadOrders);
@@ -3872,388 +3805,6 @@
       }
     }
 
-    async function changeTaskStatus(btn){
-      const row = btn.closest('tr');
-      const id = row && row.getAttribute('data-id');
-      const to = btn.getAttribute('data-to');
-      const allowedFrom = TASK_ALLOWED_FROM[to];
-      if (!id || !allowedFrom) return;
-      if (to === 'done' || to === 'open') {
-        const titleEl = row.querySelector('.taskTitle');
-        const title = titleEl ? titleEl.textContent.trim() : 'this task';
-        const question = to === 'done' ? 'Mark this task done?' : 'Reopen this task? It goes back to the open list.';
-        if (!window.confirm(question + '\n\n' + title)) return;
-      }
-      row.querySelectorAll('.taskStatusBtn').forEach(b => { b.disabled = true; });
-      try {
-        const { data, error } = await supabase
-          .from('tasks')
-          .update({ status: to })
-          .eq('id', id)
-          .in('status', allowedFrom)
-          .select('id, status');
-        if (error) throw error;
-        if (!data || data.length === 0) {
-          showDashError('That task was already changed (by someone else or an agent), or you don\'t have permission to change it. The list has been refreshed.');
-        }
-      } catch (err) {
-        showDashError('Could not update that task: ' + (err && err.message ? err.message : err));
-      } finally {
-        loadTasks();
-      }
-    }
-
-    // Finished/cancelled tasks, newest change first (EXT7). Returns the rows
-    // so search can find them; a failure here never hides the open list.
-    async function loadRecentlyDoneTasks(){
-      const wrap = document.getElementById('recentDoneWrap');
-      try {
-        const { data, error } = await supabase
-          .from('tasks')
-          .select('id, title, priority, status, due_at, updated_at')
-          .in('status', ['done', 'cancelled'])
-          .order('updated_at', { ascending: false, nullsFirst: false })
-          .limit(10);
-        if (error) throw error;
-        const rows = data || [];
-        if (wrap) {
-          wrap.innerHTML = !rows.length ? '<p class="empty">No finished tasks yet.</p>' : `
-            <table class="phoneCards"><thead><tr><th>Title</th><th>Status</th><th>Last changed</th></tr></thead>
-            <tbody>${rows.map(t => `
-              <tr data-id="${esc(t.id)}">
-                <td style="white-space:normal;min-width:190px;">
-                  <div class="taskTitle">${esc(t.title)}</div>
-                  ${(TASK_ALLOWED_FROM.open || []).includes(t.status)
-                    ? '<div class="taskActions" style="margin-top:8px;"><button type="button" class="small taskStatusBtn" data-to="open">Reopen</button></div>' : ''}
-                </td>
-                <td>${esc(TASK_STATUS_LABELS[t.status] || t.status || '—')}</td>
-                <td>${esc(t.updated_at ? fmtDate(t.updated_at) : 'Unknown')}</td>
-              </tr>`).join('')}</tbody></table>`;
-          wrap.querySelectorAll('.taskStatusBtn').forEach(btn => btn.addEventListener('click', () => changeTaskStatus(btn)));
-        }
-        return rows;
-      } catch (err) {
-        if (wrap) wrap.innerHTML = '<p class="empty" style="color:var(--warn);">Could not load recently finished tasks: ' + esc(explainDbError((err && err.message) || String(err))) + '</p>';
-        return [];
-      }
-    }
-
-    async function loadTasks(){
-      try {
-        const { data: tasks, error, count } = await supabase
-          .from('tasks')
-          .select('id, title, priority, status, due_at', { count: 'exact' })
-          .not('status', 'in', CLOSED_IN)
-          .order('due_at', { ascending: true, nullsFirst: false })
-          .limit(100);
-        if (error) throw error;
-
-        // EXT7: only open tasks are read, so the 100-row cap and the count
-        // apply to open tasks. Before, the newest 100 of ALL tasks were read
-        // and filtered here, so once enough finished tasks piled up, open ones
-        // silently fell off the list.
-        const open = tasks.filter(t => !isClosedStatus(t.status));
-        const truncated = count != null && count > tasks.length;
-        const cutoffNote = truncated
-          ? `<p class="hint" style="margin:0 0 8px;color:var(--warn);">Showing the ${tasks.length} soonest-due of ${count} open tasks.</p>` : '';
-        const recent = await loadRecentlyDoneTasks();
-        SEARCH_INDEX.tasks = tasks.concat(recent);
-        if (!open.length) {
-          document.getElementById('tasksTableWrap').innerHTML = cutoffNote + '<p class="empty">No open tasks.</p>';
-        } else {
-          document.getElementById('tasksTableWrap').innerHTML = `
-            ${cutoffNote}
-            <table class="phoneCards"><thead><tr><th>Title</th><th>Priority</th><th>Status</th><th>Due</th></tr></thead>
-            <tbody>${open.map(t => `
-              <tr class="${isOverdue(t.due_at, t.status) ? 'overdue' : ''}" data-id="${esc(t.id)}">
-                <td style="white-space:normal;min-width:190px;">
-                  <div class="taskTitle">${esc(t.title)}</div>
-                  <div class="taskActions" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">${(TASK_NEXT_ACTIONS[t.status] || []).map(a =>
-                    `<button type="button" class="small taskStatusBtn" data-to="${esc(a.to)}">${esc(a.label)}</button>`).join('')}</div>
-                </td>
-                <td><span class="badge">${esc(t.priority || '—')}</span></td>
-                <td>${esc(TASK_STATUS_LABELS[t.status] || t.status || '—')}</td>
-                <td>${esc(fmtDate(t.due_at))}</td>
-              </tr>`).join('')}</tbody></table>`;
-          document.querySelectorAll('#tasksTableWrap .taskStatusBtn').forEach(btn =>
-            btn.addEventListener('click', () => changeTaskStatus(btn)));
-        }
-      } catch (err) {
-        showDashError('Could not load tasks: ' + (err && err.message ? err.message : err));
-      }
-    }
-
-    async function loadIncidents(){
-      try {
-        const { data: incidents, error, count } = await supabase
-          .from('incidents')
-          .select('id, incident_number, title, severity, status, due_at', { count: 'exact' })
-          // Open = no status yet, or a status that is not a closed word (EXT7,
-          // same reason as loadTasks). A row without a status stays visible.
-          .or('status.is.null,status.not.in.' + CLOSED_IN)
-          .order('due_at', { ascending: true, nullsFirst: false })
-          .limit(100);
-        if (error) throw error;
-        SEARCH_INDEX.incidents = incidents;
-
-        const open = incidents.filter(i => !isClosedStatus(i.status));
-        const truncated = count != null && count > incidents.length;
-        const cutoffNote = truncated
-          ? `<p class="hint" style="margin:0 0 8px;color:var(--warn);">Showing the ${incidents.length} soonest-due of ${count} open incidents.</p>` : '';
-        if (!open.length) {
-          document.getElementById('incidentsTableWrap').innerHTML = cutoffNote + '<p class="empty">No open incidents.</p>';
-        } else {
-          document.getElementById('incidentsTableWrap').innerHTML = `
-            ${cutoffNote}
-            <table class="phoneCards"><thead><tr><th>#</th><th>Title</th><th>Severity</th><th>Status</th><th>Due</th></tr></thead>
-            <tbody>${open.map(i => `
-              <tr class="${isOverdue(i.due_at, i.status) ? 'overdue' : ''}" data-id="${esc(i.id)}">
-                <td>${esc(i.incident_number || '—')}</td>
-                <td>${esc(i.title)}</td>
-                <td><span class="badge sev-${esc((i.severity||'').toLowerCase())}">${esc(i.severity || '—')}</span></td>
-                <td>${esc(i.status || '—')}</td>
-                <td>${esc(fmtDate(i.due_at))}</td>
-              </tr>`).join('')}</tbody></table>`;
-        }
-      } catch (err) {
-        showDashError('Could not load incidents: ' + (err && err.message ? err.message : err));
-      }
-    }
-
-    let agentControlsByNum = {};
-    // 'loading' until the first read, then 'ok' or 'failed'. When the switches
-    // can't be read, every agent shows UNKNOWN — never "on" by default.
-    let agentControlsState = 'loading'; // pg_cron agents run hourly; 2 missed hours = stale
-
-    // The one honest state for each agent, from the data the dashboard can
-    // actually see (agent_controls, its last_run_* columns, and whether the
-    // scheduled job exists). Anything it cannot see is UNKNOWN, not "live".
-    //   ENABLED · DISABLED · UNKNOWN · FAILED · STALE · DRY RUN · CALCULATED HERE
-    function agentTruth(a, ctrl, nowMs){
-      const now = nowMs || Date.now();
-      if (a.dashboardOnly) return { key: 'calc', label: 'Calculated here', cls: 'sev-low', detail: 'Worked out by this page each time it opens; nothing runs in the background.' };
-      if (agentControlsState === 'failed') return { key: 'unknown', label: 'Unknown', cls: '', detail: 'The agent switches could not be read, so the dashboard cannot say whether this agent is on.' };
-      if (agentControlsState === 'loading') return { key: 'unknown', label: 'Checking…', cls: '', detail: '' };
-      if (!ctrl) return { key: 'unknown', label: 'Unknown', cls: '', detail: 'No switch row for this agent in agent_controls.' };
-      if (ctrl.enabled === false && a.intendedOff) {
-        return { key: 'off-intended', label: 'Off — on purpose', cls: 'sev-low',
-          detail: 'Switched off on purpose until the store launches (recorded decision). Nothing is wrong.' };
-      }
-      if (ctrl.enabled === false) {
-        return { key: 'disabled', label: 'Disabled', cls: 'sev-medium',
-          detail: a.enforced ? 'Paused: its own code checks this switch.' : 'Switch is off, but this agent does not check its switch yet — make sure its runner is off too.' };
-      }
-      // Agents word it differently ("failed", "error", "failure"…); any of
-      // them is a failure, never a quiet "Enabled".
-      if (/fail|error/i.test(String(ctrl.last_run_status || ''))) return { key: 'failed', label: 'Failed', cls: 'sev-high', detail: 'The last run failed' + (ctrl.last_error ? ': ' + maskSensitive(ctrl.last_error) : '.') };
-      if (a.cronJobName && cronJobState !== 'ok') {
-        return { key: 'unknown', label: 'Unknown', cls: '', detail: 'The list of scheduled jobs could not be read, so the dashboard cannot say whether this agent is running.' };
-      }
-      if (a.cronJobName) {
-        const job = cronJobStatusByName[a.cronJobName];
-        if (!job || !job.active) return { key: 'stale', label: 'Stale', cls: 'sev-high', detail: job ? 'Its scheduled job is not active, so it will not run.' : 'Its scheduled job could not be confirmed.' };
-        const last = ctrl.last_run_at ? Date.parse(ctrl.last_run_at) : NaN;
-        if (isNaN(last)) return { key: 'stale', label: 'Stale', cls: 'sev-high', detail: 'No run recorded yet.' };
-        const hours = (now - last) / 3600000;
-        if (hours > AGENT_STALE_AFTER_HOURS) return { key: 'stale', label: 'Stale', cls: 'sev-high', detail: 'Last run ' + Math.floor(hours) + ' hours ago; it should run every hour.' };
-        if (a.dryRun) return { key: 'dryrun', label: 'Dry run', cls: 'sev-medium', detail: 'Running, but only logs what it would send — no email service is connected.' };
-        return { key: 'enabled', label: 'Enabled', cls: 'sev-low', detail: 'Switch on and running on schedule.' };
-      }
-      // The switch is on, but the database trigger itself (which could be
-      // disabled) and its last run are invisible here: say exactly that.
-      if (a.trigger) return { key: 'enabled', label: 'Switch on', cls: 'sev-low', detail: 'Switch on. Runs inside the database on order changes; this page cannot see whether the trigger itself is enabled or when it last ran (Query C checks the trigger).' };
-      // Agents that run on GitHub Actions (outside this dashboard's view) and
-      // don't check their switch yet: "on" here proves nothing about reality.
-      return { key: 'unknown', label: 'Unknown', cls: '', detail: 'Switch on, but this agent runs on GitHub Actions, which this dashboard cannot see, and it does not check its switch yet. Check GitHub → Actions.' };
-    }
-    // Populated from the get_agent_cron_status() RPC — jobname -> {jobname, schedule, active}.
-    // Only ever has entries for agents actually migrated to pg_cron.
-    let cronJobStatusByName = {};
-    // EXT10b: whether that schedule list could be read at all. If not, an
-    // agent's schedule is UNKNOWN, never "stale".
-    let cronJobState = 'loading';
-
-    // One line of honest job-health text for an agent migrated to pg_cron.
-    // Built from agent_controls' last_run_* columns (written by the agent's
-    // own function on every run) plus whether the scheduled job itself is
-    // still active in Supabase (from get_agent_cron_status()). Returns ''
-    // for any agent that hasn't been migrated yet — nothing to show there.
-    function agentJobHealthHtml(a, ctrl){
-      if (!a.cronJobName) return '';
-      const cronInfo = cronJobStatusByName[a.cronJobName];
-      const parts = [];
-      if (cronInfo) {
-        parts.push(cronInfo.active
-          ? `<span style="color:var(--good);">Scheduled job <code>${esc(a.cronJobName)}</code> active</span> (${esc(cronInfo.schedule)})`
-          : `<span style="color:var(--danger);">Scheduled job <code>${esc(a.cronJobName)}</code> is NOT active</span> — it won't run until re-scheduled`);
-      } else {
-        parts.push(`<span style="color:var(--warn);">Could not confirm the scheduled job <code>${esc(a.cronJobName)}</code> exists</span>`);
-      }
-      if (ctrl && ctrl.last_run_at) {
-        const statusColor = ctrl.last_run_status === 'failed' ? 'var(--danger)'
-          : (ctrl.last_run_status === 'partial' ? 'var(--warn)' : 'var(--muted)');
-        parts.push(`Last run ${esc(fmtDate(ctrl.last_run_at))} — <span style="color:${statusColor};">${esc(ctrl.last_run_status || 'unknown')}</span>`);
-        if (ctrl.last_run_summary) parts.push(esc(ctrl.last_run_summary));
-      } else {
-        parts.push('<span style="color:var(--muted);">No run recorded yet</span>');
-      }
-      if (ctrl && ctrl.last_error) parts.push(`<span style="color:var(--danger);">Last error: ${esc(maskSensitive(ctrl.last_error))}</span>`);
-      return `<div style="margin-top:6px;font-size:12px;padding:8px 10px;background:var(--panel-2);border-radius:8px;">
-        <b style="font-size:11px;text-transform:uppercase;letter-spacing:0.02em;color:var(--muted);">Job health</b><br>
-        ${parts.join(' &middot; ')}
-      </div>`;
-    }
-
-    function renderAgentRegistry(){
-      document.getElementById('agentRegistryWrap').innerHTML = AGENT_REGISTRY.map(a => {
-        const ctrl = agentControlsByNum[a.num];
-        const truth = agentTruth(a, ctrl);
-        // The switch only shows a position the dashboard actually read.
-        const switchKnown = agentControlsState === 'ok' && !!ctrl;
-        const enabled = switchKnown && ctrl.enabled !== false;
-        return `
-        <div class="deletedRow" style="align-items:flex-start;" data-agent="${a.num}" data-truth="${truth.key}">
-          <div class="info" style="flex:1;">
-            <b>#${a.num} — ${esc(a.name)}</b>
-            <span class="badge agentTruthBadge ${truth.cls}">${esc(truth.label)}</span>
-            ${a.ai ? '<span class="badge sev-medium">Uses a paid AI model</span>' : '<span class="badge sev-low">Rule-based — no AI model</span>'}
-            ${a.enforced ? '<span class="badge sev-low">Switch enforced</span>' : '<span class="badge sev-medium">Switch not yet enforced</span>'}
-            ${truth.detail ? `<div class="agentTruthDetail" style="font-size:12.5px;margin-top:4px;">${esc(truth.detail)}</div>` : ''}
-            <div style="color:var(--muted);font-size:12px;margin-top:2px;">${esc(a.status)}</div>
-            <div style="margin-top:6px;">${esc(a.desc)}</div>
-            <div style="margin-top:6px;font-size:12.5px;color:var(--muted);"><b>Touches:</b> ${a.touches.map(esc).join(', ')}</div>
-            <div style="margin-top:6px;font-size:12.5px;"><b>Can't do alone:</b> ${esc(a.limit)}</div>
-            ${ctrl && ctrl.updated_at ? `<div style="margin-top:6px;font-size:12px;color:var(--muted);">Last changed ${ctrl.who ? 'by ' + esc(ctrl.who) + ' ' : ''}on ${new Date(ctrl.updated_at).toLocaleString()}</div>` : ''}
-            ${agentJobHealthHtml(a, ctrl)}
-          </div>
-          <label class="switch" title="${!switchKnown ? 'Switch position unknown — it could not be read' : (enabled ? 'On — click to pause this agent' : 'Off — click to turn this agent back on')}">
-            <input type="checkbox" class="agentToggle" data-num="${a.num}" data-name="${esc(a.name)}" ${enabled ? 'checked' : ''} ${switchKnown ? '' : 'disabled'}>
-            <span class="slider"></span>
-          </label>
-        </div>`;
-      }).join('');
-
-      document.querySelectorAll('.agentToggle').forEach(cb => {
-        cb.addEventListener('change', async () => {
-          const num = Number(cb.getAttribute('data-num'));
-          const name = cb.getAttribute('data-name');
-          const newVal = cb.checked;
-          // Same pattern as the other switches on this dashboard: flip it back
-          // visually until the password confirmation actually goes through.
-          cb.checked = !newVal;
-          const ok = await requireReauth(newVal ? `turn ${name} back ON` : `pause ${name}`);
-          if (!ok) return;
-          cb.checked = newVal;
-          cb.disabled = true;
-          try {
-            const uid = await currentUserId();
-            // Only flips the switch this page showed: a stale page can't undo
-            // a pause made elsewhere (or by Emergency / No AI mode).
-            const changed = await updateIfUnchanged('agent_controls', { agent_num: num },
-              { enabled: newVal, updated_by: uid, updated_at: new Date().toISOString() },
-              // The page shows a switch as on unless it is exactly false.
-              { enabled: newVal ? false : { notIs: false } });
-            if (changed) toast((newVal ? 'Turned on: ' : 'Paused: ') + name);
-            else showDashError(staleMessage('That agent switch'));
-            await loadAgentControls();
-          } catch (err) {
-            cb.checked = !newVal;
-            const msg = (err && err.message) || String(err);
-            if (/row-level security|permission/i.test(msg)) {
-              showDashError('Only the Owner or an Administrator can pause an agent.');
-            } else {
-              showDashError('Could not change that agent: ' + msg);
-            }
-          } finally {
-            cb.disabled = false;
-          }
-        });
-      });
-    }
-
-    async function loadAgentControls(){
-      try {
-        const { data: rows, error } = await supabase
-          .from('agent_controls')
-          .select('agent_num, enabled, updated_by, updated_at, last_run_at, last_run_status, last_run_summary, last_error');
-        if (error) throw error;
-
-        const byId = {};
-        (rows || []).forEach(r => { byId[r.agent_num] = r; });
-
-        const uids = [...new Set((rows || []).map(r => r.updated_by).filter(Boolean))];
-        if (uids.length) {
-          const { data: people } = await supabase.from('profiles').select('id, full_name').in('id', uids);
-          const nameById = {};
-          (people || []).forEach(p => { nameById[p.id] = p.full_name; });
-          Object.values(byId).forEach(r => { r.who = r.updated_by ? nameById[r.updated_by] : null; });
-        }
-
-        // Job health for agents migrated to pg_cron: whether the scheduled
-        // job itself is still active in Supabase, alongside the last-run
-        // columns above (which every migrated agent's own function writes
-        // on every run). Best-effort — an agent still on GitHub Actions has
-        // no cron job to find, and that's expected, not an error.
-        try {
-          const { data: cronRows, error: cronErr } = await supabase.rpc('get_agent_cron_status');
-          if (!cronErr && cronRows) {
-            cronJobStatusByName = {};
-            cronRows.forEach(j => { cronJobStatusByName[j.jobname] = j; });
-            cronJobState = 'ok';
-          } else cronJobState = 'failed';
-        } catch (cronCatchErr) {
-          cronJobState = 'failed';
-          console.warn('Could not load cron job status:', cronCatchErr && cronCatchErr.message ? cronCatchErr.message : cronCatchErr);
-        }
-
-        agentControlsByNum = byId;
-        agentControlsState = 'ok';
-        renderAgentRegistry();
-        renderPausedAgentsBanner();
-      } catch (err) {
-        // Not fatal, but never pretend: every agent shows UNKNOWN and the
-        // switches are disabled until they can be read.
-        console.warn('Could not load agent controls:', err && err.message ? err.message : err);
-        agentControlsState = 'failed';
-        agentControlsByNum = {};
-        if (document.getElementById('agentRegistryWrap')) renderAgentRegistry();
-        renderPausedAgentsBanner();
-      }
-    }
-
-    // A paused agent is easy to forget once you've left the AI Agent Activity
-    // page — this puts a quiet reminder at the top of every page, the same
-    // way the System Mode banner does, so it can't get lost.
-    function renderPausedAgentsBanner(){
-      const banner = document.getElementById('pausedAgentsBanner');
-      if (!banner) return;
-      if (agentControlsState === 'failed') {
-        banner.style.display = 'block';
-        banner.textContent = 'Agent switches could not be read — the dashboard cannot tell which agents are on. See AI Agent Activity.';
-        return;
-      }
-      const paused = AGENT_REGISTRY
-        .filter(a => agentControlsByNum[a.num] && agentControlsByNum[a.num].enabled === false);
-      if (!paused.length) {
-        banner.style.display = 'none';
-        return;
-      }
-      banner.style.display = 'block';
-      // Only say "genuinely paused" for the agents whose own code actually
-      // checks this switch (see AGENT_REGISTRY's enforced flag) — anything
-      // else is still just a recorded intent, not a real stop, and the
-      // banner should never claim more than is actually true.
-      if (paused.length === 1) {
-        const a = paused[0];
-        banner.textContent = a.enforced
-          ? `Agent paused: #${a.num} ${a.name} — genuinely paused, its own code checks this before doing anything.`
-          : `Agent paused: #${a.num} ${a.name} — recorded, but see AI Agent Activity for what that does and doesn't stop today.`;
-      } else {
-        const parts = paused.map(a => `#${a.num} ${a.name}${a.enforced ? '' : ' (recorded only, not yet enforced)'}`);
-        banner.textContent = `${paused.length} agents paused: ${parts.join(', ')} — see AI Agent Activity for what each one does and doesn't stop.`;
-      }
-    }
-
     async function loadAI(){
       await loadAgentControls();
       try {
@@ -4275,11 +3826,12 @@
         ]);
         if (error) throw error;
 
-        const spendThisMonth = (monthLogs || []).reduce((s, l) => s + Number(l.cost_usd || 0), 0);
+        // EXT15: a failed month read is unknown ('?'), never "$0.00 spent, full cap remaining".
+        const spendThisMonth = monthErr ? null : (monthLogs || []).reduce((s, l) => s + Number(l.cost_usd || 0), 0);
         document.getElementById('aiSpendStats').innerHTML = `
-          <div class="stat"><div class="num">${esc(fmtMoney(spendThisMonth, 'USD'))}</div><div class="lbl">Spent this month</div></div>
+          <div class="stat"><div class="num">${spendThisMonth == null ? '?' : esc(fmtMoney(spendThisMonth, 'USD'))}</div><div class="lbl">Spent this month${spendThisMonth == null ? ' (could not be read)' : ''}</div></div>
           <div class="stat"><div class="num">${esc(fmtMoney(SPEND_CAP, 'USD'))}</div><div class="lbl">Monthly cap</div></div>
-          <div class="stat"><div class="num">${esc(fmtMoney(Math.max(0, SPEND_CAP - spendThisMonth), 'USD'))}</div><div class="lbl">Remaining this month</div></div>
+          <div class="stat"><div class="num">${spendThisMonth == null ? '?' : esc(fmtMoney(Math.max(0, SPEND_CAP - spendThisMonth), 'USD'))}</div><div class="lbl">Remaining this month</div></div>
         `;
 
         if (modelErr || !modelConfig || !modelConfig.length) {
@@ -4322,219 +3874,8 @@
         showDashError('Could not load AI activity: ' + (err && err.message ? err.message : err));
       }
     }
-    let ALL_INQUIRIES = [];
-    let INQ_ANSWERED_TOTAL = 0, INQ_ANSWERED_SHOWN = 0;
-    let INQUIRY_ORDER_BY_ID = {};
-
-    async function loadInquiries(){
-      try {
-        // EXT8: every question still waiting (not answered, or no status) is
-        // read in full, a page at a time; answered ones only the newest
-        // INQ_ANSWERED_CAP, with the database's exact count. Before, the
-        // newest 200 of ALL statuses were read, so once 200 newer answered
-        // questions existed an older unanswered one vanished and the
-        // "Needs review" / "New" figures undercounted.
-        const INQ_COLS = 'id, order_id, customer_name, customer_email, channel, question_text, status, ai_draft_reply, ai_confidence, sensitive, sensitive_reasons, severity, created_at, drafted_at, answered_at';
-        const [waiting, answeredRes] = await Promise.all([
-          fetchAllRows('customer_inquiries', INQ_COLS, q => q.or('status.is.null,status.neq.answered')),
-          supabase.from('customer_inquiries').select(INQ_COLS, { count: 'exact' })
-            .eq('status', 'answered').order('created_at', { ascending: false }).limit(INQ_ANSWERED_CAP),
-        ]);
-        if (answeredRes.error) throw answeredRes.error;
-        const answered = answeredRes.data || [];
-        INQ_ANSWERED_TOTAL = answeredRes.count != null ? answeredRes.count : answered.length;
-        INQ_ANSWERED_SHOWN = answered.length;
-        ALL_INQUIRIES = waiting.concat(answered);
-
-        const orderIds = [...new Set(ALL_INQUIRIES.map(i => i.order_id).filter(Boolean))];
-        INQUIRY_ORDER_BY_ID = {};
-        if (orderIds.length) {
-          // chunked: up to 200 ids would make one URL too long for the gateway
-          const orders = await fetchAllRowsIn('orders', 'id, order_number', 'id', orderIds);
-          orders.forEach(o => { INQUIRY_ORDER_BY_ID[o.id] = o; });
-        }
-
-        renderInquiries();
-      } catch (err) {
-        showDashError('Could not load customer inquiries: ' + (err && err.message ? err.message : err));
-      }
-    }
-
-    function renderInquiries(){
-      const counts = { new: 0, drafted: 0, needs_review: 0, answered: 0 };
-      ALL_INQUIRIES.forEach(i => { if (counts[i.status] !== undefined) counts[i.status]++; });
-      counts.answered = INQ_ANSWERED_TOTAL; // exact, though only the newest are listed
-      document.getElementById('inqStats').innerHTML = `
-        <div class="stat"><div class="num">${counts.needs_review}</div><div class="lbl">Needs review</div></div>
-        <div class="stat"><div class="num">${counts.drafted}</div><div class="lbl">Drafted</div></div>
-        <div class="stat"><div class="num">${counts.new}</div><div class="lbl">New, no draft</div></div>
-        <div class="stat"><div class="num">${counts.answered}</div><div class="lbl">Answered</div></div>
-      `;
-
-      const filterVal = document.getElementById('inqFilter').value;
-      const filtered = filterVal ? ALL_INQUIRIES.filter(i => i.status === filterVal) : ALL_INQUIRIES;
-      const answeredNote = (filterVal === '' || filterVal === 'answered') && INQ_ANSWERED_TOTAL > INQ_ANSWERED_SHOWN
-        ? `<p class="hint" style="margin:0 0 8px;">Every question still waiting is listed. Answered: the newest ${INQ_ANSWERED_SHOWN} of ${INQ_ANSWERED_TOTAL}.</p>` : '';
-
-      // Worst-first ordering: highest severity floats to the top so the most
-      // urgent questions are the first thing you see, with newest-first as
-      // the tiebreaker within the same severity.
-      const SEVERITY_RANK = { high: 3, medium: 2, low: 1 };
-      const list = filtered.slice().sort((a, b) => {
-        const rankDiff = (SEVERITY_RANK[b.severity] || 0) - (SEVERITY_RANK[a.severity] || 0);
-        if (rankDiff !== 0) return rankDiff;
-        return new Date(b.created_at) - new Date(a.created_at);
-      });
-
-      if (!list.length) {
-        document.getElementById('inquiriesWrap').innerHTML = ALL_INQUIRIES.length
-          ? '<p class="empty">Nothing matches that filter.</p>'
-          : '<p class="empty">No customer questions yet.</p>';
-        return;
-      }
-
-      document.getElementById('inquiriesWrap').innerHTML = answeredNote + list.map(i => {
-        const order = i.order_id ? INQUIRY_ORDER_BY_ID[i.order_id] : null;
-        return `
-        <div class="approvalRow" style="align-items:flex-start;" data-id="${esc(i.id)}">
-          <div class="info">
-            <b>${esc(i.customer_name || 'Unknown customer')}</b>
-            ${i.channel ? `<span class="badge">${esc(i.channel)}</span>` : ''}
-            <span class="badge ${inqStatusBadgeClass(i.status)}">${esc(INQ_STATUS_LABELS[i.status] || i.status)}</span>
-            ${i.severity ? `<span class="badge sev-${esc(i.severity)}">${esc(i.severity)} severity</span>` : ''}
-            <div style="font-size:12px;color:var(--muted);margin-top:3px;">
-              ${esc(i.customer_email || 'No email on file')}${order ? ' · Order ' + esc(order.order_number) : ''}
-            </div>
-            <div style="font-size:11px;color:var(--muted);margin-top:2px;">Asked ${esc(fmtDate(i.created_at))}</div>
-            <div style="margin-top:6px;">
-              <label style="font-size:11.5px;color:var(--muted);">Severity:
-                <select class="inqSeveritySelect" data-id="${esc(i.id)}" style="margin-left:4px;padding:3px 6px;border-radius:6px;border:1px solid #cfd8d6;font-family:inherit;font-size:12px;">
-                  <option value="" ${!i.severity ? 'selected' : ''}>Not classified</option>
-                  <option value="low" ${i.severity === 'low' ? 'selected' : ''}>Low</option>
-                  <option value="medium" ${i.severity === 'medium' ? 'selected' : ''}>Medium</option>
-                  <option value="high" ${i.severity === 'high' ? 'selected' : ''}>High</option>
-                </select>
-              </label>
-            </div>
-
-            <div style="margin-top:8px;padding:8px 10px;background:#f4f7f6;border-radius:8px;font-size:13px;">
-              <b style="font-size:11px;color:var(--muted);text-transform:uppercase;">Question</b><br>
-              ${esc(i.question_text)}
-            </div>
-
-            ${i.sensitive ? `
-              <div style="margin-top:8px;padding:8px 10px;background:#fdecea;border-radius:8px;font-size:12.5px;color:#8a2f24;">
-                <b>Flagged for review:</b> ${esc(i.sensitive_reasons || 'No reason given.')}
-              </div>` : ''}
-
-            ${i.ai_draft_reply ? `
-              <div style="margin-top:8px;">
-                <b style="font-size:11px;color:var(--muted);text-transform:uppercase;">AI draft reply${i.ai_confidence != null ? ' · ' + Math.round(i.ai_confidence * 100) + '% confidence' : ''}</b>
-                <textarea class="inqDraftText" data-id="${esc(i.id)}" rows="4" style="width:100%;margin-top:4px;padding:9px 10px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:13.5px;resize:vertical;">${esc(i.ai_draft_reply)}</textarea>
-              </div>
-            ` : '<p class="empty" style="padding:6px 0;">No draft yet — the agent hasn\'t answered this one.</p>'}
-          </div>
-          <div class="actions" style="flex-direction:column;align-items:stretch;">
-            ${i.ai_draft_reply ? `
-              <button class="small inqSaveBtn" data-id="${esc(i.id)}">Save edits</button>
-              <button class="small inqCopyBtn" data-id="${esc(i.id)}">Copy reply</button>
-            ` : ''}
-            ${i.status !== 'answered'
-              ? `<button class="small inqAnsweredBtn" data-id="${esc(i.id)}" data-status="${esc(i.status || '')}">Mark as answered</button>`
-              : `<span class="badge sev-low">Answered ${esc(fmtDate(i.answered_at))}</span>`}
-          </div>
-        </div>`;
-      }).join('');
-
-      document.querySelectorAll('.inqSaveBtn').forEach(btn => btn.addEventListener('click', () => saveInquiryDraft(btn)));
-      document.querySelectorAll('.inqCopyBtn').forEach(btn => btn.addEventListener('click', () => copyInquiryReply(btn)));
-      document.querySelectorAll('.inqAnsweredBtn').forEach(btn => btn.addEventListener('click', () => markInquiryAnswered(btn)));
-      document.querySelectorAll('.inqSeveritySelect').forEach(sel => sel.addEventListener('change', () => setInquirySeverity(sel)));
-    }
 
     document.getElementById('inqFilter').addEventListener('change', () => renderInquiries());
-
-    async function setInquirySeverity(sel){
-      const id = sel.getAttribute('data-id');
-      const newVal = sel.value || null;
-      sel.disabled = true;
-      try {
-        // Only over the severity this page showed (the option rendered as
-        // selected): a stale tab can't overwrite someone else's change.
-        const shown = [...sel.options].find(o => o.defaultSelected);
-        const ok = await updateIfUnchanged('customer_inquiries', id, { severity: newVal }, { severity: shown && shown.value ? shown.value : null });
-        if (!ok) { showDashError(staleMessage('That inquiry')); loadInquiries(); return; }
-        const rec = ALL_INQUIRIES.find(i => i.id === id);
-        if (rec) rec.severity = newVal;
-        renderInquiries();
-      } catch (err) {
-        showDashError('Could not update severity: ' + (err && err.message ? err.message : err));
-        sel.disabled = false;
-      }
-    }
-
-    async function saveInquiryDraft(btn){
-      const id = btn.getAttribute('data-id');
-      const textarea = document.querySelector(`.inqDraftText[data-id="${id}"]`);
-      if (!textarea) return;
-      const originalText = btn.textContent;
-      btn.disabled = true;
-      btn.textContent = 'Saving…';
-      try {
-        // EXT5: two people editing the same reply must not overwrite each
-        // other silently. Re-read the draft first: if it changed since this
-        // page loaded it, stop and keep this text in the box. (A short gap
-        // remains between this read and the save; the text itself is too long
-        // to use as a database condition safely.)
-        const rec = ALL_INQUIRIES.find(i => i.id === id);
-        const { data: nowRow, error: nowErr } = await supabase.from('customer_inquiries').select('ai_draft_reply, answered_at').eq('id', id).maybeSingle();
-        if (nowErr) throw nowErr;
-        if (!nowRow) throw new Error(staleMessage('That inquiry') + ' Your draft was not saved — copy it before reloading.');
-        if (nowRow.answered_at) throw new Error('This inquiry was marked answered in the meantime, so the draft was not saved. Your text is still in the box — copy it if you need it.');
-        if (rec && (nowRow.ai_draft_reply || '') !== (rec.ai_draft_reply || '')) {
-          throw new Error('Someone else changed this draft since you opened it, so yours was not saved (nothing was overwritten). Your text is still in the box: copy it, reload to see theirs, then combine them.');
-        }
-        const { data: changed, error } = await supabase.from('customer_inquiries').update({ ai_draft_reply: textarea.value }).eq('id', id).is('answered_at', null).select('id');
-        if (error) throw error;
-        if (noRowsChanged(changed)) throw new Error(staleMessage('That inquiry') + ' Your draft was not saved — copy it before reloading.');
-        if (rec) rec.ai_draft_reply = textarea.value;
-        btn.textContent = 'Saved';
-        setTimeout(() => { btn.textContent = originalText; btn.disabled = false; }, 1200);
-      } catch (err) {
-        showDashError('Could not save that edit: ' + (err && err.message ? err.message : err));
-        btn.textContent = originalText;
-        btn.disabled = false;
-      }
-    }
-
-    async function copyInquiryReply(btn){
-      const id = btn.getAttribute('data-id');
-      const textarea = document.querySelector(`.inqDraftText[data-id="${id}"]`);
-      if (!textarea) return;
-      const originalText = btn.textContent;
-      try {
-        await navigator.clipboard.writeText(textarea.value);
-        btn.textContent = 'Copied!';
-      } catch (err) {
-        showDashError('Could not copy to clipboard — you can select and copy the text by hand instead.');
-      } finally {
-        setTimeout(() => { btn.textContent = originalText; }, 1200);
-      }
-    }
-
-    async function markInquiryAnswered(btn){
-      const id = btn.getAttribute('data-id');
-      btn.disabled = true;
-      try {
-        const changed = await updateIfUnchanged('customer_inquiries', id,
-          { status: 'answered', answered_at: new Date().toISOString() }, { status: btn.getAttribute('data-status') || null });
-        if (!changed) showDashError(staleMessage('That question'));
-        loadInquiries();
-      } catch (err) {
-        showDashError('Could not mark that as answered: ' + (err && err.message ? err.message : err));
-        btn.disabled = false;
-      }
-    }
 
     async function loadContinuity(){
       try {
@@ -4591,26 +3932,26 @@
           let liveSignal = '';
           if (s.service_name === 'Apple Calendar Sync') {
             liveSignal = lastCalendarSync
-              ? `<div style="font-size:11.5px;color:var(--muted);margin-top:3px;">Last real sync: ${esc(timeAgo(lastCalendarSync))} (${esc(fmtDate(lastCalendarSync))})</div>`
-              : `<div style="font-size:11.5px;color:var(--muted);margin-top:3px;">No sync recorded yet.</div>`;
+              ? `<div class="u-fs-11p5 u-c-muted u-mt-3">Last real sync: ${esc(timeAgo(lastCalendarSync))} (${esc(fmtDate(lastCalendarSync))})</div>`
+              : `<div class="u-fs-11p5 u-c-muted u-mt-3">No sync recorded yet.</div>`;
           } else if (s.service_name === 'Anthropic AI API') {
             liveSignal = lastAiCall
-              ? `<div style="font-size:11.5px;color:var(--muted);margin-top:3px;">Last real AI call: ${esc(timeAgo(lastAiCall))} (${esc(fmtDate(lastAiCall))})</div>`
-              : `<div style="font-size:11.5px;color:var(--muted);margin-top:3px;">No AI call logged yet.</div>`;
+              ? `<div class="u-fs-11p5 u-c-muted u-mt-3">Last real AI call: ${esc(timeAgo(lastAiCall))} (${esc(fmtDate(lastAiCall))})</div>`
+              : `<div class="u-fs-11p5 u-c-muted u-mt-3">No AI call logged yet.</div>`;
           }
           return `
-          <div class="approvalRow" style="align-items:flex-start;" data-id="${esc(s.id)}">
+          <div class="approvalRow u-ai-flex-start" data-id="${esc(s.id)}">
             <div class="info">
               <b>${esc(s.service_name)}</b>
               ${s.category ? `<span class="badge">${esc(s.category)}</span>` : ''}
               <span class="badge ${continuityBadgeClass(s.status)}">${esc(s.status || 'not set')}</span>
-              ${s.notes ? `<div style="font-size:12px;color:var(--muted);margin-top:3px;">${esc(s.notes)}</div>` : ''}
+              ${s.notes ? `<div class="u-fs-12 u-c-muted u-mt-3">${esc(s.notes)}</div>` : ''}
               ${liveSignal}
-              <div style="font-size:11px;color:var(--muted);margin-top:3px;">Status last set ${esc(fmtDate(s.updated_at))}</div>
+              <div class="u-fs-11 u-c-muted u-mt-3">Status last set ${esc(fmtDate(s.updated_at))}</div>
             </div>
             <div class="actions">
-              <label style="font-size:11.5px;color:var(--muted);">
-                <select class="continuityStatusSelect" data-id="${esc(s.id)}" style="padding:4px 7px;border-radius:6px;border:1px solid #cfd8d6;font-family:inherit;font-size:12.5px;">
+              <label class="u-fs-11p5 u-c-muted">
+                <select class="continuityStatusSelect u-p-4-7 u-br-6 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-12p5" data-id="${esc(s.id)}">
                   ${['operational', 'degraded', 'down'].includes(s.status) ? '' : `<option value="${esc(s.status || '')}" selected disabled>Unknown (${esc(s.status || 'not set')})</option>`}
                   <option value="operational" ${s.status === 'operational' ? 'selected' : ''}>Operational</option>
                   <option value="degraded" ${s.status === 'degraded' ? 'selected' : ''}>Degraded</option>
@@ -4693,85 +4034,15 @@
         showDashError('Could not load Daily Summary: ' + (err && err.message ? err.message : err));
       }
     }
-
-    // Report History: browse the nightly automatic snapshots saved into
-    // daily_reports by the scheduled database job (separate from the live
-    // Daily Summary above, which is always computed fresh on page load).
-    // Holds the raw daily rows once fetched, so switching between Daily/Weekly/
-    // Monthly just re-groups data already in memory — no extra database calls.
-    let REPORT_HISTORY_DATA = [];
-    let reportHistoryView = 'daily';
-
-    function renderReportHistoryView(){
-      const wrap = document.getElementById('reportHistoryWrap');
-      if (!REPORT_HISTORY_DATA.length) {
-        wrap.innerHTML = '<p class="empty">No saved reports yet — the first one will appear after tonight\'s automatic run.</p>';
-        return;
-      }
-
-      let rows, firstColLabel;
-      if (reportHistoryView === 'daily') {
-        firstColLabel = 'Date';
-        rows = REPORT_HISTORY_DATA.map(r => ({
-          label: fmtDateOnly(r.report_date), currency: r.currency || 'USD',
-          orders_count: r.orders_count, revenue: missingToNaN(r.revenue),
-          new_inquiries_count: r.new_inquiries_count, tasks_opened_count: r.tasks_opened_count,
-          incidents_opened_count: r.incidents_opened_count, ai_calls_count: r.ai_calls_count,
-          ai_cost: missingToNaN(r.ai_cost), emailed: r.emailed_at ? '✓' : '—',
-        }));
-      } else if (reportHistoryView === 'weekly') {
-        firstColLabel = 'Week';
-        rows = rollupReports(REPORT_HISTORY_DATA, d => localDateString(startOfWeekMonday(d)), d => weekGroupLabel(startOfWeekMonday(d)))
-          .map(g => ({ ...g, emailed: '—' }));
-      } else {
-        firstColLabel = 'Month';
-        rows = rollupReports(REPORT_HISTORY_DATA, d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`, monthGroupLabel)
-          .map(g => ({ ...g, emailed: '—' }));
-      }
-
-      wrap.innerHTML = `
-        <table class="phoneCards"><thead><tr>
-          <th>${esc(firstColLabel)}</th><th>Orders</th><th>Revenue</th><th>New questions</th>
-          <th>Tasks opened</th><th>Incidents opened</th><th>AI calls</th><th>AI cost</th><th>Emailed</th>
-        </tr></thead>
-        <tbody>${rows.map(r => `
-          <tr>
-            <td>${esc(r.label)}</td>
-            <td>${reportCount(r.orders_count)}</td>
-            <td>${esc(fmtMoney(r.revenue, r.currency || 'USD'))}</td>
-            <td>${reportCount(r.new_inquiries_count)}</td>
-            <td>${reportCount(r.tasks_opened_count)}</td>
-            <td>${reportCount(r.incidents_opened_count)}</td>
-            <td>${reportCount(r.ai_calls_count)}</td>
-            <td>${esc(fmtMoney(r.ai_cost, 'USD'))}</td>
-            <td>${esc(r.emailed)}</td>
-          </tr>`).join('')}</tbody></table>`;
-    }
     document.getElementById('reportHistoryToggle').addEventListener('click', (e) => {
       const btn = e.target.closest('button[data-view]');
       if (!btn) return;
-      reportHistoryView = btn.getAttribute('data-view');
+      setReportHistoryView(btn.getAttribute('data-view'));
       document.querySelectorAll('#reportHistoryToggle button').forEach(b => {
         b.classList.toggle('secondary', b !== btn);
       });
       renderReportHistoryView();
     });
-
-    async function loadReportHistory(){
-      try {
-        const { data: reports, error } = await supabase
-          .from('daily_reports')
-          .select('*')
-          .order('report_date', { ascending: false })
-          .limit(366);
-        if (error) throw error;
-
-        REPORT_HISTORY_DATA = reports || [];
-        renderReportHistoryView();
-      } catch (err) {
-        showDashError('Could not load Report History: ' + (err && err.message ? err.message : err));
-      }
-    }
 
     async function loadFlags(){
       try {
@@ -4784,7 +4055,7 @@
         // The one launch-critical switch: if its row is missing, its state is
         // unknown (not "off"), and the page says so.
         const syncMissingNote = flags.some(f => f.flag_key === 'shopify_order_sync') ? '' :
-          '<p class="hint flagSyncMissing" style="color:var(--danger);margin-top:8px;">The Shopify Order Sync switch was not found in the database, so its state is unknown (not configured), not "off". Emergency mode cannot switch it off either.</p>';
+          '<p class="hint flagSyncMissing u-c-danger u-mt-8">The Shopify Order Sync switch was not found in the database, so its state is unknown (not configured), not "off". Emergency mode cannot switch it off either.</p>';
         if (!flags.length) {
           document.getElementById('flagsWrap').innerHTML = '<p class="empty">No feature flags exist yet.</p>' + syncMissingNote;
         } else {
@@ -4793,7 +4064,7 @@
               <div class="flagInfo">
                 <div class="k">${esc(f.label || f.flag_key)}${LAUNCH_BLOCKED_FLAGS[f.flag_key] ? ' <span class="badge sev-high flagBlockedBadge">Blocked until launch checks</span>' : ''}</div>
                 <div class="d">${esc(f.description || f.flag_key)}</div>
-                ${LAUNCH_BLOCKED_FLAGS[f.flag_key] ? `<div class="d flagBlockedReason" style="color:var(--danger);">${esc(LAUNCH_BLOCKED_FLAGS[f.flag_key])}</div>` : ''}
+                ${LAUNCH_BLOCKED_FLAGS[f.flag_key] ? `<div class="d flagBlockedReason u-c-danger">${esc(LAUNCH_BLOCKED_FLAGS[f.flag_key])}</div>` : ''}
                 ${FLAG_DEPENDS[f.flag_key] ? `<div class="d flagDepends"><span class="badge flagState">${f.enabled ? 'ON' : 'OFF'}</span> Needs first: ${esc(FLAG_DEPENDS[f.flag_key])}. The page checks this before it lets the switch turn on; turning it off is always safe (work already done stays done).</div>` : ''}
               </div>
               <label class="switch">
@@ -4906,9 +4177,12 @@
             : (who && when) ? `Last changed by ${who} on ${when}.`
             : when ? `Last changed on ${when}.` : 'No change recorded yet.';
           wrap.innerHTML = `
-            <div style="display:inline-block;padding:6px 12px;border-radius:999px;font-weight:700;font-size:13px;
-              background:${info.bg};color:${info.fg};border:1px solid ${info.border};">${esc(info.label)}</div>
-            <p class="hint" style="margin:8px 0 0;">${esc(info.desc)} ${esc(changedLine)}</p>`;
+            <div class="modePill">${esc(info.label)}</div>
+            <p class="hint u-m-8-0-0">${esc(info.desc)} ${esc(changedLine)}</p>`;
+          // EXT15: colours through the CSS object model (strict style policy); they come
+          // from the fixed SYSTEM_MODE_LABELS table, never from the database.
+          const pill = wrap.querySelector('.modePill');
+          pill.style.background = info.bg; pill.style.color = info.fg; pill.style.border = '1px solid ' + info.border;
         }
         const sel = document.getElementById('systemModeSelect');
         if (sel) sel.value = mode;
@@ -5078,19 +4352,19 @@
           const currentValue = knownShape ? r.config[configKey] : null;
 
           return `
-            <div class="flagRow" data-id="${esc(r.id)}" data-rule-key="${esc(r.rule_key)}" data-config-key="${esc(configKey || '')}" data-config="${esc(JSON.stringify(r.config === undefined ? null : r.config))}" style="align-items:flex-start;">
-              <div class="flagInfo" style="flex:1;min-width:0;">
+            <div class="flagRow u-ai-flex-start" data-id="${esc(r.id)}" data-rule-key="${esc(r.rule_key)}" data-config-key="${esc(configKey || '')}" data-config="${esc(JSON.stringify(r.config === undefined ? null : r.config))}">
+              <div class="flagInfo u-flex-1 u-minw-0">
                 <div class="k">${esc(r.label || r.rule_key)}</div>
                 <div class="d">${esc(r.description || r.rule_key)}</div>
               </div>
-              <div style="display:flex;align-items:center;gap:10px;flex:none;">
+              <div class="u-d-flex u-ai-center u-gap-10 u-flex-none">
                 ${knownShape ? `
-                  <input type="number" class="ruleValueInput" value="${esc(String(currentValue))}" step="any" style="width:90px;padding:7px 8px;border-radius:8px;border:1px solid #cfd8d6;font-family:inherit;font-size:13.5px;">
-                  <span style="font-size:12px;color:var(--muted);min-width:60px;">${esc(unit)}</span>
+                  <input type="number" class="ruleValueInput u-w-90 u-p-7-8 u-br-8 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-13p5" value="${esc(String(currentValue))}" step="any">
+                  <span class="u-fs-12 u-c-muted u-minw-60">${esc(unit)}</span>
                 ` : `
-                  <textarea class="ruleConfigJson" rows="2" style="width:180px;padding:7px 8px;border-radius:8px;border:1px solid #cfd8d6;font-family:monospace;font-size:12px;resize:vertical;">${esc(JSON.stringify(r.config))}</textarea>
+                  <textarea class="ruleConfigJson u-w-180 u-p-7-8 u-br-8 u-b-1-solid-xcfd8d6 u-ff-monospace u-fs-12 u-rs-vertical" rows="2">${esc(JSON.stringify(r.config))}</textarea>
                 `}
-                <button type="button" class="small ruleSaveBtn" style="display:none;">Save</button>
+                <button type="button" class="small ruleSaveBtn u-d-none">Save</button>
                 <label class="switch">
                   <input type="checkbox" class="ruleActiveToggle" ${r.is_active ? 'checked' : ''}>
                   <span class="slider"></span>
@@ -5193,70 +4467,6 @@
       }
     }
 
-    async function loadApprovals(){
-      try {
-        const { data: reqs, error, count } = await supabase
-          .from('approval_requests')
-          .select('id, action_type, summary, status, created_at', { count: 'exact' })
-          .not('status', 'in', CLOSED_IN)
-          .order('created_at', { ascending: false })
-          .limit(100);
-        if (error) throw error;
-        SEARCH_INDEX.approvals = reqs;
-
-        // EXT7: only undecided requests are read (same reason as loadTasks).
-        // Before, 100 newer decided requests pushed an older pending one out
-        // of the approval queue, with only a vague warning.
-        const pending = reqs.filter(r => !isClosedStatus(r.status));
-        const truncated = count != null && count > reqs.length;
-        const cutoffNote = truncated
-          ? `<p class="hint" style="margin:0 0 8px;color:var(--warn);">Showing the ${reqs.length} most recent of ${count} pending requests.</p>` : '';
-        if (!pending.length) {
-          document.getElementById('approvalsWrap').innerHTML = cutoffNote + '<p class="empty">Nothing waiting for approval.</p>';
-        } else {
-          document.getElementById('approvalsWrap').innerHTML = cutoffNote + pending.map(r => `
-            <div class="approvalRow" data-id="${esc(r.id)}" data-status="${esc(r.status || '')}">
-              <div class="info">
-                <b>${esc(r.action_type)}</b> — ${esc(r.summary || '')}
-                <br><span style="font-size:11px;color:var(--muted);">Requested ${esc(fmtDate(r.created_at))}</span>
-              </div>
-              <div class="actions">
-                <button class="small approve approveBtn">Approve</button>
-                <button class="small deny denyBtn">Deny</button>
-              </div>
-            </div>`).join('');
-          document.querySelectorAll('.approveBtn').forEach(btn => btn.addEventListener('click', () => decideApproval(btn, 'approved')));
-          // The database allows only pending / approved / rejected (Query A, 2026-10-05):
-          // 'denied' was refused by its status check, so Deny never worked.
-          document.querySelectorAll('.denyBtn').forEach(btn => btn.addEventListener('click', () => decideApproval(btn, 'rejected')));
-        }
-      } catch (err) {
-        showDashError('Could not load the approval queue: ' + (err && err.message ? err.message : err));
-      }
-    }
-
-    async function decideApproval(btn, decision){
-      const row = btn.closest('.approvalRow');
-      const id = row.getAttribute('data-id');
-      const ok = await requireReauth(decision === 'approved' ? 'approve this request' : 'deny (reject) this request');
-      if (!ok) return;
-      row.querySelectorAll('button').forEach(b => b.disabled = true);
-      try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        const uid = sessionData && sessionData.session ? sessionData.session.user.id : null;
-        const seenStatus = row.getAttribute('data-status') || null;
-        const changed = await updateIfUnchanged('approval_requests', id,
-          { status: decision, reviewed_by: uid, reviewed_at: new Date().toISOString() },
-          { status: seenStatus });
-        if (!changed) showDashError(staleMessage('That request'));
-        else toastOk(decision === 'approved' ? 'Request approved.' : 'Request rejected.');
-        loadApprovals();
-      } catch (err) {
-        row.querySelectorAll('button').forEach(b => b.disabled = false);
-        showDashError(`Could not mark that request "${decision}": ` + (err && err.message ? err.message : err));
-      }
-    }
-
     async function loadSessions(){
       try {
         const { data: sessions, error } = await supabase.rpc('list_my_sessions');
@@ -5268,8 +4478,8 @@
         document.getElementById('sessionsWrap').innerHTML = sessions.map(s => `
           <div class="sessionRow" data-id="${esc(s.session_id)}">
             <div class="info">
-              <b>${esc(deviceLabel(s.user_agent))}</b>${s.is_current ? ' <span style="color:var(--good);font-size:11px;">· This device</span>' : ''}
-              <br><span style="font-size:11px;color:var(--muted);">Signed in ${esc(fmtDate(s.created_at))} &middot; Last active ${esc(fmtDate(s.last_active))}${s.ip_address ? ' &middot; ' + esc(s.ip_address) : ''}</span>
+              <b>${esc(deviceLabel(s.user_agent))}</b>${s.is_current ? ' <span class="u-c-good u-fs-11">· This device</span>' : ''}
+              <br><span class="u-fs-11 u-c-muted">Signed in ${esc(fmtDate(s.created_at))} &middot; Last active ${esc(fmtDate(s.last_active))}${s.ip_address ? ' &middot; ' + esc(s.ip_address) : ''}</span>
             </div>
             <div class="actions">
               ${s.is_current ? '' : '<button class="small deny logoutSessionBtn">Log out</button>'}
@@ -5323,14 +4533,14 @@
           return;
         }
         document.getElementById('sopsWrap').innerHTML = sops.map(s => `
-          <details style="border-bottom:1px solid var(--line);padding:8px 0;">
-            <summary style="cursor:pointer;font-weight:600;font-size:13.5px;color:var(--navy);">
-              ${esc(s.title)}${s.category ? ` <span style="font-weight:400;color:var(--muted);font-size:12px;">&middot; ${esc(s.category)}</span>` : ''}
+          <details class="u-bb-1-solid-line u-p-8-0">
+            <summary class="u-cur-pointer u-fw-600 u-fs-13p5 u-c-navy">
+              ${esc(s.title)}${s.category ? ` <span class="u-fw-400 u-c-muted u-fs-12">&middot; ${esc(s.category)}</span>` : ''}
             </summary>
-            <div style="white-space:pre-wrap;font-size:13px;color:var(--ink);margin:8px 0 4px;">${esc(s.content)}</div>
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:6px;">
-              <div style="font-size:11px;color:var(--muted);">Last updated ${esc(fmtDate(s.updated_at))}</div>
-              <label style="display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--ink);cursor:pointer;">
+            <div class="u-ws-pre-wrap u-fs-13 u-c-ink u-m-8-0-4">${esc(s.content)}</div>
+            <div class="u-d-flex u-ai-center u-jc-space-between u-gap-10 u-fwr-wrap u-mt-6">
+              <div class="u-fs-11 u-c-muted">Last updated ${esc(fmtDate(s.updated_at))}</div>
+              <label class="u-d-flex u-ai-center u-gap-8 u-fs-11p5 u-c-ink u-cur-pointer">
                 Customer Service Agent may reference this
                 <span class="switch">
                   <input type="checkbox" class="sopAgentToggle" data-id="${esc(s.id)}" ${s.agent_visible ? 'checked' : ''}>
@@ -5443,8 +4653,8 @@
               <b>${esc(r.title)}</b>
               ${r.priority === 'high' ? '<span class="priorityPill high">high</span>' : ''}
               <span class="badge${r.status === 'done' ? ' sev-low' : ''}">${esc(FR_STATUS_LABELS[r.status] || r.status)}</span>
-              ${r.description ? `<div style="font-size:12px;color:var(--muted);margin-top:3px;">${esc(r.description)}</div>` : ''}
-              <br><span style="font-size:11px;color:var(--muted);">Requested ${esc(fmtDate(r.requested_at))}</span>
+              ${r.description ? `<div class="u-fs-12 u-c-muted u-mt-3">${esc(r.description)}</div>` : ''}
+              <br><span class="u-fs-11 u-c-muted">Requested ${esc(fmtDate(r.requested_at))}</span>
             </div>
             <div class="actions">
               ${FR_NEXT_STATUS[r.status] ? `<button class="small frAdvanceBtn">${esc(FR_NEXT_LABEL[r.status])}</button>` : ''}
@@ -5514,7 +4724,7 @@
         document.getElementById('deletedFeatureRequestsWrap').innerHTML = deleted.map(r => `
           <div class="deletedRow" data-id="${esc(r.id)}">
             <div class="info"><b>${esc(r.title)}</b><br>
-            <span style="font-size:11px;color:var(--muted);">Deleted ${esc(fmtDate(r.deleted_at))}</span></div>
+            <span class="u-fs-11 u-c-muted">Deleted ${esc(fmtDate(r.deleted_at))}</span></div>
             <button class="small restoreFeatureRequestBtn">Restore</button>
           </div>`).join('');
         appendMore('deletedFeatureRequestsWrap', 'delFR', deleted.length, count, 'deleted requests', loadDeletedFeatureRequests);
@@ -5641,13 +4851,13 @@
             <div class="info">
               <b>${esc(e.title)}</b>
               ${e.evidence_type ? `<span class="badge">${esc(e.evidence_type)}</span>` : ''}
-              <div style="font-size:12px;color:var(--muted);margin-top:3px;">Tied to: ${incLabel}</div>
-              ${e.description ? `<div style="font-size:12px;color:var(--muted);margin-top:3px;">${esc(e.description)}</div>` : ''}
-              ${e.file_path ? `<div style="font-size:12px;margin-top:3px;"><a href="#" class="evidenceFileLink">Download uploaded file</a></div>` : ''}
+              <div class="u-fs-12 u-c-muted u-mt-3">Tied to: ${incLabel}</div>
+              ${e.description ? `<div class="u-fs-12 u-c-muted u-mt-3">${esc(e.description)}</div>` : ''}
+              ${e.file_path ? `<div class="u-fs-12 u-mt-3"><a href="#" class="evidenceFileLink">Download uploaded file</a></div>` : ''}
               ${e.external_link ? (isSafeLink(e.external_link)
-                ? `<div style="font-size:12px;margin-top:3px;"><a href="${esc(e.external_link)}" target="_blank" rel="noopener noreferrer">Open linked file</a></div>`
-                : `<div style="font-size:12px;margin-top:3px;color:var(--muted);">Linked file (not opened — this kind of link can run code): ${esc(e.external_link)}</div>`) : ''}
-              <br><span style="font-size:11px;color:var(--muted);">Added ${esc(fmtDate(e.created_at))}</span>
+                ? `<div class="u-fs-12 u-mt-3"><a href="${esc(e.external_link)}" target="_blank" rel="noopener noreferrer">Open linked file</a></div>`
+                : `<div class="u-fs-12 u-mt-3 u-c-muted">Linked file (not opened — this kind of link can run code): ${esc(e.external_link)}</div>`) : ''}
+              <br><span class="u-fs-11 u-c-muted">Added ${esc(fmtDate(e.created_at))}</span>
             </div>
           </div>`;
         }).join('');
@@ -5802,19 +5012,19 @@
         document.getElementById('documentsWrap').innerHTML = rows.length ? rows.map(d => {
           const related = relatedLabel(d);
           return `
-            <div class="deletedRow" data-id="${esc(d.id)}" data-file-path="${esc(d.file_path || '')}" style="align-items:flex-start;">
-              <div class="info" style="flex:1;">
+            <div class="deletedRow u-ai-flex-start" data-id="${esc(d.id)}" data-file-path="${esc(d.file_path || '')}">
+              <div class="info u-flex-1">
                 <b>${esc(d.title)}</b>
                 <span class="badge">${esc(DOCUMENT_CATEGORY_LABELS[d.category] || d.category || 'Other')}</span>
                 ${docExpiryBadge(d.expiration_date)}
-                ${related ? `<div style="font-size:12px;color:var(--muted);margin-top:3px;">Linked to: ${esc(related)}</div>` : ''}
-                ${d.issued_date ? `<div style="font-size:12px;color:var(--muted);margin-top:3px;">Issued ${esc(fmtDateOnly(d.issued_date))}</div>` : ''}
-                ${d.notes ? `<div style="margin-top:6px;">${esc(d.notes)}</div>` : ''}
-                ${d.file_path ? `<div style="font-size:12px;margin-top:6px;"><a href="#" class="docFileLink">Open uploaded file</a></div>` : ''}
+                ${related ? `<div class="u-fs-12 u-c-muted u-mt-3">Linked to: ${esc(related)}</div>` : ''}
+                ${d.issued_date ? `<div class="u-fs-12 u-c-muted u-mt-3">Issued ${esc(fmtDateOnly(d.issued_date))}</div>` : ''}
+                ${d.notes ? `<div class="u-mt-6">${esc(d.notes)}</div>` : ''}
+                ${d.file_path ? `<div class="u-fs-12 u-mt-6"><a href="#" class="docFileLink">Open uploaded file</a></div>` : ''}
                 ${d.document_url ? (isSafeLink(d.document_url)
-                  ? `<div style="font-size:12px;margin-top:6px;"><a href="${esc(d.document_url)}" target="_blank" rel="noopener noreferrer">Open linked document</a></div>`
-                  : `<div style="font-size:12px;margin-top:6px;color:var(--muted);">Linked document (not opened — this kind of link can run code): ${esc(d.document_url)}</div>`) : ''}
-                <div style="margin-top:8px;"><button type="button" class="small secondary docDeleteBtn">Delete</button></div>
+                  ? `<div class="u-fs-12 u-mt-6"><a href="${esc(d.document_url)}" target="_blank" rel="noopener noreferrer">Open linked document</a></div>`
+                  : `<div class="u-fs-12 u-mt-6 u-c-muted">Linked document (not opened — this kind of link can run code): ${esc(d.document_url)}</div>`) : ''}
+                <div class="u-mt-8"><button type="button" class="small secondary docDeleteBtn">Delete</button></div>
               </div>
             </div>`;
         }).join('') : '<p class="empty">No documents on file yet — add your first one below.</p>';
@@ -6016,9 +5226,9 @@
               <b>${esc(ev.product_name)}</b>
               <span class="badge ${statusClass}">${statusLabel}</span>
               ${ev.outcome_type ? `<span class="badge">${esc(ev.outcome_type.replace(/_/g, ' '))}</span>` : ''}
-              <div style="font-size:12px;color:var(--muted);margin-top:3px;">${esc(ev.description)}</div>
-              ${ev.reporter_name ? `<div style="font-size:11px;color:var(--muted);margin-top:3px;">Reported by: ${esc(ev.reporter_name)}${ev.reporter_contact ? ' — ' + esc(ev.reporter_contact) : ''}</div>` : ''}
-              <br><span style="font-size:11px;color:var(--muted);">Received ${esc(fmtDateOnly(ev.date_received))}</span>
+              <div class="u-fs-12 u-c-muted u-mt-3">${esc(ev.description)}</div>
+              ${ev.reporter_name ? `<div class="u-fs-11 u-c-muted u-mt-3">Reported by: ${esc(ev.reporter_name)}${ev.reporter_contact ? ' — ' + esc(ev.reporter_contact) : ''}</div>` : ''}
+              <br><span class="u-fs-11 u-c-muted">Received ${esc(fmtDateOnly(ev.date_received))}</span>
             </div>
             <div class="actions">
               ${!ev.fda_reported ? `<button class="small aeMarkReportedBtn">Mark reported to FDA</button>` : ''}
@@ -6120,9 +5330,9 @@
             <div class="info">
               <b>${esc(h.title)}</b>
               ${h.related_type ? `<span class="badge">${esc(h.related_type)}</span>` : ''}
-              ${h.related_reference ? `<div style="font-size:12px;color:var(--muted);margin-top:3px;">Reference: ${esc(h.related_reference)}</div>` : ''}
-              ${h.description ? `<div style="font-size:12px;color:var(--muted);margin-top:3px;">${esc(h.description)}</div>` : ''}
-              <br><span style="font-size:11px;color:var(--muted);">Placed ${esc(fmtDate(h.placed_at))}</span>
+              ${h.related_reference ? `<div class="u-fs-12 u-c-muted u-mt-3">Reference: ${esc(h.related_reference)}</div>` : ''}
+              ${h.description ? `<div class="u-fs-12 u-c-muted u-mt-3">${esc(h.description)}</div>` : ''}
+              <br><span class="u-fs-11 u-c-muted">Placed ${esc(fmtDate(h.placed_at))}</span>
             </div>
             <div class="actions">
               <button class="small lhReleaseBtn">Release hold</button>
@@ -6176,7 +5386,7 @@
         document.getElementById('releasedLegalHoldsWrap').innerHTML = holds.map(h => `
           <div class="deletedRow">
             <div class="info"><b>${esc(h.title)}</b><br>
-            <span style="font-size:11px;color:var(--muted);">Released ${esc(fmtDate(h.released_at))}</span></div>
+            <span class="u-fs-11 u-c-muted">Released ${esc(fmtDate(h.released_at))}</span></div>
           </div>`).join('');
         appendMore('releasedLegalHoldsWrap', 'relHolds', holds.length, count, 'released holds', loadReleasedLegalHolds);
       } catch (err) {
@@ -6258,38 +5468,38 @@
           // No stock row at all is not the same as "0 in stock": say so (the
           // row is created on the first stock change).
           const hasStockRow = Array.isArray(p.inventory) ? p.inventory.length > 0 : !!p.inventory;
-          const noRowBadge = hasStockRow ? '' : '<span class="badge sev-medium noStockRowBadge" style="margin-right:4px;">No stock record yet (counts shown as 0)</span>';
+          const noRowBadge = hasStockRow ? '' : '<span class="badge sev-medium noStockRowBadge u-mr-4">No stock record yet (counts shown as 0)</span>';
           const bucketBadges = noRowBadge + ['available', 'reserved', 'damaged', 'sample', 'wholesale', 'promotional', 'returned']
-            .map(b => `<span class="badge" style="margin-right:4px;">${esc(INVENTORY_BUCKET_LABELS[b])}: ${Number(inv[b] || 0)}</span>`)
+            .map(b => `<span class="badge u-mr-4">${esc(INVENTORY_BUCKET_LABELS[b])}: ${Number(inv[b] || 0)}</span>`)
             .join('') + (Number(inv.recalled || 0) > 0
-              ? `<span class="badge sev-high" style="margin-right:4px;">${esc(INVENTORY_BUCKET_LABELS.recalled)}: ${Number(inv.recalled)}</span>` : '');
+              ? `<span class="badge sev-high u-mr-4">${esc(INVENTORY_BUCKET_LABELS.recalled)}: ${Number(inv.recalled)}</span>` : '');
           const lotsOnHand = (p.inventory_lots || [])
             .filter(l => Number(l.quantity_remaining) > 0)
             .sort((a, b) => new Date(a.received_at) - new Date(b.received_at)); // oldest first, for using stock in order
           const today = localDateString();
           const lotsHtml = lotsOnHand.length ? `
-                <div style="margin-top:8px;">
-                  <div style="font-size:12px;color:var(--muted);margin-bottom:4px;">Lots on hand (oldest first):</div>
+                <div class="u-mt-8">
+                  <div class="u-fs-12 u-c-muted u-mb-4">Lots on hand (oldest first):</div>
                   ${lotsOnHand.map(l => {
                     const expiring = l.expires_at && l.expires_at <= today;
-                    return `<span class="badge${expiring ? ' sev-high' : ''}" style="margin-right:4px;" title="${l.received_at ? 'Received ' + fmtDate(l.received_at) : ''}">${esc(l.lot_number)}: ${Number(l.quantity_remaining)}${l.expires_at ? (expiring ? ' · expired' : ' · exp ' + l.expires_at) : ''}</span>`;
+                    return `<span class="badge${expiring ? ' sev-high' : ''} u-mr-4" title="${l.received_at ? 'Received ' + fmtDate(l.received_at) : ''}">${esc(l.lot_number)}: ${Number(l.quantity_remaining)}${l.expires_at ? (expiring ? ' · expired' : ' · exp ' + l.expires_at) : ''}</span>`;
                   }).join('')}
                 </div>` : '';
           return `
-            <div class="deletedRow" data-product-id="${esc(p.id)}" data-status="${esc(p.status || '')}" data-updated-at="${esc(p.updated_at || '')}" style="align-items:flex-start;">
-              <div class="info" style="flex:1;">
-                <b>${esc(p.name)}</b>${p.sku ? ' <span style="color:var(--muted);font-size:12px;">(' + esc(p.sku) + ')</span>' : ''}
+            <div class="deletedRow u-ai-flex-start" data-product-id="${esc(p.id)}" data-status="${esc(p.status || '')}" data-updated-at="${esc(p.updated_at || '')}">
+              <div class="info u-flex-1">
+                <b>${esc(p.name)}</b>${p.sku ? ' <span class="u-c-muted u-fs-12">(' + esc(p.sku) + ')</span>' : ''}
                 ${isLow ? ' <span class="badge sev-high">Low stock</span>' : ''}
                 ${!p.is_active ? ' <span class="badge">Inactive</span>' : ''}
-                <br><div style="margin-top:6px;">${bucketBadges}</div>
+                <br><div class="u-mt-6">${bucketBadges}</div>
                 ${lotsHtml}
-                <div style="margin-top:8px;display:flex;align-items:center;gap:6px;">
-                  <label style="font-size:12px;color:var(--muted);">Low-stock alert when Available drops below:</label>
-                  <input type="number" class="invThresholdInput" min="0" step="1" style="width:80px;padding:5px 7px;border-radius:6px;border:1px solid #cfd8d6;font-family:inherit;font-size:13px;" value="${threshold !== null && threshold !== undefined ? Number(threshold) : ''}" placeholder="none">
+                <div class="u-mt-8 u-d-flex u-ai-center u-gap-6">
+                  <label class="u-fs-12 u-c-muted">Low-stock alert when Available drops below:</label>
+                  <input type="number" class="invThresholdInput u-w-80 u-p-5-7 u-br-6 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-13" min="0" step="1" value="${threshold !== null && threshold !== undefined ? Number(threshold) : ''}" placeholder="none">
                   <button type="button" class="small saveThresholdBtn">Save</button>
-                  <button type="button" class="small secondary editProductBtn" style="margin-left:auto;">Edit product</button>
+                  <button type="button" class="small secondary editProductBtn u-ml-auto">Edit product</button>
                 </div>
-                <div class="prodEdit" style="display:none;">
+                <div class="prodEdit u-d-none">
                   <div class="prodEditGrid">
                     <label>Name<input type="text" class="peName" value="${esc(p.name)}"></label>
                     <label>SKU<input type="text" class="peSku" value="${esc(p.sku || '')}" placeholder="none"></label>
@@ -6305,7 +5515,7 @@
                   <div class="prodEditRow">
                     <button type="button" class="small saveProductBtn">Save changes</button>
                     <button type="button" class="small secondary cancelProductBtn">Cancel</button>
-                    <button type="button" class="small secondary toggleProductBtn" style="margin-left:auto;">${p.is_active ? 'Deactivate' : 'Reactivate'}</button>
+                    <button type="button" class="small secondary toggleProductBtn u-ml-auto">${p.is_active ? 'Deactivate' : 'Reactivate'}</button>
                     <button type="button" class="small deny deleteProductBtn">Delete</button>
                   </div>
                 </div>
@@ -6327,7 +5537,7 @@
         document.querySelectorAll('.editProductBtn').forEach(btn => {
           btn.addEventListener('click', () => {
             const box = btn.closest('[data-product-id]').querySelector('.prodEdit');
-            const open = box.style.display !== 'none';
+            const open = getComputedStyle(box).display !== 'none'; // EXT15: hidden by a class at first
             box.style.display = open ? 'none' : 'block';
             btn.textContent = open ? 'Edit product' : 'Close';
           });
@@ -6610,8 +5820,8 @@
             <div class="deletedRow">
               <div class="info">
                 <b>${esc(productLabel)}</b> — ${esc(INVENTORY_BUCKET_LABELS[a.bucket] || a.bucket)}: ${sign}${Number(a.change_amount)}
-                ${a.reason ? '<br><span style="font-size:12px;color:var(--muted);">' + esc(a.reason) + '</span>' : ''}
-                <br><span style="font-size:11px;color:var(--muted);">${esc(fmtDate(a.adjusted_at))}</span>
+                ${a.reason ? '<br><span class="u-fs-12 u-c-muted">' + esc(a.reason) + '</span>' : ''}
+                <br><span class="u-fs-11 u-c-muted">${esc(fmtDate(a.adjusted_at))}</span>
               </div>
             </div>`;
         }).join('');
@@ -6773,7 +5983,7 @@
           return;
         }
 
-        document.getElementById('returnsWrap').innerHTML = (returnsCutNote ? `<p class="hint returnsCutNote" style="margin:0 0 8px;color:var(--warn);">${esc(returnsCutNote)}</p>` : '') + returns.map(r => {
+        document.getElementById('returnsWrap').innerHTML = (returnsCutNote ? `<p class="hint returnsCutNote u-m-0-0-8 u-c-warn">${esc(returnsCutNote)}</p>` : '') + returns.map(r => {
           const order = r.orders || {};
           const item = r.order_items || {};
           const statusLabel = RETURN_STATUS_LABELS[r.status] || r.status;
@@ -6786,7 +5996,7 @@
               <button type="button" class="small decideReturnBtn" data-next="rejected">Reject</button>`;
           } else if (r.status === 'approved') {
             actionHtml = `
-              <select class="dispositionSelect" style="padding:6px 8px;border-radius:6px;border:1px solid #cfd8d6;font-family:inherit;font-size:12px;">
+              <select class="dispositionSelect u-p-6-8 u-br-6 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-12">
                 <option value="">If restocking…</option>
                 <option value="restock_available">Restock to Available</option>
                 <option value="restock_damaged">Move to Damaged</option>
@@ -6797,7 +6007,7 @@
             actionHtml = `<button type="button" class="small advanceReturnBtn" data-next="closed">Close</button>`;
           } else if (r.status === 'received') {
             actionHtml = `
-              <input type="number" class="refundAmountInput" min="0" max="1000000" step="0.01" placeholder="Refund $ (optional)" style="width:130px;padding:5px 7px;border-radius:6px;border:1px solid #cfd8d6;font-family:inherit;font-size:12px;">
+              <input type="number" class="refundAmountInput u-w-130 u-p-5-7 u-br-6 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-12" min="0" max="1000000" step="0.01" placeholder="Refund $ (optional)">
               <button type="button" class="small markRefundedBtn">Mark Refunded</button>
               <button type="button" class="small advanceReturnBtn" data-next="closed">Close without refund</button>`;
           } else if (r.status === 'refunded') {
@@ -6811,18 +6021,18 @@
           ].filter(Boolean).join(' · ');
 
           return `
-            <div class="deletedRow" data-return-id="${esc(r.id)}" data-status="${esc(r.status || '')}" data-line-value="${esc(returnLineValue(item))}" data-item-sku="${esc(item.sku || '')}" data-quantity="${esc(item.quantity || 0)}" data-order-label="${esc(order.order_number || r.order_id)}" style="align-items:flex-start;flex-wrap:wrap;">
-              <div class="info" style="flex:1;min-width:220px;">
-                <b>${esc(item.product_name || 'Unknown item')}</b>${item.sku ? ' <span style="color:var(--muted);font-size:12px;">(' + esc(item.sku) + ')</span>' : ''}
+            <div class="deletedRow u-ai-flex-start u-fwr-wrap" data-return-id="${esc(r.id)}" data-status="${esc(r.status || '')}" data-line-value="${esc(returnLineValue(item))}" data-item-sku="${esc(item.sku || '')}" data-quantity="${esc(item.quantity || 0)}" data-order-label="${esc(order.order_number || r.order_id)}">
+              <div class="info u-flex-1 u-minw-220">
+                <b>${esc(item.product_name || 'Unknown item')}</b>${item.sku ? ' <span class="u-c-muted u-fs-12">(' + esc(item.sku) + ')</span>' : ''}
                 — Qty ${esc(item.quantity !== undefined && item.quantity !== null ? item.quantity : '—')}
-                <span class="badge ${statusClass}" style="margin-left:6px;">${esc(statusLabel)}</span>
-                ${(r.refund_amount !== null && r.refund_amount !== undefined) ? '<span class="badge" style="margin-left:4px;">Refunded $' + Number(r.refund_amount).toFixed(2) + '</span>' : ''}
-                <br><span style="font-size:12px;color:var(--muted);">Order ${esc(order.order_number || r.order_id)}${order.customer_name ? ' — ' + esc(order.customer_name) : ''}</span>
-                ${detailLine ? '<br><span style="font-size:12px;color:var(--muted);">' + detailLine + '</span>' : ''}
-                ${r.notes ? '<br><span style="font-size:12px;color:var(--muted);">Notes: ' + esc(r.notes) + '</span>' : ''}
-                <br><span style="font-size:11px;color:var(--muted);">Requested ${esc(fmtDate(r.created_at))}</span>
+                <span class="badge ${statusClass} u-ml-6">${esc(statusLabel)}</span>
+                ${(r.refund_amount !== null && r.refund_amount !== undefined) ? '<span class="badge u-ml-4">Refunded $' + Number(r.refund_amount).toFixed(2) + '</span>' : ''}
+                <br><span class="u-fs-12 u-c-muted">Order ${esc(order.order_number || r.order_id)}${order.customer_name ? ' — ' + esc(order.customer_name) : ''}</span>
+                ${detailLine ? '<br><span class="u-fs-12 u-c-muted">' + detailLine + '</span>' : ''}
+                ${r.notes ? '<br><span class="u-fs-12 u-c-muted">Notes: ' + esc(r.notes) + '</span>' : ''}
+                <br><span class="u-fs-11 u-c-muted">Requested ${esc(fmtDate(r.created_at))}</span>
               </div>
-              <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">${actionHtml}</div>
+              <div class="u-d-flex u-gap-6 u-ai-center u-fwr-wrap">${actionHtml}</div>
             </div>`;
         }).join('');
 
@@ -7150,161 +6360,6 @@
       }
     });
 
-    // Expenses (manual entry — feeds the Accounting Agent's rollup)
-    async function loadExpenses(){
-      try {
-        const { data: rows, error } = await supabase
-          .from('expenses')
-          .select('id, category, amount, expense_date, vendor, note, receipt_path')
-          .is('deleted_at', null)
-          .order('expense_date', { ascending: false })
-          .limit(LIST_LIMITS.expenses = LIST_LIMITS.expenses || 200); // EXT9: Show more reaches older ones
-        if (error) throw error;
-        SEARCH_INDEX.expenses = rows;
-
-        // The list shows the newest 200; the count and money total come from
-        // every expense (paged, complete), never just the listed ones (X3-03).
-        const allAmounts = await fetchAllRows('expenses', 'id, amount', q => q.is('deleted_at', null));
-        const total = allAmounts.reduce((sum, r) => sum + Number(r.amount || 0), 0);
-        document.getElementById('expenseStats').innerHTML = `
-          <div class="stat"><div class="num">${allAmounts.length}</div><div class="lbl">Expenses on file</div></div>
-          <div class="stat"><div class="num">${esc(fmtMoney(total, 'USD'))}</div><div class="lbl">Total logged</div></div>
-        ` + (allAmounts.length > (rows || []).length ? `<p class="hint expensesCutNote" style="flex-basis:100%;margin:4px 0 0;">The list below shows the newest ${(rows || []).length} of ${allAmounts.length} expenses. The totals above include all of them.</p>` : '');
-
-        if (!rows || !rows.length) {
-          document.getElementById('expensesWrap').innerHTML = '<p class="empty">No expenses logged yet — add your first one below.</p>';
-          return;
-        }
-
-        document.getElementById('expensesWrap').innerHTML = rows.map(r => `
-          <div class="approvalRow" data-id="${esc(r.id)}" data-file-path="${esc(r.receipt_path || '')}">
-            <div class="info">
-              <b>${esc(EXPENSE_CATEGORY_LABELS[r.category] || r.category)}</b>
-              <span class="badge">${esc(fmtMoney(r.amount, 'USD'))}</span>
-              ${r.vendor ? `<div style="font-size:12px;color:var(--muted);margin-top:3px;">Vendor: ${esc(r.vendor)}</div>` : ''}
-              ${r.note ? `<div style="font-size:12px;color:var(--muted);margin-top:3px;">${esc(r.note)}</div>` : ''}
-              ${r.receipt_path ? `<div style="font-size:12px;margin-top:3px;"><a href="#" class="expFileLink">View receipt</a></div>` : ''}
-              <br><span style="font-size:11px;color:var(--muted);">${esc(fmtDateOnly(r.expense_date))}</span>
-            </div>
-            <div class="actions">
-              ${r.receipt_path ? `<button class="small expRemoveReceiptBtn">Remove receipt</button>` : ''}
-              <button class="small deny expDeleteBtn">Delete</button>
-            </div>
-          </div>`).join('');
-        appendMore('expensesWrap', 'expenses', rows.length, allAmounts.length, 'expenses', loadExpenses);
-        document.querySelectorAll('.expDeleteBtn').forEach(btn => btn.addEventListener('click', () => deleteExpense(btn)));
-        document.querySelectorAll('.expRemoveReceiptBtn').forEach(btn => btn.addEventListener('click', () => removeExpenseReceipt(btn)));
-        document.querySelectorAll('.expFileLink').forEach(link => {
-          link.addEventListener('click', async (ev) => {
-            ev.preventDefault();
-            const row = link.closest('.approvalRow');
-            const path = row.getAttribute('data-file-path');
-            if (!path) return;
-            const originalText = link.textContent;
-            link.textContent = 'Preparing…';
-            try {
-              const { data, error: signErr } = await supabase.storage.from('expense-receipts').createSignedUrl(path, 60);
-              if (signErr) throw signErr;
-              window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
-            } catch (err) {
-              showDashError('Could not open that receipt: ' + (err && err.message ? err.message : err));
-            } finally {
-              link.textContent = originalText;
-            }
-          });
-        });
-      } catch (err) {
-        showDashError('Could not load expenses: ' + (err && err.message ? err.message : err));
-      }
-    }
-
-    async function removeExpenseReceipt(btn){
-      const row = btn.closest('.approvalRow');
-      const id = row.getAttribute('data-id');
-      const path = row.getAttribute('data-file-path');
-      if (!path) return;
-      // Receipts are tax records and this deletes the file for good, so it
-      // takes a second press (finding N10; whether files should be deleted at
-      // all is an open owner decision).
-      if (!confirmSecondPress(btn, 'Delete receipt file for good?')) return;
-      btn.disabled = true;
-      try {
-        // Unlink first (only if the row still points at this exact file), then
-        // remove the file. If the second step fails, the result is a stray
-        // file nobody can see — never an expense pointing at a missing file.
-        const changed = await updateIfUnchanged('expenses', id, { receipt_path: null }, { receipt_path: path });
-        if (!changed) { showDashError(staleMessage('That expense')); loadExpenses(); return; }
-        const { error: removeErr } = await supabase.storage.from('expense-receipts').remove([path]);
-        if (removeErr) showDashError('The receipt was unlinked from the expense, but the file itself could not be deleted from storage: ' + (removeErr.message || removeErr));
-        loadExpenses();
-      } catch (err) {
-        btn.disabled = false;
-        showDashError('Could not remove that receipt: ' + (err && err.message ? err.message : err));
-      }
-    }
-
-    async function deleteExpense(btn){
-      const row = btn.closest('.approvalRow');
-      const id = row.getAttribute('data-id');
-      row.querySelectorAll('button').forEach(b => b.disabled = true);
-      try {
-        // Soft delete, same as Feature Requests and Orders: stamps deleted_at
-        // instead of removing the row, so it's recoverable from the recycle bin.
-        const { data: changed, error } = await supabase.from('expenses').update({ deleted_at: new Date().toISOString() }).eq('id', id).is('deleted_at', null).select('id');
-        if (error) throw error;
-        if (noRowsChanged(changed)) { showDashError(staleMessage('That expense')); loadExpenses(); return; }
-        loadExpenses();
-        loadDeletedExpenses();
-      } catch (err) {
-        row.querySelectorAll('button').forEach(b => b.disabled = false);
-        showDashError('Could not delete that expense: ' + (err && err.message ? err.message : err));
-      }
-    }
-
-    async function loadDeletedExpenses(){
-      try {
-        const { data: deleted, error, count } = await supabase
-          .from('expenses')
-          .select('id, category, amount, deleted_at, receipt_path', { count: 'exact' })
-          .not('deleted_at', 'is', null)
-          .order('deleted_at', { ascending: false })
-          .limit(listLimit('delExpenses'));
-        if (error) throw error;
-
-        if (!deleted || !deleted.length) {
-          document.getElementById('deletedExpensesWrap').innerHTML = '<p class="empty">Recycle bin is empty.</p>';
-          return;
-        }
-        document.getElementById('deletedExpensesWrap').innerHTML = deleted.map(r => `
-          <div class="deletedRow" data-id="${esc(r.id)}">
-            <div class="info"><b>${esc(EXPENSE_CATEGORY_LABELS[r.category] || r.category)} — ${esc(fmtMoney(r.amount, 'USD'))}</b><br>
-            <span style="font-size:11px;color:var(--muted);">Deleted ${esc(fmtDate(r.deleted_at))}</span></div>
-            <button class="small restoreExpenseBtn">Restore</button>
-          </div>`).join('');
-        appendMore('deletedExpensesWrap', 'delExpenses', deleted.length, count, 'deleted expenses', loadDeletedExpenses);
-        document.querySelectorAll('.restoreExpenseBtn').forEach(btn => {
-          btn.addEventListener('click', async () => {
-            const row = btn.closest('.deletedRow');
-            const id = row.getAttribute('data-id');
-            btn.disabled = true;
-            try {
-              // Only while it is still deleted (restored elsewhere = nothing to do). EXT4
-              const { data: changed, error } = await supabase.from('expenses').update({ deleted_at: null }).eq('id', id).not('deleted_at', 'is', null).select('id');
-              if (error) throw error;
-              if (noRowsChanged(changed)) { showDashError(staleMessage('That expense')); loadExpenses(); return; }
-              loadExpenses();
-              loadDeletedExpenses();
-            } catch (err) {
-              btn.disabled = false;
-              showDashError('Could not restore that expense: ' + (err && err.message ? err.message : err));
-            }
-          });
-        });
-      } catch (err) {
-        showDashError('Could not load recently deleted expenses: ' + (err && err.message ? err.message : err));
-      }
-    }
-
     document.getElementById('addExpenseForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const categoryInput = document.getElementById('expCategory');
@@ -7449,7 +6504,7 @@
           : dupPos.map(k => `
             <div class="deletedRow acctDupRow">
               <div class="info"><b>Purchase order ${esc(k)}</b> — logged ${poCosts[k].length} times, ${esc(fmtMoney(poCosts[k].reduce((s, e) => s + Number(e.amount || 0), 0), currency))} in total<br>
-              <span style="font-size:11px;color:var(--muted);">${poCosts[k].map(e => esc(fmtDateOnly(e.expense_date)) + ': ' + esc(fmtMoney(e.amount, currency))).join(' · ')}</span></div>
+              <span class="u-fs-11 u-c-muted">${poCosts[k].map(e => esc(fmtDateOnly(e.expense_date)) + ': ' + esc(fmtMoney(e.amount, currency))).join(' · ')}</span></div>
             </div>`).join('');
 
         // EXT6: manual orders saved without their items still count as revenue.
@@ -7464,7 +6519,7 @@
             : empty.map(o => `
               <div class="deletedRow acctNoItemsRow">
                 <div class="info"><b>${esc(o.order_number || o.id)}</b> — ${esc(fmtMoney(o.total, o.currency))}<br>
-                <span style="font-size:11px;color:var(--muted);">Status: ${esc(o.status)} — Placed ${esc(fmtDate(o.placed_at))}</span></div>
+                <span class="u-fs-11 u-c-muted">Status: ${esc(o.status)} — Placed ${esc(fmtDate(o.placed_at))}</span></div>
               </div>`).join('');
         } catch (noItemsErr) {
           noItemsWrap.innerHTML = '<p class="empty">Could not check for orders without items: ' + esc(explainDbError((noItemsErr && noItemsErr.message) || String(noItemsErr))) + '</p>';
@@ -7476,7 +6531,7 @@
           document.getElementById('acctReviewWrap').innerHTML = needsReview.map(o => `
             <div class="deletedRow">
               <div class="info"><b>${esc(o.order_number || o.id)}</b> — ${esc(fmtMoney(o.total, o.currency))}<br>
-              <span style="font-size:11px;color:var(--muted);">Status: ${esc(o.status)} — Placed ${esc(fmtDate(o.placed_at))}</span></div>
+              <span class="u-fs-11 u-c-muted">Status: ${esc(o.status)} — Placed ${esc(fmtDate(o.placed_at))}</span></div>
             </div>`).join('');
         }
       } catch (err) {
@@ -7627,7 +6682,7 @@
             <div class="stat"><div class="num">${esc(fmtMoney(estCogs, currency))}</div><div class="lbl">Estimated cost of units sold</div></div>
             <div class="stat"><div class="num">${unmatchedCount}</div><div class="lbl">Units with no matching cost</div></div>
           </div>
-          ${unmatchedSkus.size ? `<p class="hint" style="margin-top:8px;">SKUs with no cost on file: ${[...unmatchedSkus].map(esc).join(', ')}</p>` : ''}
+          ${unmatchedSkus.size ? `<p class="hint u-mt-8">SKUs with no cost on file: ${[...unmatchedSkus].map(esc).join(', ')}</p>` : ''}
         `;
 
         const stateEntries = Object.keys(stateTax).sort();

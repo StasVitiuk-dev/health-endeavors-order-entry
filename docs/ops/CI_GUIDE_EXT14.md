@@ -55,5 +55,5 @@ A job skipped by change impact counts as passed for required checks. That is int
 
 - Actions are pinned by tag (`@v4`), not by commit SHA. This session could not read the `actions/*` repositories to look up SHAs (403). Pinning by SHA is a small follow-up PR.
 - The browser suite takes about 40 minutes on a 4-CPU machine with 2 workers. On GitHub's runners the 3 shards should finish in about 15–20 minutes each (estimate, not yet measured on GitHub).
-- The database job uses `QUICK=1`, which skips the slow stress and volume steps. The full run stays local: `npm run db:suite`.
+- The database job uses `QUICK=1`, which skips the slow stress and volume steps. The full run stays local: `npm run db:suite:local`.
 - CI cannot check the live site, real devices, real Safari or production data. Those remain owner checks.

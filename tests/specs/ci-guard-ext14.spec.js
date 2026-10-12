@@ -35,7 +35,9 @@ for (const f of workflows) {
     const c = code(read(f));
     const uses = [...c.matchAll(/uses:\s*([^\s]+)/g)].map(m => m[1]);
     expect(uses.length).toBeGreaterThan(0);
-    for (const u of uses) expect(u, u).toMatch(/^actions\/(checkout|setup-node|upload-artifact|cache)@/);
+    // EXT15: pinned to a full commit SHA (verified from GitHub), never a moving tag or branch.
+    for (const u of uses) expect(u, u).toMatch(/^actions\/(checkout|setup-node|upload-artifact|cache)@[0-9a-f]{40}$/);
+    for (const line of read(f).split('\n').filter(l => /uses:/.test(l))) expect(line, line).toMatch(/# v\d+\.\d+\.\d+ /);
     const checkouts = (c.match(/uses:\s*actions\/checkout@/g) || []).length;
     expect((c.match(/persist-credentials:\s*false/g) || []).length).toBe(checkouts);
   });
@@ -85,4 +87,23 @@ test('a local command reproduces the CI sequence', () => {
   expect(pkg.scripts['ci:local']).toBe('bash tests/tools/ci-local.sh');
   const sh = fs.readFileSync(path.join(ROOT, 'tests', 'tools', 'ci-local.sh'), 'utf8');
   for (const step of ['secret-scan.js', 'sql-lint.js', 'doc-check.js --current', 'run-db-suite.sh', '--ignore-snapshots']) expect(sh).toContain(step);
+});
+
+// EXT15: the static job installs no browser (PR #29's CI was red because a
+// browser spec, safety.spec.js, sat in this list). Every spec named there must
+// be Node-only: it may not load the dashboard fixture, which starts a browser.
+test('the static job runs only Node-only specs (no browser is installed there), and ci-local runs the same list', () => {
+  const wf = fs.readFileSync(path.join(WF_DIR, 'ci.yml'), 'utf8');
+  const line = wf.split('\n').find(l => /Node-only specs/.test(l));
+  const run = wf.split('\n')[wf.split('\n').indexOf(line) + 1];
+  const listed = (run.match(/tests\/specs\/[\w.-]+\.spec\.js/g) || []);
+  expect(listed.length).toBeGreaterThan(5);
+  for (const f of listed) {
+    const src = fs.readFileSync(path.join(ROOT, f), 'utf8');
+    expect(src, f).not.toMatch(/require\('\.\.\/helpers\/dashboard'\)/);
+    expect(src, f).not.toMatch(/async \(\{[^}]*\bpage\b/);
+  }
+  const local = fs.readFileSync(path.join(ROOT, 'tests', 'tools', 'ci-local.sh'), 'utf8');
+  expect((local.match(/tests\/specs\/[\w.-]+\.spec\.js/g) || []).sort()).toEqual(listed.slice().sort());
+  expect(local).toMatch(/PLAYWRIGHT_BROWSERS_PATH=\/nonexistent/);
 });

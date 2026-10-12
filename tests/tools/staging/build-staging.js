@@ -110,9 +110,21 @@ bundle += `
           if (t) { t.status = 'done'; t.updated_at = new Date().toISOString(); }
         };
       }
-      var dropThis = hooks.dropFirstReceive && !receiveDropped && isRest && method === 'PATCH' && url.pathname === '/rest/v1/purchase_orders' && /"status":"received"/.test(body || '');
+      // EXT15 session-expired: once signed in, every database call is refused as expired.
+      if (hooks.expireAfterSignIn && isRest && headers.authorization && /bearer/i.test(headers.authorization) && window.__STAGING_SIGNED_IN) {
+        window.__STAGING_EVENTS.push('expired ' + method + ' ' + url.pathname);
+        return new Response(JSON.stringify({ code: 'PGRST301', message: 'JWT expired (staging scenario)' }), { status: 401, headers: { 'content-type': 'application/json' } });
+      }
+      // EXT15 switch-drift: the switch row exists and is ON, but the function is missing.
+      if (hooks.missingFunctions && isRest && hooks.missingFunctions.some(function (f) { return url.pathname === '/rest/v1/rpc/' + f; })) {
+        window.__STAGING_EVENTS.push('missing function ' + url.pathname);
+        return new Response(JSON.stringify({ code: 'PGRST202', message: 'Could not find the function in the schema cache (staging scenario)' }), { status: 404, headers: { 'content-type': 'application/json' } });
+      }
+      if (url.pathname.indexOf('/auth/v1/token') === 0) setTimeout(function () { window.__STAGING_SIGNED_IN = true; }, 1500);
+      var dropThis = (hooks.dropFirstReceive && !receiveDropped && isRest && method === 'PATCH' && url.pathname === '/rest/v1/purchase_orders' && /"status":"received"/.test(body || ''))
+        || (hooks.dropFirstReturnReceive && !receiveDropped && isRest && method === 'PATCH' && url.pathname === '/rest/v1/returns' && /"status":"received"/.test(body || ''));
       return new Promise(function (resolve, reject) {
-        if (dropThis) { receiveDropped = true; window.__STAGING_EVENTS.push('reply-lost purchase_orders'); resolve = function () { reject(new TypeError('Failed to fetch (staging scenario: reply lost)')); }; }
+        if (dropThis) { receiveDropped = true; window.__STAGING_EVENTS.push('reply-lost ' + url.pathname.replace('/rest/v1/', '')); resolve = function () { reject(new TypeError('Failed to fetch (staging scenario: reply lost)')); }; }
         var route = {
           request: function () { return { url: function () { return url.href; }, method: function () { return method; }, postData: function () { return body || null; }, headers: function () { return headers; } }; },
           fulfill: function (r) {
@@ -219,9 +231,13 @@ fs.writeFileSync(path.join(OUT, 'index.html'), html);
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
     const f = path.join(dir, e.name);
     if (e.isDirectory()) { walk(f); continue; }
+    // EXT15 firewall: only page files may ship (no SQL, no env/config files), and
+    // nothing may name the backups repository or carry a privileged key.
+    if (/\.(sql|env|sh|pem|key)$|^\.env/i.test(e.name)) { fs.rmSync(OUT, { recursive: true, force: true }); throw new Error('file type not allowed in the staging build: ' + path.relative(OUT, f)); }
     if (!/\.(html|js|css|json|txt|md)$/.test(e.name)) continue;
     const text = fs.readFileSync(f, 'utf8');
-    for (const bad of [PROD_HOST, PROD_KEY, 'uizrazyehilyzmwttsrn']) if (text.includes(bad)) { fs.rmSync(OUT, { recursive: true, force: true }); throw new Error('production trace left in the staging build (' + path.relative(OUT, f) + '): ' + bad); }
+    const FORBIDDEN = [PROD_HOST, PROD_KEY, 'uizrazyehilyzmwttsrn', 'health-endeavors-backups', 'service_role', 'sb_secret_', 'SUPABASE_SERVICE'];
+    for (const bad of FORBIDDEN) if (text.includes(bad) && !(e.name === 'supabase.js' && /sb_secret_/.test(bad))) { fs.rmSync(OUT, { recursive: true, force: true }); throw new Error('forbidden content in the staging build (' + path.relative(OUT, f) + '): ' + bad); }
   }
 })(OUT);
 if (OFFLINE) {

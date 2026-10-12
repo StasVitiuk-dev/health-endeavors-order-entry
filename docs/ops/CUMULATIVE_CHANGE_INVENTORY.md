@@ -207,6 +207,6 @@ Rollback: revert the merge commit.
 | Diagnostic summary: an unknown role value reads "other (not a standard role)" | Owner, when copying the diagnostic summary | No |
 | `.github/workflows/ci.yml`: tests on pull requests and `claude/**` pushes; no secrets, no deploy | Owner and Claude (✓ / ✗ on pull requests) | No |
 | `drafts/11` refuses while a stock switch is ON; `drafts/13` reports missing totals; new `drafts/31` | Owner, only when installing SQL | — (drafts only) |
-| `npm run sql:lint`, `sql:graph`, `sql:headers`, `status:check`, `ci:local`, `db:suite`, `secrets:scan`, `staging:build` | Claude sessions | No |
+| `npm run sql:lint`, `sql:graph`, `sql:headers`, `status:check`, `ci:local`, `db:suite:local`, `secrets:scan`, `staging:build` | Claude sessions | No |
 
 Rollback: revert the merge commit (removes the workflow too).

@@ -16,9 +16,14 @@
     "sql:graph": "node tests/tools/sql-lint.js --graph",
     "ci:local": "bash tests/tools/ci-local.sh",
     "secrets:scan": "node tests/tools/secret-scan.js",
-    "db:suite": "bash tests/tools/run-db-suite.sh",
+    "db:suite:local": "bash tests/tools/run-db-suite.sh",
     "staging:build": "node tests/tools/staging/build-staging.js staging-build --offline --zip",
-    "status:check": "node tests/tools/status-validate.js"
+    "status:check": "node tests/tools/status-validate.js",
+    "app:modules": "node tests/tools/app-modules.js --graph",
+    "app:graph": "node tests/tools/app-graph.js",
+    "styles:check": "node tests/tools/inline-styles.js --check",
+    "types:check": "node tests/tools/typecheck.js --gate",
+    "ci:shards": "node tests/tools/ci-shards.js --plan 3"
   },
   "devDependencies": {
     "@playwright/test": "1.56.1",

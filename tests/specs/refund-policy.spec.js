@@ -37,7 +37,7 @@ base.test.describe('refundsToSubtract (unit)', () => {
     base.expect(H.refundsToSubtract(null, null, 'subtract_return_refunds')).toBe(0);
   });
   base.test('the dashboard ships with the current behaviour until the owner decides', () => {
-    base.expect(SOURCE).toContain("const ACCOUNTING_REFUND_POLICY = 'status_only';");
+    base.expect(SOURCE).toContain("const ACCOUNTING_REFUND_POLICY = /** @type {string} */ ('status_only');"); // EXT15: typed for the checker
   });
 });
 
@@ -68,12 +68,12 @@ test("Accounting today: a $30 refund recorded on Returns does not reduce revenue
 
 test("Accounting with 'subtract_return_refunds': revenue $70 and the refund tile shows $30 (the $50 on an already-refunded order is not taken twice)", async ({ page, backend }) => {
   seed(backend);
-  // EXT14: the page script lives in assets/owner-login-app.js (M5d)
-  const file = path.resolve(__dirname, '..', '..', 'assets', 'owner-login-app.js');
+  // EXT15: the policy lives in the data module (assets/app/he-data.js)
+  const file = path.resolve(__dirname, '..', '..', 'assets', 'app', 'he-data.js');
   const src = fs.readFileSync(file, 'utf8');
-  const js = src.replace("const ACCOUNTING_REFUND_POLICY = 'status_only';", "const ACCOUNTING_REFUND_POLICY = 'subtract_return_refunds';");
+  const js = src.replace("const ACCOUNTING_REFUND_POLICY = /** @type {string} */ ('status_only');", "const ACCOUNTING_REFUND_POLICY = 'subtract_return_refunds';");
   expect(js).not.toBe(src);
-  await page.route('**/assets/owner-login-app.js*', route => route.fulfill({ status: 200, contentType: 'application/javascript; charset=utf-8', body: js }));
+  await page.route('**/assets/app/he-data.js*', route => route.fulfill({ status: 200, contentType: 'application/javascript; charset=utf-8', body: js }));
   await login(page);
   await accountingAllTime(page);
   await expect(page.locator('#acctStats .stat', { hasText: 'Revenue' }).first()).toContainText('$70.00');

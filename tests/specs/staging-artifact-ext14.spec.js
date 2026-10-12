@@ -75,10 +75,10 @@ test.describe('build output', () => {
     expect(all).not.toMatch(/eyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}/);
   });
 
-  test('scenario list: 13 entries, unique ids, every one applies to a fresh seed', () => {
+  test('scenario list: 17 entries (13 + 4 in EXT15), unique ids, every one applies to a fresh seed', () => {
     const S = require('../tools/staging/staging-seed');
-    expect(SCENARIOS).toHaveLength(13);
-    expect(new Set(SCENARIOS.map(s => s.id)).size).toBe(13);
+    expect(SCENARIOS).toHaveLength(17);
+    expect(new Set(SCENARIOS.map(s => s.id)).size).toBe(17);
     for (const s of SCENARIOS) {
       const t = S.stagingTables(Date.parse('2026-10-11T12:00:00Z'));
       expect(S.applyScenario(s.id, t, Date.parse('2026-10-11T12:00:00Z')).scenario.id).toBe(s.id);

@@ -36,11 +36,11 @@ jobs:
       browser: ${{ steps.impact.outputs.browser }}
       db: ${{ steps.impact.outputs.db }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0 (v4 tag on 2026-10-12; verified with git ls-remote)
         with:
           persist-credentials: false
           fetch-depth: 0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0 (v4 tag on 2026-10-12; verified with git ls-remote)
         with:
           node-version: 22
           cache: npm
@@ -55,10 +55,16 @@ jobs:
         run: node tests/tools/sql-lint.js
       - name: Status manifest is consistent (no production claim without production evidence)
         run: node tests/tools/status-validate.js
+      - name: Module graph (created once, dependency order, no cycles, no hidden dependencies)
+        run: node tests/tools/app-modules.js
+      - name: No inline styles left on the owner page (strict style policy)
+        run: node tests/tools/inline-styles.js --check
+      - name: Type-check gate on the module files (TypeScript checker, plain JavaScript)
+        run: node tests/tools/typecheck.js --gate
       - name: Documentation check
         run: node tests/tools/doc-check.js --current
       - name: Node-only specs (tools, SQL static, docs, CI guard)
-        run: npx playwright test --config tests/playwright.config.js --project=desktop --reporter=list,github tests/specs/ci-guard-ext14.spec.js tests/specs/sql-package-ext14.spec.js tests/specs/sql-drafts-static.spec.js tests/specs/sql-readonly.spec.js tests/specs/docs-integrity-ext13.spec.js tests/specs/evidence-ext12.spec.js tests/specs/deploy-sim-ext12.spec.js tests/specs/incidents-ext12.spec.js tests/specs/query-interpreter-ext10.spec.js tests/specs/helpers-unit.spec.js tests/specs/status-manifest-ext14.spec.js tests/specs/screenshots-policy-ext14.spec.js tests/specs/safety.spec.js
+        run: npx playwright test --config tests/playwright.config.js --project=desktop --reporter=list,github tests/specs/ci-guard-ext14.spec.js tests/specs/sql-package-ext14.spec.js tests/specs/sql-drafts-static.spec.js tests/specs/sql-readonly.spec.js tests/specs/docs-integrity-ext13.spec.js tests/specs/evidence-ext12.spec.js tests/specs/deploy-sim-ext12.spec.js tests/specs/incidents-ext12.spec.js tests/specs/query-interpreter-ext10.spec.js tests/specs/helpers-unit.spec.js tests/specs/status-manifest-ext14.spec.js tests/specs/screenshots-policy-ext14.spec.js tests/specs/ci-traps-ext15.spec.js tests/specs/property-node-ext15.spec.js
 
   # The browser suite, split in three (Playwright shards; every test runs once).
   browser:
@@ -72,22 +78,23 @@ jobs:
       matrix:
         shard: [1, 2, 3]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0 (v4 tag on 2026-10-12; verified with git ls-remote)
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0 (v4 tag on 2026-10-12; verified with git ls-remote)
         with:
           node-version: 22
           cache: npm
       - run: npm ci --ignore-scripts
       - name: Install the test browser (version fixed by package-lock)
         run: npx playwright install --with-deps chromium
-      - name: Run shard ${{ matrix.shard }} of 3 (screenshot comparisons excluded; see the visual job)
-        run: npx playwright test --config tests/playwright.config.js --shard=${{ matrix.shard }}/3 --ignore-snapshots --reporter=list,github
+      - name: Run shard ${{ matrix.shard }} of 3 (balanced by duration; screenshot comparisons excluded, see the visual job)
+        # EXT15: shards balanced by measured duration (tests/ci-durations.json); every spec file is in exactly one shard
+        run: npx playwright test --config tests/playwright.config.js $(node tests/tools/ci-shards.js --list ${{ matrix.shard }}/3) --ignore-snapshots --reporter=list,github
       # Synthetic data only: traces of the mocked dashboard. Small, 7 days.
       - name: Keep failure traces (7 days)
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2 (v4 tag on 2026-10-12; verified with git ls-remote)
         with:
           name: playwright-failures-shard-${{ matrix.shard }}
           path: test-results/
@@ -113,10 +120,10 @@ jobs:
       PGPASSWORD: ci-only-local
       QUICK: '1'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0 (v4 tag on 2026-10-12; verified with git ls-remote)
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0 (v4 tag on 2026-10-12; verified with git ls-remote)
         with:
           node-version: 22
       - name: Run the database suite
@@ -131,10 +138,10 @@ jobs:
     timeout-minutes: 20
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0 (v4 tag on 2026-10-12; verified with git ls-remote)
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0 (v4 tag on 2026-10-12; verified with git ls-remote)
         with:
           node-version: 22
           cache: npm

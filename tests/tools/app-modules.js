@@ -27,7 +27,7 @@ function helperNames(appText) {
 // Free identifiers in a module (TS "Cannot find name" diagnostics), with the
 // browser's own globals known through lib.dom.
 function hiddenDependencies(file) {
-  const decl = 'interface Window { HE: any; supabase: any; __sbLoadFailed?: boolean; __heHelpersLoadFailed?: boolean } declare var HE: any;';
+  const decl = 'interface Window { HE: any; supabase: any; __sbLoadFailed?: boolean; __heHelpersLoadFailed?: boolean; toastOk: (m: any) => void; toastErr: (m: any) => void } declare var HE: any; declare function toastOk(m: any): void; declare function toastErr(m: any): void; // the two intentional page globals';
   const host = ts.createCompilerHost({});
   const orig = host.getSourceFile;
   const declName = path.join(ROOT, '__he_globals.d.ts');
@@ -54,6 +54,8 @@ function check() {
   const seen = new Set();
   const provided = new Map(); // name → module that exports it
   const helpers = helperNames(appText);
+  // program function declarations (hoisted, so they exist when modules are created)
+  const appFunctions = new Set(require('./app-graph').analyse(APP).decls.filter(d => /function/.test(d.kind)).map(d => d.name));
   const edges = [];
   for (const c of creates) {
     if (seen.has(c.name)) problems.push(`module ${c.name} is created twice`);
@@ -64,7 +66,7 @@ function check() {
     for (const need of m.needs) {
       if (!c.given.includes(need)) problems.push(`${c.name} needs ${need} but the program does not hand it over`);
       if (provided.has(need)) edges.push([c.name, provided.get(need), need]);
-      else if (!helpers.has(need) && !OUTER.has(need)) problems.push(`${c.name} needs ${need}, which no earlier module, helper or script constant provides (order or cycle)`);
+      else if (!helpers.has(need) && !OUTER.has(need) && !appFunctions.has(need)) problems.push(`${c.name} needs ${need}, which no earlier module, helper or script constant provides (order or cycle)`);
     }
     for (const g of c.given) if (!m.needs.includes(g)) problems.push(`${c.name} is handed ${g} but does not list it as an input`);
     for (const e of m.exports) { if (provided.has(e)) problems.push(`${e} is exported by both ${provided.get(e)} and ${c.name}`); provided.set(e, c.name); }

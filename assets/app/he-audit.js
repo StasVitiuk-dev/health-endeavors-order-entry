@@ -145,7 +145,7 @@ window.HE.modules.define('he-audit', { api: 1, needs: ['ACTIVITY_AREA_LABELS','P
         el.style.display = 'block';
         el.innerHTML = `<b>Today:</b> ${rows.length}${atCap ? '+' : ''} change${rows.length === 1 ? '' : 's'}` +
           ` · ${people.size} ${people.size === 1 ? 'person' : 'people'} signed in` +
-          (deletes ? ` · <span style="color:var(--danger);font-weight:600;">${deletes} deletion${deletes === 1 ? '' : 's'}</span>` : '') +
+          (deletes ? ` · <span class="u-c-danger u-fw-600">${deletes} deletion${deletes === 1 ? '' : 's'}</span>` : '') +
           (top ? ` · busiest: ${top}` : '');
       } catch (err) { /* the digest is a nicety, never block the page on it */ }
     }
