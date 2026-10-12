@@ -48,7 +48,9 @@ jobs:
         run: npm ci --ignore-scripts
       - name: Decide which heavy jobs this change needs (conservative)
         id: impact
-        run: node tests/tools/ci-impact.js "${{ github.event.pull_request.base.sha || github.event.before }}" >> "$GITHUB_OUTPUT"
+        # EXT15: a push is compared with main (everything on the branch not yet merged), not with the
+        # previous push: otherwise a docs-only push that cancels a code push's run skips the browser suite.
+        run: node tests/tools/ci-impact.js "${{ github.event.pull_request.base.sha || 'origin/main' }}" >> "$GITHUB_OUTPUT"
       - name: Secret scan (tracked files)
         run: node tests/tools/secret-scan.js
       - name: SQL package lint

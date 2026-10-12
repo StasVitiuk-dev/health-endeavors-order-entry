@@ -72,6 +72,16 @@ test('change impact is conservative: only documentation can skip the browser sui
   expect(decide(['owner-login.html']).db).toBe(false);
 });
 
+// EXT15: on GitHub a docs-only push cancelled the run of the code push before it
+// (concurrency) and then skipped the browser suite. Pushes compare with main.
+test('change impact compares a push with main, never only with the previous push', () => {
+  const wf = fs.readFileSync(path.join(WF_DIR, 'ci.yml'), 'utf8');
+  const line = wf.split('\n').find(l => /ci-impact\.js/.test(l) && /run:/.test(l));
+  expect(line).toContain("github.event.pull_request.base.sha || 'origin/main'");
+  expect(line).not.toContain('github.event.before');
+  expect(wf).toMatch(/fetch-depth: 0/);
+});
+
 test('the secret scanner finds planted credentials and passes on the real tree', () => {
   const S = require('../tools/secret-scan');
   const fakeJwt = ['eyJhbGciOiJIUzI1NiJ9', 'eyJyb2xlIjoic2VydmljZV9yb2xlIn0', 'abcdefghijklmnop'].join('.');
