@@ -579,6 +579,13 @@ const MUTATIONS = [
   ['a failed AI month-spend read shows $0.00 spent again', 'assets/owner-login-app.js',
     "const spendThisMonth = monthErr ? null : (monthLogs || [])", "const spendThisMonth = (monthLogs || [])",
     'malformed-data-ext15 -g "spend cannot be read"'],
+  // EXT16: strict policies on the five smaller pages.
+  ['inline styles allowed again on the manual order page', 'manual-order-entry.html',
+    "style-src 'self' https://fonts.googleapis.com;", "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;",
+    'csp-strict-ext15 -g "ALL dashboard pages"'],
+  ['the dashboard spend bar no longer gets its width', 'assets/dashboard-page.js',
+    "if (fill) fill.style.width = Math.max(0, Math.min(100, Number(pct) || 0)) + '%';", "",
+    'pages-strict-ext16 -g "spend bar"'],
   ['an agent switch that is not on/off counts as on again', 'assets/app/he-agents.js',
     "if (typeof ctrl.enabled !== 'boolean') return { key: 'unknown',", "if (false) return { key: 'unknown',",
     'malformed-data-ext15 -g "clear on/off"'],

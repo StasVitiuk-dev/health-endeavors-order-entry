@@ -100,3 +100,30 @@ test.describe('deliberate breaks are blocked by the browser', () => {
     for (const v of vals.filter(Boolean)) expect(v).toMatch(/^#[0-9a-fA-F]{3,8}$/);
   });
 });
+
+// EXT16: every dashboard page, not only the owner page. A page may not bring back
+// 'unsafe-inline' (styles or scripts), style attributes, <style> blocks, inline
+// scripts or inline event handlers; each page's script/style files are 'self'.
+test('ALL dashboard pages: no unsafe-inline, no inline styles, style blocks, inline scripts or inline handlers', ({}, ti) => {
+  test.skip(ti.project.name !== 'desktop', 'file check; once');
+  const pages = fs.readdirSync(ROOT).filter(f => f.endsWith('.html')).sort();
+  expect(pages).toEqual(['change-password.html', 'dashboard.html', 'index.html', 'manual-order-entry.html', 'owner-login.html', 'search.html']);
+  for (const f of pages) {
+    const html = fs.readFileSync(path.join(ROOT, f), 'utf8');
+    const csp = (html.match(/http-equiv="Content-Security-Policy" content="([^"]+)"/) || [])[1];
+    expect(csp, f + ': has a policy').toBeTruthy();
+    const dir = name => (csp.split(';').map(x => x.trim()).find(x => x.startsWith(name + ' ')) || '');
+    expect(dir('style-src'), f).not.toContain("'unsafe-inline'");
+    expect(dir('script-src'), f).not.toContain("'unsafe-inline'");
+    expect(dir('script-src'), f).not.toContain("'unsafe-eval'");
+    expect(csp, f).toMatch(/object-src 'none'/);
+    expect(html, f + ': style attribute').not.toMatch(/\sstyle="/);
+    expect(html, f + ': <style> block').not.toMatch(/<style[\s>]/);
+    // an inline script is allowed only when the policy names its exact hash (the frame guard)
+    for (const m of html.matchAll(/<script(?![^>]*\ssrc=)[^>]*>([\s\S]*?)<\/script>/g)) {
+      const hash = "'sha256-" + require('crypto').createHash('sha256').update(m[1]).digest('base64') + "'";
+      expect(dir('script-src'), f + ': inline script without its hash in the policy').toContain(hash);
+    }
+    expect(html, f + ': inline event handler').not.toMatch(/\son[a-z]+="/);
+  }
+});

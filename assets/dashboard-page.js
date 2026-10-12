@@ -148,9 +148,12 @@
         <span>$${cap.toFixed(2)} cap</span>
       </div>
       <div class="ai-spend-bar-track">
-        <div class="ai-spend-bar-fill ${barClass}" style="width:${pct}%"></div>
+        <div class="ai-spend-bar-fill ${barClass}"></div>
       </div>
     `;
+    // EXT16: set through the CSS object model (allowed by style-src 'self'); an inline style in markup is blocked
+    const fill = document.querySelector('#ai-spend-summary .ai-spend-bar-fill');
+    if (fill) fill.style.width = Math.max(0, Math.min(100, Number(pct) || 0)) + '%';
 
     const list = document.getElementById('ai-spend-list');
     if (!rows || rows.length === 0) {

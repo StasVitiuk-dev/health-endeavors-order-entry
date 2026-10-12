@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <!-- EXT8 (security review S7): only this site, the pinned CDN, the Supabase project and Google Fonts may load or be contacted. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-/FjRE0R4xKhg0KIe7net9VToE2n3TUM6s5m1/uP2RqA=' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://uizrazyehilyzmwttsrn.supabase.co wss://uizrazyehilyzmwttsrn.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-/FjRE0R4xKhg0KIe7net9VToE2n3TUM6s5m1/uP2RqA=' https://cdn.jsdelivr.net; style-src 'self' https://fonts.googleapis.com; img-src 'self' data: blob:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://uizrazyehilyzmwttsrn.supabase.co wss://uizrazyehilyzmwttsrn.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'">
 <meta name="referrer" content="no-referrer">
 <!-- EXT9: never shown inside another site's frame (clickjacking). GitHub Pages cannot send the
      header that forbids framing, so the page hides itself and leaves the frame instead. -->
@@ -14,124 +14,12 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous"></script>
-<style>
-  :root {
-    --ground: #F4F6F1;
-    --surface: #FFFFFF;
-    --text: #1E2A22;
-    --accent: #3E6B52;
-    --border: #DCE3D8;
-    --muted: #6B7A70;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --ground: #161C17;
-      --surface: #1E2620;
-      --text: #E8EFE9;
-      --accent: #8AC4A4;
-      --border: #2C362F;
-      --muted: #93A399;
-    }
-  }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    background: var(--ground);
-    color: var(--text);
-    font-family: 'Public Sans', system-ui, -apple-system, sans-serif;
-    -webkit-font-smoothing: antialiased;
-  }
-  .wrap { max-width: 680px; margin: 0 auto; padding: 32px 20px 80px; }
-  header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 24px;
-    gap: 16px;
-    flex-wrap: wrap;
-  }
-  .eyebrow {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 12px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin: 0 0 4px;
-  }
-  h1 {
-    font-family: 'Fraunces', Georgia, serif;
-    font-weight: 600;
-    font-size: 28px;
-    margin: 0;
-  }
-  .header-right { display: flex; align-items: center; gap: 12px; font-size: 14px; color: var(--muted); flex-wrap: wrap; }
-  .btn {
-    font-family: inherit;
-    font-size: 14px;
-    padding: 8px 14px;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    background: var(--surface);
-    color: var(--text);
-    cursor: pointer;
-    text-decoration: none;
-    display: inline-block;
-  }
-  .btn:hover { border-color: var(--accent); }
-  .search-box {
-    width: 100%;
-    font-family: inherit;
-    font-size: 16px;
-    padding: 14px 16px;
-    border-radius: 10px;
-    border: 1px solid var(--border);
-    background: var(--surface);
-    color: var(--text);
-    margin-bottom: 20px;
-  }
-  .search-box:focus { outline: none; border-color: var(--accent); }
-  .card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 8px 20px;
-  }
-  .result-row {
-    display: grid;
-    grid-template-columns: 110px 1fr;
-    gap: 12px;
-    align-items: center;
-    padding: 14px 0;
-    border-bottom: 1px solid var(--border);
-    font-size: 14px;
-  }
-  .result-row:last-child { border-bottom: none; }
-  .badge {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    padding: 3px 8px;
-    border-radius: 6px;
-    border: 1px solid var(--border);
-    color: var(--muted);
-    text-align: center;
-  }
-  .result-label { font-weight: 600; }
-  .result-subtitle { color: var(--muted); font-size: 13px; margin-top: 2px; }
-  .empty, .loading, .error {
-    color: var(--muted);
-    font-size: 14px;
-    padding: 16px 0;
-  }
-  .error { color: #B0473E; }
-  #app { display: none; }
-</style>
+<link rel="stylesheet" href="assets/search-page.css?v=3b7b76aad0">
 </head>
 <body>
 <div class="wrap">
   <div id="loading" class="loading">Loading…</div>
-  <div id="signed-out" style="display:none;">
+  <div id="signed-out" class="startHidden">
     <p>You need to be signed in to view this page.</p>
     <a class="btn" href="./">Go to sign in</a>
   </div>

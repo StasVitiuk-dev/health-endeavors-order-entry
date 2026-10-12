@@ -14,6 +14,8 @@ const PAGE_SCRIPTS = {
   'change-password.html': ['assets/change-password.js'],
   'search.html': ['assets/search-page.js'],
   'dashboard.html': ['assets/dashboard-page.js'],
+  'index.html': ['assets/manual-order-entry.js'],            // EXT16: inline script moved out
+  'manual-order-entry.html': ['assets/manual-order-entry.js'],
 };
 const read = f => fs.readFileSync(path.join(ROOT, f), 'utf8');
 function pageSource(file) { return [file, ...(PAGE_SCRIPTS[file] || [])].map(read).join('\n'); }
