@@ -61,6 +61,8 @@ CI_SKIP_BROWSER=1 npm run ci:local                               # static (+ dat
 ## 8. Known limitations
 
 - **Found in EXT15:** on PR #29 every CI run since the workflow was added was red. The `static` job ran `safety.spec.js` in its Node-only step, but that spec starts a browser and the `static` job installs none ("Executable doesn't exist"), so the browser shards were skipped every time. Fixed on both branches: the step now lists only Node-only specs, a guard test (`ci-guard-ext14.spec.js`, last test) fails if a browser spec is added there, and `npm run ci:local` hides the browser for that step so the local run matches CI. The EXT14 reports' "CI ready" was not checked against GitHub's actual runs; it is now.
-- Timings on GitHub's machines are estimates until the shards have run there.
+- **Also found in EXT15:** the browser job checked out only the latest commit, so the module move proof could not see `3a40095` (fixed: full history); and the intermittent database failure was the stress test's 200 callers hitting the CI database's 100-connection limit (fixed in the harness; see `ENGINEERING_REPORT_EXT15.md` §5).
+- Measured on GitHub (`3980d99`): static ~45 s, browser shards 766 / 940 / 781 s, database 517 s, screenshots 86 s. The duration-balanced shards finish within ~3 minutes of each other.
+- One offline-bar check failure on shard 2 (`079f378`) did not repeat: **OPEN INTERMITTENT**.
 - Pinned fingerprints do not update themselves. Dependabot for actions would need a repository setting (**OWNER DECISION**, not done).
 - The `visual` job stays informational (fonts differ between machines).

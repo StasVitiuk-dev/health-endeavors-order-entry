@@ -42,9 +42,16 @@ Slowest single tests: 10,000-record palette search (74 s), resource-leak sweep (
 | Split the 5 layout-sweep widths into separate tests | better parallelism, same total | small gain |
 | Smaller data in the 10,000-record search test | ~1 min | the size is the point of the test |
 
-## 5. Worker experiment
+## 5. EXT15 measured runs
 
-PENDING in this document until measured (see §6). The question is whether 3 or 4 workers finish faster without new flaky failures on this 4-CPU machine.
+| Run | Wall time | Tests | Notes |
+|---|---|---|---|
+| EXT14 final (`3a40095`) | 43.6 min | 1,895 passed | reference |
+| EXT15 first pass (`1d9c350`) | 63.5 min | 1,964 passed, 24 failed | **not comparable**: the machine also ran database suites and other checks part of the time |
+| EXT15 final (`66a9918`) | 52.5 min | 1,991 passed | ~3.5 min of a database stress run overlapped; +96 tests vs EXT14, incl. long chaos (3 × 70 steps), soak and malformed-data scale tests |
+| GitHub CI 3 shards (`3980d99`) | 13–16 min per shard in parallel | — | see `CI_GUIDE_EXT15.md` |
+
+The worker-count experiment and A/B rounds 2–3 were not run in EXT15: they would have competed for the same 4 CPUs with the verification runs and made both unreliable. Moved to EXT16 (phases 45–53).
 
 ## 6. CI shard balance
 
