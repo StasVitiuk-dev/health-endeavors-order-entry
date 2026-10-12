@@ -19,6 +19,13 @@ const OPS = ['page', 'page', 'page', 'back', 'forward', 'palette', 'search', 're
 // database restored to its starting rows; the error names the seed, the failing step
 // and the smallest failing sequence found within the budget.
 const { shrink, describe } = require('../helpers/shrink');
+// A replay must start signed out: the synthetic session survives a reload, so without
+// clearing it the sign-in form is not there (replays used to hang on it).
+async function freshSignIn(page) {
+  await page.goto('/owner-login.html');
+  await page.evaluate(() => { try { localStorage.clear(); sessionStorage.clear(); } catch (e) {} });
+  await login(page);
+}
 function genOps(seed, n, ids) {
   const r = rng(seed);
   return Array.from({ length: n }, () => {
@@ -76,6 +83,7 @@ for (const seed of [1501, 1502, 1503]) {
   test(`UI chaos seed ${seed}: 70 random steps keep every invariant`, async ({ page, backend, context }, ti) => {
     test.skip(ti.project.name !== 'desktop' && seed !== 1501, 'phone runs one seed');
     test.setTimeout(600000);
+    page.setDefaultTimeout(30000); // a hang becomes a reported failure, not a stall
     enableWrites(backend, []);
     const startRows = JSON.parse(JSON.stringify(backend.tables));
     const errors = [];
@@ -91,8 +99,7 @@ for (const seed of [1501, 1502, 1503]) {
         errors.length = 0;
         await context.setOffline(false);
         if (!phone) await page.setViewportSize({ width: 1280, height: 800 });
-        await page.goto('about:blank');
-        await login(page);
+        await freshSignIn(page);
         return !!(await runOps(page, backend, context, cand, phone, errors));
       };
       const small = await shrink(ops.slice(0, fail.step + 1), replay, { maxRuns: 25, maxMs: 240000 });
@@ -112,6 +119,7 @@ for (const seed of [1501, 1502, 1503]) {
 test('chaos shrinker on the real runner: a planted search→task failure shrinks to the 2 essential steps', async ({ page, backend, context }, ti) => {
   test.skip(ti.project.name !== 'desktop', 'once');
   test.setTimeout(600000);
+  page.setDefaultTimeout(30000);
   enableWrites(backend, []);
   const startRows = JSON.parse(JSON.stringify(backend.tables));
   const errors = [];
@@ -123,11 +131,14 @@ test('chaos shrinker on the real runner: a planted search→task failure shrinks
   const fail = await runOps(page, backend, context, ops, false, errors, plant);
   expect(fail && fail.message).toBe('planted: task after search');
   const replay = async cand => {
-    backend.tables = JSON.parse(JSON.stringify(startRows)); errors.length = 0;
-    await context.setOffline(false); await page.setViewportSize({ width: 1280, height: 800 });
-    await page.goto('about:blank'); await login(page);
-    const f = await runOps(page, backend, context, cand, false, errors, plant);
-    return !!(f && /planted/.test(f.message));
+    try {
+      backend.tables = JSON.parse(JSON.stringify(startRows)); errors.length = 0;
+      await context.setOffline(false); await page.setViewportSize({ width: 1280, height: 800 });
+      await freshSignIn(page);
+      const f = await runOps(page, backend, context, cand, false, errors, plant);
+      if (process.env.SHRINK_DEBUG) console.log('REPLAY', cand.length, JSON.stringify(f));
+      return !!(f && /planted/.test(f.message));
+    } catch (e) { if (process.env.SHRINK_DEBUG) console.log('REPLAY-THREW', String(e).split('\n')[0]); throw e; }
   };
   const small = await shrink(ops.slice(0, fail.step + 1), replay, { maxRuns: 80, maxMs: 480000 });
   ti.annotations.push({ type: 'shrink', description: `${fail.step + 1} → ${small.ops.length} steps in ${small.runs} replays, ${small.ms} ms: ${describe(small.ops)}` });
