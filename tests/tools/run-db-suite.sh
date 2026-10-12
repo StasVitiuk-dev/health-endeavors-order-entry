@@ -13,7 +13,9 @@ ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 LT="$ROOT/docs/ops/sql/local-test"
 case "$C" in *supabase.co*|*pooler.supabase*) echo "Refusing: this suite only runs against a local or CI database."; exit 99;; esac
 fails=0; out=$(mktemp)
-step() { local name="$1"; shift; local s=$(date +%s); if "$@" >"$out" 2>&1; then echo "PASS $name ($(( $(date +%s)-s ))s)"; else echo "FAIL $name ($(( $(date +%s)-s ))s)"; tail -15 "$out" | sed 's/^/     /'; fails=$((fails+1)); fi; }
+step() { local name="$1"; shift; local s=$(date +%s); if "$@" >"$out" 2>&1; then echo "PASS $name ($(( $(date +%s)-s ))s)"; else echo "FAIL $name ($(( $(date +%s)-s ))s)"; tail -15 "$out" | sed 's/^/     /'; fails=$((fails+1)); annotate "$name" "$out"; fi; }
+# On GitHub, a failed step also becomes an annotation (readable on the PR without the raw log).
+annotate() { [ "${GITHUB_ACTIONS:-}" = "true" ] || return 0; local msg; msg=$(tail -25 "$2" | sed 's/%/%25/g' | sed ':a;N;$!ba;s/\n/%0A/g' | tr -d '\r'); echo "::error title=DB suite step failed: $1::$msg"; }
 build() {
   dropdb $C --if-exists he_real >/dev/null 2>&1
   createdb $C he_real && cd "$ROOT" \
