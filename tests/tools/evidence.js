@@ -37,7 +37,7 @@ const STALE_DAYS = { BACKUP: 7, QUERY_C: 30, QUERY_D: 30, QUERY_E: 30, QUERY_F: 
 // ---------- privacy ----------
 const SECRET_PATTERNS = [/eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/, /\bsk_(live|test)_[A-Za-z0-9]{8,}/, /\bsbp_[A-Za-z0-9]{20,}/, /\bghp_[A-Za-z0-9]{20,}/,
   /github_pat_[A-Za-z0-9_]{20,}/, /-----BEGIN [A-Z ]*PRIVATE KEY-----/, /\bAKIA[0-9A-Z]{16}\b/, /\bxox[bp]-[A-Za-z0-9-]{10,}/,
-  /service_role[^\n]{0,20}[:=]\s*\S{16,}/i, /\b(password|passwd|secret|api[_-]?key|token)\s*[:=]\s*\S{6,}/i];
+  /service[_]role[^\n]{0,20}[:=]\s*\S{16,}/i, /\b(password|passwd|secret|api[_-]?key|token)\s*[:=]\s*\S{6,}/i];
 const EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;
 function privacyCheck(text) {
   const t = String(text || '');

@@ -557,13 +557,44 @@ function fixHelpersHash(dir) {
   }
 }
 
+// EXT14 crash safety. Mutants are only ever written inside SCRATCH (a separate
+// git worktree), never in the real working tree. These guards make sure that
+// stays true even if the run is interrupted or SCRATCH is pointed somewhere odd:
+//   * SCRATCH must be outside the repository and must not be a parent of it
+//   * an existing SCRATCH is only deleted if it is empty or carries our marker
+//   * Ctrl-C / kill removes the worktree and prunes git's worktree list
+//   * progress is written after each mutant (SCRATCH + '.progress.json')
+//   * the real tree's status is fingerprinted before and checked after
+const MARKER = '.he-mutation-scratch';
+(function guardScratch() {
+  const rel = path.relative(ROOT, SCRATCH);
+  if (!rel || (!rel.startsWith('..') && !path.isAbsolute(rel))) throw new Error('mutation scratch must be outside the repository: ' + SCRATCH);
+  if (!path.relative(SCRATCH, ROOT).startsWith('..')) throw new Error('mutation scratch must not contain the repository: ' + SCRATCH);
+  if (fs.existsSync(SCRATCH) && fs.readdirSync(SCRATCH).length && !fs.existsSync(path.join(SCRATCH, MARKER)))
+    throw new Error('refusing to delete ' + SCRATCH + ': not empty and not a mutation scratch folder (no ' + MARKER + ')');
+})();
+function cleanScratch() {
+  try { sh(`git worktree remove --force "${SCRATCH}"`, ROOT); } catch (e) { /* not there */ }
+  fs.rmSync(SCRATCH, { recursive: true, force: true });
+  try { sh('git worktree prune', ROOT); } catch (e) { /* ignore */ }
+}
+const treeState = () => crypto.createHash('md5').update(sh('git status --porcelain=v1 -uall', ROOT) + sh('git rev-parse HEAD', ROOT)).digest('hex');
+const TREE_BEFORE = treeState();
+function interrupted(sig) { console.error('\ninterrupted (' + sig + '): removing the mutation worktree'); cleanScratch(); process.exit(130); }
+for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.on(sig, () => interrupted(sig));
+// A child (git / the test run) killed by the same Ctrl-C must not be mistaken
+// for a result: an interrupted test run is NOT a "missed" mutant.
+const killedBySignal = e => e && (e.signal || e.status === 130 || e.status === 143);
+const PROGRESS = SCRATCH.replace(/[\\/]+$/, '') + '.progress.json';
+
 const results = [];
 // MUT_ONLY=<regex> runs only the mutants whose name matches (spot checks).
 const ONLY = process.env.MUT_ONLY ? new RegExp(process.env.MUT_ONLY, 'i') : null;
+try {
 for (const [name, file, find, repl, specs] of MUTATIONS.filter(m => !ONLY || ONLY.test(m[0]))) {
-  try { sh(`git worktree remove --force "${SCRATCH}"`, ROOT); } catch (e) { /* not there */ }
-  fs.rmSync(SCRATCH, { recursive: true, force: true });
+  cleanScratch();
   sh(`git worktree add --detach "${SCRATCH}" HEAD`, ROOT);
+  fs.writeFileSync(path.join(SCRATCH, MARKER), 'mutation scratch; safe to delete\n');
   // the working tree's current test files and page (may be ahead of HEAD)
   for (const f of ['owner-login.html', 'manual-order-entry.html', 'index.html', 'search.html', 'dashboard.html', 'change-password.html']) fs.copyFileSync(path.join(ROOT, f), path.join(SCRATCH, f));
   fs.cpSync(path.join(ROOT, 'assets'), path.join(SCRATCH, 'assets'), { recursive: true }); // EXT14: all page code (app script, helpers, CSS)
@@ -579,12 +610,19 @@ for (const [name, file, find, repl, specs] of MUTATIONS.filter(m => !ONLY || ONL
   if (file.startsWith('assets/')) fixHelpersHash(SCRATCH);
   let out = '';
   try { out = sh(`npx playwright test --config tests/playwright.config.js ${specs}${/--project=/.test(specs) ? '' : ' --project=desktop'} --reporter=line`, SCRATCH); }
-  catch (e) { out = (e.stdout || '') + (e.stderr || ''); }
+  catch (e) { if (killedBySignal(e)) throw e; out = (e.stdout || '') + (e.stderr || ''); }
   const failed = (out.match(/(\d+) failed/) || [])[1];
   const passed = (out.match(/(\d+) passed/) || [])[1];
   results.push([name, failed ? `CAUGHT (${failed} failed, ${passed || 0} passed)` : `NOT CAUGHT (${passed || 0} passed)`]);
+  fs.writeFileSync(PROGRESS, JSON.stringify({ done: results.length, results }, null, 1));
 }
-try { sh(`git worktree remove --force "${SCRATCH}"`, ROOT); } catch (e) { /* ignore */ }
+} catch (e) {
+  if (killedBySignal(e)) interrupted(e.signal || 'SIGINT');
+  cleanScratch();
+  throw e;
+}
+cleanScratch();
+if (treeState() !== TREE_BEFORE) { console.error('WORKING TREE CHANGED DURING THE MUTATION RUN — investigate before trusting anything'); process.exitCode = 2; }
 for (const [n, r] of results) console.log((r.startsWith('CAUGHT') ? 'OK   ' : 'MISS ') + n + ' → ' + r);
 // Non-zero exit when any mutation was missed or could not be applied (e.g. a
 // helper moved to another file), so a stale harness can't pass quietly.

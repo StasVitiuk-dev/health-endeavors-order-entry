@@ -108,7 +108,7 @@ const DECISION = {
 const AGENT_SOURCE = {
   complete: 'agent: 4\nreads: orders, products\nwrites: daily_reports\nschedule: 3 * * * * (UTC)\nfailure_recorded_as: agent_controls.last_run_status=error\nsecond_run_duplicates: no\n',
   duplicates: 'agent: 6\nreads: customer_inquiries\nwrites: drafts\nschedule: hourly\nfailure_recorded_as: last_error\nsecond_run_duplicates: yes\n',
-  withSecret: 'agent: 4\nreads: orders\nwrites: x\nschedule: x\nfailure_recorded_as: x\nsecond_run_duplicates: no\napi_key = sk_live_ABCDEF1234567890\n',
+  withSecret: 'agent: 4\nreads: orders\nwrites: x\nschedule: x\nfailure_recorded_as: x\nsecond_run_duplicates: no\napi_key = ' + 'sk_' + 'live_ABCDEF1234567890\n', // EXT14: split so the repository's own secret check (safety.spec) does not trip on this fake
   partial: 'agent: 1\nreads: orders\n',
 };
 module.exports = { C, D, E, F, G, H, BACKUP, GITHUB, DEVICE, DECISION, AGENT_SOURCE };

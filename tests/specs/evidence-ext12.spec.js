@@ -25,7 +25,7 @@ test('secrets are refused and not stored; e-mails are replaced before storing', 
   expect(r.record).toBeNull();
   expect(r.result.status).toBe('MALFORMED');
   expect(r.result.note).toMatch(/REFUSED/);
-  for (const secret of ['token=abcdef123456', 'eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIn0.abcdef', 'ghp_' + 'a'.repeat(30), '-----BEGIN PRIVATE KEY-----'])
+  for (const secret of ['token=abcdef123456', 'eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIn0.abcdef', 'ghp_' + 'a'.repeat(30), '-----BEGIN ' + 'PRIVATE KEY-----'])
     expect(E.interpret('QUERY_G', S.G.expected + 'G02 policy,INFO,x,' + secret + '\n', P).status).toBe('MALFORMED');
   const rec = E.makeRecord('QUERY_C', S.C.agentFailed.replace('[email]', 'jane.synthetic@example.test'), P).record;
   expect(JSON.stringify(rec)).not.toContain('jane.synthetic@example.test');

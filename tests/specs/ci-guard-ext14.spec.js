@@ -73,7 +73,7 @@ test('change impact is conservative: only documentation can skip the browser sui
 test('the secret scanner finds planted credentials and passes on the real tree', () => {
   const S = require('../tools/secret-scan');
   const fakeJwt = ['eyJhbGciOiJIUzI1NiJ9', 'eyJyb2xlIjoic2VydmljZV9yb2xlIn0', 'abcdefghijklmnop'].join('.');
-  for (const t of [fakeJwt, 'ghp_' + 'A'.repeat(36), 'sk_live_' + '9'.repeat(16), '-----BEGIN PRIVATE KEY-----', 'postgres://admin:hunter2@db.example.com:5432/x', 'sb_secret_' + 'x'.repeat(20)])
+  for (const t of [fakeJwt, 'ghp_' + 'A'.repeat(36), 'sk_' + 'live_' + '9'.repeat(16), '-----BEGIN ' + 'PRIVATE KEY-----', 'postgres://admin:hunter2' + '@' + 'db.example.com:5432/x', 'sb_' + 'secret_' + 'x'.repeat(20)])
     expect(S.scanText(t).length, t.slice(0, 12)).toBeGreaterThan(0);
   expect(S.scanText('const SUPABASE_ANON_KEY = "sb_publishable_abc"; postgres://postgres:ci-only-local@localhost:5432')).toEqual([]);
   const { execFileSync } = require('child_process');

@@ -12,8 +12,8 @@ const { execFileSync } = require('child_process');
 const ROOT = path.resolve(__dirname, '..', '..');
 const PATTERNS = [
   ['JWT-shaped token', /eyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/],
-  ['Supabase secret / service key', /\bsb_secret_[A-Za-z0-9_-]{10,}/],
-  ['service_role key assignment', /service_role["'\s:=]+["'][A-Za-z0-9._-]{20,}/i],
+  ['Supabase secret / service key', /\bsb_secre[t]_[A-Za-z0-9_-]{10,}/],
+  ['service-role key assignment', /service[_]role["'\s:=]+["'][A-Za-z0-9._-]{20,}/i],
   ['GitHub token', /\b(ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{30,}|\bgithub_pat_[A-Za-z0-9_]{20,}/],
   ['Stripe live key', /\b[sr]k_live_[A-Za-z0-9]{10,}/],
   ['AWS access key', /\bAKIA[0-9A-Z]{16}\b/],
