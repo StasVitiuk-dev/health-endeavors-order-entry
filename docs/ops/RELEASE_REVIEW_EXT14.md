@@ -60,7 +60,7 @@ No database step is involved: EXT14 installed nothing. The revert also removes t
 
 ## 6. Deployment instructions for Stas (only when you decide to)
 
-1. On GitHub open draft PR #28 (or the EXT14 draft PR named in the final report). Check that the description says the tests passed.
+1. On GitHub open draft PR #29 (EXT1–14; it contains everything in #28). Check that the description says the tests passed.
 2. Press **Ready for review**, then **Review changes → Approve**. (Claude cannot approve or merge; you are the only approver.)
 3. Press **Merge pull request** → **Confirm**.
 4. Wait 5 minutes. Open the live dashboard in a Private Window (or hard-refresh with Cmd+Shift+R).

@@ -7,7 +7,7 @@
 
 1. The live dashboard is **unchanged**. Nothing has been merged, deployed or run on production.
 2. EXT14 was an **engineering round**: the main page's program moved into its own file, automatic GitHub tests were built (inactive until merged), the SQL package was organized and machine-checked, a private staging copy got 12 scenarios, and 6 real problems were fixed.
-3. All work (EXT1–EXT14) is in the EXT14 branch. It continues draft PR #28 (see `RELEASE_REVIEW_EXT14.md` §5 on how).
+3. All work (EXT1–EXT14) is in the EXT14 branch. It is in **draft PR #29**, which contains everything in #28 (see `RELEASE_REVIEW_EXT14.md` §5).
 4. Production readiness is still about **15 / 100**. Only production evidence moves it.
 5. Your next steps are the same as in EXT13: backup look, GitHub reconnect, read-only session, review and merge.
 
