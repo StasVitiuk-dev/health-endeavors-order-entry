@@ -35,4 +35,4 @@ How it works (`tests/helpers/dashboard.js`): the first sign-in in a worker saves
 
 - High-risk state machine property test: 5 seeds × 5,000 events in 1.2 s (was 1.2 min before the assertions were made cheap).
 - Shrinker self-tests: 1.2 s (Node); browser self-test 1.3 min.
-- Full suite for the EXT16 freeze (`bc596e2`, 2 workers): 2,025 passed, 0 failed, 0 flaky, 336 skipped, 61.6 min (EXT15 final: 1,991 passed, 52.5 min; the machine also ran other jobs during part of both runs, so the times are not a like-for-like comparison). See `RELEASE_REVIEW_EXT16.md`.
+- Full suite for the EXT16 freeze (`bc596e2`, 2 workers): 2,025 passed, 0 failed, 0 flaky, 336 skipped, 61.6 min (EXT15 final: 1,991 passed, 52.5 min, while a database stress reproduction shared the machine for a few minutes; the EXT16 run had the machine to itself apart from a few seconds of document checks). 34 more tests account for part of the difference; the rest is not explained by a measurement. See `RELEASE_REVIEW_EXT16.md`.
