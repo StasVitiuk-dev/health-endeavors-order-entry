@@ -108,7 +108,7 @@ The page refuses to turn any of the first seven on before its database step exis
 | 7 | permission fixes (P8) | per Query G row | Query G | LOW per statement | none | one per draft | **NOT WRITTEN** (waits for Query G) |
 | 8 | `drafts/25` nightly check | 1 table, 1 view, 1 function, 1 schedule | thresholds | LOW | none | one transaction | READY |
 | 9 | `drafts/29` Home card tables + switch row | 1 table, column, policies, row OFF | 25 | LOW | none | one transaction; refuses without 25 | READY |
-| — | `drafts/13` server-side report totals | 1 function | N4 decision | LOW | none | one transaction | **OPTIONAL / DEFERRED**: not in the production plan; the page keeps paging. No rollback file yet: write one before ever installing |
+| — | `drafts/13` server-side report totals | 1 function | N4 decision | LOW | none | one transaction | **OPTIONAL / DEFERRED**: not in the production plan; the page keeps paging. *Update 2026-10-12 (EXT14): rollback `drafts/31` written and tested; a missing order total is no longer summed as $0 but reported as `orders_missing_total`.* |
 | later | P10 revoke direct stock writes | grants | all five switches VERIFIED | LOW | none | — | NOT WRITTEN (on purpose) |
 
 Note on draft 23 at volume: adding a CHECK validates every existing row while holding the table. At today's size that is milliseconds. If a table ever holds millions of rows, the same rule should be added `NOT VALID` and validated separately (`POST_LAUNCH_BACKLOG_EXT13.md` §9).
@@ -120,7 +120,7 @@ Test drafts `12`, `14`, `15`, `16` are **LOCAL ONLY**: each runs inside `BEGIN �
 | Change | Undo | Refuses while | Undoes business effects? |
 |---|---|---|---|
 | Merge (P0) | GitHub → Revert the merge commit | — | n/a (no data changed) |
-| drafts/10 | `drafts/11` | any stock switch row exists (roll back 21 first) | **NO** |
+| drafts/10 | `drafts/11` | any stock switch row exists (roll back 21 first) | **NO** — *Correction 2026-10-12 (EXT14): in EXT13 `drafts/11` did NOT itself check this; it relied on the operator. EXT14 added the check: it now refuses while any `stock_fn_*` switch is ON (tested; SQL mutant).* |
 | drafts/21 | `drafts/22` | any stock switch is ON | NO |
 | A stock switch ON | switch it OFF (instant) | never refused | **NO**: stock already received/adjusted stays; correct by hand with a note |
 | drafts/17 | `drafts/18` | — | n/a |
@@ -130,7 +130,7 @@ Test drafts `12`, `14`, `15`, `16` are **LOCAL ONLY**: each runs inside `BEGIN �
 | permission fix | the exact old policy text from Query G G02 | — | n/a (but can lock staff out until undone) |
 | drafts/25 | stop: `select cron.unschedule('integrity_check_nightly');` · remove: `drafts/26` (after 30) | — | deletes its own check history only |
 | drafts/29 | `drafts/30` (before 26) | — | n/a |
-| drafts/13 (optional) | `drop function` (no file yet) | — | n/a |
+| drafts/13 (optional) | `drafts/31` (EXT14) | — | n/a |
 
 ## 8. Production steps P0–P11
 

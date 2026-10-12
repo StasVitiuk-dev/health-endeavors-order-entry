@@ -17,6 +17,8 @@ const FILE_RE = /\.(md|sql|js|json|jsonl|sh|html|css|py|csv|png)$/i;
 // The documents an owner or a future session is told to start from.
 const CURRENT = [
   'CLAUDE.md',
+  'docs/ops/START_HERE_EXT14.md', 'docs/ops/CURRENT_PLATFORM_STATE_EXT14.md', 'docs/ops/ENGINEERING_REPORT_EXT14.md',
+  'docs/ops/RELEASE_REVIEW_EXT14.md', 'docs/ops/CI_GUIDE_EXT14.md', 'docs/ops/SCREENSHOT_POLICY_EXT14.md',
   'docs/ops/START_HERE_EXT13.md', 'docs/ops/CURRENT_PLATFORM_STATE_EXT13.md', 'docs/ops/OWNER_ATTENTION_SESSION_EXT13.md',
   'docs/ops/SOURCE_OF_TRUTH_MAP_EXT13.md', 'docs/ops/PLATFORM_MATRICES_EXT13.md', 'docs/ops/DATA_MODEL_DICTIONARY_EXT13.md',
   'docs/ops/POST_LAUNCH_BACKLOG_EXT13.md', 'docs/ops/OWNER_SESSION_PROMPTS_EXT13.md', 'docs/ops/OPERATIONS_HANDBOOK_EXT13.md',

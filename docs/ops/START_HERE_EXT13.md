@@ -1,5 +1,7 @@
 # START HERE (EXT13)
 
+> **SUPERSEDED 2026-10-12 by `START_HERE_EXT14.md`** (EXT14). Kept as history; owner actions in the EXT13 owner documents are unchanged.
+
 **AUTHORITATIVE AS OF:** 2026-10-11 · dashboard code `32c05e2` (identical in PR #28) · live `main` `d3db7bc` · branch `claude/platform-ext13-owner-attention-final-audit-2026-10-11`.
 **SUPERSEDES:** `START_HERE_EXT12.md` (kept as history).
 

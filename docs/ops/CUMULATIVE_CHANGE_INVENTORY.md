@@ -196,3 +196,17 @@ Rollback: revert the merge commit.
 
 Rollback: revert the merge commit.
 
+
+## 14. Extension 14 addendum (2026-10-12)
+
+`claude/platform-ext14-deep-engineering-2026-10-11` continues EXT13 (`cc9a142`). `main` is still `d3db7bc`. Page code frozen at `3a40095`. Details: `ENGINEERING_REPORT_EXT14.md`.
+
+| Change | Who notices | Needs SQL first? |
+|---|---|---|
+| Owner page program loaded from `assets/owner-login-app.js`; no inline scripts except one hashed boot line | Nobody, if it works; a plain "program did not load" message if the file fails to load | No |
+| Diagnostic summary: an unknown role value reads "other (not a standard role)" | Owner, when copying the diagnostic summary | No |
+| `.github/workflows/ci.yml`: tests on pull requests and `claude/**` pushes; no secrets, no deploy | Owner and Claude (✓ / ✗ on pull requests) | No |
+| `drafts/11` refuses while a stock switch is ON; `drafts/13` reports missing totals; new `drafts/31` | Owner, only when installing SQL | — (drafts only) |
+| `npm run sql:lint`, `sql:graph`, `sql:headers`, `status:check`, `ci:local`, `db:suite`, `secrets:scan`, `staging:build` | Claude sessions | No |
+
+Rollback: revert the merge commit (removes the workflow too).

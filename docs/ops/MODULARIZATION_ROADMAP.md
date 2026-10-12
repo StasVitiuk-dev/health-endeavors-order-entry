@@ -76,7 +76,7 @@
 |---|---|---|---|
 | M5b | Same as change-password for `search.html`, then `dashboard.html` (small pages, one inline block each) | Low | csp + page specs per page |
 | M5c | `manual-order-entry.html` (+ identical `index.html`): move its script to one shared asset so the copy rule becomes "both load the same file" | Medium (order entry is money) | manual-order-entry spec (deep), the identical-copy test rewritten to compare the script reference |
-| M5d | `owner-login.html`: the big inline script (≈9,000 lines) into `assets/owner-login.js` as ONE file first (no splitting), then `'unsafe-inline'` off for scripts. Inline `onclick`/`onerror` attributes must go first (inventory needed) | Medium–high (one huge move; must be done right after a merge, never parallel to other page work) | full suite + visual + staging build (it rewrites the page) |
+| M5d — **DONE in EXT14** (branch `claude/platform-ext14-deep-engineering-2026-10-11`, `d5db721`; file is `assets/owner-login-app.js`; script `unsafe-inline` off, one hashed boot line; "program did not load" message; 4 module-failure tests) | `owner-login.html`: the big inline script (≈9,000 lines) into `assets/owner-login.js` as ONE file first (no splitting), then `'unsafe-inline'` off for scripts. Inline `onclick`/`onerror` attributes must go first (inventory needed) | Medium–high (one huge move; must be done right after a merge, never parallel to other page work) | full suite + visual + staging build (it rewrites the page) |
 | M1 | `newLoadToken`, `appendMore`, `LIST_LIMITS`, `pageFromHash` → `assets/owner-login-ui.js` | Low | out-of-order, capped-reads, nav-history |
 | M2 | totals out of `loadTaxRecords` / `loadAccounting` into helpers | Low–medium | money oracles |
 | M3 | `notClosed(q)` query wrapper | Low | owner-control-center, attention |
@@ -86,5 +86,10 @@
 
 - **Init order:** helpers must load before the page script (`<script src=helpers>` precedes the inline block; the API check stops start-up otherwise). Any new asset must be added the same way with a content hash, or a cached old copy runs with new code.
 - **Globals:** page state lives inside `initApp` (closure); moved code must receive what it needs as arguments (helpers file is not allowed to touch `document`, `supabase`, storage or `fetch` — enforced by `assets.spec`).
-- **Build order:** there is no build step; GitHub Pages serves files as they are. The staging build (`tests/tools/staging/build-staging.js`) rewrites `owner-login.html` and its helpers only; a moved owner-login script must be added to it in the same change (M5d).
+- **Build order:** there is no build step; GitHub Pages serves files as they are. The staging build (`tests/tools/staging/build-staging.js`) rewrites `owner-login.html` and its helpers only; a moved owner-login script must be added to it in the same change (M5d; done in EXT14: the build now scrubs and re-hashes every asset).
 - **Merge conflicts:** big moves only directly after the EXT1–10 branch is merged, never alongside other open page work.
+
+## EXT14 update (2026-10-12)
+
+- **M5d done**: see `ENGINEERING_REPORT_EXT14.md` §3. `owner-login.html` 617 KB → 58 KB.
+- **Next (PROPOSED), M7 — split `owner-login-app.js` by feature behind explicit interfaces.** The closure shares about 300 variables. Do it one feature at a time (first: System status / diagnostics, then Reports), each exposing a small object on `window.HE`, with the full suite, the 170 mutants and the staging build after each step. Not started in EXT14, because it cannot be proven safe in one round.

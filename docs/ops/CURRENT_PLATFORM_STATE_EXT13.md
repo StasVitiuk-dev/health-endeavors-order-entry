@@ -1,5 +1,7 @@
 # Internal platform: current state (EXT13)
 
+> **SUPERSEDED 2026-10-12 by `CURRENT_PLATFORM_STATE_EXT14.md`** (EXT14). Kept as history; owner actions in the EXT13 owner documents are unchanged.
+
 **AUTHORITATIVE AS OF:** 2026-10-11 · dashboard code frozen at `32c05e2` (unchanged in EXT12 and EXT13) · live `main` `d3db7bc` · branch `claude/platform-ext13-owner-attention-final-audit-2026-10-11` (continues EXT12 `bd574df`; draft PR #28's branch was fast-forwarded to the same commits, so #28 carries EXT1–13).
 **SUPERSEDES:** `CURRENT_PLATFORM_STATE_EXT12.md` (kept as history). Entry point: `START_HERE_EXT13.md`.
 
