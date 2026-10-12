@@ -13,63 +13,126 @@ function rng(seed) { let s = seed >>> 0; return () => ((s = (s * 1664525 + 10139
 const pick = (r, a) => a[Math.floor(r() * a.length)];
 const OPS = ['page', 'page', 'page', 'back', 'forward', 'palette', 'search', 'resize', 'offline', 'task', 'task', 'slow'];
 
+// EXT16: the whole operation list is generated from the seed up front, so a failing run
+// can be replayed with operations removed. On a failure the test shrinks the sequence
+// (tests/helpers/shrink.js): each candidate runs on a fresh sign-in with the mock
+// database restored to its starting rows; the error names the seed, the failing step
+// and the smallest failing sequence found within the budget.
+const { shrink, describe } = require('../helpers/shrink');
+function genOps(seed, n, ids) {
+  const r = rng(seed);
+  return Array.from({ length: n }, () => {
+    const op = pick(r, OPS);
+    if (op === 'page' || op === 'offline' || op === 'slow') return { op, page: pick(r, ids) };
+    if (op === 'palette') return { op, text: pick(r, ['ta', 'inv', 'SYN', '<b>', 'zz']) };
+    if (op === 'search') return { op, text: pick(r, ['SYN', 'task', '"; DROP', '中文', '']) };
+    if (op === 'resize') return { op, width: pick(r, [1100, 900, 760, 1280]) };
+    return { op };
+  });
+}
+async function runOps(page, backend, context, ops, phone, errors, plant) {
+  for (let step = 0; step < ops.length; step++) {
+    const { op } = ops[step];
+    const t0 = Date.now();
+    try {
+      if (op === 'page') await gotoPage(page, ops[step].page);
+      else if (op === 'back') await page.goBack({ waitUntil: 'commit' }).catch(() => {});
+      else if (op === 'forward') await page.goForward({ waitUntil: 'commit' }).catch(() => {});
+      else if (op === 'palette' && !phone) { await page.keyboard.press('Escape'); await page.keyboard.press('ControlOrMeta+k'); await page.keyboard.type(ops[step].text); await page.keyboard.press('Escape'); }
+      else if (op === 'search') { await openMenuIfMobile(page); await page.fill('#sidebarSearch', ops[step].text); await page.fill('#sidebarSearch', ''); await page.keyboard.press('Escape'); }
+      else if (op === 'resize' && !phone) await page.setViewportSize({ width: ops[step].width, height: 800 });
+      else if (op === 'offline') { await context.setOffline(true); await gotoPage(page, ops[step].page).catch(() => {}); await context.setOffline(false); }
+      else if (op === 'slow') { backend.delayNext('tasks', 'GET', 1200); await gotoPage(page, 'tasksPanel'); await gotoPage(page, ops[step].page); }
+      else if (op === 'task') {
+        await gotoPage(page, 'tasksPanel');
+        const btn = page.locator('#tasksTableWrap tr[data-id] .taskStatusBtn:not([disabled])').first();
+        if (await btn.count()) {
+          page.once('dialog', d => d.accept());
+          const before = backend.taskUpdates ? backend.taskUpdates().length : 0;
+          await btn.click({ timeout: 3000 }).catch(() => {});
+          await btn.click({ timeout: 500 }).catch(() => {}); // the same person's double click
+          await page.waitForLoadState('networkidle');
+          const after = backend.taskUpdates ? backend.taskUpdates().length : 0;
+          if (after - before > 1) return { step, message: 'one click sent ' + (after - before) + ' task updates' };
+        }
+      }
+      await page.waitForTimeout(80);
+      if (!(await page.locator('#dash').isVisible())) return { step, message: 'dashboard no longer shown' };
+      const active = await page.locator('section.panel.activePage').count();
+      if (active !== 1) return { step, message: active + ' active pages' };
+      if (errors.length) return { step, message: 'script error: ' + errors[0] };
+      if (plant) { const planted = plant(ops.slice(0, step + 1)); if (planted) return { step, message: planted }; }
+      const ms = Date.now() - t0;
+      if (ms > 20000) console.log(`CHAOS step ${step} ${op}: ${ms} ms`);
+      if (ms > 45000) return { step, message: `${op} took ${ms} ms: an operator action must not hang` };
+    } catch (e) {
+      return { step, message: String(e && e.message || e).split('\n')[0] };
+    }
+  }
+  return null;
+}
+
 for (const seed of [1501, 1502, 1503]) {
   test(`UI chaos seed ${seed}: 70 random steps keep every invariant`, async ({ page, backend, context }, ti) => {
     test.skip(ti.project.name !== 'desktop' && seed !== 1501, 'phone runs one seed');
-    test.setTimeout(420000);
+    test.setTimeout(600000);
     enableWrites(backend, []);
+    const startRows = JSON.parse(JSON.stringify(backend.tables));
     const errors = [];
     page.on('pageerror', e => errors.push(String(e)));
     await login(page);
     const ids = await page.locator('#sidebarGroups .sidebarLink[data-page]').evaluateAll(els => [...new Set(els.map(e => e.getAttribute('data-page')))]);
-    const r = rng(seed);
-    const log = [];
-    let taskClicks = 0;
     const phone = ti.project.name !== 'desktop';
-    for (let step = 0; step < 70; step++) {
-      const op = pick(r, OPS);
-      log.push(op);
-      const t0 = Date.now();
-      try {
-        if (op === 'page') await gotoPage(page, pick(r, ids));
-        else if (op === 'back') await page.goBack({ waitUntil: 'commit' }).catch(() => {});
-        else if (op === 'forward') await page.goForward({ waitUntil: 'commit' }).catch(() => {});
-        else if (op === 'palette' && !phone) { await page.keyboard.press('Escape'); await page.keyboard.press('ControlOrMeta+k'); await page.keyboard.type(pick(r, ['ta', 'inv', 'SYN', '<b>', 'zz'])); await page.keyboard.press('Escape'); }
-        else if (op === 'search') { await openMenuIfMobile(page); await page.fill('#sidebarSearch', pick(r, ['SYN', 'task', '"; DROP', '中文', ''])); await page.fill('#sidebarSearch', ''); await page.keyboard.press('Escape'); }
-        else if (op === 'resize' && !phone) await page.setViewportSize({ width: pick(r, [1100, 900, 760, 1280]), height: 800 });
-        else if (op === 'offline') { await context.setOffline(true); await gotoPage(page, pick(r, ids)).catch(() => {}); await context.setOffline(false); }
-        else if (op === 'slow') { backend.delayNext('tasks', 'GET', 1200); await gotoPage(page, 'tasksPanel'); await gotoPage(page, pick(r, ids)); }
-        else if (op === 'task') {
-          await gotoPage(page, 'tasksPanel');
-          const btn = page.locator('#tasksTableWrap tr[data-id] .taskStatusBtn:not([disabled])').first();
-          if (await btn.count()) {
-            page.once('dialog', d => d.accept());
-            const before = backend.taskUpdates ? backend.taskUpdates().length : 0;
-            await btn.click({ timeout: 3000 }).catch(() => {});
-            await btn.click({ timeout: 500 }).catch(() => {}); // the same person's double click
-            taskClicks++;
-            await page.waitForLoadState('networkidle');
-            const after = backend.taskUpdates ? backend.taskUpdates().length : 0;
-            expect(after - before, `seed ${seed} step ${step}: one click, at most one update`).toBeLessThanOrEqual(1);
-          }
-        }
-        await page.waitForTimeout(80);
-        await expect(page.locator('#dash')).toBeVisible();
-        const active = await page.locator('section.panel.activePage').count();
-        expect(active, `seed ${seed} step ${step} (${log.slice(-6).join(',')}): exactly one active page`).toBe(1);
-        expect(errors, `seed ${seed} step ${step} (${log.slice(-6).join(',')})`).toEqual([]);
-        const ms = Date.now() - t0;
-        if (ms > 20000) console.log(`CHAOS seed ${seed} step ${step} ${op}: ${ms} ms`);
-        expect(ms, `seed ${seed} step ${step} (${op}) took ${ms} ms: an operator action must not hang`).toBeLessThan(45000);
-      } catch (e) {
-        throw new Error(`UI chaos seed ${seed} failed at step ${step} after: ${log.slice(-10).join(', ')}\n${e.message}`);
-      }
+    const ops = genOps(seed, 70, ids);
+    const fail = await runOps(page, backend, context, ops, phone, errors);
+    if (fail) {
+      const replay = async cand => {
+        backend.tables = JSON.parse(JSON.stringify(startRows));
+        errors.length = 0;
+        await context.setOffline(false);
+        if (!phone) await page.setViewportSize({ width: 1280, height: 800 });
+        await page.goto('about:blank');
+        await login(page);
+        return !!(await runOps(page, backend, context, cand, phone, errors));
+      };
+      const small = await shrink(ops.slice(0, fail.step + 1), replay, { maxRuns: 25, maxMs: 240000 });
+      throw new Error(`UI chaos seed ${seed} failed at step ${fail.step} (${fail.message}).\n`
+        + `Smallest failing sequence found (${small.ops.length} of ${fail.step + 1} steps, ${small.runs} replays${small.complete ? '' : ', budget reached'}): ${describe(small.ops)}`);
     }
     await page.waitForLoadState('networkidle');
     expect(errors).toEqual([]);
-    ti.annotations.push({ type: 'chaos', description: `seed ${seed}: 70 steps, ${taskClicks} task double-clicks: ${log.join(',')}` });
+    ti.annotations.push({ type: 'chaos', description: `seed ${seed}: 70 steps: ${ops.map(o => o.op).join(',')}` });
   });
 }
+
+// EXT16: the shrinker on the REAL browser runner, with a planted failure: "a search,
+// then later a task click" fails. A 24-step seed-1501 run must shrink to those 2 steps.
+// (Each replay is a full browser run, so a 70-step shrink is slow; the shrinking logic on
+// long sequences is covered cheaply in shrink-ext16.spec.js.)
+test('chaos shrinker on the real runner: a planted search→task failure shrinks to the 2 essential steps', async ({ page, backend, context }, ti) => {
+  test.skip(ti.project.name !== 'desktop', 'once');
+  test.setTimeout(600000);
+  enableWrites(backend, []);
+  const startRows = JSON.parse(JSON.stringify(backend.tables));
+  const errors = [];
+  page.on('pageerror', e => errors.push(String(e)));
+  await login(page);
+  const ids = await page.locator('#sidebarGroups .sidebarLink[data-page]').evaluateAll(els => [...new Set(els.map(e => e.getAttribute('data-page')))]);
+  const plant = done => { const i = done.findIndex(o => o.op === 'search'); return i >= 0 && done.slice(i + 1).some(o => o.op === 'task') ? 'planted: task after search' : null; };
+  const ops = genOps(1501, 24, ids);
+  const fail = await runOps(page, backend, context, ops, false, errors, plant);
+  expect(fail && fail.message).toBe('planted: task after search');
+  const replay = async cand => {
+    backend.tables = JSON.parse(JSON.stringify(startRows)); errors.length = 0;
+    await context.setOffline(false); await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto('about:blank'); await login(page);
+    const f = await runOps(page, backend, context, cand, false, errors, plant);
+    return !!(f && /planted/.test(f.message));
+  };
+  const small = await shrink(ops.slice(0, fail.step + 1), replay, { maxRuns: 80, maxMs: 480000 });
+  ti.annotations.push({ type: 'shrink', description: `${fail.step + 1} → ${small.ops.length} steps in ${small.runs} replays, ${small.ms} ms: ${describe(small.ops)}` });
+  expect(small.ops.map(o => o.op)).toEqual(['search', 'task']);
+});
 
 // Found by seed 1501: the offline bar sat on top of the header, so an operator who
 // went offline on a narrow screen could not open the menu (the click never landed).
