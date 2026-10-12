@@ -34,7 +34,17 @@ Proof that it can fail: the mutant "a lost adjustment reply misread as 'not save
 
 The high-risk chaos mix runs in one signed-in page for 60 real minutes. Every 5 minutes the test samples event listeners, DOM nodes, live timers and JS heap, and after warm-up nothing may keep growing.
 
-SOAK_RESULT
+| Measure | After warm-up (10 min) | After 61 min |
+|---|---|---|
+| Operations | — | 3,775 steps, 715 stock adjustments |
+| Event listeners | 280 | 216 |
+| DOM nodes | 9,134 | 8,839 |
+| JS heap | 5.2 MB | 5.3 MB |
+| Live timeouts / intervals | 3 / 2 | 0 / 2 |
+| Script errors | — | 0 |
+| Stock at the end | — | exactly start + every landed adjustment once |
+
+**PASS** (1.0 h wall time, one page, no reload): nothing grows. This is a Chromium test with synthetic data, not a real device.
 
 ## 4. Product bugs found
 
