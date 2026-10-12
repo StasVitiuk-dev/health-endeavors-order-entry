@@ -4,7 +4,7 @@
 // failed (= the tests really protect that guard). The real files are never
 // touched. Usage (from the repo root):
 //   node tests/mutation/run-page-mutations.js [scratch-dir]
-const { execSync } = require('child_process');
+const { execSync, spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
@@ -591,11 +591,29 @@ for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.on(sig, () => interru
 const killedBySignal = e => e && (e.signal || e.status === 130 || e.status === 143);
 const PROGRESS = SCRATCH.replace(/[\\/]+$/, '') + '.progress.json';
 
+// EXT14: the test run is awaited (not a blocking execSync), so Ctrl-C is handled
+// the moment it arrives, and a result is never recorded after an interrupt
+// (found under load: a blocked handler let an interrupted run be scored).
+let STOP = null, RUNNING = null;
+function runTests(cmd, cwd) {
+  return new Promise(resolve => {
+    const child = spawn('sh', ['-c', cmd], { cwd, stdio: ['ignore', 'pipe', 'pipe'], detached: true }); // own group: stopped as a whole
+    RUNNING = child;
+    let out = '';
+    child.stdout.on('data', d => { out += d; });
+    child.stderr.on('data', d => { out += d; });
+    child.on('close', (code, signal) => { RUNNING = null; resolve({ out, code, signal }); });
+  });
+}
+for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) { process.removeAllListeners(sig); process.on(sig, () => { STOP = sig; if (RUNNING) { try { process.kill(-RUNNING.pid, 'SIGTERM'); } catch (e) { /* already gone */ } } else interrupted(sig); }); }
+
 const results = [];
 // MUT_ONLY=<regex> runs only the mutants whose name matches (spot checks).
 const ONLY = process.env.MUT_ONLY ? new RegExp(process.env.MUT_ONLY, 'i') : null;
+(async function main() {
 try {
 for (const [name, file, find, repl, specs] of MUTATIONS.filter(m => !ONLY || ONLY.test(m[0]))) {
+  if (STOP) interrupted(STOP);
   cleanScratch();
   sh(`git worktree add --detach "${SCRATCH}" HEAD`, ROOT);
   fs.writeFileSync(path.join(SCRATCH, MARKER), 'mutation scratch; safe to delete\n');
@@ -612,16 +630,18 @@ for (const [name, file, find, repl, specs] of MUTATIONS.filter(m => !ONLY || ONL
   if (src.split(find).length !== 2) { results.push([name, 'MUTATION NOT APPLIED (text found more than once)']); continue; }
   fs.writeFileSync(target, src.replace(find, repl));
   if (file.startsWith('assets/')) fixHelpersHash(SCRATCH);
-  let out = '';
-  try { out = sh(`npx playwright test --config tests/playwright.config.js ${specs}${/--project=/.test(specs) ? '' : ' --project=desktop'} --reporter=line`, SCRATCH); }
-  catch (e) { if (killedBySignal(e)) throw e; out = (e.stdout || '') + (e.stderr || ''); }
+  await new Promise(r => setImmediate(r)); // let a pending Ctrl-C land before the run starts
+  if (STOP) interrupted(STOP);
+  const { out, signal, code } = await runTests(`npx playwright test --config tests/playwright.config.js ${specs}${/--project=/.test(specs) ? '' : ' --project=desktop'} --reporter=line`, SCRATCH);
+  // An interrupted run is never a result: not CAUGHT, not MISSED.
+  if (STOP || signal || code === 130 || code === 143 || /\d+ interrupted/.test(out)) interrupted(STOP || signal || 'SIGINT');
   const failed = (out.match(/(\d+) failed/) || [])[1];
   const passed = (out.match(/(\d+) passed/) || [])[1];
   results.push([name, failed ? `CAUGHT (${failed} failed, ${passed || 0} passed)` : `NOT CAUGHT (${passed || 0} passed)`]);
   fs.writeFileSync(PROGRESS, JSON.stringify({ done: results.length, results }, null, 1));
 }
 } catch (e) {
-  if (killedBySignal(e)) interrupted(e.signal || 'SIGINT');
+  if (killedBySignal(e) || STOP) interrupted(STOP || e.signal || 'SIGINT');
   cleanScratch();
   throw e;
 }
@@ -631,3 +651,4 @@ for (const [n, r] of results) console.log((r.startsWith('CAUGHT') ? 'OK   ' : 'M
 // Non-zero exit when any mutation was missed or could not be applied (e.g. a
 // helper moved to another file), so a stale harness can't pass quietly.
 if (results.some(([, r]) => !r.startsWith('CAUGHT'))) process.exitCode = 1;
+})();

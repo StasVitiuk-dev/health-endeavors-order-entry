@@ -23,7 +23,8 @@ test.describe('every page loads one pinned, integrity-checked copy of the librar
       expect(tags[0]).toContain('crossorigin="anonymous"');
       // EXT10 (M5): change-password.html has no inline code left (strict
       // policy); its script notices a missing library by window.supabase alone.
-      if (['change-password.html', 'search.html', 'dashboard.html'].includes(file)) expect(tags[0]).not.toContain('onerror=');
+      // EXT14 (M5d): owner-login.html joined them (no inline handlers under its strict policy).
+      if (['change-password.html', 'search.html', 'dashboard.html', 'owner-login.html'].includes(file)) expect(tags[0]).not.toContain('onerror=');
       else expect(tags[0]).toContain('onerror="window.__sbLoadFailed=true"');
       expect(html).not.toMatch(/supabase-js@2["']/); // no floating "@2" left anywhere
     });

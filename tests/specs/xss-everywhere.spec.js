@@ -74,7 +74,13 @@ test('control: the same check catches a broken escape (esc made a no-op)', async
   await page.clock.setFixedTime(NOW);
   await login(page);
   await gotoPage(page, 'ordersPanel');
-  await expect.poll(() => page.evaluate(() => window.__xss || 0)).toBeGreaterThan(0);
+  // With escaping broken the payload becomes real elements: the element check
+  // in the main test would catch it.
+  await expect.poll(() => page.locator('#xss-img, svg[onload]').count()).toBeGreaterThan(0);
+  // EXT14 (M5d): and even then the injected handlers do NOT run: the owner
+  // page's script policy no longer allows inline code (defence in depth).
+  await page.waitForTimeout(500);
+  expect(await page.evaluate(() => window.__xss || 0)).toBe(0);
 });
 
 // Second payload family (2026-10-06): script tags, javascript: links, closing
