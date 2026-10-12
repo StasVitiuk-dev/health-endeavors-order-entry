@@ -18,9 +18,27 @@ A=11111111-1111-4111-8111-111111111111
 B=22222222-2222-4222-8222-222222222222
 C=33333333-3333-4333-8333-333333333333
 
-call() { $PSQL -c "set role authenticated; select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-00000000000$((RANDOM%9+1))',false); $1" >/dev/null 2>>"$ERR"; }
+# EXT15: a caller the server turns away before its session starts ("too many clients
+# already" / reserved slots) never ran its statement, so trying to connect again cannot
+# apply anything twice. Without this, S21's 200 simultaneous callers on a server with
+# max_connections=100 (the CI service) "lost" the refused callers' +1 (GitHub CI, 2e8da50:
+# 1190 of 1200). Only refusals at connection time are retried; every other error is kept.
+RETRIES="$ERR.retries"
+runsql() {
+  local out rc n=0
+  while :; do
+    out=$($PSQL -c "$1" 2>&1 >/dev/null); rc=$?
+    if [ $rc -ne 0 ] && printf '%s' "$out" | grep -qE 'too many clients already|remaining connection slots are reserved'; then
+      n=$((n + 1)); echo x >> "$RETRIES"; [ $n -ge 200 ] && { printf '%s\n' "$out" >> "$ERR"; return $rc; }
+      sleep 0.0$((RANDOM % 9 + 1)); continue
+    fi
+    [ -n "$out" ] && printf '%s\n' "$out" >> "$ERR"
+    return $rc
+  done
+}
+call() { runsql "set role authenticated; select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-00000000000$((RANDOM%9+1))',false); $1"; }
 # as a specific profile (e.g. the employee …0e1)
-call_as() { $PSQL -c "set role authenticated; select set_config('request.jwt.claim.sub','$1',false); $2" >/dev/null 2>>"$ERR"; }
+call_as() { runsql "set role authenticated; select set_config('request.jwt.claim.sub','$1',false); $2"; }
 EMP=00000000-0000-4000-8000-0000000000e1
 q() { $PSQL -c "$1"; }
 # Test-only: lets S19 hold a receive open long enough to kill its connection.
@@ -58,7 +76,7 @@ history_consistent() {
 DL_LAST=0; DL_PREV=""
 dl_mark() { local now=$(grep -c deadlock "$ERR"); if [ -n "$DL_PREV" ] && [ "$now" -gt "$DL_LAST" ]; then echo "  (deadlock during $DL_PREV: $((now - DL_LAST)))"; fi; DL_LAST=$now; DL_PREV="$1"; }
 run_once() {
-  : > "$ERR"; DL_LAST=0; DL_PREV=""
+  : > "$ERR"; : > "$RETRIES"; DL_LAST=0; DL_PREV=""
   local t0=$(date +%s%N)
 
   dl_mark "S1"
@@ -537,7 +555,7 @@ run_once() {
 
   dl_mark "end"
   local t1=$(date +%s%N)
-  echo "run $1: $pass passed, $fail failed, deadlocks seen: $(grep -c deadlock "$ERR"), $(( (t1 - t0) / 1000000 )) ms; S21 ladder:$S21_LADDER; S27 unguarded:$S27_UNGUARDED"
+  echo "run $1: $pass passed, $fail failed, deadlocks seen: $(grep -c deadlock "$ERR"), connection refusals retried: $( [ -f "$RETRIES" ] && wc -l < "$RETRIES" || echo 0), $(( (t1 - t0) / 1000000 )) ms; S21 ladder:$S21_LADDER; S27 unguarded:$S27_UNGUARDED"
 }
 
 total_fail=0
