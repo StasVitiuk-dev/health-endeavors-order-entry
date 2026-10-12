@@ -1,0 +1,143 @@
+# Dashboard CI (EXT14) — TESTS ONLY. No deploy, no secrets, read-only token.
+#
+# What it does: on every pull request to main, every push to a claude/** branch
+# and on demand, it runs the dashboard's local test suite (synthetic data,
+# mocked Supabase), the SQL safety checks, the documentation checks and the
+# local database suite on a throwaway PostgreSQL inside the runner.
+#
+# What it can NOT do: it has no secrets, only `contents: read`, no deployment
+# or Pages step, never checks out another repository, and never contacts
+# Supabase, Shopify or the live site (the test mock blocks every outside
+# request). tests/specs/ci-guard-ext14.spec.js fails if any of that changes.
+# Local equivalent: npm run ci:local   (guide: docs/ops/CI_GUIDE_EXT14.md)
+name: Dashboard CI (tests only, no deploy)
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: ['claude/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Fast checks on every change: secrets, SQL safety, docs, Node-only tools.
+  static:
+    name: Static, SQL safety, docs, tools
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      browser: ${{ steps.impact.outputs.browser }}
+      db: ${{ steps.impact.outputs.db }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install exact test dependencies (package-lock, no install scripts)
+        run: npm ci --ignore-scripts
+      - name: Decide which heavy jobs this change needs (conservative)
+        id: impact
+        run: node tests/tools/ci-impact.js "${{ github.event.pull_request.base.sha || github.event.before }}" >> "$GITHUB_OUTPUT"
+      - name: Secret scan (tracked files)
+        run: node tests/tools/secret-scan.js
+      - name: SQL package lint
+        run: node tests/tools/sql-lint.js
+      - name: Status manifest is consistent (no production claim without production evidence)
+        run: node tests/tools/status-validate.js
+      - name: Documentation check
+        run: node tests/tools/doc-check.js --current
+      - name: Node-only specs (tools, SQL static, docs, CI guard)
+        run: npx playwright test --config tests/playwright.config.js --project=desktop --reporter=list,github tests/specs/ci-guard-ext14.spec.js tests/specs/sql-package-ext14.spec.js tests/specs/sql-drafts-static.spec.js tests/specs/sql-readonly.spec.js tests/specs/docs-integrity-ext13.spec.js tests/specs/evidence-ext12.spec.js tests/specs/deploy-sim-ext12.spec.js tests/specs/incidents-ext12.spec.js tests/specs/query-interpreter-ext10.spec.js tests/specs/helpers-unit.spec.js tests/specs/status-manifest-ext14.spec.js tests/specs/screenshots-policy-ext14.spec.js
+
+  # The browser suite, split in three (Playwright shards; every test runs once).
+  browser:
+    name: Browser suite (shard ${{ matrix.shard }}/3)
+    needs: static
+    if: needs.static.outputs.browser == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Install the test browser (version fixed by package-lock)
+        run: npx playwright install --with-deps chromium
+      - name: Run shard ${{ matrix.shard }} of 3 (screenshot comparisons excluded; see the visual job)
+        run: npx playwright test --config tests/playwright.config.js --shard=${{ matrix.shard }}/3 --ignore-snapshots --reporter=list,github
+      # Synthetic data only: traces of the mocked dashboard. Small, 7 days.
+      - name: Keep failure traces (7 days)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-failures-shard-${{ matrix.shard }}
+          path: test-results/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # The local database suite on a throwaway PostgreSQL 16 service.
+  database:
+    name: Local database suite (throwaway PostgreSQL)
+    needs: static
+    if: needs.static.outputs.db == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: ci-only-local
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      PGPASSWORD: ci-only-local
+      QUICK: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run the database suite
+        run: bash tests/tools/run-db-suite.sh -h localhost -p 5432 -U postgres
+
+  # Informational: pixel comparisons can differ on GitHub's fonts. Never blocks.
+  visual:
+    name: Screenshots (informational)
+    needs: static
+    if: needs.static.outputs.browser == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test --config tests/playwright.config.js tests/specs/visual.spec.js --reporter=list,github
