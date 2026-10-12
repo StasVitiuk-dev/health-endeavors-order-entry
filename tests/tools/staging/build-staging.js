@@ -203,10 +203,14 @@ fs.writeFileSync(path.join(OUT, 'staging-runtime.js'), bundle);
 // EXT14: the page script moved to assets/owner-login-app.js, so text assets are
 // scrubbed too, and the ?v= hashes in the page are recomputed for the scrubbed files.
 const crypto = require('crypto');
-for (const a of fs.readdirSync(path.join(ROOT, 'assets'))) {
-  const src = path.join(ROOT, 'assets', a), dst = path.join(OUT, 'assets', a);
-  if (/\.(js|css)$/.test(a)) fs.writeFileSync(dst, scrub(fs.readFileSync(src, 'utf8'))); else fs.copyFileSync(src, dst);
-}
+// EXT15: assets/ has sub-folders now (assets/app/ module files): copy recursively.
+(function copyAssets(rel) {
+  for (const e of fs.readdirSync(path.join(ROOT, rel), { withFileTypes: true })) {
+    const r = path.join(rel, e.name), src = path.join(ROOT, r), dst = path.join(OUT, r);
+    if (e.isDirectory()) { fs.mkdirSync(dst, { recursive: true }); copyAssets(r); continue; }
+    if (/\.(js|css)$/.test(e.name)) fs.writeFileSync(dst, scrub(fs.readFileSync(src, 'utf8'))); else fs.copyFileSync(src, dst);
+  }
+})('assets');
 html = html.replace(/((?:href|src)=")(assets\/[^"?]+)\?v=[0-9a-f]+"/g, (all, pre, file) =>
   pre + file + '?v=' + crypto.createHash('sha256').update(fs.readFileSync(path.join(OUT, file))).digest('hex').slice(0, 10) + '"');
 fs.writeFileSync(path.join(OUT, 'index.html'), html);

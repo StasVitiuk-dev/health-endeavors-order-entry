@@ -6,6 +6,9 @@
   const SUPABASE_URL = "https://uizrazyehilyzmwttsrn.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_n0sEzZK0JMtwgk280a3YXA_zxtnheqj";
 
+  // EXT15: the modules this program creates (assets/app/<name>.js) and the
+  // compatibility number each must have; kept up to date by tests/tools/extract-module.js.
+  const APP_MODULES = { 'he-config': 1, 'he-ui': 1, 'he-data': 1, 'he-audit': 1, 'he-status': 1, 'he-time': 1, 'he-format': 1, 'he-nav': 1 };
   const scriptErrorEl = document.getElementById('scriptError');
   function showBanner(text){
     if (!scriptErrorEl) return;
@@ -26,6 +29,12 @@
     showBanner('Part of this page (assets/owner-login-helpers.js) did not load, so it cannot start. Check that you are online, then fully reload this page (press Cmd+R).');
   } else if (window.HE.helpers.API !== 9) {
     showBanner('The dashboard was just updated and this page loaded a mix of old and new files. Fully reload this page (press Cmd+R) — nothing was changed.');
+  } else if (!window.HE.modules || window.HE.modules.REGISTRY_API !== 1) {
+    showBanner('Part of this page (assets/owner-login-modules.js) did not load, so it cannot start. Check that you are online, then fully reload this page (press Cmd+R). Nothing was changed.');
+  } else if (window.HE.modules.missing(APP_MODULES).length) {
+    showBanner('Part of this page (' + window.HE.modules.missing(APP_MODULES).map(function (n) { return 'assets/app/' + n + '.js'; }).join(', ') + ') did not load, so it cannot start. Check that you are online, then fully reload this page (press Cmd+R). Nothing was changed.');
+  } else if (window.HE.modules.mismatched(APP_MODULES).length) {
+    showBanner('The dashboard was just updated and this page loaded a mix of old and new files (' + window.HE.modules.mismatched(APP_MODULES).join(', ') + '). Fully reload this page (press Cmd+R) — nothing was changed.');
   } else {
     initApp();
   }
@@ -77,74 +86,16 @@
       nightlyCheckLevel,
       nightlyOverall,
     } = window.HE.helpers;
-    // PostgREST list of the closed status words, for "status not in (...)" (EXT7).
-    const CLOSED_IN = '(' + CLOSED_WORDS.map(w => '"' + w + '"').join(',') + ')';
-    const RET_ORDER_CAP = 200; // orders offered in the "log a return" menu (EXT8)
-    // EXT8: lists that show only the most recent rows (recycle bins, history)
-    // say how many there are in all and can show more, so nothing - an old
-    // deleted order to restore, say - is out of reach.
-    // EXT8: "latest request wins". A slow, older load (e.g. the Today figures
-    // after you already clicked All Time) must not draw over a newer one.
-    const LOAD_TOKENS = {};
-    function newLoadToken(key){ const t = (LOAD_TOKENS[key] || 0) + 1; LOAD_TOKENS[key] = t; return () => LOAD_TOKENS[key] === t; }
-    const LIST_LIMITS = {};
-    const listLimit = key => LIST_LIMITS[key] || 50;
-    function appendMore(wrapId, key, shown, total, noun, reload){
-      const wrap = document.getElementById(wrapId);
-      if (!wrap || total == null || total <= shown) return;
-      const p = document.createElement('p');
-      p.className = 'hint listMore';
-      p.style.margin = '8px 0 0';
-      p.textContent = 'Showing the ' + shown + ' most recent of ' + total + ' ' + noun + '. ';
-      const b = document.createElement('button');
-      b.type = 'button'; b.className = 'small secondary'; b.textContent = 'Show more';
-      b.addEventListener('click', () => { b.disabled = true; LIST_LIMITS[key] = listLimit(key) + 50; reload(); });
-      p.appendChild(b);
-      wrap.appendChild(p);
-    }
-    // Safety net (EXT4): Supabase returns at most 1,000 rows per request and
-    // does not say when it cut a list short. Totals and money use complete
-    // paged reads (fetchAllRows); the plain lists (products, lots, purchase
-    // orders, compliance records) read the whole table in one request. If
-    // one of those ever comes back with 1,000 rows, say the list may be
-    // incomplete instead of letting it look whole. Reads with an explicit
-    // limit or page (offset/limit) are not affected.
-    const ROW_CAP = 1000;
-    const rowCapTables = new Set();
-    function noteRowCap(table){
-      if (rowCapTables.has(table)) return;
-      rowCapTables.add(table);
-      const el = document.getElementById('rowCapNotice');
-      if (!el) return;
-      el.textContent = 'A list on this dashboard reached the 1,000-record reading limit (' + Array.from(rowCapTables).join(', ') + '), so it may be missing older records. Totals and money figures are not affected: they are read in full. The list needs paging; please report this.';
-      el.style.display = 'block';
-    }
-    function capAwareFetch(input, init){
-      return fetch(input, init).then(res => {
-        try {
-          const method = String((init && init.method) || 'GET').toUpperCase();
-          const url = new URL(typeof input === 'string' ? input : input.url);
-          if (method === 'GET' && res.ok && url.pathname.indexOf('/rest/v1/') === 0 && !url.searchParams.has('limit')) {
-            res.clone().json().then(rows => {
-              if (Array.isArray(rows) && rows.length >= ROW_CAP) noteRowCap(url.pathname.slice('/rest/v1/'.length));
-            }).catch(() => {});
-          }
-        } catch (_) { /* never break a read over the notice */ }
-        return res;
-      });
-    }
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { global: { fetch: capAwareFetch } });
-    const verifyOnly = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-        detectSessionInUrl: false,
-        storageKey: 'he_password_check_only',
-        // Skip the shared cross-tab lock entirely. This client has no session
-        // to protect, and waiting on that lock is what made the prompt hang.
-        lock: (name, acquireTimeout, fn) => fn(),
-      },
-    });
+    // @@ EXT15 modules: created in dependency order (assets/app/*.js; see docs/ops/APPLICATION_MODULE_MAP_EXT15.md)
+    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS } = HE.modules.create('he-config', {  });
+    const { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, pageIconSvg } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
+    const { newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
+    const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, esc, supabase });
+    const { environmentLabel, assetVersions, isMissingRelation, dbStepsStatus, NIGHTLY_STALE_MS, ATTN_STALE_MS, attnSeenGet, attnSeenSet, attnSignature } = HE.modules.create('he-status', { DB_STEPS, STOCK_FN_PROBES, SUPABASE_URL, stockFunctionInstalled, supabase });
+    const { getTodayRange, getYesterdayRange, colorForCalendar, dateKey, eventDateKey, fmtTimeShort, personalEventEditorHtml, personalTimesFromInputs, PERSONAL_CAL_HINT, weekGroupLabel, monthGroupLabel } = HE.modules.create('he-time', { CAL_COLORS, esc });
+    const { missingToNaN, reportCount, missingTotalCount, missingTotalNote, mixedCurrencyNote, docExpiryBadge, inqStatusBadgeClass, continuityBadgeClass, qcIncidentCategory, numVal, CLOSED_IN } = HE.modules.create('he-format', { CLOSED_WORDS, esc, fmtDateOnly });
+    const { isGroupOpen, setGroupOpen, getPinnedPages, setPinnedPages, allPageIds, getLastPage, pageFromHash, saveLastPage, PAGE_WARNINGS, PAGE_LABEL_BY_ID, NAV_BACK, NAV_FWD, rowsOnPage, typedForms, NOT_GUARDED_FORMS, hasUnsavedTyping, CHANGE_PASSWORD_URL, SIGNED_OUT_NOTE } = HE.modules.create('he-nav', { SIDEBAR_GROUPS });
+    // @@ end modules
 
     const loginScreen = document.getElementById('loginScreen');
     const dash = document.getElementById('dash');
@@ -164,14 +115,6 @@
     // EXT10b (missions 66-68): the KIND of the last error shown, for the
     // diagnostic summary (never its text, which can name records).
     let LAST_ERROR_KIND = null, LAST_ERROR_AT = null;
-    function errorKind(text){
-      const t = String(text || '');
-      if (/connection|network|offline|dropped|cannot tell|may or may not/i.test(t)) return 'connection / outcome unknown';
-      if (/permission|not permitted|row-level|only the owner|sign in again/i.test(t)) return 'permission / sign-in';
-      if (/changed since|changed elsewhere|already changed|someone else/i.test(t)) return 'conflict (changed elsewhere)';
-      if (/not installed|switch/i.test(t)) return 'switch / database step missing';
-      return 'other';
-    }
     function showDashError(text){
       text = explainDbError(text);
       LAST_ERROR_KIND = errorKind(text); LAST_ERROR_AT = new Date();
@@ -184,397 +127,16 @@
       dashErrorEl.textContent = '';
     }
 
-    // ---------- guarded changes (same idea as Task buttons v2) ----------
-    // Changes one row only while it still looks the way this page last saw
-    // it. The database checks the condition and applies the change in one
-    // step, so a stale tab, a second person or a double click can never
-    // silently overwrite a newer decision: they get "already changed" instead.
-    //   expected: { column: value }      value must still match
-    //             { column: [a, b] }     value must be one of these
-    //             { column: null }       value must still be empty
-    //             { column: { notIs: true } }  value must not be true (null or false)
-    // Returns true only when exactly one row changed. Zero rows means the row
-    // moved on, was removed, or row-level security refused it.
-    // id is the row's id, or an object of key columns, e.g. { agent_num: 7 }.
-    async function updateIfUnchanged(table, id, patch, expected){
-      let q = supabase.from(table).update(patch);
-      // Read back only the key column(s) used, so tables keyed by something
-      // other than id (agent_controls.agent_num) work whether or not they
-      // also have an id column.
-      let keyCols = 'id';
-      if (id !== null && typeof id === 'object') { Object.keys(id).forEach(k => { q = q.eq(k, id[k]); }); keyCols = Object.keys(id).join(','); }
-      else q = q.eq('id', id);
-      Object.keys(expected || {}).forEach(col => {
-        const v = expected[col];
-        if (Array.isArray(v)) q = q.in(col, v);
-        else if (v === null || v === undefined) q = q.is(col, null);
-        else if (typeof v === 'object' && 'notIs' in v) q = q.not(col, 'is', v.notIs);
-        else if (typeof v === 'boolean') q = q.is(col, v);
-        else q = q.eq(col, v);
-      });
-      const { data, error } = await q.select(keyCols);
-      if (error) throw error;
-      return Array.isArray(data) && data.length === 1;
-    }
-    // Compare-and-set stock change for one product. Reads the stock row,
-    // works out the new numbers, and writes them only if nobody changed those
-    // numbers in between: the write carries the numbers it read as its
-    // condition. If someone did (another person, tab or agent), it reads
-    // again and retries, up to 5 times. Two saves at once can then never
-    // silently overwrite each other, and the below-zero check always uses
-    // fresh numbers. (Stock and its history are still two writes; the
-    // all-or-nothing version is the adjust_inventory database function, R4.)
-    //   deltas: { available: 5, recalled: -5 }
-    // Throws an Error with .belowZero = { bucket, current, result } when a
-    // bucket would go negative; nothing is written in that case.
-    // X11-02/03: after a dropped connection on a claim (a status change that
-    // gates a stock move), read the row back once: 'not_saved' (still in the
-    // old status), 'saved' (already in the new one: the stock step after the
-    // claim never ran from this screen) or 'unknown' (could not read).
-    async function claimOutcomeAfterDrop(table, id, fromStatus, toStatus){
-      try {
-        const { data, error } = await supabase.from(table).select('status').eq('id', id).maybeSingle();
-        if (error || !data) return 'unknown';
-        if (data.status === fromStatus) return 'not_saved';
-        if (data.status === toStatus) return 'saved';
-        return 'unknown';
-      } catch (_) { return 'unknown'; }
-    }
-    async function changeStock(productId, deltas, uid){
-      const buckets = Object.keys(deltas);
-      for (let attempt = 0; attempt < 5; attempt++) {
-        const { data: inv, error: readErr } = await supabase
-          .from('inventory').select('*').eq('product_id', productId).maybeSingle();
-        if (readErr) throw readErr;
-        const before = {}, after = {};
-        const patch = { updated_at: new Date().toISOString(), updated_by: uid };
-        for (const b of buckets) {
-          before[b] = Number((inv && inv[b]) || 0);
-          after[b] = before[b] + Number(deltas[b]);
-          if (!Number.isFinite(before[b]) || !Number.isFinite(after[b])) {
-            throw new Error('The saved ' + (INVENTORY_BUCKET_LABELS[b] || b) + ' number for this product isn\'t a valid number, so nothing was changed. It needs fixing by hand before stock can move.');
-          }
-          if (after[b] < 0) {
-            const e = new Error('That would leave ' + (INVENTORY_BUCKET_LABELS[b] || b) + ' at ' + after[b] + ', which isn\'t allowed — only ' + before[b] + ' available in that bucket right now.');
-            e.belowZero = { bucket: b, current: before[b], result: after[b] };
-            throw e;
-          }
-          patch[b] = after[b];
-        }
-        if (!inv) {
-          const { error: insErr } = await supabase.from('inventory').insert({ product_id: productId, ...patch });
-          if (!insErr) return { before, after };
-          if (String(insErr.code) === '23505') continue; // created by someone else a moment ago: read it and retry
-          throw insErr;
-        }
-        let q = supabase.from('inventory').update(patch).eq('product_id', productId);
-        for (const b of buckets) q = (inv[b] === null || inv[b] === undefined) ? q.is(b, null) : q.eq(b, inv[b]);
-        const { data: changed, error: updErr } = await q.select('product_id');
-        if (updErr) throw updErr;
-        if (Array.isArray(changed) && changed.length === 1) return { before, after };
-        // No row changed. Either someone changed the numbers (retry), or the
-        // database's rules refused this user (row-level security answers with
-        // "0 rows", not an error). If the numbers are exactly as read, it was
-        // a refusal: stop and say so instead of retrying.
-        const { data: again, error: againErr } = await supabase
-          .from('inventory').select('*').eq('product_id', productId).maybeSingle();
-        if (againErr) throw againErr;
-        if (again && buckets.every(b => String(again[b]) === String(inv[b]))) {
-          const e = new Error('You do not have permission to change stock (only the Owner or an Administrator can). Nothing was changed.');
-          e.permissionDenied = true;
-          throw e;
-        }
-      }
-      throw new Error('The stock for this product kept changing while saving (someone else is adjusting it right now). Nothing was changed on this try — refresh and try again.');
-    }
-
-    // EXT9: the stock buttons can use the all-or-nothing database functions
-    // R1–R5 (docs/ops/sql/drafts/10_…) instead of the chains of browser
-    // requests above. Each button switches only after the owner has installed
-    // the functions AND turned on its own switch on Feature Switches
-    // (drafts/21_… adds the switches, all off). A switch that is off, missing
-    // or cannot be read means today's path, unchanged. Read at every click, so
-    // turning a switch off takes effect at once (rollback without a deploy).
-    const STOCK_FN_FLAGS = {
-      receive: 'stock_fn_receive_po', recall: 'stock_fn_recall', ret: 'stock_fn_return',
-      adjust: 'stock_fn_adjust', deleteProduct: 'stock_fn_delete_product',
-    };
-    async function stockFunctionOn(kind){
-      try {
-        const { data, error } = await supabase.from('feature_flags').select('enabled').eq('flag_key', STOCK_FN_FLAGS[kind]).maybeSingle();
-        return !error && !!data && data.enabled === true;
-      } catch (e) { return false; }
-    }
-    // Calls one of the functions. Throws an Error whose .kind says what the
-    // person can do next: 'missing' (switched on, not installed: nothing ran),
-    // 'unknown' (no reply: it may or may not have happened) or 'refused' (the
-    // database said no inside its transaction: nothing was changed).
-    async function callStockFunction(name, args){
-      let res;
-      try { res = await supabase.rpc(name, args); }
-      catch (e) { const er = new Error(String((e && e.message) || e)); er.kind = 'unknown'; throw er; }
-      const err = res && res.error;
-      if (err) {
-        const code = String(err.code || '');
-        const er = new Error(explainDbError(err.message || String(err)));
-        er.code = code; er.hint = err.hint || '';
-        er.kind = (code === 'PGRST202' || code === '42883' || /could not find the function/i.test(err.message || '')) ? 'missing'
-          : (isNetworkError(err) || /^5\d\d$/.test(code) || !code) ? 'unknown' : 'refused';
-        throw er;
-      }
-      return (res && res.data) || {};
-    }
-    // Before a stock switch can be turned ON: is its function installed? Each
-    // probe is a call the function refuses at its very first check (or finds
-    // nothing to do), so it never changes anything. true = installed, false =
-    // not installed, null = could not tell (connection).
-    const ZERO_ID = '00000000-0000-0000-0000-000000000000';
-    // EXT10b (missions 75-79): what each high-risk switch depends on, shown on
-    // Feature Switches. Off is always safe; on is refused until this exists.
-    const FLAG_DEPENDS = {
-      stock_fn_receive_po: 'database function receive_purchase_order (R1, drafts/10) installed and verified (V8 fingerprint)',
-      stock_fn_recall: 'database function quarantine_recall (R2, drafts/10) installed and verified (V8)',
-      stock_fn_return: 'database function receive_return (R3, drafts/10) installed and verified (V8)',
-      stock_fn_adjust: 'database function adjust_inventory (R4, drafts/10) installed and verified (V8)',
-      stock_fn_delete_product: 'database function delete_unused_product (R5, drafts/10) installed and verified (V8)',
-      request_keys: 'request-key columns (drafts/19) installed (V11)',
-      integrity_results_home: 'nightly check tables (drafts/25 + drafts/29) installed with a first run (V12)',
-    };
-    const STOCK_FN_PROBES = {
-      stock_fn_receive_po: ['receive_purchase_order', { p_po_id: ZERO_ID, p_lots: 'not-a-list' }],
-      stock_fn_recall: ['quarantine_recall', { p_recall_id: ZERO_ID }],
-      stock_fn_return: ['receive_return', { p_return_id: ZERO_ID, p_disposition: '' }],
-      stock_fn_adjust: ['adjust_inventory', { p_product_id: ZERO_ID, p_bucket: 'available', p_change: 0 }],
-      stock_fn_delete_product: ['delete_unused_product', { p_product_id: ZERO_ID }],
-    };
-    async function stockFunctionInstalled(flagKey){
-      const probe = STOCK_FN_PROBES[flagKey];
-      if (!probe) return true;
-      try { await callStockFunction(probe[0], probe[1]); return true; }
-      catch (err) { return err.kind === 'missing' ? false : err.kind === 'unknown' ? null : true; }
-    }
-    // EXT9: request keys (drafts/19). With the 'request_keys' switch on, a
-    // create sends a random key made for that attempt and kept until it
-    // succeeds, so a repeat after a lost reply is refused by the database's
-    // unique index instead of saving a second record. Off, missing or
-    // unreadable switch = no key is sent (today's behaviour). Must stay off
-    // until drafts/19 is installed (an unknown column fails every save).
-    async function requestKeysOn(){
-      try {
-        const { data, error } = await supabase.from('feature_flags').select('enabled').eq('flag_key', 'request_keys').maybeSingle();
-        return !error && !!data && data.enabled === true;
-      } catch (e) { return false; }
-    }
-    // The key belongs to the form until a save succeeds (a retry reuses it).
-    // EXT10 (U42) lifecycle: the key is also tied to the signed-in person
-    // (another person in the same tab gets a new key) and, when the caller
-    // passes what is being saved, to that content: different content more
-    // than KEY_FRESH_MS after the first attempt is a new entry, not a retry,
-    // so it gets a new key. Different content sooner keeps the key (a quick
-    // edit right after a lost reply is refused as a repeat and the person is
-    // told, rather than risking a duplicate). Reload = no key (the page then
-    // says to check the list first).
-    const KEY_FRESH_MS = 10 * 60 * 1000;
-    async function formRequestKey(form, payload){
-      if (!(await requestKeysOn())) return null;
-      const d = form.dataset;
-      const uid = (await currentUserId().catch(() => null)) || '';
-      const fp = payload === undefined ? null : keyFingerprint(payload);
-      const stale = !!d.requestKey && (d.requestKeyUser !== uid
-        || (fp !== null && !!d.requestKeyFp && d.requestKeyFp !== fp && Date.now() - Number(d.requestKeyAt || 0) > KEY_FRESH_MS));
-      if (!d.requestKey || stale) { d.requestKey = newRequestKey(); d.requestKeyAt = String(Date.now()); }
-      d.requestKeyUser = uid;
-      if (fp !== null) d.requestKeyFp = fp;
-      return d.requestKey;
-    }
-    function clearRequestKey(form){
-      if (!form) return;
-      ['requestKey', 'requestKeyAt', 'requestKeyUser', 'requestKeyFp'].forEach(k => delete form.dataset[k]);
-    }
-    // fixedRequestKey(text) (helpers): a key made from a fixed text, for an action
-    // that may happen only once per record (escalating to an incident).
-    // One create, with a request key when the switch is on. A repeat of an
-    // attempt that was in fact saved is reported (toast) and counts as done;
-    // a lost reply says whether pressing again is safe.
-    async function insertOnce(el, table, row, what){
-      const rk = el ? await formRequestKey(el, row) : null;
-      const { error } = await supabase.from(table).insert(withRequestKey(row, rk));
-      if (isRequestKeyRepeat(error)) { clearRequestKey(el); toast(what + REPEAT_NOTE); return { error: null, repeated: true }; }
-      if (!error) { clearRequestKey(el); return { error: null, repeated: false }; }
-      if (isNetworkError(error)) {
-        const it = what.charAt(0).toLowerCase() + what.slice(1);
-        return { error: new Error(rk
-          ? 'The connection dropped, so it is not clear whether ' + it + ' was saved. Pressing the button again is safe: it will not be added twice.'
-          : 'The connection dropped, so ' + it + ' may or may not have been saved. Check the list before adding it again.'), repeated: false };
-      }
-      return { error, repeated: false };
-    }
-    function withRequestKey(row, key){ return key ? Object.assign({}, row, { client_request_id: key }) : row; }
-    function isRequestKeyRepeat(err){ return !!err && String(err.code) === '23505' && /client_request_id/.test(String(err.message || '') + String(err.details || '')); }
-    const REPEAT_NOTE = ' was already saved by an earlier attempt (its reply was lost), so it was not added again. Check the list: if you changed anything since, those changes were not saved.';
-    function stockFunctionError(err, what, retrySafe){
-      if (err.kind === 'missing') return 'The all-or-nothing database function for ' + what + ' is switched on but is not installed, so nothing was changed. Turn its switch off on Feature Switches (or install the function), then try again.';
-      if (err.kind === 'unknown') return 'The connection dropped, so the dashboard cannot tell whether ' + what + ' happened. '
-        + (retrySafe ? 'Reload and look first; trying again is safe — the database does it only once.' : 'Reload the page and check the stock and its history before trying again.');
-      return 'Nothing was changed: ' + err.message;
-    }
-    // Reads every matching row, a page at a time. One request returns at most
-    // Supabase's "Max rows" setting (1,000 by default) and does NOT say when it
-    // stopped short, so a report that adds rows up in the browser would quietly
-    // undercount (finding N14). This asks for the exact total with the first
-    // page and keeps reading until it has every row; if rows go missing it
-    // throws rather than return a partial list. Ordered by id so pages don't
-    // overlap. Long-term the totals belong in a database function (one small
-    // row back) — that needs the schema check first.
-    // EXT5: pages continue AFTER the last id read (keyset), not at a position.
-    // With positions, a record created or soft-deleted between two pages
-    // shifted everything by one, so one record was counted twice and another
-    // missed, silently, in money totals. Stops at a short page once every
-    // counted record is in, otherwise reads on to an empty page (a server set
-    // to cap pages below PAGE is still read to the end); the first page's
-    // exact count is used to notice records that went missing.
-    async function fetchAllRows(table, columns, applyFilters){
-      const PAGE = 1000;
-      const rows = [];
-      const seen = new Set();
-      let total = null, lastId = null;
-      for (let pageNo = 0; pageNo < 10000; pageNo++) {
-        let q = supabase.from(table).select(columns, pageNo === 0 ? { count: 'exact' } : undefined);
-        q = applyFilters(q);
-        if (lastId !== null) q = q.gt('id', lastId);
-        q = q.order('id', { ascending: true }).range(0, PAGE - 1);
-        const { data, error, count } = await q;
-        if (error) throw error;
-        if (pageNo === 0) total = (typeof count === 'number') ? count : null;
-        const batch = data || [];
-        for (const r of batch) if (!seen.has(r.id)) { seen.add(r.id); rows.push(r); }
-        // A page shorter than asked for is the end of the data (PAGE equals
-        // Supabase's default per-reply limit, so a capped page is never short),
-        // once every counted record is in. Saves an extra request, and keeps a
-        // long id list (fetchAllRowsIn) from growing past URL limits.
-        if (batch.length && batch.length < PAGE && (total === null || rows.length >= total)) return rows;
-        if (!batch.length) {
-          if (total !== null && rows.length < total) {
-            throw new Error('Only ' + rows.length + ' of ' + total + ' ' + table + ' records could be read, so this total would be wrong. Refresh to try again.');
-          }
-          return rows;
-        }
-        lastId = batch[batch.length - 1].id;
-      }
-      throw new Error('Too many ' + table + ' records to add up in the browser.');
-    }
-
-    // fetchAllRows for "rows whose <column> is one of these values". A long
-    // .in() list goes into the URL, and real gateways reject URLs past a few
-    // KB (2,500 order ids would be ~90 KB), so the list is sent in chunks.
-    async function fetchAllRowsIn(table, columns, column, values, applyFilters){
-      const CHUNK = 150;
-      const out = [];
-      for (let i = 0; i < values.length; i += CHUNK) {
-        const part = values.slice(i, i + CHUNK);
-        out.push(...await fetchAllRows(table, columns, q => {
-          q = q.in(column, part);
-          return applyFilters ? applyFilters(q) : q;
-        }));
-      }
-      return out;
-    }
-
     // Stock (inventory, adjustments, lots, purchasing, recalls) can only be
     // changed by the Owner or an Administrator — the database's own rules
     // (Query A). The page checks first so it never starts a change it can't finish.
     function canChangeStock(){ return currentUserRole === 'owner' || currentUserRole === 'administrator'; }
-
-
-    // Uploads a file, then saves the record that points at it
-    // (saveRecord(path) → { error }). If the record is refused, the file is
-    // removed again, so nothing is left that no page can show. If the
-    // connection dropped while saving, the record may have been saved anyway
-    // (only the reply lost): it looks first, so a saved record never loses
-    // its file. Returns normally only when the record is saved.
-    async function uploadThenSave(bucket, table, column, path, file, saveRecord){
-      const { error: uploadErr } = await supabase.storage.from(bucket).upload(path, file);
-      if (uploadErr) throw uploadErr;
-      const { error } = await saveRecord(path);
-      if (!error) return;
-      if (isNetworkError(error)) {
-        const { data: saved, error: checkErr } = await supabase.from(table).select('id').eq(column, path).maybeSingle();
-        if (!checkErr && saved) return;
-        if (checkErr) {
-          throw new Error('The connection dropped while saving, so it isn’t clear whether it was saved. The uploaded file was kept ("' + path + '"). Reload and check the list before trying again.');
-        }
-      }
-      const { error: cleanupErr } = await supabase.storage.from(bucket).remove([path]);
-      if (cleanupErr) {
-        throw new Error((error.message || error) + ' — and the uploaded file could not be removed again; tell the owner it is left in storage as "' + path + '".');
-      }
-      throw error;
-    }
-
-    // True for a saved link that is safe to show as a clickable link. Blocks
-    // only the kinds that run code or smuggle content when clicked
-    // (javascript:, data:, vbscript:); web, email, Apple Mail/Photos and
-    // other normal links still work. Control characters and spaces are
-    // ignored when checking, because browsers ignore them too.
-    function isSafeLink(url){
-      const u = String(url || '').replace(/[\u0000-\u0020\u007f]/g, '').toLowerCase();
-      return !!u && !/^(javascript|data|vbscript):/.test(u);
-    }
-    function fmtDate(iso){
-      if (!iso) return '—';
-      const d = new Date(iso);
-      if (isNaN(d.getTime())) return '—';
-      return d.toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' }) +
-             ' ' + d.toLocaleTimeString(undefined, { hour:'numeric', minute:'2-digit' });
-    }
-    // ---------- theme ----------
-    // Three settings, cycled by the header button: Auto (follows your Mac),
-    // Light, Dark. The choice is remembered in this browser only.
-    const THEME_ORDER = ['auto', 'light', 'dark'];
-    const THEME_FACE = { auto: '🌗', light: '☀️', dark: '🌙' };
-    const THEME_NAME = { auto: 'Follows your Mac', light: 'Light', dark: 'Dark' };
-    function getTheme(){
-      try { const t = localStorage.getItem('he_theme'); return THEME_ORDER.includes(t) ? t : 'auto'; }
-      catch (e) { return 'auto'; }
-    }
-    function applyTheme(t){
-      if (t === 'auto') document.documentElement.removeAttribute('data-theme');
-      else document.documentElement.setAttribute('data-theme', t);
-      const btn = document.getElementById('themeBtn');
-      if (btn) {
-        btn.textContent = THEME_FACE[t];
-        btn.title = 'Theme: ' + THEME_NAME[t] + ' — click to change';
-      }
-    }
     applyTheme(getTheme());
     document.getElementById('themeBtn').addEventListener('click', () => {
       const next = THEME_ORDER[(THEME_ORDER.indexOf(getTheme()) + 1) % THEME_ORDER.length];
       try { localStorage.setItem('he_theme', next); } catch (e) { /* not critical */ }
       applyTheme(next);
     });
-
-    // Gives every "nothing here yet" message a small icon, without touching the
-    // dozens of places that write those messages. Loading messages are skipped.
-    const EMPTY_ICONS = [
-      [/order/i, '🧾'], [/product|inventory|stock/i, '📦'], [/return/i, '↩️'],
-      [/expense/i, '💳'], [/task/i, '✅'], [/incident/i, '🚨'], [/approval/i, '✋'],
-      [/question|inquir/i, '💬'], [/procedure|sop/i, '📘'], [/hold/i, '⚖️'],
-      [/evidence/i, '🗄️'], [/recycle|deleted/i, '🗑️'], [/activity|history/i, '👣'],
-      [/calendar|event/i, '📅'], [/report/i, '📈'], [/rule|flag/i, '🎛️'],
-    ];
-    function decorateEmptyStates(){
-      document.querySelectorAll('main.contentArea .empty').forEach(el => {
-        if (el.querySelector('.emptyIcon')) return;
-        const text = (el.textContent || '').trim();
-        if (!text || /^loading/i.test(text)) return;
-        let icon = '🌿';
-        for (const [re, ic] of EMPTY_ICONS) { if (re.test(text)) { icon = ic; break; } }
-        const span = document.createElement('span');
-        span.className = 'emptyIcon';
-        span.textContent = icon;
-        el.insertBefore(span, el.firstChild);
-      });
-    }
 
     // ---------- login ----------
     let shownUserId = null; // whose data this page is showing (EXT7)
@@ -618,15 +180,6 @@
     // works if that button's listener happens to still be attached. Having a
     // real handle like this is what actually guarantees the box goes away.
     let activeReauthClose = null;
-
-    // Keyboard focus goes back to whatever opened a dialog when it closes
-    // (WCAG 2.4.3), so keyboard and screen-reader users keep their place
-    // instead of starting again from the top of the page (EXT3).
-    const focusReturn = new Map();
-    function rememberFocus(key){
-      const el = document.activeElement;
-      if (el && el !== document.body && !focusReturn.has(key)) focusReturn.set(key, el);
-    }
     // Keyboard focus stays inside an open dialog: Tab from the last control
     // goes back to the first, Shift+Tab from the first goes to the last, and
     // focus that has escaped is pulled back in (EXT4, WCAG 2.4.3 / 2.1.2).
@@ -643,13 +196,6 @@
       else if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
       else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
     });
-    function restoreFocus(key){
-      const el = focusReturn.get(key);
-      focusReturn.delete(key);
-      if (el && document.contains(el) && el.offsetParent !== null && typeof el.focus === 'function') {
-        try { el.focus({ preventScroll: true }); } catch (e) { /* element can't take focus any more */ }
-      }
-    }
 
     function requireReauth(actionLabel){
       const overlay = document.getElementById('reauthOverlay');
@@ -737,12 +283,6 @@
         showBanner('Sign-in failed: ' + (err && err.message ? err.message : err));
       }
     });
-
-    // ---------- forgot password ----------
-    // Sends a normal Supabase password-reset email. The link in that email
-    // brings the person back to change-password.html already signed in for
-    // recovery, where they pick a new password — no admin/owner involvement.
-    const CHANGE_PASSWORD_URL = 'https://stasvitiuk-dev.github.io/health-endeavors-order-entry/change-password.html';
     const forgotPasswordLink = document.getElementById('forgotPasswordLink');
     const forgotPasswordRow = document.getElementById('forgotPasswordRow');
     const backToLoginLink = document.getElementById('backToLoginLink');
@@ -801,33 +341,12 @@
     // answers those with empty lists, which would look like "no data", and
     // with refusals that look like someone else's change (EXT3, W14).
     let signingOutHere = false;
-    // EXT6: leaving the dashboard reloads the page instead of only hiding it,
-    // so no customer name, inquiry, figure, search entry or export from this
-    // session stays in the page or in memory for the next person on a shared
-    // computer. The reason note survives the reload (this tab only).
-    const SIGNED_OUT_NOTE = 'he.signedOutNote';
-    // EXT7: unsaved typing. A form counts as unsaved when the person typed
-    // in it (page-made changes don't count) and a text box in it still holds
-    // text. Pressing its Save button clears that (the form's own error shows
-    // if the save fails). Closing or reloading the tab then asks first, and
-    // so does Sign out. A forced sign-out (other tab, expired sign-in) never
-    // waits: wiping the page matters more there.
-    const typedForms = new Set();
-    const NOT_GUARDED_FORMS = new Set(['loginForm', 'forgotForm']);
     document.addEventListener('input', e => {
       if (!e.isTrusted) return;
       const f = e.target && e.target.closest ? e.target.closest('form') : null;
       if (f && !NOT_GUARDED_FORMS.has(f.id)) typedForms.add(f);
     }, true);
     document.addEventListener('submit', e => { typedForms.delete(e.target); }, true);
-    function hasUnsavedTyping(){
-      for (const f of typedForms) {
-        if (!f.isConnected) { typedForms.delete(f); continue; }
-        const boxes = f.querySelectorAll('textarea, input[type="text"], input:not([type])');
-        if ([...boxes].some(el => el.value.trim() !== '')) return true;
-      }
-      return false;
-    }
     let leavingOnPurpose = false;
     window.addEventListener('beforeunload', e => {
       if (leavingOnPurpose || !hasUnsavedTyping()) return;
@@ -901,209 +420,11 @@
         document.getElementById('sidebarSearch').focus();
       }
     });
-
-    // ---------- sidebar navigation + search ----------
-    // Every page we've built, grouped by topic. Add a new panel's id/label
-    // here and it shows up in the sidebar automatically — nothing else to wire up.
-    // Each group carries a colour and each page a small icon, so the sidebar
-    // can be navigated by eye rather than by reading every label.
-    const SIDEBAR_GROUPS = [
-      { label: 'Overview', color: '#1f7a8c', pages: [
-        { id: 'attentionPanel', label: 'Needs Your Attention' },
-        { id: 'dailySummaryPanel', label: 'Daily Summary' },
-        { id: 'reportHistoryPanel', label: 'Report History' },
-        { id: 'calendarPanel', label: 'Calendar' },
-      ]},
-      { label: 'Sales', color: '#b8734a', pages: [
-        { id: 'ordersPanel', label: 'Orders & Revenue' },
-      ]},
-      { label: 'Inventory', color: '#8a6d3b', pages: [
-        { id: 'inventoryPanel', label: 'Inventory' },
-        { id: 'returnsPanel', label: 'Returns' },
-        { id: 'suppliersPanel', label: 'Suppliers' },
-        { id: 'purchaseOrdersPanel', label: 'Purchase Orders' },
-        { id: 'qualityControlPanel', label: 'Quality Control' },
-      ]},
-      { label: 'Finance', color: '#2f7d4f', pages: [
-        { id: 'expensesPanel', label: 'Expenses' },
-        { id: 'accountingPanel', label: 'Accounting' },
-        { id: 'taxRecordsPanel', label: 'Tax Records' },
-      ]},
-      { label: 'Operations', color: '#3f6fa8', pages: [
-        { id: 'tasksPanel', label: 'Tasks' },
-        { id: 'incidentsPanel', label: 'Incidents' },
-        { id: 'evidenceLockerPanel', label: 'Evidence Locker' },
-        { id: 'documentsPanel', label: 'Documents' },
-      ]},
-      { label: 'Customers & AI', color: '#7a5aa8', pages: [
-        { id: 'inquiriesPanel', label: 'Customer Inquiries' },
-        { id: 'aiPanel', label: 'AI Agent Activity' },
-      ]},
-      { label: 'Admin', color: '#9c5a72', pages: [
-        { id: 'flagsPanel', label: 'Feature Flags' },
-        { id: 'businessRulesPanel', label: 'Business Rules' },
-        { id: 'approvalsPanel', label: 'Approval Queue' },
-        { id: 'sessionsPanel', label: 'Active Sessions' },
-        { id: 'activityPanel', label: 'Employee Activity' },
-        { id: 'sopsPanel', label: 'Procedures (SOPs)' },
-        { id: 'featureRequestsPanel', label: 'Feature Requests' },
-      ]},
-      // Built and working, but rarely needed day to day — folded up by default
-      // so the sidebar is shorter. One click opens it; searching still finds
-      // these pages, and it opens by itself if you're on one of them.
-      { label: 'Compliance', color: '#8a6d6d', collapsible: true, pages: [
-        { id: 'recallsPanel', label: 'Recalls' },
-        { id: 'adverseEventsPanel', label: 'Adverse Event Reports' },
-        { id: 'legalHoldsPanel', label: 'Legal Holds' },
-        { id: 'continuityPanel', label: 'Business Continuity' },
-      ]},
-    ];
-    // Line icons, drawn rather than typed — one consistent 16px grid, 1.4px
-    // stroke, no fill, inheriting the text colour so they invert correctly on a
-    // selected row and in dark mode.
-    const ICON_OPEN = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">';
-    const ICON_PATHS = {
-      attentionPanel:      '<path d="M8 2.2a3.2 3.2 0 0 0-3.2 3.2c0 3.1-1.2 4-1.2 4h8.8s-1.2-.9-1.2-4A3.2 3.2 0 0 0 8 2.2Z"/><path d="M6.6 11.6a1.6 1.6 0 0 0 2.8 0"/>',
-      dailySummaryPanel:   '<circle cx="8" cy="8" r="2.6"/><path d="M8 1.6v1.1M8 13.3v1.1M1.6 8h1.1M13.3 8h1.1M3.6 3.6l.8.8M11.6 11.6l.8.8M12.4 3.6l-.8.8M4.4 11.6l-.8.8"/>',
-      reportHistoryPanel:  '<path d="M2.5 13.4h11"/><path d="M4.8 13.4V8.2M8 13.4V4.4M11.2 13.4v-3.2"/>',
-      calendarPanel:       '<rect x="2.4" y="3.4" width="11.2" height="10.2" rx="2"/><path d="M2.4 6.4h11.2M5.6 2.2v2.2M10.4 2.2v2.2"/>',
-      ordersPanel:         '<path d="M4 2.2h8v11.6l-2-1.2-2 1.2-2-1.2-2 1.2Z"/><path d="M6.2 5.6h3.6M6.2 8.2h3.6"/>',
-      inventoryPanel:      '<path d="M2.6 5.4 8 2.6l5.4 2.8v5.2L8 13.4l-5.4-2.8Z"/><path d="M2.6 5.4 8 8.2l5.4-2.8M8 8.2v5.2"/>',
-      returnsPanel:        '<path d="M3.2 7.2h6.2a3 3 0 0 1 0 6H6.8"/><path d="m5.6 4.4-2.4 2.8 2.4 2.6"/>',
-      expensesPanel:       '<rect x="2" y="4" width="12" height="8.4" rx="2"/><path d="M2 7h12M4.6 10h2.4"/>',
-      accountingPanel:     '<rect x="3.4" y="2" width="9.2" height="12" rx="2"/><path d="M5.8 5h4.4"/><path d="M6.2 8.4h.01M8 8.4h.01M9.8 8.4h.01M6.2 11h.01M8 11h.01M9.8 11h.01"/>',
-      taxRecordsPanel:     '<rect x="3" y="1.5" width="10" height="13" rx="1.5"/><path d="M5.5 5h5M5.5 7.5h5M5.5 10h3"/>',
-      tasksPanel:          '<rect x="2.4" y="2.4" width="11.2" height="11.2" rx="2.8"/><path d="m5.4 8.2 1.8 1.8 3.4-3.6"/>',
-      incidentsPanel:      '<path d="M8 2.6 14 13H2Z"/><path d="M8 6.6v3M8 11.4h.01"/>',
-      evidenceLockerPanel: '<rect x="2" y="3" width="12" height="3" rx="1"/><path d="M3.2 6v6a1.6 1.6 0 0 0 1.6 1.6h6.4A1.6 1.6 0 0 0 12.8 12V6"/><path d="M6.6 8.8h2.8"/>',
-      documentsPanel:      '<path d="M4.4 2h5l2.2 2.2v9.4a1 1 0 0 1-1 1H4.4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1Z"/><path d="M9.4 2v2.6H12"/><path d="M5.6 8.4h4.8M5.6 10.8h4.8"/>',
-      adverseEventsPanel:  '<circle cx="8" cy="8" r="5.8"/><path d="M8 5.4v5.2M5.4 8h5.2"/>',
-      inquiriesPanel:      '<path d="M13.4 8.4c0 2.5-2.4 4.5-5.4 4.5-.7 0-1.4-.1-2-.3l-3 1.2 1-2.5C3.1 10.5 2.6 9.5 2.6 8.4 2.6 5.9 5 3.9 8 3.9s5.4 2 5.4 4.5Z"/>',
-      aiPanel:             '<path d="M8 2.4 9.4 6.4 13.4 7.8 9.4 9.2 8 13.2 6.6 9.2 2.6 7.8 6.6 6.4Z"/>',
-      continuityPanel:     '<path d="M8 2.2 13 4v4c0 3-2.2 5-5 5.8C5.2 13 3 11 3 8V4Z"/><path d="m6.2 7.9 1.4 1.4 2.6-2.8"/>',
-      flagsPanel:          '<rect x="1.8" y="4.6" width="12.4" height="6.8" rx="3.4"/><circle cx="10.6" cy="8" r="1.9"/>',
-      businessRulesPanel:  '<path d="M2.6 5.2h10.8M2.6 10.8h10.8"/><circle cx="6" cy="5.2" r="1.6"/><circle cx="10.4" cy="10.8" r="1.6"/>',
-      approvalsPanel:      '<circle cx="8" cy="8" r="5.8"/><path d="m5.6 8.2 1.7 1.7 3.2-3.5"/>',
-      sessionsPanel:       '<rect x="2" y="3" width="12" height="8" rx="1.8"/><path d="M6 13.6h4M8 11v2.6"/>',
-      activityPanel:       '<path d="M2.8 8a5.2 5.2 0 1 0 1.5-3.7"/><path d="M2.4 2.9v2.6h2.6"/><path d="M8 5.4V8l1.8 1.1"/>',
-      sopsPanel:           '<path d="M4 2.6h6.2a1.8 1.8 0 0 1 1.8 1.8v9H5.8A1.8 1.8 0 0 1 4 11.6Z"/><path d="M6.2 5.8h3.6M6.2 8.2h3.6"/>',
-      featureRequestsPanel:'<path d="M6 11.4a4 4 0 1 1 4 0v1.2H6Z"/><path d="M6.6 14h2.8"/>',
-      legalHoldsPanel:     '<rect x="3.4" y="7" width="9.2" height="6.4" rx="2"/><path d="M5.8 7V5.4a2.2 2.2 0 0 1 4.4 0V7"/>',
-      suppliersPanel:      '<path d="M2.4 6.2h11.2v7a1.2 1.2 0 0 1-1.2 1.2H3.6a1.2 1.2 0 0 1-1.2-1.2Z"/><path d="M2 3.2h12v3H2Z"/><path d="M6.6 9.4h2.8"/>',
-      purchaseOrdersPanel: '<path d="M4.2 2.2h5l2.8 2.8v8.8H4.2Z"/><path d="M9 2.2V5h2.9"/><path d="M6.2 8.4h3.6M6.2 10.8h2.4"/>',
-      qualityControlPanel: '<rect x="3.4" y="2.6" width="9.2" height="11.2" rx="1.4"/><path d="M6 2.6V2a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v.6"/><path d="m5.8 8.4 1.5 1.5 3-3.4"/>',
-      recallsPanel:        '<path d="M8 1.8 14.6 13.4H1.4Z"/><path d="M8 6.4v3.2"/><circle cx="8" cy="11.6" r="0.15" fill="currentColor" stroke="none"/>',
-    };
-    const FALLBACK_ICON = '<circle cx="8" cy="8" r="2.4"/>';
-    function pageIconSvg(pageId){
-      return ICON_OPEN + (ICON_PATHS[pageId] || FALLBACK_ICON) + '</svg>';
-    }
     let currentPageId = null;
     // The most recent set of sidebar search results, kept so a click can carry
     // extra behaviour with it (e.g. a person result also runs that person's
     // account number through the Employee Activity search).
     let LAST_SEARCH_RESULTS = [];
-
-    // Smart Universal Search: every load function that fetches real records
-    // (orders, tasks, incidents, etc.) also drops its rows in here, so typing
-    // in the sidebar search box can find "Jane Doe" or "order 1042" no matter
-    // which page it actually lives on. Scoped strictly to data already inside
-    // this dashboard — it has nothing to do with the future public website
-    // or buyer-login idea, which is a separate, later project.
-    const SEARCH_INDEX = {
-      orders: [], tasks: [], incidents: [], approvals: [], sops: [],
-      featureRequests: [], evidence: [], adverseEvents: [], legalHolds: [],
-      attention: [], expenses: [], inventory: [], returns: [], people: [],
-      suppliers: [], purchaseOrders: [], qualityChecks: [], recalls: [],
-      documents: [],
-    };
-
-    // Business Rules: each row's `config` is a small jsonb object whose one
-    // key varies per rule (e.g. {"days":5} vs {"cap_usd":30}). These two maps
-    // tell the page which key inside `config` holds the editable number for a
-    // known rule_key, and what unit to show next to it. Any rule_key added
-    // later that isn't listed here still works — it just falls back to a
-    // plain "edit as JSON" box instead of a friendly number field, so this
-    // page never breaks when a new rule is added straight in SQL.
-    const BUSINESS_RULE_CONFIG_KEY = {
-      ai_monthly_spend_cap_usd: 'cap_usd',
-      invoice_missing_threshold_hours: 'hours',
-      order_stuck_unfulfilled_days: 'days',
-      refund_review_threshold_usd: 'amount',
-      shipping_delay_threshold_days: 'days',
-      stuck_task_threshold_days: 'days',
-    };
-    const BUSINESS_RULE_UNIT_LABELS = {
-      ai_monthly_spend_cap_usd: '$ / month',
-      invoice_missing_threshold_hours: 'hours',
-      order_stuck_unfulfilled_days: 'days',
-      refund_review_threshold_usd: '$',
-      shipping_delay_threshold_days: 'days',
-      stuck_task_threshold_days: 'days',
-    };
-
-    // Inventory bucket values (must match the database check constraint on
-    // inventory_adjustments.bucket) mapped to friendly labels.
-    const INVENTORY_BUCKET_LABELS = {
-      available: 'Available',
-      reserved: 'Reserved',
-      damaged: 'Damaged',
-      sample: 'Sample',
-      wholesale: 'Wholesale',
-      promotional: 'Promotional',
-      returned: 'Returned',
-      recalled: 'Recalled',
-    };
-
-    // Return status/condition values below must match the real database check
-    // constraints on the returns table (verified directly against pg_constraint,
-    // not assumed) — status: requested/approved/rejected/received/refunded/closed,
-    // product_condition: resalable/damaged/used/unknown. Reason has no check
-    // constraint (plain text), so its list here is just a UI convenience.
-    // Disposition is a dashboard-added column (see September 21, 2026 fix note)
-    // used only to drive the automatic Inventory restock when a return is
-    // marked Received — it isn't part of the original returns table.
-    const RETURN_STATUS_LABELS = {
-      requested: 'Requested',
-      approved: 'Approved',
-      rejected: 'Rejected',
-      received: 'Received',
-      refunded: 'Refunded',
-      closed: 'Closed',
-    };
-    const RETURN_REASON_LABELS = {
-      wrong_item: 'Wrong item sent',
-      damaged_in_transit: 'Damaged in transit',
-      changed_mind: 'Customer changed their mind',
-      defective: "Defective / didn't work as expected",
-      other: 'Other',
-    };
-    const RETURN_CONDITION_LABELS = {
-      resalable: 'Resalable / unopened',
-      damaged: 'Damaged',
-      used: 'Used but functional',
-      unknown: 'Unknown / not yet inspected',
-    };
-    // X11-06: these name what was CHOSEN on Mark Received, not proof that the
-    // stock moved (a restock can fail after the return is saved; Inventory's
-    // adjustment history is the proof).
-    const RETURN_DISPOSITION_LABELS = {
-      restock_available: 'Restock to Available',
-      restock_damaged: 'Move to Damaged',
-      discard: 'Discard (no restock)',
-    };
-
-    // Expense category values (must match the database check constraint) mapped
-    // to the friendly labels shown in the dropdown and everywhere else.
-    const EXPENSE_CATEGORY_LABELS = {
-      packaging: 'Packaging',
-      ingredients: 'Ingredients / Raw Materials',
-      shipping_supplies: 'Shipping Supplies',
-      advertising: 'Advertising / Marketing',
-      software: 'Software / Subscriptions',
-      manufacturing: 'Manufacturing',
-      other: 'Other',
-    };
 
     // Sidebar badge counts: a small number next to a page name showing
     // something's waiting there, computed live from data already loaded —
@@ -1249,36 +570,7 @@
 
       return results.slice(0, 30);
     }
-
-    const PAGE_LABEL_BY_ID = {};
     SIDEBAR_GROUPS.forEach(g => g.pages.forEach(p => { PAGE_LABEL_BY_ID[p.id] = p.label; }));
-
-    // Pinned favorites: your own shortlist of pages, saved in this browser
-    // (like "remember last page") and pinned to the very top of the sidebar
-    // so your most-used pages are always one click away.
-    // Which foldable sidebar sections you've opened. Remembered in this browser
-    // only; starts folded.
-    function openGroups(){
-      try { return JSON.parse(localStorage.getItem('he_open_groups') || '[]'); }
-      catch (e) { return []; }
-    }
-    function isGroupOpen(label){ return openGroups().includes(label); }
-    function setGroupOpen(label, open){
-      const set = new Set(openGroups());
-      if (open) set.add(label); else set.delete(label);
-      try { localStorage.setItem('he_open_groups', JSON.stringify([...set])); } catch (e) { /* not critical */ }
-    }
-
-    function getPinnedPages(){
-      try {
-        const raw = localStorage.getItem('he_pinned_pages');
-        const arr = raw ? JSON.parse(raw) : [];
-        return Array.isArray(arr) ? arr.filter(id => allPageIds().includes(id)) : [];
-      } catch (e) { return []; }
-    }
-    function setPinnedPages(arr){
-      try { localStorage.setItem('he_pinned_pages', JSON.stringify(arr)); } catch (e) { /* not critical */ }
-    }
     function togglePinnedPage(pageId){
       const pinned = getPinnedPages();
       const idx = pinned.indexOf(pageId);
@@ -1399,34 +691,6 @@
         });
       });
     }
-
-    // All known page ids, used to make sure a remembered page still actually
-    // exists before we try to jump to it (e.g. if a page were ever renamed).
-    function allPageIds(){
-      const ids = [];
-      SIDEBAR_GROUPS.forEach(g => g.pages.forEach(p => ids.push(p.id)));
-      return ids;
-    }
-
-    // Remembers which page you were on so refreshing (or closing and
-    // reopening the dashboard) brings you back to it instead of always
-    // starting over at "Needs Your Attention". Stored only in this browser,
-    // on this device — never sent anywhere, never stored in the database.
-    function getLastPage(){
-      // EXT8: a link to a page (#page=<id>) wins; only page names are ever
-      // put in the address bar, never record data.
-      const linked = pageFromHash();
-      if (linked) return linked;
-      try {
-        const saved = localStorage.getItem('he_last_page');
-        if (saved && allPageIds().includes(saved)) return saved;
-      } catch (e) { /* private browsing or blocked storage — fine, just default */ }
-      return 'attentionPanel';
-    }
-    function pageFromHash(){
-      const m = /^#page=([A-Za-z]+)$/.exec(location.hash || '');
-      return m && allPageIds().includes(m[1]) ? m[1] : null;
-    }
     // EXT8: the browser's Back / Forward move between dashboard pages
     // instead of leaving the dashboard.
     let HISTORY_STARTED = false, HISTORY_SUPPRESS = false;
@@ -1447,19 +711,6 @@
       HISTORY_SUPPRESS = true;
       try { showPage(pageId); } finally { HISTORY_SUPPRESS = false; }
     });
-    function saveLastPage(pageId){
-      try { localStorage.setItem('he_last_page', pageId); } catch (e) { /* not critical */ }
-    }
-
-    function closeMobileSidebar(){
-      document.getElementById('sidebarNav').classList.remove('mobileOpen');
-      document.getElementById('sidebarOverlay').classList.remove('visible');
-    }
-
-    // X8-19 (EXT9): one shared banner. A page's own warning (e.g. orders in
-    // several currencies) is kept per page and shown while that page is open
-    // or when it is opened, never on another page by a background load.
-    const PAGE_WARNINGS = {};
     function showPageWarning(pageId, text){
       PAGE_WARNINGS[pageId] = text || null;
       if (text && currentPageId === pageId) showDashError(text);
@@ -1511,78 +762,14 @@
       document.getElementById('sidebarOverlay').classList.toggle('visible');
     });
     document.getElementById('sidebarOverlay').addEventListener('click', closeMobileSidebar);
-
-
-    // ================= Feedback, speed and keyboard =================
-
-    // ---- Toasts ----
-    const toastHost = document.createElement('div');
     toastHost.id = 'toastHost';
     // Screen readers announce confirmations politely. Error toasts repeat the
     // error banner (role="alert", already announced), so they stay silent.
     toastHost.setAttribute('role', 'status');
     toastHost.setAttribute('aria-live', 'polite');
     document.body.appendChild(toastHost);
-    function toast(message, kind){
-      const el = document.createElement('div');
-      el.className = 'toast' + (kind ? ' ' + kind : '');
-      if (kind === 'err') el.setAttribute('aria-hidden', 'true');
-      el.innerHTML = '<span class="dot"></span><span></span>';
-      el.lastChild.textContent = message;
-      toastHost.appendChild(el);
-      const life = kind === 'err' ? 6500 : 3200;
-      setTimeout(() => {
-        el.classList.add('leaving');
-        setTimeout(() => el.remove(), 220);
-      }, life);
-    }
     window.toastOk = (m) => toast(m, 'ok');
     window.toastErr = (m) => toast(m, 'err');
-
-    // ---- Skeletons ----
-    // Shows the shape of the content while it loads, instead of the word
-    // "Loading". Loaders overwrite these as soon as their data lands.
-    function skeletonRows(n){
-      let out = '';
-      const widths = ['w80', 'w60', 'w40', 'w80', 'w60'];
-      for (let i = 0; i < n; i++) out += '<span class="skel skelRow ' + widths[i % widths.length] + '"></span>';
-      return out;
-    }
-    function paintSkeletons(){
-      document.querySelectorAll('main.contentArea div[id$="Wrap"]').forEach(el => {
-        if (/^\s*loading/i.test(el.textContent || '')) el.innerHTML = skeletonRows(4);
-      });
-    }
-
-    // ---- Numbers settle instead of snapping ----
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-    // EXT7: figures appear with a short fade (CSS class numIn) and their text
-    // is never changed. The old count-up rewrote the number frame by frame;
-    // when frames and timers stopped (heavy load, background tab) a money
-    // figure stayed part-way, e.g. $99,745.45 instead of $100,000.00, even
-    // with a timer fallback. A fade that stops part-way still shows the exact
-    // amount.
-    // The old count-up also wrote every figure in US format with thousands
-    // commas ("1000" -> "1,000"). That is kept as a one-time step that never
-    // changes the value, and now also applies with Reduce Motion on (which
-    // used to show "1000").
-    function formatFigure(el){
-      const raw = (el.textContent || '').trim();
-      const m = raw.match(/^([^0-9-]*)(-?\d[\d,]*(?:\.\d+)?)(.*)$/);
-      if (!m || !/\d{4}/.test(m[2].split('.')[0].replace(/,/g, '')) || /,/.test(m[2])) return;
-      if (/^[-/:]\d/.test(m[3])) return; // a date or time, not an amount
-      const n = Number(m[2]);
-      if (!isFinite(n)) return;
-      const decimals = (m[2].split('.')[1] || '').length;
-      el.textContent = m[1] + n.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals }) + m[3];
-    }
-    function animateNumber(el){
-      formatFigure(el);
-      if (reduceMotion.matches) return;
-      el.classList.remove('numIn');
-      void el.offsetWidth; // restart the fade when a figure is redrawn
-      el.classList.add('numIn');
-    }
     new MutationObserver(muts => {
       muts.forEach(mu => {
         mu.addedNodes.forEach(n => {
@@ -1592,27 +779,6 @@
         });
       });
     }).observe(document.body, { childList: true, subtree: true });
-
-    // EXT10 (U38): on a phone, wide tables marked "phoneCards" become one card
-    // per row (CSS below 600 px). Each cell gets its column name as a label,
-    // and explicit table roles keep screen readers reading it as a table even
-    // though the layout changes. Desktop is unaffected.
-    function labelPhoneCards(root){
-      const tables = root.matches && root.matches('table.phoneCards') ? [root] : (root.querySelectorAll ? root.querySelectorAll('table.phoneCards') : []);
-      tables.forEach(t => {
-        const heads = [...t.querySelectorAll('thead th')].map(th => th.textContent.trim());
-        t.setAttribute('role', 'table');
-        t.querySelectorAll('thead, tbody').forEach(g => g.setAttribute('role', 'rowgroup'));
-        t.querySelectorAll('tr').forEach(tr => {
-          tr.setAttribute('role', 'row');
-          [...tr.children].forEach((c, i) => {
-            if (c.tagName === 'TH') { c.setAttribute('role', 'columnheader'); return; }
-            c.setAttribute('role', 'cell');
-            if (heads[i]) c.setAttribute('data-label', heads[i]); else c.classList.add('cardActions');
-          });
-        });
-      });
-    }
     new MutationObserver(muts => {
       muts.forEach(mu => mu.addedNodes.forEach(n => { if (n.nodeType === 1) labelPhoneCards(n); }));
     }).observe(document.body, { childList: true, subtree: true });
@@ -1653,117 +819,10 @@
       featureRequestsPanel: [loadFeatureRequests, loadDeletedFeatureRequests],
       legalHoldsPanel: [loadLegalHolds, loadReleasedLegalHolds],
     };
-    function safeRun(fn){
-      try { return Promise.resolve(fn()).catch(() => {}); }
-      catch (e) { return Promise.resolve(); }
-    }
     function refreshChrome(){
       renderSidebar(document.getElementById('sidebarSearch').value);
       decorateEmptyStates();
     }
-
-
-    // ---- Built-in guide ----
-    // Answers "how do I…" without a network call or an AI bill. Entries are
-    // searched by the command palette alongside pages and records, so the same
-    // \u2318K you use to navigate also explains things.
-    const HELP = [
-      { id:'returns', page:'returnsPanel', title:'How returns work',
-        keys:'return refund restock approve reject receive',
-        body:'A return always points at one line on one order, never a loose product. Pick the order, pick the item, give a reason and the condition it came back in.|The flow is: Requested, then you Approve or Reject. On approval you choose what happens to the item — restock it to Available, move it to Damaged, or discard it — and press Mark Received. Choosing "restock to Available" adjusts Inventory for you, so you never type the same number twice.|Refunds here are record-only. Marking a return refunded writes it down; it never moves money by itself.' },
-      { id:'inventory', page:'inventoryPanel', title:'Inventory and low-stock alerts',
-        keys:'inventory stock low threshold product buckets damaged',
-        body:'Stock is split into buckets — Available, Reserved, Damaged, Sample, Wholesale, Promotional, Returned — so damaged goods never look sellable.|Set "low-stock alert when Available drops below" on any product and it earns a Low stock badge once it falls under that number. Leave it blank for no alert.' },
-      { id:'activity', page:'activityPanel', title:'Seeing who did what',
-        keys:'activity audit history who changed log employee account number',
-        body:'Every change in the system is recorded: who, when, which record, and exactly which fields changed. Search by name, 9-digit account number, area, or anything inside a change.|Hover any record anywhere in the dashboard and press Space to see that record\u2019s full history as a before-and-after diff.|Changes made by automatic jobs show as "System / automatic" because nobody was signed in. On pages holding customer details or your formula, only the field names are recorded, never the values.' },
-      { id:'rules', page:'businessRulesPanel', title:'Changing what the AI agents watch for',
-        keys:'business rules threshold agent spend cap stuck days alert',
-        body:'These numbers are the triggers your agents act on — how many days an order can sit unfulfilled, the refund amount that needs review, the monthly AI spend cap.|Changing a number here changes agent behaviour immediately, with no code and no deploy. Because of that, edits ask for your password.' },
-      { id:'alerts', page:'attentionPanel', title:'Needs Your Attention, and the activity watcher',
-        keys:'attention alerts unusual deletion overnight suspicious reminder',
-        body:'This page combines everything waiting on you: tasks, approvals, compliance items, incidents, calendar events and your own reminders, soonest first.|An hourly watcher also lands alerts here — if anyone deletes an unusual number of records, or a signed-in person makes changes overnight. Thresholds live in Business Rules.' },
-      { id:'calendar', page:'calendarPanel', title:'Using the calendar',
-        keys:'calendar day week month appointment note filter event',
-        body:'Day and Week list every appointment with its time; Month is the overview. Click any day in Month to jump into it.|The chips under the date show or hide individual calendars. Click an event to open it and leave yourself a note — press \u2318 and Return to save.|Your notes live separately from the synced calendar, so the nightly sync can never overwrite them.' },
-      { id:'accounts', page:'activityPanel', title:'Accounts and account numbers',
-        keys:'account number people role owner administrator employee login',
-        body:'Everyone who signs in has their own account and a permanent 9-digit number that never changes. The number identifies a person in the activity feed and in search; it is never used to log in, so knowing one grants nothing.|An Administrator can see every other person\u2019s activity but never the Owner\u2019s, and only in areas they already have access to.' },
-      { id:'expenses', page:'expensesPanel', title:'Logging expenses',
-        keys:'expense receipt vendor category cost spending',
-        body:'Log what you spend by category and vendor, with an optional receipt. Expenses feed the Accounting page, which works out profit live by combining them with order revenue.|Deleted expenses go to a recycle bin rather than disappearing, so a mistake is always recoverable.' },
-      { id:'approvals', page:'approvalsPanel', title:'The approval queue',
-        keys:'approval approve deny sign off request refund review',
-        body:'When an agent finds something above a threshold — a large refund, a cancellation — it opens a request here instead of acting alone.|Nothing in this system moves money or messages a customer without you approving it first.' },
-      { id:'search', page:'activityPanel', title:'Finding anything quickly',
-        keys:'search find command palette shortcut keyboard jump',
-        body:'Press \u2318K anywhere for the command palette. It searches pages, people, orders, tasks, returns and these guide entries all at once. Arrow keys move, Return opens.|Press / to jump to the sidebar search, and ? to see every keyboard shortcut.' },
-      { id:'darkmode', page:'attentionPanel', title:'Dark mode and installing on your iPhone',
-        keys:'dark mode theme iphone install home screen app mobile',
-        body:'The button in the header cycles between following your Mac, always light, and always dark. Your choice is remembered on that device.|On iPhone, open the dashboard in Safari, tap Share, then Add to Home Screen. It gets its own icon and opens full-screen with no address bar.' },
-      { id:'keys-basics', page:'attentionPanel', title:'Keyboard shortcuts — the essentials',
-        keys:'keyboard shortcut key command hotkey quick escape space search palette help forgot',
-        body:'\u2318K opens the command palette from anywhere — it searches pages, people, orders, records and this guide all at once. Arrow keys move, Return opens, Escape closes.|/ jumps to the sidebar search. ? shows the full shortcut list. Escape closes whatever is open.|Space inspects the record your mouse is over — hover any row anywhere in the dashboard and press it to see that record\u2019s full history.|\u2318\u21E7R reloads the data without reloading the page.' },
-      { id:'keys-moving', page:'attentionPanel', title:'Moving around with the keyboard',
-        keys:'keyboard navigate go back forward jump page pinned j k rows arrow move between pages',
-        body:'Press g then a letter to go straight to a page: g then n for Needs Your Attention, o for Orders, i for Inventory, r for Returns, e for Expenses, t for Tasks, a for Employee Activity, c for Calendar, s for Procedures, b for Business Rules, x for Incidents, q for the Approval Queue.|\u2318[ and \u2318] move back and forward through the pages you have visited, like a browser.|\u23181 to \u23189 jump to your pinned pages — the starred ones at the top of the sidebar.|J and K move a highlight down and up through the rows on a page, and Return opens the highlighted row. That lets you work through a list without the mouse.' },
-      { id:'keys-calendar', page:'calendarPanel', title:'Keyboard shortcuts on the calendar',
-        keys:'calendar keyboard arrow day week month today note save shortcut',
-        body:'While you are on the Calendar: \u2190 and \u2192 move to the previous or next day, week or month, depending on which view you are in.|D, W and M switch between Day, Week and Month. T jumps back to today.|With an event open, \u2318Return saves your note and Escape closes it without saving.' },
-      { id:'keys-doing', page:'attentionPanel', title:'Doing things quickly',
-        keys:'reminder quick add new note export spreadsheet refresh offline pin star favourite',
-        body:'\u2318N opens a reminder box from anywhere in the dashboard. Type what you need to remember, press Return, and it appears in Needs Your Attention.|The star beside any page name in the sidebar pins it to the top, and pinned pages are what \u23181 to \u23189 jump to.|Employee Activity has an Export to spreadsheet button that downloads whatever is currently on screen, filters included.|The dashboard refreshes itself every few minutes in the background, and again the moment you come back online.' },
-      { id:'gestures', page:'attentionPanel', title:'Using it on your iPhone',
-        keys:'iphone ipad phone mobile swipe pull refresh gesture touch home screen install app',
-        body:'Pull down on any page to refresh it. Swipe left or right to move to the next or previous page.|Tap a row to inspect it — Space is for the Mac, tapping does the same thing on a phone.|To install it properly: open the dashboard in Safari, tap Share, then Add to Home Screen. It gets its own icon and opens full-screen with no address bar.' },
-      { id:'products', page:'inventoryPanel', title:'Adding a product to your catalogue',
-        keys:'product add catalogue sku price cost new item create lotion',
-        body:'Everything starts here. A purchase order can only put stock away against a product that exists, a return can only be restocked against one, and inventory counts only what is in the catalogue.|Add one on the Inventory page: a name is all that is required, but give it a SKU \u2014 a short code you invent, like HE-COCOA-8OZ. **Use exactly the same SKU in Shopify.** Deliveries and returns both find products by SKU, so a mismatch means they silently fail to update your stock.|SKUs must be unique and are treated the same whether you type them in capitals or not.|Status can be draft while you are still setting up, then active once you are selling it. Cost, retail and wholesale prices are optional and can be filled in later.' },
-      { id:'purchasing', page:'purchaseOrdersPanel', title:'Ordering stock and receiving deliveries',
-        keys:'purchase order supplier manufacturer stock receive delivery buy ordering po restock cost',
-        body:'Add whoever you buy from on the Suppliers page first — manufacturer, packaging, lab, freight. Purchase orders are raised against them.|Create a draft purchase order, then add what you\u2019re buying line by line. A line can point at a product in your catalogue, or be free text for things like bottles, labels and raw materials that aren\u2019t products.|Move it through Ordered and Shipped as it progresses. When the delivery turns up, press Receive delivery: every line linked to a catalogue product is added to Inventory automatically, and the whole cost \u2014 items, shipping and tax \u2014 is written into Expenses under the category you chose. That keeps Accounting right without entering anything twice.|Lines that aren\u2019t catalogue products are still costed; they just can\u2019t be stocked, and the system tells you when that happens.|Receiving also works out the **true cost** of each unit by sharing shipping and tax across the lines in proportion to their value. That is the figure to set your prices against \u2014 the raw unit cost flatters your margin.|Track deposits and balances with the Payment setting on each order. If a delivery passes its expected date and hasn\u2019t arrived, it appears in Needs Your Attention, and turns high priority after a week.' },
-      { id:'lots', page:'inventoryPanel', title:'Batch and lot tracking',
-        keys:'lot batch number tracking expire expiry recall production run trace',
-        body:'When you receive a delivery, you can give each catalogue line a lot number \u2014 whatever your manufacturer prints on that batch. Leave it blank if they don\u2019t give you one.|Receiving the same lot number again for the same product just adds to it, so a delivery that arrives in two shipments still counts as one batch.|The Inventory page shows every lot still on hand for a product, oldest first \u2014 sell or ship the oldest one first. If this ever needs a recall, you know exactly how much of that batch exists and which delivery it came from.|Tracing a lot all the way to a specific customer order needs your Shopify orders connected, which comes later \u2014 today this covers the receiving and on-hand side.' },
-      { id:'quality', page:'qualityControlPanel', title:'Quality Control',
-        keys:'quality control check inspection defect complaint fail pass escalate incident test',
-        body:'Log any inspection, defect or complaint here \u2014 tie it to a specific lot when you can, or to a product generally, or leave it unlinked entirely.|A check that fails and hasn\u2019t been marked resolved shows up in Needs Your Attention automatically.|If something is serious enough to need a real investigation, press Escalate to Incident \u2014 it opens an Incident with the same severity and a sensible category already filled in, and links back to the check that started it.' },
-      { id:'recalls', page:'recallsPanel', title:'Recalling a batch',
-        keys:'recall batch lot quarantine pull withdraw safety',
-        body:'A recall always points at one specific lot. Initiating one just records that you\u2019re looking into it \u2014 it shows up in Needs Your Attention as high priority immediately and stays there until resolved.|Quarantine stock actually moves that lot\u2019s remaining units out of Available into a separate Recalled bucket, so nothing can be sold from it by accident. It also logs the movement the same way any other stock adjustment does.|Escalate to Incident opens a real Incident under Product Safety with the same severity, for when this needs a proper investigation trail.|Honest limit: this covers what\u2019s still in your possession. Tracing a recalled lot to orders that already shipped needs Shopify orders connected \u2014 not built yet, same as batch tracing generally.' },
-      { id:'legal', page:'legalHoldsPanel', title:'Legal holds',
-        keys:'legal hold preserve evidence dispute retention delete',
-        body:'A legal hold marks records that must be preserved — during a dispute, a claim, or an investigation. While a hold is active, routine clean-up must leave those records alone.|Releasing a hold is recorded in the activity log, with who released it and when.' },
-      { id:'documents', page:'documentsPanel', title:'Documents',
-        keys:'document contract insurance certification tax license expire expiration upload file',
-        body:'A central place for paperwork that isn’t tied to one specific incident — contracts, certifications, insurance, tax documents, packaging specs, wholesale agreements, and so on. That’s the difference from Evidence Locker, which only holds evidence for a specific incident.|Upload the file itself, or just paste a link to where it already lives — you don’t need both.|Optionally link a document to a supplier, an incident, or a purchase order so it shows up in context.|Set an expiration date and it’ll show a color-coded warning here as it approaches or passes, and once it’s within 30 days (or already expired) it also shows up in Needs Your Attention.|Only the Owner or an Administrator can delete a document; any active team member can add or view one.' },
-      { id:'systemmode', page:'flagsPanel', title:'System mode',
-        keys:'system mode emergency ai kill switch limited no-ai pause banner',
-        body:'One master switch for the whole system, with four settings: Normal (everything runs as usual), Limited AI (only high-confidence, low-risk AI actions run), No AI (every AI agent is paused, but rule-based automation like alerts and inventory math keeps running), and Emergency (AI paused and the Shopify Order Sync flag switched off too).|Changing it away from Normal shows a colored banner at the top of every page for every team member, until it’s changed back to Normal.|Choosing No AI or Emergency also best-effort pauses Agent #7 (Customer Service) — the only one of the 9 agents that calls a paid AI model — over on the AI Agent Activity page, using the same per-agent switch described there.|Honest limits: this is enforced everywhere the dashboard itself checks the mode — today that’s the Customer Service Agent’s pause switch and the Shopify Order Sync flag. It does not force-disable anyone’s login or revoke sessions that are already active — that would need a server-side change beyond what a dashboard can do. Use the Active Sessions page if you need to end a specific session right now — switching to Emergency mode will remind you to go check it.|Every change is recorded with who changed it and when.' },
-    ];
-
-    // One matcher, used by both the command palette and the sidebar search.
-    function helpMatches(query){
-      const stop = ['how','the','and','for','you','can','what','where','does','with','use','about','when','why'];
-      const words = query.split(/[^a-z0-9]+/).filter(w => w.length > 2 && !stop.includes(w));
-      const scored = [];
-      HELP.forEach(e => {
-        const hay = (e.title + ' ' + e.keys + ' ' + e.body).toLowerCase();
-        let score = 0;
-        if (e.title.toLowerCase().includes(query)) score += 6;
-        words.forEach(w => {
-          const stem = w.endsWith('s') ? w.slice(0, -1) : w;
-          if (e.title.toLowerCase().includes(stem)) score += 3;
-          else if (e.keys.includes(stem)) score += 2;
-          else if (hay.includes(stem)) score += 1;
-        });
-        if (!words.length && hay.includes(query)) score += 1;
-        if (score > 0) scored.push({ score: score, e: e });
-      });
-      return scored.sort((a, b) => b.score - a.score).slice(0, 5).map(s => s.e);
-    }
-
-    const helpOverlay = document.createElement('div');
     helpOverlay.id = 'helpOverlay';
     // Announced as a dialog by screen readers (EXT3).
     helpOverlay.setAttribute('role', 'dialog'); helpOverlay.setAttribute('aria-modal', 'true'); helpOverlay.setAttribute('aria-label', 'Guide');
@@ -1782,16 +841,12 @@
       rememberFocus('help');
       helpOverlay.classList.add('open');
     }
-    function closeHelp(){ helpOverlay.classList.remove('open'); restoreFocus('help'); }
     document.getElementById('helpCloseBtn').addEventListener('click', closeHelp);
     document.getElementById('helpGoBtn').addEventListener('click', () => {
       if (HELP_CURRENT) showPage(HELP_CURRENT.page);
       closeHelp();
     });
     helpOverlay.addEventListener('click', (e) => { if (e.target === helpOverlay) closeHelp(); });
-
-    // ---- Command palette ----
-    const paletteOverlay = document.createElement('div');
     paletteOverlay.id = 'paletteOverlay';
     // Announced as a dialog by screen readers (EXT3).
     paletteOverlay.setAttribute('role', 'dialog'); paletteOverlay.setAttribute('aria-modal', 'true'); paletteOverlay.setAttribute('aria-label', 'Search and commands');
@@ -1871,9 +926,6 @@
       inp.focus();
       setTimeout(() => inp.focus(), 10);
     }
-    // restore=false when a result was chosen: the page changes, so focus
-    // should not jump back to where the palette was opened from.
-    function closePalette(restore = true){ paletteOverlay.classList.remove('open'); if (restore) restoreFocus('palette'); else focusReturn.delete('palette'); }
     function runPalette(i){
       const it = PAL_ITEMS[i];
       if (!it) return;
@@ -1895,9 +947,6 @@
       else if (e.key === 'Escape') { e.preventDefault(); closePalette(); }
     });
     paletteOverlay.addEventListener('click', (e) => { if (e.target === paletteOverlay) closePalette(); });
-
-    // ---- Shortcut sheet ----
-    const shortcutOverlay = document.createElement('div');
     shortcutOverlay.id = 'shortcutOverlay';
     // Announced as a dialog by screen readers (EXT3).
     shortcutOverlay.setAttribute('role', 'dialog'); shortcutOverlay.setAttribute('aria-modal', 'true'); shortcutOverlay.setAttribute('aria-label', 'Keyboard shortcuts');
@@ -1932,29 +981,8 @@
         '<div class="scRow"><span>Calendar</span><span><kbd>g</kbd><kbd>c</kbd></span></div></div>' +
       '</div></div>';
     document.body.appendChild(shortcutOverlay);
-    function openShortcuts(){ rememberFocus('shortcuts'); shortcutOverlay.classList.add('open'); }
-    function closeShortcuts(){ shortcutOverlay.classList.remove('open'); restoreFocus('shortcuts'); }
     shortcutOverlay.addEventListener('click', (e) => { if (e.target === shortcutOverlay) closeShortcuts(); });
-
-    // ---- Global keyboard layer ----
-    const GO_TO = {
-      n: 'attentionPanel', o: 'ordersPanel', i: 'inventoryPanel', r: 'returnsPanel',
-      e: 'expensesPanel', t: 'tasksPanel', a: 'activityPanel', c: 'calendarPanel',
-      s: 'sopsPanel', b: 'businessRulesPanel', x: 'incidentsPanel', q: 'approvalsPanel',
-    };
     let goArmed = false, goTimer = null;
-    function typingInField(e){
-      const t = e.target;
-      if (!t || !t.tagName) return false;
-      const tag = t.tagName.toLowerCase();
-      return tag === 'input' || tag === 'textarea' || tag === 'select' || t.isContentEditable;
-    }
-    function anyOverlayOpen(){
-      return paletteOverlay.classList.contains('open')
-        || shortcutOverlay.classList.contains('open')
-        || document.getElementById('inspectorOverlay').classList.contains('open')
-        || document.getElementById('reauthOverlay').style.display === 'flex';
-    }
     document.addEventListener('keydown', (e) => {
       const meta = e.metaKey || e.ctrlKey;
 
@@ -2011,114 +1039,10 @@
         goTimer = setTimeout(() => { goArmed = false; }, 1200);
       }
     });
-
-    // ---------- Employee Activity ----------
-    // Reads from the protected `employee_activity` database function rather than
-    // from the raw activity log. That function decides what the signed-in person
-    // is allowed to see: the Owner sees everything; an Administrator sees other
-    // people's activity but never the Owner's, and only in areas they already
-    // have access to. Those rules live in the database, so they hold no matter
-    // how the data is requested — this page can't widen them.
-    const ACTIVITY_PAGE_SIZE = 50;
     let ACTIVITY_OFFSET = 0;
     let ACTIVITY_ROWS = [];
     let ACTIVITY_PERSON = null;   // null = everyone
-    let ACTIVITY_HOVERED = -1;    // which entry the mouse is over, for the Space shortcut
-
-    // Fields worth showing as a record's name, in order of preference, so an
-    // entry reads "Orders · TEST-0001" instead of "record 6eaf9306".
-    const RECORD_TITLE_KEYS = [
-      'order_number','incident_number','title','name','display_name','product_name',
-      'label','sku','rule_key','flag_key','email','vendor','question_text','agent_name',
-    ];
-    function recordTitle(r){
-      const nd = r.new_data || {};
-      const od = r.old_data || {};
-      const src = Object.keys(nd).length ? nd : od;
-      for (const k of RECORD_TITLE_KEYS) {
-        const v = src[k];
-        if (v !== undefined && v !== null && String(v).trim() !== '') {
-          const s = String(v);
-          return s.length > 48 ? s.slice(0, 48) + '…' : s;
-        }
-      }
-      return r.record_id ? String(r.record_id).slice(0, 8) : '—';
-    }
-
-    const ROLE_LABELS = {
-      owner: 'Owner',
-      administrator: 'Administrator',
-      employee: 'Employee',
-      ai_agent: 'AI Agent',
-    };
-
-    // Friendlier names for a few areas whose table name doesn't read well on
-    // its own. Anything not listed here falls back to the label the database
-    // already builds, so a new table never breaks this page.
-    const ACTIVITY_AREA_LABELS = {
-      profiles: 'Accounts',
-      sop_documents: 'Procedures (SOPs)',
-      ai_model_config: 'AI Model Config',
-      prompt_versions: 'AI Prompt Versions',
-      approval_requests: 'Approval Queue',
-      calendar_events: 'Calendar',
-      personal_calendar_events: 'Personal Calendar',
-      agent_controls: 'Agent Switches',
-      product_price_history: 'Price History',
-      manual_attention_items: 'Manual Reminders',
-      privacy_deletion_requests: 'Privacy Deletion Requests',
-      adverse_event_reports: 'Adverse Event Reports',
-    };
-
-    function prettyField(f){
-      return String(f).replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-    }
-    function jsonPreview(v){
-      if (v === null || v === undefined) return '—';
-      let s;
-      if (typeof v === 'object') { try { s = JSON.stringify(v); } catch (e) { s = '…'; } }
-      else s = String(v);
-      if (s === '') return '(empty)';
-      return s.length > 80 ? s.slice(0, 80) + '…' : s;
-    }
-
-    // Turns one log entry into a readable "what actually changed" block. Entries
-    // from the privacy-protected areas carry only field names, never values.
-    function describeChange(r){
-      const nd = r.new_data || {};
-      const od = r.old_data || {};
-      const privacyNote = "Actual values aren't recorded for this area, to keep personal data and formula details out of the log.";
-
-      if (!r.values_stored) {
-        const fields = Array.isArray(nd.changed_fields) ? nd.changed_fields : [];
-        if (r.action === 'UPDATE' && fields.length) {
-          return `<div><b>Fields changed:</b> ${fields.map(f => esc(prettyField(f))).join(', ')}</div>
-                  <div class="actNote">${privacyNote}</div>`;
-        }
-        const what = r.action === 'INSERT' ? 'A record was created.'
-                   : r.action === 'DELETE' ? 'A record was deleted.'
-                   : 'A record was changed.';
-        return `<div>${what}</div><div class="actNote">${privacyNote}</div>`;
-      }
-
-      if (r.action === 'UPDATE') {
-        let keys = Object.keys(nd).filter(k => JSON.stringify(od[k]) !== JSON.stringify(nd[k]));
-        if (keys.length > 1) keys = keys.filter(k => k !== 'updated_at');
-        if (!keys.length) return '<div class="actNote">Nothing visible changed on this record.</div>';
-        return `<table><tr><th>Field</th><th>Before</th><th>After</th></tr>` +
-          keys.map(k => `<tr><td>${esc(prettyField(k))}</td><td>${esc(jsonPreview(od[k]))}</td><td>${esc(jsonPreview(nd[k]))}</td></tr>`).join('') +
-          `</table>`;
-      }
-
-      const src = r.action === 'DELETE' ? od : nd;
-      const keys = Object.keys(src)
-        .filter(k => src[k] !== null && src[k] !== undefined && src[k] !== '')
-        .slice(0, 10);
-      if (!keys.length) return '<div class="actNote">No details recorded.</div>';
-      return `<table><tr><th>Field</th><th>Value</th></tr>` +
-        keys.map(k => `<tr><td>${esc(prettyField(k))}</td><td>${esc(jsonPreview(src[k]))}</td></tr>`).join('') +
-        `</table>`;
-    }
+    let ACTIVITY_HOVERED = -1;
 
     function renderActivity(){
       const wrap = document.getElementById('activityWrap');
@@ -2198,18 +1122,6 @@
       });
     }
 
-    // Turns the "Any time / Today / Last 7 days / Last 30 days" picker into an
-    // actual start date the database can filter on.
-    function activityFromDate(){
-      const v = document.getElementById('activityRange').value;
-      if (v === 'all') return null;
-      const d = new Date();
-      d.setHours(0, 0, 0, 0);
-      if (v === '7') d.setDate(d.getDate() - 6);
-      if (v === '30') d.setDate(d.getDate() - 29);
-      return d.toISOString();
-    }
-
     // The filters the Activity page shows right now (search, person, area,
     // date range) — shared by the list and the spreadsheet export.
     function activityFilters(){
@@ -2221,26 +1133,6 @@
         p_area: document.getElementById('activityArea').value || null,
         p_from: activityFromDate(),
       };
-    }
-    // Every activity row for these filters, page by page (the feed returns at
-    // most what is asked for), up to `cap`. Returns { rows, capped }.
-    async function fetchAllActivity(filters, cap){
-      const PAGE = 500;
-      const rows = [];
-      const seenIds = new Set();
-      let offset = 0;
-      for (;;) {
-        const { data, error } = await supabase.rpc('employee_activity', Object.assign({}, filters, { p_limit: PAGE, p_offset: offset }));
-        if (error) throw error;
-        const batch = data || [];
-        // EXT5: pages are counted by position, so a change recorded while
-        // exporting shifts everything by one and the next page repeats rows.
-        // The audit log only grows, so skipping ids already seen is exact.
-        for (const r of batch) if (!seenIds.has(r.id)) { seenIds.add(r.id); rows.push(r); }
-        offset += batch.length;
-        if (batch.length < PAGE) return { rows, capped: false };
-        if (rows.length >= cap) return { rows: rows.slice(0, cap), capped: true };
-      }
     }
 
     async function loadActivity(reset){
@@ -2310,56 +1202,6 @@
       }
     }
 
-    // The area dropdown, built from what's actually in the log and already
-    // filtered to what this person is allowed to see.
-    async function loadActivityAreas(){
-      try {
-        const { data, error } = await supabase.rpc('employee_activity_areas');
-        if (error) throw error;
-        const sel = document.getElementById('activityArea');
-        const current = sel.value;
-        sel.innerHTML = '<option value="">All areas</option>' + (data || []).map(a =>
-          `<option value="${esc(a.table_name)}">${esc(ACTIVITY_AREA_LABELS[a.table_name] || a.area)} (${Number(a.entries)})</option>`
-        ).join('');
-        sel.value = current;
-      } catch (err) { /* dropdown just stays as "All areas" */ }
-    }
-
-    // A one-line "what happened today" summary across everyone.
-    async function loadActivityDigest(){
-      try {
-        const start = new Date(); start.setHours(0, 0, 0, 0);
-        const { data, error } = await supabase.rpc('employee_activity', {
-          p_from: start.toISOString(), p_limit: 500, p_offset: 0,
-        });
-        if (error) throw error;
-        const rows = data || [];
-        // The digest reads at most 500 changes; past that it says "500+"
-        // instead of an exact-looking undercount.
-        const atCap = rows.length >= 500;
-        const el = document.getElementById('activityDigest');
-        if (!rows.length) {
-          el.style.display = 'block';
-          el.innerHTML = '<b>Today:</b> no changes recorded yet.';
-          return;
-        }
-        const people = new Set(rows.filter(r => r.person_account_number).map(r => r.person_account_number));
-        const areaCount = {};
-        rows.forEach(r => {
-          const a = ACTIVITY_AREA_LABELS[r.table_name] || r.area;
-          areaCount[a] = (areaCount[a] || 0) + 1;
-        });
-        const top = Object.keys(areaCount).sort((a, b) => areaCount[b] - areaCount[a]).slice(0, 3)
-          .map(a => `${esc(a)} (${areaCount[a]})`).join(', ');
-        const deletes = rows.filter(r => r.action === 'DELETE').length;
-        el.style.display = 'block';
-        el.innerHTML = `<b>Today:</b> ${rows.length}${atCap ? '+' : ''} change${rows.length === 1 ? '' : 's'}` +
-          ` · ${people.size} ${people.size === 1 ? 'person' : 'people'} signed in` +
-          (deletes ? ` · <span style="color:var(--danger);font-weight:600;">${deletes} deletion${deletes === 1 ? '' : 's'}</span>` : '') +
-          (top ? ` · busiest: ${top}` : '');
-      } catch (err) { /* the digest is a nicety, never block the page on it */ }
-    }
-
     // ---- Record Inspector (Quick Look) ----
     // Opens one record's complete history — every change ever recorded for it —
     // through the same protected function, so it can never show more than the
@@ -2367,43 +1209,6 @@
     let INSPECTOR_HISTORY = [];
     let INSPECTOR_ROW = null;
     let INSPECTOR_TAB = 'history';
-
-    function hlValue(v){
-      if (v === null || v === undefined) return '<span class="jNull">empty</span>';
-      if (typeof v === 'number') return `<span class="jNum">${esc(String(v))}</span>`;
-      if (typeof v === 'boolean') return `<span class="jBool">${v}</span>`;
-      if (typeof v === 'object') return `<span class="jStr">${esc(JSON.stringify(v))}</span>`;
-      return `<span class="jStr">"${esc(String(v))}"</span>`;
-    }
-    function codeDiff(r){
-      const nd = r.new_data || {};
-      const od = r.old_data || {};
-      if (!r.values_stored) {
-        const fields = Array.isArray(nd.changed_fields) ? nd.changed_fields : [];
-        const body = fields.length
-          ? fields.map(f => `<div class="cLine"><span class="jKey">${esc(f)}</span> <span class="jNull">changed</span></div>`).join('')
-          : `<div class="cLine"><span class="jNull">${esc(r.action_label)}</span></div>`;
-        return `<div class="codeBlock">${body}</div>
-                <div class="insNote">Values aren't recorded for this area, to keep personal data and formula details out of the log.</div>`;
-      }
-      if (r.action === 'UPDATE') {
-        let keys = Object.keys(nd).filter(k => JSON.stringify(od[k]) !== JSON.stringify(nd[k]));
-        if (keys.length > 1) keys = keys.filter(k => k !== 'updated_at');
-        if (!keys.length) return '<div class="insNote">Nothing visible changed on this record.</div>';
-        return `<div class="codeBlock">` + keys.map(k =>
-          `<div class="cLine cRemove">− <span class="jKey">${esc(k)}</span>: ${hlValue(od[k])}</div>` +
-          `<div class="cLine cAdd">+ <span class="jKey">${esc(k)}</span>: ${hlValue(nd[k])}</div>`
-        ).join('') + `</div>`;
-      }
-      const src = r.action === 'DELETE' ? od : nd;
-      const cls = r.action === 'DELETE' ? 'cRemove' : 'cAdd';
-      const sign = r.action === 'DELETE' ? '−' : '+';
-      const keys = Object.keys(src).filter(k => src[k] !== null && src[k] !== '');
-      if (!keys.length) return '<div class="insNote">No details recorded.</div>';
-      return `<div class="codeBlock">` + keys.map(k =>
-        `<div class="cLine ${cls}">${sign} <span class="jKey">${esc(k)}</span>: ${hlValue(src[k])}</div>`
-      ).join('') + `</div>`;
-    }
     function renderInspector(){
       const body = document.getElementById('insBody');
       if (INSPECTOR_TAB === 'raw') {
@@ -2512,68 +1317,7 @@
       INSPECTOR_ROW = row;
       await openInspectorFor(row.table_name, row.record_id, recordTitle(row));
     }
-
-    // ---- Quick Look everywhere ----
-    // Most pages already tag their rows with the record's id. This map says
-    // which table each page's rows belong to, so hovering a row anywhere and
-    // pressing Space can look that exact record up. Rows that carry their own
-    // table name (data-rec-table) or a more specific id attribute win over it.
-    const PANEL_RECORD_TABLE = {
-      ordersPanel: 'orders',
-      tasksPanel: 'tasks',
-      incidentsPanel: 'incidents',
-      inventoryPanel: 'products',
-      returnsPanel: 'returns',
-      suppliersPanel: 'suppliers',
-      purchaseOrdersPanel: 'purchase_orders',
-      qualityControlPanel: 'quality_checks',
-      recallsPanel: 'recalls',
-      expensesPanel: 'expenses',
-      approvalsPanel: 'approval_requests',
-      sopsPanel: 'sop_documents',
-      featureRequestsPanel: 'feature_requests',
-      evidenceLockerPanel: 'evidence_locker',
-      documentsPanel: 'documents',
-      adverseEventsPanel: 'adverse_event_reports',
-      legalHoldsPanel: 'legal_holds',
-      inquiriesPanel: 'customer_inquiries',
-      flagsPanel: 'feature_flags',
-      businessRulesPanel: 'business_rules',
-      continuityPanel: 'service_status',
-      calendarPanel: 'calendar_events',
-      aiPanel: 'ai_decision_log',
-    };
-    // Row-level id attributes that already exist in the dashboard, mapped to
-    // the table they belong to.
-    const RECORD_ID_ATTRS = [
-      { attr: 'data-rec-id', table: null },        // table comes from data-rec-table
-      { attr: 'data-product-id', table: 'products' },
-      { attr: 'data-return-id', table: 'returns' },
-      { attr: 'data-id', table: null },            // table comes from the panel
-    ];
     let INSPECT_TARGET = null;
-
-    function resolveInspectTarget(el){
-      if (!el || !el.closest) return null;
-      for (const spec of RECORD_ID_ATTRS) {
-        const host = el.closest('[' + spec.attr + ']');
-        if (!host) continue;
-        const id = host.getAttribute(spec.attr);
-        if (!id) continue;
-        let table = spec.table;
-        if (!table) {
-          table = host.getAttribute('data-rec-table');
-          if (!table) {
-            const panel = host.closest('section.panel');
-            table = panel ? PANEL_RECORD_TABLE[panel.id] : null;
-          }
-        }
-        if (!table) continue;
-        const label = (host.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 48);
-        return { table, id, el: host, label };
-      }
-      return null;
-    }
     function setInspectTarget(t){
       if (INSPECT_TARGET && INSPECT_TARGET.el) INSPECT_TARGET.el.classList.remove('inspectHover');
       INSPECT_TARGET = t;
@@ -2614,18 +1358,6 @@
         INSPECT_TARGET.el.classList.remove('inspectHover');
         INSPECT_TARGET = null;
       }
-    }
-
-    function plainChange(r){
-      const nd = r.new_data || {}, od = r.old_data || {};
-      if (!r.values_stored) {
-        const f = Array.isArray(nd.changed_fields) ? nd.changed_fields : [];
-        return f.length ? 'Fields changed: ' + f.join(', ') : r.action_label;
-      }
-      if (r.action !== 'UPDATE') return r.action_label;
-      let keys = Object.keys(nd).filter(k => JSON.stringify(od[k]) !== JSON.stringify(nd[k]));
-      if (keys.length > 1) keys = keys.filter(k => k !== 'updated_at');
-      return keys.map(k => `${k}: ${jsonPreview(od[k])} → ${jsonPreview(nd[k])}`).join('; ');
     }
     // Exports EVERY change matching the current filters, not just the rows
     // loaded on screen so far (it used to export only those, silently).
@@ -2722,23 +1454,6 @@
       openInspectorFor(INSPECT_TARGET.table, INSPECT_TARGET.id, INSPECT_TARGET.label);
     });
 
-    // ---------- needs your attention ----------
-    const ITEM_TYPE_LABELS = {
-      task: 'Task',
-      approval: 'Approval',
-      compliance: 'Compliance',
-      privacy_deletion: 'Privacy',
-      incident: 'Incident',
-      calendar_event: 'Calendar',
-      manual: 'Reminder',
-      alert: 'Alert',
-      purchase_order: 'Delivery',
-      quality_check: 'Quality check',
-      recall: 'Recall',
-      document: 'Document',
-      low_stock: 'Low stock',
-    };
-
     function renderAttention(rows){
       if (!rows || !rows.length) {
         document.getElementById('attentionWrap').innerHTML = '<p class="empty">Nothing needs your attention right now.</p>';
@@ -2789,38 +1504,7 @@
         showDashError('Could not load your attention list: ' + (err && err.message ? err.message : err));
       }
     }
-
-    // Business Health strip: a handful of numbers you'd otherwise have to
-    // visit 5-6 separate pages to piece together, computed fresh on every
-    // landing-page load. Deliberately its own small set of direct queries
-    // (rather than waiting on other panels' loaders, which run staggered in
-    // the background and might not have populated yet) so these numbers are
-    // right the moment the page opens, not a few seconds later. No new
-    // tables, no AI calls — same tables every other panel already reads.
-    function getTodayRange(){
-      const now = new Date();
-      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      return { start, end: now };
-    }
-
-    // EXT8: "Checks: what needs a look" (helpers: attentionFindings). Every
-    // read settles on its own; a failed one shows as "could not check".
-    const ATTN_SEEN_KEY = 'he.attnSeen';
-    function attnSeenGet(){ try { return JSON.parse(localStorage.getItem(ATTN_SEEN_KEY) || '{}') || {}; } catch (_) { return {}; } }
-    function attnSeenSet(v){ try { localStorage.setItem(ATTN_SEEN_KEY, JSON.stringify(v)); } catch (_) { /* storage blocked: just not remembered */ } }
-    const attnSignature = f => f.key + '|' + f.count + '|' + (f.oldest || '');
     let ATTN_SHOW_HIDDEN = false;
-    // One rule, used by Accounting and by the Home checks (EXT6 / EXT8):
-    // manual orders that count as revenue but have no order lines.
-    async function manualOrdersWithoutItems(orders){
-      const counted = orders.filter(o => {
-        const c = classifyOrderStatus(o.status);
-        return o.source === 'manual' && !(c.isCancelled || (c.isRefund && !c.isPartialRefund));
-      });
-      const lines = counted.length ? await fetchAllRowsIn('order_items', 'id, order_id', 'order_id', counted.map(o => o.id)) : [];
-      const withItems = new Set(lines.map(l => l.order_id));
-      return counted.filter(o => !withItems.has(o.id));
-    }
     async function loadAttentionChecks(){
       const wrap = document.getElementById('attnChecksWrap');
       if (!wrap) return;
@@ -2868,7 +1552,6 @@
     // EXT9: when the checks last ran. Results older than ATTN_STALE_MS say so
     // plainly (never look current), and re-run when the tab is looked at again.
     let ATTN_CHECKED_AT = null;
-    const ATTN_STALE_MS = 15 * 60 * 1000;
     function attnFreshnessHtml(){
       if (!ATTN_CHECKED_AT) return '';
       const age = Date.now() - ATTN_CHECKED_AT;
@@ -2925,20 +1608,6 @@
       const t = document.getElementById('attnToggleHidden');
       if (t) t.addEventListener('click', () => { ATTN_SHOW_HIDDEN = !ATTN_SHOW_HIDDEN; renderAttentionChecks(); });
     }
-
-    // EXT10 (U43): the nightly integrity check (Query F run by the database,
-    // drafts/25 + 29) on Home. Read-only. Off / not installed = says so (NOT
-    // VERIFIED), never "fine". States per check: PASS (0 found), WARN (stuck
-    // work or a probable duplicate), FAIL (a record pointing at the wrong
-    // thing or an impossible value). The whole card is STALE when the last
-    // successful run is older than NIGHTLY_STALE_MS, FAIL when the last
-    // attempt failed, UNKNOWN when it cannot be read.
-    const NIGHTLY_STALE_MS = 26 * 60 * 60 * 1000; // PROPOSED default (owner decision X8-D4): one missed night + slack
-    const NIGHTLY_PAGES = { F01: 'tasksPanel', F02: 'tasksPanel', F03: 'approvalsPanel', F04: 'recallsPanel', F05: 'purchaseOrdersPanel',
-      F06: 'ordersPanel', F07: 'suppliersPanel', F08: 'inventoryPanel', F09: 'expensesPanel', F10: 'returnsPanel', F11: 'ordersPanel',
-      F12: 'ordersPanel', F13: 'ordersPanel', F14: 'inventoryPanel', F15: 'returnsPanel' };
-    // nightlyCheckLevel / nightlyOverall live in the helpers file (pure, unit-tested).
-    const isMissingRelation = err => !!err && (['42P01', 'PGRST205', 'PGRST200'].includes(String(err.code)) || /does not exist|could not find the table/i.test(String(err.message || '')));
     async function loadNightlyCheck(){
       const wrap = document.getElementById('nightlyCheckWrap');
       if (!wrap) return;
@@ -3010,56 +1679,7 @@
         wrap.innerHTML = card('UNKNOWN', 'Could not read the nightly check', `<p class="hint">${esc(explainDbError(err && err.message ? err.message : String(err)))}</p>`);
       }
     }
-
-    // EXT10b (missions 63-66): read-only System status + a safe diagnostic summary.
-    function environmentLabel(){
-      if (/staging-demo\.invalid/.test(SUPABASE_URL)) return { key: 'STAGING', text: 'STAGING (synthetic data, not production)' };
-      if (location.host === 'stasvitiuk-dev.github.io') return { key: 'PRODUCTION', text: 'PRODUCTION (live dashboard)' };
-      return { key: 'OTHER', text: 'NOT PRODUCTION (' + (location.host || 'local file') + ')' };
-    }
-    function assetVersions(){
-      const pick = re => { const el = [...document.querySelectorAll('script[src], link[href]')].map(e => e.getAttribute('src') || e.getAttribute('href')).find(u => re.test(u || '')); const m = el && el.match(/[?&]v=([0-9a-f]+)/); return m ? m[1] : 'unknown'; };
-      return 'helpers API ' + window.HE.helpers.API + ', helpers ' + pick(/owner-login-helpers\.js/) + ', styles ' + pick(/owner-login\.css/);
-    }
     let SYS_STATUS = null;
-    // EXT11 (installation status + switch drift): which database steps the
-    // page can see, read-only, using the same harmless probes the switches use
-    // before they turn on (a stock function is called with an id that does not
-    // exist and refuses; the other two read one column / one table).
-    const DB_STEPS = [
-      ['stock_fn_receive_po', 'R1 receive'], ['stock_fn_recall', 'R2 recall'], ['stock_fn_return', 'R3 return'],
-      ['stock_fn_adjust', 'R4 adjust'], ['stock_fn_delete_product', 'R5 delete'], ['request_keys', 'request keys'], ['integrity_results_home', 'nightly check'],
-    ];
-    async function dbStepInstalled(flag){
-      if (STOCK_FN_PROBES[flag]) return stockFunctionInstalled(flag);
-      try {
-        if (flag === 'request_keys') {
-          const { error } = await supabase.from('expenses').select('client_request_id').limit(1);
-          return !error ? true : (String(error.code) === '42703' || String(error.code) === 'PGRST204' || /client_request_id/.test(error.message || '')) ? false : null;
-        }
-        const { error } = await supabase.from('integrity_check_runs').select('id').limit(1);
-        return !error ? true : isMissingRelation(error) ? false : null;
-      } catch (e) { return null; }
-    }
-    async function dbStepsStatus(){
-      const [installed, flagsRes] = await Promise.all([
-        Promise.all(DB_STEPS.map(([flag]) => dbStepInstalled(flag))),
-        supabase.from('feature_flags').select('flag_key, enabled').in('flag_key', DB_STEPS.map(([f]) => f)).then(r => r, e => ({ error: e })),
-      ]);
-      const word = v => v === true ? 'installed' : v === false ? 'not installed' : 'UNKNOWN';
-      const steps = DB_STEPS.map(([flag, label], i) => label + ': ' + word(installed[i])).join(' · ');
-      let safety;
-      if (flagsRes.error) safety = 'UNKNOWN — the switches could not be read';
-      else {
-        const on = new Set((flagsRes.data || []).filter(f => f.enabled === true).map(f => f.flag_key));
-        const broken = DB_STEPS.filter(([flag], i) => on.has(flag) && installed[i] === false).map(([, l]) => l);
-        const unsure = DB_STEPS.filter(([flag], i) => on.has(flag) && installed[i] === null).map(([, l]) => l);
-        safety = broken.length ? 'PROBLEM: switched ON but its database step is missing: ' + broken.join(', ') + '. Turn that switch OFF on Feature Switches and tell the owner.'
-          : unsure.length ? 'UNKNOWN: switched ON but the database step could not be confirmed: ' + unsure.join(', ')
-          : on.size ? 'OK: every switch that is ON has its database step (' + on.size + ' on)' : 'OK: all of these switches are OFF';
-      }
-      return { steps, safety };
-    }
     let LAST_DB_STEPS = null;
     async function loadSystemStatus(){
       const wrap = document.getElementById('systemStatusWrap');
@@ -3254,13 +1874,6 @@
         showDashError('Could not add that reminder: ' + (err && err.message ? err.message : err));
       } finally { if (btn) btn.disabled = false; }
     });
-
-    // ---------- calendar mode ----------
-    // The owner sees their synced Apple Calendar (calendar_events). Everyone
-    // else (e.g. an Administrator) gets their own private, manually-entered
-    // calendar (personal_calendar_events) — nobody sees anyone else's.
-    const APPLE_CAL_HINT = 'Your synced Apple Calendar. Day and Week list every appointment with its time; Month gives you the overview. Use the chips to show or hide a calendar, and open any event to leave yourself a note — notes are yours and survive every sync.';
-    const PERSONAL_CAL_HINT = 'Your own calendar — only you can see these events. Add one below, or click an existing event to edit or delete it.';
     function applyCalendarMode(){
       calMode = (currentUserRole === 'owner') ? 'apple' : 'personal';
       const form = document.getElementById('addPersonalEventForm');
@@ -3271,29 +1884,6 @@
       if (hint) hint.textContent = personal ? PERSONAL_CAL_HINT : APPLE_CAL_HINT;
       if (filtersBox) filtersBox.style.display = personal ? 'none' : '';
     }
-
-    // ---------- calendar month grid ----------
-    const CAL_COLORS = ['#3E6B52','#1f7a8c','#b8734a','#7a5c9e','#2f7d4f','#b8860b','#4a7fb8','#a04a6f'];
-    function colorForCalendar(name){
-      const s = String(name || 'Calendar');
-      let h = 0;
-      for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
-      return CAL_COLORS[h % CAL_COLORS.length];
-    }
-    function dateKey(d){
-      return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-    }
-    function eventDateKey(ev){
-      // All-day events: use the date exactly as stored (avoids timezone shifting them a day off).
-      if (ev.all_day && ev.starts_at) return ev.starts_at.slice(0, 10);
-      return dateKey(new Date(ev.starts_at));
-    }
-
-
-    // ================= Faster to drive =================
-
-    // ---- Where you've been: ⌘[ and ⌘] ----
-    const NAV_BACK = [], NAV_FWD = [];
     let navSuppress = false;
     const _showPage = showPage;
     showPage = function(pageId){
@@ -3319,11 +1909,6 @@
 
     // ---- j / k through rows, Return to inspect ----
     let rowCursorEl = null;
-    function rowsOnPage(){
-      const panel = document.querySelector('main.contentArea > section.panel.activePage');
-      if (!panel) return [];
-      return Array.from(panel.querySelectorAll('.actItem, tr[data-id], [data-product-id], [data-return-id], .approvalRow[data-id], .flagRow[data-id], .calEvent'));
-    }
     function moveRowCursor(dir){
       const rows = rowsOnPage();
       if (!rows.length) return;
@@ -3347,9 +1932,6 @@
       const t = resolveInspectTarget(rowCursorEl);
       if (t) openInspectorFor(t.table, t.id, t.label);
     }
-
-    // ---- ⌘N: jot a reminder from anywhere ----
-    const quickAdd = document.createElement('div');
     quickAdd.id = 'quickAddOverlay';
     quickAdd.setAttribute('role', 'dialog'); quickAdd.setAttribute('aria-modal', 'true'); quickAdd.setAttribute('aria-label', 'Quick add');
     quickAdd.innerHTML = '<div class="quickAddCard"><h4>New reminder</h4>' +
@@ -3360,14 +1942,6 @@
       '<button type="button" class="small secondary" id="quickAddCancel">Cancel</button>' +
       '<button type="button" class="small" id="quickAddSave">Add</button></div></div>';
     document.body.appendChild(quickAdd);
-    function openQuickAdd(){
-      rememberFocus('quickadd');
-      quickAdd.classList.add('open');
-      const i = document.getElementById('quickAddInput');
-      i.value = '';
-      setTimeout(() => i.focus(), 10);
-    }
-    function closeQuickAdd(){ quickAdd.classList.remove('open'); restoreFocus('quickadd'); }
     async function saveQuickAdd(){
       const title = (document.getElementById('quickAddInput').value || '').trim();
       if (!title) { closeQuickAdd(); return; }
@@ -3395,9 +1969,6 @@
       if (e.key === 'Escape') { e.preventDefault(); closeQuickAdd(); }
     });
     quickAdd.addEventListener('click', (e) => { if (e.target === quickAdd) closeQuickAdd(); });
-
-    // ---- Connection banner ----
-    const offlineBar = document.createElement('div');
     offlineBar.id = 'offlineBar';
     offlineBar.textContent = 'You are offline — showing the last data loaded.';
     document.body.appendChild(offlineBar);
@@ -3421,9 +1992,6 @@
       const fns = PANEL_LOADERS[currentPageId] || [];
       Promise.all(fns.map(safeRun)).then(refreshChrome);
     }, 5 * 60 * 1000);
-
-    // ---- iPhone: pull down to refresh, swipe to change page ----
-    const ptr = document.createElement('div');
     ptr.id = 'ptrIndicator';
     ptr.innerHTML = '<span style="padding-bottom:6px;">Release to refresh</span>';
     document.body.appendChild(ptr);
@@ -3556,52 +2124,6 @@
         showDashError('Could not add that product: ' + (err && err.message ? err.message : err));
       } finally { btn.disabled = false; }
     });
-
-    // ---------- Suppliers & Purchase Orders ----------
-    // A purchase order is what you've ordered from a supplier. Its lines can
-    // optionally point at a product in your catalogue — the ones that do are
-    // received straight into Inventory; the ones that don't (bottles, labels,
-    // raw materials) are just costed. Receiving also writes the spend into
-    // Expenses, so Accounting stays honest without double entry.
-    const SUPPLIER_TYPE_LABELS = {
-      manufacturer: 'Manufacturer', supplier: 'Supplier', packaging: 'Packaging',
-      lab: 'Lab', freight: 'Freight', other: 'Other',
-    };
-    const PO_STATUS_LABELS = {
-      draft: 'Draft', ordered: 'Ordered', shipped: 'Shipped',
-      received: 'Received', cancelled: 'Cancelled',
-    };
-    const PAYMENT_LABELS = { unpaid: 'Unpaid', partial: 'Part paid', paid: 'Paid' };
-    // Purchase-order state machine: the only status each button may move an
-    // order FROM. Receiving has its own path (draft/received/cancelled can't be
-    // received). Used as the database-side condition, so a stale page can
-    // never, for example, turn a received order into a cancelled one.
-    const PO_ALLOWED_FROM = {
-      ordered: ['draft'],
-      shipped: ['ordered'],
-      cancelled: ['draft', 'ordered', 'shipped'],
-      received: ['ordered', 'shipped'],
-    };
-    // Lines, shipping and tax can only change while the order is still being
-    // put together; after that the logged expense would no longer match.
-    const PO_EDITABLE = ['draft', 'ordered'];
-    // EXT5: a browser number box silently empties text it can't read ("$12.50",
-    // "1,200", "12 units"), so the page used to say "is empty". This hands the
-    // number check something that is clearly not a number instead, so the
-    // person is told to type plain digits.
-    function numVal(el){
-      if (!el) return '';
-      if (el.validity && el.validity.badInput) return '(not a plain number)';
-      return el.value;
-    }
-    // Re-reads an order's status straight from the database. Used before
-    // changes that can't carry their own condition (adding/removing lines),
-    // so a page left open doesn't edit an order that has moved on.
-    async function poStatusNow(poId){
-      const { data, error } = await supabase.from('purchase_orders').select('status').eq('id', poId).maybeSingle();
-      if (error) throw error;
-      return data ? data.status : null;
-    }
     // "Escalate to Incident" for a quality check or a recall, at most once.
     // A tab opened earlier (or a second person) must not create a second
     // incident and silently re-point the record at it, leaving the first one
@@ -3628,22 +2150,6 @@
       }
       return true;
     }
-    const QC_TYPE_LABELS = {
-      incoming_inspection: 'Incoming inspection', packaging_defect: 'Packaging defect',
-      customer_complaint: 'Customer complaint', manufacturing_issue: 'Manufacturing issue', other: 'Other',
-    };
-    const QC_RESULT_LABELS = { pending: 'Pending', pass: 'Pass', fail: 'Fail' };
-    const QC_SEVERITY_LABELS = { low: 'Low', normal: 'Normal', high: 'High', critical: 'Critical' };
-    // A failed check's type suggests which Incident category fits, but a
-    // critical severity always points at product safety regardless of type —
-    // that's the one case worth overriding the type-based guess.
-    function qcIncidentCategory(qc){
-      if (qc.severity === 'critical') return 'product_safety';
-      if (qc.check_type === 'customer_complaint') return 'customer_complaint';
-      if (qc.check_type === 'other') return 'other';
-      return 'manufacturing';
-    }
-    const RECALL_STATUS_LABELS = { initiated: 'Initiated', quarantined: 'Quarantined', resolved: 'Resolved' };
     let PO_OPEN_ID = null;
     // EXT10b (missions 23/24/70): orders whose last receive attempt ended with
     // an unknown outcome. Their Receive button is replaced by a "status
@@ -4830,11 +3336,6 @@
       }
       return calCursor.toLocaleDateString(undefined, { month:'long', year:'numeric' });
     }
-    function fmtTimeShort(iso){
-      const d = new Date(iso);
-      if (isNaN(d.getTime())) return '';
-      return d.toLocaleTimeString(undefined, { hour:'numeric', minute:'2-digit' });
-    }
     function visibleEvents(){
       return calEvents.filter(ev => !calHidden.has(ev.calendar_name || 'Other'));
     }
@@ -4875,51 +3376,6 @@
             (open ? (personal ? personalEventEditorHtml(ev) : noteEditorHtml(ev)) : '') +
           '</div>' +
         '</div>';
-    }
-    // Inline editor for a personal (manually-entered) event: change title or
-    // times, or delete it. Shown when you click one of your own events.
-    function personalEventEditorHtml(ev){
-      // EXT9: the values shown, so a save never overwrites a change made elsewhere meanwhile.
-      const shown = JSON.stringify({ title: ev.summary == null ? null : ev.summary, starts_at: ev.starts_at || null, ends_at: ev.ends_at || null, all_day: !!ev.all_day });
-      return '<div class="calNoteBox" data-personaluid="' + esc(ev.uid) + '" data-shown="' + esc(shown) + '">' +
-        '<label style="margin-bottom:4px;">Title</label>' +
-        '<input type="text" class="personalEditTitle" value="' + esc(ev.summary || '') + '" style="margin-bottom:10px;">' +
-        '<label style="margin-bottom:4px;">Starts</label>' +
-        '<input type="datetime-local" class="personalEditStart" value="' + esc(toDatetimeLocalValue(ev.starts_at, ev.all_day)) + '" style="margin-bottom:10px;">' +
-        '<label style="margin-bottom:4px;">Ends (optional)</label>' +
-        '<input type="datetime-local" class="personalEditEnd" value="' + esc(toDatetimeLocalValue(ev.ends_at, ev.all_day)) + '" style="margin-bottom:10px;">' +
-        '<label style="margin:0 0 10px;font-weight:400;display:flex;align-items:center;gap:6px;">' +
-          '<input type="checkbox" class="personalEditAllDay" style="width:auto;margin:0;"' + (ev.all_day ? ' checked' : '') + '> All day' +
-        '</label>' +
-        '<div class="calNoteRow">' +
-          '<button type="button" class="small personalEditSave">Save</button>' +
-          '<button type="button" class="small secondary personalEditDelete">Delete event</button>' +
-        '</div></div>';
-    }
-    // Turns a stored timestamp into the "YYYY-MM-DDTHH:MM" format that a
-    // datetime-local input expects, in your own local time.
-    function toDatetimeLocalValue(iso, allDay){
-      if (!iso) return '';
-      if (allDay) return String(iso).slice(0, 10) + 'T00:00'; // stored as a plain date — don't shift it
-      const d = new Date(iso);
-      if (isNaN(d.getTime())) return '';
-      const pad = n => String(n).padStart(2, '0');
-      return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) +
-        'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
-    }
-    // Turns what's typed into the form into what gets stored. All-day events
-    // are stored as midnight UTC on the chosen date, so they never drift a
-    // day off (the calendar reads all-day dates exactly as stored).
-    function personalTimesFromInputs(startVal, endVal, allDay){
-      if (allDay) {
-        const s = startVal.slice(0, 10);
-        const e = endVal ? endVal.slice(0, 10) : null;
-        return { starts_at: s + 'T00:00:00Z', ends_at: e ? e + 'T00:00:00Z' : null };
-      }
-      return {
-        starts_at: new Date(startVal).toISOString(),
-        ends_at: endVal ? new Date(endVal).toISOString() : null,
-      };
     }
     function noteEditorHtml(ev){
       // EXT9: data-had / data-shown = the note as shown (none, or its text).
@@ -5293,21 +3749,6 @@
       document.body.dataset.loaded = 'all';
     }
 
-    // Privacy Access Logging: records that customer personal info (name/email) was
-    // displayed in the dashboard, so there's an audit trail of who viewed what and when.
-    // Best-effort — if the log call fails, we don't want that to break order viewing.
-    function logCustomerAccess(rows, reason) {
-      try {
-        const emails = [...new Set((rows || []).map(o => o.customer_email).filter(Boolean))];
-        emails.forEach(email => {
-          supabase.rpc('log_customer_data_access', { p_customer_email: email, p_reason: reason })
-            .then(({ error }) => { if (error) console.warn('Privacy log failed:', error.message); });
-        });
-      } catch (err) {
-        console.warn('Privacy log failed:', err);
-      }
-    }
-
     async function loadOrders(){
       try {
         const { data: orders, error, count } = await supabase
@@ -5430,28 +3871,6 @@
         showDashError('Could not load orders: ' + (err && err.message ? err.message : err));
       }
     }
-
-    // Task status buttons. Only these moves are allowed from the dashboard:
-    //   open -> in_progress, open -> done, in_progress -> done.
-    // The update only succeeds if the task is STILL in an allowed starting
-    // status (checked by the database in the same statement), so a double
-    // click, a second person, or an agent changing it at the same moment can
-    // never push it through a move that isn't on this list. The dashboard never
-    // creates tasks - agents do - so these buttons can't create duplicates.
-    // Every change goes through the normal logged-in update, so the tasks
-    // change-history (audit) trigger and access rules apply exactly as before.
-    const TASK_STATUS_LABELS = { open: 'Open', in_progress: 'In progress', done: 'Done', cancelled: 'Cancelled' };
-    // "Mark done" always comes first, so it sits in the same spot for open and
-    // in-progress tasks: clicking "Mark in progress" never slides another
-    // button under the cursor (which caused accidental "done" clicks).
-    const TASK_NEXT_ACTIONS = {
-      open: [{ to: 'done', label: 'Mark done' }, { to: 'in_progress', label: 'Mark in progress' }],
-      in_progress: [{ to: 'done', label: 'Mark done' }],
-    };
-    // EXT7: "Reopen" (done -> open) from the Recently finished list. Only a
-    // task that is still "done" can be reopened; a cancelled task stays
-    // cancelled (agents cancel tasks for a reason the dashboard can't see).
-    const TASK_ALLOWED_FROM = { in_progress: ['open'], done: ['open', 'in_progress'], open: ['done'] };
 
     async function changeTaskStatus(btn){
       const row = btn.closest('tr');
@@ -5601,60 +4020,10 @@
       }
     }
 
-    // The permanent, honest record of what each agent is built to do and what
-    // it's NOT allowed to do alone — the "AI permission audit" the blueprint
-    // asks for (item #22). Hand-written, not pulled from a table: this
-    // describes the system's own design, not data that changes at runtime,
-    // so it lives here the same way QC_TYPE_LABELS etc. do. Whenever an
-    // agent's actual behavior changes, this list should be updated to match.
-    const AGENT_REGISTRY = [
-      { num: 1, name: 'Invoice Agent', ai: false, trigger: true, status: 'Runs automatically inside the database the moment an order is created or changes — but only while its switch is on (see the state badge). The dashboard cannot see the trigger itself or a last-run time for this agent.',
-        desc: 'Generates, re-syncs, and voids invoices whenever an order is created or changes.',
-        touches: ['orders (read)', 'invoices (write)'],
-        limit: 'Fully automatic. Only ever creates paperwork — never touches money or sends anything. Its pause switch is real: turning it off stops it from creating, re-syncing, or voiding any invoice — new orders still save fine, they just won’t get invoiced until it’s back on.', enforced: true },
-      { num: 2, name: 'Order Intake Agent', ai: false, intendedOff: true, status: 'Last recorded state (September 26, 2026): switched off — its GitHub workflow was disabled until the store has products, so it should not start by itself when GitHub minutes reset on October 1. This dashboard cannot see GitHub, so check GitHub → Actions before relying on this; turning it back on is a deliberate step (Enable workflow).',
-        desc: 'Flags missing info, financial mismatches, bad addresses, and duplicate order numbers.',
-        touches: ['orders (read)', 'tasks (write)'],
-        limit: 'Fully automatic. Only opens a task for you to look at — never edits or cancels an order itself.', enforced: false },
-      { num: 3, name: 'Order Monitoring Agent', ai: false, intendedOff: true, status: 'Last recorded state (September 26, 2026): switched off — its GitHub workflow was disabled until the store has products, so it should not start by itself when GitHub minutes reset on October 1. This dashboard cannot see GitHub, so check GitHub → Actions before relying on this; turning it back on is a deliberate step (Enable workflow).',
-        desc: 'Flags large refunds/cancellations, Shopify fraud flags, and stuck-unfulfilled orders.',
-        touches: ['orders (read)', 'approval_requests (write)', 'tasks (write)'],
-        limit: 'Never acts alone above your threshold. A refund or cancellation over the limit opens a real approval request and waits for you — it cannot approve its own request.', enforced: false },
-      { num: 4, name: 'Retail/Wholesale Agent', ai: false, status: 'Migrated to Supabase pg_cron September 26, 2026 (runs hourly at :03 inside the database — no longer waits on GitHub Actions minutes). The old GitHub schedule was removed the same night. If someone links or deletes an order while it is working, it leaves that order alone.',
-        desc: 'Links or creates a customer record per order and tags it retail vs. wholesale.',
-        touches: ['orders (read + link customer)', 'customers (write)', 'tasks (write, email-mismatch review only)'],
-        limit: 'Fully automatic. Organizing only — no pricing, money, or communication involved. Never changes a customer link once set; a mismatch only opens a task for a person.', enforced: true, cronJobName: 'agent_4_retail_wholesale' },
-      { num: 5, name: 'Shipping/Tracking Agent', ai: false, status: 'Migrated to Supabase pg_cron September 26, 2026 (runs hourly at :10 inside the database — no longer waits on GitHub Actions minutes). Live pause test passed the same day; the old GitHub schedule was removed (manual run kept). A cancelled shipment never raises an alert, even if its old tracking status still says in transit.',
-        desc: 'Syncs Shopify tracking and flags failed or delayed deliveries, using your own Business Rules thresholds.',
-        touches: ['orders (read)', 'shipments (write)', 'business_rules (read)', 'tasks (write)', 'ai_decision_log (write)'],
-        limit: 'Fully automatic. Only opens a task — never contacts a carrier or a customer. A delayed task stays open after delivery until a person closes it. Handles up to 500 orders per run. If Shopify marks a fulfillment error/failure but tracking says delivered, it still opens the failed-review task, because the data contradicts itself and a person should look.', enforced: true, cronJobName: 'agent_5_shipping_tracking' },
-      { num: 6, name: 'Customer Notification Agent', ai: false, status: 'Migrated to Supabase pg_cron (runs hourly at :05 inside the database — no longer waits on GitHub Actions minutes). 32 clean hourly runs and a live pause test passed September 26, 2026; the old GitHub schedule was removed the same night. Still dry-run only, no email service connected yet.',
-        desc: 'Logs what it would email a customer for each order event (received / shipped / delivered / delayed / cancelled / refunded).',
-        touches: ['customer_notifications (write)'], dryRun: true,
-        limit: 'Cannot actually send anything — no email service is connected yet. Right now it can only write a log entry of what it would have sent.', enforced: true, cronJobName: 'agent_6_customer_notifications' },
-      { num: 7, name: 'Customer Service Agent', ai: true, intendedOff: true, status: 'Last recorded state (September 26, 2026): switched off — its GitHub workflow was disabled until the store has products, so it should not start by itself when GitHub minutes reset on October 1. This dashboard cannot see GitHub, so check GitHub → Actions before relying on this; turning it back on is a deliberate step (Enable workflow).',
-        desc: "Drafts a reply to a customer question using that order's context and any procedures you've marked visible to it.",
-        touches: ['customer_inquiries (read/write)', 'orders (read)', 'sop_documents (read — opt-in per procedure only)', 'ai_decision_log (write)'],
-        limit: 'Never sends anything itself — every reply is a draft you review, edit, and copy yourself. An independent keyword check (refunds, health/safety, anger, legal threats) forces human review even if the AI itself sounded confident. Capped at $30/month in AI spending; drafting pauses for the rest of the month if that’s hit.', enforced: false },
-      { num: 8, name: 'Supervisor Agent', ai: false, intendedOff: true, status: 'Last recorded state (September 26, 2026): switched off — its GitHub workflow was disabled until the store has products, so it should not start by itself when GitHub minutes reset on October 1. This dashboard cannot see GitHub, so check GitHub → Actions before relying on this; turning it back on is a deliberate step (Enable workflow).',
-        desc: 'Checks for orders missing an invoice, stalled tasks, and orders/shipments that disagree with each other.',
-        touches: ['orders (read)', 'invoices (read)', 'tasks (read/write)', 'shipments (read)', 'wholesale_inquiries (read)', 'contact_messages (read)'],
-        limit: 'Fully automatic. Only opens a task when something looks wrong — never edits the records it’s checking.', enforced: false },
-      { num: 9, name: 'Accounting Agent', ai: false, dashboardOnly: true, status: 'Live now — dashboard-only, no scheduled job to wait on',
-        desc: 'Rolls up real order revenue and your logged expenses into a live net-profit figure.',
-        touches: ['orders (read)', 'expenses (read)'],
-        limit: 'Not really an "agent" that acts on anything — it only computes and displays. Organizes and shows only; never moves money.', enforced: false },
-      { num: 10, name: 'Tax Record Agent', ai: false, dashboardOnly: true, status: 'Live now — dashboard-only, no scheduled job to wait on',
-        desc: 'Categorizes income and expenses, estimates cost of goods sold, tracks sales tax collected, and flags expenses with no receipt on file — builds a report to hand to your accountant.',
-        touches: ['orders (read)', 'expenses (read)', 'order_items (read)', 'products (read)'],
-        limit: 'Not really an "agent" that acts on anything — it only organizes and displays. Never files taxes, never contacts the IRS or any state, and never moves money.', enforced: false },
-    ];
-
     let agentControlsByNum = {};
     // 'loading' until the first read, then 'ok' or 'failed'. When the switches
     // can't be read, every agent shows UNKNOWN — never "on" by default.
-    let agentControlsState = 'loading';
-    const AGENT_STALE_AFTER_HOURS = 2; // pg_cron agents run hourly; 2 missed hours = stale
+    let agentControlsState = 'loading'; // pg_cron agents run hourly; 2 missed hours = stale
 
     // The one honest state for each agent, from the data the dashboard can
     // actually see (agent_controls, its last_run_* columns, and whether the
@@ -5953,20 +4322,7 @@
         showDashError('Could not load AI activity: ' + (err && err.message ? err.message : err));
       }
     }
-
-    // Customer Inquiries: every question a customer has asked, and the reply
-    // the Customer Service Agent (Agent #7) drafted for it, if any. Kept as
-    // one fetch, filtered on the page, so switching the dropdown doesn't hit
-    // the database again.
-    const INQ_STATUS_LABELS = { new: 'New', drafted: 'Drafted', needs_review: 'Needs Review', answered: 'Answered' };
-    function inqStatusBadgeClass(status){
-      if (status === 'needs_review') return 'sev-high';
-      if (status === 'drafted') return 'sev-medium';
-      if (status === 'answered') return 'sev-low';
-      return '';
-    }
     let ALL_INQUIRIES = [];
-    const INQ_ANSWERED_CAP = 100;
     let INQ_ANSWERED_TOTAL = 0, INQ_ANSWERED_SHOWN = 0;
     let INQUIRY_ORDER_BY_ID = {};
 
@@ -6180,16 +4536,6 @@
       }
     }
 
-    // Business Continuity: the health of every outside service this system
-    // depends on. Status is manually set by the owner; a couple of rows also
-    // get a real "last seen" signal pulled live from actual activity.
-    function continuityBadgeClass(status){
-      if (status === 'operational') return 'sev-low';
-      if (status === 'degraded') return 'sev-medium';
-      if (status === 'down') return 'sev-high';
-      return '';
-    }
-
     async function loadContinuity(){
       try {
         const { data: services, error } = await supabase
@@ -6297,39 +4643,6 @@
       }
     }
 
-    // Daily Owner Business Health Summary: a live snapshot of yesterday
-    // (midnight to midnight, your browser's local time) — nothing new is
-    // tracked here, it just totals up what's already in orders, customer
-    // inquiries, tasks, incidents, and the AI decision log.
-    function getYesterdayRange(){
-      const now = new Date();
-      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const startOfYesterday = new Date(startOfToday);
-      startOfYesterday.setDate(startOfYesterday.getDate() - 1);
-      return { start: startOfYesterday, end: startOfToday };
-    }
-
-    // EXT6: totals add every order's amount as one currency, labelled with the
-    // first order's currency. Say so plainly if the orders are in more than
-    // one currency, instead of showing a confident but meaningless sum.
-    // X11-01: an order saved without a total used to add $0.00 to revenue
-    // silently (Number(null) is 0). Count those so each page can say the
-    // figure leaves them out, instead of looking complete.
-    function missingTotalCount(orders){
-      return (orders || []).filter(o => o.total === null || o.total === undefined || String(o.total).trim() === '').length;
-    }
-    function missingTotalNote(orders, where){
-      const n = missingTotalCount(orders);
-      if (!n) return '';
-      return where + ': ' + n + ' order' + (n === 1 ? ' has' : 's have') + ' no total saved, so ' + (n === 1 ? 'it is' : 'they are') + ' left out of the revenue figure (not counted as $0 sales on purpose). Open Orders and correct ' + (n === 1 ? 'it' : 'them') + '.';
-    }
-    function mixedCurrencyNote(orders, where, shown){
-      const set = [...new Set((orders || []).map(o => String(o.currency || 'USD').toUpperCase()))].sort();
-      if (set.length < 2) return '';
-      return where + ': these orders are in more than one currency (' + set.join(', ') + '), but the totals add them together and show them as ' + shown
-        + '. Do not rely on these totals until the amounts are converted (ask your accountant).';
-    }
-
     async function loadDailySummary(){
       try {
         const { start, end } = getYesterdayRange();
@@ -6389,17 +4702,6 @@
     let REPORT_HISTORY_DATA = [];
     let reportHistoryView = 'daily';
 
-    function weekGroupLabel(monday){
-      const sunday = new Date(monday);
-      sunday.setDate(monday.getDate() + 6);
-      const start = monday.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-      const end = sunday.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-      return `${start} – ${end}`;
-    }
-    function monthGroupLabel(d){
-      return d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
-    }
-
     function renderReportHistoryView(){
       const wrap = document.getElementById('reportHistoryWrap');
       if (!REPORT_HISTORY_DATA.length) {
@@ -6445,14 +4747,6 @@
             <td>${esc(r.emailed)}</td>
           </tr>`).join('')}</tbody></table>`;
     }
-
-    // EXT11: a count or amount missing from a report is shown as "—", never as 0 / $0.00.
-    function missingToNaN(v){ return (v === null || v === undefined || String(v).trim() === '') ? NaN : v; }
-    function reportCount(v){
-      if (v === null || v === undefined || String(v).trim() === '') return '—';
-      const n = Number(v);
-      return Number.isFinite(n) ? n : '—';
-    }
     document.getElementById('reportHistoryToggle').addEventListener('click', (e) => {
       const btn = e.target.closest('button[data-view]');
       if (!btn) return;
@@ -6478,15 +4772,6 @@
         showDashError('Could not load Report History: ' + (err && err.message ? err.message : err));
       }
     }
-
-    // Flags that start real outside effects and must stay off until their
-    // launch checks are done (R9). The switch still works — the owner decides —
-    // but turning one ON takes an explicit extra confirmation, and the page
-    // says why it is blocked. (The real protection is the database's own
-    // permissions; this only prevents an accidental click.)
-    const LAUNCH_BLOCKED_FLAGS = {
-      shopify_order_sync: 'Kept off on purpose. Blocked until launch checks: keep off until the stock fixes (R1–R4) are live and Agent #1 (invoices) is confirmed on — otherwise real orders can be miscounted or left without an invoice. Turning it on here only flips the switch; nothing is sent to Shopify from this page.',
-    };
 
     async function loadFlags(){
       try {
@@ -6592,13 +4877,6 @@
         showDashError('Could not load feature flags: ' + (err && err.message ? err.message : err));
       }
     }
-
-    const SYSTEM_MODE_LABELS = {
-      NORMAL:     { label: 'Normal',     desc: 'Everything runs as usual.',                                    bg: '#e7f3ea', fg: '#1e6b34', border: '#bfe3c8' },
-      LIMITED_AI: { label: 'Limited AI', desc: 'Only high-confidence, low-risk AI actions run.',                bg: '#fff4dd', fg: '#8a5b00', border: '#f2d999' },
-      NO_AI:      { label: 'No AI',      desc: 'Every AI agent is paused; rule-based automation keeps running.', bg: '#fff0e6', fg: '#a03d00', border: '#f5c7a3' },
-      EMERGENCY:  { label: 'Emergency',  desc: 'AI paused and Shopify Order Sync switched off. Rule-based agents (#1 invoices, #4, #5, #6) keep running.',                bg: '#fbe6e6', fg: '#9e1b1b', border: '#f0bdbd' },
-    };
 
     let SYSTEM_MODE_SEEN; // the mode this page last showed; undefined = no mode row found
     async function loadSystemMode(){
@@ -7125,13 +5403,6 @@
       }
     });
 
-    // Feature Requests: a running, trackable list of things you've asked for or
-    // want added/changed — so it lives in the system (with a status you can watch
-    // move along) instead of only in a chat conversation.
-    const FR_STATUS_LABELS = { requested: 'Requested', in_progress: 'In progress', done: 'Done' };
-    const FR_NEXT_STATUS = { requested: 'in_progress', in_progress: 'done' };
-    const FR_NEXT_LABEL = { requested: 'Mark in progress', in_progress: 'Mark done' };
-
     async function loadFeatureRequests(){
       try {
         const { data: reqs, error, count: capCount } = await supabase
@@ -7480,27 +5751,6 @@
         submitBtn.textContent = originalBtnText;
       }
     });
-
-    // ---------- Documents ----------
-    // General-purpose document storage (Blueprint spec item #29) — separate
-    // from Evidence Locker, which is only ever tied to one specific incident.
-    // The `documents` table and its RLS already existed, unused, before this
-    // (staff can add/view, only Owner/Administrator can delete) — verified
-    // live via information_schema before writing any of this.
-    // The document link types the database accepts besides "not linked" (Query A).
-    const DOCUMENT_LINK_TYPES = ['supplier'];
-    // Exactly the categories the database accepts (documents_category_check,
-    // Query A). Lab reports, invoices, packaging specs etc. go under the
-    // closest one or "Other" until the owner decides to widen that rule.
-    const DOCUMENT_CATEGORY_LABELS = {
-      contract: 'Contract',
-      insurance: 'Insurance',
-      certification: 'Certification',
-      license: 'License / Permit',
-      tax: 'Tax Document',
-      manufacturing_agreement: 'Manufacturing Agreement',
-      other: 'Other',
-    };
     (function initDocCategorySelect(){
       const sel = document.getElementById('docCategory');
       if (sel) {
@@ -7508,15 +5758,6 @@
           Object.entries(DOCUMENT_CATEGORY_LABELS).map(([k, v]) => `<option value="${esc(k)}">${esc(v)}</option>`).join('');
       }
     })();
-
-    function docExpiryBadge(expirationDate){
-      if (!expirationDate) return '';
-      const exp = new Date(expirationDate + 'T00:00:00');
-      const days = Math.round((exp.getTime() - new Date().setHours(0,0,0,0)) / 86400000);
-      if (days < 0) return `<span class="badge sev-high">Expired ${esc(fmtDateOnly(expirationDate))}</span>`;
-      if (days <= 30) return `<span class="badge sev-medium">Expires in ${days}d (${esc(fmtDateOnly(expirationDate))})</span>`;
-      return `<span class="badge sev-low">Valid until ${esc(fmtDateOnly(expirationDate))}</span>`;
-    }
 
     async function loadDocuments(){
       try {
@@ -7980,12 +6221,6 @@
         submitBtn.textContent = originalBtnText;
       }
     });
-
-    // ---------- Inventory (manual stock tracking, per product) ----------
-    async function currentUserId(){
-      const { data } = await supabase.auth.getSession();
-      return data && data.session ? data.session.user.id : null;
-    }
 
     async function loadInventory(){
       try {
@@ -9149,27 +7384,6 @@
     // picture, recalculated fresh every time this panel loads or the date
     // range changes.
     let acctRange = 'today';
-
-
-    // How refunds recorded on the Returns page count against revenue. This is
-    // an accounting decision for the owner (finding N4), kept in one place so
-    // Accounting and Tax Records always agree:
-    //   'status_only' (today's behaviour): revenue drops only when an order's
-    //       own status says cancelled / refunded; Returns refunds are ignored.
-    //   'subtract_return_refunds': also subtract refund_amount recorded on
-    //       Returns, in the period of refunded_at — except for orders in the
-    //       same list already excluded by their status, so nothing is taken
-    //       off twice.
-    const ACCOUNTING_REFUND_POLICY = 'status_only';
-    async function returnRefundsIn(start, end){
-      if (ACCOUNTING_REFUND_POLICY !== 'subtract_return_refunds') return [];
-      return fetchAllRows('returns', 'id, order_id, refund_amount, refunded_at', q => {
-        q = q.not('refund_amount', 'is', null);
-        if (start) q = q.gte('refunded_at', start.toISOString());
-        if (end) q = q.lt('refunded_at', end.toISOString());
-        return q;
-      });
-    }
 
     async function loadAccounting(){
       const isLatest = newLoadToken('accounting');
