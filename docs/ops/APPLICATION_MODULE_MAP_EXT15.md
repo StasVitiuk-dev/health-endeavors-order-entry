@@ -37,7 +37,7 @@ Why it matters: a smaller file is easier to review, a mistake in one area is les
 | 14 | `he-reports` | Report history: daily / weekly / monthly views (missing values stay '?', never zero) | 81 | helpers / program: 7, he-format: 2, he-time: 2, he-data: 1 | 3 |
 | 15 | `he-inquiries` | Customer questions: list, severity, saved drafts, copy reply, mark answered (never sends anything) | 223 | he-config: 2, helpers / program: 4, he-data: 4, he-ui: 1, he-format: 1 | 3 |
 | 16 | `he-agents` | AI agents: switch states, scheduled-job health, honest status (unknown is never 'running'), paused banner | 250 | he-config: 2, he-data: 3, helpers / program: 5, he-ui: 2 | 3 |
-| 17 | `he-ops` | high-risk operation states: one explicit state per record for | 75 | — | 3 |
+| 17 | `he-ops` | high-risk operation states: one explicit state per record for | 77 | — | 3 |
 
 Program file after extraction: `assets/owner-login-app.js` 6,809 lines, 392,552 bytes; 94 top-level functions; 47 mutable top-level variables (46 shared).
 
