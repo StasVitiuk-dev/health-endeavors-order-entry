@@ -31,7 +31,7 @@ The labels below mean: **IMPLEMENTED IN BRANCH** (code exists and is tested here
 | Page + tool mutants | 169 (154 + 15) | 170 (155 + 15) |
 | SQL mutants | 13 | 14 |
 | CI | none | 4 jobs (static, 3 browser shards, database, informational visual) |
-| Full suite (2 workers, 4 CPUs) | 41.7 min wall; 1,828 passed, 1,048 skipped, 2 unexpected failures (§9.4) | see §7 |
+| Full suite (2 workers, 4 CPUs) | 41.7 min wall; 1,820 passed + 8 known-bug tests failing as expected, 1,048 skipped, **2 unexpected** (the secret check, §9.4) | 43.6 min wall; 1,895 passed + the same 8 known-bug tests, 309 skipped, 5 unexpected → all 5 fixed in tests/runner only (§7), page code unchanged |
 
 ## 3. Modularization (IMPLEMENTED IN BRANCH)
 
@@ -130,7 +130,11 @@ There are 13 scenarios (default + 12), such as: healthy, integrity failure, agen
   - phone layout sweeps: about 22 s each.
 - **Change:** the iPhone project no longer loads the 48 spec files that skip every test off desktop. They are detected from the file text, and `test-config-ext14.spec.js` guards the rule. The skipped count therefore drops by about 800. That is not lost coverage: those tests never ran on the iPhone.
 - **CI** splits the browser suite into 3 shards.
-- **After:** see the final run in `RELEASE_REVIEW_EXT14.md` §3.
+- **After (final run on page code `3a40095`, idle machine):** 43.6 min wall, against 41.7 min before (+4.6%). 75 more tests ran (+96 s of test time). Time lost to skipped tests fell from 174 s to 69 s. Tests present in both runs took 4,614 s against 4,369 s (+5.6%), within run-to-run variation on this machine but not proven to be noise. **Honest result: no wall-clock improvement locally.** The real gain is in CI, where the 3 shards run in parallel.
+- **The 5 unexpected failures in that run** were all test-side and are fixed:
+  - `library-pin` expected the old inline error flag that the strict owner page no longer has;
+  - the XSS control expected injected code to run, but the strict script policy now stops it (asserted as new defence in depth);
+  - the mutation runner's Ctrl-C test exposed a real runner bug under load: an interrupted run could end normally. The runner now awaits test runs and stops at once.
 - **NOT DONE: more workers by default.** Raising workers above 2 on a 4-CPU machine made timing-sensitive tests unreliable in earlier rounds, and was not re-proven here. CI gets its parallelism from shards instead.
 
 ## 8. Money precision {#money}

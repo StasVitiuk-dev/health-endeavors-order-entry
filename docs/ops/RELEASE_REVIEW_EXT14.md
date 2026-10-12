@@ -25,12 +25,14 @@ The answer from EXT13 still holds, with EXT14 on top. Merging changes the dashbo
 
 ## 3. Tests run on the frozen code
 
-See the final numbers in the PR description and the EXT14 final report (filled from the final full-suite run on `3a40095`, both projects: desktop 1100 px and iPhone 390 px). Also run on this code:
-
-- 170 page and tool mutants;
-- 14 SQL mutants;
-- the 26-step database suite;
-- secret scan, SQL lint, status check, docs check.
+| Check | Result |
+|---|---|
+| Full suite, desktop + iPhone (`npm test`), page code `3a40095` | 1,895 passed; 8 known-bug tests failing as expected (marked, waiting on R1–R5); 309 skipped on purpose; 5 unexpected, all test-side and fixed (`ENGINEERING_REPORT_EXT14.md` §7); re-run of the affected specs: all passed |
+| Page + tool mutants (170) | 170/170 caught |
+| SQL mutants (14) | 14/14 caught |
+| Database suite (26 steps, local PostgreSQL 16) | 26/26 PASS (421 s) |
+| High-risk specs × 3 | see the PR description |
+| Secret scan / SQL lint / status check / docs check | OK / OK / OK / OK |
 
 ## 4. Rollback (step by step)
 
