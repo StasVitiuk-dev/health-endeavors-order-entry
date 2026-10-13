@@ -1,0 +1,32 @@
+{
+  "about": "EXT14 machine-readable status of every production step and switch. Validated by `npm run status:check` (tests/tools/status-validate.js). Local or staging results NEVER set a production field; only dated owner evidence from production does. Update this file whenever something is merged, installed, switched or verified.",
+  "asOf": "2026-10-12",
+  "main": "d3db7bc",
+  "liveDashboard": "unchanged since d3db7bc",
+  "scores": { "productionReadinessPercent": 15, "basis": "unchanged: no production evidence has arrived" },
+  "units": {
+    "merge":           { "kind": "code", "branch": "IMPLEMENTED IN BRANCH", "local": "TESTED LOCALLY", "merged": false, "deployed": false, "production": "NOT DEPLOYED", "productionEvidence": null },
+    "r15":             { "kind": "sql", "sql": ["drafts/10"], "rollback": ["drafts/11"], "local": "TESTED LOCALLY", "production": "UNKNOWN", "productionEvidence": null, "note": "believed not installed; Query C §6 confirms" },
+    "switch_rows":     { "kind": "sql", "sql": ["drafts/21"], "rollback": ["drafts/22"], "local": "TESTED LOCALLY", "production": "UNKNOWN", "productionEvidence": null },
+    "line_guard":      { "kind": "sql", "sql": ["drafts/17"], "rollback": ["drafts/18"], "local": "TESTED LOCALLY", "production": "UNKNOWN", "productionEvidence": null },
+    "integrity_rules": { "kind": "sql", "sql": ["drafts/23"], "rollback": ["drafts/24"], "local": "TESTED LOCALLY", "production": "UNKNOWN", "productionEvidence": null },
+    "request_keys":    { "kind": "sql", "sql": ["drafts/19", "drafts/27"], "rollback": ["drafts/28", "drafts/20"], "local": "TESTED LOCALLY", "production": "UNKNOWN", "productionEvidence": null },
+    "permissions":     { "kind": "sql", "sql": [], "rollback": [], "local": "NOT WRITTEN", "production": "UNKNOWN", "productionEvidence": null, "note": "waits for Query G" },
+    "nightly":         { "kind": "sql", "sql": ["drafts/25", "drafts/29"], "rollback": ["drafts/30", "drafts/26"], "local": "TESTED LOCALLY", "production": "UNKNOWN", "productionEvidence": null },
+    "report_totals":   { "kind": "sql", "optional": true, "sql": ["drafts/13"], "rollback": ["drafts/31"], "local": "TESTED LOCALLY", "production": "UNKNOWN", "productionEvidence": null, "note": "optional, not in the plan; EXT14 fixed missing-total handling" }
+  },
+  "switches": {
+    "stock_fn_receive_po":     { "install": "switch_rows", "production": "UNKNOWN", "productionEvidence": null },
+    "stock_fn_adjust":         { "install": "switch_rows", "production": "UNKNOWN", "productionEvidence": null },
+    "stock_fn_recall":         { "install": "switch_rows", "production": "UNKNOWN", "productionEvidence": null },
+    "stock_fn_return":         { "install": "switch_rows", "production": "UNKNOWN", "productionEvidence": null },
+    "stock_fn_delete_product": { "install": "switch_rows", "production": "UNKNOWN", "productionEvidence": null },
+    "request_keys":            { "install": "request_keys", "production": "UNKNOWN", "productionEvidence": null },
+    "integrity_results_home":  { "install": "nightly", "production": "UNKNOWN", "productionEvidence": null }
+  },
+  "facts": {
+    "backups": { "production": "UNKNOWN", "productionEvidence": null },
+    "agents": { "production": "REPORTED", "productionEvidence": null, "note": "#4/#5/#6 on, #2/#3/#7/#8 off as reported by the owner; #1 UNVERIFIED" },
+    "ci": { "branch": "IMPLEMENTED IN BRANCH", "active": false, "note": ".github/workflows/ci.yml runs only after the owner merges it" }
+  }
+}
