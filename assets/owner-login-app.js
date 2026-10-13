@@ -4187,8 +4187,8 @@
         let who = null;
         if (row && row.changed_by) {
           const { data: who_row } = await supabase
-            .from('profiles').select('full_name').eq('id', row.changed_by).maybeSingle();
-          who = who_row && who_row.full_name ? esc(who_row.full_name) : null;
+            .from('profiles').select('display_name, email').eq('id', row.changed_by).maybeSingle(); // EXT19: was full_name, which profiles does not have
+          who = who_row && (who_row.display_name || who_row.email) ? esc(who_row.display_name || who_row.email) : null;
         }
 
         const mode = (row && row.mode) || 'NORMAL';

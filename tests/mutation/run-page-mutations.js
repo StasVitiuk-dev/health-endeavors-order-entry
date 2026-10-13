@@ -679,6 +679,16 @@ const MUTATIONS = [
   ['the icon builder accepts any tag from the table', 'assets/app/he-ui.js',
     "        if (!ICON_TAGS.test(m[1])) continue;\n", "",
     'dom-builder-ext19 -g "pageIconNode"'],
+  // EXT19: state contract and schema contract
+  ['an unknown result may be re-sent straight away (table changed)', 'assets/app/he-ops.js',
+    "    RESULT_UNKNOWN: ['READBACK_CHECKING'],", "    RESULT_UNKNOWN: ['READBACK_CHECKING', 'SENDING'],",
+    'state-contract-ext19'],
+  ['a conflict may be overwritten (conflict goes straight to sending)', 'assets/app/he-ops.js',
+    "    CONFLICT: ['READY'],", "    CONFLICT: ['READY', 'SENDING'],",
+    'state-contract-ext19'],
+  ['"changed by" is read from profiles.full_name again', 'assets/app/he-agents.js',
+    "select('id, display_name, email')", "select('id, full_name')",
+    'schema-contract-ext19 -g "who changed"'],
 ];
 
 // EXT16: `--check` only confirms that every mutant's text is still in its file
@@ -778,6 +788,8 @@ for (const [name, file, find, repl, specs] of MUTATIONS.filter(m => !ONLY || ONL
   fs.cpSync(path.join(ROOT, 'assets'), path.join(SCRATCH, 'assets'), { recursive: true }); // EXT14: all page code (app script, helpers, CSS)
   fs.rmSync(path.join(SCRATCH, 'tests'), { recursive: true, force: true });
   sh(`cp -r "${path.join(ROOT, 'tests')}" "${path.join(SCRATCH, 'tests')}"`, ROOT);
+  // EXT19: contract files some specs read (they may be ahead of HEAD too)
+  for (const f of fs.readdirSync(path.join(ROOT, 'docs', 'ops')).filter(f => f.endsWith('.json'))) fs.copyFileSync(path.join(ROOT, 'docs', 'ops', f), path.join(SCRATCH, 'docs', 'ops', f));
   fs.symlinkSync(path.join(ROOT, 'node_modules'), path.join(SCRATCH, 'node_modules'));
   // EXT15: the owner program is split into assets/app/*.js modules. A mutant
   // written for owner-login-app.js is applied to whichever of the owner page's
@@ -806,7 +818,9 @@ for (const [name, file, find, repl, specs] of MUTATIONS.filter(m => !ONLY || ONL
   const plain = out.replace(/\x1b\[[0-9;]*[A-Za-z]/g, ''); // terminal escape codes start some lines
   const failed = (plain.match(/^\s*(\d+) failed\s*$/m) || [])[1];
   const passed = (plain.match(/^\s*(\d+) passed\b/m) || [])[1];
-  results.push([name, failed ? `CAUGHT (${failed} failed, ${passed || 0} passed)` : `NOT CAUGHT (${passed || 0} passed)`]);
+  // EXT19: no test ran at all (spec failed to load, a file it reads is missing,
+  // wrong filter) is neither caught nor missed: it says so.
+  results.push([name, failed ? `CAUGHT (${failed} failed, ${passed || 0} passed)` : !passed ? 'NO TEST RAN (spec did not load or filter matched nothing): ' + (plain.match(/Error: [^\n]*/) || ['no error text'])[0].slice(0, 160) : `NOT CAUGHT (${passed} passed)`]);
   fs.writeFileSync(PROGRESS, JSON.stringify({ done: results.length, results }, null, 1));
 }
 } catch (e) {

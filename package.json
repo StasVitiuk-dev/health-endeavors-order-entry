@@ -27,6 +27,7 @@
     "security:static": "node tests/tools/static-security.js",
     "security:sinks": "node tests/tools/dom-sinks.js --gate",
     "security:regex": "node tests/tools/regex-audit.js",
+    "schema:contract": "node tests/tools/schema-contract.js",
     "security:quick": "bash tests/tools/security-check.sh quick",
     "security:deep": "bash tests/tools/security-check.sh deep"
   },

@@ -24,6 +24,7 @@ step "static security check (pages + scripts)" node tests/tools/static-security.
 step "DOM sink gate" node tests/tools/dom-sinks.js --gate
 step "slow-regex audit" node tests/tools/regex-audit.js
 step "SQL package lint" node tests/tools/sql-lint.js
+step "schema contract" node tests/tools/schema-contract.js
 step "Node-only security specs" npx playwright test --config tests/playwright.config.js --project=desktop --reporter=line \
   tests/specs/security-static-ext18.spec.js tests/specs/security-parsers-ext18.spec.js tests/specs/supply-chain-ext18.spec.js tests/specs/ci-guard-ext14.spec.js
 

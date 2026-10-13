@@ -174,9 +174,11 @@ window.HE.modules.define('he-agents', { api: 1, needs: ['AGENT_REGISTRY','AGENT_
 
         const uids = [...new Set((rows || []).map(r => r.updated_by).filter(Boolean))];
         if (uids.length) {
-          const { data: people } = await supabase.from('profiles').select('id, full_name').in('id', uids);
+          // EXT19: profiles has display_name (Query A), not full_name: asking for
+          // full_name failed, so "changed by" never showed a name.
+          const { data: people } = await supabase.from('profiles').select('id, display_name, email').in('id', uids);
           const nameById = Object.create(null);
-          (people || []).forEach(p => { nameById[p.id] = p.full_name; });
+          (people || []).forEach(p => { nameById[p.id] = p.display_name || p.email; });
           Object.values(byId).forEach(r => { r.who = r.updated_by ? nameById[r.updated_by] : null; });
         }
 

@@ -322,6 +322,13 @@ class FakeSupabase {
       body: data === undefined ? '' : JSON.stringify(data),
     });
 
+    // EXT19: like the real database, a read that names a column the table does
+    // not have is refused (42703). Checked for the 18 tables whose real shape is
+    // known (Query A); found profiles.full_name, which the page asked for twice.
+    if ((method === 'GET' || method === 'HEAD') && search.get('select')) {
+      const unknown = unknownSelectColumns(table, search.get('select'));
+      if (unknown) return respond(400, { code: '42703', details: null, hint: null, message: `column ${unknown} does not exist` });
+    }
     if (method === 'GET' || method === 'HEAD') {
       let matched = applyOrder(applyFilters(rows, params), search.get('order'));
       const total = matched.length;
@@ -402,4 +409,18 @@ async function installMocks(page) {
   return backend;
 }
 
-module.exports = { installMocks, FakeSupabase, DASHBOARD_ORIGIN, SUPABASE_HOST, OWNER_USER };
+// Columns per table from the local real-shape schema (Query A); draft columns allowed.
+let SCHEMA_COLS = null;
+function unknownSelectColumns(table, select) {
+  const sc = require('../tools/schema-contract');
+  if (!SCHEMA_COLS) SCHEMA_COLS = sc.schema();
+  const walk = (t, p) => {
+    if (!SCHEMA_COLS[t]) return null;
+    for (const c of p.cols) if (!SCHEMA_COLS[t].has(c) && !sc.DRAFT_COLUMNS.has(c)) return t + '.' + c;
+    for (const r of p.rels) { const u = walk(r.table, r.sub); if (u) return u; }
+    return null;
+  };
+  try { return walk(table, sc.parseSelect(decodeURIComponent(select))); } catch (e) { return null; }
+}
+
+module.exports = { unknownSelectColumns, installMocks, FakeSupabase, DASHBOARD_ORIGIN, SUPABASE_HOST, OWNER_USER };
