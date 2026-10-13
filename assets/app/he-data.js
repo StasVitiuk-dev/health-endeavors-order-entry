@@ -36,10 +36,23 @@ window.HE.modules.define('he-data', { api: 1, needs: ['INVENTORY_BUCKET_LABELS',
       el.textContent = 'A list on this dashboard reached the 1,000-record reading limit (' + Array.from(rowCapTables).join(', ') + '), so it may be missing older records. Totals and money figures are not affected: they are read in full. The list needs paging; please report this.';
       el.style.display = 'block';
     }
+    // EXT18: how many changes (anything but a read) have been sent and are still
+    // waiting for their reply. A sign-out elsewhere during that time must not be
+    // reported as "nothing was sent": the change was sent and may have landed.
+    let writesWaiting = 0;
+    const writesInFlight = () => writesWaiting;
     function capAwareFetch(input, init){
+      const method = String((init && init.method) || 'GET').toUpperCase();
+      let isWrite = false;
+      try {
+        const p = new URL(typeof input === 'string' ? input : input.url).pathname;
+        isWrite = method !== 'GET' && method !== 'HEAD' && (p.indexOf('/rest/v1/') === 0 || p.indexOf('/storage/v1/') === 0);
+      } catch (_) { /* unknown address: not counted */ }
+      if (isWrite) writesWaiting++;
+      const settled = () => { if (isWrite) writesWaiting--; };
       return fetch(input, init).then(res => {
+        settled();
         try {
-          const method = String((init && init.method) || 'GET').toUpperCase();
           const url = new URL(typeof input === 'string' ? input : input.url);
           if (method === 'GET' && res.ok && url.pathname.indexOf('/rest/v1/') === 0 && !url.searchParams.has('limit')) {
             res.clone().json().then(rows => {
@@ -48,7 +61,7 @@ window.HE.modules.define('he-data', { api: 1, needs: ['INVENTORY_BUCKET_LABELS',
           }
         } catch (_) { /* never break a read over the notice */ }
         return res;
-      });
+      }, err => { settled(); throw err; });
     }
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { global: { fetch: capAwareFetch } });
     const verifyOnly = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -434,5 +447,5 @@ window.HE.modules.define('he-data', { api: 1, needs: ['INVENTORY_BUCKET_LABELS',
       });
     }
 
-  return { newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind };
+  return { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind };
 });

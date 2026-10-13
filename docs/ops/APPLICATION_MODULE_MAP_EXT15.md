@@ -23,7 +23,7 @@ Why it matters: a smaller file is easier to review, a mistake in one area is les
 |---|---|---|---|---|---|
 | 1 | `he-config` | fixed configuration: sidebar groups, icons, help text, status and label maps, agent registry, limits | 614 | — | 55 |
 | 2 | `he-ui` | shared screen helpers: toasts, loading skeletons, number animation, focus return, overlays (help, palette, shortcuts, quick add), theme, empty states, icons | 234 | he-config: 6 | 31 |
-| 3 | `he-data` | database access: the Supabase client (row-cap aware), request generation, paged reads, guarded updates, request keys, stock functions, uploads, error kinds | 439 | he-config: 3, page constant: 2, helpers / program: 5, he-ui: 1 | 31 |
+| 3 | `he-data` | database access: the Supabase client (row-cap aware), request generation, paged reads, guarded updates, request keys, stock functions, uploads, error kinds | 452 | he-config: 3, page constant: 2, helpers / program: 5, he-ui: 1 | 32 |
 | 4 | `he-audit` | change history and activity: record titles, field names, change descriptions and diffs, inspector targets, activity feed reads | 226 | he-config: 4, helpers / program: 1, he-data: 1 | 10 |
 | 5 | `he-status` | system status: environment label, page versions, database-step checks, freshness limits, attention seen-state | 75 | he-config: 1, he-data: 3, page constant: 1 | 9 |
 | 6 | `he-time` | dates and calendar: today and yesterday ranges, date keys, calendar colours, event editor helpers, week and month labels | 110 | he-config: 1, helpers / program: 1 | 11 |
@@ -41,7 +41,7 @@ Why it matters: a smaller file is easier to review, a mistake in one area is les
 | 18 | `he-admin` | Admin pages: signed-in sessions, SOPs, feature requests and their recycle bin (reads plus simple non-stock, non-money saves) | 217 | he-config: 4, helpers / program: 10, he-data: 4, he-ui: 1 | 4 |
 | 19 | `he-compliance` | Compliance pages: adverse events, legal holds (and released holds), documents, evidence locker (reads plus guarded record saves; no stock or money) | 398 | he-format: 2, he-config: 2, he-data: 7, helpers / program: 8, he-ui: 2 | 5 |
 
-Program file after extraction: `assets/owner-login-app.js` 6,308 lines, 367,481 bytes; 85 top-level functions; 47 mutable top-level variables (46 shared).
+Program file after extraction: `assets/owner-login-app.js` 6,312 lines, 367,943 bytes; 85 top-level functions; 47 mutable top-level variables (46 shared).
 
 Dependency graph (module ← modules it takes inputs from; the program creates them top to bottom):
 

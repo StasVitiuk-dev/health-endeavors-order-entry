@@ -18,6 +18,8 @@ const CHANGED = [
   // EXT18: lookups keyed by database/customer text use prototype-free objects ("__proto__", "constructor" are ordinary keys):
   'loadActivityDigest', 'PO_LOTS', 'loadPurchaseOrders', 'calNotes', 'loadCalendarMonth', 'agentControlsByNum', 'cronJobStatusByName', 'loadAgentControls',
   'INQUIRY_ORDER_BY_ID', 'loadInquiries', 'loadEvidenceLocker', 'loadDocuments', 'loadAccounting', 'loadTaxRecords',
+  // EXT18: changes still waiting for a reply are counted, so a sign-out elsewhere is reported honestly:
+  'capAwareFetch', 'writesWaiting', 'writesInFlight',
   'assetVersions', 'loadAttentionChecks', 'loadSystemStatus', 'loadBusinessHealth', 'getPageBadgeCount', 'searchEverything', 'ACCOUNTING_REFUND_POLICY',
   // inline-style removal edits that are not the mechanical conversion (dynamic colours, computed display, malformed switch):
   'renderSidebar', 'renderActivity', 'agentTruth', 'agentJobHealthHtml', 'loadSystemMode', 'loadInventory',
@@ -34,7 +36,7 @@ const ADDED = ['setReportHistoryView', 'inquiriesList', 'agentControls', 'poRece
   'adjustOps', 'adjustPending', 'adjustKey', 'checkUnknownAdjustment',
   'openGroupsMem', 'pinnedMem'];
 const NEW_MODULES = ['he-ops']; // EXT16: written new, not moved
-const CHANGED_TEXT = ["forEach(o => Object.setPrototypeOf(o, null))", "getAttribute('data-view')", "getElementById('adjustInventoryForm').addEventListener('submit'"]; // the report-view buttons now call setReportHistoryView
+const CHANGED_TEXT = ["forEach(o => Object.setPrototypeOf(o, null))", "supabase.auth.onAuthStateChange((event, session) =>", "getAttribute('data-view')", "getElementById('adjustInventoryForm').addEventListener('submit'"]; // the report-view buttons now call setReportHistoryView
 
 test('the module moves were byte-identical: every original statement once, only the named edits differ', ({}, ti) => {
   nodeOnly(ti);

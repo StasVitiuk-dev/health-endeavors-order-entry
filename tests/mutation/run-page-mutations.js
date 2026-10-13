@@ -433,7 +433,7 @@ const MUTATIONS = [
     'if (/Failed to fetch|Load failed|NetworkError when attempting to fetch/i.test(t)', 'if (false',
     'fault-injection -g "dropAfter|dropBefore"'],
   ['signed out in another tab: dashboard stays open', 'assets/owner-login-app.js',
-    "      if (event === 'SIGNED_OUT') {\n        wipeAfterSignOut(", "      if (false) {\n        wipeAfterSignOut(",
+    "      if (event === 'SIGNED_OUT') {\n        // EXT18: a change still waiting", "      if (false) {\n        // EXT18: a change still waiting",
     'session-failures -g "another tab"'],
   ['manual order retry creates a second order again', 'assets/manual-order-entry.js',
     'if (mine.length === 1) newOrder = mine[0];', 'if (false) newOrder = mine[0];',
@@ -665,6 +665,10 @@ const MUTATIONS = [
   ['the secret scanner no longer refuses .env and key files', 'tests/tools/secret-scan.js',
     "if (SECRET_FILE.test(f) && !SECRET_FILE_OK.test(f))", "if (false)",
     'supply-chain-ext18 -g "fires on each kind"'],
+  // EXT18: honest note when signed out with a save still on its way
+  ['changes waiting for a reply are no longer counted (sign-out says "not sent")', 'assets/app/he-data.js',
+    "      if (isWrite) writesWaiting++;", "",
+    'session-security-ext18 -g "still on its way"'],
 ];
 
 // EXT16: `--check` only confirms that every mutant's text is still in its file
