@@ -19,7 +19,7 @@ Merging changes the dashboard code only. No SQL runs on merge, nothing touches c
 
 | Changed | Files |
 |---|---|
-| Dashboard | `assets/owner-login-app.js`, `assets/owner-login-helpers.js`, `assets/app/he-config.js`, `he-data.js`, `he-agents.js`, `he-audit.js`, `he-compliance.js`, `he-inquiries.js`; all 6 `*.html` (script policy line; `owner-login.html` asset versions) |
+| Dashboard | `assets/owner-login-app.js`, `assets/owner-login-helpers.js`, `assets/app/he-config.js`, `assets/app/he-data.js`, `assets/app/he-agents.js`, `assets/app/he-audit.js`, `assets/app/he-compliance.js`, `assets/app/he-inquiries.js`; all 6 `*.html` (script policy line; `owner-login.html` asset versions) |
 | Tests and tools | 6 new specs, `static-security.js`, `dom-sinks.js --gate` + reviewed list, `regex-audit.js` + reviewed list, `security-check.sh`, secret-scan extension, local `rls_contract_test.sh`, 12 new mutants |
 | CI | static job runs the new gates and Node-only specs (no new permission, no secret, no deploy) |
 | Docs | `docs/ops/*_EXT18.md` (10), status documents, intermittent register (INT-6) |
