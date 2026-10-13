@@ -71,6 +71,43 @@ window.HE.modules.define('he-ui', { api: 1, needs: ['EMPTY_ICONS','HELP','ICON_P
       return ICON_OPEN + (ICON_PATHS[pageId] || FALLBACK_ICON) + '</svg>';
     }
 
+    // EXT19: safe element builder (the first step towards Trusted Types).
+    // h('a', { class: 'x', 'data-page': id }, 'text', childNode, …) creates the
+    // element with createElement, sets attributes with setAttribute and adds
+    // strings as TEXT, so data can never become markup. Event-handler
+    // attributes (on…) and srcdoc are refused; listeners are added in code.
+    // false / null / undefined attributes and children are skipped.
+    function h(tag, attrs, ...children){
+      const el = document.createElement(tag);
+      for (const [k, v] of Object.entries(attrs || {})) {
+        if (v === false || v === null || v === undefined) continue;
+        if (/^on/i.test(k) || /^srcdoc$/i.test(k)) throw new Error('h(): refused attribute ' + k);
+        el.setAttribute(k, v === true ? '' : String(v));
+      }
+      for (const c of children.flat()) {
+        if (c === false || c === null || c === undefined) continue;
+        el.appendChild(c instanceof Node ? c : document.createTextNode(String(c)));
+      }
+      return el;
+    }
+    // The page icon as SVG nodes, built from the fixed icon table without any
+    // HTML parsing. Only <path>, <circle> and <rect> with geometry attributes
+    // are accepted; anything else in the table is ignored.
+    const SVG_NS = 'http://www.w3.org/2000/svg';
+    const ICON_TAGS = /^(path|circle|rect)$/, ICON_ATTRS = /^(d|cx|cy|r|x|y|width|height|rx|ry)$/;
+    function pageIconNode(pageId){
+      const svg = document.createElementNS(SVG_NS, 'svg');
+      for (const [k, v] of [['viewBox', '0 0 16 16'], ['fill', 'none'], ['stroke', 'currentColor'], ['stroke-width', '1.4'], ['stroke-linecap', 'round'], ['stroke-linejoin', 'round']]) svg.setAttribute(k, v);
+      const src = ICON_PATHS[pageId] || FALLBACK_ICON;
+      for (const m of String(src).matchAll(/<([a-z]+)((?:\s+[a-z-]+="[^"<>]*")*)\s*\/>/g)) {
+        if (!ICON_TAGS.test(m[1])) continue;
+        const shape = document.createElementNS(SVG_NS, m[1]);
+        for (const a of m[2].matchAll(/([a-z-]+)="([^"<>]*)"/g)) if (ICON_ATTRS.test(a[1])) shape.setAttribute(a[1], a[2]);
+        svg.appendChild(shape);
+      }
+      return svg;
+    }
+
     function closeMobileSidebar(){
       document.getElementById('sidebarNav').classList.remove('mobileOpen');
       document.getElementById('sidebarOverlay').classList.remove('visible');
@@ -98,15 +135,13 @@ window.HE.modules.define('he-ui', { api: 1, needs: ['EMPTY_ICONS','HELP','ICON_P
     // ---- Skeletons ----
     // Shows the shape of the content while it loads, instead of the word
     // "Loading". Loaders overwrite these as soon as their data lands.
-    function skeletonRows(n){
-      let out = '';
+    function skeletonNodes(n){
       const widths = ['w80', 'w60', 'w40', 'w80', 'w60'];
-      for (let i = 0; i < n; i++) out += '<span class="skel skelRow ' + widths[i % widths.length] + '"></span>';
-      return out;
+      return Array.from({ length: n }, (_, i) => h('span', { class: 'skel skelRow ' + widths[i % widths.length] }));
     }
     function paintSkeletons(){
       document.querySelectorAll('main.contentArea div[id$="Wrap"]').forEach(el => {
-        if (/^\s*loading/i.test(el.textContent || '')) el.innerHTML = skeletonRows(4);
+        if (/^\s*loading/i.test(el.textContent || '')) el.replaceChildren(...skeletonNodes(4)); // EXT19: no HTML parsing
       });
     }
 
@@ -229,5 +264,5 @@ window.HE.modules.define('he-ui', { api: 1, needs: ['EMPTY_ICONS','HELP','ICON_P
     // ---- iPhone: pull down to refresh, swipe to change page ----
     const ptr = document.createElement('div');
 
-  return { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, pageIconSvg };
+  return { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, pageIconSvg, h, pageIconNode };
 });

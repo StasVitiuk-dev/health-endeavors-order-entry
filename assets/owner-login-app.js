@@ -88,7 +88,7 @@
     } = window.HE.helpers;
     // @@ EXT15 modules: created in dependency order (assets/app/*.js; see docs/ops/APPLICATION_MODULE_MAP_EXT15.md)
     const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS } = HE.modules.create('he-config', {  });
-    const { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, pageIconSvg } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
+    const { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, pageIconSvg, h, pageIconNode } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
     const { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
     const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, esc, supabase });
     const { environmentLabel, assetVersions, isMissingRelation, dbStepsStatus, NIGHTLY_STALE_MS, ATTN_STALE_MS, attnSeenGet, attnSeenSet, attnSignature } = HE.modules.create('he-status', { DB_STEPS, STOCK_FN_PROBES, SUPABASE_URL, stockFunctionInstalled, supabase });
@@ -594,16 +594,17 @@
       renderSidebar(document.getElementById('sidebarSearch').value);
     }
 
-    function pageLinkHtml(p, pinnedSet){
+    // EXT19: the sidebar is built as elements (h), not as an HTML string: it was
+    // the busiest raw-HTML site on the page (40 of 168 Trusted Types reports).
+    function pageLinkNode(p, pinnedSet){
       const badge = getPageBadgeCount(p.id);
       const isPinned = pinnedSet.has(p.id);
-      return `<a class="sidebarLink${p.id === currentPageId ? ' active' : ''}" data-page="${esc(p.id)}">
-        <span class="linkLabelRow">
-          <button type="button" class="pinBtn${isPinned ? ' pinned' : ''}" data-pin-page="${esc(p.id)}" title="${isPinned ? 'Unpin' : 'Pin to top'}">${isPinned ? '★' : '☆'}</button>
-          <span class="pageIcon">${pageIconSvg(p.id)}</span>
-          <span>${esc(p.label)}</span>
-        </span>${badge > 0 ? `<span class="sidebarBadge">${badge}</span>` : ''}
-      </a>`;
+      return h('a', { class: 'sidebarLink' + (p.id === currentPageId ? ' active' : ''), 'data-page': p.id },
+        h('span', { class: 'linkLabelRow' },
+          h('button', { type: 'button', class: 'pinBtn' + (isPinned ? ' pinned' : ''), 'data-pin-page': p.id, title: isPinned ? 'Unpin' : 'Pin to top' }, isPinned ? '★' : '☆'),
+          h('span', { class: 'pageIcon' }, pageIconNode(p.id)),
+          h('span', null, p.label)),
+        badge > 0 ? h('span', { class: 'sidebarBadge' }, badge) : null);
     }
 
     function renderSidebar(filterText){
@@ -611,15 +612,11 @@
       const wrap = document.getElementById('sidebarGroups');
       const pinnedIds = getPinnedPages();
       const pinnedSet = new Set(pinnedIds);
-      let html = '';
+      const out = [];
 
       if (pinnedIds.length) {
-        html += `<div class="sidebarGroup u-groupcolor-copper"><div class="groupLabel">Pinned</div>`;
-        pinnedIds.forEach(id => {
-          if (!PAGE_LABEL_BY_ID[id]) return;
-          html += pageLinkHtml({ id, label: PAGE_LABEL_BY_ID[id] }, pinnedSet);
-        });
-        html += `</div>`;
+        out.push(h('div', { class: 'sidebarGroup u-groupcolor-copper' }, h('div', { class: 'groupLabel' }, 'Pinned'),
+          pinnedIds.filter(id => PAGE_LABEL_BY_ID[id]).map(id => pageLinkNode({ id, label: PAGE_LABEL_BY_ID[id] }, pinnedSet))));
       }
 
       LAST_SEARCH_RESULTS = [];
@@ -627,13 +624,9 @@
         const dataResults = searchEverything(q);
         LAST_SEARCH_RESULTS = dataResults;
         if (dataResults.length) {
-          html += `<div class="sidebarGroup u-groupcolor-teal"><div class="groupLabel">Search results</div>`;
-          dataResults.forEach((r, idx) => {
-            html += `<a class="sidebarLink searchResultLink" data-page="${esc(r.pageId)}" data-result-index="${idx}">
-              <span class="resultType">${esc(r.type)}</span><br>${esc(r.label)}
-            </a>`;
-          });
-          html += `</div>`;
+          out.push(h('div', { class: 'sidebarGroup u-groupcolor-teal' }, h('div', { class: 'groupLabel' }, 'Search results'),
+            dataResults.map((r, idx) => h('a', { class: 'sidebarLink searchResultLink', 'data-page': r.pageId, 'data-result-index': idx },
+              h('span', { class: 'resultType' }, r.type), h('br'), r.label))));
         }
       }
 
@@ -641,10 +634,13 @@
       // newest orders, ...). Say so, and offer a lookup in ALL orders, so an
       // older order is never reported as "no match".
       if (q && q.length >= 2) {
-        html += `<div class="sidebarGroup u-groupcolor-teal" id="orderLookupGroup">
-          <p class="hint u-m-4-10">Searches the records loaded here (open work, newest orders).</p>
-          <button type="button" class="small secondary u-m-2-10-6" id="orderLookupBtn">Look up “${esc(q)}” in all orders</button>
-          <div id="orderLookupResults">${ORDER_LOOKUP.q === q ? ORDER_LOOKUP.html : ''}</div></div>`;
+        const results = h('div', { id: 'orderLookupResults' });
+        // the earlier lookup's rows (built with esc() in lookUpAllOrders) are shown again for the same search
+        if (ORDER_LOOKUP.q === q && ORDER_LOOKUP.html) results.innerHTML = ORDER_LOOKUP.html;
+        out.push(h('div', { class: 'sidebarGroup u-groupcolor-teal', id: 'orderLookupGroup' },
+          h('p', { class: 'hint u-m-4-10' }, 'Searches the records loaded here (open work, newest orders).'),
+          h('button', { type: 'button', class: 'small secondary u-m-2-10-6', id: 'orderLookupBtn' }, 'Look up “' + q + '” in all orders'),
+          results));
       }
 
       SIDEBAR_GROUPS.forEach(group => {
@@ -652,29 +648,26 @@
         if (!pages.length) return;
         // EXT15: no inline style (strict style policy): the colour travels as data and is
         // applied through the CSS object model below, only if it is a plain hex colour.
-        const groupStyle = `data-group-color="${esc(group.color || '#1f7a8c')}"`;
+        const color = group.color || '#1f7a8c';
         if (group.collapsible && !q) {
           // Open if you've opened it, or if the page you're on lives here.
           const open = isGroupOpen(group.label) || pages.some(p => p.id === currentPageId);
           // Never hide something that needs attention: if a folded page has a
           // badge, the total shows on the section header.
           const hiddenBadges = open ? 0 : pages.reduce((n, p) => n + (getPageBadgeCount(p.id) || 0), 0);
-          html += `<div class="sidebarGroup" ${groupStyle}>` +
-            `<button type="button" class="groupLabel groupToggle" data-group="${esc(group.label)}" aria-expanded="${open}">` +
-              `<span class="groupChevron">${open ? '▾' : '▸'}</span>${esc(group.label)}` +
-              (hiddenBadges > 0 ? `<span class="sidebarBadge">${hiddenBadges}</span>` : '') +
-            `</button>`;
-          if (open) pages.forEach(p => { html += pageLinkHtml(p, pinnedSet); });
-          html += `</div>`;
+          out.push(h('div', { class: 'sidebarGroup', 'data-group-color': color },
+            h('button', { type: 'button', class: 'groupLabel groupToggle', 'data-group': group.label, 'aria-expanded': String(open) },
+              h('span', { class: 'groupChevron' }, open ? '▾' : '▸'), group.label,
+              hiddenBadges > 0 ? h('span', { class: 'sidebarBadge' }, hiddenBadges) : null),
+            open ? pages.map(p => pageLinkNode(p, pinnedSet)) : null));
           return;
         }
-        html += `<div class="sidebarGroup" ${groupStyle}><div class="groupLabel">${esc(group.label)}</div>`;
-        pages.forEach(p => { html += pageLinkHtml(p, pinnedSet); });
-        html += `</div>`;
+        out.push(h('div', { class: 'sidebarGroup', 'data-group-color': color }, h('div', { class: 'groupLabel' }, group.label),
+          pages.map(p => pageLinkNode(p, pinnedSet))));
       });
 
-      if (!html) html = '<p class="sidebarEmpty">No pages or records match your search.</p>';
-      wrap.innerHTML = html;
+      if (!out.length) out.push(h('p', { class: 'sidebarEmpty' }, 'No pages or records match your search.'));
+      wrap.replaceChildren(...out);
       wrap.querySelectorAll('.sidebarGroup[data-group-color]').forEach(g => {
         const c = g.getAttribute('data-group-color');
         if (/^#[0-9a-fA-F]{3,8}$/.test(c)) g.style.setProperty('--groupColor', c);

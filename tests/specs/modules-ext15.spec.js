@@ -20,6 +20,8 @@ const CHANGED = [
   'INQUIRY_ORDER_BY_ID', 'loadInquiries', 'loadEvidenceLocker', 'loadDocuments', 'loadAccounting', 'loadTaxRecords',
   // EXT18: changes still waiting for a reply are counted, so a sign-out elsewhere is reported honestly:
   'capAwareFetch', 'writesWaiting', 'writesInFlight',
+  // EXT19: sidebar and loading skeletons built as elements (safe builder h), not HTML strings:
+  'pageLinkHtml', 'pageLinkNode', 'skeletonRows', 'skeletonNodes', 'paintSkeletons', 'h', 'pageIconNode', 'SVG_NS', 'ICON_TAGS',
   'assetVersions', 'loadAttentionChecks', 'loadSystemStatus', 'loadBusinessHealth', 'getPageBadgeCount', 'searchEverything', 'ACCOUNTING_REFUND_POLICY',
   // inline-style removal edits that are not the mechanical conversion (dynamic colours, computed display, malformed switch):
   'renderSidebar', 'renderActivity', 'agentTruth', 'agentJobHealthHtml', 'loadSystemMode', 'loadInventory',

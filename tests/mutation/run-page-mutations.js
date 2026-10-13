@@ -669,6 +669,16 @@ const MUTATIONS = [
   ['changes waiting for a reply are no longer counted (sign-out says "not sent")', 'assets/app/he-data.js',
     "      if (isWrite) writesWaiting++;", "",
     'session-security-ext18 -g "still on its way"'],
+  // EXT19: safe element builder
+  ['the element builder adds text as HTML', 'assets/app/he-ui.js',
+    "el.appendChild(c instanceof Node ? c : document.createTextNode(String(c)));", "if (c instanceof Node) el.appendChild(c); else el.insertAdjacentHTML('beforeend', String(c));",
+    'dom-builder-ext19 -g "3,000 hostile"'],
+  ['the element builder accepts event-handler attributes', 'assets/app/he-ui.js',
+    "if (/^on/i.test(k) || /^srcdoc$/i.test(k)) throw", "if (false) throw",
+    'dom-builder-ext19 -g "refused"'],
+  ['the icon builder accepts any tag from the table', 'assets/app/he-ui.js',
+    "        if (!ICON_TAGS.test(m[1])) continue;\n", "",
+    'dom-builder-ext19 -g "pageIconNode"'],
 ];
 
 // EXT16: `--check` only confirms that every mutant's text is still in its file
