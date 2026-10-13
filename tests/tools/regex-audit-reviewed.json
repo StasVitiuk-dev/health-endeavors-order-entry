@@ -1,0 +1,41 @@
+{
+ "note": "EXT18 regex audit. Patterns that slow down on huge input but whose input is capped in code (re-timed at maxInput). Key = file + exact regex literal.",
+ "patterns": [
+  {
+   "file": "assets/owner-login-helpers.js",
+   "regex": "/:?\\s*(TypeError:\\s*)?(Failed to fetch|Load failed|NetworkError when attempting to fetch resource\\.?)/i",
+   "maxInput": 2000,
+   "reason": "explainDbError(): error text cut to 2,000 characters before these checks (EXT18)"
+  },
+  {
+   "file": "assets/owner-login-helpers.js",
+   "regex": "/[\\s:—-]+$/",
+   "maxInput": 2000,
+   "reason": "explainDbError(): error text cut to 2,000 characters before these checks (EXT18)"
+  },
+  {
+   "file": "assets/owner-login-helpers.js",
+   "regex": "/:?\\s*(ERROR:\\s*)?(deadlock detected|canceling statement due to (statement|lock) timeout|could not obtain lock on row in relation \"[^\"]*\")\\.?/i",
+   "maxInput": 2000,
+   "reason": "explainDbError(): error text cut to 2,000 characters before these checks (EXT18)"
+  },
+  {
+   "file": "assets/owner-login-helpers.js",
+   "regex": "/:?\\s*Too Many Requests\\.?/i",
+   "maxInput": 2000,
+   "reason": "explainDbError(): error text cut to 2,000 characters before these checks (EXT18)"
+  },
+  {
+   "file": "assets/owner-login-helpers.js",
+   "regex": "/[^\\s@:;,()<>]+@[^\\s@:;,()<>]+/g",
+   "maxInput": 2000,
+   "reason": "maskSensitive(): input cut to 2,000 characters before masking (EXT18)"
+  }
+ ],
+ "dynamic": [
+  {
+   "file": "assets/app/he-status.js",
+   "reason": "built from module names in the code registry (he-*), escaped dot; never from data"
+  }
+ ]
+}

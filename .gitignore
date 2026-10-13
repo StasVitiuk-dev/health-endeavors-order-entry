@@ -1,3 +1,13 @@
 node_modules/
 test-results/
 playwright-report/
+staging-build/
+staging-build.zip
+# EXT18: secret-holding files are never committed (also enforced by tests/tools/secret-scan.js)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.npmrc
+.pgpass

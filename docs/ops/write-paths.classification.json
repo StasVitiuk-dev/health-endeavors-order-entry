@@ -1,0 +1,911 @@
+{
+ "owner-login.html|changeStock|inventory|insert|1": {
+  "guards": "",
+  "idempotency": "not idempotent: one save at a time (button lock)",
+  "audit": "audit trigger (Query A)",
+  "partial": "no (single write)",
+  "sensitive": "yes",
+  "note": "",
+  "justify": {
+   "lock": "Helper used inside locked handlers (adjust form, receive, recall, return); creates the missing stock row only (on conflict do nothing)."
+  }
+ },
+ "owner-login.html|changeStock|inventory|update|1": {
+  "guards": "readBack",
+  "idempotency": "guarded: a repeat changes nothing",
+  "audit": "audit trigger (Query A)",
+  "partial": "no (single write)",
+  "sensitive": "yes",
+  "note": "",
+  "justify": {
+   "lock": "Compare-and-set helper called only from locked handlers; retries up to 5 times on a changed row."
+  }
+ },
+ "owner-login.html|showDashboardFor|auth|auth.signOut|1": {
+  "guards": "",
+  "idempotency": "repeat harmless",
+  "audit": "sign-in system log",
+  "partial": "no (single write)",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "owner-login.html|onConfirm|auth|auth.signOut|1": {
+  "guards": "doubleClickLock",
+  "idempotency": "repeat harmless",
+  "audit": "sign-in system log",
+  "partial": "no (single write)",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "owner-login.html|submit forgotForm|auth|auth.resetPasswordForEmail|1": {
+  "guards": "doubleClickLock",
+  "idempotency": "repeat harmless",
+  "audit": "sign-in system log",
+  "partial": "no (single write)",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "owner-login.html|click signout|auth|auth.signOut|1": {
+  "guards": "",
+  "idempotency": "repeat harmless",
+  "audit": "sign-in system log",
+  "partial": "no (single write)",
+  "sensitive": "yes",
+  "note": "",
+  "justify": {
+   "lock": "Signing out twice is harmless."
+  }
+ },
+ "owner-login.html|click [data-dismiss-id]|manual_attention_items|update|1": {
+  "guards": "readBack,doubleClickLock",
+  "idempotency": "guarded: a repeat changes nothing",
+  "audit": "unknown until Query C §10",
+  "partial": "no (single write)",
+  "sensitive": "no",
+  "note": ""
+ },
+ "owner-login.html|submit addReminderForm|manual_attention_items|insert|1": {
+  "guards": "doubleClickLock",
+  "idempotency": "not idempotent: one save at a time (button lock)",
+  "audit": "unknown until Query C §10",
+  "partial": "no (single write)",
+  "sensitive": "no",
+  "note": ""
+ },
+ "owner-login.html|saveQuickAdd|manual_attention_items|insert|1": {
+  "guards": "doubleClickLock",
+  "idempotency": "not idempotent: one save at a time (button lock)",
+  "audit": "unknown until Query C §10",
+  "partial": "no (single write)",
+  "sensitive": "no",
+  "note": ""
+ },
+ "owner-login.html|submit addProductForm|products|insert|1": {
+  "guards": "doubleClickLock",
+  "idempotency": "not idempotent: one save at a time (button lock)",
+  "audit": "audit trigger (Query A)",
+  "partial": "no (single write)",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "owner-login.html|escalateToIncidentOnce|incidents|insert|1": {
+  "guards": "readBack",
+  "idempotency": "not idempotent: one save at a time (button lock)",
+  "audit": "unknown until Query C §10",
+  "partial": "no (single write)",
+  "sensitive": "no",
+  "note": "",
+  "justify": {
+   "lock": "Called from locked QC/recall handlers; claim-first (incident_id set only while empty), so a second click cannot create a second incident (M4)."
+  }
+ },
+ "owner-login.html|click .supToggleBtn|suppliers|updateIfUnchanged|1": {
+  "guards": "staleCondition,readBack,doubleClickLock",
+  "idempotency": "guarded: a repeat changes nothing",
+  "audit": "audit trigger (Query A)",
+  "partial": "no (single write)",
+  "sensitive": "no",
+  "note": ""
+ },
+ "owner-login.html|submit addSupplierForm|suppliers|insert|1": {
+  "guards": "doubleClickLock",
+  "idempotency": "not idempotent: one save at a time (button lock)",
+  "audit": "audit trigger (Query A)",
+  "partial": "no (single write)",
+  "sensitive": "no",
+  "note": ""
+ },
+ "owner-login.html|click addBtn|purchase_order_items|insert|1": {
+  "guards": "doubleClickLock",
+  "idempotency": "retry-safe: same order number, items only if none (X3-20)",
+  "audit": "audit trigger (Query A)",
+  "partial": "no (single write)",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "owner-login.html|click .poDelLine|purchase_order_items|delete|1": {
+  "guards": "readBack,doubleClickLock",
+  "idempotency": "guarded: a repeat changes nothing",
+  "audit": "audit trigger (Query A)",
+  "partial": "no (single write)",
+  "sensitive": "yes",
+  "note": "",
+  "justify": {
+   "stale": "Re-reads the order status just before deleting and refuses unless it is still draft/ordered; the row read-back reports a line already gone. Not atomic against a receive in another tab until R1 moves receiving into one database function (known limitation, WRITE_PATH_MATRIX)."
+  }
+ },
+ "owner-login.html|click saveTotals|purchase_orders|updateIfUnchanged|1": {
+  "guards": "staleCondition,readBack,doubleClickLock",
+  "idempotency": "guarded: a repeat changes nothing",
+  "audit": "audit trigger (Query A)",
+  "partial": "no (single write)",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "owner-login.html|click savePay|purchase_orders|updateIfUnchanged|1": {
+  "guards": "staleCondition,readBack,doubleClickLock",
+  "idempotency": "guarded: a repeat changes nothing",
+  "audit": "audit trigger (Query A)",
+  "partial": "no (single write)",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "owner-login.html|click .poStatusBtn|purchase_orders|updateIfUnchanged|1": {
+  "guards": "staleCondition,readBack,doubleClickLock,confirmation",
+  "idempotency": "guarded: a repeat changes nothing",
+  "audit": "audit trigger (Query A)",
+  "partial": "no (single write)",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "owner-login.html|click recvBtn|purchase_orders|updateIfUnchanged|1": {
+  "guards": "staleCondition,readBack,doubleClickLock,confirmation,rolePrecheck",
+  "idempotency": "guarded: a repeat changes nothing",
+  "audit": "audit trigger (Query A)",
+  "partial": "YES until R1: claim-first browser path; a failure part-way is reported with what to finish by hand",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "owner-login.html|click recvBtn|purchase_order_items|update|1": {
+  "guards": "readBack,doubleClickLock,confirmation,rolePrecheck",
+  "idempotency": "guarded: a repeat changes nothing",
+  "audit": "audit trigger (Query A)",
+  "partial": "YES until R1: claim-first browser path; a failure part-way is reported with what to finish by hand",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "owner-login.html|click recvBtn|inventory_lots|update|1": {
+  "guards": "readBack,doubleClickLock,confirmation,rolePrecheck",
+  "idempotency": "guarded: a repeat changes nothing",
+  "audit": "audit trigger (Query A)",
+  "partial": "YES until R1: claim-first browser path; a failure part-way is reported with what to finish by hand",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "owner-login.html|click recvBtn|inventory_lots|insert|1": {
+  "guards": "readBack,doubleClickLock,confirmation,rolePrecheck",
+  "idempotency": "not idempotent: one save at a time (button lock)",
+  "audit": "audit trigger (Query A)",
+  "partial": "YES until R1: claim-first browser path; a failure part-way is reported with what to finish by hand",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "owner-login.html|click recvBtn|inventory_adjustments|insert|1": {
+  "guards": "doubleClickLock,confirmation,rolePrecheck",
+  "idempotency": "not idempotent: one save at a time (button lock)",
+  "audit": "audit trigger (Query A)",
+  "partial": "YES until R1: claim-first browser path; a failure part-way is reported with what to finish by hand",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "owner-login.html|click recvBtn|purchase_order_items|update|2": {
+  "guards": "readBack,doubleClickLock,confirmation,rolePrecheck",
+  "idempotency": "guarded: a repeat changes nothing",
+  "audit": "audit trigger (Query A)",
+  "partial": "YES until R1: claim-first browser path; a failure part-way is reported with what to finish by hand",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "owner-login.html|click recvBtn|expenses|insert|1": {
+  "guards": "doubleClickLock,confirmation,rolePrecheck",
+  "idempotency": "not idempotent: one save at a time (button lock)",
+  "audit": "audit trigger (Query A)",
+  "partial": "YES until R1: claim-first browser path; a failure part-way is reported with what to finish by hand",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "owner-login.html|submit addPoForm|purchase_orders|insert|1": {
+  "guards": "readBack,doubleClickLock",
+  "idempotency": "retry-safe: same order number, items only if none (X3-20)",
+  "audit": "audit trigger (Query A)",
+  "partial": "no (single write)",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "owner-login.html|click .qcResolveBtn|quality_checks|updateIfUnchanged|1": {
+  "guards": "staleCondition,readBack,doubleClickLock",
+  "idempotency": "guarded: a repeat changes nothing",
+  "audit": "unknown until Query C §10",
+  "partial": "no (single write)",
+  "sensitive": "no",
+  "note": ""
+ },
+ "owner-login.html|submit addQcForm|quality_checks|insert|1": {
+  "guards": "doubleClickLock",
+  "idempotency": "not idempotent: one save at a time (button lock)",
+  "audit": "unknown until Query C §10",
+  "partial": "no (single write)",
+  "sensitive": "no",
+  "note": ""
+ },
+ "owner-login.html|click .recallQuarantineBtn|recalls|updateIfUnchanged|1": {
+  "guards": "staleCondition,readBack,doubleClickLock,rolePrecheck",
+  "idempotency": "guarded: a repeat changes nothing",
+  "audit": "audit trigger (Query A)",
+  "partial": "YES until R2: claim-first; reported",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "owner-login.html|click .recallQuarantineBtn|inventory_adjustments|insert|1": {
+  "guards": "doubleClickLock,rolePrecheck",
+  "idempotency": "not idempotent: one save at a time (button lock)",
+  "audit": "audit trigger (Query A)",
+  "partial": "YES until R2: claim-first; reported",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "owner-login.html|click .recallQuarantineBtn|inventory_adjustments|insert|2": {
+  "guards": "doubleClickLock,rolePrecheck",
+  "idempotency": "not idempotent: one save at a time (button lock)",
+  "audit": "audit trigger (Query A)",
+  "partial": "YES until R2: claim-first; reported",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "owner-login.html|click .recallResolveBtn|recalls|updateIfUnchanged|1": {
+  "guards": "staleCondition,readBack,doubleClickLock,confirmation",
+  "idempotency": "guarded: a repeat changes nothing",
+  "audit": "audit trigger (Query A)",
+  "partial": "no (single write)",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "owner-login.html|submit addRecallForm|recalls|insert|1": {
+  "guards": "doubleClickLock",
+  "idempotency": "not idempotent: one save at a time (button lock)",
+  "audit": "audit trigger (Query A)",
+  "partial": "no (single write)",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "owner-login.html|click delBtn|calendar_notes|delete|1": {
+  "guards": "readBack,doubleClickLock",
+  "idempotency": "guarded: a repeat changes nothing",
+  "audit": "unknown until Query C §10",
+  "partial": "no (single write)",
+  "sensitive": "no",
+  "note": "",
+  "justify": {
+   "stale": "A private note keyed by the calendar event; it has no workflow state. Deleting twice or after another tab deleted it is reported by the read-back."
+  }
+ },
+ "owner-login.html|click delBtn|personal_calendar_events|delete|1": {
+  "guards": "readBack,doubleClickLock,confirmation",
+  "idempotency": "guarded: a repeat changes nothing",
+  "audit": "unknown until Query C §10",
+  "partial": "no (single write)",
+  "sensitive": "no",
+  "note": "",
+  "justify": {
+   "stale": "The owner's own private event with no workflow state; the read-back reports one already deleted elsewhere."
+  }
+ },
+ "owner-login.html|submit addPersonalEventForm|personal_calendar_events|insert|1": {
+  "guards": "doubleClickLock",
+  "idempotency": "not idempotent: one save at a time (button lock)",
+  "audit": "unknown until Query C §10",
+  "partial": "no (single write)",
+  "sensitive": "no",
+  "note": ""
+ },
+ "owner-login.html|logCustomerAccess|rpc:log_customer_data_access|rpc|1": {
+  "guards": "",
+  "idempotency": "repeat harmless",
+  "audit": "function-defined",
+  "partial": "no (single write)",
+  "sensitive": "no",
+  "note": "",
+  "justify": {
+   "lock": "Background privacy log written on view, not a button; failure only logged to the console by design."
+  }
+ },
+ "owner-login.html|click .deleteOrderBtn|orders|update|1": {
+  "guards": "staleCondition,readBack,doubleClickLock,confirmation",
+  "idempotency": "guarded: a repeat changes nothing",
+  "audit": "audit trigger (Query A)",
+  "partial": "no (single write)",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "owner-login.html|click .restoreOrderBtn|orders|update|1": {
+  "guards": "staleCondition,readBack,doubleClickLock,confirmation",
+  "idempotency": "guarded: a repeat changes nothing",
+  "audit": "audit trigger (Query A)",
+  "partial": "no (single write)",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "owner-login.html|changeTaskStatus|tasks|update|1": {
+  "guards": "staleCondition,readBack,doubleClickLock,confirmation",
+  "idempotency": "guarded: a repeat changes nothing",
+  "audit": "audit trigger (Query A)",
+  "partial": "no (single write)",
+  "sensitive": "no",
+  "note": ""
+ },
+ "owner-login.html|change .agentToggle|agent_controls|updateIfUnchanged|1": {
+  "guards": "staleCondition,readBack,doubleClickLock,confirmation",
+  "idempotency": "guarded: a repeat changes nothing",
+  "audit": "unknown until Query C §10",
+  "partial": "no (single write)",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "owner-login.html|setInquirySeverity|customer_inquiries|updateIfUnchanged|1": {
+  "guards": "staleCondition,readBack,doubleClickLock",
+  "idempotency": "guarded: a repeat changes nothing",
+  "audit": "unknown until Query C §10",
+  "partial": "no (single write)",
+  "sensitive": "no",
+  "note": ""
+ },
+ "owner-login.html|saveInquiryDraft|customer_inquiries|update|1": {
+  "guards": "readBack,doubleClickLock",
+  "idempotency": "guarded: a repeat changes nothing",
+  "audit": "unknown until Query C §10",
+  "partial": "no (single write)",
+  "sensitive": "no",
+  "note": ""
+ },
+ "owner-login.html|markInquiryAnswered|customer_inquiries|updateIfUnchanged|1": {
+  "guards": "staleCondition,readBack,doubleClickLock",
+  "idempotency": "guarded: a repeat changes nothing",
+  "audit": "unknown until Query C §10",
+  "partial": "no (single write)",
+  "sensitive": "no",
+  "note": ""
+ },
+ "owner-login.html|setServiceStatus|service_status|updateIfUnchanged|1": {
+  "guards": "staleCondition,readBack,doubleClickLock",
+  "idempotency": "guarded: a repeat changes nothing",
+  "audit": "unknown until Query C §10",
+  "partial": "no (single write)",
+  "sensitive": "no",
+  "note": ""
+ },
+ "owner-login.html|change .flagToggle|feature_flags|updateIfUnchanged|1": {
+  "guards": "staleCondition,readBack,doubleClickLock,confirmation",
+  "idempotency": "guarded: a repeat changes nothing",
+  "audit": "unknown until Query C §10",
+  "partial": "no (single write)",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "owner-login.html|click systemModeChangeBtn|system_mode|updateIfUnchanged|1": {
+  "guards": "staleCondition,readBack,doubleClickLock,confirmation",
+  "idempotency": "guarded: a repeat changes nothing",
+  "audit": "unknown until Query C §10",
+  "partial": "mode saved; each follow-up switch-off checked and reported (MU-06)",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "owner-login.html|click systemModeChangeBtn|feature_flags|update|1": {
+  "guards": "readBack,doubleClickLock,confirmation",
+  "idempotency": "guarded: a repeat changes nothing",
+  "audit": "unknown until Query C §10",
+  "partial": "mode saved; each follow-up switch-off checked and reported (MU-06)",
+  "sensitive": "yes",
+  "note": "",
+  "justify": {
+   "stale": "Emergency force-off: setting enabled=false is idempotent from any state; the rows are read back and anything left on is reported."
+  }
+ },
+ "owner-login.html|click systemModeChangeBtn|feature_flags|update|2": {
+  "guards": "readBack,doubleClickLock,confirmation",
+  "idempotency": "guarded: a repeat changes nothing",
+  "audit": "unknown until Query C §10",
+  "partial": "mode saved; each follow-up switch-off checked and reported (MU-06)",
+  "sensitive": "yes",
+  "note": "",
+  "justify": {
+   "stale": "Fallback of the Emergency force-off without who/when columns; idempotent and read back like the first attempt."
+  }
+ },
+ "owner-login.html|click systemModeChangeBtn|agent_controls|update|1": {
+  "guards": "readBack,doubleClickLock,confirmation",
+  "idempotency": "guarded: a repeat changes nothing",
+  "audit": "unknown until Query C §10",
+  "partial": "mode saved; each follow-up switch-off checked and reported (MU-06)",
+  "sensitive": "yes",
+  "note": "",
+  "justify": {
+   "stale": "Switching an agent off is idempotent from any state; the rows are read back and a failure is reported."
+  }
+ },
+ "owner-login.html|click .ruleSaveBtn|business_rules|updateIfUnchanged|1": {
+  "guards": "staleCondition,readBack,doubleClickLock,confirmation",
+  "idempotency": "guarded: a repeat changes nothing",
+  "audit": "unknown until Query C §10",
+  "partial": "no (single write)",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "owner-login.html|change .ruleActiveToggle|business_rules|updateIfUnchanged|1": {
+  "guards": "staleCondition,readBack,doubleClickLock,confirmation",
+  "idempotency": "guarded: a repeat changes nothing",
+  "audit": "unknown until Query C §10",
+  "partial": "no (single write)",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "owner-login.html|decideApproval|approval_requests|updateIfUnchanged|1": {
+  "guards": "staleCondition,readBack,doubleClickLock,confirmation",
+  "idempotency": "guarded: a repeat changes nothing",
+  "audit": "audit trigger (Query A)",
+  "partial": "no (single write)",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "owner-login.html|revokeSession|rpc:revoke_my_session|rpc|1": {
+  "guards": "doubleClickLock,confirmation",
+  "idempotency": "repeat harmless",
+  "audit": "function-defined",
+  "partial": "no (single write)",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "owner-login.html|change .sopAgentToggle|sop_documents|updateIfUnchanged|1": {
+  "guards": "staleCondition,readBack,doubleClickLock",
+  "idempotency": "guarded: a repeat changes nothing",
+  "audit": "unknown until Query C §10",
+  "partial": "no (single write)",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "owner-login.html|submit addSopForm|sop_documents|insert|1": {
+  "guards": "doubleClickLock",
+  "idempotency": "not idempotent: one save at a time (button lock)",
+  "audit": "unknown until Query C §10",
+  "partial": "no (single write)",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "owner-login.html|advanceFeatureRequest|feature_requests|updateIfUnchanged|1": {
+  "guards": "staleCondition,readBack,doubleClickLock",
+  "idempotency": "guarded: a repeat changes nothing",
+  "audit": "unknown until Query C §10",
+  "partial": "no (single write)",
+  "sensitive": "no",
+  "note": ""
+ },
+ "owner-login.html|deleteFeatureRequest|feature_requests|update|1": {
+  "guards": "staleCondition,readBack,doubleClickLock",
+  "idempotency": "guarded: a repeat changes nothing",
+  "audit": "unknown until Query C §10",
+  "partial": "no (single write)",
+  "sensitive": "no",
+  "note": ""
+ },
+ "owner-login.html|click .restoreFeatureRequestBtn|feature_requests|update|1": {
+  "guards": "staleCondition,readBack,doubleClickLock",
+  "idempotency": "guarded: a repeat changes nothing",
+  "audit": "unknown until Query C §10",
+  "partial": "no (single write)",
+  "sensitive": "no",
+  "note": ""
+ },
+ "owner-login.html|submit addFeatureRequestForm|feature_requests|insert|1": {
+  "guards": "doubleClickLock",
+  "idempotency": "not idempotent: one save at a time (button lock)",
+  "audit": "unknown until Query C §10",
+  "partial": "no (single write)",
+  "sensitive": "no",
+  "note": ""
+ },
+ "owner-login.html|submit addEvidenceForm|evidence_locker|insert|1": {
+  "guards": "doubleClickLock",
+  "idempotency": "not idempotent: one save at a time (button lock)",
+  "audit": "audit trigger (Query A)",
+  "partial": "file then record; orphan cleanup on refusal (S1-S3)",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "owner-login.html|click .docDeleteBtn|documents|delete|1": {
+  "guards": "staleCondition,readBack,doubleClickLock,confirmation",
+  "idempotency": "guarded: a repeat changes nothing",
+  "audit": "audit trigger (Query A)",
+  "partial": "record gone, file may remain: reported by name",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "owner-login.html|click .docDeleteBtn|storage:document-files|storage.remove|1": {
+  "guards": "doubleClickLock,confirmation",
+  "idempotency": "repeat harmless",
+  "audit": "none (file store)",
+  "partial": "record gone, file may remain: reported by name",
+  "sensitive": "no",
+  "note": ""
+ },
+ "owner-login.html|submit addDocumentForm|documents|insert|1": {
+  "guards": "doubleClickLock",
+  "idempotency": "not idempotent: one save at a time (button lock)",
+  "audit": "audit trigger (Query A)",
+  "partial": "file then record; orphan cleanup on refusal (S1-S3)",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "owner-login.html|click .aeMarkReportedBtn|adverse_event_reports|updateIfUnchanged|1": {
+  "guards": "staleCondition,readBack,doubleClickLock,confirmation",
+  "idempotency": "guarded: a repeat changes nothing",
+  "audit": "unknown until Query C §10",
+  "partial": "no (single write)",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "owner-login.html|submit addAdverseEventForm|adverse_event_reports|insert|1": {
+  "guards": "doubleClickLock",
+  "idempotency": "not idempotent: one save at a time (button lock)",
+  "audit": "unknown until Query C §10",
+  "partial": "no (single write)",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "owner-login.html|click .lhReleaseBtn|legal_holds|updateIfUnchanged|1": {
+  "guards": "staleCondition,readBack,doubleClickLock,confirmation",
+  "idempotency": "guarded: a repeat changes nothing",
+  "audit": "unknown until Query C §10",
+  "partial": "no (single write)",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "owner-login.html|submit addLegalHoldForm|legal_holds|insert|1": {
+  "guards": "doubleClickLock",
+  "idempotency": "not idempotent: one save at a time (button lock)",
+  "audit": "unknown until Query C §10",
+  "partial": "no (single write)",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "owner-login.html|click .saveProductBtn|products|update|1": {
+  "guards": "staleCondition,readBack,doubleClickLock",
+  "idempotency": "guarded: a repeat changes nothing",
+  "audit": "audit trigger (Query A)",
+  "partial": "no (single write)",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "owner-login.html|click .toggleProductBtn|products|updateIfUnchanged|1": {
+  "guards": "staleCondition,readBack,doubleClickLock",
+  "idempotency": "guarded: a repeat changes nothing",
+  "audit": "audit trigger (Query A)",
+  "partial": "no (single write)",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "owner-login.html|click .deleteProductBtn|inventory|delete|1": {
+  "guards": "readBack,doubleClickLock,confirmation,rolePrecheck",
+  "idempotency": "guarded: a repeat changes nothing",
+  "audit": "audit trigger (Query A)",
+  "partial": "contained: stock row put back if the product delete fails",
+  "sensitive": "yes",
+  "note": "",
+  "justify": {
+   "stale": "The every-bucket-is-0 conditions are added in a loop (.eq(bucket, 0)), which the static extractor cannot see; product-lifecycle.spec.js proves stock that arrives meanwhile blocks the delete."
+  }
+ },
+ "owner-login.html|click .deleteProductBtn|products|delete|1": {
+  "guards": "readBack,doubleClickLock,confirmation,rolePrecheck",
+  "idempotency": "guarded: a repeat changes nothing",
+  "audit": "audit trigger (Query A)",
+  "partial": "contained: stock row put back if the product delete fails",
+  "sensitive": "yes",
+  "note": "",
+  "justify": {
+   "stale": "Fresh in-use checks run just before; foreign keys refuse a product with sales, lots or returns; on refusal the stock row is restored exactly."
+  }
+ },
+ "owner-login.html|click .deleteProductBtn|inventory|insert|1": {
+  "guards": "doubleClickLock,confirmation,rolePrecheck",
+  "idempotency": "not idempotent: one save at a time (button lock)",
+  "audit": "audit trigger (Query A)",
+  "partial": "contained: stock row put back if the product delete fails",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "owner-login.html|click .saveThresholdBtn|inventory|upsert|1": {
+  "guards": "doubleClickLock,rolePrecheck",
+  "idempotency": "upsert: repeat converges",
+  "audit": "audit trigger (Query A)",
+  "partial": "no (single write)",
+  "sensitive": "yes",
+  "note": "EXT5: now only when the product has no stock record yet (after the guarded update found none)",
+  "justify": {
+   "readBack": "Upsert: a refusal raises an error (no silent 0-row outcome). Last write wins on a config value (F3-09, deferred)."
+  }
+ },
+ "owner-login.html|submit adjustInventoryForm|inventory_adjustments|insert|1": {
+  "guards": "doubleClickLock,rolePrecheck",
+  "idempotency": "not idempotent: one save at a time (button lock)",
+  "audit": "audit trigger (Query A)",
+  "partial": "no (single write)",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "owner-login.html|click .decideReturnBtn|returns|updateIfUnchanged|1": {
+  "guards": "staleCondition,readBack,doubleClickLock",
+  "idempotency": "guarded: a repeat changes nothing",
+  "audit": "audit trigger (Query A)",
+  "partial": "no (single write)",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "owner-login.html|click .advanceReturnBtn|returns|updateIfUnchanged|1": {
+  "guards": "staleCondition,readBack,doubleClickLock",
+  "idempotency": "guarded: a repeat changes nothing",
+  "audit": "audit trigger (Query A)",
+  "partial": "no (single write)",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "owner-login.html|click .markReceivedBtn|returns|updateIfUnchanged|1": {
+  "guards": "staleCondition,readBack,doubleClickLock,rolePrecheck",
+  "idempotency": "guarded: a repeat changes nothing",
+  "audit": "audit trigger (Query A)",
+  "partial": "YES until R3: claim-first; reported",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "owner-login.html|click .markReceivedBtn|inventory_adjustments|insert|1": {
+  "guards": "doubleClickLock,rolePrecheck",
+  "idempotency": "not idempotent: one save at a time (button lock)",
+  "audit": "audit trigger (Query A)",
+  "partial": "YES until R3: claim-first; reported",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "owner-login.html|click .markRefundedBtn|returns|updateIfUnchanged|1": {
+  "guards": "staleCondition,readBack,doubleClickLock,confirmation",
+  "idempotency": "guarded: a repeat changes nothing",
+  "audit": "audit trigger (Query A)",
+  "partial": "no (single write)",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "owner-login.html|submit logReturnForm|returns|insert|1": {
+  "guards": "doubleClickLock",
+  "idempotency": "not idempotent: one save at a time (button lock)",
+  "audit": "audit trigger (Query A)",
+  "partial": "no (single write)",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "owner-login.html|removeExpenseReceipt|expenses|updateIfUnchanged|1": {
+  "guards": "staleCondition,readBack,doubleClickLock,confirmation",
+  "idempotency": "guarded: a repeat changes nothing",
+  "audit": "audit trigger (Query A)",
+  "partial": "unlink first; a stray file possible, reported",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "owner-login.html|removeExpenseReceipt|storage:expense-receipts|storage.remove|1": {
+  "guards": "doubleClickLock,confirmation",
+  "idempotency": "repeat harmless",
+  "audit": "none (file store)",
+  "partial": "unlink first; a stray file possible, reported",
+  "sensitive": "no",
+  "note": ""
+ },
+ "owner-login.html|deleteExpense|expenses|update|1": {
+  "guards": "staleCondition,readBack,doubleClickLock",
+  "idempotency": "guarded: a repeat changes nothing",
+  "audit": "audit trigger (Query A)",
+  "partial": "no (single write)",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "owner-login.html|click .restoreExpenseBtn|expenses|update|1": {
+  "guards": "staleCondition,readBack,doubleClickLock",
+  "idempotency": "guarded: a repeat changes nothing",
+  "audit": "audit trigger (Query A)",
+  "partial": "no (single write)",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "owner-login.html|submit addExpenseForm|expenses|insert|1": {
+  "guards": "doubleClickLock",
+  "idempotency": "not idempotent: one save at a time (button lock)",
+  "audit": "audit trigger (Query A)",
+  "partial": "file then record; orphan cleanup on refusal (S1-S3)",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "manual-order-entry.html|click signOutBtn|auth|auth.signOut|1": {
+  "guards": "",
+  "idempotency": "repeat harmless",
+  "audit": "sign-in system log",
+  "partial": "no (single write)",
+  "sensitive": "yes",
+  "note": "",
+  "justify": {
+   "lock": "Signing out twice is harmless."
+  }
+ },
+ "manual-order-entry.html|submit orderForm|orders|insert|1": {
+  "guards": "readBack,doubleClickLock",
+  "idempotency": "retry-safe: same order number, items only if none (X3-20)",
+  "audit": "audit trigger (Query A)",
+  "partial": "order then items; a retry completes the same order (X3-20)",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "manual-order-entry.html|submit orderForm|order_items|insert|1": {
+  "guards": "doubleClickLock",
+  "idempotency": "retry-safe: same order number, items only if none (X3-20)",
+  "audit": "audit trigger (Query A)",
+  "partial": "order then items; a retry completes the same order (X3-20)",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "index.html|click signOutBtn|auth|auth.signOut|1": {
+  "guards": "",
+  "idempotency": "repeat harmless",
+  "audit": "sign-in system log",
+  "partial": "no (single write)",
+  "sensitive": "yes",
+  "note": "",
+  "justify": {
+   "lock": "Signing out twice is harmless."
+  }
+ },
+ "index.html|submit orderForm|orders|insert|1": {
+  "guards": "readBack,doubleClickLock",
+  "idempotency": "retry-safe: same order number, items only if none (X3-20)",
+  "audit": "audit trigger (Query A)",
+  "partial": "order then items; a retry completes the same order (X3-20)",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "index.html|submit orderForm|order_items|insert|1": {
+  "guards": "doubleClickLock",
+  "idempotency": "retry-safe: same order number, items only if none (X3-20)",
+  "audit": "audit trigger (Query A)",
+  "partial": "order then items; a retry completes the same order (X3-20)",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "dashboard.html|click sign-out-btn|auth|auth.signOut|1": {
+  "guards": "",
+  "idempotency": "repeat harmless",
+  "audit": "sign-in system log",
+  "partial": "no (single write)",
+  "sensitive": "yes",
+  "note": "",
+  "justify": {
+   "lock": "Signing out twice is harmless."
+  }
+ },
+ "change-password.html|(top level)|auth|auth.signOut|1": {
+  "guards": "doubleClickLock",
+  "idempotency": "repeat harmless",
+  "audit": "sign-in system log",
+  "partial": "no (single write)",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "change-password.html|(top level)|auth|auth.updateUser|1": {
+  "guards": "doubleClickLock",
+  "idempotency": "repeat harmless",
+  "audit": "sign-in system log",
+  "partial": "no (single write)",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "change-password.html|(top level)|auth|auth.signOut|2": {
+  "guards": "doubleClickLock",
+  "idempotency": "repeat harmless",
+  "audit": "sign-in system log",
+  "partial": "no (single write)",
+  "sensitive": "yes",
+  "note": ""
+ },
+ "owner-login.html|click .saveThresholdBtn|inventory|update|1": {
+  "guards": "staleCondition,readBack,doubleClickLock,rolePrecheck",
+  "idempotency": "guarded: a repeat changes nothing",
+  "audit": "audit trigger (Query A)",
+  "partial": "no (single write)",
+  "sensitive": "no",
+  "note": "EXT5: only over the alert level the page showed; 0 rows -> looks, then creates the stock record or reports the change"
+ },
+ "owner-login.html|click recvBtn|rpc:receive_purchase_order|rpc|1": {
+  "audit": "inventory_adjustments rows written inside the function (who, when, reason) + audit trigger (Query A)",
+  "partial": "no (one database transaction: all or nothing)",
+  "sensitive": "yes",
+  "note": "EXT9: used only when its stock_fn_* switch is on (drafts/21); off = the older path above",
+  "guards": "doubleClickLock,confirmation",
+  "idempotency": "guarded: a repeat changes nothing (already_received)",
+  "justify": {
+   "lock": "Button disabled before the call; the function also locks the row in the database."
+  }
+ },
+ "owner-login.html|click .recallQuarantineBtn|rpc:quarantine_recall|rpc|1": {
+  "audit": "inventory_adjustments rows written inside the function (who, when, reason) + audit trigger (Query A)",
+  "partial": "no (one database transaction: all or nothing)",
+  "sensitive": "yes",
+  "note": "EXT9: used only when its stock_fn_* switch is on (drafts/21); off = the older path above",
+  "guards": "doubleClickLock",
+  "idempotency": "guarded: a repeat changes nothing (already_done)",
+  "justify": {
+   "lock": "Button disabled before the call; the function also locks the row in the database."
+  }
+ },
+ "owner-login.html|click .markReceivedBtn|rpc:receive_return|rpc|1": {
+  "audit": "inventory_adjustments rows written inside the function (who, when, reason) + audit trigger (Query A)",
+  "partial": "no (one database transaction: all or nothing)",
+  "sensitive": "yes",
+  "note": "EXT9: used only when its stock_fn_* switch is on (drafts/21); off = the older path above",
+  "guards": "doubleClickLock",
+  "idempotency": "guarded: a repeat changes nothing (already_done; never restocked twice)",
+  "justify": {
+   "lock": "Button disabled before the call; the function also locks the row in the database."
+  }
+ },
+ "owner-login.html|click .deleteProductBtn|rpc:delete_unused_product|rpc|1": {
+  "audit": "inventory_adjustments rows written inside the function (who, when, reason) + audit trigger (Query A)",
+  "partial": "no (one database transaction: all or nothing)",
+  "sensitive": "yes",
+  "note": "EXT9: used only when its stock_fn_* switch is on (drafts/21); off = the older path above",
+  "guards": "doubleClickLock,confirmation",
+  "idempotency": "repeat harmless (second call: not_found)",
+  "justify": {
+   "lock": "Button disabled before the call; the function also locks the row in the database."
+  }
+ },
+ "owner-login.html|submit adjustInventoryForm|rpc:adjust_inventory|rpc|1": {
+  "audit": "inventory_adjustments rows written inside the function (who, when, reason) + audit trigger (Query A)",
+  "partial": "no (one database transaction: all or nothing)",
+  "sensitive": "yes",
+  "note": "EXT9: used only when its stock_fn_* switch is on (drafts/21); off = the older path above",
+  "guards": "doubleClickLock",
+  "idempotency": "guarded: a repeat changes nothing (p_expected = the number shown; a repeat finds it changed)",
+  "justify": {
+   "lock": "Submit button disabled before the call; p_expected refuses a change on top of a newer number."
+  }
+ },
+ "owner-login.html|click saveBtn|calendar_notes|update|1": {
+  "audit": "unknown until Query C §10",
+  "partial": "no (single write)",
+  "sensitive": "no",
+  "note": "EXT9: never overwrites a change made elsewhere",
+  "guards": "staleCondition,readBack,doubleClickLock",
+  "idempotency": "guarded: a repeat changes nothing"
+ },
+ "owner-login.html|click saveBtn|calendar_notes|insert|1": {
+  "audit": "unknown until Query C §10",
+  "partial": "no (single write)",
+  "sensitive": "no",
+  "note": "EXT9: never overwrites a change made elsewhere",
+  "guards": "doubleClickLock",
+  "idempotency": "guarded: a repeat changes nothing (one note per event: unique event_uid refuses a second)",
+  "justify": {
+   "lock": "Save button disabled during the save; the unique event_uid makes a second insert fail (23505), which the page reports instead of overwriting."
+  }
+ },
+ "owner-login.html|click saveBtn|personal_calendar_events|updateIfUnchanged|1": {
+  "audit": "unknown until Query C §10",
+  "partial": "no (single write)",
+  "sensitive": "no",
+  "note": "EXT9: never overwrites a change made elsewhere",
+  "guards": "staleCondition,readBack,doubleClickLock",
+  "idempotency": "guarded: a repeat changes nothing"
+ }
+}
