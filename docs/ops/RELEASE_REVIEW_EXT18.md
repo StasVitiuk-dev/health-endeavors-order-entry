@@ -20,7 +20,7 @@ Merging changes the dashboard code only. No SQL runs on merge, nothing touches c
 | Changed | Files |
 |---|---|
 | Dashboard | `assets/owner-login-app.js`, `assets/owner-login-helpers.js`, `assets/app/he-config.js`, `assets/app/he-data.js`, `assets/app/he-agents.js`, `assets/app/he-audit.js`, `assets/app/he-compliance.js`, `assets/app/he-inquiries.js`; all 6 `*.html` (script policy line; `owner-login.html` asset versions) |
-| Tests and tools | 6 new specs, `static-security.js`, `dom-sinks.js --gate` + reviewed list, `regex-audit.js` + reviewed list, `security-check.sh`, secret-scan extension, local `rls_contract_test.sh`, 12 new mutants |
+| Tests and tools | 6 new specs, `static-security.js`, `dom-sinks.js --gate` + reviewed list, `regex-audit.js` + reviewed list, `security-check.sh`, secret-scan extension, local `rls_contract_test.sh`, 11 new mutants (196 → 207) |
 | CI | static job runs the new gates and Node-only specs (no new permission, no secret, no deploy) |
 | Docs | `docs/ops/*_EXT18.md` (10), status documents, intermittent register (INT-6) |
 
@@ -28,7 +28,17 @@ Merging changes the dashboard code only. No SQL runs on merge, nothing touches c
 
 ## 3. Tests run
 
-RESULTS_TABLE
+| Check | Result |
+|---|---|
+| Full local suite, desktop + iPhone, `d21621b` (page code `14f6fab`) | **2,098 passed, 1 failed, 345 skipped on purpose** (1.1 h). The 1 failure: the no-live-send tripwire pinned the old text of the reviewed fetch wrapper; updated in `f38e39f` (9/9 pass) |
+| GitHub CI, `f38e39f` | **all green, 6/6** (static, screenshots, database suite, 3 browser shards) |
+| GitHub CI, earlier EXT18 commits | `002f14f` red (write-path inventory not regenerated after new test files), `ff63303` red (an asset fingerprint not refreshed after a last edit), `d21621b` red (the tripwire above): all my misses, each fixed by a later commit; `2695f75` cancelled by the next push |
+| Page mutants, full round on `f38e39f` | **207/207 caught** (56 min; working tree unchanged) |
+| Security deep check, `3e1c0ad` | PASS: 165 browser security tests, 17/17 security mutants, RLS contract 63/63 (8 min) |
+| Full local database suite, `f38e39f` | **30/30 steps PASS** (688 s), incl. the new RLS contract, stress, S29, inventory model, SQL mutants 15/15 |
+| Static gates: secret scan, static security, DOM sink gate, regex audit, SQL lint, status, module graph, inline styles, type gate, docs | OK |
+
+**Evidence caveats:** the full local suite ran on `d21621b`. After it, only the tripwire test file and documents changed (page code identical, `14f6fab`), and GitHub ran the whole suite again on `f38e39f`, all green.
 
 ## 4. Rollback (step by step)
 
