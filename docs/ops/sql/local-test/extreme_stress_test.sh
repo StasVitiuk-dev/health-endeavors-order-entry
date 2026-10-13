@@ -76,6 +76,10 @@ check "mixed: recall quarantined at most once" "$(q "select (recalled in (0,50))
 check "mixed: PO received at most once" "$(q "select count(*) from expenses where note='Purchase order XS-PO'")" "$(q "select (status='received')::int from purchase_orders where po_number='XS-PO'")"
 dl=$(grep -c deadlock "$ERR")
 check "deadlocks" "$dl" 0
-echo "extreme stress: sizes [$SIZES], $ops calls in $(( $(date +%s)-t0 ))s, seed $SEED, deadlocks $dl — $pass passed, $fail failed"
+# EXT19: callers refused by the server before their session started (more callers
+# than max_connections). Refused calls never ran, so they cannot apply twice; the
+# exactly-once checks above still hold for the calls that did run.
+refused=$(grep -c "too many clients\|remaining connection slots" "$ERR" || true)
+echo "extreme stress: sizes [$SIZES], $ops calls in $(( $(date +%s)-t0 ))s ($refused refused by the server before starting), seed $SEED, deadlocks $dl — $pass passed, $fail failed"
 rm -f "$ERR"
 [ $fail -eq 0 ]
