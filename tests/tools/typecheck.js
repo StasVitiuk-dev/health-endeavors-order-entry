@@ -12,6 +12,8 @@ const path = require('path');
 const ts = require('typescript');
 const ROOT = path.join(__dirname, '..', '..');
 const FILES = [path.join(ROOT, 'assets', 'owner-login-modules.js'), path.join(ROOT, 'assets', 'owner-login-helpers.js'),
+  // EXT19: the whole program, not only the modules
+  ...['owner-login-app.js', 'owner-login-theme.js', 'dashboard-page.js', 'search-page.js', 'manual-order-entry.js', 'change-password.js'].map(f => path.join(ROOT, 'assets', f)),
   ...fs.readdirSync(path.join(ROOT, 'assets', 'app')).filter(f => f.endsWith('.js')).map(f => path.join(ROOT, 'assets', 'app', f))];
 // Diagnostic codes that are real defects in this code base, enforced in CI.
 const GATE = new Set([
@@ -25,7 +27,7 @@ const GATE = new Set([
   6133,        // declared but never used
 ]);
 const GLOBALS = `interface Window { HE: any; supabase: any; __sbLoadFailed?: boolean; __heHelpersLoadFailed?: boolean; toastOk: (m: any) => void; toastErr: (m: any) => void }
-declare var HE: any; declare function toastOk(m: any): void; declare function toastErr(m: any): void;`;
+declare var HE: any; declare var supabase: any; /* the Supabase library's global (smaller pages) */ declare function toastOk(m: any): void; declare function toastErr(m: any): void;`;
 function run() {
   const declName = path.join(ROOT, '__he_globals.d.ts');
   const host = ts.createCompilerHost({});
