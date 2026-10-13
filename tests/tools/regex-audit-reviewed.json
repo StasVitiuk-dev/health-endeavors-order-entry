@@ -30,6 +30,12 @@
    "regex": "/[^\\s@:;,()<>]+@[^\\s@:;,()<>]+/g",
    "maxInput": 2000,
    "reason": "maskSensitive(): input cut to 2,000 characters before masking (EXT18)"
+  },
+  {
+   "file": "assets/app/he-ui.js",
+   "regex": "/([a-z-]+)=\"([^\"<>]*)\"/g",
+   "maxInput": 4000,
+   "reason": "pageIconNode(): icon table entry cut to 4,000 characters before parsing (EXT19)"
   }
  ],
  "dynamic": [

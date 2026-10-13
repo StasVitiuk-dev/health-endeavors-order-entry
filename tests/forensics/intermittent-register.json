@@ -117,6 +117,44 @@
    "status": "FIXED",
    "fix": "multi-tab tests get 120 s and 20 s per reload wait; reads after sign-out poll until the reload has finished. Product behaviour unchanged.",
    "evidenceAfterFix": "3 x (--repeat-each=4 --workers=8) = 72/72 passed"
+  },
+  {
+   "id": "INT-7",
+   "test": "tests/specs/search-palette.spec.js › 10,000 records: each keystroke updates the palette quickly",
+   "firstSeen": {
+    "where": "local full suite, 4 workers, desktop + iPhone",
+    "sha": "c956b25",
+    "date": "2026-10-13"
+   },
+   "lastSeen": {
+    "where": "local full suite, 4 workers, desktop + iPhone",
+    "sha": "c956b25",
+    "date": "2026-10-13"
+   },
+   "classification": "UNEXPLAINED",
+   "cause": "slowest keystroke measured 524 ms (limit 250 ms) once, in the full local suite. The palette code is unchanged in EXT19 (it does not use the new builder). Wall-clock measurement under parallel load is the likely factor; not established.",
+   "reproduced": "no: 5/5 passed alone, 3/3 passed with 4 workers and 8 busy CPU loops",
+   "status": "OPEN INTERMITTENT",
+   "fix": "none; limit not raised (raising it without a cause would hide a real slowdown)"
+  },
+  {
+   "id": "INT-8",
+   "test": "tests/specs/storage-safety.spec.js › two uploads of the same file name get different storage paths",
+   "firstSeen": {
+    "where": "local full suite, 4 workers, desktop + iPhone",
+    "sha": "c956b25",
+    "date": "2026-10-13"
+   },
+   "lastSeen": {
+    "where": "local full suite, 4 workers, desktop + iPhone",
+    "sha": "c956b25",
+    "date": "2026-10-13"
+   },
+   "classification": "UNEXPLAINED",
+   "cause": "the second upload was not seen by the mock within the default 5 s poll (1 of 2 uploads), once, in the full local suite. The documents upload code is unchanged in EXT19. The test freezes the page clock; an interaction between the frozen clock and the form's busy state under load is possible; not established.",
+   "reproduced": "no: 5/5 passed alone, 3/3 passed with 4 workers and 8 busy CPU loops",
+   "status": "OPEN INTERMITTENT",
+   "fix": "none yet"
   }
  ]
 }

@@ -22,7 +22,7 @@ Why it matters: a smaller file is easier to review, a mistake in one area is les
 | # | Module | What it holds | Lines | Inputs (from) | Exports |
 |---|---|---|---|---|---|
 | 1 | `he-config` | fixed configuration: sidebar groups, icons, help text, status and label maps, agent registry, limits | 614 | — | 55 |
-| 2 | `he-ui` | shared screen helpers: toasts, loading skeletons, number animation, focus return, overlays (help, palette, shortcuts, quick add), theme, empty states, icons | 269 | he-config: 6 | 33 |
+| 2 | `he-ui` | shared screen helpers: toasts, loading skeletons, number animation, focus return, overlays (help, palette, shortcuts, quick add), theme, empty states, icons | 270 | he-config: 6 | 33 |
 | 3 | `he-data` | database access: the Supabase client (row-cap aware), request generation, paged reads, guarded updates, request keys, stock functions, uploads, error kinds | 452 | he-config: 3, page constant: 2, helpers / program: 5, he-ui: 1 | 32 |
 | 4 | `he-audit` | change history and activity: record titles, field names, change descriptions and diffs, inspector targets, activity feed reads | 226 | he-config: 4, helpers / program: 1, he-data: 1 | 10 |
 | 5 | `he-status` | system status: environment label, page versions, database-step checks, freshness limits, attention seen-state | 75 | he-config: 1, he-data: 3, page constant: 1 | 9 |

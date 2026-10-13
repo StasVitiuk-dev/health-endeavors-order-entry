@@ -412,8 +412,10 @@ async function installMocks(page) {
 // Columns per table from the local real-shape schema (Query A); draft columns allowed.
 let SCHEMA_COLS = null;
 function unknownSelectColumns(table, select) {
-  const sc = require('../tools/schema-contract');
-  if (!SCHEMA_COLS) SCHEMA_COLS = sc.schema();
+  // Node test runs only: the staging copy bundles this mock into the browser,
+  // where the schema file cannot be read, so the check is simply skipped there.
+  let sc;
+  try { sc = require('../tools/schema-contract'); if (!SCHEMA_COLS) SCHEMA_COLS = sc.schema(); } catch (e) { return null; }
   const walk = (t, p) => {
     if (!SCHEMA_COLS[t]) return null;
     for (const c of p.cols) if (!SCHEMA_COLS[t].has(c) && !sc.DRAFT_COLUMNS.has(c)) return t + '.' + c;

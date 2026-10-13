@@ -98,8 +98,9 @@ window.HE.modules.define('he-ui', { api: 1, needs: ['EMPTY_ICONS','HELP','ICON_P
     function pageIconNode(pageId){
       const svg = document.createElementNS(SVG_NS, 'svg');
       for (const [k, v] of [['viewBox', '0 0 16 16'], ['fill', 'none'], ['stroke', 'currentColor'], ['stroke-width', '1.4'], ['stroke-linecap', 'round'], ['stroke-linejoin', 'round']]) svg.setAttribute(k, v);
-      const src = ICON_PATHS[pageId] || FALLBACK_ICON;
-      for (const m of String(src).matchAll(/<([a-z]+)((?:\s+[a-z-]+="[^"<>]*")*)\s*\/>/g)) {
+      // (the table entries are a few hundred characters; the cap keeps every pattern fast whatever is in it)
+      const src = String(ICON_PATHS[pageId] || FALLBACK_ICON).slice(0, 4000);
+      for (const m of src.matchAll(/<([a-z]+)([^<>]*?)\/>/g)) {
         if (!ICON_TAGS.test(m[1])) continue;
         const shape = document.createElementNS(SVG_NS, m[1]);
         for (const a of m[2].matchAll(/([a-z-]+)="([^"<>]*)"/g)) if (ICON_ATTRS.test(a[1])) shape.setAttribute(a[1], a[2]);
