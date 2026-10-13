@@ -26,7 +26,10 @@ base.test.describe('page source cannot send anything by itself', () => {
       // 1,000-row limit. It adds no request of its own; the browser-session
       // tests below still prove nothing leaves for any other host.
       if (file === 'owner-login.html') {
-        const wrapper = 'function capAwareFetch(input, init){\n      return fetch(input, init).then(res => {';
+        // EXT18 (reviewed): the wrapper also counts changes still waiting for a
+        // reply (so a sign-out elsewhere is reported honestly). Still exactly
+        // one fetch, the client's own request, passed straight through.
+        const wrapper = "function capAwareFetch(input, init){\n      const method = String((init && init.method) || 'GET').toUpperCase();\n      let isWrite = false;\n      try {\n        const p = new URL(typeof input === 'string' ? input : input.url).pathname;\n        isWrite = method !== 'GET' && method !== 'HEAD' && (p.indexOf('/rest/v1/') === 0 || p.indexOf('/storage/v1/') === 0);\n      } catch (_) { /* unknown address: not counted */ }\n      if (isWrite) writesWaiting++;\n      const settled = () => { if (isWrite) writesWaiting--; };\n      return fetch(input, init).then(res => {";
         base.expect(html.split(wrapper).length - 1, 'the reviewed wrapper exists exactly once').toBe(1);
         base.expect(html, 'the wrapper is only used by the database client').toContain("createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { global: { fetch: capAwareFetch } })");
         base.expect(html.split('capAwareFetch').length - 1, 'and nowhere else').toBe(2);
