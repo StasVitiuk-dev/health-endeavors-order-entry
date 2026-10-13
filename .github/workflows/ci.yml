@@ -65,8 +65,12 @@ jobs:
         run: node tests/tools/typecheck.js --gate
       - name: Documentation check
         run: node tests/tools/doc-check.js --current
+      - name: Static security check (no eval / document.write / inline handlers; exact-file script policy; frame guard)
+        run: node tests/tools/static-security.js
+      - name: DOM sink gate (dangerous HTML sinks at 0; every unescaped-looking value reviewed)
+        run: node tests/tools/dom-sinks.js --gate
       - name: Node-only specs (tools, SQL static, docs, CI guard)
-        run: npx playwright test --config tests/playwright.config.js --project=desktop --reporter=list,github tests/specs/ci-guard-ext14.spec.js tests/specs/sql-package-ext14.spec.js tests/specs/sql-drafts-static.spec.js tests/specs/sql-readonly.spec.js tests/specs/docs-integrity-ext13.spec.js tests/specs/evidence-ext12.spec.js tests/specs/deploy-sim-ext12.spec.js tests/specs/incidents-ext12.spec.js tests/specs/query-interpreter-ext10.spec.js tests/specs/helpers-unit.spec.js tests/specs/status-manifest-ext14.spec.js tests/specs/screenshots-policy-ext14.spec.js tests/specs/ci-traps-ext15.spec.js tests/specs/property-node-ext15.spec.js
+        run: npx playwright test --config tests/playwright.config.js --project=desktop --reporter=list,github tests/specs/ci-guard-ext14.spec.js tests/specs/sql-package-ext14.spec.js tests/specs/sql-drafts-static.spec.js tests/specs/sql-readonly.spec.js tests/specs/docs-integrity-ext13.spec.js tests/specs/evidence-ext12.spec.js tests/specs/deploy-sim-ext12.spec.js tests/specs/incidents-ext12.spec.js tests/specs/query-interpreter-ext10.spec.js tests/specs/helpers-unit.spec.js tests/specs/status-manifest-ext14.spec.js tests/specs/screenshots-policy-ext14.spec.js tests/specs/ci-traps-ext15.spec.js tests/specs/property-node-ext15.spec.js tests/specs/security-static-ext18.spec.js
 
   # The browser suite, split in three (Playwright shards; every test runs once).
   browser:

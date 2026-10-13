@@ -252,7 +252,13 @@ if (OFFLINE) {
   if (!sri || crypto.createHash('sha384').update(umd).digest('base64') !== sri[1]) throw new Error('offline: the local library does not match the page integrity hash');
   fs.mkdirSync(path.join(OUT, 'vendor'), { recursive: true });
   fs.writeFileSync(path.join(OUT, 'vendor', 'supabase.js'), umd);
-  html = html.replace(m[1], 'vendor/supabase.js');
+  // EXT18: the address also appears in the script policy (script-src names that
+  // exact file). Swap the tag itself, then drop the CDN entry from the policy:
+  // the offline copy loads the library from this site ('self').
+  html = html.replace(m[0], m[0].replace(m[1], 'vendor/supabase.js'));
+  html = html.split(' ' + m[1]).join('');
+  html = html.replace(/<link rel="preconnect" href="https:\/\/cdn\.jsdelivr\.net"[^>]*>\n?/, '');
+  if (html.includes('cdn.jsdelivr.net')) throw new Error('offline: a CDN address is left in the page');
   fs.writeFileSync(path.join(OUT, 'index.html'), html);
 }
 fs.writeFileSync(path.join(OUT, 'README-STAGING.txt'), [

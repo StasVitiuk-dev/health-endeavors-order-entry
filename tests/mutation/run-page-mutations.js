@@ -631,6 +631,19 @@ const MUTATIONS = [
   ['a lost adjustment reply misread as "not saved" (browser test)', 'assets/owner-login-app.js',
     "            adjustOps.unknown(key, 'stock reply lost');", "            adjustOps.failedBeforeEffect(key, 'x'); adjustOps.reset(key, 'x');",
     'adjust-ops-ext17 -g "sends NOTHING"'],
+  // EXT18: security gates
+  ['the script policy allows the whole CDN again (any package could run)', 'owner-login.html',
+    "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js; style-src", "https://cdn.jsdelivr.net; style-src",
+    'frame-csp-ext18 -g "same CDN is refused"'],
+  ['a supplier name is put into the page without escaping', 'assets/app/he-suppliers.js',
+    '<div class="sName">${esc(s.name)} <span', '<div class="sName">${s.name} <span',
+    'security-static-ext18 -g "static security check passes|DOM sink gate passes"'],
+  ['the DOM sink gate lets an unreviewed value through', 'tests/tools/dom-sinks.js',
+    "if (!e) fails.push(", "if (false) fails.push(",
+    'security-static-ext18 -g "DOM sink gate"'],
+  ['the static check no longer notices eval / Function', 'tests/tools/static-security.js',
+    "if (c === 'eval' ||", "if (false && c === 'eval' ||",
+    'security-static-ext18 -g "planted dangerous"'],
 ];
 
 // EXT16: `--check` only confirms that every mutant's text is still in its file

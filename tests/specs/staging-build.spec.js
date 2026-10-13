@@ -53,7 +53,8 @@ test('the build contains no production address or key', () => {
   }
   const html = fs.readFileSync(path.join(OUT, 'index.html'), 'utf8');
   expect(html).toMatch(/<title>STAGING — /);
-  expect(html.indexOf('staging-runtime.js')).toBeLessThan(html.indexOf('cdn.jsdelivr.net/npm/@supabase'));
+  expect(html.indexOf('<script src="staging-runtime.js"')).toBeLessThan(html.indexOf('<script src="https://cdn.jsdelivr.net/npm/@supabase'));
+  expect(html.indexOf('<script src="https://cdn.jsdelivr.net/npm/@supabase')).toBeGreaterThan(0);
 });
 
 test('banner, synthetic sign-in, seeded pages; nothing outside is contacted', async ({ page }) => {
