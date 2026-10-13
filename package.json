@@ -26,7 +26,9 @@
     "ci:shards": "node tests/tools/ci-shards.js --plan 3",
     "security:static": "node tests/tools/static-security.js",
     "security:sinks": "node tests/tools/dom-sinks.js --gate",
-    "security:regex": "node tests/tools/regex-audit.js"
+    "security:regex": "node tests/tools/regex-audit.js",
+    "security:quick": "bash tests/tools/security-check.sh quick",
+    "security:deep": "bash tests/tools/security-check.sh deep"
   },
   "devDependencies": {
     "@playwright/test": "1.56.1",
