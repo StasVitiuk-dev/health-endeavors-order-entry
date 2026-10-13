@@ -32,7 +32,17 @@ Merging changes the dashboard code only. No SQL runs on merge, and nothing touch
 
 ## 3. Tests run
 
-See §8 (filled in at the end of the finals with the exact commits).
+The program code is frozen at `31cf21f`. Every result below was measured on that commit.
+
+| Check | Result |
+|---|---|
+| Full local suite, desktop + iPhone, `31cf21f` | **2,112 passed, 0 failed, 350 skipped on purpose** (1.0 h) |
+| GitHub CI, `31cf21f` | **all green** (static, screenshots, database suite, 3 browser shards) |
+| Page mutants, full round, `31cf21f` | **213/213 caught** (55 min) |
+| Full local database suite, `31cf21f` | **30/30 steps PASS** (698 s) |
+| Static gates: security quick check, docs, type gate, schema contract, secret scan, asset versions | PASS |
+
+The earlier run on `c956b25` and its fixes are listed in §8. After `31cf21f`, only documents changed.
 
 ## 4. Rollback (step by step)
 
