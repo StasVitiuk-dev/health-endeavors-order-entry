@@ -21,7 +21,16 @@ const PATTERNS = [
   ['private key', /-----BEGIN (RSA |EC |OPENSSH |)PRIVATE KEY-----/],
   ['database URL with password', /postgres(ql)?:\/\/[^\s:@/]+:[^\s@/]{3,}@(?!localhost|127\.0\.0\.1)/],
   ['Shopify token', /\bshp(at|ss|ca|pa)_[a-f0-9]{20,}/],
+  // EXT18
+  ['Anthropic API key', /\bsk-ant-[A-Za-z0-9_-]{20,}/],
+  ['OpenAI-style API key', /\bsk-(proj-)?[A-Za-z0-9]{32,}/],
+  ['Google API key', /\bAIza[0-9A-Za-z_-]{35}\b/],
+  ['npm token', /\bnpm_[A-Za-z0-9]{36}\b/],
 ];
+// EXT18: files that hold secrets by convention must never be tracked at all,
+// whatever they contain (an empty .env today is a filled one tomorrow).
+const SECRET_FILE = /(^|\/)(\.env(\.[\w-]+)?|[^/]+\.(pem|key|p12|pfx)|id_(rsa|ed25519|ecdsa)|\.npmrc|\.pgpass|credentials\.json|service-account[^/]*\.json)$/i;
+const SECRET_FILE_OK = /(^|\/)\.env\.example$/i;
 // Files that hold deliberately fake tokens to prove the tools refuse them.
 const ALLOW = new Set(['tests/fixtures/evidence-samples.js', 'tests/specs/evidence-ext12.spec.js', 'tests/tools/secret-scan.js',
   'tests/specs/ci-guard-ext14.spec.js', 'tests/specs/staging-artifact-ext14.spec.js', 'tests/specs/diagnostics-ext14.spec.js']);
@@ -35,6 +44,7 @@ function scanText(text) {
 function scanFiles(files, base) {
   const findings = [];
   for (const f of files) {
+    if (SECRET_FILE.test(f) && !SECRET_FILE_OK.test(f)) { findings.push(f + ': secret-holding file name (must not be committed)'); continue; }
     if (BINARY.test(f) || ALLOW.has(f)) continue;
     let t; try { t = fs.readFileSync(path.join(base, f), 'utf8'); } catch (e) { continue; }
     for (const h of scanText(t)) findings.push(f + ': ' + h);
@@ -44,7 +54,7 @@ function scanFiles(files, base) {
 function walk(dir, base = dir) {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap(e => e.isDirectory() ? walk(path.join(dir, e.name), base) : [path.relative(base, path.join(dir, e.name))]);
 }
-module.exports = { scanText, scanFiles, PATTERNS, ALLOW };
+module.exports = { scanText, scanFiles, PATTERNS, ALLOW, SECRET_FILE };
 
 if (require.main === module) {
   const dir = process.argv[2];

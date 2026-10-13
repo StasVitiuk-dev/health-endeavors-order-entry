@@ -4,7 +4,7 @@
 // docs/ops/APPLICATION_MODULE_MAP_EXT15.md. Created once, by the app, in order.
 window.HE.modules.define('he-agents', { api: 1, needs: ['AGENT_REGISTRY','AGENT_STALE_AFTER_HOURS','currentUserId','esc','fmtDate','maskSensitive','requireReauth','showDashError','staleMessage','supabase','toast','updateIfUnchanged'] }, function (ctx) {
     const { AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, currentUserId, esc, fmtDate, maskSensitive, requireReauth, showDashError, staleMessage, supabase, toast, updateIfUnchanged } = ctx;
-    let agentControlsByNum = {};
+    let agentControlsByNum = Object.create(null);
     // EXT15: read access for Home, System status and Business Health. Read at the
     // moment of use (never copied before an await): loadAgentControls() may update them.
     function agentControls(){ return { state: agentControlsState, byNum: agentControlsByNum }; }
@@ -58,7 +58,7 @@ window.HE.modules.define('he-agents', { api: 1, needs: ['AGENT_REGISTRY','AGENT_
     }
     // Populated from the get_agent_cron_status() RPC — jobname -> {jobname, schedule, active}.
     // Only ever has entries for agents actually migrated to pg_cron.
-    let cronJobStatusByName = {};
+    let cronJobStatusByName = Object.create(null);
     // EXT10b: whether that schedule list could be read at all. If not, an
     // agent's schedule is UNKNOWN, never "stale".
     let cronJobState = 'loading';
@@ -169,13 +169,13 @@ window.HE.modules.define('he-agents', { api: 1, needs: ['AGENT_REGISTRY','AGENT_
           .select('agent_num, enabled, updated_by, updated_at, last_run_at, last_run_status, last_run_summary, last_error');
         if (error) throw error;
 
-        const byId = {};
+        const byId = Object.create(null);
         (rows || []).forEach(r => { byId[r.agent_num] = r; });
 
         const uids = [...new Set((rows || []).map(r => r.updated_by).filter(Boolean))];
         if (uids.length) {
           const { data: people } = await supabase.from('profiles').select('id, full_name').in('id', uids);
-          const nameById = {};
+          const nameById = Object.create(null);
           (people || []).forEach(p => { nameById[p.id] = p.full_name; });
           Object.values(byId).forEach(r => { r.who = r.updated_by ? nameById[r.updated_by] : null; });
         }
@@ -188,7 +188,7 @@ window.HE.modules.define('he-agents', { api: 1, needs: ['AGENT_REGISTRY','AGENT_
         try {
           const { data: cronRows, error: cronErr } = await supabase.rpc('get_agent_cron_status');
           if (!cronErr && cronRows) {
-            cronJobStatusByName = {};
+            cronJobStatusByName = Object.create(null);
             cronRows.forEach(j => { cronJobStatusByName[j.jobname] = j; });
             cronJobState = 'ok';
           } else cronJobState = 'failed';
@@ -206,7 +206,7 @@ window.HE.modules.define('he-agents', { api: 1, needs: ['AGENT_REGISTRY','AGENT_
         // switches are disabled until they can be read.
         console.warn('Could not load agent controls:', err && err.message ? err.message : err);
         agentControlsState = 'failed';
-        agentControlsByNum = {};
+        agentControlsByNum = Object.create(null);
         if (document.getElementById('agentRegistryWrap')) renderAgentRegistry();
         renderPausedAgentsBanner();
       }

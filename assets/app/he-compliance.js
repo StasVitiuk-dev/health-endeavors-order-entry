@@ -35,7 +35,7 @@ window.HE.modules.define('he-compliance', { api: 1, needs: ['CLOSED_IN','DOCUMEN
         filterSelect.innerHTML = '<option value="">Show evidence for: all incidents</option>' + incidentOptionsHtml;
         filterSelect.value = currentFilter;
 
-        const incidentById = {};
+        const incidentById = Object.create(null);
         (incidents || []).forEach(i => { incidentById[i.id] = i; });
 
         let evidenceQuery = supabase
@@ -123,7 +123,7 @@ window.HE.modules.define('he-compliance', { api: 1, needs: ['CLOSED_IN','DOCUMEN
           ? 'Showing the newest ' + rows.length + ' of ' + docCount + ' documents: older ones are not listed on this page.' : null);
         SEARCH_INDEX.documents = rows;
 
-        const suppliersById = {}; (suppliers || []).forEach(s => { suppliersById[s.id] = s; });
+        const suppliersById = Object.create(null); (suppliers || []).forEach(s => { suppliersById[s.id] = s; });
 
         function relatedLabel(d){
           if (d.related_type === 'supplier' && suppliersById[d.related_id]) return 'Supplier: ' + suppliersById[d.related_id].name;

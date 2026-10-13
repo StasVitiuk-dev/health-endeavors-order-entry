@@ -8,7 +8,7 @@ window.HE.modules.define('he-inquiries', { api: 1, needs: ['INQ_ANSWERED_CAP','I
     // EXT15: read-only access for the badge count and record search.
     function inquiriesList(){ return ALL_INQUIRIES; }
     let INQ_ANSWERED_TOTAL = 0, INQ_ANSWERED_SHOWN = 0;
-    let INQUIRY_ORDER_BY_ID = {};
+    let INQUIRY_ORDER_BY_ID = Object.create(null);
 
     async function loadInquiries(){
       try {
@@ -31,7 +31,7 @@ window.HE.modules.define('he-inquiries', { api: 1, needs: ['INQ_ANSWERED_CAP','I
         ALL_INQUIRIES = waiting.concat(answered);
 
         const orderIds = [...new Set(ALL_INQUIRIES.map(i => i.order_id).filter(Boolean))];
-        INQUIRY_ORDER_BY_ID = {};
+        INQUIRY_ORDER_BY_ID = Object.create(null);
         if (orderIds.length) {
           // chunked: up to 200 ids would make one URL too long for the gateway
           const orders = await fetchAllRowsIn('orders', 'id, order_number', 'id', orderIds);

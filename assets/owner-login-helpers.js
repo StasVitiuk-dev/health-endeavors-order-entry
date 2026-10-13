@@ -69,6 +69,7 @@
     const BUSINESS_RULE_WHOLE_NUMBER_LIMITS = {
       shipping_delay_threshold_days: { key: 'days', min: 1, max: 365 },
     };
+    Object.setPrototypeOf(BUSINESS_RULE_WHOLE_NUMBER_LIMITS, null); // EXT18: the rule key comes from the database
 
     // Returns an error message if newConfig breaks that rule's limits, or '' if it's fine.
     function businessRuleValueError(ruleKey, label, newConfig){
@@ -236,6 +237,7 @@
       software:          { group: 'operating', label: 'Software' },
       other:             { group: 'operating', label: 'Other' },
     };
+    Object.setPrototypeOf(TAX_CATEGORY_MAP, null); // EXT18: a category such as "constructor" finds nothing
 
   window.HE = window.HE || {};
 
@@ -266,7 +268,11 @@
     // …", "JWT expired"). Replace the internal part (table, policy and
     // constraint names) with plain words, and say what it means.
     function explainDbError(text){
-      let t = String(text == null ? '' : text);
+      // EXT18: a reply of any length is cut to 2,000 characters before the
+      // pattern checks below, so a huge error page cannot freeze the tab (several
+      // patterns take time that grows with the square of the length).
+      const raw = String(text == null ? '' : text);
+      let t = raw.slice(0, 2000);
       const isPermission = /row-level security|permission denied for|insufficient_privilege/i.test(t);
       t = t.replace(/new row violates row-level security policy( for table "[^"]*")?/gi, 'not permitted')
            .replace(/permission denied for (table|relation|function|schema|sequence) "?[\w.]+"?/gi, 'not permitted')
@@ -297,7 +303,8 @@
         return t.slice(0, html).replace(/[\s:—-]+$/, '') + ' — The server sent back an error page instead of an answer (it may be briefly unavailable),' + UNKNOWN;
       }
       const fragment = t.search(/[[{]\s*("|\{|\[|$)/);
-      if (fragment !== -1 && !/[\]}]\s*$/.test(t.slice(fragment))) {
+      // (whether the reply really ends cut off is judged on its true end)
+      if (fragment !== -1 && !/[\]}]\s*$/.test(raw.length > 2000 ? raw.slice(-2000) : t.slice(fragment))) {
         return t.slice(0, fragment).replace(/[\s:—-]+$/, '') + ' — The server’s reply was cut off,' + UNKNOWN;
       }
       // The database gave up on this one step and undid it: two changes
@@ -430,7 +437,9 @@
     // call. Shown on screen (and in screenshots people share), so mask them,
     // the same way Query C does, and cap the length (F3-06, EXT3).
     function maskSensitive(text){
-      const t = String(text === null || text === undefined ? '' : text)
+      // EXT18: only the first 2,000 characters are examined (and 300 shown), so
+      // a huge value cannot freeze the tab.
+      const t = String(text === null || text === undefined ? '' : text).slice(0, 2000)
         .replace(/[^\s@:;,()<>]+@[^\s@:;,()<>]+/g, '[email]')
         .replace(/[A-Za-z0-9_.=+\/-]{24,}/g, '[token]');
       return t.length > 300 ? t.slice(0, 300) + '…' : t;
@@ -494,7 +503,7 @@
         return { level: 'critical', count: bad.length, oldest: null, why: 'A purchase order is marked received, but some lines were not (fully) added to stock. Stock and the order disagree.' };
       });
       check('duplicatePoExpense', inp.poExpenses, rows => {
-        const byNote = {};
+        const byNote = Object.create(null);
         rows.forEach(e => { const k = String(e.note || ''); if (k) byNote[k] = (byNote[k] || 0) + 1; });
         const dups = Object.keys(byNote).filter(k => byNote[k] > 1);
         return { level: 'critical', count: dups.length, oldest: null, why: 'The cost of a purchase order was logged more than once, so expenses are overstated. Delete the extra entry on Expenses.' };

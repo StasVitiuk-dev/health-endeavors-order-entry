@@ -1710,7 +1710,7 @@
         db = error ? { ok: false, text: 'Could not read: ' + errorKind(explainDbError(error.message || String(error))) } : { ok: true, text: 'Reading works (' + Math.round(performance.now() - t0) + ' ms just now)' };
       } catch (e) { db = { ok: false, text: 'Could not read: ' + errorKind(e && e.message) }; }
       if (!isLatest()) return;
-      const counts = {};
+      const counts = Object.create(null);
       if (agentControls().state === 'ok') AGENT_REGISTRY.forEach(a => { const t = agentTruth(a, agentControls().byNum[a.num]).label; counts[t] = (counts[t] || 0) + 1; });
       const agents = agentControls().state === 'ok' ? Object.entries(counts).map(([k, v]) => v + ' ' + k).join(' · ') : 'UNKNOWN (agent switches could not be read)';
       // The probes run only while this page is open (or on Check again / Copy),
@@ -1840,7 +1840,7 @@
           if (num === null) return `<div class="stat statWarn statUnknown"><div class="num">?</div><div class="lbl">${esc(lbl)} (could not be read)</div></div>`;
           const inner = `<div class="num">${num}</div><div class="lbl">${esc(lbl)}</div>`;
           return goto
-            ? `<button type="button" class="stat statLink ${cls}" data-goto="${esc(goto)}" aria-label="${esc(lbl)}: ${esc(String(num).replace(/<[^>]*>/g, ''))}. Open that page.">${inner}</button>`
+            ? `<button type="button" class="stat statLink ${cls}" data-goto="${esc(goto)}" aria-label="${esc(lbl)}: ${esc(String(num).replace(/<[^<>]*>/g, ''))}. Open that page.">${inner}</button>`
             : `<div class="stat ${cls}">${inner}</div>`;
         };
 
@@ -2152,7 +2152,7 @@
     // after an unknown result unless the database step refuses duplicates.
     const poReceiveOps = createOpTracker('PO receive');
     let PO_PRODUCTS = [];
-    let PO_LOTS = {};
+    let PO_LOTS = Object.create(null);
 
     document.getElementById('addSupplierForm').addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -2212,7 +2212,7 @@
 
         // Group received lot numbers by which PO line they came from, so the
         // receiving table can show what was already recorded.
-        PO_LOTS = {};
+        PO_LOTS = Object.create(null);
         (lots || []).forEach(l => {
           const key = l.purchase_order_id + '::' + l.product_id;
           (PO_LOTS[key] = PO_LOTS[key] || []).push(l);
@@ -3260,7 +3260,7 @@
     let calView = 'day';
     let calCursor = new Date(); calCursor.setHours(0, 0, 0, 0);
     let calEvents = [];
-    let calNotes = {};            // event uid -> note text
+    let calNotes = Object.create(null);            // event uid -> note text
     let calHidden = new Set();    // calendar names switched off
     let calOpenUid = null;        // which event is expanded
 
@@ -3593,7 +3593,7 @@
             ends_at: r.ends_at,
             all_day: r.all_day,
           }));
-          calNotes = {};
+          calNotes = Object.create(null);
           renderCalFilters();
           renderCalendar();
           return;
@@ -3611,7 +3611,7 @@
 
         // Notes are optional — if the table isn't there yet, the calendar still works.
         const uids = calEvents.map(e => e.uid).filter(Boolean);
-        calNotes = {};
+        calNotes = Object.create(null);
         // In small batches: event ids can be long, and one URL holding
         // hundreds of them is refused by the gateway (all notes vanished).
         // It used to stop at 300 events, silently.
@@ -6017,7 +6017,7 @@
 
         // RP-06 (EXT3): the same purchase order's cost logged more than once
         // (a retried or half-finished receive). Shown for review only.
-        const poCosts = {};
+        const poCosts = Object.create(null);
         expenses.forEach(e => {
           const m = /^Purchase order (.+)$/.exec(String(e.note || '').trim());
           if (!m) return;
@@ -6111,7 +6111,7 @@
         // Revenue + sales tax — same cancelled/refunded exclusion as Accounting,
         // so the two pages never quietly disagree on what counts as a real sale.
         let revenue = 0, salesTax = 0, stateUnknownTax = 0;
-        const stateTax = {};
+        const stateTax = Object.create(null);
         const inScopeOrders = [];
         orders.forEach(o => {
           const { isCancelled, isRefund, isPartialRefund } = classifyOrderStatus(o.status);
@@ -6131,7 +6131,7 @@
 
         // Expenses by category, split into COGS vs Operating.
         let cogsTotal = 0, operatingTotal = 0;
-        const byCategory = {};
+        const byCategory = Object.create(null);
         expenses.forEach(e => {
           const amt = Number(e.amount || 0);
           const info = TAX_CATEGORY_MAP[e.category] || { group: 'operating', label: e.category || 'Uncategorized' };
@@ -6185,7 +6185,7 @@
           // "SYN-A" does. The catalogue is read whole (it is small) instead
           // of by exact SKU.
           const skuKey = s => String(s || '').trim().toLowerCase();
-          const costBySku = {};
+          const costBySku = Object.create(null);
           if ((items || []).some(i => skuKey(i.sku))) {
             const products = await fetchAllRows('products', 'id, sku, cost', q => q);
             if (!isLatest()) return;

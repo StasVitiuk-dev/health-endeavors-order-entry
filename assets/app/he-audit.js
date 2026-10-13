@@ -134,7 +134,7 @@ window.HE.modules.define('he-audit', { api: 1, needs: ['ACTIVITY_AREA_LABELS','P
           return;
         }
         const people = new Set(rows.filter(r => r.person_account_number).map(r => r.person_account_number));
-        const areaCount = {};
+        const areaCount = Object.create(null);
         rows.forEach(r => {
           const a = ACTIVITY_AREA_LABELS[r.table_name] || r.area;
           areaCount[a] = (areaCount[a] || 0) + 1;

@@ -644,6 +644,27 @@ const MUTATIONS = [
   ['the static check no longer notices eval / Function', 'tests/tools/static-security.js',
     "if (c === 'eval' ||", "if (false && c === 'eval' ||",
     'security-static-ext18 -g "planted dangerous"'],
+  // EXT18: values named like built-in object properties
+  ['the sales-tax-by-state table uses a plain object again ("__proto__" state vanishes)', 'assets/owner-login-app.js',
+    "        const stateTax = Object.create(null);", "        const stateTax = {};",
+    'prototype-keys-ext18 -g "shipping state"'],
+  ['the duplicate purchase-order check uses a plain object again (page fails on "Purchase order constructor")', 'assets/owner-login-app.js',
+    "        const poCosts = Object.create(null);", "        const poCosts = {};",
+    'prototype-keys-ext18 -g "Accounting"'],
+  ['the label tables keep their prototype again ("constructor" finds a function)', 'assets/owner-login-helpers.js',
+    "    Object.setPrototypeOf(TAX_CATEGORY_MAP, null);", "    ",
+    'prototype-keys-ext18 -g "expense category"'],
+  // EXT18: slow patterns on huge input
+  ['database error text is no longer cut before the slow pattern checks', 'assets/owner-login-helpers.js',
+    "      let t = raw.slice(0, 2000);", "      let t = raw;",
+    'security-parsers-ext18 -g "explainDbError"'],
+  // EXT18: secret firewall
+  ['the secret scanner no longer reports any key pattern', 'tests/tools/secret-scan.js',
+    "const m = text.match(re); if (m) hits.push(name);", "const m = text.match(re); if (false) hits.push(name);",
+    'supply-chain-ext18 -g "fires on each kind"'],
+  ['the secret scanner no longer refuses .env and key files', 'tests/tools/secret-scan.js',
+    "if (SECRET_FILE.test(f) && !SECRET_FILE_OK.test(f))", "if (false)",
+    'supply-chain-ext18 -g "fires on each kind"'],
 ];
 
 // EXT16: `--check` only confirms that every mutant's text is still in its file
