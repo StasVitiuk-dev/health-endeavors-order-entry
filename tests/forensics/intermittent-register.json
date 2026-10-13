@@ -97,6 +97,26 @@
    "reproduced": "node tests/mutation/run-page-mutations.js --check: 17 not applicable before the fix, 0 after",
    "status": "FIXED",
    "fix": "EXT16: 17 mutants retargeted (all 18 matching mutants CAUGHT on a real run); runner --check mode plus a test that every mutant applies exactly once; the order pages' ?v= fingerprints are refreshed inside mutant worktrees"
+  },
+  {
+   "id": "INT-6",
+   "test": "tests/specs/session-security-ext18.spec.js (new in EXT18) › five tabs / sign-out with a save in flight / server unreachable",
+   "firstSeen": {
+    "where": "local, 8 workers, run alongside the rest of the spec (uncommitted EXT18 work)",
+    "sha": "2695f75 + working tree",
+    "date": "2026-10-13"
+   },
+   "lastSeen": {
+    "where": "local, --repeat-each=4 --workers=8",
+    "sha": "2695f75 + working tree",
+    "date": "2026-10-13"
+   },
+   "classification": "HARNESS",
+   "cause": "(1) Test time budget: five real tabs booting and reloading under 8 parallel workers took up to 34 s (limit 30 s) and a reload took over 5 s; the saved page snapshot showed the correct signed-out screen with the right note. (2) Probable, not proven: a storage read right after Sign out ran during the page’s own reload (the one first failure’s message was not kept).",
+   "reproduced": "(1) yes: failed on every third run of --repeat-each=4 --workers=8 (always the same repeat), snapshot attached to the run; (2) not reproduced in 48 isolated runs",
+   "status": "FIXED",
+   "fix": "multi-tab tests get 120 s and 20 s per reload wait; reads after sign-out poll until the reload has finished. Product behaviour unchanged.",
+   "evidenceAfterFix": "3 x (--repeat-each=4 --workers=8) = 72/72 passed"
   }
  ]
 }
