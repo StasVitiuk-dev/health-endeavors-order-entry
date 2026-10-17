@@ -82,6 +82,14 @@
       "env": "production",
       "schema": "id,item,expected,observed,status,action",
       "interpret": "evidence:interpret QUERY_H"
+    },
+    {
+      "file": "08_READONLY_A2_outside_tables.sql",
+      "id": "A2",
+      "purpose": "shape of the 24 tables/views the page reads that Query A did not export (same format as Query A)",
+      "env": "production",
+      "schema": "section,item,detail",
+      "interpret": "node tests/tools/schema-drift.js --export query-a.csv --export query-a2.csv"
     }
   ],
   "changes": [
