@@ -207,8 +207,12 @@ function nextSteps(type, result) {
       if (/G03/.test(row.name)) steps.push('Write the task-update fix draft (owner/admin or assignee only) with its exact rollback, test it on local roles: install → test → rollback → reinstall.');
       else if (/G04/.test(row.name)) steps.push('Write a revoke draft for the anon rights listed (' + row.name + ') with a grant-back rollback; test locally.');
       else if (/G01/.test(row.name)) steps.push('Write enable-RLS + policy draft for ' + row.name + '; test locally.');
+      else if (/^G08/.test(row.name)) steps.push('STOP: a policy lets signed-in users write audit lines directly (forged history possible). Draft dropping that policy plus revoking INSERT, with rollback; owner approves before anything else.');
       else steps.push('Read ' + row.name + ' and propose a draft.');
     }
+    // EXT20: audit findings F1 / F2 (AUTHORIZATION_CONTRACT_EXT18.md)
+    if (T === 'QUERY_G' && /^G08/.test(row.name) && row.status === 'WARN') steps.push('F1 confirmed: signed-in users hold the INSERT right on audit_log (refused today only because no INSERT policy exists). Prepare the revoke-INSERT draft with grant-back rollback; prove locally the audit trigger still writes. Owner approves and runs it.');
+    if (T === 'QUERY_G' && /^G09/.test(row.name) && row.status === 'WARN') steps.push('F2 confirmed: every signed-in user can read every audit line. OWNER DECISION: owner-only, owner+admin, or leave as is (OWNER_ACTIONS_EXT20.md). Nothing changes until the owner decides.');
     if (T === 'QUERY_G' && row.status === 'WARN' && /G05/.test(row.name)) steps.push('Duplicate read policies on ' + row.name + ': draft dropping the looser one after confirming the stricter covers every read.');
     if ((T === 'QUERY_C' || T === 'AGENT_STATUS') && /^audit /.test(row.name) && row.status === 'WARN') steps.push('Audit gap on ' + row.name.slice(6) + ': draft one audit trigger using the existing audit function named in section 10, with drop-trigger rollback.');
     if ((T === 'QUERY_C' || T === 'AGENT_STATUS') && /^agent /.test(row.name) && row.status !== 'PASS') steps.push('Update the agent row for ' + row.name + ' (' + row.note + '); no change to the agent.');

@@ -70,7 +70,7 @@
     {
       "file": "06_READONLY_G_permissions_inventory.sql",
       "id": "G",
-      "purpose": "who can read or write what (G01-G07)",
+      "purpose": "who can read or write what (G01-G07; G08 audit insert F1, G09 audit readers F2)",
       "env": "production",
       "schema": "check_id,level,object,detail",
       "interpret": "evidence:interpret QUERY_G"

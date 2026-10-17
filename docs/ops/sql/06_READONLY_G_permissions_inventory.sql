@@ -17,6 +17,8 @@
 --       widest one wins, which is easy to overlook)
 -- plus the general picture (G01 tables without row-level security, G02 every
 -- policy, G06 functions anon can run, G07 tables with RLS on but no policy).
+-- EXT20: G08 and G09 answer audit findings F1 (direct insert into audit_log)
+-- and F2 (who may read audit_log) without anyone having to read G02 by hand.
 --
 -- HOW TO READ: one row per finding. level: PASS / WARN / FAIL / INFO.
 --   FAIL = should be fixed before launch; WARN = look at it; INFO = listing.
@@ -78,4 +80,28 @@ select 'G06 anon can run function', 'WARN', proname, 'not-signed-in users can ca
 union all
 select 'G07 RLS on, no policy', 'INFO', t.relname, 'nobody but the owner role can use this table (fine if intended)'
   from app_tables t where t.relrowsecurity and not exists (select 1 from pol where pol.tablename = t.relname)
+union all
+-- EXT20: finding F1 (AUTHORIZATION_CONTRACT_EXT18.md) answered directly.
+select 'G08 audit log direct insert (F1)',
+       case when exists (select 1 from pol where tablename = 'audit_log' and cmd in ('INSERT', 'ALL')) then 'FAIL'
+            when has_table_privilege('authenticated', 'public.audit_log', 'INSERT') then 'WARN' else 'PASS' end,
+       'audit_log',
+       case when exists (select 1 from pol where tablename = 'audit_log' and cmd in ('INSERT', 'ALL'))
+              then 'a policy lets signed-in users add audit lines directly (' || (select string_agg(policyname, ', ') from pol where tablename = 'audit_log' and cmd in ('INSERT', 'ALL')) || '): forged history is possible'
+            when has_table_privilege('authenticated', 'public.audit_log', 'INSERT')
+              then 'no INSERT policy, so a direct insert is refused by RLS today; but signed-in users still hold the INSERT right, so one mistaken policy would allow forged lines (F1 fix: revoke INSERT; the audit trigger keeps writing)'
+            else 'signed-in users hold no INSERT right and no INSERT policy exists' end
+ where exists (select 1 from app_tables where relname = 'audit_log') and exists (select 1 from pg_roles where rolname = 'authenticated')
+union all
+-- EXT20: finding F2 answered directly (who may read history is an OWNER DECISION).
+select 'G09 audit log readers (F2)',
+       case when count(*) = 0 then 'INFO'
+            when bool_or(using_expr in ('', 'true') or replace(using_expr, ' ', '') in ('(true)', '(auth.uid()ISNOTNULL)', '(auth.role()=''authenticated''::text)')) then 'WARN'
+            else 'INFO' end,
+       'audit_log',
+       case when count(*) = 0 then 'no read policy: only the database owner role can read the audit log'
+            else count(*) || ' read policy(ies): ' || string_agg(policyname || ' for ' || roles || ' using ' || left(using_expr, 120), ' | ')
+                 || ' (WARN = every signed-in user can read every audit line; OWNER DECISION F2: who may read history)' end
+  from pol where tablename = 'audit_log' and cmd in ('SELECT', 'ALL') and permissive = 'PERMISSIVE'
+ having exists (select 1 from app_tables where relname = 'audit_log')
 order by 1, 3;

@@ -61,6 +61,10 @@ const G = {
   taskUpdateBroad: G_HEAD + 'G03 open task update,FAIL,tasks,update using (true)\n',
   noRls: G_HEAD + 'G01 no row-level security,FAIL,legacy_notes,\n',
   malformed: 'policy,table\nx,y\n',
+  // EXT20: audit findings F1 / F2 answered by G08 / G09
+  auditAsFeared: G_HEAD + 'G08 audit log direct insert (F1),WARN,audit_log,no INSERT policy but INSERT right granted\nG09 audit log readers (F2),WARN,audit_log,1 read policy(ies): audit_read using true\n',
+  auditForgeable: G_HEAD + 'G08 audit log direct insert (F1),FAIL,audit_log,a policy lets signed-in users add audit lines directly (x)\n',
+  auditTight: G_HEAD + 'G08 audit log direct insert (F1),PASS,audit_log,no INSERT right\nG09 audit log readers (F2),INFO,audit_log,1 read policy(ies): owner_read using is_owner_or_admin()\n',
 };
 const H_HEAD = 'id,item,expected,observed,status,action\n';
 const H = {

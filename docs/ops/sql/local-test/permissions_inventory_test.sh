@@ -21,6 +21,9 @@ ok "runs inside a READ ONLY transaction" "$(echo "$out" | grep -c 'ERROR')" "0"
 ok "lists every policy (G02)" "$( [ "$(echo "$out" | grep -c '^G02 policy|INFO|')" -gt 5 ] && echo yes)" "yes"
 ok "tasks update not open as shipped locally (G03 PASS)" "$(echo "$out" | grep '^G03' | cut -d'|' -f2)" "PASS"
 ok "no anon table rights locally (no G04 row)" "$(echo "$out" | grep -c '^G04')" "0"
+ok "F1 as shipped locally: INSERT right granted, no INSERT policy (G08 WARN)" "$(echo "$out" | grep '^G08' | cut -d'|' -f2)" "WARN"
+ok "F2 as shipped locally: any signed-in user reads (G09 WARN)" "$(echo "$out" | grep '^G09' | cut -d'|' -f2)" "WARN"
+ok "  G09 names the read policy" "$(echo "$out" | grep '^G09' | grep -c local_audit_read)" "1"
 before=$(q "select count(*) from pg_policies")
 
 q "create policy planted_open_update on tasks for update to authenticated using (true)" >/dev/null
@@ -36,6 +39,16 @@ ok "anon SELECT-only right is WARN (G04)" "$(echo "$out" | grep -c '^G04 anon ta
 ok "duplicate read policies are WARN (G05)" "$(echo "$out" | grep -c '^G05 duplicate read policies|WARN|products|')" "1"
 ok "table without RLS is FAIL (G01)" "$(echo "$out" | grep -c '^G01 no row-level security|FAIL|expenses|')" "1"
 ok "running it changed nothing" "$(q "select count(*) from pg_policies")" "$((before+2))"
+
+# EXT20: F1/F2 planted variants
+q "create policy planted_audit_insert on audit_log for insert to authenticated with check (true)" >/dev/null
+out=$(g)
+ok "an INSERT policy on audit_log is FAIL (G08) and named" "$(echo "$out" | grep '^G08' | cut -d'|' -f2)|$(echo "$out" | grep '^G08' | grep -c planted_audit_insert)" "FAIL|1"
+q "drop policy planted_audit_insert on audit_log; revoke insert on audit_log from authenticated" >/dev/null
+q "drop policy local_audit_read on audit_log; create policy planted_owner_read on audit_log for select to authenticated using (is_owner_or_admin())" >/dev/null
+out=$(g)
+ok "F1 fixed (INSERT revoked, no policy) is PASS (G08)" "$(echo "$out" | grep '^G08' | cut -d'|' -f2)" "PASS"
+ok "owner/admin-only read is INFO, not WARN (G09)" "$(echo "$out" | grep '^G09' | cut -d'|' -f2)" "INFO"
 
 psql "${CONN[@]}" -d postgres -qX -c "drop database if exists $DB" >/dev/null 2>&1
 echo "TOTAL: $pass passed, $fail failed"

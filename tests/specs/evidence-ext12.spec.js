@@ -72,6 +72,11 @@ test('re-entry: each finding routes to a prepared next step, never a production 
   expect(steps('QUERY_G', S.G.taskUpdateBroad)).toMatch(/task-update fix draft.*rollback.*local roles/);
   expect(steps('QUERY_G', S.G.anonWrite)).toMatch(/revoke draft/);
   expect(steps('QUERY_G', S.G.duplicatePolicy)).toMatch(/Duplicate read policies/);
+  // EXT20: G08 / G09 (audit findings F1 / F2)
+  expect(steps('QUERY_G', S.G.auditAsFeared)).toMatch(/F1 confirmed.*revoke-INSERT draft[\s\S]*F2 confirmed.*OWNER DECISION/);
+  expect(steps('QUERY_G', S.G.auditForgeable)).toMatch(/^STOP: a policy lets signed-in users write audit lines/m);
+  expect(steps('QUERY_G', S.G.auditTight)).not.toMatch(/F1|F2|STOP/);
+  expect([st('QUERY_G', S.G.auditAsFeared), st('QUERY_G', S.G.auditForgeable), st('QUERY_G', S.G.auditTight)]).toEqual(['WARN', 'FAIL', 'PASS']);
   expect(steps('QUERY_H', S.H.switchWithoutDependency)).toMatch(/^STOP/m);
   expect(steps('QUERY_E', S.E.stockMismatch)).toMatch(/no automatic repair/);
   expect(steps('QUERY_H', S.H.allExpected)).toBe('Nothing to do.');
