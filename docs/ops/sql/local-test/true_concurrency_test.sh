@@ -127,5 +127,9 @@ check "deadlocks (all levels)" "$DEADLOCKS" 0
 for r in "${RESULTS[@]}"; do echo "  $r"; done
 echo "true concurrency: sizes [$SIZES] in $(( $(date +%s)-t0 ))s, deadlocks $DEADLOCKS — $pass passed, $fail failed"
 $PSQL -c "drop table if exists tc_stop" >/dev/null 2>&1
+# leave no synthetic rows behind for later suite steps (a leftover recall once made
+# another test's setup fail silently; see INTERMITTENT_FORENSICS_EXT20.md)
+$PSQL -c "delete from inventory_adjustments; delete from expenses; delete from recalls; delete from returns; delete from order_items; delete from orders;
+  delete from inventory_lots; delete from purchase_order_items; delete from purchase_orders; delete from inventory; delete from products where sku like 'TC-%'; delete from suppliers where name = 'TCONC supplier';" >/dev/null 2>&1
 rm -rf "$W"
 [ $fail -eq 0 ]

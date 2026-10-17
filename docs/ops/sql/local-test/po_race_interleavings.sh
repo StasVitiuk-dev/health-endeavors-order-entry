@@ -15,7 +15,7 @@ DIR="$(cd "$(dirname "$0")" && pwd)"
 GUARD="${GUARD_FILE:-$DIR/../drafts/17_DRAFT_po_line_delete_guard.sql}"  # GUARD_FILE: mutation runs only
 fail=0
 setup() {
-  $P -c "delete from inventory_adjustments; delete from expenses; delete from inventory_lots; delete from purchase_orders; delete from purchase_order_items;
+  $P -c "delete from inventory_adjustments; delete from expenses; delete from recalls; delete from inventory_lots; delete from purchase_orders; delete from purchase_order_items;
     delete from inventory where product_id='$A'; insert into products (id,name,sku) values ('$A','RACE A','RACE-A') on conflict (id) do nothing;
     insert into inventory (product_id, available) values ('$A',1000);
     insert into profiles (id,email,role) values ('00000000-0000-4000-8000-000000000001','race-owner@example.test','owner') on conflict (id) do update set role='owner';
@@ -23,6 +23,10 @@ setup() {
     insert into purchase_orders (id, po_number, status, supplier_id) values ('$PO','RACE','ordered','99999999-0000-4000-8000-000000000000');
     insert into purchase_order_items (id, purchase_order_id, product_id, description, quantity, unit_cost) values
       (gen_random_uuid(),'$PO','$A','x',5,1), ('$L2','$PO','$A','y',7,1);" >/dev/null
+  # EXT20: a setup that failed (for example a leftover row from another test blocking
+  # a delete) used to be swallowed; every case then "agreed" and a missing guard could
+  # not be detected (found when 2 SQL mutants went uncaught). Stop loudly instead.
+  [ "$($P -c "select count(*) from purchase_order_items where purchase_order_id='$PO'")" = 2 ] || { echo "SETUP FAILED: the test order was not created (leftover data?); results would be meaningless"; exit 3; }
 }
 agree() {  # prints true when the order and the stock agree
   $P -c "select case (select status from purchase_orders where id='$PO')
