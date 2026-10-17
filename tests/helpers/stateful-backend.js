@@ -36,6 +36,8 @@ function enableWrites(backend, tables) {
   backend.replyNext = (table, method, { status = 200, contentType = 'application/json', body = '', applied = false } = {}) =>
     addHook('reply', table, method, { status, contentType, body, applied });
   backend.delayNext = (table, method, ms) => addHook('delay', table, method, { ms });
+  // EXT20 (INT-3 evidence): hooks still queued, named in chaos failure messages
+  backend.pendingHooks = () => hooks.map(h => h.kind + ' ' + h.method + ' ' + h.table);
 
   const originalHandle = backend.handle.bind(backend);
   backend.handle = async route => {

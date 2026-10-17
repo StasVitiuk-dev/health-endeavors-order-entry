@@ -244,6 +244,11 @@ test('two uploads of the same file name get different storage paths', async ({ p
   backend.tables.documents = [];
   backend.tables.suppliers = [];
   enableWrites(backend, ['documents']);
+  // EXT20 (INT-8): the first save's database reply is slowed on purpose. The test used
+  // to start the second upload as soon as the first FILE request was seen, while the
+  // first save was still finishing (button disabled, form about to be cleared), so
+  // under load the second click hit a disabled button. Each save is now awaited.
+  backend.delayNext('documents', 'POST', 300);
   await page.clock.setFixedTime(new Date('2026-10-06T12:00:00Z')); // same millisecond for both
   await login(page);
   await openDocuments(page);
@@ -251,6 +256,8 @@ test('two uploads of the same file name get different storage paths', async ({ p
     await fillDocument(page);
     await page.click('#addDocumentForm button[type="submit"]');
     await expect.poll(() => uploads(backend, 'document-files').length).toBe(i + 1);
+    await expect.poll(() => backend.tables.documents.length).toBe(i + 1);
+    await expect(page.locator('#addDocumentForm button[type="submit"]')).toBeEnabled();
   }
   const [a, b] = uploads(backend, 'document-files').map(r => uploadedPath(r, 'document-files'));
   expect(a).not.toBe(b);

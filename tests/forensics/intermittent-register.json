@@ -1,5 +1,5 @@
 {
- "about": "Intermittent test failures: first seen, evidence, classification (PRODUCT / HARNESS / ENVIRONMENT / UNEXPLAINED) and status (OPEN INTERMITTENT / EXPLAINED / FIXED). A failure is never marked FIXED without a reproduced cause. Never delete an entry.",
+ "about": "Intermittent test failures: first seen, evidence, classification (PRODUCT / HARNESS / ENVIRONMENT / UNEXPLAINED) and status (OPEN INTERMITTENT / EXPLAINED / FIXED). A failure is never marked FIXED without a reproduced cause. Never delete an entry. A rerun that passes never closes an entry by itself (EXT20 rule): closing needs the cause reproduced on demand and a fix shown to remove it. Each entry records first/last seen, SHA, environment, input, reproducibility, suspected layer, evidence path and classification.",
  "entries": [
   {
    "id": "INT-1",
@@ -57,7 +57,10 @@
    "cause": "page.waitForLoadState('networkidle') did not settle within 30 s at step 2 of one replayed 3-step sequence (task button flow). Not seen in any full chaos run (3 seeds desktop + phone pass). Possibly a request left pending by the mock's delayNext across a replay reset; not established.",
    "reproduced": "no",
    "status": "OPEN INTERMITTENT",
-   "fix": "none yet; the 30 s action limit (EXT16) turns any recurrence into a named failure instead of a stall"
+   "fix": "none yet; the 30 s action limit (EXT16) turns any recurrence into a named failure instead of a stall",
+   "suspectedLayer": "harness (mock hook or pending request across a replay) — not established",
+   "evidencePath": "tests/helpers/chaos.js (runOps failure message)",
+   "nextFailureEvidence": "EXT20: any chaos step failure now names every request still in flight (method, path, age in ms) and every mock hook still queued (delay/drop/fail). The next occurrence will show which request kept the page from going idle. Not reproduced in EXT20 (chaos spec 2 runs, all passed). Status stays OPEN."
   },
   {
    "id": "INT-4",
@@ -136,7 +139,9 @@
    "reproduced": "yes, on demand: tests/forensics/palette-int7.probe.spec.js with PAL_THROTTLE=4 gave p99 283 ms and max 284 ms (limit 250) on b433037; 4 browsers at once gave medians 40-48 ms with spikes to 322-341 ms",
    "status": "FIXED",
    "fix": "the palette scrolls only its own result list; the search stops matching once 30 results are found (same results, same order). Limit not changed.",
-   "evidenceAfterFix": "same probe: quiet p50 37.5 -> 2.5 ms, max 55 -> 7 ms; 4x slower CPU p99 283 -> 25-33 ms, max 904 -> 35 ms; 4 browsers at once medians 3-5 ms (one run of 8 had a single 326 ms spike, not reproduced in the next 4: ENVIRONMENT residue, far rarer than before). Guarded by palette-perf-ext20.spec.js and 2 mutants."
+   "evidenceAfterFix": "same probe: quiet p50 37.5 -> 2.5 ms, max 55 -> 7 ms; 4x slower CPU p99 283 -> 25-33 ms, max 904 -> 35 ms; 4 browsers at once medians 3-5 ms (one run of 8 had a single 326 ms spike, not reproduced in the next 4: ENVIRONMENT residue, far rarer than before). Guarded by palette-perf-ext20.spec.js and 2 mutants.",
+   "suspectedLayer": "product (layout + allocation) amplified by CPU contention",
+   "evidencePath": "tests/forensics/palette-int7.probe.spec.js"
   },
   {
    "id": "INT-8",
@@ -147,15 +152,18 @@
     "date": "2026-10-13"
    },
    "lastSeen": {
-    "where": "local full suite, 4 workers, desktop + iPhone",
-    "sha": "c956b25",
-    "date": "2026-10-13"
+    "where": "local probe (deliberate delay)",
+    "sha": "377fcfe",
+    "date": "2026-10-17"
    },
-   "classification": "UNEXPLAINED",
-   "cause": "the second upload was not seen by the mock within the default 5 s poll (1 of 2 uploads), once, in the full local suite. The documents upload code is unchanged in EXT19. The test freezes the page clock; an interaction between the frozen clock and the form's busy state under load is possible; not established.",
-   "reproduced": "no: 5/5 passed alone, 3/3 passed with 4 workers and 8 busy CPU loops",
-   "status": "OPEN INTERMITTENT",
-   "fix": "none yet"
+   "classification": "TEST",
+   "cause": "Test race, not a product fault. The test started the second upload as soon as the first FILE request was seen. The first save was still finishing: it was waiting for the documents insert reply, the Save button was disabled, and the form was about to be cleared. Under load that window grows, and the second click landed on the disabled button, so no second upload happened.",
+   "reproduced": "yes, on demand: tests/forensics/upload-int8.probe.spec.js. With the first insert delayed 0 ms: 2 uploads. Delayed 300 ms or 1,500 ms: 1 upload, 'button DISABLED' before click 2, exactly the INT-8 failure. Product behaviour is correct (no double save, form cleared after success).",
+   "status": "FIXED",
+   "fix": "The test waits for each save to finish: record saved and button enabled again. It now always delays the first insert by 300 ms, so the old race would fail every time instead of rarely. No timeout raised.",
+   "evidenceAfterFix": "storage-safety two-uploads: 5/5 with the 300 ms delay; probe shows the old waiting logic fails 2/2 with the delay.",
+   "suspectedLayer": "test synchronisation",
+   "evidencePath": "tests/forensics/upload-int8.probe.spec.js"
   }
  ]
 }

@@ -71,6 +71,28 @@ async function adjustOnce(page, backend, o) {
 }
 
 async function runOps(page, backend, context, ops, phone, errors, plant) {
+  // EXT20 (INT-3 next-failure evidence): requests still in flight when a step fails
+  // are named in the failure message, so a "networkidle did not settle" failure
+  // says which request kept the page busy (and whether the mock had a delay or a
+  // drop queued) instead of only that it timed out.
+  const inFlight = new Map();
+  const onReq = r => inFlight.set(r, Date.now());
+  const onDone = r => inFlight.delete(r);
+  page.on('request', onReq); page.on('requestfinished', onDone); page.on('requestfailed', onDone);
+  const pendingNote = () => {
+    const now = Date.now();
+    const list = [...inFlight].map(([r, t]) => r.method() + ' ' + r.url().replace(/^https?:\/\/[^/]+/, '').slice(0, 80) + ' (' + (now - t) + ' ms)');
+    const hooks = backend.pendingHooks ? backend.pendingHooks() : null;
+    return (list.length ? ' | in flight: ' + list.join('; ') : ' | nothing in flight') + (hooks && hooks.length ? ' | queued mock hooks: ' + hooks.join('; ') : '');
+  };
+  try {
+    return await runOpsInner(page, backend, context, ops, phone, errors, plant, pendingNote);
+  } finally {
+    page.off('request', onReq); page.off('requestfinished', onDone); page.off('requestfailed', onDone);
+  }
+}
+
+async function runOpsInner(page, backend, context, ops, phone, errors, plant, pendingNote) {
   for (let step = 0; step < ops.length; step++) {
     const { op } = ops[step];
     const t0 = Date.now();
@@ -107,7 +129,7 @@ async function runOps(page, backend, context, ops, phone, errors, plant) {
       if (ms > 20000) console.log(`CHAOS step ${step} ${op}: ${ms} ms`);
       if (ms > 45000) return { step, message: `${op} took ${ms} ms: an operator action must not hang` };
     } catch (e) {
-      return { step, message: String(e && e.message || e).split('\n')[0] };
+      return { step, message: String(e && e.message || e).split('\n')[0] + pendingNote() };
     }
   }
   return null;
