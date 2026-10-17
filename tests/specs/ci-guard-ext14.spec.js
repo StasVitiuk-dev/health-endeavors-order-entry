@@ -38,6 +38,8 @@ for (const f of workflows) {
     // EXT15: pinned to a full commit SHA (verified from GitHub), never a moving tag or branch.
     for (const u of uses) expect(u, u).toMatch(/^actions\/(checkout|setup-node|upload-artifact|cache)@[0-9a-f]{40}$/);
     for (const line of read(f).split('\n').filter(l => /uses:/.test(l))) expect(line, line).toMatch(/# v\d+\.\d+\.\d+ /);
+    // EXT20: service containers are pinned to an image digest, never a tag alone.
+    for (const m of c.matchAll(/^\s*image:\s*(\S+)/gm)) expect(m[1], m[1]).toMatch(/^[\w.\/-]+:[\w.-]+@sha256:[0-9a-f]{64}$/);
     const checkouts = (c.match(/uses:\s*actions\/checkout@/g) || []).length;
     expect((c.match(/persist-credentials:\s*false/g) || []).length).toBe(checkouts);
   });

@@ -156,6 +156,7 @@
    "pageRoleCheck": false,
    "testFiles": [
     "activity-page",
+    "agent-safety-ext20",
     "concurrent-operators",
     "csv-export-guard",
     "malformed-data-ext15",

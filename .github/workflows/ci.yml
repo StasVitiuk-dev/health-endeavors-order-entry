@@ -74,7 +74,7 @@ jobs:
       - name: Schema contract (every table/column the page names exists in the real-shape schema)
         run: node tests/tools/schema-contract.js
       - name: Node-only specs (tools, SQL static, docs, CI guard)
-        run: npx playwright test --config tests/playwright.config.js --project=desktop --reporter=list,github tests/specs/ci-guard-ext14.spec.js tests/specs/sql-package-ext14.spec.js tests/specs/sql-drafts-static.spec.js tests/specs/sql-readonly.spec.js tests/specs/docs-integrity-ext13.spec.js tests/specs/evidence-ext12.spec.js tests/specs/deploy-sim-ext12.spec.js tests/specs/incidents-ext12.spec.js tests/specs/query-interpreter-ext10.spec.js tests/specs/helpers-unit.spec.js tests/specs/status-manifest-ext14.spec.js tests/specs/screenshots-policy-ext14.spec.js tests/specs/ci-traps-ext15.spec.js tests/specs/property-node-ext15.spec.js tests/specs/security-static-ext18.spec.js tests/specs/security-parsers-ext18.spec.js tests/specs/supply-chain-ext18.spec.js tests/specs/state-contract-ext19.spec.js tests/specs/schema-drift-ext20.spec.js
+        run: npx playwright test --config tests/playwright.config.js --project=desktop --reporter=list,github tests/specs/ci-guard-ext14.spec.js tests/specs/sql-package-ext14.spec.js tests/specs/sql-drafts-static.spec.js tests/specs/sql-readonly.spec.js tests/specs/docs-integrity-ext13.spec.js tests/specs/evidence-ext12.spec.js tests/specs/deploy-sim-ext12.spec.js tests/specs/incidents-ext12.spec.js tests/specs/query-interpreter-ext10.spec.js tests/specs/helpers-unit.spec.js tests/specs/status-manifest-ext14.spec.js tests/specs/screenshots-policy-ext14.spec.js tests/specs/ci-traps-ext15.spec.js tests/specs/property-node-ext15.spec.js tests/specs/security-static-ext18.spec.js tests/specs/security-parsers-ext18.spec.js tests/specs/supply-chain-ext18.spec.js tests/specs/state-contract-ext19.spec.js tests/specs/schema-drift-ext20.spec.js tests/specs/agent-safety-ext20.spec.js
 
   # The browser suite, split in three (Playwright shards; every test runs once).
   browser:
@@ -121,7 +121,11 @@ jobs:
     timeout-minutes: 30
     services:
       postgres:
-        image: postgres:16
+        # EXT20: pinned to the image digest Docker Hub's registry returned for the tag
+        # postgres:16 on 2026-10-17 (multi-architecture index). The tag alone could change
+        # silently. To refresh: read the new digest from the registry (never invent one),
+        # update it here, and let the database job prove it.
+        image: postgres:16@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d
         env:
           POSTGRES_PASSWORD: ci-only-local
         ports: ['5432:5432']

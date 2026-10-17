@@ -707,6 +707,16 @@ const MUTATIONS = [
   ['the palette no longer scrolls down to the selected row (INT-7)', 'assets/owner-login-app.js',
     "        else if (bottom > box.scrollTop + box.clientHeight) box.scrollTop = bottom - box.clientHeight;\n", "",
     'palette-perf-ext20'],
+  // EXT20: agent safety boundary as the dashboard states it
+  ['the accounting agent is shown as writing expenses (EXT20 agents)', 'assets/app/he-config.js',
+    "touches: ['orders (read)', 'expenses (read)']", "touches: ['orders (read)', 'expenses (write)']",
+    'agent-safety-ext20'],
+  ['the AI customer service agent is no longer off by intent (EXT20 agents)', 'assets/app/he-config.js',
+    "name: 'Customer Service Agent', ai: true, intendedOff: true", "name: 'Customer Service Agent', ai: true",
+    'agent-safety-ext20'],
+  ['the customer notification agent gains a send capability (EXT20 agents)', 'assets/app/he-config.js',
+    "touches: ['customer_notifications (write)']", "touches: ['customer_notifications (write)', 'email (send)']",
+    'agent-safety-ext20'],
 ];
 
 // EXT16: `--check` only confirms that every mutant's text is still in its file
