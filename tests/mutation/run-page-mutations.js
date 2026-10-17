@@ -700,6 +700,13 @@ const MUTATIONS = [
   ['a javascript: link becomes clickable again (EXT20 security)', 'assets/app/he-ui.js',
     "!/^(javascript|data|vbscript):/.test(u)", "!/^(data|vbscript):/.test(u)",
     'link-scheme-check'],
+  // EXT20 (INT-7): palette scrolls only its own list
+  ['the palette scrolls the whole page into view again on each keystroke (INT-7)', 'assets/owner-login-app.js',
+    "        if (top < box.scrollTop) box.scrollTop = top;\n", "        sel.scrollIntoView({ block: 'nearest' });\n",
+    'palette-perf-ext20'],
+  ['the palette no longer scrolls down to the selected row (INT-7)', 'assets/owner-login-app.js',
+    "        else if (bottom > box.scrollTop + box.clientHeight) box.scrollTop = bottom - box.clientHeight;\n", "",
+    'palette-perf-ext20'],
 ];
 
 // EXT16: `--check` only confirms that every mutant's text is still in its file

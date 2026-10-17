@@ -127,15 +127,16 @@
     "date": "2026-10-13"
    },
    "lastSeen": {
-    "where": "local full suite, 4 workers, desktop + iPhone",
-    "sha": "c956b25",
-    "date": "2026-10-13"
+    "where": "local probe, PAL_THROTTLE=4",
+    "sha": "b433037",
+    "date": "2026-10-17"
    },
-   "classification": "UNEXPLAINED",
-   "cause": "slowest keystroke measured 524 ms (limit 250 ms) once, in the full local suite. The palette code is unchanged in EXT19 (it does not use the new builder). Wall-clock measurement under parallel load is the likely factor; not established.",
-   "reproduced": "no: 5/5 passed alone, 3/3 passed with 4 workers and 8 busy CPU loops",
-   "status": "OPEN INTERMITTENT",
-   "fix": "none; limit not raised (raising it without a cause would hide a real slowdown)"
+   "classification": "PRODUCT (amplified by ENVIRONMENT)",
+   "cause": "Each keystroke called scrollIntoView() on the selected row; that scrolls every ancestor and forced a layout of the whole page, which had the 10,000-row inventory table behind the palette: 93% of keystroke time in a CPU profile. Second, searchEverything built a result object for every match (10,000 for 's') and then kept 30, causing garbage-collection pauses of 700-900 ms under a 4x slower CPU. Under 4 parallel browsers on 4 cores both costs grow, which is how the full suite saw 524 ms.",
+   "reproduced": "yes, on demand: tests/forensics/palette-int7.probe.spec.js with PAL_THROTTLE=4 gave p99 283 ms and max 284 ms (limit 250) on b433037; 4 browsers at once gave medians 40-48 ms with spikes to 322-341 ms",
+   "status": "FIXED",
+   "fix": "the palette scrolls only its own result list; the search stops matching once 30 results are found (same results, same order). Limit not changed.",
+   "evidenceAfterFix": "same probe: quiet p50 37.5 -> 2.5 ms, max 55 -> 7 ms; 4x slower CPU p99 283 -> 25-33 ms, max 904 -> 35 ms; 4 browsers at once medians 3-5 ms (one run of 8 had a single 326 ms spike, not reproduced in the next 4: ENVIRONMENT residue, far rarer than before). Guarded by palette-perf-ext20.spec.js and 2 mutants."
   },
   {
    "id": "INT-8",

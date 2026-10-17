@@ -466,7 +466,12 @@
           pageId: e.page, type: 'Guide', label: e.title, help: e,
         }));
       }
-      const hit = (fields) => fields.filter(Boolean).join(' ').toLowerCase().includes(q);
+      // EXT20 (INT-7): only the first 30 results are shown, so stop matching once
+      // 30 are found (same results, same order). Before, a one-letter search over
+      // 10,000 products built 10,000 result objects per keystroke, then dropped
+      // all but 30 (garbage-collection pauses under load).
+      const CAP = 30;
+      const hit = (fields) => results.length < CAP && fields.filter(Boolean).join(' ').toLowerCase().includes(q);
 
       (SEARCH_INDEX.orders || []).forEach(o => {
         if (hit([o.order_number, o.id, o.customer_name, o.customer_email, o.status])) {
@@ -581,7 +586,7 @@
         }
       });
 
-      return results.slice(0, 30);
+      return results.slice(0, CAP);
     }
     SIDEBAR_GROUPS.forEach(g => g.pages.forEach(p => { PAGE_LABEL_BY_ID[p.id] = p.label; }));
     function togglePinnedPage(pageId){
@@ -921,8 +926,16 @@
           box.querySelectorAll('.pResult').forEach((n, j) => n.classList.toggle('sel', j === i));
         });
       });
+      // EXT20 (INT-7): keep the selected row visible by scrolling the result list
+      // only. scrollIntoView() also scrolls every ancestor, which forced a layout
+      // of the whole page on each keystroke (93% of keystroke time with 10,000
+      // inventory rows on the page behind the palette).
       const sel = box.querySelector('.pResult.sel');
-      if (sel) sel.scrollIntoView({ block: 'nearest' });
+      if (sel) {
+        const top = sel.offsetTop - box.offsetTop, bottom = top + sel.offsetHeight;
+        if (top < box.scrollTop) box.scrollTop = top;
+        else if (bottom > box.scrollTop + box.clientHeight) box.scrollTop = bottom - box.clientHeight;
+      }
     }
     function openPalette(){
       PAL_SEL = 0;
