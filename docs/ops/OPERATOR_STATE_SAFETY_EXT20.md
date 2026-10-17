@@ -4,7 +4,7 @@ Status: **CURRENT.** It reviews what protects an operator from double, stale or 
 
 ## 1. Operation state contract
 
-The contract (`OPERATION_STATE_CONTRACT_EXT19.json`) covers 7 operations, checked against `he-ops.js` by 6 × 4,000 random events:
+The contract (`OPERATION_STATE_CONTRACT_EXT19.json`) covers 7 operations, checked against `assets/app/he-ops.js` by 6 × 4,000 random events:
 
 - PO receive;
 - return receive;

@@ -30,9 +30,9 @@ The changes follow three patterns:
 Where the 54 locations are:
 
 - `owner-login-app.js`: 35;
-- `he-compliance.js`: 6;
-- `he-suppliers.js`: 3;
-- `he-inquiries.js`, `he-tasks.js`: 2 each;
+- `assets/app/he-compliance.js`: 6;
+- `assets/app/he-suppliers.js`: 3;
+- `assets/app/he-inquiries.js`, `assets/app/he-tasks.js`: 2 each;
 - admin, agents, approvals, audit, expenses, incidents: 1 each.
 
 **Ratchet:** `tests/specs/trusted-types-ext20.spec.js` fails if the violations rise above **56**, or if the probe reports 0 (that would mean it was silently switched off). The DOM sink gate ceiling (`dom-sinks-reviewed.json`) is **109**. No warning was hidden: the count comes from the browser's own report.

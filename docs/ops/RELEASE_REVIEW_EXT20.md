@@ -14,7 +14,7 @@ Merging changes the dashboard code only. No SQL runs on merge, and nothing touch
 
 | Changed | Files |
 |---|---|
-| Dashboard | `assets/owner-login-app.js`, `assets/app/he-ui.js`, `he-admin.js`, `he-audit.js`, `he-compliance.js`, `he-expenses.js`, `he-reports.js`, `he-suppliers.js`, `assets/dashboard-page.js`, `assets/search-page.js`, `assets/manual-order-entry.js`; asset versions in 5 `*.html` |
+| Dashboard | `assets/owner-login-app.js`, `assets/app/he-ui.js`, `assets/app/he-admin.js`, `assets/app/he-audit.js`, `assets/app/he-compliance.js`, `assets/app/he-expenses.js`, `assets/app/he-reports.js`, `assets/app/he-suppliers.js`, `assets/dashboard-page.js`, `assets/search-page.js`, `assets/manual-order-entry.js`; asset versions in 5 `*.html` |
 | Read-only SQL | `06_READONLY_G_…` (G08, G09 added), **new** `08_READONLY_A2_outside_tables.sql` |
 | Local test SQL / scripts | `true_concurrency_test.sh` (new), `schema_drift_test.sh` (new), measured `extreme_stress_test.sh`, `permissions_inventory_test.sh` (F1/F2 cases), `run-db-suite.sh` |
 | Tests and tools | 5 new specs; `schema-drift.js`; 2 forensic probes; chaos failure evidence; INT-8 test fix; 8 new mutants (213 → 221) |

@@ -46,7 +46,7 @@ Status: **CURRENT.** This is the single owner file. It supersedes the older owne
 | 3 | Query C | `02_READONLY_C_agents.sql` (guide: `QUERY_C_OWNER_RUN_GUIDE.md`) | agents, switches, schedules, stock writers, audit coverage | 5 min |
 | 4 | Query A2 (**new**) | `08_READONLY_A2_outside_tables.sql` | the shape of the 24 tables never exported; Claude runs the drift checker on it | 5 min |
 | 5 | Query D | `03_READONLY_D_definer_function_identity_check.sql` | functions with elevated rights | 5 min |
-| 6 | Query E, F | `04_…E_stock_reconciliation.sql`, `05_…F_daily_integrity_check.sql` | stock and data health | 5 min each |
+| 6 | Query E, F | `04_READONLY_E_stock_reconciliation.sql`, `05_READONLY_F_daily_integrity_check.sql` | stock and data health | 5 min each |
 | 7 | Query H | `07_READONLY_H_drift_check.sql` | after any change: does production match what was reviewed | 5 min |
 
 Same steps as §1 for each: paste, Run, Export CSV, send it with the date.

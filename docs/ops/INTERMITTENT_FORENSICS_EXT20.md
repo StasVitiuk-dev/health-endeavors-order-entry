@@ -74,6 +74,16 @@ Instrumentation added: any chaos step failure now appends:
 
 The next occurrence will name what kept the page busy. Status stays **OPEN, UNEXPLAINED**.
 
-## 5. New intermittents in EXT20
+## 5. New in EXT20
 
-To be filled from the final full run (see `RELEASE_REVIEW_EXT20.md` §3).
+- **No new intermittent.** The final full local run on `aef08cc` passed on its first attempt: 2,128 passed, 0 failed, 351 skipped.
+- **Harness defect found and fixed (deterministic, not intermittent).** The first EXT20 DB-suite run missed 2 of 15 SQL mutants (the PO line guard). Cause:
+  - the new concurrency test left a recall row behind;
+  - the race tests' setup then hit a foreign-key error that was swallowed (`ON_ERROR_STOP=0`, output discarded), so no test order existed;
+  - every case then "agreed", so a missing guard could not be detected.
+
+  This was reproduced on demand: a fresh DB catches 15/15; after the concurrency test, 13/15. Fixes:
+  - both race-test setups delete recalls first and **stop with "SETUP FAILED"** if the test order was not created;
+  - the concurrency test removes its rows.
+
+  After the fix, the same dirty database catches 15/15, and the full DB suite passes 32/32. Class: **HARNESS** (false-green risk), FIXED.
