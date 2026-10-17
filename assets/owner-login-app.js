@@ -904,7 +904,7 @@
     }
     function renderPalette(){
       const box = document.getElementById('paletteResults');
-      if (!PAL_ITEMS.length) { box.innerHTML = '<div class="pEmpty">Nothing matches that.</div>'; return; }
+      if (!PAL_ITEMS.length) { box.replaceChildren(h('div', { class: 'pEmpty' }, 'Nothing matches that.')); return; }
       box.innerHTML = PAL_ITEMS.map((it, i) =>
         '<div class="pResult' + (i === PAL_SEL ? ' sel' : '') + '" data-i="' + i + '">' +
           '<span class="pIcon">' + it.icon + '</span>' +
@@ -1061,8 +1061,8 @@
       const rows = ACTIVITY_ROWS;
 
       if (!rows.length) {
-        document.getElementById('activityStats').innerHTML = '';
-        wrap.innerHTML = '<p class="empty">No activity matches that search.</p>';
+        document.getElementById('activityStats').replaceChildren();
+        wrap.replaceChildren(h('p', { class: 'empty' }, 'No activity matches that search.'));
         return;
       }
 
@@ -1155,7 +1155,7 @@
       if (reset) {
         ACTIVITY_OFFSET = 0;
         ACTIVITY_ROWS = [];
-        document.getElementById('activityWrap').innerHTML = '<p class="empty">Loading…</p>';
+        document.getElementById('activityWrap').replaceChildren(h('p', { class: 'empty' }, 'Loading…'));
       }
       try {
         const { data, error } = await supabase.rpc('employee_activity', {
@@ -1179,7 +1179,7 @@
         renderActivity();
       } catch (err) {
         if (!isLatest()) return;
-        document.getElementById('activityWrap').innerHTML = '';
+        document.getElementById('activityWrap').replaceChildren();
         showDashError('Could not load Employee Activity: ' + (err && err.message ? err.message : err));
       }
     }
@@ -1194,7 +1194,7 @@
         const people = data || [];
         SEARCH_INDEX.people = people;
         const strip = document.getElementById('activityPeople');
-        if (!people.length) { strip.innerHTML = ''; return; }
+        if (!people.length) { strip.replaceChildren(); return; }
         strip.innerHTML = '<span class="peopleLbl">People</span>' +
           `<button type="button" class="personChip${ACTIVITY_PERSON ? '' : ' active'}" data-person="">Everyone</button>` +
           people.map(p => `
@@ -1211,7 +1211,7 @@
         });
       } catch (err) {
         // Not critical — the search box still works without the people strip.
-        document.getElementById('activityPeople').innerHTML = '';
+        document.getElementById('activityPeople').replaceChildren();
       }
     }
 
@@ -1226,7 +1226,7 @@
       if (INSPECTOR_TAB === 'raw') {
         const latest = INSPECTOR_HISTORY.find(h => h.values_stored && h.new_data && Object.keys(h.new_data).length);
         if (!latest) {
-          body.innerHTML = '<div class="insNote">No stored values for this record — this area only records which fields changed.</div>';
+          body.replaceChildren(h('div', { class: 'insNote' }, 'No stored values for this record — this area only records which fields changed.'));
           return;
         }
         const nd = latest.new_data;
@@ -1237,7 +1237,7 @@
         return;
       }
       if (!INSPECTOR_HISTORY.length) {
-        body.innerHTML = '<p class="empty">No history found for this record.</p>';
+        body.replaceChildren(h('p', { class: 'empty' }, 'No history found for this record.'));
         return;
       }
       body.innerHTML = INSPECTOR_HISTORY.map(h => {
@@ -1303,7 +1303,7 @@
       document.getElementById('insSub').textContent = `Full change history · record ${recordId}`;
       document.getElementById('insTabHistory').className = '';
       document.getElementById('insTabRaw').className = 'secondary';
-      document.getElementById('insBody').innerHTML = '<p class="empty">Loading history…</p>';
+      document.getElementById('insBody').replaceChildren(h('p', { class: 'empty' }, 'Loading history…'));
       rememberFocus('inspector');
       document.getElementById('inspectorOverlay').classList.add('open');
       try {
@@ -1467,7 +1467,7 @@
 
     function renderAttention(rows){
       if (!rows || !rows.length) {
-        document.getElementById('attentionWrap').innerHTML = '<p class="empty">Nothing needs your attention right now.</p>';
+        document.getElementById('attentionWrap').replaceChildren(h('p', { class: 'empty' }, 'Nothing needs your attention right now.'));
         return;
       }
       document.getElementById('attentionWrap').innerHTML = rows.map(r => `
@@ -1850,7 +1850,7 @@
         ].join('');
         wrap.querySelectorAll('.statLink').forEach(btn => btn.addEventListener('click', () => showPage(btn.getAttribute('data-goto'))));
       } catch (err) {
-        wrap.innerHTML = '<p class="empty">Could not load Business Health.</p>';
+        wrap.replaceChildren(h('p', { class: 'empty' }, 'Could not load Business Health.'));
         showDashError('Could not load Business Health: ' + (err && err.message ? err.message : err));
       }
     }
@@ -2004,7 +2004,7 @@
       Promise.all(fns.map(safeRun)).then(refreshChrome);
     }, 5 * 60 * 1000);
     ptr.id = 'ptrIndicator';
-    ptr.innerHTML = '<span class="u-pb-6">Release to refresh</span>';
+    ptr.replaceChildren(h('span', { class: 'u-pb-6' }, 'Release to refresh'));
     document.body.appendChild(ptr);
     (function(){
       const area = document.querySelector('main.contentArea');
@@ -2252,7 +2252,7 @@
         });
         renderPoDetails(rows);
       } catch (err) {
-        document.getElementById('poWrap').innerHTML = '';
+        document.getElementById('poWrap').replaceChildren();
         showDashError('Could not load purchase orders: ' + (err && err.message ? err.message : err));
       }
     }
@@ -2261,7 +2261,7 @@
       rows.forEach(po => {
         const box = document.getElementById('poDetail_' + po.id);
         if (!box) return;
-        if (PO_OPEN_ID !== po.id) { box.style.display = 'none'; box.innerHTML = ''; return; }
+        if (PO_OPEN_ID !== po.id) { box.style.display = 'none'; box.replaceChildren(); return; }
         box.style.display = 'block';
 
         const items = po.purchase_order_items || [];
@@ -2948,7 +2948,7 @@
           });
         });
       } catch (err) {
-        document.getElementById('qcWrap').innerHTML = '';
+        document.getElementById('qcWrap').replaceChildren();
         showDashError('Could not load quality checks: ' + (err && err.message ? err.message : err));
       }
     }
@@ -3206,7 +3206,7 @@
           });
         });
       } catch (err) {
-        document.getElementById('recallsWrap').innerHTML = '';
+        document.getElementById('recallsWrap').replaceChildren();
         showDashError('Could not load recalls: ' + (err && err.message ? err.message : err));
       }
     }
@@ -3297,7 +3297,7 @@
     function renderCalFilters(){
       const names = [...new Set(calEvents.map(ev => ev.calendar_name || 'Other'))].sort();
       const box = document.getElementById('calFilters');
-      if (!names.length) { box.innerHTML = ''; return; }
+      if (!names.length) { box.replaceChildren(); return; }
       box.innerHTML = names.map(n => {
         const off = calHidden.has(n);
         return '<button type="button" class="calChipBtn' + (off ? ' off' : '') + '" data-cal="' + esc(n) + '">' +
@@ -3618,7 +3618,7 @@
         renderCalendar();
       } catch (err) {
         if (!isLatest()) return;
-        document.getElementById('calBody').innerHTML = '';
+        document.getElementById('calBody').replaceChildren();
         showDashError('Could not load the calendar: ' + (err && err.message ? err.message : err));
       }
     }
@@ -3739,7 +3739,7 @@
 
         const recent = orders.slice(0, 15);
         if (!recent.length) {
-          document.getElementById('ordersTableWrap').innerHTML = '<p class="empty">No orders yet.</p>';
+          document.getElementById('ordersTableWrap').replaceChildren(h('p', { class: 'empty' }, 'No orders yet.'));
         } else {
           const showingNote = totalOrders > recent.length
             ? `<p class="hint u-m-0-0-8">Showing the ${recent.length} most recent of ${totalOrders} orders total.</p>` : '';
@@ -3791,7 +3791,7 @@
         if (delErr) throw delErr;
 
         if (!deleted.length) {
-          document.getElementById('deletedOrdersWrap').innerHTML = '<p class="empty">Recycle bin is empty.</p>';
+          document.getElementById('deletedOrdersWrap').replaceChildren(h('p', { class: 'empty' }, 'Recycle bin is empty.'));
         } else {
           document.getElementById('deletedOrdersWrap').innerHTML = deleted.map(o => `
             <div class="deletedRow" data-id="${esc(o.id)}">
@@ -3856,7 +3856,7 @@
         `;
 
         if (modelErr || !modelConfig || !modelConfig.length) {
-          document.getElementById('aiModelConfigWrap').innerHTML = '<p class="empty">No AI model configured yet.</p>';
+          document.getElementById('aiModelConfigWrap').replaceChildren(h('p', { class: 'empty' }, 'No AI model configured yet.'));
         } else {
           document.getElementById('aiModelConfigWrap').innerHTML = `
             <table><thead><tr><th>Agent</th><th>Provider</th><th>Model</th><th>Fallback model</th></tr></thead>
@@ -3878,7 +3878,7 @@
         `;
 
         if (!logs.length) {
-          document.getElementById('aiTableWrap').innerHTML = '<p class="empty">No AI activity logged yet.</p>';
+          document.getElementById('aiTableWrap').replaceChildren(h('p', { class: 'empty' }, 'No AI activity logged yet.'));
         } else {
           document.getElementById('aiTableWrap').innerHTML = `
             <table class="phoneCards"><thead><tr><th>Agent</th><th>Summary</th><th>Confidence</th><th>Escalated?</th><th>When</th></tr></thead>
@@ -3945,7 +3945,7 @@
         `;
 
         if (!services || !services.length) {
-          document.getElementById('continuityWrap').innerHTML = '<p class="empty">No services tracked yet.</p>';
+          document.getElementById('continuityWrap').replaceChildren(h('p', { class: 'empty' }, 'No services tracked yet.'));
           return;
         }
 
@@ -4361,7 +4361,7 @@
         if (error) throw error;
 
         if (!rules.length) {
-          document.getElementById('businessRulesWrap').innerHTML = '<p class="empty">No business rules exist yet.</p>';
+          document.getElementById('businessRulesWrap').replaceChildren(h('p', { class: 'empty' }, 'No business rules exist yet.'));
           return;
         }
 
@@ -5234,7 +5234,7 @@
         if (error) throw error;
 
         if (!adjustments.length) {
-          document.getElementById('inventoryAdjustmentsWrap').innerHTML = '<p class="empty">No adjustments logged yet.</p>';
+          document.getElementById('inventoryAdjustmentsWrap').replaceChildren(h('p', { class: 'empty' }, 'No adjustments logged yet.'));
           return;
         }
         document.getElementById('inventoryAdjustmentsWrap').innerHTML = adjustments.map(a => {
@@ -5497,7 +5497,7 @@
         ].filter(Boolean).join(' ');
 
         if (!returns.length) {
-          document.getElementById('returnsWrap').innerHTML = '<p class="empty">No returns logged yet.</p>';
+          document.getElementById('returnsWrap').replaceChildren(h('p', { class: 'empty' }, 'No returns logged yet.'));
           return;
         }
 
@@ -5807,12 +5807,12 @@
       const orderItemSelect = document.getElementById('retOrderItem');
       const orderId = e.target.value;
       if (!orderId) {
-        orderItemSelect.innerHTML = '<option value="">Pick an order first…</option>';
+        orderItemSelect.replaceChildren(new Option('Pick an order first…', ''));
         orderItemSelect.disabled = true;
         return;
       }
       orderItemSelect.disabled = true;
-      orderItemSelect.innerHTML = '<option value="">Loading…</option>';
+      orderItemSelect.replaceChildren(new Option('Loading…', ''));
       try {
         const { data: items, error } = await supabase
           .from('order_items')
@@ -5821,7 +5821,7 @@
           .order('product_name', { ascending: true });
         if (error) throw error;
         if (!items || !items.length) {
-          orderItemSelect.innerHTML = '<option value="">No line items found on this order</option>';
+          orderItemSelect.replaceChildren(new Option('No line items found on this order', ''));
           return;
         }
         orderItemSelect.innerHTML = '<option value="">Which item…</option>' +
@@ -5829,7 +5829,7 @@
         orderItemSelect.disabled = false;
       } catch (err) {
         showDashError("Could not load that order's items: " + (err && err.message ? err.message : err));
-        orderItemSelect.innerHTML = '<option value="">Pick an order first…</option>';
+        orderItemSelect.replaceChildren(new Option('Pick an order first…', ''));
       }
     });
 
@@ -5864,7 +5864,7 @@
         if (insErr) throw insErr;
 
         orderSelect.value = '';
-        orderItemSelect.innerHTML = '<option value="">Pick an order first…</option>';
+        orderItemSelect.replaceChildren(new Option('Pick an order first…', ''));
         orderItemSelect.disabled = true;
         reasonSelect.value = '';
         conditionSelect.value = '';
@@ -6044,7 +6044,7 @@
         }
 
         if (!needsReview.length) {
-          document.getElementById('acctReviewWrap').innerHTML = '<p class="empty">Nothing needs review right now.</p>';
+          document.getElementById('acctReviewWrap').replaceChildren(h('p', { class: 'empty' }, 'Nothing needs review right now.'));
         } else {
           document.getElementById('acctReviewWrap').innerHTML = needsReview.map(o => `
             <div class="deletedRow">
@@ -6148,7 +6148,7 @@
         }).sort((a, b) => (a.group === b.group ? b.amount - a.amount : (a.group === 'cogs' ? -1 : 1)));
 
         if (!catRows.length) {
-          document.getElementById('taxCategoryWrap').innerHTML = '<p class="empty">No expenses logged in this period.</p>';
+          document.getElementById('taxCategoryWrap').replaceChildren(h('p', { class: 'empty' }, 'No expenses logged in this period.'));
         } else {
           document.getElementById('taxCategoryWrap').innerHTML = `
             <table><thead><tr><th>Category</th><th>Type</th><th>Total</th></tr></thead>
@@ -6205,7 +6205,7 @@
 
         const stateEntries = Object.keys(stateTax).sort();
         if (!stateEntries.length && !stateUnknownTax) {
-          document.getElementById('taxStateWrap').innerHTML = '<p class="empty">No sales tax collected in this period.</p>';
+          document.getElementById('taxStateWrap').replaceChildren(h('p', { class: 'empty' }, 'No sales tax collected in this period.'));
         } else {
           document.getElementById('taxStateWrap').innerHTML = `
             <table><thead><tr><th>State</th><th>Sales tax collected</th></tr></thead>
@@ -6217,7 +6217,7 @@
 
         const missing = expenses.filter(e => !e.receipt_path);
         if (!missing.length) {
-          document.getElementById('taxReceiptWrap').innerHTML = '<p class="empty">Every logged expense in this period has a receipt on file.</p>';
+          document.getElementById('taxReceiptWrap').replaceChildren(h('p', { class: 'empty' }, 'Every logged expense in this period has a receipt on file.'));
         } else {
           document.getElementById('taxReceiptWrap').innerHTML = `
             <table class="phoneCards"><thead><tr><th>Date</th><th>Category</th><th>Vendor</th><th>Amount</th></tr></thead>

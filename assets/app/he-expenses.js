@@ -26,7 +26,7 @@ window.HE.modules.define('he-expenses', { api: 1, needs: ['EXPENSE_CATEGORY_LABE
         ` + (allAmounts.length > (rows || []).length ? `<p class="hint expensesCutNote u-flexbasis-100pct u-m-4-0-0">The list below shows the newest ${(rows || []).length} of ${allAmounts.length} expenses. The totals above include all of them.</p>` : '');
 
         if (!rows || !rows.length) {
-          document.getElementById('expensesWrap').innerHTML = '<p class="empty">No expenses logged yet — add your first one below.</p>';
+          document.getElementById('expensesWrap').replaceChildren(Object.assign(document.createElement('p'), { className: 'empty', textContent: 'No expenses logged yet — add your first one below.' }));
           return;
         }
 
@@ -126,7 +126,7 @@ window.HE.modules.define('he-expenses', { api: 1, needs: ['EXPENSE_CATEGORY_LABE
         if (error) throw error;
 
         if (!deleted || !deleted.length) {
-          document.getElementById('deletedExpensesWrap').innerHTML = '<p class="empty">Recycle bin is empty.</p>';
+          document.getElementById('deletedExpensesWrap').replaceChildren(Object.assign(document.createElement('p'), { className: 'empty', textContent: 'Recycle bin is empty.' }));
           return;
         }
         document.getElementById('deletedExpensesWrap').innerHTML = deleted.map(r => `

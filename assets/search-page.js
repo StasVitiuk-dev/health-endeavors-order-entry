@@ -47,7 +47,7 @@
   function renderResults(rows, term) {
     const box = document.getElementById('results');
     if (!term) {
-      box.innerHTML = '<div class="empty">Start typing to search across customers, orders, suppliers, and inventory.</div>';
+      box.replaceChildren(Object.assign(document.createElement('div'), { className: 'empty', textContent: 'Start typing to search across customers, orders, suppliers, and inventory.' }));
       return;
     }
     if (!rows || rows.length === 0) {

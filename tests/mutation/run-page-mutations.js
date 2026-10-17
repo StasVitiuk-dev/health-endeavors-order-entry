@@ -689,6 +689,17 @@ const MUTATIONS = [
   ['"changed by" is read from profiles.full_name again', 'assets/app/he-agents.js',
     "select('id, display_name, email')", "select('id, full_name')",
     'schema-contract-ext19 -g "who changed"'],
+  // EXT20: Trusted Types ratchet and URL safety
+  ['a toast shows its message as HTML (EXT20 security)', 'assets/app/he-ui.js',
+    "h('span', null, message)", "Object.assign(document.createElement('span'), { innerHTML: message })",
+    'trusted-types-ext20 -g "toasts"'],
+  ['a raw HTML string is restored for an empty state (EXT20 security)', 'assets/app/he-admin.js',
+    "document.getElementById('sessionsWrap').replaceChildren(Object.assign(document.createElement('p'), { className: 'empty', textContent: 'No active sessions found.' }));",
+    "document.getElementById('sessionsWrap').innerHTML = '<p class=\"empty\">No active sessions found.</p>';",
+    'trusted-types-ext20 -g "report-only"'],
+  ['a javascript: link becomes clickable again (EXT20 security)', 'assets/app/he-ui.js',
+    "!/^(javascript|data|vbscript):/.test(u)", "!/^(data|vbscript):/.test(u)",
+    'link-scheme-check'],
 ];
 
 // EXT16: `--check` only confirms that every mutant's text is still in its file

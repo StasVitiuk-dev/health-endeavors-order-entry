@@ -130,7 +130,7 @@ window.HE.modules.define('he-audit', { api: 1, needs: ['ACTIVITY_AREA_LABELS','P
         const el = document.getElementById('activityDigest');
         if (!rows.length) {
           el.style.display = 'block';
-          el.innerHTML = '<b>Today:</b> no changes recorded yet.';
+          el.replaceChildren(Object.assign(document.createElement('b'), { textContent: 'Today:' }), ' no changes recorded yet.');
           return;
         }
         const people = new Set(rows.filter(r => r.person_account_number).map(r => r.person_account_number));

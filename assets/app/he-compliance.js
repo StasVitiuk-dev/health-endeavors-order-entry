@@ -230,7 +230,7 @@ window.HE.modules.define('he-compliance', { api: 1, needs: ['CLOSED_IN','DOCUMEN
           });
         });
       } catch (err) {
-        document.getElementById('documentsWrap').innerHTML = '';
+        document.getElementById('documentsWrap').replaceChildren();
         showDashError('Could not load documents: ' + (err && err.message ? err.message : err));
       }
     }
@@ -246,7 +246,7 @@ window.HE.modules.define('he-compliance', { api: 1, needs: ['CLOSED_IN','DOCUMEN
         SEARCH_INDEX.adverseEvents = events;
 
         if (!events || !events.length) {
-          document.getElementById('adverseEventsWrap').innerHTML = '<p class="empty">No adverse event reports on file — hopefully it stays that way.</p>';
+          document.getElementById('adverseEventsWrap').replaceChildren(Object.assign(document.createElement('p'), { className: 'empty', textContent: 'No adverse event reports on file — hopefully it stays that way.' }));
           return;
         }
 
@@ -320,7 +320,7 @@ window.HE.modules.define('he-compliance', { api: 1, needs: ['CLOSED_IN','DOCUMEN
         SEARCH_INDEX.legalHolds = holds;
 
         if (!holds || !holds.length) {
-          document.getElementById('legalHoldsWrap').innerHTML = '<p class="empty">No active legal holds.</p>';
+          document.getElementById('legalHoldsWrap').replaceChildren(Object.assign(document.createElement('p'), { className: 'empty', textContent: 'No active legal holds.' }));
           return;
         }
 
@@ -379,7 +379,7 @@ window.HE.modules.define('he-compliance', { api: 1, needs: ['CLOSED_IN','DOCUMEN
         if (error) throw error;
 
         if (!holds || !holds.length) {
-          document.getElementById('releasedLegalHoldsWrap').innerHTML = '<p class="empty">No released holds yet.</p>';
+          document.getElementById('releasedLegalHoldsWrap').replaceChildren(Object.assign(document.createElement('p'), { className: 'empty', textContent: 'No released holds yet.' }));
           return;
         }
         document.getElementById('releasedLegalHoldsWrap').innerHTML = holds.map(h => `

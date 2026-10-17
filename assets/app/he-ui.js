@@ -123,8 +123,7 @@ window.HE.modules.define('he-ui', { api: 1, needs: ['EMPTY_ICONS','HELP','ICON_P
       const el = document.createElement('div');
       el.className = 'toast' + (kind ? ' ' + kind : '');
       if (kind === 'err') el.setAttribute('aria-hidden', 'true');
-      el.innerHTML = '<span class="dot"></span><span></span>';
-      el.lastChild.textContent = message;
+      el.replaceChildren(h('span', { class: 'dot' }), h('span', null, message));
       toastHost.appendChild(el);
       const life = kind === 'err' ? 6500 : 3200;
       setTimeout(() => {

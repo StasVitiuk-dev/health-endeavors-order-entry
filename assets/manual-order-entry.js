@@ -162,7 +162,7 @@ if (window.__sbLoadFailed || !window.supabase) {
   function resetForm(){
     orderTyped = false;
     orderForm.reset();
-    itemsContainer.innerHTML = '';
+    itemsContainer.replaceChildren();
     makeItemRow();
     orderDate.value = localYmd(new Date()); // local date (valueAsDate used UTC: "tomorrow" after 7 pm Central)
     recalcTotals();

@@ -27,6 +27,7 @@ test('Trusted Types readiness: report-only violations on load and on every page'
   console.log(`TRUSTED-TYPES report-only: ${v.length} violations, ${distinct} distinct code locations, ${ids.length} pages opened`);
   console.log('by sink: ' + JSON.stringify(bySink));
   console.log('top locations: ' + JSON.stringify(Object.entries(bySource).sort((a, b) => b[1] - a[1]).slice(0, 15)));
+  if (process.env.TT_OUT) require('fs').writeFileSync(process.env.TT_OUT, JSON.stringify({ total: v.length, distinct, locations: Object.entries(bySource).sort() }, null, 1));
   ti.annotations.push({ type: 'trusted-types', description: `${v.length} violations, ${distinct} locations` });
   expect(v.length).toBeGreaterThanOrEqual(0);
 });

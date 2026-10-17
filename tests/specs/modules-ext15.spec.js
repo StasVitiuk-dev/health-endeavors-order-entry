@@ -34,13 +34,18 @@ const CHANGED = [
   // EXT17: a lost reply on a stock write records what was attempted (for the adjustment read-back)
   'changeStock',
   // EXT17: sidebar sections and pinned pages live in memory; storage is best-effort and validated
-  'openGroups', 'setGroupOpen', 'getPinnedPages', 'setPinnedPages'];
+  'openGroups', 'setGroupOpen', 'getPinnedPages', 'setPinnedPages',
+  // EXT20: fixed-text HTML strings (empty states, "Loading…", clearing a box, placeholder options, toasts) built as elements:
+  'loadActivity', 'loadActivityPeople', 'loadAdverseEvents', 'loadBusinessRules', 'loadContinuity', 'loadDeletedExpenses', 'loadDeletedFeatureRequests',
+  'loadExpenses', 'loadFeatureRequests', 'loadInventoryAdjustments', 'loadLegalHolds', 'loadOrders', 'loadQualityChecks', 'loadRecalls',
+  'loadReleasedLegalHolds', 'loadReturns', 'loadSessions', 'loadSops', 'loadSuppliers', 'openInspectorFor', 'renderAttention', 'renderCalFilters',
+  'renderInspector', 'renderPalette', 'renderReportHistoryView', 'toast'];
 const ADDED = ['setReportHistoryView', 'inquiriesList', 'agentControls', 'poReceiveOps',
   // EXT17: manual stock adjustments report to an explicit operation state (he-ops, repeatable)
   'adjustOps', 'adjustPending', 'adjustKey', 'checkUnknownAdjustment',
   'openGroupsMem', 'pinnedMem'];
 const NEW_MODULES = ['he-ops']; // EXT16: written new, not moved
-const CHANGED_TEXT = ["} = window.HE.helpers;", "forEach(o => Object.setPrototypeOf(o, null))", "supabase.auth.onAuthStateChange((event, session) =>", "getAttribute('data-view')", "getElementById('adjustInventoryForm').addEventListener('submit'"]; // the report-view buttons now call setReportHistoryView
+const CHANGED_TEXT = ["} = window.HE.helpers;", "forEach(o => Object.setPrototypeOf(o, null))", "supabase.auth.onAuthStateChange((event, session) =>", "getAttribute('data-view')", "getElementById('adjustInventoryForm').addEventListener('submit'", "getElementById('logReturnForm').addEventListener('submit'", "getElementById('retOrder').addEventListener('change'", "Release to refresh"]; // the report-view buttons now call setReportHistoryView
 
 test('the module moves were byte-identical: every original statement once, only the named edits differ', ({}, ti) => {
   nodeOnly(ti);

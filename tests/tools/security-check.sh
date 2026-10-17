@@ -34,7 +34,7 @@ if [ "$MODE" = "deep" ]; then
     tests/specs/csp.spec.js tests/specs/csp-strict-ext15.spec.js tests/specs/xss-everywhere.spec.js tests/specs/xss-property-ext15.spec.js \
     tests/specs/link-scheme-check.spec.js tests/specs/library-pin.spec.js tests/specs/session-failures.spec.js tests/specs/auth-chaos.spec.js \
     tests/specs/role-matrix.spec.js tests/specs/csv-export-guard.spec.js tests/specs/diagnostics-ext14.spec.js tests/specs/storage-adversarial-ext17.spec.js
-  step "security mutants (each must be caught)" env MUT_ONLY='frame|whole CDN|without escaping|escaping broken|role check removed|secret scanner|plain object again|keep their prototype|no longer cut|no longer counted|signed out in another tab|gate lets|notices eval|verbatim|policy' \
+  step "security mutants (each must be caught)" env MUT_ONLY='frame|whole CDN|without escaping|escaping broken|role check removed|secret scanner|plain object again|keep their prototype|no longer cut|no longer counted|signed out in another tab|gate lets|notices eval|verbatim|policy|EXT20 security' \
     node tests/mutation/run-page-mutations.js "${TMPDIR:-/tmp}/he-security-mutants"
   if [ -n "${CI_PG:-}" ]; then
     step "RLS contract + audit immutability (local PostgreSQL)" bash docs/ops/sql/local-test/rls_contract_test.sh $CI_PG

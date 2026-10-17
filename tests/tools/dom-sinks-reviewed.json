@@ -1,7 +1,7 @@
 {
  "note": "EXT18 DOM sink gate. Each REVIEW interpolation below was read by hand and is safe for the stated reason. Key = file + expression text (whitespace collapsed), not line number. Lower ceilings when innerHTML use is reduced.",
  "ceilings": {
-  "innerHTML": 159,
+  "innerHTML": 109,
   "hrefSrcAssign": 2
  },
  "interpolations": [

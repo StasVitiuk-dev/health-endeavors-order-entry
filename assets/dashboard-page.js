@@ -71,7 +71,7 @@
   function renderActivity(rows) {
     const list = document.getElementById('activity-list');
     if (!rows || rows.length === 0) {
-      list.innerHTML = '<div class="empty">Nothing yet — this fills in as incidents, tasks, and alerts happen.</div>';
+      list.replaceChildren(Object.assign(document.createElement('div'), { className: 'empty', textContent: 'Nothing yet — this fills in as incidents, tasks, and alerts happen.' }));
       return;
     }
     list.innerHTML = rows.map(r => `
@@ -157,7 +157,7 @@
 
     const list = document.getElementById('ai-spend-list');
     if (!rows || rows.length === 0) {
-      list.innerHTML = '<div class="empty">No AI costs recorded yet this month.</div>';
+      list.replaceChildren(Object.assign(document.createElement('div'), { className: 'empty', textContent: 'No AI costs recorded yet this month.' }));
       return;
     }
     list.innerHTML = rows.slice(0, 10).map(r => `

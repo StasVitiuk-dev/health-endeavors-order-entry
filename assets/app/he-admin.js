@@ -9,7 +9,7 @@ window.HE.modules.define('he-admin', { api: 1, needs: ['FR_NEXT_LABEL','FR_NEXT_
         const { data: sessions, error } = await supabase.rpc('list_my_sessions');
         if (error) throw error;
         if (!sessions || !sessions.length) {
-          document.getElementById('sessionsWrap').innerHTML = '<p class="empty">No active sessions found.</p>';
+          document.getElementById('sessionsWrap').replaceChildren(Object.assign(document.createElement('p'), { className: 'empty', textContent: 'No active sessions found.' }));
           return;
         }
         document.getElementById('sessionsWrap').innerHTML = sessions.map(s => `
@@ -66,7 +66,7 @@ window.HE.modules.define('he-admin', { api: 1, needs: ['FR_NEXT_LABEL','FR_NEXT_
         showPageWarning('sopsPanel', typeof capCount === 'number' && capCount > (sops || []).length ? 'Showing the first ' + (sops || []).length + ' of ' + capCount + ' procedures: the rest are not listed on this page.' : null);
         SEARCH_INDEX.sops = sops;
         if (!sops || !sops.length) {
-          document.getElementById('sopsWrap').innerHTML = '<p class="empty">No procedures written yet — add your first one below.</p>';
+          document.getElementById('sopsWrap').replaceChildren(Object.assign(document.createElement('p'), { className: 'empty', textContent: 'No procedures written yet — add your first one below.' }));
           return;
         }
         document.getElementById('sopsWrap').innerHTML = sops.map(s => `
@@ -133,7 +133,7 @@ window.HE.modules.define('he-admin', { api: 1, needs: ['FR_NEXT_LABEL','FR_NEXT_
         `;
 
         if (!reqs || !reqs.length) {
-          document.getElementById('featureRequestsWrap').innerHTML = '<p class="empty">No feature requests yet — add your first one below.</p>';
+          document.getElementById('featureRequestsWrap').replaceChildren(Object.assign(document.createElement('p'), { className: 'empty', textContent: 'No feature requests yet — add your first one below.' }));
           return;
         }
 
@@ -179,7 +179,7 @@ window.HE.modules.define('he-admin', { api: 1, needs: ['FR_NEXT_LABEL','FR_NEXT_
         if (error) throw error;
 
         if (!deleted || !deleted.length) {
-          document.getElementById('deletedFeatureRequestsWrap').innerHTML = '<p class="empty">Recycle bin is empty.</p>';
+          document.getElementById('deletedFeatureRequestsWrap').replaceChildren(Object.assign(document.createElement('p'), { className: 'empty', textContent: 'Recycle bin is empty.' }));
           return;
         }
         document.getElementById('deletedFeatureRequestsWrap').innerHTML = deleted.map(r => `

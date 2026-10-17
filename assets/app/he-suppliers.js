@@ -57,7 +57,7 @@ window.HE.modules.define('he-suppliers', { api: 1, needs: ['SEARCH_INDEX','SUPPL
           });
         });
       } catch (err) {
-        document.getElementById('suppliersWrap').innerHTML = '';
+        document.getElementById('suppliersWrap').replaceChildren();
         showDashError('Could not load suppliers: ' + (err && err.message ? err.message : err));
       }
     }

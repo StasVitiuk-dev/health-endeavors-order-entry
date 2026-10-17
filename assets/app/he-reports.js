@@ -17,7 +17,7 @@ window.HE.modules.define('he-reports', { api: 1, needs: ['esc','fmtDateOnly','fm
     function renderReportHistoryView(){
       const wrap = document.getElementById('reportHistoryWrap');
       if (!REPORT_HISTORY_DATA.length) {
-        wrap.innerHTML = '<p class="empty">No saved reports yet — the first one will appear after tonight\'s automatic run.</p>';
+        wrap.replaceChildren(Object.assign(document.createElement('p'), { className: 'empty', textContent: 'No saved reports yet — the first one will appear after tonight\'s automatic run.' }));
         return;
       }
 
