@@ -29,7 +29,15 @@ Merging changes the dashboard code only. No SQL runs on merge, and nothing touch
 
 ## 3. Tests run
 
-Filled in at the end of the finals: see §8.
+The page code is frozen at `aef08cc`; after that, only test scripts and documents changed.
+
+| Check | Result |
+|---|---|
+| Full local suite, desktop + iPhone, `aef08cc` | **2,128 passed, 0 failed, 351 skipped on purpose**, first attempt, no reruns (47 min) |
+| Full local database suite, `2cac8d5` | **32/32 steps PASS** (587 s), including true concurrency, schema drift, Query G with F1/F2, and SQL mutants 15/15 |
+| Page mutants, full round, `2cac8d5` | **221/221 caught** (51 min). Documents were edited during the run, so the doc-checker and EXT20 mutants were re-run on the committed tree: 8/8 caught |
+| Static gates | security static, DOM sink gate (ceiling 109), regex audit, secret scan (666 files), schema contract, type gate (27 files, 0 gated), SQL lint (37 files), docs (57 files), module graph, status manifest, inline styles: all PASS |
+| GitHub CI | see §8 |
 
 ## 4. Rollback (step by step)
 
@@ -74,4 +82,12 @@ The EXT20 draft PR contains everything in #34 (EXT19), which contains #33 → #2
 
 ## 8. Evidence (exact commits)
 
-To be completed with the final runs.
+| Item | Value |
+|---|---|
+| Source commit, page code (frozen) | `aef08cc` |
+| md5 of all page code (`assets` + `*.html`) | `c7fefa584241e42c4f430ba2fda9c3a1` |
+| Asset versions | content hashes in each page's `?v=` (`refresh-asset-versions.js`: nothing to change) |
+| Lock file sha256 (first 16) | `2b8c4de5e9aab80e` (unchanged; no dependency added) |
+| Built | not a build: GitHub Pages serves the files as they are |
+| First DB suite run, on `aef08cc` | 1 step failed: SQL mutants 13/15. **Cause found:** the race-test setup failed silently on a leftover row. Fixed in `2cac8d5`, then 32/32 |
+| GitHub CI | one run on the final head (see the PR) |
