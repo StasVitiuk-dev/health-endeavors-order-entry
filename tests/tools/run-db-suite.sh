@@ -55,7 +55,13 @@ step "stress (5 runs)" bash "$LT/stress_test.sh" 5 $C -d he_real
 step "S29 lock cycle, forced order (INT-4; must not deadlock)" bash "$LT/s29_lock_cycle_repro.sh" $C -d he_real
 step "inventory property model (30 seeds x 60 operations vs reference model)" node "$ROOT/tests/db/inventory-model.js" $C --seeds 1-30 --ops 60 --quiet
 step "inventory model self-test (planted model bug must be found and shrunk)" node "$ROOT/tests/db/inventory-model.js" $C --seeds 1-5 --ops 60 --quiet --selftest
-step "extreme stress (10/25/50 callers)" env SEED=14 bash "$LT/extreme_stress_test.sh" "$C -d he_real" 10 25 50
+step "extreme stress (10/25/50 client processes; measured peak printed)" env SEED=14 bash "$LT/extreme_stress_test.sh" "$C -d he_real" 10 25 50
+# EXT20: truly simultaneous callers (pgbench opens every connection first, then fires).
+if command -v pgbench >/dev/null 2>&1 || ls /usr/lib/postgresql/*/bin/pgbench >/dev/null 2>&1; then
+  step "true concurrency (25/50/90 simultaneous connections, measured)" bash "$LT/true_concurrency_test.sh" "$C -d he_real" 25 50 90
+else
+  echo "NOT RUN true concurrency: pgbench is not installed on this machine (it is a PostgreSQL server tool)"
+fi
 step "SQL mutations" bash "$ROOT/tests/mutation/run-sql-mutations.sh" $C
 if [ "${QUICK:-0}" != "1" ]; then
   step "integrity check at volume" bash "$LT/integrity_perf_test.sh" $C
