@@ -2,8 +2,8 @@
 // EXT15: moved unchanged out of assets/owner-login-app.js (initApp). Its inputs
 // arrive explicitly in ctx; it returns only what other code still uses. Map:
 // docs/ops/APPLICATION_MODULE_MAP_EXT15.md. Created once, by the app, in order.
-window.HE.modules.define('he-suppliers', { api: 1, needs: ['SEARCH_INDEX','SUPPLIER_TYPE_LABELS','boolGuard','esc','fetchAllRows','showDashError','staleMessage','updateIfUnchanged'] }, function (ctx) {
-    const { SEARCH_INDEX, SUPPLIER_TYPE_LABELS, boolGuard, esc, fetchAllRows, showDashError, staleMessage, updateIfUnchanged } = ctx;
+window.HE.modules.define('he-suppliers', { api: 1, needs: ['SEARCH_INDEX','SUPPLIER_TYPE_LABELS','boolGuard','fetchAllRows','h','showDashError','staleMessage','updateIfUnchanged'] }, function (ctx) {
+    const { SEARCH_INDEX, SUPPLIER_TYPE_LABELS, boolGuard, fetchAllRows, h, showDashError, staleMessage, updateIfUnchanged } = ctx;
  // key: `${purchase_order_id}::${product_id}` -> array of {lot_number, quantity_received}
 
     async function loadSuppliers(){
@@ -16,26 +16,28 @@ window.HE.modules.define('he-suppliers', { api: 1, needs: ['SEARCH_INDEX','SUPPL
         SEARCH_INDEX.suppliers = rows;
 
         const active = rows.filter(s => s.is_active);
-        document.getElementById('supplierStats').innerHTML = `
-          <div class="stat"><div class="num">${active.length}</div><div class="lbl">Active suppliers</div></div>
-          <div class="stat"><div class="num">${active.filter(s => s.supplier_type === 'manufacturer').length}</div><div class="lbl">Manufacturers</div></div>`;
+        // EXT20J: built as DOM nodes (h() text-ifies) instead of an HTML string, so
+        // the Suppliers screen is safe under Trusted Types. Long/special supplier
+        // names and notes were already esc()-ed; now they are text nodes.
+        document.getElementById('supplierStats').replaceChildren(
+          h('div', { class: 'stat' }, h('div', { class: 'num' }, active.length), h('div', { class: 'lbl' }, 'Active suppliers')),
+          h('div', { class: 'stat' }, h('div', { class: 'num' }, active.filter(s => s.supplier_type === 'manufacturer').length), h('div', { class: 'lbl' }, 'Manufacturers')));
 
         // keep the purchase-order dropdown in step
         const sel = document.getElementById('poSupplier');
         const keep = sel.value;
-        sel.innerHTML = '<option value="">Supplier…</option>' + active.map(s =>
-          `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('');
+        sel.replaceChildren(h('option', { value: '' }, 'Supplier…'), ...active.map(s => h('option', { value: s.id }, s.name)));
         sel.value = keep;
 
-        document.getElementById('suppliersWrap').innerHTML = rows.length ? rows.map(s => `
-          <div class="supRow${s.is_active ? '' : ' inactive'}" data-id="${esc(s.id)}">
-            <div>
-              <div class="sName">${esc(s.name)} <span class="badge">${esc(SUPPLIER_TYPE_LABELS[s.supplier_type] || s.supplier_type)}</span></div>
-              <div class="sMeta">${[s.contact_name, s.email, s.phone].filter(Boolean).map(esc).join(' · ') || 'No contact details yet'}</div>
-              ${s.notes ? `<div class="sMeta">${esc(s.notes)}</div>` : ''}
-            </div>
-            <button type="button" class="small secondary supToggleBtn">${s.is_active ? 'Deactivate' : 'Reactivate'}</button>
-          </div>`).join('') : '<p class="empty">No suppliers yet. Add the manufacturer you\'re about to order from.</p>';
+        const supplierRow = s => h('div', { class: 'supRow' + (s.is_active ? '' : ' inactive'), 'data-id': s.id },
+          h('div', null,
+            h('div', { class: 'sName' }, s.name, ' ', h('span', { class: 'badge' }, SUPPLIER_TYPE_LABELS[s.supplier_type] || s.supplier_type)),
+            h('div', { class: 'sMeta' }, [s.contact_name, s.email, s.phone].filter(Boolean).join(' · ') || 'No contact details yet'),
+            s.notes ? h('div', { class: 'sMeta' }, s.notes) : null),
+          h('button', { type: 'button', class: 'small secondary supToggleBtn' }, s.is_active ? 'Deactivate' : 'Reactivate'));
+        document.getElementById('suppliersWrap').replaceChildren(...(rows.length
+          ? rows.map(supplierRow)
+          : [h('p', { class: 'empty' }, 'No suppliers yet. Add the manufacturer you\'re about to order from.')]));
 
         document.querySelectorAll('.supToggleBtn').forEach(btn => {
           btn.addEventListener('click', async (e) => {
