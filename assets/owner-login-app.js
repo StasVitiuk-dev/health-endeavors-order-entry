@@ -88,7 +88,7 @@
     const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS } = HE.modules.create('he-config', {  });
     const { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, pageIconSvg, h, pageIconNode } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
     const { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
-    const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, esc, h, supabase });
+    const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, h, supabase });
     const { environmentLabel, assetVersions, isMissingRelation, dbStepsStatus, NIGHTLY_STALE_MS, ATTN_STALE_MS, attnSeenGet, attnSeenSet, attnSignature } = HE.modules.create('he-status', { DB_STEPS, STOCK_FN_PROBES, SUPABASE_URL, stockFunctionInstalled, supabase });
     const { getTodayRange, getYesterdayRange, dateKey, eventDateKey, fmtTimeShort, personalEventEditorHtml, personalTimesFromInputs, PERSONAL_CAL_HINT, weekGroupLabel, monthGroupLabel } = HE.modules.create('he-time', { CAL_COLORS, esc });
     const { missingToNaN, reportCount, missingTotalCount, missingTotalNote, mixedCurrencyNote, docExpiryBadge, inqStatusBadgeClass, continuityBadgeClass, qcIncidentCategory, numVal, CLOSED_IN } = HE.modules.create('he-format', { CLOSED_WORDS, fmtDateOnly, h });
@@ -1240,25 +1240,28 @@
           return;
         }
         const nd = latest.new_data;
-        body.innerHTML = `<div class="codeBlock">` + Object.keys(nd).map(k =>
-          `<div class="cLine"><span class="jKey">${esc(k)}</span>: ${hlValue(nd[k])}</div>`
-        ).join('') + `</div>
-        <div class="insNote">As of ${esc(fmtDate(latest.happened_at))} — the most recent recorded state, not necessarily the record's live value today.</div>`;
+        // EXT20J: raw-state view built as DOM nodes (h() text-ifies) instead of
+        // an HTML string, so the inspector is safe under Trusted Types.
+        body.replaceChildren(
+          h('div', { class: 'codeBlock' }, ...Object.keys(nd).map(k =>
+            h('div', { class: 'cLine' }, h('span', { class: 'jKey' }, k), ': ', hlValue(nd[k])))),
+          h('div', { class: 'insNote' }, 'As of ' + fmtDate(latest.happened_at) + " — the most recent recorded state, not necessarily the record's live value today."));
         return;
       }
       if (!INSPECTOR_HISTORY.length) {
         body.replaceChildren(h('p', { class: 'empty' }, 'No history found for this record.'));
         return;
       }
-      body.innerHTML = INSPECTOR_HISTORY.map(h => {
-        const cls = h.action === 'DELETE' ? 'isDelete' : h.action === 'INSERT' ? 'isInsert' : 'isUpdate';
-        const acct = h.person_account_number ? ` · #${esc(fmtAccountNumber(h.person_account_number))}` : '';
-        return `<div class="insEvent ${cls}">
-          <div class="insWhen">${esc(fmtDate(h.happened_at))}</div>
-          <div class="insWho">${esc(h.person_name)}${acct} — ${esc(h.action_label)}</div>
-          ${codeDiff(h)}
-        </div>`;
-      }).join('');
+      // EXT20J: history list built as DOM nodes. The loop variable is `ev` (not
+      // `h`) so it does not shadow the h() DOM builder used inside.
+      body.replaceChildren(...INSPECTOR_HISTORY.map(ev => {
+        const cls = ev.action === 'DELETE' ? 'isDelete' : ev.action === 'INSERT' ? 'isInsert' : 'isUpdate';
+        const acct = ev.person_account_number ? ' · #' + fmtAccountNumber(ev.person_account_number) : '';
+        return h('div', { class: 'insEvent ' + cls },
+          h('div', { class: 'insWhen' }, fmtDate(ev.happened_at)),
+          h('div', { class: 'insWho' }, ev.person_name + acct + ' — ' + ev.action_label),
+          ...codeDiff(ev));
+      }));
     }
     // Opens the inspector for any record anywhere in the dashboard, given the
     // area it belongs to and its id. Everything it shows comes back through the
@@ -1323,15 +1326,16 @@
         const found = await fetchAllActivity({ p_search: recordId, p_area: tableName }, 5000);
         INSPECTOR_HISTORY = found.rows.filter(h => h.record_id === recordId);
         if (!INSPECTOR_HISTORY.length) {
-          document.getElementById('insBody').innerHTML =
-            '<p class="empty">No recorded history for this record yet.</p>' +
-            '<div class="insNote">Either nothing has changed since activity recording was switched on, or this area isn\'t recorded.</div>';
+          // EXT20J: DOM nodes (h() text-ifies) instead of an HTML string.
+          document.getElementById('insBody').replaceChildren(
+            h('p', { class: 'empty' }, 'No recorded history for this record yet.'),
+            h('div', { class: 'insNote' }, "Either nothing has changed since activity recording was switched on, or this area isn't recorded."));
           return;
         }
         renderInspector();
       } catch (err) {
-        document.getElementById('insBody').innerHTML =
-          '<p class="empty">' + esc(explainDbError('Could not load this record\'s history: ' + (err && err.message ? err.message : String(err)))) + '</p>';
+        document.getElementById('insBody').replaceChildren(
+          h('p', { class: 'empty' }, explainDbError("Could not load this record's history: " + (err && err.message ? err.message : String(err)))));
       }
     }
     async function openInspector(row){

@@ -2,8 +2,8 @@
 // EXT15: moved unchanged out of assets/owner-login-app.js (initApp). Its inputs
 // arrive explicitly in ctx; it returns only what other code still uses. Map:
 // docs/ops/APPLICATION_MODULE_MAP_EXT15.md. Created once, by the app, in order.
-window.HE.modules.define('he-audit', { api: 1, needs: ['ACTIVITY_AREA_LABELS','PANEL_RECORD_TABLE','RECORD_ID_ATTRS','RECORD_TITLE_KEYS','esc','h','supabase'] }, function (ctx) {
-    const { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, esc, h, supabase } = ctx;
+window.HE.modules.define('he-audit', { api: 1, needs: ['ACTIVITY_AREA_LABELS','PANEL_RECORD_TABLE','RECORD_ID_ATTRS','RECORD_TITLE_KEYS','h','supabase'] }, function (ctx) {
+    const { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, h, supabase } = ctx;
     function recordTitle(r){
       const nd = r.new_data || {};
       const od = r.old_data || {};
@@ -159,41 +159,47 @@ window.HE.modules.define('he-audit', { api: 1, needs: ['ACTIVITY_AREA_LABELS','P
       } catch (err) { /* the digest is a nicety, never block the page on it */ }
     }
 
+    // EXT20J: returns a DOM node (the highlighted value span) instead of an HTML
+    // string, so the inspector is safe under Trusted Types.
     function hlValue(v){
-      if (v === null || v === undefined) return '<span class="jNull">empty</span>';
-      if (typeof v === 'number') return `<span class="jNum">${esc(String(v))}</span>`;
-      if (typeof v === 'boolean') return `<span class="jBool">${v}</span>`;
-      if (typeof v === 'object') return `<span class="jStr">${esc(JSON.stringify(v))}</span>`;
-      return `<span class="jStr">"${esc(String(v))}"</span>`;
+      if (v === null || v === undefined) return h('span', { class: 'jNull' }, 'empty');
+      if (typeof v === 'number') return h('span', { class: 'jNum' }, String(v));
+      if (typeof v === 'boolean') return h('span', { class: 'jBool' }, String(v));
+      if (typeof v === 'object') return h('span', { class: 'jStr' }, JSON.stringify(v));
+      return h('span', { class: 'jStr' }, '"' + String(v) + '"');
     }
+    // EXT20J: returns an array of DOM nodes (h() text-ifies) instead of an HTML
+    // string; the "values not recorded" branch emits a codeBlock plus a sibling
+    // note, so the caller spreads the result.
     function codeDiff(r){
       const nd = r.new_data || {};
       const od = r.old_data || {};
       if (!r.values_stored) {
         const fields = Array.isArray(nd.changed_fields) ? nd.changed_fields : [];
         const body = fields.length
-          ? fields.map(f => `<div class="cLine"><span class="jKey">${esc(f)}</span> <span class="jNull">changed</span></div>`).join('')
-          : `<div class="cLine"><span class="jNull">${esc(r.action_label)}</span></div>`;
-        return `<div class="codeBlock">${body}</div>
-                <div class="insNote">Values aren't recorded for this area, to keep personal data and formula details out of the log.</div>`;
+          ? fields.map(f => h('div', { class: 'cLine' }, h('span', { class: 'jKey' }, f), ' ', h('span', { class: 'jNull' }, 'changed')))
+          : [h('div', { class: 'cLine' }, h('span', { class: 'jNull' }, r.action_label))];
+        return [
+          h('div', { class: 'codeBlock' }, ...body),
+          h('div', { class: 'insNote' }, "Values aren't recorded for this area, to keep personal data and formula details out of the log."),
+        ];
       }
       if (r.action === 'UPDATE') {
         let keys = Object.keys(nd).filter(k => JSON.stringify(od[k]) !== JSON.stringify(nd[k]));
         if (keys.length > 1) keys = keys.filter(k => k !== 'updated_at');
-        if (!keys.length) return '<div class="insNote">Nothing visible changed on this record.</div>';
-        return `<div class="codeBlock">` + keys.map(k =>
-          `<div class="cLine cRemove">− <span class="jKey">${esc(k)}</span>: ${hlValue(od[k])}</div>` +
-          `<div class="cLine cAdd">+ <span class="jKey">${esc(k)}</span>: ${hlValue(nd[k])}</div>`
-        ).join('') + `</div>`;
+        if (!keys.length) return [h('div', { class: 'insNote' }, 'Nothing visible changed on this record.')];
+        return [h('div', { class: 'codeBlock' }, ...keys.flatMap(k => [
+          h('div', { class: 'cLine cRemove' }, '− ', h('span', { class: 'jKey' }, k), ': ', hlValue(od[k])),
+          h('div', { class: 'cLine cAdd' }, '+ ', h('span', { class: 'jKey' }, k), ': ', hlValue(nd[k])),
+        ]))];
       }
       const src = r.action === 'DELETE' ? od : nd;
       const cls = r.action === 'DELETE' ? 'cRemove' : 'cAdd';
       const sign = r.action === 'DELETE' ? '−' : '+';
       const keys = Object.keys(src).filter(k => src[k] !== null && src[k] !== '');
-      if (!keys.length) return '<div class="insNote">No details recorded.</div>';
-      return `<div class="codeBlock">` + keys.map(k =>
-        `<div class="cLine ${cls}">${sign} <span class="jKey">${esc(k)}</span>: ${hlValue(src[k])}</div>`
-      ).join('') + `</div>`;
+      if (!keys.length) return [h('div', { class: 'insNote' }, 'No details recorded.')];
+      return [h('div', { class: 'codeBlock' }, ...keys.map(k =>
+        h('div', { class: 'cLine ' + cls }, sign + ' ', h('span', { class: 'jKey' }, k), ': ', hlValue(src[k]))))];
     }
 
     function resolveInspectTarget(el){

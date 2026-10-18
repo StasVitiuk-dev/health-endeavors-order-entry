@@ -4,24 +4,5 @@
     "innerHTML": 109,
     "hrefSrcAssign": 2
   },
-  "interpolations": [
-    {
-      "file": "assets/owner-login-app.js",
-      "expr": "acct",
-      "count": 2,
-      "reason": "HTML string built just above with esc() around every data value"
-    },
-    {
-      "file": "assets/owner-login-app.js",
-      "expr": "cls",
-      "count": 1,
-      "reason": "a CSS class name chosen by code from a fixed set of literals"
-    },
-    {
-      "file": "assets/owner-login-app.js",
-      "expr": "hlValue(nd[k])",
-      "count": 1,
-      "reason": "hlValue() escapes strings/objects with esc(); booleans and null are fixed text"
-    }
-  ]
+  "interpolations": []
 }

@@ -46,7 +46,9 @@ const CHANGED = [
   'loadApprovals', 'renderAgentRegistry', 'agentJobHealthHtml', 'agentJobHealthNode',
   'loadNightlyCheck', 'renderAttentionChecks', 'attnFreshnessHtml', 'attnFreshnessNodes',
   'renderInquiries', 'loadTasks', 'loadRecentlyDoneTasks', 'loadIncidents', 'loadActivityAreas', 'docExpiryBadge',
-  'loadDailySummary', 'loadFlags'];
+  'loadDailySummary', 'loadFlags',
+  // EXT20J activity + inspector wave: he-audit change renderers return DOM nodes:
+  'describeChange', 'hlValue', 'codeDiff'];
 const ADDED = ['setReportHistoryView', 'inquiriesList', 'agentControls', 'poReceiveOps',
   // EXT17: manual stock adjustments report to an explicit operation state (he-ops, repeatable)
   'adjustOps', 'adjustPending', 'adjustKey', 'checkUnknownAdjustment',

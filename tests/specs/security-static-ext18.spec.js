@@ -76,6 +76,10 @@ test('DOM sink gate passes, and fails on a new unreviewed value, a dangerous sin
   // the reviewed list must stay honest: a stale entry and an entry without a reason both fail
   const r = sinks.audit();
   expect(sinks.gate(r, { ...list, interpolations: [...list.interpolations, { file: target, expr: 'gone', count: 1, reason: 'no longer in the code' }] }).join('\n')).toMatch(/stale reviewed entry/);
-  expect(sinks.gate(r, { ...list, interpolations: list.interpolations.map((e, i) => i ? e : { ...e, reason: '' }) }).join('\n')).toMatch(/without a reason/);
+  // an entry without a reason fails (self-contained: a planted symbol that is in
+  // the code but reviewed with a blank reason, so it survives the Trusted Types
+  // cascade emptying the real reviewed list).
+  const reasoned = sinks.audit(sinks.FILES, f => f === target ? real(f) + '\nfunction zzr(){ document.body.innerHTML = `<i>${zzReasonValue}</i>`; }' : real(f));
+  expect(sinks.gate(reasoned, { ...list, interpolations: [...list.interpolations, { file: target, expr: 'zzReasonValue', count: 1, reason: '' }] }).join('\n')).toMatch(/without a reason/);
   expect(sinks.gate(r, { ...list, ceilings: { ...list.ceilings, innerHTML: r.counts.innerHTML - 1 } }).join('\n')).toMatch(/above the ceiling/);
 });
