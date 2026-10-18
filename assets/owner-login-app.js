@@ -1082,35 +1082,30 @@
       const dayAgo = Date.now() - 24 * 60 * 60 * 1000;
       const todayCount = rows.filter(r => new Date(r.happened_at).getTime() >= dayAgo).length;
       const peopleCount = new Set(rows.filter(r => r.person_account_number).map(r => r.person_account_number)).size;
-      document.getElementById('activityStats').innerHTML = `
-        <div class="stat"><div class="num">${rows.length}</div><div class="lbl">Entries loaded</div></div>
-        <div class="stat"><div class="num">${todayCount}</div><div class="lbl">Last 24 hours</div></div>
-        <div class="stat"><div class="num">${peopleCount}</div><div class="lbl">People in this list</div></div>`;
+      // EXT20J: stats and rows are DOM nodes (h() text-ifies) instead of HTML
+      // strings, so Employee Activity is safe under Trusted Types.
+      document.getElementById('activityStats').replaceChildren(
+        h('div', { class: 'stat' }, h('div', { class: 'num' }, rows.length), h('div', { class: 'lbl' }, 'Entries loaded')),
+        h('div', { class: 'stat' }, h('div', { class: 'num' }, todayCount), h('div', { class: 'lbl' }, 'Last 24 hours')),
+        h('div', { class: 'stat' }, h('div', { class: 'num' }, peopleCount), h('div', { class: 'lbl' }, 'People in this list')));
 
-      wrap.innerHTML = rows.map((r, i) => {
+      wrap.replaceChildren(...rows.map((r, i) => {
         const area = ACTIVITY_AREA_LABELS[r.table_name] || r.area || r.table_name;
         const roleKey = r.person_role || 'system';
         const roleLabel = r.person_role ? (ROLE_LABELS[r.person_role] || r.person_role) : 'System';
-        const acct = r.person_account_number ? `<span class="actNum">#${esc(fmtAccountNumber(r.person_account_number))}</span>` : '';
-        return `
-        <div class="actItem${r.action === 'DELETE' ? ' isDelete' : ''}" data-index="${i}">
-          <div class="actRow">
-            <div class="actMain">
-              <div class="actHead">
-                <span class="actWho">${esc(r.person_name)}</span>
-                ${acct}
-                <span class="badge role-${esc(roleKey)}">${esc(roleLabel)}</span>
-              </div>
-              <div class="actWhat"><b>${esc(r.action_label)}</b> in <b>${esc(area)}</b> · ${esc(recordTitle(r))}</div>
-            </div>
-            <div class="actSide">
-              <div class="actWhen">${esc(fmtDate(r.happened_at))}</div>
-              <button type="button" class="small secondary actToggle" data-index="${i}">Details</button>
-            </div>
-          </div>
-          <div class="actDetail u-d-none" id="actDetail${i}"></div>
-        </div>`;
-      }).join('');
+        return h('div', { class: 'actItem' + (r.action === 'DELETE' ? ' isDelete' : ''), 'data-index': i },
+          h('div', { class: 'actRow' },
+            h('div', { class: 'actMain' },
+              h('div', { class: 'actHead' },
+                h('span', { class: 'actWho' }, r.person_name),
+                r.person_account_number ? h('span', { class: 'actNum' }, '#' + fmtAccountNumber(r.person_account_number)) : null,
+                h('span', { class: 'badge role-' + roleKey }, roleLabel)),
+              h('div', { class: 'actWhat' }, h('b', null, r.action_label), ' in ', h('b', null, area), ' · ' + recordTitle(r))),
+            h('div', { class: 'actSide' },
+              h('div', { class: 'actWhen' }, fmtDate(r.happened_at)),
+              h('button', { type: 'button', class: 'small secondary actToggle', 'data-index': i }, 'Details'))),
+          h('div', { class: 'actDetail u-d-none', id: 'actDetail' + i }));
+      }));
 
       wrap.querySelectorAll('.actToggle').forEach(btn => {
         btn.addEventListener('click', (e) => {
@@ -1120,7 +1115,7 @@
           if (!box) return;
           // EXT15: starts hidden by a class now (no inline style), so ask the computed style.
           if (getComputedStyle(box).display === 'none') {
-            if (!box.innerHTML) box.innerHTML = describeChange(ACTIVITY_ROWS[i]);
+            if (!box.childNodes.length) box.replaceChildren(...describeChange(ACTIVITY_ROWS[i]));
             box.style.display = 'block';
             btn.textContent = 'Hide';
           } else {

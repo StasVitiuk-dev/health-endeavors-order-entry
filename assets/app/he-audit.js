@@ -32,6 +32,10 @@ window.HE.modules.define('he-audit', { api: 1, needs: ['ACTIVITY_AREA_LABELS','P
 
     // Turns one log entry into a readable "what actually changed" block. Entries
     // from the privacy-protected areas carry only field names, never values.
+    // EXT20J: returns an array of DOM nodes (h() text-ifies) instead of an HTML
+    // string, so the activity detail panel is safe under Trusted Types. The two
+    // privacy-note branches emit two sibling nodes, so the caller spreads the
+    // result into replaceChildren.
     function describeChange(r){
       const nd = r.new_data || {};
       const od = r.old_data || {};
@@ -40,32 +44,35 @@ window.HE.modules.define('he-audit', { api: 1, needs: ['ACTIVITY_AREA_LABELS','P
       if (!r.values_stored) {
         const fields = Array.isArray(nd.changed_fields) ? nd.changed_fields : [];
         if (r.action === 'UPDATE' && fields.length) {
-          return `<div><b>Fields changed:</b> ${fields.map(f => esc(prettyField(f))).join(', ')}</div>
-                  <div class="actNote">${privacyNote}</div>`;
+          return [
+            h('div', null, h('b', null, 'Fields changed:'), ' ' + fields.map(f => prettyField(f)).join(', ')),
+            h('div', { class: 'actNote' }, privacyNote),
+          ];
         }
         const what = r.action === 'INSERT' ? 'A record was created.'
                    : r.action === 'DELETE' ? 'A record was deleted.'
                    : 'A record was changed.';
-        return `<div>${what}</div><div class="actNote">${privacyNote}</div>`;
+        return [h('div', null, what), h('div', { class: 'actNote' }, privacyNote)];
       }
 
       if (r.action === 'UPDATE') {
         let keys = Object.keys(nd).filter(k => JSON.stringify(od[k]) !== JSON.stringify(nd[k]));
         if (keys.length > 1) keys = keys.filter(k => k !== 'updated_at');
-        if (!keys.length) return '<div class="actNote">Nothing visible changed on this record.</div>';
-        return `<table><tr><th>Field</th><th>Before</th><th>After</th></tr>` +
-          keys.map(k => `<tr><td>${esc(prettyField(k))}</td><td>${esc(jsonPreview(od[k]))}</td><td>${esc(jsonPreview(nd[k]))}</td></tr>`).join('') +
-          `</table>`;
+        if (!keys.length) return [h('div', { class: 'actNote' }, 'Nothing visible changed on this record.')];
+        return [h('table', null,
+          h('tr', null, h('th', null, 'Field'), h('th', null, 'Before'), h('th', null, 'After')),
+          ...keys.map(k => h('tr', null,
+            h('td', null, prettyField(k)), h('td', null, jsonPreview(od[k])), h('td', null, jsonPreview(nd[k])))))];
       }
 
       const src = r.action === 'DELETE' ? od : nd;
       const keys = Object.keys(src)
         .filter(k => src[k] !== null && src[k] !== undefined && src[k] !== '')
         .slice(0, 10);
-      if (!keys.length) return '<div class="actNote">No details recorded.</div>';
-      return `<table><tr><th>Field</th><th>Value</th></tr>` +
-        keys.map(k => `<tr><td>${esc(prettyField(k))}</td><td>${esc(jsonPreview(src[k]))}</td></tr>`).join('') +
-        `</table>`;
+      if (!keys.length) return [h('div', { class: 'actNote' }, 'No details recorded.')];
+      return [h('table', null,
+        h('tr', null, h('th', null, 'Field'), h('th', null, 'Value')),
+        ...keys.map(k => h('tr', null, h('td', null, prettyField(k)), h('td', null, jsonPreview(src[k])))))];
     }
 
     // Turns the "Any time / Today / Last 7 days / Last 30 days" picker into an
