@@ -97,3 +97,37 @@ test('sidebar: hostile record text in search results is shown as text; page link
   expect(r.imgs).toBe(0);
   expect(r.text).toContain(evil);
 });
+
+test('h(): child coercion contract — arrays flatten one level, Nodes pass through, numbers render, only false/null/undefined skip', async ({ page }) => {
+  await loadUi(page, {});
+  const r = await page.evaluate(() => {
+    const h = window.__ui.h;
+    // Array children are flattened one level; a nested array flattens one level
+    // (its inner array becomes a text node, matching Array.prototype.flat()).
+    const a = h('div', null, ['x', 'y'], h('b', null, 'z'));
+    const nested = h('div', null, [['p'], 'q']);
+    // Numbers (including 0, NaN, Infinity) render as text — only false/null/undefined skip.
+    const nums = h('div', null, 0, NaN, Infinity, -0, '', false, null, undefined);
+    // Node children are appended as-is (not copied/re-coerced).
+    const node = document.createElement('i'); node.textContent = 'kept';
+    const passthrough = h('div', null, node);
+    return {
+      flatText: a.textContent, flatKids: a.childNodes.length, hasB: a.querySelector('b') ? a.querySelector('b').textContent : null,
+      nestedText: nested.textContent,
+      numsText: nums.textContent, numsKids: nums.childNodes.length,
+      nodeSame: passthrough.firstChild === node, nodeText: passthrough.textContent,
+    };
+  });
+  // 'x','y' flattened + a <b>z</b>: text content "xyz", 3 child nodes (2 text + 1 element).
+  expect(r.flatKids).toBe(3);
+  expect(r.flatText).toBe('xyz');
+  expect(r.hasB).toBe('z');
+  // [['p'],'q'] flattens one level: ['p'] -> String(['p'])='p', plus 'q' -> "pq".
+  expect(r.nestedText).toBe('pq');
+  // 0, NaN, Infinity, -0, '' render (6 text nodes); false/null/undefined skipped.
+  expect(r.numsKids).toBe(5);
+  expect(r.numsText).toBe('0NaNInfinity0');
+  // Node children are the exact same object, appended once.
+  expect(r.nodeSame).toBe(true);
+  expect(r.nodeText).toBe('kept');
+});
