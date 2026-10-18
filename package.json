@@ -32,7 +32,8 @@
     "security:deep": "bash tests/tools/security-check.sh deep",
     "changelog:check": "node tests/tools/change-log-check.js",
     "d2:interpret": "node tests/tools/query-d2-interpret.js",
-    "rls:analyze": "node tests/tools/rls-analyzer.js"
+    "rls:analyze": "node tests/tools/rls-analyzer.js",
+    "css:check": "node tests/tools/css-lint.js --check"
   },
   "devDependencies": {
     "@playwright/test": "1.56.1",
