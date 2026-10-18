@@ -39,4 +39,12 @@ commit;
 select has_table_privilege('anon', 'public.activity_timeline', 'SELECT') as visitors_can_read_again;
 ```
 
+**Verification after the change (owner re-ran read-only Query G2, 2026-10-18; results as reported by the owner):**
+
+| Check | Before FIX 1A | After FIX 1A |
+|---|---|---|
+| V1 `activity_timeline` | FAIL (readable by visitors who are not signed in) | **WARN** (readable by signed-in users only) |
+| V1, the other 15 views | PASS | **PASS** (unchanged) |
+| P1 (a separate item, not part of this change) | WARN | WARN (unchanged; a fix is prepared and waits for the owner's approval; details are published here once it is applied) |
+
 **Still open for this view:** signed-in users still read it with the owner's rights (Query G2 is expected to show WARN, not FAIL). A follow-up change, FIX 1B (`security_invoker`), is prepared and tested. It waits for the owner's separate approval.
