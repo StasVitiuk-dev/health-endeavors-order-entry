@@ -1637,19 +1637,29 @@
       if (!wrap) return;
       const isLatest = newLoadToken('nightly');
       const LEVEL_CLASS = { PASS: 'attn-info', WARN: 'attn-action', FAIL: 'attn-critical', UNKNOWN: 'attn-unknown', STALE: 'attn-unknown', 'NOT VERIFIED': 'attn-info' };
-      const card = (level, title, body) => `<div class="approvalRow attnCheck nightlyCard ${LEVEL_CLASS[level]}" data-state="${esc(level)}"><div class="info"><span class="badge attnLevel">${esc(level)}</span> <b>${esc(title)}</b>${body || ''}</div></div>`;
+      // EXT20J: built as DOM nodes (h() text-ifies) instead of an HTML string, so
+      // this evidence card is safe under Trusted Types. The level class/data-state
+      // are unchanged, so an UNKNOWN / NOT VERIFIED / STALE result still carries its
+      // own (never-green) styling — missing evidence can never read as PASS.
+      const card = (level, title, body) => h('div',
+        { class: `approvalRow attnCheck nightlyCard ${LEVEL_CLASS[level]}`, 'data-state': level },
+        h('div', { class: 'info' },
+          h('span', { class: 'badge attnLevel' }, level), ' ',
+          h('b', null, title),
+          ...(body ? (Array.isArray(body) ? body : [body]) : [])));
+      const hint = text => h('p', { class: 'hint' }, text);
       try {
         const { data: flag, error: flagErr } = await supabase.from('feature_flags').select('enabled').eq('flag_key', 'integrity_results_home').maybeSingle();
         if (!isLatest()) return;
-        if (flagErr) { wrap.innerHTML = card('UNKNOWN', 'Could not check whether the nightly check is set up', `<p class="hint">${esc(explainDbError(flagErr.message || String(flagErr)))}</p>`); return; }
+        if (flagErr) { wrap.replaceChildren(card('UNKNOWN', 'Could not check whether the nightly check is set up', hint(explainDbError(flagErr.message || String(flagErr))))); return; }
         if (flag && flag.enabled === true && !['owner', 'administrator'].includes(currentUserRole)) {
           // The read rule (drafts/29) shows these results to owner/admin only;
           // an empty answer here would wrongly read as "has not run yet".
-          wrap.innerHTML = card('NOT VERIFIED', 'Only the owner and administrators can see the nightly check', '');
+          wrap.replaceChildren(card('NOT VERIFIED', 'Only the owner and administrators can see the nightly check', null));
           return;
         }
         if (!flag || flag.enabled !== true) {
-          wrap.innerHTML = card('NOT VERIFIED', 'Not set up yet', '<p class="hint">The nightly check is not installed, or its Home switch ("Nightly integrity check on Home") is off. Until it is, nothing here means "fine": run the daily check by hand (Query F, docs/ops/PRODUCTION_READONLY_VERIFICATION_EXT10.md).</p>');
+          wrap.replaceChildren(card('NOT VERIFIED', 'Not set up yet', hint('The nightly check is not installed, or its Home switch ("Nightly integrity check on Home") is off. Until it is, nothing here means "fine": run the daily check by hand (Query F, docs/ops/PRODUCTION_READONLY_VERIFICATION_EXT10.md).')));
           return;
         }
         const [att, okRun] = await Promise.all([
@@ -1659,9 +1669,9 @@
         if (!isLatest()) return;
         const readErr = att.error || okRun.error;
         if (readErr) {
-          wrap.innerHTML = isMissingRelation(readErr)
-            ? card('NOT VERIFIED', 'Switched on, but the nightly check is not installed', '<p class="hint">Turn the Home switch off, or install drafts/25 and drafts/29 first (docs/ops/PRODUCTION_CHANGE_PACKAGE_EXT10.md).</p>')
-            : card('UNKNOWN', 'Could not read the nightly check', `<p class="hint">${esc(explainDbError(readErr.message || String(readErr)))}</p>`);
+          wrap.replaceChildren(isMissingRelation(readErr)
+            ? card('NOT VERIFIED', 'Switched on, but the nightly check is not installed', hint('Turn the Home switch off, or install drafts/25 and drafts/29 first (docs/ops/PRODUCTION_CHANGE_PACKAGE_EXT10.md).'))
+            : card('UNKNOWN', 'Could not read the nightly check', hint(explainDbError(readErr.message || String(readErr)))));
           return;
         }
         const lastAttempt = (att.data || [])[0] || null;
@@ -1670,13 +1680,13 @@
         if (lastOk) {
           const { data: rows, error: resErr } = await supabase.from('integrity_check_results').select('section, check_name, found, examples').eq('run_id', lastOk.id).order('section', { ascending: true }).limit(200);
           if (!isLatest()) return;
-          if (resErr) { wrap.innerHTML = card('UNKNOWN', 'Could not read the nightly check results', `<p class="hint">${esc(explainDbError(resErr.message || String(resErr)))}</p>`); return; }
+          if (resErr) { wrap.replaceChildren(card('UNKNOWN', 'Could not read the nightly check results', hint(explainDbError(resErr.message || String(resErr))))); return; }
           results = rows || [];
         }
         const now = Date.now();
         const overall = nightlyOverall(lastAttempt, lastOk, results, now, NIGHTLY_STALE_MS);
-        const when = r => r ? `${esc(fmtDate(r.started_at))} (${esc(timeAgo(r.started_at))})` : 'never';
-        const fresh = `<p class="hint nightlyFresh">Last success: ${when(lastOk)} · Last attempt: ${when(lastAttempt)}${lastAttempt ? ' — ' + esc(lastAttempt.status === 'ok' ? 'worked' : lastAttempt.status === 'failed' ? 'FAILED' : 'still running') : ''} · Counts as out of date after ${Math.round(NIGHTLY_STALE_MS / 3600000)} hours.</p>`;
+        const when = r => r ? `${fmtDate(r.started_at)} (${timeAgo(r.started_at)})` : 'never';
+        const fresh = h('p', { class: 'hint nightlyFresh' }, `Last success: ${when(lastOk)} · Last attempt: ${when(lastAttempt)}${lastAttempt ? ' — ' + (lastAttempt.status === 'ok' ? 'worked' : lastAttempt.status === 'failed' ? 'FAILED' : 'still running') : ''} · Counts as out of date after ${Math.round(NIGHTLY_STALE_MS / 3600000)} hours.`);
         const counts = { PASS: 0, WARN: 0, FAIL: 0, UNKNOWN: 0 };
         results.forEach(r => { counts[nightlyCheckLevel(r)]++; });
         const TITLES = {
@@ -1688,19 +1698,23 @@
           'NOT VERIFIED': lastAttempt ? 'Installed, first run still in progress' : 'Installed, but it has not run yet',
         };
         const failNote = lastAttempt && lastAttempt.status === 'failed'
-          ? `<p class="hint">The run at ${esc(fmtDate(lastAttempt.started_at))} stopped with: ${esc(lastAttempt.error || 'no error text')}. ${lastOk ? 'The results below are from the last run that worked.' : 'No run has worked yet.'}</p>` : '';
-        const list = results.length ? `<details class="nightlyDetails"${overall === 'FAIL' || overall === 'WARN' ? ' open' : ''}><summary>Each check (${counts.PASS} pass · ${counts.WARN} warning · ${counts.FAIL} problem${counts.UNKNOWN ? ' · ' + counts.UNKNOWN + ' unreadable' : ''})</summary>
-          <ul class="nightlyList">${results.map(r => {
+          ? h('p', { class: 'hint' }, `The run at ${fmtDate(lastAttempt.started_at)} stopped with: ${lastAttempt.error || 'no error text'}. ${lastOk ? 'The results below are from the last run that worked.' : 'No run has worked yet.'}`) : null;
+        const list = results.length ? h('details', { class: 'nightlyDetails', open: (overall === 'FAIL' || overall === 'WARN') || undefined },
+          h('summary', null, `Each check (${counts.PASS} pass · ${counts.WARN} warning · ${counts.FAIL} problem${counts.UNKNOWN ? ' · ' + counts.UNKNOWN + ' unreadable' : ''})`),
+          h('ul', { class: 'nightlyList' }, ...results.map(r => {
             const lv = nightlyCheckLevel(r);
             const code = String(r.section || '').slice(0, 3);
             const pg = NIGHTLY_PAGES[code];
-            return `<li class="nightlyItem" data-level="${esc(lv)}" data-section="${esc(code)}"><span class="badge">${esc(lv)}</span> ${esc(r.check_name)}: <b>${esc(String(r.found))}</b>${r.examples && Number(r.found) > 0 ? `<div class="hint">For example: ${esc(String(r.examples).slice(0, 300))}</div>` : ''}${pg && Number(r.found) > 0 ? ` <button type="button" class="small secondary nightlyOpen" data-goto="${esc(pg)}">Open</button>` : ''}</li>`;
-          }).join('')}</ul></details>` : '';
-        wrap.innerHTML = card(overall, TITLES[overall], failNote + fresh + list);
+            return h('li', { class: 'nightlyItem', 'data-level': lv, 'data-section': code },
+              h('span', { class: 'badge' }, lv), ' ' + r.check_name + ': ', h('b', null, String(r.found)),
+              ...(r.examples && Number(r.found) > 0 ? [h('div', { class: 'hint' }, 'For example: ' + String(r.examples).slice(0, 300))] : []),
+              ...(pg && Number(r.found) > 0 ? [' ', h('button', { type: 'button', class: 'small secondary nightlyOpen', 'data-goto': pg }, 'Open')] : []));
+          }))) : null;
+        wrap.replaceChildren(card(overall, TITLES[overall], [failNote, fresh, list]));
         wrap.querySelectorAll('.nightlyOpen').forEach(b => b.addEventListener('click', () => showPage(b.getAttribute('data-goto'))));
       } catch (err) {
         if (!isLatest()) return;
-        wrap.innerHTML = card('UNKNOWN', 'Could not read the nightly check', `<p class="hint">${esc(explainDbError(err && err.message ? err.message : String(err)))}</p>`);
+        wrap.replaceChildren(card('UNKNOWN', 'Could not read the nightly check', hint(explainDbError(err && err.message ? err.message : String(err)))));
       }
     }
     let SYS_STATUS = null;
@@ -1745,7 +1759,11 @@
           ['Last error on screen', LAST_ERROR_KIND ? LAST_ERROR_KIND + ' at ' + LAST_ERROR_AT.toLocaleTimeString() : 'none since this page opened'],
         ],
       };
-      wrap.innerHTML = `<table class="sysStatus"><tbody>${SYS_STATUS.rows.map(([k, v]) => `<tr><th scope="row">${esc(k)}</th><td>${esc(v)}</td></tr>`).join('')}</tbody></table>`;
+      // EXT20J: built as DOM nodes instead of an HTML string (safe under Trusted
+      // Types). Keys and values were already esc()-ed; now they are text nodes.
+      wrap.replaceChildren(h('table', { class: 'sysStatus' },
+        h('tbody', null, ...SYS_STATUS.rows.map(([k, v]) =>
+          h('tr', null, h('th', { scope: 'row' }, k), h('td', null, v))))));
     }
     function diagnosticSummary(){
       const s = SYS_STATUS || { rows: [] };
