@@ -4108,24 +4108,22 @@
 
         // The one launch-critical switch: if its row is missing, its state is
         // unknown (not "off"), and the page says so.
-        const syncMissingNote = flags.some(f => f.flag_key === 'shopify_order_sync') ? '' :
-          '<p class="hint flagSyncMissing u-c-danger u-mt-8">The Shopify Order Sync switch was not found in the database, so its state is unknown (not configured), not "off". Emergency mode cannot switch it off either.</p>';
+        // EXT20J: built as DOM nodes (h() text-ifies) instead of an HTML string.
+        const syncMissingNoteNode = flags.some(f => f.flag_key === 'shopify_order_sync') ? null :
+          h('p', { class: 'hint flagSyncMissing u-c-danger u-mt-8' }, 'The Shopify Order Sync switch was not found in the database, so its state is unknown (not configured), not "off". Emergency mode cannot switch it off either.');
         if (!flags.length) {
-          document.getElementById('flagsWrap').innerHTML = '<p class="empty">No feature flags exist yet.</p>' + syncMissingNote;
+          document.getElementById('flagsWrap').replaceChildren(...[h('p', { class: 'empty' }, 'No feature flags exist yet.'), syncMissingNoteNode].filter(Boolean));
         } else {
-          document.getElementById('flagsWrap').innerHTML = flags.map(f => `
-            <div class="flagRow" data-id="${esc(f.id)}" data-key="${esc(f.flag_key || '')}">
-              <div class="flagInfo">
-                <div class="k">${esc(f.label || f.flag_key)}${LAUNCH_BLOCKED_FLAGS[f.flag_key] ? ' <span class="badge sev-high flagBlockedBadge">Blocked until launch checks</span>' : ''}</div>
-                <div class="d">${esc(f.description || f.flag_key)}</div>
-                ${LAUNCH_BLOCKED_FLAGS[f.flag_key] ? `<div class="d flagBlockedReason u-c-danger">${esc(LAUNCH_BLOCKED_FLAGS[f.flag_key])}</div>` : ''}
-                ${FLAG_DEPENDS[f.flag_key] ? `<div class="d flagDepends"><span class="badge flagState">${f.enabled ? 'ON' : 'OFF'}</span> Needs first: ${esc(FLAG_DEPENDS[f.flag_key])}. The page checks this before it lets the switch turn on; turning it off is always safe (work already done stays done).</div>` : ''}
-              </div>
-              <label class="switch">
-                <input type="checkbox" class="flagToggle" ${f.enabled ? 'checked' : ''}>
-                <span class="slider"></span>
-              </label>
-            </div>`).join('') + syncMissingNote;
+          const flagRow = f => h('div', { class: 'flagRow', 'data-id': f.id, 'data-key': f.flag_key || '' },
+            h('div', { class: 'flagInfo' },
+              h('div', { class: 'k' }, f.label || f.flag_key, LAUNCH_BLOCKED_FLAGS[f.flag_key] ? [' ', h('span', { class: 'badge sev-high flagBlockedBadge' }, 'Blocked until launch checks')] : null),
+              h('div', { class: 'd' }, f.description || f.flag_key),
+              LAUNCH_BLOCKED_FLAGS[f.flag_key] ? h('div', { class: 'd flagBlockedReason u-c-danger' }, LAUNCH_BLOCKED_FLAGS[f.flag_key]) : null,
+              FLAG_DEPENDS[f.flag_key] ? h('div', { class: 'd flagDepends' }, h('span', { class: 'badge flagState' }, f.enabled ? 'ON' : 'OFF'), ' Needs first: ' + FLAG_DEPENDS[f.flag_key] + '. The page checks this before it lets the switch turn on; turning it off is always safe (work already done stays done).') : null),
+            h('label', { class: 'switch' },
+              h('input', { type: 'checkbox', class: 'flagToggle', checked: f.enabled ? true : null }),
+              h('span', { class: 'slider' })));
+          document.getElementById('flagsWrap').replaceChildren(...[...flags.map(flagRow), syncMissingNoteNode].filter(Boolean));
           document.querySelectorAll('.flagToggle').forEach(cb => {
             cb.addEventListener('change', async () => {
               const row = cb.closest('.flagRow');
@@ -4217,7 +4215,7 @@
         if (row && row.changed_by) {
           const { data: who_row } = await supabase
             .from('profiles').select('display_name, email').eq('id', row.changed_by).maybeSingle(); // EXT19: was full_name, which profiles does not have
-          who = who_row && (who_row.display_name || who_row.email) ? esc(who_row.display_name || who_row.email) : null;
+          who = who_row && (who_row.display_name || who_row.email) ? (who_row.display_name || who_row.email) : null;
         }
 
         const mode = (row && row.mode) || 'NORMAL';
@@ -4230,9 +4228,10 @@
           const changedLine = !row ? 'No mode has been saved in the database yet, so this shows the default (Normal).'
             : (who && when) ? `Last changed by ${who} on ${when}.`
             : when ? `Last changed on ${when}.` : 'No change recorded yet.';
-          wrap.innerHTML = `
-            <div class="modePill">${esc(info.label)}</div>
-            <p class="hint u-m-8-0-0">${esc(info.desc)} ${esc(changedLine)}</p>`;
+          // EXT20J: built as DOM nodes (h() text-ifies) instead of an HTML string.
+          wrap.replaceChildren(
+            h('div', { class: 'modePill' }, info.label),
+            h('p', { class: 'hint u-m-8-0-0' }, info.desc + ' ' + changedLine));
           // EXT15: colours through the CSS object model (strict style policy); they come
           // from the fixed SYSTEM_MODE_LABELS table, never from the database.
           const pill = wrap.querySelector('.modePill');
@@ -4398,34 +4397,30 @@
           return;
         }
 
-        document.getElementById('businessRulesWrap').innerHTML = rules.map(r => {
+        // EXT20J: built as DOM nodes (h() text-ifies) instead of an HTML string.
+        // data-config carries the raw JSON string (setAttribute/getAttribute round-
+        // trips it unchanged), so the save handler's JSON.parse works as before.
+        const ruleRow = r => {
           const configKey = BUSINESS_RULE_CONFIG_KEY[r.rule_key];
           const unit = BUSINESS_RULE_UNIT_LABELS[r.rule_key] || '';
           const knownShape = configKey && r.config && typeof r.config === 'object'
             && Object.prototype.hasOwnProperty.call(r.config, configKey);
           const currentValue = knownShape ? r.config[configKey] : null;
-
-          return `
-            <div class="flagRow u-ai-flex-start" data-id="${esc(r.id)}" data-rule-key="${esc(r.rule_key)}" data-config-key="${esc(configKey || '')}" data-config="${esc(JSON.stringify(r.config === undefined ? null : r.config))}">
-              <div class="flagInfo u-flex-1 u-minw-0">
-                <div class="k">${esc(r.label || r.rule_key)}</div>
-                <div class="d">${esc(r.description || r.rule_key)}</div>
-              </div>
-              <div class="u-d-flex u-ai-center u-gap-10 u-flex-none">
-                ${knownShape ? `
-                  <input type="number" class="ruleValueInput u-w-90 u-p-7-8 u-br-8 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-13p5" value="${esc(String(currentValue))}" step="any">
-                  <span class="u-fs-12 u-c-muted u-minw-60">${esc(unit)}</span>
-                ` : `
-                  <textarea class="ruleConfigJson u-w-180 u-p-7-8 u-br-8 u-b-1-solid-xcfd8d6 u-ff-monospace u-fs-12 u-rs-vertical" rows="2">${esc(JSON.stringify(r.config))}</textarea>
-                `}
-                <button type="button" class="small ruleSaveBtn u-d-none">Save</button>
-                <label class="switch">
-                  <input type="checkbox" class="ruleActiveToggle" ${r.is_active ? 'checked' : ''}>
-                  <span class="slider"></span>
-                </label>
-              </div>
-            </div>`;
-        }).join('');
+          return h('div', { class: 'flagRow u-ai-flex-start', 'data-id': r.id, 'data-rule-key': r.rule_key, 'data-config-key': configKey || '', 'data-config': JSON.stringify(r.config === undefined ? null : r.config) },
+            h('div', { class: 'flagInfo u-flex-1 u-minw-0' },
+              h('div', { class: 'k' }, r.label || r.rule_key),
+              h('div', { class: 'd' }, r.description || r.rule_key)),
+            h('div', { class: 'u-d-flex u-ai-center u-gap-10 u-flex-none' },
+              ...(knownShape
+                ? [h('input', { type: 'number', class: 'ruleValueInput u-w-90 u-p-7-8 u-br-8 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-13p5', value: String(currentValue), step: 'any' }),
+                   h('span', { class: 'u-fs-12 u-c-muted u-minw-60' }, unit)]
+                : [h('textarea', { class: 'ruleConfigJson u-w-180 u-p-7-8 u-br-8 u-b-1-solid-xcfd8d6 u-ff-monospace u-fs-12 u-rs-vertical', rows: '2' }, JSON.stringify(r.config))]),
+              h('button', { type: 'button', class: 'small ruleSaveBtn u-d-none' }, 'Save'),
+              h('label', { class: 'switch' },
+                h('input', { type: 'checkbox', class: 'ruleActiveToggle', checked: r.is_active ? true : null }),
+                h('span', { class: 'slider' }))));
+        };
+        document.getElementById('businessRulesWrap').replaceChildren(...rules.map(ruleRow));
 
         // The Save button only appears once a value has actually changed, so
         // this page doesn't nag with a Save button sitting there by default.
