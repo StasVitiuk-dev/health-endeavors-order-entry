@@ -37,13 +37,13 @@
     },
     {
       "file": "assets/app/he-compliance.js",
-      "expr": "ev.reporter_contact ? ' \u2014 ' + esc(ev.reporter_contact) : ''",
+      "expr": "ev.reporter_contact ? ' — ' + esc(ev.reporter_contact) : ''",
       "count": 1,
       "reason": "every data value inside passes through esc() (or a number formatter); the rest is fixed markup"
     },
     {
       "file": "assets/app/he-compliance.js",
-      "expr": "ev.reporter_name ? `<div class=\"u-fs-11 u-c-muted u-mt-3\">Reported by: ${esc(ev.reporter_name)}${ev.reporter_contact ? ' \u2014 ' + esc(ev.reporter_contact) : ''}</div>` : ''",
+      "expr": "ev.reporter_name ? `<div class=\"u-fs-11 u-c-muted u-mt-3\">Reported by: ${esc(ev.reporter_name)}${ev.reporter_contact ? ' — ' + esc(ev.reporter_contact) : ''}</div>` : ''",
       "count": 1,
       "reason": "every data value inside passes through esc() (or a number formatter); the rest is fixed markup"
     },
@@ -79,13 +79,13 @@
     },
     {
       "file": "assets/app/he-inquiries.js",
-      "expr": "i.ai_confidence != null ? ' \u00b7 ' + Math.round(i.ai_confidence * 100) + '% confidence' : ''",
+      "expr": "i.ai_confidence != null ? ' · ' + Math.round(i.ai_confidence * 100) + '% confidence' : ''",
       "count": 1,
       "reason": "Math.round(...) gives a number; the rest is fixed text"
     },
     {
       "file": "assets/app/he-inquiries.js",
-      "expr": "i.ai_draft_reply ? ` <div class=\"u-mt-8\"> <b class=\"u-fs-11 u-c-muted u-tt-uppercase\">AI draft reply${i.ai_confidence != null ? ' \u00b7 ' + Math.round(i.ai_confidence * 100) + '% confidence' : ''}</b> <textarea class=\"inqDraftText u-w-100pct u-mt-4 u-p-9-10 u-br-8 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-13p5 u-rs-vertical\" data-id=\"${esc(i.id)}\" rows=\"4\">${esc(i.ai_draft_reply)}</textarea> </div> ` : '<p class=\"empty u-p-6-0\">No draft yet \u2014 the agent hasn\\'t answered this one.</p>'",
+      "expr": "i.ai_draft_reply ? ` <div class=\"u-mt-8\"> <b class=\"u-fs-11 u-c-muted u-tt-uppercase\">AI draft reply${i.ai_confidence != null ? ' · ' + Math.round(i.ai_confidence * 100) + '% confidence' : ''}</b> <textarea class=\"inqDraftText u-w-100pct u-mt-4 u-p-9-10 u-br-8 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-13p5 u-rs-vertical\" data-id=\"${esc(i.id)}\" rows=\"4\">${esc(i.ai_draft_reply)}</textarea> </div> ` : '<p class=\"empty u-p-6-0\">No draft yet — the agent hasn\\'t answered this one.</p>'",
       "count": 1,
       "reason": "every data value inside passes through esc() (or a number formatter); the rest is fixed markup"
     },
@@ -97,7 +97,7 @@
     },
     {
       "file": "assets/app/he-inquiries.js",
-      "expr": "order ? ' \u00b7 Order ' + esc(order.order_number) : ''",
+      "expr": "order ? ' · Order ' + esc(order.order_number) : ''",
       "count": 1,
       "reason": "every data value inside passes through esc() (or a number formatter); the rest is fixed markup"
     },
@@ -163,7 +163,7 @@
     },
     {
       "file": "assets/owner-login-app.js",
-      "expr": "lot ? ' \u00b7 lot ' + esc(lot) : ''",
+      "expr": "lot ? ' · lot ' + esc(lot) : ''",
       "count": 1,
       "reason": "every data value inside passes through esc() (or a number formatter); the rest is fixed markup"
     },
@@ -199,15 +199,9 @@
     },
     {
       "file": "assets/owner-login-app.js",
-      "expr": "showingNote",
-      "count": 1,
-      "reason": "fixed hint markup with only numbers (array length / count) inside"
-    },
-    {
-      "file": "assets/owner-login-app.js",
       "expr": "sign",
       "count": 1,
-      "reason": "a fixed sign character (+, \u2212 or empty) chosen by code"
+      "reason": "a fixed sign character (+, − or empty) chosen by code"
     },
     {
       "file": "assets/owner-login-app.js",

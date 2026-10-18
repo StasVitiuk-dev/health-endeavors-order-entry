@@ -3770,10 +3770,13 @@
         const revenueLabel = partialRevenue
           ? 'Revenue of the newest ' + orders.length + ' orders (all orders: Accounting)'
           : 'Total revenue (cancelled and refunded excluded)';
-        document.getElementById('orderStats').innerHTML = `
-          <div class="stat"><div class="num">${totalOrders}</div><div class="lbl">Orders on file</div></div>
-          <div class="stat"><div class="num">${esc(fmtMoney(totalRevenue, currency))}</div><div class="lbl">${esc(revenueLabel)}</div></div>
-        `;
+        // EXT20J: built as DOM nodes (h() text-ifies) instead of an HTML string,
+        // so the Orders screen is safe under Trusted Types. Values were already
+        // esc()-ed. A failed revenue read still reaches this point only with real
+        // numbers; a thrown read is caught below and shows the error, never $0.00.
+        document.getElementById('orderStats').replaceChildren(
+          h('div', { class: 'stat' }, h('div', { class: 'num' }, totalOrders), h('div', { class: 'lbl' }, 'Orders on file')),
+          h('div', { class: 'stat' }, h('div', { class: 'num' }, fmtMoney(totalRevenue, currency)), h('div', { class: 'lbl' }, revenueLabel)));
         const ordersMixed = mixedCurrencyNote(orders, 'Orders', currency);
         showPageWarning('ordersPanel', ordersMixed); // X8-19
 
@@ -3781,20 +3784,22 @@
         if (!recent.length) {
           document.getElementById('ordersTableWrap').replaceChildren(h('p', { class: 'empty' }, 'No orders yet.'));
         } else {
-          const showingNote = totalOrders > recent.length
-            ? `<p class="hint u-m-0-0-8">Showing the ${recent.length} most recent of ${totalOrders} orders total.</p>` : '';
-          document.getElementById('ordersTableWrap').innerHTML = `
-            ${showingNote}
-            <table class="phoneCards"><thead><tr><th>Order #</th><th>Customer</th><th>Status</th><th>Total</th><th>Placed</th><th></th></tr></thead>
-            <tbody>${recent.map(o => `
-              <tr data-id="${esc(o.id)}">
-                <td>${esc(o.order_number || o.id)}</td>
-                <td>${esc(o.customer_name || '—')}</td>
-                <td><span class="badge">${esc(o.status || '—')}</span></td>
-                <td>${esc(fmtMoney(o.total, o.currency))}</td>
-                <td>${esc(fmtDate(o.placed_at))}</td>
-                <td><button class="small deny deleteOrderBtn">Delete</button></td>
-              </tr>`).join('')}</tbody></table>`;
+          const showingNoteNode = totalOrders > recent.length
+            ? h('p', { class: 'hint u-m-0-0-8' }, `Showing the ${recent.length} most recent of ${totalOrders} orders total.`) : null;
+          document.getElementById('ordersTableWrap').replaceChildren(...[
+            showingNoteNode,
+            h('table', { class: 'phoneCards' },
+              h('thead', null, h('tr', null,
+                h('th', null, 'Order #'), h('th', null, 'Customer'), h('th', null, 'Status'), h('th', null, 'Total'), h('th', null, 'Placed'), h('th'))),
+              h('tbody', null, recent.map(o =>
+                h('tr', { 'data-id': o.id },
+                  h('td', null, o.order_number || o.id),
+                  h('td', null, o.customer_name || '—'),
+                  h('td', null, h('span', { class: 'badge' }, o.status || '—')),
+                  h('td', null, fmtMoney(o.total, o.currency)),
+                  h('td', null, fmtDate(o.placed_at)),
+                  h('td', null, h('button', { class: 'small deny deleteOrderBtn' }, 'Delete'))))))
+          ].filter(Boolean));
           document.querySelectorAll('.deleteOrderBtn').forEach(btn => {
             btn.addEventListener('click', async () => {
               const row = btn.closest('tr');
@@ -3833,12 +3838,13 @@
         if (!deleted.length) {
           document.getElementById('deletedOrdersWrap').replaceChildren(h('p', { class: 'empty' }, 'Recycle bin is empty.'));
         } else {
-          document.getElementById('deletedOrdersWrap').innerHTML = deleted.map(o => `
-            <div class="deletedRow" data-id="${esc(o.id)}">
-              <div class="info"><b>${esc(o.order_number || o.id)}</b> — ${esc(o.customer_name || '—')} — ${esc(fmtMoney(o.total, o.currency))}<br>
-              <span class="u-fs-11 u-c-muted">Deleted ${esc(fmtDate(o.deleted_at))}</span></div>
-              <button class="small restoreOrderBtn">Restore</button>
-            </div>`).join('');
+          document.getElementById('deletedOrdersWrap').replaceChildren(...deleted.map(o =>
+            h('div', { class: 'deletedRow', 'data-id': o.id },
+              h('div', { class: 'info' },
+                h('b', null, o.order_number || o.id), ' — ' + (o.customer_name || '—') + ' — ' + fmtMoney(o.total, o.currency),
+                h('br'),
+                h('span', { class: 'u-fs-11 u-c-muted' }, 'Deleted ' + fmtDate(o.deleted_at))),
+              h('button', { class: 'small restoreOrderBtn' }, 'Restore'))));
         appendMore('deletedOrdersWrap', 'delOrders', deleted.length, delCount, 'deleted orders', loadOrders);
           logCustomerAccess(deleted, 'Viewed in Owner Dashboard – Recycle bin');
           document.querySelectorAll('.restoreOrderBtn').forEach(btn => {
