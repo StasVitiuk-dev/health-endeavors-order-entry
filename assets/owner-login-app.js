@@ -86,7 +86,7 @@
     } = window.HE.helpers;
     // @@ EXT15 modules: created in dependency order (assets/app/*.js; see docs/ops/APPLICATION_MODULE_MAP_EXT15.md)
     const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS } = HE.modules.create('he-config', {  });
-    const { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, pageIconSvg, h, pageIconNode } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
+    const { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, h, pageIconNode } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
     const { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
     const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, h, supabase });
     const { environmentLabel, assetVersions, isMissingRelation, dbStepsStatus, NIGHTLY_STALE_MS, ATTN_STALE_MS, attnSeenGet, attnSeenSet, attnSignature } = HE.modules.create('he-status', { DB_STEPS, STOCK_FN_PROBES, SUPABASE_URL, stockFunctionInstalled, supabase });
@@ -885,7 +885,7 @@
       const pages = [];
       SIDEBAR_GROUPS.forEach(g => g.pages.forEach(p => {
         if (!query || p.label.toLowerCase().includes(query) || g.label.toLowerCase().includes(query)) {
-          pages.push({ kind: g.label, label: p.label, pageId: p.id, icon: pageIconSvg(p.id) });
+          pages.push({ kind: g.label, label: p.label, pageId: p.id });
         }
       }));
       if (query) {
@@ -899,11 +899,10 @@
         items.push.apply(items, pages.filter(p => !named.includes(p)));
         // Guide articles come last; skip the copies the record search returns.
         searchEverything(query).filter(r => r.type !== 'Guide').forEach(r => items.push({
-          kind: r.type, label: r.label, pageId: r.pageId,
-          icon: pageIconSvg(r.pageId), activitySearch: r.activitySearch,
+          kind: r.type, label: r.label, pageId: r.pageId, activitySearch: r.activitySearch,
         }));
         helpMatches(query).forEach(e => items.push({
-          kind: 'Guide', label: e.title, pageId: e.page, help: e, icon: pageIconSvg(e.page),
+          kind: 'Guide', label: e.title, pageId: e.page, help: e,
         }));
       }
       if (!query) items.push.apply(items, pages);
@@ -912,15 +911,16 @@
     function renderPalette(){
       const box = document.getElementById('paletteResults');
       if (!PAL_ITEMS.length) { box.replaceChildren(h('div', { class: 'pEmpty' }, 'Nothing matches that.')); return; }
-      box.innerHTML = PAL_ITEMS.map((it, i) =>
-        '<div class="pResult' + (i === PAL_SEL ? ' sel' : '') + '" data-i="' + i + '">' +
-          '<span class="pIcon">' + it.icon + '</span>' +
-          '<span class="pMain"></span>' +
-          '<span class="pKind"></span>' +
-        '</div>').join('');
+      // EXT20J: rows built as DOM nodes (h() text-ifies label/kind, and the page
+      // icon is a DOM node from pageIconNode) instead of an HTML string, so the
+      // palette is safe under Trusted Types. The label and kind were already set
+      // via textContent before, never interpolated into markup.
+      box.replaceChildren(...PAL_ITEMS.map((it, i) =>
+        h('div', { class: 'pResult' + (i === PAL_SEL ? ' sel' : ''), 'data-i': i },
+          h('span', { class: 'pIcon' }, pageIconNode(it.pageId)),
+          h('span', { class: 'pMain' }, it.label),
+          h('span', { class: 'pKind' }, it.kind))));
       box.querySelectorAll('.pResult').forEach((el, i) => {
-        el.querySelector('.pMain').textContent = PAL_ITEMS[i].label;
-        el.querySelector('.pKind').textContent = PAL_ITEMS[i].kind;
         el.addEventListener('click', () => runPalette(i));
         el.addEventListener('mousemove', () => {
           if (PAL_SEL === i) return;
