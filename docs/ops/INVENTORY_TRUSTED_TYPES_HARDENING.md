@@ -87,3 +87,38 @@ The cascade continued through three more dashboard areas in `assets/owner-login-
 Each commit: DOM sink gate PASS, type gate 0 gated, focused specs pass, security:quick PASS, asset versions refreshed, write-path artifacts regenerated (line-number shifts only).
 
 **Screens TT-clean so far: Inventory, Returns, Approvals, Agents, Security Center, Home, Purchase Orders.** Next: Orders & Revenue, then Customers.
+
+---
+
+## Remaining screens + cascade completion (EXT20J, 2026-10-18)
+
+The cascade continued through every remaining dynamic screen, each a small tested commit on `claude/platform-ext20-adversarial-completion-2026-10-13`:
+
+- **Quality Control & Recalls, AI activity, Business Continuity, Daily Summary, Feature Flags, Business Rules, System Mode, Accounting, Tax Records, Inventory Adjustments + the document-category and return-item dropdowns** — all `innerHTML` → `h()` + `replaceChildren()`; status/level classes (QC pass/fail, recall quarantine, continuity badges, flag states) preserved so an unknown/failed read never renders as green or zero; stale reviewed `dom-sinks-reviewed.json` entries pruned as each landed.
+- **Home business-health tiles** (`loadBusinessHealth`): a failed read still shows the amber "?" `statUnknown` tile, never a misleading zero; `.statLink` goto buttons keep their aria-labels and click delegation.
+- **Employee Activity** feed, people strip, and `describeChange` (he-audit): change-detail panel built from an array of nodes; `box.childNodes.length` replaces the `box.innerHTML` empty check.
+- **Record Inspector** (Quick Look): `hlValue`/`codeDiff` (he-audit) now return nodes; the history map's loop variable renamed `h`→`ev` so it does not shadow the `h()` builder.
+- **"Look up in all orders"** sidebar results: the `ORDER_LOOKUP` cache now holds a node-builder (`() => array of nodes`) rebuilt fresh on each show, not a cached HTML string.
+- **Guide article body** (`openHelp`): built as `<p>` nodes.
+- **Command palette** (`renderPalette`): rows built as nodes with `pageIconNode(it.pageId)`; the `icon` HTML-string field (and `pageIconSvg`) dropped from each palette item.
+- **Calendar** (the last and largest): `renderCalFilters`, `eventHtml`, `noteEditorHtml`, `dayGroupHtml`, `renderCalendar` (day/week/month incl. the month grid) and he-time's `personalEventEditorHtml`. The stale-save guard's `data-had`/`data-shown` (note text, and the personal-event JSON) ride `setAttribute`, so `getAttribute`/`JSON.parse` read them back unchanged for the `.eq('note', data-shown)` and `updateIfUnchanged` checks — and more faithfully than before for notes containing bidi characters, since `h()` text nodes do not strip them the way `esc()` did.
+
+### Final state of `assets/owner-login-app.js` and the module files
+
+- **Dynamic `innerHTML`/HTML-string sinks across the whole dashboard: 0.** The DOM sink gate reports **0 reviewed interpolations, 0 dangerous sinks** (the `dom-sinks-reviewed.json` allowlist is now empty).
+- `esc` and `pageIconSvg` are no longer referenced anywhere in `owner-login-app.js`; `esc` was removed from the helpers destructure, and he-audit/he-time now take `h` in place of `esc`.
+- The only remaining `innerHTML` assignments in the program are **four static literal scaffolds** with no dynamic data: the Guide, command-palette and keyboard-shortcuts overlay shells and the quick-add form shell. These are the DOM sink gate's tolerated literals (they carry no data), not dynamic sinks; converting them was deferred because the move-guard (`modules-ext15`) can only waive a changed non-declaration top-level statement via a text fragment shared by the old and new form, which an `innerHTML =` → `replaceChildren(` rewrite does not have.
+- Every conversion kept classes, `data-*` hooks, input values/placeholders, event-delegation selectors, status/role/level semantics and accessibility attributes byte-equivalent; the move-guard (`verify-moves`) confirms every unchanged statement is still byte-identical and lists only the deliberately-edited symbols.
+
+### Found during the calendar pass — for the owner (NOT fixed here)
+
+`assets/owner-login.css` lines ~1030–1031 contain leftover template-literal text from the EXT15 inline-style→class conversion:
+
+```
+.u-bg-colorforcalendar-ev-calendar-name{background:' + colorForCalendar(ev.calendar_name) + ' !important}
+.u-bg-colorforcalendar-n{background:' + colorForCalendar(n) + ' !important}
+```
+
+That is not valid CSS, so the browser drops the `background` declaration: the per-calendar colour swatches, event bars and month-view dots (`.swatch`, `.eBar`, `.cDot`) currently render with **no calendar colour at all**. `colorForCalendar()` is exported from `he-time.js` but consumed nowhere. This is a pre-existing cosmetic defect, independent of the Trusted Types work (the TT commits preserved these class names verbatim). Fixing it is a **visual change** (colours would start appearing) and should go through the owner's normal screenshot-and-approve review, applying the colour via the CSS object model (`element.style.setProperty`, as `renderSidebar` already does for group colours at ~line 676) with a `data-cal-color` attribute rather than a static class, since per-event colours cannot live in a static stylesheet. Not changed in this branch.
+
+**Every dynamic screen of the internal dashboard is now Trusted-Types-render-ready.** Turning enforcement on still requires installing a Trusted Types policy / `require-trusted-types-for 'script'` header and converting the four static overlay scaffolds; both remain as scoped follow-ups.
