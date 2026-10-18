@@ -2250,35 +2250,37 @@
 
         const openPos = rows.filter(p => ['draft','ordered','shipped'].includes(p.status));
         const outstanding = openPos.reduce((s, p) => s + poGrandTotal(p), 0);
-        document.getElementById('poStats').innerHTML = `
-          <div class="stat"><div class="num">${rows.filter(p => p.status === 'draft').length}</div><div class="lbl">Drafts</div></div>
-          <div class="stat"><div class="num">${rows.filter(p => ['ordered','shipped'].includes(p.status)).length}</div><div class="lbl">Awaiting delivery</div></div>
-          <div class="stat"><div class="num">${fmtMoney(outstanding, 'USD')}</div><div class="lbl">Value outstanding</div></div>`;
+        // EXT20J: built as DOM nodes (h() text-ifies) instead of an HTML string,
+        // so the Purchase Orders stats and list are safe under Trusted Types.
+        // Values were already esc()-ed. The po-<status> / pay-<status> classes are
+        // unchanged, so each badge keeps its own colour.
+        document.getElementById('poStats').replaceChildren(
+          h('div', { class: 'stat' }, h('div', { class: 'num' }, String(rows.filter(p => p.status === 'draft').length)), h('div', { class: 'lbl' }, 'Drafts')),
+          h('div', { class: 'stat' }, h('div', { class: 'num' }, String(rows.filter(p => ['ordered','shipped'].includes(p.status)).length)), h('div', { class: 'lbl' }, 'Awaiting delivery')),
+          h('div', { class: 'stat' }, h('div', { class: 'num' }, fmtMoney(outstanding, 'USD')), h('div', { class: 'lbl' }, 'Value outstanding')));
 
-        document.getElementById('poWrap').innerHTML = rows.length ? rows.map(po => {
+        const poNode = po => {
           const sup = (po.suppliers && po.suppliers.name) || 'Unknown supplier';
           const lines = (po.purchase_order_items || []).length;
           const bits = [lines + (lines === 1 ? ' line' : ' lines')];
           if (po.expected_at) bits.push('expected ' + new Date(po.expected_at + 'T00:00:00').toLocaleDateString(undefined, { day:'numeric', month:'short' }));
           if (po.received_at) bits.push('received ' + fmtDate(po.received_at));
-          return `
-          <div class="poItem" data-id="${esc(po.id)}">
-            <div class="poRow">
-              <div>
-                <div class="poNum">${esc(po.po_number)} · ${esc(sup)}</div>
-                <div class="poMeta">${esc(bits.join(' · '))}</div>
-              </div>
-              <div class="poSide">
-                <span class="poTotal">${fmtMoney(poGrandTotal(po), po.currency)}</span>
-                ${po.payment_status && po.payment_status !== 'paid'
-                    ? `<span class="badge pay-${esc(po.payment_status)}">${esc(PAYMENT_LABELS[po.payment_status] || po.payment_status)}</span>` : ''}
-                ${po.payment_status === 'paid' ? '<span class="badge pay-paid">Paid</span>' : ''}
-                <span class="badge po-${esc(po.status)}">${esc(PO_STATUS_LABELS[po.status] || po.status)}</span>
-              </div>
-            </div>
-            <div class="poDetail u-d-none" id="poDetail_${esc(po.id)}"></div>
-          </div>`;
-        }).join('') : '<p class="empty">No purchase orders yet. Add a supplier, then create a draft above.</p>';
+          return h('div', { class: 'poItem', 'data-id': po.id },
+            h('div', { class: 'poRow' },
+              h('div', null,
+                h('div', { class: 'poNum' }, po.po_number + ' · ' + sup),
+                h('div', { class: 'poMeta' }, bits.join(' · '))),
+              h('div', { class: 'poSide' },
+                h('span', { class: 'poTotal' }, fmtMoney(poGrandTotal(po), po.currency)),
+                ...(po.payment_status && po.payment_status !== 'paid'
+                  ? [h('span', { class: 'badge pay-' + po.payment_status }, PAYMENT_LABELS[po.payment_status] || po.payment_status)] : []),
+                ...(po.payment_status === 'paid' ? [h('span', { class: 'badge pay-paid' }, 'Paid')] : []),
+                h('span', { class: 'badge po-' + po.status }, PO_STATUS_LABELS[po.status] || po.status))),
+            h('div', { class: 'poDetail u-d-none', id: 'poDetail_' + po.id }));
+        };
+        document.getElementById('poWrap').replaceChildren(...(rows.length
+          ? rows.map(poNode)
+          : [h('p', { class: 'empty' }, 'No purchase orders yet. Add a supplier, then create a draft above.')]));
 
         document.querySelectorAll('#poWrap .poRow').forEach(row => {
           row.addEventListener('click', () => {
