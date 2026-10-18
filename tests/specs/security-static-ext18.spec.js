@@ -61,16 +61,19 @@ test('DOM sink gate passes, and fails on a new unreviewed value, a dangerous sin
   expect(out).toContain('DOM SINK GATE: PASS');
   const real = f => fs.readFileSync(path.join(ROOT, f), 'utf8');
   const target = 'assets/app/he-tasks.js';
+  const list = JSON.parse(real('tests/tools/dom-sinks-reviewed.json'));
   const plant = extra => sinks.gate(sinks.audit(sinks.FILES, f => f === target ? real(f) + '\n' + extra : real(f)));
   expect(plant('')).toEqual([]);
   expect(plant('function zz(t){ document.body.innerHTML = `<b>${t.title}</b>`; }').join('\n')).toMatch(/UNREVIEWED interpolation.*t\.title/);
   expect(plant('function zz(t){ document.body.innerHTML = `<b>${esc(t.title)}</b>`; }').some(x => /UNREVIEWED/.test(x))).toBe(false);
   expect(plant('function zz(t){ document.body.insertAdjacentHTML("beforeend", t); }').join('\n')).toMatch(/insertAdjacentHTML = 1/);
   expect(plant('function zz(t){ eval(t); }').join('\n')).toMatch(/evalLike = 1/);
-  // a reviewed value used one more time than reviewed
-  expect(plant('function zz(){ document.body.innerHTML = `<i>${cutoffNote}</i>`; }').join('\n')).toMatch(/cutoffNote.*appears 2 times, 1 reviewed/);
+  // a reviewed value used one more time than it is reviewed for: a synthetic symbol
+  // planted twice but reviewed once (self-contained, so it survives the Trusted
+  // Types cascade removing real reviewed interpolations from the host file).
+  const twice = sinks.audit(sinks.FILES, f => f === target ? real(f) + '\nfunction zz(){ document.body.innerHTML = `<i>${zzSampleValue}</i><b>${zzSampleValue}</b>`; }' : real(f));
+  expect(sinks.gate(twice, { ...list, interpolations: [...list.interpolations, { file: target, expr: 'zzSampleValue', count: 1, reason: 'test fixture' }] }).join('\n')).toMatch(/zzSampleValue.*appears 2 times, 1 reviewed/);
   // the reviewed list must stay honest: a stale entry and an entry without a reason both fail
-  const list = JSON.parse(real('tests/tools/dom-sinks-reviewed.json'));
   const r = sinks.audit();
   expect(sinks.gate(r, { ...list, interpolations: [...list.interpolations, { file: target, expr: 'gone', count: 1, reason: 'no longer in the code' }] }).join('\n')).toMatch(/stale reviewed entry/);
   expect(sinks.gate(r, { ...list, interpolations: list.interpolations.map((e, i) => i ? e : { ...e, reason: '' }) }).join('\n')).toMatch(/without a reason/);

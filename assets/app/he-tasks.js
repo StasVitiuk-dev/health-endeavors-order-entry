@@ -2,8 +2,8 @@
 // EXT15: moved unchanged out of assets/owner-login-app.js (initApp). Its inputs
 // arrive explicitly in ctx; it returns only what other code still uses. Map:
 // docs/ops/APPLICATION_MODULE_MAP_EXT15.md. Created once, by the app, in order.
-window.HE.modules.define('he-tasks', { api: 1, needs: ['CLOSED_IN','SEARCH_INDEX','TASK_ALLOWED_FROM','TASK_NEXT_ACTIONS','TASK_STATUS_LABELS','esc','explainDbError','fmtDate','isClosedStatus','isOverdue','showDashError','supabase'] }, function (ctx) {
-    const { CLOSED_IN, SEARCH_INDEX, TASK_ALLOWED_FROM, TASK_NEXT_ACTIONS, TASK_STATUS_LABELS, esc, explainDbError, fmtDate, isClosedStatus, isOverdue, showDashError, supabase } = ctx;
+window.HE.modules.define('he-tasks', { api: 1, needs: ['CLOSED_IN','SEARCH_INDEX','TASK_ALLOWED_FROM','TASK_NEXT_ACTIONS','TASK_STATUS_LABELS','explainDbError','fmtDate','h','isClosedStatus','isOverdue','showDashError','supabase'] }, function (ctx) {
+    const { CLOSED_IN, SEARCH_INDEX, TASK_ALLOWED_FROM, TASK_NEXT_ACTIONS, TASK_STATUS_LABELS, explainDbError, fmtDate, h, isClosedStatus, isOverdue, showDashError, supabase } = ctx;
     async function changeTaskStatus(btn){
       const row = btn.closest('tr');
       const id = row && row.getAttribute('data-id');
@@ -48,24 +48,29 @@ window.HE.modules.define('he-tasks', { api: 1, needs: ['CLOSED_IN','SEARCH_INDEX
           .limit(10);
         if (error) throw error;
         const rows = data || [];
+        // EXT20J: built as DOM nodes (h() text-ifies) instead of an HTML string,
+        // so the Tasks screen is safe under Trusted Types. Free-text task titles
+        // were already esc()-ed; now they are text nodes.
         if (wrap) {
-          wrap.innerHTML = !rows.length ? '<p class="empty">No finished tasks yet.</p>' : `
-            <table class="phoneCards"><thead><tr><th>Title</th><th>Status</th><th>Last changed</th></tr></thead>
-            <tbody>${rows.map(t => `
-              <tr data-id="${esc(t.id)}">
-                <td class="u-ws-normal u-minw-190">
-                  <div class="taskTitle">${esc(t.title)}</div>
-                  ${(TASK_ALLOWED_FROM.open || []).includes(t.status)
-                    ? '<div class="taskActions u-mt-8"><button type="button" class="small taskStatusBtn" data-to="open">Reopen</button></div>' : ''}
-                </td>
-                <td>${esc(TASK_STATUS_LABELS[t.status] || t.status || '—')}</td>
-                <td>${esc(t.updated_at ? fmtDate(t.updated_at) : 'Unknown')}</td>
-              </tr>`).join('')}</tbody></table>`;
-          wrap.querySelectorAll('.taskStatusBtn').forEach(btn => btn.addEventListener('click', () => changeTaskStatus(btn)));
+          if (!rows.length) {
+            wrap.replaceChildren(h('p', { class: 'empty' }, 'No finished tasks yet.'));
+          } else {
+            wrap.replaceChildren(h('table', { class: 'phoneCards' },
+              h('thead', null, h('tr', null, h('th', null, 'Title'), h('th', null, 'Status'), h('th', null, 'Last changed'))),
+              h('tbody', null, rows.map(t =>
+                h('tr', { 'data-id': t.id },
+                  h('td', { class: 'u-ws-normal u-minw-190' },
+                    h('div', { class: 'taskTitle' }, t.title),
+                    (TASK_ALLOWED_FROM.open || []).includes(t.status)
+                      ? h('div', { class: 'taskActions u-mt-8' }, h('button', { type: 'button', class: 'small taskStatusBtn', 'data-to': 'open' }, 'Reopen')) : null),
+                  h('td', null, TASK_STATUS_LABELS[t.status] || t.status || '—'),
+                  h('td', null, t.updated_at ? fmtDate(t.updated_at) : 'Unknown'))))));
+            wrap.querySelectorAll('.taskStatusBtn').forEach(btn => btn.addEventListener('click', () => changeTaskStatus(btn)));
+          }
         }
         return rows;
       } catch (err) {
-        if (wrap) wrap.innerHTML = '<p class="empty u-c-warn">Could not load recently finished tasks: ' + esc(explainDbError((err && err.message) || String(err))) + '</p>';
+        if (wrap) wrap.replaceChildren(h('p', { class: 'empty u-c-warn' }, 'Could not load recently finished tasks: ' + explainDbError((err && err.message) || String(err))));
         return [];
       }
     }
@@ -86,27 +91,26 @@ window.HE.modules.define('he-tasks', { api: 1, needs: ['CLOSED_IN','SEARCH_INDEX
         // silently fell off the list.
         const open = tasks.filter(t => !isClosedStatus(t.status));
         const truncated = count != null && count > tasks.length;
-        const cutoffNote = truncated
-          ? `<p class="hint u-m-0-0-8 u-c-warn">Showing the ${tasks.length} soonest-due of ${count} open tasks.</p>` : '';
+        const cutoffNoteNode = truncated
+          ? h('p', { class: 'hint u-m-0-0-8 u-c-warn' }, `Showing the ${tasks.length} soonest-due of ${count} open tasks.`) : null;
         const recent = await loadRecentlyDoneTasks();
         SEARCH_INDEX.tasks = tasks.concat(recent);
         if (!open.length) {
-          document.getElementById('tasksTableWrap').innerHTML = cutoffNote + '<p class="empty">No open tasks.</p>';
+          document.getElementById('tasksTableWrap').replaceChildren(...[cutoffNoteNode, h('p', { class: 'empty' }, 'No open tasks.')].filter(Boolean));
         } else {
-          document.getElementById('tasksTableWrap').innerHTML = `
-            ${cutoffNote}
-            <table class="phoneCards"><thead><tr><th>Title</th><th>Priority</th><th>Status</th><th>Due</th></tr></thead>
-            <tbody>${open.map(t => `
-              <tr class="${isOverdue(t.due_at, t.status) ? 'overdue' : ''}" data-id="${esc(t.id)}">
-                <td class="u-ws-normal u-minw-190">
-                  <div class="taskTitle">${esc(t.title)}</div>
-                  <div class="taskActions u-d-flex u-fwr-wrap u-gap-6 u-mt-8">${(TASK_NEXT_ACTIONS[t.status] || []).map(a =>
-                    `<button type="button" class="small taskStatusBtn" data-to="${esc(a.to)}">${esc(a.label)}</button>`).join('')}</div>
-                </td>
-                <td><span class="badge">${esc(t.priority || '—')}</span></td>
-                <td>${esc(TASK_STATUS_LABELS[t.status] || t.status || '—')}</td>
-                <td>${esc(fmtDate(t.due_at))}</td>
-              </tr>`).join('')}</tbody></table>`;
+          document.getElementById('tasksTableWrap').replaceChildren(...[cutoffNoteNode,
+            h('table', { class: 'phoneCards' },
+              h('thead', null, h('tr', null, h('th', null, 'Title'), h('th', null, 'Priority'), h('th', null, 'Status'), h('th', null, 'Due'))),
+              h('tbody', null, open.map(t =>
+                h('tr', { class: isOverdue(t.due_at, t.status) ? 'overdue' : '', 'data-id': t.id },
+                  h('td', { class: 'u-ws-normal u-minw-190' },
+                    h('div', { class: 'taskTitle' }, t.title),
+                    h('div', { class: 'taskActions u-d-flex u-fwr-wrap u-gap-6 u-mt-8' },
+                      (TASK_NEXT_ACTIONS[t.status] || []).map(a => h('button', { type: 'button', class: 'small taskStatusBtn', 'data-to': a.to }, a.label)))),
+                  h('td', null, h('span', { class: 'badge' }, t.priority || '—')),
+                  h('td', null, TASK_STATUS_LABELS[t.status] || t.status || '—'),
+                  h('td', null, fmtDate(t.due_at))))))
+          ].filter(Boolean));
           document.querySelectorAll('#tasksTableWrap .taskStatusBtn').forEach(btn =>
             btn.addEventListener('click', () => changeTaskStatus(btn)));
         }
