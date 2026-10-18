@@ -1203,12 +1203,14 @@
         SEARCH_INDEX.people = people;
         const strip = document.getElementById('activityPeople');
         if (!people.length) { strip.replaceChildren(); return; }
-        strip.innerHTML = '<span class="peopleLbl">People</span>' +
-          `<button type="button" class="personChip${ACTIVITY_PERSON ? '' : ' active'}" data-person="">Everyone</button>` +
-          people.map(p => `
-          <button type="button" class="personChip${ACTIVITY_PERSON === p.id ? ' active' : ''}" data-person="${esc(p.id)}">
-            ${esc(p.display_name || p.email)} · #${esc(fmtAccountNumber(p.account_number))} · ${esc(ROLE_LABELS[p.role] || p.role)}
-          </button>`).join('');
+        // EXT20J: chips are DOM nodes (h() text-ifies) instead of an HTML
+        // string, so the people strip is safe under Trusted Types.
+        strip.replaceChildren(
+          h('span', { class: 'peopleLbl' }, 'People'),
+          h('button', { type: 'button', class: 'personChip' + (ACTIVITY_PERSON ? '' : ' active'), 'data-person': '' }, 'Everyone'),
+          ...people.map(p => h('button', {
+            type: 'button', class: 'personChip' + (ACTIVITY_PERSON === p.id ? ' active' : ''), 'data-person': p.id,
+          }, (p.display_name || p.email) + ' · #' + fmtAccountNumber(p.account_number) + ' · ' + (ROLE_LABELS[p.role] || p.role))));
         strip.querySelectorAll('.personChip').forEach(chip => {
           chip.addEventListener('click', () => {
             ACTIVITY_PERSON = chip.getAttribute('data-person') || null;
