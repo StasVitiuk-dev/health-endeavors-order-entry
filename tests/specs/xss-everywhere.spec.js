@@ -60,12 +60,19 @@ test('no database text is ever rendered as HTML, on any page', async ({ page, ba
   await expect(page.locator('body')).toContainText('onerror=');
 });
 
-test('control: the same check catches a broken escape (esc made a no-op)', async ({ page, backend }) => {
+test('control: the same check catches a broken safe DOM builder (h() renders strings as HTML)', async ({ page, backend }) => {
+  // EXT20J: rendering safety now lives in the h() DOM builder (he-ui.js), not in
+  // esc() — the Trusted Types cascade removed every esc() call from the program.
+  // So the control breaks the CURRENT defence: an h() whose string children are
+  // written as HTML (Node children still append safely, so the page still
+  // renders) must make the poisoned data become real elements, proving the
+  // main test's #xss-img / svg[onload] element check would catch a regression.
   const fs = require('fs');
   const path = require('path');
-  const src = fs.readFileSync(path.resolve(__dirname, '..', '..', 'assets', 'owner-login-helpers.js'), 'utf8')
-    .replace(/function esc\(s\)\{[\s\S]*?\n    \}/, 'function esc(s){ return s === null || s === undefined ? "" : String(s); }');
-  await page.route('**/assets/owner-login-helpers.js*', route => route.fulfill({ status: 200, contentType: 'application/javascript', body: src }));
+  const src = fs.readFileSync(path.resolve(__dirname, '..', '..', 'assets', 'app', 'he-ui.js'), 'utf8')
+    .replace(/for \(const c of children\.flat\(\)\) \{\n\s*if \(c === false \|\| c === null \|\| c === undefined\) continue;\n\s*el\.appendChild\(c instanceof Node \? c : document\.createTextNode\(String\(c\)\)\);\n\s*\}/,
+      'for (const c of children.flat()) {\n        if (c === false || c === null || c === undefined) continue;\n        if (c instanceof Node) el.appendChild(c); else el.insertAdjacentHTML("beforeend", String(c));\n      }');
+  await page.route('**/assets/app/he-ui.js*', route => route.fulfill({ status: 200, contentType: 'application/javascript', body: src }));
   seedBusiness(backend);
   // Hostile text even in status columns the real database restricts:
   // escaping must not rely on those rules (defence in depth).

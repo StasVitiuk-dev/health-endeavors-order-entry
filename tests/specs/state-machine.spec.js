@@ -106,7 +106,10 @@ test.describe('status maps and transitions', () => {
 
 test.describe('literal values written in the code', () => {
   test('every data-next="…" button value on the return and purchase-order pages is a valid status', () => {
-    const values = [...SOURCE.matchAll(/data-next="([a-z_]+)"/g)].map(m => m[1]);
+    // EXT20J: PO/returns rows are built with the h() DOM builder now, so the
+    // next-status value rides a `'data-next': 'status'` attribute object instead
+    // of a `data-next="status"` HTML-string attribute. Match either form.
+    const values = [...SOURCE.matchAll(/data-next(?:="([a-z_]+)"|':\s*'([a-z_]+)')/g)].map(m => m[1] || m[2]);
     expect(values.length).toBeGreaterThan(5);
     const valid = [...ALLOWED.returns.status, ...ALLOWED.purchase_orders.status];
     expect(subsetOf(values, valid)).toEqual([]);
