@@ -12,36 +12,6 @@
       "reason": "every data value inside passes through esc() (or a number formatter); the rest is fixed markup"
     },
     {
-      "file": "assets/app/he-agents.js",
-      "expr": "a.num",
-      "count": 3,
-      "reason": "agent number from the fixed AGENT_REGISTRY in he-config.js (code constant)"
-    },
-    {
-      "file": "assets/app/he-agents.js",
-      "expr": "ctrl && ctrl.updated_at ? `<div class=\"u-mt-6 u-fs-12 u-c-muted\">Last changed ${ctrl.who ? 'by ' + esc(ctrl.who) + ' ' : ''}on ${new Date(ctrl.updated_at).toLocaleString()}</div>` : ''",
-      "count": 1,
-      "reason": "every data value inside passes through esc() (or a number formatter); the rest is fixed markup"
-    },
-    {
-      "file": "assets/app/he-agents.js",
-      "expr": "ctrl.who ? 'by ' + esc(ctrl.who) + ' ' : ''",
-      "count": 1,
-      "reason": "every data value inside passes through esc() (or a number formatter); the rest is fixed markup"
-    },
-    {
-      "file": "assets/app/he-agents.js",
-      "expr": "truth.cls",
-      "count": 1,
-      "reason": "a CSS class name chosen by code from a fixed set of literals"
-    },
-    {
-      "file": "assets/app/he-agents.js",
-      "expr": "truth.key",
-      "count": 1,
-      "reason": "a fixed key (calc/unknown/on/off...) returned by agentTruth(); never data"
-    },
-    {
       "file": "assets/app/he-audit.js",
       "expr": "deletes",
       "count": 1,

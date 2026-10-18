@@ -2,8 +2,8 @@
 // EXT15: moved unchanged out of assets/owner-login-app.js (initApp). Its inputs
 // arrive explicitly in ctx; it returns only what other code still uses. Map:
 // docs/ops/APPLICATION_MODULE_MAP_EXT15.md. Created once, by the app, in order.
-window.HE.modules.define('he-agents', { api: 1, needs: ['AGENT_REGISTRY','AGENT_STALE_AFTER_HOURS','currentUserId','esc','fmtDate','maskSensitive','requireReauth','showDashError','staleMessage','supabase','toast','updateIfUnchanged'] }, function (ctx) {
-    const { AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, currentUserId, esc, fmtDate, maskSensitive, requireReauth, showDashError, staleMessage, supabase, toast, updateIfUnchanged } = ctx;
+window.HE.modules.define('he-agents', { api: 1, needs: ['AGENT_REGISTRY','AGENT_STALE_AFTER_HOURS','currentUserId','esc','fmtDate','h','maskSensitive','requireReauth','showDashError','staleMessage','supabase','toast','updateIfUnchanged'] }, function (ctx) {
+    const { AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, currentUserId, esc, fmtDate, h, maskSensitive, requireReauth, showDashError, staleMessage, supabase, toast, updateIfUnchanged } = ctx;
     let agentControlsByNum = Object.create(null);
     // EXT15: read access for Home, System status and Business Health. Read at the
     // moment of use (never copied before an await): loadAgentControls() may update them.
@@ -68,61 +68,67 @@ window.HE.modules.define('he-agents', { api: 1, needs: ['AGENT_REGISTRY','AGENT_
     // own function on every run) plus whether the scheduled job itself is
     // still active in Supabase (from get_agent_cron_status()). Returns ''
     // for any agent that hasn't been migrated yet — nothing to show there.
-    function agentJobHealthHtml(a, ctrl){
-      if (!a.cronJobName) return '';
+    // EXT20G: returns a DOM node (or null) instead of an HTML string, so the
+    // agents screen is safe under Trusted Types. Each "part" is an array of
+    // nodes/strings; parts are joined with a middot separator.
+    function agentJobHealthNode(a, ctrl){
+      if (!a.cronJobName) return null;
       const cronInfo = cronJobStatusByName[a.cronJobName];
       const parts = [];
       if (cronInfo) {
         parts.push(cronInfo.active
-          ? `<span class="u-c-good">Scheduled job <code>${esc(a.cronJobName)}</code> active</span> (${esc(cronInfo.schedule)})`
-          : `<span class="u-c-danger">Scheduled job <code>${esc(a.cronJobName)}</code> is NOT active</span> — it won't run until re-scheduled`);
+          ? [h('span', { class: 'u-c-good' }, 'Scheduled job ', h('code', null, a.cronJobName), ' active'), ' (' + cronInfo.schedule + ')']
+          : [h('span', { class: 'u-c-danger' }, 'Scheduled job ', h('code', null, a.cronJobName), ' is NOT active'), " — it won't run until re-scheduled"]);
       } else {
-        parts.push(`<span class="u-c-warn">Could not confirm the scheduled job <code>${esc(a.cronJobName)}</code> exists</span>`);
+        parts.push([h('span', { class: 'u-c-warn' }, 'Could not confirm the scheduled job ', h('code', null, a.cronJobName), ' exists')]);
       }
       if (ctrl && ctrl.last_run_at) {
         // EXT15: a class instead of an inline colour (strict style policy).
         const statusClass = ctrl.last_run_status === 'failed' ? 'u-c-danger'
           : (ctrl.last_run_status === 'partial' ? 'u-c-warn' : 'u-c-muted');
-        parts.push(`Last run ${esc(fmtDate(ctrl.last_run_at))} — <span class="${statusClass}">${esc(ctrl.last_run_status || 'unknown')}</span>`);
-        if (ctrl.last_run_summary) parts.push(esc(ctrl.last_run_summary));
+        parts.push(['Last run ' + fmtDate(ctrl.last_run_at) + ' — ', h('span', { class: statusClass }, ctrl.last_run_status || 'unknown')]);
+        if (ctrl.last_run_summary) parts.push([ctrl.last_run_summary]);
       } else {
-        parts.push('<span class="u-c-muted">No run recorded yet</span>');
+        parts.push([h('span', { class: 'u-c-muted' }, 'No run recorded yet')]);
       }
-      if (ctrl && ctrl.last_error) parts.push(`<span class="u-c-danger">Last error: ${esc(maskSensitive(ctrl.last_error))}</span>`);
-      return `<div class="u-mt-6 u-fs-12 u-p-8-10 u-bg-paneln2 u-br-8">
-        <b class="u-fs-11 u-tt-uppercase u-ls-0p02em u-c-muted">Job health</b><br>
-        ${parts.join(' &middot; ')}
-      </div>`;
+      if (ctrl && ctrl.last_error) parts.push([h('span', { class: 'u-c-danger' }, 'Last error: ' + maskSensitive(ctrl.last_error))]);
+      const body = [];
+      parts.forEach((p, i) => { if (i) body.push(' · '); body.push(...p); });
+      return h('div', { class: 'u-mt-6 u-fs-12 u-p-8-10 u-bg-paneln2 u-br-8' },
+        h('b', { class: 'u-fs-11 u-tt-uppercase u-ls-0p02em u-c-muted' }, 'Job health'),
+        h('br'),
+        ...body);
     }
 
     function renderAgentRegistry(){
-      document.getElementById('agentRegistryWrap').innerHTML = AGENT_REGISTRY.map(a => {
+      // EXT20G: built as DOM nodes (h() text-ifies) instead of an HTML string;
+      // same classes, data-* and switch wiring, safe under Trusted Types.
+      document.getElementById('agentRegistryWrap').replaceChildren(...AGENT_REGISTRY.map(a => {
         const ctrl = agentControlsByNum[a.num];
         const truth = agentTruth(a, ctrl);
         // The switch only shows a position the dashboard actually read.
         const switchKnown = agentControlsState === 'ok' && !!ctrl;
         const enabled = switchKnown && ctrl.enabled !== false;
-        return `
-        <div class="deletedRow u-ai-flex-start" data-agent="${a.num}" data-truth="${truth.key}">
-          <div class="info u-flex-1">
-            <b>#${a.num} — ${esc(a.name)}</b>
-            <span class="badge agentTruthBadge ${truth.cls}">${esc(truth.label)}</span>
-            ${a.ai ? '<span class="badge sev-medium">Uses a paid AI model</span>' : '<span class="badge sev-low">Rule-based — no AI model</span>'}
-            ${a.enforced ? '<span class="badge sev-low">Switch enforced</span>' : '<span class="badge sev-medium">Switch not yet enforced</span>'}
-            ${truth.detail ? `<div class="agentTruthDetail u-fs-12p5 u-mt-4">${esc(truth.detail)}</div>` : ''}
-            <div class="u-c-muted u-fs-12 u-mt-2">${esc(a.status)}</div>
-            <div class="u-mt-6">${esc(a.desc)}</div>
-            <div class="u-mt-6 u-fs-12p5 u-c-muted"><b>Touches:</b> ${a.touches.map(esc).join(', ')}</div>
-            <div class="u-mt-6 u-fs-12p5"><b>Can't do alone:</b> ${esc(a.limit)}</div>
-            ${ctrl && ctrl.updated_at ? `<div class="u-mt-6 u-fs-12 u-c-muted">Last changed ${ctrl.who ? 'by ' + esc(ctrl.who) + ' ' : ''}on ${new Date(ctrl.updated_at).toLocaleString()}</div>` : ''}
-            ${agentJobHealthHtml(a, ctrl)}
-          </div>
-          <label class="switch" title="${!switchKnown ? 'Switch position unknown — it could not be read' : (enabled ? 'On — click to pause this agent' : 'Off — click to turn this agent back on')}">
-            <input type="checkbox" class="agentToggle" data-num="${a.num}" data-name="${esc(a.name)}" ${enabled ? 'checked' : ''} ${switchKnown ? '' : 'disabled'}>
-            <span class="slider"></span>
-          </label>
-        </div>`;
-      }).join('');
+        const info = [
+          h('b', null, `#${a.num} — ${a.name}`), ' ',
+          h('span', { class: 'badge agentTruthBadge ' + truth.cls }, truth.label), ' ',
+          a.ai ? h('span', { class: 'badge sev-medium' }, 'Uses a paid AI model') : h('span', { class: 'badge sev-low' }, 'Rule-based — no AI model'), ' ',
+          a.enforced ? h('span', { class: 'badge sev-low' }, 'Switch enforced') : h('span', { class: 'badge sev-medium' }, 'Switch not yet enforced'),
+        ];
+        if (truth.detail) info.push(h('div', { class: 'agentTruthDetail u-fs-12p5 u-mt-4' }, truth.detail));
+        info.push(h('div', { class: 'u-c-muted u-fs-12 u-mt-2' }, a.status));
+        info.push(h('div', { class: 'u-mt-6' }, a.desc));
+        info.push(h('div', { class: 'u-mt-6 u-fs-12p5 u-c-muted' }, h('b', null, 'Touches:'), ' ' + a.touches.join(', ')));
+        info.push(h('div', { class: 'u-mt-6 u-fs-12p5' }, h('b', null, "Can't do alone:"), ' ' + a.limit));
+        if (ctrl && ctrl.updated_at) info.push(h('div', { class: 'u-mt-6 u-fs-12 u-c-muted' }, 'Last changed ' + (ctrl.who ? 'by ' + ctrl.who + ' ' : '') + 'on ' + new Date(ctrl.updated_at).toLocaleString()));
+        const jobHealth = agentJobHealthNode(a, ctrl);
+        if (jobHealth) info.push(jobHealth);
+        return h('div', { class: 'deletedRow u-ai-flex-start', 'data-agent': a.num, 'data-truth': truth.key },
+          h('div', { class: 'info u-flex-1' }, ...info),
+          h('label', { class: 'switch', title: !switchKnown ? 'Switch position unknown — it could not be read' : (enabled ? 'On — click to pause this agent' : 'Off — click to turn this agent back on') },
+            h('input', { type: 'checkbox', class: 'agentToggle', 'data-num': a.num, 'data-name': a.name, checked: enabled, disabled: !switchKnown }),
+            h('span', { class: 'slider' })));
+      }));
 
       document.querySelectorAll('.agentToggle').forEach(cb => {
         cb.addEventListener('change', async () => {
