@@ -2306,81 +2306,82 @@
         const items = po.purchase_order_items || [];
         const editable = po.status === 'draft' || po.status === 'ordered';
         const awaitingReceipt = po.status === 'ordered' || po.status === 'shipped';
-        const linesHtml = items.length ? `
-          <table class="phoneCards"><thead><tr><th>Item</th><th>SKU</th><th>Qty</th><th>Unit cost</th><th>Line total</th><th title="Unit cost once shipping and tax are shared out">True cost</th><th title="Which production batch this stock came from">Lot #</th><th></th></tr></thead>
-          <tbody>${items.map(l => {
-            const outstanding = Number(l.quantity || 0) - Number(l.quantity_received || 0);
-            const recordedLots = (PO_LOTS[po.id + '::' + l.product_id] || []);
-            let lotCell = '—';
-            if (l.product_id && awaitingReceipt && outstanding > 0) {
-              lotCell = `<input type="text" class="poLineLot u-w-120" data-line="${esc(l.id)}" placeholder="e.g. HE-2026-01">`;
-            } else if (recordedLots.length) {
-              lotCell = recordedLots.map(rl => esc(rl.lot_number) + ' (' + Number(rl.quantity_received) + ')').join(', ');
-            }
-            return `
-            <tr>
-              <td>${esc(l.description)}${l.product_id ? ' <span class="badge">catalogue</span>' : ''}</td>
-              <td>${esc(l.sku || '—')}</td>
-              <td>${Number(l.quantity)}</td>
-              <td>${fmtMoney(l.unit_cost, po.currency)}</td>
-              <td>${fmtMoney(Number(l.quantity) * Number(l.unit_cost || 0), po.currency)}</td>
-              <td>${l.landed_unit_cost != null ? fmtMoney(l.landed_unit_cost, po.currency) : '—'}</td>
-              <td>${lotCell}</td>
-              <td>${editable ? `<button type="button" class="small secondary poDelLine" data-line="${esc(l.id)}">Remove</button>` : ''}</td>
-            </tr>`;
-          }).join('')}</tbody></table>
-          ${awaitingReceipt && items.some(l => l.product_id) ? '<p class="sMeta u-mt-6">Lot # is optional — leave it blank if your manufacturer doesn\'t give you one for this delivery.</p>' : ''}`
-          : '<p class="empty">Nothing on this order yet.</p>';
+        // EXT20J: the whole PO detail panel is built as DOM nodes (h() text-ifies)
+        // instead of an HTML string, so it is safe under Trusted Types. Values were
+        // already esc()-ed. Classes, data-* attributes and input/select/button
+        // structure are unchanged, so wirePoDetail()'s querySelector wiring works.
+        const lotCellFor = l => {
+          const outstanding = Number(l.quantity || 0) - Number(l.quantity_received || 0);
+          const recordedLots = (PO_LOTS[po.id + '::' + l.product_id] || []);
+          if (l.product_id && awaitingReceipt && outstanding > 0) {
+            return h('input', { type: 'text', class: 'poLineLot u-w-120', 'data-line': l.id, placeholder: 'e.g. HE-2026-01' });
+          }
+          if (recordedLots.length) return recordedLots.map(rl => rl.lot_number + ' (' + Number(rl.quantity_received) + ')').join(', ');
+          return '—';
+        };
+        const linesNode = items.length
+          ? [h('table', { class: 'phoneCards' },
+              h('thead', null, h('tr', null,
+                h('th', null, 'Item'), h('th', null, 'SKU'), h('th', null, 'Qty'), h('th', null, 'Unit cost'),
+                h('th', null, 'Line total'),
+                h('th', { title: 'Unit cost once shipping and tax are shared out' }, 'True cost'),
+                h('th', { title: 'Which production batch this stock came from' }, 'Lot #'),
+                h('th'))),
+              h('tbody', null, items.map(l =>
+                h('tr', null,
+                  h('td', null, l.description, l.product_id ? [' ', h('span', { class: 'badge' }, 'catalogue')] : null),
+                  h('td', null, l.sku || '—'),
+                  h('td', null, Number(l.quantity)),
+                  h('td', null, fmtMoney(l.unit_cost, po.currency)),
+                  h('td', null, fmtMoney(Number(l.quantity) * Number(l.unit_cost || 0), po.currency)),
+                  h('td', null, l.landed_unit_cost != null ? fmtMoney(l.landed_unit_cost, po.currency) : '—'),
+                  h('td', null, lotCellFor(l)),
+                  h('td', null, editable ? h('button', { type: 'button', class: 'small secondary poDelLine', 'data-line': l.id }, 'Remove') : null))))),
+            awaitingReceipt && items.some(l => l.product_id) ? h('p', { class: 'sMeta u-mt-6' }, 'Lot # is optional — leave it blank if your manufacturer doesn\'t give you one for this delivery.') : null]
+          : [h('p', { class: 'empty' }, 'Nothing on this order yet.')];
 
-        const addLine = editable ? `
-          <div class="poLineForm">
-            <select class="poLineProduct grow">
-              <option value="">Not a catalogue product…</option>
-              ${PO_PRODUCTS.map(p => `<option value="${esc(p.id)}" data-sku="${esc(p.sku || '')}" data-name="${esc(p.name)}">${esc(p.name)}${p.sku ? ' (' + esc(p.sku) + ')' : ''}</option>`).join('')}
-            </select>
-            <input type="text" class="poLineDesc grow" placeholder="What you're buying">
-            <input type="number" class="poLineQty num" placeholder="Qty" min="0.01" step="any">
-            <input type="number" class="poLineCost num" placeholder="Unit cost" min="0" step="0.01">
-            <button type="button" class="small poAddLine">Add</button>
-          </div>` : '';
+        const addLineNode = editable ? h('div', { class: 'poLineForm' },
+          h('select', { class: 'poLineProduct grow' },
+            h('option', { value: '' }, 'Not a catalogue product…'),
+            PO_PRODUCTS.map(p => h('option', { value: p.id, 'data-sku': p.sku || '', 'data-name': p.name }, p.name + (p.sku ? ' (' + p.sku + ')' : '')))),
+          h('input', { type: 'text', class: 'poLineDesc grow', placeholder: 'What you\'re buying' }),
+          h('input', { type: 'number', class: 'poLineQty num', placeholder: 'Qty', min: '0.01', step: 'any' }),
+          h('input', { type: 'number', class: 'poLineCost num', placeholder: 'Unit cost', min: '0', step: '0.01' }),
+          h('button', { type: 'button', class: 'small poAddLine' }, 'Add')) : null;
 
-        const totals = `
-          <div class="poTotalsRow">
-            <span>Items ${fmtMoney(poLinesTotal(po), po.currency)}</span>
-            <label>Shipping <input type="number" class="poShipping" step="0.01" min="0" value="${Number(po.shipping_cost || 0)}" ${editable ? '' : 'disabled'}></label>
-            <label>Tax <input type="number" class="poTax" step="0.01" min="0" value="${Number(po.tax || 0)}" ${editable ? '' : 'disabled'}></label>
-            ${editable ? '<button type="button" class="small secondary poSaveTotals">Save</button>' : ''}
-            <strong class="u-ml-auto">Total ${fmtMoney(poGrandTotal(po), po.currency)}</strong>
-          </div>`;
+        const totalsNode = h('div', { class: 'poTotalsRow' },
+          h('span', null, 'Items ' + fmtMoney(poLinesTotal(po), po.currency)),
+          h('label', null, 'Shipping ', h('input', { type: 'number', class: 'poShipping', step: '0.01', min: '0', value: Number(po.shipping_cost || 0), disabled: editable ? null : true })),
+          h('label', null, 'Tax ', h('input', { type: 'number', class: 'poTax', step: '0.01', min: '0', value: Number(po.tax || 0), disabled: editable ? null : true })),
+          editable ? h('button', { type: 'button', class: 'small secondary poSaveTotals' }, 'Save') : null,
+          h('strong', { class: 'u-ml-auto' }, 'Total ' + fmtMoney(poGrandTotal(po), po.currency)));
 
-        const payment = `
-          <div class="poTotalsRow">
-            <label>Payment
-              <select class="poPayment">
-                ${['unpaid','partial','paid'].map(v =>
-                  `<option value="${v}"${po.payment_status === v ? ' selected' : ''}>${PAYMENT_LABELS[v]}</option>`).join('')}
-              </select>
-            </label>
-            <button type="button" class="small secondary poSavePayment">Save payment</button>
-            ${po.notes ? `<span class="sMeta u-ml-auto">${esc(po.notes)}</span>` : ''}
-          </div>`;
+        const paymentNode = h('div', { class: 'poTotalsRow' },
+          h('label', null, 'Payment ',
+            h('select', { class: 'poPayment' },
+              ['unpaid','partial','paid'].map(v => h('option', { value: v, selected: po.payment_status === v ? true : null }, PAYMENT_LABELS[v])))),
+          h('button', { type: 'button', class: 'small secondary poSavePayment' }, 'Save payment'),
+          po.notes ? h('span', { class: 'sMeta u-ml-auto' }, po.notes) : null);
 
-        let actions = '<div class="poActions">';
-        if (po.status === 'draft')    actions += '<button type="button" class="small poStatusBtn" data-next="ordered">Mark as ordered</button>';
-        if (po.status === 'ordered')  actions += '<button type="button" class="small poStatusBtn" data-next="shipped">Mark as shipped</button>';
+        const actionNodes = [];
+        if (po.status === 'draft')    actionNodes.push(h('button', { type: 'button', class: 'small poStatusBtn', 'data-next': 'ordered' }, 'Mark as ordered'));
+        if (po.status === 'ordered')  actionNodes.push(h('button', { type: 'button', class: 'small poStatusBtn', 'data-next': 'shipped' }, 'Mark as shipped'));
         if (['ordered', 'shipped', 'received'].includes(po.status) && poReceiveOps.isUnknown(po.id)) {
-          actions += '<div class="poReceiptUnknown" role="status"><b>Receipt status unknown — do not press Receive again.</b> The connection dropped while this delivery was being received, so it is not known whether stock and the expense were added. <button type="button" class="small secondary poCheckReceipt">Check this order now</button></div>';
-        } else if (po.status === 'ordered' || po.status === 'shipped') actions += '<button type="button" class="small approve poReceiveBtn">Receive delivery</button>';
-        if (po.status !== 'received' && po.status !== 'cancelled') actions += '<button type="button" class="small secondary poStatusBtn" data-next="cancelled">Cancel</button>';
+          actionNodes.push(h('div', { class: 'poReceiptUnknown', role: 'status' },
+            h('b', null, 'Receipt status unknown — do not press Receive again.'),
+            ' The connection dropped while this delivery was being received, so it is not known whether stock and the expense were added. ',
+            h('button', { type: 'button', class: 'small secondary poCheckReceipt' }, 'Check this order now')));
+        } else if (po.status === 'ordered' || po.status === 'shipped') actionNodes.push(h('button', { type: 'button', class: 'small approve poReceiveBtn' }, 'Receive delivery'));
+        if (po.status !== 'received' && po.status !== 'cancelled') actionNodes.push(h('button', { type: 'button', class: 'small secondary poStatusBtn', 'data-next': 'cancelled' }, 'Cancel'));
         // EXT10b: never claim the stock was added when the order's own lines say otherwise
         // (an interrupted receive leaves the order Received with lines short).
         const shortLines = items.filter(l => l.product_id && Number(l.quantity_received || 0) !== Number(l.quantity || 0)).length;
-        if (po.status === 'received' && !poReceiveOps.isUnknown(po.id)) actions += shortLines
-          ? `<span class="sMeta poShort" role="status">Received ${esc(fmtDate(po.received_at))} — but ${shortLines} catalogue line${shortLines === 1 ? ' is' : 's are'} not fully in stock. Do not receive again: add the missing stock with a manual adjustment and check Expenses.</span>`
-          : `<span class="sMeta">Received ${esc(fmtDate(po.received_at))} — stock added to Inventory and cost logged to Expenses.</span>`;
-        actions += '</div>';
+        if (po.status === 'received' && !poReceiveOps.isUnknown(po.id)) actionNodes.push(shortLines
+          ? h('span', { class: 'sMeta poShort', role: 'status' }, `Received ${fmtDate(po.received_at)} — but ${shortLines} catalogue line${shortLines === 1 ? ' is' : 's are'} not fully in stock. Do not receive again: add the missing stock with a manual adjustment and check Expenses.`)
+          : h('span', { class: 'sMeta' }, `Received ${fmtDate(po.received_at)} — stock added to Inventory and cost logged to Expenses.`));
+        const actionsNode = h('div', { class: 'poActions' }, actionNodes);
 
-        box.innerHTML = linesHtml + addLine + totals + payment + actions;
+        box.replaceChildren(...[...linesNode, addLineNode, totalsNode, paymentNode, actionsNode].filter(Boolean));
         wirePoDetail(po, box);
       });
     }
