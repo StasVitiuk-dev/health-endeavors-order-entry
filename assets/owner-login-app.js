@@ -4884,14 +4884,21 @@
         SEARCH_INDEX.inventory = products;
 
         // Populate the "Adjust stock" product dropdown
+        // EXT20F: built as DOM nodes (h() text-ifies data) instead of an HTML
+        // string, so this screen is safe under Trusted Types enforcement. Every
+        // value was already HTML-escaped with esc(); building nodes removes the
+        // string-to-HTML step entirely rather than relying on escaping.
         const productSelect = document.getElementById('invProduct');
         const previousValue = productSelect.value;
-        productSelect.innerHTML = '<option value="">Product…</option>' +
-          products.map(p => `<option value="${esc(p.id)}">${esc(p.name)}${p.sku ? ' (' + esc(p.sku) + ')' : ''}</option>`).join('');
+        productSelect.replaceChildren(
+          h('option', { value: '' }, 'Product…'),
+          ...products.map(p => h('option', { value: p.id }, p.name + (p.sku ? ' (' + p.sku + ')' : '')))
+        );
         if (previousValue) productSelect.value = previousValue;
 
         let lowStockCount = 0;
-        const rowsHtml = products.map(p => {
+        const INV_BADGE_BUCKETS = ['available', 'reserved', 'damaged', 'sample', 'wholesale', 'promotional', 'returned'];
+        const rowNodes = products.map(p => {
           // PostgREST can return this embed as either an array (one-to-many
           // shape) or a single object (one-to-one shape, since product_id is
           // unique on inventory) depending on how it detects the relationship.
@@ -4905,69 +4912,80 @@
           // No stock row at all is not the same as "0 in stock": say so (the
           // row is created on the first stock change).
           const hasStockRow = Array.isArray(p.inventory) ? p.inventory.length > 0 : !!p.inventory;
-          const noRowBadge = hasStockRow ? '' : '<span class="badge sev-medium noStockRowBadge u-mr-4">No stock record yet (counts shown as 0)</span>';
-          const bucketBadges = noRowBadge + ['available', 'reserved', 'damaged', 'sample', 'wholesale', 'promotional', 'returned']
-            .map(b => `<span class="badge u-mr-4">${esc(INVENTORY_BUCKET_LABELS[b])}: ${Number(inv[b] || 0)}</span>`)
-            .join('') + (Number(inv.recalled || 0) > 0
-              ? `<span class="badge sev-high u-mr-4">${esc(INVENTORY_BUCKET_LABELS.recalled)}: ${Number(inv.recalled)}</span>` : '');
           const lotsOnHand = (p.inventory_lots || [])
             .filter(l => Number(l.quantity_remaining) > 0)
             .sort((a, b) => new Date(a.received_at) - new Date(b.received_at)); // oldest first, for using stock in order
           const today = localDateString();
-          const lotsHtml = lotsOnHand.length ? `
-                <div class="u-mt-8">
-                  <div class="u-fs-12 u-c-muted u-mb-4">Lots on hand (oldest first):</div>
-                  ${lotsOnHand.map(l => {
-                    const expiring = l.expires_at && l.expires_at <= today;
-                    return `<span class="badge${expiring ? ' sev-high' : ''} u-mr-4" title="${l.received_at ? 'Received ' + fmtDate(l.received_at) : ''}">${esc(l.lot_number)}: ${Number(l.quantity_remaining)}${l.expires_at ? (expiring ? ' · expired' : ' · exp ' + l.expires_at) : ''}</span>`;
-                  }).join('')}
-                </div>` : '';
-          return `
-            <div class="deletedRow u-ai-flex-start" data-product-id="${esc(p.id)}" data-status="${esc(p.status || '')}" data-updated-at="${esc(p.updated_at || '')}">
-              <div class="info u-flex-1">
-                <b>${esc(p.name)}</b>${p.sku ? ' <span class="u-c-muted u-fs-12">(' + esc(p.sku) + ')</span>' : ''}
-                ${isLow ? ' <span class="badge sev-high">Low stock</span>' : ''}
-                ${!p.is_active ? ' <span class="badge">Inactive</span>' : ''}
-                <br><div class="u-mt-6">${bucketBadges}</div>
-                ${lotsHtml}
-                <div class="u-mt-8 u-d-flex u-ai-center u-gap-6">
-                  <label class="u-fs-12 u-c-muted">Low-stock alert when Available drops below:</label>
-                  <input type="number" class="invThresholdInput u-w-80 u-p-5-7 u-br-6 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-13" min="0" step="1" value="${threshold !== null && threshold !== undefined ? Number(threshold) : ''}" placeholder="none">
-                  <button type="button" class="small saveThresholdBtn">Save</button>
-                  <button type="button" class="small secondary editProductBtn u-ml-auto">Edit product</button>
-                </div>
-                <div class="prodEdit u-d-none">
-                  <div class="prodEditGrid">
-                    <label>Name<input type="text" class="peName" value="${esc(p.name)}"></label>
-                    <label>SKU<input type="text" class="peSku" value="${esc(p.sku || '')}" placeholder="none"></label>
-                    <label>Status<select class="peStatus">
-                      ${['draft','active','discontinued'].map(s =>
-                        `<option value="${s}"${p.status === s ? ' selected' : ''}>${s.charAt(0).toUpperCase() + s.slice(1)}</option>`).join('')}
-                    </select></label>
-                    <label>Cost<input type="number" class="peCost" step="0.0001" min="0" value="${p.cost != null ? Number(p.cost) : ''}" placeholder="—"></label>
-                    <label>Retail<input type="number" class="peRetail" step="0.01" min="0" value="${p.retail_price != null ? Number(p.retail_price) : ''}" placeholder="—"></label>
-                    <label>Wholesale<input type="number" class="peWholesale" step="0.01" min="0" value="${p.wholesale_price != null ? Number(p.wholesale_price) : ''}" placeholder="—"></label>
-                    <label class="wide">Packaging<input type="text" class="pePackaging" value="${esc(p.packaging_info || '')}" placeholder="—"></label>
-                  </div>
-                  <div class="prodEditRow">
-                    <button type="button" class="small saveProductBtn">Save changes</button>
-                    <button type="button" class="small secondary cancelProductBtn">Cancel</button>
-                    <button type="button" class="small secondary toggleProductBtn u-ml-auto">${p.is_active ? 'Deactivate' : 'Reactivate'}</button>
-                    <button type="button" class="small deny deleteProductBtn">Delete</button>
-                  </div>
-                </div>
-              </div>
-            </div>`;
-        }).join('');
 
-        document.getElementById('inventoryWrap').innerHTML = products.length
-          ? rowsHtml
-          : '<p class="empty">No products in your catalog yet.</p>';
+          // Stock-bucket badges (built as nodes; same classes/text as before).
+          const badgeNodes = [];
+          if (!hasStockRow) badgeNodes.push(h('span', { class: 'badge sev-medium noStockRowBadge u-mr-4' }, 'No stock record yet (counts shown as 0)'));
+          for (const b of INV_BADGE_BUCKETS) badgeNodes.push(h('span', { class: 'badge u-mr-4' }, INVENTORY_BUCKET_LABELS[b] + ': ' + Number(inv[b] || 0)));
+          if (Number(inv.recalled || 0) > 0) badgeNodes.push(h('span', { class: 'badge sev-high u-mr-4' }, INVENTORY_BUCKET_LABELS.recalled + ': ' + Number(inv.recalled)));
 
-        document.getElementById('inventoryStats').innerHTML = `
-          <div class="stat"><div class="num">${products.length}</div><div class="lbl">Products tracked</div></div>
-          <div class="stat"><div class="num">${lowStockCount}</div><div class="lbl">Low-stock alerts</div></div>
-        `;
+          const lotsBlock = lotsOnHand.length ? h('div', { class: 'u-mt-8' },
+            h('div', { class: 'u-fs-12 u-c-muted u-mb-4' }, 'Lots on hand (oldest first):'),
+            ...lotsOnHand.map(l => {
+              const expiring = l.expires_at && l.expires_at <= today;
+              return h('span', { class: 'badge' + (expiring ? ' sev-high' : '') + ' u-mr-4', title: l.received_at ? 'Received ' + fmtDate(l.received_at) : false },
+                l.lot_number + ': ' + Number(l.quantity_remaining) + (l.expires_at ? (expiring ? ' · expired' : ' · exp ' + l.expires_at) : ''));
+            })
+          ) : null;
+
+          // Hidden "Edit product" form (kept identical in classes/structure so
+          // the existing event wiring that queries .peName, .peStatus, etc. and
+          // toggles .prodEdit continues to work unchanged).
+          const prodEdit = h('div', { class: 'prodEdit u-d-none' },
+            h('div', { class: 'prodEditGrid' },
+              h('label', null, 'Name', h('input', { type: 'text', class: 'peName', value: p.name })),
+              h('label', null, 'SKU', h('input', { type: 'text', class: 'peSku', value: p.sku || '', placeholder: 'none' })),
+              h('label', null, 'Status', h('select', { class: 'peStatus' },
+                ...['draft', 'active', 'discontinued'].map(s => h('option', { value: s, selected: p.status === s }, s.charAt(0).toUpperCase() + s.slice(1))))),
+              h('label', null, 'Cost', h('input', { type: 'number', class: 'peCost', step: '0.0001', min: '0', value: p.cost != null ? Number(p.cost) : '', placeholder: '—' })),
+              h('label', null, 'Retail', h('input', { type: 'number', class: 'peRetail', step: '0.01', min: '0', value: p.retail_price != null ? Number(p.retail_price) : '', placeholder: '—' })),
+              h('label', null, 'Wholesale', h('input', { type: 'number', class: 'peWholesale', step: '0.01', min: '0', value: p.wholesale_price != null ? Number(p.wholesale_price) : '', placeholder: '—' })),
+              h('label', { class: 'wide' }, 'Packaging', h('input', { type: 'text', class: 'pePackaging', value: p.packaging_info || '', placeholder: '—' }))
+            ),
+            h('div', { class: 'prodEditRow' },
+              h('button', { type: 'button', class: 'small saveProductBtn' }, 'Save changes'),
+              h('button', { type: 'button', class: 'small secondary cancelProductBtn' }, 'Cancel'),
+              h('button', { type: 'button', class: 'small secondary toggleProductBtn u-ml-auto' }, p.is_active ? 'Deactivate' : 'Reactivate'),
+              h('button', { type: 'button', class: 'small deny deleteProductBtn' }, 'Delete')
+            )
+          );
+
+          // Product name line + status badges (spaces kept as text nodes so the
+          // spacing matches the previous markup).
+          const nameLine = [h('b', null, p.name)];
+          if (p.sku) nameLine.push(' ', h('span', { class: 'u-c-muted u-fs-12' }, '(' + p.sku + ')'));
+          if (isLow) nameLine.push(' ', h('span', { class: 'badge sev-high' }, 'Low stock'));
+          if (!p.is_active) nameLine.push(' ', h('span', { class: 'badge' }, 'Inactive'));
+
+          return h('div', { class: 'deletedRow u-ai-flex-start', 'data-product-id': p.id, 'data-status': p.status || '', 'data-updated-at': p.updated_at || '' },
+            h('div', { class: 'info u-flex-1' },
+              ...nameLine,
+              h('br'),
+              h('div', { class: 'u-mt-6' }, ...badgeNodes),
+              lotsBlock,
+              h('div', { class: 'u-mt-8 u-d-flex u-ai-center u-gap-6' },
+                h('label', { class: 'u-fs-12 u-c-muted' }, 'Low-stock alert when Available drops below:'),
+                h('input', { type: 'number', class: 'invThresholdInput u-w-80 u-p-5-7 u-br-6 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-13', min: '0', step: '1', value: (threshold !== null && threshold !== undefined ? Number(threshold) : ''), placeholder: 'none' }),
+                h('button', { type: 'button', class: 'small saveThresholdBtn' }, 'Save'),
+                h('button', { type: 'button', class: 'small secondary editProductBtn u-ml-auto' }, 'Edit product')
+              ),
+              prodEdit
+            )
+          );
+        });
+
+        const invWrap = document.getElementById('inventoryWrap');
+        if (products.length) invWrap.replaceChildren(...rowNodes);
+        else invWrap.replaceChildren(h('p', { class: 'empty' }, 'No products in your catalog yet.'));
+
+        document.getElementById('inventoryStats').replaceChildren(
+          h('div', { class: 'stat' }, h('div', { class: 'num' }, products.length), h('div', { class: 'lbl' }, 'Products tracked')),
+          h('div', { class: 'stat' }, h('div', { class: 'num' }, lowStockCount), h('div', { class: 'lbl' }, 'Low-stock alerts'))
+        );
 
         // Editing a product: prices change, names get corrected, SKUs get
         // typos. Doing any of that through SQL is not a real answer.
