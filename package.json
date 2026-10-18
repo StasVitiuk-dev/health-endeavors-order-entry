@@ -30,7 +30,8 @@
     "schema:contract": "node tests/tools/schema-contract.js",
     "security:quick": "bash tests/tools/security-check.sh quick",
     "security:deep": "bash tests/tools/security-check.sh deep",
-    "changelog:check": "node tests/tools/change-log-check.js"
+    "changelog:check": "node tests/tools/change-log-check.js",
+    "d2:interpret": "node tests/tools/query-d2-interpret.js"
   },
   "devDependencies": {
     "@playwright/test": "1.56.1",

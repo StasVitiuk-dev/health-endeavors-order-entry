@@ -85,3 +85,9 @@ Recommended order by data-loss/stock risk and rollback simplicity: R1 PO receive
 ## 10. Production
 
 Untouched by Claude. No SQL run, no grants/RLS/functions/triggers/roles/cron/data changed, no merge, no deploy.
+
+## 11. EXT20C additions (2026-10-18, local)
+
+- **Query D2 interpreter** (`tests/tools/query-d2-interpret.js`, `npm run d2:interpret <file>`): reads the pasted D2 result and classifies each function (safe / review-the-gate / FIX 3 target), flags scheduled-job dependencies and unpinned search_path, and refuses to call an incomplete or wrong-project paste a pass (exit 2). Tested against four synthetic fixtures (healthy, gated, partial paste, wrong project).
+- **Drift-check mutation test** (local): the drift query `sql/11_READONLY_security_fix_drift_check.sql` was mutated one fact at a time — anon SELECT restored, security_invoker removed, guard deleted / disabled / made AFTER / pointed at the wrong function — and each mutation is detected (9/9). So the drift check cannot silently pass a regressed posture.
+- **Fresh direct code reads** (no new defects): the guarded-write primitive `updateIfUnchanged` (compare-and-set, refuses stale writes), `changeStock` (read-modify-write with retry, below-zero/NaN guards, no silent write), and the agent switch (re-auth, stale-safe, success only after commit). Consistent with the known posture.
