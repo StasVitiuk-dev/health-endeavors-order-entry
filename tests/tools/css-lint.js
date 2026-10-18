@@ -37,11 +37,19 @@ function scan(css, file) {
     // e.g. background:' + colorForCalendar(x) + ' !important  (the calendar bug).
     if (/'\s*\+|\+\s*'|"\s*\+|\+\s*"/.test(line)) push("string concatenation (' + ...) in CSS");
   });
-  // Brace balance over the whole (comment-stripped, string-blanked) file.
+  // Unclosed /* */ comment: an odd number of comment delimiters means one was
+  // never closed (stripComments only removes balanced pairs, so a stray opener
+  // survives in `clean`).
+  if (clean.includes('/*')) out.push({ file, line: 0, kind: 'unclosed /* comment (no matching */)', text: '' });
+  // Brace and parenthesis balance over the whole (comment-stripped,
+  // string-blanked) file — a truncated or malformed rule shows up here.
   const noStr = clean.replace(/"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/g, '""');
   const opens = (noStr.match(/\{/g) || []).length;
   const closes = (noStr.match(/\}/g) || []).length;
   if (opens !== closes) out.push({ file, line: 0, kind: `unbalanced braces (${opens} '{' vs ${closes} '}')`, text: '' });
+  const pOpen = (noStr.match(/\(/g) || []).length;
+  const pClose = (noStr.match(/\)/g) || []).length;
+  if (pOpen !== pClose) out.push({ file, line: 0, kind: `unbalanced parentheses (${pOpen} '(' vs ${pClose} ')')`, text: '' });
   return out;
 }
 

@@ -39,3 +39,18 @@ test('the scanner does not false-positive on legitimate CSS (calc, var, nested f
   const legit = '.a{width:calc(100% - 10px)}\n.b{background:var(--panel-2)}\n.c{grid-template-columns:repeat(3, minmax(0, 1fr))}\n.e{color:rgb(1, 2, 3)}\n';
   expect(css.scan(legit, 'ok.css')).toEqual([]);
 });
+
+test('the scanner catches an unclosed /* comment', () => {
+  const f = css.scan('.a{color:red}\n/* a note that never closes\n.b{color:blue}\n', 'planted.css');
+  expect(f.some(x => /unclosed .* comment/.test(x.kind))).toBe(true);
+});
+
+test('the scanner catches unbalanced parentheses (a truncated value)', () => {
+  const f = css.scan('.a{width:calc(100% - 10px}\n', 'planted.css');
+  expect(f.some(x => /unbalanced parentheses/.test(x.kind))).toBe(true);
+});
+
+test('the scanner does not false-positive on nested/legitimate parentheses', () => {
+  const ok = '.a{width:calc((100% - 10px) / 2)}\n.b{background:rgba(0, 0, 0, 0.5)}\n.c{grid-template:repeat(3, minmax(0, 1fr))}\n';
+  expect(css.scan(ok, 'ok.css')).toEqual([]);
+});
