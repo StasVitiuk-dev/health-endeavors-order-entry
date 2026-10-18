@@ -1,291 +1,249 @@
 {
- "note": "EXT18 DOM sink gate. Each REVIEW interpolation below was read by hand and is safe for the stated reason. Key = file + expression text (whitespace collapsed), not line number. Lower ceilings when innerHTML use is reduced.",
- "ceilings": {
-  "innerHTML": 109,
-  "hrefSrcAssign": 2
- },
- "interpolations": [
-  {
-   "file": "assets/app/he-admin.js",
-   "expr": "s.ip_address ? ' &middot; ' + esc(s.ip_address) : ''",
-   "count": 1,
-   "reason": "every data value inside passes through esc() (or a number formatter); the rest is fixed markup"
+  "note": "EXT18 DOM sink gate. Each REVIEW interpolation below was read by hand and is safe for the stated reason. Key = file + expression text (whitespace collapsed), not line number. Lower ceilings when innerHTML use is reduced.",
+  "ceilings": {
+    "innerHTML": 109,
+    "hrefSrcAssign": 2
   },
-  {
-   "file": "assets/app/he-agents.js",
-   "expr": "a.num",
-   "count": 3,
-   "reason": "agent number from the fixed AGENT_REGISTRY in he-config.js (code constant)"
-  },
-  {
-   "file": "assets/app/he-agents.js",
-   "expr": "ctrl && ctrl.updated_at ? `<div class=\"u-mt-6 u-fs-12 u-c-muted\">Last changed ${ctrl.who ? 'by ' + esc(ctrl.who) + ' ' : ''}on ${new Date(ctrl.updated_at).toLocaleString()}</div>` : ''",
-   "count": 1,
-   "reason": "every data value inside passes through esc() (or a number formatter); the rest is fixed markup"
-  },
-  {
-   "file": "assets/app/he-agents.js",
-   "expr": "ctrl.who ? 'by ' + esc(ctrl.who) + ' ' : ''",
-   "count": 1,
-   "reason": "every data value inside passes through esc() (or a number formatter); the rest is fixed markup"
-  },
-  {
-   "file": "assets/app/he-agents.js",
-   "expr": "truth.cls",
-   "count": 1,
-   "reason": "a CSS class name chosen by code from a fixed set of literals"
-  },
-  {
-   "file": "assets/app/he-agents.js",
-   "expr": "truth.key",
-   "count": 1,
-   "reason": "a fixed key (calc/unknown/on/off...) returned by agentTruth(); never data"
-  },
-  {
-   "file": "assets/app/he-audit.js",
-   "expr": "deletes",
-   "count": 1,
-   "reason": "a number counted in code (filter().length / reduce / Set size / day difference)"
-  },
-  {
-   "file": "assets/app/he-audit.js",
-   "expr": "people.size",
-   "count": 1,
-   "reason": "a number counted in code (filter().length / reduce / Set size / day difference)"
-  },
-  {
-   "file": "assets/app/he-audit.js",
-   "expr": "top",
-   "count": 1,
-   "reason": "HTML string built just above with esc() around every data value"
-  },
-  {
-   "file": "assets/app/he-compliance.js",
-   "expr": "daysLeft",
-   "count": 1,
-   "reason": "a number counted in code (filter().length / reduce / Set size / day difference)"
-  },
-  {
-   "file": "assets/app/he-compliance.js",
-   "expr": "ev.reporter_contact ? ' — ' + esc(ev.reporter_contact) : ''",
-   "count": 1,
-   "reason": "every data value inside passes through esc() (or a number formatter); the rest is fixed markup"
-  },
-  {
-   "file": "assets/app/he-compliance.js",
-   "expr": "ev.reporter_name ? `<div class=\"u-fs-11 u-c-muted u-mt-3\">Reported by: ${esc(ev.reporter_name)}${ev.reporter_contact ? ' — ' + esc(ev.reporter_contact) : ''}</div>` : ''",
-   "count": 1,
-   "reason": "every data value inside passes through esc() (or a number formatter); the rest is fixed markup"
-  },
-  {
-   "file": "assets/app/he-compliance.js",
-   "expr": "expiringSoon",
-   "count": 1,
-   "reason": "a number counted in code (filter().length / reduce / Set size / day difference)"
-  },
-  {
-   "file": "assets/app/he-compliance.js",
-   "expr": "incLabel",
-   "count": 1,
-   "reason": "HTML string built just above with esc() around every data value"
-  },
-  {
-   "file": "assets/app/he-compliance.js",
-   "expr": "statusClass",
-   "count": 1,
-   "reason": "a CSS class name chosen by code from a fixed set of literals"
-  },
-  {
-   "file": "assets/app/he-compliance.js",
-   "expr": "statusLabel",
-   "count": 1,
-   "reason": "HTML string built just above with esc() around every data value"
-  },
-  {
-   "file": "assets/app/he-incidents.js",
-   "expr": "cutoffNote",
-   "count": 1,
-   "reason": "fixed hint markup with only numbers (array length / count) inside"
-  },
-  {
-   "file": "assets/app/he-inquiries.js",
-   "expr": "i.ai_confidence != null ? ' · ' + Math.round(i.ai_confidence * 100) + '% confidence' : ''",
-   "count": 1,
-   "reason": "Math.round(...) gives a number; the rest is fixed text"
-  },
-  {
-   "file": "assets/app/he-inquiries.js",
-   "expr": "i.ai_draft_reply ? ` <div class=\"u-mt-8\"> <b class=\"u-fs-11 u-c-muted u-tt-uppercase\">AI draft reply${i.ai_confidence != null ? ' · ' + Math.round(i.ai_confidence * 100) + '% confidence' : ''}</b> <textarea class=\"inqDraftText u-w-100pct u-mt-4 u-p-9-10 u-br-8 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-13p5 u-rs-vertical\" data-id=\"${esc(i.id)}\" rows=\"4\">${esc(i.ai_draft_reply)}</textarea> </div> ` : '<p class=\"empty u-p-6-0\">No draft yet — the agent hasn\\'t answered this one.</p>'",
-   "count": 1,
-   "reason": "every data value inside passes through esc() (or a number formatter); the rest is fixed markup"
-  },
-  {
-   "file": "assets/app/he-inquiries.js",
-   "expr": "inqStatusBadgeClass(i.status)",
-   "count": 1,
-   "reason": "a CSS class name chosen by code from a fixed set of literals"
-  },
-  {
-   "file": "assets/app/he-inquiries.js",
-   "expr": "order ? ' · Order ' + esc(order.order_number) : ''",
-   "count": 1,
-   "reason": "every data value inside passes through esc() (or a number formatter); the rest is fixed markup"
-  },
-  {
-   "file": "assets/app/he-tasks.js",
-   "expr": "cutoffNote",
-   "count": 1,
-   "reason": "fixed hint markup with only numbers (array length / count) inside"
-  },
-  {
-   "file": "assets/owner-login-app.js",
-   "expr": "(r.refund_amount !== null && r.refund_amount !== undefined) ? '<span class=\"badge u-ml-4\">Refunded $' + Number(r.refund_amount).toFixed(2) + '</span>' : ''",
-   "count": 1,
-   "reason": "Number(...).toFixed(2): a number only"
-  },
-  {
-   "file": "assets/owner-login-app.js",
-   "expr": "a.reason ? '<br><span class=\"u-fs-12 u-c-muted\">' + esc(a.reason) + '</span>' : ''",
-   "count": 1,
-   "reason": "every data value inside passes through esc() (or a number formatter); the rest is fixed markup"
-  },
-  {
-   "file": "assets/owner-login-app.js",
-   "expr": "acct",
-   "count": 2,
-   "reason": "HTML string built just above with esc() around every data value"
-  },
-  {
-   "file": "assets/owner-login-app.js",
-   "expr": "actionHtml",
-   "count": 1,
-   "reason": "fixed button/select markup chosen by status; contains no data"
-  },
-  {
-   "file": "assets/owner-login-app.js",
-   "expr": "cls",
-   "count": 1,
-   "reason": "a CSS class name chosen by code from a fixed set of literals"
-  },
-  {
-   "file": "assets/owner-login-app.js",
-   "expr": "continuityBadgeClass(s.status)",
-   "count": 1,
-   "reason": "a CSS class name chosen by code from a fixed set of literals"
-  },
-  {
-   "file": "assets/owner-login-app.js",
-   "expr": "detailLine ? '<br><span class=\"u-fs-12 u-c-muted\">' + detailLine + '</span>' : ''",
-   "count": 1,
-   "reason": "detailLine is built above from parts each wrapped in esc(); the rest is fixed markup"
-  },
-  {
-   "file": "assets/owner-login-app.js",
-   "expr": "escalated",
-   "count": 1,
-   "reason": "a number counted in code (filter().length / reduce / Set size / day difference)"
-  },
-  {
-   "file": "assets/owner-login-app.js",
-   "expr": "failedOpen",
-   "count": 1,
-   "reason": "a number counted in code (filter().length / reduce / Set size / day difference)"
-  },
-  {
-   "file": "assets/owner-login-app.js",
-   "expr": "hlValue(nd[k])",
-   "count": 1,
-   "reason": "hlValue() escapes strings/objects with esc(); booleans and null are fixed text"
-  },
-  {
-   "file": "assets/owner-login-app.js",
-   "expr": "it.sku ? ' (' + esc(it.sku) + ')' : ''",
-   "count": 1,
-   "reason": "every data value inside passes through esc() (or a number formatter); the rest is fixed markup"
-  },
-  {
-   "file": "assets/owner-login-app.js",
-   "expr": "item.sku ? ' <span class=\"u-c-muted u-fs-12\">(' + esc(item.sku) + ')</span>' : ''",
-   "count": 1,
-   "reason": "every data value inside passes through esc() (or a number formatter); the rest is fixed markup"
-  },
-  {
-   "file": "assets/owner-login-app.js",
-   "expr": "liveSignal",
-   "count": 1,
-   "reason": "HTML string built just above with esc() around every data value"
-  },
-  {
-   "file": "assets/owner-login-app.js",
-   "expr": "lot ? ' · lot ' + esc(lot) : ''",
-   "count": 1,
-   "reason": "every data value inside passes through esc() (or a number formatter); the rest is fixed markup"
-  },
-  {
-   "file": "assets/owner-login-app.js",
-   "expr": "lotOpts",
-   "count": 1,
-   "reason": "HTML string built just above with esc() around every data value"
-  },
-  {
-   "file": "assets/owner-login-app.js",
-   "expr": "o.customer_name ? ' — ' + esc(o.customer_name) : ''",
-   "count": 1,
-   "reason": "every data value inside passes through esc() (or a number formatter); the rest is fixed markup"
-  },
-  {
-   "file": "assets/owner-login-app.js",
-   "expr": "order.customer_name ? ' — ' + esc(order.customer_name) : ''",
-   "count": 1,
-   "reason": "every data value inside passes through esc() (or a number formatter); the rest is fixed markup"
-  },
-  {
-   "file": "assets/owner-login-app.js",
-   "expr": "p.sku ? ' (' + esc(p.sku) + ')' : ''",
-   "count": 2,
-   "reason": "every data value inside passes through esc() (or a number formatter); the rest is fixed markup"
-  },
-  {
-   "file": "assets/owner-login-app.js",
-   "expr": "quarantinedUnits",
-   "count": 1,
-   "reason": "a number counted in code (filter().length / reduce / Set size / day difference)"
-  },
-  {
-   "file": "assets/owner-login-app.js",
-   "expr": "r.notes ? '<br><span class=\"u-fs-12 u-c-muted\">Notes: ' + esc(r.notes) + '</span>' : ''",
-   "count": 1,
-   "reason": "every data value inside passes through esc() (or a number formatter); the rest is fixed markup"
-  },
-  {
-   "file": "assets/owner-login-app.js",
-   "expr": "realAiCalls",
-   "count": 1,
-   "reason": "a number counted in code (filter().length / reduce / Set size / day difference)"
-  },
-  {
-   "file": "assets/owner-login-app.js",
-   "expr": "resultClass",
-   "count": 1,
-   "reason": "a CSS class name chosen by code from a fixed set of literals"
-  },
-  {
-   "file": "assets/owner-login-app.js",
-   "expr": "showingNote",
-   "count": 1,
-   "reason": "fixed hint markup with only numbers (array length / count) inside"
-  },
-  {
-   "file": "assets/owner-login-app.js",
-   "expr": "sign",
-   "count": 1,
-   "reason": "a fixed sign character (+, − or empty) chosen by code"
-  },
-  {
-   "file": "assets/owner-login-app.js",
-   "expr": "statusClass",
-   "count": 2,
-   "reason": "a CSS class name chosen by code from a fixed set of literals"
-  }
- ]
+  "interpolations": [
+    {
+      "file": "assets/app/he-admin.js",
+      "expr": "s.ip_address ? ' &middot; ' + esc(s.ip_address) : ''",
+      "count": 1,
+      "reason": "every data value inside passes through esc() (or a number formatter); the rest is fixed markup"
+    },
+    {
+      "file": "assets/app/he-agents.js",
+      "expr": "a.num",
+      "count": 3,
+      "reason": "agent number from the fixed AGENT_REGISTRY in he-config.js (code constant)"
+    },
+    {
+      "file": "assets/app/he-agents.js",
+      "expr": "ctrl && ctrl.updated_at ? `<div class=\"u-mt-6 u-fs-12 u-c-muted\">Last changed ${ctrl.who ? 'by ' + esc(ctrl.who) + ' ' : ''}on ${new Date(ctrl.updated_at).toLocaleString()}</div>` : ''",
+      "count": 1,
+      "reason": "every data value inside passes through esc() (or a number formatter); the rest is fixed markup"
+    },
+    {
+      "file": "assets/app/he-agents.js",
+      "expr": "ctrl.who ? 'by ' + esc(ctrl.who) + ' ' : ''",
+      "count": 1,
+      "reason": "every data value inside passes through esc() (or a number formatter); the rest is fixed markup"
+    },
+    {
+      "file": "assets/app/he-agents.js",
+      "expr": "truth.cls",
+      "count": 1,
+      "reason": "a CSS class name chosen by code from a fixed set of literals"
+    },
+    {
+      "file": "assets/app/he-agents.js",
+      "expr": "truth.key",
+      "count": 1,
+      "reason": "a fixed key (calc/unknown/on/off...) returned by agentTruth(); never data"
+    },
+    {
+      "file": "assets/app/he-audit.js",
+      "expr": "deletes",
+      "count": 1,
+      "reason": "a number counted in code (filter().length / reduce / Set size / day difference)"
+    },
+    {
+      "file": "assets/app/he-audit.js",
+      "expr": "people.size",
+      "count": 1,
+      "reason": "a number counted in code (filter().length / reduce / Set size / day difference)"
+    },
+    {
+      "file": "assets/app/he-audit.js",
+      "expr": "top",
+      "count": 1,
+      "reason": "HTML string built just above with esc() around every data value"
+    },
+    {
+      "file": "assets/app/he-compliance.js",
+      "expr": "daysLeft",
+      "count": 1,
+      "reason": "a number counted in code (filter().length / reduce / Set size / day difference)"
+    },
+    {
+      "file": "assets/app/he-compliance.js",
+      "expr": "ev.reporter_contact ? ' \u2014 ' + esc(ev.reporter_contact) : ''",
+      "count": 1,
+      "reason": "every data value inside passes through esc() (or a number formatter); the rest is fixed markup"
+    },
+    {
+      "file": "assets/app/he-compliance.js",
+      "expr": "ev.reporter_name ? `<div class=\"u-fs-11 u-c-muted u-mt-3\">Reported by: ${esc(ev.reporter_name)}${ev.reporter_contact ? ' \u2014 ' + esc(ev.reporter_contact) : ''}</div>` : ''",
+      "count": 1,
+      "reason": "every data value inside passes through esc() (or a number formatter); the rest is fixed markup"
+    },
+    {
+      "file": "assets/app/he-compliance.js",
+      "expr": "expiringSoon",
+      "count": 1,
+      "reason": "a number counted in code (filter().length / reduce / Set size / day difference)"
+    },
+    {
+      "file": "assets/app/he-compliance.js",
+      "expr": "incLabel",
+      "count": 1,
+      "reason": "HTML string built just above with esc() around every data value"
+    },
+    {
+      "file": "assets/app/he-compliance.js",
+      "expr": "statusClass",
+      "count": 1,
+      "reason": "a CSS class name chosen by code from a fixed set of literals"
+    },
+    {
+      "file": "assets/app/he-compliance.js",
+      "expr": "statusLabel",
+      "count": 1,
+      "reason": "HTML string built just above with esc() around every data value"
+    },
+    {
+      "file": "assets/app/he-incidents.js",
+      "expr": "cutoffNote",
+      "count": 1,
+      "reason": "fixed hint markup with only numbers (array length / count) inside"
+    },
+    {
+      "file": "assets/app/he-inquiries.js",
+      "expr": "i.ai_confidence != null ? ' \u00b7 ' + Math.round(i.ai_confidence * 100) + '% confidence' : ''",
+      "count": 1,
+      "reason": "Math.round(...) gives a number; the rest is fixed text"
+    },
+    {
+      "file": "assets/app/he-inquiries.js",
+      "expr": "i.ai_draft_reply ? ` <div class=\"u-mt-8\"> <b class=\"u-fs-11 u-c-muted u-tt-uppercase\">AI draft reply${i.ai_confidence != null ? ' \u00b7 ' + Math.round(i.ai_confidence * 100) + '% confidence' : ''}</b> <textarea class=\"inqDraftText u-w-100pct u-mt-4 u-p-9-10 u-br-8 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-13p5 u-rs-vertical\" data-id=\"${esc(i.id)}\" rows=\"4\">${esc(i.ai_draft_reply)}</textarea> </div> ` : '<p class=\"empty u-p-6-0\">No draft yet \u2014 the agent hasn\\'t answered this one.</p>'",
+      "count": 1,
+      "reason": "every data value inside passes through esc() (or a number formatter); the rest is fixed markup"
+    },
+    {
+      "file": "assets/app/he-inquiries.js",
+      "expr": "inqStatusBadgeClass(i.status)",
+      "count": 1,
+      "reason": "a CSS class name chosen by code from a fixed set of literals"
+    },
+    {
+      "file": "assets/app/he-inquiries.js",
+      "expr": "order ? ' \u00b7 Order ' + esc(order.order_number) : ''",
+      "count": 1,
+      "reason": "every data value inside passes through esc() (or a number formatter); the rest is fixed markup"
+    },
+    {
+      "file": "assets/app/he-tasks.js",
+      "expr": "cutoffNote",
+      "count": 1,
+      "reason": "fixed hint markup with only numbers (array length / count) inside"
+    },
+    {
+      "file": "assets/owner-login-app.js",
+      "expr": "a.reason ? '<br><span class=\"u-fs-12 u-c-muted\">' + esc(a.reason) + '</span>' : ''",
+      "count": 1,
+      "reason": "every data value inside passes through esc() (or a number formatter); the rest is fixed markup"
+    },
+    {
+      "file": "assets/owner-login-app.js",
+      "expr": "acct",
+      "count": 2,
+      "reason": "HTML string built just above with esc() around every data value"
+    },
+    {
+      "file": "assets/owner-login-app.js",
+      "expr": "cls",
+      "count": 1,
+      "reason": "a CSS class name chosen by code from a fixed set of literals"
+    },
+    {
+      "file": "assets/owner-login-app.js",
+      "expr": "continuityBadgeClass(s.status)",
+      "count": 1,
+      "reason": "a CSS class name chosen by code from a fixed set of literals"
+    },
+    {
+      "file": "assets/owner-login-app.js",
+      "expr": "escalated",
+      "count": 1,
+      "reason": "a number counted in code (filter().length / reduce / Set size / day difference)"
+    },
+    {
+      "file": "assets/owner-login-app.js",
+      "expr": "failedOpen",
+      "count": 1,
+      "reason": "a number counted in code (filter().length / reduce / Set size / day difference)"
+    },
+    {
+      "file": "assets/owner-login-app.js",
+      "expr": "hlValue(nd[k])",
+      "count": 1,
+      "reason": "hlValue() escapes strings/objects with esc(); booleans and null are fixed text"
+    },
+    {
+      "file": "assets/owner-login-app.js",
+      "expr": "it.sku ? ' (' + esc(it.sku) + ')' : ''",
+      "count": 1,
+      "reason": "every data value inside passes through esc() (or a number formatter); the rest is fixed markup"
+    },
+    {
+      "file": "assets/owner-login-app.js",
+      "expr": "liveSignal",
+      "count": 1,
+      "reason": "HTML string built just above with esc() around every data value"
+    },
+    {
+      "file": "assets/owner-login-app.js",
+      "expr": "lot ? ' \u00b7 lot ' + esc(lot) : ''",
+      "count": 1,
+      "reason": "every data value inside passes through esc() (or a number formatter); the rest is fixed markup"
+    },
+    {
+      "file": "assets/owner-login-app.js",
+      "expr": "lotOpts",
+      "count": 1,
+      "reason": "HTML string built just above with esc() around every data value"
+    },
+    {
+      "file": "assets/owner-login-app.js",
+      "expr": "p.sku ? ' (' + esc(p.sku) + ')' : ''",
+      "count": 2,
+      "reason": "every data value inside passes through esc() (or a number formatter); the rest is fixed markup"
+    },
+    {
+      "file": "assets/owner-login-app.js",
+      "expr": "quarantinedUnits",
+      "count": 1,
+      "reason": "a number counted in code (filter().length / reduce / Set size / day difference)"
+    },
+    {
+      "file": "assets/owner-login-app.js",
+      "expr": "realAiCalls",
+      "count": 1,
+      "reason": "a number counted in code (filter().length / reduce / Set size / day difference)"
+    },
+    {
+      "file": "assets/owner-login-app.js",
+      "expr": "resultClass",
+      "count": 1,
+      "reason": "a CSS class name chosen by code from a fixed set of literals"
+    },
+    {
+      "file": "assets/owner-login-app.js",
+      "expr": "showingNote",
+      "count": 1,
+      "reason": "fixed hint markup with only numbers (array length / count) inside"
+    },
+    {
+      "file": "assets/owner-login-app.js",
+      "expr": "sign",
+      "count": 1,
+      "reason": "a fixed sign character (+, \u2212 or empty) chosen by code"
+    },
+    {
+      "file": "assets/owner-login-app.js",
+      "expr": "statusClass",
+      "count": 2,
+      "reason": "a CSS class name chosen by code from a fixed set of literals"
+    }
+  ]
 }

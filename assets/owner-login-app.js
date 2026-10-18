@@ -5504,8 +5504,12 @@
             .order('placed_at', { ascending: false })
             .limit(RET_ORDER_CAP);
           if (ordersErr) throw ordersErr;
-          orderSelect.innerHTML = '<option value="">Order…</option>' +
-            (recentOrders || []).map(o => `<option value="${esc(o.id)}">${esc(o.order_number || o.id)}${o.customer_name ? ' — ' + esc(o.customer_name) : ''}</option>`).join('');
+          // EXT20F: built as DOM nodes (h() text-ifies) instead of an HTML
+          // string, so Returns is safe under Trusted Types enforcement.
+          orderSelect.replaceChildren(
+            h('option', { value: '' }, 'Order…'),
+            ...(recentOrders || []).map(o => h('option', { value: o.id }, (o.order_number || o.id) + (o.customer_name ? ' — ' + o.customer_name : '')))
+          );
           orderSelect.dataset.loaded = '1';
           // EXT8: the menu holds the newest RET_ORDER_CAP orders only; a
           // customer returning an older order must still be findable.
@@ -5517,11 +5521,11 @@
         const openCount = read.openCount != null ? read.openCount : read.openShown;
         const closedCount = read.closedCount != null ? read.closedCount : read.closedShown;
         const refundedCount = refundedTotal != null ? refundedTotal : returns.filter(r => r.refunded_at).length;
-        document.getElementById('returnsStats').innerHTML = `
-          <div class="stat"><div class="num">${openCount + closedCount}</div><div class="lbl">Total returns</div></div>
-          <div class="stat"><div class="num">${openCount}</div><div class="lbl">Open</div></div>
-          <div class="stat"><div class="num">${refundedCount}</div><div class="lbl">Refunded</div></div>
-        `;
+        document.getElementById('returnsStats').replaceChildren(
+          h('div', { class: 'stat' }, h('div', { class: 'num' }, openCount + closedCount), h('div', { class: 'lbl' }, 'Total returns')),
+          h('div', { class: 'stat' }, h('div', { class: 'num' }, openCount), h('div', { class: 'lbl' }, 'Open')),
+          h('div', { class: 'stat' }, h('div', { class: 'num' }, refundedCount), h('div', { class: 'lbl' }, 'Refunded'))
+        );
         const returnsCutNote = [
           openCount > read.openShown ? `Only the newest ${read.openShown} of ${openCount} open returns are listed below.` : '',
           closedCount > read.closedShown ? `Closed returns: showing the newest ${read.closedShown} of ${closedCount}.` : '',
@@ -5532,58 +5536,70 @@
           return;
         }
 
-        document.getElementById('returnsWrap').innerHTML = (returnsCutNote ? `<p class="hint returnsCutNote u-m-0-0-8 u-c-warn">${esc(returnsCutNote)}</p>` : '') + returns.map(r => {
+        // EXT20F: Returns rows built as DOM nodes (same classes, data-* and
+        // text as before) so the screen is safe under Trusted Types and the
+        // existing button wiring (.decideReturnBtn, .markReceivedBtn, etc.)
+        // continues to work unchanged.
+        const returnRowNodes = returns.map(r => {
           const order = r.orders || {};
           const item = r.order_items || {};
           const statusLabel = RETURN_STATUS_LABELS[r.status] || r.status;
           const statusClass = r.status === 'approved' ? 'sev-medium' : (r.status === 'rejected' ? 'sev-high' : ((r.status === 'received' || r.status === 'refunded') ? 'sev-low' : ''));
 
-          let actionHtml = '';
+          let actionNodes = [];
           if (r.status === 'requested') {
-            actionHtml = `
-              <button type="button" class="small decideReturnBtn" data-next="approved">Approve</button>
-              <button type="button" class="small decideReturnBtn" data-next="rejected">Reject</button>`;
+            actionNodes = [
+              h('button', { type: 'button', class: 'small decideReturnBtn', 'data-next': 'approved' }, 'Approve'),
+              h('button', { type: 'button', class: 'small decideReturnBtn', 'data-next': 'rejected' }, 'Reject'),
+            ];
           } else if (r.status === 'approved') {
-            actionHtml = `
-              <select class="dispositionSelect u-p-6-8 u-br-6 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-12">
-                <option value="">If restocking…</option>
-                <option value="restock_available">Restock to Available</option>
-                <option value="restock_damaged">Move to Damaged</option>
-                <option value="discard">Discard (no restock)</option>
-              </select>
-              <button type="button" class="small markReceivedBtn">Mark Received</button>`;
+            actionNodes = [
+              h('select', { class: 'dispositionSelect u-p-6-8 u-br-6 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-12' },
+                h('option', { value: '' }, 'If restocking…'),
+                h('option', { value: 'restock_available' }, 'Restock to Available'),
+                h('option', { value: 'restock_damaged' }, 'Move to Damaged'),
+                h('option', { value: 'discard' }, 'Discard (no restock)')),
+              h('button', { type: 'button', class: 'small markReceivedBtn' }, 'Mark Received'),
+            ];
           } else if (r.status === 'rejected') {
-            actionHtml = `<button type="button" class="small advanceReturnBtn" data-next="closed">Close</button>`;
+            actionNodes = [h('button', { type: 'button', class: 'small advanceReturnBtn', 'data-next': 'closed' }, 'Close')];
           } else if (r.status === 'received') {
-            actionHtml = `
-              <input type="number" class="refundAmountInput u-w-130 u-p-5-7 u-br-6 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-12" min="0" max="1000000" step="0.01" placeholder="Refund $ (optional)">
-              <button type="button" class="small markRefundedBtn">Mark Refunded</button>
-              <button type="button" class="small advanceReturnBtn" data-next="closed">Close without refund</button>`;
+            actionNodes = [
+              h('input', { type: 'number', class: 'refundAmountInput u-w-130 u-p-5-7 u-br-6 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-12', min: '0', max: '1000000', step: '0.01', placeholder: 'Refund $ (optional)' }),
+              h('button', { type: 'button', class: 'small markRefundedBtn' }, 'Mark Refunded'),
+              h('button', { type: 'button', class: 'small advanceReturnBtn', 'data-next': 'closed' }, 'Close without refund'),
+            ];
           } else if (r.status === 'refunded') {
-            actionHtml = `<button type="button" class="small advanceReturnBtn" data-next="closed">Close</button>`;
+            actionNodes = [h('button', { type: 'button', class: 'small advanceReturnBtn', 'data-next': 'closed' }, 'Close')];
           }
 
           const detailLine = [
-            r.reason ? 'Reason: ' + esc(RETURN_REASON_LABELS[r.reason] || r.reason) : '',
-            r.product_condition ? 'Condition: ' + esc(RETURN_CONDITION_LABELS[r.product_condition] || r.product_condition) : '',
-            r.disposition ? 'Chosen outcome: ' + esc(RETURN_DISPOSITION_LABELS[r.disposition] || r.disposition) : '',
+            r.reason ? 'Reason: ' + (RETURN_REASON_LABELS[r.reason] || r.reason) : '',
+            r.product_condition ? 'Condition: ' + (RETURN_CONDITION_LABELS[r.product_condition] || r.product_condition) : '',
+            r.disposition ? 'Chosen outcome: ' + (RETURN_DISPOSITION_LABELS[r.disposition] || r.disposition) : '',
           ].filter(Boolean).join(' · ');
 
-          return `
-            <div class="deletedRow u-ai-flex-start u-fwr-wrap" data-return-id="${esc(r.id)}" data-status="${esc(r.status || '')}" data-line-value="${esc(returnLineValue(item))}" data-item-sku="${esc(item.sku || '')}" data-quantity="${esc(item.quantity || 0)}" data-order-label="${esc(order.order_number || r.order_id)}">
-              <div class="info u-flex-1 u-minw-220">
-                <b>${esc(item.product_name || 'Unknown item')}</b>${item.sku ? ' <span class="u-c-muted u-fs-12">(' + esc(item.sku) + ')</span>' : ''}
-                — Qty ${esc(item.quantity !== undefined && item.quantity !== null ? item.quantity : '—')}
-                <span class="badge ${statusClass} u-ml-6">${esc(statusLabel)}</span>
-                ${(r.refund_amount !== null && r.refund_amount !== undefined) ? '<span class="badge u-ml-4">Refunded $' + Number(r.refund_amount).toFixed(2) + '</span>' : ''}
-                <br><span class="u-fs-12 u-c-muted">Order ${esc(order.order_number || r.order_id)}${order.customer_name ? ' — ' + esc(order.customer_name) : ''}</span>
-                ${detailLine ? '<br><span class="u-fs-12 u-c-muted">' + detailLine + '</span>' : ''}
-                ${r.notes ? '<br><span class="u-fs-12 u-c-muted">Notes: ' + esc(r.notes) + '</span>' : ''}
-                <br><span class="u-fs-11 u-c-muted">Requested ${esc(fmtDate(r.created_at))}</span>
-              </div>
-              <div class="u-d-flex u-gap-6 u-ai-center u-fwr-wrap">${actionHtml}</div>
-            </div>`;
-        }).join('');
+          const infoChildren = [h('b', null, item.product_name || 'Unknown item')];
+          if (item.sku) infoChildren.push(' ', h('span', { class: 'u-c-muted u-fs-12' }, '(' + item.sku + ')'));
+          infoChildren.push(' — Qty ' + (item.quantity !== undefined && item.quantity !== null ? item.quantity : '—'));
+          infoChildren.push(h('span', { class: 'badge ' + statusClass + ' u-ml-6' }, statusLabel));
+          if (r.refund_amount !== null && r.refund_amount !== undefined) infoChildren.push(h('span', { class: 'badge u-ml-4' }, 'Refunded $' + Number(r.refund_amount).toFixed(2)));
+          infoChildren.push(h('br'), h('span', { class: 'u-fs-12 u-c-muted' }, 'Order ' + (order.order_number || r.order_id) + (order.customer_name ? ' — ' + order.customer_name : '')));
+          if (detailLine) infoChildren.push(h('br'), h('span', { class: 'u-fs-12 u-c-muted' }, detailLine));
+          if (r.notes) infoChildren.push(h('br'), h('span', { class: 'u-fs-12 u-c-muted' }, 'Notes: ' + r.notes));
+          infoChildren.push(h('br'), h('span', { class: 'u-fs-11 u-c-muted' }, 'Requested ' + fmtDate(r.created_at)));
+
+          return h('div', { class: 'deletedRow u-ai-flex-start u-fwr-wrap', 'data-return-id': r.id, 'data-status': r.status || '', 'data-line-value': returnLineValue(item), 'data-item-sku': item.sku || '', 'data-quantity': item.quantity || 0, 'data-order-label': order.order_number || r.order_id },
+            h('div', { class: 'info u-flex-1 u-minw-220' }, ...infoChildren),
+            h('div', { class: 'u-d-flex u-gap-6 u-ai-center u-fwr-wrap' }, ...actionNodes)
+          );
+        });
+
+        const returnsWrapEl = document.getElementById('returnsWrap');
+        returnsWrapEl.replaceChildren(
+          ...(returnsCutNote ? [h('p', { class: 'hint returnsCutNote u-m-0-0-8 u-c-warn' }, returnsCutNote)] : []),
+          ...returnRowNodes
+        );
 
         // Approve or Reject a fresh request.
         document.querySelectorAll('.decideReturnBtn').forEach(btn => {

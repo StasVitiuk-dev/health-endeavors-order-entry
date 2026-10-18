@@ -1,4 +1,4 @@
-# Inventory screen — Trusted Types hardening
+# Trusted Types hardening — Inventory and Returns screens
 
 Status: **CURRENT** (2026-10-18). Local/branch work, not deployed. One focused, reviewable change to the Inventory screen only. No production, no merge, no business-behaviour change.
 
@@ -44,3 +44,19 @@ Single-commit change. To revert: `git revert <this commit>` on the branch (resto
 ## Recommended next single screen
 
 **Returns** — it has a similar row+decision-button render with dynamic customer/order text and is adjacent to the already-converted write paths, so the same `h()` pattern applies with modest risk.
+
+
+---
+
+## Returns screen (EXT20G, 2026-10-18)
+
+Same pattern applied to `loadReturns()` in `assets/owner-login-app.js`: its 3 `innerHTML` sinks — the order dropdown, the stats tiles, and the return rows with their per-status action controls (Approve/Reject, disposition select + Mark Received, refund input + Mark Refunded, Close) — were converted to the `h()` builder + `replaceChildren()`. All values were already `esc()`-ed; now they are text nodes.
+
+Classes, `data-*` attributes (`data-return-id`, `data-status`, `data-line-value`, `data-item-sku`, `data-quantity`, `data-order-label`), input placeholders and structure are identical, so the existing handlers (`.decideReturnBtn`, `.markReceivedBtn`, `.markRefundedBtn`, `.advanceReturnBtn`, `.dispositionSelect`, `.refundAmountInput`) work unchanged.
+
+- Returns `innerHTML` sinks: 3 → 0
+- DOM sink gate: still PASS, 0 dangerous; 7 now-stale reviewed entries removed from `dom-sinks-reviewed.json` (43 reviewed remain)
+- Tests: search-dashboard-escaping + write-path-inventory pass; write-path artifacts regenerated (105 paths unchanged, line-number shifts only); security:quick PASS; type/styles/status/docs/changelog gates green; asset versions refreshed.
+- Rollback: `git revert` the Returns commit.
+
+Recommended next single screen: **Purchase Orders**.
