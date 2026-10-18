@@ -60,3 +60,16 @@ Classes, `data-*` attributes (`data-return-id`, `data-status`, `data-line-value`
 - Rollback: `git revert` the Returns commit.
 
 Recommended next single screen: **Purchase Orders**.
+
+---
+
+## Approvals and Agents (EXT20I cascade, 2026-10-18)
+
+Same `h()` conversion applied to two module screens:
+- **Approvals** (`he-approvals.js`): cutoff note + queue rows (Approve/Deny buttons). 2 innerHTML sinks -> 0. Classes/`data-id`/`data-status` preserved; `decideApproval` wiring unchanged. Commit caa38a8.
+- **Agents** (`he-agents.js`): agent cards, the on/off switch (checkbox), and the nested job-health block (`agentJobHealthHtml` -> `agentJobHealthNode`). 1 innerHTML sink -> 0. `.agentToggle` (data-num/data-name/checked/disabled) and `<code>` job labels preserved. Commit e59a102.
+- The now-unused `esc` import was dropped from both modules (type gate TS6133); commit c1cdfd9.
+- Both added `h` to the module `needs`, destructure and `create()` ctx (the loader validates needs against the passed ctx).
+- Tests: agent-registry / agent-truth / agent-safety and pages-data (incl. "refused write never reported as done") pass; DOM sink gate PASS (36 reviewed, 0 dangerous); type gate 0 gated; security:quick PASS.
+
+**Screens TT-clean so far: Inventory, Returns, Approvals, Agents.** Next: Security Center, then Home.
