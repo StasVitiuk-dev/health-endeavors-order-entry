@@ -25,18 +25,6 @@
     },
     {
       "file": "assets/owner-login-app.js",
-      "expr": "continuityBadgeClass(s.status)",
-      "count": 1,
-      "reason": "a CSS class name chosen by code from a fixed set of literals"
-    },
-    {
-      "file": "assets/owner-login-app.js",
-      "expr": "escalated",
-      "count": 1,
-      "reason": "a number counted in code (filter().length / reduce / Set size / day difference)"
-    },
-    {
-      "file": "assets/owner-login-app.js",
       "expr": "hlValue(nd[k])",
       "count": 1,
       "reason": "hlValue() escapes strings/objects with esc(); booleans and null are fixed text"
@@ -46,18 +34,6 @@
       "expr": "it.sku ? ' (' + esc(it.sku) + ')' : ''",
       "count": 1,
       "reason": "every data value inside passes through esc() (or a number formatter); the rest is fixed markup"
-    },
-    {
-      "file": "assets/owner-login-app.js",
-      "expr": "liveSignal",
-      "count": 1,
-      "reason": "HTML string built just above with esc() around every data value"
-    },
-    {
-      "file": "assets/owner-login-app.js",
-      "expr": "realAiCalls",
-      "count": 1,
-      "reason": "a number counted in code (filter().length / reduce / Set size / day difference)"
     },
     {
       "file": "assets/owner-login-app.js",

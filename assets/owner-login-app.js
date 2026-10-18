@@ -3890,47 +3890,46 @@
 
         // EXT15: a failed month read is unknown ('?'), never "$0.00 spent, full cap remaining".
         const spendThisMonth = monthErr ? null : (monthLogs || []).reduce((s, l) => s + Number(l.cost_usd || 0), 0);
-        document.getElementById('aiSpendStats').innerHTML = `
-          <div class="stat"><div class="num">${spendThisMonth == null ? '?' : esc(fmtMoney(spendThisMonth, 'USD'))}</div><div class="lbl">Spent this month${spendThisMonth == null ? ' (could not be read)' : ''}</div></div>
-          <div class="stat"><div class="num">${esc(fmtMoney(SPEND_CAP, 'USD'))}</div><div class="lbl">Monthly cap</div></div>
-          <div class="stat"><div class="num">${spendThisMonth == null ? '?' : esc(fmtMoney(Math.max(0, SPEND_CAP - spendThisMonth), 'USD'))}</div><div class="lbl">Remaining this month</div></div>
-        `;
+        // EXT20J: built as DOM nodes (h() text-ifies) instead of an HTML string, so
+        // the AI activity screen is safe under Trusted Types. A failed month read
+        // still shows '?' (never $0.00); values were already esc()-ed.
+        document.getElementById('aiSpendStats').replaceChildren(
+          h('div', { class: 'stat' }, h('div', { class: 'num' }, spendThisMonth == null ? '?' : fmtMoney(spendThisMonth, 'USD')), h('div', { class: 'lbl' }, 'Spent this month' + (spendThisMonth == null ? ' (could not be read)' : ''))),
+          h('div', { class: 'stat' }, h('div', { class: 'num' }, fmtMoney(SPEND_CAP, 'USD')), h('div', { class: 'lbl' }, 'Monthly cap')),
+          h('div', { class: 'stat' }, h('div', { class: 'num' }, spendThisMonth == null ? '?' : fmtMoney(Math.max(0, SPEND_CAP - spendThisMonth), 'USD')), h('div', { class: 'lbl' }, 'Remaining this month')));
 
         if (modelErr || !modelConfig || !modelConfig.length) {
           document.getElementById('aiModelConfigWrap').replaceChildren(h('p', { class: 'empty' }, 'No AI model configured yet.'));
         } else {
-          document.getElementById('aiModelConfigWrap').innerHTML = `
-            <table><thead><tr><th>Agent</th><th>Provider</th><th>Model</th><th>Fallback model</th></tr></thead>
-            <tbody>${modelConfig.map(m => `
-              <tr>
-                <td>${esc(m.agent_name || '—')}</td>
-                <td>${esc(m.provider || '—')}</td>
-                <td>${esc(m.model || '—')}</td>
-                <td>${esc(m.fallback_model || '— none set —')}</td>
-              </tr>`).join('')}</tbody></table>`;
+          document.getElementById('aiModelConfigWrap').replaceChildren(h('table', null,
+            h('thead', null, h('tr', null, h('th', null, 'Agent'), h('th', null, 'Provider'), h('th', null, 'Model'), h('th', null, 'Fallback model'))),
+            h('tbody', null, modelConfig.map(m =>
+              h('tr', null,
+                h('td', null, m.agent_name || '—'),
+                h('td', null, m.provider || '—'),
+                h('td', null, m.model || '—'),
+                h('td', null, m.fallback_model || '— none set —'))))));
         }
 
         const totalCost = logs.reduce((s, l) => s + Number(l.cost_usd || 0), 0);
         const escalated = logs.filter(l => l.escalated_to_human).length;
-        document.getElementById('aiStats').innerHTML = `
-          <div class="stat"><div class="num">${logs.length}</div><div class="lbl">Recent decisions</div></div>
-          <div class="stat"><div class="num">${esc(fmtMoney(totalCost, 'USD'))}</div><div class="lbl">AI cost (recent)</div></div>
-          <div class="stat"><div class="num">${escalated}</div><div class="lbl">Escalated to human</div></div>
-        `;
+        document.getElementById('aiStats').replaceChildren(
+          h('div', { class: 'stat' }, h('div', { class: 'num' }, logs.length), h('div', { class: 'lbl' }, 'Recent decisions')),
+          h('div', { class: 'stat' }, h('div', { class: 'num' }, fmtMoney(totalCost, 'USD')), h('div', { class: 'lbl' }, 'AI cost (recent)')),
+          h('div', { class: 'stat' }, h('div', { class: 'num' }, escalated), h('div', { class: 'lbl' }, 'Escalated to human')));
 
         if (!logs.length) {
           document.getElementById('aiTableWrap').replaceChildren(h('p', { class: 'empty' }, 'No AI activity logged yet.'));
         } else {
-          document.getElementById('aiTableWrap').innerHTML = `
-            <table class="phoneCards"><thead><tr><th>Agent</th><th>Summary</th><th>Confidence</th><th>Escalated?</th><th>When</th></tr></thead>
-            <tbody>${logs.slice(0, 25).map(l => `
-              <tr data-id="${esc(l.id)}">
-                <td>${esc(l.agent_key)}</td>
-                <td>${esc(l.output_summary || '—')}</td>
-                <td>${l.confidence != null ? esc(Math.round(l.confidence * 100) + '%') : '—'}</td>
-                <td>${l.escalated_to_human ? '<span class="badge sev-medium">Yes</span>' : '—'}</td>
-                <td>${esc(fmtDate(l.created_at))}</td>
-              </tr>`).join('')}</tbody></table>`;
+          document.getElementById('aiTableWrap').replaceChildren(h('table', { class: 'phoneCards' },
+            h('thead', null, h('tr', null, h('th', null, 'Agent'), h('th', null, 'Summary'), h('th', null, 'Confidence'), h('th', null, 'Escalated?'), h('th', null, 'When'))),
+            h('tbody', null, logs.slice(0, 25).map(l =>
+              h('tr', { 'data-id': l.id },
+                h('td', null, l.agent_key),
+                h('td', null, l.output_summary || '—'),
+                h('td', null, l.confidence != null ? Math.round(l.confidence * 100) + '%' : '—'),
+                h('td', null, l.escalated_to_human ? h('span', { class: 'badge sev-medium' }, 'Yes') : '—'),
+                h('td', null, fmtDate(l.created_at)))))));
         }
       } catch (err) {
         showDashError('Could not load AI activity: ' + (err && err.message ? err.message : err));
@@ -3978,51 +3977,45 @@
         const counts = { operational: 0, degraded: 0, down: 0 };
         let unknownCount = 0;
         (services || []).forEach(s => { if (counts[s.status] !== undefined) counts[s.status]++; else unknownCount++; });
-        document.getElementById('continuityStats').innerHTML = `
-          <div class="stat"><div class="num">${counts.operational}</div><div class="lbl">Operational</div></div>
-          <div class="stat"><div class="num">${counts.degraded}</div><div class="lbl">Degraded</div></div>
-          <div class="stat"><div class="num">${counts.down}</div><div class="lbl">Down</div></div>
-          ${unknownCount ? `<div class="stat statWarn"><div class="num">${unknownCount}</div><div class="lbl">Unknown / not set</div></div>` : ''}
-        `;
+        // EXT20J: built as DOM nodes (h() text-ifies) instead of an HTML string.
+        // An unknown/not-set status is still counted and shown separately, never
+        // folded into Operational.
+        document.getElementById('continuityStats').replaceChildren(...[
+          h('div', { class: 'stat' }, h('div', { class: 'num' }, counts.operational), h('div', { class: 'lbl' }, 'Operational')),
+          h('div', { class: 'stat' }, h('div', { class: 'num' }, counts.degraded), h('div', { class: 'lbl' }, 'Degraded')),
+          h('div', { class: 'stat' }, h('div', { class: 'num' }, counts.down), h('div', { class: 'lbl' }, 'Down')),
+          unknownCount ? h('div', { class: 'stat statWarn' }, h('div', { class: 'num' }, unknownCount), h('div', { class: 'lbl' }, 'Unknown / not set')) : null
+        ].filter(Boolean));
 
         if (!services || !services.length) {
           document.getElementById('continuityWrap').replaceChildren(h('p', { class: 'empty' }, 'No services tracked yet.'));
           return;
         }
 
-        document.getElementById('continuityWrap').innerHTML = services.map(s => {
-          let liveSignal = '';
+        const serviceRow = s => {
+          let liveSignal = null;
           if (s.service_name === 'Apple Calendar Sync') {
-            liveSignal = lastCalendarSync
-              ? `<div class="u-fs-11p5 u-c-muted u-mt-3">Last real sync: ${esc(timeAgo(lastCalendarSync))} (${esc(fmtDate(lastCalendarSync))})</div>`
-              : `<div class="u-fs-11p5 u-c-muted u-mt-3">No sync recorded yet.</div>`;
+            liveSignal = h('div', { class: 'u-fs-11p5 u-c-muted u-mt-3' }, lastCalendarSync ? `Last real sync: ${timeAgo(lastCalendarSync)} (${fmtDate(lastCalendarSync)})` : 'No sync recorded yet.');
           } else if (s.service_name === 'Anthropic AI API') {
-            liveSignal = lastAiCall
-              ? `<div class="u-fs-11p5 u-c-muted u-mt-3">Last real AI call: ${esc(timeAgo(lastAiCall))} (${esc(fmtDate(lastAiCall))})</div>`
-              : `<div class="u-fs-11p5 u-c-muted u-mt-3">No AI call logged yet.</div>`;
+            liveSignal = h('div', { class: 'u-fs-11p5 u-c-muted u-mt-3' }, lastAiCall ? `Last real AI call: ${timeAgo(lastAiCall)} (${fmtDate(lastAiCall)})` : 'No AI call logged yet.');
           }
-          return `
-          <div class="approvalRow u-ai-flex-start" data-id="${esc(s.id)}">
-            <div class="info">
-              <b>${esc(s.service_name)}</b>
-              ${s.category ? `<span class="badge">${esc(s.category)}</span>` : ''}
-              <span class="badge ${continuityBadgeClass(s.status)}">${esc(s.status || 'not set')}</span>
-              ${s.notes ? `<div class="u-fs-12 u-c-muted u-mt-3">${esc(s.notes)}</div>` : ''}
-              ${liveSignal}
-              <div class="u-fs-11 u-c-muted u-mt-3">Status last set ${esc(fmtDate(s.updated_at))}</div>
-            </div>
-            <div class="actions">
-              <label class="u-fs-11p5 u-c-muted">
-                <select class="continuityStatusSelect u-p-4-7 u-br-6 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-12p5" data-id="${esc(s.id)}">
-                  ${['operational', 'degraded', 'down'].includes(s.status) ? '' : `<option value="${esc(s.status || '')}" selected disabled>Unknown (${esc(s.status || 'not set')})</option>`}
-                  <option value="operational" ${s.status === 'operational' ? 'selected' : ''}>Operational</option>
-                  <option value="degraded" ${s.status === 'degraded' ? 'selected' : ''}>Degraded</option>
-                  <option value="down" ${s.status === 'down' ? 'selected' : ''}>Down</option>
-                </select>
-              </label>
-            </div>
-          </div>`;
-        }).join('');
+          return h('div', { class: 'approvalRow u-ai-flex-start', 'data-id': s.id },
+            h('div', { class: 'info' },
+              h('b', null, s.service_name), ' ',
+              s.category ? [h('span', { class: 'badge' }, s.category), ' '] : null,
+              h('span', { class: 'badge ' + continuityBadgeClass(s.status) }, s.status || 'not set'),
+              s.notes ? h('div', { class: 'u-fs-12 u-c-muted u-mt-3' }, s.notes) : null,
+              liveSignal,
+              h('div', { class: 'u-fs-11 u-c-muted u-mt-3' }, 'Status last set ' + fmtDate(s.updated_at))),
+            h('div', { class: 'actions' },
+              h('label', { class: 'u-fs-11p5 u-c-muted' },
+                h('select', { class: 'continuityStatusSelect u-p-4-7 u-br-6 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-12p5', 'data-id': s.id },
+                  ...(['operational', 'degraded', 'down'].includes(s.status) ? [] : [h('option', { value: s.status || '', selected: true, disabled: true }, 'Unknown (' + (s.status || 'not set') + ')')]),
+                  h('option', { value: 'operational', selected: s.status === 'operational' ? true : null }, 'Operational'),
+                  h('option', { value: 'degraded', selected: s.status === 'degraded' ? true : null }, 'Degraded'),
+                  h('option', { value: 'down', selected: s.status === 'down' ? true : null }, 'Down')))));
+        };
+        document.getElementById('continuityWrap').replaceChildren(...services.map(serviceRow));
 
         document.querySelectorAll('.continuityStatusSelect').forEach(sel => sel.addEventListener('change', () => setServiceStatus(sel)));
       } catch (err) {
@@ -4083,15 +4076,14 @@
         const aiCost = aiLogs.reduce((sum, l) => sum + Number(l.cost_usd || 0), 0);
         const realAiCalls = aiLogs.filter(l => l.model_used !== 'rules-only').length;
 
-        document.getElementById('dailySummaryStats').innerHTML = `
-          <div class="stat"><div class="num">${orders.length}</div><div class="lbl">Orders placed</div></div>
-          <div class="stat"><div class="num">${esc(fmtMoney(revenue, currency))}</div><div class="lbl">Revenue</div></div>
-          <div class="stat"><div class="num">${(inquiriesRes.data || []).length}</div><div class="lbl">New customer questions</div></div>
-          <div class="stat"><div class="num">${(tasksRes.data || []).length}</div><div class="lbl">Tasks opened</div></div>
-          <div class="stat"><div class="num">${(incidentsRes.data || []).length}</div><div class="lbl">Incidents opened</div></div>
-          <div class="stat"><div class="num">${realAiCalls}</div><div class="lbl">Real AI calls</div></div>
-          <div class="stat"><div class="num">${esc(fmtMoney(aiCost, 'USD'))}</div><div class="lbl">AI cost</div></div>
-        `;
+        document.getElementById('dailySummaryStats').replaceChildren(
+          h('div', { class: 'stat' }, h('div', { class: 'num' }, orders.length), h('div', { class: 'lbl' }, 'Orders placed')),
+          h('div', { class: 'stat' }, h('div', { class: 'num' }, fmtMoney(revenue, currency)), h('div', { class: 'lbl' }, 'Revenue')),
+          h('div', { class: 'stat' }, h('div', { class: 'num' }, (inquiriesRes.data || []).length), h('div', { class: 'lbl' }, 'New customer questions')),
+          h('div', { class: 'stat' }, h('div', { class: 'num' }, (tasksRes.data || []).length), h('div', { class: 'lbl' }, 'Tasks opened')),
+          h('div', { class: 'stat' }, h('div', { class: 'num' }, (incidentsRes.data || []).length), h('div', { class: 'lbl' }, 'Incidents opened')),
+          h('div', { class: 'stat' }, h('div', { class: 'num' }, realAiCalls), h('div', { class: 'lbl' }, 'Real AI calls')),
+          h('div', { class: 'stat' }, h('div', { class: 'num' }, fmtMoney(aiCost, 'USD')), h('div', { class: 'lbl' }, 'AI cost')));
       } catch (err) {
         showDashError('Could not load Daily Summary: ' + (err && err.message ? err.message : err));
       }
