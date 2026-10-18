@@ -340,17 +340,27 @@ if (require.main === module) {
   const rows = all();
   const classPath = path.join(ROOT, 'docs', 'ops', 'write-paths.classification.json');
   const classes = fs.existsSync(classPath) ? JSON.parse(fs.readFileSync(classPath, 'utf8')) : {};
-  if (process.argv.includes('--inventory-md')) {
+  // EXT20J-post-TT: each output flag is handled independently so that passing
+  // several together regenerates all of them. (Previously this was an else-if
+  // chain, so `--md --json --inventory-md` silently wrote only the first match
+  // and left the other two stale — the bug that shipped the stale MATRIX/JSON.)
+  const wantInv = process.argv.includes('--inventory-md');
+  const wantJson = process.argv.includes('--json');
+  const wantMd = process.argv.includes('--md');
+  if (wantInv) {
     fs.writeFileSync(path.join(ROOT, 'docs', 'ops', 'WRITE_PATH_INVENTORY.md'), inventoryMarkdown(inventoryJson(rows, classes)));
     console.log('wrote docs/ops/WRITE_PATH_INVENTORY.md');
-  } else if (process.argv.includes('--json')) {
+  }
+  if (wantJson) {
     const inv = inventoryJson(rows, classes);
     fs.writeFileSync(path.join(ROOT, 'docs', 'ops', 'MUTATION_WRITE_PATH_INVENTORY.json'), JSON.stringify(inv, null, 1) + '\n');
     console.log('wrote docs/ops/MUTATION_WRITE_PATH_INVENTORY.json', JSON.stringify(inv.retryClassTotals));
-  } else if (process.argv.includes('--md')) {
+  }
+  if (wantMd) {
     fs.writeFileSync(path.join(ROOT, 'docs', 'ops', 'WRITE_PATH_MATRIX.md'), markdown(rows, classes));
     console.log('wrote docs/ops/WRITE_PATH_MATRIX.md with', rows.length, 'paths');
-  } else {
+  }
+  if (!wantInv && !wantJson && !wantMd) {
     for (const r of rows) console.log([r.key, r.line, r.writesState ? 'STATE' : '', r.staleCondition ? 'stale' : '', r.readBack ? 'rb' : '', r.doubleClickLock ? 'lock' : '', r.confirmation ? 'conf' : '', r.rolePrecheck ? 'role' : ''].join(' \t'));
     console.log(rows.length, 'paths');
   }
