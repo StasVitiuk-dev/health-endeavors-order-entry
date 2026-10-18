@@ -32,7 +32,7 @@ Why it matters: a smaller file is easier to review, a mistake in one area is les
 | 9 | `he-tasks` | Tasks page: list, recently done, status changes (guarded: only if still in the expected state) | 124 | he-format: 1, he-config: 4, helpers / program: 4, he-ui: 2, he-data: 1 | 1 |
 | 10 | `he-approvals` | Approval Queue: list and decisions (password re-check before a decision) | 72 | he-format: 1, he-config: 1, he-ui: 2, helpers / program: 4, he-data: 2 | 1 |
 | 11 | `he-incidents` | Incidents: list, and turning a failed quality check into one incident only once | 77 | he-format: 1, he-config: 1, helpers / program: 5, he-ui: 2, he-data: 5 | 2 |
-| 12 | `he-expenses` | Expenses: list, receipts, delete to the recycle bin and restore list | 164 | he-config: 2, he-data: 6, helpers / program: 7, he-ui: 1 | 2 |
+| 12 | `he-expenses` | Expenses: list, receipts, delete to the recycle bin and restore list | 168 | he-config: 2, he-data: 6, helpers / program: 6, he-ui: 2 | 2 |
 | 13 | `he-suppliers` | Suppliers: list | 69 | he-config: 2, helpers / program: 3, he-data: 2, he-ui: 1 | 1 |
 | 14 | `he-reports` | Report history: daily / weekly / monthly views (missing values stay '?', never zero) | 82 | helpers / program: 6, he-ui: 1, he-format: 2, he-time: 2, he-data: 1 | 3 |
 | 15 | `he-inquiries` | Customer questions: list, severity, saved drafts, copy reply, mark answered (never sends anything) | 212 | he-config: 2, he-data: 4, he-ui: 2, he-format: 1, helpers / program: 3 | 3 |
@@ -41,7 +41,7 @@ Why it matters: a smaller file is easier to review, a mistake in one area is les
 | 18 | `he-admin` | Admin pages: signed-in sessions, SOPs, feature requests and their recycle bin (reads plus simple non-stock, non-money saves) | 217 | he-config: 4, helpers / program: 10, he-data: 4, he-ui: 1 | 4 |
 | 19 | `he-compliance` | Compliance pages: adverse events, legal holds (and released holds), documents, evidence locker (reads plus guarded record saves; no stock or money) | 398 | he-format: 2, he-config: 2, he-data: 7, helpers / program: 8, he-ui: 2 | 5 |
 
-Program file after extraction: `assets/owner-login-app.js` 6,381 lines, 373,964 bytes; 85 top-level functions; 46 mutable top-level variables (46 shared).
+Program file after extraction: `assets/owner-login-app.js` 6,381 lines, 373,962 bytes; 85 top-level functions; 46 mutable top-level variables (46 shared).
 
 Dependency graph (module ← modules it takes inputs from; the program creates them top to bottom):
 

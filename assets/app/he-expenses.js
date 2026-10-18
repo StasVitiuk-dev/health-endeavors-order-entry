@@ -2,8 +2,8 @@
 // EXT15: moved unchanged out of assets/owner-login-app.js (initApp). Its inputs
 // arrive explicitly in ctx; it returns only what other code still uses. Map:
 // docs/ops/APPLICATION_MODULE_MAP_EXT15.md. Created once, by the app, in order.
-window.HE.modules.define('he-expenses', { api: 1, needs: ['EXPENSE_CATEGORY_LABELS','LIST_LIMITS','SEARCH_INDEX','appendMore','confirmSecondPress','esc','fetchAllRows','fmtDate','fmtDateOnly','fmtMoney','listLimit','noRowsChanged','showDashError','staleMessage','supabase','updateIfUnchanged'] }, function (ctx) {
-    const { EXPENSE_CATEGORY_LABELS, LIST_LIMITS, SEARCH_INDEX, appendMore, confirmSecondPress, esc, fetchAllRows, fmtDate, fmtDateOnly, fmtMoney, listLimit, noRowsChanged, showDashError, staleMessage, supabase, updateIfUnchanged } = ctx;
+window.HE.modules.define('he-expenses', { api: 1, needs: ['EXPENSE_CATEGORY_LABELS','LIST_LIMITS','SEARCH_INDEX','appendMore','confirmSecondPress','fetchAllRows','fmtDate','fmtDateOnly','fmtMoney','h','listLimit','noRowsChanged','showDashError','staleMessage','supabase','updateIfUnchanged'] }, function (ctx) {
+    const { EXPENSE_CATEGORY_LABELS, LIST_LIMITS, SEARCH_INDEX, appendMore, confirmSecondPress, fetchAllRows, fmtDate, fmtDateOnly, fmtMoney, h, listLimit, noRowsChanged, showDashError, staleMessage, supabase, updateIfUnchanged } = ctx;
     // Expenses (manual entry — feeds the Accounting Agent's rollup)
     async function loadExpenses(){
       try {
@@ -20,31 +20,34 @@ window.HE.modules.define('he-expenses', { api: 1, needs: ['EXPENSE_CATEGORY_LABE
         // every expense (paged, complete), never just the listed ones (X3-03).
         const allAmounts = await fetchAllRows('expenses', 'id, amount', q => q.is('deleted_at', null));
         const total = allAmounts.reduce((sum, r) => sum + Number(r.amount || 0), 0);
-        document.getElementById('expenseStats').innerHTML = `
-          <div class="stat"><div class="num">${allAmounts.length}</div><div class="lbl">Expenses on file</div></div>
-          <div class="stat"><div class="num">${esc(fmtMoney(total, 'USD'))}</div><div class="lbl">Total logged</div></div>
-        ` + (allAmounts.length > (rows || []).length ? `<p class="hint expensesCutNote u-flexbasis-100pct u-m-4-0-0">The list below shows the newest ${(rows || []).length} of ${allAmounts.length} expenses. The totals above include all of them.</p>` : '');
+        // EXT20J: built as DOM nodes (h() text-ifies) instead of an HTML string, so
+        // the Expenses screen is safe under Trusted Types. Vendor/note text was
+        // already esc()-ed; now it is only ever a text node.
+        const cutNoteNode = allAmounts.length > (rows || []).length
+          ? h('p', { class: 'hint expensesCutNote u-flexbasis-100pct u-m-4-0-0' }, `The list below shows the newest ${(rows || []).length} of ${allAmounts.length} expenses. The totals above include all of them.`) : null;
+        document.getElementById('expenseStats').replaceChildren(...[
+          h('div', { class: 'stat' }, h('div', { class: 'num' }, allAmounts.length), h('div', { class: 'lbl' }, 'Expenses on file')),
+          h('div', { class: 'stat' }, h('div', { class: 'num' }, fmtMoney(total, 'USD')), h('div', { class: 'lbl' }, 'Total logged')),
+          cutNoteNode
+        ].filter(Boolean));
 
         if (!rows || !rows.length) {
           document.getElementById('expensesWrap').replaceChildren(Object.assign(document.createElement('p'), { className: 'empty', textContent: 'No expenses logged yet — add your first one below.' }));
           return;
         }
 
-        document.getElementById('expensesWrap').innerHTML = rows.map(r => `
-          <div class="approvalRow" data-id="${esc(r.id)}" data-file-path="${esc(r.receipt_path || '')}">
-            <div class="info">
-              <b>${esc(EXPENSE_CATEGORY_LABELS[r.category] || r.category)}</b>
-              <span class="badge">${esc(fmtMoney(r.amount, 'USD'))}</span>
-              ${r.vendor ? `<div class="u-fs-12 u-c-muted u-mt-3">Vendor: ${esc(r.vendor)}</div>` : ''}
-              ${r.note ? `<div class="u-fs-12 u-c-muted u-mt-3">${esc(r.note)}</div>` : ''}
-              ${r.receipt_path ? `<div class="u-fs-12 u-mt-3"><a href="#" class="expFileLink">View receipt</a></div>` : ''}
-              <br><span class="u-fs-11 u-c-muted">${esc(fmtDateOnly(r.expense_date))}</span>
-            </div>
-            <div class="actions">
-              ${r.receipt_path ? `<button class="small expRemoveReceiptBtn">Remove receipt</button>` : ''}
-              <button class="small deny expDeleteBtn">Delete</button>
-            </div>
-          </div>`).join('');
+        const expenseRow = r => h('div', { class: 'approvalRow', 'data-id': r.id, 'data-file-path': r.receipt_path || '' },
+          h('div', { class: 'info' },
+            h('b', null, EXPENSE_CATEGORY_LABELS[r.category] || r.category), ' ',
+            h('span', { class: 'badge' }, fmtMoney(r.amount, 'USD')),
+            r.vendor ? h('div', { class: 'u-fs-12 u-c-muted u-mt-3' }, 'Vendor: ' + r.vendor) : null,
+            r.note ? h('div', { class: 'u-fs-12 u-c-muted u-mt-3' }, r.note) : null,
+            r.receipt_path ? h('div', { class: 'u-fs-12 u-mt-3' }, h('a', { href: '#', class: 'expFileLink' }, 'View receipt')) : null,
+            h('br'), h('span', { class: 'u-fs-11 u-c-muted' }, fmtDateOnly(r.expense_date))),
+          h('div', { class: 'actions' },
+            r.receipt_path ? h('button', { class: 'small expRemoveReceiptBtn' }, 'Remove receipt') : null,
+            h('button', { class: 'small deny expDeleteBtn' }, 'Delete')));
+        document.getElementById('expensesWrap').replaceChildren(...rows.map(expenseRow));
         appendMore('expensesWrap', 'expenses', rows.length, allAmounts.length, 'expenses', loadExpenses);
         document.querySelectorAll('.expDeleteBtn').forEach(btn => btn.addEventListener('click', () => deleteExpense(btn)));
         document.querySelectorAll('.expRemoveReceiptBtn').forEach(btn => btn.addEventListener('click', () => removeExpenseReceipt(btn)));
@@ -129,12 +132,13 @@ window.HE.modules.define('he-expenses', { api: 1, needs: ['EXPENSE_CATEGORY_LABE
           document.getElementById('deletedExpensesWrap').replaceChildren(Object.assign(document.createElement('p'), { className: 'empty', textContent: 'Recycle bin is empty.' }));
           return;
         }
-        document.getElementById('deletedExpensesWrap').innerHTML = deleted.map(r => `
-          <div class="deletedRow" data-id="${esc(r.id)}">
-            <div class="info"><b>${esc(EXPENSE_CATEGORY_LABELS[r.category] || r.category)} — ${esc(fmtMoney(r.amount, 'USD'))}</b><br>
-            <span class="u-fs-11 u-c-muted">Deleted ${esc(fmtDate(r.deleted_at))}</span></div>
-            <button class="small restoreExpenseBtn">Restore</button>
-          </div>`).join('');
+        document.getElementById('deletedExpensesWrap').replaceChildren(...deleted.map(r =>
+          h('div', { class: 'deletedRow', 'data-id': r.id },
+            h('div', { class: 'info' },
+              h('b', null, (EXPENSE_CATEGORY_LABELS[r.category] || r.category) + ' — ' + fmtMoney(r.amount, 'USD')),
+              h('br'),
+              h('span', { class: 'u-fs-11 u-c-muted' }, 'Deleted ' + fmtDate(r.deleted_at))),
+            h('button', { class: 'small restoreExpenseBtn' }, 'Restore'))));
         appendMore('deletedExpensesWrap', 'delExpenses', deleted.length, count, 'deleted expenses', loadDeletedExpenses);
         document.querySelectorAll('.restoreExpenseBtn').forEach(btn => {
           btn.addEventListener('click', async () => {
