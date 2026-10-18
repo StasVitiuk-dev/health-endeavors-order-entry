@@ -1483,19 +1483,21 @@
         document.getElementById('attentionWrap').replaceChildren(h('p', { class: 'empty' }, 'Nothing needs your attention right now.'));
         return;
       }
-      document.getElementById('attentionWrap').innerHTML = rows.map(r => `
-        <div class="attentionRow" data-id="${esc(r.source_id)}">
-          <span class="badge">${esc(ITEM_TYPE_LABELS[r.item_type] || r.item_type)}</span>
-          <div class="info">
-            <div class="aTitle">${esc(r.title)}</div>
-            ${r.detail ? `<div class="aDetail">${esc(r.detail)}</div>` : ''}
-          </div>
-          <span class="aWhen">${esc(fmtDate(r.due_at))}</span>
-          <span class="priorityPill ${r.priority === 'high' ? 'high' : 'normal'}">${esc(r.priority || 'normal')}</span>
-          ${r.item_type === 'manual'
-            ? `<button class="small dismissBtn" data-dismiss-id="${esc(r.source_id)}">Dismiss</button>`
-            : '<span></span>'}
-        </div>`).join('');
+      // EXT20J: built as DOM nodes (h() text-ifies) instead of an HTML string, so
+      // the Home "Needs your attention" list is safe under Trusted Types. Values
+      // were already esc()-ed. Classes and data-* attributes are unchanged, so the
+      // Dismiss wiring (data-dismiss-id) works as before.
+      document.getElementById('attentionWrap').replaceChildren(...rows.map(r =>
+        h('div', { class: 'attentionRow', 'data-id': r.source_id },
+          h('span', { class: 'badge' }, ITEM_TYPE_LABELS[r.item_type] || r.item_type),
+          h('div', { class: 'info' },
+            h('div', { class: 'aTitle' }, r.title),
+            ...(r.detail ? [h('div', { class: 'aDetail' }, r.detail)] : [])),
+          h('span', { class: 'aWhen' }, fmtDate(r.due_at)),
+          h('span', { class: 'priorityPill ' + (r.priority === 'high' ? 'high' : 'normal') }, r.priority || 'normal'),
+          r.item_type === 'manual'
+            ? h('button', { class: 'small dismissBtn', 'data-dismiss-id': r.source_id }, 'Dismiss')
+            : h('span'))));
 
       document.querySelectorAll('[data-dismiss-id]').forEach(btn => {
         btn.addEventListener('click', async () => {
@@ -1576,14 +1578,14 @@
     // EXT9: when the checks last ran. Results older than ATTN_STALE_MS say so
     // plainly (never look current), and re-run when the tab is looked at again.
     let ATTN_CHECKED_AT = null;
-    function attnFreshnessHtml(){
-      if (!ATTN_CHECKED_AT) return '';
+    function attnFreshnessNodes(){
+      if (!ATTN_CHECKED_AT) return [];
       const age = Date.now() - ATTN_CHECKED_AT;
       const at = new Date(ATTN_CHECKED_AT).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
       const mins = Math.round(age / 60000);
       return age > ATTN_STALE_MS
-        ? `<p class="hint attnFresh attnStale" role="status">These results are from ${esc(at)} (${mins} minutes ago) and may be out of date. <button type="button" class="small" id="attnRecheck">Check again</button></p>`
-        : `<p class="hint attnFresh">Checked at ${esc(at)}. <button type="button" class="small secondary" id="attnRecheck">Check again</button></p>`;
+        ? [h('p', { class: 'hint attnFresh attnStale', role: 'status' }, `These results are from ${at} (${mins} minutes ago) and may be out of date. `, h('button', { type: 'button', class: 'small', id: 'attnRecheck' }, 'Check again'))]
+        : [h('p', { class: 'hint attnFresh' }, `Checked at ${at}. `, h('button', { type: 'button', class: 'small secondary', id: 'attnRecheck' }, 'Check again'))];
     }
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible' && ATTN_CHECKED_AT && Date.now() - ATTN_CHECKED_AT > ATTN_STALE_MS && currentPageId === 'attentionPanel') {
@@ -1600,24 +1602,28 @@
       const shown = ATTN_FINDINGS.filter(f => ATTN_SHOW_HIDDEN || !isHidden(f));
       const hiddenCount = ATTN_FINDINGS.length - ATTN_FINDINGS.filter(f => !isHidden(f)).length;
       const LEVEL = { critical: 'Data problem', unknown: 'Could not check', action: 'To do', info: 'Info' };
-      const rows = shown.map(f => `
-        <div class="approvalRow attnCheck attn-${esc(f.level)}" data-key="${esc(f.key)}">
-          <div class="info">
-            <span class="badge attnLevel">${esc(LEVEL[f.level])}</span>
-            <b>${esc(f.title)}${f.count != null ? ': ' + esc(String(f.count)) : ''}</b>
-            ${f.oldest ? `<span class="attnAge"> · oldest ${esc(timeAgo(f.oldest))}</span>` : ''}
-            ${f.action ? `<div class="attnAction"><span class="attnActionLbl">Next step:</span> ${esc(f.action)}</div>` : ''}
-            <details class="attnWhy"><summary>Why is this here?</summary><p>${esc(f.why)}</p></details>
-          </div>
-          <div class="actions">
-            ${f.page ? `<button type="button" class="small attnOpen" data-goto="${esc(f.page)}">Open</button>` : ''}
-            ${canHide(f) ? (isHidden(f) ? '<button type="button" class="small secondary attnUnhide">Show again</button>' : '<button type="button" class="small secondary attnHide" title="Hidden on this device until the number changes">Hide until it changes</button>') : ''}
-          </div>
-        </div>`).join('');
+      // EXT20J: built as DOM nodes (h() text-ifies) instead of an HTML string, so
+      // the Home data-problem / to-do checks are safe under Trusted Types. Each
+      // finding's level class (attn-<level>) is unchanged, so a "Could not check"
+      // (unknown) or "Data problem" row keeps its own (never-green) styling.
+      const rowNodes = shown.map(f =>
+        h('div', { class: 'approvalRow attnCheck attn-' + f.level, 'data-key': f.key },
+          h('div', { class: 'info' },
+            h('span', { class: 'badge attnLevel' }, LEVEL[f.level]), ' ',
+            h('b', null, f.title + (f.count != null ? ': ' + String(f.count) : '')),
+            ...(f.oldest ? [h('span', { class: 'attnAge' }, ' · oldest ' + timeAgo(f.oldest))] : []),
+            ...(f.action ? [h('div', { class: 'attnAction' }, h('span', { class: 'attnActionLbl' }, 'Next step:'), ' ' + f.action)] : []),
+            h('details', { class: 'attnWhy' }, h('summary', null, 'Why is this here?'), h('p', null, f.why))),
+          h('div', { class: 'actions' },
+            ...(f.page ? [h('button', { type: 'button', class: 'small attnOpen', 'data-goto': f.page }, 'Open')] : []),
+            ...(canHide(f) ? [isHidden(f)
+              ? h('button', { type: 'button', class: 'small secondary attnUnhide' }, 'Show again')
+              : h('button', { type: 'button', class: 'small secondary attnHide', title: 'Hidden on this device until the number changes' }, 'Hide until it changes')] : []))));
       const nothing = !ATTN_FINDINGS.some(f => f.level !== 'info');
-      wrap.innerHTML = (nothing ? '<p class="empty u-m-0-0-8">No data problems or to-dos found by these checks.</p>' : '') + rows +
-        (hiddenCount ? `<p class="hint u-m-8-0-0">${hiddenCount} hidden until they change. <button type="button" class="small secondary" id="attnToggleHidden">${ATTN_SHOW_HIDDEN ? 'Hide them' : 'Show them'}</button></p>` : '') +
-        attnFreshnessHtml();
+      const emptyNote = nothing ? [h('p', { class: 'empty u-m-0-0-8' }, 'No data problems or to-dos found by these checks.')] : [];
+      const hiddenNote = hiddenCount ? [h('p', { class: 'hint u-m-8-0-0' }, hiddenCount + ' hidden until they change. ',
+        h('button', { type: 'button', class: 'small secondary', id: 'attnToggleHidden' }, ATTN_SHOW_HIDDEN ? 'Hide them' : 'Show them'))] : [];
+      wrap.replaceChildren(...emptyNote, ...rowNodes, ...hiddenNote, ...attnFreshnessNodes());
       const recheck = document.getElementById('attnRecheck');
       if (recheck) recheck.addEventListener('click', () => { recheck.disabled = true; safeRun(loadAttentionChecks); });
       wrap.querySelectorAll('.attnOpen').forEach(b => b.addEventListener('click', () => showPage(b.getAttribute('data-goto'))));
