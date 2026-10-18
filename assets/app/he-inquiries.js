@@ -2,8 +2,8 @@
 // EXT15: moved unchanged out of assets/owner-login-app.js (initApp). Its inputs
 // arrive explicitly in ctx; it returns only what other code still uses. Map:
 // docs/ops/APPLICATION_MODULE_MAP_EXT15.md. Created once, by the app, in order.
-window.HE.modules.define('he-inquiries', { api: 1, needs: ['INQ_ANSWERED_CAP','INQ_STATUS_LABELS','esc','fetchAllRows','fetchAllRowsIn','fmtDate','inqStatusBadgeClass','noRowsChanged','showDashError','staleMessage','supabase','updateIfUnchanged'] }, function (ctx) {
-    const { INQ_ANSWERED_CAP, INQ_STATUS_LABELS, esc, fetchAllRows, fetchAllRowsIn, fmtDate, inqStatusBadgeClass, noRowsChanged, showDashError, staleMessage, supabase, updateIfUnchanged } = ctx;
+window.HE.modules.define('he-inquiries', { api: 1, needs: ['INQ_ANSWERED_CAP','INQ_STATUS_LABELS','fetchAllRows','fetchAllRowsIn','fmtDate','h','inqStatusBadgeClass','noRowsChanged','showDashError','staleMessage','supabase','updateIfUnchanged'] }, function (ctx) {
+    const { INQ_ANSWERED_CAP, INQ_STATUS_LABELS, fetchAllRows, fetchAllRowsIn, fmtDate, h, inqStatusBadgeClass, noRowsChanged, showDashError, staleMessage, supabase, updateIfUnchanged } = ctx;
     let ALL_INQUIRIES = [];
     // EXT15: read-only access for the badge count and record search.
     function inquiriesList(){ return ALL_INQUIRIES; }
@@ -48,12 +48,15 @@ window.HE.modules.define('he-inquiries', { api: 1, needs: ['INQ_ANSWERED_CAP','I
       const counts = { new: 0, drafted: 0, needs_review: 0, answered: 0 };
       ALL_INQUIRIES.forEach(i => { if (counts[i.status] !== undefined) counts[i.status]++; });
       counts.answered = INQ_ANSWERED_TOTAL; // exact, though only the newest are listed
-      document.getElementById('inqStats').innerHTML = `
-        <div class="stat"><div class="num">${counts.needs_review}</div><div class="lbl">Needs review</div></div>
-        <div class="stat"><div class="num">${counts.drafted}</div><div class="lbl">Drafted</div></div>
-        <div class="stat"><div class="num">${counts.new}</div><div class="lbl">New, no draft</div></div>
-        <div class="stat"><div class="num">${counts.answered}</div><div class="lbl">Answered</div></div>
-      `;
+      // EXT20J: built as DOM nodes (h() text-ifies) instead of an HTML string, so
+      // this screen is safe under Trusted Types. Customer-supplied text (names,
+      // questions, draft replies) arrives from an external channel, so it was
+      // already esc()-ed; now it can never be parsed as markup at all.
+      document.getElementById('inqStats').replaceChildren(
+        h('div', { class: 'stat' }, h('div', { class: 'num' }, counts.needs_review), h('div', { class: 'lbl' }, 'Needs review')),
+        h('div', { class: 'stat' }, h('div', { class: 'num' }, counts.drafted), h('div', { class: 'lbl' }, 'Drafted')),
+        h('div', { class: 'stat' }, h('div', { class: 'num' }, counts.new), h('div', { class: 'lbl' }, 'New, no draft')),
+        h('div', { class: 'stat' }, h('div', { class: 'num' }, counts.answered), h('div', { class: 'lbl' }, 'Answered')));
 
       const filterVal = document.getElementById('inqFilter').value;
       const filtered = filterVal ? ALL_INQUIRIES.filter(i => i.status === filterVal) : ALL_INQUIRIES;
@@ -71,64 +74,50 @@ window.HE.modules.define('he-inquiries', { api: 1, needs: ['INQ_ANSWERED_CAP','I
       });
 
       if (!list.length) {
-        document.getElementById('inquiriesWrap').innerHTML = ALL_INQUIRIES.length
-          ? '<p class="empty">Nothing matches that filter.</p>'
-          : '<p class="empty">No customer questions yet.</p>';
+        document.getElementById('inquiriesWrap').replaceChildren(h('p', { class: 'empty' },
+          ALL_INQUIRIES.length ? 'Nothing matches that filter.' : 'No customer questions yet.'));
         return;
       }
 
-      document.getElementById('inquiriesWrap').innerHTML = answeredNote + list.map(i => {
+      const answeredNoteNode = answeredNote
+        ? h('p', { class: 'hint u-m-0-0-8' }, `Every question still waiting is listed. Answered: the newest ${INQ_ANSWERED_SHOWN} of ${INQ_ANSWERED_TOTAL}.`) : null;
+      const inquiryRow = i => {
         const order = i.order_id ? INQUIRY_ORDER_BY_ID[i.order_id] : null;
-        return `
-        <div class="approvalRow u-ai-flex-start" data-id="${esc(i.id)}">
-          <div class="info">
-            <b>${esc(i.customer_name || 'Unknown customer')}</b>
-            ${i.channel ? `<span class="badge">${esc(i.channel)}</span>` : ''}
-            <span class="badge ${inqStatusBadgeClass(i.status)}">${esc(INQ_STATUS_LABELS[i.status] || i.status)}</span>
-            ${i.severity ? `<span class="badge sev-${esc(i.severity)}">${esc(i.severity)} severity</span>` : ''}
-            <div class="u-fs-12 u-c-muted u-mt-3">
-              ${esc(i.customer_email || 'No email on file')}${order ? ' · Order ' + esc(order.order_number) : ''}
-            </div>
-            <div class="u-fs-11 u-c-muted u-mt-2">Asked ${esc(fmtDate(i.created_at))}</div>
-            <div class="u-mt-6">
-              <label class="u-fs-11p5 u-c-muted">Severity:
-                <select class="inqSeveritySelect u-ml-4 u-p-3-6 u-br-6 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-12" data-id="${esc(i.id)}">
-                  <option value="" ${!i.severity ? 'selected' : ''}>Not classified</option>
-                  <option value="low" ${i.severity === 'low' ? 'selected' : ''}>Low</option>
-                  <option value="medium" ${i.severity === 'medium' ? 'selected' : ''}>Medium</option>
-                  <option value="high" ${i.severity === 'high' ? 'selected' : ''}>High</option>
-                </select>
-              </label>
-            </div>
-
-            <div class="u-mt-8 u-p-8-10 u-bg-xf4f7f6 u-br-8 u-fs-13">
-              <b class="u-fs-11 u-c-muted u-tt-uppercase">Question</b><br>
-              ${esc(i.question_text)}
-            </div>
-
-            ${i.sensitive ? `
-              <div class="u-mt-8 u-p-8-10 u-bg-xfdecea u-br-8 u-fs-12p5 u-c-x8a2f24">
-                <b>Flagged for review:</b> ${esc(i.sensitive_reasons || 'No reason given.')}
-              </div>` : ''}
-
-            ${i.ai_draft_reply ? `
-              <div class="u-mt-8">
-                <b class="u-fs-11 u-c-muted u-tt-uppercase">AI draft reply${i.ai_confidence != null ? ' · ' + Math.round(i.ai_confidence * 100) + '% confidence' : ''}</b>
-                <textarea class="inqDraftText u-w-100pct u-mt-4 u-p-9-10 u-br-8 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-13p5 u-rs-vertical" data-id="${esc(i.id)}" rows="4">${esc(i.ai_draft_reply)}</textarea>
-              </div>
-            ` : '<p class="empty u-p-6-0">No draft yet — the agent hasn\'t answered this one.</p>'}
-          </div>
-          <div class="actions u-fd-column u-ai-stretch">
-            ${i.ai_draft_reply ? `
-              <button class="small inqSaveBtn" data-id="${esc(i.id)}">Save edits</button>
-              <button class="small inqCopyBtn" data-id="${esc(i.id)}">Copy reply</button>
-            ` : ''}
-            ${i.status !== 'answered'
-              ? `<button class="small inqAnsweredBtn" data-id="${esc(i.id)}" data-status="${esc(i.status || '')}">Mark as answered</button>`
-              : `<span class="badge sev-low">Answered ${esc(fmtDate(i.answered_at))}</span>`}
-          </div>
-        </div>`;
-      }).join('');
+        return h('div', { class: 'approvalRow u-ai-flex-start', 'data-id': i.id },
+          h('div', { class: 'info' },
+            h('b', null, i.customer_name || 'Unknown customer'), ' ',
+            i.channel ? [h('span', { class: 'badge' }, i.channel), ' '] : null,
+            h('span', { class: 'badge ' + inqStatusBadgeClass(i.status) }, INQ_STATUS_LABELS[i.status] || i.status), ' ',
+            i.severity ? h('span', { class: 'badge sev-' + i.severity }, i.severity + ' severity') : null,
+            h('div', { class: 'u-fs-12 u-c-muted u-mt-3' },
+              (i.customer_email || 'No email on file') + (order ? ' · Order ' + order.order_number : '')),
+            h('div', { class: 'u-fs-11 u-c-muted u-mt-2' }, 'Asked ' + fmtDate(i.created_at)),
+            h('div', { class: 'u-mt-6' },
+              h('label', { class: 'u-fs-11p5 u-c-muted' }, 'Severity:',
+                h('select', { class: 'inqSeveritySelect u-ml-4 u-p-3-6 u-br-6 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-12', 'data-id': i.id },
+                  h('option', { value: '', selected: !i.severity ? true : null }, 'Not classified'),
+                  h('option', { value: 'low', selected: i.severity === 'low' ? true : null }, 'Low'),
+                  h('option', { value: 'medium', selected: i.severity === 'medium' ? true : null }, 'Medium'),
+                  h('option', { value: 'high', selected: i.severity === 'high' ? true : null }, 'High')))),
+            h('div', { class: 'u-mt-8 u-p-8-10 u-bg-xf4f7f6 u-br-8 u-fs-13' },
+              h('b', { class: 'u-fs-11 u-c-muted u-tt-uppercase' }, 'Question'), h('br'),
+              i.question_text),
+            i.sensitive ? h('div', { class: 'u-mt-8 u-p-8-10 u-bg-xfdecea u-br-8 u-fs-12p5 u-c-x8a2f24' },
+              h('b', null, 'Flagged for review:'), ' ' + (i.sensitive_reasons || 'No reason given.')) : null,
+            i.ai_draft_reply
+              ? h('div', { class: 'u-mt-8' },
+                  h('b', { class: 'u-fs-11 u-c-muted u-tt-uppercase' }, 'AI draft reply' + (i.ai_confidence != null ? ' · ' + Math.round(i.ai_confidence * 100) + '% confidence' : '')),
+                  h('textarea', { class: 'inqDraftText u-w-100pct u-mt-4 u-p-9-10 u-br-8 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-13p5 u-rs-vertical', 'data-id': i.id, rows: '4' }, i.ai_draft_reply))
+              : h('p', { class: 'empty u-p-6-0' }, 'No draft yet — the agent hasn\'t answered this one.')),
+          h('div', { class: 'actions u-fd-column u-ai-stretch' },
+            i.ai_draft_reply ? [
+              h('button', { class: 'small inqSaveBtn', 'data-id': i.id }, 'Save edits'),
+              h('button', { class: 'small inqCopyBtn', 'data-id': i.id }, 'Copy reply')] : null,
+            i.status !== 'answered'
+              ? h('button', { class: 'small inqAnsweredBtn', 'data-id': i.id, 'data-status': i.status || '' }, 'Mark as answered')
+              : h('span', { class: 'badge sev-low' }, 'Answered ' + fmtDate(i.answered_at))));
+      };
+      document.getElementById('inquiriesWrap').replaceChildren(...[answeredNoteNode, ...list.map(inquiryRow)].filter(Boolean));
 
       document.querySelectorAll('.inqSaveBtn').forEach(btn => btn.addEventListener('click', () => saveInquiryDraft(btn)));
       document.querySelectorAll('.inqCopyBtn').forEach(btn => btn.addEventListener('click', () => copyInquiryReply(btn)));

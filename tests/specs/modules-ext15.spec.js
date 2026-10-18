@@ -39,7 +39,13 @@ const CHANGED = [
   'loadActivity', 'loadActivityPeople', 'loadAdverseEvents', 'loadBusinessRules', 'loadContinuity', 'loadDeletedExpenses', 'loadDeletedFeatureRequests',
   'loadExpenses', 'loadFeatureRequests', 'loadInventoryAdjustments', 'loadLegalHolds', 'loadOrders', 'loadQualityChecks', 'loadRecalls',
   'loadReleasedLegalHolds', 'loadReturns', 'loadSessions', 'loadSops', 'loadSuppliers', 'openInspectorFor', 'renderAttention', 'renderCalFilters',
-  'renderInspector', 'renderPalette', 'renderReportHistoryView', 'toast'];
+  'renderInspector', 'renderPalette', 'renderReportHistoryView', 'toast',
+  // EXT20J Trusted Types screen cascade: each screen's dynamic rendering built as
+  // DOM nodes (safe builder h) instead of HTML strings. Renames are listed under
+  // both the old and new name (the old statement is removed, the new one added):
+  'loadApprovals', 'renderAgentRegistry', 'agentJobHealthHtml', 'agentJobHealthNode',
+  'loadNightlyCheck', 'renderAttentionChecks', 'attnFreshnessHtml', 'attnFreshnessNodes',
+  'renderInquiries'];
 const ADDED = ['setReportHistoryView', 'inquiriesList', 'agentControls', 'poReceiveOps',
   // EXT17: manual stock adjustments report to an explicit operation state (he-ops, repeatable)
   'adjustOps', 'adjustPending', 'adjustKey', 'checkUnknownAdjustment',

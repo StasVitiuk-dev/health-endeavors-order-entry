@@ -78,30 +78,6 @@
       "reason": "fixed hint markup with only numbers (array length / count) inside"
     },
     {
-      "file": "assets/app/he-inquiries.js",
-      "expr": "i.ai_confidence != null ? ' · ' + Math.round(i.ai_confidence * 100) + '% confidence' : ''",
-      "count": 1,
-      "reason": "Math.round(...) gives a number; the rest is fixed text"
-    },
-    {
-      "file": "assets/app/he-inquiries.js",
-      "expr": "i.ai_draft_reply ? ` <div class=\"u-mt-8\"> <b class=\"u-fs-11 u-c-muted u-tt-uppercase\">AI draft reply${i.ai_confidence != null ? ' · ' + Math.round(i.ai_confidence * 100) + '% confidence' : ''}</b> <textarea class=\"inqDraftText u-w-100pct u-mt-4 u-p-9-10 u-br-8 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-13p5 u-rs-vertical\" data-id=\"${esc(i.id)}\" rows=\"4\">${esc(i.ai_draft_reply)}</textarea> </div> ` : '<p class=\"empty u-p-6-0\">No draft yet — the agent hasn\\'t answered this one.</p>'",
-      "count": 1,
-      "reason": "every data value inside passes through esc() (or a number formatter); the rest is fixed markup"
-    },
-    {
-      "file": "assets/app/he-inquiries.js",
-      "expr": "inqStatusBadgeClass(i.status)",
-      "count": 1,
-      "reason": "a CSS class name chosen by code from a fixed set of literals"
-    },
-    {
-      "file": "assets/app/he-inquiries.js",
-      "expr": "order ? ' · Order ' + esc(order.order_number) : ''",
-      "count": 1,
-      "reason": "every data value inside passes through esc() (or a number formatter); the rest is fixed markup"
-    },
-    {
       "file": "assets/app/he-tasks.js",
       "expr": "cutoffNote",
       "count": 1,
