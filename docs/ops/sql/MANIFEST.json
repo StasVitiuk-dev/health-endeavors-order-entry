@@ -106,6 +106,14 @@
       "env": "production",
       "schema": "check_id,object,detail",
       "interpret": "read by Claude"
+    },
+    {
+      "file": "11_READONLY_security_fix_drift_check.sql",
+      "id": "DRIFT",
+      "purpose": "confirm FIX 1A (anon blocked), FIX 1B (security_invoker) and FIX 2 (profiles guard trigger) are still in place",
+      "env": "production",
+      "schema": "check_name,verdict,flag",
+      "interpret": "every row should be PASS; any FAIL means that fix drifted or was removed"
     }
   ],
   "changes": [
@@ -120,7 +128,7 @@
       "precheck": "built-in preflight stops if any table, column, function or index is missing; Query C shows no other stock writer; backup look green today",
       "effect": "6 stock functions (R1-R5 + helper), security invoker, EXECUTE to authenticated only",
       "postcheck": "V8 fingerprint f6d9c2c8be690710eeb721041f6779d9; grants: 6 rows, anon false; Query H H01-H02 PASS",
-      "dynamicSql": "format('update inventory set %1$I …') with a bucket name checked against a fixed list first",
+      "dynamicSql": "format('update inventory set %1$I \u2026') with a bucket name checked against a fixed list first",
       "lock": "LOW: function creation only"
     },
     {
@@ -197,7 +205,7 @@
       "precheck": "stops with counts if existing rows already break a rule; Query E and F show 0 for these rules",
       "effect": "4 CHECK constraints",
       "postcheck": "4 constraints (Query H H11)",
-      "lock": "LOW at today's size: each ADD CONSTRAINT scans its table under ACCESS EXCLUSIVE (measured: docs/ops/ENGINEERING_REPORT_EXT14.md §DB)"
+      "lock": "LOW at today's size: each ADD CONSTRAINT scans its table under ACCESS EXCLUSIVE (measured: docs/ops/ENGINEERING_REPORT_EXT14.md \u00a7DB)"
     },
     {
       "file": "drafts/24_DRAFT_rollback_integrity_constraints.sql",

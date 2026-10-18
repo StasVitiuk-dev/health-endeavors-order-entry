@@ -29,7 +29,8 @@
     "security:regex": "node tests/tools/regex-audit.js",
     "schema:contract": "node tests/tools/schema-contract.js",
     "security:quick": "bash tests/tools/security-check.sh quick",
-    "security:deep": "bash tests/tools/security-check.sh deep"
+    "security:deep": "bash tests/tools/security-check.sh deep",
+    "changelog:check": "node tests/tools/change-log-check.js"
   },
   "devDependencies": {
     "@playwright/test": "1.56.1",
