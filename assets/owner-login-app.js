@@ -6062,13 +6062,15 @@
         const totalExpenses = expenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
         const netProfit = revenue - totalExpenses;
 
-        document.getElementById('acctStats').innerHTML = `
-          <div class="stat"><div class="num">${esc(fmtMoney(revenue, currency))}</div><div class="lbl">Revenue</div></div>
-          <div class="stat"><div class="num">${esc(fmtMoney(totalExpenses, currency))}</div><div class="lbl">Expenses</div></div>
-          <div class="stat"><div class="num">${esc(fmtMoney(netProfit, currency))}</div><div class="lbl">Net profit</div></div>
-          <div class="stat"><div class="num">${esc(fmtMoney(excluded, currency))}</div><div class="lbl">Cancelled / refunded (excluded)</div></div>
-          ${ACCOUNTING_REFUND_POLICY === 'subtract_return_refunds' ? `<div class="stat"><div class="num">${esc(fmtMoney(returnRefundTotal, currency))}</div><div class="lbl">Refunds on Returns (subtracted)</div></div>` : ''}
-        `;
+        // EXT20J: built as DOM nodes (h() text-ifies) instead of an HTML string.
+        // No accounting logic changes; money values were already esc()-ed.
+        document.getElementById('acctStats').replaceChildren(...[
+          h('div', { class: 'stat' }, h('div', { class: 'num' }, fmtMoney(revenue, currency)), h('div', { class: 'lbl' }, 'Revenue')),
+          h('div', { class: 'stat' }, h('div', { class: 'num' }, fmtMoney(totalExpenses, currency)), h('div', { class: 'lbl' }, 'Expenses')),
+          h('div', { class: 'stat' }, h('div', { class: 'num' }, fmtMoney(netProfit, currency)), h('div', { class: 'lbl' }, 'Net profit')),
+          h('div', { class: 'stat' }, h('div', { class: 'num' }, fmtMoney(excluded, currency)), h('div', { class: 'lbl' }, 'Cancelled / refunded (excluded)')),
+          ACCOUNTING_REFUND_POLICY === 'subtract_return_refunds' ? h('div', { class: 'stat' }, h('div', { class: 'num' }, fmtMoney(returnRefundTotal, currency)), h('div', { class: 'lbl' }, 'Refunds on Returns (subtracted)')) : null
+        ].filter(Boolean));
 
         // RP-06 (EXT3): the same purchase order's cost logged more than once
         // (a retried or half-finished receive). Shown for review only.
@@ -6079,13 +6081,13 @@
           (poCosts[m[1]] = poCosts[m[1]] || []).push(e);
         });
         const dupPos = Object.keys(poCosts).filter(k => poCosts[k].length > 1).sort();
-        document.getElementById('acctDupWrap').innerHTML = !dupPos.length
-          ? '<p class="empty">None found.</p>'
-          : dupPos.map(k => `
-            <div class="deletedRow acctDupRow">
-              <div class="info"><b>Purchase order ${esc(k)}</b> — logged ${poCosts[k].length} times, ${esc(fmtMoney(poCosts[k].reduce((s, e) => s + Number(e.amount || 0), 0), currency))} in total<br>
-              <span class="u-fs-11 u-c-muted">${poCosts[k].map(e => esc(fmtDateOnly(e.expense_date)) + ': ' + esc(fmtMoney(e.amount, currency))).join(' · ')}</span></div>
-            </div>`).join('');
+        document.getElementById('acctDupWrap').replaceChildren(...(!dupPos.length
+          ? [h('p', { class: 'empty' }, 'None found.')]
+          : dupPos.map(k => h('div', { class: 'deletedRow acctDupRow' },
+              h('div', { class: 'info' },
+                h('b', null, 'Purchase order ' + k), ' — logged ' + poCosts[k].length + ' times, ' + fmtMoney(poCosts[k].reduce((s, e) => s + Number(e.amount || 0), 0), currency) + ' in total',
+                h('br'),
+                h('span', { class: 'u-fs-11 u-c-muted' }, poCosts[k].map(e => fmtDateOnly(e.expense_date) + ': ' + fmtMoney(e.amount, currency)).join(' · ')))))));
 
         // EXT6: manual orders saved without their items still count as revenue.
         // Only manual orders can end up like this (Shopify orders arrive with
@@ -6094,25 +6096,27 @@
         try {
           const empty = await manualOrdersWithoutItems(orders);
           if (!isLatest()) return;
-          noItemsWrap.innerHTML = !empty.length
-            ? '<p class="empty">None found.</p>'
-            : empty.map(o => `
-              <div class="deletedRow acctNoItemsRow">
-                <div class="info"><b>${esc(o.order_number || o.id)}</b> — ${esc(fmtMoney(o.total, o.currency))}<br>
-                <span class="u-fs-11 u-c-muted">Status: ${esc(o.status)} — Placed ${esc(fmtDate(o.placed_at))}</span></div>
-              </div>`).join('');
+          const acctOrderRow = (o, cls) => h('div', { class: cls },
+            h('div', { class: 'info' },
+              h('b', null, o.order_number || o.id), ' — ' + fmtMoney(o.total, o.currency),
+              h('br'),
+              h('span', { class: 'u-fs-11 u-c-muted' }, 'Status: ' + o.status + ' — Placed ' + fmtDate(o.placed_at))));
+          noItemsWrap.replaceChildren(...(!empty.length
+            ? [h('p', { class: 'empty' }, 'None found.')]
+            : empty.map(o => acctOrderRow(o, 'deletedRow acctNoItemsRow'))));
         } catch (noItemsErr) {
-          noItemsWrap.innerHTML = '<p class="empty">Could not check for orders without items: ' + esc(explainDbError((noItemsErr && noItemsErr.message) || String(noItemsErr))) + '</p>';
+          noItemsWrap.replaceChildren(h('p', { class: 'empty' }, 'Could not check for orders without items: ' + explainDbError((noItemsErr && noItemsErr.message) || String(noItemsErr))));
         }
 
         if (!needsReview.length) {
           document.getElementById('acctReviewWrap').replaceChildren(h('p', { class: 'empty' }, 'Nothing needs review right now.'));
         } else {
-          document.getElementById('acctReviewWrap').innerHTML = needsReview.map(o => `
-            <div class="deletedRow">
-              <div class="info"><b>${esc(o.order_number || o.id)}</b> — ${esc(fmtMoney(o.total, o.currency))}<br>
-              <span class="u-fs-11 u-c-muted">Status: ${esc(o.status)} — Placed ${esc(fmtDate(o.placed_at))}</span></div>
-            </div>`).join('');
+          document.getElementById('acctReviewWrap').replaceChildren(...needsReview.map(o =>
+            h('div', { class: 'deletedRow' },
+              h('div', { class: 'info' },
+                h('b', null, o.order_number || o.id), ' — ' + fmtMoney(o.total, o.currency),
+                h('br'),
+                h('span', { class: 'u-fs-11 u-c-muted' }, 'Status: ' + o.status + ' — Placed ' + fmtDate(o.placed_at))))));
         }
       } catch (err) {
         if (!isLatest()) return; // an older load: its error no longer matters
@@ -6196,13 +6200,14 @@
         const totalExpenses = cogsTotal + operatingTotal;
         const netProfit = revenue - totalExpenses;
 
-        document.getElementById('taxStats').innerHTML = `
-          <div class="stat"><div class="num">${esc(fmtMoney(revenue, currency))}</div><div class="lbl">Revenue</div></div>
-          <div class="stat"><div class="num">${esc(fmtMoney(cogsTotal, currency))}</div><div class="lbl">Cost of Goods Sold (logged)</div></div>
-          <div class="stat"><div class="num">${esc(fmtMoney(operatingTotal, currency))}</div><div class="lbl">Operating expenses</div></div>
-          <div class="stat"><div class="num">${esc(fmtMoney(netProfit, currency))}</div><div class="lbl">Net profit</div></div>
-          <div class="stat"><div class="num">${esc(fmtMoney(salesTax, currency))}</div><div class="lbl">Sales tax collected</div></div>
-        `;
+        // EXT20J: built as DOM nodes (h() text-ifies) instead of an HTML string.
+        // No tax logic changes; money values were already esc()-ed.
+        document.getElementById('taxStats').replaceChildren(
+          h('div', { class: 'stat' }, h('div', { class: 'num' }, fmtMoney(revenue, currency)), h('div', { class: 'lbl' }, 'Revenue')),
+          h('div', { class: 'stat' }, h('div', { class: 'num' }, fmtMoney(cogsTotal, currency)), h('div', { class: 'lbl' }, 'Cost of Goods Sold (logged)')),
+          h('div', { class: 'stat' }, h('div', { class: 'num' }, fmtMoney(operatingTotal, currency)), h('div', { class: 'lbl' }, 'Operating expenses')),
+          h('div', { class: 'stat' }, h('div', { class: 'num' }, fmtMoney(netProfit, currency)), h('div', { class: 'lbl' }, 'Net profit')),
+          h('div', { class: 'stat' }, h('div', { class: 'num' }, fmtMoney(salesTax, currency)), h('div', { class: 'lbl' }, 'Sales tax collected')));
 
         const catRows = Object.keys(byCategory).map(cat => {
           const info = TAX_CATEGORY_MAP[cat] || { group: 'operating', label: cat || 'Uncategorized' };
@@ -6212,14 +6217,13 @@
         if (!catRows.length) {
           document.getElementById('taxCategoryWrap').replaceChildren(h('p', { class: 'empty' }, 'No expenses logged in this period.'));
         } else {
-          document.getElementById('taxCategoryWrap').innerHTML = `
-            <table><thead><tr><th>Category</th><th>Type</th><th>Total</th></tr></thead>
-            <tbody>${catRows.map(r => `
-              <tr>
-                <td>${esc(r.label)}</td>
-                <td><span class="badge${r.group === 'cogs' ? ' sev-medium' : ''}">${r.group === 'cogs' ? 'COGS' : 'Operating'}</span></td>
-                <td>${esc(fmtMoney(r.amount, currency))}</td>
-              </tr>`).join('')}</tbody></table>`;
+          document.getElementById('taxCategoryWrap').replaceChildren(h('table', null,
+            h('thead', null, h('tr', null, h('th', null, 'Category'), h('th', null, 'Type'), h('th', null, 'Total'))),
+            h('tbody', null, catRows.map(r =>
+              h('tr', null,
+                h('td', null, r.label),
+                h('td', null, h('span', { class: 'badge' + (r.group === 'cogs' ? ' sev-medium' : '') }, r.group === 'cogs' ? 'COGS' : 'Operating')),
+                h('td', null, fmtMoney(r.amount, currency)))))));
         }
 
         // Estimated cost of units sold — quantity sold × each product's recorded
@@ -6257,39 +6261,36 @@
             }
           });
         }
-        document.getElementById('taxCogsWrap').innerHTML = `
-          <div class="statRow">
-            <div class="stat"><div class="num">${esc(fmtMoney(estCogs, currency))}</div><div class="lbl">Estimated cost of units sold</div></div>
-            <div class="stat"><div class="num">${unmatchedCount}</div><div class="lbl">Units with no matching cost</div></div>
-          </div>
-          ${unmatchedSkus.size ? `<p class="hint u-mt-8">SKUs with no cost on file: ${[...unmatchedSkus].map(esc).join(', ')}</p>` : ''}
-        `;
+        document.getElementById('taxCogsWrap').replaceChildren(...[
+          h('div', { class: 'statRow' },
+            h('div', { class: 'stat' }, h('div', { class: 'num' }, fmtMoney(estCogs, currency)), h('div', { class: 'lbl' }, 'Estimated cost of units sold')),
+            h('div', { class: 'stat' }, h('div', { class: 'num' }, unmatchedCount), h('div', { class: 'lbl' }, 'Units with no matching cost'))),
+          unmatchedSkus.size ? h('p', { class: 'hint u-mt-8' }, 'SKUs with no cost on file: ' + [...unmatchedSkus].join(', ')) : null
+        ].filter(Boolean));
 
         const stateEntries = Object.keys(stateTax).sort();
         if (!stateEntries.length && !stateUnknownTax) {
           document.getElementById('taxStateWrap').replaceChildren(h('p', { class: 'empty' }, 'No sales tax collected in this period.'));
         } else {
-          document.getElementById('taxStateWrap').innerHTML = `
-            <table><thead><tr><th>State</th><th>Sales tax collected</th></tr></thead>
-            <tbody>
-              ${stateEntries.map(s => `<tr><td>${esc(s)}</td><td>${esc(fmtMoney(stateTax[s], currency))}</td></tr>`).join('')}
-              ${stateUnknownTax ? `<tr><td>Unknown / not yet verified</td><td>${esc(fmtMoney(stateUnknownTax, currency))}</td></tr>` : ''}
-            </tbody></table>`;
+          document.getElementById('taxStateWrap').replaceChildren(h('table', null,
+            h('thead', null, h('tr', null, h('th', null, 'State'), h('th', null, 'Sales tax collected'))),
+            h('tbody', null,
+              ...stateEntries.map(s => h('tr', null, h('td', null, s), h('td', null, fmtMoney(stateTax[s], currency)))),
+              ...(stateUnknownTax ? [h('tr', null, h('td', null, 'Unknown / not yet verified'), h('td', null, fmtMoney(stateUnknownTax, currency)))] : []))));
         }
 
         const missing = expenses.filter(e => !e.receipt_path);
         if (!missing.length) {
           document.getElementById('taxReceiptWrap').replaceChildren(h('p', { class: 'empty' }, 'Every logged expense in this period has a receipt on file.'));
         } else {
-          document.getElementById('taxReceiptWrap').innerHTML = `
-            <table class="phoneCards"><thead><tr><th>Date</th><th>Category</th><th>Vendor</th><th>Amount</th></tr></thead>
-            <tbody>${missing.map(e => `
-              <tr>
-                <td>${esc(fmtDateOnly(e.expense_date))}</td>
-                <td>${esc((TAX_CATEGORY_MAP[e.category] || {}).label || e.category || '—')}</td>
-                <td>${esc(e.vendor || '—')}</td>
-                <td>${esc(fmtMoney(e.amount, currency))}</td>
-              </tr>`).join('')}</tbody></table>`;
+          document.getElementById('taxReceiptWrap').replaceChildren(h('table', { class: 'phoneCards' },
+            h('thead', null, h('tr', null, h('th', null, 'Date'), h('th', null, 'Category'), h('th', null, 'Vendor'), h('th', null, 'Amount'))),
+            h('tbody', null, missing.map(e =>
+              h('tr', null,
+                h('td', null, fmtDateOnly(e.expense_date)),
+                h('td', null, (TAX_CATEGORY_MAP[e.category] || {}).label || e.category || '—'),
+                h('td', null, e.vendor || '—'),
+                h('td', null, fmtMoney(e.amount, currency)))))));
         }
 
         document.getElementById('taxStats').dataset.range = loadRange; // which period the figures on screen are for
