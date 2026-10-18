@@ -98,6 +98,14 @@
       "env": "production",
       "schema": "check_id,level,object,detail",
       "interpret": "read by Claude (same columns as Query G)"
+    },
+    {
+      "file": "10_READONLY_G3_timeline_view_and_profile_triggers.sql",
+      "id": "G3",
+      "purpose": "activity_timeline view text, columns and row count (no rows); profiles trigger source (secret lines removed) and update policies",
+      "env": "production",
+      "schema": "check_id,object,detail",
+      "interpret": "read by Claude"
     }
   ],
   "changes": [
