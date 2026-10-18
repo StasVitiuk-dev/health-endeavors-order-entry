@@ -122,3 +122,43 @@ The cascade continued through every remaining dynamic screen, each a small teste
 That is not valid CSS, so the browser drops the `background` declaration: the per-calendar colour swatches, event bars and month-view dots (`.swatch`, `.eBar`, `.cDot`) currently render with **no calendar colour at all**. `colorForCalendar()` is exported from `he-time.js` but consumed nowhere. This is a pre-existing cosmetic defect, independent of the Trusted Types work (the TT commits preserved these class names verbatim). Fixing it is a **visual change** (colours would start appearing) and should go through the owner's normal screenshot-and-approve review, applying the colour via the CSS object model (`element.style.setProperty`, as `renderSidebar` already does for group colours at ~line 676) with a `data-cal-color` attribute rather than a static class, since per-event colours cannot live in a static stylesheet. Not changed in this branch.
 
 **Every dynamic screen of the internal dashboard is now Trusted-Types-render-ready.** Turning enforcement on still requires installing a Trusted Types policy / `require-trusted-types-for 'script'` header and converting the four static overlay scaffolds; both remain as scoped follow-ups.
+
+---
+
+## Trusted Types endgame — report-only ceiling 0 (EXT20J-post-TT, 2026-10-18)
+
+The four static-literal overlay scaffolds that were the only remaining `innerHTML`
+assignments (the Guide, command-palette, keyboard-shortcuts and quick-add shells)
+were converted to the `h()` DOM builder. **`owner-login-app.js` now contains zero
+`innerHTML` assignments**, and the report-only `require-trusted-types-for 'script'`
+walk over every page measures **0 violations** (was 56 at EXT20 start, 4 after the
+dynamic cascade). `tests/specs/trusted-types-ext20.spec.js` CEILING is now 0, and
+because the count is 0 the ratchet also makes one deliberate `innerHTML` write and
+asserts the probe observes it (so a silently-disabled probe cannot pass as "0").
+
+Move-guard waivers for the four converted scaffold statements use each shell's
+unique card class (`helpCard` / `paletteCard` / `shortcutCard` / `quickAddCard`),
+which appears in both the old `class="x"` and new `class:'x'` form and nowhere
+else — a precise, non-brittle fragment.
+
+**Remaining for true browser enforcement:** only the hosting concern — serving a
+`require-trusted-types-for 'script'` (enforcing, not report-only) header /
+`<meta>` on GitHub Pages. The render side is complete: no code path reaches
+`innerHTML`.
+
+### Related post-TT hardening (same session)
+- **Calendar colour bug fixed** (`calendar: restore per-calendar colours`): the
+  invalid-CSS residue that made per-calendar colours never apply is removed; the
+  swatch / event-bar / month-dot colours are now applied via the CSS object model
+  (hex-guarded `data-cal-color`, the CSP-safe sidebar pattern). VISUAL CHANGE —
+  owner review before merge. Regression-tested in `calendar-owner.spec.js`.
+- **CSS structural scanner** (`tests/tools/css-lint.js`, `npm run css:check`,
+  `css-structure.spec.js`): catches the class of defect that caused the calendar
+  bug — JS template-literal / string-concat residue and brace imbalance in any
+  stylesheet.
+- **Generator combination fix**: `write-paths.js` now runs every requested output
+  flag (was an else-if chain that silently wrote one), with the other flag
+  generators audited and cleared.
+- **h() child-coercion contract tests** (`dom-builder-ext19.spec.js`): arrays
+  flatten one level, Nodes pass through, numbers render (0/NaN/Infinity never
+  silently dropped), only false/null/undefined skip.
