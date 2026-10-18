@@ -4,6 +4,44 @@ Status: **CURRENT.** One entry per production change, newest first. Each entry s
 
 Only changes that are already applied are recorded here. Fixes that are still waiting are not published in this public repository until they are applied.
 
+## 2026-10-18 · FIX 1B: `activity_timeline` follows the row rules of the tables it reads
+
+| | |
+|---|---|
+| Found by | read-only Queries G2 and G3 (2026-10-18). After FIX 1A, visitors who are not signed in were blocked, but the view still ran with its owner's rights and did not check who was asking, so every signed-in user could read all of its rows |
+| What the fix does | marks the view `security_invoker`: it now runs with the reader's rights, so the row-level security of `orders`, `tasks`, `approval_requests` and `ai_decision_log` applies. The owner still sees everything; other signed-in users see only rows they can already see in those tables |
+| Approved and run by | Stas (owner), in the Supabase SQL Editor of the production project `uizrazyehilyzmwttsrn` |
+| Tested before | local throwaway database shaped like production (same 33-check run as FIX 2): fix, rollback, re-apply |
+| Downtime | none |
+| Dashboard change | none: no dashboard page reads this view |
+| Result reported by the owner | Query G2 re-run after the change: all 16 views PASS, including `activity_timeline`. The profiles guard from FIX 2 is still in place. Claude has not yet seen this CSV file itself (it did not arrive); the result above is the owner's reading until the file is checked |
+
+SQL that was run:
+
+```sql
+begin;
+do $$
+begin
+  if to_regclass('public.activity_timeline') is null then
+    raise exception 'Stopped, nothing was changed: the view public.activity_timeline was not found.';
+  end if;
+end $$;
+alter view public.activity_timeline set (security_invoker = true);
+commit;
+select relname, reloptions from pg_class where oid = 'public.activity_timeline'::regclass;
+```
+
+Rollback, only if something goes wrong (the view runs with its owner's rights again, as before; FIX 1A stays in place):
+
+```sql
+begin;
+alter view public.activity_timeline reset (security_invoker);
+commit;
+select relname, reloptions from pg_class where oid = 'public.activity_timeline'::regclass;
+```
+
+**Security-fix round of 2026-10-18 (FIX 1A, FIX 2, FIX 1B): complete,** as reported by the owner. Still open and not part of this round: the wide default rights of the `anon` role found by Query G (G04, WARN), to be reviewed read-only first.
+
 ## 2026-10-18 · FIX 2: only the owner can change a person's role, break-glass access or account status
 
 | | |
@@ -120,4 +158,4 @@ select has_table_privilege('anon', 'public.activity_timeline', 'SELECT') as visi
 | V1, the other 15 views | PASS | **PASS** (unchanged) |
 | P1 (a separate item, not part of this change) | WARN | WARN (unchanged at that time; fixed later the same day by FIX 2, above) |
 
-**Still open for this view:** signed-in users still read it with the owner's rights (Query G2 is expected to show WARN, not FAIL). A follow-up change, FIX 1B (`security_invoker`), is prepared and tested. It waits for the owner's separate approval.
+**Still open for this view at that time:** signed-in users still read it with the owner's rights. Closed later the same day by FIX 1B, above.
