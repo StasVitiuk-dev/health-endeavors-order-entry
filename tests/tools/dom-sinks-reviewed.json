@@ -72,12 +72,6 @@
       "reason": "HTML string built just above with esc() around every data value"
     },
     {
-      "file": "assets/app/he-incidents.js",
-      "expr": "cutoffNote",
-      "count": 1,
-      "reason": "fixed hint markup with only numbers (array length / count) inside"
-    },
-    {
       "file": "assets/owner-login-app.js",
       "expr": "a.reason ? '<br><span class=\"u-fs-12 u-c-muted\">' + esc(a.reason) + '</span>' : ''",
       "count": 1,

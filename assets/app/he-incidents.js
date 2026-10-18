@@ -2,8 +2,8 @@
 // EXT15: moved unchanged out of assets/owner-login-app.js (initApp). Its inputs
 // arrive explicitly in ctx; it returns only what other code still uses. Map:
 // docs/ops/APPLICATION_MODULE_MAP_EXT15.md. Created once, by the app, in order.
-window.HE.modules.define('he-incidents', { api: 1, needs: ['CLOSED_IN','SEARCH_INDEX','esc','fixedRequestKey','fmtDate','isClosedStatus','isOverdue','isRequestKeyRepeat','requestKeysOn','showDashError','staleMessage','supabase','updateIfUnchanged','withRequestKey'] }, function (ctx) {
-    const { CLOSED_IN, SEARCH_INDEX, esc, fixedRequestKey, fmtDate, isClosedStatus, isOverdue, isRequestKeyRepeat, requestKeysOn, showDashError, staleMessage, supabase, updateIfUnchanged, withRequestKey } = ctx;
+window.HE.modules.define('he-incidents', { api: 1, needs: ['CLOSED_IN','SEARCH_INDEX','fixedRequestKey','fmtDate','h','isClosedStatus','isOverdue','isRequestKeyRepeat','requestKeysOn','showDashError','staleMessage','supabase','updateIfUnchanged','withRequestKey'] }, function (ctx) {
+    const { CLOSED_IN, SEARCH_INDEX, fixedRequestKey, fmtDate, h, isClosedStatus, isOverdue, isRequestKeyRepeat, requestKeysOn, showDashError, staleMessage, supabase, updateIfUnchanged, withRequestKey } = ctx;
     // "Escalate to Incident" for a quality check or a recall, at most once.
     // A tab opened earlier (or a second person) must not create a second
     // incident and silently re-point the record at it, leaving the first one
@@ -46,22 +46,26 @@ window.HE.modules.define('he-incidents', { api: 1, needs: ['CLOSED_IN','SEARCH_I
 
         const open = incidents.filter(i => !isClosedStatus(i.status));
         const truncated = count != null && count > incidents.length;
-        const cutoffNote = truncated
-          ? `<p class="hint u-m-0-0-8 u-c-warn">Showing the ${incidents.length} soonest-due of ${count} open incidents.</p>` : '';
+        // EXT20J: built as DOM nodes (h() text-ifies) instead of an HTML string,
+        // so the Incidents screen is safe under Trusted Types. An incident title
+        // or message can never become executable markup — it was esc()-ed before,
+        // and is now only ever a text node.
+        const cutoffNoteNode = truncated
+          ? h('p', { class: 'hint u-m-0-0-8 u-c-warn' }, `Showing the ${incidents.length} soonest-due of ${count} open incidents.`) : null;
         if (!open.length) {
-          document.getElementById('incidentsTableWrap').innerHTML = cutoffNote + '<p class="empty">No open incidents.</p>';
+          document.getElementById('incidentsTableWrap').replaceChildren(...[cutoffNoteNode, h('p', { class: 'empty' }, 'No open incidents.')].filter(Boolean));
         } else {
-          document.getElementById('incidentsTableWrap').innerHTML = `
-            ${cutoffNote}
-            <table class="phoneCards"><thead><tr><th>#</th><th>Title</th><th>Severity</th><th>Status</th><th>Due</th></tr></thead>
-            <tbody>${open.map(i => `
-              <tr class="${isOverdue(i.due_at, i.status) ? 'overdue' : ''}" data-id="${esc(i.id)}">
-                <td>${esc(i.incident_number || '—')}</td>
-                <td>${esc(i.title)}</td>
-                <td><span class="badge sev-${esc((i.severity||'').toLowerCase())}">${esc(i.severity || '—')}</span></td>
-                <td>${esc(i.status || '—')}</td>
-                <td>${esc(fmtDate(i.due_at))}</td>
-              </tr>`).join('')}</tbody></table>`;
+          document.getElementById('incidentsTableWrap').replaceChildren(...[cutoffNoteNode,
+            h('table', { class: 'phoneCards' },
+              h('thead', null, h('tr', null, h('th', null, '#'), h('th', null, 'Title'), h('th', null, 'Severity'), h('th', null, 'Status'), h('th', null, 'Due'))),
+              h('tbody', null, open.map(i =>
+                h('tr', { class: isOverdue(i.due_at, i.status) ? 'overdue' : '', 'data-id': i.id },
+                  h('td', null, i.incident_number || '—'),
+                  h('td', null, i.title),
+                  h('td', null, h('span', { class: 'badge sev-' + (i.severity || '').toLowerCase() }, i.severity || '—')),
+                  h('td', null, i.status || '—'),
+                  h('td', null, fmtDate(i.due_at))))))
+          ].filter(Boolean));
         }
       } catch (err) {
         showDashError('Could not load incidents: ' + (err && err.message ? err.message : err));

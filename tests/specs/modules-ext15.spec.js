@@ -45,7 +45,7 @@ const CHANGED = [
   // both the old and new name (the old statement is removed, the new one added):
   'loadApprovals', 'renderAgentRegistry', 'agentJobHealthHtml', 'agentJobHealthNode',
   'loadNightlyCheck', 'renderAttentionChecks', 'attnFreshnessHtml', 'attnFreshnessNodes',
-  'renderInquiries', 'loadTasks', 'loadRecentlyDoneTasks'];
+  'renderInquiries', 'loadTasks', 'loadRecentlyDoneTasks', 'loadIncidents'];
 const ADDED = ['setReportHistoryView', 'inquiriesList', 'agentControls', 'poReceiveOps',
   // EXT17: manual stock adjustments report to an explicit operation state (he-ops, repeatable)
   'adjustOps', 'adjustPending', 'adjustKey', 'checkUnknownAdjustment',
