@@ -45,13 +45,14 @@ const CHANGED = [
   // both the old and new name (the old statement is removed, the new one added):
   'loadApprovals', 'renderAgentRegistry', 'agentJobHealthHtml', 'agentJobHealthNode',
   'loadNightlyCheck', 'renderAttentionChecks', 'attnFreshnessHtml', 'attnFreshnessNodes',
-  'renderInquiries', 'loadTasks', 'loadRecentlyDoneTasks', 'loadIncidents', 'loadActivityAreas', 'docExpiryBadge'];
+  'renderInquiries', 'loadTasks', 'loadRecentlyDoneTasks', 'loadIncidents', 'loadActivityAreas', 'docExpiryBadge',
+  'loadDailySummary', 'loadFlags'];
 const ADDED = ['setReportHistoryView', 'inquiriesList', 'agentControls', 'poReceiveOps',
   // EXT17: manual stock adjustments report to an explicit operation state (he-ops, repeatable)
   'adjustOps', 'adjustPending', 'adjustKey', 'checkUnknownAdjustment',
   'openGroupsMem', 'pinnedMem'];
 const NEW_MODULES = ['he-ops']; // EXT16: written new, not moved
-const CHANGED_TEXT = ["} = window.HE.helpers;", "forEach(o => Object.setPrototypeOf(o, null))", "supabase.auth.onAuthStateChange((event, session) =>", "getAttribute('data-view')", "getElementById('adjustInventoryForm').addEventListener('submit'", "getElementById('logReturnForm').addEventListener('submit'", "getElementById('retOrder').addEventListener('change'", "Release to refresh"]; // the report-view buttons now call setReportHistoryView
+const CHANGED_TEXT = ["} = window.HE.helpers;", "forEach(o => Object.setPrototypeOf(o, null))", "supabase.auth.onAuthStateChange((event, session) =>", "getAttribute('data-view')", "getElementById('adjustInventoryForm').addEventListener('submit'", "getElementById('logReturnForm').addEventListener('submit'", "getElementById('retOrder').addEventListener('change'", "Release to refresh", "getElementById('docCategory')"]; // the report-view buttons now call setReportHistoryView
 
 test('the module moves were byte-identical: every original statement once, only the named edits differ', ({}, ti) => {
   nodeOnly(ti);

@@ -4703,8 +4703,8 @@
     (function initDocCategorySelect(){
       const sel = document.getElementById('docCategory');
       if (sel) {
-        sel.innerHTML = '<option value="">Category…</option>' +
-          Object.entries(DOCUMENT_CATEGORY_LABELS).map(([k, v]) => `<option value="${esc(k)}">${esc(v)}</option>`).join('');
+        sel.replaceChildren(h('option', { value: '' }, 'Category…'),
+          ...Object.entries(DOCUMENT_CATEGORY_LABELS).map(([k, v]) => h('option', { value: k }, v)));
       }
     })();
 
@@ -5283,18 +5283,17 @@
           document.getElementById('inventoryAdjustmentsWrap').replaceChildren(h('p', { class: 'empty' }, 'No adjustments logged yet.'));
           return;
         }
-        document.getElementById('inventoryAdjustmentsWrap').innerHTML = adjustments.map(a => {
+        // EXT20J: built as DOM nodes (h() text-ifies) instead of an HTML string.
+        const adjRow = a => {
           const productLabel = a.products ? (a.products.name + (a.products.sku ? ' (' + a.products.sku + ')' : '')) : 'Unknown product';
           const sign = Number(a.change_amount) > 0 ? '+' : '';
-          return `
-            <div class="deletedRow">
-              <div class="info">
-                <b>${esc(productLabel)}</b> — ${esc(INVENTORY_BUCKET_LABELS[a.bucket] || a.bucket)}: ${sign}${Number(a.change_amount)}
-                ${a.reason ? '<br><span class="u-fs-12 u-c-muted">' + esc(a.reason) + '</span>' : ''}
-                <br><span class="u-fs-11 u-c-muted">${esc(fmtDate(a.adjusted_at))}</span>
-              </div>
-            </div>`;
-        }).join('');
+          return h('div', { class: 'deletedRow' },
+            h('div', { class: 'info' },
+              h('b', null, productLabel), ' — ' + (INVENTORY_BUCKET_LABELS[a.bucket] || a.bucket) + ': ' + sign + Number(a.change_amount),
+              ...(a.reason ? [h('br'), h('span', { class: 'u-fs-12 u-c-muted' }, a.reason)] : []),
+              h('br'), h('span', { class: 'u-fs-11 u-c-muted' }, fmtDate(a.adjusted_at))));
+        };
+        document.getElementById('inventoryAdjustmentsWrap').replaceChildren(...adjustments.map(adjRow));
         appendMore('inventoryAdjustmentsWrap', 'invAdj', adjustments.length, count, 'adjustments', loadInventoryAdjustments);
       } catch (err) {
         showDashError('Could not load inventory adjustments: ' + (err && err.message ? err.message : err));
@@ -5886,8 +5885,8 @@
           orderItemSelect.replaceChildren(new Option('No line items found on this order', ''));
           return;
         }
-        orderItemSelect.innerHTML = '<option value="">Which item…</option>' +
-          items.map(it => `<option value="${esc(it.id)}">${esc(it.product_name || it.sku || it.id)}${it.sku ? ' (' + esc(it.sku) + ')' : ''} — Qty ${esc(it.quantity)}</option>`).join('');
+        orderItemSelect.replaceChildren(h('option', { value: '' }, 'Which item…'),
+          ...items.map(it => h('option', { value: it.id }, (it.product_name || it.sku || it.id) + (it.sku ? ' (' + it.sku + ')' : '') + ' — Qty ' + it.quantity)));
         orderItemSelect.disabled = false;
       } catch (err) {
         showDashError("Could not load that order's items: " + (err && err.message ? err.message : err));
