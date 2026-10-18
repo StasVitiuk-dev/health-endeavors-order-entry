@@ -21,7 +21,7 @@ Branch `claude/platform-ext20-adversarial-completion-2026-10-13`, head `e775f5c`
 | secrets:scan | PASS (689 files, no credential-like text) |
 | security:quick | PASS (25 Node security specs, 42s) |
 | High-risk browser spec group (auth-chaos, double-submit-stale, inventory-safety, login-session, operator-safety, reauth-double-submit, role-matrix, session-expiry, session-failures, session-security, stale-tab-gaps, write-path-inventory, concurrent-operators) | **144 passed, 12 skipped, 0 failed** (3.9 min) |
-| Full local DB suite (localhost:5433) | running at time of writing; 25+ steps PASS, 0 FAIL so far (includes drift check / Query H, report-totals rollback, random interleavings seed 909) |
+| Full local DB suite (localhost:5433) | **34 steps PASS, 0 FAIL** (604s): includes SQL mutations, request keys at 10k/100k, integrity at volume, random interleavings (seed 909), drift check / Query H, report-totals rollback |
 
 ## Security-model scripts (EXT20B/C) re-run on the current head
 
