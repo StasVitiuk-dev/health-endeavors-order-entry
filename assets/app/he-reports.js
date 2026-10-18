@@ -2,8 +2,8 @@
 // EXT15: moved unchanged out of assets/owner-login-app.js (initApp). Its inputs
 // arrive explicitly in ctx; it returns only what other code still uses. Map:
 // docs/ops/APPLICATION_MODULE_MAP_EXT15.md. Created once, by the app, in order.
-window.HE.modules.define('he-reports', { api: 1, needs: ['esc','fmtDateOnly','fmtMoney','localDateString','missingToNaN','monthGroupLabel','reportCount','rollupReports','showDashError','startOfWeekMonday','supabase','weekGroupLabel'] }, function (ctx) {
-    const { esc, fmtDateOnly, fmtMoney, localDateString, missingToNaN, monthGroupLabel, reportCount, rollupReports, showDashError, startOfWeekMonday, supabase, weekGroupLabel } = ctx;
+window.HE.modules.define('he-reports', { api: 1, needs: ['fmtDateOnly','fmtMoney','h','localDateString','missingToNaN','monthGroupLabel','reportCount','rollupReports','showDashError','startOfWeekMonday','supabase','weekGroupLabel'] }, function (ctx) {
+    const { fmtDateOnly, fmtMoney, h, localDateString, missingToNaN, monthGroupLabel, reportCount, rollupReports, showDashError, startOfWeekMonday, supabase, weekGroupLabel } = ctx;
     // Report History: browse the nightly automatic snapshots saved into
     // daily_reports by the scheduled database job (separate from the live
     // Daily Summary above, which is always computed fresh on page load).
@@ -41,23 +41,24 @@ window.HE.modules.define('he-reports', { api: 1, needs: ['esc','fmtDateOnly','fm
           .map(g => ({ ...g, emailed: '—' }));
       }
 
-      wrap.innerHTML = `
-        <table class="phoneCards"><thead><tr>
-          <th>${esc(firstColLabel)}</th><th>Orders</th><th>Revenue</th><th>New questions</th>
-          <th>Tasks opened</th><th>Incidents opened</th><th>AI calls</th><th>AI cost</th><th>Emailed</th>
-        </tr></thead>
-        <tbody>${rows.map(r => `
-          <tr>
-            <td>${esc(r.label)}</td>
-            <td>${reportCount(r.orders_count)}</td>
-            <td>${esc(fmtMoney(r.revenue, r.currency || 'USD'))}</td>
-            <td>${reportCount(r.new_inquiries_count)}</td>
-            <td>${reportCount(r.tasks_opened_count)}</td>
-            <td>${reportCount(r.incidents_opened_count)}</td>
-            <td>${reportCount(r.ai_calls_count)}</td>
-            <td>${esc(fmtMoney(r.ai_cost, 'USD'))}</td>
-            <td>${esc(r.emailed)}</td>
-          </tr>`).join('')}</tbody></table>`;
+      // EXT20J: built as DOM nodes (h() text-ifies) instead of an HTML string, so
+      // the Report History is safe under Trusted Types. Missing values stay '?'
+      // (reportCount), never zero; values were already esc()-ed, now text nodes.
+      wrap.replaceChildren(h('table', { class: 'phoneCards' },
+        h('thead', null, h('tr', null,
+          h('th', null, firstColLabel), h('th', null, 'Orders'), h('th', null, 'Revenue'), h('th', null, 'New questions'),
+          h('th', null, 'Tasks opened'), h('th', null, 'Incidents opened'), h('th', null, 'AI calls'), h('th', null, 'AI cost'), h('th', null, 'Emailed'))),
+        h('tbody', null, rows.map(r =>
+          h('tr', null,
+            h('td', null, r.label),
+            h('td', null, reportCount(r.orders_count)),
+            h('td', null, fmtMoney(r.revenue, r.currency || 'USD')),
+            h('td', null, reportCount(r.new_inquiries_count)),
+            h('td', null, reportCount(r.tasks_opened_count)),
+            h('td', null, reportCount(r.incidents_opened_count)),
+            h('td', null, reportCount(r.ai_calls_count)),
+            h('td', null, fmtMoney(r.ai_cost, 'USD')),
+            h('td', null, r.emailed))))));
     }
 
     async function loadReportHistory(){
