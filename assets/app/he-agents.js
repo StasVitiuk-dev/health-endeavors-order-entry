@@ -2,8 +2,8 @@
 // EXT15: moved unchanged out of assets/owner-login-app.js (initApp). Its inputs
 // arrive explicitly in ctx; it returns only what other code still uses. Map:
 // docs/ops/APPLICATION_MODULE_MAP_EXT15.md. Created once, by the app, in order.
-window.HE.modules.define('he-agents', { api: 1, needs: ['AGENT_REGISTRY','AGENT_STALE_AFTER_HOURS','currentUserId','esc','fmtDate','h','maskSensitive','requireReauth','showDashError','staleMessage','supabase','toast','updateIfUnchanged'] }, function (ctx) {
-    const { AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, currentUserId, esc, fmtDate, h, maskSensitive, requireReauth, showDashError, staleMessage, supabase, toast, updateIfUnchanged } = ctx;
+window.HE.modules.define('he-agents', { api: 1, needs: ['AGENT_REGISTRY','AGENT_STALE_AFTER_HOURS','currentUserId','fmtDate','h','maskSensitive','requireReauth','showDashError','staleMessage','supabase','toast','updateIfUnchanged'] }, function (ctx) {
+    const { AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, currentUserId, fmtDate, h, maskSensitive, requireReauth, showDashError, staleMessage, supabase, toast, updateIfUnchanged } = ctx;
     let agentControlsByNum = Object.create(null);
     // EXT15: read access for Home, System status and Business Health. Read at the
     // moment of use (never copied before an await): loadAgentControls() may update them.

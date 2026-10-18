@@ -2,8 +2,8 @@
 // EXT15: moved unchanged out of assets/owner-login-app.js (initApp). Its inputs
 // arrive explicitly in ctx; it returns only what other code still uses. Map:
 // docs/ops/APPLICATION_MODULE_MAP_EXT15.md. Created once, by the app, in order.
-window.HE.modules.define('he-approvals', { api: 1, needs: ['CLOSED_IN','SEARCH_INDEX','esc','fmtDate','h','isClosedStatus','requireReauth','showDashError','staleMessage','supabase','updateIfUnchanged'] }, function (ctx) {
-    const { CLOSED_IN, SEARCH_INDEX, esc, fmtDate, h, isClosedStatus, requireReauth, showDashError, staleMessage, supabase, updateIfUnchanged } = ctx;
+window.HE.modules.define('he-approvals', { api: 1, needs: ['CLOSED_IN','SEARCH_INDEX','fmtDate','h','isClosedStatus','requireReauth','showDashError','staleMessage','supabase','updateIfUnchanged'] }, function (ctx) {
+    const { CLOSED_IN, SEARCH_INDEX, fmtDate, h, isClosedStatus, requireReauth, showDashError, staleMessage, supabase, updateIfUnchanged } = ctx;
     async function loadApprovals(){
       try {
         const { data: reqs, error, count } = await supabase
