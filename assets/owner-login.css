@@ -1027,8 +1027,6 @@ table.sysStatus td{ overflow-wrap:anywhere; }
 .u-b-1-solid-xcfd8d6{border:1px solid #cfd8d6 !important}
 .u-b-1-solid-xf2d999{border:1px solid #f2d999 !important}
 .u-bb-1-solid-line{border-bottom:1px solid var(--line) !important}
-.u-bg-colorforcalendar-ev-calendar-name{background:' + colorForCalendar(ev.calendar_name) + ' !important}
-.u-bg-colorforcalendar-n{background:' + colorForCalendar(n) + ' !important}
 .u-bg-paneln2{background:var(--panel-2) !important}
 .u-bg-xf4f7f6{background:#f4f7f6 !important}
 .u-bg-xfdecea{background:#fdecea !important}

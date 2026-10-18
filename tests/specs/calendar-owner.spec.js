@@ -111,3 +111,37 @@ test.describe('calendar edits made elsewhere are never overwritten', () => {
     expect(p.get('note')).toBe('eq.SYNTHETIC old note');
   });
 });
+
+// EXT20J-post-TT: the per-calendar colours (event bar, month dot, filter swatch)
+// are applied through the CSS object model from data-cal-color, hex-guarded —
+// the old static .u-bg-colorforcalendar-* classes were invalid CSS (leftover
+// template-literal text) and never painted anything. VISUAL CHANGE — owner
+// review before merge.
+test('calendar colours: event bars and filter swatches get a real background colour', async ({ page }) => {
+  // Day view is already open (beforeEach). The event bar carries a hex and a painted colour.
+  const bar = page.locator('#calBody .calEvent[data-uid="uid-work"] .eBar');
+  await expect(bar).toHaveAttribute('data-cal-color', /^#[0-9a-fA-F]{3,8}$/);
+  const barBg = await bar.evaluate(el => getComputedStyle(el).backgroundColor);
+  expect(barBg).not.toBe('rgba(0, 0, 0, 0)');
+  expect(barBg).not.toBe('transparent');
+  // An active (not "off") filter chip swatch is painted too.
+  const swatch = page.locator('#calFilters .calChipBtn:not(.off) .swatch').first();
+  await expect(swatch).toHaveAttribute('data-cal-color', /^#[0-9a-fA-F]{3,8}$/);
+  const swBg = await swatch.evaluate(el => getComputedStyle(el).backgroundColor);
+  expect(swBg).not.toBe('rgba(0, 0, 0, 0)');
+  // Month view: the per-event dots are painted as well.
+  await page.locator('#calViewToggle button[data-calview="month"]').click();
+  const dot = page.locator('#calBody .calChip .cDot').first();
+  await expect(dot).toHaveAttribute('data-cal-color', /^#[0-9a-fA-F]{3,8}$/);
+  const dotBg = await dot.evaluate(el => getComputedStyle(el).backgroundColor);
+  expect(dotBg).not.toBe('rgba(0, 0, 0, 0)');
+});
+
+test('calendar CSS carries no leftover template-literal residue (the old colour bug)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const css = fs.readFileSync(path.resolve(__dirname, '..', '..', 'assets', 'owner-login.css'), 'utf8');
+  expect(css).not.toContain('colorForCalendar(');
+  expect(css).not.toContain("' + ");
+  expect(css).not.toContain('u-bg-colorforcalendar');
+});

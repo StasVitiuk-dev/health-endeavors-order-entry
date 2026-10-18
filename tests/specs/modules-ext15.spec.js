@@ -62,7 +62,10 @@ const CHANGED = [
 const ADDED = ['setReportHistoryView', 'inquiriesList', 'agentControls', 'poReceiveOps',
   // EXT17: manual stock adjustments report to an explicit operation state (he-ops, repeatable)
   'adjustOps', 'adjustPending', 'adjustKey', 'checkUnknownAdjustment',
-  'openGroupsMem', 'pinnedMem'];
+  'openGroupsMem', 'pinnedMem',
+  // EXT20J-post-TT: paints per-calendar colours via the CSS object model (the
+  // static u-bg-colorforcalendar-* classes were invalid CSS and never applied)
+  'paintCalColors'];
 const NEW_MODULES = ['he-ops']; // EXT16: written new, not moved
 const CHANGED_TEXT = ["} = window.HE.helpers;", "forEach(o => Object.setPrototypeOf(o, null))", "supabase.auth.onAuthStateChange((event, session) =>", "getAttribute('data-view')", "getElementById('adjustInventoryForm').addEventListener('submit'", "getElementById('logReturnForm').addEventListener('submit'", "getElementById('retOrder').addEventListener('change'", "Release to refresh", "getElementById('docCategory')"]; // the report-view buttons now call setReportHistoryView
 

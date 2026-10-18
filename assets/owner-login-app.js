@@ -89,7 +89,7 @@
     const { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
     const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, h, supabase });
     const { environmentLabel, assetVersions, isMissingRelation, dbStepsStatus, NIGHTLY_STALE_MS, ATTN_STALE_MS, attnSeenGet, attnSeenSet, attnSignature } = HE.modules.create('he-status', { DB_STEPS, STOCK_FN_PROBES, SUPABASE_URL, stockFunctionInstalled, supabase });
-    const { getTodayRange, getYesterdayRange, dateKey, eventDateKey, fmtTimeShort, personalEventEditorHtml, personalTimesFromInputs, PERSONAL_CAL_HINT, weekGroupLabel, monthGroupLabel } = HE.modules.create('he-time', { CAL_COLORS, h });
+    const { getTodayRange, getYesterdayRange, colorForCalendar, dateKey, eventDateKey, fmtTimeShort, personalEventEditorHtml, personalTimesFromInputs, PERSONAL_CAL_HINT, weekGroupLabel, monthGroupLabel } = HE.modules.create('he-time', { CAL_COLORS, h });
     const { missingToNaN, reportCount, missingTotalCount, missingTotalNote, mixedCurrencyNote, docExpiryBadge, inqStatusBadgeClass, continuityBadgeClass, qcIncidentCategory, numVal, CLOSED_IN } = HE.modules.create('he-format', { CLOSED_WORDS, fmtDateOnly, h });
     const { isGroupOpen, setGroupOpen, getPinnedPages, setPinnedPages, allPageIds, getLastPage, pageFromHash, saveLastPage, PAGE_WARNINGS, PAGE_LABEL_BY_ID, NAV_BACK, NAV_FWD, rowsOnPage, typedForms, NOT_GUARDED_FORMS, hasUnsavedTyping, CHANGE_PASSWORD_URL, SIGNED_OUT_NOTE } = HE.modules.create('he-nav', { SIDEBAR_GROUPS });
     const { loadTasks } = HE.modules.create('he-tasks', { CLOSED_IN, SEARCH_INDEX, TASK_ALLOWED_FROM, TASK_NEXT_ACTIONS, TASK_STATUS_LABELS, explainDbError, fmtDate, h, isClosedStatus, isOverdue, showDashError, supabase });
@@ -3340,6 +3340,15 @@
       return calEvents.filter(ev => !calHidden.has(ev.calendar_name || 'Other'));
     }
 
+    // EXT20J: apply each element's data-cal-color as a background through the CSS
+    // object model (not a static class), hex-guarded, so it is safe under the
+    // style-src 'self' CSP (same approach as renderSidebar's group colours).
+    function paintCalColors(root){
+      root.querySelectorAll('[data-cal-color]').forEach(el => {
+        const c = el.getAttribute('data-cal-color');
+        if (/^#[0-9a-fA-F]{3,8}$/.test(c)) el.style.backgroundColor = c;
+      });
+    }
     function renderCalFilters(){
       const names = [...new Set(calEvents.map(ev => ev.calendar_name || 'Other'))].sort();
       const box = document.getElementById('calFilters');
@@ -3349,8 +3358,14 @@
       box.replaceChildren(...names.map(n => {
         const off = calHidden.has(n);
         return h('button', { type: 'button', class: 'calChipBtn' + (off ? ' off' : ''), 'data-cal': n },
-          h('span', { class: 'swatch u-bg-colorforcalendar-n' }), n);
+          h('span', { class: 'swatch', 'data-cal-color': colorForCalendar(n) }), n);
       }));
+      // EXT20J: paint the per-calendar swatch colour through the CSS object model
+      // (hex-guarded), the same CSP-safe pattern renderSidebar uses for group
+      // colours — the static u-bg-colorforcalendar-* classes were invalid CSS and
+      // never applied. An "off" chip keeps its muted swatch (its !important rule
+      // outranks this non-important inline colour).
+      paintCalColors(box);
       box.querySelectorAll('.calChipBtn').forEach(btn => {
         btn.addEventListener('click', () => {
           const n = btn.getAttribute('data-cal');
@@ -3373,7 +3388,7 @@
         : [fmtTimeShort(ev.starts_at), ...(ev.ends_at && !ev.all_day ? [h('br'), h('span', { class: 'u-op-65' }, fmtTimeShort(ev.ends_at))] : [])];
       return h('div', { class: 'calEvent' + (open ? ' selected' : ''), 'data-uid': ev.uid },
         h('div', { class: 'eTime' }, ...timeKids),
-        h('div', { class: 'eBar u-bg-colorforcalendar-ev-calendar-name' }),
+        h('div', { class: 'eBar', 'data-cal-color': colorForCalendar(ev.calendar_name) }),
         h('div', { class: 'eBody' },
           h('div', { class: 'eTitle' }, ev.summary || 'Event'),
           ev.location ? h('div', { class: 'eSub' }, ev.location) : null,
@@ -3460,7 +3475,7 @@
           },
             h('div', { class: 'dNum' }, d.getDate()),
             ...shown.map(ev => h('span', { class: 'calChip', title: ev.summary || 'Event' },
-              h('span', { class: 'cDot u-bg-colorforcalendar-ev-calendar-name' }),
+              h('span', { class: 'cDot', 'data-cal-color': colorForCalendar(ev.calendar_name) }),
               h('span', { class: 'cText' }, ev.summary || 'Event'))),
             evs.length > shown.length ? h('div', { class: 'calMore' }, '+' + (evs.length - shown.length) + ' more') : null));
         }
@@ -3472,6 +3487,7 @@
           });
         });
       }
+      paintCalColors(body); // EXT20J: event bars / month-cell dots get their per-calendar colour
       wireCalEvents();
     }
 
