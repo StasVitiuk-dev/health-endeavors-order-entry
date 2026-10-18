@@ -2,8 +2,8 @@
 // EXT15: moved unchanged out of assets/owner-login-app.js (initApp). Its inputs
 // arrive explicitly in ctx; it returns only what other code still uses. Map:
 // docs/ops/APPLICATION_MODULE_MAP_EXT15.md. Created once, by the app, in order.
-window.HE.modules.define('he-audit', { api: 1, needs: ['ACTIVITY_AREA_LABELS','PANEL_RECORD_TABLE','RECORD_ID_ATTRS','RECORD_TITLE_KEYS','esc','supabase'] }, function (ctx) {
-    const { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, esc, supabase } = ctx;
+window.HE.modules.define('he-audit', { api: 1, needs: ['ACTIVITY_AREA_LABELS','PANEL_RECORD_TABLE','RECORD_ID_ATTRS','RECORD_TITLE_KEYS','esc','h','supabase'] }, function (ctx) {
+    const { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, esc, h, supabase } = ctx;
     function recordTitle(r){
       const nd = r.new_data || {};
       const od = r.old_data || {};
@@ -108,9 +108,9 @@ window.HE.modules.define('he-audit', { api: 1, needs: ['ACTIVITY_AREA_LABELS','P
         if (error) throw error;
         const sel = document.getElementById('activityArea');
         const current = sel.value;
-        sel.innerHTML = '<option value="">All areas</option>' + (data || []).map(a =>
-          `<option value="${esc(a.table_name)}">${esc(ACTIVITY_AREA_LABELS[a.table_name] || a.area)} (${Number(a.entries)})</option>`
-        ).join('');
+        // EXT20J: built as DOM nodes (h() text-ifies) instead of an HTML string.
+        sel.replaceChildren(h('option', { value: '' }, 'All areas'), ...(data || []).map(a =>
+          h('option', { value: a.table_name }, (ACTIVITY_AREA_LABELS[a.table_name] || a.area) + ' (' + Number(a.entries) + ')')));
         sel.value = current;
       } catch (err) { /* dropdown just stays as "All areas" */ }
     }
@@ -140,13 +140,15 @@ window.HE.modules.define('he-audit', { api: 1, needs: ['ACTIVITY_AREA_LABELS','P
           areaCount[a] = (areaCount[a] || 0) + 1;
         });
         const top = Object.keys(areaCount).sort((a, b) => areaCount[b] - areaCount[a]).slice(0, 3)
-          .map(a => `${esc(a)} (${areaCount[a]})`).join(', ');
+          .map(a => `${a} (${areaCount[a]})`).join(', ');
         const deletes = rows.filter(r => r.action === 'DELETE').length;
         el.style.display = 'block';
-        el.innerHTML = `<b>Today:</b> ${rows.length}${atCap ? '+' : ''} change${rows.length === 1 ? '' : 's'}` +
-          ` · ${people.size} ${people.size === 1 ? 'person' : 'people'} signed in` +
-          (deletes ? ` · <span class="u-c-danger u-fw-600">${deletes} deletion${deletes === 1 ? '' : 's'}</span>` : '') +
-          (top ? ` · busiest: ${top}` : '');
+        // EXT20J: built as DOM nodes (h() text-ifies) instead of an HTML string.
+        el.replaceChildren(
+          h('b', null, 'Today:'),
+          ` ${rows.length}${atCap ? '+' : ''} change${rows.length === 1 ? '' : 's'} · ${people.size} ${people.size === 1 ? 'person' : 'people'} signed in`,
+          ...(deletes ? [' · ', h('span', { class: 'u-c-danger u-fw-600' }, `${deletes} deletion${deletes === 1 ? '' : 's'}`)] : []),
+          ...(top ? [` · busiest: ${top}`] : []));
       } catch (err) { /* the digest is a nicety, never block the page on it */ }
     }
 

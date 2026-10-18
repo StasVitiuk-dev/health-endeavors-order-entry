@@ -6,24 +6,6 @@
   },
   "interpolations": [
     {
-      "file": "assets/app/he-audit.js",
-      "expr": "deletes",
-      "count": 1,
-      "reason": "a number counted in code (filter().length / reduce / Set size / day difference)"
-    },
-    {
-      "file": "assets/app/he-audit.js",
-      "expr": "people.size",
-      "count": 1,
-      "reason": "a number counted in code (filter().length / reduce / Set size / day difference)"
-    },
-    {
-      "file": "assets/app/he-audit.js",
-      "expr": "top",
-      "count": 1,
-      "reason": "HTML string built just above with esc() around every data value"
-    },
-    {
       "file": "assets/app/he-compliance.js",
       "expr": "daysLeft",
       "count": 1,
