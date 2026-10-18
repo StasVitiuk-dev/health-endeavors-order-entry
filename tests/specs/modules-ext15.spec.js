@@ -65,9 +65,15 @@ const ADDED = ['setReportHistoryView', 'inquiriesList', 'agentControls', 'poRece
   'openGroupsMem', 'pinnedMem',
   // EXT20J-post-TT: paints per-calendar colours via the CSS object model (the
   // static u-bg-colorforcalendar-* classes were invalid CSS and never applied)
-  'paintCalColors'];
+  'paintCalColors',
+  // EXT20J-post-TT: tiny builders for the (now DOM-node) keyboard-shortcut grid
+  'scKbd', 'scRow'];
 const NEW_MODULES = ['he-ops']; // EXT16: written new, not moved
-const CHANGED_TEXT = ["} = window.HE.helpers;", "forEach(o => Object.setPrototypeOf(o, null))", "supabase.auth.onAuthStateChange((event, session) =>", "getAttribute('data-view')", "getElementById('adjustInventoryForm').addEventListener('submit'", "getElementById('logReturnForm').addEventListener('submit'", "getElementById('retOrder').addEventListener('change'", "Release to refresh", "getElementById('docCategory')"]; // the report-view buttons now call setReportHistoryView
+const CHANGED_TEXT = ["} = window.HE.helpers;", "forEach(o => Object.setPrototypeOf(o, null))", "supabase.auth.onAuthStateChange((event, session) =>", "getAttribute('data-view')", "getElementById('adjustInventoryForm').addEventListener('submit'", "getElementById('logReturnForm').addEventListener('submit'", "getElementById('retOrder').addEventListener('change'", "Release to refresh", "getElementById('docCategory')",
+  // EXT20J-post-TT: the 4 static overlay scaffolds converted innerHTML->h(); each
+  // card class is unique to its statement and present in both the old class="x"
+  // and the new class:'x' form, so it waives exactly that one statement.
+  'helpCard', 'paletteCard', 'shortcutCard', 'quickAddCard']; // the report-view buttons now call setReportHistoryView
 
 test('the module moves were byte-identical: every original statement once, only the named edits differ', ({}, ti) => {
   nodeOnly(ti);

@@ -10,7 +10,7 @@ const path = require('path');
 const { test, expect, login, gotoPage } = require('../helpers/dashboard');
 const ROOT = path.join(__dirname, '..', '..');
 
-const CEILING = 4; // EXT17/18: 168 · EXT19: 86 · EXT20: 56 · EXT20J: 4 (the dynamic-sink cascade is complete; the only report-only violations left are the 4 static-literal overlay scaffolds — help, command palette, keyboard shortcuts, quick-add — which carry no dynamic data)
+const CEILING = 0; // EXT17/18: 168 · EXT19: 86 · EXT20: 56 · EXT20J: 4 · EXT20J-post-TT: 0 (every dynamic sink AND the 4 static overlay scaffolds are now DOM-node builds, so the whole owner page raises no report-only Trusted Types violation on any screen)
 
 test.beforeEach(({}, ti) => { test.skip(ti.project.name !== 'desktop', 'one browser size is enough'); });
 
@@ -28,8 +28,18 @@ test(`Trusted Types report-only violations stay at or below ${CEILING} across ev
   for (const id of ids) await gotoPage(page, id);
   await page.waitForLoadState('networkidle');
   const v = await page.evaluate(() => window.__tt);
-  expect(v.length, 'violations: ' + v.join(' ')).toBeLessThanOrEqual(CEILING);
-  expect(v.length, 'the probe must see the remaining violations (it is not silently off)').toBeGreaterThan(0);
+  expect(v.length, 'violations: ' + v.join(' ')).toBe(CEILING);
+  // The count is now 0, so prove the probe is actually live (the report-only
+  // policy is applied and the listener fires) by making one deliberate innerHTML
+  // write and confirming it is observed — otherwise a silently-off probe could
+  // also report 0.
+  const probed = await page.evaluate(async () => {
+    const before = window.__tt.length;
+    try { document.createElement('div').innerHTML = '<b>probe</b>'; } catch (e) { /* enforcement would throw; report-only does not */ }
+    await new Promise(r => setTimeout(r, 100)); // the securitypolicyviolation event dispatches asynchronously
+    return window.__tt.length - before;
+  });
+  expect(probed, 'the report-only Trusted Types probe must observe a deliberate innerHTML write').toBeGreaterThan(0);
 });
 
 test('toasts: 2,000 hostile messages are shown as text; nothing runs', async ({ page }) => {

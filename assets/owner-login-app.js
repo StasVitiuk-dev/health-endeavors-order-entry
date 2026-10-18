@@ -844,10 +844,15 @@
     helpOverlay.id = 'helpOverlay';
     // Announced as a dialog by screen readers (EXT3).
     helpOverlay.setAttribute('role', 'dialog'); helpOverlay.setAttribute('aria-modal', 'true'); helpOverlay.setAttribute('aria-label', 'Guide');
-    helpOverlay.innerHTML = '<div class="helpCard"><h3 id="helpTitle"></h3>' +
-      '<div class="helpWhere" id="helpWhere"></div><div id="helpBody"></div>' +
-      '<div class="helpFoot"><button type="button" class="small" id="helpGoBtn">Take me there</button>' +
-      '<button type="button" class="small secondary" id="helpCloseBtn">Close</button></div></div>';
+    // EXT20J-post-TT: overlay scaffold built as DOM nodes (no innerHTML), so it
+    // raises no Trusted Types violation even under strict enforcement.
+    helpOverlay.replaceChildren(h('div', { class: 'helpCard' },
+      h('h3', { id: 'helpTitle' }),
+      h('div', { class: 'helpWhere', id: 'helpWhere' }),
+      h('div', { id: 'helpBody' }),
+      h('div', { class: 'helpFoot' },
+        h('button', { type: 'button', class: 'small', id: 'helpGoBtn' }, 'Take me there'),
+        h('button', { type: 'button', class: 'small secondary', id: 'helpCloseBtn' }, 'Close'))));
     document.body.appendChild(helpOverlay);
     let HELP_CURRENT = null;
     function openHelp(entry){
@@ -868,13 +873,14 @@
     paletteOverlay.id = 'paletteOverlay';
     // Announced as a dialog by screen readers (EXT3).
     paletteOverlay.setAttribute('role', 'dialog'); paletteOverlay.setAttribute('aria-modal', 'true'); paletteOverlay.setAttribute('aria-label', 'Search and commands');
-    paletteOverlay.innerHTML =
-      '<div class="paletteCard">' +
-        '<input type="text" id="paletteInput" placeholder="Jump to a page or record, or ask how something works\u2026" autocomplete="off" spellcheck="false">' +
-        '<div id="paletteResults"></div>' +
-        '<div class="paletteFoot"><span><kbd>\u2191</kbd><kbd>\u2193</kbd> move</span>' +
-        '<span><kbd>\u21A9</kbd> open</span><span><kbd>esc</kbd> close</span></div>' +
-      '</div>';
+    // EXT20J-post-TT: built as DOM nodes (no innerHTML).
+    paletteOverlay.replaceChildren(h('div', { class: 'paletteCard' },
+      h('input', { type: 'text', id: 'paletteInput', placeholder: 'Jump to a page or record, or ask how something works\u2026', autocomplete: 'off', spellcheck: 'false' }),
+      h('div', { id: 'paletteResults' }),
+      h('div', { class: 'paletteFoot' },
+        h('span', null, h('kbd', null, '\u2191'), h('kbd', null, '\u2193'), ' move'),
+        h('span', null, h('kbd', null, '\u21A9'), ' open'),
+        h('span', null, h('kbd', null, 'esc'), ' close'))));
     document.body.appendChild(paletteOverlay);
     let PAL_ITEMS = [], PAL_SEL = 0;
 
@@ -976,36 +982,40 @@
     shortcutOverlay.id = 'shortcutOverlay';
     // Announced as a dialog by screen readers (EXT3).
     shortcutOverlay.setAttribute('role', 'dialog'); shortcutOverlay.setAttribute('aria-modal', 'true'); shortcutOverlay.setAttribute('aria-label', 'Keyboard shortcuts');
-    shortcutOverlay.innerHTML =
-      '<div class="shortcutCard"><h3>Keyboard shortcuts</h3><div class="scGrid">' +
-      '<div class="scGroup"><h4>Anywhere</h4>' +
-        '<div class="scRow"><span>Command palette</span><span><kbd>\u2318</kbd><kbd>K</kbd></span></div>' +
-        '<div class="scRow"><span>Search pages</span><span><kbd>/</kbd></span></div>' +
-        '<div class="scRow"><span>This list</span><span><kbd>?</kbd></span></div>' +
-        '<div class="scRow"><span>Refresh data</span><span><kbd>\u2318</kbd><kbd>\u21E7</kbd><kbd>R</kbd></span></div>' +
-        '<div class="scRow"><span>Close anything</span><span><kbd>esc</kbd></span></div>' +
-        '<div class="scRow"><span>Back / forward</span><span><kbd>\u2318</kbd><kbd>[</kbd> <kbd>\u2318</kbd><kbd>]</kbd></span></div>' +
-        '<div class="scRow"><span>New reminder</span><span><kbd>\u2318</kbd><kbd>N</kbd></span></div>' +
-        '<div class="scRow"><span>Jump to pinned page</span><span><kbd>\u2318</kbd><kbd>1</kbd>\u2013<kbd>9</kbd></span></div>' +
-        '<div class="scRow"><span>Move through rows</span><span><kbd>J</kbd><kbd>K</kbd></span></div>' +
-        '<div class="scRow"><span>Open the row</span><span><kbd>\u21A9</kbd></span></div>' +
-        '<div class="scRow"><span>Inspect a record</span><span><kbd>space</kbd></span></div>' +
-        '<div class="scRow"><span>Ask the guide</span><span><kbd>\u2318</kbd><kbd>K</kbd> then type</span></div></div>' +
-      '<div class="scGroup"><h4>On the calendar</h4>' +
-        '<div class="scRow"><span>Previous / next</span><span><kbd>\u2190</kbd><kbd>\u2192</kbd></span></div>' +
-        '<div class="scRow"><span>Day / Week / Month</span><span><kbd>D</kbd><kbd>W</kbd><kbd>M</kbd></span></div>' +
-        '<div class="scRow"><span>Jump to today</span><span><kbd>T</kbd></span></div>' +
-        '<div class="scRow"><span>Save a note</span><span><kbd>\u2318</kbd><kbd>\u21A9</kbd></span></div></div>' +
-      '<div class="scGroup"><h4>Go to \u2014 press g, then\u2026</h4>' +
-        '<div class="scRow"><span>Needs your attention</span><span><kbd>g</kbd><kbd>n</kbd></span></div>' +
-        '<div class="scRow"><span>Orders</span><span><kbd>g</kbd><kbd>o</kbd></span></div>' +
-        '<div class="scRow"><span>Inventory</span><span><kbd>g</kbd><kbd>i</kbd></span></div>' +
-        '<div class="scRow"><span>Returns</span><span><kbd>g</kbd><kbd>r</kbd></span></div>' +
-        '<div class="scRow"><span>Expenses</span><span><kbd>g</kbd><kbd>e</kbd></span></div>' +
-        '<div class="scRow"><span>Tasks</span><span><kbd>g</kbd><kbd>t</kbd></span></div>' +
-        '<div class="scRow"><span>Employee activity</span><span><kbd>g</kbd><kbd>a</kbd></span></div>' +
-        '<div class="scRow"><span>Calendar</span><span><kbd>g</kbd><kbd>c</kbd></span></div></div>' +
-      '</div></div>';
+    // EXT20J-post-TT: the shortcuts grid built as DOM nodes (no innerHTML).
+    // scKbd/scRow are tiny builders: a row is a label span + a span of keys.
+    const scKbd = s => h('kbd', null, s);
+    const scRow = (label, keys) => h('div', { class: 'scRow' }, h('span', null, label), h('span', null, ...keys));
+    shortcutOverlay.replaceChildren(h('div', { class: 'shortcutCard' },
+      h('h3', null, 'Keyboard shortcuts'),
+      h('div', { class: 'scGrid' },
+        h('div', { class: 'scGroup' }, h('h4', null, 'Anywhere'),
+          scRow('Command palette', [scKbd('\u2318'), scKbd('K')]),
+          scRow('Search pages', [scKbd('/')]),
+          scRow('This list', [scKbd('?')]),
+          scRow('Refresh data', [scKbd('\u2318'), scKbd('\u21E7'), scKbd('R')]),
+          scRow('Close anything', [scKbd('esc')]),
+          scRow('Back / forward', [scKbd('\u2318'), scKbd('['), ' ', scKbd('\u2318'), scKbd(']')]),
+          scRow('New reminder', [scKbd('\u2318'), scKbd('N')]),
+          scRow('Jump to pinned page', [scKbd('\u2318'), scKbd('1'), '\u2013', scKbd('9')]),
+          scRow('Move through rows', [scKbd('J'), scKbd('K')]),
+          scRow('Open the row', [scKbd('\u21A9')]),
+          scRow('Inspect a record', [scKbd('space')]),
+          scRow('Ask the guide', [scKbd('\u2318'), scKbd('K'), ' then type'])),
+        h('div', { class: 'scGroup' }, h('h4', null, 'On the calendar'),
+          scRow('Previous / next', [scKbd('\u2190'), scKbd('\u2192')]),
+          scRow('Day / Week / Month', [scKbd('D'), scKbd('W'), scKbd('M')]),
+          scRow('Jump to today', [scKbd('T')]),
+          scRow('Save a note', [scKbd('\u2318'), scKbd('\u21A9')])),
+        h('div', { class: 'scGroup' }, h('h4', null, 'Go to \u2014 press g, then\u2026'),
+          scRow('Needs your attention', [scKbd('g'), scKbd('n')]),
+          scRow('Orders', [scKbd('g'), scKbd('o')]),
+          scRow('Inventory', [scKbd('g'), scKbd('i')]),
+          scRow('Returns', [scKbd('g'), scKbd('r')]),
+          scRow('Expenses', [scKbd('g'), scKbd('e')]),
+          scRow('Tasks', [scKbd('g'), scKbd('t')]),
+          scRow('Employee activity', [scKbd('g'), scKbd('a')]),
+          scRow('Calendar', [scKbd('g'), scKbd('c')])))));
     document.body.appendChild(shortcutOverlay);
     shortcutOverlay.addEventListener('click', (e) => { if (e.target === shortcutOverlay) closeShortcuts(); });
     let goArmed = false, goTimer = null;
@@ -1993,13 +2003,17 @@
     }
     quickAdd.id = 'quickAddOverlay';
     quickAdd.setAttribute('role', 'dialog'); quickAdd.setAttribute('aria-modal', 'true'); quickAdd.setAttribute('aria-label', 'Quick add');
-    quickAdd.innerHTML = '<div class="quickAddCard"><h4>New reminder</h4>' +
-      '<input type="text" id="quickAddInput" placeholder="What do you need to remember?" autocomplete="off">' +
-      '<div class="quickAddRow"><select id="quickAddPriority">' +
-        '<option value="normal">Normal</option><option value="high">High</option></select>' +
-      '<span class="grow"></span>' +
-      '<button type="button" class="small secondary" id="quickAddCancel">Cancel</button>' +
-      '<button type="button" class="small" id="quickAddSave">Add</button></div></div>';
+    // EXT20J-post-TT: built as DOM nodes (no innerHTML).
+    quickAdd.replaceChildren(h('div', { class: 'quickAddCard' },
+      h('h4', null, 'New reminder'),
+      h('input', { type: 'text', id: 'quickAddInput', placeholder: 'What do you need to remember?', autocomplete: 'off' }),
+      h('div', { class: 'quickAddRow' },
+        h('select', { id: 'quickAddPriority' },
+          h('option', { value: 'normal' }, 'Normal'),
+          h('option', { value: 'high' }, 'High')),
+        h('span', { class: 'grow' }),
+        h('button', { type: 'button', class: 'small secondary', id: 'quickAddCancel' }, 'Cancel'),
+        h('button', { type: 'button', class: 'small', id: 'quickAddSave' }, 'Add'))));
     document.body.appendChild(quickAdd);
     async function saveQuickAdd(){
       const title = (document.getElementById('quickAddInput').value || '').trim();
