@@ -2,8 +2,8 @@
 // EXT15: moved unchanged out of assets/owner-login-app.js (initApp). Its inputs
 // arrive explicitly in ctx; it returns only what other code still uses. Map:
 // docs/ops/APPLICATION_MODULE_MAP_EXT15.md. Created once, by the app, in order.
-window.HE.modules.define('he-format', { api: 1, needs: ['CLOSED_WORDS','esc','fmtDateOnly'] }, function (ctx) {
-    const { CLOSED_WORDS, esc, fmtDateOnly } = ctx;
+window.HE.modules.define('he-format', { api: 1, needs: ['CLOSED_WORDS','fmtDateOnly','h'] }, function (ctx) {
+    const { CLOSED_WORDS, fmtDateOnly, h } = ctx;
     // PostgREST list of the closed status words, for "status not in (...)" (EXT7).
     const CLOSED_IN = '(' + CLOSED_WORDS.map(w => '"' + w + '"').join(',') + ')';
     // EXT5: a browser number box silently empties text it can't read ("$12.50",
@@ -70,13 +70,16 @@ window.HE.modules.define('he-format', { api: 1, needs: ['CLOSED_WORDS','esc','fm
       return Number.isFinite(n) ? n : '—';
     }
 
+    // EXT20J: returns a DOM node (or null) instead of an HTML string, so the
+    // Documents screen that shows it is safe under Trusted Types. The date was
+    // already esc()-ed; now it is a text node.
     function docExpiryBadge(expirationDate){
-      if (!expirationDate) return '';
+      if (!expirationDate) return null;
       const exp = new Date(expirationDate + 'T00:00:00');
       const days = Math.round((exp.getTime() - new Date().setHours(0,0,0,0)) / 86400000);
-      if (days < 0) return `<span class="badge sev-high">Expired ${esc(fmtDateOnly(expirationDate))}</span>`;
-      if (days <= 30) return `<span class="badge sev-medium">Expires in ${days}d (${esc(fmtDateOnly(expirationDate))})</span>`;
-      return `<span class="badge sev-low">Valid until ${esc(fmtDateOnly(expirationDate))}</span>`;
+      if (days < 0) return h('span', { class: 'badge sev-high' }, 'Expired ' + fmtDateOnly(expirationDate));
+      if (days <= 30) return h('span', { class: 'badge sev-medium' }, `Expires in ${days}d (${fmtDateOnly(expirationDate)})`);
+      return h('span', { class: 'badge sev-low' }, 'Valid until ' + fmtDateOnly(expirationDate));
     }
 
   return { missingToNaN, reportCount, missingTotalCount, missingTotalNote, mixedCurrencyNote, docExpiryBadge, inqStatusBadgeClass, continuityBadgeClass, qcIncidentCategory, numVal, CLOSED_IN };

@@ -2,8 +2,8 @@
 // EXT15: moved unchanged out of assets/owner-login-app.js (initApp). Its inputs
 // arrive explicitly in ctx; it returns only what other code still uses. Map:
 // docs/ops/APPLICATION_MODULE_MAP_EXT15.md. Created once, by the app, in order.
-window.HE.modules.define('he-compliance', { api: 1, needs: ['CLOSED_IN','DOCUMENT_CATEGORY_LABELS','SEARCH_INDEX','appendMore','confirmSecondPress','docExpiryBadge','esc','fetchAllRows','fetchAllRowsIn','fmtDate','fmtDateOnly','isSafeLink','listLimit','newLoadToken','noRowsChanged','requireReauth','showDashError','showPageWarning','staleMessage','supabase','updateIfUnchanged'] }, function (ctx) {
-    const { CLOSED_IN, DOCUMENT_CATEGORY_LABELS, SEARCH_INDEX, appendMore, confirmSecondPress, docExpiryBadge, esc, fetchAllRows, fetchAllRowsIn, fmtDate, fmtDateOnly, isSafeLink, listLimit, newLoadToken, noRowsChanged, requireReauth, showDashError, showPageWarning, staleMessage, supabase, updateIfUnchanged } = ctx;
+window.HE.modules.define('he-compliance', { api: 1, needs: ['CLOSED_IN','DOCUMENT_CATEGORY_LABELS','SEARCH_INDEX','appendMore','confirmSecondPress','docExpiryBadge','fetchAllRows','fetchAllRowsIn','fmtDate','fmtDateOnly','h','isSafeLink','listLimit','newLoadToken','noRowsChanged','requireReauth','showDashError','showPageWarning','staleMessage','supabase','updateIfUnchanged'] }, function (ctx) {
+    const { CLOSED_IN, DOCUMENT_CATEGORY_LABELS, SEARCH_INDEX, appendMore, confirmSecondPress, docExpiryBadge, fetchAllRows, fetchAllRowsIn, fmtDate, fmtDateOnly, h, isSafeLink, listLimit, newLoadToken, noRowsChanged, requireReauth, showDashError, showPageWarning, staleMessage, supabase, updateIfUnchanged } = ctx;
     // Evidence Locker: a record of evidence tied to a specific incident (photos,
     // documents, emails, whatever backs up what happened), with a link to where
     // the actual file lives rather than storing the file itself.
@@ -23,16 +23,20 @@ window.HE.modules.define('he-compliance', { api: 1, needs: ['CLOSED_IN','DOCUMEN
           .filter(i => !seenInc.has(i.id) && seenInc.add(i.id))
           .sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')));
 
-        const incidentOptionsHtml = (incidents || []).map(i => `<option value="${esc(i.id)}">${esc(i.incident_number || 'Incident')} — ${esc(i.title)}</option>`).join('');
+        // EXT20J: built as DOM nodes (h() text-ifies) instead of an HTML string, so
+        // these compliance screens are safe under Trusted Types. Incident/evidence
+        // text was already esc()-ed; fresh option nodes are built per select (a node
+        // can live in only one parent).
+        const incidentOptionNodes = () => (incidents || []).map(i => h('option', { value: i.id }, (i.incident_number || 'Incident') + ' — ' + i.title));
 
         const incidentSelect = document.getElementById('evidenceIncident');
         const currentVal = incidentSelect.value;
-        incidentSelect.innerHTML = '<option value="">Which incident is this evidence for?</option>' + incidentOptionsHtml;
+        incidentSelect.replaceChildren(h('option', { value: '' }, 'Which incident is this evidence for?'), ...incidentOptionNodes());
         incidentSelect.value = currentVal;
 
         const filterSelect = document.getElementById('evidenceFilter');
         const currentFilter = filterSelect.value;
-        filterSelect.innerHTML = '<option value="">Show evidence for: all incidents</option>' + incidentOptionsHtml;
+        filterSelect.replaceChildren(h('option', { value: '' }, 'Show evidence for: all incidents'), ...incidentOptionNodes());
         filterSelect.value = currentFilter;
 
         const incidentById = Object.create(null);
@@ -55,30 +59,27 @@ window.HE.modules.define('he-compliance', { api: 1, needs: ['CLOSED_IN','DOCUMEN
         if (!currentFilter) SEARCH_INDEX.evidence = evidence;
 
         if (!evidence || !evidence.length) {
-          document.getElementById('evidenceWrap').innerHTML = currentFilter
-            ? '<p class="empty">No evidence recorded yet for this incident.</p>'
-            : '<p class="empty">No evidence recorded yet — add your first entry below.</p>';
+          document.getElementById('evidenceWrap').replaceChildren(h('p', { class: 'empty' },
+            currentFilter ? 'No evidence recorded yet for this incident.' : 'No evidence recorded yet — add your first entry below.'));
           return;
         }
 
-        document.getElementById('evidenceWrap').innerHTML = evidence.map(e => {
+        document.getElementById('evidenceWrap').replaceChildren(...evidence.map(e => {
           const inc = incidentById[e.incident_id];
-          const incLabel = inc ? `${esc(inc.incident_number || 'Incident')} — ${esc(inc.title)}` : 'Incident no longer on file';
-          return `
-          <div class="approvalRow" data-file-path="${esc(e.file_path || '')}">
-            <div class="info">
-              <b>${esc(e.title)}</b>
-              ${e.evidence_type ? `<span class="badge">${esc(e.evidence_type)}</span>` : ''}
-              <div class="u-fs-12 u-c-muted u-mt-3">Tied to: ${incLabel}</div>
-              ${e.description ? `<div class="u-fs-12 u-c-muted u-mt-3">${esc(e.description)}</div>` : ''}
-              ${e.file_path ? `<div class="u-fs-12 u-mt-3"><a href="#" class="evidenceFileLink">Download uploaded file</a></div>` : ''}
-              ${e.external_link ? (isSafeLink(e.external_link)
-                ? `<div class="u-fs-12 u-mt-3"><a href="${esc(e.external_link)}" target="_blank" rel="noopener noreferrer">Open linked file</a></div>`
-                : `<div class="u-fs-12 u-mt-3 u-c-muted">Linked file (not opened — this kind of link can run code): ${esc(e.external_link)}</div>`) : ''}
-              <br><span class="u-fs-11 u-c-muted">Added ${esc(fmtDate(e.created_at))}</span>
-            </div>
-          </div>`;
-        }).join('');
+          const incLabel = inc ? (inc.incident_number || 'Incident') + ' — ' + inc.title : 'Incident no longer on file';
+          return h('div', { class: 'approvalRow', 'data-file-path': e.file_path || '' },
+            h('div', { class: 'info' },
+              h('b', null, e.title), ' ',
+              e.evidence_type ? [h('span', { class: 'badge' }, e.evidence_type), ' '] : null,
+              h('div', { class: 'u-fs-12 u-c-muted u-mt-3' }, 'Tied to: ' + incLabel),
+              e.description ? h('div', { class: 'u-fs-12 u-c-muted u-mt-3' }, e.description) : null,
+              e.file_path ? h('div', { class: 'u-fs-12 u-mt-3' }, h('a', { href: '#', class: 'evidenceFileLink' }, 'Download uploaded file')) : null,
+              // Unsafe links render as plain text, never a clickable href (unchanged).
+              e.external_link ? (isSafeLink(e.external_link)
+                ? h('div', { class: 'u-fs-12 u-mt-3' }, h('a', { href: e.external_link, target: '_blank', rel: 'noopener noreferrer' }, 'Open linked file'))
+                : h('div', { class: 'u-fs-12 u-mt-3 u-c-muted' }, 'Linked file (not opened — this kind of link can run code): ' + e.external_link)) : null,
+              h('br'), h('span', { class: 'u-fs-11 u-c-muted' }, 'Added ' + fmtDate(e.created_at))));
+        }));
         appendMore('evidenceWrap', 'evidence', evidence.length, evidenceCount, 'evidence entries', loadEvidenceLocker);
 
         document.querySelectorAll('.evidenceFileLink').forEach(link => {
@@ -133,8 +134,9 @@ window.HE.modules.define('he-compliance', { api: 1, needs: ['CLOSED_IN','DOCUMEN
         // "Link to a record" dropdown on the add-document form, grouped by type.
         const relatedSel = document.getElementById('docRelated');
         const keepRelated = relatedSel.value;
-        relatedSel.innerHTML = '<option value="">Not linked to a specific record</option>' +
-          (suppliers && suppliers.length ? `<optgroup label="Suppliers">${suppliers.map(s => `<option value="supplier:${esc(s.id)}">${esc(s.name)}</option>`).join('')}</optgroup>` : '');
+        relatedSel.replaceChildren(
+          h('option', { value: '' }, 'Not linked to a specific record'),
+          ...(suppliers && suppliers.length ? [h('optgroup', { label: 'Suppliers' }, ...suppliers.map(s => h('option', { value: 'supplier:' + s.id }, s.name)))] : []));
         relatedSel.value = keepRelated;
 
         const expiringSoon = rows.filter(d => {
@@ -142,29 +144,30 @@ window.HE.modules.define('he-compliance', { api: 1, needs: ['CLOSED_IN','DOCUMEN
           const days = Math.round((new Date(d.expiration_date + 'T00:00:00').getTime() - new Date().setHours(0,0,0,0)) / 86400000);
           return days <= 30;
         }).length;
-        document.getElementById('documentsStats').innerHTML = `
-          <div class="stat"><div class="num">${rows.length}</div><div class="lbl">Documents on file</div></div>
-          <div class="stat"><div class="num">${expiringSoon}</div><div class="lbl">Expired or expiring within 30 days</div></div>`;
+        document.getElementById('documentsStats').replaceChildren(
+          h('div', { class: 'stat' }, h('div', { class: 'num' }, rows.length), h('div', { class: 'lbl' }, 'Documents on file')),
+          h('div', { class: 'stat' }, h('div', { class: 'num' }, expiringSoon), h('div', { class: 'lbl' }, 'Expired or expiring within 30 days')));
 
-        document.getElementById('documentsWrap').innerHTML = rows.length ? rows.map(d => {
+        const documentRow = d => {
           const related = relatedLabel(d);
-          return `
-            <div class="deletedRow u-ai-flex-start" data-id="${esc(d.id)}" data-file-path="${esc(d.file_path || '')}">
-              <div class="info u-flex-1">
-                <b>${esc(d.title)}</b>
-                <span class="badge">${esc(DOCUMENT_CATEGORY_LABELS[d.category] || d.category || 'Other')}</span>
-                ${docExpiryBadge(d.expiration_date)}
-                ${related ? `<div class="u-fs-12 u-c-muted u-mt-3">Linked to: ${esc(related)}</div>` : ''}
-                ${d.issued_date ? `<div class="u-fs-12 u-c-muted u-mt-3">Issued ${esc(fmtDateOnly(d.issued_date))}</div>` : ''}
-                ${d.notes ? `<div class="u-mt-6">${esc(d.notes)}</div>` : ''}
-                ${d.file_path ? `<div class="u-fs-12 u-mt-6"><a href="#" class="docFileLink">Open uploaded file</a></div>` : ''}
-                ${d.document_url ? (isSafeLink(d.document_url)
-                  ? `<div class="u-fs-12 u-mt-6"><a href="${esc(d.document_url)}" target="_blank" rel="noopener noreferrer">Open linked document</a></div>`
-                  : `<div class="u-fs-12 u-mt-6 u-c-muted">Linked document (not opened — this kind of link can run code): ${esc(d.document_url)}</div>`) : ''}
-                <div class="u-mt-8"><button type="button" class="small secondary docDeleteBtn">Delete</button></div>
-              </div>
-            </div>`;
-        }).join('') : '<p class="empty">No documents on file yet — add your first one below.</p>';
+          return h('div', { class: 'deletedRow u-ai-flex-start', 'data-id': d.id, 'data-file-path': d.file_path || '' },
+            h('div', { class: 'info u-flex-1' },
+              h('b', null, d.title), ' ',
+              h('span', { class: 'badge' }, DOCUMENT_CATEGORY_LABELS[d.category] || d.category || 'Other'), ' ',
+              docExpiryBadge(d.expiration_date),
+              related ? h('div', { class: 'u-fs-12 u-c-muted u-mt-3' }, 'Linked to: ' + related) : null,
+              d.issued_date ? h('div', { class: 'u-fs-12 u-c-muted u-mt-3' }, 'Issued ' + fmtDateOnly(d.issued_date)) : null,
+              d.notes ? h('div', { class: 'u-mt-6' }, d.notes) : null,
+              d.file_path ? h('div', { class: 'u-fs-12 u-mt-6' }, h('a', { href: '#', class: 'docFileLink' }, 'Open uploaded file')) : null,
+              // Unsafe links render as plain text, never a clickable href (unchanged).
+              d.document_url ? (isSafeLink(d.document_url)
+                ? h('div', { class: 'u-fs-12 u-mt-6' }, h('a', { href: d.document_url, target: '_blank', rel: 'noopener noreferrer' }, 'Open linked document'))
+                : h('div', { class: 'u-fs-12 u-mt-6 u-c-muted' }, 'Linked document (not opened — this kind of link can run code): ' + d.document_url)) : null,
+              h('div', { class: 'u-mt-8' }, h('button', { type: 'button', class: 'small secondary docDeleteBtn' }, 'Delete'))));
+        };
+        document.getElementById('documentsWrap').replaceChildren(...(rows.length
+          ? rows.map(documentRow)
+          : [h('p', { class: 'empty' }, 'No documents on file yet — add your first one below.')]));
 
         document.querySelectorAll('.docFileLink').forEach(link => {
           link.addEventListener('click', async (ev) => {
@@ -252,7 +255,7 @@ window.HE.modules.define('he-compliance', { api: 1, needs: ['CLOSED_IN','DOCUMEN
 
         const today = new Date(); today.setHours(0, 0, 0, 0);
 
-        document.getElementById('adverseEventsWrap').innerHTML = events.map(ev => {
+        document.getElementById('adverseEventsWrap').replaceChildren(...events.map(ev => {
           const deadline = new Date(ev.fda_report_deadline + 'T00:00:00');
           const daysLeft = Math.round((deadline - today) / 86400000);
           let statusLabel, statusClass;
@@ -263,24 +266,20 @@ window.HE.modules.define('he-compliance', { api: 1, needs: ['CLOSED_IN','DOCUMEN
             statusLabel = `OVERDUE by ${Math.abs(daysLeft)} day(s)`;
             statusClass = 'sev-high';
           } else {
-            statusLabel = `Due ${esc(fmtDateOnly(ev.fda_report_deadline))} (${daysLeft} day${daysLeft === 1 ? '' : 's'} left)`;
+            statusLabel = `Due ${fmtDateOnly(ev.fda_report_deadline)} (${daysLeft} day${daysLeft === 1 ? '' : 's'} left)`;
             statusClass = daysLeft <= 3 ? 'sev-high' : 'sev-medium';
           }
-          return `
-          <div class="approvalRow" data-id="${esc(ev.id)}">
-            <div class="info">
-              <b>${esc(ev.product_name)}</b>
-              <span class="badge ${statusClass}">${statusLabel}</span>
-              ${ev.outcome_type ? `<span class="badge">${esc(ev.outcome_type.replace(/_/g, ' '))}</span>` : ''}
-              <div class="u-fs-12 u-c-muted u-mt-3">${esc(ev.description)}</div>
-              ${ev.reporter_name ? `<div class="u-fs-11 u-c-muted u-mt-3">Reported by: ${esc(ev.reporter_name)}${ev.reporter_contact ? ' — ' + esc(ev.reporter_contact) : ''}</div>` : ''}
-              <br><span class="u-fs-11 u-c-muted">Received ${esc(fmtDateOnly(ev.date_received))}</span>
-            </div>
-            <div class="actions">
-              ${!ev.fda_reported ? `<button class="small aeMarkReportedBtn">Mark reported to FDA</button>` : ''}
-            </div>
-          </div>`;
-        }).join('');
+          return h('div', { class: 'approvalRow', 'data-id': ev.id },
+            h('div', { class: 'info' },
+              h('b', null, ev.product_name), ' ',
+              h('span', { class: 'badge ' + statusClass }, statusLabel), ' ',
+              ev.outcome_type ? [h('span', { class: 'badge' }, ev.outcome_type.replace(/_/g, ' ')), ' '] : null,
+              h('div', { class: 'u-fs-12 u-c-muted u-mt-3' }, ev.description),
+              ev.reporter_name ? h('div', { class: 'u-fs-11 u-c-muted u-mt-3' }, 'Reported by: ' + ev.reporter_name + (ev.reporter_contact ? ' — ' + ev.reporter_contact : '')) : null,
+              h('br'), h('span', { class: 'u-fs-11 u-c-muted' }, 'Received ' + fmtDateOnly(ev.date_received))),
+            h('div', { class: 'actions' },
+              !ev.fda_reported ? h('button', { class: 'small aeMarkReportedBtn' }, 'Mark reported to FDA') : null));
+        }));
 
         document.querySelectorAll('.aeMarkReportedBtn').forEach(btn => {
           btn.addEventListener('click', async () => {
@@ -324,19 +323,17 @@ window.HE.modules.define('he-compliance', { api: 1, needs: ['CLOSED_IN','DOCUMEN
           return;
         }
 
-        document.getElementById('legalHoldsWrap').innerHTML = holds.map(h => `
-          <div class="approvalRow" data-id="${esc(h.id)}">
-            <div class="info">
-              <b>${esc(h.title)}</b>
-              ${h.related_type ? `<span class="badge">${esc(h.related_type)}</span>` : ''}
-              ${h.related_reference ? `<div class="u-fs-12 u-c-muted u-mt-3">Reference: ${esc(h.related_reference)}</div>` : ''}
-              ${h.description ? `<div class="u-fs-12 u-c-muted u-mt-3">${esc(h.description)}</div>` : ''}
-              <br><span class="u-fs-11 u-c-muted">Placed ${esc(fmtDate(h.placed_at))}</span>
-            </div>
-            <div class="actions">
-              <button class="small lhReleaseBtn">Release hold</button>
-            </div>
-          </div>`).join('');
+        // Loop variable is 'hold' (not 'h') so it does not shadow the h() builder.
+        document.getElementById('legalHoldsWrap').replaceChildren(...holds.map(hold =>
+          h('div', { class: 'approvalRow', 'data-id': hold.id },
+            h('div', { class: 'info' },
+              h('b', null, hold.title), ' ',
+              hold.related_type ? [h('span', { class: 'badge' }, hold.related_type), ' '] : null,
+              hold.related_reference ? h('div', { class: 'u-fs-12 u-c-muted u-mt-3' }, 'Reference: ' + hold.related_reference) : null,
+              hold.description ? h('div', { class: 'u-fs-12 u-c-muted u-mt-3' }, hold.description) : null,
+              h('br'), h('span', { class: 'u-fs-11 u-c-muted' }, 'Placed ' + fmtDate(hold.placed_at))),
+            h('div', { class: 'actions' },
+              h('button', { class: 'small lhReleaseBtn' }, 'Release hold')))));
 
         document.querySelectorAll('.lhReleaseBtn').forEach(btn => {
           btn.addEventListener('click', async () => {
@@ -382,11 +379,9 @@ window.HE.modules.define('he-compliance', { api: 1, needs: ['CLOSED_IN','DOCUMEN
           document.getElementById('releasedLegalHoldsWrap').replaceChildren(Object.assign(document.createElement('p'), { className: 'empty', textContent: 'No released holds yet.' }));
           return;
         }
-        document.getElementById('releasedLegalHoldsWrap').innerHTML = holds.map(h => `
-          <div class="deletedRow">
-            <div class="info"><b>${esc(h.title)}</b><br>
-            <span class="u-fs-11 u-c-muted">Released ${esc(fmtDate(h.released_at))}</span></div>
-          </div>`).join('');
+        document.getElementById('releasedLegalHoldsWrap').replaceChildren(...holds.map(hold =>
+          h('div', { class: 'deletedRow' },
+            h('div', { class: 'info' }, h('b', null, hold.title), h('br'), h('span', { class: 'u-fs-11 u-c-muted' }, 'Released ' + fmtDate(hold.released_at))))));
         appendMore('releasedLegalHoldsWrap', 'relHolds', holds.length, count, 'released holds', loadReleasedLegalHolds);
       } catch (err) {
         showDashError('Could not load released holds: ' + (err && err.message ? err.message : err));

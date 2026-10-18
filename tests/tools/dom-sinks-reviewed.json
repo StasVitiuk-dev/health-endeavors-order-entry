@@ -6,48 +6,6 @@
   },
   "interpolations": [
     {
-      "file": "assets/app/he-compliance.js",
-      "expr": "daysLeft",
-      "count": 1,
-      "reason": "a number counted in code (filter().length / reduce / Set size / day difference)"
-    },
-    {
-      "file": "assets/app/he-compliance.js",
-      "expr": "ev.reporter_contact ? ' — ' + esc(ev.reporter_contact) : ''",
-      "count": 1,
-      "reason": "every data value inside passes through esc() (or a number formatter); the rest is fixed markup"
-    },
-    {
-      "file": "assets/app/he-compliance.js",
-      "expr": "ev.reporter_name ? `<div class=\"u-fs-11 u-c-muted u-mt-3\">Reported by: ${esc(ev.reporter_name)}${ev.reporter_contact ? ' — ' + esc(ev.reporter_contact) : ''}</div>` : ''",
-      "count": 1,
-      "reason": "every data value inside passes through esc() (or a number formatter); the rest is fixed markup"
-    },
-    {
-      "file": "assets/app/he-compliance.js",
-      "expr": "expiringSoon",
-      "count": 1,
-      "reason": "a number counted in code (filter().length / reduce / Set size / day difference)"
-    },
-    {
-      "file": "assets/app/he-compliance.js",
-      "expr": "incLabel",
-      "count": 1,
-      "reason": "HTML string built just above with esc() around every data value"
-    },
-    {
-      "file": "assets/app/he-compliance.js",
-      "expr": "statusClass",
-      "count": 1,
-      "reason": "a CSS class name chosen by code from a fixed set of literals"
-    },
-    {
-      "file": "assets/app/he-compliance.js",
-      "expr": "statusLabel",
-      "count": 1,
-      "reason": "HTML string built just above with esc() around every data value"
-    },
-    {
       "file": "assets/owner-login-app.js",
       "expr": "a.reason ? '<br><span class=\"u-fs-12 u-c-muted\">' + esc(a.reason) + '</span>' : ''",
       "count": 1,

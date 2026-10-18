@@ -27,7 +27,7 @@ Why it matters: a smaller file is easier to review, a mistake in one area is les
 | 4 | `he-audit` | change history and activity: record titles, field names, change descriptions and diffs, inspector targets, activity feed reads | 228 | he-config: 4, helpers / program: 1, he-ui: 1, he-data: 1 | 10 |
 | 5 | `he-status` | system status: environment label, page versions, database-step checks, freshness limits, attention seen-state | 75 | he-config: 1, he-data: 3, page constant: 1 | 9 |
 | 6 | `he-time` | dates and calendar: today and yesterday ranges, date keys, calendar colours, event editor helpers, week and month labels | 110 | he-config: 1, helpers / program: 1 | 11 |
-| 7 | `he-format` | display rules: missing values never shown as zero, mixed-currency notes, badges, number fields | 84 | helpers / program: 3 | 11 |
+| 7 | `he-format` | display rules: missing values never shown as zero, mixed-currency notes, badges, number fields | 87 | helpers / program: 2, he-ui: 1 | 11 |
 | 8 | `he-nav` | navigation state: page ids, deep links, last page, sidebar groups open and pinned, back/forward stacks, unsaved-typing guard | 131 | he-config: 1 | 18 |
 | 9 | `he-tasks` | Tasks page: list, recently done, status changes (guarded: only if still in the expected state) | 124 | he-format: 1, he-config: 4, helpers / program: 4, he-ui: 2, he-data: 1 | 1 |
 | 10 | `he-approvals` | Approval Queue: list and decisions (password re-check before a decision) | 72 | he-format: 1, he-config: 1, he-ui: 2, helpers / program: 4, he-data: 2 | 1 |
@@ -39,9 +39,9 @@ Why it matters: a smaller file is easier to review, a mistake in one area is les
 | 16 | `he-agents` | AI agents: switch states, scheduled-job health, honest status (unknown is never 'running'), paused banner | 258 | he-config: 2, he-data: 3, he-ui: 3, helpers / program: 4 | 3 |
 | 17 | `he-ops` | high-risk operation states: one explicit state per record for | 83 | — | 4 |
 | 18 | `he-admin` | Admin pages: signed-in sessions, SOPs, feature requests and their recycle bin (reads plus simple non-stock, non-money saves) | 209 | he-config: 4, helpers / program: 9, he-data: 4, he-ui: 2 | 4 |
-| 19 | `he-compliance` | Compliance pages: adverse events, legal holds (and released holds), documents, evidence locker (reads plus guarded record saves; no stock or money) | 398 | he-format: 2, he-config: 2, he-data: 7, helpers / program: 8, he-ui: 2 | 5 |
+| 19 | `he-compliance` | Compliance pages: adverse events, legal holds (and released holds), documents, evidence locker (reads plus guarded record saves; no stock or money) | 393 | he-format: 2, he-config: 2, he-data: 7, helpers / program: 7, he-ui: 3 | 5 |
 
-Program file after extraction: `assets/owner-login-app.js` 6,381 lines, 373,963 bytes; 85 top-level functions; 46 mutable top-level variables (46 shared).
+Program file after extraction: `assets/owner-login-app.js` 6,381 lines, 373,959 bytes; 85 top-level functions; 46 mutable top-level variables (46 shared).
 
 Dependency graph (module ← modules it takes inputs from; the program creates them top to bottom):
 
@@ -52,7 +52,7 @@ he-data        ← he-config, he-ui
 he-audit       ← he-config, he-ui, he-data
 he-status      ← he-config, he-data
 he-time        ← he-config
-he-format      ← (none)
+he-format      ← he-ui
 he-nav         ← he-config
 he-tasks       ← he-format, he-config, he-ui, he-data
 he-approvals   ← he-format, he-config, he-ui, he-data
