@@ -855,8 +855,8 @@
       HELP_CURRENT = entry;
       document.getElementById('helpTitle').textContent = entry.title;
       document.getElementById('helpWhere').textContent = PAGE_LABEL_BY_ID[entry.page] || '';
-      document.getElementById('helpBody').innerHTML =
-        entry.body.split('|').map(p => '<p>' + esc(p) + '</p>').join('');
+      document.getElementById('helpBody').replaceChildren(
+        ...entry.body.split('|').map(p => h('p', null, p)));
       rememberFocus('help');
       helpOverlay.classList.add('open');
     }
