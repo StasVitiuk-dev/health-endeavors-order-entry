@@ -2,8 +2,8 @@
 // EXT15: moved unchanged out of assets/owner-login-app.js (initApp). Its inputs
 // arrive explicitly in ctx; it returns only what other code still uses. Map:
 // docs/ops/APPLICATION_MODULE_MAP_EXT15.md. Created once, by the app, in order.
-window.HE.modules.define('he-approvals', { api: 1, needs: ['CLOSED_IN','SEARCH_INDEX','esc','fmtDate','isClosedStatus','requireReauth','showDashError','staleMessage','supabase','updateIfUnchanged'] }, function (ctx) {
-    const { CLOSED_IN, SEARCH_INDEX, esc, fmtDate, isClosedStatus, requireReauth, showDashError, staleMessage, supabase, updateIfUnchanged } = ctx;
+window.HE.modules.define('he-approvals', { api: 1, needs: ['CLOSED_IN','SEARCH_INDEX','esc','fmtDate','h','isClosedStatus','requireReauth','showDashError','staleMessage','supabase','updateIfUnchanged'] }, function (ctx) {
+    const { CLOSED_IN, SEARCH_INDEX, esc, fmtDate, h, isClosedStatus, requireReauth, showDashError, staleMessage, supabase, updateIfUnchanged } = ctx;
     async function loadApprovals(){
       try {
         const { data: reqs, error, count } = await supabase
@@ -20,22 +20,21 @@ window.HE.modules.define('he-approvals', { api: 1, needs: ['CLOSED_IN','SEARCH_I
         // of the approval queue, with only a vague warning.
         const pending = reqs.filter(r => !isClosedStatus(r.status));
         const truncated = count != null && count > reqs.length;
+        // EXT20G: built as DOM nodes (h() text-ifies) instead of an HTML string,
+        // so this screen is safe under Trusted Types. Values were already esc()-ed.
         const cutoffNote = truncated
-          ? `<p class="hint u-m-0-0-8 u-c-warn">Showing the ${reqs.length} most recent of ${count} pending requests.</p>` : '';
+          ? [h('p', { class: 'hint u-m-0-0-8 u-c-warn' }, `Showing the ${reqs.length} most recent of ${count} pending requests.`)] : [];
         if (!pending.length) {
-          document.getElementById('approvalsWrap').innerHTML = cutoffNote + '<p class="empty">Nothing waiting for approval.</p>';
+          document.getElementById('approvalsWrap').replaceChildren(...cutoffNote, h('p', { class: 'empty' }, 'Nothing waiting for approval.'));
         } else {
-          document.getElementById('approvalsWrap').innerHTML = cutoffNote + pending.map(r => `
-            <div class="approvalRow" data-id="${esc(r.id)}" data-status="${esc(r.status || '')}">
-              <div class="info">
-                <b>${esc(r.action_type)}</b> — ${esc(r.summary || '')}
-                <br><span class="u-fs-11 u-c-muted">Requested ${esc(fmtDate(r.created_at))}</span>
-              </div>
-              <div class="actions">
-                <button class="small approve approveBtn">Approve</button>
-                <button class="small deny denyBtn">Deny</button>
-              </div>
-            </div>`).join('');
+          document.getElementById('approvalsWrap').replaceChildren(...cutoffNote, ...pending.map(r =>
+            h('div', { class: 'approvalRow', 'data-id': r.id, 'data-status': r.status || '' },
+              h('div', { class: 'info' },
+                h('b', null, r.action_type), ' — ' + (r.summary || ''),
+                h('br'), h('span', { class: 'u-fs-11 u-c-muted' }, 'Requested ' + fmtDate(r.created_at))),
+              h('div', { class: 'actions' },
+                h('button', { class: 'small approve approveBtn' }, 'Approve'),
+                h('button', { class: 'small deny denyBtn' }, 'Deny')))));
           document.querySelectorAll('.approveBtn').forEach(btn => btn.addEventListener('click', () => decideApproval(btn, 'approved')));
           // The database allows only pending / approved / rejected (Query A, 2026-10-05):
           // 'denied' was refused by its status check, so Deny never worked.
