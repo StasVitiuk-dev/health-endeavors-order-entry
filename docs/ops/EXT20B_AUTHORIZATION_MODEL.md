@@ -73,3 +73,7 @@ That is fewer than five substantial *new* local risks. Per the round's own stop 
 ## 8. Production
 
 Untouched. No SQL run, no grants/RLS/functions/triggers/roles/cron/data changed, no merge, no deploy.
+
+## 9. Reusable tooling (EXT20F)
+
+The one-off RLS self-escalation review in section 2 is now a reusable tool: `tests/tools/rls-analyzer.js` (`npm run rls:analyze <queryG.csv>`). It parses a Query G result (proper CSV, handling multi-line policy clauses) and reports: self-row edits on tables with a sensitive column (the profiles.role shape), benign self-row tables, and tables any active staff can update with no role gate. Run against the 2026-10-18 Query G result it reproduces the EXT20B findings exactly: no sensitive self-row table (profiles guarded), `personal_calendar_events` benign, and the 10 active-staff tables including `approval_requests` (the separation-of-duties OWNER DECISION). Exit 2 if any sensitive self-row policy appears, so a future regression is caught.
