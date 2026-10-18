@@ -38,10 +38,10 @@ Why it matters: a smaller file is easier to review, a mistake in one area is les
 | 15 | `he-inquiries` | Customer questions: list, severity, saved drafts, copy reply, mark answered (never sends anything) | 212 | he-config: 2, he-data: 4, he-ui: 2, he-format: 1, helpers / program: 3 | 3 |
 | 16 | `he-agents` | AI agents: switch states, scheduled-job health, honest status (unknown is never 'running'), paused banner | 258 | he-config: 2, he-data: 3, he-ui: 3, helpers / program: 4 | 3 |
 | 17 | `he-ops` | high-risk operation states: one explicit state per record for | 83 | — | 4 |
-| 18 | `he-admin` | Admin pages: signed-in sessions, SOPs, feature requests and their recycle bin (reads plus simple non-stock, non-money saves) | 217 | he-config: 4, helpers / program: 10, he-data: 4, he-ui: 1 | 4 |
+| 18 | `he-admin` | Admin pages: signed-in sessions, SOPs, feature requests and their recycle bin (reads plus simple non-stock, non-money saves) | 209 | he-config: 4, helpers / program: 9, he-data: 4, he-ui: 2 | 4 |
 | 19 | `he-compliance` | Compliance pages: adverse events, legal holds (and released holds), documents, evidence locker (reads plus guarded record saves; no stock or money) | 398 | he-format: 2, he-config: 2, he-data: 7, helpers / program: 8, he-ui: 2 | 5 |
 
-Program file after extraction: `assets/owner-login-app.js` 6,381 lines, 373,962 bytes; 85 top-level functions; 46 mutable top-level variables (46 shared).
+Program file after extraction: `assets/owner-login-app.js` 6,381 lines, 373,960 bytes; 85 top-level functions; 46 mutable top-level variables (46 shared).
 
 Dependency graph (module ← modules it takes inputs from; the program creates them top to bottom):
 

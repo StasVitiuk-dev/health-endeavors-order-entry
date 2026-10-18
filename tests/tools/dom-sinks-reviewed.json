@@ -6,12 +6,6 @@
   },
   "interpolations": [
     {
-      "file": "assets/app/he-admin.js",
-      "expr": "s.ip_address ? ' &middot; ' + esc(s.ip_address) : ''",
-      "count": 1,
-      "reason": "every data value inside passes through esc() (or a number formatter); the rest is fixed markup"
-    },
-    {
       "file": "assets/app/he-audit.js",
       "expr": "deletes",
       "count": 1,

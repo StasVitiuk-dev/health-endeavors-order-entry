@@ -2,8 +2,8 @@
 // EXT15: moved unchanged out of assets/owner-login-app.js (initApp). Its inputs
 // arrive explicitly in ctx; it returns only what other code still uses. Map:
 // docs/ops/APPLICATION_MODULE_MAP_EXT15.md. Created once, by the app, in order.
-window.HE.modules.define('he-admin', { api: 1, needs: ['FR_NEXT_LABEL','FR_NEXT_STATUS','FR_STATUS_LABELS','SEARCH_INDEX','advanceFeatureRequest','appendMore','boolGuard','deleteFeatureRequest','deviceLabel','esc','fmtDate','listLimit','noRowsChanged','requireReauth','showDashError','showPageWarning','staleMessage','supabase','updateIfUnchanged'] }, function (ctx) {
-    const { FR_NEXT_LABEL, FR_NEXT_STATUS, FR_STATUS_LABELS, SEARCH_INDEX, advanceFeatureRequest, appendMore, boolGuard, deleteFeatureRequest, deviceLabel, esc, fmtDate, listLimit, noRowsChanged, requireReauth, showDashError, showPageWarning, staleMessage, supabase, updateIfUnchanged } = ctx;
+window.HE.modules.define('he-admin', { api: 1, needs: ['FR_NEXT_LABEL','FR_NEXT_STATUS','FR_STATUS_LABELS','SEARCH_INDEX','advanceFeatureRequest','appendMore','boolGuard','deleteFeatureRequest','deviceLabel','fmtDate','h','listLimit','noRowsChanged','requireReauth','showDashError','showPageWarning','staleMessage','supabase','updateIfUnchanged'] }, function (ctx) {
+    const { FR_NEXT_LABEL, FR_NEXT_STATUS, FR_STATUS_LABELS, SEARCH_INDEX, advanceFeatureRequest, appendMore, boolGuard, deleteFeatureRequest, deviceLabel, fmtDate, h, listLimit, noRowsChanged, requireReauth, showDashError, showPageWarning, staleMessage, supabase, updateIfUnchanged } = ctx;
     async function loadSessions(){
       try {
         const { data: sessions, error } = await supabase.rpc('list_my_sessions');
@@ -12,16 +12,18 @@ window.HE.modules.define('he-admin', { api: 1, needs: ['FR_NEXT_LABEL','FR_NEXT_
           document.getElementById('sessionsWrap').replaceChildren(Object.assign(document.createElement('p'), { className: 'empty', textContent: 'No active sessions found.' }));
           return;
         }
-        document.getElementById('sessionsWrap').innerHTML = sessions.map(s => `
-          <div class="sessionRow" data-id="${esc(s.session_id)}">
-            <div class="info">
-              <b>${esc(deviceLabel(s.user_agent))}</b>${s.is_current ? ' <span class="u-c-good u-fs-11">· This device</span>' : ''}
-              <br><span class="u-fs-11 u-c-muted">Signed in ${esc(fmtDate(s.created_at))} &middot; Last active ${esc(fmtDate(s.last_active))}${s.ip_address ? ' &middot; ' + esc(s.ip_address) : ''}</span>
-            </div>
-            <div class="actions">
-              ${s.is_current ? '' : '<button class="small deny logoutSessionBtn">Log out</button>'}
-            </div>
-          </div>`).join('');
+        // EXT20J: built as DOM nodes (h() text-ifies) instead of an HTML string, so
+        // the signed-in-sessions list is safe under Trusted Types. Device/IP text
+        // was already esc()-ed; now it is only ever a text node.
+        document.getElementById('sessionsWrap').replaceChildren(...sessions.map(s =>
+          h('div', { class: 'sessionRow', 'data-id': s.session_id },
+            h('div', { class: 'info' },
+              h('b', null, deviceLabel(s.user_agent)),
+              s.is_current ? [' ', h('span', { class: 'u-c-good u-fs-11' }, '· This device')] : null,
+              h('br'),
+              h('span', { class: 'u-fs-11 u-c-muted' }, 'Signed in ' + fmtDate(s.created_at) + ' · Last active ' + fmtDate(s.last_active) + (s.ip_address ? ' · ' + s.ip_address : ''))),
+            h('div', { class: 'actions' },
+              s.is_current ? null : h('button', { class: 'small deny logoutSessionBtn' }, 'Log out')))));
         document.querySelectorAll('.logoutSessionBtn').forEach(btn => btn.addEventListener('click', () => revokeSession(btn)));
       } catch (err) {
         showDashError('Could not load active sessions: ' + (err && err.message ? err.message : err));
@@ -69,23 +71,19 @@ window.HE.modules.define('he-admin', { api: 1, needs: ['FR_NEXT_LABEL','FR_NEXT_
           document.getElementById('sopsWrap').replaceChildren(Object.assign(document.createElement('p'), { className: 'empty', textContent: 'No procedures written yet — add your first one below.' }));
           return;
         }
-        document.getElementById('sopsWrap').innerHTML = sops.map(s => `
-          <details class="u-bb-1-solid-line u-p-8-0">
-            <summary class="u-cur-pointer u-fw-600 u-fs-13p5 u-c-navy">
-              ${esc(s.title)}${s.category ? ` <span class="u-fw-400 u-c-muted u-fs-12">&middot; ${esc(s.category)}</span>` : ''}
-            </summary>
-            <div class="u-ws-pre-wrap u-fs-13 u-c-ink u-m-8-0-4">${esc(s.content)}</div>
-            <div class="u-d-flex u-ai-center u-jc-space-between u-gap-10 u-fwr-wrap u-mt-6">
-              <div class="u-fs-11 u-c-muted">Last updated ${esc(fmtDate(s.updated_at))}</div>
-              <label class="u-d-flex u-ai-center u-gap-8 u-fs-11p5 u-c-ink u-cur-pointer">
-                Customer Service Agent may reference this
-                <span class="switch">
-                  <input type="checkbox" class="sopAgentToggle" data-id="${esc(s.id)}" ${s.agent_visible ? 'checked' : ''}>
-                  <span class="slider"></span>
-                </span>
-              </label>
-            </div>
-          </details>`).join('');
+        document.getElementById('sopsWrap').replaceChildren(...sops.map(s =>
+          h('details', { class: 'u-bb-1-solid-line u-p-8-0' },
+            h('summary', { class: 'u-cur-pointer u-fw-600 u-fs-13p5 u-c-navy' },
+              s.title,
+              s.category ? [' ', h('span', { class: 'u-fw-400 u-c-muted u-fs-12' }, '· ' + s.category)] : null),
+            h('div', { class: 'u-ws-pre-wrap u-fs-13 u-c-ink u-m-8-0-4' }, s.content),
+            h('div', { class: 'u-d-flex u-ai-center u-jc-space-between u-gap-10 u-fwr-wrap u-mt-6' },
+              h('div', { class: 'u-fs-11 u-c-muted' }, 'Last updated ' + fmtDate(s.updated_at)),
+              h('label', { class: 'u-d-flex u-ai-center u-gap-8 u-fs-11p5 u-c-ink u-cur-pointer' },
+                'Customer Service Agent may reference this',
+                h('span', { class: 'switch' },
+                  h('input', { type: 'checkbox', class: 'sopAgentToggle', 'data-id': s.id, checked: s.agent_visible ? true : null }),
+                  h('span', { class: 'slider' })))))));
         document.querySelectorAll('.sopAgentToggle').forEach(cb => {
           cb.addEventListener('change', async () => {
             const id = cb.getAttribute('data-id');
@@ -126,11 +124,10 @@ window.HE.modules.define('he-admin', { api: 1, needs: ['FR_NEXT_LABEL','FR_NEXT_
 
         const counts = { requested: 0, in_progress: 0, done: 0 };
         (reqs || []).forEach(r => { if (counts[r.status] !== undefined) counts[r.status]++; });
-        document.getElementById('frStats').innerHTML = `
-          <div class="stat"><div class="num">${counts.requested}</div><div class="lbl">Requested</div></div>
-          <div class="stat"><div class="num">${counts.in_progress}</div><div class="lbl">In progress</div></div>
-          <div class="stat"><div class="num">${counts.done}</div><div class="lbl">Done</div></div>
-        `;
+        document.getElementById('frStats').replaceChildren(
+          h('div', { class: 'stat' }, h('div', { class: 'num' }, counts.requested), h('div', { class: 'lbl' }, 'Requested')),
+          h('div', { class: 'stat' }, h('div', { class: 'num' }, counts.in_progress), h('div', { class: 'lbl' }, 'In progress')),
+          h('div', { class: 'stat' }, h('div', { class: 'num' }, counts.done), h('div', { class: 'lbl' }, 'Done')));
 
         if (!reqs || !reqs.length) {
           document.getElementById('featureRequestsWrap').replaceChildren(Object.assign(document.createElement('p'), { className: 'empty', textContent: 'No feature requests yet — add your first one below.' }));
@@ -147,20 +144,17 @@ window.HE.modules.define('he-admin', { api: 1, needs: ['FR_NEXT_LABEL','FR_NEXT_
           return new Date(b.requested_at) - new Date(a.requested_at);
         });
 
-        document.getElementById('featureRequestsWrap').innerHTML = sorted.map(r => `
-          <div class="approvalRow" data-id="${esc(r.id)}" data-status="${esc(r.status || '')}">
-            <div class="info">
-              <b>${esc(r.title)}</b>
-              ${r.priority === 'high' ? '<span class="priorityPill high">high</span>' : ''}
-              <span class="badge${r.status === 'done' ? ' sev-low' : ''}">${esc(FR_STATUS_LABELS[r.status] || r.status)}</span>
-              ${r.description ? `<div class="u-fs-12 u-c-muted u-mt-3">${esc(r.description)}</div>` : ''}
-              <br><span class="u-fs-11 u-c-muted">Requested ${esc(fmtDate(r.requested_at))}</span>
-            </div>
-            <div class="actions">
-              ${FR_NEXT_STATUS[r.status] ? `<button class="small frAdvanceBtn">${esc(FR_NEXT_LABEL[r.status])}</button>` : ''}
-              <button class="small deny frDeleteBtn">Delete</button>
-            </div>
-          </div>`).join('');
+        document.getElementById('featureRequestsWrap').replaceChildren(...sorted.map(r =>
+          h('div', { class: 'approvalRow', 'data-id': r.id, 'data-status': r.status || '' },
+            h('div', { class: 'info' },
+              h('b', null, r.title), ' ',
+              r.priority === 'high' ? [h('span', { class: 'priorityPill high' }, 'high'), ' '] : null,
+              h('span', { class: 'badge' + (r.status === 'done' ? ' sev-low' : '') }, FR_STATUS_LABELS[r.status] || r.status),
+              r.description ? h('div', { class: 'u-fs-12 u-c-muted u-mt-3' }, r.description) : null,
+              h('br'), h('span', { class: 'u-fs-11 u-c-muted' }, 'Requested ' + fmtDate(r.requested_at))),
+            h('div', { class: 'actions' },
+              FR_NEXT_STATUS[r.status] ? h('button', { class: 'small frAdvanceBtn' }, FR_NEXT_LABEL[r.status]) : null,
+              h('button', { class: 'small deny frDeleteBtn' }, 'Delete')))));
         document.querySelectorAll('.frAdvanceBtn').forEach(btn => btn.addEventListener('click', () => advanceFeatureRequest(btn)));
         document.querySelectorAll('.frDeleteBtn').forEach(btn => btn.addEventListener('click', () => deleteFeatureRequest(btn)));
       } catch (err) {
@@ -182,12 +176,10 @@ window.HE.modules.define('he-admin', { api: 1, needs: ['FR_NEXT_LABEL','FR_NEXT_
           document.getElementById('deletedFeatureRequestsWrap').replaceChildren(Object.assign(document.createElement('p'), { className: 'empty', textContent: 'Recycle bin is empty.' }));
           return;
         }
-        document.getElementById('deletedFeatureRequestsWrap').innerHTML = deleted.map(r => `
-          <div class="deletedRow" data-id="${esc(r.id)}">
-            <div class="info"><b>${esc(r.title)}</b><br>
-            <span class="u-fs-11 u-c-muted">Deleted ${esc(fmtDate(r.deleted_at))}</span></div>
-            <button class="small restoreFeatureRequestBtn">Restore</button>
-          </div>`).join('');
+        document.getElementById('deletedFeatureRequestsWrap').replaceChildren(...deleted.map(r =>
+          h('div', { class: 'deletedRow', 'data-id': r.id },
+            h('div', { class: 'info' }, h('b', null, r.title), h('br'), h('span', { class: 'u-fs-11 u-c-muted' }, 'Deleted ' + fmtDate(r.deleted_at))),
+            h('button', { class: 'small restoreFeatureRequestBtn' }, 'Restore'))));
         appendMore('deletedFeatureRequestsWrap', 'delFR', deleted.length, count, 'deleted requests', loadDeletedFeatureRequests);
         document.querySelectorAll('.restoreFeatureRequestBtn').forEach(btn => {
           btn.addEventListener('click', async () => {
