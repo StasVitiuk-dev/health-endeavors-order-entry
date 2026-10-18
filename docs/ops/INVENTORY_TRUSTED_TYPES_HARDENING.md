@@ -73,3 +73,17 @@ Same `h()` conversion applied to two module screens:
 - Tests: agent-registry / agent-truth / agent-safety and pages-data (incl. "refused write never reported as done") pass; DOM sink gate PASS (36 reviewed, 0 dangerous); type gate 0 gated; security:quick PASS.
 
 **Screens TT-clean so far: Inventory, Returns, Approvals, Agents.** Next: Security Center, then Home.
+
+---
+
+## Security Center, Home, Purchase Orders (EXT20J cascade, 2026-10-18)
+
+The cascade continued through three more dashboard areas in `assets/owner-login-app.js`, each a small tested commit:
+
+- **Security Center** (commit 7822bee): `loadNightlyCheck()` (the nightly integrity-check evidence card, via its `card()` helper) and `loadSystemStatus()` (the system-status table). 8 innerHTML sinks → 0. The level class / `data-state` are unchanged, so an UNKNOWN / NOT VERIFIED / STALE result keeps its own never-green styling — missing or unreadable evidence can never render as PASS.
+- **Home** (commit 47dcc47): `renderAttention()` (the "Needs your attention" list with Dismiss), `renderAttentionChecks()` (the data-problem / to-do checks), and `attnFreshnessHtml()` → `attnFreshnessNodes()` (the "Checked at…" line with "Check again"). 3 innerHTML sinks → 0. Each finding's `attn-<level>` class is preserved, so "unknown" / "Could not check" / "Data problem" rows keep their non-green styling. `dismissBtn`/`attnOpen`/`attnHide`/`attnUnhide`/`attnRecheck`/`attnToggleHidden` wiring unchanged.
+- **Purchase Orders** (commits 435e118 list, 3cc9157 detail): stats tiles + order list (`loadPurchaseOrders`), then the whole detail panel (`renderPoDetails`: line table, add-line form, totals, payment, actions). 3 innerHTML sinks → 0. `po-<status>`/`pay-<status>` badge classes and all `wirePoDetail` selectors preserved; `purchase-orders`+`po-receive`+`phone-po-tap` specs (74) pass.
+
+Each commit: DOM sink gate PASS, type gate 0 gated, focused specs pass, security:quick PASS, asset versions refreshed, write-path artifacts regenerated (line-number shifts only).
+
+**Screens TT-clean so far: Inventory, Returns, Approvals, Agents, Security Center, Home, Purchase Orders.** Next: Orders & Revenue, then Customers.
