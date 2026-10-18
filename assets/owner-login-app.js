@@ -1866,25 +1866,27 @@
           : (monthAiSpend >= AI_SPEND_CAP * 0.8 ? 'statWarn' : '');
 
         // goto: tiles about work open the page where it is done (EXT7).
+        // EXT20J: tiles are DOM nodes (h() text-ifies) instead of HTML strings, so
+        // Home is safe under Trusted Types. A failed read is still null -> "?"
+        // (statUnknown, amber), never a misleading zero.
         const tile = (num, lbl, cls, goto) => {
-          if (num === null) return `<div class="stat statWarn statUnknown"><div class="num">?</div><div class="lbl">${esc(lbl)} (could not be read)</div></div>`;
-          const inner = `<div class="num">${num}</div><div class="lbl">${esc(lbl)}</div>`;
+          if (num === null) return h('div', { class: 'stat statWarn statUnknown' }, h('div', { class: 'num' }, '?'), h('div', { class: 'lbl' }, lbl + ' (could not be read)'));
+          const inner = [h('div', { class: 'num' }, num), h('div', { class: 'lbl' }, lbl)];
           return goto
-            ? `<button type="button" class="stat statLink ${cls}" data-goto="${esc(goto)}" aria-label="${esc(lbl)}: ${esc(String(num).replace(/<[^<>]*>/g, ''))}. Open that page.">${inner}</button>`
-            : `<div class="stat ${cls}">${inner}</div>`;
+            ? h('button', { type: 'button', class: 'stat statLink ' + cls, 'data-goto': goto, 'aria-label': lbl + ': ' + String(num).replace(/<[^<>]*>/g, '') + '. Open that page.' }, ...inner)
+            : h('div', { class: 'stat ' + cls }, ...inner);
         };
 
-        wrap.innerHTML = [
-          tile(todayRevenue === null ? null : esc(fmtMoney(todayRevenue, todayCurrency)), todayMissingTotals ? "Today's revenue (" + todayMissingTotals + ' order' + (todayMissingTotals === 1 ? '' : 's') + ' without a total not counted)' : "Today's revenue", todayMissingTotals ? 'statWarn' : ''),
+        wrap.replaceChildren(
+          tile(todayRevenue === null ? null : fmtMoney(todayRevenue, todayCurrency), todayMissingTotals ? "Today's revenue (" + todayMissingTotals + ' order' + (todayMissingTotals === 1 ? '' : 's') + ' without a total not counted)' : "Today's revenue", todayMissingTotals ? 'statWarn' : ''),
           tile(todayOrderCount, "Today's orders", ''),
           tile(pendingApprovals, 'Pending approvals', approvalsClass, 'approvalsPanel'),
           tile(overdueTasks, 'Overdue tasks', tasksClass, 'tasksPanel'),
           tile(criticalIncidents, 'Open high/critical incidents', incidentsClass, 'incidentsPanel'),
           // Unknown is not zero: if the switches couldn't be read, say so.
           agentControls().state === 'ok' ? tile(pausedAgents, 'Paused agents', agentsClass) : tile('?', 'Paused agents (switches could not be read)', 'statWarn'),
-          tile(monthAiSpend === null ? null : esc(fmtMoney(monthAiSpend, 'USD')) + ' / ' + esc(fmtMoney(AI_SPEND_CAP, 'USD')), 'AI spend this month', aiClass),
-          tile(activeSessions, 'Active sessions', ''),
-        ].join('');
+          tile(monthAiSpend === null ? null : fmtMoney(monthAiSpend, 'USD') + ' / ' + fmtMoney(AI_SPEND_CAP, 'USD'), 'AI spend this month', aiClass),
+          tile(activeSessions, 'Active sessions', ''));
         wrap.querySelectorAll('.statLink').forEach(btn => btn.addEventListener('click', () => showPage(btn.getAttribute('data-goto'))));
       } catch (err) {
         wrap.replaceChildren(h('p', { class: 'empty' }, 'Could not load Business Health.'));
