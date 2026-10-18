@@ -2887,51 +2887,47 @@
         const recalledProducts = new Set((activeRecalls || []).filter(r => !r.lot_id && r.product_id).map(r => r.product_id));
 
         const failedOpen = rows.filter(c => c.result === 'fail' && !c.resolution).length;
-        document.getElementById('qcStats').innerHTML = `
-          <div class="stat"><div class="num">${rows.length}</div><div class="lbl">Checks logged</div></div>
-          <div class="stat"><div class="num">${failedOpen}</div><div class="lbl">Failed, unresolved</div></div>`;
+        // EXT20J: built as DOM nodes (h() text-ifies) instead of an HTML string, so
+        // the Quality Control screen is safe under Trusted Types. Values were
+        // already esc()-ed; now they are text nodes.
+        document.getElementById('qcStats').replaceChildren(
+          h('div', { class: 'stat' }, h('div', { class: 'num' }, rows.length), h('div', { class: 'lbl' }, 'Checks logged')),
+          h('div', { class: 'stat' }, h('div', { class: 'num' }, failedOpen), h('div', { class: 'lbl' }, 'Failed, unresolved')));
 
         // Target dropdown: each product groups its own lots, plus a
         // "general" option for a check that isn't tied to one specific batch.
         const targetSel = document.getElementById('qcTarget');
         const keep = targetSel.value;
-        targetSel.innerHTML = '<option value="">Not tied to a specific product</option>' +
-          (products || []).map(p => {
-            const lotOpts = QC_LOTS.filter(l => l.product_id === p.id)
-              .map(l => `<option value="lot:${esc(l.id)}">Lot ${esc(l.lot_number)}</option>`).join('');
-            return `<optgroup label="${esc(p.name)}${p.sku ? ' (' + esc(p.sku) + ')' : ''}">
-              <option value="product:${esc(p.id)}">General (no specific batch)</option>
-              ${lotOpts}
-            </optgroup>`;
-          }).join('');
+        targetSel.replaceChildren(
+          h('option', { value: '' }, 'Not tied to a specific product'),
+          ...(products || []).map(p =>
+            h('optgroup', { label: p.name + (p.sku ? ' (' + p.sku + ')' : '') },
+              h('option', { value: 'product:' + p.id }, 'General (no specific batch)'),
+              ...QC_LOTS.filter(l => l.product_id === p.id).map(l => h('option', { value: 'lot:' + l.id }, 'Lot ' + l.lot_number)))));
         targetSel.value = keep;
 
-        document.getElementById('qcWrap').innerHTML = rows.length ? rows.map(c => {
+        const qcRow = c => {
           const prod = (c.products && c.products.name) || 'Unlinked';
           const lot = (c.inventory_lots && c.inventory_lots.lot_number) || null;
           const resultClass = c.result === 'fail' ? 'sev-high' : (c.result === 'pass' ? 'sev-low' : '');
           const incident = c.incidents;
           const alsoRecalled = (c.lot_id && recalledLots.has(c.lot_id)) || (!c.lot_id && c.product_id && recalledProducts.has(c.product_id));
-          return `
-            <div class="deletedRow u-ai-flex-start" data-id="${esc(c.id)}">
-              <div class="info u-flex-1">
-                <b>${esc(QC_TYPE_LABELS[c.check_type] || c.check_type)}</b>
-                <span class="badge ${resultClass}">${esc(QC_RESULT_LABELS[c.result] || c.result)}</span>
-                <span class="badge">${esc(QC_SEVERITY_LABELS[c.severity] || c.severity)}</span>
-                <span class="u-c-muted u-fs-12">${esc(prod)}${lot ? ' · lot ' + esc(lot) : ''} · ${esc(fmtDate(c.created_at))}</span>
-                <div class="u-mt-6">${esc(c.description)}</div>
-                ${c.resolution ? `<div class="u-mt-6 u-c-x4d7c6a"><b>Resolved:</b> ${esc(c.resolution)}</div>` : ''}
-                ${incident ? `<div class="u-mt-6"><span class="badge">Incident ${esc(incident.incident_number || '')} — ${esc(incident.status)}</span></div>` : ''}
-                ${alsoRecalled ? `<div class="u-mt-6"><span class="badge sev-high">This batch also has an active recall</span> <a href="#" class="qcViewRecallLink u-fs-12">View in Recalls →</a></div>` : ''}
-                ${!c.resolution ? `
-                  <div class="u-mt-10 u-d-flex u-gap-8 u-fwr-wrap u-ai-center">
-                    <input type="text" class="qcResolutionInput u-flex-1 u-minw-160 u-p-6-9 u-br-6 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-13" placeholder="Resolution notes">
-                    <button type="button" class="small secondary qcResolveBtn">Mark resolved</button>
-                    ${c.result === 'fail' && !c.incident_id ? '<button type="button" class="small deny qcEscalateBtn">Escalate to Incident</button>' : ''}
-                  </div>` : ''}
-              </div>
-            </div>`;
-        }).join('') : '<p class="empty">No quality checks logged yet.</p>';
+          return h('div', { class: 'deletedRow u-ai-flex-start', 'data-id': c.id },
+            h('div', { class: 'info u-flex-1' },
+              h('b', null, QC_TYPE_LABELS[c.check_type] || c.check_type), ' ',
+              h('span', { class: 'badge ' + resultClass }, QC_RESULT_LABELS[c.result] || c.result), ' ',
+              h('span', { class: 'badge' }, QC_SEVERITY_LABELS[c.severity] || c.severity), ' ',
+              h('span', { class: 'u-c-muted u-fs-12' }, prod + (lot ? ' · lot ' + lot : '') + ' · ' + fmtDate(c.created_at)),
+              h('div', { class: 'u-mt-6' }, c.description),
+              c.resolution ? h('div', { class: 'u-mt-6 u-c-x4d7c6a' }, h('b', null, 'Resolved:'), ' ' + c.resolution) : null,
+              incident ? h('div', { class: 'u-mt-6' }, h('span', { class: 'badge' }, 'Incident ' + (incident.incident_number || '') + ' — ' + incident.status)) : null,
+              alsoRecalled ? h('div', { class: 'u-mt-6' }, h('span', { class: 'badge sev-high' }, 'This batch also has an active recall'), ' ', h('a', { href: '#', class: 'qcViewRecallLink u-fs-12' }, 'View in Recalls →')) : null,
+              !c.resolution ? h('div', { class: 'u-mt-10 u-d-flex u-gap-8 u-fwr-wrap u-ai-center' },
+                h('input', { type: 'text', class: 'qcResolutionInput u-flex-1 u-minw-160 u-p-6-9 u-br-6 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-13', placeholder: 'Resolution notes' }),
+                h('button', { type: 'button', class: 'small secondary qcResolveBtn' }, 'Mark resolved'),
+                (c.result === 'fail' && !c.incident_id) ? h('button', { type: 'button', class: 'small deny qcEscalateBtn' }, 'Escalate to Incident') : null) : null));
+        };
+        document.getElementById('qcWrap').replaceChildren(...(rows.length ? rows.map(qcRow) : [h('p', { class: 'empty' }, 'No quality checks logged yet.')]));
 
         document.querySelectorAll('.qcViewRecallLink').forEach(link => {
           link.addEventListener('click', (e) => { e.preventDefault(); showPage('recallsPanel'); });
@@ -3053,46 +3049,45 @@
 
         const active = rows.filter(r => r.status !== 'resolved');
         const quarantinedUnits = rows.reduce((s, r) => s + (r.status !== 'initiated' ? Number(r.quantity_quarantined || 0) : 0), 0);
-        document.getElementById('recallStats').innerHTML = `
-          <div class="stat"><div class="num">${active.length}</div><div class="lbl">Active recalls</div></div>
-          <div class="stat"><div class="num">${quarantinedUnits}</div><div class="lbl">Units quarantined</div></div>`;
+        // EXT20J: built as DOM nodes (h() text-ifies) instead of an HTML string, so
+        // the Recalls screen is safe under Trusted Types. Values were already
+        // esc()-ed; now they are text nodes.
+        document.getElementById('recallStats').replaceChildren(
+          h('div', { class: 'stat' }, h('div', { class: 'num' }, active.length), h('div', { class: 'lbl' }, 'Active recalls')),
+          h('div', { class: 'stat' }, h('div', { class: 'num' }, quarantinedUnits), h('div', { class: 'lbl' }, 'Units quarantined')));
 
         const lotSel = document.getElementById('recallLot');
         const keep = lotSel.value;
-        lotSel.innerHTML = '<option value="">Which lot?…</option>' + (lots || []).map(l => {
+        lotSel.replaceChildren(h('option', { value: '' }, 'Which lot?…'), ...(lots || []).map(l => {
           const prod = (l.products && l.products.name) || 'Unknown product';
-          return `<option value="${esc(l.id)}">${esc(prod)} — lot ${esc(l.lot_number)} (${Number(l.quantity_remaining)} left)</option>`;
-        }).join('');
+          return h('option', { value: l.id }, prod + ' — lot ' + l.lot_number + ' (' + Number(l.quantity_remaining) + ' left)');
+        }));
         lotSel.value = keep;
 
-        document.getElementById('recallsWrap').innerHTML = rows.length ? rows.map(r => {
+        const recallRow = r => {
           const prod = (r.products && r.products.name) || 'Unlinked';
           const lot = (r.inventory_lots && r.inventory_lots.lot_number) || '?';
           const incident = r.incidents;
           const statusClass = r.status === 'resolved' ? 'sev-low' : 'sev-high';
           const alsoFailedQc = (r.lot_id && failedLots.has(r.lot_id)) || (!r.lot_id && r.product_id && failedProducts.has(r.product_id));
-          return `
-            <div class="deletedRow u-ai-flex-start" data-id="${esc(r.id)}" data-status="${esc(r.status || '')}" data-lot="${esc(r.lot_id)}">
-              <div class="info u-flex-1">
-                <b>${esc(prod)} — lot ${esc(lot)}</b>
-                <span class="badge ${statusClass}">${esc(RECALL_STATUS_LABELS[r.status] || r.status)}</span>
-                <span class="badge">${esc(QC_SEVERITY_LABELS[r.severity] || r.severity)}</span>
-                <span class="u-c-muted u-fs-12">${esc(fmtDate(r.created_at))}</span>
-                <div class="u-mt-6">${esc(r.reason)}</div>
-                ${r.quantity_quarantined != null ? `<div class="u-mt-6">${Number(r.quantity_quarantined)} units pulled from Available into Recalled.</div>` : ''}
-                ${r.resolution ? `<div class="u-mt-6 u-c-x4d7c6a"><b>Resolved:</b> ${esc(r.resolution)}</div>` : ''}
-                ${incident ? `<div class="u-mt-6"><span class="badge">Incident ${esc(incident.incident_number || '')} — ${esc(incident.status)}</span></div>` : ''}
-                ${alsoFailedQc ? `<div class="u-mt-6"><span class="badge sev-high">This batch also has a failed quality check</span> <a href="#" class="recallViewQcLink u-fs-12">View in Quality Control →</a></div>` : ''}
-                ${r.status !== 'resolved' ? `
-                  <div class="u-mt-10 u-d-flex u-gap-8 u-fwr-wrap u-ai-center">
-                    ${r.status === 'initiated' ? '<button type="button" class="small deny recallQuarantineBtn">Quarantine stock</button>' : ''}
-                    ${!r.incident_id ? '<button type="button" class="small secondary recallEscalateBtn">Escalate to Incident</button>' : ''}
-                    <input type="text" class="recallResolutionInput u-flex-1 u-minw-160 u-p-6-9 u-br-6 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-13" placeholder="Resolution notes">
-                    <button type="button" class="small secondary recallResolveBtn">Mark resolved</button>
-                  </div>` : ''}
-              </div>
-            </div>`;
-        }).join('') : '<p class="empty">No recalls — hopefully it stays that way.</p>';
+          return h('div', { class: 'deletedRow u-ai-flex-start', 'data-id': r.id, 'data-status': r.status || '', 'data-lot': r.lot_id || '' },
+            h('div', { class: 'info u-flex-1' },
+              h('b', null, prod + ' — lot ' + lot), ' ',
+              h('span', { class: 'badge ' + statusClass }, RECALL_STATUS_LABELS[r.status] || r.status), ' ',
+              h('span', { class: 'badge' }, QC_SEVERITY_LABELS[r.severity] || r.severity), ' ',
+              h('span', { class: 'u-c-muted u-fs-12' }, fmtDate(r.created_at)),
+              h('div', { class: 'u-mt-6' }, r.reason),
+              r.quantity_quarantined != null ? h('div', { class: 'u-mt-6' }, Number(r.quantity_quarantined) + ' units pulled from Available into Recalled.') : null,
+              r.resolution ? h('div', { class: 'u-mt-6 u-c-x4d7c6a' }, h('b', null, 'Resolved:'), ' ' + r.resolution) : null,
+              incident ? h('div', { class: 'u-mt-6' }, h('span', { class: 'badge' }, 'Incident ' + (incident.incident_number || '') + ' — ' + incident.status)) : null,
+              alsoFailedQc ? h('div', { class: 'u-mt-6' }, h('span', { class: 'badge sev-high' }, 'This batch also has a failed quality check'), ' ', h('a', { href: '#', class: 'recallViewQcLink u-fs-12' }, 'View in Quality Control →')) : null,
+              r.status !== 'resolved' ? h('div', { class: 'u-mt-10 u-d-flex u-gap-8 u-fwr-wrap u-ai-center' },
+                r.status === 'initiated' ? h('button', { type: 'button', class: 'small deny recallQuarantineBtn' }, 'Quarantine stock') : null,
+                !r.incident_id ? h('button', { type: 'button', class: 'small secondary recallEscalateBtn' }, 'Escalate to Incident') : null,
+                h('input', { type: 'text', class: 'recallResolutionInput u-flex-1 u-minw-160 u-p-6-9 u-br-6 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-13', placeholder: 'Resolution notes' }),
+                h('button', { type: 'button', class: 'small secondary recallResolveBtn' }, 'Mark resolved')) : null));
+        };
+        document.getElementById('recallsWrap').replaceChildren(...(rows.length ? rows.map(recallRow) : [h('p', { class: 'empty' }, 'No recalls — hopefully it stays that way.')]));
 
         document.querySelectorAll('.recallViewQcLink').forEach(link => {
           link.addEventListener('click', (e) => { e.preventDefault(); showPage('qualityControlPanel'); });
