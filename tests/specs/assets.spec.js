@@ -71,7 +71,7 @@ base.test.describe('pure helpers file', () => {
     const m = pageCode().match(/const \{\n([\s\S]*?)\n    \} = window\.HE\.helpers;/);
     base.expect(m).not.toBeNull();
     const names = m[1].split(',').map(x => x.trim()).filter(Boolean);
-    base.expect(names.length).toBe(41); // 43 since EXT10; 41 since EXT19 (two unused imports removed by the whole-program type gate)
+    base.expect(names.length).toBe(40); // 43 since EXT10; 41 since EXT19; 40 since EXT20J (esc no longer imported after the Trusted Types cascade removed every esc() call from the program)
     for (const n of names) {
       base.expect(window.HE.helpers[n], n).toBeDefined();
       base.expect(pageCode(), n).not.toMatch(new RegExp('^    (async )?function ' + n + '\\s*\\(|^    const ' + n + '\\s*=', 'm'));

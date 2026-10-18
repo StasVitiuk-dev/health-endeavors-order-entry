@@ -32,7 +32,11 @@ test('control: every EXT15 static check passes on an unmodified copy', () => {
 });
 
 const TRAPS = [
-  ['an inline style attribute in a module', 'inline-styles.js', ['--check'], d => edit(d, 'assets/app/he-tasks.js', t => t.replace('class="', 'style="color:red" class="')), /static inline/],
+  // EXT20J: he-tasks.js is now built with the h() DOM builder, so it no longer
+  // contains a class="…" HTML-string attribute to prefix. Plant a standalone
+  // static style="…" string literal before the module return instead — still a
+  // module file, still a static inline style for inline-styles.js to catch.
+  ['an inline style attribute in a module', 'inline-styles.js', ['--check'], d => edit(d, 'assets/app/he-tasks.js', t => t.replace(/return \{/, 'const __styleTrap = \'<div style="color:red"></div>\';\n  return {')), /static inline/],
   ['an inline style attribute in the page', 'inline-styles.js', ['--check'], d => edit(d, 'owner-login.html', t => t.replace('<body', '<body style="margin:0"')), /static inline/],
   ['a module that uses a program function it did not ask for (hidden dependency)', 'app-modules.js', [], d => edit(d, 'assets/app/he-format.js', t => t.replace(/return \{/, 'function __trap(){ return loadTasks(); }\n  return {')), /hidden|loadTasks/i],
   ['a module file the page does not load', 'app-modules.js', [], d => edit(d, 'owner-login.html', t => t.replace(/<script src="assets\/app\/he-suppliers\.js\?v=[0-9a-f]+"><\/script>\n?/, '')), /he-suppliers/],
