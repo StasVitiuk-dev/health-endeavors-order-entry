@@ -14,7 +14,8 @@ Only changes that are already applied are recorded here. Fixes that are still wa
 | Tested before | local throwaway database shaped like production (same 33-check run as FIX 2): fix, rollback, re-apply |
 | Downtime | none |
 | Dashboard change | none: no dashboard page reads this view |
-| Result reported by the owner | Query G2 re-run after the change: all 16 views PASS, including `activity_timeline`. The profiles guard from FIX 2 is still in place. Claude has not yet seen this CSV file itself (it did not arrive); the result above is the owner's reading until the file is checked |
+| Result: **checked** | the owner re-ran read-only Query G2 after the change and pasted the full result as text (the CSV attachment did not arrive twice). Claude checked every row: **all 17 views PASS** (`security_invoker`, row-level security applies), including `activity_timeline`. The FIX 2 guard `profiles_guard_privileged_columns` is listed on `profiles` (BEFORE UPDATE, mentions role: yes), next to the unchanged `profiles_audit` and `profiles_lock_account_number`. The P1 column row stays WARN as expected: it only reports the column right, which FIX 2 does not change; the guard is what blocks the change |
+| View count note | earlier notes said 16 views. That number came from Query G's G04 list (77 objects − 61 tables). G2 lists 17: `needs_attention` is a view that was not in G04, which only lists objects where visitors hold all rights. It is PASS, so nothing is open for it |
 
 SQL that was run:
 
@@ -40,7 +41,7 @@ commit;
 select relname, reloptions from pg_class where oid = 'public.activity_timeline'::regclass;
 ```
 
-**Security-fix round of 2026-10-18 (FIX 1A, FIX 2, FIX 1B): complete,** as reported by the owner. Still open and not part of this round: the wide default rights of the `anon` role found by Query G (G04, WARN), to be reviewed read-only first.
+**Security-fix round of 2026-10-18 (FIX 1A, FIX 2, FIX 1B): complete, checked** against the owner's final Query G2 result. Still open and not part of this round: the wide default rights of the `anon` role found by Query G (G04, WARN), to be reviewed read-only first.
 
 ## 2026-10-18 · FIX 2: only the owner can change a person's role, break-glass access or account status
 
@@ -155,7 +156,7 @@ select has_table_privilege('anon', 'public.activity_timeline', 'SELECT') as visi
 | Check | Before FIX 1A | After FIX 1A |
 |---|---|---|
 | V1 `activity_timeline` | FAIL (readable by visitors who are not signed in) | **WARN** (readable by signed-in users only) |
-| V1, the other 15 views | PASS | **PASS** (unchanged) |
+| V1, the other views (owner-reported as 15; the final G2 shows 16 others, see FIX 1B) | PASS | **PASS** (unchanged) |
 | P1 (a separate item, not part of this change) | WARN | WARN (unchanged at that time; fixed later the same day by FIX 2, above) |
 
 **Still open for this view at that time:** signed-in users still read it with the owner's rights. Closed later the same day by FIX 1B, above.
