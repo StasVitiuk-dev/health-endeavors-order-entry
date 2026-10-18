@@ -10,7 +10,7 @@ const path = require('path');
 const { test, expect, login, gotoPage } = require('../helpers/dashboard');
 const ROOT = path.join(__dirname, '..', '..');
 
-const CEILING = 56; // EXT17/18: 168 · EXT19: 86 · EXT20: 56
+const CEILING = 4; // EXT17/18: 168 · EXT19: 86 · EXT20: 56 · EXT20J: 4 (the dynamic-sink cascade is complete; the only report-only violations left are the 4 static-literal overlay scaffolds — help, command palette, keyboard shortcuts, quick-add — which carry no dynamic data)
 
 test.beforeEach(({}, ti) => { test.skip(ti.project.name !== 'desktop', 'one browser size is enough'); });
 
