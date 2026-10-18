@@ -90,6 +90,14 @@
       "env": "production",
       "schema": "section,item,detail",
       "interpret": "node tests/tools/schema-drift.js --export query-a.csv --export query-a2.csv"
+    },
+    {
+      "file": "09_READONLY_G2_views_and_profile_role_guard.sql",
+      "id": "G2",
+      "purpose": "views that may skip row-level security (V1) and the profiles role-change guard (P1)",
+      "env": "production",
+      "schema": "check_id,level,object,detail",
+      "interpret": "read by Claude (same columns as Query G)"
     }
   ],
   "changes": [

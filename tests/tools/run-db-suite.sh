@@ -43,6 +43,7 @@ step "integrity check (Query F)" bash "$LT/integrity_check_test.sh" $C -d he_rea
 step "restore drill (local only)" bash "$LT/restore_drill.sh" $C
 step "stock switches + R1–R5 rollback guard" bash "$LT/stock_switches_test.sh" $C
 step "permissions inventory (Query G)" bash "$LT/permissions_inventory_test.sh" $C
+step "views and profile role guard (Query G2)" bash "$LT/views_profile_guard_test.sh" $C
 step "schema drift (Query A + A2 export vs page and local schema)" bash "$LT/schema_drift_test.sh" $C
 step "RLS contract + audit immutability (local model, 6 callers)" bash "$LT/rls_contract_test.sh" $C
 step "integrity constraints" bash "$LT/integrity_constraints_test.sh" $C
