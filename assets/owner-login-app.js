@@ -42,7 +42,6 @@
   function initApp(){
     // Pure helpers live in assets/owner-login-helpers.js (see the start-up check).
     const {
-      esc,
       csvCell,
       fmtMoney,
       fmtDateOnly,
@@ -90,7 +89,7 @@
     const { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
     const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, h, supabase });
     const { environmentLabel, assetVersions, isMissingRelation, dbStepsStatus, NIGHTLY_STALE_MS, ATTN_STALE_MS, attnSeenGet, attnSeenSet, attnSignature } = HE.modules.create('he-status', { DB_STEPS, STOCK_FN_PROBES, SUPABASE_URL, stockFunctionInstalled, supabase });
-    const { getTodayRange, getYesterdayRange, dateKey, eventDateKey, fmtTimeShort, personalEventEditorHtml, personalTimesFromInputs, PERSONAL_CAL_HINT, weekGroupLabel, monthGroupLabel } = HE.modules.create('he-time', { CAL_COLORS, esc });
+    const { getTodayRange, getYesterdayRange, dateKey, eventDateKey, fmtTimeShort, personalEventEditorHtml, personalTimesFromInputs, PERSONAL_CAL_HINT, weekGroupLabel, monthGroupLabel } = HE.modules.create('he-time', { CAL_COLORS, h });
     const { missingToNaN, reportCount, missingTotalCount, missingTotalNote, mixedCurrencyNote, docExpiryBadge, inqStatusBadgeClass, continuityBadgeClass, qcIncidentCategory, numVal, CLOSED_IN } = HE.modules.create('he-format', { CLOSED_WORDS, fmtDateOnly, h });
     const { isGroupOpen, setGroupOpen, getPinnedPages, setPinnedPages, allPageIds, getLastPage, pageFromHash, saveLastPage, PAGE_WARNINGS, PAGE_LABEL_BY_ID, NAV_BACK, NAV_FWD, rowsOnPage, typedForms, NOT_GUARDED_FORMS, hasUnsavedTyping, CHANGE_PASSWORD_URL, SIGNED_OUT_NOTE } = HE.modules.create('he-nav', { SIDEBAR_GROUPS });
     const { loadTasks } = HE.modules.create('he-tasks', { CLOSED_IN, SEARCH_INDEX, TASK_ALLOWED_FROM, TASK_NEXT_ACTIONS, TASK_STATUS_LABELS, explainDbError, fmtDate, h, isClosedStatus, isOverdue, showDashError, supabase });
@@ -3345,11 +3344,13 @@
       const names = [...new Set(calEvents.map(ev => ev.calendar_name || 'Other'))].sort();
       const box = document.getElementById('calFilters');
       if (!names.length) { box.replaceChildren(); return; }
-      box.innerHTML = names.map(n => {
+      // EXT20J: filter chips built as DOM nodes (h() text-ifies) instead of an
+      // HTML string, so the calendar filter bar is safe under Trusted Types.
+      box.replaceChildren(...names.map(n => {
         const off = calHidden.has(n);
-        return '<button type="button" class="calChipBtn' + (off ? ' off' : '') + '" data-cal="' + esc(n) + '">' +
-          '<span class="swatch u-bg-colorforcalendar-n"></span>' + esc(n) + '</button>';
-      }).join('');
+        return h('button', { type: 'button', class: 'calChipBtn' + (off ? ' off' : ''), 'data-cal': n },
+          h('span', { class: 'swatch u-bg-colorforcalendar-n' }), n);
+      }));
       box.querySelectorAll('.calChipBtn').forEach(btn => {
         btn.addEventListener('click', () => {
           const n = btn.getAttribute('data-cal');
@@ -3360,57 +3361,59 @@
       });
     }
 
+    // EXT20J: one event row as a DOM node (h() text-ifies) instead of an HTML
+    // string. The nested editors (personalEventEditorHtml / noteEditorHtml) also
+    // return nodes now, so the whole calendar is safe under Trusted Types.
     function eventHtml(ev){
       const note = calNotes[ev.uid];
-      const time = ev.all_day ? '<span class="calAllDay">All day</span>' : esc(fmtTimeShort(ev.starts_at)) +
-        (ev.ends_at && !ev.all_day ? '<br><span class="u-op-65">' + esc(fmtTimeShort(ev.ends_at)) + '</span>' : '');
       const open = calOpenUid === ev.uid;
       const personal = calMode === 'personal';
-      return '<div class="calEvent' + (open ? ' selected' : '') + '" data-uid="' + esc(ev.uid) + '">' +
-          '<div class="eTime">' + time + '</div>' +
-          '<div class="eBar u-bg-colorforcalendar-ev-calendar-name"></div>' +
-          '<div class="eBody">' +
-            '<div class="eTitle">' + esc(ev.summary || 'Event') + '</div>' +
-            (ev.location ? '<div class="eSub">' + esc(ev.location) + '</div>' : '') +
-            (personal ? '' : '<div class="eSub">' + esc(ev.calendar_name || 'Other') + '</div>') +
-            (!personal && note && !open ? '<div class="eNote">' + esc(note) + '</div>' : '') +
-            (open ? (personal ? personalEventEditorHtml(ev) : noteEditorHtml(ev)) : '') +
-          '</div>' +
-        '</div>';
+      const timeKids = ev.all_day
+        ? [h('span', { class: 'calAllDay' }, 'All day')]
+        : [fmtTimeShort(ev.starts_at), ...(ev.ends_at && !ev.all_day ? [h('br'), h('span', { class: 'u-op-65' }, fmtTimeShort(ev.ends_at))] : [])];
+      return h('div', { class: 'calEvent' + (open ? ' selected' : ''), 'data-uid': ev.uid },
+        h('div', { class: 'eTime' }, ...timeKids),
+        h('div', { class: 'eBar u-bg-colorforcalendar-ev-calendar-name' }),
+        h('div', { class: 'eBody' },
+          h('div', { class: 'eTitle' }, ev.summary || 'Event'),
+          ev.location ? h('div', { class: 'eSub' }, ev.location) : null,
+          personal ? null : h('div', { class: 'eSub' }, ev.calendar_name || 'Other'),
+          (!personal && note && !open) ? h('div', { class: 'eNote' }, note) : null,
+          ...(open ? [personal ? personalEventEditorHtml(ev) : noteEditorHtml(ev)] : [])));
     }
+    // EXT20J: data-had / data-shown = the note as shown (none, or its text); the
+    // raw note text rides setAttribute and round-trips through getAttribute for
+    // the stale-save guard's `.eq('note', data-shown)` check.
     function noteEditorHtml(ev){
-      // EXT9: data-had / data-shown = the note as shown (none, or its text).
-      return '<div class="calNoteBox" data-noteuid="' + esc(ev.uid) + '" data-had="' + (calNotes[ev.uid] != null ? '1' : '0') + '" data-shown="' + esc(calNotes[ev.uid] || '') + '">' +
-        '<textarea class="calNoteText" placeholder="Add a note for yourself about this appointment…">' +
-          esc(calNotes[ev.uid] || '') + '</textarea>' +
-        '<div class="calNoteRow">' +
-          '<button type="button" class="small calNoteSave">Save note</button>' +
-          (calNotes[ev.uid] ? '<button type="button" class="small secondary calNoteDelete">Remove</button>' : '') +
-          '<span class="saved"></span>' +
-        '</div></div>';
+      return h('div', {
+        class: 'calNoteBox', 'data-noteuid': ev.uid,
+        'data-had': calNotes[ev.uid] != null ? '1' : '0', 'data-shown': calNotes[ev.uid] || '',
+      },
+        h('textarea', { class: 'calNoteText', placeholder: 'Add a note for yourself about this appointment…' }, calNotes[ev.uid] || ''),
+        h('div', { class: 'calNoteRow' },
+          h('button', { type: 'button', class: 'small calNoteSave' }, 'Save note'),
+          calNotes[ev.uid] ? h('button', { type: 'button', class: 'small secondary calNoteDelete' }, 'Remove') : null,
+          h('span', { class: 'saved' })));
     }
     function dayGroupHtml(date, events){
       const key = dateKey(date);
       const isToday = key === dateKey(new Date());
-      const head = '<div class="calDayHead' + (isToday ? ' isToday' : '') + '">' +
-        '<span class="dName">' + esc(date.toLocaleDateString(undefined, { weekday:'long' })) + '</span>' +
-        '<span class="dMeta">' + esc(date.toLocaleDateString(undefined, { month:'short', day:'numeric' })) +
-        ' · ' + (events.length ? events.length + (events.length === 1 ? ' appointment' : ' appointments') : 'nothing scheduled') +
-        '</span></div>';
-      if (!events.length) return '<div class="calDayGroup">' + head + '<p class="empty">Nothing scheduled.</p></div>';
+      const head = h('div', { class: 'calDayHead' + (isToday ? ' isToday' : '') },
+        h('span', { class: 'dName' }, date.toLocaleDateString(undefined, { weekday:'long' })),
+        h('span', { class: 'dMeta' }, date.toLocaleDateString(undefined, { month:'short', day:'numeric' }) +
+          ' · ' + (events.length ? events.length + (events.length === 1 ? ' appointment' : ' appointments') : 'nothing scheduled')));
+      if (!events.length) return h('div', { class: 'calDayGroup' }, head, h('p', { class: 'empty' }, 'Nothing scheduled.'));
 
-      let body = '';
+      const nowLine = () => h('div', { class: 'calNowLine' }, h('span', { class: 'dot' }), h('span', { class: 'line' }));
+      const kids = [head];
       const now = new Date();
       let nowDrawn = !isToday;
       events.forEach(ev => {
-        if (!nowDrawn && !ev.all_day && new Date(ev.starts_at) > now) {
-          body += '<div class="calNowLine"><span class="dot"></span><span class="line"></span></div>';
-          nowDrawn = true;
-        }
-        body += eventHtml(ev);
+        if (!nowDrawn && !ev.all_day && new Date(ev.starts_at) > now) { kids.push(nowLine()); nowDrawn = true; }
+        kids.push(eventHtml(ev));
       });
-      if (!nowDrawn) body += '<div class="calNowLine"><span class="dot"></span><span class="line"></span></div>';
-      return '<div class="calDayGroup">' + head + body + '</div>';
+      if (!nowDrawn) kids.push(nowLine());
+      return h('div', { class: 'calDayGroup' }, ...kids);
     }
     function eventsOn(date){
       const key = dateKey(date);
@@ -3427,38 +3430,41 @@
         b.className = 'small' + (b.getAttribute('data-calview') === calView ? '' : ' secondary'));
       const body = document.getElementById('calBody');
 
+      // EXT20J: every view built as DOM nodes (h() text-ifies) instead of HTML
+      // strings, so the calendar body is safe under Trusted Types.
       if (calView === 'day') {
-        body.innerHTML = dayGroupHtml(new Date(calCursor), eventsOn(calCursor));
+        body.replaceChildren(dayGroupHtml(new Date(calCursor), eventsOn(calCursor)));
       } else if (calView === 'week') {
         const { start } = calRange();
-        let out = '';
+        const days = [];
         for (let i = 0; i < 7; i++) {
           const d = new Date(start); d.setDate(start.getDate() + i);
-          out += dayGroupHtml(d, eventsOn(d));
+          days.push(dayGroupHtml(d, eventsOn(d)));
         }
-        body.innerHTML = out;
+        body.replaceChildren(...days);
       } else {
         const { start } = calRange();
         const month = calCursor.getMonth();
         const todayKey = dateKey(new Date());
-        let cells = '<div class="calGrid">' +
-          ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => '<div class="calDow">' + d + '</div>').join('') +
-          '</div><div class="calGrid u-mt-6">';
+        const dowGrid = h('div', { class: 'calGrid' },
+          ...['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => h('div', { class: 'calDow' }, d)));
+        const cells = [];
         for (let i = 0; i < 42; i++) {
           const d = new Date(start); d.setDate(start.getDate() + i);
           const key = dateKey(d);
           const evs = eventsOn(d);
           const shown = evs.slice(0, 3);
-          cells += '<div class="calCell' + (d.getMonth() !== month ? ' otherMonth' : '') +
-            (key === todayKey ? ' today' : '') + '" data-daykey="' + key + '">' +
-            '<div class="dNum">' + d.getDate() + '</div>' +
-            shown.map(ev => '<span class="calChip" title="' + esc(ev.summary || 'Event') + '">' +
-              '<span class="cDot u-bg-colorforcalendar-ev-calendar-name"></span>' +
-              '<span class="cText">' + esc(ev.summary || 'Event') + '</span></span>').join('') +
-            (evs.length > shown.length ? '<div class="calMore">+' + (evs.length - shown.length) + ' more</div>' : '') +
-            '</div>';
+          cells.push(h('div', {
+            class: 'calCell' + (d.getMonth() !== month ? ' otherMonth' : '') + (key === todayKey ? ' today' : ''),
+            'data-daykey': key,
+          },
+            h('div', { class: 'dNum' }, d.getDate()),
+            ...shown.map(ev => h('span', { class: 'calChip', title: ev.summary || 'Event' },
+              h('span', { class: 'cDot u-bg-colorforcalendar-ev-calendar-name' }),
+              h('span', { class: 'cText' }, ev.summary || 'Event'))),
+            evs.length > shown.length ? h('div', { class: 'calMore' }, '+' + (evs.length - shown.length) + ' more') : null));
         }
-        body.innerHTML = cells + '</div>';
+        body.replaceChildren(dowGrid, h('div', { class: 'calGrid u-mt-6' }, ...cells));
         body.querySelectorAll('.calCell').forEach(cell => {
           cell.addEventListener('click', () => {
             calCursor = new Date(cell.getAttribute('data-daykey') + 'T00:00:00');

@@ -2,8 +2,8 @@
 // EXT15: moved unchanged out of assets/owner-login-app.js (initApp). Its inputs
 // arrive explicitly in ctx; it returns only what other code still uses. Map:
 // docs/ops/APPLICATION_MODULE_MAP_EXT15.md. Created once, by the app, in order.
-window.HE.modules.define('he-time', { api: 1, needs: ['CAL_COLORS','esc'] }, function (ctx) {
-    const { CAL_COLORS, esc } = ctx;
+window.HE.modules.define('he-time', { api: 1, needs: ['CAL_COLORS','h'] }, function (ctx) {
+    const { CAL_COLORS, h } = ctx;
     // Business Health strip: a handful of numbers you'd otherwise have to
     // visit 5-6 separate pages to piece together, computed fresh on every
     // landing-page load. Deliberately its own small set of direct queries
@@ -38,23 +38,25 @@ window.HE.modules.define('he-time', { api: 1, needs: ['CAL_COLORS','esc'] }, fun
     }
     // Inline editor for a personal (manually-entered) event: change title or
     // times, or delete it. Shown when you click one of your own events.
+    // EXT20J: returns a DOM node (h() text-ifies and setAttribute carries
+    // data-*) instead of an HTML string, so the personal-event editor is safe
+    // under Trusted Types. data-shown holds the raw event JSON that the stale
+    // guard parses back with JSON.parse (round-trips unchanged via getAttribute).
     function personalEventEditorHtml(ev){
       // EXT9: the values shown, so a save never overwrites a change made elsewhere meanwhile.
       const shown = JSON.stringify({ title: ev.summary == null ? null : ev.summary, starts_at: ev.starts_at || null, ends_at: ev.ends_at || null, all_day: !!ev.all_day });
-      return '<div class="calNoteBox" data-personaluid="' + esc(ev.uid) + '" data-shown="' + esc(shown) + '">' +
-        '<label class="u-mb-4">Title</label>' +
-        '<input type="text" class="personalEditTitle u-mb-10" value="' + esc(ev.summary || '') + '">' +
-        '<label class="u-mb-4">Starts</label>' +
-        '<input type="datetime-local" class="personalEditStart u-mb-10" value="' + esc(toDatetimeLocalValue(ev.starts_at, ev.all_day)) + '">' +
-        '<label class="u-mb-4">Ends (optional)</label>' +
-        '<input type="datetime-local" class="personalEditEnd u-mb-10" value="' + esc(toDatetimeLocalValue(ev.ends_at, ev.all_day)) + '">' +
-        '<label class="u-m-0-0-10 u-fw-400 u-d-flex u-ai-center u-gap-6">' +
-          '<input type="checkbox" class="personalEditAllDay u-w-auto u-m-0"' + (ev.all_day ? ' checked' : '') + '> All day' +
-        '</label>' +
-        '<div class="calNoteRow">' +
-          '<button type="button" class="small personalEditSave">Save</button>' +
-          '<button type="button" class="small secondary personalEditDelete">Delete event</button>' +
-        '</div></div>';
+      return h('div', { class: 'calNoteBox', 'data-personaluid': ev.uid, 'data-shown': shown },
+        h('label', { class: 'u-mb-4' }, 'Title'),
+        h('input', { type: 'text', class: 'personalEditTitle u-mb-10', value: ev.summary || '' }),
+        h('label', { class: 'u-mb-4' }, 'Starts'),
+        h('input', { type: 'datetime-local', class: 'personalEditStart u-mb-10', value: toDatetimeLocalValue(ev.starts_at, ev.all_day) }),
+        h('label', { class: 'u-mb-4' }, 'Ends (optional)'),
+        h('input', { type: 'datetime-local', class: 'personalEditEnd u-mb-10', value: toDatetimeLocalValue(ev.ends_at, ev.all_day) }),
+        h('label', { class: 'u-m-0-0-10 u-fw-400 u-d-flex u-ai-center u-gap-6' },
+          h('input', { type: 'checkbox', class: 'personalEditAllDay u-w-auto u-m-0', checked: !!ev.all_day }), ' All day'),
+        h('div', { class: 'calNoteRow' },
+          h('button', { type: 'button', class: 'small personalEditSave' }, 'Save'),
+          h('button', { type: 'button', class: 'small secondary personalEditDelete' }, 'Delete event')));
     }
     // Turns a stored timestamp into the "YYYY-MM-DDTHH:MM" format that a
     // datetime-local input expects, in your own local time.

@@ -55,7 +55,10 @@ const CHANGED = [
   'openHelp',
   // EXT20J command palette: rows built as DOM nodes with pageIconNode; the icon
   // string field (and pageIconSvg) is no longer carried on each item:
-  'paletteItems'];
+  'paletteItems',
+  // EXT20J calendar wave: every calendar renderer returns DOM nodes (h) instead
+  // of HTML strings (data-shown/data-had carried via setAttribute, round-tripped):
+  'eventHtml', 'noteEditorHtml', 'dayGroupHtml', 'renderCalendar', 'personalEventEditorHtml'];
 const ADDED = ['setReportHistoryView', 'inquiriesList', 'agentControls', 'poReceiveOps',
   // EXT17: manual stock adjustments report to an explicit operation state (he-ops, repeatable)
   'adjustOps', 'adjustPending', 'adjustKey', 'checkUnknownAdjustment',
