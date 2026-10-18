@@ -48,7 +48,9 @@ const CHANGED = [
   'renderInquiries', 'loadTasks', 'loadRecentlyDoneTasks', 'loadIncidents', 'loadActivityAreas', 'docExpiryBadge',
   'loadDailySummary', 'loadFlags',
   // EXT20J activity + inspector wave: he-audit change renderers return DOM nodes:
-  'describeChange', 'hlValue', 'codeDiff'];
+  'describeChange', 'hlValue', 'codeDiff',
+  // EXT20J order lookup: the cached answer is a node-builder, not an HTML string:
+  'ORDER_LOOKUP', 'lookUpAllOrders'];
 const ADDED = ['setReportHistoryView', 'inquiriesList', 'agentControls', 'poReceiveOps',
   // EXT17: manual stock adjustments report to an explicit operation state (he-ops, repeatable)
   'adjustOps', 'adjustPending', 'adjustKey', 'checkUnknownAdjustment',

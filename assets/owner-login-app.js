@@ -638,8 +638,10 @@
       // older order is never reported as "no match".
       if (q && q.length >= 2) {
         const results = h('div', { id: 'orderLookupResults' });
-        // the earlier lookup's rows (built with esc() in lookUpAllOrders) are shown again for the same search
-        if (ORDER_LOOKUP.q === q && ORDER_LOOKUP.html) results.innerHTML = ORDER_LOOKUP.html;
+        // EXT20J: the earlier lookup's rows are rebuilt as fresh DOM nodes (the
+        // cache holds a node-builder, not an HTML string) and shown again for
+        // the same search, so the sidebar stays safe under Trusted Types.
+        if (ORDER_LOOKUP.q === q && ORDER_LOOKUP.render) results.replaceChildren(...ORDER_LOOKUP.render());
         out.push(h('div', { class: 'sidebarGroup u-groupcolor-teal', id: 'orderLookupGroup' },
           h('p', { class: 'hint u-m-4-10' }, 'Searches the records loaded here (open work, newest orders).'),
           h('button', { type: 'button', class: 'small secondary u-m-2-10-6', id: 'orderLookupBtn' }, 'Look up “' + q + '” in all orders'),
@@ -1269,7 +1271,9 @@
     // reveal more than that list already would.
     // The sidebar is redrawn when background loads finish; the lookup's
     // answer is kept (for the same search text) so it does not vanish.
-    let ORDER_LOOKUP = { q: null, html: '' };
+    // EXT20J: the cached answer is a node-builder (() => array of DOM nodes),
+    // rebuilt fresh each time it is shown, not an HTML string.
+    let ORDER_LOOKUP = { q: null, render: null };
     function bindOrderLookupLinks(){
       document.querySelectorAll('#orderLookupResults .orderLookupLink').forEach(a => a.addEventListener('click', () =>
         openInspectorFor('orders', a.getAttribute('data-id'), a.getAttribute('data-num'))));
@@ -1280,12 +1284,12 @@
       const btn = document.getElementById('orderLookupBtn');
       if (!btn || btn.disabled) return;
       btn.disabled = true;
-      const show = html => {
-        ORDER_LOOKUP = { q, html };
+      const show = render => {
+        ORDER_LOOKUP = { q, render };
         const box = document.getElementById('orderLookupResults'); // may have been redrawn
-        if (box) { box.innerHTML = html; bindOrderLookupLinks(); }
+        if (box) { box.replaceChildren(...render()); bindOrderLookupLinks(); }
       };
-      show('<p class="hint u-m-4-10">Looking…</p>');
+      show(() => [h('p', { class: 'hint u-m-4-10' }, 'Looking…')]);
       try {
         const pat = '%' + likeLiteral(q) + '%';
         // Inside PostgREST's quoted value, backslash and double quote are escaped.
@@ -1295,11 +1299,16 @@
           .is('deleted_at', null).or('order_number.ilike.' + quoted + ',customer_name.ilike.' + quoted)
           .order('placed_at', { ascending: false }).limit(20);
         if (error) throw error;
-        if (!data || !data.length) { show('<p class="hint u-m-4-10">No order number or customer name contains this.</p>'); return; }
-        show((data.length === 20 ? '<p class="hint u-m-4-10">The newest 20 matches:</p>' : '') + data.map(o =>
-          `<a class="sidebarLink orderLookupLink" data-id="${esc(o.id)}" data-num="${esc(o.order_number || '')}"><span class="resultType">Order</span><br>${esc(o.order_number || o.id)} — ${esc(o.customer_name || '—')} · ${esc(fmtMoney(o.total, o.currency))} · ${esc(o.status || '—')} · ${esc(fmtDate(o.placed_at))}</a>`).join(''));
+        if (!data || !data.length) { show(() => [h('p', { class: 'hint u-m-4-10' }, 'No order number or customer name contains this.')]); return; }
+        const capped = data.length === 20;
+        show(() => [
+          ...(capped ? [h('p', { class: 'hint u-m-4-10' }, 'The newest 20 matches:')] : []),
+          ...data.map(o => h('a', { class: 'sidebarLink orderLookupLink', 'data-id': o.id, 'data-num': o.order_number || '' },
+            h('span', { class: 'resultType' }, 'Order'), h('br'),
+            (o.order_number || o.id) + ' — ' + (o.customer_name || '—') + ' · ' + fmtMoney(o.total, o.currency) + ' · ' + (o.status || '—') + ' · ' + fmtDate(o.placed_at))),
+        ]);
       } catch (err) {
-        show('<p class="hint u-m-4-10 u-c-warn">Could not search orders: ' + esc(explainDbError((err && err.message) || String(err))) + '</p>');
+        show(() => [h('p', { class: 'hint u-m-4-10 u-c-warn' }, 'Could not search orders: ' + explainDbError((err && err.message) || String(err)))]);
       } finally {
         const b = document.getElementById('orderLookupBtn'); if (b) b.disabled = false;
         btn.disabled = false;
