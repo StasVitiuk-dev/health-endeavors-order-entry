@@ -32,6 +32,17 @@ A key subtlety, proven locally: removing the right from visitors alone is **not*
 - **Scheduled / background jobs:** the data-changing ones look like scheduled maintenance. Scheduled jobs run as a privileged role, not as a visitor. The prepared fix keeps that role (tested locally). The follow-up read-only step lists the actual scheduled jobs so this can be confirmed on production before any change.
 - **Public website forms:** none of the 10 is a website form target (the forms use the three tables covered in `G04_VISITOR_RIGHTS_REVIEW.md`, not these functions).
 
+## Readiness of the fix phase (2026-10-18)
+
+The owner-controlled steps (Query D2, then the fix) have been made as safe as possible, and the work is held privately:
+
+- The follow-up read-only query was checked to be strictly read-only (one select, no writes, no settings changes, no customer rows, sensitive lines blanked out).
+- The fix was tested against edge cases as well as the normal path: functions with more than one version (only the exact one is touched), a half-done starting state, an interrupted run (nothing changes unless the whole thing succeeds), running it twice, undoing it twice, and a check that the undo does not hand out any extra right.
+- A before/after rights table was produced: visitors lose the right; signed-in users, background jobs and the database owner keep it; nothing else changes.
+- Owner instruction cards for both steps, and the after-the-change checks, are prepared.
+
+**Readiness: ready for the owner's approval once the follow-up read-only query confirms the function details and the scheduled-job roles on production.** No blockers found. The only thing this working copy cannot see is the real list of scheduled jobs, which the follow-up query shows, so it comes first.
+
 ## Fix status
 
 - A fix ("FIX 3") is **prepared and tested locally** (23/23 checks): it reproduces the issue, proves the PUBLIC-right trap, applies the fix (visitors refused, while the dashboard's signed-in path, nested calls, the background-job role and the database owner all still work, and no function body is changed), rolls back exactly, re-applies, and stops safely if a function is missing.
