@@ -87,12 +87,25 @@ never-run agent is UNKNOWN, never a fake "healthy"). Tested in
 `tests/specs/sales-agents-ext20j.spec.js`. Enabling one later (owner-only) still
 only lets it produce drafts/flags for human review.
 
-**Still a reviewed step, NOT done:** the remaining dedicated pages from the full
-plan (Lead Detail, Retention, Content Opportunities, Territory & Expansion,
-Campaign Lab, Sales Data Quality — several of their agents already exist in the
-roster above, just without their own page), page styling/polish, and wiring any
-agent to real (non-synthetic) data. Those attach the same way, behind the same
-OFF flag.
+### Reserve II capability modules + pages (flag-OFF)
+
+Fourteen more pure engine modules were added (`he-sales-{retention,territory,
+dataquality,content,campaign,forecast,leaddetail,lostdeals,anomaly,workload,
+benchmark,scorecards,providers,safety}.js`) and **sixteen** sales pages are now
+wired behind the same OFF flag (the original 7 plus Lead Detail, Retention,
+Content Opportunities, Territory & Expansion, Campaign Lab, Sales Data Quality,
+Sales Forecast, AI Cost Center, Sales Safety Center). Each renders its module's
+real synthetic output through `he-sales-ui.render` (sections view-models), fully
+labelled (SIMULATED / ESTIMATED / UNKNOWN / OWNER_INPUT_REQUIRED). Safety
+invariants are enforced in `he-sales-safety.js` (no send mode, Gmail/production
+DB not connected, samples owner-only, claim firewall + DNC always on — all fail
+closed). Tested by `sales-caps2/3/4/5-ext20j.spec.js` (engine) and the extended
+`sales-wiring-ext20j.spec.js` (all 16 pages, desktop + iPhone).
+
+**Still a reviewed step, NOT done:** a few more pages from the full reserve
+(lost-deals / anomaly / workload / scorecards pages — their engine modules
+already exist), page styling/polish, and wiring any agent to real
+(non-synthetic) data. Those attach the same way, behind the same OFF flag.
 
 ## Safety model (how giving-away / spam / claims are made impossible)
 

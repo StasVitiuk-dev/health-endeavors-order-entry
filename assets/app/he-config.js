@@ -131,6 +131,15 @@ window.HE.modules.define('he-config', { api: 1, needs: [] }, function (ctx) {
       { id: 'salesSamplesPanel',   label: 'Samples' },
       { id: 'salesAnalyticsPanel', label: 'Sales Analytics' },
       { id: 'salesAgentsPanel',    label: 'Sales Agent Activity' },
+      { id: 'salesLeadDetailPanel',  label: 'Lead Detail (example)' },
+      { id: 'salesRetentionPanel',   label: 'Retention' },
+      { id: 'salesContentPanel',     label: 'Content Opportunities' },
+      { id: 'salesTerritoryPanel',   label: 'Territory & Expansion' },
+      { id: 'salesCampaignPanel',    label: 'Campaign Lab' },
+      { id: 'salesDataQualityPanel', label: 'Sales Data Quality' },
+      { id: 'salesForecastPanel',    label: 'Sales Forecast' },
+      { id: 'salesCostPanel',        label: 'AI Cost Center' },
+      { id: 'salesSafetyPanel',      label: 'Sales Safety Center' },
     ]};
     if (salesGrowthOn()) SIDEBAR_GROUPS.push(SALES_GROWTH_GROUP);
     const ICON_PATHS = {

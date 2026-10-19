@@ -73,7 +73,7 @@ const ADDED = ['setReportHistoryView', 'inquiriesList', 'agentControls', 'poRece
   // are its helpers. PANEL_LOADERS gained the 7 flag-gated sales panel loaders.
   // salesGrowthOn / SALES_GROWTH_GROUP are the new he-config factory statements.
   'salesMod', 'salesUi', 'salesEngine', 'SALES_TITLES', 'SALES_VIEWS', 'loadSales', 'PANEL_LOADERS',
-  'salesGrowthOn', 'SALES_GROWTH_GROUP'];
+  'salesGrowthOn', 'SALES_GROWTH_GROUP', 'salesKv', 'salesSection'];
 const NEW_MODULES = ['he-ops']; // EXT16: written new, not moved
 const CHANGED_TEXT = ["} = window.HE.helpers;", "forEach(o => Object.setPrototypeOf(o, null))", "supabase.auth.onAuthStateChange((event, session) =>", "getAttribute('data-view')", "getElementById('adjustInventoryForm').addEventListener('submit'", "getElementById('logReturnForm').addEventListener('submit'", "getElementById('retOrder').addEventListener('change'", "Release to refresh", "getElementById('docCategory')",
   // EXT20J-post-TT: the 4 static overlay scaffolds converted innerHTML->h(); each

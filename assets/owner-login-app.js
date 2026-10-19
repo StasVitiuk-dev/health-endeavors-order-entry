@@ -825,13 +825,26 @@
     function salesEngine(){
       return { ui: salesMod('he-sales-ui'), fixtures: salesMod('he-sales-fixtures'),
         leads: salesMod('he-sales-leads'), pipeline: salesMod('he-sales-pipeline'),
-        agents: salesMod('he-sales-agents') };
+        agents: salesMod('he-sales-agents'), claims: salesMod('he-sales-claims'),
+        cost: salesMod('he-sales-cost'), leaddetail: salesMod('he-sales-leaddetail'),
+        retention: salesMod('he-sales-retention'), content: salesMod('he-sales-content'),
+        territory: salesMod('he-sales-territory'), campaign: salesMod('he-sales-campaign'),
+        dataquality: salesMod('he-sales-dataquality'), forecast: salesMod('he-sales-forecast'),
+        providers: salesMod('he-sales-providers'), safety: salesMod('he-sales-safety') };
     }
+    // Small helpers to build he-sales-ui section view-models tersely.
+    function salesKv(k, value, label){ return { k, value: value == null ? '—' : value, label: label || 'ACTUAL' }; }
+    function salesSection(heading, rows){ return { heading, rows: rows || [] }; }
     const SALES_TITLES = {
       salesCommandPanel: 'Growth Command Center', salesLeadsPanel: 'Wholesale Leads',
       salesPipelinePanel: 'Pipeline', salesApprovalsPanel: 'Sales Approvals',
       salesSamplesPanel: 'Samples', salesAnalyticsPanel: 'Sales Analytics',
       salesAgentsPanel: 'Sales Agent Activity',
+      salesLeadDetailPanel: 'Lead Detail (example)', salesRetentionPanel: 'Retention',
+      salesContentPanel: 'Content Opportunities', salesTerritoryPanel: 'Territory & Expansion',
+      salesCampaignPanel: 'Campaign Lab', salesDataQualityPanel: 'Sales Data Quality',
+      salesForecastPanel: 'Sales Forecast', salesCostPanel: 'AI Cost Center',
+      salesSafetyPanel: 'Sales Safety Center',
     };
     // Build the view model for one sales page from the engine + synthetic fixtures.
     // Everything is labelled SIMULATED/UNKNOWN/OWNER_INPUT_REQUIRED by the view
@@ -870,6 +883,117 @@
         // UNKNOWN health (never a fake "healthy").
         e.agents.assertSafe();
         return e.ui.agentActivityView(e.agents.activityRows(), opts);
+      },
+      salesLeadDetailPanel(e, opts){
+        return e.ui.page('Lead Detail (example)', opts, () => {
+          const lead = { id: 'SYN-1001', storeName: 'Cedar Day Spa', category: 'spa', city: 'Austin', state: 'TX',
+            email: 'buyer@cedar.example.com', website: 'cedar.example.com', source: 'referral',
+            pipelineState: 'INTERESTED', carriesSimilarBrands: true, synthetic: true };
+          const hist = { outreach: [{ at: '2026-10-01', summary: 'intro draft (template)' }],
+            replies: [{ at: '2026-10-05', text: 'interested — send pricing' }],
+            followups: [{ at: '2026-10-09', summary: 'follow-up planned' }],
+            notes: [{ at: '2026-10-06', text: 'wants a line sheet' }],
+            audit: [{ at: '2026-10-05', kind: 'reply_received' }], aiRuns: [{ cost: 0.012 }, { cost: 0.004 }] };
+          const d = e.leaddetail.dossier(lead, hist, { leads: e.leads, dataquality: e.dataquality });
+          return { title: 'Lead Detail (example)', state: 'OK', simulated: true, sections: [
+            salesSection('Business', [salesKv('Store', d.identity.storeName, 'SIMULATED'), salesKv('Category', d.identity.category, 'SIMULATED'), salesKv('Location', [d.identity.city, d.identity.state].filter(Boolean).join(', '), 'SIMULATED'), salesKv('Website', d.contact.website, 'SIMULATED')]),
+            salesSection('Score', [salesKv('Score', d.score.value, 'SIMULATED'), salesKv('Band', d.score.band, 'SIMULATED'), salesKv('Reasons', (d.score.reasons || []).join('; ') || '—', 'SIMULATED')]),
+            salesSection('Pipeline & next step', [salesKv('State', d.pipelineState, 'SIMULATED'), salesKv('Next best action', d.nextBestAction.action, 'ESTIMATED'), salesKv('Owner decision needed?', d.nextBestAction.ownerDecision ? 'YES' : 'no', 'ACTUAL')]),
+            salesSection('History', [salesKv('Outreach drafts', d.outreachHistory.length, 'SIMULATED'), salesKv('Replies', d.replyHistory.length, 'SIMULATED'), salesKv('Follow-ups', d.followupHistory.length, 'SIMULATED'), salesKv('Samples', d.sampleHistory.length, 'SIMULATED')]),
+            salesSection('Commercial blockers (owner input)', (d.commercialBlockers.length ? d.commercialBlockers.map(b => salesKv(b.label, 'missing', 'OWNER_INPUT_REQUIRED')) : [salesKv('All facts present', 'yes', 'ACTUAL')])),
+            salesSection('AI usage for this lead', [salesKv('Runs', d.aiUsage.runs, 'ACTUAL'), salesKv('Est. cost', d.aiUsage.estCost == null ? '—' : ('$' + d.aiUsage.estCost), d.aiUsage.label)]),
+            salesSection('Data quality', (d.dataQualityWarnings.length ? d.dataQualityWarnings.slice(0, 5).map(w => salesKv(w.kind, w.detail, 'ACTUAL')) : [salesKv('No warnings', 'clean', 'ACTUAL')])),
+          ] };
+        });
+      },
+      salesRetentionPanel(e, opts){
+        return e.ui.page('Retention', opts, () => {
+          const a = e.retention.analyze(e.retention.fixtures(7), '2026-10-19');
+          return { title: 'Retention', state: 'OK', sections: [
+            salesSection('Segments', e.retention.SEGMENTS.map(s => salesKv(s, a.counts[s] || 0, 'SIMULATED'))),
+            salesSection('Candidate lists (advisory — owner reaches out by hand)', [
+              salesKv('Reorder candidates', a.reorderCandidates.length, 'SIMULATED'),
+              salesKv('Win-back candidates', a.winBack.length, 'SIMULATED'),
+              salesKv('VIP customers', a.vips.length, 'SIMULATED'),
+              salesKv('Review-request candidates', a.reviewRequest.length, 'SIMULATED'),
+            ]),
+            salesSection('Reorder rhythm', [salesKv('Avg reorder interval (days)', a.avgReorderIntervalDays, a.avgReorderConfidence === 'UNKNOWN' ? 'UNKNOWN' : 'ESTIMATED')]),
+          ] };
+        });
+      },
+      salesContentPanel(e, opts){
+        return e.ui.page('Content Opportunities', opts, () => {
+          const items = e.content.fixtures().map(it => e.content.checkClaims(it, e.claims.scan));
+          const cal = e.content.calendar(items);
+          return { title: 'Content Opportunities', state: 'OK', sections: [
+            salesSection('By status', e.content.STATUSES.map(s => salesKv(s, cal.counts[s] || 0, 'SIMULATED'))),
+            salesSection('Ideas (claim-checked)', items.map(it => salesKv(it.type + ': ' + it.topic.slice(0, 48), it.claimStatus, it.claimStatus === 'BLOCKED' ? 'OWNER_INPUT_REQUIRED' : 'SIMULATED'))),
+          ] };
+        });
+      },
+      salesTerritoryPanel(e, opts){
+        return e.ui.page('Territory & Expansion', opts, () => {
+          const t = e.territory.analyze(e.leads.rank(e.fixtures.leads(24, 7)));
+          return { title: 'Territory & Expansion', state: 'OK', sections: [
+            salesSection('By state', t.byState.slice(0, 8).map(s => salesKv(s.key, s.prospects + ' prospects / ' + s.qualified + ' qualified', s.avgScoreLabel))),
+            salesSection('Top white-space (good quality, thin coverage)', (t.topWhitespace.length ? t.topWhitespace.slice(0, 6).map(w => salesKv(w.key, 'score ' + w.whitespaceScore, w.whitespaceLabel)) : [salesKv('Not enough data', '—', 'UNKNOWN')])),
+          ] };
+        });
+      },
+      salesCampaignPanel(e, opts){
+        return e.ui.page('Campaign Lab', opts, () => {
+          const vs = [
+            e.campaign.variant('subject', 'Wholesale body-care for your {{store}} boutique', e.claims.scan),
+            e.campaign.variant('subject', 'Our balm cures eczema!!!', e.claims.scan),
+            e.campaign.variant('cta', 'Reply and I will send the line sheet for {{store}}', e.claims.scan),
+          ];
+          const cmp = e.campaign.compare(vs);
+          const vol = e.campaign.volumeTable([5, 25, 100]);
+          return { title: 'Campaign Lab', state: 'OK', sections: [
+            salesSection('Variant comparison (SIMULATION — nothing sent)', cmp.ranked.map(v => salesKv(v.kind + ': ' + v.text.slice(0, 40), 'q' + v.qualityScore + ' p' + v.personalizationScore + (v.claimSafe ? '' : ' ⚠ claim'), v.claimSafe ? 'SIMULATED' : 'OWNER_INPUT_REQUIRED'))),
+            salesSection('Outreach volume simulator', vol.map(r => salesKv(r.perDay + '/day', '~' + r.ownerMinutes + ' owner min, $' + r.estCost + ', ' + r.replies + ' replies', 'SIMULATED'))),
+          ] };
+        });
+      },
+      salesDataQualityPanel(e, opts){
+        return e.ui.page('Sales Data Quality', opts, () => {
+          const r = e.dataquality.scan(e.dataquality.fixtures());
+          return { title: 'Sales Data Quality', state: r.total ? 'OK' : 'EMPTY', sections: [
+            salesSection('By severity', [salesKv('Critical', r.bySeverity.CRITICAL, 'ACTUAL'), salesKv('Warning', r.bySeverity.WARNING, 'ACTUAL'), salesKv('Info', r.bySeverity.INFO, 'ACTUAL')]),
+            salesSection('Exceptions (flag only — never auto-repaired)', r.findings.slice(0, 12).map(f => salesKv(f.severity + ' · ' + f.kind, f.detail, 'ACTUAL'))),
+          ] };
+        });
+      },
+      salesForecastPanel(e, opts){
+        return e.ui.page('Sales Forecast', opts, () => {
+          const counts = { NEW: 40, QUALIFIED: 12, INTERESTED: 6, WHOLESALE_DISCUSSION: 3, CUSTOMER: 2, LOST: 7 };
+          const w = e.forecast.weightedPipeline(counts);
+          const rev = e.forecast.revenueScenario({ leadVolume: 500, replyRate: 0.15, interestRate: 0.25, conversionRate: 0.2, avgFirstOrder: 300, repeatOrders: 1 });
+          const inv = e.forecast.inventoryConstrained({ available: 1000, retailReserve: 400, sampleReserve: 50, wholesaleDemand: 300 });
+          return { title: 'Sales Forecast', state: 'OK', sections: [
+            salesSection('Weighted pipeline (ESTIMATE · NOT GUARANTEED)', [salesKv('Weighted', '$' + w.weighted, 'ESTIMATED'), salesKv('High confidence', '$' + w.highConfidence, 'ESTIMATED'), salesKv('Speculative', '$' + w.speculative, 'ESTIMATED'), salesKv('If all closed', '$' + w.rawIfAllClosed, 'ESTIMATED')]),
+            salesSection('Revenue scenario (SIMULATION)', [salesKv('Projected customers', rev.customers, 'ESTIMATED'), salesKv('Gross sales', '$' + rev.grossSales, 'ESTIMATED'), salesKv('Sample demand', rev.sampleDemand, 'ESTIMATED'), salesKv('Owner review items', rev.ownerReviewItems, 'ESTIMATED')]),
+            salesSection('Inventory-constrained (advisory — no stock reserved)', [salesKv('Status', inv.status, 'ESTIMATED'), salesKv('Why', inv.reason, 'ESTIMATED')]),
+          ] };
+        });
+      },
+      salesCostPanel(e, opts){
+        return e.ui.page('AI Cost Center', opts, () => {
+          const matrix = e.providers.costMatrix(500, 300);
+          return { title: 'AI Cost Center', state: 'OK', sections: [
+            salesSection('Provider cost (per draft, synthetic rates)', matrix.map(m => salesKv(m.provider + ' (' + m.tier + ')', m.configured ? ('$' + m.cost) : ('$' + m.cost + ' — not enabled'), m.configured ? 'ESTIMATED' : 'OWNER_INPUT_REQUIRED'))),
+            salesSection('Routing', [salesKv('Routine work', 'deterministic (no AI call, $0)', 'ACTUAL'), salesKv('Fallback floor', e.providers.fallbackChain(['strong', 'cheap', 'template']).slice(-1)[0], 'ACTUAL')]),
+            salesSection('Latency (typical, synthetic)', e.providers.latencyMatrix().map(l => salesKv(l.provider, l.typicalLatencyMs + ' ms', 'SIMULATED'))),
+          ] };
+        });
+      },
+      salesSafetyPanel(e, opts){
+        return e.ui.page('Sales Safety Center', opts, () => {
+          const c = e.safety.safetyCenter({ featureFlag: true });
+          return { title: 'Sales Safety Center', state: 'OK', sections: [
+            salesSection('Safety controls (enforced in code)', c.rows.map(r => salesKv(r.key, r.status, r.protective ? 'ACTUAL' : 'OWNER_INPUT_REQUIRED'))),
+          ] };
+        });
       },
     };
     function loadSales(pageId){
@@ -931,6 +1055,15 @@
       salesSamplesPanel:   [() => loadSales('salesSamplesPanel')],
       salesAnalyticsPanel: [() => loadSales('salesAnalyticsPanel')],
       salesAgentsPanel:    [() => loadSales('salesAgentsPanel')],
+      salesLeadDetailPanel:  [() => loadSales('salesLeadDetailPanel')],
+      salesRetentionPanel:   [() => loadSales('salesRetentionPanel')],
+      salesContentPanel:     [() => loadSales('salesContentPanel')],
+      salesTerritoryPanel:   [() => loadSales('salesTerritoryPanel')],
+      salesCampaignPanel:    [() => loadSales('salesCampaignPanel')],
+      salesDataQualityPanel: [() => loadSales('salesDataQualityPanel')],
+      salesForecastPanel:    [() => loadSales('salesForecastPanel')],
+      salesCostPanel:        [() => loadSales('salesCostPanel')],
+      salesSafetyPanel:      [() => loadSales('salesSafetyPanel')],
     };
     function refreshChrome(){
       renderSidebar(document.getElementById('sidebarSearch').value);
