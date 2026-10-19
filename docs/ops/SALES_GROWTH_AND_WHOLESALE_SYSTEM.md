@@ -30,6 +30,32 @@ Nothing here connects to Gmail, Shopify, production Supabase, or real stores.
 | `he-sales-import.js` | Lead import + duplicate graph | Normalizes names/domains/emails/phones; preserves raw + source; flags likely duplicates (email/domain/phone/name+city); never invents or silently merges. |
 | `he-sales-gmail.js` | B2B mailbox **contract + double** | READ/DRAFT/SEND are separate switches; real default NOT_CONNECTED + SEND off; `send()` refuses without send-cap + connection + owner approval + non-duplicate + non-suppressed. No real Gmail. |
 | `he-sales-analytics.js` | Read-only analytics | Safe denominators (unknown/zero → null, not fake 0%); funnel SIMULATION; sample economics (break-even, max sensible spend). No money movement. |
+| `he-sales-fixtures.js` | Synthetic data kit | Deterministic fake stores (example.com, `SYN-` ids, `synthetic:true`), reply spread, messy import rows. No real data. |
+| `he-sales-ui.js` | Page view-models + sink-free render adapter | Pure, label-tagged (ACTUAL/ESTIMATED/SIMULATED/UNKNOWN/OWNER_INPUT_REQUIRED) view models for all 7 pages with OK/EMPTY/LOADING/ERROR/DISABLED states, feature-flag OFF by default; `render(vm, h)` uses the injected `h()` builder only (no innerHTML). |
+
+## Activation wiring (reviewed step — NOT done here, by design)
+
+The engine + view-models are complete and tested, but **nothing is wired into the
+shipped `owner-login.html` yet** — on purpose. Wiring new pages into the 505 KB
+single-file app touches the page-sweep specs (the Trusted-Types ratchet walks
+every sidebar page), the DOM-sink gate, visual baselines and the write-path
+matrix, so it must be a small, carefully-reviewed change, feature-flag OFF by
+default, not an overnight blind edit. The exact seam is known and minimal:
+
+1. **Nav:** add a `SALES & GROWTH` group to `SIDEBAR_GROUPS` in
+   `assets/app/he-config.js`, its pages filtered out unless the Sales feature
+   flag is on (so with the flag OFF the page-sweep specs never see them and all
+   current gates stay green).
+2. **Sections:** add one `<section id="...Panel">` per page to `owner-login.html`
+   (or a single `salesGrowthPanel` host that sub-routes).
+3. **Render dispatch:** add case(s) to the `switch (pageId)` in
+   `assets/owner-login-app.js` that call `he-sales-ui` render with the engine +
+   fixtures, behind the flag.
+4. **Flag:** a Sales feature flag (default OFF) in the existing Feature Flags
+   mechanism; disabled = safe no-op, routes fail gracefully if hand-navigated.
+
+Once wired (behind the OFF flag), the browser-level page tests (mobile, a11y,
+large-data, chaos, end-to-end journeys) attach to those mounted pages.
 
 ## Safety model (how giving-away / spam / claims are made impossible)
 
