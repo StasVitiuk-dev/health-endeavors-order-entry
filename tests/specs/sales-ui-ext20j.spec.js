@@ -83,3 +83,29 @@ test('render uses the injected h() only — no HTML strings / innerHTML', () => 
   expect(badAttr).toBe(null);
   expect(() => U.render(vm, null)).toThrow(/inject the h/);
 });
+
+test('render covers every page shape (rows, columns, budget/ROI) with the injected h() only', () => {
+  const texts = [];
+  const h = (tag, attrs, ...kids) => {
+    const node = { tag, attrs: attrs || {}, kids: kids.flat().filter(k => k != null) };
+    if (typeof node.kids[0] === 'string') texts.push(node.kids[0]);
+    return node;
+  };
+  // Approvals: the "NOT SENT" note must reach the DOM as a record cell.
+  const appr = U.approvalsView([{ kind: 'intro', leadId: 'L1', status: 'DRAFT', provider: 'template' }]);
+  U.render(appr, h);
+  expect(texts.some(t => /NOT SENT/.test(t))).toBe(true);
+  // Pipeline: a stage column renders as a labelled key/value.
+  texts.length = 0;
+  U.render(U.pipelineView({ NEW: 3 }, ['NEW', 'QUALIFIED']), h);
+  expect(texts).toContain('Stages');
+  expect(texts).toContain('NEW');
+  // Analytics: a null rate renders as an em dash, not a fake 0.
+  texts.length = 0;
+  U.render(U.analyticsView({ replyRate: 0.3, interestRate: null }), h);
+  expect(texts).toContain('Interest rate');
+  // Samples: budget + ROI + the guard sentence all render.
+  texts.length = 0;
+  U.render(U.samplesView({ budget: { budget: null }, roi: { conversionRate: null, costBasis: 'UNKNOWN' }, rows: [] }), h);
+  expect(texts.some(t => /owner approval is mandatory/.test(t))).toBe(true);
+});

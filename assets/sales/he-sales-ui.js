@@ -20,7 +20,7 @@
   'use strict';
   const api = factory();
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
-  if (root && root.HE && root.HE.modules) root.HE.modules.define('he-sales-ui', { api: 1, needs: [] }, function () { return api; });
+  if (root && root.HE) { (root.HE.sales = root.HE.sales || {})['he-sales-ui'] = api; }
 }(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
 
@@ -156,17 +156,57 @@
     });
   }
 
-  // Thin DOM adapter: builds a page shell from a view model using the INJECTED h()
-  // builder only. Never uses innerHTML/HTML strings. Returns the root node.
+  // Thin DOM adapter: builds a page shell from ANY of the view models above using
+  // the INJECTED h() builder only. Never uses innerHTML / HTML strings, so it
+  // inherits Trusted Types. Returns the root node. It understands the shapes the
+  // builders produce — sections (command center), rows (leads/approvals/analytics/
+  // agents), columns (pipeline), and the samples budget/ROI — and renders only the
+  // ones present, so one adapter covers every page.
   function render(viewModel, h) {
     if (typeof h !== 'function') throw new Error('he-sales-ui.render: inject the h() DOM builder');
     const vm = viewModel || {};
+    // A labelled key/value row: the value carries its truth label as a data attr.
+    const kv = (k, value, label) => h('div', { class: 'salesRow' },
+      h('span', { class: 'k' }, String(k)),
+      h('span', { class: 'v', 'data-label': label || 'ACTUAL' }, value == null ? '—' : String(value)));
+    // A record row: every primitive field as a labelled cell (objects/nulls skipped).
+    const recordRow = (row) => h('div', { class: 'salesRow salesRecord' },
+      Object.keys(row).map(k => {
+        const v = row[k];
+        if (v == null || typeof v === 'object') return null;
+        return h('span', { class: 'salesCell', 'data-field': k }, k + ': ' + String(v));
+      }));
     const kids = [h('h2', { class: 'salesTitle' }, vm.title || 'Sales')];
     if (vm.state && vm.state !== 'OK') kids.push(h('p', { class: 'salesState', 'data-state': vm.state }, vm.note || vm.state));
+    // command-center sections
     for (const s of (vm.sections || [])) {
       kids.push(h('h3', null, s.heading));
-      for (const row of s.rows) kids.push(h('div', { class: 'salesRow' },
-        h('span', { class: 'k' }, row.k), h('span', { class: 'v', 'data-label': row.label }, String(row.value))));
+      for (const row of s.rows) kids.push(kv(row.k, row.value, row.label));
+    }
+    // pipeline columns
+    if (vm.columns) { kids.push(h('h3', null, 'Stages')); for (const c of vm.columns) kids.push(kv(c.stage, c.count, c.label)); }
+    // samples budget + ROI + guard
+    if (vm.budget) {
+      kids.push(h('h3', null, 'Monthly sample budget'));
+      kids.push(kv('Budget', vm.budget.budget, vm.budget.label));
+      kids.push(kv('Approved this month', vm.budget.approved, 'SIMULATED'));
+    }
+    if (vm.roi) {
+      kids.push(h('h3', null, 'Sample ROI'));
+      kids.push(kv('Converted', vm.roi.converted, 'SIMULATED'));
+      kids.push(kv('Conversion rate', vm.roi.conversionRate, vm.roi.conversionLabel));
+      kids.push(kv('Cost basis', vm.roi.costBasis, vm.roi.costBasis === 'UNKNOWN' ? 'UNKNOWN' : 'ESTIMATED'));
+    }
+    if (vm.guard) kids.push(h('p', { class: 'salesGuard' }, vm.guard));
+    // generic rows (leads / approvals / analytics / agents). Command center uses
+    // sections instead, so it never double-renders here. Rows shaped {k,value}
+    // (analytics) render as labelled key/value; everything else as a record row.
+    if (!vm.sections && vm.rows && vm.rows.length) {
+      for (const row of vm.rows) {
+        if (row && Object.prototype.hasOwnProperty.call(row, 'k') && Object.prototype.hasOwnProperty.call(row, 'value'))
+          kids.push(kv(row.k, row.value, row.label));
+        else kids.push(recordRow(row));
+      }
     }
     return h('section', { class: 'salesPage', 'data-state': vm.state || 'OK' }, kids);
   }

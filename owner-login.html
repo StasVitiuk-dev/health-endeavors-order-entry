@@ -36,7 +36,7 @@
 <script src="assets/owner-login-helpers.js?v=76dc8fc4a9"></script>
 <script src="assets/owner-login-modules.js?v=0d97adc58c"></script>
 <!-- @@ EXT15 module files (assets/app/*.js), added by tests/tools/extract-module.js @@ -->
-<script src="assets/app/he-config.js?v=05b54d6a5b"></script>
+<script src="assets/app/he-config.js?v=cc14145ad0"></script>
 <script src="assets/app/he-ui.js?v=156512e5ba"></script>
 <script src="assets/app/he-data.js?v=c83d91bc56"></script>
 <script src="assets/app/he-audit.js?v=b5b3a424dc"></script>
@@ -55,6 +55,13 @@
 <script src="assets/app/he-ops.js?v=5337f2c6ec"></script>
 <script src="assets/app/he-admin.js?v=38bde4f2a4"></script>
 <script src="assets/app/he-compliance.js?v=6a33640157"></script>
+<!-- @@ Sales & Growth engine (assets/sales/*.js). Pure, dual-mode, self-registering.
+     Inert unless the Sales & Growth feature flag is ON: with the flag OFF these
+     only define module factories — no nav link, no loader, no page is reachable. @@ -->
+<script src="assets/sales/he-sales-ui.js?v=df09bd0844"></script>
+<script src="assets/sales/he-sales-fixtures.js?v=4252092bb3"></script>
+<script src="assets/sales/he-sales-leads.js?v=ce62bb2b2b"></script>
+<script src="assets/sales/he-sales-pipeline.js?v=f72b566eff"></script>
 <script src="assets/owner-login-theme.js?v=05a115a149"></script>
 </head>
 <body>
@@ -791,6 +798,18 @@
         <p class="hint u-mt-n2">Holds you've released, kept here for reference.</p>
         <div id="releasedLegalHoldsWrap"><p class="empty">Loading…</p></div>
       </section>
+
+      <!-- Sales & Growth / Wholesale (feature-flagged OFF). These panels are only
+           reachable when the Sales & Growth flag is on; they are filled by
+           loadSales() with the safe DOM builder (no inline markup here). With the
+           flag off they are never navigated to and stay empty. -->
+      <section class="panel" id="salesCommandPanel"></section>
+      <section class="panel" id="salesLeadsPanel"></section>
+      <section class="panel" id="salesPipelinePanel"></section>
+      <section class="panel" id="salesApprovalsPanel"></section>
+      <section class="panel" id="salesSamplesPanel"></section>
+      <section class="panel" id="salesAnalyticsPanel"></section>
+      <section class="panel" id="salesAgentsPanel"></section>
       </main>
     </div>
   </div>
@@ -832,6 +851,6 @@
     </div>
   </div>
 
-<script src="assets/owner-login-app.js?v=5966539e80"></script>
+<script src="assets/owner-login-app.js?v=7872913ba3"></script>
 </body>
 </html>

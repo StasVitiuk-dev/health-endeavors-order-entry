@@ -15,7 +15,7 @@
   'use strict';
   const api = factory();
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
-  if (root && root.HE && root.HE.modules) root.HE.modules.define('he-sales-claims', { api: 1, needs: [] }, function () { return api; });
+  if (root && root.HE) { (root.HE.sales = root.HE.sales || {})['he-sales-claims'] = api; }
 }(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
 

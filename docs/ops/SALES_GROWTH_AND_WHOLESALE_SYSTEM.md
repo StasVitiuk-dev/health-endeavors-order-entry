@@ -33,29 +33,50 @@ Nothing here connects to Gmail, Shopify, production Supabase, or real stores.
 | `he-sales-fixtures.js` | Synthetic data kit | Deterministic fake stores (example.com, `SYN-` ids, `synthetic:true`), reply spread, messy import rows. No real data. |
 | `he-sales-ui.js` | Page view-models + sink-free render adapter | Pure, label-tagged (ACTUAL/ESTIMATED/SIMULATED/UNKNOWN/OWNER_INPUT_REQUIRED) view models for all 7 pages with OK/EMPTY/LOADING/ERROR/DISABLED states, feature-flag OFF by default; `render(vm, h)` uses the injected `h()` builder only (no innerHTML). |
 
-## Activation wiring (reviewed step — NOT done here, by design)
+## Activation wiring (DONE — 7 pages, behind a default-OFF flag)
 
-The engine + view-models are complete and tested, but **nothing is wired into the
-shipped `owner-login.html` yet** — on purpose. Wiring new pages into the 505 KB
-single-file app touches the page-sweep specs (the Trusted-Types ratchet walks
-every sidebar page), the DOM-sink gate, visual baselines and the write-path
-matrix, so it must be a small, carefully-reviewed change, feature-flag OFF by
-default, not an overnight blind edit. The exact seam is known and minimal:
+The engine + view-models are now **wired into the shipped `owner-login.html`**,
+but only behind a feature flag that is **OFF by default**. With the flag off
+there is no sidebar group, no link, and every sales panel renders only an inert
+DISABLED shell — so the page-sweep specs, the Trusted-Types ratchet and the
+DOM-sink gate never see a sales page and the live dashboard is unchanged. The
+wiring, as built:
 
-1. **Nav:** add a `SALES & GROWTH` group to `SIDEBAR_GROUPS` in
-   `assets/app/he-config.js`, its pages filtered out unless the Sales feature
-   flag is on (so with the flag OFF the page-sweep specs never see them and all
-   current gates stay green).
-2. **Sections:** add one `<section id="...Panel">` per page to `owner-login.html`
-   (or a single `salesGrowthPanel` host that sub-routes).
-3. **Render dispatch:** add case(s) to the `switch (pageId)` in
-   `assets/owner-login-app.js` that call `he-sales-ui` render with the engine +
-   fixtures, behind the flag.
-4. **Flag:** a Sales feature flag (default OFF) in the existing Feature Flags
-   mechanism; disabled = safe no-op, routes fail gracefully if hand-navigated.
+1. **Flag** — `salesGrowthOn()` in `assets/app/he-config.js` reads the browser
+   switch `localStorage['he_sales_growth'] === 'on'` (default off), fails closed
+   on any storage error, and is read once at page load. To turn the pages on in
+   a browser: `localStorage.setItem('he_sales_growth','on')` then reload; to turn
+   them off: `localStorage.removeItem('he_sales_growth')`.
+2. **Nav** — a collapsible `Sales & Growth` group is pushed onto `SIDEBAR_GROUPS`
+   **only when the flag is on**, with seven pages: Growth Command Center,
+   Wholesale Leads, Pipeline, Sales Approvals, Samples, Sales Analytics, Sales
+   Agent Activity.
+3. **Sections** — seven empty `<section class="panel" id="sales*Panel">` hosts in
+   `owner-login.html` (filled by the loader; no inline markup).
+4. **Render dispatch** — `loadSales(pageId)` in `assets/owner-login-app.js`
+   (registered in `PANEL_LOADERS`) builds the view model from the engine +
+   synthetic fixtures and renders it with the shared safe DOM builder `h()`
+   (no innerHTML — inherits Trusted Types). When the flag is off it renders only
+   the DISABLED shell and never instantiates the data engine, so even a direct
+   hash link to a sales page is a safe, empty no-op. A missing/broken engine
+   module degrades to a plain "could not load" message in that one panel.
 
-Once wired (behind the OFF flag), the browser-level page tests (mobile, a11y,
-large-data, chaos, end-to-end journeys) attach to those mounted pages.
+The sales engine files load on every page (`assets/sales/he-sales-ui.js`,
+`he-sales-fixtures.js`, `he-sales-leads.js`, `he-sales-pipeline.js`, each with a
+content-hash `?v=`) but are pure, self-registering module factories: with the
+flag off they define modules and do nothing else.
+
+Proof it is safe: `tests/specs/sales-wiring-ext20j.spec.js` (desktop + iPhone)
+asserts flag-off = no group / no links / DISABLED shells / one active page / no
+console Trusted-Types error, flag-on = group + seven navigable pages rendering
+SIMULATED data with the existing dashboard still working, and no duplicate ids.
+The `render()` adapter in `he-sales-ui.js` now covers every page shape (command
+sections, record rows, pipeline columns, samples budget/ROI) using `h()` only.
+
+**Still a reviewed step, NOT done:** the remaining pages from the full plan
+(Lead Detail, Retention, Content Opportunities, Territory & Expansion, Campaign
+Lab, Sales Data Quality), page styling/polish, and the ~50 advisory agents.
+Those attach the same way, behind the same OFF flag.
 
 ## Safety model (how giving-away / spam / claims are made impossible)
 

@@ -67,13 +67,21 @@ const ADDED = ['setReportHistoryView', 'inquiriesList', 'agentControls', 'poRece
   // static u-bg-colorforcalendar-* classes were invalid CSS and never applied)
   'paintCalColors',
   // EXT20J-post-TT: tiny builders for the (now DOM-node) keyboard-shortcut grid
-  'scKbd', 'scRow'];
+  'scKbd', 'scRow',
+  // EXT20J Sales & Growth PART I: new, draft-only sales page wiring (feature-flag
+  // OFF by default). loadSales renders the sales view-models with h(); the rest
+  // are its helpers. PANEL_LOADERS gained the 7 flag-gated sales panel loaders.
+  // salesGrowthOn / SALES_GROWTH_GROUP are the new he-config factory statements.
+  'salesMod', 'salesUi', 'salesEngine', 'SALES_TITLES', 'SALES_VIEWS', 'loadSales', 'PANEL_LOADERS',
+  'salesGrowthOn', 'SALES_GROWTH_GROUP'];
 const NEW_MODULES = ['he-ops']; // EXT16: written new, not moved
 const CHANGED_TEXT = ["} = window.HE.helpers;", "forEach(o => Object.setPrototypeOf(o, null))", "supabase.auth.onAuthStateChange((event, session) =>", "getAttribute('data-view')", "getElementById('adjustInventoryForm').addEventListener('submit'", "getElementById('logReturnForm').addEventListener('submit'", "getElementById('retOrder').addEventListener('change'", "Release to refresh", "getElementById('docCategory')",
   // EXT20J-post-TT: the 4 static overlay scaffolds converted innerHTML->h(); each
   // card class is unique to its statement and present in both the old class="x"
   // and the new class:'x' form, so it waives exactly that one statement.
-  'helpCard', 'paletteCard', 'shortcutCard', 'quickAddCard']; // the report-view buttons now call setReportHistoryView
+  'helpCard', 'paletteCard', 'shortcutCard', 'quickAddCard', // the report-view buttons now call setReportHistoryView
+  // EXT20J Sales & Growth PART I: he-config appends the flag-gated group (no decl name).
+  'SIDEBAR_GROUPS.push(SALES_GROWTH_GROUP)'];
 
 test('the module moves were byte-identical: every original statement once, only the named edits differ', ({}, ti) => {
   nodeOnly(ti);

@@ -84,7 +84,7 @@
       nightlyOverall,
     } = window.HE.helpers;
     // @@ EXT15 modules: created in dependency order (assets/app/*.js; see docs/ops/APPLICATION_MODULE_MAP_EXT15.md)
-    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS } = HE.modules.create('he-config', {  });
+    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn } = HE.modules.create('he-config', {  });
     const { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, h, pageIconNode } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
     const { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
     const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, h, supabase });
@@ -805,6 +805,95 @@
     // The page you are actually looking at loads first and appears immediately;
     // everything else fills in behind it, a few at a time. Before this, nothing
     // appeared until all ~30 queries had finished.
+    // ---- Sales & Growth / Wholesale (feature-flagged OFF) ----
+    // These pages exist only when the Sales & Growth flag is on (see he-config
+    // salesGrowthOn()). The engine modules are pure and draft-only: rendering a
+    // page never sends anything, approves a sample, or touches production. All
+    // data here is clearly-labelled synthetic fixture data (SIMULATED), and when
+    // the flag is off every page renders the DISABLED state — so even a direct
+    // hash link to a sales page is a safe, empty no-op. Rendering uses the shared
+    // safe DOM builder h() only (no innerHTML), so it inherits Trusted-Types.
+    // The sales engine is a SEPARATE subsystem from the app's he-* module graph:
+    // its files self-register on `window.HE.sales` (not the app module registry),
+    // so the module-graph tooling and diagnostics are untouched by it.
+    function salesMod(name){
+      const s = (window.HE && window.HE.sales) || {};
+      if (!s[name]) throw new Error('sales module not loaded: ' + name);
+      return s[name];
+    }
+    function salesUi(){ return salesMod('he-sales-ui'); }
+    function salesEngine(){
+      return { ui: salesMod('he-sales-ui'), fixtures: salesMod('he-sales-fixtures'),
+        leads: salesMod('he-sales-leads'), pipeline: salesMod('he-sales-pipeline') };
+    }
+    const SALES_TITLES = {
+      salesCommandPanel: 'Growth Command Center', salesLeadsPanel: 'Wholesale Leads',
+      salesPipelinePanel: 'Pipeline', salesApprovalsPanel: 'Sales Approvals',
+      salesSamplesPanel: 'Samples', salesAnalyticsPanel: 'Sales Analytics',
+      salesAgentsPanel: 'Sales Agent Activity',
+    };
+    // Build the view model for one sales page from the engine + synthetic fixtures.
+    // Everything is labelled SIMULATED/UNKNOWN/OWNER_INPUT_REQUIRED by the view
+    // models themselves; this only chooses which synthetic inputs to hand them.
+    const SALES_VIEWS = {
+      salesCommandPanel(e, opts){
+        const scored = e.leads.rank(e.fixtures.leads(24, 7));
+        const qualified = scored.filter(l => l.scoring && l.scoring.serious).length;
+        return e.ui.commandCenter({
+          newLeads: scored.length, qualifiedLeads: qualified, interested: 0, customersWon: 0,
+          draftsAwaiting: 3, replies: 2, followUpsDue: 1, sampleCandidates: qualified,
+          estPipeline: null, sampleBudget: null, samplesApproved: 0, aiMonthlyCost: null,
+        }, opts);
+      },
+      salesLeadsPanel(e, opts){ return e.ui.leadsView(e.leads.rank(e.fixtures.leads(24, 7)), opts); },
+      salesPipelinePanel(e, opts){
+        const stages = ['NEW', 'QUALIFIED', 'READY_FOR_OUTREACH', 'OWNER_APPROVED', 'CONTACTED', 'REPLIED', 'INTERESTED', 'SAMPLE_CONSIDERATION', 'WHOLESALE_DISCUSSION', 'CUSTOMER'];
+        const counts = { NEW: 9, QUALIFIED: 5, READY_FOR_OUTREACH: 3, OWNER_APPROVED: 0, CONTACTED: 2, REPLIED: 1, INTERESTED: 1, SAMPLE_CONSIDERATION: 1, WHOLESALE_DISCUSSION: 0, CUSTOMER: 0 };
+        return e.ui.pipelineView(counts, stages, opts);
+      },
+      salesApprovalsPanel(e, opts){
+        return e.ui.approvalsView([
+          { kind: 'intro', leadId: 'SYN-1003', status: 'DRAFT', provider: 'template', claimScan: { findings: [] } },
+          { kind: 'follow_up', leadId: 'SYN-1007', status: 'DRAFT', provider: 'template', claimScan: { findings: [] } },
+          { kind: 'sample_offer', leadId: 'SYN-1011', status: 'DRAFT', provider: 'template', claimScan: { findings: [] } },
+        ], opts);
+      },
+      salesSamplesPanel(e, opts){
+        return e.ui.samplesView({ budget: { budget: null }, roi: { converted: 0, conversionRate: null, costBasis: 'UNKNOWN' }, rows: [] }, opts);
+      },
+      salesAnalyticsPanel(e, opts){
+        return e.ui.analyticsView({ replyRate: null, interestRate: null, customerConversion: null, sampleConversion: null, costPerLead: null, costPerCustomer: null }, opts);
+      },
+      salesAgentsPanel(e, opts){
+        return e.ui.agentActivityView([
+          { name: 'Lead Scorer', mode: 'READ_ONLY', enabled: false, lastRun: null },
+          { name: 'Outreach Drafter', mode: 'DRAFT_ONLY', enabled: false, lastRun: null, provider: 'template' },
+          { name: 'Reply Classifier', mode: 'READ_ONLY', enabled: false, lastRun: null },
+          { name: 'Sample Advisor', mode: 'READ_ONLY', enabled: false, lastRun: null },
+        ], opts);
+      },
+    };
+    function loadSales(pageId){
+      const host = document.getElementById(pageId);
+      if (!host) return;
+      const enabled = typeof salesGrowthOn === 'function' && salesGrowthOn();
+      const title = SALES_TITLES[pageId] || 'Sales & Growth';
+      try {
+        const ui = salesUi();
+        // Off (the default): render the DISABLED shell only; never build data or
+        // touch the rest of the engine. On: build the real synthetic view model.
+        const vm = (!enabled || !SALES_VIEWS[pageId])
+          ? ui.page(title, { enabled: enabled }, () => ({ title, state: 'EMPTY', sections: [] }))
+          : SALES_VIEWS[pageId](salesEngine(), { enabled: true });
+        host.replaceChildren(ui.render(vm, h));
+      } catch (err) {
+        // A missing/broken engine module must never break the dashboard: show a
+        // plain, safe message in this panel and nothing else.
+        host.replaceChildren(h('section', { class: 'salesPage', 'data-state': 'ERROR' },
+          h('h2', { class: 'salesTitle' }, title), h('p', { class: 'salesState', 'data-state': 'ERROR' }, 'This page could not load.')));
+      }
+    }
+
     const PANEL_LOADERS = {
       attentionPanel: [loadAttention, loadBusinessHealth, loadAttentionChecks, loadNightlyCheck],
       calendarPanel: [loadCalendarMonth],
@@ -836,6 +925,13 @@
       sopsPanel: [loadSops],
       featureRequestsPanel: [loadFeatureRequests, loadDeletedFeatureRequests],
       legalHoldsPanel: [loadLegalHolds, loadReleasedLegalHolds],
+      salesCommandPanel:   [() => loadSales('salesCommandPanel')],
+      salesLeadsPanel:     [() => loadSales('salesLeadsPanel')],
+      salesPipelinePanel:  [() => loadSales('salesPipelinePanel')],
+      salesApprovalsPanel: [() => loadSales('salesApprovalsPanel')],
+      salesSamplesPanel:   [() => loadSales('salesSamplesPanel')],
+      salesAnalyticsPanel: [() => loadSales('salesAnalyticsPanel')],
+      salesAgentsPanel:    [() => loadSales('salesAgentsPanel')],
     };
     function refreshChrome(){
       renderSidebar(document.getElementById('sidebarSearch').value);
