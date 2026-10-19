@@ -75,6 +75,12 @@ test.describe('flag ON: sales pages appear and render synthetic data', () => {
       expect(await page.locator(`#${id} .salesPage`).getAttribute('data-state')).not.toBe('DISABLED');
     }
 
+    // The agent page renders the real advisory roster (not a stub): a known
+    // agent is present and there are many rows, all plainly advisory.
+    await gotoPage(page, 'salesAgentsPanel');
+    await expect(page.locator('#salesAgentsPanel')).toContainText('Claim Firewall');
+    expect(await page.locator('#salesAgentsPanel .salesRecord').count()).toBeGreaterThanOrEqual(24);
+
     // The existing dashboard still works with the flag on.
     await gotoPage(page, 'ordersPanel');
     await expect(page.locator('section#ordersPanel.activePage')).toHaveCount(1);

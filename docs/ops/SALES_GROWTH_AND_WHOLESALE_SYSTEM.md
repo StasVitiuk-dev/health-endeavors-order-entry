@@ -73,10 +73,26 @@ SIMULATED data with the existing dashboard still working, and no duplicate ids.
 The `render()` adapter in `he-sales-ui.js` now covers every page shape (command
 sections, record rows, pipeline columns, samples budget/ROI) using `h()` only.
 
-**Still a reviewed step, NOT done:** the remaining pages from the full plan
-(Lead Detail, Retention, Content Opportunities, Territory & Expansion, Campaign
-Lab, Sales Data Quality), page styling/polish, and the ~50 advisory agents.
-Those attach the same way, behind the same OFF flag.
+### Advisory agent registry (`assets/sales/he-sales-agents.js`)
+
+The Sales Agent Activity page is backed by a real roster of **advisory** agents
+(`he-sales-agents.js`), not stubs. Each agent is **OFF by default** and can only
+*advise* — its capabilities come from a fixed safe set (observe, score, flag,
+draft, summarize, simulate, classify, dedupe, rank, plan). An agent can never
+send a message, approve an outreach, approve/reserve/ship a sample, move money,
+or change production; those capabilities are not expressible and `assertSafe()`
+throws (fails closed) if any agent is enabled-by-default, not OFF, or holds a
+forbidden capability. The page renders every agent with honest health (a
+never-run agent is UNKNOWN, never a fake "healthy"). Tested in
+`tests/specs/sales-agents-ext20j.spec.js`. Enabling one later (owner-only) still
+only lets it produce drafts/flags for human review.
+
+**Still a reviewed step, NOT done:** the remaining dedicated pages from the full
+plan (Lead Detail, Retention, Content Opportunities, Territory & Expansion,
+Campaign Lab, Sales Data Quality — several of their agents already exist in the
+roster above, just without their own page), page styling/polish, and wiring any
+agent to real (non-synthetic) data. Those attach the same way, behind the same
+OFF flag.
 
 ## Safety model (how giving-away / spam / claims are made impossible)
 

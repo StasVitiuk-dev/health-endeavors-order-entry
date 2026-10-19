@@ -8,32 +8,32 @@ Columns: **Stale** = conditional on the value the page showed (stale-tab / optim
 
 | # | Page:line | Where (handler / function) | Table | Op | State change | Stale | Read-back | Lock | Confirm | Role | Idempotent / retry | Audit | Partial-failure risk | Sensitive | Note |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | owner-login:2696 | changeStock | inventory | insert | — | — | — | — | — | — | not idempotent: one save at a time (button lock) | audit trigger (Query A) | no (single write) | yes |  |
-| 2 | owner-login:2702 | changeStock | inventory | update | — | — | ✓ | — | — | — | guarded: a repeat changes nothing | audit trigger (Query A) | no (single write) | yes |  |
-| 3 | owner-login:2944 | logCustomerAccess | rpc:log_customer_data_access | rpc | — | — | — | — | — | — | repeat harmless | function-defined | no (single write) | no |  |
-| 4 | owner-login:3652 | changeTaskStatus | tasks | update | ✓ | ✓ | ✓ | ✓ | ✓ | — | guarded: a repeat changes nothing | audit trigger (Query A) | no (single write) | no |  |
-| 5 | owner-login:3811 | decideApproval | approval_requests | updateIfUnchanged | ✓ | ✓ | ✓ | ✓ | ✓ | — | guarded: a repeat changes nothing | audit trigger (Query A) | no (single write) | yes |  |
-| 6 | owner-login:3845 | escalateToIncidentOnce | incidents | insert | — | — | ✓ | — | — | — | not idempotent: one save at a time (button lock) | unknown until Query C §10 | no (single write) | no |  |
-| 7 | owner-login:3994 | removeExpenseReceipt | expenses | updateIfUnchanged | ✓ | ✓ | ✓ | ✓ | ✓ | — | guarded: a repeat changes nothing | audit trigger (Query A) | unlink first; a stray file possible, reported | yes |  |
-| 8 | owner-login:3996 | removeExpenseReceipt | storage:expense-receipts | storage.remove | — | — | — | ✓ | ✓ | — | repeat harmless | none (file store) | unlink first; a stray file possible, reported | no |  |
-| 9 | owner-login:4012 | deleteExpense | expenses | update | ✓ | ✓ | ✓ | ✓ | — | — | guarded: a repeat changes nothing | audit trigger (Query A) | no (single write) | yes |  |
-| 10 | owner-login:4052 | click .restoreExpenseBtn | expenses | update | ✓ | ✓ | ✓ | ✓ | — | — | guarded: a repeat changes nothing | audit trigger (Query A) | no (single write) | yes |  |
-| 11 | owner-login:4120 | click .supToggleBtn | suppliers | updateIfUnchanged | — | ✓ | ✓ | ✓ | — | — | guarded: a repeat changes nothing | audit trigger (Query A) | no (single write) | no |  |
-| 12 | owner-login:4357 | setInquirySeverity | customer_inquiries | updateIfUnchanged | ✓ | ✓ | ✓ | ✓ | — | — | guarded: a repeat changes nothing | unknown until Query C §10 | no (single write) | no |  |
-| 13 | owner-login:4389 | saveInquiryDraft | customer_inquiries | update | — | ✓ | ✓ | ✓ | — | — | guarded: a repeat changes nothing | unknown until Query C §10 | no (single write) | no |  |
-| 14 | owner-login:4421 | markInquiryAnswered | customer_inquiries | updateIfUnchanged | ✓ | ✓ | ✓ | ✓ | — | — | guarded: a repeat changes nothing | unknown until Query C §10 | no (single write) | no |  |
-| 15 | owner-login:4582 | change .agentToggle | agent_controls | updateIfUnchanged | ✓ | ✓ | ✓ | ✓ | ✓ | — | guarded: a repeat changes nothing | unknown until Query C §10 | no (single write) | yes |  |
-| 16 | owner-login:4814 | revokeSession | rpc:revoke_my_session | rpc | — | — | — | ✓ | ✓ | — | repeat harmless | function-defined | no (single write) | yes |  |
-| 17 | owner-login:4867 | change .sopAgentToggle | sop_documents | updateIfUnchanged | ✓ | ✓ | ✓ | ✓ | — | — | guarded: a repeat changes nothing | unknown until Query C §10 | no (single write) | yes |  |
-| 18 | owner-login:4965 | click .restoreFeatureRequestBtn | feature_requests | update | ✓ | ✓ | ✓ | ✓ | — | — | guarded: a repeat changes nothing | unknown until Query C §10 | no (single write) | no |  |
-| 19 | owner-login:5190 | click .docDeleteBtn | documents | delete | ✓ | ✓ | ✓ | ✓ | ✓ | — | guarded: a repeat changes nothing | audit trigger (Query A) | record gone, file may remain: reported by name | yes |  |
-| 20 | owner-login:5198 | click .docDeleteBtn | storage:document-files | storage.remove | — | — | — | ✓ | ✓ | — | repeat harmless | none (file store) | record gone, file may remain: reported by name | no |  |
-| 21 | owner-login:5276 | click .aeMarkReportedBtn | adverse_event_reports | updateIfUnchanged | ✓ | ✓ | ✓ | ✓ | ✓ | — | guarded: a repeat changes nothing | unknown until Query C §10 | no (single write) | yes |  |
-| 22 | owner-login:5334 | click .lhReleaseBtn | legal_holds | updateIfUnchanged | ✓ | ✓ | ✓ | ✓ | ✓ | — | guarded: a repeat changes nothing | unknown until Query C §10 | no (single write) | yes |  |
-| 23 | owner-login:5537 | showDashboardFor | auth | auth.signOut | — | — | — | — | — | — | repeat harmless | sign-in system log | no (single write) | yes |  |
-| 24 | owner-login:5633 | onConfirm | auth | auth.signOut | — | — | — | ✓ | — | — | repeat harmless | sign-in system log | no (single write) | yes |  |
-| 25 | owner-login:5711 | submit forgotForm | auth | auth.resetPasswordForEmail | — | — | — | ✓ | — | — | repeat harmless | sign-in system log | no (single write) | yes |  |
-| 26 | owner-login:5786 | click signout | auth | auth.signOut | — | — | — | — | ✓ | — | repeat harmless | sign-in system log | no (single write) | yes |  |
+| 1 | owner-login:2697 | changeStock | inventory | insert | — | — | — | — | — | — | not idempotent: one save at a time (button lock) | audit trigger (Query A) | no (single write) | yes |  |
+| 2 | owner-login:2703 | changeStock | inventory | update | — | — | ✓ | — | — | — | guarded: a repeat changes nothing | audit trigger (Query A) | no (single write) | yes |  |
+| 3 | owner-login:2945 | logCustomerAccess | rpc:log_customer_data_access | rpc | — | — | — | — | — | — | repeat harmless | function-defined | no (single write) | no |  |
+| 4 | owner-login:3653 | changeTaskStatus | tasks | update | ✓ | ✓ | ✓ | ✓ | ✓ | — | guarded: a repeat changes nothing | audit trigger (Query A) | no (single write) | no |  |
+| 5 | owner-login:3812 | decideApproval | approval_requests | updateIfUnchanged | ✓ | ✓ | ✓ | ✓ | ✓ | — | guarded: a repeat changes nothing | audit trigger (Query A) | no (single write) | yes |  |
+| 6 | owner-login:3846 | escalateToIncidentOnce | incidents | insert | — | — | ✓ | — | — | — | not idempotent: one save at a time (button lock) | unknown until Query C §10 | no (single write) | no |  |
+| 7 | owner-login:3995 | removeExpenseReceipt | expenses | updateIfUnchanged | ✓ | ✓ | ✓ | ✓ | ✓ | — | guarded: a repeat changes nothing | audit trigger (Query A) | unlink first; a stray file possible, reported | yes |  |
+| 8 | owner-login:3997 | removeExpenseReceipt | storage:expense-receipts | storage.remove | — | — | — | ✓ | ✓ | — | repeat harmless | none (file store) | unlink first; a stray file possible, reported | no |  |
+| 9 | owner-login:4013 | deleteExpense | expenses | update | ✓ | ✓ | ✓ | ✓ | — | — | guarded: a repeat changes nothing | audit trigger (Query A) | no (single write) | yes |  |
+| 10 | owner-login:4053 | click .restoreExpenseBtn | expenses | update | ✓ | ✓ | ✓ | ✓ | — | — | guarded: a repeat changes nothing | audit trigger (Query A) | no (single write) | yes |  |
+| 11 | owner-login:4121 | click .supToggleBtn | suppliers | updateIfUnchanged | — | ✓ | ✓ | ✓ | — | — | guarded: a repeat changes nothing | audit trigger (Query A) | no (single write) | no |  |
+| 12 | owner-login:4358 | setInquirySeverity | customer_inquiries | updateIfUnchanged | ✓ | ✓ | ✓ | ✓ | — | — | guarded: a repeat changes nothing | unknown until Query C §10 | no (single write) | no |  |
+| 13 | owner-login:4390 | saveInquiryDraft | customer_inquiries | update | — | ✓ | ✓ | ✓ | — | — | guarded: a repeat changes nothing | unknown until Query C §10 | no (single write) | no |  |
+| 14 | owner-login:4422 | markInquiryAnswered | customer_inquiries | updateIfUnchanged | ✓ | ✓ | ✓ | ✓ | — | — | guarded: a repeat changes nothing | unknown until Query C §10 | no (single write) | no |  |
+| 15 | owner-login:4583 | change .agentToggle | agent_controls | updateIfUnchanged | ✓ | ✓ | ✓ | ✓ | ✓ | — | guarded: a repeat changes nothing | unknown until Query C §10 | no (single write) | yes |  |
+| 16 | owner-login:4815 | revokeSession | rpc:revoke_my_session | rpc | — | — | — | ✓ | ✓ | — | repeat harmless | function-defined | no (single write) | yes |  |
+| 17 | owner-login:4868 | change .sopAgentToggle | sop_documents | updateIfUnchanged | ✓ | ✓ | ✓ | ✓ | — | — | guarded: a repeat changes nothing | unknown until Query C §10 | no (single write) | yes |  |
+| 18 | owner-login:4966 | click .restoreFeatureRequestBtn | feature_requests | update | ✓ | ✓ | ✓ | ✓ | — | — | guarded: a repeat changes nothing | unknown until Query C §10 | no (single write) | no |  |
+| 19 | owner-login:5191 | click .docDeleteBtn | documents | delete | ✓ | ✓ | ✓ | ✓ | ✓ | — | guarded: a repeat changes nothing | audit trigger (Query A) | record gone, file may remain: reported by name | yes |  |
+| 20 | owner-login:5199 | click .docDeleteBtn | storage:document-files | storage.remove | — | — | — | ✓ | ✓ | — | repeat harmless | none (file store) | record gone, file may remain: reported by name | no |  |
+| 21 | owner-login:5277 | click .aeMarkReportedBtn | adverse_event_reports | updateIfUnchanged | ✓ | ✓ | ✓ | ✓ | ✓ | — | guarded: a repeat changes nothing | unknown until Query C §10 | no (single write) | yes |  |
+| 22 | owner-login:5335 | click .lhReleaseBtn | legal_holds | updateIfUnchanged | ✓ | ✓ | ✓ | ✓ | ✓ | — | guarded: a repeat changes nothing | unknown until Query C §10 | no (single write) | yes |  |
+| 23 | owner-login:5538 | showDashboardFor | auth | auth.signOut | — | — | — | — | — | — | repeat harmless | sign-in system log | no (single write) | yes |  |
+| 24 | owner-login:5634 | onConfirm | auth | auth.signOut | — | — | — | ✓ | — | — | repeat harmless | sign-in system log | no (single write) | yes |  |
+| 25 | owner-login:5712 | submit forgotForm | auth | auth.resetPasswordForEmail | — | — | — | ✓ | — | — | repeat harmless | sign-in system log | no (single write) | yes |  |
+| 26 | owner-login:5787 | click signout | auth | auth.signOut | — | — | — | — | ✓ | — | repeat harmless | sign-in system log | no (single write) | yes |  |
 | 27 | owner-login:6998 | click [data-dismiss-id] | manual_attention_items | update | — | — | ✓ | ✓ | — | — | guarded: a repeat changes nothing | unknown until Query C §10 | no (single write) | no |  |
 | 28 | owner-login:7403 | submit addReminderForm | manual_attention_items | insert | — | — | — | ✓ | — | — | not idempotent: one save at a time (button lock) | unknown until Query C §10 | no (single write) | no |  |
 | 29 | owner-login:7501 | saveQuickAdd | manual_attention_items | insert | — | — | — | ✓ | — | — | not idempotent: one save at a time (button lock) | unknown until Query C §10 | no (single write) | no |  |

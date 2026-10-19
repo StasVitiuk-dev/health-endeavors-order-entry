@@ -824,7 +824,8 @@
     function salesUi(){ return salesMod('he-sales-ui'); }
     function salesEngine(){
       return { ui: salesMod('he-sales-ui'), fixtures: salesMod('he-sales-fixtures'),
-        leads: salesMod('he-sales-leads'), pipeline: salesMod('he-sales-pipeline') };
+        leads: salesMod('he-sales-leads'), pipeline: salesMod('he-sales-pipeline'),
+        agents: salesMod('he-sales-agents') };
     }
     const SALES_TITLES = {
       salesCommandPanel: 'Growth Command Center', salesLeadsPanel: 'Wholesale Leads',
@@ -865,12 +866,10 @@
         return e.ui.analyticsView({ replyRate: null, interestRate: null, customerConversion: null, sampleConversion: null, costPerLead: null, costPerCustomer: null }, opts);
       },
       salesAgentsPanel(e, opts){
-        return e.ui.agentActivityView([
-          { name: 'Lead Scorer', mode: 'READ_ONLY', enabled: false, lastRun: null },
-          { name: 'Outreach Drafter', mode: 'DRAFT_ONLY', enabled: false, lastRun: null, provider: 'template' },
-          { name: 'Reply Classifier', mode: 'READ_ONLY', enabled: false, lastRun: null },
-          { name: 'Sample Advisor', mode: 'READ_ONLY', enabled: false, lastRun: null },
-        ], opts);
+        // The full advisory roster, all OFF by default; never-run agents report
+        // UNKNOWN health (never a fake "healthy").
+        e.agents.assertSafe();
+        return e.ui.agentActivityView(e.agents.activityRows(), opts);
       },
     };
     function loadSales(pageId){
