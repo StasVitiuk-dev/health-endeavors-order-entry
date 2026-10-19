@@ -14,7 +14,9 @@ const SALES_IDS = ['salesCommandPanel', 'salesLeadsPanel', 'salesPipelinePanel',
   'salesApprovalsPanel', 'salesSamplesPanel', 'salesAnalyticsPanel', 'salesAgentsPanel',
   'salesLeadDetailPanel', 'salesRetentionPanel', 'salesContentPanel', 'salesTerritoryPanel',
   'salesCampaignPanel', 'salesDataQualityPanel', 'salesForecastPanel', 'salesCostPanel', 'salesSafetyPanel',
-  'salesLostDealsPanel', 'salesAnomalyPanel', 'salesWorkloadPanel', 'salesScorecardsPanel'];
+  'salesLostDealsPanel', 'salesAnomalyPanel', 'salesWorkloadPanel', 'salesScorecardsPanel',
+  'salesQueuePanel', 'salesReadinessPanel', 'salesSourcesPanel', 'salesCreatorPanel',
+  'salesSampleAdvisorPanel', 'salesChangesPanel', 'salesReviewPanel', 'salesPrivacyPanel'];
 
 test.describe('flag OFF (default): sales is invisible and inert', () => {
   test('no Sales & Growth group, no sales links, panels render the DISABLED shell', async ({ page, backend }) => {
@@ -78,6 +80,10 @@ test.describe('flag ON: sales pages appear and render synthetic data', () => {
       salesSafetyPanel: 'Sales Safety Center',
       salesLostDealsPanel: 'Lost Deal Analysis', salesAnomalyPanel: 'Sales Anomaly Center',
       salesWorkloadPanel: 'Owner Workload', salesScorecardsPanel: 'Agent Scorecards',
+      salesQueuePanel: 'Owner Daily Queue', salesReadinessPanel: 'Wholesale Readiness',
+      salesSourcesPanel: 'Lead Source Quality', salesCreatorPanel: 'Creator Prospects',
+      salesSampleAdvisorPanel: 'Sample Candidate Ranking', salesChangesPanel: 'What Changed',
+      salesReviewPanel: 'Weekly Review', salesPrivacyPanel: 'Sales Privacy Center',
     };
     for (const [id, title] of Object.entries(titles)) {
       await gotoPage(page, id);

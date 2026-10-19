@@ -144,6 +144,14 @@ window.HE.modules.define('he-config', { api: 1, needs: [] }, function (ctx) {
       { id: 'salesAnomalyPanel',     label: 'Sales Anomaly Center' },
       { id: 'salesWorkloadPanel',    label: 'Owner Workload' },
       { id: 'salesScorecardsPanel',  label: 'Agent Scorecards' },
+      { id: 'salesQueuePanel',        label: 'Owner Daily Queue' },
+      { id: 'salesReadinessPanel',    label: 'Wholesale Readiness' },
+      { id: 'salesSourcesPanel',      label: 'Lead Source Quality' },
+      { id: 'salesCreatorPanel',      label: 'Creator Prospects' },
+      { id: 'salesSampleAdvisorPanel',label: 'Sample Candidate Ranking' },
+      { id: 'salesChangesPanel',      label: 'What Changed' },
+      { id: 'salesReviewPanel',       label: 'Weekly Review' },
+      { id: 'salesPrivacyPanel',      label: 'Sales Privacy Center' },
     ]};
     if (salesGrowthOn()) SIDEBAR_GROUPS.push(SALES_GROWTH_GROUP);
     const ICON_PATHS = {

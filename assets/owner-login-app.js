@@ -832,7 +832,11 @@
         dataquality: salesMod('he-sales-dataquality'), forecast: salesMod('he-sales-forecast'),
         providers: salesMod('he-sales-providers'), safety: salesMod('he-sales-safety'),
         lostdeals: salesMod('he-sales-lostdeals'), anomaly: salesMod('he-sales-anomaly'),
-        workload: salesMod('he-sales-workload'), scorecards: salesMod('he-sales-scorecards') };
+        workload: salesMod('he-sales-workload'), scorecards: salesMod('he-sales-scorecards'),
+        readiness: salesMod('he-sales-readiness'), sources: salesMod('he-sales-sources'),
+        queue: salesMod('he-sales-queue'), creator: salesMod('he-sales-creator'),
+        sampleadvisor: salesMod('he-sales-sampleadvisor'), changes: salesMod('he-sales-changes'),
+        privacy: salesMod('he-sales-privacy') };
     }
     // Small helpers to build he-sales-ui section view-models tersely.
     function salesKv(k, value, label){ return { k, value: value == null ? '—' : value, label: label || 'ACTUAL' }; }
@@ -849,6 +853,10 @@
       salesSafetyPanel: 'Sales Safety Center',
       salesLostDealsPanel: 'Lost Deal Analysis', salesAnomalyPanel: 'Sales Anomaly Center',
       salesWorkloadPanel: 'Owner Workload', salesScorecardsPanel: 'Agent Scorecards',
+      salesQueuePanel: 'Owner Daily Queue', salesReadinessPanel: 'Wholesale Readiness',
+      salesSourcesPanel: 'Lead Source Quality', salesCreatorPanel: 'Creator Prospects',
+      salesSampleAdvisorPanel: 'Sample Candidate Ranking', salesChangesPanel: 'What Changed',
+      salesReviewPanel: 'Weekly Review', salesPrivacyPanel: 'Sales Privacy Center',
     };
     // Build the view model for one sales page from the engine + synthetic fixtures.
     // Everything is labelled SIMULATED/UNKNOWN/OWNER_INPUT_REQUIRED by the view
@@ -1057,6 +1065,107 @@
           ] };
         });
       },
+      salesQueuePanel(e, opts){
+        return e.ui.page('Owner Daily Queue', opts, () => {
+          const q = e.queue.build({
+            approvalsAwaiting: [{ leadId: 'SYN-1003' }, { leadId: 'SYN-1007' }],
+            sampleDecisions: [{ leadId: 'SYN-1011' }], repliesToReview: [{ leadId: 'SYN-1005' }],
+            followUpsDue: [{ leadId: 'SYN-1002', dueDate: '2026-10-20' }],
+            blocked: [{ leadId: 'SYN-1009', reason: 'needs wholesale price' }], watch: [{ leadId: 'SYN-1012' }],
+          });
+          return { title: 'Owner Daily Queue', state: 'OK', sections: e.queue.BUCKETS.map(b =>
+            salesSection(b + ' (' + q.counts[b] + ')', q.byBucket[b].length ? q.byBucket[b].map(it => salesKv(it.leadId || '—', it.nextAction + (it.ownerDecisionRequired ? ' · owner decision' : ''), 'SIMULATED')) : [salesKv('nothing', '—', 'ACTUAL')])) };
+        });
+      },
+      salesReadinessPanel(e, opts){
+        return e.ui.page('Wholesale Readiness', opts, () => {
+          const facts = { wholesalePrice: null, moq: { value: 24, verified: true }, shippingTerms: null,
+            paymentTerms: null, approvedClaims: null, lineSheet: null, legalStatus: { value: 'pending' } };
+          const c = e.readiness.commercial(facts);
+          const ls = e.readiness.lineSheet(facts);
+          const center = e.readiness.center({});
+          return { title: 'Wholesale Readiness', state: 'OK', sections: [
+            salesSection('Commercial facts', c.rows.map(r => salesKv(r.label + (r.required ? ' *' : ''), r.state, r.state === 'APPROVED' ? 'ACTUAL' : 'OWNER_INPUT_REQUIRED'))),
+            salesSection('Line sheet', [salesKv('Status', ls.status, ls.status === 'BLOCKED' ? 'OWNER_INPUT_REQUIRED' : 'ESTIMATED'), salesKv('Blockers', ls.blockers.join('; ') || 'none', ls.blockers.length ? 'OWNER_INPUT_REQUIRED' : 'ACTUAL')]),
+            salesSection('Readiness center', center.rows.map(r => salesKv(r.item, r.status, /LOCAL READY/.test(r.status) ? 'ACTUAL' : 'OWNER_INPUT_REQUIRED'))),
+          ] };
+        });
+      },
+      salesSourcesPanel(e, opts){
+        return e.ui.page('Lead Source Quality', opts, () => {
+          const leads = e.leads.rank(e.fixtures.leads(24, 7)).map((l, i) => ({ ...l, replied: i % 2 === 0, interested: i % 3 === 0, converted: i % 7 === 0, storeType: l.category }));
+          const a = e.sources.analyze(leads);
+          return { title: 'Lead Source Quality', state: 'OK', sections: [
+            salesSection('By source', a.bySource.map(s => salesKv(s.key, s.leads + ' leads · reply ' + (s.replyRate == null ? '—' : s.replyRate), s.replyLabel))),
+            salesSection('By store type', a.byStoreType.slice(0, 8).map(s => salesKv(s.key, s.leads + ' leads · conv ' + (s.conversionRate == null ? '—' : s.conversionRate), s.conversionLabel))),
+          ] };
+        });
+      },
+      salesCreatorPanel(e, opts){
+        return e.ui.page('Creator Prospects', opts, () => {
+          const ranked = e.creator.fixtures();
+          return { title: 'Creator Prospects', state: 'OK', sections: [
+            salesSection('Prospects (public signals only; no auto-contact)', ranked.map(c => salesKv(c.name + ' (' + c.platform + ')', 'score ' + c.score + ' · ' + c.band + ' · ' + c.sampleConsideration, 'SIMULATED'))),
+            salesSection('Safety', [salesKv('Auto-contact', 'OFF', 'ACTUAL'), salesKv('Payment/free-product promise', 'OFF', 'ACTUAL'), salesKv('Medical claims', 'blocked', 'ACTUAL'), salesKv('Usage rights', 'not assumed', 'ACTUAL')]),
+          ] };
+        });
+      },
+      salesSampleAdvisorPanel(e, opts){
+        return e.ui.page('Sample Candidate Ranking', opts, () => {
+          const cands = [
+            { id: 'SYN-1011', storeName: 'Blue Harbor Apothecary', scoring: { score: 90 }, replyQuality: 'strong', likelyOrderSize: 'large', locations: 3, priorSamples: 0 },
+            { id: 'SYN-1007', storeName: 'Cedar Day Spa', scoring: { score: 70 }, replyQuality: 'ok', likelyOrderSize: 'medium', locations: 1, priorSamples: 1 },
+          ];
+          const r = e.sampleadvisor.rank(cands, 8);
+          const fraud = e.sampleadvisor.fraudScan([
+            { id: 1, storeName: 'Spa One', email: 'a@sketchy.example.com', website: 'sketchy.example.com' },
+            { id: 2, storeName: 'Spa Two', email: 'a@sketchy.example.com', website: 'sketchy.example.com' },
+            { id: 3, storeName: 'Spa Three', email: 'c@sketchy.example.com', website: 'sketchy.example.com' },
+          ], { maxPerDomain: 2 });
+          return { title: 'Sample Candidate Ranking', state: 'OK', sections: [
+            salesSection('Ranked candidates (owner still approves each)', r.ranked.map(c => salesKv(c.storeName, 'score ' + c.score, 'SIMULATED'))),
+            salesSection('Abuse watch (advisory)', fraud.flags.length ? fraud.flags.map(f => salesKv(f.kind, f.detail, 'SIMULATED')) : [salesKv('No flags', 'clean', 'ACTUAL')]),
+          ] };
+        });
+      },
+      salesChangesPanel(e, opts){
+        return e.ui.page('What Changed', opts, () => {
+          const asOf = '2026-10-19T12:00:00Z';
+          const ev = [
+            { at: '2026-10-19T09:00:00Z', kind: 'new_lead' }, { at: '2026-10-19T10:00:00Z', kind: 'reply' },
+            { at: '2026-10-18T10:00:00Z', kind: 'customer_won' }, { at: '2026-10-14T10:00:00Z', kind: 'sample_request' },
+            { at: '2026-10-02T10:00:00Z', kind: 'opportunity_lost' },
+          ];
+          const d = e.changes.digest(ev, asOf);
+          const win = (label, c) => salesSection(label, e.changes.MATERIAL.filter(k => c[k]).map(k => salesKv(k, c[k], 'SIMULATED')).concat(Object.values(c).every(v => !v) ? [salesKv('no material changes', '—', 'ACTUAL')] : []));
+          return { title: 'What Changed', state: 'OK', sections: [win('Today', d.today), win('Yesterday', d.yesterday), win('Last 7 days', d.last7), win('Last 30 days', d.last30)] };
+        });
+      },
+      salesReviewPanel(e, opts){
+        return e.ui.page('Weekly Review', opts, () => {
+          const asOf = '2026-10-19T12:00:00Z';
+          const ev = [
+            { at: '2026-10-15T10:00:00Z', kind: 'customer_won' }, { at: '2026-10-16T10:00:00Z', kind: 'opportunity_lost' },
+            { at: '2026-10-17T10:00:00Z', kind: 'dnc' }, { at: '2026-10-14T10:00:00Z', kind: 'new_lead' },
+            { at: '2026-10-13T10:00:00Z', kind: 'sample_request' },
+          ];
+          const r = e.changes.review(ev, 7, asOf);
+          return { title: 'Weekly Review', state: 'OK', sections: [
+            salesSection('This week (7 days)', [salesKv('Wins', r.wins, 'SIMULATED'), salesKv('Losses', r.losses, 'SIMULATED'), salesKv('New leads', r.newLeads, 'SIMULATED'), salesKv('Replies', r.replies, 'SIMULATED'), salesKv('Samples requested', r.samplesRequested, 'SIMULATED'), salesKv('Opt-outs', r.optOuts, 'SIMULATED')]),
+            salesSection('Risks', r.risks.length ? r.risks.map((x, i) => salesKv('risk ' + (i + 1), x, 'SIMULATED')) : [salesKv('No flagged risks', '—', 'ACTUAL')]),
+          ] };
+        });
+      },
+      salesPrivacyPanel(e, opts){
+        return e.ui.page('Sales Privacy Center', opts, () => {
+          const inv = e.privacy.inventory(['id', 'storeName', 'website', 'contactName', 'email', 'phone', 'apiKey', 'password', '_scratch', 'scoring', 'source']);
+          const ret = e.privacy.retentionPolicyOptions();
+          return { title: 'Sales Privacy Center', state: 'OK', sections: [
+            salesSection('Field classification', inv.rows.map(r => salesKv(r.field, r.class + ' — ' + r.recommend, r.class === 'SENSITIVE' ? 'OWNER_INPUT_REQUIRED' : 'ACTUAL'))),
+            salesSection('Retention policy (PROPOSED — owner/legal decide)', ret.options.map(o => salesKv(o.topic, o.default, 'OWNER_INPUT_REQUIRED'))),
+          ] };
+        });
+      },
     };
     function loadSales(pageId){
       const host = document.getElementById(pageId);
@@ -1130,6 +1239,14 @@
       salesAnomalyPanel:     [() => loadSales('salesAnomalyPanel')],
       salesWorkloadPanel:    [() => loadSales('salesWorkloadPanel')],
       salesScorecardsPanel:  [() => loadSales('salesScorecardsPanel')],
+      salesQueuePanel:         [() => loadSales('salesQueuePanel')],
+      salesReadinessPanel:     [() => loadSales('salesReadinessPanel')],
+      salesSourcesPanel:       [() => loadSales('salesSourcesPanel')],
+      salesCreatorPanel:       [() => loadSales('salesCreatorPanel')],
+      salesSampleAdvisorPanel: [() => loadSales('salesSampleAdvisorPanel')],
+      salesChangesPanel:       [() => loadSales('salesChangesPanel')],
+      salesReviewPanel:        [() => loadSales('salesReviewPanel')],
+      salesPrivacyPanel:       [() => loadSales('salesPrivacyPanel')],
     };
     function refreshChrome(){
       renderSidebar(document.getElementById('sidebarSearch').value);

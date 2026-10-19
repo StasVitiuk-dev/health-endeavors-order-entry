@@ -102,8 +102,11 @@ DB not connected, samples owner-only, claim firewall + DNC always on — all fai
 closed). Tested by `sales-caps2/3/4/5-ext20j.spec.js` (engine) and the extended
 `sales-wiring-ext20j.spec.js` (all 16 pages, desktop + iPhone).
 
-All twenty sales pages are now wired behind the OFF flag (the 16 above plus
-Lost Deal Analysis, Sales Anomaly Center, Owner Workload and Agent Scorecards).
+Twenty-eight sales pages are now wired behind the OFF flag: the 20 above plus
+Owner Daily Queue, Wholesale Readiness, Lead Source Quality, Creator Prospects,
+Sample Candidate Ranking, What Changed, Weekly Review and Sales Privacy Center.
+The engine behind them totals ~35 pure `assets/sales/*.js` modules; specs
+`sales-caps2…7` and `sales-adversarial2` cover the new ones.
 
 **Still a reviewed step, NOT done:** page styling/polish (the pages render with
 the dashboard's default styles), and wiring any agent to real (non-synthetic)
