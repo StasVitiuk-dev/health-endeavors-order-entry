@@ -102,10 +102,12 @@ DB not connected, samples owner-only, claim firewall + DNC always on — all fai
 closed). Tested by `sales-caps2/3/4/5-ext20j.spec.js` (engine) and the extended
 `sales-wiring-ext20j.spec.js` (all 16 pages, desktop + iPhone).
 
-**Still a reviewed step, NOT done:** a few more pages from the full reserve
-(lost-deals / anomaly / workload / scorecards pages — their engine modules
-already exist), page styling/polish, and wiring any agent to real
-(non-synthetic) data. Those attach the same way, behind the same OFF flag.
+All twenty sales pages are now wired behind the OFF flag (the 16 above plus
+Lost Deal Analysis, Sales Anomaly Center, Owner Workload and Agent Scorecards).
+
+**Still a reviewed step, NOT done:** page styling/polish (the pages render with
+the dashboard's default styles), and wiring any agent to real (non-synthetic)
+data — which is owner/Gmail/website/production-gated by design.
 
 ## Safety model (how giving-away / spam / claims are made impossible)
 

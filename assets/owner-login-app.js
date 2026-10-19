@@ -830,7 +830,9 @@
         retention: salesMod('he-sales-retention'), content: salesMod('he-sales-content'),
         territory: salesMod('he-sales-territory'), campaign: salesMod('he-sales-campaign'),
         dataquality: salesMod('he-sales-dataquality'), forecast: salesMod('he-sales-forecast'),
-        providers: salesMod('he-sales-providers'), safety: salesMod('he-sales-safety') };
+        providers: salesMod('he-sales-providers'), safety: salesMod('he-sales-safety'),
+        lostdeals: salesMod('he-sales-lostdeals'), anomaly: salesMod('he-sales-anomaly'),
+        workload: salesMod('he-sales-workload'), scorecards: salesMod('he-sales-scorecards') };
     }
     // Small helpers to build he-sales-ui section view-models tersely.
     function salesKv(k, value, label){ return { k, value: value == null ? '—' : value, label: label || 'ACTUAL' }; }
@@ -845,6 +847,8 @@
       salesCampaignPanel: 'Campaign Lab', salesDataQualityPanel: 'Sales Data Quality',
       salesForecastPanel: 'Sales Forecast', salesCostPanel: 'AI Cost Center',
       salesSafetyPanel: 'Sales Safety Center',
+      salesLostDealsPanel: 'Lost Deal Analysis', salesAnomalyPanel: 'Sales Anomaly Center',
+      salesWorkloadPanel: 'Owner Workload', salesScorecardsPanel: 'Agent Scorecards',
     };
     // Build the view model for one sales page from the engine + synthetic fixtures.
     // Everything is labelled SIMULATED/UNKNOWN/OWNER_INPUT_REQUIRED by the view
@@ -995,6 +999,64 @@
           ] };
         });
       },
+      salesLostDealsPanel(e, opts){
+        return e.ui.page('Lost Deal Analysis', opts, () => {
+          const deals = [
+            { reason: 'PRICE', storeType: 'spa', source: 'referral', state: 'TX', scoreValue: 45 },
+            { reason: 'MOQ', storeType: 'boutique', source: 'event', state: 'OR', scoreValue: 60 },
+            { reason: 'TIMING', storeType: 'salon', source: 'search', state: 'TX', scoreValue: 82 },
+            { reason: 'NO_RESPONSE', storeType: 'gift', source: 'social', state: 'NV', scoreValue: 70 },
+            { reason: 'NOT_INTERESTED', storeType: 'grocery', source: 'manual', state: 'CA', scoreValue: 30 },
+            { reason: 'weird', storeType: 'spa', source: 'referral', state: 'CA', scoreValue: 55 },
+          ];
+          const a = e.lostdeals.analyze(deals);
+          return { title: 'Lost Deal Analysis', state: 'OK', sections: [
+            salesSection('By reason', e.lostdeals.REASONS.map(r => salesKv(r, a.byReason[r] || 0, 'SIMULATED'))),
+            salesSection('Signals', [salesKv('Top reason', a.topReason, 'SIMULATED'), salesKv('Re-opening candidates (advisory)', a.reopenCandidates.length, 'SIMULATED')]),
+          ] };
+        });
+      },
+      salesAnomalyPanel(e, opts){
+        return e.ui.page('Sales Anomaly Center', opts, () => {
+          const r = e.anomaly.scan({
+            replyRate: 0.05, replyRateHistory: [0.2, 0.18, 0.22], bounceRate: 0.18, bounceBaseline: 0.05,
+            dncToday: 10, dncBaseline: 2, followUpBacklog: 35, aiCostToday: 4, aiCostBaseline: 1,
+            approvalBacklog: 22, sources: [{ name: 'cheap-list', leads: 40, conversion: 0 }],
+          });
+          return { title: 'Sales Anomaly Center', state: r.total ? 'OK' : 'EMPTY', sections: [
+            salesSection('By severity', [salesKv('Critical', r.bySeverity.CRITICAL, 'ACTUAL'), salesKv('Warning', r.bySeverity.WARNING, 'ACTUAL'), salesKv('Info', r.bySeverity.INFO, 'ACTUAL')]),
+            salesSection('Anomalies (advisory — nothing paused automatically)', r.anomalies.map(x => salesKv(x.severity + ' · ' + x.kind, x.detail, 'SIMULATED'))),
+          ] };
+        });
+      },
+      salesWorkloadPanel(e, opts){
+        return e.ui.page('Owner Workload', opts, () => {
+          const w = e.workload.workload({ draftsAwaiting: 12, repliesToReview: 6, samplesToDecide: 2, contentApprovals: 3, dailyBudgetMinutes: 60 });
+          const rt = e.workload.responseTimes({ ownerApprovalPairs: [{ from: '2026-10-01', to: '2026-10-03' }, { from: '2026-10-02', to: '2026-10-02' }] });
+          return { title: 'Owner Workload', state: 'OK', sections: [
+            salesSection('Today’s queue', [salesKv('Drafts awaiting', w.items.draftsAwaiting, 'SIMULATED'), salesKv('Replies to review', w.items.repliesToReview, 'SIMULATED'), salesKv('Samples to decide', w.items.samplesToDecide, 'SIMULATED'), salesKv('Content approvals', w.items.contentApprovals, 'SIMULATED')]),
+            salesSection('Estimate', [salesKv('Owner minutes/day', w.estMinutes, 'ESTIMATED'), salesKv('Sustainable vs budget?', w.sustainable ? 'yes' : 'NO — reduce volume', 'ESTIMATED')]),
+            salesSection('Response times', [salesKv('Owner approval latency (avg days)', rt.ownerApproval.avgDays, rt.ownerApproval.label)]),
+          ] };
+        });
+      },
+      salesScorecardsPanel(e, opts){
+        return e.ui.page('Agent Scorecards', opts, () => {
+          const runs = [
+            { agent: 'Intro Draft Writer', result: 'ok', approved: true, cost: 0.011, latencyMs: 600 },
+            { agent: 'Intro Draft Writer', result: 'ok', ownerEdited: true, cost: 0.013, latencyMs: 700 },
+            { agent: 'Intro Draft Writer', result: 'fail', failure: 'timeout', cost: 0, latencyMs: 30000 },
+            { agent: 'Reply Classifier', result: 'ok', cost: 0, latencyMs: 2 },
+            { agent: 'Reply Classifier', result: 'ok', unknown: true, cost: 0, latencyMs: 2 },
+          ];
+          const cards = e.scorecards.scorecards(runs);
+          const fa = e.scorecards.failureAnalysis(runs);
+          return { title: 'Agent Scorecards', state: 'OK', sections: [
+            salesSection('Per-agent (synthetic runs)', cards.map(c => salesKv(c.agent, 'correctness ' + (c.correctness == null ? '—' : c.correctness) + ', edits ' + (c.ownerEditRate == null ? '—' : c.ownerEditRate), c.correctnessLabel))),
+            salesSection('Failures by cause', [salesKv('Top cause', fa.top, 'SIMULATED'), salesKv('Total failures', fa.total, 'SIMULATED')]),
+          ] };
+        });
+      },
     };
     function loadSales(pageId){
       const host = document.getElementById(pageId);
@@ -1064,6 +1126,10 @@
       salesForecastPanel:    [() => loadSales('salesForecastPanel')],
       salesCostPanel:        [() => loadSales('salesCostPanel')],
       salesSafetyPanel:      [() => loadSales('salesSafetyPanel')],
+      salesLostDealsPanel:   [() => loadSales('salesLostDealsPanel')],
+      salesAnomalyPanel:     [() => loadSales('salesAnomalyPanel')],
+      salesWorkloadPanel:    [() => loadSales('salesWorkloadPanel')],
+      salesScorecardsPanel:  [() => loadSales('salesScorecardsPanel')],
     };
     function refreshChrome(){
       renderSidebar(document.getElementById('sidebarSearch').value);

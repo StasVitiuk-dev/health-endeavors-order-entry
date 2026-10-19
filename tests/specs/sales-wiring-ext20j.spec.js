@@ -13,7 +13,8 @@ const { test, expect, login, gotoPage } = require('../helpers/dashboard');
 const SALES_IDS = ['salesCommandPanel', 'salesLeadsPanel', 'salesPipelinePanel',
   'salesApprovalsPanel', 'salesSamplesPanel', 'salesAnalyticsPanel', 'salesAgentsPanel',
   'salesLeadDetailPanel', 'salesRetentionPanel', 'salesContentPanel', 'salesTerritoryPanel',
-  'salesCampaignPanel', 'salesDataQualityPanel', 'salesForecastPanel', 'salesCostPanel', 'salesSafetyPanel'];
+  'salesCampaignPanel', 'salesDataQualityPanel', 'salesForecastPanel', 'salesCostPanel', 'salesSafetyPanel',
+  'salesLostDealsPanel', 'salesAnomalyPanel', 'salesWorkloadPanel', 'salesScorecardsPanel'];
 
 test.describe('flag OFF (default): sales is invisible and inert', () => {
   test('no Sales & Growth group, no sales links, panels render the DISABLED shell', async ({ page, backend }) => {
@@ -75,6 +76,8 @@ test.describe('flag ON: sales pages appear and render synthetic data', () => {
       salesCampaignPanel: 'Campaign Lab', salesDataQualityPanel: 'Sales Data Quality',
       salesForecastPanel: 'Sales Forecast', salesCostPanel: 'AI Cost Center',
       salesSafetyPanel: 'Sales Safety Center',
+      salesLostDealsPanel: 'Lost Deal Analysis', salesAnomalyPanel: 'Sales Anomaly Center',
+      salesWorkloadPanel: 'Owner Workload', salesScorecardsPanel: 'Agent Scorecards',
     };
     for (const [id, title] of Object.entries(titles)) {
       await gotoPage(page, id);

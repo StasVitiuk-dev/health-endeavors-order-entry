@@ -140,6 +140,10 @@ window.HE.modules.define('he-config', { api: 1, needs: [] }, function (ctx) {
       { id: 'salesForecastPanel',    label: 'Sales Forecast' },
       { id: 'salesCostPanel',        label: 'AI Cost Center' },
       { id: 'salesSafetyPanel',      label: 'Sales Safety Center' },
+      { id: 'salesLostDealsPanel',   label: 'Lost Deal Analysis' },
+      { id: 'salesAnomalyPanel',     label: 'Sales Anomaly Center' },
+      { id: 'salesWorkloadPanel',    label: 'Owner Workload' },
+      { id: 'salesScorecardsPanel',  label: 'Agent Scorecards' },
     ]};
     if (salesGrowthOn()) SIDEBAR_GROUPS.push(SALES_GROWTH_GROUP);
     const ICON_PATHS = {
