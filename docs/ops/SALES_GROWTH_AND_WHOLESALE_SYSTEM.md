@@ -102,11 +102,16 @@ DB not connected, samples owner-only, claim firewall + DNC always on — all fai
 closed). Tested by `sales-caps2/3/4/5-ext20j.spec.js` (engine) and the extended
 `sales-wiring-ext20j.spec.js` (all 16 pages, desktop + iPhone).
 
-Twenty-eight sales pages are now wired behind the OFF flag: the 20 above plus
-Owner Daily Queue, Wholesale Readiness, Lead Source Quality, Creator Prospects,
-Sample Candidate Ranking, What Changed, Weekly Review and Sales Privacy Center.
-The engine behind them totals ~35 pure `assets/sales/*.js` modules; specs
-`sales-caps2…7` and `sales-adversarial2` cover the new ones.
+**42 sales pages** are now wired behind the OFF flag. Reserve III added the
+owner operating-system layer on top of the engines: Content Planner, Commercial
+& Line Sheet, Sales Settings & Controls, Owner Decision Center, Reporting
+Center, Scenario & What-If Lab, Outreach Studio, Reply & Follow-up Center,
+Export Center, Meeting & Deal Prep, Sample Operating System, Agent Lab, Audit &
+Explainability, and Owner Briefs — each read-only/synthetic, composing the
+existing engines. The engine totals ~38 pure `assets/sales/*.js` modules; specs
+`sales-caps2…7`, `sales-adversarial2`, `sales-export`, `sales-simulator`,
+`sales-largedata` and the 42-page `sales-wiring` spec cover them. See
+`SALES_RESERVE_II_FINAL_REPORT.md` and `SALES_RESERVE_III_FINAL_REPORT.md`.
 
 **Still a reviewed step, NOT done:** page styling/polish (the pages render with
 the dashboard's default styles), and wiring any agent to real (non-synthetic)
