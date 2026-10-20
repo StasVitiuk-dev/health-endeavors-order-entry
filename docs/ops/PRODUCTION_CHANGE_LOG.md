@@ -1,0 +1,162 @@
+# Production change log
+
+Status: **CURRENT.** One entry per production change, newest first. Each entry shows who approved and ran it, the exact SQL, the exact rollback and the check result. Claude never runs anything on production: the owner runs every change after approving it.
+
+Only changes that are already applied are recorded here. Fixes that are still waiting are not published in this public repository until they are applied.
+
+## 2026-10-18 · FIX 1B: `activity_timeline` follows the row rules of the tables it reads
+
+| | |
+|---|---|
+| Found by | read-only Queries G2 and G3 (2026-10-18). After FIX 1A, visitors who are not signed in were blocked, but the view still ran with its owner's rights and did not check who was asking, so every signed-in user could read all of its rows |
+| What the fix does | marks the view `security_invoker`: it now runs with the reader's rights, so the row-level security of `orders`, `tasks`, `approval_requests` and `ai_decision_log` applies. The owner still sees everything; other signed-in users see only rows they can already see in those tables |
+| Approved and run by | Stas (owner), in the Supabase SQL Editor of the production project `uizrazyehilyzmwttsrn` |
+| Tested before | local throwaway database shaped like production (same 33-check run as FIX 2): fix, rollback, re-apply |
+| Downtime | none |
+| Dashboard change | none: no dashboard page reads this view |
+| Result: **checked** | the owner re-ran read-only Query G2 after the change and pasted the full result as text (the CSV attachment did not arrive twice). Claude checked every row: **all 17 views PASS** (`security_invoker`, row-level security applies), including `activity_timeline`. The FIX 2 guard `profiles_guard_privileged_columns` is listed on `profiles` (BEFORE UPDATE, mentions role: yes), next to the unchanged `profiles_audit` and `profiles_lock_account_number`. The P1 column row stays WARN as expected: it only reports the column right, which FIX 2 does not change; the guard is what blocks the change |
+| View count note | earlier notes said 16 views. That number came from Query G's G04 list (77 objects − 61 tables). G2 lists 17: `needs_attention` is a view that was not in G04, which only lists objects where visitors hold all rights. It is PASS, so nothing is open for it |
+
+SQL that was run:
+
+```sql
+begin;
+do $$
+begin
+  if to_regclass('public.activity_timeline') is null then
+    raise exception 'Stopped, nothing was changed: the view public.activity_timeline was not found.';
+  end if;
+end $$;
+alter view public.activity_timeline set (security_invoker = true);
+commit;
+select relname, reloptions from pg_class where oid = 'public.activity_timeline'::regclass;
+```
+
+Rollback, only if something goes wrong (the view runs with its owner's rights again, as before; FIX 1A stays in place):
+
+```sql
+begin;
+alter view public.activity_timeline reset (security_invoker);
+commit;
+select relname, reloptions from pg_class where oid = 'public.activity_timeline'::regclass;
+```
+
+**Security-fix round of 2026-10-18 (FIX 1A, FIX 2, FIX 1B): complete, checked** against the owner's final Query G2 result. Still open and not part of this round: the wide default rights of the `anon` role found by Query G (G04, WARN), to be reviewed read-only first.
+
+## 2026-10-18 · FIX 2: only the owner can change a person's role, break-glass access or account status
+
+| | |
+|---|---|
+| Found by | read-only Queries G2 and G3 (2026-10-18). Signed-in users held the UPDATE right on `profiles.role`; the update policy `profiles_update_self` lets a user update their own profile row, and no trigger checked which columns changed. So any signed-in user could change their own `role`, `is_break_glass`, `is_active` or `deleted_at` |
+| What the fix does | a BEFORE UPDATE trigger on `profiles` (`profiles_guard_privileged_columns`). A role or break-glass change is refused unless the signed-in caller is the owner. Deactivate / reactivate / delete is refused unless the caller is the owner, or an administrator acting on someone else. Other profile edits are unchanged. Server-side work with no signed-in user (service key, SQL Editor, scheduled jobs) is not affected |
+| Approved and run by | Stas (owner), in the Supabase SQL Editor of the production project `uizrazyehilyzmwttsrn` |
+| Tested before | local throwaway database shaped like production, including exact copies of the `lock_account_number` trigger and the `profiles_update_self` policy: 33/33 checks. The hole was reproduced, the fix closed it, owner and normal edits still worked, the rollback restored the exact previous behaviour, and re-applying worked |
+| Downtime | none |
+| Dashboard change | none for the owner |
+| Result | the check after the change returned `profiles_guard_privileged_columns`. The owner then re-ran read-only Query G3: the trigger is listed on `profiles`, and its source has the same checks as the SQL below (compared by Claude on the owner's CSV). The owner reports the dashboard still loads normally |
+| Note | Query G2's P1 row will still say WARN: it only checks the column right, which is unchanged. The guard is what now stops the change; G3 is the check that shows it |
+
+SQL that was run:
+
+```sql
+begin;
+do $$
+begin
+  if to_regclass('public.profiles') is null then
+    raise exception 'Stopped, nothing was changed: public.profiles was not found.';
+  end if;
+  if to_regprocedure('public."current_role"()') is null then
+    raise exception 'Stopped, nothing was changed: public.current_role() was not found.';
+  end if;
+end $$;
+
+create or replace function public.guard_profile_privileged_columns()
+returns trigger
+language plpgsql
+set search_path = public
+as $fn$
+declare
+  v_caller uuid := auth.uid();
+  v_role   text;
+begin
+  if v_caller is null then
+    return new;  -- not a signed-in API call (database job, service key, SQL editor)
+  end if;
+  v_role := coalesce(public."current_role"()::text, '');
+  if (new.role is distinct from old.role or new.is_break_glass is distinct from old.is_break_glass)
+     and v_role <> 'owner' then
+    raise exception 'Only the owner can change a person''s role or break-glass access. Nothing was changed.'
+      using errcode = '42501';
+  end if;
+  if (new.is_active is distinct from old.is_active or new.deleted_at is distinct from old.deleted_at)
+     and not (v_role = 'owner' or (v_role = 'administrator' and new.id <> v_caller)) then
+    raise exception 'Only the owner (or an administrator, for someone else) can deactivate, reactivate or delete an account. Nothing was changed.'
+      using errcode = '42501';
+  end if;
+  return new;
+end
+$fn$;
+
+drop trigger if exists profiles_guard_privileged_columns on public.profiles;
+create trigger profiles_guard_privileged_columns
+  before update on public.profiles
+  for each row execute function public.guard_profile_privileged_columns();
+commit;
+-- Check (read-only): must list the new trigger
+select tgname from pg_trigger where tgrelid = 'public.profiles'::regclass and tgname = 'profiles_guard_privileged_columns';
+```
+
+Rollback, only if something goes wrong (it removes the guard; the previous behaviour returns):
+
+```sql
+begin;
+drop trigger if exists profiles_guard_privileged_columns on public.profiles;
+drop function if exists public.guard_profile_privileged_columns();
+commit;
+select count(*) as guard_triggers_left from pg_trigger where tgrelid = 'public.profiles'::regclass and tgname = 'profiles_guard_privileged_columns';
+```
+
+## 2026-10-18 · FIX 1A: visitors who are not signed in can no longer read `activity_timeline`
+
+| | |
+|---|---|
+| Found by | read-only Queries G, G2 and G3 (2026-10-18). The view ran with its owner's rights, did not check who was asking, and the `anon` role (anyone with the website's public key) could read all of its rows: order numbers and statuses, task titles, approval types and AI decision summaries |
+| Approved and run by | Stas (owner), in the Supabase SQL Editor of the production project `uizrazyehilyzmwttsrn` |
+| Tested before | local throwaway database shaped like production. The hole was reproduced, the fix applied, the rollback restored the exact previous behaviour, and re-applying worked |
+| Downtime | none |
+| Dashboard change | none: no dashboard page reads this view |
+| Result reported by the owner | `visitors_can_still_read = false` |
+
+SQL that was run:
+
+```sql
+begin;
+do $$
+begin
+  if to_regclass('public.activity_timeline') is null then
+    raise exception 'Stopped, nothing was changed: the view public.activity_timeline was not found.';
+  end if;
+end $$;
+revoke all on public.activity_timeline from anon;
+commit;
+select has_table_privilege('anon', 'public.activity_timeline', 'SELECT') as visitors_can_still_read;
+```
+
+Rollback, only if something goes wrong (it restores exactly the previous rights):
+
+```sql
+begin;
+grant all on public.activity_timeline to anon;
+commit;
+select has_table_privilege('anon', 'public.activity_timeline', 'SELECT') as visitors_can_read_again;
+```
+
+**Verification after the change (owner re-ran read-only Query G2, 2026-10-18; results as reported by the owner):**
+
+| Check | Before FIX 1A | After FIX 1A |
+|---|---|---|
+| V1 `activity_timeline` | FAIL (readable by visitors who are not signed in) | **WARN** (readable by signed-in users only) |
+| V1, the other views (owner-reported as 15; the final G2 shows 16 others, see FIX 1B) | PASS | **PASS** (unchanged) |
+| P1 (a separate item, not part of this change) | WARN | WARN (unchanged at that time; fixed later the same day by FIX 2, above) |
+
+**Still open for this view at that time:** signed-in users still read it with the owner's rights. Closed later the same day by FIX 1B, above.

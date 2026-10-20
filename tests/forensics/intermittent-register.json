@@ -1,0 +1,169 @@
+{
+ "about": "Intermittent test failures: first seen, evidence, classification (PRODUCT / HARNESS / ENVIRONMENT / UNEXPLAINED) and status (OPEN INTERMITTENT / EXPLAINED / FIXED). A failure is never marked FIXED without a reproduced cause. Never delete an entry. A rerun that passes never closes an entry by itself (EXT20 rule): closing needs the cause reproduced on demand and a fix shown to remove it. Each entry records first/last seen, SHA, environment, input, reproducibility, suspected layer, evidence path and classification.",
+ "entries": [
+  {
+   "id": "INT-1",
+   "test": "tests/specs/stress (DB suite) S21 200 operators",
+   "firstSeen": {
+    "where": "GitHub CI database job",
+    "sha": "2d90113",
+    "date": "2026-10-12"
+   },
+   "lastSeen": {
+    "where": "GitHub CI database job",
+    "sha": "2e8da50",
+    "date": "2026-10-12"
+   },
+   "classification": "HARNESS",
+   "cause": "200 simultaneous psql callers against max_connections=100; refused callers ('too many clients already') were ignored, so their +1 never ran (1190 of 1200). The database lost nothing.",
+   "reproduced": "locally with max_connections=30: old harness 4 failures, new harness 98/98 (25 refusals retried)",
+   "status": "FIXED",
+   "fix": "3980d99: retry only connection refusals (before the session starts, so nothing can apply twice); refusal count reported",
+   "evidenceAfterFix": "GitHub database job green on 3980d99, f2b2d33 (x2)"
+  },
+  {
+   "id": "INT-2",
+   "test": "tests/specs/chaos-ui-ext15.spec.js › offline: the offline bar never covers the menu button, Refresh or Sign out (desktop)",
+   "firstSeen": {
+    "where": "GitHub CI browser shard 2",
+    "sha": "079f378",
+    "date": "2026-10-12"
+   },
+   "lastSeen": {
+    "where": "GitHub CI browser shard 2",
+    "sha": "079f378",
+    "date": "2026-10-12"
+   },
+   "classification": "HARNESS",
+   "cause": "The desktop test resizes 1100 -> 760 px, crossing the 820 px breakpoint; the sidebar then slides away with a 0.22 s transform. A check inside that slide finds the sidebar (its search box) over the menu button. The offline bar is not involved. Not a product bug: the drawer is meant to slide away when the window narrows.",
+   "reproduced": "tests/forensics/offline-bar.probe.spec.js: first-instant check without waiting for animations 64/150 covered (quiet) and 3/50 (CPU load, 4 workers); after waiting for running animations 0/50 (quiet) and 0/50 (CPU load, 4 workers)",
+   "status": "FIXED",
+   "fix": "EXT16: the test waits for running animations after the resize, then checks strictly at the first instant (the 5 s re-check added in EXT15 is removed)"
+  },
+  {
+   "id": "INT-3",
+   "test": "tests/specs/chaos-ui-ext15.spec.js › chaos shrinker on the real runner (one replay of a shortened sequence)",
+   "firstSeen": {
+    "where": "local, shrink debug run",
+    "sha": "885552e+",
+    "date": "2026-10-12"
+   },
+   "lastSeen": {
+    "where": "local, shrink debug run",
+    "sha": "885552e+",
+    "date": "2026-10-12"
+   },
+   "classification": "UNEXPLAINED",
+   "cause": "page.waitForLoadState('networkidle') did not settle within 30 s at step 2 of one replayed 3-step sequence (task button flow). Not seen in any full chaos run (3 seeds desktop + phone pass). Possibly a request left pending by the mock's delayNext across a replay reset; not established.",
+   "reproduced": "no",
+   "status": "OPEN INTERMITTENT",
+   "fix": "none yet; the 30 s action limit (EXT16) turns any recurrence into a named failure instead of a stall",
+   "suspectedLayer": "harness (mock hook or pending request across a replay) — not established",
+   "evidencePath": "tests/helpers/chaos.js (runOps failure message)",
+   "nextFailureEvidence": "EXT20: any chaos step failure now names every request still in flight (method, path, age in ms) and every mock hook still queued (delay/drop/fail). The next occurrence will show which request kept the page from going idle. Not reproduced in EXT20 (chaos spec 2 runs, all passed). Status stays OPEN."
+  },
+  {
+   "id": "INT-4",
+   "test": "DB suite: docs/ops/sql/local-test/stress_test.sh › S29 no deadlock (delete product vs delivery)",
+   "firstSeen": {
+    "where": "GitHub CI database job, stress run 3 of 5",
+    "sha": "0722ae6",
+    "date": "2026-10-12"
+   },
+   "lastSeen": {
+    "where": "GitHub CI database job, stress run 3 of 5",
+    "sha": "0722ae6",
+    "date": "2026-10-12"
+   },
+   "classification": "PRODUCT",
+   "cause": "Lock-order cycle in the DRAFT function delete_unused_product (drafts/10, not installed anywhere): its 'in use?' checks run before it locks the product, so a delivery line committed in that instant is missed. The receive then holds the line and waits for the product; the delete holds the product and its foreign-key check waits for the line. PostgreSQL cancels one call and rolls it back: no data damage (the S29 consistency check passed). Only reachable when a line is added, the product deleted and the order received at the same moment.",
+   "reproduced": "deterministically: docs/ops/sql/local-test/s29_lock_cycle_repro.sh prints DEADLOCK every run (2 of 2); server log: receive waits for the product (key share), delete waits for the receive's transaction. Random S29 alone: 0 in 40 quiet rounds (timing-dependent).",
+   "status": "FIXED",
+   "fix": "EXT17: drafts/10 delete_unused_product repeats its in-use checks right after locking the product (nothing new can reference a locked product, and a line saved just before is visible to the second check). New reviewed fingerprint f6d9c2c8be690710eeb721041f6779d9 (was 3df2bf7a07b451f12f9359ceca1c85df), updated in the runbook, Query H, MANIFEST, deploy simulator and fixtures.",
+   "evidenceAfterFix": "forced interleaving (s29_lock_cycle_repro.sh): fixed draft 5/5 no deadlock with both calls verified complete, old draft 2/2 DEADLOCK; the repro is now a DB-suite step that must pass; full local DB suite: stress 5 runs pass. The repro used to print 'no deadlock' when it could not connect at all; it now reports INCONCLUSIVE (exit 2) unless both calls returned results. Remote CI: not run (GitHub Actions quota unavailable)."
+  },
+  {
+   "id": "INT-5",
+   "test": "tests/specs/mutation-runner-ext14.spec.js › Ctrl-C during a mutant removes the worktree and leaves the real tree untouched",
+   "firstSeen": {
+    "where": "GitHub CI browser shard 3",
+    "sha": "0722ae6",
+    "date": "2026-10-12"
+   },
+   "lastSeen": {
+    "where": "GitHub CI browser shard 3",
+    "sha": "0722ae6",
+    "date": "2026-10-12"
+   },
+   "classification": "HARNESS",
+   "cause": "Not timing: the test interrupts one named mutant, whose text EXT16 had replaced (PO receive state machine). A mutant that no longer applies leaves its worktree for milliseconds, so the test's wait for it ran out. The same check found 17 of 187 mutants no longer applicable (14 manual-order mutants after EXT16 moved that page's script into assets/manual-order-entry.js, 2 PO receive mutants, 1 agents mutant stale since EXT15); only subsets had been run, so nothing failed loudly.",
+   "reproduced": "node tests/mutation/run-page-mutations.js --check: 17 not applicable before the fix, 0 after",
+   "status": "FIXED",
+   "fix": "EXT16: 17 mutants retargeted (all 18 matching mutants CAUGHT on a real run); runner --check mode plus a test that every mutant applies exactly once; the order pages' ?v= fingerprints are refreshed inside mutant worktrees"
+  },
+  {
+   "id": "INT-6",
+   "test": "tests/specs/session-security-ext18.spec.js (new in EXT18) › five tabs / sign-out with a save in flight / server unreachable",
+   "firstSeen": {
+    "where": "local, 8 workers, run alongside the rest of the spec (uncommitted EXT18 work)",
+    "sha": "2695f75 + working tree",
+    "date": "2026-10-13"
+   },
+   "lastSeen": {
+    "where": "local, --repeat-each=4 --workers=8",
+    "sha": "2695f75 + working tree",
+    "date": "2026-10-13"
+   },
+   "classification": "HARNESS",
+   "cause": "(1) Test time budget: five real tabs booting and reloading under 8 parallel workers took up to 34 s (limit 30 s) and a reload took over 5 s; the saved page snapshot showed the correct signed-out screen with the right note. (2) Probable, not proven: a storage read right after Sign out ran during the page’s own reload (the one first failure’s message was not kept).",
+   "reproduced": "(1) yes: failed on every third run of --repeat-each=4 --workers=8 (always the same repeat), snapshot attached to the run; (2) not reproduced in 48 isolated runs",
+   "status": "FIXED",
+   "fix": "multi-tab tests get 120 s and 20 s per reload wait; reads after sign-out poll until the reload has finished. Product behaviour unchanged.",
+   "evidenceAfterFix": "3 x (--repeat-each=4 --workers=8) = 72/72 passed"
+  },
+  {
+   "id": "INT-7",
+   "test": "tests/specs/search-palette.spec.js › 10,000 records: each keystroke updates the palette quickly",
+   "firstSeen": {
+    "where": "local full suite, 4 workers, desktop + iPhone",
+    "sha": "c956b25",
+    "date": "2026-10-13"
+   },
+   "lastSeen": {
+    "where": "local probe, PAL_THROTTLE=4",
+    "sha": "b433037",
+    "date": "2026-10-17"
+   },
+   "classification": "PRODUCT (amplified by ENVIRONMENT)",
+   "cause": "Each keystroke called scrollIntoView() on the selected row; that scrolls every ancestor and forced a layout of the whole page, which had the 10,000-row inventory table behind the palette: 93% of keystroke time in a CPU profile. Second, searchEverything built a result object for every match (10,000 for 's') and then kept 30, causing garbage-collection pauses of 700-900 ms under a 4x slower CPU. Under 4 parallel browsers on 4 cores both costs grow, which is how the full suite saw 524 ms.",
+   "reproduced": "yes, on demand: tests/forensics/palette-int7.probe.spec.js with PAL_THROTTLE=4 gave p99 283 ms and max 284 ms (limit 250) on b433037; 4 browsers at once gave medians 40-48 ms with spikes to 322-341 ms",
+   "status": "FIXED",
+   "fix": "the palette scrolls only its own result list; the search stops matching once 30 results are found (same results, same order). Limit not changed.",
+   "evidenceAfterFix": "same probe: quiet p50 37.5 -> 2.5 ms, max 55 -> 7 ms; 4x slower CPU p99 283 -> 25-33 ms, max 904 -> 35 ms; 4 browsers at once medians 3-5 ms (one run of 8 had a single 326 ms spike, not reproduced in the next 4: ENVIRONMENT residue, far rarer than before). Guarded by palette-perf-ext20.spec.js and 2 mutants.",
+   "suspectedLayer": "product (layout + allocation) amplified by CPU contention",
+   "evidencePath": "tests/forensics/palette-int7.probe.spec.js"
+  },
+  {
+   "id": "INT-8",
+   "test": "tests/specs/storage-safety.spec.js › two uploads of the same file name get different storage paths",
+   "firstSeen": {
+    "where": "local full suite, 4 workers, desktop + iPhone",
+    "sha": "c956b25",
+    "date": "2026-10-13"
+   },
+   "lastSeen": {
+    "where": "local probe (deliberate delay)",
+    "sha": "377fcfe",
+    "date": "2026-10-17"
+   },
+   "classification": "TEST",
+   "cause": "Test race, not a product fault. The test started the second upload as soon as the first FILE request was seen. The first save was still finishing: it was waiting for the documents insert reply, the Save button was disabled, and the form was about to be cleared. Under load that window grows, and the second click landed on the disabled button, so no second upload happened.",
+   "reproduced": "yes, on demand: tests/forensics/upload-int8.probe.spec.js. With the first insert delayed 0 ms: 2 uploads. Delayed 300 ms or 1,500 ms: 1 upload, 'button DISABLED' before click 2, exactly the INT-8 failure. Product behaviour is correct (no double save, form cleared after success).",
+   "status": "FIXED",
+   "fix": "The test waits for each save to finish: record saved and button enabled again. It now always delays the first insert by 300 ms, so the old race would fail every time instead of rarely. No timeout raised.",
+   "evidenceAfterFix": "storage-safety two-uploads: 5/5 with the 300 ms delay; probe shows the old waiting logic fails 2/2 with the delay.",
+   "suspectedLayer": "test synchronisation",
+   "evidencePath": "tests/forensics/upload-int8.probe.spec.js"
+  }
+ ]
+}
