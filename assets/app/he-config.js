@@ -152,6 +152,15 @@ window.HE.modules.define('he-config', { api: 1, needs: [] }, function (ctx) {
       { id: 'salesChangesPanel',      label: 'What Changed' },
       { id: 'salesReviewPanel',       label: 'Weekly Review' },
       { id: 'salesPrivacyPanel',      label: 'Sales Privacy Center' },
+      { id: 'salesContentPlannerPanel', label: 'Content Planner' },
+      { id: 'salesCommercialPanel',     label: 'Commercial & Line Sheet' },
+      { id: 'salesSettingsPanel',       label: 'Sales Settings & Controls' },
+      { id: 'salesDecisionPanel',       label: 'Owner Decision Center' },
+      { id: 'salesReportingPanel',      label: 'Reporting Center' },
+      { id: 'salesScenarioPanel',       label: 'Scenario & What-If Lab' },
+      { id: 'salesOutreachStudioPanel', label: 'Outreach Studio' },
+      { id: 'salesReplyCenterPanel',    label: 'Reply & Follow-up Center' },
+      { id: 'salesExportPanel',         label: 'Export Center' },
     ]};
     if (salesGrowthOn()) SIDEBAR_GROUPS.push(SALES_GROWTH_GROUP);
     const ICON_PATHS = {

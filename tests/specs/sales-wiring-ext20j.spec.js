@@ -16,7 +16,10 @@ const SALES_IDS = ['salesCommandPanel', 'salesLeadsPanel', 'salesPipelinePanel',
   'salesCampaignPanel', 'salesDataQualityPanel', 'salesForecastPanel', 'salesCostPanel', 'salesSafetyPanel',
   'salesLostDealsPanel', 'salesAnomalyPanel', 'salesWorkloadPanel', 'salesScorecardsPanel',
   'salesQueuePanel', 'salesReadinessPanel', 'salesSourcesPanel', 'salesCreatorPanel',
-  'salesSampleAdvisorPanel', 'salesChangesPanel', 'salesReviewPanel', 'salesPrivacyPanel'];
+  'salesSampleAdvisorPanel', 'salesChangesPanel', 'salesReviewPanel', 'salesPrivacyPanel',
+  'salesContentPlannerPanel', 'salesCommercialPanel', 'salesSettingsPanel', 'salesDecisionPanel',
+  'salesReportingPanel', 'salesScenarioPanel', 'salesOutreachStudioPanel', 'salesReplyCenterPanel',
+  'salesExportPanel'];
 
 test.describe('flag OFF (default): sales is invisible and inert', () => {
   test('no Sales & Growth group, no sales links, panels render the DISABLED shell', async ({ page, backend }) => {

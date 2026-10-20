@@ -836,7 +836,9 @@
         readiness: salesMod('he-sales-readiness'), sources: salesMod('he-sales-sources'),
         queue: salesMod('he-sales-queue'), creator: salesMod('he-sales-creator'),
         sampleadvisor: salesMod('he-sales-sampleadvisor'), changes: salesMod('he-sales-changes'),
-        privacy: salesMod('he-sales-privacy') };
+        privacy: salesMod('he-sales-privacy'), export: salesMod('he-sales-export'),
+        replies: salesMod('he-sales-replies'), followup: salesMod('he-sales-followup'),
+        samples: salesMod('he-sales-samples') };
     }
     // Small helpers to build he-sales-ui section view-models tersely.
     function salesKv(k, value, label){ return { k, value: value == null ? '—' : value, label: label || 'ACTUAL' }; }
@@ -857,6 +859,11 @@
       salesSourcesPanel: 'Lead Source Quality', salesCreatorPanel: 'Creator Prospects',
       salesSampleAdvisorPanel: 'Sample Candidate Ranking', salesChangesPanel: 'What Changed',
       salesReviewPanel: 'Weekly Review', salesPrivacyPanel: 'Sales Privacy Center',
+      salesContentPlannerPanel: 'Content Planner', salesCommercialPanel: 'Commercial & Line Sheet',
+      salesSettingsPanel: 'Sales Settings & Controls', salesDecisionPanel: 'Owner Decision Center',
+      salesReportingPanel: 'Reporting Center', salesScenarioPanel: 'Scenario & What-If Lab',
+      salesOutreachStudioPanel: 'Outreach Studio', salesReplyCenterPanel: 'Reply & Follow-up Center',
+      salesExportPanel: 'Export Center',
     };
     // Build the view model for one sales page from the engine + synthetic fixtures.
     // Everything is labelled SIMULATED/UNKNOWN/OWNER_INPUT_REQUIRED by the view
@@ -1166,6 +1173,141 @@
           ] };
         });
       },
+      salesContentPlannerPanel(e, opts){
+        return e.ui.page('Content Planner', opts, () => {
+          const items = e.content.fixtures().map(it => e.content.checkClaims(it, e.claims.scan));
+          const cal = e.content.calendar(items);
+          const channel = (type, label) => salesSection(label, items.filter(it => it.type === type).map(it => salesKv(it.topic.slice(0, 50), it.claimStatus, it.claimStatus === 'BLOCKED' ? 'OWNER_INPUT_REQUIRED' : 'SIMULATED')).concat(items.some(it => it.type === type) ? [] : [salesKv('no ideas yet', '—', 'ACTUAL')]));
+          return { title: 'Content Planner', state: 'OK', sections: [
+            salesSection('By status', e.content.STATUSES.map(s => salesKv(s, cal.counts[s] || 0, 'SIMULATED'))),
+            channel('seo', 'SEO queue'), channel('faq', 'FAQ queue'), channel('blog', 'Blog / editorial'),
+            channel('newsletter', 'Newsletter (send DISABLED)'), channel('social', 'Social'),
+            channel('creator', 'Creator content'), channel('product_copy', 'Product copy'),
+            salesSection('Safety', [salesKv('Claim firewall', 'ON — blocked items cannot be approved', 'ACTUAL'), salesKv('Publishing', 'DISABLED (local planning only)', 'ACTUAL')]),
+          ] };
+        });
+      },
+      salesCommercialPanel(e, opts){
+        return e.ui.page('Commercial & Line Sheet', opts, () => {
+          const facts = { wholesalePrice: null, moq: { value: 24, verified: true }, msrp: null, size: { value: '8 oz', verified: true },
+            shippingTerms: null, paymentTerms: null, approvedClaims: null, certifications: null, samplePolicy: null,
+            lineSheet: null, legalStatus: { value: 'pending' }, contactChannel: null };
+          const c = e.readiness.commercial(facts);
+          const ls = e.readiness.lineSheet(facts);
+          return { title: 'Commercial & Line Sheet', state: 'OK', sections: [
+            salesSection('Commercial fact register', c.rows.map(r => salesKv(r.label + (r.required ? ' *' : ''), r.state, r.state === 'APPROVED' ? 'ACTUAL' : 'OWNER_INPUT_REQUIRED'))),
+            salesSection('Line sheet builder', [salesKv('Status', ls.status, ls.status === 'BLOCKED' ? 'OWNER_INPUT_REQUIRED' : 'ESTIMATED')]),
+            salesSection('Line sheet blockers (why it cannot be ready)', ls.blockers.length ? ls.blockers.map(b => salesKv(b, 'needed before export', 'OWNER_INPUT_REQUIRED')) : [salesKv('none', 'all required facts present', 'ACTUAL')]),
+            salesSection('Preview', [salesKv('Preview', ls.status === 'BLOCKED' ? 'blocked — placeholder only' : 'draft preview available', ls.status === 'BLOCKED' ? 'OWNER_INPUT_REQUIRED' : 'SIMULATED')]),
+          ] };
+        });
+      },
+      salesSettingsPanel(e, opts){
+        return e.ui.page('Sales Settings & Controls', opts, () => {
+          const c = e.safety.safetyCenter({ featureFlag: true });
+          const km = e.safety.killSwitch({ featureFlag: true }, false);
+          return { title: 'Sales Settings & Controls', state: 'OK', sections: [
+            salesSection('Controls', [
+              salesKv('Feature flag', 'ON (you are viewing it); default OFF', 'ACTUAL'),
+              salesKv('Global AI pause (kill switch)', km.aiRunsAllowed ? 'not paused' : 'PAUSED', 'ACTUAL'),
+              salesKv('Agent modes', 'all OFF by default', 'ACTUAL'),
+              salesKv('AI daily / monthly budget', '$1 / $10 synthetic hard stop', 'SIMULATED'),
+              salesKv('Synthetic sample cap', '8 / month', 'SIMULATED'),
+              salesKv('Provider preference', 'deterministic template (paid providers not enabled)', 'ACTUAL'),
+              salesKv('Content mode', 'draft-only', 'ACTUAL'), salesKv('Simulation mode', 'on (no real effects)', 'ACTUAL'),
+            ]),
+            salesSection('Enforced status', c.rows.map(r => salesKv(r.key, r.status, r.protective ? 'ACTUAL' : 'OWNER_INPUT_REQUIRED'))),
+          ] };
+        });
+      },
+      salesDecisionPanel(e, opts){
+        return e.ui.page('Owner Decision Center', opts, () => {
+          const D = (k, s) => salesKv(k, s, /LOCAL|done/i.test(s) ? 'ACTUAL' : 'OWNER_INPUT_REQUIRED');
+          return { title: 'Owner Decision Center', state: 'OK', sections: [
+            salesSection('Decisions only you can make', [
+              D('Sales mailbox address', 'OWNER_DECISION'), D('Gmail read access', 'OWNER_DECISION'),
+              D('Gmail draft access', 'OWNER_DECISION'), D('Gmail SEND (future, separate)', 'OWNER_DECISION — stays off'),
+              D('Daily outreach cap', 'OWNER_DECISION'), D('Sample cap', 'OWNER_DECISION'),
+              D('Wholesale price', 'OWNER_DECISION'), D('MOQ', 'OWNER_DECISION'), D('MSRP', 'OWNER_DECISION'),
+              D('Approved claims', 'LEGAL_REVIEW'), D('Legal review', 'LEGAL_REVIEW'),
+              D('Creator policy', 'OWNER_DECISION'), D('Website integration', 'WEBSITE_REQUIRED'),
+              D('Production activation', 'PRODUCTION_DB_REQUIRED'),
+            ]),
+            salesSection('Readiness roll-up', e.readiness.center({}).rows.map(r => salesKv(r.item, r.status, /LOCAL READY/.test(r.status) ? 'ACTUAL' : 'OWNER_INPUT_REQUIRED'))),
+          ] };
+        });
+      },
+      salesReportingPanel(e, opts){
+        return e.ui.page('Reporting Center', opts, () => {
+          const asOf = '2026-10-19T12:00:00Z';
+          const ev = [{ at: '2026-10-19T09:00:00Z', kind: 'new_lead' }, { at: '2026-10-18T10:00:00Z', kind: 'customer_won' }, { at: '2026-10-15T10:00:00Z', kind: 'sample_request' }];
+          const wk = e.changes.review(ev, 7, asOf);
+          const mo = e.changes.review(ev, 30, asOf);
+          const w = e.forecast.weightedPipeline({ NEW: 40, QUALIFIED: 12, INTERESTED: 6, WHOLESALE_DISCUSSION: 3, CUSTOMER: 2 });
+          return { title: 'Reporting Center', state: 'OK', sections: [
+            salesSection('Available reports', ['Daily', 'Weekly', 'Monthly', 'Pipeline', 'Samples', 'Agents', 'Costs', 'Sources', 'Lost Deals', 'Territory', 'Retention', 'Content'].map(r => salesKv(r, 'ready (synthetic)', 'SIMULATED'))),
+            salesSection('Weekly snapshot', [salesKv('Wins', wk.wins, 'SIMULATED'), salesKv('New leads', wk.newLeads, 'SIMULATED'), salesKv('Samples requested', wk.samplesRequested, 'SIMULATED'), salesKv('Risks', wk.risks.length, 'SIMULATED')]),
+            salesSection('Monthly snapshot', [salesKv('Wins', mo.wins, 'SIMULATED'), salesKv('New leads', mo.newLeads, 'SIMULATED')]),
+            salesSection('Pipeline health', [salesKv('Weighted', '$' + w.weighted, 'ESTIMATED'), salesKv('High confidence', '$' + w.highConfidence, 'ESTIMATED')]),
+          ] };
+        });
+      },
+      salesScenarioPanel(e, opts){
+        return e.ui.page('Scenario & What-If Lab', opts, () => {
+          const base = e.forecast.revenueScenario({ leadVolume: 500, replyRate: 0.15, interestRate: 0.25, conversionRate: 0.2, avgFirstOrder: 300, repeatOrders: 1 });
+          const doubleReply = e.forecast.revenueScenario({ leadVolume: 500, replyRate: 0.30, interestRate: 0.25, conversionRate: 0.2, avgFirstOrder: 300, repeatOrders: 1 });
+          const inv = e.forecast.inventoryConstrained({ available: 1000, retailReserve: 400, sampleReserve: 50, wholesaleDemand: 600 });
+          const sizes = e.forecast.orderSizeScenarios();
+          return { title: 'Scenario & What-If Lab', state: 'OK', sections: [
+            salesSection('Base revenue scenario (SIMULATION, not a forecast)', [salesKv('Customers', base.customers, 'ESTIMATED'), salesKv('Gross sales', '$' + base.grossSales, 'ESTIMATED'), salesKv('AI cost', '$' + base.aiCost, 'ESTIMATED')]),
+            salesSection('What if reply rate doubles?', [salesKv('Customers', doubleReply.customers, 'ESTIMATED'), salesKv('Gross sales', '$' + doubleReply.grossSales, 'ESTIMATED')]),
+            salesSection('What if a large wholesale order lands (inventory-constrained)?', [salesKv('Status', inv.status, 'ESTIMATED'), salesKv('Why', inv.reason, 'ESTIMATED')]),
+            salesSection('Order-size scenarios', sizes.map(s => salesKv(s.size, s.units + ' units · $' + s.grossValue, 'SIMULATED'))),
+          ] };
+        });
+      },
+      salesOutreachStudioPanel(e, opts){
+        return e.ui.page('Outreach Studio', opts, () => {
+          const vs = [
+            e.campaign.variant('subject', 'Wholesale body-care for your {{store}} boutique', e.claims.scan),
+            e.campaign.variant('subject', 'A small-batch line your customers will reach for', e.claims.scan),
+            e.campaign.variant('cta', 'Reply and I will send the line sheet for {{store}}', e.claims.scan),
+          ];
+          const cmp = e.campaign.compare(vs);
+          const templates = ['intro', 'follow-up 1', 'follow-up 2', 'close loop', 'reply interest', 'reply price', 'sample reply', 'creator intro', 'review request', 'win-back'];
+          return { title: 'Outreach Studio', state: 'OK', sections: [
+            salesSection('Variant comparison (SIMULATION — nothing sent)', cmp.ranked.map(v => salesKv(v.kind + ': ' + v.text.slice(0, 40), 'q' + v.qualityScore + ' p' + v.personalizationScore + (v.claimSafe ? '' : ' ⚠'), v.claimSafe ? 'SIMULATED' : 'OWNER_INPUT_REQUIRED'))),
+            salesSection('Template library (draft-only, no sending)', templates.map(t => salesKv(t, 'template available', 'ACTUAL'))),
+          ] };
+        });
+      },
+      salesReplyCenterPanel(e, opts){
+        return e.ui.page('Reply & Follow-up Center', opts, () => {
+          const replies = e.fixtures.replies().map(r => ({ text: r.text, label: e.replies.classify(r.text).label, conf: e.replies.classify(r.text).confidence }));
+          const bucket = (pred, label) => salesSection(label, replies.filter(pred).map(r => salesKv(r.text.slice(0, 44), r.label, 'SIMULATED')).concat(replies.some(pred) ? [] : [salesKv('none', '—', 'ACTUAL')]));
+          return { title: 'Reply & Follow-up Center', state: 'OK', sections: [
+            bucket(r => !['UNSUBSCRIBE', 'BOUNCE', 'OUT_OF_OFFICE', 'UNKNOWN'].includes(r.label), 'Needs a response'),
+            bucket(r => r.label === 'UNKNOWN', 'Unknown / ambiguous (review by hand)'),
+            bucket(r => r.label === 'UNSUBSCRIBE', 'Opt-out / DNC (suppressed — no further contact)'),
+            bucket(r => r.label === 'BOUNCE', 'Bounces'),
+            bucket(r => r.label === 'OUT_OF_OFFICE', 'Out of office'),
+            salesSection('Follow-up rules', [salesKv('Max follow-ups', e.followup.SEQUENCE ? e.followup.SEQUENCE.length : 3, 'ACTUAL'), salesKv('Suppressed leads', 'never followed up', 'ACTUAL')]),
+          ] };
+        });
+      },
+      salesExportPanel(e, opts){
+        return e.ui.page('Export Center', opts, () => {
+          const rows = e.leads.rank(e.fixtures.leads(6, 7)).map(l => ({ id: l.id, storeName: l.storeName, city: l.city, state: l.state, email: l.email, score: l.scoring.score }));
+          const out = e.export.toCsv(rows, e.privacy.classifyField);
+          const sample = out.csv.split('\r\n').slice(0, 3);
+          return { title: 'Export Center', state: 'OK', sections: [
+            salesSection('Safe CSV export (synthetic)', [salesKv('Rows', out.rows, 'SIMULATED'), salesKv('Columns exported', out.fields.join(', '), 'ACTUAL')]),
+            salesSection('Dropped for privacy', out.dropped.length ? out.dropped.map(d => salesKv(d.field, 'dropped (' + d.class + ')', 'ACTUAL')) : [salesKv('none', '—', 'ACTUAL')]),
+            salesSection('Preview (header + first rows)', sample.map((line, i) => salesKv('row ' + i, line.slice(0, 60), 'SIMULATED'))),
+            salesSection('Safety', [salesKv('Formula injection', 'neutralized (= + - @ prefixed)', 'ACTUAL'), salesKv('Personal fields', 'excluded unless owner opts in', 'ACTUAL')]),
+          ] };
+        });
+      },
     };
     function loadSales(pageId){
       const host = document.getElementById(pageId);
@@ -1247,6 +1389,15 @@
       salesChangesPanel:       [() => loadSales('salesChangesPanel')],
       salesReviewPanel:        [() => loadSales('salesReviewPanel')],
       salesPrivacyPanel:       [() => loadSales('salesPrivacyPanel')],
+      salesContentPlannerPanel: [() => loadSales('salesContentPlannerPanel')],
+      salesCommercialPanel:     [() => loadSales('salesCommercialPanel')],
+      salesSettingsPanel:       [() => loadSales('salesSettingsPanel')],
+      salesDecisionPanel:       [() => loadSales('salesDecisionPanel')],
+      salesReportingPanel:      [() => loadSales('salesReportingPanel')],
+      salesScenarioPanel:       [() => loadSales('salesScenarioPanel')],
+      salesOutreachStudioPanel: [() => loadSales('salesOutreachStudioPanel')],
+      salesReplyCenterPanel:    [() => loadSales('salesReplyCenterPanel')],
+      salesExportPanel:         [() => loadSales('salesExportPanel')],
     };
     function refreshChrome(){
       renderSidebar(document.getElementById('sidebarSearch').value);
