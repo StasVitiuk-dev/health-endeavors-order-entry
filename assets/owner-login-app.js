@@ -838,7 +838,7 @@
         sampleadvisor: salesMod('he-sales-sampleadvisor'), changes: salesMod('he-sales-changes'),
         privacy: salesMod('he-sales-privacy'), export: salesMod('he-sales-export'),
         replies: salesMod('he-sales-replies'), followup: salesMod('he-sales-followup'),
-        samples: salesMod('he-sales-samples') };
+        samples: salesMod('he-sales-samples'), benchmark: salesMod('he-sales-benchmark') };
     }
     // Small helpers to build he-sales-ui section view-models tersely.
     function salesKv(k, value, label){ return { k, value: value == null ? '—' : value, label: label || 'ACTUAL' }; }
@@ -863,7 +863,9 @@
       salesSettingsPanel: 'Sales Settings & Controls', salesDecisionPanel: 'Owner Decision Center',
       salesReportingPanel: 'Reporting Center', salesScenarioPanel: 'Scenario & What-If Lab',
       salesOutreachStudioPanel: 'Outreach Studio', salesReplyCenterPanel: 'Reply & Follow-up Center',
-      salesExportPanel: 'Export Center',
+      salesExportPanel: 'Export Center', salesMeetingPanel: 'Meeting & Deal Prep',
+      salesSampleOsPanel: 'Sample Operating System', salesAgentLabPanel: 'Agent Lab',
+      salesAuditPanel: 'Audit & Explainability', salesBriefsPanel: 'Owner Briefs',
     };
     // Build the view model for one sales page from the engine + synthetic fixtures.
     // Everything is labelled SIMULATED/UNKNOWN/OWNER_INPUT_REQUIRED by the view
@@ -1308,6 +1310,85 @@
           ] };
         });
       },
+      salesMeetingPanel(e, opts){
+        return e.ui.page('Meeting & Deal Prep', opts, () => {
+          const lead = { id: 'SYN-1011', storeName: 'Blue Harbor Apothecary', category: 'skincare', city: 'Portland', state: 'OR',
+            email: 'buyer@blueharbor.example.com', website: 'blueharbor.example.com', source: 'referral',
+            pipelineState: 'WHOLESALE_DISCUSSION', carriesSimilarBrands: true, synthetic: true };
+          const hist = { outreach: [{ at: '2026-09-20', summary: 'intro' }], replies: [{ at: '2026-09-28', text: 'send pricing + MOQ' }],
+            notes: [{ at: '2026-10-01', text: 'wants 3-store rollout' }], audit: [{ at: '2026-09-28', kind: 'reply_received' }], aiRuns: [{ cost: 0.02 }] };
+          const d = e.leaddetail.dossier(lead, hist, { leads: e.leads, dataquality: e.dataquality });
+          return { title: 'Meeting & Deal Prep', state: 'OK', sections: [
+            salesSection('Business summary', [salesKv('Store', d.identity.storeName, 'SIMULATED'), salesKv('Location', [d.identity.city, d.identity.state].filter(Boolean).join(', '), 'SIMULATED'), salesKv('Stage', d.pipelineState, 'SIMULATED'), salesKv('Score', d.score.value, 'SIMULATED')]),
+            salesSection('Prior interactions', d.timeline.length ? d.timeline.map(t => salesKv(t.at, t.type + ': ' + t.detail, 'SIMULATED')) : [salesKv('none', '—', 'ACTUAL')]),
+            salesSection('Owner questions to ask', [salesKv('Order size', 'how many stores / opening order?', 'OWNER_INPUT_REQUIRED'), salesKv('Timing', 'target launch date?', 'OWNER_INPUT_REQUIRED'), salesKv('Terms', 'payment & shipping expectations?', 'OWNER_INPUT_REQUIRED')]),
+            salesSection('Commercial blockers to resolve first', d.commercialBlockers.length ? d.commercialBlockers.map(b => salesKv(b.label, 'needed', 'OWNER_INPUT_REQUIRED')) : [salesKv('none', 'all facts present', 'ACTUAL')]),
+            salesSection('Deal momentum', [salesKv('State', 'WARMING', 'ESTIMATED'), salesKv('Next best action', d.nextBestAction.action, 'ESTIMATED')]),
+          ] };
+        });
+      },
+      salesSampleOsPanel(e, opts){
+        return e.ui.page('Sample Operating System', opts, () => {
+          const cands = [
+            { id: 'SYN-1011', storeName: 'Blue Harbor Apothecary', scoring: { score: 92 }, replyQuality: 'strong', likelyOrderSize: 'large', locations: 3, priorSamples: 0 },
+            { id: 'SYN-1007', storeName: 'Cedar Day Spa', scoring: { score: 70 }, replyQuality: 'ok', likelyOrderSize: 'medium', locations: 1, priorSamples: 1 },
+          ];
+          const ranked = e.sampleadvisor.rank(cands, 8);
+          const fraud = e.sampleadvisor.fraudScan([
+            { id: 1, storeName: 'Spa One', email: 'a@dup.example.com', website: 'dup.example.com' },
+            { id: 2, storeName: 'Spa Two', email: 'a@dup.example.com', website: 'dup.example.com' },
+          ], { maxPerDomain: 1 });
+          const book = e.samples.createSampleBook ? e.samples.createSampleBook({ monthlyBudget: 8 }) : null;
+          return { title: 'Sample Operating System', state: 'OK', sections: [
+            salesSection('Owner review — ranked candidates (owner approves each)', ranked.ranked.map(c => salesKv(c.storeName, 'score ' + c.score, 'SIMULATED'))),
+            salesSection('Monthly budget', [salesKv('Synthetic budget', (book ? 8 : '—') + ' / month', 'SIMULATED'), salesKv('Approved this month', 0, 'SIMULATED'), salesKv('Owner approval', 'MANDATORY for every sample', 'ACTUAL')]),
+            salesSection('ROI (synthetic)', [salesKv('Converted', 0, 'SIMULATED'), salesKv('Conversion rate', '—', 'UNKNOWN'), salesKv('Cost basis', 'UNKNOWN (owner sets cost)', 'UNKNOWN')]),
+            salesSection('Fraud / duplicate watch', fraud.flags.length ? fraud.flags.map(f => salesKv(f.kind, f.detail, 'SIMULATED')) : [salesKv('No flags', 'clean', 'ACTUAL')]),
+            salesSection('Safety', [salesKv('Auto-approve', 'IMPOSSIBLE — owner actor required', 'ACTUAL'), salesKv('Auto-ship / reserve', 'IMPOSSIBLE', 'ACTUAL')]),
+          ] };
+        });
+      },
+      salesAgentLabPanel(e, opts){
+        return e.ui.page('Agent Lab', opts, () => {
+          const reply = e.benchmark.runSuite(e.benchmark.GOLD.reply, t => e.replies.classify(t), r => r.label);
+          const claim = e.benchmark.runSuite(e.benchmark.GOLD.claim, t => e.claims.scan(t), r => (r.findings && r.findings.length ? 'UNSAFE' : 'SAFE'));
+          const matrix = e.providers.costMatrix(500, 300);
+          const chaos = e.providers.chaos(['strong', 'cheap', 'template']);
+          return { title: 'Agent Lab', state: 'OK', sections: [
+            salesSection('Gold benchmark (deterministic baselines)', [salesKv('Reply classifier accuracy', reply.accuracy, reply.accuracyLabel), salesKv('Claim firewall accuracy', claim.accuracy, claim.accuracyLabel)]),
+            salesSection('Provider comparison (fake providers, no credentials)', matrix.map(m => salesKv(m.provider + ' (' + m.tier + ')', m.configured ? ('$' + m.cost) : ('$' + m.cost + ' — not enabled'), m.configured ? 'ESTIMATED' : 'OWNER_INPUT_REQUIRED'))),
+            salesSection('Provider failure chaos (fallback floor = template)', chaos.map(c => salesKv(c.down + ' down', '→ ' + c.fallsBackTo, 'SIMULATED'))),
+          ] };
+        });
+      },
+      salesAuditPanel(e, opts){
+        return e.ui.page('Audit & Explainability', opts, () => {
+          const lead = e.leads.score({ storeName: 'Blue Harbor Apothecary', category: 'skincare', carriesSimilarBrands: true, email: 'b@blueharbor.example.com', website: 'blueharbor.example.com', region: 'domestic', size: 'medium' });
+          return { title: 'Audit & Explainability', state: 'OK', sections: [
+            salesSection('Audit search (filters)', [salesKv('Filter by', 'lead · actor · agent · action · sample · approval · date · provider', 'ACTUAL'), salesKv('Hidden chain-of-thought', 'never shown — structured evidence only', 'ACTUAL')]),
+            salesSection('Why this lead score? (structured rationale)', (lead.reasons || []).map((r, i) => salesKv('reason ' + (i + 1), r, 'SIMULATED'))),
+            salesSection('Why blocked? / Why owner-decision?', [salesKv('Sample', 'owner actor + budget required', 'ACTUAL'), salesKv('Outreach send', 'Gmail not connected + send disabled', 'ACTUAL'), salesKv('Claim', 'firewall blocks therapeutic language', 'ACTUAL')]),
+          ] };
+        });
+      },
+      salesBriefsPanel(e, opts){
+        return e.ui.page('Owner Briefs', opts, () => {
+          const q = e.queue.build({ approvalsAwaiting: [{ leadId: 'SYN-1003' }], sampleDecisions: [{ leadId: 'SYN-1011' }], repliesToReview: [{ leadId: 'SYN-1005' }], blocked: [{ leadId: 'SYN-1009', reason: 'needs price' }] });
+          const an = e.anomaly.scan({ followUpBacklog: 30, approvalBacklog: 18 });
+          const wl = e.workload.workload({ draftsAwaiting: 3, repliesToReview: 1, samplesToDecide: 1, contentApprovals: 2 });
+          const brief = (label) => salesSection(label, [
+            salesKv('Needs you now', q.counts.NEEDS_OWNER_NOW, 'SIMULATED'),
+            salesKv('Replies to review', q.counts.TODAY, 'SIMULATED'),
+            salesKv('Blocked (owner input)', q.counts.BLOCKED, 'SIMULATED'),
+            salesKv('Est. owner minutes', wl.estMinutes, 'ESTIMATED'),
+            salesKv('Anomalies flagged', an.total, 'SIMULATED'),
+          ]);
+          return { title: 'Owner Briefs', state: 'OK', sections: [
+            brief('Morning brief'), brief('Midday brief'), brief('End-of-day brief'),
+            salesSection('Note', [salesKv('Actions', 'briefs are read-only; nothing is sent or executed', 'ACTUAL')]),
+          ] };
+        });
+      },
     };
     function loadSales(pageId){
       const host = document.getElementById(pageId);
@@ -1398,6 +1479,11 @@
       salesOutreachStudioPanel: [() => loadSales('salesOutreachStudioPanel')],
       salesReplyCenterPanel:    [() => loadSales('salesReplyCenterPanel')],
       salesExportPanel:         [() => loadSales('salesExportPanel')],
+      salesMeetingPanel:        [() => loadSales('salesMeetingPanel')],
+      salesSampleOsPanel:       [() => loadSales('salesSampleOsPanel')],
+      salesAgentLabPanel:       [() => loadSales('salesAgentLabPanel')],
+      salesAuditPanel:          [() => loadSales('salesAuditPanel')],
+      salesBriefsPanel:         [() => loadSales('salesBriefsPanel')],
     };
     function refreshChrome(){
       renderSidebar(document.getElementById('sidebarSearch').value);

@@ -161,6 +161,11 @@ window.HE.modules.define('he-config', { api: 1, needs: [] }, function (ctx) {
       { id: 'salesOutreachStudioPanel', label: 'Outreach Studio' },
       { id: 'salesReplyCenterPanel',    label: 'Reply & Follow-up Center' },
       { id: 'salesExportPanel',         label: 'Export Center' },
+      { id: 'salesMeetingPanel',        label: 'Meeting & Deal Prep' },
+      { id: 'salesSampleOsPanel',       label: 'Sample Operating System' },
+      { id: 'salesAgentLabPanel',       label: 'Agent Lab' },
+      { id: 'salesAuditPanel',          label: 'Audit & Explainability' },
+      { id: 'salesBriefsPanel',         label: 'Owner Briefs' },
     ]};
     if (salesGrowthOn()) SIDEBAR_GROUPS.push(SALES_GROWTH_GROUP);
     const ICON_PATHS = {
