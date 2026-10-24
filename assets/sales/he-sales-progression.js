@@ -71,21 +71,33 @@
   // back to createdAt); ageDays uses createdAt (falling back to enteredStateAt).
   function analyzeLead(lead, asOfMs, slaOverride) {
     const l = lead || {};
-    const entered = toMs(l.enteredStateAt) != null ? toMs(l.enteredStateAt) : toMs(l.createdAt);
-    const created = toMs(l.createdAt) != null ? toMs(l.createdAt) : toMs(l.enteredStateAt);
-    const currentStageDays = daysBetween(entered, asOfMs);
-    const ageDays = daysBetween(created, asOfMs);
+    const enteredRaw = toMs(l.enteredStateAt) != null ? toMs(l.enteredStateAt) : toMs(l.createdAt);
+    const createdRaw = toMs(l.createdAt) != null ? toMs(l.createdAt) : toMs(l.enteredStateAt);
     const state = l.state || 'NEW';
     const terminal = TERMINAL.has(state);
+
+    // A1 (Reserve IV Wave A): never fabricate an age from a bad timestamp.
+    //  - A date AFTER asOf (a future date) is not "0 days old" — it is
+    //    nonsense, so it reads UNKNOWN instead of being clamped to FRESH.
+    //  - enteredStateAt BEFORE createdAt (the lead entered a stage before it
+    //    existed) is contradictory: measurable, but flagged and not treated as
+    //    trustworthy "complete" data.
+    const futureDated = (enteredRaw != null && enteredRaw > asOfMs) || (createdRaw != null && createdRaw > asOfMs);
+    const inconsistentDates = enteredRaw != null && createdRaw != null && enteredRaw < createdRaw;
+
+    const currentStageDays = (enteredRaw != null && enteredRaw <= asOfMs) ? daysBetween(enteredRaw, asOfMs) : null;
+    const ageDays = (createdRaw != null && createdRaw <= asOfMs) ? daysBetween(createdRaw, asOfMs) : null;
+
     const sla = (slaOverride && slaOverride[state] != null) ? slaOverride[state]
       : (STAGE_SLA[state] != null ? STAGE_SLA[state] : DEFAULT_SLA);
     const stalled = !terminal && currentStageDays != null && currentStageDays > sla;
     return { leadId: l.id || null, name: l.name || null, state, terminal,
       ageDays, currentStageDays, sla,
       overBy: stalled ? currentStageDays - sla : 0,
-      agingBucket: terminal ? 'DONE' : bucketFor(currentStageDays),
+      agingBucket: terminal ? 'DONE' : (futureDated || currentStageDays == null ? 'UNKNOWN' : bucketFor(currentStageDays)),
       stalled,
-      dataComplete: currentStageDays != null && ageDays != null };
+      futureDated, inconsistentDates,
+      dataComplete: currentStageDays != null && ageDays != null && !futureDated && !inconsistentDates };
   }
 
   // Progression map: count of ACTIVE (non-terminal) leads per funnel stage, plus
@@ -114,9 +126,14 @@
     const rows = (leads || []).map(l => analyzeLead(l, asOfMs, o.sla));
     const histogram = {}; for (const b of BUCKETS) histogram[b] = 0; histogram.DONE = 0;
     for (const r of rows) histogram[r.agingBucket] = (histogram[r.agingBucket] || 0) + 1;
-    const stalled = rows.filter(r => r.stalled).sort((a, b) => b.overBy - a.overBy);
+    // A3: worst first, with a deterministic id tie-break so equal-overBy leads
+    // always come back in the same order across runs and input orderings.
+    const stalled = rows.filter(r => r.stalled).sort((a, b) => (b.overBy - a.overBy) || String(a.leadId).localeCompare(String(b.leadId)));
     const active = rows.filter(r => !r.terminal);
-    const avgAge = active.length ? active.reduce((s, r) => s + (r.ageDays || 0), 0) / active.length : 0;
+    // Average only over active leads whose age is actually known (A6: a missing
+    // or future date is not counted as age 0).
+    const agedActive = active.filter(r => r.ageDays != null);
+    const avgAge = agedActive.length ? agedActive.reduce((s, r) => s + r.ageDays, 0) / agedActive.length : 0;
     return {
       asOf: new Date(asOfMs).toISOString(),
       rows, histogram, stalled,

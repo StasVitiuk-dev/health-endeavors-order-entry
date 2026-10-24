@@ -77,11 +77,27 @@
 
   // Rank a list of leads. Deterministic tie-break: higher total, then leadId
   // ascending, so the same input always yields the same order. Ranks are 1-based.
+  //
+  // A4 (Reserve IV Wave A): a repeated lead id is the SAME lead listed twice, so
+  // it is ranked ONCE (first occurrence wins) rather than silently appearing
+  // twice and inflating the count/ranking. Leads with no id cannot be
+  // de-duplicated and are each kept. The number dropped is reported.
   function rank(leads, weights) {
-    const scored = (leads || []).map(l => score(l, weights));
+    const seen = new Set();
+    let duplicatesDropped = 0;
+    const kept = [];
+    for (const l of (leads || [])) {
+      const id = l && l.id;
+      if (id != null) {
+        if (seen.has(id)) { duplicatesDropped++; continue; }
+        seen.add(id);
+      }
+      kept.push(l);
+    }
+    const scored = kept.map(l => score(l, weights));
     scored.sort((a, b) => (b.total - a.total) || String(a.leadId).localeCompare(String(b.leadId)));
     scored.forEach((s, i) => { s.rank = i + 1; });
-    return { weights: normalizeWeights(weights), ranked: scored, count: scored.length,
+    return { weights: normalizeWeights(weights), ranked: scored, count: scored.length, duplicatesDropped,
       guard: 'Advisory ranking only — sorts a list; contacts no one and changes no deal.' };
   }
 
