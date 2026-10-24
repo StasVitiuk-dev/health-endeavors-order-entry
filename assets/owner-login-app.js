@@ -841,7 +841,8 @@
         samples: salesMod('he-sales-samples'), benchmark: salesMod('he-sales-benchmark'),
         priority: salesMod('he-sales-priority'), progression: salesMod('he-sales-progression'),
         concentration: salesMod('he-sales-concentration'),
-        nextaction: salesMod('he-sales-nextaction'), replylab: salesMod('he-sales-replylab') };
+        nextaction: salesMod('he-sales-nextaction'), replylab: salesMod('he-sales-replylab'),
+        approval: salesMod('he-sales-approval'), audit: salesMod('he-sales-audit') };
     }
     // Small helpers to build he-sales-ui section view-models tersely.
     function salesKv(k, value, label){ return { k, value: value == null ? '—' : value, label: label || 'ACTUAL' }; }
@@ -1374,6 +1375,19 @@
             salesSection('Audit search (filters)', [salesKv('Filter by', 'lead · actor · agent · action · sample · approval · date · provider', 'ACTUAL'), salesKv('Hidden chain-of-thought', 'never shown — structured evidence only', 'ACTUAL')]),
             salesSection('Why this lead score? (structured rationale)', (lead.reasons || []).map((r, i) => salesKv('reason ' + (i + 1), r, 'SIMULATED'))),
             salesSection('Why blocked? / Why owner-decision?', [salesKv('Sample', 'owner actor + budget required', 'ACTUAL'), salesKv('Outreach send', 'Gmail not connected + send disabled', 'ACTUAL'), salesKv('Claim', 'firewall blocks therapeutic language', 'ACTUAL')]),
+            (function(){
+              // Lifecycle evidence (Wave H9): a synthetic append-only trail that
+              // distinguishes suggestion / review / approval / simulated outcome.
+              const draft = { kind: 'intro', recipient: 'b@blueharbor.example.com', subject: 'Intro', body: 'Hello from Health Endeavors body-care...', attachments: [], productFacts: { skuCount: 4 }, commercialTerms: {} };
+              const approval = e.approval.approve(draft, 'owner', '2026-10-20T09:00:00Z');
+              const trail = e.audit.createTrail();
+              trail.record('SUGGESTION', { leadId: 'SYN-1003', detail: 'next step: draft outreach', at: '2026-10-20T08:00:00Z' });
+              trail.record('REVIEW', { leadId: 'SYN-1003', actor: 'owner', detail: 'reviewed draft + claim scan', at: '2026-10-20T08:50:00Z' });
+              trail.record('APPROVAL', { leadId: 'SYN-1003', fingerprint: approval.fingerprint, at: approval.approvedAt });
+              trail.record('SIMULATED_OUTCOME', { leadId: 'SYN-1003', detail: 'SIMULATED — owner would send by hand (nothing sent)', at: '2026-10-20T09:05:00Z' });
+              return salesSection('Lifecycle evidence (synthetic, append-only)', trail.forLead('SYN-1003').map(ev =>
+                salesKv('#' + ev.seq + ' ' + ev.stage, (ev.actor ? ev.actor + ' · ' : '') + ev.detail + (ev.fingerprint ? ' · fp ' + ev.fingerprint : ''), 'SIMULATED')));
+            })(),
           ] };
         });
       },
