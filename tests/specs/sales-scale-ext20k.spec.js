@@ -2,6 +2,13 @@
 // correct AND fast at volume (1k / 10k / 50k synthetic rows), so wiring them to
 // a large pipeline later can never hang the owner's page. Pure Node, no DOM.
 // Node-only (desktop project).
+//
+// D1 (Wave D) — SCOPE: this file measures PURE-ENGINE compute time only (no DOM,
+// no render, no navigation). The flag-ON browser side (engine-vs-render
+// separation, repeated-navigation DOM stability) lives in
+// sales-decision-perf-ext20k.spec.js. Budgets here are wall-clock ms on the CI
+// runner and carry run-to-run variance; they are correctness-plus-ceiling
+// checks, not production capacity claims.
 const { test, expect } = require('@playwright/test');
 const P = require('../../assets/sales/he-sales-priority.js');
 const PR = require('../../assets/sales/he-sales-progression.js');
