@@ -8,6 +8,38 @@ productivity, and **decision intelligence**. This report records what has
 landed so far and gives a continuation prompt; Reserve IV is a large standing
 program and this is an honest checkpoint, not a claim that every item is done.
 
+## CONTINUATION SESSION — 2026-10-24 (Waves A, B, H9)
+Resumed from verified checkpoint `25d4fd0` (branch/HEAD/main/tree all reconciled
+against the ledger before any change). Four more small reversible commits, each
+tested, all gates green, flag default-OFF, `main` untouched:
+
+- `8164659` **Wave A — decision-engine correctness**. Probed the 5 engines and
+  fixed the real defects found: concentration no longer shows a deal id as a
+  pretend customer or collapses account-less deals into one fictitious account
+  (known-accounts-only for the top-account share + dependency flag), counts a
+  repeated deal id once (`duplicateIdsDropped`), and reports dropped
+  non-positive values; progression reads a future date as UNKNOWN (not age
+  0/FRESH), flags `inconsistentDates` when a stage predates creation, has a
+  stable `stalled` tie-break, and averages only known ages; priority de-dupes
+  repeated lead ids. Confirmed no engine reads the wall clock (A2), none mutate
+  inputs (A9), and concentration totals/HHI match an independent reference
+  (A10). New spec `sales-wavea-correctness-ext20k` (11).
+- `96d6545` **Wave B — approval integrity** (B3/B4/B5). New `he-sales-approval`:
+  fingerprints the approval-material fields, so any edit voids the approval and
+  a DNC/opt-out after approval wins; approval is never a send (`sent:false`); a
+  suppressed/claim-blocked draft can't be approved. Spec (8).
+- `d1cc6d0` **Wave B — adversarial reply safety** (B6/B7). Proves injection/HTML/
+  opt-out/huge/unicode reply text can never make the reply-triage or next-action
+  engines act or report an external side effect, send/ship steps stay owner-gated
+  ("BY HAND"), and opt-out still routes to suppression review. Spec (5).
+- `49fdef2` **Wave H9 — audit trail**. New `he-sales-audit`: append-only,
+  stage-typed evidence (SUGGESTION/REVIEW/APPROVAL/SIMULATED_OUTCOME), frozen
+  entries, `lifecycleOrderOk`, integrates the approval fingerprint; surfaced on
+  the existing Audit & Explainability page (no new page). Spec (7).
+
+Counts now: **47 pages · 45 `assets/sales` modules · 38 sales specs.** The
+original Reserve IV body below remains accurate for the prior session.
+
 ## GIT
 1. Starting SHA (verified before coding): `115026e`
 2. Final SHA (this report's commit): see `git log -1`
