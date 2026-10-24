@@ -840,7 +840,8 @@
         replies: salesMod('he-sales-replies'), followup: salesMod('he-sales-followup'),
         samples: salesMod('he-sales-samples'), benchmark: salesMod('he-sales-benchmark'),
         priority: salesMod('he-sales-priority'), progression: salesMod('he-sales-progression'),
-        concentration: salesMod('he-sales-concentration') };
+        concentration: salesMod('he-sales-concentration'),
+        nextaction: salesMod('he-sales-nextaction') };
     }
     // Small helpers to build he-sales-ui section view-models tersely.
     function salesKv(k, value, label){ return { k, value: value == null ? '—' : value, label: label || 'ACTUAL' }; }
@@ -870,6 +871,7 @@
       salesAuditPanel: 'Audit & Explainability', salesBriefsPanel: 'Owner Briefs',
       salesPriorityPanel: 'Prioritization Lab', salesProgressionPanel: 'Deal Progression & Aging',
       salesConcentrationPanel: 'Pipeline Risk & Concentration',
+      salesNextActionPanel: 'Next-Best-Action',
     };
     // Build the view model for one sales page from the engine + synthetic fixtures.
     // Everything is labelled SIMULATED/UNKNOWN/OWNER_INPUT_REQUIRED by the view
@@ -1451,6 +1453,23 @@
           ] };
         });
       },
+      salesNextActionPanel(e, opts){
+        return e.ui.page('Next-Best-Action', opts, () => {
+          const leads = [
+            { id: 'SYN-1003', state: 'OUTREACH_DRAFTED' },
+            { id: 'SYN-1005', state: 'CONTACTED', daysInStage: 6 },
+            { id: 'SYN-1007', state: 'INTERESTED', sampleEligible: true },
+            { id: 'SYN-1009', state: 'REPLIED', hasReply: true, replyLabel: 'UNKNOWN' },
+            { id: 'SYN-1011', state: 'DO_NOT_CONTACT' },
+            { id: 'SYN-1012', state: 'QUALIFIED' },
+          ];
+          const r = e.nextaction.recommendAll(leads);
+          return { title: 'Next-Best-Action', state: r.count ? 'OK' : 'EMPTY', sections: [
+            salesSection('Recommended next step (advisory, synthetic)', r.rows.map(row => salesKv(row.leadId + ' · ' + row.state, row.action + ' — ' + row.reason + (row.ownerDecisionRequired ? ' · owner decision' : ''), 'SIMULATED'))),
+            salesSection('Note', [salesKv('Owner decisions in list', r.ownerDecisions, 'SIMULATED'), salesKv('Actions', 'suggestions only — sends nothing, approves nothing, ships nothing', 'ACTUAL')]),
+          ] };
+        });
+      },
     };
     function loadSales(pageId){
       const host = document.getElementById(pageId);
@@ -1549,6 +1568,7 @@
       salesPriorityPanel:       [() => loadSales('salesPriorityPanel')],
       salesProgressionPanel:    [() => loadSales('salesProgressionPanel')],
       salesConcentrationPanel:  [() => loadSales('salesConcentrationPanel')],
+      salesNextActionPanel:     [() => loadSales('salesNextActionPanel')],
     };
     function refreshChrome(){
       renderSidebar(document.getElementById('sidebarSearch').value);
