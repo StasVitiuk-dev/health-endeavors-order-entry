@@ -838,7 +838,9 @@
         sampleadvisor: salesMod('he-sales-sampleadvisor'), changes: salesMod('he-sales-changes'),
         privacy: salesMod('he-sales-privacy'), export: salesMod('he-sales-export'),
         replies: salesMod('he-sales-replies'), followup: salesMod('he-sales-followup'),
-        samples: salesMod('he-sales-samples'), benchmark: salesMod('he-sales-benchmark') };
+        samples: salesMod('he-sales-samples'), benchmark: salesMod('he-sales-benchmark'),
+        priority: salesMod('he-sales-priority'), progression: salesMod('he-sales-progression'),
+        concentration: salesMod('he-sales-concentration') };
     }
     // Small helpers to build he-sales-ui section view-models tersely.
     function salesKv(k, value, label){ return { k, value: value == null ? '—' : value, label: label || 'ACTUAL' }; }
@@ -866,6 +868,8 @@
       salesExportPanel: 'Export Center', salesMeetingPanel: 'Meeting & Deal Prep',
       salesSampleOsPanel: 'Sample Operating System', salesAgentLabPanel: 'Agent Lab',
       salesAuditPanel: 'Audit & Explainability', salesBriefsPanel: 'Owner Briefs',
+      salesPriorityPanel: 'Prioritization Lab', salesProgressionPanel: 'Deal Progression & Aging',
+      salesConcentrationPanel: 'Pipeline Risk & Concentration',
     };
     // Build the view model for one sales page from the engine + synthetic fixtures.
     // Everything is labelled SIMULATED/UNKNOWN/OWNER_INPUT_REQUIRED by the view
@@ -1389,6 +1393,64 @@
           ] };
         });
       },
+      salesPriorityPanel(e, opts){
+        return e.ui.page('Prioritization Lab', opts, () => {
+          const leads = [
+            { id: 'SYN-1003', name: 'Big Spa Group', factors: { value: 0.9, fit: 0.8, urgency: 0.5, momentum: 0.6, effort: 0.3, risk: 0.2 } },
+            { id: 'SYN-1007', name: 'Corner Wellness', factors: { value: 0.4, fit: 0.6, urgency: 0.3, momentum: 0.3, effort: 0.7, risk: 0.5 } },
+            { id: 'SYN-1011', name: 'Urgent Reorder Co', factors: { value: 0.6, fit: 0.6, urgency: 0.95, momentum: 0.9, effort: 0.4, risk: 0.1 } },
+            { id: 'SYN-1012', name: 'Boutique Chain', factors: { value: 0.75, fit: 0.7, urgency: 0.4, momentum: 0.5, effort: 0.5, risk: 0.3 } },
+          ];
+          const r = e.priority.rank(leads, e.priority.DEFAULT_WEIGHTS);
+          const sens = e.priority.sensitivityAll(leads, e.priority.DEFAULT_WEIGHTS, 1);
+          return { title: 'Prioritization Lab', state: r.count ? 'OK' : 'EMPTY', sections: [
+            salesSection('Ranking (explainable, synthetic)', r.ranked.map(s => salesKv('#' + s.rank + ' ' + (s.name || s.leadId), s.explain, 'SIMULATED'))),
+            salesSection('Preference sensitivity (what-if; no side effects)', sens.rows.map(row => salesKv(row.factor, (row.changed ? row.changed + ' lead(s) move' : 'no change') + (row.topChanged ? ' · top pick changes' : ''), 'ESTIMATED'))),
+            salesSection('Note', [salesKv('Most influential preference', sens.mostInfluential || '—', 'ESTIMATED'), salesKv('Actions', 'advisory ranking only — contacts no one, changes no deal', 'ACTUAL')]),
+          ] };
+        });
+      },
+      salesProgressionPanel(e, opts){
+        return e.ui.page('Deal Progression & Aging', opts, () => {
+          const asOf = '2026-10-20T00:00:00Z';
+          const days = n => new Date(Date.parse(asOf) - n * 86400000).toISOString();
+          const leads = [
+            { id: 'SYN-1003', name: 'Big Spa Group', state: 'CONTACTED', createdAt: days(6), enteredStateAt: days(4) },
+            { id: 'SYN-1007', name: 'Corner Wellness', state: 'OUTREACH_DRAFTED', createdAt: days(30), enteredStateAt: days(18) },
+            { id: 'SYN-1011', name: 'Urgent Reorder Co', state: 'INTERESTED', createdAt: days(80), enteredStateAt: days(55) },
+            { id: 'SYN-1012', name: 'Boutique Chain', state: 'CUSTOMER', createdAt: days(120), enteredStateAt: days(10) },
+          ];
+          const a = e.progression.analyze(leads, { asOf });
+          return { title: 'Deal Progression & Aging', state: a.rows.length ? 'OK' : 'EMPTY', sections: [
+            salesSection('Aging buckets', e.progression.BUCKETS.concat(['DONE']).map(b => salesKv(b, a.histogram[b] || 0, 'SIMULATED'))),
+            salesSection('Stalled (past stage SLA; worst first)', a.stalled.length ? a.stalled.map(r => salesKv(r.name || r.leadId, r.state + ' · ' + Math.round(r.currentStageDays) + 'd (over by ' + Math.round(r.overBy) + 'd)', 'SIMULATED')) : [salesKv('none', '—', 'ACTUAL')]),
+            salesSection('Progression map (active per stage)', a.map.stages.filter(s => s.count > 0).map(s => salesKv(s.stage, s.count, 'SIMULATED'))),
+            salesSection('Note', [salesKv('Avg active age (days)', Math.round(a.avgActiveAgeDays), 'ESTIMATED'), salesKv('Actions', 'read-only aging view — advances no deal, writes nothing', 'ACTUAL')]),
+          ] };
+        });
+      },
+      salesConcentrationPanel(e, opts){
+        return e.ui.page('Pipeline Risk & Concentration', opts, () => {
+          const deals = [
+            { id: 'SYN-1003', account: 'Big Spa Group', weightedValue: 42 },
+            { id: 'SYN-1007', account: 'Corner Wellness', weightedValue: 8 },
+            { id: 'SYN-1011', account: 'Urgent Reorder Co', weightedValue: 20 },
+            { id: 'SYN-1012', account: 'Boutique Chain', weightedValue: 18 },
+            { id: 'SYN-1015', account: 'Big Spa Group', weightedValue: 12 },
+          ];
+          const c = e.concentration.analyze(deals);
+          const pct = n => (n * 100).toFixed(0) + '%';
+          return { title: 'Pipeline Risk & Concentration', state: c.dealCount ? 'OK' : 'EMPTY', sections: [
+            salesSection('Concentration (weighted, synthetic)', [
+              salesKv('Top deal share', pct(c.top1Share), 'SIMULATED'), salesKv('Top 3 share', pct(c.top3Share), 'SIMULATED'),
+              salesKv('Top account share', pct(c.topAccountShare), 'SIMULATED'),
+              salesKv('Deal HHI', c.dealHHI.toFixed(2), 'SIMULATED'), salesKv('Account HHI', c.accountHHI.toFixed(2), 'SIMULATED'),
+            ]),
+            salesSection('Risk flags', c.flags.length ? c.flags.map(f => salesKv(f.severity.toUpperCase() + ' · ' + f.code, f.message, 'SIMULATED')) : [salesKv('none', 'well spread', 'ACTUAL')]),
+            salesSection('Note', [salesKv('Overall risk', c.riskLevel, 'ESTIMATED'), salesKv('Actions', 'weighted value is owner-supplied; invents no revenue, changes no deal', 'ACTUAL')]),
+          ] };
+        });
+      },
     };
     function loadSales(pageId){
       const host = document.getElementById(pageId);
@@ -1484,6 +1546,9 @@
       salesAgentLabPanel:       [() => loadSales('salesAgentLabPanel')],
       salesAuditPanel:          [() => loadSales('salesAuditPanel')],
       salesBriefsPanel:         [() => loadSales('salesBriefsPanel')],
+      salesPriorityPanel:       [() => loadSales('salesPriorityPanel')],
+      salesProgressionPanel:    [() => loadSales('salesProgressionPanel')],
+      salesConcentrationPanel:  [() => loadSales('salesConcentrationPanel')],
     };
     function refreshChrome(){
       renderSidebar(document.getElementById('sidebarSearch').value);

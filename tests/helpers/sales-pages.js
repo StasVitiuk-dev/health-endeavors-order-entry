@@ -53,6 +53,9 @@ const SALES_PAGES = {
   salesAgentLabPanel: 'Agent Lab',
   salesAuditPanel: 'Audit & Explainability',
   salesBriefsPanel: 'Owner Briefs',
+  salesPriorityPanel: 'Prioritization Lab',
+  salesProgressionPanel: 'Deal Progression & Aging',
+  salesConcentrationPanel: 'Pipeline Risk & Concentration',
 };
 
 const SALES_IDS = Object.keys(SALES_PAGES);

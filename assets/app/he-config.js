@@ -166,6 +166,9 @@ window.HE.modules.define('he-config', { api: 1, needs: [] }, function (ctx) {
       { id: 'salesAgentLabPanel',       label: 'Agent Lab' },
       { id: 'salesAuditPanel',          label: 'Audit & Explainability' },
       { id: 'salesBriefsPanel',         label: 'Owner Briefs' },
+      { id: 'salesPriorityPanel',       label: 'Prioritization Lab' },
+      { id: 'salesProgressionPanel',    label: 'Deal Progression & Aging' },
+      { id: 'salesConcentrationPanel',  label: 'Pipeline Risk & Concentration' },
     ]};
     if (salesGrowthOn()) SIDEBAR_GROUPS.push(SALES_GROWTH_GROUP);
     const ICON_PATHS = {
