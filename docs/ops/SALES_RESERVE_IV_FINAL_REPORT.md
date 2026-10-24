@@ -11,13 +11,17 @@ program and this is an honest checkpoint, not a claim that every item is done.
 ## GIT
 1. Starting SHA (verified before coding): `115026e`
 2. Final SHA (this report's commit): see `git log -1`
-3. Reserve IV commits so far: 5 code/test commits + this report — each small and
+3. Reserve IV commits so far: 9 code/test/doc commits — each small and
    reversible (`git revert <sha>` removes one piece cleanly):
-   - `f819de2` Wave 1 — per-page accessibility depth (42-page a11y matrix + helper + sync)
+   - `f819de2` Wave 1 — per-page accessibility depth (a11y matrix + helper + sync)
    - `3a01d87` prioritization engine v2 (explainable + sensitivity)
    - `b2fa4cf` deal progression & aging engine
    - `b81231d` pipeline concentration & quality-risk engine
-   - `1f3ea85` wire the 3 new engines as flag-OFF owner pages (→ 45 pages)
+   - `1f3ea85` wire the first 3 engines as flag-OFF owner pages (→ 45 pages)
+   - `cdf28ce` this report + project-record entry
+   - `17ead5f` next-best-action v2 engine + page (→ 46 pages)
+   - `1e0b12c` decision-intelligence engine scalability matrix (1k/10k/50k)
+   - `c5f7411` reply triage lab engine + page (→ 47 pages)
 4. main SHA: `d3db7bc`
 5. main touched? **No**
 6. ahead/behind: ahead of main only; 0 behind
@@ -35,7 +39,7 @@ instantiated. The new engines are pure (no DOM, no network) and read-only: they
 rank, age, and flag; they contact no one and write nothing.
 
 ## DECISION INTELLIGENCE (new this reserve)
-Three genuinely-new pure engine modules, each with its own spec, plus an
+Five genuinely-new pure engine modules, each with its own spec, plus an
 owner page for each:
 - **Prioritization engine v2** (`he-sales-priority` → *Prioritization Lab*):
   explainable weighted ranking over 6 factors (two cost-like/inverted), with a
@@ -54,6 +58,20 @@ owner page for each:
   HHI, and risk flags (SINGLE_DEAL_DEPENDENCY, SINGLE_ACCOUNT_DEPENDENCY,
   THIN_PIPELINE, EMPTY_PIPELINE) rolling up to LOW/MEDIUM/HIGH. Weighted value is
   caller-supplied; invents no revenue.
+- **Next-best-action v2** (`he-sales-nextaction` → *Next-Best-Action*):
+  recommends the ONE next step per lead with a reason, owner-decision flag, and
+  confidence. Safety-gated — a declined/DNC/opt-out lead can only be told to
+  STOP; approve is never send; samples never ship automatically;
+  `externalSideEffect` is always false.
+- **Reply triage lab** (`he-sales-replylab` → *Reply Triage Lab*): batch-runs
+  replies through the existing classifier and surfaces a confidence
+  distribution, a least-certain-first human-review queue, and a
+  suppression-review bucket. `noAutoAction` always true; the owner confirms
+  every suppression. `uncertainShare` is a calibration signal.
+
+A scalability matrix (`sales-scale-ext20k`) proves all four ranking/analysis
+engines stay correct and under a time budget at 1k/10k/50k rows, so wiring
+them to a large pipeline can never hang the page.
 
 ## DEEP RELIABILITY / A11Y (new this reserve)
 - **Reusable sales-pages helper** (`tests/helpers/sales-pages.js`): one
@@ -66,16 +84,16 @@ owner page for each:
   globally-unique ids, visible headings, data-table `<th>`, WCAG AA contrast in
   light AND dark, no sideways scroll at 320 px with text at 200 %, and 24 px
   phone tap targets. This is coverage the broad a11y specs never reach (they
-  only see the flag-OFF dashboard). The matrix auto-covers the 3 new pages.
+  only see the flag-OFF dashboard). The matrix auto-covers every new page as it is added.
 
 ## OWNER SYSTEM
-**45 flag-gated sales pages** (was 42): the 3 decision-intelligence pages join
+**47 flag-gated sales pages** (was 42): the 5 decision-intelligence pages join
 the Reserve I–III owner operating system (command center, queues, approvals,
 pipeline, forecast, scenario/campaign labs, analytics suite, prep pages,
 reporting/export, audit/settings/safety/decision/readiness/privacy centers).
 
 ## TESTS
-- Sales engine modules: 41 · spec files: 31.
+- Sales engine modules: 43 · spec files: 34.
 - Gates green on this head: dom-sinks (0 dangerous), app-modules (19),
   verify-moves (byte-identical baseline `3a40095`), assets-hash,
   generated-determinism, SALES_INVENTORY freshness, Trusted-Types (ceiling 0),
