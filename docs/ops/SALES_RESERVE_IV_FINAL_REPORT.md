@@ -37,7 +37,29 @@ tested, all gates green, flag default-OFF, `main` untouched:
   entries, `lifecycleOrderOk`, integrates the approval fingerprint; surfaced on
   the existing Audit & Explainability page (no new page). Spec (7).
 
-Counts now: **47 pages · 45 `assets/sales` modules · 38 sales specs.** The
+Then, same session:
+- `44ed46e` **Wave H1–H8 — cross-engine consistency**: one synthetic dataset
+  through all engines proving consistent identity/account/aging/stage/
+  suppression. Spec (6).
+- `a828023` **Wave D — decision-page responsiveness & nav stability**: documented
+  that `sales-scale-ext20k` is pure-engine only (D1); new
+  `sales-decision-perf-ext20k` separates in-page engine compute from the page
+  (D2) and proves 10 navigation cycles across the 5 decision pages leave DOM
+  stable with no re-render accumulation (D5/D7, render-once architecture).
+- D500 reconciliation (this pass): verified the external 500-candidate package
+  (sha256 `a43f6e54…`, IDs 001–500 present/sequential/unique) and reconciled it
+  against the actual repo in `SALES_RESERVE_IV_D500_DISPOSITIONS.md`.
+  Workstreams 01–02 dispositioned per-candidate: 2 distinct gaps confirmed +
+  implemented — **HE-D500-011** (repeated measurement / median+range, no false
+  precision) and **HE-D500-031** (flag ON→OFF toggle leaves no stale sales
+  surface); the rest ALREADY_COVERED or NOT_JUSTIFIED by the verified
+  render-once / no-handler / static-section architecture. Workstreams 03–25
+  triaged at workstream level (genuine Wave C/E/F/G/I candidates flagged
+  INVESTIGATION_NEEDED for their waves; no 500-gap or novelty claim made).
+  Note: new commits from this pass drop the `[skip ci]` marker (the repo has no
+  CI workflows, so it was a no-op; omitted to comply with the current script).
+
+Counts now: **47 pages · 45 `assets/sales` modules · 39 sales specs.** The
 original Reserve IV body below remains accurate for the prior session.
 
 ## GIT
