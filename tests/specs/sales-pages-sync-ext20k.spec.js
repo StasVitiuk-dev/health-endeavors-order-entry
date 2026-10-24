@@ -32,9 +32,9 @@ test('the sales-pages helper lists exactly the app\'s SALES_TITLES, with matchin
   for (const [id, title] of Object.entries(app)) {
     expect(SALES_PAGES[id], `title drift for ${id}`).toBe(title);
   }
-  // 46 pages — if this changes, it is a deliberate wiring change and the
+  // 47 pages — if this changes, it is a deliberate wiring change and the
   // matrices below are meant to grow with it.
-  expect(Object.keys(SALES_PAGES).length).toBe(46);
+  expect(Object.keys(SALES_PAGES).length).toBe(47);
 });
 
 test('every helper panel id has a host <section> in owner-login.html', () => {

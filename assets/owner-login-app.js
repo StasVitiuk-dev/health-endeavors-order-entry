@@ -841,7 +841,7 @@
         samples: salesMod('he-sales-samples'), benchmark: salesMod('he-sales-benchmark'),
         priority: salesMod('he-sales-priority'), progression: salesMod('he-sales-progression'),
         concentration: salesMod('he-sales-concentration'),
-        nextaction: salesMod('he-sales-nextaction') };
+        nextaction: salesMod('he-sales-nextaction'), replylab: salesMod('he-sales-replylab') };
     }
     // Small helpers to build he-sales-ui section view-models tersely.
     function salesKv(k, value, label){ return { k, value: value == null ? '—' : value, label: label || 'ACTUAL' }; }
@@ -871,7 +871,7 @@
       salesAuditPanel: 'Audit & Explainability', salesBriefsPanel: 'Owner Briefs',
       salesPriorityPanel: 'Prioritization Lab', salesProgressionPanel: 'Deal Progression & Aging',
       salesConcentrationPanel: 'Pipeline Risk & Concentration',
-      salesNextActionPanel: 'Next-Best-Action',
+      salesNextActionPanel: 'Next-Best-Action', salesReplyLabPanel: 'Reply Triage Lab',
     };
     // Build the view model for one sales page from the engine + synthetic fixtures.
     // Everything is labelled SIMULATED/UNKNOWN/OWNER_INPUT_REQUIRED by the view
@@ -1470,6 +1470,28 @@
           ] };
         });
       },
+      salesReplyLabPanel(e, opts){
+        return e.ui.page('Reply Triage Lab', opts, () => {
+          const replies = [
+            { id: 'SYN-R1', text: 'Please unsubscribe me from this list' },
+            { id: 'SYN-R2', text: 'What is your wholesale pricing and MOQ?' },
+            { id: 'SYN-R3', text: 'asdf qwer zxcv' },
+            { id: 'SYN-R4', text: 'Mailer-Daemon: delivery failed permanently' },
+            { id: 'SYN-R5', text: 'We might be interested, tell me more about the line' },
+          ];
+          const t = e.replylab.triage(replies, e.replies);
+          const pct = n => (n * 100).toFixed(0) + '%';
+          return { title: 'Reply Triage Lab', state: t.count ? 'OK' : 'EMPTY', sections: [
+            salesSection('Confidence (synthetic batch)', [
+              salesKv('High', t.confidence.high, 'SIMULATED'), salesKv('Medium', t.confidence.medium, 'SIMULATED'),
+              salesKv('Unknown', t.confidence.unknown, 'SIMULATED'), salesKv('Uncertain share', pct(t.uncertainShare), 'ESTIMATED'),
+            ]),
+            salesSection('Review queue (least certain first)', t.reviewQueue.length ? t.reviewQueue.map(r => salesKv(r.id, r.label + ' · ' + r.confidence, 'SIMULATED')) : [salesKv('none', '—', 'ACTUAL')]),
+            salesSection('Suppression review (owner confirms — never auto)', t.suppressReview.length ? t.suppressReview.map(r => salesKv(r.id, r.label, 'OWNER_INPUT_REQUIRED')) : [salesKv('none', '—', 'ACTUAL')]),
+            salesSection('Note', [salesKv('Actions', 'triage only — nothing suppressed, sent, or replied to automatically', 'ACTUAL')]),
+          ] };
+        });
+      },
     };
     function loadSales(pageId){
       const host = document.getElementById(pageId);
@@ -1569,6 +1591,7 @@
       salesProgressionPanel:    [() => loadSales('salesProgressionPanel')],
       salesConcentrationPanel:  [() => loadSales('salesConcentrationPanel')],
       salesNextActionPanel:     [() => loadSales('salesNextActionPanel')],
+      salesReplyLabPanel:       [() => loadSales('salesReplyLabPanel')],
     };
     function refreshChrome(){
       renderSidebar(document.getElementById('sidebarSearch').value);

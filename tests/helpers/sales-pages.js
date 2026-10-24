@@ -57,6 +57,7 @@ const SALES_PAGES = {
   salesProgressionPanel: 'Deal Progression & Aging',
   salesConcentrationPanel: 'Pipeline Risk & Concentration',
   salesNextActionPanel: 'Next-Best-Action',
+  salesReplyLabPanel: 'Reply Triage Lab',
 };
 
 const SALES_IDS = Object.keys(SALES_PAGES);

@@ -170,6 +170,7 @@ window.HE.modules.define('he-config', { api: 1, needs: [] }, function (ctx) {
       { id: 'salesProgressionPanel',    label: 'Deal Progression & Aging' },
       { id: 'salesConcentrationPanel',  label: 'Pipeline Risk & Concentration' },
       { id: 'salesNextActionPanel',     label: 'Next-Best-Action' },
+      { id: 'salesReplyLabPanel',       label: 'Reply Triage Lab' },
     ]};
     if (salesGrowthOn()) SIDEBAR_GROUPS.push(SALES_GROWTH_GROUP);
     const ICON_PATHS = {
