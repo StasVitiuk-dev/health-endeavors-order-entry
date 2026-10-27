@@ -965,6 +965,7 @@
           return { title: 'Territory & Expansion', state: 'OK', sections: [
             salesSection('By state', t.byState.slice(0, 8).map(s => salesKv(s.key, s.prospects + ' prospects / ' + s.qualified + ' qualified', s.avgScoreLabel))),
             salesSection('Top white-space (good quality, thin coverage)', (t.topWhitespace.length ? t.topWhitespace.slice(0, 6).map(w => salesKv(w.key, 'score ' + w.whitespaceScore, w.whitespaceLabel)) : [salesKv('Not enough data', '—', 'UNKNOWN')])),
+            salesSection('Needs scoring (UNKNOWN quality — not low potential)', (t.needsData && t.needsData.length ? t.needsData.slice(0, 6).map(s => salesKv(s.key, s.prospects + ' prospects, none scored yet', 'OWNER_INPUT_REQUIRED')) : [salesKv('none', 'every territory with prospects has a score', 'ACTUAL')])),
           ] };
         });
       },

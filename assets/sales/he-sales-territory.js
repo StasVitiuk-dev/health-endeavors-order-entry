@@ -51,29 +51,41 @@
   // Territory score: quality (avg score) weighted down by existing coverage, so a
   // high-quality, low-coverage territory ranks as white-space. Explainable.
   function score(t) {
-    const quality = t.avgScore == null ? 0 : t.avgScore;        // 0..100
+    // E6 (Reserve IV Wave E): a territory with no scored prospects has UNKNOWN
+    // quality — it must NOT be given a numeric whitespace score of 0, because
+    // that makes sparse data look like low potential. Its score stays null and
+    // it is marked not-rankable, so the white-space ranking never lists it as
+    // "low". Scoring it needs data, not writing it off.
+    const rankable = t.avgScore != null;
+    const quality = rankable ? t.avgScore : 0;                   // 0..100
     const cov = t.coverage == null ? 0 : Math.min(t.coverage, 1); // 0..1
-    const whitespace = Math.round(quality * (1 - cov));          // high when good + uncovered
+    const whitespace = rankable ? Math.round(quality * (1 - cov)) : null; // high when good + uncovered
     const reasons = [];
-    if (t.avgScore == null) reasons.push('no scored prospects yet (UNKNOWN quality)');
+    if (!rankable) reasons.push('no scored prospects yet (UNKNOWN quality — needs scoring, not low potential)');
     else reasons.push(`avg prospect score ${t.avgScore}`);
     reasons.push(t.won ? `${t.won} customer(s) already` : 'no customers yet');
     reasons.push(`${t.qualified} qualified of ${t.prospects} prospects`);
-    return { ...t, whitespaceScore: whitespace, whitespaceLabel: t.avgScore == null ? 'UNKNOWN' : 'ESTIMATED', reasons };
+    return { ...t, whitespaceScore: whitespace, whitespaceLabel: rankable ? 'ESTIMATED' : 'UNKNOWN', rankable, reasons };
   }
 
   function whitespace(rows, level) {
     const agg = (level === 'city' ? byCity : level === 'region' ? byRegion : byState)(rows).map(score);
-    return agg.filter(t => t.qualified >= 1).sort((a, b) => b.whitespaceScore - a.whitespaceScore);
+    // Only rank territories whose quality is actually known; unknown-quality
+    // ones are not "low white-space", they are unscored (see analyze().needsData).
+    return agg.filter(t => t.qualified >= 1 && t.rankable).sort((a, b) => b.whitespaceScore - a.whitespaceScore);
   }
 
   function analyze(rows) {
+    const scoredStates = byState(rows).map(score);
     return {
-      byState: byState(rows).map(score),
+      byState: scoredStates,
       byRegion: byRegion(rows).map(score),
       topWhitespace: whitespace(rows, 'state').slice(0, 10),
+      // E6: prospects exist but none scored yet — surfaced as "needs data",
+      // never ranked as low-potential.
+      needsData: scoredStates.filter(t => t.prospects >= 1 && !t.rankable),
       totalProspects: (rows || []).length,
-      guard: 'Advisory geography only. No exclusivity is promised or enforced.',
+      guard: 'Advisory geography only. No exclusivity is promised or enforced. Unscored territories read UNKNOWN, not low potential.',
     };
   }
 
