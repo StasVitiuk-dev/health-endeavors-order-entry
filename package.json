@@ -3,10 +3,41 @@
   "private": true,
   "description": "Local regression tests for the Health Endeavors dashboard. Not part of the live site.",
   "scripts": {
-    "test": "playwright test --config tests/playwright.config.js"
+    "test": "playwright test --config tests/playwright.config.js",
+    "evidence:interpret": "node tests/tools/evidence.js interpret",
+    "evidence:intake": "node tests/tools/evidence.js intake",
+    "evidence:status": "node tests/tools/evidence.js status",
+    "evidence:diff": "node tests/tools/evidence.js diff",
+    "deploy:sim": "node tests/tools/deploy-sim.js",
+    "incident": "node tests/tools/incidents.js",
+    "docs:check": "node tests/tools/doc-check.js --current",
+    "sql:lint": "node tests/tools/sql-lint.js",
+    "sql:headers": "node tests/tools/sql-lint.js --headers",
+    "sql:graph": "node tests/tools/sql-lint.js --graph",
+    "ci:local": "bash tests/tools/ci-local.sh",
+    "secrets:scan": "node tests/tools/secret-scan.js",
+    "db:suite:local": "bash tests/tools/run-db-suite.sh",
+    "staging:build": "node tests/tools/staging/build-staging.js staging-build --offline --zip",
+    "status:check": "node tests/tools/status-validate.js",
+    "app:modules": "node tests/tools/app-modules.js --graph",
+    "app:graph": "node tests/tools/app-graph.js",
+    "styles:check": "node tests/tools/inline-styles.js --check",
+    "types:check": "node tests/tools/typecheck.js --gate",
+    "ci:shards": "node tests/tools/ci-shards.js --plan 3",
+    "security:static": "node tests/tools/static-security.js",
+    "security:sinks": "node tests/tools/dom-sinks.js --gate",
+    "security:regex": "node tests/tools/regex-audit.js",
+    "schema:contract": "node tests/tools/schema-contract.js",
+    "security:quick": "bash tests/tools/security-check.sh quick",
+    "security:deep": "bash tests/tools/security-check.sh deep",
+    "changelog:check": "node tests/tools/change-log-check.js",
+    "d2:interpret": "node tests/tools/query-d2-interpret.js",
+    "rls:analyze": "node tests/tools/rls-analyzer.js",
+    "css:check": "node tests/tools/css-lint.js --check"
   },
   "devDependencies": {
     "@playwright/test": "1.56.1",
-    "@supabase/supabase-js": "2.117.2"
+    "@supabase/supabase-js": "2.117.2",
+    "typescript": "5.9.3"
   }
 }
