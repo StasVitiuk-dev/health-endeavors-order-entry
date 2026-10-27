@@ -58,8 +58,13 @@
     else if (sinceLast != null && sinceLast > expected * 1.25) { segment = 'AT_RISK'; reason = `overdue vs ~${expected}d rhythm`; }
     else if (vip) { segment = 'VIP'; reason = `${orders} orders, strong value`; }
     else { segment = 'REPEAT'; reason = `${orders} orders, on rhythm`; }
+    // E4 (Reserve IV Wave E): suppression/eligibility applies to every proposed
+    // lifecycle action. A DNC/opt-out customer may still be segmented (e.g. still
+    // INACTIVE) but must never be proposed for contact. The flag is carried here
+    // and honored by analyze() below.
+    const suppressed = !!(c.suppressed || c.dnc || c.optOut);
     return { id: c.id, storeName: c.storeName, segment, reason, orders, sinceLastDays: sinceLast,
-      reorderIntervalDays: ri.avgDays, reorderConfidence: ri.confidence, vip };
+      reorderIntervalDays: ri.avgDays, reorderConfidence: ri.confidence, vip, suppressed };
   }
 
   function analyze(customers, asOf) {
@@ -68,16 +73,21 @@
     for (const s of SEGMENTS) counts[s] = 0;
     for (const r of rows) counts[r.segment] = (counts[r.segment] || 0) + 1;
     // Candidate lists (advisory; owner messages by hand, nothing is sent).
-    const reorderCandidates = rows.filter(r => r.segment === 'AT_RISK' || (r.segment === 'REPEAT' && r.sinceLastDays != null && r.reorderIntervalDays && r.sinceLastDays >= r.reorderIntervalDays));
-    const winBack = rows.filter(r => r.segment === 'INACTIVE' || r.segment === 'LOST');
-    const vips = rows.filter(r => r.segment === 'VIP');
-    const reviewRequest = rows.filter(r => r.orders >= 2 && r.sinceLastDays != null && r.sinceLastDays <= 30);
+    // E4: a suppressed (DNC/opt-out) customer is never proposed for contact —
+    // excluded from every actionable list and surfaced separately so the owner
+    // can still see them without a contact suggestion.
+    const actionable = r => !r.suppressed;
+    const reorderCandidates = rows.filter(r => actionable(r) && (r.segment === 'AT_RISK' || (r.segment === 'REPEAT' && r.sinceLastDays != null && r.reorderIntervalDays && r.sinceLastDays >= r.reorderIntervalDays)));
+    const winBack = rows.filter(r => actionable(r) && (r.segment === 'INACTIVE' || r.segment === 'LOST'));
+    const vips = rows.filter(r => r.segment === 'VIP'); // a status list, not a contact action
+    const reviewRequest = rows.filter(r => actionable(r) && r.orders >= 2 && r.sinceLastDays != null && r.sinceLastDays <= 30);
+    const suppressedCandidates = rows.filter(r => r.suppressed);
     const known = rows.filter(r => r.reorderIntervalDays != null).map(r => r.reorderIntervalDays);
     const avgInterval = known.length ? Math.round(known.reduce((a, b) => a + b, 0) / known.length) : null;
     return { rows, counts, avgReorderIntervalDays: avgInterval,
       avgReorderConfidence: known.length >= 5 ? 'MEDIUM' : known.length ? 'LOW' : 'UNKNOWN',
-      reorderCandidates, winBack, vips, reviewRequest,
-      guard: 'Advisory only. No customer is messaged; the owner reaches out by hand.' };
+      reorderCandidates, winBack, vips, reviewRequest, suppressedCandidates,
+      guard: 'Advisory only. No customer is messaged; the owner reaches out by hand. Suppressed (DNC/opt-out) customers are never proposed for contact.' };
   }
 
   // Synthetic customers for the page/tests (clearly fake; no real buyers).
