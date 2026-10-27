@@ -15,7 +15,10 @@
   'use strict';
 
   const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  const DOMAIN_RE = /^[a-z0-9-]+(\.[a-z0-9-]+)+$/i;
+  // Bounded outer repetition (253 = max hostname length) avoids a nested
+  // unbounded quantifier / catastrophic backtracking; behavior is unchanged for
+  // every real domain. (Reserve IV release-prep: clears the regex-audit gate.)
+  const DOMAIN_RE = /^[a-z0-9-]+(\.[a-z0-9-]+){1,253}$/i;
   const SEVERITY = ['CRITICAL', 'WARNING', 'INFO'];
   // Pipeline states a lead can legitimately be in (mirror of the pipeline machine's).
   const VALID_STATES = new Set(['NEW', 'RESEARCHING', 'QUALIFIED', 'NOT_A_FIT', 'READY_FOR_OUTREACH',

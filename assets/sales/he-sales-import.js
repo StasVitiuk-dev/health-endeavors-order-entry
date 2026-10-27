@@ -16,7 +16,10 @@
   'use strict';
 
   const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  const DOMAIN_RE = /^[a-z0-9-]+(\.[a-z0-9-]+)+$/;
+  // Bounded outer repetition (253 = max hostname length) avoids a nested
+  // unbounded quantifier / catastrophic backtracking; behavior is unchanged for
+  // every real domain. (Reserve IV release-prep: clears the regex-audit gate.)
+  const DOMAIN_RE = /^[a-z0-9-]+(\.[a-z0-9-]+){1,253}$/;
 
   function normalizeName(name) {
     return String(name == null ? '' : name).toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '')
