@@ -102,6 +102,26 @@ OWNER_OR_EXTERNAL_BLOCKED · NOT_JUSTIFIED · CORPUS_INCOMPLETE.
 | 24 | Feature flags / packaging / final changed-state gates (C/D/I) | ALREADY_COVERED | Flag default-OFF proven (wiring + new 031 toggle); gates (dom-sinks, verify-moves, assets, determinism, inventory, TT) run each wave. |
 | 25 | Owner completion / rollback / honest exhaustion (I/G/F) | ONGOING | This report + PROJECT_RECORD + per-commit rollback satisfy it; "honest exhaustion" is asserted only from evidence. |
 
+## Update 2026-10-27 (Waves C/E/F/G/I executed)
+Taking the flagged workstreams to resolution:
+- **WS04 (C)** mobile decision-value integrity → IMPLEMENTED+VERIFIED
+  (`sales-wavec-mobile-ext20k`).
+- **WS06 (C)** uncertainty-not-by-colour → VERIFIED (`sales-wavec-uncertainty-ext20k`).
+- **WS07–08 (E retention)** → E4 suppression-on-lifecycle DISTINCT_GAP → FIXED
+  (`he-sales-retention` + spec); E1/E2 VERIFIED.
+- **WS09–10 (E territory)** → E6 sparse≠low-potential DISTINCT_GAP → FIXED
+  (`he-sales-territory` + page + spec); E5/E7 VERIFIED.
+- **WS11–12 (E creator)** → E8/E9/E10 ALREADY_COVERED, VERIFIED
+  (`sales-wavee-creator-ext20k`); rights/attribution remain OWNER/EXTERNAL.
+- **WS13–14 (F incident/recovery)** → DISTINCT_GAP → IMPLEMENTED
+  (`he-sales-incidents` + spec); live monitoring remains owner/external.
+- **WS16–18 (G CRM/data-model)** → DESIGN delivered (`SALES_CRM_DATA_MODEL_DRAFT.md`);
+  production schema/SQL/policy remain OWNER/EXTERNAL.
+- **WS19–20 (I information architecture)** → REVIEW delivered
+  (`SALES_IA_REVIEW.md`); consolidations PROPOSED, nothing removed (owner decides).
+- **WS21–25** → ALREADY_COVERED by the Wave A determinism discipline, the
+  `he-sales-approval` + `he-sales-audit` primitives, and the flag/gate coverage.
+
 ## Honest status
 - **Confirmed + implemented this pass:** HE-D500-011, HE-D500-031 (2 distinct
   gaps). The rest of Workstreams 01–02 are ALREADY_COVERED or NOT_JUSTIFIED by

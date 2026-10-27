@@ -59,8 +59,79 @@ Then, same session:
   Note: new commits from this pass drop the `[skip ci]` marker (the repo has no
   CI workflows, so it was a no-op; omitted to comply with the current script).
 
-Counts now: **47 pages · 45 `assets/sales` modules · 39 sales specs.** The
-original Reserve IV body below remains accurate for the prior session.
+Counts after that pass: **47 pages · 45 modules · 39 specs.**
+
+## CONTINUATION SESSION — 2026-10-27 (Waves C, E, F, G, I)
+Resumed from verified checkpoint `17c82e2`. Independent-work pass to leave only
+owner/legal/external decisions. Small reversible commits, each tested, gates
+green, flag default-OFF, `main` untouched. New commits **omit `[skip ci]`** (the
+repo has no CI workflows; the marker was a no-op).
+- `6bac391` **Wave C (WS04/C5)** — mobile decision-value integrity: at 320px+200%
+  the owner-critical signal on each of the 5 decision pages stays visible and
+  un-clipped, no sideways scroll; no sales row clips by overflow/ellipsis.
+  (C6/C7 text-not-colour already proven at `17c82e2`.) Test-only.
+- `be8203e` **Wave E (E4)** — retention honors suppression: a DNC/opt-out
+  customer is excluded from every actionable candidate list (reorder/win-back/
+  review) and surfaced separately; still segmented, never proposed for contact.
+  Real fix + spec.
+- `578bc92` **Wave E (E6)** — territory no longer treats sparse data as low
+  potential: unscored territories are `rankable:false`/`whitespaceScore:null`/
+  UNKNOWN, excluded from the white-space ranking and shown in a `needsData`
+  ("needs scoring, not low potential") section. Real fix + spec + page section.
+- `a64634d` **Wave E (E8/E9/E10)** — creator honesty evidence (attribution
+  always UNKNOWN; code use ≠ demand; no rights/payment/claim assumption).
+- `d6f0e7d` **Wave F** — new `he-sales-incidents`: classifies anomaly flags into
+  deduped incidents (capability/evidence/mode/next-action), acknowledge≠resolved,
+  reconcile-on-next-scan, disconnected-provider-never-healthy. Engine + spec.
+- `21c1dee` **Waves G + I** — `SALES_CRM_DATA_MODEL_DRAFT.md` (design only, no
+  SQL) and `SALES_IA_REVIEW.md` (47-page review; consolidations proposed,
+  nothing removed).
+
+Counts now: **47 pages · 47 `assets/sales` modules · 45 sales specs.** The
+original Reserve IV body below remains accurate for the first session.
+
+## OWNER ACTION PACKET (what is left — all yours, ordered by dependency)
+Genuine owner/legal/external decisions; none is Claude's to do, each blocks the
+next step, and local preparation for each is DONE.
+1. **Approve the real commercial facts** (wholesale price, MOQ, MSRP, approved
+   claims, certifications). *Blocks:* Commercial & Line Sheet / Wholesale
+   Readiness stay BLOCKED; the claim firewall can't pass real claims without an
+   approved list. *Recommendation:* set with your manufacturer/lab + legal;
+   start with price + MOQ + one approved claim set. *Prepared:* pages + claim
+   scanner already gate on these and show them pending. *Unlocks:* readiness/
+   commercial pages and realistic line sheets.
+2. **Legal/claims review** of body-care marketing language. *Blocks:* approving
+   any outreach/content draft for real use. *Recommendation:* lawyer sign-off on
+   the approved claim list from (1). *Prepared:* firewall + drafts are
+   claim-scanned and blocked-on-fail (assists, does not certify).
+3. **Decide on a sales Gmail** and **whether to ever enable sending.** *Blocks:*
+   any real outreach (there is no send path today). *Recommendation:* keep send
+   OFF until (1)+(2); connect a dedicated address, review, then decide.
+   *Prepared:* provider contract + no-send/disconnected invariants tested.
+4. **Provider API keys** (optional). *Blocks:* AI drafting beyond free
+   deterministic templates. *Recommendation:* optional — templates work without
+   keys. *Prepared:* provider-neutral router + hard budget stop.
+5. **Website inquiry feed** decision (separate repo — not touched here).
+   *Blocks:* real lead intake. *Recommendation:* decide source + format with the
+   website owner. *Prepared:* importer + duplicate review (never auto-merge).
+6. **Review + merge/deploy** this branch (only you can). *Blocks:* anything
+   going live (`main` is untouched). *Recommendation:* review, confirm the flag
+   stays default-OFF on merge, then merge when ready. *Prepared:* 47 pages, gates
+   green; rollback = per-commit revert or flag-OFF.
+
+**After (1)–(6)** the only remaining engineering is wiring approved facts and (if
+enabled) a real send path — both small and owner-gated.
+
+## SAFE-LOCAL EXHAUSTION (honest)
+After Waves A–I, the demonstrated independent gaps are addressed. Remaining D500
+candidates are ALREADY_COVERED, NOT_JUSTIFIED by the render-once/no-handler/
+static architecture, or OWNER_OR_EXTERNAL_BLOCKED (see
+`SALES_RESERVE_IV_D500_DISPOSITIONS.md`). Further local work would be low-value
+confirmatory tests or speculative features without a consumer — explicitly out
+of scope per the instruction. **Safe-local work is effectively exhausted**;
+what remains is the OWNER ACTION PACKET above. Unresolved engineering risk:
+none in shipped (flag-OFF) behavior; the only risk is in the owner/external
+steps (real claims/prices, send enablement), which are gated by design.
 
 ## GIT
 1. Starting SHA (verified before coding): `115026e`
