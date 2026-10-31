@@ -67,7 +67,19 @@ function audit(files = FILES, read = f => fs.readFileSync(path.join(ROOT, f), 'u
     (function visit(n) {
       if (ts.isBinaryExpression(n) && n.operatorToken.kind === ts.SyntaxKind.EqualsToken && ts.isPropertyAccessExpression(n.left)) {
         const p = n.left.name.text;
-        if (p === 'innerHTML' || p === 'outerHTML') { counts[p]++; inspect(n.right); }
+        if (p === 'innerHTML' || p === 'outerHTML') {
+          counts[p]++; inspect(n.right);
+          // A BARE (non-template) assignment of a non-literal value is an
+          // unreviewed sink too: `el.innerHTML = x` must be scrutinised like
+          // `el.innerHTML = `...${x}...``. inspect() only walks template spans,
+          // so a plain identifier/member/call/index RHS slipped through. Classify
+          // it directly; a REVIEW value is reported exactly like an interpolation.
+          const rhs = n.right;
+          if (ts.isIdentifier(rhs) || ts.isPropertyAccessExpression(rhs) || ts.isElementAccessExpression(rhs) || ts.isCallExpression(rhs)) {
+            const c = classify(rhs, sf); classes[c] = (classes[c] || 0) + 1;
+            if (c === 'REVIEW') { items.push({ file: f, expr: norm(rhs.getText(sf)) }); review.push(`${f}:${sf.getLineAndCharacterOfPosition(rhs.getStart()).line + 1}  ${p} = ${rhs.getText(sf).slice(0, 80)}`); }
+          }
+        }
         if (p === 'href' || p === 'src') counts.hrefSrcAssign++;
         if (ts.isPropertyAccessExpression(n.left.expression) && n.left.expression.name.text === 'style') counts.styleWrites++;
       }
