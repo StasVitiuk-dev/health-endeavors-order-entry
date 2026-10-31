@@ -10,10 +10,10 @@ const strong = { storeName: 'Blue Harbor Apothecary', email: 'buyer@blueharbor.e
 
 test('validate: needs a store name and a way to reach them', () => {
   expect(L.validate(strong).ok).toBe(true);
-  expect(L.validate({ storeName: '', email: 'a@b.co' }).problems).toContain('missing store name');
+  expect(L.validate({ storeName: '', email: 'a@b.example' }).problems).toContain('missing store name');
   expect(L.validate({ storeName: 'X' }).problems).toContain('no email and no website — cannot reach them');
   expect(L.validate({ storeName: 'X', email: 'not-an-email' }).problems).toContain('email does not look valid');
-  expect(L.validate({ storeName: 'X', email: 'a@b.co', category: 'hardware' }).problems[0]).toMatch(/unknown category/);
+  expect(L.validate({ storeName: 'X', email: 'a@b.example', category: 'hardware' }).problems[0]).toMatch(/unknown category/);
 });
 
 test('scoring is deterministic and explainable', () => {
@@ -45,7 +45,7 @@ test('unreachable strong store is not serious (cannot be worked)', () => {
 
 test('score is clamped to 0..100 and tolerates missing/unknown fields', () => {
   expect(L.score({}).score).toBeGreaterThanOrEqual(0);
-  expect(L.score({ storeName: 'X', category: 'skincare', size: 'large', region: 'local', email: 'a@b.co', carriesSimilarBrands: true }).score).toBeLessThanOrEqual(100);
+  expect(L.score({ storeName: 'X', category: 'skincare', size: 'large', region: 'local', email: 'a@b.example', carriesSimilarBrands: true }).score).toBeLessThanOrEqual(100);
 });
 
 test('rank orders by score, highest first, stable on ties', () => {

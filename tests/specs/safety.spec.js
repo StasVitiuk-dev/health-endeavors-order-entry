@@ -7,6 +7,16 @@ const { SUPABASE_HOST } = require('../helpers/mock-supabase');
 
 const TESTS_DIR = path.resolve(__dirname, '..');
 
+// RFC 2606 / RFC 6761 reserve example.com/.net/.org and the .example, .test,
+// .invalid and .localhost TLDs (and every subdomain of them) as non-routable
+// placeholders: they can never be a real mailbox, so they are safe to appear in
+// tests, docs and synthetic fixtures. A real registrable domain (store.com,
+// a.co, ...) is NOT reserved and is still rejected. The project's own
+// attribution/doc addresses (anthropic, google, the [email] placeholder) are
+// also allowed. Kept in one place so both scans below agree.
+const RESERVED_EMAIL = /@(?:[a-z0-9-]+\.)*(?:example\.(?:com|net|org)|example|test|invalid|localhost)$/i;
+const SAFE_EMAIL = e => RESERVED_EMAIL.test(e) || /(^noreply@anthropic\.com$|@google\.com$|^\[email\]$)/i.test(e);
+
 function listFiles(dir) {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap(e => {
     const p = path.join(dir, e.name);
@@ -73,7 +83,7 @@ test('test files contain no real secrets or real contact details', () => {
     const text = fs.readFileSync(file, 'utf8');
     for (const re of suspicious) expect(re.test(text), `${path.relative(TESTS_DIR, file)} matches ${re}`).toBe(false);
     for (const email of text.match(emailPattern) || []) {
-      expect(email.endsWith('.test'), `${path.relative(TESTS_DIR, file)} has a non-synthetic email ${email}`).toBe(true);
+      expect(SAFE_EMAIL(email), `${path.relative(TESTS_DIR, file)} has a non-synthetic email ${email}`).toBe(true);
     }
   }
 });
@@ -98,7 +108,6 @@ test('docs, SQL drafts and helpers contain no secrets or real e-mail addresses',
     /-----BEGIN [A-Z ]*PRIVATE KEY-----/,
     /[a-z0-9]{20}\.supabase\.co/,   // a real project host
   ];
-  const allowedEmail = /(@example\.(test|com|org)|\.test$|^noreply@anthropic\.com$|@google\.com$|^\[email\]$)/i;
   const emailPattern = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;
   const problems = [];
   for (const file of files) {
@@ -108,7 +117,7 @@ test('docs, SQL drafts and helpers contain no secrets or real e-mail addresses',
     // address on purpose, like the pages themselves; every other pattern applies.
     const pageScript = /^assets\/(change-password|search-page|dashboard-page|owner-login-app|manual-order-entry)\.js$/ /* EXT14: owner-login-app; EXT16: manual-order-entry */.test(rel.split(path.sep).join('/'));
     for (const re of secrets) if (re.test(text) && !(pageScript && /supabase/.test(String(re)))) problems.push(`${rel} matches ${re}`);
-    for (const email of text.match(emailPattern) || []) if (!allowedEmail.test(email)) problems.push(`${rel} has e-mail ${email}`);
+    for (const email of text.match(emailPattern) || []) if (!SAFE_EMAIL(email)) problems.push(`${rel} has e-mail ${email}`);
   }
   expect(problems).toEqual([]);
 });

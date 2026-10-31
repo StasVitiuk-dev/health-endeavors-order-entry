@@ -15,15 +15,15 @@ test('the real default is NOT connected with SEND off', () => {
 });
 
 test('drafting needs the DRAFT capability and is offline/synthetic', () => {
-  expect(() => G.createMailbox().draft({ leadId: 'L1', to: 'a@b.com', subject: 'Hi' })).toThrow(/DRAFT capability is off/);
+  expect(() => G.createMailbox().draft({ leadId: 'L1', to: 'a@b.example', subject: 'Hi' })).toThrow(/DRAFT capability is off/);
   const mb = G.createMailbox({ capabilities: { draft: true } });
-  const d = mb.draft({ leadId: 'L1', to: 'a@b.com', subject: 'Hi', body: '...' });
+  const d = mb.draft({ leadId: 'L1', to: 'a@b.example', subject: 'Hi', body: '...' });
   expect(d.status).toBe('DRAFT');
 });
 
 test('a draft with SEND off cannot be sent, even after owner approval', () => {
   const mb = G.createMailbox({ capabilities: { draft: true }, connected: false });
-  const d = mb.draft({ key: 'k1', leadId: 'L1', to: 'a@b.com', subject: 'Hi', body: '...' });
+  const d = mb.draft({ key: 'k1', leadId: 'L1', to: 'a@b.example', subject: 'Hi', body: '...' });
   mb.attachApproval('k1', { owner: 'Stas' });
   expect(d.status).toBe('APPROVED_FOR_SEND'); // approval != send
   expect(() => mb.send('k1')).toThrow(/SEND is disabled/);
@@ -31,7 +31,7 @@ test('a draft with SEND off cannot be sent, even after owner approval', () => {
 
 test('even with a synthetic SEND-enabled double, the guards hold', () => {
   const mb = G.createMailbox({ capabilities: { draft: true, send: true }, connected: true });
-  mb.draft({ key: 'k1', leadId: 'L1', to: 'buyer@store.com', subject: 'Hi', body: '...' });
+  mb.draft({ key: 'k1', leadId: 'L1', to: 'buyer@store.example', subject: 'Hi', body: '...' });
   // no approval yet → refused
   expect(() => mb.send('k1')).toThrow(/without an owner approval/);
   mb.attachApproval('k1', { owner: 'Stas' });
@@ -42,20 +42,20 @@ test('even with a synthetic SEND-enabled double, the guards hold', () => {
 
 test('suppressed recipients (do-not-contact / unsubscribe / bounce) are never sent to', () => {
   const mb = G.createMailbox({ capabilities: { draft: true, send: true }, connected: true });
-  mb.draft({ key: 'k2', leadId: 'L2', to: 'stop@store.com', subject: 'Hi', body: '...' });
+  mb.draft({ key: 'k2', leadId: 'L2', to: 'stop@store.example', subject: 'Hi', body: '...' });
   mb.attachApproval('k2', { owner: 'Stas' });
-  mb.suppress('stop@store.com', 'unsubscribe');
+  mb.suppress('stop@store.example', 'unsubscribe');
   expect(() => mb.send('k2')).toThrow(/suppressed/);
 });
 
 test('inbound bounce/unsubscribe auto-suppress the sender', () => {
   const mb = G.createMailbox({ capabilities: { read: true } });
-  expect(mb.receive({ from: 'x@store.com', kind: 'BOUNCE' }).suppressedNow).toBe(true);
-  expect(mb.isSuppressed('X@Store.com')).toBe(true);
+  expect(mb.receive({ from: 'x@store.example', kind: 'BOUNCE' }).suppressedNow).toBe(true);
+  expect(mb.isSuppressed('X@Store.example')).toBe(true);
 });
 
 test('attachApproval requires an owner actor', () => {
   const mb = G.createMailbox({ capabilities: { draft: true } });
-  mb.draft({ key: 'k3', leadId: 'L3', to: 'a@b.com', subject: 'Hi' });
+  mb.draft({ key: 'k3', leadId: 'L3', to: 'a@b.example', subject: 'Hi' });
   expect(() => mb.attachApproval('k3', {})).toThrow(/needs an owner actor/);
 });

@@ -6,9 +6,9 @@ test.beforeEach(({}, ti) => { test.skip(ti.project.name !== 'desktop', 'Node-onl
 
 test('normalizers handle names, domains, emails, phones', () => {
   expect(I.normalizeName('The Blue Harbor Boutique, LLC')).toBe('blue harbor');
-  expect(I.normalizeDomain('https://www.BlueHarbor.com/shop?x=1')).toBe('blueharbor.com');
-  expect(I.normalizeDomain('buyer@BlueHarbor.com')).toBe('blueharbor.com');
-  expect(I.normalizeEmail('  Buyer@BlueHarbor.com ')).toBe('buyer@blueharbor.com');
+  expect(I.normalizeDomain('https://www.BlueHarbor.example/shop?x=1')).toBe('blueharbor.example');
+  expect(I.normalizeDomain('buyer@BlueHarbor.example')).toBe('blueharbor.example');
+  expect(I.normalizeEmail('  Buyer@BlueHarbor.example ')).toBe('buyer@blueharbor.example');
   expect(I.normalizeEmail('nope')).toBe('');
   expect(I.normalizePhone('(415) 555-0100')).toBe('4155550100');
 });
@@ -23,9 +23,9 @@ test('prepareRow preserves raw values and lists problems without inventing data'
 
 test('duplicate graph flags likely matches (email, domain, phone, name+city) and never merges', () => {
   const rows = [
-    { storeName: 'Blue Harbor', email: 'buyer@blueharbor.com', city: 'Austin', source: 'web' },
-    { storeName: 'Blue Harbor Apothecary', website: 'blueharbor.com', city: 'Austin', source: 'web' }, // same domain
-    { storeName: 'Totally Different', email: 'hi@other.com', city: 'Reno', source: 'web' },
+    { storeName: 'Blue Harbor', email: 'buyer@blueharbor.example', city: 'Austin', source: 'web' },
+    { storeName: 'Blue Harbor Apothecary', website: 'blueharbor.example', city: 'Austin', source: 'web' }, // same domain
+    { storeName: 'Totally Different', email: 'hi@other.example', city: 'Reno', source: 'web' },
     { storeName: 'Blue  Harbor', phone: '415-555-0100', city: 'Austin', source: 'web' },               // same name+city
     { storeName: 'X', phone: '(415) 555-0100', city: 'Reno', source: 'web' },                          // same phone as row 3(idx3)
   ];
@@ -39,7 +39,7 @@ test('duplicate graph flags likely matches (email, domain, phone, name+city) and
 });
 
 test('importPreview requires confirmation and counts warnings', () => {
-  const pv = I.importPreview([{ storeName: 'A', email: 'a@a.com', source: 'web' }, { storeName: '', source: '' }]);
+  const pv = I.importPreview([{ storeName: 'A', email: 'a@a.example', source: 'web' }, { storeName: '', source: '' }]);
   expect(pv.count).toBe(2);
   expect(pv.needsConfirmation).toBe(true);
   expect(pv.warnings).toBeGreaterThan(0);
