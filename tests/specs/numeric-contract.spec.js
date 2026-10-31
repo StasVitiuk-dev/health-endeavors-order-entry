@@ -17,10 +17,22 @@ const CHECKED_IN_CODE = ['invAmount', 'expAmount', 'poLineQty', 'poLineCost', 'p
 test.describe('numeric contract (static)', () => {
   test.beforeEach(({}, testInfo) => { test.skip(testInfo.project.name !== 'desktop', 'static; run once'); });
 
+  // A number box can be written two ways now:
+  //  (1) a literal <input type="number" ...> in the HTML, or
+  //  (2) EXT19's safe DOM builder: h('input', { type: 'number', step: '0.01', ... }).
+  // Both are real number boxes and both must meet the contract, so the static
+  // scan reads both. For (2) the flat attribute object is rewritten into an
+  // equivalent <input ...> tag (key: 'val' -> key="val") so the checks below --
+  // step/min/max/step="0.01" -- apply unchanged. Only string-literal attributes
+  // convert; dynamic ones (value: Number(...)) are irrelevant to the contract.
+  const builderToTag = obj => '<input ' + obj.replace(/(\w[\w-]*)\s*:\s*'([^']*)'/g, '$1="$2"')
+    .replace(/(\w[\w-]*)\s*:\s*"([^"]*)"/g, '$1="$2"') + '>';
   const inputs = PAGES.flatMap(file => {
     const src = require('../helpers/page-source').pageSource(file); // EXT14: boxes drawn by the moved page script too
-    return [...src.matchAll(/<input\b[^>]*type="number"[^>]*>/g)].map(m => {
-      const tag = m[0];
+    const htmlInputs = [...src.matchAll(/<input\b[^>]*type="number"[^>]*>/g)].map(m => m[0]);
+    const builderInputs = [...src.matchAll(/\bh\(\s*['"]input['"]\s*,\s*\{([^{}]*)\}/g)]
+      .map(m => m[1]).filter(obj => /\btype\s*:\s*['"]number['"]/.test(obj)).map(builderToTag);
+    return [...htmlInputs, ...builderInputs].map(tag => {
       const name = (tag.match(/\bid="([^"]+)"/) || tag.match(/\bclass="([^" ]+)/) || [])[1];
       return { file, tag, name };
     });
