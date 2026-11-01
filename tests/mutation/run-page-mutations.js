@@ -487,9 +487,14 @@ const MUTATIONS = [
   ['file names not cleaned (safeStorageName identity)', 'assets/owner-login-helpers.js',
     "let n = String(name || 'file').replace(/[^a-zA-Z0-9._-]/g, '_')", "let n = String(name || 'file')",
     'storage-safety -g "hostile or very long"'],
+  // Re-pointed (2026-11-01): post-EXT19 the owner dashboard renders via DOM text
+  // nodes, so owner-login-helpers.js esc() is off that page's critical path and
+  // xss-everywhere no longer exercises it (the mutant survived that selection).
+  // helpers-unit directly tests esc() and DOES catch the neutered function
+  // (verified: "escapes the five HTML special characters" fails on the mutant).
   ['escaping broken (esc returns raw text)', 'assets/owner-login-helpers.js',
     ".replace(/[&<>\"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[c]));", ';',
-    'xss-everywhere -g "every text field|no database text"'],
+    'helpers-unit -g "escapes the five HTML special characters"'],
   ['Emergency follow-up failures hidden again', 'assets/owner-login-app.js',
     'if (leftOn.length) {', 'if (false) {',
     'admin-pages -g "could not really"'],

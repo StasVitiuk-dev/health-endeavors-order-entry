@@ -23,6 +23,12 @@ module.exports = defineConfig({
   retries: 0,
   reporter: [['list']],
   use: {
+    // DIAGNOSTIC-ONLY (uncommitted, local): this container's proxy blocks
+    // cdn.playwright.dev, so the Playwright-1.56.1-matched Chromium build 1194
+    // cannot be downloaded. Launch the pre-installed OFFICIAL Chromium instead
+    // (build 1243 / v153) via executablePath. Not committed, not in the export
+    // bundle; a real environment downloads the matched build normally.
+    launchOptions: { executablePath: '/opt/pw-browsers/chromium' },
     // A made-up address: the mock serves the repo's files for it, so no
     // web server is needed and nothing is fetched from the live site.
     baseURL: 'http://dashboard.test',
