@@ -75,3 +75,15 @@ avoid churn/threshold changes on passing product tests.
   is stood up); never run against production Supabase.
 - This is a mutation-coverage signal on the current tree, not a guarantee of
   absence of all defects. Diagnostic browser, not pinned-1194.
+
+## SQL mutants (resolved 2026-11-01)
+Ran `tests/mutation/run-sql-mutations.sh` against a DISPOSABLE loopback PostgreSQL 16
+(initdb in /var/tmp, socket-only, `he_real` built from the real-shape schema +
+drafts 10/13; the runner refuses any Supabase host). **15 SQL mutants: 15 caught,
+0 missed** — owner/admin guard, below-zero refusal, PO double-receive, re-stock of
+received lines, return double-restock, sold-product delete, cents rounding, raw
+rule error, unknown bucket, install preflight/type check, PO line guard (+order
+lock), request-key uniqueness, R1–R5 rollback switch guard. Draft SQL files
+byte-identical before/after (the runner enforces this). Cluster torn down; no
+production DB touched. This validates the R1 draft's test suite (R1–R5 remain an
+owner-deferred, not-in-production draft).
