@@ -2582,6 +2582,11 @@
 
     async function loadBusinessHealth(){
       const wrap = document.getElementById('businessHealthStats');
+      // EXT8: an older reply never draws over a newer one. Without this, a load
+      // still in flight from sign-in / page-show can paint a stale tile (e.g. a
+      // pre-expiry "$0.00" AI-spend) over a newer post-refresh render, so an
+      // expired read could look like a fresh zero. Matches the other loaders.
+      const isLatest = newLoadToken('businessHealth');
       try {
         const { start } = getTodayRange();
         const startIso = start.toISOString();
@@ -2667,6 +2672,7 @@
             : h('div', { class: 'stat ' + cls }, ...inner);
         };
 
+        if (!isLatest()) return; // a newer load started while these reads were in flight; let it win
         wrap.replaceChildren(
           tile(todayRevenue === null ? null : fmtMoney(todayRevenue, todayCurrency), todayMissingTotals ? "Today's revenue (" + todayMissingTotals + ' order' + (todayMissingTotals === 1 ? '' : 's') + ' without a total not counted)' : "Today's revenue", todayMissingTotals ? 'statWarn' : ''),
           tile(todayOrderCount, "Today's orders", ''),
