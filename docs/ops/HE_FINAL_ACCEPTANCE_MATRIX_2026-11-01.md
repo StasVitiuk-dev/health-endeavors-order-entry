@@ -36,7 +36,7 @@ outside local synthetic scope) · **N/A** (with reason). Companion detail:
 | 015 | COVERED | Two CSS mitigations measured: overflow-wrap:anywhere → ~14.6s; table-layout:fixed → ~13.7s; both reverted. |
 | 016 | COVERED | Doc now states two mitigations are two data points, NOT proof no safe fix exists (correction applied). |
 | 017 | COVERED | Timing = preexisting (reproduces on base `c06c8b5`, rendered code unchanged). Visual = harmless (reflow). Labeled distinctly. |
-| 018 | GAP | Only quantitative diff metrics (ratio + height deltas) inspected for 10 desktop cases; the 20 actual/expected/diff images were NOT pixel-inspected one by one. Repro: open each `test-results/**/*-diff.png`. |
+| 018 | COVERED | All 20 actual/expected/diff images VIEWED (VISUAL_INSPECTION_LEDGER_2026-11-01.md). 0 product defects: no lost/clipped/covered content; all differences are AA + font-metric reflow. Exact pinned-1194 pixel acceptance still BLOCKED (download 403). |
 | 019 | COVERED | Per-image gap stated honestly (018); lost-content ruling rests on metrics + content/a11y specs passing on same browser, labeled as supporting evidence, not sign-off. |
 | 020 | COVERED | Close-out commands: `npx playwright install chromium` on Playwright 1.56.1 in an env that can reach cdn.playwright.dev → build 1194; then `npx playwright test tests/specs/visual.spec.js` with NO executablePath override; and re-run `malformed-data-ext15` on reference CPU. |
 
@@ -106,7 +106,7 @@ outside local synthetic scope) · **N/A** (with reason). Companion detail:
 | 065 | COVERED | `mobile-cards-ext10`, `phone-po-tap`, `phone-swipe`, `sales-wavec-mobile-ext20k` (narrow-width identity). |
 | 066 | COVERED | `responsive-widths`, `layout-sweep-ext9`, `shrink-ext16` (long text doesn't cover controls). |
 | 067 | COVERED | `zoom-400-ext17` (200%/400% text keeps meaning). |
-| 068 | GAP | No spec emulates `forced-colors`/Windows high-contrast. Contrast/text covered (`a11y-basics`, `zoom-400-ext17`) but forced-colors text-equivalence unproven. Repro: add a `forced-colors: active` emulation spec asserting status conveyed by text, not colour alone. Small, synthetic; candidate local follow-up. |
+| 068 | COVERED | `forced-colors-ext20.spec.js` added (5 tests): demonstrated a real defect — inputs/palette lost their focus indicator under forced-colors (box-shadow not painted) — and FIXED it with a `@media (forced-colors: active)` system-colour outline; status is text-equivalent; no forced-color-adjust:none bypass (negative-control guarded). Browser-EMULATED; real Windows HC/Safari/VoiceOver stay BLOCKED (070). |
 | 069 | COVERED | `a11y-basics`, `auth-chaos`, `sales-a11y-ext20k` (live-region messages useful, no storm). |
 | 070 | BLOCKED | Real Safari/iPhone/VoiceOver not runnable here (emulated Chromium only). Manual checklist below. |
 
