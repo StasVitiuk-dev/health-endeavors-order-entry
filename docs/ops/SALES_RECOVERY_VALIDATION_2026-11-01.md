@@ -231,3 +231,31 @@ rendered-page/CSS/app/engine code — so none of the 21 is a reconstruction regr
 3. Real Safari / real iPhone / VoiceOver — emulated Chromium only.
 4. All owner/legal/external items (push, prices/MOQ/MSRP, claims, photos, provider,
    publish). These are genuine decisions, not engineering gaps.
+
+## Current-revision integrated run (2026-11-01, HEAD 01d4170 region)
+First full integrated suite on the CURRENT reconstructed tree (the earlier
+2439/21/370 predated the added specs + the forced-colors fix). Config: this
+container, Chromium "Chrome for Testing 153" (build ~1243) via the uncommitted
+diagnostic executablePath override — NOT pinned-1194 acceptance. One invocation,
+`npx playwright test` (default config, 2 workers), fullyParallel, retries 0,
+trace retain-on-failure. Real process exit captured via a watcher (the detached
+launcher's exit 0 was NOT the suite result).
+
+- **2452 passed, 24 failed, 370 skipped (1.3h)** — totals 2846 selected. (The
+  `test.fail()` "wanted … needs R1–R5" atomicity markers and po-receive:216
+  show as ✘ in the list reporter but are EXPECTED failures, counted in passed,
+  not in the 24.)
+- **24 failed = 20 visual + 1 malformed-data-ext15:50 timing (iphone)** — the
+  known diagnostic set — **+ 3 new**, all fixed this session:
+  - generated-determinism-ext20:66, write-path-inventory:81, write-path-inventory:89
+  - Root cause: stale committed write-path manifests (JSON + inventory MD), a
+    `showDashboardFor→auth.signOut` path the committed files omitted. PROVEN
+    PREEXISTING on base c06c8b5 (owner-login-app.js + specs byte-identical). Fixed
+    by the sanctioned regeneration (`write-paths.js --md --json --inventory-md`,
+    deterministic); 16/16 + generated-determinism now pass (commit 01d4170).
+- **Net after the fix: 21 known-diagnostic failures, 0 reconstruction regressions.**
+  Not rerun whole-suite for a 3-file generated-doc fix (targeted revalidation only).
+- +13 passed vs the earlier run = the added specs (forced-colors 7, mutation-classify
+  8, security regression, numeric-contract builder scan) discovered and executed.
+- Still OPEN/BLOCKED (unchanged): pinned-1194 visual pixels; 50k-token 8s timing;
+  real device/AT. Diagnostic-browser evidence ≠ pinned-browser or physical-device.
