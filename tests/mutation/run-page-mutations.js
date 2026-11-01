@@ -846,9 +846,18 @@ for (const [name, file, find, repl, specs] of MUTATIONS.filter(m => !ONLY || ONL
   const plain = out.replace(/\x1b\[[0-9;]*[A-Za-z]/g, ''); // terminal escape codes start some lines
   const failed = (plain.match(/^\s*(\d+) failed\s*$/m) || [])[1];
   const passed = (plain.match(/^\s*(\d+) passed\b/m) || [])[1];
+  // A "failed" summary line is only a legitimate kill if the test actually RAN
+  // and the failure is a test assertion. An infrastructure failure (browser
+  // can't launch, a hung-run timeout, no tests found, the page/browser closed,
+  // a network/protocol error) also prints "N failed" and would otherwise be
+  // mis-scored as CAUGHT — a false green. Key on infra signatures, NOT on
+  // "0 passed" (a single-test grep legitimately kills with 0 co-tests passing).
+  // This is a reporting guard, not a substitute for a green unmutated baseline.
+  const INFRA = /browserType\.launch|Executable doesn't exist|Looks like Playwright Test or Playwright was just installed|No tests found|Target (page|frame), context or browser has been closed|Target closed|Protocol error|net::ERR|page\.goto:|Test timeout of \d+ms exceeded/;
+  const infra = INFRA.test(plain);
   // EXT19: no test ran at all (spec failed to load, a file it reads is missing,
   // wrong filter) is neither caught nor missed: it says so.
-  results.push([name, failed ? `CAUGHT (${failed} failed, ${passed || 0} passed)` : !passed ? 'NO TEST RAN (spec did not load or filter matched nothing): ' + (plain.match(/Error: [^\n]*/) || ['no error text'])[0].slice(0, 160) : `NOT CAUGHT (${passed} passed)`]);
+  results.push([name, failed && infra ? 'INFRA FAILURE (not a legitimate kill): ' + (plain.match(INFRA) || ['infra'])[0].slice(0, 80) + ` (${failed} failed, ${passed || 0} passed)` : failed ? `CAUGHT (${failed} failed, ${passed || 0} passed)` : !passed ? 'NO TEST RAN (spec did not load or filter matched nothing): ' + (plain.match(/Error: [^\n]*/) || ['no error text'])[0].slice(0, 160) : `NOT CAUGHT (${passed} passed)`]);
   fs.writeFileSync(PROGRESS, JSON.stringify({ done: results.length, results }, null, 1));
 }
 } catch (e) {
