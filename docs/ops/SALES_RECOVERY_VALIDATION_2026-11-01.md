@@ -288,3 +288,23 @@ launcher's exit 0 was NOT the suite result).
   removal). Downstream CI (browser/DB) will run for the first time on this head; not
   guaranteed green. The 21 known diagnostic acceptance items + pinned-1194/50k-timing/
   real-device remain OPEN/BLOCKED regardless of a green static job.
+
+## CI on a497d97 + Business Health overlap fix (2026-11-01, confirmed root cause)
+First real browser run of PR #35 on CI (the Ubuntu-24.04 runner pin a497d97 fixed
+the Playwright-1.56.1 install blocker). Run 41347024553 (b49560b) jobs: static ✅,
+DB ✅, visual(advisory) ✅. Run 41348857407 (a497d97): static ✅, DB ✅, visual ✅,
+browser shard 2 ✅, shard 3 ✅, **shard 1 ❌ 1 failed / 1054 passed / 154 skipped**.
+- Failure: `session-expiry-reads-ext15` — after expiry+Refresh the "AI spend this
+  month" tile showed a stale "$0.00 / $30.00" instead of "?".
+- **Root cause CONFIRMED (not a guess):** `loadBusinessHealth` lacked the
+  `newLoadToken` overlap guard every other Home loader has, so an older in-flight
+  load (from sign-in) finished after the newer expired refresh and repainted a
+  stale tile. Fixed in 574dc92 (add the guard). Deterministic negative control
+  `tests/specs/home-overlap-ext20.spec.js` (d783658) uses request barriers (no
+  sleeps / no load dependence): it FAILS with the guard reverted and PASSES with
+  it, across both completion orders, and confirms a legitimate $0.00 still renders.
+- Provenance: diagnostic Chrome-for-Testing 153 (uncommitted executablePath
+  override, never committed); CI runs on the package-locked matched browser.
+- Honest scope: this fixes the one shard-1 failure; it is not a claim that the next
+  CI run is all-green. The browser suite's own run-to-run variability remains, and
+  pinned-1194 visual pixels / 50k-token timing / real-device acceptance stay OPEN.
