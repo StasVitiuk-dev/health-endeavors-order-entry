@@ -83,3 +83,25 @@ test('DOM sink gate passes, and fails on a new unreviewed value, a dangerous sin
   expect(sinks.gate(reasoned, { ...list, interpolations: [...list.interpolations, { file: target, expr: 'zzReasonValue', count: 1, reason: '' }] }).join('\n')).toMatch(/without a reason/);
   expect(sinks.gate(r, { ...list, ceilings: { ...list.ceilings, innerHTML: r.counts.innerHTML - 1 } }).join('\n')).toMatch(/above the ceiling/);
 });
+
+test('bare innerHTML RHS is reviewed, the innerHTML ceiling tracks zero reality, and the lexical limit is backstopped', () => {
+  const real = f => fs.readFileSync(path.join(ROOT, f), 'utf8');
+  const target = 'assets/app/he-tasks.js';
+  const list = JSON.parse(real('tests/tools/dom-sinks-reviewed.json'));
+  const plant = extra => sinks.gate(sinks.audit(sinks.FILES, f => f === target ? real(f) + '\n' + extra : real(f)));
+  expect(plant('')).toEqual([]); // shipped code is clean
+  // Regression for the confirmed 109-headroom problem: EXT19 drove innerHTML to
+  // 0, so the committed ceiling is 0 and the stale headroom cannot return silently.
+  expect(list.ceilings.innerHTML).toBe(0);
+  // A BARE (non-template) assignment of an unescaped value is a sink now: caught
+  // by the RHS content classifier and/or the ceiling. (Previously it slipped.)
+  expect(plant('function zz(t){ el.innerHTML = t.title; }').join('\n')).toMatch(/t\.title|above the ceiling 0/);
+  // Honest lexical limit: a reassuring NAME (a builder-ish var) holding untrusted
+  // data evades the *content* classifier — but the ceiling-0 backstop still fails
+  // the gate on ANY innerHTML assignment in the current tree (dataflow-independent).
+  expect(plant('function zz(t){ const rowsHtml = t.title; el.innerHTML = rowsHtml; }').join('\n')).toMatch(/above the ceiling 0/);
+  // Zero-sink enforcement for outerHTML stays dataflow-independent.
+  expect(plant('function zz(){ el.outerHTML = rowsHtml; }').join('\n')).toMatch(/outerHTML = 1/);
+  // Safe non-sink write does not false-positive.
+  expect(plant('function zz(t){ el.textContent = t.title; }')).toEqual([]);
+});
