@@ -81,7 +81,11 @@ jobs:
     name: Browser suite (shard ${{ matrix.shard }}/3)
     needs: static
     if: needs.static.outputs.browser == 'true'
-    runs-on: ubuntu-latest
+    # Pinned to ubuntu-24.04: Playwright 1.56.1 supports Ubuntu 20.04/22.04/24.04,
+    # not 26.04 (which `ubuntu-latest` became). `playwright install` fails on 26.04
+    # ("Playwright does not support chromium on ubuntu26.04-x64"). 24.04 is the
+    # newest supported image. Revert to ubuntu-latest once Playwright adds 26.04.
+    runs-on: ubuntu-24.04
     timeout-minutes: 40
     strategy:
       fail-fast: false
@@ -149,7 +153,9 @@ jobs:
     name: Screenshots (informational)
     needs: static
     if: needs.static.outputs.browser == 'true'
-    runs-on: ubuntu-latest
+    # Pinned to ubuntu-24.04 for the same reason as the browser job (it also runs
+    # `playwright install`, unsupported on ubuntu-latest=26.04).
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     continue-on-error: true
     steps:
