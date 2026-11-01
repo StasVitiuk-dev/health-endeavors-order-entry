@@ -259,3 +259,32 @@ launcher's exit 0 was NOT the suite result).
   8, security regression, numeric-contract builder scan) discovered and executed.
 - Still OPEN/BLOCKED (unchanged): pinned-1194 visual pixels; 50k-token 8s timing;
   real device/AT. Diagnostic-browser evidence ≠ pinned-browser or physical-device.
+
+## Provenance correction + push readiness (2026-11-01, final)
+- **Override provenance corrected.** Earlier notes/READMEs (incl. the v9 export)
+  called the diagnostic `executablePath` override "uncommitted/excluded." That was
+  WRONG: a `git commit -am` in `4bc5d65` swept it into the tree, so it was present
+  through `37b1f7e` (the SHA first approved). Commit `45a56fc` restores
+  `tests/playwright.config.js` to the base (c06c8b5) version — the override was its
+  only diff — so the override is now genuinely absent from the tip. v9 contains the
+  accidental override; **v10/v11 correct it.** No history was rewritten (removal is
+  a new commit, not a rebase); older archives are preserved.
+- **Pages/hosting verified (authoritative, read-only).** Codex read the owner's
+  signed-in GitHub Settings → Pages: Source = "Deploy from a branch", building from
+  branch **`main`**, folder **`/(root)`** (Save disabled; nothing changed). So a
+  push to the `claude/platform-ext20-…` feature branch cannot publish the live
+  dashboard. (The repo also has no Pages/deploy workflow and no `gh-pages` branch.)
+  This is evidence about current Pages config, not proof of every external integration.
+- **Corrected static-gate pass on the tip** (node-only; the CI static job's checks):
+  static-security, dom-sinks (ceiling 0), inline-styles, typecheck (0 gated),
+  app-modules, regex-audit, schema-contract, doc-check, status-validate,
+  secret-scan (847 files, none), sql-lint, mutation `--check` 221/0/0, asset-hash
+  consistent. With the override removed, CI's `npx playwright install` resolves the
+  package-locked browser via the standard runner cache (the override would have
+  pointed CI at a nonexistent container path).
+- **Push-candidate: this tree's tip** (see handoff), fast-forward over `c06c8b5`,
+  `main` excluded, no force. Held pending the owner's confirmation of the corrected
+  SHA (it differs from the literally-approved `37b1f7e` by exactly the override
+  removal). Downstream CI (browser/DB) will run for the first time on this head; not
+  guaranteed green. The 21 known diagnostic acceptance items + pinned-1194/50k-timing/
+  real-device remain OPEN/BLOCKED regardless of a green static job.
