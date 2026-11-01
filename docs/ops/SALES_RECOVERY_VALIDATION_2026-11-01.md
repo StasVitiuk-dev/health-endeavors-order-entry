@@ -116,3 +116,38 @@ owner-reviewed perf follow-up; timing acceptance left unresolved here.
 - Preexisting unresolved behaviour: 1 malformed-data timing (browser/CPU-bound).
 - Blocked exact-browser verification: pinned-1194 visual acceptance.
 "No reconstruction regression" is narrower than "ready to launch."
+
+## Update — performance root cause CLOSED + visual qualification (session 3)
+### malformed-data-ext15:50 — root cause established (measured), no safe fix
+The test navigates to tasksPanel/inventoryPanel after seeding a 50,000-char
+UNBROKEN token ('W'×50000) and asserts each gotoPage < 8000ms. The failure is
+**iphone-only** (390px). Measured, serial, one worker, Chromium 1243:
+- iphone unbroken token, tasksPanel: ~15.6 s (reproduces the failure).
+- iphone BREAKABLE string, same ~50k length ('W '×25000), tasksPanel: ~0.98 s.
+- desktop (1100px) unbroken: ~0.9 s (not slow).
+- inventoryPanel unbroken (iphone): ~0.5 s (not slow).
+Conclusion: the cost is the browser's text layout/line-breaking of a SINGLE
+unbroken 50k-char token at narrow width — not application/JS work (an equal-
+length breakable string is ~16× faster) and not inventory. Attempted CSS
+mitigations, both MEASURED and both ineffective (so neither kept):
+- `.taskTitle{overflow-wrap:anywhere}` → token wraps (scrollWidth 294 = clientWidth,
+  no overflow) but still ~14.6 s.
+- `table.phoneCards{table-layout:fixed}` → ~13.7 s.
+So it is an inherent browser text-engine cost for a pathological unbroken token,
+amplified by this container's Chromium 1243 + CPU. The only ways to cut it would
+truncate/segment the DISPLAYED title (losing identity) — explicitly out of scope.
+**No application code defect; no justified safe fix.** Threshold left UNCHANGED
+(not raised/skipped/weakened). Acceptance of the 8 s bound is UNRESOLVED in this
+environment; a matched reference environment (pinned browser, reference CPU) is
+where the bound was calibrated and should be re-measured. owner-login.css left
+unmodified.
+
+### Visual — scope of inspection (honest qualification)
+I inspected the regenerated DESKTOP diffs' quantitative evidence (per-case pixel
+ratio + image dimensions) for all 10 desktop cases: ratios 0.01–0.04 and HEIGHT
+deltas of ±5–30px in MIXED directions (reflow signature, not truncation). I did
+NOT pixel-inspect each of the 20 actual/expected/diff images individually; the
+lost-content/clipping ruling rests on (a) those ratio/size figures and (b) the
+content/layout/a11y assertion specs passing on the SAME browser. That is strong
+supporting evidence, not a per-image visual sign-off. Exact pinned-1194 visual
+acceptance remains BLOCKED (download 403); baselines unchanged.
