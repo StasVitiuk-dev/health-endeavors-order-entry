@@ -1147,3 +1147,16 @@ table.sysStatus td{ overflow-wrap:anywhere; }
 .u-ws-normal{white-space:normal !important}
 .u-ws-pre-wrap{white-space:pre-wrap !important}
 /* @@ end utilities @@ */
+
+/* ===== Forced-colors / Windows High Contrast (EXT20, matrix 068) =====
+   In forced-colors mode the browser ignores box-shadow, so the fields whose
+   focus ring is a box-shadow (inputs/select/textarea) or which suppress the
+   outline entirely (#paletteInput) would show NO keyboard-focus indicator.
+   Restore a real painted outline using the system Highlight colour. This block
+   only applies in forced-colors mode, so normal rendering is byte-for-byte
+   unchanged (and the normal-mode visual baselines are unaffected). */
+@media (forced-colors: active){
+  input:focus, select:focus, textarea:focus, #paletteInput:focus{
+    outline:2px solid Highlight; outline-offset:1px;
+  }
+}
