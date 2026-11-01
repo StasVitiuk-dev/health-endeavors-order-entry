@@ -10,10 +10,12 @@ pinned **1194** cannot be downloaded here). Expected images are the committed
 left intact.
 
 Method: same-size cases → ImageMagick AE + full expected|actual|diff montage,
-viewed. Height-differs cases (width identical) → cannot pixel-diff; viewed
-top strip (header/title) and bottom strip (last controls/footer) of expected vs
-actual, plus two full montages (inventory, attention). Montages under
-`scratchpad/vis-montage/`.
+viewed. Height-differs cases (width identical) → cannot pixel-diff; viewed the
+**full expected|actual montage for every panel** (both viewports) — initially via
+header + footer strips, then the middle of all eight panels was viewed in full
+(ordersPanel, tasksPanel, expensesPanel, accountingPanel, returnsPanel,
+taxRecordsPanel, inventoryPanel, attentionPanel). So all 20 are FULL-IMAGE
+inspected, not strip-only. Montages under `scratchpad/vis-montage/`.
 
 | # | case | viewport | size exp→act | what I saw (viewed images) | verdict |
 |---|---|---|---|---|---|
@@ -51,6 +53,20 @@ actual, plus two full montages (inventory, attention). Montages under
   to two rows at 358px in 1243. Both layouts are fully usable on a phone; this is
   acceptable responsive behaviour, not a defect. (It could land either way in
   real Safari depending on font metrics — a manual-device note, not a bug.)
+
+## Colour-state observations (use-of-colour, WCAG 1.4.1) — not new defects
+While viewing the panels I noted two places that use colour for emphasis, each
+with a text equivalent present, so they are acceptable (not colour-only) — logged
+for a manual forced-colors/AT confirm, not fixed:
+- **tasksPanel / attention overdue rows** use a red row background for "overdue".
+  The past **Due date** is shown as text on every row, so the state is not
+  conveyed by colour alone.
+- **Segmented period toggles** (Accounting / Tax Records: Today·Last 7 days·This
+  Month·All Time / This Year·Last Year·All Time) show the selected option with a
+  filled background. Each option has a visible text label, and under forced-colors
+  the UA still distinguishes the pressed control. Candidate manual-AT confirm.
+These are existing design choices with text equivalents; changing them was not
+warranted. The forced-colors fix (focus outlines) is the only change made.
 
 ## What is closed vs still open
 - **Matrix 018 (per-image inspection): CLOSED** — every image was viewed; the

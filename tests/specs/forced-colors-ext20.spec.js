@@ -103,3 +103,35 @@ test('the page does not opt essential UI out of forced-colors (no forced-color-a
   expect(offenders.probed, 'self-test: the scanner can detect forced-color-adjust:none').toBe(true);
   expect(offenders.bad, 'no control/status element bypasses the user forced-colors preference').toEqual([]);
 });
+
+// Keyboard navigation (not just .focus()): a real Tab walk must leave a painted
+// focus indicator on every stop. Inputs rely on the @media forced-colors outline
+// added in this change; buttons/links rely on the UA outline (not suppressed).
+test('Tab navigation shows a painted focus indicator at each sign-in stop under forced-colors', async ({ page }) => {
+  await page.emulateMedia({ forcedColors: 'active' });
+  await page.goto('/owner-login.html');
+  await page.locator('#email').focus(); // start at the first field
+  const stops = [];
+  for (let i = 0; i < 3; i++) {
+    const info = await page.evaluate(() => {
+      const el = document.activeElement; const cs = getComputedStyle(el);
+      return { id: el.id || el.tagName, style: cs.outlineStyle, width: parseFloat(cs.outlineWidth) || 0 };
+    });
+    stops.push(info);
+    await page.keyboard.press('Tab');
+  }
+  // #email, #password (our outline) and #loginBtn (UA outline) must each be painted.
+  for (const s of stops) {
+    expect(s.style !== 'none' && s.width > 0, `focus indicator on ${s.id} under forced-colors (style=${s.style} width=${s.width})`).toBe(true);
+  }
+  expect(stops.map(s => s.id)).toContain('loginBtn');
+});
+
+test('links keep a visible focus indicator under forced-colors (forgot-password link)', async ({ page }) => {
+  await page.emulateMedia({ forcedColors: 'active' });
+  await page.goto('/owner-login.html');
+  const link = page.locator('#forgotPasswordLink');
+  await link.focus();
+  const o = await link.evaluate(el => { const cs = getComputedStyle(el); return { style: cs.outlineStyle, width: parseFloat(cs.outlineWidth) || 0 }; });
+  expect(o.style !== 'none' && o.width > 0, `link focus indicator under forced-colors (style=${o.style} width=${o.width})`).toBe(true);
+});
