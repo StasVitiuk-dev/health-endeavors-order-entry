@@ -134,13 +134,18 @@ mitigations, both MEASURED and both ineffective (so neither kept):
   no overflow) but still ~14.6 s.
 - `table.phoneCards{table-layout:fixed}` → ~13.7 s.
 So it is an inherent browser text-engine cost for a pathological unbroken token,
-amplified by this container's Chromium 1243 + CPU. The only ways to cut it would
-truncate/segment the DISPLAYED title (losing identity) — explicitly out of scope.
-**No application code defect; no justified safe fix.** Threshold left UNCHANGED
-(not raised/skipped/weakened). Acceptance of the 8 s bound is UNRESOLVED in this
-environment; a matched reference environment (pinned browser, reference CPU) is
-where the bound was calibrated and should be re-measured. owner-login.css left
-unmodified.
+amplified by this container's Chromium 1243 + CPU. **No application code defect
+was demonstrated**, and the two measured CSS mitigations above were ineffective.
+That is NOT proof that no safe fix exists: the two rejected mitigations are two
+data points, not an exhaustive search (e.g. a CSS containment / content-visibility
+approach, or capping only the RENDERED glyph run while keeping the full title in
+the DOM, were not measured here and may or may not help). The obvious
+title-truncation/segmentation route is rejected because it loses record identity.
+Threshold left UNCHANGED (not raised/skipped/weakened); owner-login.css left
+unmodified. **Acceptance of the 8 s bound remains OPEN** (not "resolved"): it was
+calibrated on a matched reference environment (pinned browser, reference CPU) and
+must be re-measured there — see the matching-browser commands in the acceptance
+matrix (HE-FINAL-020). Root cause investigated ≠ acceptance passed.
 
 ### Visual — scope of inspection (honest qualification)
 I inspected the regenerated DESKTOP diffs' quantitative evidence (per-case pixel
@@ -151,3 +156,78 @@ lost-content/clipping ruling rests on (a) those ratio/size figures and (b) the
 content/layout/a11y assertion specs passing on the SAME browser. That is strong
 supporting evidence, not a per-image visual sign-off. Exact pinned-1194 visual
 acceptance remains BLOCKED (download 403); baselines unchanged.
+
+## FINAL RELEASE AUDIT — GitHub source, dependency map, failure ledger (2026-11-01)
+Read-only GitHub inspection (no push/merge/comment/CI rerun). Account acting:
+`StasVitiuk-dev` (owner token in this session); push=implied, admin not exercised.
+
+### Refs (from actual GitHub state)
+- `main` = `d3db7bc8…` (base of every open draft PR; untouched).
+- Remote EXT20 branch `claude/platform-ext20-adversarial-completion-2026-10-13`
+  tip = **`c06c8b53e5…`** = PR #35 head. (Committed by GitHub user `claude`, not
+  by a review bot or auto-approver.)
+- Local recovery branch `claude/ext20-recovery-2026-10-31` = HEAD `d3eed75`,
+  built **on top of** `c06c8b5` (11 commits; `git log` confirms linear ancestry).
+  Only working-tree change: the uncommitted diagnostic `executablePath` override
+  in `tests/playwright.config.js` (labeled DIAGNOSTIC-ONLY; not committed).
+
+### PR dependency map (ancestry + bodies)
+- PR #35 (EXT20, draft, "do not merge") — the CURRENT review target. Its body
+  states it *replaces* #34 (EXT19 → #33 → #29). mergeable_state=blocked (draft).
+- PR #29 (EXT14, draft, "do not merge") — body: its branch starts from #28's
+  `cc9a142`; #29 carries #28 + EXT14. Superseded by the #34→#35 chain per #35's
+  body, but still open. mergeable_state=blocked (draft).
+- PRs #25–#34 are the draft "DO NOT MERGE" successor chain; #16–#24 are
+  tests/docs-only. **Net: #35 is the one to review; #29 is an ancestor it
+  supersedes.** None is mergeable without Stas (all draft; protect-main needs his
+  code-owner approval). No resolution CONFLICT found in ancestry (linear chain).
+
+### PR #35 remote CI — the "two displayed failures" reconciled (KEY)
+PR #35 shows two red check rows on head `c06c8b5`: workflow run `40433231842`
+(event=push) and `40433239016` (event=pull_request) — the **same** workflow fired
+by both triggers. Job breakdown of the pull_request run:
+- `Static, SQL safety, docs, tools` → **failure** at step 17 "Node-only specs".
+- `Browser suite (shard …)`, `Local database suite`, `Screenshots (informational)`
+  → **skipped** (they `need` the static job, which failed first).
+
+The static job's failing step log (verbatim): **1 failed, 280 passed** —
+```
+screenshots-policy-ext14.spec.js:26 › every package manifest lists exactly its files
+Error: ENOENT: no such file or directory, open '…/design-review/sales-preview-2026-10-27/MANIFEST.md'
+```
+So the "two failures" are **two check-run rows for one root cause** (one missing
+file), not two distinct defects. That root cause is **exactly** what local
+reconstruction commit `03eda31` repairs (the regenerated 28-PNG MANIFEST, present
+locally at `design-review/sales-preview-2026-10-27/MANIFEST.md`). A future push of
+the recovery branch onto this head makes that remote check go green. This is the
+same source as the local reconstruction (local base == PR #35 head).
+
+### CI workflow consequence (read-only; PROPOSAL only, no push)
+`.github/workflows/ci.yml` is **tests-only**: `permissions: contents: read`, no
+secrets, no deploy/Pages step, never checks out another repo, mock blocks all
+outbound. Triggers: `pull_request→main`, `push→claude/**`, `workflow_dispatch`.
+The `visual` job is `continue-on-error: true` (screenshots never block). **So
+pushing the recovery branch would (a) re-run tests only — no deploy, no production
+touch — and (b) turn PR #35's red static check green.** Pushing remains an OWNER
+decision (not done here). Pages settings and branch-protection internals are not
+readable without admin and stay explicitly UNVERIFIED here; CLAUDE.md records the
+`protect-main` ruleset (1 code-owner approval, no self-approval, admin-only bypass).
+
+### Full-suite failure ledger (21 failures; kept visible, none closed by fiat)
+Source run: reconstructed tree `d3eed75` region, this container, Chromium 1243 via
+the diagnostic override (NOT the pinned 1194). "2439 passed, 21 failed, 370 skipped."
+| # | case | project | category | evidence | closes when |
+|---|---|---|---|---|---|
+| 1–20 | `visual.spec` screenshot baselines | desktop+iphone | INFRA (browser-build baseline mismatch) | ratios 0.01–0.04, mixed ±5–30px height reflow; all content/a11y specs pass on same browser | re-run on pinned Chromium 1194 (download 403 here) |
+| 21 | `malformed-data-ext15:50` 50k token nav <8000ms | iphone | preexisting timing, browser/CPU-bound | 15.9s; breakable 50k = 0.98s; desktop = 0.9s; reproduces on base c06c8b5 | re-measure on reference env, or a MEASURED safe fix; acceptance OPEN |
+These 21 stay in the ledger until re-measured on a matched environment or a person
+explicitly accepts/defers them. "No reconstruction regression" ≠ "ready to launch":
+git proves the 11 commits touch only test specs/tools/config + one MANIFEST — zero
+rendered-page/CSS/app/engine code — so none of the 21 is a reconstruction regression.
+
+### Acceptance still OPEN (not resolved here)
+1. Pinned-browser (1194) visual acceptance — download blocked (cdn.playwright.dev 403).
+2. Timing 8s bound on the 50k unbroken-token fixture — re-measure on reference env.
+3. Real Safari / real iPhone / VoiceOver — emulated Chromium only.
+4. All owner/legal/external items (push, prices/MOQ/MSRP, claims, photos, provider,
+   publish). These are genuine decisions, not engineering gaps.
