@@ -402,3 +402,20 @@ tracked files that generated-determinism-ext20 / write-path-inventory / modules-
 read, and the suite is fullyParallel, so executing it inside a shard could race
 those specs. The committed spec is read-only (coverage only). Candidate range for
 this validation work is local and unpushed pending separate owner approval.
+
+## Home expiry → reauth recovery coverage added (2026-11-02, item #7)
+
+session-expiry-reads-ext15 proved the expiry direction (Home figures become "?"/
+error, never a fresh zero); session-expiry-midway:102 proved a reauth'd write
+applies once. The RECOVERY direction for Home reads on the same mounted page — sign
+back in, refresh, and the real figures return — had no test. Added
+`tests/specs/home-reauth-recovery-ext20.spec.js` (desktop-only, deterministic:
+page.unroute restores the healthy mock, waitForLoadState drives timing, no sleeps):
+it captures the signed-in Home tiles as a baseline (a legitimate AI-spend zero plus
+non-zero figures), expires + refreshes (asserts "?"/error, no fresh zero), then
+reauthenticates + refreshes and asserts the tiles return EXACTLY to the baseline —
+the legitimate zero rendering as a real "$0.00 / $30.00" (not "could not be read",
+not a stale "?"), the non-zero figures restored. Passes on the diagnostic browser
+(Chrome-for-Testing 1243 via the uncommitted executablePath override, applied only
+to run and then reverted — never committed); CI runs it on the package-locked
+browser. 9 passed / 1 skipped alongside home-overlap-ext20 + session-expiry-reads.
