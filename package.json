@@ -33,7 +33,8 @@
     "changelog:check": "node tests/tools/change-log-check.js",
     "d2:interpret": "node tests/tools/query-d2-interpret.js",
     "rls:analyze": "node tests/tools/rls-analyzer.js",
-    "css:check": "node tests/tools/css-lint.js --check"
+    "css:check": "node tests/tools/css-lint.js --check",
+    "generated:check": "node tests/tools/check-generated.js"
   },
   "devDependencies": {
     "@playwright/test": "1.56.1",

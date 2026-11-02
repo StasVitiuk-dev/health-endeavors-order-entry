@@ -58,6 +58,15 @@ CI_SKIP_BROWSER=1 npm run ci:local                               # static (+ dat
 
 `npm run db:suite` was renamed `npm run db:suite:local` so nobody mistakes it for a production command.
 
+**After editing `owner-login-app.js`, a Sales engine, or any page asset, regenerate the generated files.** Those edits shift the line numbers and `?v=` hashes baked into the committed generated docs, which go stale silently. CI catches it — but only ~18 minutes into the browser shards (`generated-determinism-ext20`, `write-path-inventory`, `modules-ext15`, `sales-inventory`). Run the fast check first, in a couple of seconds:
+
+```bash
+npm run generated:check          # PASS/STALE report; exit 1 if stale. Writes nothing.
+npm run generated:check -- --write   # if stale, regenerate in place
+```
+
+It runs the same generators those specs check (`module-map.js --write`, `write-paths.js --md --json --inventory-md`, `refresh-asset-versions.js`, `sales-inventory.js --write`) and, in check mode, restores the snapshot so the working tree is left unchanged. This is the maintenance step owed after any source change; skipping it is what turned `deeaedc` red (see `SALES_RECOVERY_VALIDATION_2026-11-01.md`).
+
 ## 8. Known limitations
 
 - **Found in EXT15:** on PR #29 every CI run since the workflow was added was red. The `static` job ran `safety.spec.js` in its Node-only step, but that spec starts a browser and the `static` job installs none ("Executable doesn't exist"), so the browser shards were skipped every time. Fixed on both branches: the step now lists only Node-only specs, a guard test (`ci-guard-ext14.spec.js`, last test) fails if a browser spec is added there, and `npm run ci:local` hides the browser for that step so the local run matches CI. The EXT14 reports' "CI ready" was not checked against GitHub's actual runs; it is now.
