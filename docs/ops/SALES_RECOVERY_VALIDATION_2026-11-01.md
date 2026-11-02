@@ -359,3 +359,46 @@ is directly visible; the rest is confirmed structurally:
 Net: PR #35 CI is green on ff52294 (push + PR). This does not change the standing
 OPEN/BLOCKED items (pinned-1194 visual pixels, 50k-token timing, real-device
 acceptance) or the owner-approval gates; it records that the tests-only CI passes.
+
+## CI on 9834a1d (2026-11-02): both runs GREEN + generated:check validated
+
+Candidate 9834a1d (the CI-green record 7dbdf56 + the generated:check tool), pushed
+with owner approval as a fast-forward on ff52294 (main untouched). Both runs
+conclusion=success — kept distinct from ff52294's earlier green:
+- push 41377308570 = success
+- PR #35 run 41377313437 = success; all 6 jobs green (static, database, browser
+  shards 1/2/3, visual-advisory), every "Keep failure traces" step skipped (0
+  failures). No CI defect to fix.
+
+generated:check validation (items #3-5 of the follow-through queue), done locally
+on a disposable basis (each probe reverted; working tree left clean):
+- **Covers every freshness failure previously observed.** The deeaedc red was
+  module-map + write-path staleness; both are in the tool's command list. Auditing
+  every freshness guard in the specs found two more generated artifacts: the tool
+  now also runs `fixtures/state-machines.js --md` (STATE_MACHINES.md, guarded by
+  state-machine.spec.js:210). The remaining one, `tests/baselines/requests.json`
+  (request-baseline.spec.js), is a browser-recorded baseline, not a fast node
+  generator, so it is a documented exclusion (regenerate via `UPDATE_BASELINES=1
+  … request-baseline`; `npm run ci:local` guards it). Coverage is now pinned by
+  `tests/specs/check-generated-ext20.spec.js` so a future generated file cannot
+  silently fall outside the preflight.
+- **Check-only, names the fix, non-zero on stale (item #3).** A controlled
+  in-section line shift in owner-login-app.js makes the tool print STALE, name
+  `check-generated.js --write` and the stale files (module map, WRITE_PATH_MATRIX/
+  INVENTORY/JSON, owner-login.html), exit 1, and restore the tree (only the source
+  stays dirty). Reproduced after restoring: FRESH, exit 0.
+- **No silent regenerate, no partial changes, no swallowed failure (item #5).**
+  A bug was found and fixed in the tool: on a generator throwing mid-sequence it
+  exited without restoring, leaving the earlier generator's writes on disk. Fixed
+  so `restore()` runs on the failure path too. Verified: with a line shift (so the
+  first generator changes its output) AND a corrupted write-paths.classification.json
+  (so the second generator throws), the tool prints "generator failed (working tree
+  restored)", exits 2, and APPLICATION_MODULE_MAP is restored (not left dirty) —
+  only the two injected probes remain. The non-zero exit and the generator's own
+  error are surfaced, not swallowed.
+
+Behavioral tests are kept manual (not added to CI): the tool writes to shared
+tracked files that generated-determinism-ext20 / write-path-inventory / modules-ext15
+read, and the suite is fullyParallel, so executing it inside a shard could race
+those specs. The committed spec is read-only (coverage only). Candidate range for
+this validation work is local and unpushed pending separate owner approval.
