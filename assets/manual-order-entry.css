@@ -1,0 +1,66 @@
+/* EXT16: moved out of the page's <style> block so the page can run with style-src without 'unsafe-inline'. */
+  :root{
+    --ground:#F4F6F1; --surface:#FFFFFF; --surface-2:#EDF1EA;
+    --ink:#1E2A22; --ink-muted:#5C6A5F; --border:#DCE3D8;
+    --accent:#3E6B52; --accent-ink:#FFFFFF; --accent-soft:#E4EDE3;
+    --rose:#8C4A3E; --rose-soft:#F1E1DD;
+    --shadow: 0 1px 2px rgba(30,42,34,0.06), 0 8px 24px -12px rgba(30,42,34,0.18);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --ground:#161C17; --surface:#1E2620; --surface-2:#212B23;
+      --ink:#E7EEE7; --ink-muted:#9AAA9C; --border:#2C362E;
+      --accent:#8AC4A4; --accent-ink:#12201A; --accent-soft:#243B30;
+      --rose:#D8988A; --rose-soft:#3A241F;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px -12px rgba(0,0,0,0.5);
+    }
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--ground); color:var(--ink);
+    font-family:'Public Sans', -apple-system, sans-serif; line-height:1.5;
+    min-height:100vh; padding:24px 16px 60px;
+  }
+  .wrap{ max-width:640px; margin:0 auto; }
+  h1{ font-family:'Fraunces', Georgia, serif; font-size:26px; font-weight:600; margin:0 0 4px; }
+  .eyebrow{ font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--accent); }
+  .subtitle{ color:var(--ink-muted); font-size:14.5px; margin:6px 0 28px; }
+  .card{ background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:24px; box-shadow:var(--shadow); margin-bottom:16px; }
+  label{ display:block; font-size:13px; font-weight:600; margin-bottom:6px; color:var(--ink); }
+  input, select, textarea{
+    width:100%; font-family:inherit; font-size:15px; padding:10px 12px;
+    border:1px solid var(--border); border-radius:8px; background:var(--surface-2); color:var(--ink);
+  }
+  input:focus, select:focus, textarea:focus{ outline:2px solid var(--accent); outline-offset:1px; }
+  .field{ margin-bottom:16px; }
+  .row2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  button{
+    font-family:inherit; font-weight:600; font-size:15px; border:none; border-radius:9px;
+    padding:11px 18px; cursor:pointer;
+  }
+  .btn-primary{ background:var(--accent); color:var(--accent-ink); width:100%; }
+  .btn-primary:disabled{ opacity:.5; cursor:not-allowed; }
+  .btn-secondary{ background:var(--surface-2); color:var(--ink); border:1px solid var(--border); }
+  .btn-text{ background:none; color:var(--accent); padding:6px 4px; font-size:13.5px; }
+  .btn-remove{ background:none; color:var(--rose); padding:4px 8px; font-size:18px; line-height:1; }
+  .item-row{ display:grid; grid-template-columns:2fr 1fr 1fr auto; gap:8px; align-items:end; margin-bottom:10px; }
+  .item-row label{ font-size:11px; margin-bottom:4px; color:var(--ink-muted); }
+  .totals{ margin-top:16px; padding-top:16px; border-top:1px dashed var(--border); }
+  .totals-row{ display:flex; justify-content:space-between; font-size:14px; padding:3px 0; color:var(--ink-muted); }
+  .totals-row.grand{ color:var(--ink); font-weight:700; font-size:17px; font-family:'IBM Plex Mono',monospace; }
+  .msg{ padding:12px 14px; border-radius:9px; font-size:14px; margin-bottom:16px; }
+  .msg.error{ background:var(--rose-soft); color:var(--rose); }
+  .msg.success{ background:var(--accent-soft); color:var(--accent); }
+  .topbar{ display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; }
+  .who{ font-size:13px; color:var(--ink-muted); }
+  .who button{ margin-left:10px; }
+  [hidden]{ display:none !important; }
+
+/* EXT16: replaces style="display:none" (scripts show these by setting element.style.display, which still wins) */
+.startHidden{ display:none; }
+
+/* EXT16: replaces the page's former inline style attributes */
+.loginCard{ max-width:400px; margin:80px auto; }
+.signOutSmall{ padding:6px 12px; font-size:13px; }
+.itemsLabel{ margin-bottom:12px; }
+.totalsInput{ width:100px; text-align:right; padding:4px 8px; }
