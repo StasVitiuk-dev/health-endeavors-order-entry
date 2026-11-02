@@ -419,3 +419,109 @@ not a stale "?"), the non-zero figures restored. Passes on the diagnostic browse
 (Chrome-for-Testing 1243 via the uncommitted executablePath override, applied only
 to run and then reverted — never committed); CI runs it on the package-locked
 browser. 9 passed / 1 skipped alongside home-overlap-ext20 + session-expiry-reads.
+
+## CI on 9173ccf — the two runs DISAGREE (2026-11-02); pinned-browser + 50k reconciled
+
+**Item #1 — both exact-head runs on 9173ccf, recorded, not inferred from one:**
+- PR #35 run **41393630587 = success**, all 6 jobs green (static, database, browser
+  shards 1/2/3, visual-advisory), every "Keep failure traces" step skipped → 0 failures.
+- push run **41393623252 = FAILURE** — 5 of 6 jobs green, but **browser shard 3/3 failed
+  on ONE assertion**. Same commit, opposite shard-3 result: an intermittent flake, not
+  determinism. Not inferring green from the PR run alone — recording both.
+
+**Item #2 — the failing assertion (evidence preserved, diagnosed, NOT my diff):**
+`tests/specs/search-palette.spec.js:87 › 10,000 records: each keystroke updates the
+palette quickly` → `expect(Math.max(...fiveKeystrokeTimes)).toBeLessThan(250)` got
+**279.7 ms** (push-run shard 3; trace saved in GitHub artifact 13119122115, 7-day
+retention). This spec is **pre-existing and untouched by any of my five commits**
+(verified: `git diff --name-only 7dbdf56~1..HEAD` does not list it). Its own blame
+comment (eb8f31b, 2026-10-11) documents it as a known flaky timing test ("failed 1 in
+5 runs on EXT10 and EXT11 alike"). It measures the MAX of five synchronous keystroke
+renders over 10,000 rows against a hard 250 ms cap — inherently sensitive to shared-
+runner CPU contention. It PASSED on the PR run of the identical commit and on the
+earlier green runs (ff52294, 9834a1d). Conclusion: a long-standing intermittent timing
+flake in unrelated code, tripped by runner load, not a regression from this candidate.
+Per the owner's constraints (do not weaken timing, no rerun, no unapproved push, do not
+widen this PR with an unrelated test change) I did NOT alter it, rerun it, or push.
+Proposed hardening for the owner to decide SEPARATELY (keeps the 250 ms bound, so not a
+weakening): discard the first keystroke as JIT/layout warm-up and assert the steady-
+state keystrokes, or take the median rather than the max. Not applied.
+
+Merge-gating note (owner decides merges): the required check is reported on the SHA by
+both runs; the pull_request run is green, the push run red on this one flake. If branch
+protection treats the push run's shard-3 check as the latest for its context, it may
+show red on the branch even though the PR check is green. Flagged for the owner.
+
+**Item #3 — pinned-browser (build 1194) pixel acceptance: what CI actually closes.**
+Read from CI, not inferred. ci.yml: the three browser SHARDS run with
+`--ignore-snapshots` (NO pixel comparison); the **visual job** runs
+`playwright test visual.spec.js` with NO `--update-snapshots` and NO
+`--ignore-snapshots` → it performs real `toHaveScreenshot` comparisons against the
+committed Linux baselines. The visual job log (run 41393630587, job 125110535312)
+shows it installed **"Chromium Headless Shell 141.0.7390.37 (playwright build v1194)"**
+— the exact pinned 1194 — and ran **20 screenshot tests (10 pages × desktop 1100px +
+iphone), all ✓, "20 passed"**, not skipped, not updated. So **CI genuinely exercises
+pinned-1194 pixels and they match.** The earlier "pinned-1194 BLOCKED" was about LOCAL
+reproduction only (cdn.playwright.dev 403 blocks downloading 1194 in this container);
+it is not a gap in CI acceptance. Caveats kept honest: (a) the visual job is
+`continue-on-error: true` (advisory) — a FUTURE mismatch would not fail the run; on
+these heads the step itself passed (20/20), so the comparison genuinely matched, not
+swallowed; (b) baselines are Linux-rendered and CI's 1194 is Linux Chromium, so this
+closes pinned-browser pixels ON LINUX only. Real macOS Safari / iOS Safari / VoiceOver
+rendering is a different engine/OS and remains genuinely manual (matrix 070).
+
+**Item #4 — 50k unbroken-token timing: closed on the pinned CI browser.**
+`tests/specs/malformed-data-ext15.spec.js:50` (50,000-char product/task name; asserts
+each page nav < 8000 ms; fixture git-clean; no skip/fixme) is assigned to shard 3 and
+runs on both viewports. Direct evidence (run 41393630587 shard-3 log tail):
+`✓ 716 [iphone] malformed-data-ext15.spec.js:50:1 … (3.6s)` — it **ran and PASSED on
+the pinned 1194 browser in 3.6 s**, far under 8000 ms (the desktop copy ran in the same
+0-failed shard). So the 50k timing requirement is **met on the pinned CI browser** — not
+skipped, not changed, not open. The ~15.6 s "unresolved" figure in the perf ledger was
+measured on the LOCAL diagnostic browser (Chrome-for-Testing 1243) in this slower cloud
+container — an environment artifact, not a CI failure and not a product defect. (The
+separate search-palette 250 ms keystroke flake above is a different, pre-existing test.)
+
+## Items #5–#8 reconciliation (2026-11-02)
+
+**#5 — Pages config wording corrected.** Acceptance matrix row 008 changed from BLOCKED
+"UNVERIFIED" to PARTIAL: Codex independently viewed owner Settings→Pages (dated
+2026-11-02) and reported deploy-from-branch `main`, `/(root)`, no setting changes —
+recorded as reported external evidence. This session can verify only the public live
+URL serving + that ci.yml has no deploy/Pages step; it cannot read Settings without
+admin. Branch-protection rule bodies remain separately UNVERIFIED by this session
+(known from CLAUDE.md, not read from the API). No setting change requested or needed.
+
+**#6 — load-time feature flag supersedes any runtime-toggle language.** `he-config.js:116`
+states the Sales flag is "read once at page load; flip it and reload to change it"
+(`salesGrowthOn()` reads `localStorage 'he_sales_growth'` once; `SIDEBAR_GROUPS.push`
+guarded at load). There is NO runtime toggle and none is needed. The existing gating
+tests already match flip+reload: `sales-wiring-ext20j.spec.js:28` (flag OFF default →
+no Sales group/links, panels render the DISABLED shell) and :63 (flag ON → the seven
+pages present/navigable/synthetic), i.e. HE-D500-031. So the earlier "flag ON→OFF with
+a panel open" phrasing is reconciled: it is a reload transition, already covered; no
+fictional runtime-toggle implementation was or should be added.
+
+**#7/#8 — generated:check restore-on-failure: exact guarantee (not overclaimed).**
+Audited `restore()` in tests/tools/check-generated.js:
+- Originally-absent files: snapshot is `null`; if a generator created the file, restore
+  `unlinkSync`s it back to absent. Verified by design; the snapshot keys are the fixed
+  output list.
+- Binary/JSON byte-exactness: files are read as Buffers (no encoding), compared with
+  `Buffer.equals`, and restored with `writeFileSync(buffer)` — byte-identical, so JSON
+  (and any binary) is preserved exactly, not reserialized.
+- Caught generator failure: `execFileSync` throws on a non-zero exit; the catch runs
+  `restore()`, prints the generator's stderr, and exits 2 — the failure is surfaced,
+  never swallowed. Verified earlier (corrupted write-paths.classification.json → second
+  generator throws → "generator failed (working tree restored)", exit 2, the first
+  generator's already-written module map restored; only the injected probes left dirty).
+- **Exact guarantee, not overclaimed:** side-effect-free on the ordinary fresh, stale,
+  and caught-generator-failure paths. It is NOT crash-atomic — a SIGKILL/power loss
+  mid-restore, or a concurrent writer touching the same files, can leave changes; and it
+  never regenerates silently in check mode. Documented as such.
+- Coverage: `check-generated-ext20.spec.js` pins the output-coverage contract (read-only,
+  safe under the suite's fullyParallel mode). The fresh/stale/failure-restore RUN-TIME
+  behavior stays MANUALLY verified and recorded here, deliberately NOT added as a CI
+  spec: the tool writes the shared generated files that generated-determinism-ext20 /
+  write-path-inventory / modules-ext15 read, so executing it inside a fullyParallel shard
+  could race those specs. A flaky test would be worse than a documented manual check.

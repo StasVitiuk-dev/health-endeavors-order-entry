@@ -22,7 +22,7 @@ outside local synthetic scope) · **N/A** (with reason). Companion detail:
 | 005 | COVERED | Failing remote check head = `c06c8b5`, runs 40433231842 (push) + 40433239016 (PR), both this SHA. |
 | 006 | COVERED | Remote (historical): red on `c06c8b5` — one failing test. Local (current): same base + 11 commits; the fix is committed (03eda31). Kept distinct. |
 | 007 | COVERED | `.github/workflows/ci.yml` read: triggers `pull_request→main`, `push→claude/**`, `workflow_dispatch`; tests-only, `contents: read`, no deploy/Pages, no secrets. Not executed. |
-| 008 | BLOCKED | Pages settings + branch-protection internals not readable without admin (CLAUDE.md: `protect-main`, 1 code-owner approval, no self-approval, admin-only bypass). Explicitly UNVERIFIED. |
+| 008 | PARTIAL | **Pages config (reported):** Codex independently viewed owner Settings→Pages (dated 2026-11-02) and reported deploy-from-branch `main`, `/(root)`, with no setting changes — recorded here as reported external evidence, not something this session verified. **This session can verify** only the public live URL serving and that `ci.yml` contains no deploy/Pages step (tests-only, `contents: read`); it cannot read Settings without admin. **Branch-protection internals** (`protect-main` rule bodies: 1 code-owner approval, no self-approval, admin-only bypass) remain separately UNVERIFIED by this session (known from CLAUDE.md, not read from the API). No setting change requested or needed. |
 | 009 | COVERED | Proposed future sequence drafted (§Owner handoff below + validation doc); not executed. |
 | 010 | COVERED | No unresolved dependency conflict: linear ancestry, one net review target (#35). Proposed order documented. |
 
