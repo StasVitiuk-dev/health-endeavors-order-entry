@@ -162,18 +162,61 @@ outside local synthetic scope) · **N/A** (with reason). Companion detail:
   login (not exercised here). No Shopify/Gmail/provider action.
 
 ## Owner handoff — review path, decisions, manual checklist, release note
-**Review path (Sales OFF, synthetic):** sign in → Home → Orders → Inventory →
-Tasks → Reports → System status. Then (optional) flip the Sales flag ON in a
-private window to preview the 47 gated pages; everything is dry-run.
+**Corrected manual review package (2026-11-02, items #9–#16).** Test the EXACT
+candidate as a LOCAL, isolated, SYNTHETIC preview — NOT the live GitHub Pages site
+and NOT old `main` (an unmerged branch is not what Pages serves). Everything below is
+synthetic, offline, dry-run; it sends nothing and touches no production/customer data.
 
-**Manual acceptance checklist (BLOCKED here — needs your devices):**
-real Safari desktop; real iPhone Safari at 390px; VoiceOver pass on Home + one
-order flow; pinned-browser (1194) screenshot run; 50k-token timing on a reference
-machine.
+*Build the preview from the candidate (dashboard bytes are identical from `ff52294`
+on — the later commits add only tests/tools/docs, no `owner-login.html`/app change):*
+```bash
+git checkout 9173ccf            # pushed candidate head (or local 5fbe0c1; same dashboard)
+node tests/tools/staging/build-staging.js staging-build --offline
+# → writes staging-build/ (pinned library bundled; no CDN, nothing fetched)
+```
+*Open on your Mac (Safari):* open `staging-build/owner-login.html`. A permanent
+**"DEVELOPMENT / STAGING — NOT PRODUCTION"** banner shows; click its **synthetic-owner
+sign-in** button — no password, no real account. The banner has a **scenario selector**
+(or append `?scenario=<id>` to the URL).
+*Open on your iPhone (you run this; I do not bind/serve or change any firewall):* on the
+Mac, in `staging-build/`, run a local static server (e.g. `python3 -m http.server 8000`)
+and on the iPhone (same Wi-Fi) open `http://<your-Mac-LAN-IP>:8000/owner-login.html`.
+Keep it on your LAN; do not expose it publicly.
+
+**Executable checks — mark each PASS/FAIL + note; real-device/AT rows are UNRUN until
+you supply evidence.** AI-spend expected value is the configured cap
+(`AI_SPEND_CAP`, currently **$30** in `owner-login-app.js`), not a hard-coded number;
+"unavailable" (**"?" / "could not be read"**) must never look like a legitimate
+**$0.00**.
+
+| # | Route / setup | Action | Expected | Evidence |
+|---|---|---|---|---|
+| M1 Login | `owner-login.html` (default scenario) | Click synthetic-owner sign-in | Home loads with synthetic figures; AI spend shows a real **$0.00 / $30.00** (legitimate zero) | ☐ UNRUN |
+| M2 Expiry | `?scenario=session-expired`, sign in | Press **Refresh** (⌘⇧R) on Home | Every figure becomes **"?" / "could not be read"**; an "expired / sign in again" message; **never a fresh $0.00** | ☐ UNRUN |
+| M3 Recovery | after M2 | Switch the banner scenario back to **default** and reload; sign in | Real figures return, AI spend back to **$0.00 / $30.00** (not "could not be read"). *(Same-page reauth without reload is covered by the automated spec `home-reauth-recovery-ext20`.)* | ☐ UNRUN |
+| M4 Narrow width | a Sales decision page (see setup note) at 320 px and 390 px | Read the card | Identity, recommendation, uncertainty wording, **STOP/DNC**, reasons and next-action all readable, nothing clipped or overlapping | ☐ UNRUN |
+| M5 Keyboard/focus | any page, keyboard only | ⌘K opens the palette; Tab within it; **Esc** | Focus enters the palette, Tab stays inside, **Esc** closes and returns focus to where you were | ☐ UNRUN |
+| M6 Dialog (no real write) | Orders → a synthetic order → Delete | At the password prompt press **Cancel / Esc** | Nothing is deleted or sent; focus returns. **Do not complete a delete** (staging is synthetic, but keep it Cancel-only) | ☐ UNRUN |
+| M7 Uncertainty/STOP | Approvals / an outreach page | Read the wording | States plainly **Approve is not Send**; a DNC/decline dominates | ☐ UNRUN |
+| M8 Search response | ⌘K, type a few letters | Watch the results | Updates feel immediate; results capped, readable (this is the automated `search-palette` check's manual counterpart) | ☐ UNRUN |
+| M9 VoiceOver | Home + one decision page (real iPhone/Mac) | VoiceOver on | Tiles/controls announced with names; "?" announced as unavailable, not zero | ☐ UNRUN (AT) |
+
+*Setup note for M4/M7 (Sales decision pages — flag ON, load-time + reload):* in the
+browser console run `localStorage.setItem('he_sales_growth','on')` then **reload**; the
+**"Sales & Growth"** group appears — open **"Growth Command Center"** (`salesCommandPanel`)
+and the other six pages. The flag is read once at load (there is no runtime toggle), so
+a reload is required; flag visibility is a preview only, not authorization to use Sales.
+
+**Still genuinely BLOCKED (need your physical devices):** M9 VoiceOver and the real
+Safari/iPhone WebKit rendering (CI runs Linux Chromium only); and the pinned-1194 pixel
+pass is done by CI on Linux (advisory) — it is not a substitute for how the pages look on
+real iOS/macOS WebKit.
 
 **True owner decisions (approve / decline / defer):**
-1. Push the recovery branch to update PR #35 (turns its one red check green;
-   tests-only CI, no deploy). — *decide*
+1. PR #35 is now pushed and GREEN on head `9173ccf` (PR run all 6 jobs pass; the
+   push-event run shows one red from a pre-existing intermittent `search-palette`
+   timing flake — see the validation doc). Remaining: **merge** (publishes the live
+   dashboard — yours), and optionally push the local-only docs commit `5fbe0c1`. — *decide*
 2. Prices / MOQ / MSRP / wholesale. — *deferred*
 3. Product claims / descriptions / photos. — *deferred*
 4. Gmail / provider / publish (Q11/Q12). — *deferred*

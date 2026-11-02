@@ -525,3 +525,51 @@ Audited `restore()` in tests/tools/check-generated.js:
   spec: the tool writes the shared generated files that generated-determinism-ext20 /
   write-path-inventory / modules-ext15 read, so executing it inside a fullyParallel shard
   could race those specs. A flaky test would be worse than a documented manual check.
+
+## search-palette:87 timing failure — profiled; intermittent measurement artifact, no defect (2026-11-02, items #1-8)
+
+Investigated the one push-run failure (search-palette.spec.js:87, slowest keystroke
+279.7 ms vs <250 ms) as a real question, not auto-dismissed.
+
+**What the number measures (#1):** the test opens the palette on `inventoryPanel` with
+10,000 products seeded, then in one `page.evaluate` loop sets `#paletteInput.value` and
+dispatches a synchronous `input` event for five queries (`s`, `sc`, `sca`, `scale`,
+`scale product 99`) and asserts `Math.max(...fiveSynchronousDispatchTimes) < 250`. So it
+is the worst single synchronous input-handler time: `paletteItems(q)` →
+`searchEverything(q)` (scan of SEARCH_INDEX) + `renderPalette()` (rebuild of ≤40 result
+nodes). DOM is capped at 40 (`items.slice(0,40)`), results at 30 (`CAP`).
+
+**Profiling before any refactor (#4/#5/#6), two controlled reproducers:**
+- Node microbench of the exact inventory hot loop over 10,000 records (5 queries, 20
+  reps each): slowest keystroke `'scale product 99'` ≈ **3.0 ms**, short queries ≈
+  0.15 ms. A precomputed-lowercased-haystack variant gives identical shown-counts at
+  ≈0.6 ms — i.e. the search JS is already cheap; optimizing it would move a 279 ms
+  number by ~2 ms. (node, not a browser — JS-work lower bound; DOM excluded.)
+- Browser probe on the diagnostic browser (Chrome-for-Testing **1243**, via the
+  uncommitted executablePath override, applied only to run and reverted — NOT the CI
+  pin 1194): full synchronous dispatch per keystroke on `inventoryPanel` (10,000 rows
+  confirmed in the DOM) = `[8,5,4,4,10] ms`, max **10 ms**; on a light page
+  (`tasksPanel`) = `[6,4,4,5,8] ms`, max **8 ms**. Same SEARCH_INDEX either way.
+
+**Facts vs hypotheses (#2):**
+- REFUTED — "the 10k search scan dominates": measured ~3 ms.
+- REFUTED — "10k rows in the DOM force a big reflow per keystroke": 10 ms (inventory)
+  vs 8 ms (light) — DOM scale adds ~2 ms, not hundreds.
+- SUPPORTED — the operation's steady-state cost is ~10 ms on the diagnostic browser
+  (and ~3 ms of that is the search JS). A 279.7 ms reading is a ~27× one-off spike on a
+  single `performance.now()` sample: a GC/JIT/scheduler/runner-contention transient, not
+  steady-state work. Consistent with the identical commit PASSING the same assertion on
+  the PR run, and with the spec's own history ("1 in 5 on EXT10/EXT11").
+
+**Conclusion (#7/#8):** no demonstrated palette implementation defect — the hot paths
+are already within budget — so NO code change is made (a `searchEverything` optimization
+would not address a layout/GC spike and is unjustified). This is a genuine intermittent
+TIMING-ACCEPTANCE artifact of a hard `Math.max`-of-wall-clock-samples threshold. Not
+claimed "fixed"; not rerun remotely. The 250 ms criterion is PRESERVED unchanged (#3):
+substituting median or discarding a warm-up keystroke would change the acceptance
+criterion and needs owner agreement — not done.
+**Uncertainty kept honest:** measured on the diagnostic browser 1243 and this container's
+CPU, not the CI pin 1194 on GitHub runners; the exact 279.7 ms was NOT reproduced here,
+which is itself evidence it is not steady-state. If the owner wants the flake removed,
+the options (owner decision) are to harden the metric (median / drop warm-up, keeping a
+max bound) or isolate the measurement from GC — both change the test and are deferred.
