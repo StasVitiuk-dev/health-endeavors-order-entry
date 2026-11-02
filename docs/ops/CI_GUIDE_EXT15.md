@@ -65,7 +65,7 @@ npm run generated:check          # PASS/STALE report; exit 1 if stale. Writes no
 npm run generated:check -- --write   # if stale, regenerate in place
 ```
 
-It runs the same generators those specs check (`module-map.js --write`, `write-paths.js --md --json --inventory-md`, `refresh-asset-versions.js`, `sales-inventory.js --write`) and, in check mode, restores the snapshot so the working tree is left unchanged. This is the maintenance step owed after any source change; skipping it is what turned `deeaedc` red (see `SALES_RECOVERY_VALIDATION_2026-11-01.md`).
+It runs the same generators those specs check (`module-map.js --write`, `write-paths.js --md --json --inventory-md`, `refresh-asset-versions.js`, `sales-inventory.js --write`, `fixtures/state-machines.js --md`) and, in check mode, snapshots each output, regenerates, compares, then restores the snapshot — so the working tree is left unchanged, even if a generator fails part-way (no partial writes). This is the maintenance step owed after any source change; skipping it is what turned `deeaedc` red (see `SALES_RECOVERY_VALIDATION_2026-11-01.md`). It deliberately does **not** cover `tests/baselines/requests.json` (the recorded database-request baseline), which is regenerated from a full browser run, not a node generator — `npm run ci:local` (the `request-baseline` spec) guards that. Coverage is pinned by `tests/specs/check-generated-ext20.spec.js`, which fails if a generated file gains a freshness spec but is not added to the preflight.
 
 ## 8. Known limitations
 
