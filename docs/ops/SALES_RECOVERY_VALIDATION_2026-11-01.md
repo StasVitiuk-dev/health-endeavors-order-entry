@@ -575,3 +575,30 @@ substituting median, discarding a warm-up keystroke, or moving the threshold wou
 the acceptance criterion and needs owner agreement — not done. Honest residual: measured
 on diagnostic browser 1243 and this container's CPU, not the CI pin 1194 on GitHub
 runners.
+
+## Owner-review ZIP (runnable synthetic preview) — built + verified (2026-11-02)
+
+Delivered to the owner so the verified preview can be reviewed with NO git checkout or
+npm toolchain. Distinct from the v18 git recovery archive (that is base..HEAD bundle +
+patches for restore; this is the runnable staging output).
+
+- Source: exact candidate `9173ccf`, built in a disposable git worktree with
+  `node tests/tools/staging/build-staging.js preview --offline` (the project's own
+  sanitizer; placeholder host, build-time guard against any real address/key/secret).
+- Archive: `he-dashboard-SYNTHETIC-review-9173ccf.zip`
+  SHA256 `fada4782c8788f8287a77d5e815ae2721717207aaafdd92bfa931feeaeb59d4b` (~440 KB,
+  85 files; per-file hashes in the zip's `MANIFEST-SHA256.txt`). Contains the preview
+  only: `index.html` entry, `staging-runtime.js`, `assets/`, `vendor/supabase.js`,
+  `README-STAGING.txt`, and a nontechnical `REVIEW-README.txt`. NO git history, NO
+  node_modules, NO production endpoints/keys, NO customer data, NO diagnostic override.
+- Verified by EXTRACTING into a fresh directory (no repo) and serving over loopback
+  (127.0.0.1) on the diagnostic Chromium (Linux; NOT Safari/iPhone): banner "NOT
+  PRODUCTION"; synthetic sign-in → Home AI spend $0.00/$30.00; `?scenario=session-expired`
+  → Refresh → tiles "? (could not be read)", no fresh $0; Sales group visible with the
+  flag on. **Only observed network host: 127.0.0.1 — zero production/internet requests**
+  (CSP/SRI load from the package; fully offline). CSP/SRI were NOT weakened to package.
+- Prerequisite stated honestly in the README: a local static server (Python 3, built into
+  macOS, or `npx http-server`) — the server is NOT bundled. iPhone access is pending a
+  separately agreed safe method (localhost on iPhone ≠ the Mac); no network opened here.
+- The ZIP is reproducible from `9173ccf` with the command above; it is a build output, not
+  part of the git candidate.
