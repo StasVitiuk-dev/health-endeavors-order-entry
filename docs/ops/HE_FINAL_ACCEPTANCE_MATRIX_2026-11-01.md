@@ -167,21 +167,39 @@ candidate as a LOCAL, isolated, SYNTHETIC preview — NOT the live GitHub Pages 
 and NOT old `main` (an unmerged branch is not what Pages serves). Everything below is
 synthetic, offline, dry-run; it sends nothing and touches no production/customer data.
 
-*Build the preview from the candidate (dashboard bytes are identical from `ff52294`
-on — the later commits add only tests/tools/docs, no `owner-login.html`/app change):*
+*Build the preview from the candidate in an ISOLATED directory (verified end-to-end on
+2026-11-02 against exact `9173ccf`; the build reads the tree and writes only to its
+out-dir — it does not modify tracked source and scrubs the production host/key to
+placeholders). Use a git worktree so nothing in your own checkout is touched — do NOT
+`git checkout` in a working tree that has changes:*
 ```bash
-git checkout 9173ccf            # pushed candidate head (or local 5fbe0c1; same dashboard)
-node tests/tools/staging/build-staging.js staging-build --offline
-# → writes staging-build/ (pinned library bundled; no CDN, nothing fetched)
+git worktree add --detach ../he-review 9173ccf     # isolated copy of the exact candidate
+cd ../he-review && npm ci                            # deps (needed for --offline)
+node tests/tools/staging/build-staging.js preview --offline
+# → writes preview/ : index.html, staging-runtime.js, assets/, vendor/, README-STAGING.txt
 ```
-*Open on your Mac (Safari):* open `staging-build/owner-login.html`. A permanent
-**"DEVELOPMENT / STAGING — NOT PRODUCTION"** banner shows; click its **synthetic-owner
-sign-in** button — no password, no real account. The banner has a **scenario selector**
-(or append `?scenario=<id>` to the URL).
-*Open on your iPhone (you run this; I do not bind/serve or change any firewall):* on the
-Mac, in `staging-build/`, run a local static server (e.g. `python3 -m http.server 8000`)
-and on the iPhone (same Wi-Fi) open `http://<your-Mac-LAN-IP>:8000/owner-login.html`.
-Keep it on your LAN; do not expose it publicly.
+*Serve over LOOPBACK HTTP — not `file://`.* The page's Content-Security-Policy and the
+library's integrity (SRI) require a real origin; opening the file directly will not run.
+The build's own `README-STAGING.txt` says to use a local web server:
+```bash
+cd preview && npx http-server -a 127.0.0.1 -p 8080 .   # or: python3 -m http.server 8080 --bind 127.0.0.1
+# open http://localhost:8080/  (entry is index.html) in Safari on the Mac
+# stop the server with Ctrl-C when done
+```
+A permanent **"DEVELOPMENT / STAGING — NOT PRODUCTION"** banner shows; click its
+**synthetic-owner sign-in** button (typing is disabled — no password, no real account).
+The banner has a **scenario selector** (or append `?scenario=<id>`). **Fixture reset:**
+reloading restarts from the seed (data is not saved). The synthetic *session* persists
+in local storage, so to re-exercise sign-in or expiry use a **fresh private window per
+run** (or clear site data). *iPhone (you run this; I never bind publicly or change a
+firewall):* run the same loopback server on the Mac, then on the iPhone (same Wi-Fi) open
+`http://<your-Mac-LAN-IP>:8080/` — keep it on your LAN only.
+
+*Verified here on Linux Chromium (diagnostic build 1243), NOT Safari/iPhone:* M1 sign-in
+→ Home with AI spend **$0.00 / $30.00**; M2 `?scenario=session-expired` → Refresh → tiles
+**"? … (could not be read)"**, "JWT expired" message, no fresh $0; M3 healthy sign-in →
+values return; Sales group visible with the flag on; Orders route present; no page
+errors. The rows below are the owner's to run on **real Safari/iPhone/VoiceOver**.
 
 **Executable checks — mark each PASS/FAIL + note; real-device/AT rows are UNRUN until
 you supply evidence.** AI-spend expected value is the configured cap
@@ -191,9 +209,9 @@ you supply evidence.** AI-spend expected value is the configured cap
 
 | # | Route / setup | Action | Expected | Evidence |
 |---|---|---|---|---|
-| M1 Login | `owner-login.html` (default scenario) | Click synthetic-owner sign-in | Home loads with synthetic figures; AI spend shows a real **$0.00 / $30.00** (legitimate zero) | ☐ UNRUN |
-| M2 Expiry | `?scenario=session-expired`, sign in | Press **Refresh** (⌘⇧R) on Home | Every figure becomes **"?" / "could not be read"**; an "expired / sign in again" message; **never a fresh $0.00** | ☐ UNRUN |
-| M3 Recovery | after M2 | Switch the banner scenario back to **default** and reload; sign in | Real figures return, AI spend back to **$0.00 / $30.00** (not "could not be read"). *(Same-page reauth without reload is covered by the automated spec `home-reauth-recovery-ext20`.)* | ☐ UNRUN |
+| M1 Login | `http://localhost:8080/` (index.html), default scenario | Click synthetic-owner sign-in | Home loads with synthetic figures; AI spend shows a real **$0.00 / $30.00** (legitimate zero) | ☐ UNRUN |
+| M2 Expiry | fresh private window → `http://localhost:8080/?scenario=session-expired`, sign in, wait ~2 s | Press **Refresh** (⌘⇧R) on Home | Every figure becomes **"?" / "could not be read"**; a "JWT expired / sign in again" message; **never a fresh $0.00** | ☐ UNRUN |
+| M3 Recovery | after M2, pick **default** in the banner scenario selector (it reloads; the session persists so Home shows again) | Observe Home | Real figures return, AI spend back to **$0.00 / $30.00** (not "could not be read"). *(Same-mounted-page reauth without reload is covered by the automated spec `home-reauth-recovery-ext20`.)* | ☐ UNRUN |
 | M4 Narrow width | a Sales decision page (see setup note) at 320 px and 390 px | Read the card | Identity, recommendation, uncertainty wording, **STOP/DNC**, reasons and next-action all readable, nothing clipped or overlapping | ☐ UNRUN |
 | M5 Keyboard/focus | any page, keyboard only | ⌘K opens the palette; Tab within it; **Esc** | Focus enters the palette, Tab stays inside, **Esc** closes and returns focus to where you were | ☐ UNRUN |
 | M6 Dialog (no real write) | Orders → a synthetic order → Delete | At the password prompt press **Cancel / Esc** | Nothing is deleted or sent; focus returns. **Do not complete a delete** (staging is synthetic, but keep it Cancel-only) | ☐ UNRUN |
@@ -202,10 +220,15 @@ you supply evidence.** AI-spend expected value is the configured cap
 | M9 VoiceOver | Home + one decision page (real iPhone/Mac) | VoiceOver on | Tiles/controls announced with names; "?" announced as unavailable, not zero | ☐ UNRUN (AT) |
 
 *Setup note for M4/M7 (Sales decision pages — flag ON, load-time + reload):* in the
-browser console run `localStorage.setItem('he_sales_growth','on')` then **reload**; the
-**"Sales & Growth"** group appears — open **"Growth Command Center"** (`salesCommandPanel`)
-and the other six pages. The flag is read once at load (there is no runtime toggle), so
-a reload is required; flag visibility is a preview only, not authorization to use Sales.
+browser console run `localStorage.setItem('he_sales_growth','on')` then **reload**. The
+**"Sales & Growth"** group appears but is **collapsed by default** — click its group
+header to **expand** it, then open **"Growth Command Center"** (`salesCommandPanel`); the
+page is titled "Growth Command Center" and carries **SIMULATED** labels (the uncertainty/
+advisory marking), and the other six pages open the same way. The flag is read once at
+load (there is no runtime toggle), so a reload is required; flag visibility is a preview
+only, not authorization to use Sales. *(Verified on Linux Chromium that the group renders
+with the flag on; the collapsed-group expand step is from the app's own nav behavior,
+matched by `sales-wiring-ext20j`.)*
 
 **Still genuinely BLOCKED (need your physical devices):** M9 VoiceOver and the real
 Safari/iPhone WebKit rendering (CI runs Linux Chromium only); and the pinned-1194 pixel

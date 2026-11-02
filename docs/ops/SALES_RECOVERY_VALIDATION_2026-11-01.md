@@ -555,21 +555,23 @@ nodes). DOM is capped at 40 (`items.slice(0,40)`), results at 30 (`CAP`).
 - REFUTED — "the 10k search scan dominates": measured ~3 ms.
 - REFUTED — "10k rows in the DOM force a big reflow per keystroke": 10 ms (inventory)
   vs 8 ms (light) — DOM scale adds ~2 ms, not hundreds.
-- SUPPORTED — the operation's steady-state cost is ~10 ms on the diagnostic browser
-  (and ~3 ms of that is the search JS). A 279.7 ms reading is a ~27× one-off spike on a
-  single `performance.now()` sample: a GC/JIT/scheduler/runner-contention transient, not
-  steady-state work. Consistent with the identical commit PASSING the same assertion on
-  the PR run, and with the spec's own history ("1 in 5 on EXT10/EXT11").
+- MEASURED — the operation's steady-state cost on the diagnostic browser is ~10 ms
+  (of which ~3 ms is the search JS). This shows the hot paths are far under 250 ms in
+  the conditions reproducible here; it does NOT by itself establish what caused the one
+  CI event to read 279.7 ms.
 
-**Conclusion (#7/#8):** no demonstrated palette implementation defect — the hot paths
-are already within budget — so NO code change is made (a `searchEverything` optimization
-would not address a layout/GC spike and is unjustified). This is a genuine intermittent
-TIMING-ACCEPTANCE artifact of a hard `Math.max`-of-wall-clock-samples threshold. Not
-claimed "fixed"; not rerun remotely. The 250 ms criterion is PRESERVED unchanged (#3):
-substituting median or discarding a warm-up keystroke would change the acceptance
-criterion and needs owner agreement — not done.
-**Uncertainty kept honest:** measured on the diagnostic browser 1243 and this container's
-CPU, not the CI pin 1194 on GitHub runners; the exact 279.7 ms was NOT reproduced here,
-which is itself evidence it is not steady-state. If the owner wants the flake removed,
-the options (owner decision) are to harden the metric (median / drop warm-up, keeping a
-max bound) or isolate the measurement from GC — both change the test and are deferred.
+**Conclusion (#7/#8) — corrected to the evidence (gap A):** this is an **intermittent
+maximum-latency failure; the cause is UNCONFIRMED. Local profiling (node microbench +
+diagnostic-browser probe) did not reproduce the 279.7 ms excursion** — the slowest
+keystroke measured here was ~10 ms. A passing identical-commit PR run and the spec's "1
+in 5" history are consistent with intermittency but are NOT proof of the failing event's
+cause; the retained GitHub trace (artifact 13119122115) is a Playwright action trace of a
+`performance.now()` delta and does not carry an engine-level CPU/GC profile, so it cannot
+confirm the cause either. Because no palette implementation defect is demonstrated — and
+a `searchEverything` optimization (~2 ms) would not move a ~279 ms number — **no code
+change is made, and no "fixed" claim is made; CI was not rerun.** The **failed
+maximum-latency criterion (slowest keystroke < 250 ms) stays visible and UNCHANGED** (#3):
+substituting median, discarding a warm-up keystroke, or moving the threshold would change
+the acceptance criterion and needs owner agreement — not done. Honest residual: measured
+on diagnostic browser 1243 and this container's CPU, not the CI pin 1194 on GitHub
+runners.
