@@ -308,3 +308,54 @@ browser shard 2 ✅, shard 3 ✅, **shard 1 ❌ 1 failed / 1054 passed / 154 ski
 - Honest scope: this fixes the one shard-1 failure; it is not a claim that the next
   CI run is all-green. The browser suite's own run-to-run variability remains, and
   pinned-1194 visual pixels / 50k-token timing / real-device acceptance stay OPEN.
+
+## CI on deeaedc → ff52294 (2026-11-01/02): both runs GREEN (read-only tracking)
+
+Sequence after the Home overlap fix:
+- **deeaedc** (recorded the a497d97 results + the fix): runs 41353468270 (push) and
+  41353473686 (PR) **FAILED** — but NOT the session-expiry failure (that was fixed).
+  The 6-line guard in `loadBusinessHealth` (574dc92) shifted `owner-login-app.js`
+  line numbers, so the committed generated files went stale. Browser shards 1 & 2
+  caught it deterministically: `generated-determinism-ext20`, `write-path-inventory`,
+  `modules-ext15` (section-3 map). This is CI working as designed — a maintenance
+  step owed after any owner-login-app.js source change, not a code regression.
+- **ff52294** (regenerated module map + write-path inventory/matrix/JSON with the repo
+  tools): runs **41362496752 (push) = success** and **41362500770 (PR #35) = success**.
+
+ff52294 PR run 41362500770 — all 6 jobs `conclusion: success`:
+| Job | Result |
+|---|---|
+| Static, SQL safety, docs, tools (node-only specs step) | ✅ success |
+| Local database suite (throwaway PostgreSQL 16) | ✅ success |
+| Browser suite shard 1/3 | ✅ 833 passed, 106 skipped, **0 failed** |
+| Browser suite shard 2/3 | ✅ 924 passed, 177 skipped, **0 failed** |
+| Browser suite shard 3/3 | ✅ 722 passed, 87 skipped, **0 failed** |
+| Screenshots (visual, advisory) | ✅ success |
+
+Browser totals: **2479 passed, 370 skipped, 0 failed.** "Keep failure traces" step
+is `skipped` in every shard (it runs only on failure) — corroborates 0 failures.
+Push run 41362496752 mirrors this (same head SHA, same workflow). `main` untouched.
+
+Spec-level confirmation (distinguishing executed-and-passed from skipped). The
+GitHub job-log API truncates to the tail (~92 KB), so only each shard's final window
+is directly visible; the rest is confirmed structurally:
+- **Directly observed ✓ (desktop):**
+  `session-expiry-reads-ext15:16` "Home refresh after expiry: figures become '?'"
+  (#420) — the EXACT test red on a497d97 — plus :32 (#421) and :47 (#422);
+  `write-path-inventory` "generated matrix up to date" (#623), "JSON inventory up to
+  date" (#624), "WRITE_PATH_INVENTORY.md up to date" (#625).
+- **Confirmed by structure (ran in the truncated head):** `generated-determinism-ext20`
+  (shard 2) and `modules-ext15:93` "APPLICATION_MODULE_MAP_EXT15.md section 3 matches
+  the code" (shard 1), and the `home-overlap-ext20` deterministic regression (shard 1,
+  3 tests). Basis: (a) `ci-shards.js` assigns every one of the 194 spec files on disk
+  to exactly one shard (unknown-duration files get the median — verified locally:
+  home-overlap→shard 1, generated-determinism→shard 2, session-expiry→shard 3,
+  matching the shards' observed files); (b) all three specs are desktop-gated
+  `test.skip(project!=='desktop')`, none `fixme`, so at desktop they execute, they do
+  not skip; (c) they were the specs **red on deeaedc**, and every shard now reports
+  **0 failed** — a silent skip cannot explain a red→green flip. The only reason a
+  literal ✓ line is not quoted is the API log truncation, not non-execution.
+
+Net: PR #35 CI is green on ff52294 (push + PR). This does not change the standing
+OPEN/BLOCKED items (pinned-1194 visual pixels, 50k-token timing, real-device
+acceptance) or the owner-approval gates; it records that the tests-only CI passes.
