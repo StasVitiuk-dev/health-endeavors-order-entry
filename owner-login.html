@@ -798,18 +798,32 @@
         <h2>Purchase Orders</h2>
         <p class="hint">What you've ordered, what it cost, and when it's due. Open a purchase order to add the things you're buying. When the delivery arrives, marking it Received puts the stock into Inventory and records the cost as an expense — so you never type the same numbers twice.</p>
         <div class="statRow" id="poStats"></div>
-        <form class="reminderForm" id="addPoForm">
-          <select id="poSupplier" required><option value="">Supplier…</option></select>
-          <input type="date" id="poExpected" title="Expected delivery">
-          <select id="poCategory" title="What kind of spending this is">
-            <option value="manufacturing">Manufacturing</option>
-            <option value="ingredients">Ingredients / raw materials</option>
-            <option value="packaging">Packaging</option>
-            <option value="shipping_supplies">Shipping supplies</option>
-            <option value="other">Other</option>
-          </select>
-          <input type="text" id="poNotes" placeholder="Notes (optional)">
-          <button type="submit" class="small">Create draft</button>
+        <form class="heForm" id="addPoForm">
+          <div class="heField heWide">
+            <label for="poSupplier">Supplier</label>
+            <select id="poSupplier" required><option value="">Choose a supplier…</option></select>
+          </div>
+          <div class="heField">
+            <label for="poExpected">Expected delivery <span class="heOpt">(optional)</span></label>
+            <input type="date" id="poExpected" title="Expected delivery">
+          </div>
+          <div class="heField">
+            <label for="poCategory">Category</label>
+            <select id="poCategory" title="What kind of spending this is">
+              <option value="manufacturing">Manufacturing</option>
+              <option value="ingredients">Ingredients / raw materials</option>
+              <option value="packaging">Packaging</option>
+              <option value="shipping_supplies">Shipping supplies</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="heField heWide">
+            <label for="poNotes">Notes <span class="heOpt">(optional)</span></label>
+            <input type="text" id="poNotes" placeholder="Anything useful for this order">
+          </div>
+          <div class="heActions">
+            <button type="submit" class="small">Create draft</button>
+          </div>
         </form>
         <div id="poWrap"><p class="empty">Loading…</p></div>
       </section>
