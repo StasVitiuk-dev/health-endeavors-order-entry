@@ -2,41 +2,44 @@
     /* Constant brand tones — used where white text sits on a coloured fill */
     --brand-solid:#0071e3;
     --teal-solid:#0071e3;
-    /* AX-06: button fills stay dark enough for white text (AA) in both themes */
-    --btn-fill:#0071e3;
-    --btn-fill-hover:#0077ed;
+    /* Visual system (2026-11-03): flat charcoal primary, square controls, warm
+       neutral surfaces. --btn-fill is the primary surface (button, refresh, active
+       nav, today, palette selection); --btn-text is its text, inverted per theme. */
+    --btn-fill:#1d1d1f;        /* light: near-black, flat, white text */
+    --btn-fill-hover:#000000;
+    --btn-text:#ffffff;
     --danger-solid:#d70015;
     --good-solid:#187a37;
 
-    /* Light: near-monochrome surfaces, one blue accent */
-    --page:#f5f5f7;
+    /* Light: warm off-white surfaces, restrained neutral lines, dark text */
+    --page:#f6f3ee;
     --panel:#ffffff;
-    --panel-2:#f5f5f7;
-    --sel:#f5f5f7;
-    --chip:#f5f5f7;
+    --panel-2:#f3efe8;
+    --sel:#ede7df;
+    --chip:#f3efe8;
     --ink:#1d1d1f;
-    --muted:#6e6e73;
+    --muted:#5c5c60;
     --muted-2:#86868b;
-    --line:#d2d2d7;
-    --field-border:#d2d2d7;
-    --accent:#0071e3;
-    --accent-hover:#0077ed;
+    --line:#e6e0d6;
+    --field-border:#d9d2c6;
+    --accent:#0a61c0;
+    --accent-hover:#0a6ed6;
     --accent-ring:rgba(0,113,227,0.28);
     --navy:#1d1d1f;
     --teal:#0071e3;
     --cream:#ffffff;
     --copper:#0071e3;
-    --danger:#d70015;
-    --good:#187a37; /* AA: 4.95:1 on --good-bg (was #1d8a3f, 4.0:1) */
-    --warn:#996400;
+    --danger:#c70012;
+    --good:#15692c; /* AA: 4.95:1 on --good-bg (was #1d8a3f, 4.0:1) */
+    --warn:#8a5a00;
     --danger-bg:#fdf0ef;
     --warn-bg:#fdf6e6;
     --good-bg:#eef7f0;
     --shadow:0 4px 24px rgba(0,0,0,0.08);
     --shadow-sm:0 1px 2px rgba(0,0,0,0.05);
 
-    --radius:14px;
-    --radius-sm:10px;
+    --radius:4px;        /* containers: a restrained, near-square corner */
+    --radius-sm:2px;     /* controls (buttons, fields, selects): square-ish */
     --serif:-apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
   }
   @media (prefers-color-scheme: dark){
@@ -51,6 +54,9 @@
     --muted-2:#86868b;
     --line:#38383a;
     --field-border:#48484a;
+    --btn-fill:#f5f5f7;        /* dark: near-white primary, flat, dark text (inverted) */
+    --btn-fill-hover:#e4e4e6;
+    --btn-text:#1d1d1f;
     --accent:#2997ff;
     --accent-hover:#57adff;
     --accent-ring:rgba(41,151,255,0.35);
@@ -79,6 +85,9 @@
     --muted-2:#86868b;
     --line:#38383a;
     --field-border:#48484a;
+    --btn-fill:#f5f5f7;        /* dark: near-white primary, flat, dark text (inverted) */
+    --btn-fill-hover:#e4e4e6;
+    --btn-text:#1d1d1f;
     --accent:#2997ff;
     --accent-hover:#57adff;
     --accent-ring:rgba(41,151,255,0.35);
@@ -440,32 +449,72 @@
   .card p.sub{ color:var(--muted); }
   label{ color:var(--ink); font-weight:500; font-size:13px; }
 
+  /* Primary action: flat, square, charcoal (light) / near-white (dark). No pill,
+     no gradient, no shadow. ~40px comfortable; table actions use .small. */
   button{
     font-family:inherit; font-size:14px; font-weight:500; letter-spacing:-0.01em;
-    border-radius:980px; padding:8px 16px; border:none;
-    background:var(--btn-fill); color:#fff;
+    border-radius:var(--radius-sm); padding:10px 16px; border:1px solid transparent;
+    background:var(--btn-fill); color:var(--btn-text);
     transition:background .15s ease, opacity .15s ease;
   }
   button:hover:not(:disabled){ background:var(--btn-fill-hover); filter:none; transform:none; }
   button:active:not(:disabled){ transform:none; opacity:0.82; }
-  button.secondary{ background:transparent; color:var(--accent); border:1px solid var(--line); }
+  /* Secondary: surface-colored with a fine visible border (not a second primary). */
+  button.secondary{ background:var(--panel); color:var(--ink); border:1px solid var(--field-border); }
   button.secondary:hover:not(:disabled){ background:var(--panel-2); }
-  button.small{ padding:5px 13px; font-size:13px; }
-  button.approve{ background:var(--good-solid); }
-  button.deny{ background:var(--danger-solid); }
+  /* Quiet: understated text action with a clear hover, no fill. */
+  button.quiet{ background:transparent; color:var(--ink); border:1px solid transparent; padding:8px 10px; }
+  button.quiet:hover:not(:disabled){ background:var(--panel-2); }
+  button.small{ padding:6px 12px; font-size:13px; }
+  button.approve{ background:var(--good-solid); color:#fff; border-color:transparent; }
+  button.deny{ background:var(--danger-solid); color:#fff; border-color:transparent; }
   section.panel a{ color:var(--accent); } /* AX-06: links were browser-default blue (1.8:1 in dark) */
-  .dismissBtn{ border:1px solid var(--line); color:var(--muted); background:transparent; border-radius:980px; }
+  .dismissBtn{ border:1px solid var(--field-border); color:var(--muted); background:transparent; border-radius:var(--radius-sm); }
 
   input[type=email], input[type=password], input[type=text], input[type=number],
-  input[type=datetime-local], input[type=date], select, textarea{
+  input[type=datetime-local], input[type=date], input[type=time], select, textarea{
     font-family:inherit; font-size:14px; border-radius:var(--radius-sm);
     border:1px solid var(--field-border); background:var(--panel); color:var(--ink);
-    padding:9px 12px;
+    padding:10px 12px;
   }
+  /* One deliberate focus ring (replaces the old box-shadow + outline "double ring").
+     var(--ink) flips per theme so it is visible on both; forced-colors has its own
+     block below. */
   input:focus, select:focus, textarea:focus{
-    outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-ring);
+    outline:2px solid var(--ink); outline-offset:1px; border-color:var(--ink); box-shadow:none;
   }
   input::placeholder, textarea::placeholder{ color:var(--muted-2); }
+  /* Selects match the field system: a restrained, consistently aligned chevron. */
+  select{
+    -webkit-appearance:none; appearance:none; padding-right:34px;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none' stroke='%236e6e73' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.5 4.5 6 8 9.5 4.5'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 12px center; background-size:12px;
+  }
+  /* Readable calendar/time icons in both themes. */
+  input[type=date]::-webkit-calendar-picker-indicator,
+  input[type=datetime-local]::-webkit-calendar-picker-indicator,
+  input[type=time]::-webkit-calendar-picker-indicator{ cursor:pointer; opacity:0.7; }
+  /* Dark theme: lighter chevron, and invert the native date/time icon so it is
+     visible on charcoal (both auto dark and the explicit dark toggle). */
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]) select{
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none' stroke='%23a1a1a6' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.5 4.5 6 8 9.5 4.5'/%3E%3C/svg%3E");
+    }
+    :root:not([data-theme="light"]) input[type=date]::-webkit-calendar-picker-indicator,
+    :root:not([data-theme="light"]) input[type=datetime-local]::-webkit-calendar-picker-indicator,
+    :root:not([data-theme="light"]) input[type=time]::-webkit-calendar-picker-indicator{ filter:invert(1); opacity:0.85; }
+  }
+  :root[data-theme="dark"] select{
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none' stroke='%23a1a1a6' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.5 4.5 6 8 9.5 4.5'/%3E%3C/svg%3E");
+  }
+  :root[data-theme="dark"] input[type=date]::-webkit-calendar-picker-indicator,
+  :root[data-theme="dark"] input[type=datetime-local]::-webkit-calendar-picker-indicator,
+  :root[data-theme="dark"] input[type=time]::-webkit-calendar-picker-indicator{ filter:invert(1); opacity:0.85; }
+  /* Mobile: inputs at least 16px (readable + prevents iOS auto-zoom on focus). */
+  @media (max-width:600px){
+    input[type=email], input[type=password], input[type=text], input[type=number],
+    input[type=datetime-local], input[type=date], input[type=time], select, textarea{ font-size:16px; }
+  }
 
   .stat{ background:var(--panel-2); border:none; border-radius:var(--radius); padding:16px 20px; box-shadow:none; }
   .stat .num{ font-size:28px; font-weight:600; letter-spacing:-0.03em; color:var(--ink); }
@@ -490,7 +539,7 @@
   header.topbar h1{ font-size:17px; font-weight:600; color:var(--ink); }
   header.topbar .who{ font-size:13px; color:var(--muted); opacity:1; }
   #signout, #themeBtn{ background:transparent; border:1px solid var(--line); color:var(--accent); padding:6px 13px; font-size:13px; }
-  #refreshBtn{ background:var(--btn-fill); color:#fff; }
+  #refreshBtn{ background:var(--btn-fill); color:var(--btn-text); }
   .menuToggleBtn{ background:transparent; border:1px solid var(--line); color:var(--ink); }
 
   /* Sidebar */
@@ -515,9 +564,9 @@
   }
   .sidebarLink:hover{ background:var(--panel-2); box-shadow:none; }
   .sidebarGroup .sidebarLink:not(.active):hover{ box-shadow:none; }
-  .sidebarLink.active{ background:var(--btn-fill); color:#fff; font-weight:500; box-shadow:none; }
-  .sidebarLink.active .pageIcon{ color:#fff; }
-  .sidebarLink.active .sidebarBadge{ background:rgba(255,255,255,0.3); color:#fff; }
+  .sidebarLink.active{ background:var(--btn-fill); color:var(--btn-text); font-weight:500; box-shadow:none; }
+  .sidebarLink.active .pageIcon{ color:var(--btn-text); }
+  .sidebarLink.active .sidebarBadge{ background:rgba(127,127,127,0.28); color:var(--btn-text); }
   .sidebarBadge{ background:var(--muted-2); color:#fff; font-weight:500; border-radius:980px; }
   .pageIcon{
     width:16px; height:16px; display:inline-flex; align-items:center; justify-content:center;
@@ -532,7 +581,7 @@
 
   /* Employee Activity + inspector, kept in the same language */
   .personChip{ background:var(--panel-2); border:1px solid var(--line); color:var(--ink); border-radius:980px; font-weight:400; }
-  .personChip.active{ background:var(--btn-fill); color:#fff; border-color:var(--accent); }
+  .personChip.active{ background:var(--btn-fill); color:var(--btn-text); border-color:var(--accent); }
   .actItem.hovered{ background:var(--panel-2); }
   .actItem.isDelete{ background:var(--danger-bg); }
   .digestLine{ background:var(--panel-2); border:none; border-radius:var(--radius); color:var(--ink); padding:12px 16px; }
@@ -749,8 +798,8 @@
   .pResult .pIcon svg{ width:16px; height:16px; }
   .pResult .pMain{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .pResult .pKind{ font-size:11px; color:var(--muted-2); flex:none; }
-  .pResult.sel{ background:var(--btn-fill); color:#fff; }
-  .pResult.sel .pIcon, .pResult.sel .pKind{ color:rgba(255,255,255,0.8); }
+  .pResult.sel{ background:var(--btn-fill); color:var(--btn-text); }
+  .pResult.sel .pIcon, .pResult.sel .pKind{ color:var(--btn-text); opacity:0.78; }
   .pEmpty{ padding:22px; text-align:center; color:var(--muted-2); font-size:13px; }
   .paletteFoot{
     border-top:1px solid var(--line); padding:8px 14px; display:flex; gap:14px;
@@ -889,7 +938,7 @@
     display:inline-flex; align-items:center; justify-content:center; margin-bottom:2px;
   }
   .calCell.today{ border-color:var(--accent); }
-  .calCell.today .dNum{ background:var(--btn-fill); color:#fff; }
+  .calCell.today .dNum{ background:var(--btn-fill); color:var(--btn-text); }
   .calChip{
     display:flex; align-items:center; gap:5px; font-size:11px; line-height:1.4;
     color:var(--ink); min-width:0;
