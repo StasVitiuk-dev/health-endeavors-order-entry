@@ -2,44 +2,43 @@
     /* Constant brand tones — used where white text sits on a coloured fill */
     --brand-solid:#0071e3;
     --teal-solid:#0071e3;
-    /* Visual system (2026-11-03): flat charcoal primary, square controls, warm
-       neutral surfaces. --btn-fill is the primary surface (button, refresh, active
-       nav, today, palette selection); --btn-text is its text, inverted per theme. */
-    --btn-fill:#1d1d1f;        /* light: near-black, flat, white text */
-    --btn-fill-hover:#000000;
-    --btn-text:#ffffff;
+    /* AX-06: button fills stay dark enough for white text (AA) in both themes */
+    --btn-fill:#0071e3;
+    --btn-fill-hover:#0077ed;
+    --btn-text:#ffffff;   /* primary text; white on the blue fill in both themes */
     --danger-solid:#d70015;
     --good-solid:#187a37;
 
-    /* Light: warm off-white surfaces, restrained neutral lines, dark text */
-    --page:#f6f3ee;
+    /* Light: near-monochrome surfaces, one blue accent */
+    --page:#f5f5f7;
     --panel:#ffffff;
-    --panel-2:#f3efe8;
-    --sel:#ede7df;
-    --chip:#f3efe8;
+    --panel-2:#f5f5f7;
+    --sel:#f5f5f7;
+    --chip:#f5f5f7;
     --ink:#1d1d1f;
-    --muted:#5c5c60;
+    --muted:#6e6e73;
     --muted-2:#86868b;
-    --line:#e6e0d6;
-    --field-border:#d9d2c6;
-    --accent:#0a61c0;
-    --accent-hover:#0a6ed6;
+    --line:#d2d2d7;
+    --field-border:#d2d2d7;
+    --accent:#0071e3;
+    --accent-hover:#0077ed;
     --accent-ring:rgba(0,113,227,0.28);
     --navy:#1d1d1f;
     --teal:#0071e3;
     --cream:#ffffff;
     --copper:#0071e3;
-    --danger:#c70012;
-    --good:#15692c; /* AA: 4.95:1 on --good-bg (was #1d8a3f, 4.0:1) */
-    --warn:#8a5a00;
+    --danger:#d70015;
+    --good:#187a37; /* AA: 4.95:1 on --good-bg (was #1d8a3f, 4.0:1) */
+    --warn:#996400;
     --danger-bg:#fdf0ef;
     --warn-bg:#fdf6e6;
     --good-bg:#eef7f0;
     --shadow:0 4px 24px rgba(0,0,0,0.08);
     --shadow-sm:0 1px 2px rgba(0,0,0,0.05);
 
-    --radius:4px;        /* containers: a restrained, near-square corner */
-    --radius-sm:2px;     /* controls (buttons, fields, selects): square-ish */
+    --radius:14px;
+    --radius-sm:10px;
+    --ctl-radius:2px;    /* CONTROLS ONLY (button/field/select/dismiss): square. Containers keep --radius/--radius-sm (original). */
     --serif:-apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
   }
   @media (prefers-color-scheme: dark){
@@ -54,9 +53,6 @@
     --muted-2:#86868b;
     --line:#38383a;
     --field-border:#48484a;
-    --btn-fill:#f5f5f7;        /* dark: near-white primary, flat, dark text (inverted) */
-    --btn-fill-hover:#e4e4e6;
-    --btn-text:#1d1d1f;
     --accent:#2997ff;
     --accent-hover:#57adff;
     --accent-ring:rgba(41,151,255,0.35);
@@ -85,9 +81,6 @@
     --muted-2:#86868b;
     --line:#38383a;
     --field-border:#48484a;
-    --btn-fill:#f5f5f7;        /* dark: near-white primary, flat, dark text (inverted) */
-    --btn-fill-hover:#e4e4e6;
-    --btn-text:#1d1d1f;
     --accent:#2997ff;
     --accent-hover:#57adff;
     --accent-ring:rgba(41,151,255,0.35);
@@ -453,27 +446,24 @@
      no gradient, no shadow. ~40px comfortable; table actions use .small. */
   button{
     font-family:inherit; font-size:14px; font-weight:500; letter-spacing:-0.01em;
-    border-radius:var(--radius-sm); padding:10px 16px; border:1px solid transparent;
+    border-radius:var(--ctl-radius); padding:10px 16px; border:1px solid transparent;
     background:var(--btn-fill); color:var(--btn-text);
     transition:background .15s ease, opacity .15s ease;
   }
   button:hover:not(:disabled){ background:var(--btn-fill-hover); filter:none; transform:none; }
   button:active:not(:disabled){ transform:none; opacity:0.82; }
   /* Secondary: surface-colored with a fine visible border (not a second primary). */
-  button.secondary{ background:var(--panel); color:var(--ink); border:1px solid var(--field-border); }
+  button.secondary{ background:transparent; color:var(--accent); border:1px solid var(--line); }
   button.secondary:hover:not(:disabled){ background:var(--panel-2); }
-  /* Quiet: understated text action with a clear hover, no fill. */
-  button.quiet{ background:transparent; color:var(--ink); border:1px solid transparent; padding:8px 10px; }
-  button.quiet:hover:not(:disabled){ background:var(--panel-2); }
   button.small{ padding:6px 12px; font-size:13px; }
-  button.approve{ background:var(--good-solid); color:#fff; border-color:transparent; }
-  button.deny{ background:var(--danger-solid); color:#fff; border-color:transparent; }
+  button.approve{ background:var(--good-solid); }
+  button.deny{ background:var(--danger-solid); }
   section.panel a{ color:var(--accent); } /* AX-06: links were browser-default blue (1.8:1 in dark) */
-  .dismissBtn{ border:1px solid var(--field-border); color:var(--muted); background:transparent; border-radius:var(--radius-sm); }
+  .dismissBtn{ border:1px solid var(--line); color:var(--muted); background:transparent; border-radius:var(--ctl-radius); }
 
   input[type=email], input[type=password], input[type=text], input[type=number],
   input[type=datetime-local], input[type=date], input[type=time], select, textarea{
-    font-family:inherit; font-size:14px; border-radius:var(--radius-sm);
+    font-family:inherit; font-size:14px; border-radius:var(--ctl-radius);
     border:1px solid var(--field-border); background-color:var(--panel); color:var(--ink);
     padding:10px 12px;
   }
@@ -481,7 +471,7 @@
      var(--ink) flips per theme so it is visible on both; forced-colors has its own
      block below. */
   input:focus, select:focus, textarea:focus{
-    outline:2px solid var(--ink); outline-offset:1px; border-color:var(--ink); box-shadow:none;
+    outline:2px solid var(--accent); outline-offset:1px; border-color:var(--accent); box-shadow:none;
   }
   input::placeholder, textarea::placeholder{ color:var(--muted-2); }
   /* Selects match the field system: exactly ONE restrained, aligned chevron.
@@ -501,7 +491,7 @@
      input/select/textarea, the minimal counter to the existing !important (not a
      blanket override). The utilities themselves stay as the extractor generates. */
   input[class*="u-br-"], select[class*="u-br-"], textarea[class*="u-br-"]{
-    border-radius:var(--radius-sm) !important; border-color:var(--field-border) !important;
+    border-radius:var(--ctl-radius) !important;
   }
   select[class*="u-p-"]{ padding-right:32px !important; }
   /* Readable calendar/time icons in both themes. */
@@ -558,7 +548,7 @@
 
   /* Sidebar */
   .sidebar{ background:var(--page); border-right:1px solid var(--line); }
-  .sidebarSearch{ background:var(--panel); border:1px solid var(--line); color:var(--ink); border-radius:var(--radius-sm); }
+  .sidebarSearch{ background:var(--panel); border:1px solid var(--line); color:var(--ink); border-radius:var(--ctl-radius); }
   .groupLabel{
     display:block; font-size:11px; font-weight:600; letter-spacing:0.02em;
     color:var(--muted-2); text-transform:uppercase;
@@ -580,7 +570,7 @@
   .sidebarGroup .sidebarLink:not(.active):hover{ box-shadow:none; }
   .sidebarLink.active{ background:var(--btn-fill); color:var(--btn-text); font-weight:500; box-shadow:none; }
   .sidebarLink.active .pageIcon{ color:var(--btn-text); }
-  .sidebarLink.active .sidebarBadge{ background:rgba(127,127,127,0.28); color:var(--btn-text); }
+  .sidebarLink.active .sidebarBadge{ background:rgba(255,255,255,0.3); color:var(--btn-text); }
   .sidebarBadge{ background:var(--muted-2); color:#fff; font-weight:500; border-radius:980px; }
   .pageIcon{
     width:16px; height:16px; display:inline-flex; align-items:center; justify-content:center;
@@ -813,7 +803,7 @@
   .pResult .pMain{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .pResult .pKind{ font-size:11px; color:var(--muted-2); flex:none; }
   .pResult.sel{ background:var(--btn-fill); color:var(--btn-text); }
-  .pResult.sel .pIcon, .pResult.sel .pKind{ color:var(--btn-text); opacity:0.78; }
+  .pResult.sel .pIcon, .pResult.sel .pKind{ color:rgba(255,255,255,0.8); }
   .pEmpty{ padding:22px; text-align:center; color:var(--muted-2); font-size:13px; }
   .paletteFoot{
     border-top:1px solid var(--line); padding:8px 14px; display:flex; gap:14px;
