@@ -14,8 +14,8 @@ evidence, not visual approval.
 ## Prioritized gap table
 | # | User-visible problem | Route/workflow | Status / evidence | Acceptance criteria | Local now vs owner/external | Effort (rough, uncertainty) |
 |---|---|---|---|---|---|---|
-| 1 | Form fields are mostly full-width stacked; labels sometimes placeholder-only; date/priority/add alignment loose | reminder (Tasks), supplier add, PO, returns, expenses | VERIFIED controls are square/consistent; layout NOT done | Persistent labels; widths fit meaning; aligned rows desktop; clean mobile stacking; behavior/submit/date semantics unchanged | Local now | M (1–2 days; medium uncertainty — many forms) |
-| 2 | Tiny unstyled file chooser; no selected-filename/error feedback | Expenses (receipt), any upload | VERIFIED unstyled (screenshot) | Styled, accessible file control showing chosen filename + type/error; no real upload | Local now (synthetic) | S–M (0.5–1 day) |
+| 1 | Form fields are mostly full-width stacked; labels sometimes placeholder-only; date/priority/add alignment loose | reminder (Tasks), supplier add, PO, returns, expenses | **DONE** (ee68864, fd28c2d, e3ecf9d, bd7d814): shared `.heForm` labeled grid on Expenses, Returns, Supplier, Inventory-adjust, Add-product, PO; reminder kept as a proper quick-add bar. Verified light+dark, desktop+iPhone | Persistent labels; widths fit meaning; aligned rows desktop; clean mobile stacking; behavior/submit/date semantics unchanged | Local now | ✓ done |
+| 2 | Tiny unstyled file chooser; no selected-filename/error feedback | Expenses (receipt), any upload | **DONE** (ee68864): `::file-selector-button` styled as a secondary control; native filename display kept. Filename-echo/inline validation not added (would need JS) | Styled, accessible file control showing chosen filename + type/error; no real upload | Local now (synthetic) | ✓ styling done; JS filename-echo optional |
 | 3 | Report tables: intrinsic widths, descriptions span very wide, amounts not right-aligned | Accounting, Tax Records | HYPOTHESIS from owner report; NOT re-inspected this session | Intentional width/max-width; right-aligned numerics; consistent currency; responsive overflow; calculations/raw values preserved | Local now | M (1 day; medium) |
 | 4 | Big blank areas, dense explanatory paragraphs, mixed radii on non-control boxes | multiple (Expenses intro, Activity, etc.) | PARTIAL: control radii fixed; container copy/empty density NOT done | Short empty states + next action; long copy in progressive detail; uncertainty/warnings stay visible; no invented metrics | Local now | M (1–2 days) |
 | 5 | Home can show urgent checks yet "Nothing needs attention" elsewhere | Home (Needs Your Attention) | UNVERIFIED — not reproduced/traced this session | Confirm whether scopes differ; label scopes or fix real inconsistency; never suppress real warnings | Local now (trace first) | S to investigate; fix S–M |
@@ -62,3 +62,29 @@ recorded. This is DISTINCT from:
 No promise of "perfect in a few days" — the form/table/empty-state tranche is a few
 days of local work; Sales-agent completeness and provider readiness are larger and
 partly owner/external.
+
+## Progress log (local commits on claude/ext20-recovery-2026-10-31, unpushed)
+All on top of pushed 9173ccf. Original colors preserved throughout; controls stay
+square with the one-chevron fix; every change is structure/labels only.
+- `9ba94d8` — restore original 9173ccf light/dark/system colors (kept control shape).
+- `5ec614f` — this readiness assessment.
+- `ee68864` — **Priority #1/#2**: Expenses form relaid out with the new shared
+  `.heForm` labeled grid + styled receipt file picker.
+- `fd28c2d` — Returns form on `.heForm` (Reason/Condition paired; find-older-order
+  row kept).
+- `e3ecf9d` — Suppliers, Inventory-adjust and Add-product forms on `.heForm`;
+  reminder kept as a compact quick-add bar (new `.reminderForm` rule + priority
+  aria-label); removed stale flex-basis classes that were making product price
+  inputs render as tall boxes.
+- `bd7d814` — Purchase Orders "Create draft" form on `.heForm`.
+Verification each step: a11y-basics, select-chevron-ext21, pages-data (and
+purchase-orders / targeted specs) green on the diagnostic Chromium; AA contrast
+passes light+dark; phone tap-targets pass; inline-styles --check and
+generated:check clean. The 6 inventory-safety ✘ seen while testing are
+pre-existing `test.fail('not atomic yet')` cases (identical on the prior commit),
+unrelated to these changes.
+
+**Next (not started):** Priority #2 report tables (Accounting/Tax numeric
+alignment/width/overflow); #3 empty states + copy density + Home-scope trace;
+#4 Sales-agent end-to-end inspection before estimating. No push/merge/deploy
+without explicit per-SHA owner approval.
