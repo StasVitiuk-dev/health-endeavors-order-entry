@@ -77,6 +77,16 @@ bundle += `
   var receiveDropped = false;
   backend.allowUnguardedState = true; backend.expectViolations = true; backend.allowImpossibleData = true;
   backend.rpc.list_my_sessions = [{ session_id: 'staging-session', created_at: new Date().toISOString(), updated_at: new Date().toISOString(), user_agent: 'Staging browser', ip: '0.0.0.0', is_current: true }];
+  // Synthetic staff accounts so the EXISTING account UI (Employee Activity people
+  // strip, command-palette "account numbers" search) is visible in the preview.
+  // Fictional only; 9-digit account_number matches the profiles format. The real
+  // database is never contacted; production accounts are unchanged and excluded.
+  backend.rpc.employee_activity_people = [
+    { id: 'u-owner', display_name: 'SYNTHETIC Dana Owner', email: 'dana@example.test', account_number: '100000001', role: 'owner', is_active: true },
+    { id: 'u-admin', display_name: 'SYNTHETIC Alex Admin', email: 'alex@example.test', account_number: '100000042', role: 'administrator', is_active: true },
+    { id: 'u-staff1', display_name: 'SYNTHETIC Sam Staff', email: 'sam@example.test', account_number: '100000317', role: 'staff', is_active: true },
+    { id: 'u-staff2', display_name: 'SYNTHETIC Jo Packer', email: 'jo@example.test', account_number: '100004589', role: 'staff', is_active: false },
+  ];
   window.__STAGING_OWNER = req('../fixtures/synthetic-data').OWNER_USER;
   var realFetch = window.fetch.bind(window);
   window.fetch = function (input, init) {
