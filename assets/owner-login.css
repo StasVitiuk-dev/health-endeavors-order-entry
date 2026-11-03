@@ -1055,6 +1055,10 @@
   .heFileField::file-selector-button{ font:inherit; font-size:13px; margin-right:10px; padding:7px 12px; border-radius:var(--ctl-radius); border:1px solid var(--line); background:transparent; color:var(--accent); cursor:pointer; }
   .heFileField::file-selector-button:hover{ background:var(--chip); }
   @media (max-width:560px){ .heForm{ grid-template-columns:1fr; } }
+  /* Compact quick-add row (reminders): a single line that wraps on a phone,
+     with the title taking the free space. */
+  .reminderForm{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .reminderForm > input[type="text"]{ flex:1 1 220px; }
 
 /* EXT8: "Checks: what needs a look" rows. The level is also written as text
    (badge), so colour is never the only signal. */

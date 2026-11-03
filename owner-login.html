@@ -32,7 +32,7 @@
 <meta http-equiv="Expires" content="0">
 <title>Health Endeavors — Owner Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous"></script>
-<link rel="stylesheet" href="assets/owner-login.css?v=4b3cdf6f7a">
+<link rel="stylesheet" href="assets/owner-login.css?v=c210c4b52b">
 <script src="assets/owner-login-helpers.js?v=76dc8fc4a9"></script>
 <script src="assets/owner-login-modules.js?v=0d97adc58c"></script>
 <!-- @@ EXT15 module files (assets/app/*.js), added by tests/tools/extract-module.js @@ -->
@@ -181,7 +181,7 @@
         <form class="reminderForm" id="addReminderForm">
           <input type="text" id="reminderTitle" placeholder="Add a reminder…" required>
           <input type="datetime-local" id="reminderDue" aria-label="Due date and time (optional)">
-          <select id="reminderPriority">
+          <select id="reminderPriority" aria-label="Priority">
             <option value="normal">Normal</option>
             <option value="high">High</option>
           </select>
@@ -255,40 +255,77 @@
         <p class="hint">Your product catalogue and how much of each you hold, split into Available, Reserved, Damaged, Sample, Wholesale, Promotional and Returned. Add a product before you can order or stock it — receiving a purchase order and restocking a return both find products by SKU, so give everything a SKU and use the same one in Shopify. Every change is logged with who made it, when and why.</p>
         <div class="statRow" id="inventoryStats"></div>
 
-        <form class="reminderForm u-mt-14" id="addProductForm">
-          <input type="text" id="prodName" placeholder="Product name" required>
-          <input type="text" id="prodSku" placeholder="SKU (e.g. HE-COCOA-8OZ)">
-          <select id="prodStatus">
-            <option value="draft">Draft</option>
-            <option value="active">Active</option>
-            <option value="discontinued">Discontinued</option>
-          </select>
-          <input type="number" id="prodCost" placeholder="Cost" step="0.0001" min="0" max="1000000" class="u-flex-0-1-110">
-          <input type="number" id="prodRetail" placeholder="Retail price" step="0.01" min="0" class="u-flex-0-1-130">
-          <input type="number" id="prodWholesale" placeholder="Wholesale" step="0.01" min="0" class="u-flex-0-1-130">
-          <input type="text" id="prodPackaging" placeholder="Packaging (optional)">
-          <button type="submit" class="small">Add product</button>
+        <form class="heForm u-mt-14" id="addProductForm">
+          <div class="heField heWide">
+            <label for="prodName">Product name</label>
+            <input type="text" id="prodName" placeholder="e.g. SYNTHETIC Cocoa Butter 8 oz" required>
+          </div>
+          <div class="heField">
+            <label for="prodSku">SKU <span class="heOpt">(optional)</span></label>
+            <input type="text" id="prodSku" placeholder="e.g. HE-COCOA-8OZ">
+          </div>
+          <div class="heField">
+            <label for="prodStatus">Status</label>
+            <select id="prodStatus">
+              <option value="draft">Draft</option>
+              <option value="active">Active</option>
+              <option value="discontinued">Discontinued</option>
+            </select>
+          </div>
+          <div class="heField">
+            <label for="prodCost">Cost <span class="heOpt">(optional)</span></label>
+            <input type="number" id="prodCost" placeholder="0.0000" step="0.0001" min="0" max="1000000">
+          </div>
+          <div class="heField">
+            <label for="prodRetail">Retail price <span class="heOpt">(optional)</span></label>
+            <input type="number" id="prodRetail" placeholder="0.00" step="0.01" min="0">
+          </div>
+          <div class="heField">
+            <label for="prodWholesale">Wholesale <span class="heOpt">(optional)</span></label>
+            <input type="number" id="prodWholesale" placeholder="0.00" step="0.01" min="0">
+          </div>
+          <div class="heField">
+            <label for="prodPackaging">Packaging <span class="heOpt">(optional)</span></label>
+            <input type="text" id="prodPackaging" placeholder="e.g. 8 oz glass jar">
+          </div>
+          <div class="heActions">
+            <button type="submit" class="small">Add product</button>
+          </div>
         </form>
 
-        <form id="adjustInventoryForm" class="u-d-flex u-fd-column u-gap-8 u-mt-14 u-pt-16 u-bt-1-solid-line">
-          <h3 class="u-fs-13 u-c-navy u-m-0-0-2">Adjust stock</h3>
-          <select id="invProduct" required class="u-p-9-10 u-br-8 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-14">
-            <option value="">Product…</option>
-          </select>
-          <select id="invBucket" required class="u-p-9-10 u-br-8 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-14">
-            <option value="">Bucket…</option>
-            <option value="available">Available</option>
-            <option value="reserved">Reserved</option>
-            <option value="damaged">Damaged</option>
-            <option value="sample">Sample</option>
-            <option value="wholesale">Wholesale</option>
-            <option value="promotional">Promotional</option>
-            <option value="returned">Returned</option>
-            <option value="recalled">Recalled</option>
-          </select>
-          <input type="number" id="invAmount" placeholder="Change amount (e.g. 10 to add, -10 to remove)" step="1" required>
-          <input type="text" id="invReason" placeholder="Reason (optional — e.g. new batch received, damaged in shipping)">
-          <button type="submit" class="small u-as-flex-start">Save adjustment</button>
+        <h3 class="u-fs-13 u-c-navy u-mt-14">Adjust stock</h3>
+        <form id="adjustInventoryForm" class="heForm u-mt-8 u-pt-16 u-bt-1-solid-line">
+          <div class="heField heWide">
+            <label for="invProduct">Product</label>
+            <select id="invProduct" required class="u-p-9-10 u-br-8 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-14">
+              <option value="">Choose a product…</option>
+            </select>
+          </div>
+          <div class="heField">
+            <label for="invBucket">Bucket</label>
+            <select id="invBucket" required class="u-p-9-10 u-br-8 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-14">
+              <option value="">Which stock bucket?</option>
+              <option value="available">Available</option>
+              <option value="reserved">Reserved</option>
+              <option value="damaged">Damaged</option>
+              <option value="sample">Sample</option>
+              <option value="wholesale">Wholesale</option>
+              <option value="promotional">Promotional</option>
+              <option value="returned">Returned</option>
+              <option value="recalled">Recalled</option>
+            </select>
+          </div>
+          <div class="heField">
+            <label for="invAmount">Change amount</label>
+            <input type="number" id="invAmount" placeholder="e.g. 10 to add, -10 to remove" step="1" required>
+          </div>
+          <div class="heField heWide">
+            <label for="invReason">Reason <span class="heOpt">(optional)</span></label>
+            <input type="text" id="invReason" placeholder="e.g. new batch received, damaged in shipping">
+          </div>
+          <div class="heActions">
+            <button type="submit" class="small">Save adjustment</button>
+          </div>
         </form>
 
         <h3 class="u-fs-13 u-c-navy u-m-20-0-6">Stock by product</h3>
@@ -717,21 +754,41 @@
         <h2>Suppliers</h2>
         <p class="hint">Everyone you buy from — manufacturers, labs, packaging, freight. Purchase orders are raised against these, so add a supplier before you order from them.</p>
         <div class="statRow" id="supplierStats"></div>
-        <form class="reminderForm" id="addSupplierForm">
-          <input type="text" id="supName" placeholder="Company name" required>
-          <select id="supType">
-            <option value="manufacturer">Manufacturer</option>
-            <option value="supplier">Supplier</option>
-            <option value="packaging">Packaging</option>
-            <option value="lab">Lab</option>
-            <option value="freight">Freight</option>
-            <option value="other">Other</option>
-          </select>
-          <input type="text" id="supContact" placeholder="Contact person">
-          <input type="text" id="supEmail" placeholder="Email">
-          <input type="text" id="supPhone" placeholder="Phone">
-          <input type="text" id="supNotes" placeholder="Notes (optional)">
-          <button type="submit" class="small">Add supplier</button>
+        <form class="heForm" id="addSupplierForm">
+          <div class="heField heWide">
+            <label for="supName">Company name</label>
+            <input type="text" id="supName" placeholder="e.g. SYNTHETIC Botanicals Co" required>
+          </div>
+          <div class="heField">
+            <label for="supType">Type</label>
+            <select id="supType">
+              <option value="manufacturer">Manufacturer</option>
+              <option value="supplier">Supplier</option>
+              <option value="packaging">Packaging</option>
+              <option value="lab">Lab</option>
+              <option value="freight">Freight</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="heField">
+            <label for="supContact">Contact person <span class="heOpt">(optional)</span></label>
+            <input type="text" id="supContact" placeholder="Name">
+          </div>
+          <div class="heField">
+            <label for="supEmail">Email <span class="heOpt">(optional)</span></label>
+            <input type="text" id="supEmail" placeholder="name@example.com">
+          </div>
+          <div class="heField">
+            <label for="supPhone">Phone <span class="heOpt">(optional)</span></label>
+            <input type="text" id="supPhone" placeholder="(000) 000-0000">
+          </div>
+          <div class="heField heWide">
+            <label for="supNotes">Notes <span class="heOpt">(optional)</span></label>
+            <input type="text" id="supNotes" placeholder="Anything useful about this supplier">
+          </div>
+          <div class="heActions">
+            <button type="submit" class="small">Add supplier</button>
+          </div>
         </form>
         <div id="suppliersWrap"><p class="empty">Loading…</p></div>
       </section>
