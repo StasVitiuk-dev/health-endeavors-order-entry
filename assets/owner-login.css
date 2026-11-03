@@ -1039,6 +1039,23 @@
   .prodEditGrid select{ padding-right:28px; }
   .prodEditRow{ display:flex; gap:8px; align-items:center; margin-top:12px; }
 
+  /* EXT21: labeled, aligned form layout. Structure only — every colour comes
+     from the existing tokens, so the restored palette is unchanged. Persistent
+     labels (no placeholder-only fields), meaningful field widths on desktop,
+     and a single clean column on a phone. */
+  .heForm{ display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:12px 14px; align-items:end; }
+  .heForm .heField{ display:flex; flex-direction:column; gap:5px; min-width:0; }
+  .heForm .heField > label{ font-size:12px; font-weight:600; color:var(--muted); }
+  .heForm .heField .heOpt{ font-weight:400; color:var(--muted); }
+  .heForm .heField.heWide{ grid-column:1 / -1; }
+  .heForm .heField input, .heForm .heField select, .heForm .heField textarea{ width:100%; margin:0; }
+  .heForm .heActions{ grid-column:1 / -1; display:flex; gap:8px; flex-wrap:wrap; margin-top:2px; }
+  /* Native file input: give its button the secondary-control look. */
+  .heFileField{ font-size:13px; color:var(--muted); }
+  .heFileField::file-selector-button{ font:inherit; font-size:13px; margin-right:10px; padding:7px 12px; border-radius:var(--ctl-radius); border:1px solid var(--line); background:transparent; color:var(--accent); cursor:pointer; }
+  .heFileField::file-selector-button:hover{ background:var(--chip); }
+  @media (max-width:560px){ .heForm{ grid-template-columns:1fr; } }
+
 /* EXT8: "Checks: what needs a look" rows. The level is also written as text
    (badge), so colour is never the only signal. */
 .attnCheck{ border-left:4px solid var(--line); padding-left:10px; }
