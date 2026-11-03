@@ -305,36 +305,53 @@
         <p class="hint">Track items customers send back, from request through refund. Status moves through: Requested → Approved or Rejected → Received → Refunded → Closed. Marking a return Received also records what happens to the stock — restocked, moved to Damaged, or discarded — and logs that change to Inventory automatically, so you never enter it twice. Each return is for one specific line item on an order (its full quantity), not a partial amount.</p>
         <div class="statRow" id="returnsStats"></div>
 
-        <form id="logReturnForm" class="u-d-flex u-fd-column u-gap-8 u-mt-14 u-pt-16 u-bt-1-solid-line">
-          <h3 class="u-fs-13 u-c-navy u-m-0-0-2">Log a new return</h3>
-          <select id="retOrder" required aria-label="Order" class="u-p-9-10 u-br-8 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-14">
-            <option value="">Order…</option>
-          </select>
-          <div class="u-d-flex u-gap-6 u-fwr-wrap u-ai-center">
-            <input type="text" id="retOrderFind" aria-label="Find an older order by its number" placeholder="Older order? Type its number" class="u-flex-1-1-160">
-            <button type="button" class="small" id="retOrderFindBtn">Find order</button>
+        <h3 class="u-fs-13 u-c-navy u-mt-14">Log a new return</h3>
+        <form id="logReturnForm" class="heForm u-mt-8 u-pt-16 u-bt-1-solid-line">
+          <div class="heField heWide">
+            <label for="retOrder">Order</label>
+            <select id="retOrder" required class="u-p-9-10 u-br-8 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-14">
+              <option value="">Choose a recent order…</option>
+            </select>
+            <div class="u-d-flex u-gap-6 u-fwr-wrap u-ai-center">
+              <input type="text" id="retOrderFind" aria-label="Find an older order by its number" placeholder="Older order? Type its number" class="u-flex-1-1-160">
+              <button type="button" class="small" id="retOrderFindBtn">Find order</button>
+            </div>
+            <p class="hint u-m-0" id="retOrderHint"></p>
           </div>
-          <p class="hint u-m-0" id="retOrderHint"></p>
-          <select id="retOrderItem" required disabled class="u-p-9-10 u-br-8 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-14">
-            <option value="">Pick an order first…</option>
-          </select>
-          <select id="retReason" required class="u-p-9-10 u-br-8 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-14">
-            <option value="">Reason…</option>
-            <option value="wrong_item">Wrong item sent</option>
-            <option value="damaged_in_transit">Damaged in transit</option>
-            <option value="changed_mind">Customer changed their mind</option>
-            <option value="defective">Defective / didn't work as expected</option>
-            <option value="other">Other</option>
-          </select>
-          <select id="retCondition" class="u-p-9-10 u-br-8 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-14">
-            <option value="">Condition reported by customer…</option>
-            <option value="resalable">Resalable / unopened</option>
-            <option value="damaged">Damaged</option>
-            <option value="used">Used but functional</option>
-            <option value="unknown">Unknown / not yet inspected</option>
-          </select>
-          <input type="text" id="retNotes" placeholder="Notes (optional)">
-          <button type="submit" class="small u-as-flex-start">Log return</button>
+          <div class="heField heWide">
+            <label for="retOrderItem">Item</label>
+            <select id="retOrderItem" required disabled class="u-p-9-10 u-br-8 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-14">
+              <option value="">Pick an order first…</option>
+            </select>
+          </div>
+          <div class="heField">
+            <label for="retReason">Reason</label>
+            <select id="retReason" required class="u-p-9-10 u-br-8 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-14">
+              <option value="">Why is it coming back?</option>
+              <option value="wrong_item">Wrong item sent</option>
+              <option value="damaged_in_transit">Damaged in transit</option>
+              <option value="changed_mind">Customer changed their mind</option>
+              <option value="defective">Defective / didn't work as expected</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="heField">
+            <label for="retCondition">Condition <span class="heOpt">(as reported)</span></label>
+            <select id="retCondition" class="u-p-9-10 u-br-8 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-14">
+              <option value="">Reported by customer…</option>
+              <option value="resalable">Resalable / unopened</option>
+              <option value="damaged">Damaged</option>
+              <option value="used">Used but functional</option>
+              <option value="unknown">Unknown / not yet inspected</option>
+            </select>
+          </div>
+          <div class="heField heWide">
+            <label for="retNotes">Notes <span class="heOpt">(optional)</span></label>
+            <input type="text" id="retNotes" placeholder="Anything useful for this return">
+          </div>
+          <div class="heActions">
+            <button type="submit" class="small">Log return</button>
+          </div>
         </form>
 
         <h3 class="u-fs-13 u-c-navy u-m-20-0-6">Return requests</h3>
