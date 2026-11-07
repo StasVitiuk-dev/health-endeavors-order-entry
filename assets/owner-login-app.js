@@ -7042,12 +7042,12 @@
           document.getElementById('taxCategoryWrap').replaceChildren(h('p', { class: 'empty' }, 'No expenses logged in this period.'));
         } else {
           document.getElementById('taxCategoryWrap').replaceChildren(h('table', null,
-            h('thead', null, h('tr', null, h('th', null, 'Category'), h('th', null, 'Type'), h('th', null, 'Total'))),
+            h('thead', null, h('tr', null, h('th', null, 'Category'), h('th', null, 'Type'), h('th', { class: 'num-cell' }, 'Total'))),
             h('tbody', null, catRows.map(r =>
               h('tr', null,
                 h('td', null, r.label),
                 h('td', null, h('span', { class: 'badge' + (r.group === 'cogs' ? ' sev-medium' : '') }, r.group === 'cogs' ? 'COGS' : 'Operating')),
-                h('td', null, fmtMoney(r.amount, currency)))))));
+                h('td', { class: 'num-cell' }, fmtMoney(r.amount, currency)))))));
         }
 
         // Estimated cost of units sold — quantity sold × each product's recorded
@@ -7097,10 +7097,10 @@
           document.getElementById('taxStateWrap').replaceChildren(h('p', { class: 'empty' }, 'No sales tax collected in this period.'));
         } else {
           document.getElementById('taxStateWrap').replaceChildren(h('table', null,
-            h('thead', null, h('tr', null, h('th', null, 'State'), h('th', null, 'Sales tax collected'))),
+            h('thead', null, h('tr', null, h('th', null, 'State'), h('th', { class: 'num-cell' }, 'Sales tax collected'))),
             h('tbody', null,
-              ...stateEntries.map(s => h('tr', null, h('td', null, s), h('td', null, fmtMoney(stateTax[s], currency)))),
-              ...(stateUnknownTax ? [h('tr', null, h('td', null, 'Unknown / not yet verified'), h('td', null, fmtMoney(stateUnknownTax, currency)))] : []))));
+              ...stateEntries.map(s => h('tr', null, h('td', null, s), h('td', { class: 'num-cell' }, fmtMoney(stateTax[s], currency)))),
+              ...(stateUnknownTax ? [h('tr', null, h('td', null, 'Unknown / not yet verified'), h('td', { class: 'num-cell' }, fmtMoney(stateUnknownTax, currency)))] : []))));
         }
 
         const missing = expenses.filter(e => !e.receipt_path);
@@ -7108,13 +7108,13 @@
           document.getElementById('taxReceiptWrap').replaceChildren(h('p', { class: 'empty' }, 'Every logged expense in this period has a receipt on file.'));
         } else {
           document.getElementById('taxReceiptWrap').replaceChildren(h('table', { class: 'phoneCards' },
-            h('thead', null, h('tr', null, h('th', null, 'Date'), h('th', null, 'Category'), h('th', null, 'Vendor'), h('th', null, 'Amount'))),
+            h('thead', null, h('tr', null, h('th', null, 'Date'), h('th', null, 'Category'), h('th', null, 'Vendor'), h('th', { class: 'num-cell' }, 'Amount'))),
             h('tbody', null, missing.map(e =>
               h('tr', null,
                 h('td', null, fmtDateOnly(e.expense_date)),
                 h('td', null, (TAX_CATEGORY_MAP[e.category] || {}).label || e.category || '—'),
                 h('td', null, e.vendor || '—'),
-                h('td', null, fmtMoney(e.amount, currency)))))));
+                h('td', { class: 'num-cell' }, fmtMoney(e.amount, currency)))))));
         }
 
         document.getElementById('taxStats').dataset.range = loadRange; // which period the figures on screen are for

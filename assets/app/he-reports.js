@@ -46,19 +46,19 @@ window.HE.modules.define('he-reports', { api: 1, needs: ['fmtDateOnly','fmtMoney
       // (reportCount), never zero; values were already esc()-ed, now text nodes.
       wrap.replaceChildren(h('table', { class: 'phoneCards' },
         h('thead', null, h('tr', null,
-          h('th', null, firstColLabel), h('th', null, 'Orders'), h('th', null, 'Revenue'), h('th', null, 'New questions'),
-          h('th', null, 'Tasks opened'), h('th', null, 'Incidents opened'), h('th', null, 'AI calls'), h('th', null, 'AI cost'), h('th', null, 'Emailed'))),
+          h('th', null, firstColLabel), h('th', { class: 'num-cell' }, 'Orders'), h('th', { class: 'num-cell' }, 'Revenue'), h('th', { class: 'num-cell' }, 'New questions'),
+          h('th', { class: 'num-cell' }, 'Tasks opened'), h('th', { class: 'num-cell' }, 'Incidents opened'), h('th', { class: 'num-cell' }, 'AI calls'), h('th', { class: 'num-cell' }, 'AI cost'), h('th', { class: 'num-cell' }, 'Emailed'))),
         h('tbody', null, rows.map(r =>
           h('tr', null,
             h('td', null, r.label),
-            h('td', null, reportCount(r.orders_count)),
-            h('td', null, fmtMoney(r.revenue, r.currency || 'USD')),
-            h('td', null, reportCount(r.new_inquiries_count)),
-            h('td', null, reportCount(r.tasks_opened_count)),
-            h('td', null, reportCount(r.incidents_opened_count)),
-            h('td', null, reportCount(r.ai_calls_count)),
-            h('td', null, fmtMoney(r.ai_cost, 'USD')),
-            h('td', null, r.emailed))))));
+            h('td', { class: 'num-cell' }, reportCount(r.orders_count)),
+            h('td', { class: 'num-cell' }, fmtMoney(r.revenue, r.currency || 'USD')),
+            h('td', { class: 'num-cell' }, reportCount(r.new_inquiries_count)),
+            h('td', { class: 'num-cell' }, reportCount(r.tasks_opened_count)),
+            h('td', { class: 'num-cell' }, reportCount(r.incidents_opened_count)),
+            h('td', { class: 'num-cell' }, reportCount(r.ai_calls_count)),
+            h('td', { class: 'num-cell' }, fmtMoney(r.ai_cost, 'USD')),
+            h('td', { class: 'num-cell' }, r.emailed))))));
     }
 
     async function loadReportHistory(){

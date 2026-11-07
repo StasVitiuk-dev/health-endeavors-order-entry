@@ -1059,6 +1059,11 @@
      with the title taking the free space. */
   .reminderForm{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
   .reminderForm > input[type="text"]{ flex:1 1 220px; }
+  /* EXT21: numeric columns in report tables line up on the right with the
+     digits aligned, so money and counts read down the column. On a phone the
+     phoneCards card layout already right-aligns values, so this only shapes the
+     desktop table. */
+  td.num-cell, th.num-cell{ text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
 
 /* EXT8: "Checks: what needs a look" rows. The level is also written as text
    (badge), so colour is never the only signal. */
