@@ -116,6 +116,13 @@ These would create busywork or risk without a real need:
 
 # Owner backlog addition — 2026-11-07 (PLAN ONLY, not authorized to build)
 
+> **UPDATE 2026-11-07 (later same day):** a follow-up owner handoff now authorizes
+> **local, synthetic implementation** of these areas (Operations track) alongside
+> new feature phases. The plan-only framing below is superseded **for local build
+> only** by `NOV7_BUILD_HANDOFF_2026-11-07.md`, which carries the capability/gap
+> map, completion criteria and owner dependencies. External actions stay OFF. The
+> gap analysis and pending-owner-decisions below remain authoritative.
+
 Added at the owner's request after the existing items above. **Documentation /
 backlog authorization only.** Nothing here is authorized for implementation,
 production access, backup configuration, accounting actions, live invoice
