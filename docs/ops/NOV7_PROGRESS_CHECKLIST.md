@@ -51,8 +51,19 @@ live email/carriers/ads/spend, real customer data) stay OFF throughout.
   preserved holdReason, dedupe by customer+channel, uncertain→UNKNOWN/NEW.
 
 ## Operations track
-- ⬜ Printable US-Letter reports + PDF generation (none exists yet)
-- ⬜ Invoice & packing-slip prototypes (reuse invoice table/Agent #1 contract; mock prod)
+- ✅ Printable US-Letter reports + export manifest — `<pending>` new
+  he-report-export.js: inclusive date-range selection, MISSING stays UNKNOWN
+  (never 0), US-Letter print MODEL (not a rendered PDF), deterministic FNV-1a
+  checksum + verification (catches tamper), failure→retry export that never
+  double-exports (5 Node tests). PDF rendering + Mac downloader still 🔒/⬜.
+- ✅ Ops journey (scan→packing slip→report) — one synthetic order, PARTIAL
+  shipment, repeated actions idempotent: re-scan attaches once, retry export
+  once, partial shipment shows revenue UNKNOWN not $0 (3 Node tests).
+- ✅ Invoice & packing-slip prototypes — `a83e135` new he-invoice.js: integer-
+  cents totals, issue (role+unique-number+duplicate guard+immutable snapshot),
+  partial/over/duplicate-payment guards, void rules, overdue derivation,
+  packing slip w/ lot numbers + optional prices (6 Node tests). Model only:
+  no prod write, no numbering/trigger/terms/tax decision (owner-pending), no UI.
 - ⬜ Mac export design (data export ≠ backup; preserve current backups) 🔒 background downloader = separate native component
 
 ## Handoff / inputs
