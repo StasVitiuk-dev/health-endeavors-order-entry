@@ -153,5 +153,20 @@
     return { proposals: all, actionable: actionable, cashTotal: Math.round(cashTotal * 100) / 100, cashUnknownCount: cashUnknown, note: 'SIMULATED planning only — no purchase is placed.' };
   }
 
-  return { availability, daysOfCover, runoutDate, roundToPack, reorderProposal, buildProposals, reorderPlan };
+  // Read-only projection of a confirmed sample handoff against stock. Returns a
+  // NEW item with on-hand reduced by the units handed over (floored at 0) — it
+  // does NOT write anything. The actual decrement on a real sample handoff needs
+  // a production inventory write contract (a safe stock function, e.g.
+  // adjust_inventory / R4) that does not exist in this local build; until then
+  // this is a fixture-backed read used to SHOW the forecast impact only.
+  function projectConsumption(item, units) {
+    const i = item || {}; const u = num(units) || 0;
+    const onHand = num(i.onHand);
+    if (onHand == null) return Object.assign({}, i); // unknown on-hand: nothing to project
+    return Object.assign({}, i, { onHand: Math.max(0, onHand - u) });
+  }
+  // The missing safe write contract, named so callers can surface it.
+  const MISSING_WRITE_CONTRACT = 'adjust_inventory (R4) — a safe sample-consumption decrement to production inventory; not available in the local build (projection is read-only).';
+
+  return { availability, daysOfCover, runoutDate, roundToPack, reorderProposal, buildProposals, reorderPlan, projectConsumption, MISSING_WRITE_CONTRACT };
 }));
