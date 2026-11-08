@@ -39,17 +39,24 @@
 
   // Classify one customer. `asOf` lets tests pin "today". Thresholds are relative
   // to that customer's own reorder rhythm when known, else sensible defaults.
-  function classify(customer, asOf) {
+  function classify(customer, asOf, opts) {
     const c = customer || {};
+    const o = opts || {};
     const now = asOf || new Date().toISOString();
     const dates = (c.orderDates || []).slice().sort();
     const orders = dates.length;
-    if (orders === 0) return { id: c.id, segment: 'UNKNOWN', reason: 'no order history', sinceLastDays: null };
+    // Reminder-eligibility flags, carried on every row so the reason an action is
+    // held is never lost when a row is handed to another panel.
+    const suppressed0 = !!(c.suppressed || c.dnc || c.optOut);
+    const recentRefund = !!c.recentRefund;
+    const openIssue = !!(c.openSupportIssue || c.deliveryIssue);
+    if (orders === 0) return { id: c.id, segment: 'UNKNOWN', reason: 'no order history', sinceLastDays: null, suppressed: suppressed0, recentRefund, openIssue, holdReason: suppressed0 ? 'opt-out / DNC' : (recentRefund ? 'recent refund' : (openIssue ? 'open support/delivery issue' : null)) };
     const last = dates[dates.length - 1];
     const sinceLast = days(last, now);
     const ri = reorderInterval(dates);
-    // Expected gap: the customer's own interval (if known) or a 90-day default.
-    const expected = ri.avgDays || 90;
+    // Expected gap: the customer's own interval (if known), else a configurable
+    // default (opts.defaultIntervalDays — e.g. 45 to test — not a hardcoded truth).
+    const expected = ri.avgDays || (o.defaultIntervalDays != null ? o.defaultIntervalDays : 90);
     const vip = orders >= 4 || (c.lifetimeValue != null && c.lifetimeValue >= (c.vipThreshold || 2000));
     let segment, reason;
     if (orders === 1) { segment = 'NEW'; reason = 'one order so far'; }
@@ -62,13 +69,17 @@
     // lifecycle action. A DNC/opt-out customer may still be segmented (e.g. still
     // INACTIVE) but must never be proposed for contact. The flag is carried here
     // and honored by analyze() below.
-    const suppressed = !!(c.suppressed || c.dnc || c.optOut);
+    const suppressed = suppressed0;
+    const holdReason = suppressed ? 'opt-out / DNC' : (recentRefund ? 'recent refund' : (openIssue ? 'open support/delivery issue' : null));
     return { id: c.id, storeName: c.storeName, segment, reason, orders, sinceLastDays: sinceLast,
-      reorderIntervalDays: ri.avgDays, reorderConfidence: ri.confidence, vip, suppressed };
+      reorderIntervalDays: ri.avgDays, reorderConfidence: ri.confidence, vip, suppressed,
+      recentRefund, openIssue, expectedIntervalDays: expected, holdReason };
   }
 
-  function analyze(customers, asOf) {
-    const rows = (customers || []).map(c => classify(c, asOf));
+  function analyze(customers, asOf, opts) {
+    const o = opts || {};
+    const reviewWindowDays = o.reviewWindowDays != null ? o.reviewWindowDays : 30;
+    const rows = (customers || []).map(c => classify(c, asOf, o));
     const counts = {};
     for (const s of SEGMENTS) counts[s] = 0;
     for (const r of rows) counts[r.segment] = (counts[r.segment] || 0) + 1;
@@ -77,17 +88,23 @@
     // excluded from every actionable list and surfaced separately so the owner
     // can still see them without a contact suggestion.
     const actionable = r => !r.suppressed;
-    const reorderCandidates = rows.filter(r => actionable(r) && (r.segment === 'AT_RISK' || (r.segment === 'REPEAT' && r.sinceLastDays != null && r.reorderIntervalDays && r.sinceLastDays >= r.reorderIntervalDays)));
-    const winBack = rows.filter(r => actionable(r) && (r.segment === 'INACTIVE' || r.segment === 'LOST'));
+    // Before suggesting any reminder, check consent/opt-out AND a recent refund or
+    // an open support/delivery issue — none of those should get a nudge.
+    const remindEligible = r => !r.suppressed && !r.recentRefund && !r.openIssue;
+    const reorderCandidates = rows.filter(r => remindEligible(r) && (r.segment === 'AT_RISK' || (r.segment === 'REPEAT' && r.sinceLastDays != null && r.reorderIntervalDays && r.sinceLastDays >= r.reorderIntervalDays)));
+    const winBack = rows.filter(r => remindEligible(r) && (r.segment === 'INACTIVE' || r.segment === 'LOST'));
     const vips = rows.filter(r => r.segment === 'VIP'); // a status list, not a contact action
-    const reviewRequest = rows.filter(r => actionable(r) && r.orders >= 2 && r.sinceLastDays != null && r.sinceLastDays <= 30);
+    const reviewRequest = rows.filter(r => remindEligible(r) && r.orders >= 2 && r.sinceLastDays != null && r.sinceLastDays <= reviewWindowDays);
     const suppressedCandidates = rows.filter(r => r.suppressed);
+    // Every row held back from a reminder, with the reason preserved (not just DNC).
+    const heldCandidates = rows.filter(r => r.holdReason != null);
     const known = rows.filter(r => r.reorderIntervalDays != null).map(r => r.reorderIntervalDays);
     const avgInterval = known.length ? Math.round(known.reduce((a, b) => a + b, 0) / known.length) : null;
     return { rows, counts, avgReorderIntervalDays: avgInterval,
       avgReorderConfidence: known.length >= 5 ? 'MEDIUM' : known.length ? 'LOW' : 'UNKNOWN',
-      reorderCandidates, winBack, vips, reviewRequest, suppressedCandidates,
-      guard: 'Advisory only. No customer is messaged; the owner reaches out by hand. Suppressed (DNC/opt-out) customers are never proposed for contact.' };
+      reorderCandidates, winBack, vips, reviewRequest, suppressedCandidates, heldCandidates,
+      defaultIntervalDays: (o.defaultIntervalDays != null ? o.defaultIntervalDays : 90), reviewWindowDays,
+      guard: 'Advisory only. No customer is messaged; the owner reaches out by hand. Suppressed (DNC/opt-out) customers are never proposed for contact; a recent refund or an open support/delivery issue also holds a customer back from a reminder.' };
   }
 
   // Synthetic customers for the page/tests (clearly fake; no real buyers).
