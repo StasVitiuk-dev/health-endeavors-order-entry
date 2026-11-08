@@ -50,13 +50,25 @@
       phone: normalizePhone(r.phone),
       city: String(r.city || '').trim(),
       state: String(r.state || '').trim(),
+      // Provenance + fit the shortlist carries forward (never invented): where the
+      // lead came from, when, the store category used for fit scoring, and any
+      // free-text fit/reason note.
+      source: String(r.source || '').trim(),
+      sourceDate: String(r.sourceDate || r.date || '').trim(),
+      category: String(r.category || '').trim().toLowerCase(),
+      fit: String(r.fit || r.reason || '').trim(),
     };
     const problems = [];
     if (!normalized.storeName) problems.push('missing business name');
     if (r.email && !normalized.email) problems.push('email is malformed');
     if (r.website && !normalizeDomain(r.website)) problems.push('website is malformed');
     if (!normalized.email && !normalized.domain) problems.push('no email and no website — not reachable');
-    if (!r.source) problems.push('missing source provenance');
+    if (!normalized.source) problems.push('missing source provenance');
+    // Confidence from provenance completeness (does NOT add a problem, so repeated
+    // imports and warning counts stay stable): full = source + date + a contact.
+    const hasContact = !!(normalized.email || normalized.domain || normalized.phone);
+    normalized.confidence = (normalized.source && normalized.sourceDate && hasContact) ? 'full'
+      : (normalized.source && hasContact) ? 'partial' : 'low';
     return { raw: r, normalized, problems };
   }
 
