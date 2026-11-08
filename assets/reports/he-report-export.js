@@ -35,6 +35,14 @@
     contentWidthPx: 816 - 96, contentHeightPx: 1056 - 96, orientation: 'portrait',
   });
 
+  // Export package schema. A restore refuses an unsupported version before it
+  // reads any data, so a newer package never half-applies into an older build.
+  const SCHEMA_VERSION = 1;
+  const SUPPORTED_SCHEMAS = [1];
+  // Automatic off-machine sync (e.g. to a Mac) is a SEPARATE native component,
+  // not part of this package and not enabled here. Named so it is never assumed.
+  const MAC_SYNC_DEPENDENCY = 'automatic Mac sync is a separate native background component (not part of this package and not enabled here); existing backups are untouched';
+
   const METRICS = ['orders_count', 'revenue', 'new_inquiries_count', 'tasks_opened_count', 'incidents_opened_count', 'ai_calls_count', 'ai_cost'];
   const COUNT_METRICS = new Set(['orders_count', 'new_inquiries_count', 'tasks_opened_count', 'incidents_opened_count', 'ai_calls_count']);
 
@@ -186,10 +194,14 @@
     const payload = { reports: rows, summary: dailySummary(rows) };
     const canonicalStr = canonical(payload);
     const checksum = fnv1a(canonicalStr);
+    const range = { from: i.from || (rows[0] && rows[0].report_date) || null, to: i.to || (rows[rows.length - 1] && rows[rows.length - 1].report_date) || null };
     return {
       kind: 'export_manifest', label: 'SIMULATED',
+      schemaVersion: SCHEMA_VERSION,
       format: format, rowCount: rows.length,
-      range: { from: i.from || (rows[0] && rows[0].report_date) || null, to: i.to || (rows[rows.length - 1] && rows[rows.length - 1].report_date) || null },
+      range: range,
+      coverage: { from: range.from, to: range.to, days: rows.length },
+      macSync: { automatic: false, dependency: MAC_SYNC_DEPENDENCY },
       byteLength: canonicalStr.length,
       checksum: checksum, checksumAlgorithm: 'fnv1a-32',
       createdAt: i.now || null,
@@ -216,6 +228,37 @@
     const recomputed = fnv1a(canonical(payload));
     const ok = recomputed === m.checksum;
     return { ok: ok, expected: m.checksum, actual: recomputed, mismatch: !ok };
+  }
+
+  // The package an export WOULD write: schema version, the entry names, the
+  // checksum and the payload. Pure — nothing is written to disk.
+  function packageOf(manifest) {
+    const m = manifest || {};
+    return { schemaVersion: m.schemaVersion, entries: (m.entries || []).map(function (e) { return e.name; }), checksum: m.checksum, payload: m.payload };
+  }
+
+  // Open (restore) a package for a recovery drill. Rejects an unsupported schema
+  // version, a missing entry file, or a checksum mismatch — and does so BEFORE
+  // any data would be applied (this function is pure and writes nothing, so a
+  // rejection can never leave a half-written restore). `present` lists the entry
+  // files actually found (defaults to all); omit one to simulate a missing file.
+  function openPackage(pkg, opts) {
+    const p = pkg || {}; const o = opts || {};
+    if (SUPPORTED_SCHEMAS.indexOf(p.schemaVersion) === -1) {
+      return { ok: false, rejected: true, stage: 'schema', applied: false, reason: 'unsupported schema version: ' + p.schemaVersion };
+    }
+    const want = p.entries || [];
+    const present = o.present || want;
+    const missing = want.filter(function (n) { return present.indexOf(n) === -1; });
+    if (missing.length) {
+      return { ok: false, rejected: true, stage: 'files', applied: false, reason: 'missing file(s): ' + missing.join(', ') };
+    }
+    const recomputed = fnv1a(canonical(p.payload));
+    if (recomputed !== p.checksum) {
+      return { ok: false, rejected: true, stage: 'checksum', applied: false, reason: 'checksum mismatch (package altered or corrupt)' };
+    }
+    const rows = (p.payload && p.payload.reports) || [];
+    return { ok: true, rejected: false, applied: true, schemaVersion: p.schemaVersion, coverage: { from: rows[0] && rows[0].report_date, to: rows.length ? rows[rows.length - 1].report_date : null, days: rows.length } };
   }
 
   // Simulated export attempt. NEVER moves data anywhere — it only models the
@@ -252,8 +295,9 @@
 
   return {
     US_LETTER, METRICS, isMissing, fnv1a, canonical,
+    SCHEMA_VERSION, SUPPORTED_SCHEMAS, MAC_SYNC_DEPENDENCY,
     businessDate, summarizeLedger,
     normalizeRow, selectReports, dailySummary, printModel,
-    buildManifest, verifyManifest, exportAttempt, retryExport,
+    buildManifest, verifyManifest, packageOf, openPackage, exportAttempt, retryExport,
   };
 }));
