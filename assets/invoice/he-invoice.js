@@ -156,5 +156,46 @@
     };
   }
 
-  return { STATES, ROLES_MAY_ISSUE, computeTotals, draftInvoice, reviseDraft, issue, applyPayment, voidInvoice, withOverdue, packingSlip };
+  // US-Letter print MODELS (not rendered PDFs). They paginate line items across
+  // pages, repeat the column headings on every page, and put totals on the last
+  // page only. A renderer consumes this; this module writes no file.
+  const US_LETTER = Object.freeze({ page: 'us-letter', widthPx: 816, heightPx: 1056, marginPx: 48, rowsPerPage: 22 });
+  function paginate(items, perPage) {
+    const per = perPage || US_LETTER.rowsPerPage; const pages = [];
+    for (let i = 0; i < (items || []).length; i += per) pages.push(items.slice(i, i + per));
+    if (!pages.length) pages.push([]);
+    return pages;
+  }
+  function invoicePrint(invoice, opts) {
+    const inv = invoice || {}; const o = opts || {};
+    const per = o.rowsPerPage || US_LETTER.rowsPerPage;
+    const pages = paginate(inv.lines, per);
+    const headings = ['Item', 'Qty', 'Unit', 'Disc', 'Line'];
+    return {
+      kind: 'invoice_print', label: 'SIMULATED', renderedPdf: false, page: US_LETTER,
+      number: inv.number || null, status: inv.status || 'draft',
+      pageCount: pages.length,
+      pages: pages.map(function (rows, i) {
+        return { pageNo: i + 1, totalPages: pages.length, headings: headings, repeatHeadings: true, rows: rows, showTotals: i === pages.length - 1 };
+      }),
+      totals: { subtotal: inv.subtotal, orderDiscount: inv.orderDiscount, shipping: inv.shipping, tax: inv.tax, total: inv.total, currency: inv.currency || 'USD' },
+      note: 'Invoice print model only — not a rendered PDF and nothing is sent.',
+    };
+  }
+  function packingSlipPrint(slip, opts) {
+    const s = slip || {}; const o = opts || {};
+    const per = o.rowsPerPage || (US_LETTER.rowsPerPage + 4); // no totals block, a few more rows fit
+    const pages = paginate(s.lines, per);
+    const headings = s.showPrices ? ['Item', 'Qty', 'Lot', 'Unit'] : ['Item', 'Qty', 'Lot'];
+    return {
+      kind: 'packing_slip_print', label: 'SIMULATED', renderedPdf: false, page: US_LETTER,
+      showPrices: s.showPrices === true, pageCount: pages.length,
+      pages: pages.map(function (rows, i) {
+        return { pageNo: i + 1, totalPages: pages.length, headings: headings, repeatHeadings: true, rows: rows };
+      }),
+      note: 'Packing slip — not an invoice and not a carrier label.',
+    };
+  }
+
+  return { STATES, ROLES_MAY_ISSUE, US_LETTER, computeTotals, draftInvoice, reviseDraft, issue, applyPayment, voidInvoice, withOverdue, packingSlip, paginate, invoicePrint, packingSlipPrint };
 }));
