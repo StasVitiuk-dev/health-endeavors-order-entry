@@ -17,7 +17,7 @@ finish in one window).
 
 | # | Open item | Next runnable change | Acceptance check | Evidence to close |
 |---|-----------|----------------------|------------------|-------------------|
-| L1 | Export preview uses a synthetic day-set, not live rows | expose the loaded `REPORT_HISTORY_DATA` from the `he-reports` module via a read accessor; have `loadReportExportPreview` package those rows | with the flag on and saved reports present, the export card's row count + range match Report History | a browser spec asserting the card reflects the loaded rows; modules-ext15 still green |
+| L1 | Export preview uses a synthetic day-set, not live rows | NOTE (verified 2026-11-08): `PANEL_LOADERS` run in parallel (`Promise.all(fns.map(safeRun))`, owner-login-app ~L3230), so simply reading `REPORT_HISTORY_DATA` races `loadReportHistory`. The real change is a render-after-load hook: expose a read accessor on `he-reports` AND have `loadReportHistory` invoke a registered "reports loaded" callback that re-runs `loadReportExportPreview`; keep the synthetic fallback when no rows are loaded | with the flag on and saved reports present, the export card's row count + range match Report History after load completes | a browser spec asserting the card reflects the loaded rows once loaded; modules-ext15 + module-map regen still green |
 | L2 | Recovery drill is engine-only | add a small read-only panel (behind a flag) that runs `openPackage` on a chosen synthetic package and shows ok / rejected-stage | flag OFF renders nothing; flag ON shows a clean open and a rejected (bad-checksum) case | a wiring spec like ops-preview-wiring; no TT/CSP violation |
 | L3 | Print models are data, not a rendered page | add a print-only HTML view (new tab / print stylesheet) that lays out `invoicePrint` / `packingSlipPrint` pages | a 2-page invoice prints with repeating headings and totals on the last page | a browser spec capturing the print DOM; a11y pass |
 | L4 | Full-suite confidence | run the suite in reproducible shards on CI (or several windows) and record counts | all shards green except the known `inventory-safety` test.fail | shard logs + counts appended to `NOV7_BOUNDED_REVIEW.md` |
@@ -46,8 +46,10 @@ saved reports). It depends on nothing above it.
 
 ## Immediate pickup
 
-Highest-priority local item is **L1**. It is begun as a separate, reversible
-change on this same branch; this execution list and the verified wave-1/wave-2
-checkpoint stand regardless of L1's progress. If L1 is not completed in this
-window, it stays an OPEN local item exactly as specified above — nothing here
-depends on it.
+Highest-priority local item is **L1**. On inspection its clean form needs a
+render-after-load hook (the panel loaders run in parallel, so a bare variable
+read would race the fetch), which is a larger change than a quick pickup — doing
+it half-way would leave non-deterministic behavior. So L1 stays OPEN with its
+next runnable change made accurate above, and the session stops at the verified
+wave-1/wave-2 checkpoint rather than ship a fragile slice. Nothing here depends
+on L1.
