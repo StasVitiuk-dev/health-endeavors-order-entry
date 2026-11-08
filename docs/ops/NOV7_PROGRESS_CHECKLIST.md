@@ -70,6 +70,10 @@ live email/carriers/ads/spend, real customer data) stay OFF throughout.
 - ⬜ Wholesale QR storefront — documentation handoff to the website session
 - ⬜ Planning inputs recorded (lab fill, jar/kit costs, provisional pricing, box-fit) — in `NOV7_BUILD_HANDOFF_2026-11-07.md`; confirm before public use
 
+## Critical path
+- ✅ End-to-end order→fulfill→bill→report map with honest verified/blocked
+  status per step and owner-decision priority — `NOV7_CRITICAL_PATH_MAP.md`.
+
 ## Owner decisions outstanding (from §14–16 + phases)
 Retention; export scope/attachments; destination; encryption recovery; invoice
 numbering/trigger/terms/tax; role permissions; real-device & provider approvals.
