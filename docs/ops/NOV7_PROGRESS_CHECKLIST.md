@@ -34,13 +34,21 @@ live email/carriers/ads/spend, real customer data) stay OFF throughout.
   adjust_inventory/R4). Previews desktop+mobile. Purchasing disabled.
 
 ## Phase 3
-- ⬜ Content & Social Repurposing (extend SG-14/15 + claim firewall)
-- ⬜ Ad Creative & Copy Variations
+- ✅ Content & Social Repurposing + Ad Creative/Copy Variations — `8e055b5`:
+  asset→draft journey (source facts + version, claim check fails-closed, status
+  machine owner-gated, **edit-approved→returns-to-review**); ad variants carry
+  audience/hook/hypothesis, flag claims, rank safe first.
 
 ## Phase 4
-- ⬜ Review & Testimonial Analyzer (extend SG-12)
-- ⬜ Micro-creator & UGC Discovery (extend SG-15)
-- ⬜ Retention & Replenishment (extend SG-11; 45d as a test example)
+- ✅ Review & Testimonial Analyzer (SG-12) — `ad0e7ba` new he-sales-reviews:
+  theme classify, leak/pump/safety urgent, permission+claim-gated quotes,
+  duplicate collapse, embedded-instructions-as-data.
+- ✅ Micro-creator & UGC Discovery — `24831d7`: shortlist w/ source+confidence,
+  UNKNOWN reach/engagement never invented, editable draft returns-to-review,
+  creator gifts separate from store visits, owner-controlled contact.
+- ✅ Retention & Replenishment — `f8da8e8`: configurable timing (reviewWindow/
+  defaultInterval, 45 as test example), eligibility (opt-out/refund/issue) with
+  preserved holdReason, dedupe by customer+channel, uncertain→UNKNOWN/NEW.
 
 ## Operations track
 - ⬜ Printable US-Letter reports + PDF generation (none exists yet)
