@@ -36,8 +36,15 @@
     return { id: c.id, name: c.name, platform: PLATFORMS.includes(c.platform) ? c.platform : 'other',
       audienceType: c.audienceType || 'unknown', niche: c.niche || 'unknown', publicUrl: c.publicUrl || null,
       score: f.score, band: f.band, reasons: f.reasons, status: 'IDENTIFIED',
+      // Provenance + uncertainty carried on the shortlist (never invented): where
+      // the creator was found + when, a geographic-fit note, and reach/engagement
+      // that stay UNKNOWN unless real evidence was supplied.
+      source: String(c.source || '').trim() || null, sourceDate: String(c.sourceDate || c.date || '').trim() || null,
+      geoFit: c.geoFit || 'unknown',
+      reach: c.publicUrl ? (c.followers != null ? c.followers : 'UNKNOWN') : 'UNKNOWN',
+      engagement: c.engagementBand || 'UNKNOWN',
       sampleConsideration: f.band === 'strong' ? 'FLAGGED_FOR_OWNER' : 'not yet',
-      outreachDraft: null, safety: SAFETY, synthetic: true };
+      outreachDraft: null, permission: c.permission || 'unknown', safety: SAFETY, synthetic: true };
   }
 
   function rank(creators) { return (creators || []).map(prospect).sort((a, b) => b.score - a.score); }
