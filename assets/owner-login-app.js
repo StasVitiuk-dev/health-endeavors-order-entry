@@ -84,7 +84,7 @@
       nightlyOverall,
     } = window.HE.helpers;
     // @@ EXT15 modules: created in dependency order (assets/app/*.js; see docs/ops/APPLICATION_MODULE_MAP_EXT15.md)
-    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn } = HE.modules.create('he-config', {  });
+    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn } = HE.modules.create('he-config', {  });
     const { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, h, pageIconNode } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
     const { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
     const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, h, supabase });
@@ -1855,11 +1855,73 @@
       else if (act === 'draft') { reorderShowDraft = !reorderShowDraft; loadReorderPlanning(); }
     });
 
+    // ---------- Operations output previews (read-only; behind reportExportOn /
+    // invoicePreviewOn). Both are SIMULATED prototypes shown in Report History.
+    // The export preview packages a synthetic day-set into a manifest with a
+    // checksum (writes no file, sends nothing). The invoice preview shows a
+    // SIMULATED draft invoice + packing slip; issuing stays an owner decision.
+    const opsReportsMod = () => { try { return (window.HE && window.HE.reports && window.HE.reports['he-report-export']) || null; } catch (e) { return null; } };
+    const opsInvoiceMod = () => { try { return (window.HE && window.HE.invoice && window.HE.invoice['he-invoice']) || null; } catch (e) { return null; } };
+    function loadReportExportPreview() {
+      const host = document.getElementById('reportExportHost'); if (!host) return;
+      if (!(typeof reportExportOn === 'function' && reportExportOn())) { host.replaceChildren(); return; }
+      const rx = opsReportsMod();
+      if (!rx) { host.replaceChildren(h('p', { class: 'empty' }, 'Export preview tools could not load.')); return; }
+      const history = [
+        { report_date: '2026-11-05', currency: 'USD', orders_count: 3, revenue: 120.50, new_inquiries_count: 2, tasks_opened_count: 1, incidents_opened_count: 0, ai_calls_count: 10, ai_cost: 0.42, emailed_at: '2026-11-06' },
+        { report_date: '2026-11-06', currency: 'USD', orders_count: 0, revenue: 0, new_inquiries_count: 1, tasks_opened_count: 0, incidents_opened_count: 0, ai_calls_count: 4, ai_cost: 0.11 },
+        { report_date: '2026-11-07', currency: 'USD', orders_count: 5, revenue: null, new_inquiries_count: 3, tasks_opened_count: 2, incidents_opened_count: 1, ai_calls_count: 7, ai_cost: 0.33 },
+      ];
+      const manifest = rx.buildManifest({ history: history });
+      const v = rx.verifyManifest(manifest);
+      const pm = rx.printModel({ history: history });
+      const kv = (k, val) => h('div', { class: 'scanCardRow' }, h('span', { class: 'u-c-muted' }, k + ': '), String(val));
+      host.replaceChildren(h('div', { class: 'reorderPlan u-mb-16' },
+        h('div', { class: 'scanHead' }, h('h3', null, 'Export preview'), h('span', { class: 'scanBadge' }, 'SIMULATED — writes no file, sends nothing')),
+        h('div', { class: 'scanCard u-mt-8' },
+          kv('Format', manifest.format), kv('Rows', manifest.rowCount),
+          kv('Date range', (manifest.range.from || '?') + ' → ' + (manifest.range.to || '?')),
+          kv('Checksum', manifest.checksum + ' (' + manifest.checksumAlgorithm + ')'),
+          kv('Integrity check', v.ok ? 'OK — checksum matches' : 'MISMATCH'),
+          kv('Page', pm.page.page + ' (' + pm.page.widthPx + '×' + pm.page.heightPx + 'px) — print model, not a rendered PDF')),
+        h('p', { class: 'hint u-mt-8' }, 'Values marked UNKNOWN were never measured (never shown as $0). Automatic Mac sync of the saved package is a separate component and is not enabled here.')));
+    }
+    function loadInvoicePreview() {
+      const host = document.getElementById('invoicePreviewHost'); if (!host) return;
+      if (!(typeof invoicePreviewOn === 'function' && invoicePreviewOn())) { host.replaceChildren(); return; }
+      const inv = opsInvoiceMod();
+      if (!inv) { host.replaceChildren(h('p', { class: 'empty' }, 'Invoice preview tools could not load.')); return; }
+      const draft = inv.draftInvoice({ lines: [
+        { sku: 'HE-HONEY-8OZ', description: 'Honey Milk 8 oz', quantity: 10, unitPrice: 18.50, discount: 5, lotNumber: 'LOT-A' },
+        { sku: 'HE-VEGAN-8OZ', description: 'Vegan 8 oz', quantity: 4, unitPrice: 18.50, lotNumber: 'LOT-B' },
+      ], orderDiscount: 10, shipping: 12.5, taxRate: 0.08, currency: 'USD' });
+      const slip = inv.packingSlip({ orderId: 'SYN-preview', shipmentId: 'SYN-preview-s1', allocations: [
+        { sku: 'HE-HONEY-8OZ', quantity: 6, lotNumber: 'LOT-A' }, { sku: 'HE-VEGAN-8OZ', quantity: 4, lotNumber: 'LOT-B' },
+      ] });
+      const lineRows = draft.lines.map(l => h('tr', null,
+        h('td', null, h('div', { class: 'taskTitle' }, l.sku || '—'), h('div', { class: 'u-fs-11 u-c-muted' }, l.description || '')),
+        h('td', { class: 'num-cell' }, String(l.quantity)),
+        h('td', { class: 'num-cell' }, fmtMoney(l.unitPrice, draft.currency)),
+        h('td', { class: 'num-cell' }, l.discount ? fmtMoney(l.discount, draft.currency) : '—'),
+        h('td', { class: 'num-cell' }, fmtMoney(l.lineTotal, draft.currency))));
+      const totalRow = (label, val, cls) => h('div', { class: 'scanCardRow' }, h('span', { class: 'u-c-muted' }, label + ': '), h('span', { class: cls || '' }, fmtMoney(val, draft.currency)));
+      const slipRows = slip.lines.map(l => h('div', { class: 'scanCardRow' }, (l.sku || '—') + ' × ' + l.quantity + ' · lot ' + (l.lotNumber || '—') + (l.unitPrice === undefined ? '' : ' · ' + fmtMoney(l.unitPrice, 'USD'))));
+      host.replaceChildren(h('div', { class: 'reorderPlan u-mb-16' },
+        h('div', { class: 'scanHead' }, h('h3', null, 'Invoice preview'), h('span', { class: 'scanBadge' }, 'SIMULATED — draft only, nothing issued or charged')),
+        h('table', { class: 'phoneCards u-mt-10' },
+          h('thead', null, h('tr', null, h('th', null, 'Item'), h('th', { class: 'num-cell' }, 'Qty'), h('th', { class: 'num-cell' }, 'Unit'), h('th', { class: 'num-cell' }, 'Disc'), h('th', { class: 'num-cell' }, 'Line'))),
+          h('tbody', null, lineRows)),
+        h('div', { class: 'scanCard u-mt-8' },
+          totalRow('Subtotal', draft.subtotal), totalRow('Order discount', draft.orderDiscount), totalRow('Shipping', draft.shipping), totalRow('Tax (' + Math.round(draft.taxRate * 100) + '%)', draft.tax), totalRow('Total', draft.total, 'taskTitle')),
+        h('div', { class: 'scanCard u-mt-8' }, h('div', { class: 'scanCardHead' }, 'Packing slip — not an invoice, not a carrier label'), slipRows),
+        h('p', { class: 'hint u-mt-8' }, 'Draft preview only. Issuing an invoice — numbering, payment terms and tax — is an owner decision and is not enabled here.')));
+    }
+
     const PANEL_LOADERS = {
       attentionPanel: [loadAttention, loadBusinessHealth, loadAttentionChecks, loadNightlyCheck, paintScanEntry],
       calendarPanel: [loadCalendarMonth],
       dailySummaryPanel: [loadDailySummary],
-      reportHistoryPanel: [loadReportHistory],
+      reportHistoryPanel: [loadReportHistory, loadReportExportPreview, loadInvoicePreview],
       ordersPanel: [loadOrders, paintScanEntry],
       inventoryPanel: [loadInventory, loadInventoryAdjustments, loadReorderPlanning],
       returnsPanel: [loadReturns],

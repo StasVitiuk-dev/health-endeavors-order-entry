@@ -36,7 +36,7 @@
 <script src="assets/owner-login-helpers.js?v=76dc8fc4a9"></script>
 <script src="assets/owner-login-modules.js?v=0d97adc58c"></script>
 <!-- @@ EXT15 module files (assets/app/*.js), added by tests/tools/extract-module.js @@ -->
-<script src="assets/app/he-config.js?v=318f0dc7b8"></script>
+<script src="assets/app/he-config.js?v=618f9e3654"></script>
 <script src="assets/app/he-ui.js?v=156512e5ba"></script>
 <script src="assets/app/he-data.js?v=c83d91bc56"></script>
 <script src="assets/app/he-audit.js?v=b5b3a424dc"></script>
@@ -102,6 +102,8 @@
 <script src="assets/scan/he-scan-ui.js?v=26b2ea15be"></script>
 <script src="assets/inventory/he-reorder.js?v=e311c08ab5"></script>
 <script src="assets/inventory/he-reorder-fixtures.js?v=885819be55"></script>
+<script src="assets/invoice/he-invoice.js?v=568e92b361"></script>
+<script src="assets/reports/he-report-export.js?v=f21909b1ab"></script>
 <script src="assets/owner-login-theme.js?v=05a115a149"></script>
 </head>
 <body>
@@ -681,6 +683,8 @@
           <button type="button" class="small secondary" data-view="monthly">Monthly</button>
         </div>
         <div id="reportHistoryWrap"><p class="empty">Loading…</p></div>
+        <div id="reportExportHost"></div>
+        <div id="invoicePreviewHost"></div>
       </section>
 
       <!-- Feature Flags -->
@@ -1042,6 +1046,6 @@
     </div>
   </div>
 
-<script src="assets/owner-login-app.js?v=0363dd099d"></script>
+<script src="assets/owner-login-app.js?v=87288aea7b"></script>
 </body>
 </html>

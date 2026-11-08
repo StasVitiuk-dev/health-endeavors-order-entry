@@ -87,7 +87,14 @@ const ADDED = ['setReportHistoryView', 'inquiriesList', 'agentControls', 'poRece
   // feature-flag OFF by default (reorderPlanningOn). Read-only planning helpers;
   // the delegated [data-reorder] listener is waived by text below.
   'invMod', 'reorderFilter', 'reorderShowDraft', 'reorderItems', 'reorderDecisionBadge',
-  'fmtCell', 'loadReorderPlanning', 'reorderPlanningOn'];
+  'fmtCell', 'loadReorderPlanning', 'reorderPlanningOn',
+  // Nov 7 Phase 2 items 9-10 — Operations output previews wired into Report
+  // History, feature-flags OFF by default (reportExportOn / invoicePreviewOn).
+  // Read-only, SIMULATED; issuing an invoice stays an owner decision.
+  // reportExportOn / invoicePreviewOn are the he-config flag factories (OFF by
+  // default), parallel to scanShipmentOn / reorderPlanningOn above.
+  'opsReportsMod', 'opsInvoiceMod', 'loadReportExportPreview', 'loadInvoicePreview',
+  'reportExportOn', 'invoicePreviewOn'];
 const NEW_MODULES = ['he-ops']; // EXT16: written new, not moved
 const CHANGED_TEXT = ["} = window.HE.helpers;", "forEach(o => Object.setPrototypeOf(o, null))", "supabase.auth.onAuthStateChange((event, session) =>", "getAttribute('data-view')", "getElementById('adjustInventoryForm').addEventListener('submit'", "getElementById('logReturnForm').addEventListener('submit'", "getElementById('retOrder').addEventListener('change'", "Release to refresh", "getElementById('docCategory')",
   // EXT20J-post-TT: the 4 static overlay scaffolds converted innerHTML->h(); each
