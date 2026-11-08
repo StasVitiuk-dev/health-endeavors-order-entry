@@ -32,11 +32,11 @@
 <meta http-equiv="Expires" content="0">
 <title>Health Endeavors — Owner Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous"></script>
-<link rel="stylesheet" href="assets/owner-login.css?v=617926ef4e">
+<link rel="stylesheet" href="assets/owner-login.css?v=19a557a1f4">
 <script src="assets/owner-login-helpers.js?v=76dc8fc4a9"></script>
 <script src="assets/owner-login-modules.js?v=0d97adc58c"></script>
 <!-- @@ EXT15 module files (assets/app/*.js), added by tests/tools/extract-module.js @@ -->
-<script src="assets/app/he-config.js?v=f9f0772b09"></script>
+<script src="assets/app/he-config.js?v=318f0dc7b8"></script>
 <script src="assets/app/he-ui.js?v=156512e5ba"></script>
 <script src="assets/app/he-data.js?v=c83d91bc56"></script>
 <script src="assets/app/he-audit.js?v=b5b3a424dc"></script>
@@ -100,6 +100,8 @@
 <script src="assets/scan/he-scan.js?v=6a153c7bda"></script>
 <script src="assets/scan/he-scan-fixtures.js?v=1e32d7b6ec"></script>
 <script src="assets/scan/he-scan-ui.js?v=26b2ea15be"></script>
+<script src="assets/inventory/he-reorder.js?v=2e85692241"></script>
+<script src="assets/inventory/he-reorder-fixtures.js?v=885819be55"></script>
 <script src="assets/owner-login-theme.js?v=05a115a149"></script>
 </head>
 <body>
@@ -258,6 +260,7 @@
       <section class="panel" id="inventoryPanel">
         <h2>Inventory</h2>
         <p class="hint">Your product catalogue and how much of each you hold, split into Available, Reserved, Damaged, Sample, Wholesale, Promotional and Returned. Add a product before you can order or stock it — receiving a purchase order and restocking a return both find products by SKU, so give everything a SKU and use the same one in Shopify. Every change is logged with who made it, when and why.</p>
+        <div id="reorderPlanningHost"></div>
         <div class="statRow" id="inventoryStats"></div>
 
         <form class="heForm u-mt-14" id="addProductForm">
@@ -1039,6 +1042,6 @@
     </div>
   </div>
 
-<script src="assets/owner-login-app.js?v=53174f0afb"></script>
+<script src="assets/owner-login-app.js?v=0363dd099d"></script>
 </body>
 </html>

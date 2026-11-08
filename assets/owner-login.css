@@ -1103,6 +1103,9 @@
   .scanQ-sent{ color:var(--good-solid, #1a7f37); }
   .scanQ-failed, .scanQ-held{ color:var(--danger); }
   @media (max-width:560px){ #scanOverlay .scanCardWrap{ max-width:100%; } }
+  /* Reorder planning (read-only) */
+  .reorderPlan{ border:1px solid var(--line); border-radius:var(--radius-sm); padding:12px 14px; }
+  .reorderDup{ opacity:0.55; }
 
 /* EXT8: "Checks: what needs a look" rows. The level is also written as text
    (badge), so colour is never the only signal. */

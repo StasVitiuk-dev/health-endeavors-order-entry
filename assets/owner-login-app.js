@@ -84,7 +84,7 @@
       nightlyOverall,
     } = window.HE.helpers;
     // @@ EXT15 modules: created in dependency order (assets/app/*.js; see docs/ops/APPLICATION_MODULE_MAP_EXT15.md)
-    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn } = HE.modules.create('he-config', {  });
+    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn } = HE.modules.create('he-config', {  });
     const { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, h, pageIconNode } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
     const { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
     const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, h, supabase });
@@ -1798,13 +1798,70 @@
       if (act === 'outage') { scanState.outage = !!t.checked; }
     });
 
+    // ---------- Inventory reorder planning (read-only; behind reorderPlanningOn)
+    // Surfaces the pure reorder engine over synthetic fixtures as a planning view
+    // in the Inventory panel. RECOMMENDS only — never writes stock or places a PO.
+    const invMod = (n) => { try { return (window.HE && window.HE.inventory && window.HE.inventory[n]) || null; } catch (e) { return null; } };
+    let reorderFilter = 'all';
+    let reorderShowDraft = false;
+
+    function reorderItems() {
+      const fx = invMod('he-reorder-fixtures');
+      let items = fx ? fx.ITEMS.slice() : [];
+      if (reorderFilter === 'finished') items = items.filter(i => (i.kind || 'finished') === 'finished');
+      else if (reorderFilter === 'component') items = items.filter(i => i.kind === 'component');
+      return items;
+    }
+    function reorderDecisionBadge(p) {
+      const map = { reorder: ['Reorder', 'badge sev-medium'], reorder_manual: ['Reorder (manual)', 'badge sev-medium'], none: ['OK', 'badge'], needs_data: ['Needs data', 'badge sev-high'] };
+      const m = map[p.decision] || ['—', 'badge'];
+      return h('span', { class: m[1] }, m[0]);
+    }
+    function fmtCell(v) { return (v == null) ? '—' : String(v); }
+    function loadReorderPlanning() {
+      const host = document.getElementById('reorderPlanningHost'); if (!host) return;
+      if (!(typeof reorderPlanningOn === 'function' && reorderPlanningOn())) { host.replaceChildren(); return; }
+      const eng = invMod('he-reorder');
+      if (!eng) { host.replaceChildren(h('p', { class: 'empty' }, 'Reorder planning tools could not load.')); return; }
+      const plan = eng.reorderPlan(reorderItems());
+      const rows = plan.proposals.map(p => h('tr', { class: p.duplicate ? 'reorderDup' : '' },
+        h('td', null, h('div', { class: 'taskTitle' }, p.key), h('div', { class: 'u-fs-11 u-c-muted' }, p.kind + (p.duplicate ? ' · duplicate (skipped)' : ''))),
+        h('td', { class: 'num-cell' }, fmtCell(p.onHand)),
+        h('td', { class: 'num-cell' }, fmtCell(p.reserved)),
+        h('td', { class: 'num-cell' }, fmtCell(p.incoming)),
+        h('td', { class: 'num-cell' }, p.leadTimeDays == null ? '—' : p.leadTimeDays + 'd'),
+        h('td', { class: 'num-cell' }, p.daysOfCover == null ? '?' : (p.daysOfCover === 'infinite' ? '∞' : p.daysOfCover + 'd')),
+        h('td', null, reorderDecisionBadge(p), h('div', { class: 'u-fs-11 u-c-muted' }, (p.reasons || []).join('; '))),
+        h('td', { class: 'num-cell' }, p.quantity ? String(p.quantity) : '—'),
+        h('td', { class: 'num-cell' }, p.cash == null ? (p.decision === 'reorder' || p.decision === 'reorder_manual' ? 'cost?' : '—') : fmtMoney(p.cash, 'USD'))));
+      const filterChip = (k, label) => h('button', { type: 'button', class: 'small' + (reorderFilter === k ? '' : ' secondary'), 'data-reorder': 'filter', 'data-kind': k }, label);
+      const draftNode = reorderShowDraft ? h('div', { class: 'scanCard u-mt-10' },
+        h('div', { class: 'scanCardHead' }, 'Draft reorder (simulated — not placed)'),
+        plan.actionable.length ? plan.actionable.map(p => h('div', { class: 'scanCardRow' }, p.key + ' × ' + p.quantity + (p.cash == null ? ' (cost unknown)' : ' — ' + fmtMoney(p.cash, 'USD')))) : h('div', { class: 'scanCardRow' }, 'Nothing to reorder right now.'),
+        h('div', { class: 'u-fs-12 u-c-muted u-mt-8' }, 'Cash needed (known costs): ' + fmtMoney(plan.cashTotal, 'USD') + (plan.cashUnknownCount ? ' · ' + plan.cashUnknownCount + ' item(s) missing a unit cost' : ''))) : null;
+      host.replaceChildren(h('div', { class: 'reorderPlan u-mb-16' },
+        h('div', { class: 'scanHead' }, h('h3', null, 'Reorder planning'), h('span', { class: 'scanBadge' }, 'SIMULATED — planning only, no purchase is placed')),
+        h('div', { class: 'scanToggleRow u-mt-8' }, filterChip('all', 'All'), filterChip('finished', 'Finished'), filterChip('component', 'Components'),
+          h('button', { type: 'button', class: 'small secondary', 'data-reorder': 'draft' }, reorderShowDraft ? 'Hide draft' : 'Preview draft reorder')),
+        h('table', { class: 'phoneCards u-mt-10' },
+          h('thead', null, h('tr', null, h('th', null, 'Item'), h('th', { class: 'num-cell' }, 'On hand'), h('th', { class: 'num-cell' }, 'Reserved'), h('th', { class: 'num-cell' }, 'Inbound'), h('th', { class: 'num-cell' }, 'Lead'), h('th', { class: 'num-cell' }, 'Cover'), h('th', null, 'Suggestion & why'), h('th', { class: 'num-cell' }, 'Qty'), h('th', { class: 'num-cell' }, 'Cash'))),
+          h('tbody', null, rows)),
+        draftNode));
+    }
+    document.addEventListener('click', (e) => {
+      const t = e.target.closest('[data-reorder]'); if (!t) return;
+      const act = t.getAttribute('data-reorder');
+      if (act === 'filter') { reorderFilter = t.getAttribute('data-kind') || 'all'; loadReorderPlanning(); }
+      else if (act === 'draft') { reorderShowDraft = !reorderShowDraft; loadReorderPlanning(); }
+    });
+
     const PANEL_LOADERS = {
       attentionPanel: [loadAttention, loadBusinessHealth, loadAttentionChecks, loadNightlyCheck, paintScanEntry],
       calendarPanel: [loadCalendarMonth],
       dailySummaryPanel: [loadDailySummary],
       reportHistoryPanel: [loadReportHistory],
       ordersPanel: [loadOrders, paintScanEntry],
-      inventoryPanel: [loadInventory, loadInventoryAdjustments],
+      inventoryPanel: [loadInventory, loadInventoryAdjustments, loadReorderPlanning],
       returnsPanel: [loadReturns],
       suppliersPanel: [loadSuppliers],
       purchaseOrdersPanel: [loadPurchaseOrders],
