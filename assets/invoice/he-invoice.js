@@ -55,9 +55,33 @@
       billTo: i.billTo || null, shipTo: i.shipTo || null, terms: i.terms || null, issueDate: null, dueDate: null,
       currency: t.currency, lines: t.lines, subtotal: t.subtotal, orderDiscount: t.orderDiscount,
       shipping: t.shipping, taxRate: t.taxRate, tax: t.tax, total: t.total,
-      paid: 0, balance: t.total, payments: [], versions: [], corrections: [],
+      // _input keeps the raw adjustment fields so a later revision recomputes
+      // from the same basis; it is internal (never surfaced as money).
+      _input: { orderDiscount: i.orderDiscount || 0, shipping: i.shipping || 0, taxRate: i.taxRate || 0, currency: t.currency },
+      paid: 0, balance: t.total, payments: [], versions: [], corrections: [], revisions: [],
       synthetic: true, label: 'SIMULATED',
     };
+  }
+
+  // Edit a DRAFT, preserving history: each revision snapshots the PRIOR totals
+  // and lines before recomputing, so the change trail is never lost. Only a
+  // draft can be revised (an issued invoice is corrected via void + reissue).
+  // Pure: returns a new draft; the input is not mutated.
+  function reviseDraft(draft, patch, opts) {
+    if (!draft || draft.status !== 'draft') return { ok: false, reason: 'only a draft can be edited (status ' + (draft && draft.status) + ')', invoice: draft };
+    const o = opts || {}; const p = patch || {};
+    const prevInput = draft._input || {};
+    const next = {
+      lines: p.lines != null ? p.lines : draft.lines,
+      orderDiscount: p.orderDiscount != null ? p.orderDiscount : prevInput.orderDiscount,
+      shipping: p.shipping != null ? p.shipping : prevInput.shipping,
+      taxRate: p.taxRate != null ? p.taxRate : prevInput.taxRate,
+      currency: p.currency != null ? p.currency : draft.currency,
+    };
+    const revised = draftInvoice(next);
+    const snapshot = { subtotal: draft.subtotal, orderDiscount: draft.orderDiscount, shipping: draft.shipping, tax: draft.tax, total: draft.total, lines: draft.lines };
+    revised.revisions = draft.revisions.concat([{ revision: draft.revisions.length + 1, at: o.now || null, by: o.actor || null, reason: o.reason || null, was: snapshot }]);
+    return { ok: true, invoice: revised };
   }
 
   // Issue a draft: assigns a unique number (caller supplies from a sequence),
@@ -132,5 +156,5 @@
     };
   }
 
-  return { STATES, ROLES_MAY_ISSUE, computeTotals, draftInvoice, issue, applyPayment, voidInvoice, withOverdue, packingSlip };
+  return { STATES, ROLES_MAY_ISSUE, computeTotals, draftInvoice, reviseDraft, issue, applyPayment, voidInvoice, withOverdue, packingSlip };
 }));
