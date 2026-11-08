@@ -1065,6 +1065,45 @@
      desktop table. */
   td.num-cell, th.num-cell{ text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
 
+  /* EXT21: Scan Shipment prototype flow (overlay + steps). Colours from tokens;
+     controls keep the square shape. Shown only when the feature flag is on. */
+  .scanEntryHost{ margin:2px 0 12px; }
+  .scanEntryBtn{ display:inline-flex; align-items:center; gap:6px; }
+  #scanOverlay{ display:none; position:fixed; inset:0; z-index:310; align-items:center; justify-content:center; padding:20px; background:rgba(0,0,0,0.45); }
+  #scanOverlay .scanCardWrap{ background:var(--panel); color:var(--ink); border-radius:var(--radius); width:100%; max-width:620px; max-height:90vh; overflow:auto; box-shadow:0 20px 60px rgba(0,0,0,0.35); padding:18px 20px; position:relative; }
+  .scanHead{ display:flex; flex-direction:column; gap:4px; padding-right:72px; }
+  .scanHead h3{ margin:0; font-size:17px; }
+  .scanBadge{ font-size:11.5px; color:var(--warn-solid, #8a6d00); background:var(--warn-bg); border:1px solid var(--warn); border-radius:var(--ctl-radius); padding:2px 8px; align-self:flex-start; }
+  .scanClose{ position:absolute; top:16px; right:18px; }
+  .scanBody{ margin-top:14px; display:flex; flex-direction:column; gap:12px; }
+  .scanNote{ font-size:13px; color:var(--muted); margin:0; }
+  .scanSub{ font-size:13px; font-weight:600; color:var(--ink); margin:4px 0 0; }
+  .scanHint{ font-size:12.5px; color:var(--muted); }
+  .scanMethods{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .scanFileBtn{ display:inline-flex; align-items:center; cursor:pointer; }
+  .scanDemo summary{ cursor:pointer; font-size:12.5px; color:var(--muted); }
+  .scanDemoRow{ display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+  .scanVideo{ width:100%; max-height:280px; background:#000; border-radius:var(--ctl-radius); }
+  .scanRecog{ font-size:12.5px; color:var(--muted); }
+  .scanFields{ display:flex; flex-direction:column; gap:4px; font-size:13.5px; }
+  .scanMono{ font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  .scanLink{ color:var(--accent); font-size:13px; }
+  .scanWarn{ color:var(--danger); }
+  .scanToggleRow{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+  .scanOutage{ font-size:12px; color:var(--muted); display:inline-flex; align-items:center; gap:4px; }
+  .scanCard{ border:1px solid var(--line); border-radius:var(--radius-sm); padding:12px; margin-top:8px; display:flex; flex-direction:column; gap:4px; }
+  .scanCardHead{ font-size:14px; }
+  .scanCardRow{ font-size:13px; color:var(--ink); }
+  .scanReasons{ font-size:12px; color:var(--muted); }
+  .scanCardActions{ display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+  .scanOk{ color:var(--good-solid, #1a7f37); font-weight:600; margin:0; }
+  .scanQ{ font-size:13px; display:flex; align-items:center; gap:8px; padding:3px 0; }
+  .scanQState{ font-weight:600; text-transform:capitalize; }
+  .scanQ-queued{ color:var(--muted); }
+  .scanQ-sent{ color:var(--good-solid, #1a7f37); }
+  .scanQ-failed, .scanQ-held{ color:var(--danger); }
+  @media (max-width:560px){ #scanOverlay .scanCardWrap{ max-width:100%; } }
+
 /* EXT8: "Checks: what needs a look" rows. The level is also written as text
    (badge), so colour is never the only signal. */
 .attnCheck{ border-left:4px solid var(--line); padding-left:10px; }

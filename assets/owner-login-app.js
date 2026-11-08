@@ -84,7 +84,7 @@
       nightlyOverall,
     } = window.HE.helpers;
     // @@ EXT15 modules: created in dependency order (assets/app/*.js; see docs/ops/APPLICATION_MODULE_MAP_EXT15.md)
-    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn } = HE.modules.create('he-config', {  });
+    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn } = HE.modules.create('he-config', {  });
     const { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, h, pageIconNode } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
     const { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
     const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, h, supabase });
@@ -1529,12 +1529,281 @@
       }
     }
 
+    // ---------- Scan Shipment (Phase 1 prototype; behind scanShipmentOn()) ----
+    // A local, SIMULATED flow: read/enter a shipping label, find the matching
+    // order (role-scoped, from synthetic fixtures), confirm EVERY package, attach
+    // the tracking number ONCE, and queue a simulated tracking check + one
+    // notification. No camera/carrier/customer contact and no production writes.
+    // DOM is built only with h(); clicks use delegated data-action handlers.
+    const scanMod = (n) => { try { return (window.HE && window.HE.scan && window.HE.scan[n]) || null; } catch (e) { return null; } };
+    const scanState = { step: 'capture', extracted: null, ranked: [], recognition: null, plan: null, attachedKeys: new Set(), cameraStream: null, outage: false };
+
+    function scanOrders() {
+      const fx = scanMod('he-scan-fixtures');
+      return fx ? fx.ORDERS : [];
+    }
+    function scanAccessible() {
+      const role = currentUserRole || 'staff';
+      return function (o) { return (role === 'owner' || role === 'administrator') ? true : !o.owner_only; };
+    }
+    function scanOverlayEl() { return document.getElementById('scanOverlay'); }
+
+    function stopScanCamera() {
+      if (scanState.cameraStream) { try { scanState.cameraStream.getTracks().forEach(t => t.stop()); } catch (e) {} scanState.cameraStream = null; }
+    }
+    function closeScanFlow() {
+      stopScanCamera();
+      const o = scanOverlayEl(); if (o) { o.style.display = 'none'; o.replaceChildren(); }
+      restoreFocus();
+    }
+    function openScanFlow() {
+      if (!(typeof scanShipmentOn === 'function' && scanShipmentOn())) return;
+      rememberFocus();
+      scanState.step = 'capture'; scanState.extracted = null; scanState.ranked = []; scanState.recognition = null; scanState.plan = null; scanState.outage = false;
+      renderScan();
+      const o = scanOverlayEl(); if (o) o.style.display = 'flex';
+    }
+
+    // Build the extracted-fields object from a fixture scan, a barcode read, or
+    // manual input, tagging HOW it was recognized so the UI never passes a fixture
+    // off as a live read.
+    function setExtracted(fields, recognition) {
+      scanState.extracted = Object.assign({ carrier: '', tracking: '', orderRef: '', destZip: '', name: '', fulfillmentHint: true }, fields || {});
+      scanState.recognition = recognition || 'manual';
+      const eng = scanMod('he-scan');
+      scanState.ranked = eng ? eng.rankOrders(scanState.extracted, scanOrders(), scanAccessible()) : [];
+      scanState.step = 'review';
+    }
+
+    const RECOGNITION_LABEL = {
+      barcode: 'Barcode (read from image)',
+      fixture: 'Fixture scan (demo — not a live read)',
+      manual: 'Typed by you',
+      printed_text: 'Printed-text demo (fixture — real OCR not wired)',
+    };
+
+    async function scanRecognizePhoto(file) {
+      // Real barcode recognition where the browser supports it; otherwise fall
+      // back to manual. Never fabricate a read.
+      try {
+        if (typeof window.BarcodeDetector === 'function' && file) {
+          const bitmap = await createImageBitmap(file);
+          const det = new window.BarcodeDetector();
+          const codes = await det.detect(bitmap);
+          if (codes && codes.length) return { tracking: codes[0].rawValue || '', recognition: 'barcode' };
+        }
+      } catch (e) { /* fall through to manual */ }
+      return null;
+    }
+
+    function scanConfirm(orderId) {
+      const eng = scanMod('he-scan'); if (!eng) return;
+      const cand = scanState.ranked.find(r => r.order.id === orderId) || (scanState.ranked[0] || null);
+      const order = cand ? cand.order : null;
+      const shipmentId = 'SYN-ship-' + (order ? order.id : 'x');
+      let plan = eng.planAttach({
+        shipmentId: shipmentId, orderId: order && order.id, tracking: scanState.extracted.tracking,
+        carrier: scanState.extracted.carrier, channel: order && order.channel, actor: currentUserRole || 'owner',
+        now: new Date().toISOString(), existingKeys: scanState.attachedKeys,
+      });
+      // Provider outage simulation: the notification fails (held for safe retry);
+      // the confirmed shipment state is preserved regardless.
+      if (plan.ok && scanState.outage) {
+        plan = Object.assign({}, plan, { queued: plan.queued.map(q => q.kind === 'notification' ? Object.assign({}, q, { state: 'failed' }) : q) });
+      }
+      if (plan.ok && plan.attach) {
+        scanState.attachedKeys.add(plan.attach.dedup_key);
+        (plan.queued || []).forEach(q => { if (q.kind === 'notification') scanState.attachedKeys.add(q.dedup_key); });
+      }
+      scanState.plan = plan; scanState.selectedOrder = order; scanState.step = 'result';
+      renderScan();
+    }
+
+    function scanCard(c, ui) {
+      const eng = scanMod('he-scan');
+      return h('div', { class: 'scanCard' },
+        h('div', { class: 'scanCardHead' }, (c.channel === 'wholesale' ? 'Wholesale' : 'Retail') + ' order ', h('b', null, c.order_number || c.order_id)),
+        h('div', { class: 'scanCardRow' }, 'To: ', c.intendedRecipient, ' · ZIP ', c.destination.zip),
+        h('div', { class: 'scanCardRow' }, 'Carrier: ', (c.carrier || '—'), ' · Tracking: ', h('span', { class: 'scanMono' }, c.tracking || '—')),
+        h('div', { class: 'scanReasons' }, 'Why: ' + (c.reasons && c.reasons.length ? c.reasons.join('; ') : 'weak clue only')),
+        h('div', { class: 'scanCardActions' },
+          h('button', { type: 'button', class: 'small', 'data-scan': 'confirm', 'data-order': c.order_id }, 'Confirm & start tracking'),
+          h('button', { type: 'button', class: 'small secondary', 'data-scan': 'back-capture' }, 'Correct / retake')));
+    }
+
+    function renderScan() {
+      const host = scanOverlayEl(); if (!host) return;
+      const ui = scanMod('he-scan-ui'); const eng = scanMod('he-scan');
+      const card = h('div', { class: 'card scanCardWrap' });
+      const head = h('div', { class: 'scanHead' },
+        h('h3', null, 'Scan Shipment'),
+        h('span', { class: 'scanBadge' }, 'SIMULATED — no carrier or customer is contacted'));
+      const close = h('button', { type: 'button', class: 'small secondary scanClose', 'data-scan': 'close' }, 'Close');
+      let body;
+      if (!ui || !eng) {
+        body = h('p', { class: 'empty' }, 'The scan tools could not load.');
+      } else if (scanState.step === 'capture') {
+        const cap = ui.captureStep({ cameraAvailable: typeof navigator !== 'undefined' && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) });
+        body = h('div', { class: 'scanBody' },
+          h('p', { class: 'scanNote' }, 'Read a shipping label, choose a photo, or type it in. Every package is confirmed before anything is attached.'),
+          h('div', { class: 'scanMethods' },
+            cap.cameraAvailable ? h('button', { type: 'button', class: 'small', 'data-scan': 'camera' }, 'Scan with camera') : h('span', { class: 'scanHint' }, 'Camera not available on this device — use a photo or type it in.'),
+            h('label', { class: 'small scanFileBtn' }, 'Choose a photo', h('input', { type: 'file', accept: 'image/*', 'data-scan': 'photo', class: 'u-d-none' })),
+            h('button', { type: 'button', class: 'small secondary', 'data-scan': 'manual' }, 'Enter by hand')),
+          h('details', { class: 'scanDemo' }, h('summary', null, 'Load a sample scan (demo fixtures)'),
+            h('div', { class: 'scanDemoRow' },
+              ['exact_match', 'same_name', 'multi_package', 'zip_only', 'no_match', 'invalid_tracking'].map(k =>
+                h('button', { type: 'button', class: 'small secondary', 'data-scan': 'fixture', 'data-fx': k }, k.replace(/_/g, ' '))))));
+      } else if (scanState.step === 'camera') {
+        body = h('div', { class: 'scanBody' },
+          h('p', { class: 'scanNote' }, 'Point the camera at the label. Reading uses the browser barcode reader where supported.'),
+          h('video', { id: 'scanVideo', class: 'scanVideo', autoplay: true, muted: true, playsinline: true }),
+          h('div', { class: 'scanCardActions' },
+            h('button', { type: 'button', class: 'small', 'data-scan': 'capture-frame' }, 'Read label'),
+            h('button', { type: 'button', class: 'small secondary', 'data-scan': 'back-capture' }, 'Back')));
+      } else if (scanState.step === 'manual') {
+        body = h('div', { class: 'scanBody' },
+          h('p', { class: 'scanNote' }, 'Type what you can read from the label. Carrier and tracking are enough to start.'),
+          h('div', { class: 'heForm' },
+            h('div', { class: 'heField' }, h('label', { for: 'scanM_carrier' }, 'Carrier'), h('select', { id: 'scanM_carrier' }, h('option', { value: '' }, 'Detect automatically'), h('option', { value: 'ups' }, 'UPS'), h('option', { value: 'usps' }, 'USPS'), h('option', { value: 'fedex' }, 'FedEx'))),
+            h('div', { class: 'heField' }, h('label', { for: 'scanM_tracking' }, 'Tracking number'), h('input', { type: 'text', id: 'scanM_tracking', placeholder: 'e.g. 1Z…' })),
+            h('div', { class: 'heField' }, h('label', { for: 'scanM_ref' }, 'Order number ', h('span', { class: 'heOpt' }, '(if on the label)')), h('input', { type: 'text', id: 'scanM_ref', placeholder: 'e.g. SYN-1003' })),
+            h('div', { class: 'heField' }, h('label', { for: 'scanM_zip' }, 'Destination ZIP ', h('span', { class: 'heOpt' }, '(optional)')), h('input', { type: 'text', id: 'scanM_zip', placeholder: 'e.g. 10001' })),
+            h('div', { class: 'heField heWide' }, h('label', { for: 'scanM_name' }, 'Recipient / store ', h('span', { class: 'heOpt' }, '(optional, weak clue)')), h('input', { type: 'text', id: 'scanM_name' }))),
+          h('div', { class: 'scanCardActions' },
+            h('button', { type: 'button', class: 'small', 'data-scan': 'manual-submit' }, 'Find the order'),
+            h('button', { type: 'button', class: 'small secondary', 'data-scan': 'back-capture' }, 'Back')));
+      } else if (scanState.step === 'review') {
+        const rv = ui.reviewExtraction(scanState.extracted);
+        const conf = ui.confirmStep(scanState.extracted, scanState.ranked);
+        body = h('div', { class: 'scanBody' },
+          h('div', { class: 'scanRecog' }, 'Read as: ', h('b', null, RECOGNITION_LABEL[scanState.recognition] || scanState.recognition)),
+          h('div', { class: 'scanFields' },
+            h('div', null, 'Carrier: ', h('b', null, rv.fields.carrier.value)),
+            h('div', null, 'Tracking: ', h('span', { class: 'scanMono' }, rv.fields.tracking.value), rv.invalidTracking ? h('span', { class: 'scanWarn' }, ' ⚠ tracking failed its carrier check — confirm or re-enter') : null),
+            rv.trackingLink ? h('a', { href: rv.trackingLink, target: '_blank', rel: 'noopener', class: 'scanLink' }, 'Open on carrier site') : null),
+          h('div', { class: 'scanToggleRow' },
+            h('button', { type: 'button', class: 'small secondary', 'data-scan': 'back-capture' }, 'Retake / correct'),
+            h('button', { type: 'button', class: 'small secondary', 'data-scan': 'manual' }, 'Edit by hand'),
+            h('label', { class: 'scanOutage' }, h('input', { type: 'checkbox', 'data-scan': 'outage', class: 'u-w-auto' }), ' simulate a provider outage')),
+          conf.kind === 'single_match' ? h('div', null, h('p', { class: 'scanSub' }, 'Suggested order — confirm to attach:'), conf.cards.map(c => scanCard(c, ui)))
+            : conf.kind === 'multiple_matches' ? h('div', null, h('p', { class: 'scanSub' }, 'More than one order matches — pick the right one:'), conf.cards.map(c => scanCard(c, ui)))
+            : h('div', null, h('p', { class: 'scanSub scanWarn' }, conf.note), h('button', { type: 'button', class: 'small', 'data-scan': 'manual' }, 'Search / enter the order')));
+      } else if (scanState.step === 'result') {
+        const res = ui.resultStep(scanState.plan);
+        const rows = (res.queued || []).map(q => h('div', { class: 'scanQ' },
+          (q.kind === 'tracking_check' ? 'Tracking check' : 'Shipping notification' + (q.channel ? ' (' + q.channel + ')' : '')) + ': ',
+          h('span', { class: 'scanQState scanQ-' + q.state }, q.state),
+          q.retryable ? h('button', { type: 'button', class: 'small secondary', 'data-scan': 'retry' }, 'Retry') : null));
+        body = h('div', { class: 'scanBody' },
+          res.state === 'OK' ? h('div', null,
+            h('p', { class: 'scanOk' }, '✓ Tracking attached to the shipment (simulated).'),
+            h('div', { class: 'scanFields' },
+              h('div', null, 'Carrier: ', h('b', null, res.attached.carrier), ' · ', h('span', { class: 'scanMono' }, res.attached.tracking)),
+              h('div', null, 'Tracking state: ', h('b', null, res.attached.trackingState), ' — a scan does not prove the carrier accepted it')),
+            h('p', { class: 'scanSub' }, 'Queued (simulated):'), rows,
+            h('p', { class: 'scanNote' }, res.note))
+          : res.state === 'DUPLICATE' ? h('p', { class: 'scanWarn' }, res.note)
+          : h('p', { class: 'scanWarn' }, '⚠ ' + res.note),
+          h('div', { class: 'scanCardActions' }, h('button', { type: 'button', class: 'small', 'data-scan': 'again' }, 'Scan another'), h('button', { type: 'button', class: 'small secondary', 'data-scan': 'close' }, 'Done')));
+      }
+      card.replaceChildren(head, close, body);
+      host.replaceChildren(card);
+      if (scanState.step === 'camera') startScanCamera();
+    }
+
+    async function startScanCamera() {
+      const video = document.getElementById('scanVideo');
+      if (!video || !(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) { scanState.step = 'capture'; renderScan(); return; }
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        scanState.cameraStream = stream; video.srcObject = stream;
+      } catch (e) {
+        // Denied or unavailable — fall back cleanly to photo / manual.
+        stopScanCamera(); scanState.step = 'capture'; renderScan();
+        toast('Camera not available — choose a photo or type the label in.');
+      }
+    }
+
+    async function captureScanFrame() {
+      const video = document.getElementById('scanVideo'); if (!video) return;
+      let recognized = null;
+      try {
+        if (typeof window.BarcodeDetector === 'function') {
+          const det = new window.BarcodeDetector();
+          const codes = await det.detect(video);
+          if (codes && codes.length) recognized = { tracking: codes[0].rawValue || '', recognition: 'barcode' };
+        }
+      } catch (e) { /* fall through */ }
+      stopScanCamera();
+      if (recognized) { setExtracted({ tracking: recognized.tracking }, 'barcode'); renderScan(); }
+      else { scanState.step = 'manual'; renderScan(); toast('No barcode read — type the label in.'); }
+    }
+
+    function scanEntryButton() {
+      return h('button', { type: 'button', class: 'small scanEntryBtn', 'data-scan': 'open' }, '📦 Scan Shipment');
+    }
+    // Paint the entry action into Home and Orders, only when the flag is on. With
+    // the flag off the hosts stay empty, so the live dashboard is unchanged.
+    function paintScanEntry() {
+      if (!(typeof scanShipmentOn === 'function' && scanShipmentOn())) return;
+      ['scanEntryHome', 'scanEntryOrders'].forEach((id) => {
+        const host = document.getElementById(id);
+        if (host && !host.firstChild) host.replaceChildren(scanEntryButton());
+      });
+    }
+
+    // One delegated handler for the whole overlay + entry buttons.
+    document.addEventListener('click', async (e) => {
+      const t = e.target.closest('[data-scan]'); if (!t) return;
+      const act = t.getAttribute('data-scan');
+      if (act === 'open') { e.preventDefault(); openScanFlow(); return; }
+      if (act === 'close') { closeScanFlow(); return; }
+      if (act === 'camera') { scanState.step = 'camera'; renderScan(); return; }
+      if (act === 'manual') { scanState.step = 'manual'; renderScan(); return; }
+      if (act === 'back-capture') { stopScanCamera(); scanState.step = 'capture'; renderScan(); return; }
+      if (act === 'capture-frame') { await captureScanFrame(); return; }
+      if (act === 'fixture') {
+        const fx = scanMod('he-scan-fixtures'); const key = t.getAttribute('data-fx');
+        if (fx && fx.SCANS[key]) setExtracted(fx.SCANS[key], 'fixture');
+        renderScan(); return;
+      }
+      if (act === 'manual-submit') {
+        setExtracted({
+          carrier: (document.getElementById('scanM_carrier') || {}).value || '',
+          tracking: (document.getElementById('scanM_tracking') || {}).value || '',
+          orderRef: (document.getElementById('scanM_ref') || {}).value || '',
+          destZip: (document.getElementById('scanM_zip') || {}).value || '',
+          name: (document.getElementById('scanM_name') || {}).value || '',
+        }, 'manual');
+        renderScan(); return;
+      }
+      if (act === 'confirm') { scanConfirm(t.getAttribute('data-order')); return; }
+      if (act === 'retry') {
+        // Safe retry: re-queue the failed notification without re-attaching.
+        if (scanState.plan && scanState.plan.queued) scanState.plan.queued = scanState.plan.queued.map(q => q.state === 'failed' ? Object.assign({}, q, { state: 'sent' }) : q);
+        scanState.outage = false; renderScan(); return;
+      }
+      if (act === 'again') { openScanFlow(); return; }
+    });
+    document.addEventListener('change', async (e) => {
+      const t = e.target.closest('[data-scan]'); if (!t) return;
+      const act = t.getAttribute('data-scan');
+      if (act === 'photo' && t.files && t.files[0]) {
+        const r = await scanRecognizePhoto(t.files[0]);
+        if (r) setExtracted({ tracking: r.tracking }, 'barcode');
+        else { scanState.step = 'manual'; renderScan(); toast('No barcode found in that photo — type the label in.'); return; }
+        renderScan();
+      }
+      if (act === 'outage') { scanState.outage = !!t.checked; }
+    });
+
     const PANEL_LOADERS = {
-      attentionPanel: [loadAttention, loadBusinessHealth, loadAttentionChecks, loadNightlyCheck],
+      attentionPanel: [loadAttention, loadBusinessHealth, loadAttentionChecks, loadNightlyCheck, paintScanEntry],
       calendarPanel: [loadCalendarMonth],
       dailySummaryPanel: [loadDailySummary],
       reportHistoryPanel: [loadReportHistory],
-      ordersPanel: [loadOrders],
+      ordersPanel: [loadOrders, paintScanEntry],
       inventoryPanel: [loadInventory, loadInventoryAdjustments],
       returnsPanel: [loadReturns],
       suppliersPanel: [loadSuppliers],
