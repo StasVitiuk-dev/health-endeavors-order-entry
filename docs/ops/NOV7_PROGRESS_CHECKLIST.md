@@ -27,9 +27,11 @@ live email/carriers/ads/spend, real customer data) stay OFF throughout.
   follow-up suppression→pipeline to CUSTOMER) — `d507851`. Reuses existing engine
   + panels. (UI already present via Sales & Growth flag.)
 - ✅ Wholesale storefront handoff doc (QR/PIN/cache/mobile/two-sample) — `dd5025c`
-- 🟡 Inventory Reorder & Cash Flow — engine done (`0aab9da`: availability recon,
-  days-of-cover, zero-vs-unknown, threshold fallback, pack/MOQ, cash ranges,
-  dedupe; purchasing disabled). ⬜ read-only planning VIEW in Inventory panel next.
+- ✅ Inventory Reorder & Cash Flow — engine `0aab9da` + read-only **planning view**
+  in Inventory panel (flag `he_reorder_planning`, filter/why/draft, all branches
+  on screen) `5c98e05` + **sample-handoff↔inventory** read-only reconciliation
+  `5ecf1fd` (projectConsumption, idempotent, missing write contract named:
+  adjust_inventory/R4). Previews desktop+mobile. Purchasing disabled.
 
 ## Phase 3
 - ⬜ Content & Social Repurposing (extend SG-14/15 + claim firewall)
