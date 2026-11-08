@@ -79,6 +79,22 @@ live email/carriers/ads/spend, real customer data) stay OFF throughout.
 - 🟡 Owner-review-path browser walkthrough (discoverability, nav/back/refresh,
   defaults-OFF) — pending a full-suite window; engines + flows pass.
 
+## Blueprint verification wave 1 (2026-11-08) — ✅ complete
+All local/synthetic, defaults OFF. Review package: `NOV7_REVIEW_PACKAGE.md`;
+shards: `NOV7_BOUNDED_REVIEW.md`. Verify-moves drift fixed at cause (0dd6743).
+- ✅ 1 report/invoice previews wired to Report History (flags OFF) — `acfdb1a`
+- ✅ 2 invoice corrections: draft-edit history + retries no duplicate — `9d68279`
+- ✅ 3 two-page US-Letter invoice + packing slip print models — `01e16fd`
+- ✅ 4 daily report vs ledger (cancel/refund/expense/boundary, unknown≠0) — `f986de4`
+- ✅ 5 export recovery drill (schema+coverage, reject before apply, Mac-sync named) — `fde1fab`
+- ✅ 6 inventory+wholesale rehearsal (handoff + partial receipt, no double-count) — `6787e09`
+- ✅ 7 scanner recovery (cross-order guard, split shipment, outage) — `f691882`
+- ✅ 8 marketing approval binding + next-action on blocked — `5b47990`
+- ✅ 9 owner vs staff boundaries on new screens — `597303e`
+- ✅ 10 bounded desktop+mobile review (182 passed, 0 failed) — `6af669d`
+- ✅ 11 review package + recovery v29 (verified)
+- 🔒 Full 2118-test suite PENDING (infeasible in one window; shards stand in)
+
 ## Critical path
 - ✅ End-to-end order→fulfill→bill→report map with honest verified/blocked
   status per step and owner-decision priority — `NOV7_CRITICAL_PATH_MAP.md`.
