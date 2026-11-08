@@ -70,6 +70,15 @@ live email/carriers/ads/spend, real customer data) stay OFF throughout.
 - ⬜ Wholesale QR storefront — documentation handoff to the website session
 - ⬜ Planning inputs recorded (lab fill, jar/kit costs, provisional pricing, box-fit) — in `NOV7_BUILD_HANDOFF_2026-11-07.md`; confirm before public use
 
+## Closeout
+- ✅ Day rehearsal — two synthetic orders through one operating day with a
+  mid-day CORRECTION (void unpaid invoice + reissue at new number) and a
+  failed-then-retried export, reconciled end to end: stock consumed = units
+  shipped (40→22), report revenue = sum of FINAL invoices (void excluded,
+  $333), bad tracking caught before attach. `day-rehearsal-ext21.spec.js` (1).
+- 🟡 Owner-review-path browser walkthrough (discoverability, nav/back/refresh,
+  defaults-OFF) — pending a full-suite window; engines + flows pass.
+
 ## Critical path
 - ✅ End-to-end order→fulfill→bill→report map with honest verified/blocked
   status per step and owner-decision priority — `NOV7_CRITICAL_PATH_MAP.md`.
