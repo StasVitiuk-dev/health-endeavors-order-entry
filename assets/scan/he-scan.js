@@ -215,21 +215,34 @@
     const seen = o.existingKeys instanceof Set ? o.existingKeys : new Set(o.existingKeys || []);
     const duplicateAttach = seen.has(trkKey);
     const duplicateNotif = seen.has(notifKey);
+    // Cross-order reuse: the SAME tracking number is already attached to a
+    // DIFFERENT shipment. `assignedTo` maps a normalized tracking -> the
+    // shipment it belongs to; reusing it elsewhere is refused (a label belongs
+    // to one shipment). A re-scan of the SAME shipment is a duplicate, not a
+    // cross-assignment. A split shipment uses a DIFFERENT tracking per box, so
+    // it never trips this.
+    const assignedTo = (o.assignedTo && typeof o.assignedTo === 'object') ? o.assignedTo : null;
+    const priorShipment = assignedTo && tracking ? assignedTo[tracking] : null;
+    const crossAssigned = !!(priorShipment && norm(priorShipment) !== norm(o.shipmentId));
+    const blocked = duplicateAttach || crossAssigned;
     return {
-      ok: v.valid && !duplicateAttach,
+      ok: v.valid && !blocked,
       duplicateAttach: duplicateAttach,
+      crossAssigned: crossAssigned,
+      crossAssignedTo: crossAssigned ? priorShipment : null,
       validation: v,
-      attach: duplicateAttach ? null : {
+      attach: blocked ? null : {
         shipment_id: o.shipmentId, order_id: o.orderId, carrier: carrier, tracking_number: tracking,
         confirmed_by: o.actor || null, confirmed_at: o.now || null, tracking_state: 'label_created',
         synthetic: true, dedup_key: trkKey,
       },
       // the tracking check and the ONE shipping notification are queued, not run
-      queued: duplicateAttach ? [] : [
+      queued: blocked ? [] : [
         { kind: 'tracking_check', dedup_key: trkKey, state: 'queued', synthetic: true },
       ].concat(duplicateNotif ? [] : [
         { kind: 'notification', channel: o.channel || 'unknown', dedup_key: notifKey, state: 'queued', synthetic: true },
       ]),
+      reason: crossAssigned ? ('tracking already assigned to a different shipment: ' + priorShipment) : (duplicateAttach ? 'already attached to this shipment' : null),
       note: 'SIMULATED — a scan does not prove carrier acceptance and sends nothing.',
     };
   }
