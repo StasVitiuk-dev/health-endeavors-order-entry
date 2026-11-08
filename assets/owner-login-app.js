@@ -97,7 +97,7 @@
     const { escalateToIncidentOnce, loadIncidents } = HE.modules.create('he-incidents', { CLOSED_IN, SEARCH_INDEX, fixedRequestKey, fmtDate, h, isClosedStatus, isOverdue, isRequestKeyRepeat, requestKeysOn, showDashError, staleMessage, supabase, updateIfUnchanged, withRequestKey });
     const { loadExpenses, loadDeletedExpenses } = HE.modules.create('he-expenses', { EXPENSE_CATEGORY_LABELS, LIST_LIMITS, SEARCH_INDEX, appendMore, confirmSecondPress, fetchAllRows, fmtDate, fmtDateOnly, fmtMoney, h, listLimit, noRowsChanged, showDashError, staleMessage, supabase, updateIfUnchanged });
     const { loadSuppliers } = HE.modules.create('he-suppliers', { SEARCH_INDEX, SUPPLIER_TYPE_LABELS, boolGuard, fetchAllRows, h, showDashError, staleMessage, updateIfUnchanged });
-    const { setReportHistoryView, renderReportHistoryView, loadReportHistory } = HE.modules.create('he-reports', { fmtDateOnly, fmtMoney, h, localDateString, missingToNaN, monthGroupLabel, reportCount, rollupReports, showDashError, startOfWeekMonday, supabase, weekGroupLabel });
+    const { setReportHistoryView, renderReportHistoryView, loadReportHistory, reportHistoryRows } = HE.modules.create('he-reports', { fmtDateOnly, fmtMoney, h, localDateString, missingToNaN, monthGroupLabel, reportCount, rollupReports, showDashError, startOfWeekMonday, supabase, weekGroupLabel });
     const { inquiriesList, loadInquiries, renderInquiries } = HE.modules.create('he-inquiries', { INQ_ANSWERED_CAP, INQ_STATUS_LABELS, fetchAllRows, fetchAllRowsIn, fmtDate, h, inqStatusBadgeClass, noRowsChanged, showDashError, staleMessage, supabase, updateIfUnchanged });
     const { agentControls, agentTruth, loadAgentControls } = HE.modules.create('he-agents', { AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, currentUserId, fmtDate, h, maskSensitive, requireReauth, showDashError, staleMessage, supabase, toast, updateIfUnchanged });
     const { createOpTracker } = HE.modules.create('he-ops', {});
@@ -1867,7 +1867,12 @@
       if (!(typeof reportExportOn === 'function' && reportExportOn())) { host.replaceChildren(); return; }
       const rx = opsReportsMod();
       if (!rx) { host.replaceChildren(h('p', { class: 'empty' }, 'Export preview tools could not load.')); return; }
-      const history = [
+      // L1: package the SAME nightly rows Report History loaded when they are
+      // available; fall back to a synthetic day-set only when none are saved yet,
+      // so the preview is meaningful in a fresh/empty database too.
+      const live = (typeof reportHistoryRows === 'function') ? reportHistoryRows() : [];
+      const usingLive = Array.isArray(live) && live.length > 0;
+      const history = usingLive ? live : [
         { report_date: '2026-11-05', currency: 'USD', orders_count: 3, revenue: 120.50, new_inquiries_count: 2, tasks_opened_count: 1, incidents_opened_count: 0, ai_calls_count: 10, ai_cost: 0.42, emailed_at: '2026-11-06' },
         { report_date: '2026-11-06', currency: 'USD', orders_count: 0, revenue: 0, new_inquiries_count: 1, tasks_opened_count: 0, incidents_opened_count: 0, ai_calls_count: 4, ai_cost: 0.11 },
         { report_date: '2026-11-07', currency: 'USD', orders_count: 5, revenue: null, new_inquiries_count: 3, tasks_opened_count: 2, incidents_opened_count: 1, ai_calls_count: 7, ai_cost: 0.33 },
@@ -1879,6 +1884,7 @@
       host.replaceChildren(h('div', { class: 'reorderPlan u-mb-16' },
         h('div', { class: 'scanHead' }, h('h3', null, 'Export preview'), h('span', { class: 'scanBadge' }, 'SIMULATED — writes no file, sends nothing')),
         h('div', { class: 'scanCard u-mt-8' },
+          kv('Source', usingLive ? 'saved reports (' + history.length + ' day' + (history.length === 1 ? '' : 's') + ')' : 'demo data (no saved reports yet)'),
           kv('Format', manifest.format), kv('Rows', manifest.rowCount),
           kv('Date range', (manifest.range.from || '?') + ' → ' + (manifest.range.to || '?')),
           kv('Checksum', manifest.checksum + ' (' + manifest.checksumAlgorithm + ')'),
@@ -1917,11 +1923,19 @@
         h('p', { class: 'hint u-mt-8' }, 'Draft preview only. Issuing an invoice — numbering, payment terms and tax — is an owner decision and is not enabled here.')));
     }
 
+    // L1: the panel loaders run in parallel, so the export preview must render
+    // AFTER Report History has loaded its rows. This awaits the load, then paints
+    // the export preview over the now-loaded rows (the synthetic fallback inside
+    // loadReportExportPreview covers the "no saved reports yet" case).
+    async function loadReportHistoryThenExport() {
+      await safeRun(loadReportHistory);
+      loadReportExportPreview();
+    }
     const PANEL_LOADERS = {
       attentionPanel: [loadAttention, loadBusinessHealth, loadAttentionChecks, loadNightlyCheck, paintScanEntry],
       calendarPanel: [loadCalendarMonth],
       dailySummaryPanel: [loadDailySummary],
-      reportHistoryPanel: [loadReportHistory, loadReportExportPreview, loadInvoicePreview],
+      reportHistoryPanel: [loadReportHistoryThenExport, loadInvoicePreview],
       ordersPanel: [loadOrders, paintScanEntry],
       inventoryPanel: [loadInventory, loadInventoryAdjustments, loadReorderPlanning],
       returnsPanel: [loadReturns],

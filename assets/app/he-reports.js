@@ -77,5 +77,10 @@ window.HE.modules.define('he-reports', { api: 1, needs: ['fmtDateOnly','fmtMoney
       }
     }
 
-  return { setReportHistoryView, renderReportHistoryView, loadReportHistory };
+  // EXT21 L1: a read-only accessor to the loaded nightly rows, so the (default-
+  // OFF) export preview can package the SAME saved reports the history shows,
+  // instead of a synthetic day-set. Returns a copy; never a live reference.
+  function reportHistoryRows(){ return REPORT_HISTORY_DATA.slice(); }
+
+  return { setReportHistoryView, renderReportHistoryView, loadReportHistory, reportHistoryRows };
 });

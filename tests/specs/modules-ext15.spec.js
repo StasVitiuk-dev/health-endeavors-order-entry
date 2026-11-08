@@ -94,7 +94,11 @@ const ADDED = ['setReportHistoryView', 'inquiriesList', 'agentControls', 'poRece
   // reportExportOn / invoicePreviewOn are the he-config flag factories (OFF by
   // default), parallel to scanShipmentOn / reorderPlanningOn above.
   'opsReportsMod', 'opsInvoiceMod', 'loadReportExportPreview', 'loadInvoicePreview',
-  'reportExportOn', 'invoicePreviewOn'];
+  'reportExportOn', 'invoicePreviewOn',
+  // EXT21 L1: composed loader so the export preview renders after Report History
+  // loads its rows (the panel loaders otherwise run in parallel); and the
+  // he-reports read accessor that exposes the loaded rows to the preview.
+  'loadReportHistoryThenExport', 'reportHistoryRows'];
 const NEW_MODULES = ['he-ops']; // EXT16: written new, not moved
 const CHANGED_TEXT = ["} = window.HE.helpers;", "forEach(o => Object.setPrototypeOf(o, null))", "supabase.auth.onAuthStateChange((event, session) =>", "getAttribute('data-view')", "getElementById('adjustInventoryForm').addEventListener('submit'", "getElementById('logReturnForm').addEventListener('submit'", "getElementById('retOrder').addEventListener('change'", "Release to refresh", "getElementById('docCategory')",
   // EXT20J-post-TT: the 4 static overlay scaffolds converted innerHTML->h(); each
