@@ -51,6 +51,9 @@
     return { kind, text: String(text || ''), qualityScore: qualityScore(text),
       personalizationScore: personalizationScore(text), claimWarnings: warnings,
       claimSafe: warnings === 0, estCost: o.estCost == null ? null : o.estCost,
+      // A/B hypothesis metadata: who it targets, the hook, and what we expect to
+      // learn. Carried for review; never a claim or a send.
+      audience: o.audience || null, hook: o.hook || null, hypothesis: o.hypothesis || null,
       ownerChoice: false, label: 'SIMULATION', synthetic: true };
   }
 
