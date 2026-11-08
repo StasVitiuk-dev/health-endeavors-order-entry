@@ -73,7 +73,21 @@ const ADDED = ['setReportHistoryView', 'inquiriesList', 'agentControls', 'poRece
   // are its helpers. PANEL_LOADERS gained the 7 flag-gated sales panel loaders.
   // salesGrowthOn / SALES_GROWTH_GROUP are the new he-config factory statements.
   'salesMod', 'salesUi', 'salesEngine', 'SALES_TITLES', 'SALES_VIEWS', 'loadSales', 'PANEL_LOADERS',
-  'salesGrowthOn', 'SALES_GROWTH_GROUP', 'salesKv', 'salesSection'];
+  'salesGrowthOn', 'SALES_GROWTH_GROUP', 'salesKv', 'salesSection',
+  // Nov 7 Phase 1 — Scan Shipment UI flow (commit 4e472ed), feature-flag OFF by
+  // default (scanShipmentOn). New top-level declarations wiring the capture→
+  // review→confirm→result overlay; the two delegated [data-scan] listeners are
+  // waived by text below. No baseline statement is altered (verify-moves reports
+  // zero missing/changed — the guard still covers every original statement).
+  'scanMod', 'scanState', 'scanOrders', 'scanAccessible', 'scanOverlayEl', 'stopScanCamera',
+  'closeScanFlow', 'openScanFlow', 'setExtracted', 'RECOGNITION_LABEL', 'scanRecognizePhoto',
+  'scanConfirm', 'scanCard', 'renderScan', 'startScanCamera', 'captureScanFrame',
+  'scanEntryButton', 'paintScanEntry', 'scanShipmentOn',
+  // Nov 7 Phase 2 item 4 — Inventory reorder planning view (commit 5c98e05),
+  // feature-flag OFF by default (reorderPlanningOn). Read-only planning helpers;
+  // the delegated [data-reorder] listener is waived by text below.
+  'invMod', 'reorderFilter', 'reorderShowDraft', 'reorderItems', 'reorderDecisionBadge',
+  'fmtCell', 'loadReorderPlanning', 'reorderPlanningOn'];
 const NEW_MODULES = ['he-ops']; // EXT16: written new, not moved
 const CHANGED_TEXT = ["} = window.HE.helpers;", "forEach(o => Object.setPrototypeOf(o, null))", "supabase.auth.onAuthStateChange((event, session) =>", "getAttribute('data-view')", "getElementById('adjustInventoryForm').addEventListener('submit'", "getElementById('logReturnForm').addEventListener('submit'", "getElementById('retOrder').addEventListener('change'", "Release to refresh", "getElementById('docCategory')",
   // EXT20J-post-TT: the 4 static overlay scaffolds converted innerHTML->h(); each
@@ -81,7 +95,14 @@ const CHANGED_TEXT = ["} = window.HE.helpers;", "forEach(o => Object.setPrototyp
   // and the new class:'x' form, so it waives exactly that one statement.
   'helpCard', 'paletteCard', 'shortcutCard', 'quickAddCard', // the report-view buttons now call setReportHistoryView
   // EXT20J Sales & Growth PART I: he-config appends the flag-gated group (no decl name).
-  'SIDEBAR_GROUPS.push(SALES_GROWTH_GROUP)'];
+  'SIDEBAR_GROUPS.push(SALES_GROWTH_GROUP)',
+  // Nov 7: the delegated event listeners for the Scan Shipment flow (click +
+  // change) and the reorder planning view (click). Each fragment is unique to
+  // its feature's data-attribute, which did not exist at the 3a40095 baseline,
+  // so none can waive an original statement. The [data-scan] fragment waives
+  // both scan listeners (click + change); [data-reorder] waives the one reorder
+  // listener. Named handlers above; these three are anonymous top-level stmts.
+  "e.target.closest('[data-scan]')", "e.target.closest('[data-reorder]')"];
 
 test('the module moves were byte-identical: every original statement once, only the named edits differ', ({}, ti) => {
   nodeOnly(ti);
