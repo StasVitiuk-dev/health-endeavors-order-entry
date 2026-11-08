@@ -63,15 +63,15 @@
   // this module does not re-run them, but it refuses to approve when they say no.
   function isApprovable(draft) {
     const d = draft || {};
-    if (d.suppressed === true || d.dnc === true || d.optOut === true) return { ok: false, reason: 'lead is suppressed (DNC/opt-out); cannot be approved' };
-    if (d.claimBlocked === true) return { ok: false, reason: 'claim firewall blocked this draft; cannot be approved' };
+    if (d.suppressed === true || d.dnc === true || d.optOut === true) return { ok: false, reason: 'lead is suppressed (DNC/opt-out); cannot be approved', nextAction: 'remove this recipient from the queue and record the opt-out; do not send' };
+    if (d.claimBlocked === true) return { ok: false, reason: 'claim firewall blocked this draft; cannot be approved', nextAction: 'edit the draft to remove the flagged claim, then re-submit for review' };
     return { ok: true };
   }
 
   // Record an approval against the draft's current fingerprint. Never sent.
   function approve(draft, approver, atISO) {
     const gate = isApprovable(draft);
-    if (!gate.ok) return { status: 'REFUSED', sent: false, reason: gate.reason };
+    if (!gate.ok) return { status: 'REFUSED', sent: false, reason: gate.reason, nextAction: gate.nextAction || null };
     return { status: 'APPROVED', sent: false, // approved is NOT sent
       fingerprint: fingerprint(draft),
       approvedBy: approver || null,
@@ -84,7 +84,7 @@
     if (!approval || approval.status !== 'APPROVED') return { valid: false, reason: 'no approval on record' };
     // A suppression that appeared after approval wins (B3): never valid.
     const gate = isApprovable(currentDraft);
-    if (!gate.ok) return { valid: false, reason: gate.reason, superseded: true };
+    if (!gate.ok) return { valid: false, reason: gate.reason, nextAction: gate.nextAction || null, superseded: true };
     const now = fingerprint(currentDraft);
     if (now !== approval.fingerprint) {
       // We store only the fingerprint, not the old draft, so we report the
