@@ -165,8 +165,21 @@
     if (onHand == null) return Object.assign({}, i); // unknown on-hand: nothing to project
     return Object.assign({}, i, { onHand: Math.max(0, onHand - u) });
   }
+  // Project a PARTIAL receipt of an open PO: move up to `units` from inTransit
+  // into onHand. Read-only projection (same missing R4 write contract as
+  // projectConsumption). Never receives more than is actually in transit; if
+  // on-hand is unknown it still reduces inTransit but cannot invent a count.
+  function receivePartial(item, units) {
+    const i = item || {}; const u = Math.max(0, num(units) || 0);
+    const inTransit = num(i.inTransit) || 0;
+    const recv = Math.min(u, inTransit);
+    const onHand = num(i.onHand);
+    const base = { inTransit: Math.max(0, inTransit - recv) };
+    if (onHand == null) return Object.assign({}, i, base); // unknown on-hand: reduce PO, no count
+    return Object.assign({}, i, base, { onHand: onHand + recv });
+  }
   // The missing safe write contract, named so callers can surface it.
   const MISSING_WRITE_CONTRACT = 'adjust_inventory (R4) — a safe sample-consumption decrement to production inventory; not available in the local build (projection is read-only).';
 
-  return { availability, daysOfCover, runoutDate, roundToPack, reorderProposal, buildProposals, reorderPlan, projectConsumption, MISSING_WRITE_CONTRACT };
+  return { availability, daysOfCover, runoutDate, roundToPack, reorderProposal, buildProposals, reorderPlan, projectConsumption, receivePartial, MISSING_WRITE_CONTRACT };
 }));
