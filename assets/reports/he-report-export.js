@@ -78,6 +78,47 @@
     return out;
   }
 
+  // Integer-cents helpers for ledger aggregation (avoid float drift).
+  const cents = (v) => Math.round((Number(v) || 0) * 100);
+  const money = (c) => Math.round(c) / 100;
+
+  // The business-day date for a timestamp, under a fixed UTC offset (hours).
+  // offsetHours shifts the instant before the calendar date is taken, so an
+  // order at 23:30 local on the 7th counts on the 7th, not the UTC-8th.
+  function businessDate(at, offsetHours) {
+    const t = +new Date(at);
+    if (isNaN(t)) return null;
+    return new Date(t + (Number(offsetHours) || 0) * 3600000).toISOString().slice(0, 10);
+  }
+
+  // Aggregate a synthetic ledger of events into daily report rows. Event types:
+  //   order   (amount; a null amount makes that day's revenue UNKNOWN, not 0)
+  //   cancel  (removes the order from the count; reverses its amount if given)
+  //   refund  (amount; reduces net revenue)
+  //   expense (amount; tracked separately, never netted into revenue)
+  // Each event is assigned to a business day via businessDate(at, offsetHours).
+  function summarizeLedger(events, opts) {
+    const o = opts || {}; const off = o.offsetHours || 0; const cur = o.currency || 'USD';
+    const byDay = {};
+    (events || []).forEach(function (e) {
+      const day = businessDate(e.at, off); if (!day) return;
+      const r = byDay[day] || (byDay[day] = { report_date: day, currency: cur, orders_count: 0, revenueC: 0, refundC: 0, expenseC: 0, canceled_count: 0, revenueUnknown: false });
+      if (e.type === 'order') { r.orders_count += 1; if (e.amount == null) r.revenueUnknown = true; else r.revenueC += cents(e.amount); }
+      else if (e.type === 'cancel') { r.orders_count -= 1; r.canceled_count += 1; if (e.amount != null) r.revenueC -= cents(e.amount); }
+      else if (e.type === 'refund') { r.refundC += cents(e.amount); }
+      else if (e.type === 'expense') { r.expenseC += cents(e.amount); }
+    });
+    return Object.keys(byDay).sort().map(function (day) {
+      const r = byDay[day];
+      return {
+        report_date: r.report_date, currency: r.currency,
+        orders_count: Math.max(0, r.orders_count), canceled_count: r.canceled_count,
+        revenue: r.revenueUnknown ? 'UNKNOWN' : money(Math.max(0, r.revenueC - r.refundC)),
+        refunds: money(r.refundC), expenses: money(r.expenseC),
+      };
+    });
+  }
+
   // Select the daily rows whose report_date falls within [from, to] inclusive.
   // from/to are 'YYYY-MM-DD'; omitting one leaves that side open. Results are
   // sorted ascending by date and normalized.
@@ -211,6 +252,7 @@
 
   return {
     US_LETTER, METRICS, isMissing, fnv1a, canonical,
+    businessDate, summarizeLedger,
     normalizeRow, selectReports, dailySummary, printModel,
     buildManifest, verifyManifest, exportAttempt, retryExport,
   };
