@@ -95,6 +95,17 @@ shards: `NOV7_BOUNDED_REVIEW.md`. Verify-moves drift fixed at cause (0dd6743).
 - ✅ 11 review package + recovery v29 (verified)
 - 🔒 Full 2118-test suite PENDING (infeasible in one window; shards stand in)
 
+## Blueprint verification wave 2 (2026-11-08) — ✅ complete
+All local/synthetic. Execution list: `NOV7_EXECUTION_LIST.md`.
+- ✅ 1 duplicate import across refresh/two tabs (stable ids, converge, reason) — `728b49c`
+- ✅ 2 money/quantity provenance (display/CSV/print, rounding, correction, unknown) — `70468d2`
+- ✅ 3 recovery with supported fixtures (identity retained; bad version refused) — `d94803c`
+- ✅ 4 business-day/DST boundary audit + recorded missing policy — `dad1bfe`
+- ✅ 5 two-role handoff (staff prepares, owner approves; audit; stale invalidated) — `9f3d41f`
+- ✅ 6 UI failure recovery (preserve input, no duplicate, explain progress) — `844b14c`
+- ✅ 7 large lists/documents (paging, totals, empty, reopen filters) — `005dde4`
+- ✅ 8 dependency-ordered execution list (LOCAL/OWNER/EXTERNAL; L1 = next local)
+
 ## Critical path
 - ✅ End-to-end order→fulfill→bill→report map with honest verified/blocked
   status per step and owner-decision priority — `NOV7_CRITICAL_PATH_MAP.md`.
