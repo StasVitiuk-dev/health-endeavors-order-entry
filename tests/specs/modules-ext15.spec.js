@@ -100,7 +100,9 @@ const ADDED = ['setReportHistoryView', 'inquiriesList', 'agentControls', 'poRece
   // he-reports read accessor that exposes the loaded rows to the preview.
   'loadReportHistoryThenExport', 'reportHistoryRows',
   // Export recovery drill panel (read-only, default-OFF he_recovery_drill).
-  'loadRecoveryDrill', 'recoveryDrillOn'];
+  'loadRecoveryDrill', 'recoveryDrillOn',
+  // L3: US-Letter invoice print view (builds into the body-level print host).
+  'renderInvoicePrint'];
 const NEW_MODULES = ['he-ops']; // EXT16: written new, not moved
 const CHANGED_TEXT = ["} = window.HE.helpers;", "forEach(o => Object.setPrototypeOf(o, null))", "supabase.auth.onAuthStateChange((event, session) =>", "getAttribute('data-view')", "getElementById('adjustInventoryForm').addEventListener('submit'", "getElementById('logReturnForm').addEventListener('submit'", "getElementById('retOrder').addEventListener('change'", "Release to refresh", "getElementById('docCategory')",
   // EXT20J-post-TT: the 4 static overlay scaffolds converted innerHTML->h(); each
@@ -115,7 +117,9 @@ const CHANGED_TEXT = ["} = window.HE.helpers;", "forEach(o => Object.setPrototyp
   // so none can waive an original statement. The [data-scan] fragment waives
   // both scan listeners (click + change); [data-reorder] waives the one reorder
   // listener. Named handlers above; these three are anonymous top-level stmts.
-  "e.target.closest('[data-scan]')", "e.target.closest('[data-reorder]')"];
+  "e.target.closest('[data-scan]')", "e.target.closest('[data-reorder]')",
+  // L3: the invoice print button's delegated listener (anonymous top-level stmt).
+  "e.target.closest('[data-print]')"];
 
 test('the module moves were byte-identical: every original statement once, only the named edits differ', ({}, ti) => {
   nodeOnly(ti);

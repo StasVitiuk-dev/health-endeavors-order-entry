@@ -1283,3 +1283,21 @@ table.sysStatus td{ overflow-wrap:anywhere; }
     outline:2px solid Highlight; outline-offset:1px;
   }
 }
+
+/* Invoice / packing-slip print view (EXT21 L3). Hidden on screen; in print media
+   the rest of the dashboard is hidden and each modelled page breaks onto its own
+   US-Letter sheet with the table heading repeated. Screen rendering is unchanged
+   (the host is empty until a Print action fills it, and display:none off-print). */
+.printView{ display:none; }
+@page{ size:letter; margin:0.5in; }
+@media print{
+  body > *:not(.printView){ display:none !important; }
+  .printView{ display:block; color:#000; }
+  .printView .printPage{ break-after:page; }
+  .printView .printPage:last-child{ break-after:auto; }
+  .printView table{ width:100%; border-collapse:collapse; }
+  .printView thead{ display:table-header-group; }
+  .printView th, .printView td{ padding:4px 8px; text-align:left; border-bottom:1px solid #ccc; }
+  .printView tr{ break-inside:avoid; }
+  .printView .printTotals{ margin-top:12px; }
+}

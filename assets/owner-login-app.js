@@ -1932,8 +1932,46 @@
         h('div', { class: 'scanCard u-mt-8' },
           totalRow('Subtotal', draft.subtotal), totalRow('Order discount', draft.orderDiscount), totalRow('Shipping', draft.shipping), totalRow('Tax (' + Math.round(draft.taxRate * 100) + '%)', draft.tax), totalRow('Total', draft.total, 'taskTitle')),
         h('div', { class: 'scanCard u-mt-8' }, h('div', { class: 'scanCardHead' }, 'Packing slip — not an invoice, not a carrier label'), slipRows),
+        h('div', { class: 'scanToggleRow u-mt-8' }, h('button', { type: 'button', class: 'small', 'data-print': 'invoice' }, 'Print (US-Letter preview)')),
         h('p', { class: 'hint u-mt-8' }, 'Draft preview only. Issuing an invoice — numbering, payment terms and tax — is an owner decision and is not enabled here.')));
     }
+
+    // L3: build a US-Letter print layout of the draft invoice into the body-level
+    // print host and open the browser print dialog. The @media print rules hide
+    // the dashboard and lay each modelled page onto its own sheet with the table
+    // heading repeated. Pure DOM via h(); the host is empty until this runs.
+    function renderInvoicePrint() {
+      const host = document.getElementById('invoicePrintHost'); if (!host) return;
+      const inv = opsInvoiceMod(); if (!inv) return;
+      const suggested = inv.nextInvoiceNumber ? inv.nextInvoiceNumber({ year: new Date().getFullYear() }) : null;
+      const draft = inv.draftInvoice({ lines: [
+        { sku: 'HE-HONEY-8OZ', description: 'Honey Milk 8 oz', quantity: 10, unitPrice: 18.50, discount: 5, lotNumber: 'LOT-A' },
+        { sku: 'HE-VEGAN-8OZ', description: 'Vegan 8 oz', quantity: 4, unitPrice: 18.50, lotNumber: 'LOT-B' },
+      ], orderDiscount: 10, shipping: 12.5, taxRate: 0.08, currency: 'USD' });
+      const withNum = Object.assign({}, draft, { number: suggested ? suggested.number : null });
+      const doc = inv.invoicePrint(withNum);
+      const cur = doc.totals.currency;
+      const pages = doc.pages.map(function (p) {
+        return h('div', { class: 'printPage' },
+          h('div', { class: 'printHdr' }, h('div', { class: 'taskTitle' }, doc.header.businessName),
+            h('div', null, 'Invoice ' + (doc.header.number || '(draft)') + ' — SIMULATED'),
+            h('div', null, 'Page ' + p.pageNo + ' of ' + p.totalPages)),
+          h('table', null,
+            h('thead', null, h('tr', null, p.headings.map(function (x) { return h('th', null, x); }))),
+            h('tbody', null, p.rows.map(function (l) {
+              return h('tr', null, h('td', null, l.sku || '—'), h('td', null, String(l.quantity)),
+                h('td', null, fmtMoney(l.unitPrice, cur)), h('td', null, l.discount ? fmtMoney(l.discount, cur) : '—'),
+                h('td', null, fmtMoney(l.lineTotal, cur)));
+            }))),
+          p.showTotals ? h('div', { class: 'printTotals' }, 'Total: ' + fmtMoney(doc.totals.total, cur)) : null);
+      });
+      host.replaceChildren(h('div', { class: 'printDoc' }, pages));
+      try { window.print(); } catch (e) {}
+    }
+    document.addEventListener('click', function (e) {
+      const t = e.target.closest('[data-print]'); if (!t) return;
+      if (t.getAttribute('data-print') === 'invoice') renderInvoicePrint();
+    });
 
     // Export recovery drill (read-only; behind recoveryDrillOn). Shows a clean
     // package opening with its coverage, and a tampered package being rejected at
