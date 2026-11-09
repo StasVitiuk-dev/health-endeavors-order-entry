@@ -86,3 +86,14 @@ end-to-end lifecycle), Shard A was re-run:
 desktop. Platform shards (B boot/modules/a11y/CSP/TT) and mobile (C) are unchanged
 from the original run and still apply. Full desktop + iPhone suites remain PENDING
 (infeasible in one window).
+
+## Update 2026-11-09b — follow-on features + refreshed shard (commit 0863bc0)
+
+Added since the last update (all default-OFF / synthetic): US-Letter daily-report
+print view (`7cedea3`), US-Letter packing-slip print view (`dab7d75`), and the
+scan cross-order tracking guard wired into the UI flow (`0863bc0`). Changed-code
+shard re-run:
+`npx playwright test --config tests/playwright.config.js --project=desktop ext21 --reporter=line`
+→ **162 passed, 2 skipped** (164). Shard 1/16 of the full desktop suite also ran
+clean (133 passed, 0 failed) before the run was paused to prioritise feature
+build; full-suite shards remain PENDING (bounded shards stand in).
