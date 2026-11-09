@@ -207,6 +207,31 @@
     };
   }
 
+  // A credit note against an already-issued invoice (the proper way to reverse a
+  // PAID invoice, which cannot be voided). Owner/administrator only. It REFERENCES
+  // the invoice and never mutates it; amount defaults to the full total and a
+  // partial credit is allowed up to the total. Synthetic — no money moves.
+  function creditNote(invoice, opts) {
+    const o = opts || {};
+    if (!ROLES_MAY_ISSUE.has(o.role)) return { ok: false, reason: 'only an owner or administrator may issue a credit note' };
+    const st = invoice && invoice.status;
+    if (['issued', 'partially_paid', 'paid', 'overdue'].indexOf(st) === -1) return { ok: false, reason: 'a credit note applies to an issued invoice (status ' + st + ')' };
+    const totalC = cents(invoice.total);
+    const amountC = o.amount == null ? totalC : cents(o.amount);
+    if (amountC <= 0) return { ok: false, reason: 'credit amount must be positive' };
+    if (amountC > totalC) return { ok: false, reason: 'credit cannot exceed the invoice total' };
+    return {
+      ok: true,
+      creditNote: {
+        kind: 'credit_note', number: o.number || null, invoiceNumber: invoice.number || null,
+        amount: money(amountC), currency: invoice.currency || 'USD', full: amountC === totalC,
+        reason: o.reason || null, issuedBy: o.actor || o.role, issuedAt: o.now || null,
+        synthetic: true, label: 'SIMULATED',
+        note: 'Credit note — references the invoice; it does not modify or re-open it, and moves no money.',
+      },
+    };
+  }
+
   // US-Letter print MODELS (not rendered PDFs). They paginate line items across
   // pages, repeat the column headings on every page, and put totals on the last
   // page only. A renderer consumes this; this module writes no file.
@@ -270,5 +295,5 @@
     };
   }
 
-  return { STATES, ROLES_MAY_ISSUE, US_LETTER, BUSINESS_HEADER, MISSING_SEQUENCE_CONTRACT, computeTotals, draftInvoice, reviseDraft, nextInvoiceNumber, createNumberSequence, invoiceHeader, issue, applyPayment, voidInvoice, withOverdue, packingSlip, paginate, invoicePrint, packingSlipPrint };
+  return { STATES, ROLES_MAY_ISSUE, US_LETTER, BUSINESS_HEADER, MISSING_SEQUENCE_CONTRACT, computeTotals, draftInvoice, reviseDraft, nextInvoiceNumber, createNumberSequence, invoiceHeader, issue, applyPayment, voidInvoice, creditNote, withOverdue, packingSlip, paginate, invoicePrint, packingSlipPrint };
 }));
