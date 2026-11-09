@@ -84,7 +84,7 @@
       nightlyOverall,
     } = window.HE.helpers;
     // @@ EXT15 modules: created in dependency order (assets/app/*.js; see docs/ops/APPLICATION_MODULE_MAP_EXT15.md)
-    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn } = HE.modules.create('he-config', {  });
+    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn } = HE.modules.create('he-config', {  });
     const { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, h, pageIconNode } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
     const { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
     const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, h, supabase });
@@ -1935,6 +1935,33 @@
         h('p', { class: 'hint u-mt-8' }, 'Draft preview only. Issuing an invoice — numbering, payment terms and tax — is an owner decision and is not enabled here.')));
     }
 
+    // Export recovery drill (read-only; behind recoveryDrillOn). Shows a clean
+    // package opening with its coverage, and a tampered package being rejected at
+    // the checksum stage before anything is applied. Writes nothing.
+    function loadRecoveryDrill() {
+      const host = document.getElementById('recoveryDrillHost'); if (!host) return;
+      if (!(typeof recoveryDrillOn === 'function' && recoveryDrillOn())) { host.replaceChildren(); return; }
+      const rx = opsReportsMod();
+      if (!rx || typeof rx.packageOf !== 'function') { host.replaceChildren(h('p', { class: 'empty' }, 'Recovery drill tools could not load.')); return; }
+      const history = [
+        { report_date: '2026-11-05', currency: 'USD', orders_count: 3, revenue: 120.5 },
+        { report_date: '2026-11-06', currency: 'USD', orders_count: 2, revenue: 80 },
+      ];
+      const clean = rx.openPackage(rx.packageOf(rx.buildManifest({ history: history })));
+      const tampered = rx.packageOf(rx.buildManifest({ history: history })); tampered.payload.reports[0].orders_count = 999;
+      const bad = rx.openPackage(tampered);
+      const missing = rx.openPackage(rx.packageOf(rx.buildManifest({ history: history })), { present: ['reports.json'] }); // drop summary.json + MANIFEST.txt
+      const row = (label, res) => h('div', { class: 'scanCardRow' },
+        h('span', { class: 'u-c-muted' }, label + ': '),
+        res.ok ? ('opened — ' + (res.coverage ? res.coverage.days + ' day(s)' : 'ok') + ' applied') : ('rejected at ' + res.stage + ' — nothing applied'));
+      host.replaceChildren(h('div', { class: 'reorderPlan u-mb-16' },
+        h('div', { class: 'scanHead' }, h('h3', null, 'Export recovery drill'), h('span', { class: 'scanBadge' }, 'SIMULATED — read-only, backups untouched')),
+        h('div', { class: 'scanCard u-mt-8' },
+          h('div', { class: 'scanCardRow' }, h('span', { class: 'u-c-muted' }, 'Schema version: '), String(rx.SCHEMA_VERSION)),
+          row('Clean package', clean), row('Tampered package', bad), row('Missing file', missing)),
+        h('p', { class: 'hint u-mt-8' }, 'A restore refuses a bad checksum, a missing file or an unsupported version before applying anything. Automatic Mac sync is a separate component; existing backups are untouched.')));
+    }
+
     // L1: the panel loaders run in parallel, so the export preview must render
     // AFTER Report History has loaded its rows. This awaits the load, then paints
     // the export preview over the now-loaded rows (the synthetic fallback inside
@@ -1947,7 +1974,7 @@
       attentionPanel: [loadAttention, loadBusinessHealth, loadAttentionChecks, loadNightlyCheck, paintScanEntry],
       calendarPanel: [loadCalendarMonth],
       dailySummaryPanel: [loadDailySummary],
-      reportHistoryPanel: [loadReportHistoryThenExport, loadInvoicePreview],
+      reportHistoryPanel: [loadReportHistoryThenExport, loadRecoveryDrill, loadInvoicePreview],
       ordersPanel: [loadOrders, paintScanEntry],
       inventoryPanel: [loadInventory, loadInventoryAdjustments, loadReorderPlanning],
       returnsPanel: [loadReturns],
