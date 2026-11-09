@@ -84,6 +84,24 @@
     return { ok: true, invoice: revised };
   }
 
+  // PROPOSED default invoice numbering (owner can change prefix / width / reset).
+  // Format HE-YYYY-NNNN: a per-year, zero-padded, gap-free sequence. Pure — it
+  // only SUGGESTS the next number from the numbers already used; it issues
+  // nothing. The owner confirms the scheme (and terms/tax) before any real issue.
+  function nextInvoiceNumber(opts) {
+    const o = opts || {};
+    const prefix = String(o.prefix || 'HE');
+    const year = Number(o.year) || new Date().getFullYear();
+    const width = Number(o.width) || 4;
+    const seen = o.existingNumbers instanceof Set ? o.existingNumbers : new Set(o.existingNumbers || []);
+    const re = new RegExp('^' + prefix + '-' + year + '-(\\d+)$');
+    let max = 0;
+    seen.forEach(function (n) { const m = re.exec(String(n)); if (m) { const v = parseInt(m[1], 10); if (v > max) max = v; } });
+    const sequence = max + 1;
+    const padded = String(sequence); const pad = padded.length >= width ? padded : ('0'.repeat(width - padded.length) + padded);
+    return { number: prefix + '-' + year + '-' + pad, sequence: sequence, year: year, prefix: prefix, format: prefix + '-YYYY-' + '0'.repeat(width), proposed: true };
+  }
+
   // Issue a draft: assigns a unique number (caller supplies from a sequence),
   // stamps dates, snapshots an immutable issued version, and blocks duplicates.
   // role gates who may issue. existingNumbers guards against a reused number.
@@ -197,5 +215,5 @@
     };
   }
 
-  return { STATES, ROLES_MAY_ISSUE, US_LETTER, computeTotals, draftInvoice, reviseDraft, issue, applyPayment, voidInvoice, withOverdue, packingSlip, paginate, invoicePrint, packingSlipPrint };
+  return { STATES, ROLES_MAY_ISSUE, US_LETTER, computeTotals, draftInvoice, reviseDraft, nextInvoiceNumber, issue, applyPayment, voidInvoice, withOverdue, packingSlip, paginate, invoicePrint, packingSlipPrint };
 }));

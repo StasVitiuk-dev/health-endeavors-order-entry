@@ -1912,8 +1912,14 @@
         h('td', { class: 'num-cell' }, fmtMoney(l.lineTotal, draft.currency))));
       const totalRow = (label, val, cls) => h('div', { class: 'scanCardRow' }, h('span', { class: 'u-c-muted' }, label + ': '), h('span', { class: cls || '' }, fmtMoney(val, draft.currency)));
       const slipRows = slip.lines.map(l => h('div', { class: 'scanCardRow' }, (l.sku || '—') + ' × ' + l.quantity + ' · lot ' + (l.lotNumber || '—') + (l.unitPrice === undefined ? '' : ' · ' + fmtMoney(l.unitPrice, 'USD'))));
+      // Proposed numbering (O1): suggest the next number in the HE-YYYY-NNNN
+      // format. This only PROPOSES; nothing is issued. Owner confirms the scheme.
+      const suggested = (typeof inv.nextInvoiceNumber === 'function') ? inv.nextInvoiceNumber({ year: new Date().getFullYear() }) : null;
       host.replaceChildren(h('div', { class: 'reorderPlan u-mb-16' },
         h('div', { class: 'scanHead' }, h('h3', null, 'Invoice preview'), h('span', { class: 'scanBadge' }, 'SIMULATED — draft only, nothing issued or charged')),
+        suggested ? h('div', { class: 'scanCard u-mt-8' },
+          h('div', { class: 'scanCardRow' }, h('span', { class: 'u-c-muted' }, 'Suggested number (proposed): '), h('span', { class: 'taskTitle' }, suggested.number)),
+          h('div', { class: 'u-fs-11 u-c-muted' }, 'Format ' + suggested.format + ' — per-year, gap-free. Owner can change the scheme; nothing is issued.')) : null,
         h('table', { class: 'phoneCards u-mt-10' },
           h('thead', null, h('tr', null, h('th', null, 'Item'), h('th', { class: 'num-cell' }, 'Qty'), h('th', { class: 'num-cell' }, 'Unit'), h('th', { class: 'num-cell' }, 'Disc'), h('th', { class: 'num-cell' }, 'Line'))),
           h('tbody', null, lineRows)),
