@@ -106,6 +106,21 @@ All local/synthetic. Execution list: `NOV7_EXECUTION_LIST.md`.
 - ✅ 7 large lists/documents (paging, totals, empty, reopen filters) — `005dde4`
 - ✅ 8 dependency-ordered execution list (LOCAL/OWNER/EXTERNAL; L1 = next local)
 
+## Local build follow-on (2026-11-09) — ✅ (owner-independent items done)
+All default-OFF / synthetic. Execution list: `NOV7_EXECUTION_LIST.md`;
+go-live script: `NOV7_GOLIVE_REVIEW.md`.
+- ✅ L1 export preview over live saved reports — `caa8e7f`
+- ✅ L2 read-only export recovery-drill panel — `e1d9f4a`
+- ✅ L3 US-Letter invoice print view — `77069c4`
+- ✅ Invoice O1 local prep: numbering `30052cd`, header `3d9380d`, number
+  sequence `977af06`, credit note `e977461`
+- ✅ Invoice end-to-end lifecycle integration test — `c2cfee9`
+- 🟡 L4 full desktop suite in 16 shards — in progress overnight (bounded shards
+  already green: 182 + refreshed changed-code 160/0)
+- 🔒 L5 day-boundary IANA — owner decision O2
+- 🔒 Owner decisions before go-live: O1 tax/terms/issuing, O2 day boundary,
+  O3 roles, O4 export destination; E1–E4 providers/devices; merge = owner
+
 ## Critical path
 - ✅ End-to-end order→fulfill→bill→report map with honest verified/blocked
   status per step and owner-decision priority — `NOV7_CRITICAL_PATH_MAP.md`.
