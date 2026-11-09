@@ -128,3 +128,20 @@ go-live script: `NOV7_GOLIVE_REVIEW.md`.
 ## Owner decisions outstanding (from §14–16 + phases)
 Retention; export scope/attachments; destination; encryption recovery; invoice
 numbering/trigger/terms/tax; role permissions; real-device & provider approvals.
+
+## Dashboard follow-up wave FU1–FU5 (2026-11-09) — ✅ complete
+All local/synthetic, default-OFF, no push/merge/deploy. Recovery artifact
+refreshed to **v38** at HEAD `f6cd560` (bundle verify OK; 86/86 checksums match;
+clone tree-hash `40a39ddb` matches — `scratchpad/recovery-v38/`).
+- ✅ FU1 full iPhone suite reconciled 489 pass / 11 artifact-fail / 365 skip = 865;
+  emulated-iPhone vs physical-Safari/VoiceOver evidence kept separate — `59cd1a7`
+- ✅ FU2 exec-list↔blueprint reconciliation + one-page release review (6 owner
+  decisions left open); draft-PR checks read-only — `NOV7_RELEASE_REVIEW_ONEPAGE.md`, `4c5a03a`
+- ✅ FU3 journey gaps closed: invoice reprint determinism + report missed-day
+  catch-up (4 tests) — `fba0b0a`
+- ✅ FU4 scanner journey gaps: no-name/multi-package receipts, masked destination
+  + reasons, independent tracking-vs-email failure (4 tests) — `4956ed3`
+- ✅ FU5 in-person hand-delivered sample visit log (the one unbuilt wholesale
+  workflow): stock/cost/outcome, idempotent, UNKNOWN≠fake$0, write contract named
+  (4 tests) — `683e0e2`; reconciliation + ordered agent backlog W-0..W-5 — `f6cd560`
+- FU3+FU4+FU5 specs: 12 passed (desktop, pure Node). Browser override absent from config.
