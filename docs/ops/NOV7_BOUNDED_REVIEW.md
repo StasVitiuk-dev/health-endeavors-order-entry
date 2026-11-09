@@ -74,3 +74,15 @@ flag-OFF path is confirmed on mobile.
   owner decision.
 - Turn either off with `localStorage.removeItem('he_report_export')` /
   `removeItem('he_invoice_preview')` (both default OFF).
+
+## Update 2026-11-09 — refreshed changed-code shard (commit c2cfee9)
+
+After the invoice/ops follow-on work (export-preview-over-live-rows, recovery-drill
+panel, invoice numbering + header + number sequence + credit note + print view +
+end-to-end lifecycle), Shard A was re-run:
+
+`npx playwright test --config tests/playwright.config.js --project=desktop ext21 --reporter=line`
+→ **160 passed, 2 skipped** (162). The 2 skips are the iPhone-project tests under
+desktop. Platform shards (B boot/modules/a11y/CSP/TT) and mobile (C) are unchanged
+from the original run and still apply. Full desktop + iPhone suites remain PENDING
+(infeasible in one window).
