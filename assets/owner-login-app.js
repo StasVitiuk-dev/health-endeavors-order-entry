@@ -1933,7 +1933,9 @@
         h('div', { class: 'scanCard u-mt-8' },
           totalRow('Subtotal', draft.subtotal), totalRow('Order discount', draft.orderDiscount), totalRow('Shipping', draft.shipping), totalRow('Tax (' + Math.round(draft.taxRate * 100) + '%)', draft.tax), totalRow('Total', draft.total, 'taskTitle')),
         h('div', { class: 'scanCard u-mt-8' }, h('div', { class: 'scanCardHead' }, 'Packing slip — not an invoice, not a carrier label'), slipRows),
-        h('div', { class: 'scanToggleRow u-mt-8' }, h('button', { type: 'button', class: 'small', 'data-print': 'invoice' }, 'Print (US-Letter preview)')),
+        h('div', { class: 'scanToggleRow u-mt-8' },
+          h('button', { type: 'button', class: 'small', 'data-print': 'invoice' }, 'Print invoice (US-Letter)'),
+          h('button', { type: 'button', class: 'small secondary', 'data-print': 'slip' }, 'Print packing slip')),
         h('p', { class: 'hint u-mt-8' }, 'Draft preview only. Issuing an invoice — numbering, payment terms and tax — is an owner decision and is not enabled here.')));
     }
 
@@ -1974,7 +1976,34 @@
       const what = t.getAttribute('data-print');
       if (what === 'invoice') renderInvoicePrint();
       else if (what === 'report') renderReportPrint();
+      else if (what === 'slip') renderPackingSlipPrint();
     });
+
+    // follow-on: US-Letter packing-slip print (lot numbers, prices hidden by
+    // default, explicitly not an invoice and not a carrier label). Reuses the
+    // print host + @media print rules. Pure DOM; window.print wrapped.
+    function renderPackingSlipPrint() {
+      const host = document.getElementById('invoicePrintHost'); if (!host) return;
+      const inv = opsInvoiceMod(); if (!inv || typeof inv.packingSlipPrint !== 'function') return;
+      const slip = inv.packingSlip({ orderId: 'SYN-preview', shipmentId: 'SYN-preview-s1', allocations: [
+        { sku: 'HE-HONEY-8OZ', quantity: 6, lotNumber: 'LOT-A' }, { sku: 'HE-VEGAN-8OZ', quantity: 4, lotNumber: 'LOT-B' },
+      ] });
+      const doc = inv.packingSlipPrint(slip);
+      const pages = doc.pages.map(function (p) {
+        return h('div', { class: 'printPage' },
+          h('div', { class: 'printHdr' }, h('div', { class: 'taskTitle' }, 'Health Endeavors — Packing slip'),
+            h('div', null, 'SIMULATED — not an invoice, not a carrier label'), h('div', null, 'Page ' + p.pageNo + ' of ' + p.totalPages)),
+          h('table', null,
+            h('thead', null, h('tr', null, p.headings.map(function (x) { return h('th', null, x); }))),
+            h('tbody', null, p.rows.map(function (l) {
+              const cells = [h('td', null, l.sku || '—'), h('td', null, String(l.quantity)), h('td', null, l.lotNumber || '—')];
+              if (doc.showPrices) cells.push(h('td', null, l.unitPrice === undefined ? '—' : fmtMoney(l.unitPrice, 'USD')));
+              return h('tr', null, cells);
+            }))));
+      });
+      host.replaceChildren(h('div', { class: 'printDoc' }, pages));
+      try { window.print(); } catch (e) {}
+    }
 
     // L-follow-on: build a US-Letter print layout of the daily report rows into
     // the body-level print host (reuses the invoice print host + @media print
