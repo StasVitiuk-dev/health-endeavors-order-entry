@@ -97,3 +97,23 @@ shard re-run:
 → **162 passed, 2 skipped** (164). Shard 1/16 of the full desktop suite also ran
 clean (133 passed, 0 failed) before the run was paused to prioritise feature
 build; full-suite shards remain PENDING (bounded shards stand in).
+
+## Update 2026-11-09c — FULL desktop suite completed in 16 shards (commit 815db38)
+
+The full desktop suite was run to completion overnight as 16 reproducible shards
+(diagnostic browser override applied during runs, reverted before this commit):
+
+`npx playwright test --config tests/playwright.config.js --project=desktop --shard=N/16 --reporter=line`
+
+| Shard | passed | Shard | passed | Shard | passed | Shard | passed |
+|-------|--------|-------|--------|-------|--------|-------|--------|
+| 1/16 | 133 | 5/16 | 135 | 9/16 | 130 | 13/16 | 135 |
+| 2/16 | 137 | 6/16 | 133 | 10/16 | 135 | 14/16 | 136 |
+| 3/16 | 136 | 7/16 | 124 | 11/16 | 137 | 15/16 | 137 |
+| 4/16 | 138 | 8/16 | 137 | 12/16 | 131 | 16/16 | 124 |
+
+**Total: 2,138 passed, 0 failed** across all 16 shards (shard 1 also had 5
+project-skips). No non-pre-existing failures; the known `inventory-safety`
+`test.fail('not atomic yet')` cases are counted as expected and did not fail the
+run. The full desktop suite is therefore GREEN on this branch. The full iPhone
+suite remains PENDING (the bounded mobile shard stands in).
