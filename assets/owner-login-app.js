@@ -1536,7 +1536,7 @@
     // notification. No camera/carrier/customer contact and no production writes.
     // DOM is built only with h(); clicks use delegated data-action handlers.
     const scanMod = (n) => { try { return (window.HE && window.HE.scan && window.HE.scan[n]) || null; } catch (e) { return null; } };
-    const scanState = { step: 'capture', extracted: null, ranked: [], recognition: null, plan: null, attachedKeys: new Set(), cameraStream: null, outage: false };
+    const scanState = { step: 'capture', extracted: null, ranked: [], recognition: null, plan: null, attachedKeys: new Set(), assignedTracking: {}, cameraStream: null, outage: false };
 
     function scanOrders() {
       const fx = scanMod('he-scan-fixtures');
@@ -1605,6 +1605,8 @@
         shipmentId: shipmentId, orderId: order && order.id, tracking: scanState.extracted.tracking,
         carrier: scanState.extracted.carrier, channel: order && order.channel, actor: currentUserRole || 'owner',
         now: new Date().toISOString(), existingKeys: scanState.attachedKeys,
+        // cross-order guard: refuse a label already attached to a DIFFERENT shipment
+        assignedTo: scanState.assignedTracking,
       });
       // Provider outage simulation: the notification fails (held for safe retry);
       // the confirmed shipment state is preserved regardless.
@@ -1613,6 +1615,7 @@
       }
       if (plan.ok && plan.attach) {
         scanState.attachedKeys.add(plan.attach.dedup_key);
+        scanState.assignedTracking[plan.attach.tracking_number] = plan.attach.shipment_id; // own this label
         (plan.queued || []).forEach(q => { if (q.kind === 'notification') scanState.attachedKeys.add(q.dedup_key); });
       }
       scanState.plan = plan; scanState.selectedOrder = order; scanState.step = 'result';
