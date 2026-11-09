@@ -184,6 +184,27 @@
     if (!pages.length) pages.push([]);
     return pages;
   }
+  // Invoice header block for print/preview. Business name defaults to the known
+  // store name; address + remit are PLACEHOLDERS the owner fills in — never
+  // invented. `placeholder` is true until every field has been supplied.
+  const BUSINESS_HEADER = Object.freeze({
+    businessName: 'Health Endeavors',
+    addressLines: Object.freeze(['[Business address — owner to confirm]']),
+    remitTo: '[Remit-to / payment instructions — owner to confirm]',
+  });
+  function invoiceHeader(opts) {
+    const o = opts || {};
+    const businessName = o.businessName || BUSINESS_HEADER.businessName;
+    const addressLines = o.addressLines || BUSINESS_HEADER.addressLines.slice();
+    const remitTo = o.remitTo || BUSINESS_HEADER.remitTo;
+    return {
+      businessName: businessName, addressLines: addressLines, remitTo: remitTo,
+      billTo: o.billTo || null, number: o.number || null,
+      issueDate: o.issueDate || null, dueDate: o.dueDate || null,
+      placeholder: !(o.businessName && o.addressLines && o.remitTo),
+    };
+  }
+
   function invoicePrint(invoice, opts) {
     const inv = invoice || {}; const o = opts || {};
     const per = o.rowsPerPage || US_LETTER.rowsPerPage;
@@ -191,6 +212,7 @@
     const headings = ['Item', 'Qty', 'Unit', 'Disc', 'Line'];
     return {
       kind: 'invoice_print', label: 'SIMULATED', renderedPdf: false, page: US_LETTER,
+      header: invoiceHeader({ number: inv.number, issueDate: inv.issueDate, dueDate: inv.dueDate, billTo: inv.billTo, businessName: o.businessName, addressLines: o.addressLines, remitTo: o.remitTo }),
       number: inv.number || null, status: inv.status || 'draft',
       pageCount: pages.length,
       pages: pages.map(function (rows, i) {
@@ -215,5 +237,5 @@
     };
   }
 
-  return { STATES, ROLES_MAY_ISSUE, US_LETTER, computeTotals, draftInvoice, reviseDraft, nextInvoiceNumber, issue, applyPayment, voidInvoice, withOverdue, packingSlip, paginate, invoicePrint, packingSlipPrint };
+  return { STATES, ROLES_MAY_ISSUE, US_LETTER, BUSINESS_HEADER, computeTotals, draftInvoice, reviseDraft, nextInvoiceNumber, invoiceHeader, issue, applyPayment, voidInvoice, withOverdue, packingSlip, paginate, invoicePrint, packingSlipPrint };
 }));

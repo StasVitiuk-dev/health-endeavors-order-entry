@@ -1915,8 +1915,14 @@
       // Proposed numbering (O1): suggest the next number in the HE-YYYY-NNNN
       // format. This only PROPOSES; nothing is issued. Owner confirms the scheme.
       const suggested = (typeof inv.nextInvoiceNumber === 'function') ? inv.nextInvoiceNumber({ year: new Date().getFullYear() }) : null;
+      const hdr = (typeof inv.invoiceHeader === 'function') ? inv.invoiceHeader({ number: suggested ? suggested.number : null }) : null;
       host.replaceChildren(h('div', { class: 'reorderPlan u-mb-16' },
         h('div', { class: 'scanHead' }, h('h3', null, 'Invoice preview'), h('span', { class: 'scanBadge' }, 'SIMULATED — draft only, nothing issued or charged')),
+        hdr ? h('div', { class: 'scanCard u-mt-8' },
+          h('div', { class: 'taskTitle' }, hdr.businessName),
+          h('div', { class: 'u-fs-11 u-c-muted' }, hdr.addressLines.join(' · ')),
+          h('div', { class: 'u-fs-11 u-c-muted' }, hdr.remitTo),
+          hdr.placeholder ? h('div', { class: 'u-fs-11 u-c-muted' }, 'Business address & remit-to are placeholders — owner to confirm.') : null) : null,
         suggested ? h('div', { class: 'scanCard u-mt-8' },
           h('div', { class: 'scanCardRow' }, h('span', { class: 'u-c-muted' }, 'Suggested number (proposed): '), h('span', { class: 'taskTitle' }, suggested.number)),
           h('div', { class: 'u-fs-11 u-c-muted' }, 'Format ' + suggested.format + ' — per-year, gap-free. Owner can change the scheme; nothing is issued.')) : null,
