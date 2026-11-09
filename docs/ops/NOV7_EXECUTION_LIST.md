@@ -18,13 +18,25 @@ finish in one window).
 | # | Open item | Next runnable change | Acceptance check | Evidence to close |
 |---|-----------|----------------------|------------------|-------------------|
 | L1 | ✅ DONE (`caa8e7f`) — Export preview packages live saved reports | Implemented: `he-reports.reportHistoryRows()` read accessor + a composed loader `loadReportHistoryThenExport` that awaits the history load then paints the preview (the panel loaders run in parallel), with a synthetic fallback and a Source line | met: export card shows "saved reports (N days)", row count + range match the loaded rows; demo fallback on empty DB | `export-preview-live-ext21` (2) green; modules-ext15 (12) green; module-map + write-path regenerated |
-| L2 | Recovery drill is engine-only | add a small read-only panel (behind a flag) that runs `openPackage` on a chosen synthetic package and shows ok / rejected-stage | flag OFF renders nothing; flag ON shows a clean open and a rejected (bad-checksum) case | a wiring spec like ops-preview-wiring; no TT/CSP violation |
+| L2 | ✅ DONE (`e1d9f4a`) — read-only recovery-drill panel | Implemented behind `he_recovery_drill` (OFF): shows schema version, a clean open with coverage, and tampered/missing packages rejected before apply | met: flag OFF renders nothing; flag ON shows clean open + both rejections | `recovery-drill-wiring-ext21` (2) green; no TT/CSP violation |
 | L3 | Print models are data, not a rendered page | add a print-only HTML view (new tab / print stylesheet) that lays out `invoicePrint` / `packingSlipPrint` pages | a 2-page invoice prints with repeating headings and totals on the last page | a browser spec capturing the print DOM; a11y pass |
 | L4 | Full-suite confidence | run the suite in reproducible shards on CI (or several windows) and record counts | all shards green except the known `inventory-safety` test.fail | shard logs + counts appended to `NOV7_BOUNDED_REVIEW.md` |
 | L5 | Day-boundary policy (if owner picks IANA) | replace `businessDate`'s fixed offset with a zone-aware local-date calc; pass the store zone from config | the near-midnight summer order lands on the DST-correct day; report/history/export agree | update `dst-boundary-ext21`; `NOV7_DAY_BOUNDARY_POLICY.md` marked resolved |
 
-L1 is DONE (`caa8e7f`). The next local item is **L2** (a read-only recovery-drill
-panel behind a flag); it depends on nothing above it.
+L1 and L2 are DONE. The next local item is **L3** (print-only HTML view over the
+print models). It depends on nothing above it.
+
+### Invoice O1 — local prep done (owner still owes 3 answers)
+Started the invoice-numbering decision and built everything that can be built
+locally, each default-OFF / synthetic and reversible:
+- Numbering generator `HE-YYYY-NNNN` + preview suggestion — `30052cd`
+- Invoice header block (name + placeholder address/remit) — `3d9380d`
+- Collision-safe number sequence (draft, reserve/commit) — `977af06`
+- Credit note for a paid invoice (owner-gated, references, no mutation) — `e977461`
+
+O1 now needs only three owner answers before real issuing: **tax rate**,
+**payment terms**, and **manual vs automatic issuing**. Nothing else local is
+blocked on them.
 
 ## OWNER REVIEW — needs a decision before the matching LOCAL work goes live
 
@@ -46,8 +58,10 @@ panel behind a flag); it depends on nothing above it.
 
 ## Immediate pickup
 
-**L1 is complete** (`caa8e7f`): the export preview now packages the live saved
-reports via a render-after-load hook (`loadReportHistoryThenExport`) with a
-synthetic fallback, verified by `export-preview-live-ext21` and modules-ext15.
-The next unblocked local item is **L2** (a read-only recovery-drill panel behind
-a flag), specified above. The verified checkpoint now includes L1.
+**L1, L2 and the local invoice-O1 prep are complete** (export preview over live
+rows; recovery-drill panel; invoice numbering + header + number sequence + credit
+note — all default-OFF / synthetic, each with passing specs). The next unblocked
+local item is **L3** (a print-only HTML view over `invoicePrint` /
+`packingSlipPrint`). The verified checkpoint (recovery v32, `e977461`) includes
+all of the above. Owner O1 now needs only tax rate, payment terms, and manual-vs-
+automatic issuing.
