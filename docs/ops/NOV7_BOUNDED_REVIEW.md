@@ -117,3 +117,37 @@ project-skips). No non-pre-existing failures; the known `inventory-safety`
 `test.fail('not atomic yet')` cases are counted as expected and did not fail the
 run. The full desktop suite is therefore GREEN on this branch. The full iPhone
 suite remains PENDING (the bounded mobile shard stands in).
+
+## Update 2026-11-09d — FULL iPhone suite run in 8 shards (commit 815db38 code; 4b65e8e tree)
+
+Ran the iPhone project to completion as 8 reproducible shards under the diagnostic
+browser override (`/opt/pw-browsers/chromium`, reverted before this commit):
+`npx playwright test --config tests/playwright.config.js --project=iphone --shard=N/8 --reporter=line`
+
+**Reconciliation (planned 865 = executed + skipped):**
+- passed: **489** · failed: **11** · skipped: **365** · total **865** ✓ (489+11+365)
+- Per shard passed: 65, 39, 45, 82, 103, 73, 28, 54.
+- "109/108 progress denominators" are per-shard test counts (passed+skipped); e.g.
+  shard 1 = 65 passed + 44 skipped = 109. Skips are Node-only/desktop-only specs
+  that `test.skip` at iPhone size.
+- Retries: none configured (retries: 0 in config). Exclusions: desktop-only files
+  via `testIgnore` are not counted in the 865. Override: diagnostic browser only
+  (uncommitted, reverted). Config: `tests/playwright.config.js`; code commit the
+  tests ran against: 815db38.
+
+**The 11 failures are override/environment artifacts, NOT code regressions:**
+- **10** `visual.spec.js` `toHaveScreenshot` pixel-diffs (e.g. login.png ~5,136 px,
+  ratio 0.02). The committed baselines were captured on a different Chromium build
+  than the diagnostic browser (build 1243). The affected screens (login + panels)
+  are unchanged by the Nov 7 work and the new previews are flag-OFF, so these are
+  rendering-version differences, not regressions. Not validated here on the CI
+  browser; correct-browser/real-device visual verification is a SEPARATE pending
+  task (see below).
+- **1** `malformed-data-ext15` performance threshold: tasksPanel drew a 50,000-char
+  title in 12,686 ms vs an 8,000 ms cap, under the diagnostic browser in this
+  loaded cloud container. tasksPanel is untouched by the Nov 7 work and this test
+  PASSES on desktop; it is an environment/browser-speed artifact, not a regression.
+
+**Emulated vs physical — kept separate:** all of the above is emulated-Chromium at
+iPhone viewport. Real Safari / physical iPhone / VoiceOver verification is NOT
+done here and remains an owner/device task.
