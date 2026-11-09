@@ -50,6 +50,24 @@ chat.
 | Module guard intact after new wiring (verify-moves) | VERIFIED | modules-ext15 (12) |
 | App boot / a11y / CSP / Trusted Types unaffected | VERIFIED | bounded shards (182 passed, 0 failed) |
 
+## 3b. Added in the 2026-11-09 follow-on (all VERIFIED, default-OFF)
+
+| Capability | Evidence |
+|------------|----------|
+| Export preview packages the live saved reports (not a demo set) | export-preview-live-ext21 |
+| Read-only export recovery-drill panel (clean open / tampered+missing rejected) | recovery-drill-wiring-ext21 |
+| Invoice numbering HE-YYYY-NNNN (gap-free, overridable) + preview suggestion | invoice-numbering-ext21 |
+| Invoice header (business name + placeholder address/remit) | invoice-header-ext21 |
+| Collision-safe number sequence (reserve/commit, two tabs never clash) | invoice-sequence-ext21 |
+| Credit note for a paid invoice (owner-gated, references, no mutation) | invoice-creditnote-ext21 |
+| US-Letter print views: invoice, packing slip, daily report | invoice-print-view / slip-print-view / report-print-view |
+| End-to-end invoice lifecycle (reserve→issue→pay→credit→print) | invoice-lifecycle-ext21 |
+| Scan cross-order tracking guard wired into the UI flow | scan-recovery-ext21 (engine) + scan flow green |
+| Money-math properties (no float drift over 500 generated invoices) | invoice-money-props-ext21 |
+
+See `NOV7_GOLIVE_REVIEW.md` for the click-through script and `NOV7_BOUNDED_REVIEW.md`
+for shard counts.
+
 ## 4. SIMULATED (works locally, contacts nothing)
 
 Invoice issuing/payments, packing slips, report export/restore, scan attach +
