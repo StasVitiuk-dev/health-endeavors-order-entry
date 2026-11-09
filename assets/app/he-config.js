@@ -173,6 +173,7 @@ window.HE.modules.define('he-config', { api: 1, needs: [] }, function (ctx) {
       { id: 'salesPipelinePanel',  label: 'Pipeline' },
       { id: 'salesApprovalsPanel', label: 'Sales Approvals' },
       { id: 'salesSamplesPanel',   label: 'Samples' },
+      { id: 'salesVisitsPanel',    label: 'In-Person Sample Visits' },
       { id: 'salesAnalyticsPanel', label: 'Sales Analytics' },
       { id: 'salesAgentsPanel',    label: 'Sales Agent Activity' },
       { id: 'salesLeadDetailPanel',  label: 'Lead Detail (example)' },

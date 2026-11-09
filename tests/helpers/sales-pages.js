@@ -16,6 +16,7 @@ const SALES_PAGES = {
   salesPipelinePanel: 'Pipeline',
   salesApprovalsPanel: 'Sales Approvals',
   salesSamplesPanel: 'Samples',
+  salesVisitsPanel: 'In-Person Sample Visits',
   salesAnalyticsPanel: 'Sales Analytics',
   salesAgentsPanel: 'Sales Agent Activity',
   salesLeadDetailPanel: 'Lead Detail (example)',

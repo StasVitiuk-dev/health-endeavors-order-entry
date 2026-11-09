@@ -11,7 +11,7 @@
 const { test, expect, login, gotoPage } = require('../helpers/dashboard');
 
 const SALES_IDS = ['salesCommandPanel', 'salesLeadsPanel', 'salesPipelinePanel',
-  'salesApprovalsPanel', 'salesSamplesPanel', 'salesAnalyticsPanel', 'salesAgentsPanel',
+  'salesApprovalsPanel', 'salesSamplesPanel', 'salesVisitsPanel', 'salesAnalyticsPanel', 'salesAgentsPanel',
   'salesLeadDetailPanel', 'salesRetentionPanel', 'salesContentPanel', 'salesTerritoryPanel',
   'salesCampaignPanel', 'salesDataQualityPanel', 'salesForecastPanel', 'salesCostPanel', 'salesSafetyPanel',
   'salesLostDealsPanel', 'salesAnomalyPanel', 'salesWorkloadPanel', 'salesScorecardsPanel',
@@ -78,6 +78,7 @@ test.describe('flag ON: sales pages appear and render synthetic data', () => {
     const titles = {
       salesLeadsPanel: 'Wholesale Leads', salesPipelinePanel: 'Pipeline',
       salesApprovalsPanel: 'Sales Approvals', salesSamplesPanel: 'Samples',
+      salesVisitsPanel: 'In-Person Sample Visits',
       salesAnalyticsPanel: 'Sales Analytics', salesAgentsPanel: 'Sales Agent Activity',
       salesLeadDetailPanel: 'Lead Detail (example)', salesRetentionPanel: 'Retention',
       salesContentPanel: 'Content Opportunities', salesTerritoryPanel: 'Territory & Expansion',
@@ -112,6 +113,30 @@ test.describe('flag ON: sales pages appear and render synthetic data', () => {
     await login(page);
     await gotoPage(page, 'salesApprovalsPanel');
     await expect(page.locator('#salesApprovalsPanel')).toContainText('NOT SENT');
+  });
+
+  test('in-person visits page shows stock/cost/outcome, names the R4 write, and is plainly read-only', async ({ page, backend }) => {
+    await login(page);
+    await gotoPage(page, 'salesVisitsPanel');
+    const panel = page.locator('#salesVisitsPanel');
+    await expect(page.locator('#salesVisitsPanel .salesTitle')).toHaveText('In-Person Sample Visits');
+    // Stock consumed on the spot (synthetic 6+4+3) and the unknown-cost visit
+    // keeps cost basis honest (never a fake $0).
+    await expect(panel).toContainText('13');                 // jars consumed
+    await expect(panel).toContainText('PARTIAL/UNKNOWN');     // one visit had no unit cost
+    await expect(panel).toContainText('$2.90');              // known cost (6+4)*0.29, 2dp
+    // The missing safe production write is named, not faked.
+    await expect(panel).toContainText('adjust_inventory (R4)');
+    await expect(panel.locator('[data-label="OWNER_INPUT_REQUIRED"]').first()).toBeVisible();
+    // Advisory / read-only: it consumes no real stock and sends nothing.
+    await expect(panel).toContainText('sends nothing');
+    // In-person visits are plainly distinct from SHIPPED samples: this page
+    // says "hand-delivered" and does not claim to ship/mail anything.
+    await expect(panel).toContainText('hand-delivered');
+    expect(await panel.innerText()).not.toMatch(/shipped|mailed/i);
+    // The shipped-sample page remains a separate panel.
+    await gotoPage(page, 'salesSamplesPanel');
+    await expect(page.locator('#salesSamplesPanel .salesTitle')).toHaveText('Samples');
   });
 });
 

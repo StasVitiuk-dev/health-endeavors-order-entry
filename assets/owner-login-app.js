@@ -842,7 +842,8 @@
         priority: salesMod('he-sales-priority'), progression: salesMod('he-sales-progression'),
         concentration: salesMod('he-sales-concentration'),
         nextaction: salesMod('he-sales-nextaction'), replylab: salesMod('he-sales-replylab'),
-        approval: salesMod('he-sales-approval'), audit: salesMod('he-sales-audit') };
+        approval: salesMod('he-sales-approval'), audit: salesMod('he-sales-audit'),
+        visit: salesMod('he-sales-visit') };
     }
     // Small helpers to build he-sales-ui section view-models tersely.
     function salesKv(k, value, label){ return { k, value: value == null ? '—' : value, label: label || 'ACTUAL' }; }
@@ -850,7 +851,8 @@
     const SALES_TITLES = {
       salesCommandPanel: 'Growth Command Center', salesLeadsPanel: 'Wholesale Leads',
       salesPipelinePanel: 'Pipeline', salesApprovalsPanel: 'Sales Approvals',
-      salesSamplesPanel: 'Samples', salesAnalyticsPanel: 'Sales Analytics',
+      salesSamplesPanel: 'Samples', salesVisitsPanel: 'In-Person Sample Visits',
+      salesAnalyticsPanel: 'Sales Analytics',
       salesAgentsPanel: 'Sales Agent Activity',
       salesLeadDetailPanel: 'Lead Detail (example)', salesRetentionPanel: 'Retention',
       salesContentPanel: 'Content Opportunities', salesTerritoryPanel: 'Territory & Expansion',
@@ -902,6 +904,44 @@
       },
       salesSamplesPanel(e, opts){
         return e.ui.samplesView({ budget: { budget: null }, roi: { converted: 0, conversionRate: null, costBasis: 'UNKNOWN' }, rows: [] }, opts);
+      },
+      // In-person (HAND-DELIVERED) sample visits — distinct from mailed samples.
+      // Advisory/read-only: records stock, cost and outcome per visit, is
+      // idempotent, never fabricates a missing cost ($0), and NAMES the missing
+      // safe production write (adjust_inventory R4). Never sends, never writes
+      // real stock. Synthetic inputs only.
+      salesVisitsPanel(e, opts){
+        return e.ui.page('In-Person Sample Visits', opts, () => {
+          const log = e.visit.createVisitLog();
+          // Synthetic visit history (SYN- stores; one with an unknown unit cost
+          // to show UNKNOWN is first-class and never becomes a fake $0).
+          log.record({ store: 'SYN-Bright Market', date: '2026-11-05', kitId: 'A', jars: 6, unitCost: 0.29, outcome: 'ORDERED', by: 'owner' });
+          log.record({ store: 'SYN-Coast Co',      date: '2026-11-06', kitId: 'A', jars: 4, unitCost: 0.29, outcome: 'FOLLOW_UP', by: 'owner' });
+          log.record({ store: 'SYN-Cedar Spa',     date: '2026-11-07', kitId: 'B', jars: 3, outcome: 'DECLINED', by: 'owner' }); // no unit cost
+          const tc = log.totalCost();
+          const oc = log.outcomes();
+          const costLabel = tc.costBasis === 'ACTUAL' ? 'ACTUAL' : 'PARTIAL/UNKNOWN';
+          return { title: 'In-Person Sample Visits', state: 'OK', simulated: true, sections: [
+            salesSection('Visits (hand-delivered — advisory, nothing written)', log.all().map(v =>
+              salesKv(v.store + ' · ' + (v.date || '—'), v.jars + ' jars → ' + v.outcome + ' (' + v.suggestedSampleState + ')', 'SIMULATED'))),
+            salesSection('Stock consumed on the spot', [
+              salesKv('Jars consumed (synthetic)', log.stockConsumed(), 'SIMULATED'),
+              salesKv('Safe write to apply this', 'adjust_inventory (R4) — not in local build', 'OWNER_INPUT_REQUIRED'),
+            ]),
+            salesSection('Sample cost', [
+              salesKv('Known cost', tc.known == null ? '—' : ('$' + tc.known.toFixed(2)), 'ACTUAL'),
+              salesKv('Visits with unknown unit cost', tc.unknownCount, tc.unknownCount ? 'UNKNOWN' : 'ACTUAL'),
+              salesKv('Cost basis', costLabel, costLabel === 'ACTUAL' ? 'ACTUAL' : 'UNKNOWN'),
+            ]),
+            salesSection('Outcomes → suggested sample state (advisory, never auto-applied)', [
+              salesKv('Ordered → CONVERTED', oc.ORDERED, 'SIMULATED'),
+              salesKv('Follow-up → FOLLOW_UP_DUE', oc.FOLLOW_UP, 'SIMULATED'),
+              salesKv('Declined → NO_ORDER', oc.DECLINED, 'SIMULATED'),
+              salesKv('Pending → RECEIVED', oc.PENDING, 'SIMULATED'),
+            ]),
+            salesSection('Note', [salesKv('Actions', 'log only — consumes no real stock, sends nothing, advances no book automatically', 'ACTUAL')]),
+          ] };
+        });
       },
       salesAnalyticsPanel(e, opts){
         return e.ui.analyticsView({ replyRate: null, interestRate: null, customerConversion: null, sampleConversion: null, costPerLead: null, costPerCustomer: null }, opts);
@@ -2108,6 +2148,7 @@
       salesLeadsPanel:     [() => loadSales('salesLeadsPanel')],
       salesPipelinePanel:  [() => loadSales('salesPipelinePanel')],
       salesApprovalsPanel: [() => loadSales('salesApprovalsPanel')],
+      salesVisitsPanel:    [() => loadSales('salesVisitsPanel')],
       salesSamplesPanel:   [() => loadSales('salesSamplesPanel')],
       salesAnalyticsPanel: [() => loadSales('salesAnalyticsPanel')],
       salesAgentsPanel:    [() => loadSales('salesAgentsPanel')],
