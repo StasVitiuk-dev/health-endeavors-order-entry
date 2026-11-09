@@ -102,7 +102,9 @@ const ADDED = ['setReportHistoryView', 'inquiriesList', 'agentControls', 'poRece
   // Export recovery drill panel (read-only, default-OFF he_recovery_drill).
   'loadRecoveryDrill', 'recoveryDrillOn',
   // L3: US-Letter invoice print view (builds into the body-level print host).
-  'renderInvoicePrint'];
+  'renderInvoicePrint',
+  // follow-on: US-Letter daily-report print view (reuses the print host).
+  'renderReportPrint'];
 const NEW_MODULES = ['he-ops']; // EXT16: written new, not moved
 const CHANGED_TEXT = ["} = window.HE.helpers;", "forEach(o => Object.setPrototypeOf(o, null))", "supabase.auth.onAuthStateChange((event, session) =>", "getAttribute('data-view')", "getElementById('adjustInventoryForm').addEventListener('submit'", "getElementById('logReturnForm').addEventListener('submit'", "getElementById('retOrder').addEventListener('change'", "Release to refresh", "getElementById('docCategory')",
   // EXT20J-post-TT: the 4 static overlay scaffolds converted innerHTML->h(); each

@@ -1890,6 +1890,7 @@
           kv('Checksum', manifest.checksum + ' (' + manifest.checksumAlgorithm + ')'),
           kv('Integrity check', v.ok ? 'OK — checksum matches' : 'MISMATCH'),
           kv('Page', pm.page.page + ' (' + pm.page.widthPx + '×' + pm.page.heightPx + 'px) — print model, not a rendered PDF')),
+        h('div', { class: 'scanToggleRow u-mt-8' }, h('button', { type: 'button', class: 'small', 'data-print': 'report' }, 'Print report (US-Letter preview)')),
         h('p', { class: 'hint u-mt-8' }, 'Values marked UNKNOWN were never measured (never shown as $0). Automatic Mac sync of the saved package is a separate component and is not enabled here.')));
     }
     function loadInvoicePreview() {
@@ -1970,8 +1971,40 @@
     }
     document.addEventListener('click', function (e) {
       const t = e.target.closest('[data-print]'); if (!t) return;
-      if (t.getAttribute('data-print') === 'invoice') renderInvoicePrint();
+      const what = t.getAttribute('data-print');
+      if (what === 'invoice') renderInvoicePrint();
+      else if (what === 'report') renderReportPrint();
     });
+
+    // L-follow-on: build a US-Letter print layout of the daily report rows into
+    // the body-level print host (reuses the invoice print host + @media print
+    // rules). Uses the live saved rows when present, else the demo set. Pure DOM.
+    function renderReportPrint() {
+      const host = document.getElementById('invoicePrintHost'); if (!host) return;
+      const rx = opsReportsMod(); if (!rx) return;
+      const live = (typeof reportHistoryRows === 'function') ? reportHistoryRows() : [];
+      const history = (Array.isArray(live) && live.length) ? live : [
+        { report_date: '2026-11-05', currency: 'USD', orders_count: 3, revenue: 120.5, ai_calls_count: 10, ai_cost: 0.42 },
+        { report_date: '2026-11-06', currency: 'USD', orders_count: 0, revenue: 0, ai_calls_count: 4, ai_cost: 0.11 },
+        { report_date: '2026-11-07', currency: 'USD', orders_count: 5, revenue: null, ai_calls_count: 7, ai_cost: 0.33 },
+      ];
+      const pm = rx.printModel({ history: history, title: 'Daily report' });
+      const sum = pm.summary;
+      const money = function (v) { return v === 'UNKNOWN' ? '?' : fmtMoney(v, 'USD'); };
+      const num = function (v) { return v === 'UNKNOWN' ? '?' : String(v); };
+      const bodyRows = pm.rows.map(function (r) {
+        return h('tr', null, h('td', null, r.report_date), h('td', null, num(r.orders_count)),
+          h('td', null, money(r.revenue)), h('td', null, num(r.new_inquiries_count)), h('td', null, num(r.ai_calls_count)), h('td', null, money(r.ai_cost)));
+      });
+      host.replaceChildren(h('div', { class: 'printDoc' }, h('div', { class: 'printPage' },
+        h('div', { class: 'printHdr' }, h('div', { class: 'taskTitle' }, 'Health Endeavors — Daily report'),
+          h('div', null, 'SIMULATED'), h('div', null, (pm.range.from || '?') + ' → ' + (pm.range.to || '?'))),
+        h('table', null,
+          h('thead', null, h('tr', null, h('th', null, 'Date'), h('th', null, 'Orders'), h('th', null, 'Revenue'), h('th', null, 'New questions'), h('th', null, 'AI calls'), h('th', null, 'AI cost'))),
+          h('tbody', null, bodyRows)),
+        h('div', { class: 'printTotals' }, 'Totals — orders: ' + num(sum.orders_count) + ' · revenue: ' + money(sum.revenue) + (sum.missing && sum.missing.revenue ? ' (' + sum.missing.revenue + ' day(s) UNKNOWN)' : '')))));
+      try { window.print(); } catch (e) {}
+    }
 
     // Export recovery drill (read-only; behind recoveryDrillOn). Shows a clean
     // package opening with its coverage, and a tampered package being rejected at
