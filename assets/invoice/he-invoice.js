@@ -102,6 +102,39 @@
     return { number: prefix + '-' + year + '-' + pad, sequence: sequence, year: year, prefix: prefix, format: prefix + '-YYYY-' + '0'.repeat(width), proposed: true };
   }
 
+  // Collision-safe number sequence (DRAFT model). In production a durable store
+  // (a DB sequence / RPC) would atomically hand out the next number so two issues
+  // can never grab the same one. This in-memory model mirrors that shape —
+  // reserve() claims the next number (counting both committed and in-flight
+  // reservations), commit() records a reservation as used, release() frees an
+  // abandoned one — and names the missing production write contract.
+  const MISSING_SEQUENCE_CONTRACT = 'invoice_number_sequence (atomic reserve+commit RPC) — a durable last-number store; not in the local build (this model is in-memory only).';
+  function createNumberSequence(initial) {
+    const i = initial || {};
+    const used = new Set(i.used || []);
+    const reserving = new Set();
+    return {
+      // Claim the next number without colliding with committed OR in-flight ones.
+      reserve: function (opts) {
+        const combined = new Set(used); reserving.forEach(function (n) { combined.add(n); });
+        const s = nextInvoiceNumber(Object.assign({}, opts || {}, { existingNumbers: combined }));
+        reserving.add(s.number);
+        return { number: s.number, token: s.number, sequence: s.sequence };
+      },
+      // Finalize a reservation as used. Idempotent-safe: a double-commit of the
+      // same token (a retry) does not advance anything.
+      commit: function (token) {
+        if (reserving.has(token)) { reserving.delete(token); used.add(token); return { ok: true, number: token }; }
+        if (used.has(token)) return { ok: false, duplicate: true, reason: 'already committed', number: token };
+        return { ok: false, reason: 'no such reservation', number: token };
+      },
+      release: function (token) { const had = reserving.delete(token); return { ok: had }; },
+      used: function () { return Array.from(used); },
+      pending: function () { return Array.from(reserving); },
+      contract: MISSING_SEQUENCE_CONTRACT,
+    };
+  }
+
   // Issue a draft: assigns a unique number (caller supplies from a sequence),
   // stamps dates, snapshots an immutable issued version, and blocks duplicates.
   // role gates who may issue. existingNumbers guards against a reused number.
@@ -237,5 +270,5 @@
     };
   }
 
-  return { STATES, ROLES_MAY_ISSUE, US_LETTER, BUSINESS_HEADER, computeTotals, draftInvoice, reviseDraft, nextInvoiceNumber, invoiceHeader, issue, applyPayment, voidInvoice, withOverdue, packingSlip, paginate, invoicePrint, packingSlipPrint };
+  return { STATES, ROLES_MAY_ISSUE, US_LETTER, BUSINESS_HEADER, MISSING_SEQUENCE_CONTRACT, computeTotals, draftInvoice, reviseDraft, nextInvoiceNumber, createNumberSequence, invoiceHeader, issue, applyPayment, voidInvoice, withOverdue, packingSlip, paginate, invoicePrint, packingSlipPrint };
 }));
