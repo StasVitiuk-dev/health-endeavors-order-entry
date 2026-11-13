@@ -65,14 +65,39 @@ flag-OFF, draft-only, never-sends**, and gated on owner approval before any real
 output. "Engine exists" means the pure module is present; "workflow" means the
 sourced→draft→approve→(simulated)act loop a person would actually run.
 
-| # | Item | Inputs | Outputs | Approval gate | Dependencies | Engine today |
+| # | Item | Inputs | Outputs | Approval gate | Dependencies | Status |
 |---|---|---|---|---|---|---|
-| **W-0** | Wire the **in-person visit log** into a panel | kit id, store, jars, unit cost, outcome | visit rows, stock-consumed + cost (ACTUAL/UNKNOWN), suggested sample-state | owner enables `he_sales_growth`; `adjust_inventory (R4)` before any real stock write | `he-sales-visit.js` (FU5), `he-reorder.js` | **built (unwired)** |
-| **W-1** | **Content repurposing** (one asset → channel variants) | approved source copy/asset, channel, brand voice | draft variants, `sent:false`, each run through claim firewall | owner approves each variant; no publish path | `he-sales-content.js`, `he-sales-claims.js` | engine exists |
-| **W-2** | **Ad variants** (headline/body A/B drafts) | approved offer facts, audience, budget cap (synthetic) | ranked draft ad copy, no spend, claim-clean | owner approves + no ad-account connection (spend stays off) | `he-sales-campaign.js`, `he-sales-content.js`, `he-sales-cost.js` | engine exists |
-| **W-3** | **Feedback / review analysis** (themes, risk flags) | synthetic reviews/replies, product tags | theme clusters, sentiment (UNKNOWN≠0), claim-risk flags | owner reviews before any reply drafted; replies never sent | `he-sales-reviews.js`, `he-sales-replies.js`, `he-sales-anomaly.js` | engine exists |
-| **W-4** | **Creator / boutique scouting** (sourced + deduped) | category, region filters, synthetic directory | scored creator/boutique leads with reasons + dedup | owner approves outreach; contact suppression honored | `he-sales-creator.js`, `he-sales-sources.js`, `he-sales-leads.js` | engine exists |
-| **W-5** | **Retention** (re-order nudges, churn risk) | order history (synthetic), cadence | at-risk accounts, draft nudges `sent:false` | owner approves each nudge; opt-out/do-not-contact excluded | `he-sales-retention.js`, `he-sales-followup.js` | engine exists |
+| **W-0** | Wire the **in-person visit log** into a panel | kit id, store, jars, unit cost, outcome | visit rows, stock-consumed + cost (ACTUAL/UNKNOWN), suggested sample-state | owner enables `he_sales_growth`; `adjust_inventory (R4)` before any real stock write | `he-sales-visit.js` (FU5), `he-reorder.js` | **✅ BUILT + WIRED** |
+| **W-1** | **Content repurposing** (one asset → channel variants) | approved source copy/asset, channel, brand voice | draft variants, `sent:false`, each run through claim firewall | owner approves each variant; no publish path | `he-sales-content.js`, `he-sales-claims.js` | **✅ BUILT (engine)** |
+| **W-2** | **Ad variants** (headline/body A/B drafts) | approved offer facts, audience, budget cap (synthetic) | ranked draft ad copy, no spend, claim-clean | owner approves + no ad-account connection (spend stays off) | `he-sales-campaign.js`, `he-sales-content.js`, `he-sales-cost.js` | **✅ BUILT (engine)** |
+| **W-3** | **Feedback / review analysis** (themes, risk flags) | synthetic reviews/replies, product tags | theme clusters, sentiment (UNKNOWN≠0), claim-risk flags | owner reviews before any reply drafted; replies never sent | `he-sales-reviews.js`, `he-sales-replies.js`, `he-sales-anomaly.js` | **✅ BUILT (engine)** |
+| **W-4** | **Creator / boutique scouting** (sourced + deduped) | category, region filters, synthetic directory | scored creator/boutique leads with reasons + dedup | owner approves outreach; contact suppression honored | `he-sales-creator.js`, `he-sales-sources.js`, `he-sales-leads.js` | **✅ BUILT (engine)** |
+| **W-5** | **Retention** (re-order nudges, churn risk) | order history (synthetic), cadence | at-risk accounts, draft nudges `sent:false` | owner approves each nudge; opt-out/do-not-contact excluded | `he-sales-retention.js`, `he-sales-followup.js` | **✅ BUILT (engine)** |
+
+### Build status — FU6 wave (as of 2026-11-13)
+
+All local/synthetic, default-OFF, draft-only; no push/merge/deploy. New engine
+modules are unwired by design except W-0, which is wired behind `he_sales_growth`.
+
+| # | What was built | New module / spec | Commit | Tests |
+|---|---|---|---|---|
+| W-0 | Visit log surfaced as the "In-Person Sample Visits" panel (default-OFF, read-only; stock/cost/outcome, R4 named, in-person≠shipped) | wiring + `sales-wiring`/`sales-pages-sync` updates | `2b02bc4` | wiring+content+a11y+mobile matrices green; visit model 4 |
+| W-1 | Content repurposing: approved asset → caption/short-video/newsletter drafts; attribution, editable versions, missing-input states; source-as-data (injection + zero-width blocked) | `he-sales-repurpose.js` + `sales-repurpose-ext21` | `5c73c2c` | 5 + inventory 3 |
+| W-2 | Ad variants: hooks/headlines/creative briefs; review-by-variant; approval binds to wording+facts and invalidates on change; no campaign/spend | `he-sales-advariants.js` + `sales-advariants-ext21` | `2a513b0` | 5 + inventory 3 |
+| W-3 | Feedback analysis: route packaging/quality/safety to a human; conflict + duplicate detection; PII guard; testimonial gate (provenance+permission+wording+PII) | `he-sales-feedback.js` + `sales-feedback-ext21` | `a4a68d7` | 5 + reviews 5 + inventory 3 |
+| W-4 | Creator sample-offer draft: shortlist with source+fit evidence; UNKNOWN engagement kept; gifting/stock/contact DISABLED (R4 named) | `he-sales-creatoroffer.js` + `sales-creatoroffer-ext21` | `cc6c95d` | 5 + creator 4 + inventory 3 |
+| W-5 | Retention reorder-reminder drafts: explicit surfaced cadence; consent/opt-out/recent-order/duplicate/cap/supersede guards; claim-checked | `he-sales-retentionreminder.js` + `sales-retentionreminder-ext21` | `d4916a6` | 5 + retention 3 + followup 7 + inventory 3 |
+
+**Next unblocked item:** optionally wire W-1…W-5 engines into flag-gated panels
+(same pattern as W-0), one at a time. All remaining real output (publishing,
+sending, spend, gifting, stock writes) stays blocked on the six owner decisions
+and provider/device approvals below — left open by design.
+
+**Scanner (FU4) follow-up check:** the standalone Scan Shipment entry point is
+present (`scanEntryButton`/`paintScanEntry`, behind `scanShipmentOn`) and
+multi-package-per-order each-confirm + independent tracking/email failure are
+covered (`fu4-scan-journey-ext21`). No concrete open local scanner gap found at
+this checkpoint; if one surfaces, record it here with the smallest synthetic case.
 
 **Cross-cutting gates (apply to every row above):**
 1. Feature flag `he_sales_growth` OFF by default — no sidebar, no link, inert panel until owner enables.
