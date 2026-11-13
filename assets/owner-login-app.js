@@ -846,7 +846,7 @@
         visit: salesMod('he-sales-visit'), reviews: salesMod('he-sales-reviews'),
         repurpose: salesMod('he-sales-repurpose'), advariants: salesMod('he-sales-advariants'),
         feedback: salesMod('he-sales-feedback'), creatoroffer: salesMod('he-sales-creatoroffer'),
-        reminder: salesMod('he-sales-retentionreminder') };
+        reminder: salesMod('he-sales-retentionreminder'), fallback: salesMod('he-ops-fallback') };
     }
     // Small helpers to build he-sales-ui section view-models tersely.
     function salesKv(k, value, label){ return { k, value: value == null ? '—' : value, label: label || 'ACTUAL' }; }
@@ -1036,6 +1036,7 @@
           const fx = e.agents.healthFixtures();
           const rows = e.agents.healthRows(fx.jobs, fx.now, fx.staleAfterHours);
           const sum = e.agents.healthSummary(fx.jobs, fx.now, fx.staleAfterHours);
+          const fb = e.fallback.fallbackReadiness();
           return { title: 'Service Health', state: 'OK', simulated: true, sections: [
             salesSection('Status summary (synthetic)', [
               salesKv('Needs attention', sum.needsAttention, sum.needsAttention ? 'OWNER_INPUT_REQUIRED' : 'ACTUAL'),
@@ -1046,7 +1047,10 @@
               r.name,
               r.state + ' · ' + (r.lastSuccess ? 'last ok ' + r.sinceSuccessHours + 'h ago' : 'no success yet') + ' → ' + r.nextAction,
               (r.state === 'OK' || r.state === 'OFF') ? 'ACTUAL' : 'OWNER_INPUT_REQUIRED'))),
-            salesSection('Note', [salesKv('Scope', 'synthetic failure states for review; read-only — nothing is run, scheduled, or changed here', 'ACTUAL')]),
+            // #21 — every launch-critical flow has a manual path + pause/recovery.
+            salesSection('Manual fallback readiness (#21) — ' + (fb.ready ? 'all flows covered' : fb.gaps.length + ' gap(s)'), fb.flows.map(f =>
+              salesKv(f.name, 'manual: ' + f.manualPath + ' · pause/recovery: ' + f.pauseRecovery, fb.ready ? 'ACTUAL' : 'OWNER_INPUT_REQUIRED'))),
+            salesSection('Note', [salesKv('Scope', 'synthetic failure states + manual-fallback readiness for review; read-only — nothing is run, scheduled, or changed here', 'ACTUAL')]),
           ] };
         });
       },

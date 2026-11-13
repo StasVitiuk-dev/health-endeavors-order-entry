@@ -210,6 +210,10 @@ test.describe('flag ON: sales pages appear and render synthetic data', () => {
     await expect(panel).toContainText('next operator action');
     await expect(panel).toContainText('Review the last error'); // the error job's next action
     await expect(panel).toContainText('read-only'); // nothing is run or changed here
+    // #21 manual-fallback readiness is surfaced on the same health screen.
+    await expect(panel).toContainText('Manual fallback readiness');
+    await expect(panel).toContainText('Order entry');
+    await expect(panel).toContainText('Scan shipment');
   });
 });
 
