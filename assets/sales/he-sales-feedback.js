@@ -26,6 +26,9 @@
 
   // Themes that must reach a human. Safety first, then quality, then packaging.
   const ROUTE_TO_HUMAN = ['safety', 'quality', 'packaging', 'leaking'];
+  // Product-defect themes watched for recurring TRENDS (#27) — includes pump,
+  // which is a per-event route only when negative but is a real trend signal.
+  const TREND_THEMES = ['packaging', 'pump', 'quality', 'safety', 'leaking'];
   // Themes where opposite sentiments are a genuine contradiction worth flagging.
   const CONFLICT_THEMES = ['leaking', 'pump', 'quality', 'scent', 'texture', 'packaging'];
 
@@ -128,6 +131,63 @@
     };
   }
 
+  // #27 Complaint TRENDS: bucket dated feedback by ISO week and flag a routed
+  // theme (packaging / pump / quality / safety / leaking) that RECURS across
+  // several weeks for the same product — a systemic issue, not a one-off. The
+  // week of a date is its Thursday-anchored ISO week key (yyyy-Www); feedback
+  // without a usable date goes to an 'undated' bucket and never fakes a period.
+  function isoWeekKey(iso) {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return null;
+    const t = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+    const day = t.getUTCDay() || 7;            // Mon=1..Sun=7
+    t.setUTCDate(t.getUTCDate() + 4 - day);    // nearest Thursday
+    const yearStart = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
+    const week = Math.ceil(((t - yearStart) / 86400000 + 1) / 7);
+    return t.getUTCFullYear() + '-W' + String(week).padStart(2, '0');
+  }
+  function trends(reviews, reviewsApi, opts) {
+    if (!reviewsApi || typeof reviewsApi.classifyReview !== 'function') throw new Error('he-sales-feedback: inject he-sales-reviews');
+    const minWeeks = (opts && opts.minWeeks) || 2;   // recurs across >= this many weeks
+    // product|theme -> Set(weekKey), plus counts and the dated samples.
+    const seriesWeeks = {}; const seriesCount = {}; const seriesPeriods = {};
+    (reviews || []).forEach(function (r) {
+      const c = reviewsApi.classifyReview(r);
+      const wk = isoWeekKey(r.at || r.date);
+      (c.themes || []).forEach(function (t) {
+        if (TREND_THEMES.indexOf(t) === -1) return;  // only product-defect themes trend
+        const k = c.product + '|' + t;
+        seriesCount[k] = (seriesCount[k] || 0) + 1;
+        if (wk) { (seriesWeeks[k] = seriesWeeks[k] || new Set()).add(wk); (seriesPeriods[k] = seriesPeriods[k] || new Set()).add(wk); }
+      });
+    });
+    const trendsOut = [];
+    for (const k of Object.keys(seriesCount)) {
+      const weeks = seriesWeeks[k] ? seriesWeeks[k].size : 0;
+      const parts = k.split('|');
+      const recurring = weeks >= minWeeks;
+      trendsOut.push({ product: parts[0], theme: parts[1], total: seriesCount[k], weeks: weeks,
+        periods: seriesPeriods[k] ? Array.from(seriesPeriods[k]).sort() : [],
+        recurring: recurring, route: recurring ? 'ESCALATE_RECURRING' : 'watch' });
+    }
+    trendsOut.sort((a, b) => b.weeks - a.weeks || b.total - a.total);
+    const recurring = trendsOut.filter(t => t.recurring);
+    return { minWeeks: minWeeks, trends: trendsOut, recurring: recurring, recurringCount: recurring.length,
+      note: 'SIMULATED — recurring complaint themes escalated to a human; nothing auto-actioned.', label: 'SIMULATED' };
+  }
+
+  // Dated synthetic feedback showing a RECURRING packaging/pump/quality issue
+  // (across several weeks) alongside one-off noise — for #27 trend tests.
+  function trendFixtures() {
+    return [
+      { id: 'T1', product: 'Shea Body Butter', at: '2026-10-05', rating: 2, text: 'The pump stopped working after a week.' },
+      { id: 'T2', product: 'Shea Body Butter', at: '2026-10-13', rating: 2, text: 'Pump is faulty again, barely dispenses.' },
+      { id: 'T3', product: 'Shea Body Butter', at: '2026-10-21', rating: 1, text: 'Broken pump on arrival, poor quality.' },
+      { id: 'T4', product: 'Shea Body Butter', at: '2026-10-22', rating: 1, text: 'The carton was crushed and the box damaged.' },
+      { id: 'T5', product: 'Sea Foam', at: '2026-10-20', rating: 5, text: 'Love the scent!' }, // one-off, not a routed theme
+    ];
+  }
+
   function fixtures() {
     return [
       { id: 'SYN-R1', product: 'Shea Body Butter', rating: 5, permission: 'granted', text: 'Absolutely love this — reorder every month.' },
@@ -139,5 +199,5 @@
     ];
   }
 
-  return { ROUTE_TO_HUMAN, CONFLICT_THEMES, PII_RULES, findPII, redactPII, routeOne, analyze, testimonialDraft, fixtures };
+  return { ROUTE_TO_HUMAN, TREND_THEMES, CONFLICT_THEMES, PII_RULES, findPII, redactPII, routeOne, analyze, testimonialDraft, isoWeekKey, trends, trendFixtures, fixtures };
 }));

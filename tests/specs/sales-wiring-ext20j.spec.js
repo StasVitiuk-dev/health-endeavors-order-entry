@@ -172,6 +172,7 @@ test.describe('flag ON: sales pages appear and render synthetic data', () => {
     const panel = page.locator('#salesFeedbackPanel');
     await expect(page.locator('#salesFeedbackPanel .salesTitle')).toHaveText('Feedback Analysis');
     await expect(panel).toContainText('Routed to a human');
+    await expect(panel).toContainText('Recurring complaint trends'); // #27
     await expect(panel).toContainText('[phone redacted]'); // PII redaction visible
     expect(await panel.innerText()).not.toContain('555-123-4567');
     await expect(panel).toContainText('nothing auto-replied or published');

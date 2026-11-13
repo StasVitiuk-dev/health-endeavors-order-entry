@@ -64,6 +64,33 @@ test('a testimonial draft needs provenance + permission + approved wording + no 
   expect(perm.blockers.join(' ')).toMatch(/permission not granted/);
 });
 
+test('#27 complaint trends: recurring packaging/pump/quality complaints escalate across weeks', () => {
+  const tr = F.trends(F.trendFixtures(), RV, { minWeeks: 2 });
+  // Pump failures recur across 3 weeks; quality across 2 — both escalate.
+  const byTheme = Object.fromEntries(tr.trends.map(t => [t.theme, t]));
+  expect(byTheme.pump.weeks).toBe(3);
+  expect(byTheme.pump.recurring).toBe(true);
+  expect(byTheme.pump.route).toBe('ESCALATE_RECURRING');
+  expect(byTheme.quality.recurring).toBe(true);
+  // A single-week packaging mention is watched, not yet escalated.
+  expect(byTheme.packaging.recurring).toBe(false);
+  expect(byTheme.packaging.route).toBe('watch');
+  expect(tr.recurringCount).toBe(2);
+  expect(tr.note).toMatch(/nothing auto-actioned/);
+});
+
+test('#27 trends only consider product-defect themes and never fabricate a period', () => {
+  // A positive, non-defect review ("Love the scent!") does not create a trend.
+  const tr = F.trends(F.trendFixtures(), RV, { minWeeks: 2 });
+  expect(tr.trends.some(t => t.theme === 'scent')).toBe(false);
+  // Feedback with no usable date contributes a count but no week (no fake period).
+  const undated = F.trends([{ id: 'U1', product: 'X', text: 'broken pump', rating: 1 }], RV, { minWeeks: 2 });
+  const pump = undated.trends.find(t => t.theme === 'pump');
+  expect(pump.total).toBe(1);
+  expect(pump.weeks).toBe(0);
+  expect(pump.recurring).toBe(false);
+});
+
 test('missing provenance blocks a testimonial even with permission', () => {
   // A review with no id and no source text cannot be attributed.
   const orphan = { product: 'Shea Body Butter', rating: 5, permission: 'granted', text: '' };

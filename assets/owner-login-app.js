@@ -991,8 +991,10 @@
           const fx = e.feedback.fixtures();
           const a = e.feedback.analyze(fx, e.reviews);
           const t = e.feedback.testimonialDraft(fx[3], e.reviews, e.claims); // safety + PII example
+          const tr = e.feedback.trends(e.feedback.trendFixtures(), e.reviews, { minWeeks: 2 });
           return { title: 'Feedback Analysis', state: 'OK', simulated: true, sections: [
             salesSection('Routed to a human', a.toHuman.map(x => salesKv(x.product, x.routeReasons.join(' + ') + (x.pii.length ? ' · PII' : ''), 'OWNER_INPUT_REQUIRED'))),
+            salesSection('Recurring complaint trends (#27)', tr.trends.map(x => salesKv(x.product + ' · ' + x.theme, x.route + ' · ' + x.weeks + ' week(s), ' + x.total + ' report(s)', x.recurring ? 'OWNER_INPUT_REQUIRED' : 'SIMULATED'))),
             salesSection('Conflicts & duplicates', [salesKv('Conflicts', a.conflicts.map(c => c.product + '/' + c.theme).join(', ') || 'none', 'SIMULATED'), salesKv('Duplicates collapsed', a.duplicatesCollapsed, 'SIMULATED')]),
             salesSection('Testimonial review (PII example — redacted)', [salesKv('Status', t.status, t.publishable ? 'SIMULATED' : 'OWNER_INPUT_REQUIRED'), salesKv('Display', t.display, 'SIMULATED')]),
             salesSection('Note', [salesKv('Actions', 'routed for human decision; nothing auto-replied or published', 'ACTUAL')]),
