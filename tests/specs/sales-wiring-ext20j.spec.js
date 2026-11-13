@@ -11,7 +11,9 @@
 const { test, expect, login, gotoPage } = require('../helpers/dashboard');
 
 const SALES_IDS = ['salesCommandPanel', 'salesLeadsPanel', 'salesPipelinePanel',
-  'salesApprovalsPanel', 'salesSamplesPanel', 'salesVisitsPanel', 'salesAnalyticsPanel', 'salesAgentsPanel',
+  'salesApprovalsPanel', 'salesSamplesPanel', 'salesVisitsPanel',
+  'salesRepurposePanel', 'salesAdVariantsPanel', 'salesFeedbackPanel', 'salesCreatorOfferPanel', 'salesReminderPanel',
+  'salesAnalyticsPanel', 'salesAgentsPanel',
   'salesLeadDetailPanel', 'salesRetentionPanel', 'salesContentPanel', 'salesTerritoryPanel',
   'salesCampaignPanel', 'salesDataQualityPanel', 'salesForecastPanel', 'salesCostPanel', 'salesSafetyPanel',
   'salesLostDealsPanel', 'salesAnomalyPanel', 'salesWorkloadPanel', 'salesScorecardsPanel',
@@ -79,6 +81,9 @@ test.describe('flag ON: sales pages appear and render synthetic data', () => {
       salesLeadsPanel: 'Wholesale Leads', salesPipelinePanel: 'Pipeline',
       salesApprovalsPanel: 'Sales Approvals', salesSamplesPanel: 'Samples',
       salesVisitsPanel: 'In-Person Sample Visits',
+      salesRepurposePanel: 'Content Repurposing', salesAdVariantsPanel: 'Ad Variants',
+      salesFeedbackPanel: 'Feedback Analysis', salesCreatorOfferPanel: 'Creator Sample Offers',
+      salesReminderPanel: 'Reorder Reminders',
       salesAnalyticsPanel: 'Sales Analytics', salesAgentsPanel: 'Sales Agent Activity',
       salesLeadDetailPanel: 'Lead Detail (example)', salesRetentionPanel: 'Retention',
       salesContentPanel: 'Content Opportunities', salesTerritoryPanel: 'Territory & Expansion',
@@ -137,6 +142,60 @@ test.describe('flag ON: sales pages appear and render synthetic data', () => {
     // The shipped-sample page remains a separate panel.
     await gotoPage(page, 'salesSamplesPanel');
     await expect(page.locator('#salesSamplesPanel .salesTitle')).toHaveText('Samples');
+  });
+
+  test('W-1 content repurposing panel shows drafts + source attribution, blocks injection', async ({ page }) => {
+    await login(page);
+    await gotoPage(page, 'salesRepurposePanel');
+    const panel = page.locator('#salesRepurposePanel');
+    await expect(page.locator('#salesRepurposePanel .salesTitle')).toHaveText('Content Repurposing');
+    await expect(panel).toContainText('Instagram caption');
+    await expect(panel).toContainText('Source attribution');
+    await expect(panel).toContainText('Injected-asset drafts blocked');
+    await expect(panel).toContainText('never published');
+  });
+
+  test('W-2 ad-variants panel shows variants + exact-version approval, no spend', async ({ page }) => {
+    await login(page);
+    await gotoPage(page, 'salesAdVariantsPanel');
+    const panel = page.locator('#salesAdVariantsPanel');
+    await expect(page.locator('#salesAdVariantsPanel .salesTitle')).toHaveText('Ad Variants');
+    await expect(panel).toContainText('Ad hook');
+    await expect(panel).toContainText('invalidated — re-review required'); // approval binding after edit
+    await expect(panel).toContainText('no campaign, no spend');
+    expect(await panel.innerText()).not.toMatch(/\bsent\b.*true/i);
+  });
+
+  test('W-3 feedback panel routes to a human and redacts PII in a testimonial', async ({ page }) => {
+    await login(page);
+    await gotoPage(page, 'salesFeedbackPanel');
+    const panel = page.locator('#salesFeedbackPanel');
+    await expect(page.locator('#salesFeedbackPanel .salesTitle')).toHaveText('Feedback Analysis');
+    await expect(panel).toContainText('Routed to a human');
+    await expect(panel).toContainText('[phone redacted]'); // PII redaction visible
+    expect(await panel.innerText()).not.toContain('555-123-4567');
+    await expect(panel).toContainText('nothing auto-replied or published');
+  });
+
+  test('W-4 creator panel shows shortlist with UNKNOWN engagement and disabled capabilities', async ({ page }) => {
+    await login(page);
+    await gotoPage(page, 'salesCreatorOfferPanel');
+    const panel = page.locator('#salesCreatorOfferPanel');
+    await expect(page.locator('#salesCreatorOfferPanel .salesTitle')).toHaveText('Creator Sample Offers');
+    await expect(panel).toContainText('UNKNOWN');            // missing engagement kept unknown
+    await expect(panel).toContainText('Gifting');
+    await expect(panel).toContainText('adjust_inventory (R4)');
+    await expect(panel).toContainText('nothing contacted, gifted, or written to stock');
+  });
+
+  test('W-5 reminder panel shows explicit cadence and guard counts, nothing sent', async ({ page }) => {
+    await login(page);
+    await gotoPage(page, 'salesReminderPanel');
+    const panel = page.locator('#salesReminderPanel');
+    await expect(page.locator('#salesReminderPanel .salesTitle')).toHaveText('Reorder Reminders');
+    await expect(panel).toContainText('cadence');
+    await expect(panel).toContainText('Suppressed (opt-out/DNC)');
+    await expect(panel).toContainText('nothing sent');
   });
 });
 

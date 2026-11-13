@@ -843,7 +843,10 @@
         concentration: salesMod('he-sales-concentration'),
         nextaction: salesMod('he-sales-nextaction'), replylab: salesMod('he-sales-replylab'),
         approval: salesMod('he-sales-approval'), audit: salesMod('he-sales-audit'),
-        visit: salesMod('he-sales-visit') };
+        visit: salesMod('he-sales-visit'), reviews: salesMod('he-sales-reviews'),
+        repurpose: salesMod('he-sales-repurpose'), advariants: salesMod('he-sales-advariants'),
+        feedback: salesMod('he-sales-feedback'), creatoroffer: salesMod('he-sales-creatoroffer'),
+        reminder: salesMod('he-sales-retentionreminder') };
     }
     // Small helpers to build he-sales-ui section view-models tersely.
     function salesKv(k, value, label){ return { k, value: value == null ? '—' : value, label: label || 'ACTUAL' }; }
@@ -852,6 +855,9 @@
       salesCommandPanel: 'Growth Command Center', salesLeadsPanel: 'Wholesale Leads',
       salesPipelinePanel: 'Pipeline', salesApprovalsPanel: 'Sales Approvals',
       salesSamplesPanel: 'Samples', salesVisitsPanel: 'In-Person Sample Visits',
+      salesRepurposePanel: 'Content Repurposing', salesAdVariantsPanel: 'Ad Variants',
+      salesFeedbackPanel: 'Feedback Analysis', salesCreatorOfferPanel: 'Creator Sample Offers',
+      salesReminderPanel: 'Reorder Reminders',
       salesAnalyticsPanel: 'Sales Analytics',
       salesAgentsPanel: 'Sales Agent Activity',
       salesLeadDetailPanel: 'Lead Detail (example)', salesRetentionPanel: 'Retention',
@@ -940,6 +946,86 @@
               salesKv('Pending → RECEIVED', oc.PENDING, 'SIMULATED'),
             ]),
             salesSection('Note', [salesKv('Actions', 'log only — consumes no real stock, sends nothing, advances no book automatically', 'ACTUAL')]),
+          ] };
+        });
+      },
+      // W-1 — content repurposing: one approved asset -> channel drafts with
+      // source attribution; injection/unsupported claims blocked; never published.
+      salesRepurposePanel(e, opts){
+        return e.ui.page('Content Repurposing', opts, () => {
+          const fx = e.repurpose.fixtures();
+          const out = e.repurpose.repurpose({ asset: fx.approvedAsset, facts: fx.facts, claims: e.claims });
+          const inj = e.repurpose.repurpose({ asset: fx.injectedAsset, facts: fx.facts, claims: e.claims });
+          const first = out.drafts[0];
+          return { title: 'Content Repurposing', state: 'OK', simulated: true, sections: [
+            salesSection('Drafts from one approved asset (nothing published)', out.drafts.map(d =>
+              salesKv(d.channelLabel || d.channel, d.status + (d.status === 'DRAFT' ? ' · ' + String(d.text).slice(0, 56) : ''), d.status === 'DRAFT' ? 'SIMULATED' : 'OWNER_INPUT_REQUIRED'))),
+            salesSection('Source attribution (first draft)', (first.attribution.facts || []).map(f => salesKv(f.fact, f.value + ' @ ' + f.source, 'SIMULATED')).concat([salesKv('Asset', first.attribution.assetTitle, 'SIMULATED')])),
+            salesSection('Safety', [salesKv('Injected-asset drafts blocked', inj.counts.blocked, inj.counts.blocked ? 'OWNER_INPUT_REQUIRED' : 'ACTUAL'), salesKv('Source text', 'treated as data, never obeyed', 'ACTUAL')]),
+            salesSection('Note', [salesKv('Actions', 'draft only — claim-checked, editable, never published or sent', 'ACTUAL')]),
+          ] };
+        });
+      },
+      // W-2 — ad variants: hooks/headlines/briefs, review by variant; approval
+      // binds to exact wording+facts and invalidates on edit. No campaign/spend.
+      salesAdVariantsPanel(e, opts){
+        return e.ui.page('Ad Variants', opts, () => {
+          const fx = e.advariants.fixtures();
+          const out = e.advariants.adVariants({ asset: fx.approvedAsset, facts: fx.facts, claims: e.claims });
+          const hook = out.variants[0];
+          const appr = e.approval.approve(hook, 'owner', '2026-11-13T00:00:00Z');
+          const edited = e.advariants.editVariant(hook, 'Meet Shea Body Butter — boutique favourite.', 'owner', e.claims);
+          const after = e.approval.check(appr, edited);
+          return { title: 'Ad Variants', state: 'OK', simulated: true, sections: [
+            salesSection('Variants from one approved asset (no campaign, no spend)', out.variants.map(v =>
+              salesKv(v.variantLabel || v.variantType, v.status + (v.status === 'DRAFT' ? ' · ' + String(v.body).slice(0, 48) : ''), v.status === 'DRAFT' ? 'SIMULATED' : 'OWNER_INPUT_REQUIRED'))),
+            salesSection('Exact-version approval', [salesKv('Hook approved', appr.status, 'SIMULATED'), salesKv('After an edit', after.valid ? 'still valid' : 'invalidated — re-review required', 'OWNER_INPUT_REQUIRED')]),
+            salesSection('Note', [salesKv('Spend', '$0 — no campaign, no ad account', 'ACTUAL'), salesKv('Actions', 'draft copy for review; nothing sent', 'ACTUAL')]),
+          ] };
+        });
+      },
+      // W-3 — feedback analysis: route packaging/quality/safety to a human,
+      // conflicts + duplicates, PII guard, testimonial review. Nothing auto-replied.
+      salesFeedbackPanel(e, opts){
+        return e.ui.page('Feedback Analysis', opts, () => {
+          const fx = e.feedback.fixtures();
+          const a = e.feedback.analyze(fx, e.reviews);
+          const t = e.feedback.testimonialDraft(fx[3], e.reviews, e.claims); // safety + PII example
+          return { title: 'Feedback Analysis', state: 'OK', simulated: true, sections: [
+            salesSection('Routed to a human', a.toHuman.map(x => salesKv(x.product, x.routeReasons.join(' + ') + (x.pii.length ? ' · PII' : ''), 'OWNER_INPUT_REQUIRED'))),
+            salesSection('Conflicts & duplicates', [salesKv('Conflicts', a.conflicts.map(c => c.product + '/' + c.theme).join(', ') || 'none', 'SIMULATED'), salesKv('Duplicates collapsed', a.duplicatesCollapsed, 'SIMULATED')]),
+            salesSection('Testimonial review (PII example — redacted)', [salesKv('Status', t.status, t.publishable ? 'SIMULATED' : 'OWNER_INPUT_REQUIRED'), salesKv('Display', t.display, 'SIMULATED')]),
+            salesSection('Note', [salesKv('Actions', 'routed for human decision; nothing auto-replied or published', 'ACTUAL')]),
+          ] };
+        });
+      },
+      // W-4 — creator scouting: shortlist with source+fit evidence, sample-offer
+      // drafts for review; gifting/stock/contact disabled; engagement kept UNKNOWN.
+      salesCreatorOfferPanel(e, opts){
+        return e.ui.page('Creator Sample Offers', opts, () => {
+          const fx = e.creatoroffer.fixtures();
+          const out = e.creatoroffer.shortlistWithOffers(fx.creators, fx.facts, e.claims, e.creator);
+          return { title: 'Creator Sample Offers', state: 'OK', simulated: true, sections: [
+            salesSection('Shortlist + sample-offer drafts', out.shortlist.map(x => salesKv(
+              x.prospect.name + ' (' + x.prospect.band + ')',
+              x.offer.status + ' · engagement: ' + (x.offer.evidence ? x.offer.evidence.engagement : 'UNKNOWN'),
+              x.offer.status === 'DRAFT_FOR_HUMAN_REVIEW' ? 'SIMULATED' : 'OWNER_INPUT_REQUIRED'))),
+            salesSection('Disabled capabilities', [salesKv('Contact', 'disabled', 'ACTUAL'), salesKv('Gifting', 'disabled', 'ACTUAL'), salesKv('Stock adjust', 'disabled — needs adjust_inventory (R4)', 'OWNER_INPUT_REQUIRED')]),
+            salesSection('Note', [salesKv('Actions', 'draft offers for review; nothing contacted, gifted, or written to stock', 'ACTUAL')]),
+          ] };
+        });
+      },
+      // W-5 — retention: reorder-reminder drafts with an explicit cadence and
+      // opt-out/recent-order/duplicate/cap guards. Nothing sent.
+      salesReminderPanel(e, opts){
+        return e.ui.page('Reorder Reminders', opts, () => {
+          const fx = e.reminder.fixtures();
+          const plan = e.reminder.planReminders(fx.customers, fx.asOf, {}, { retention: e.retention, followup: e.followup, claims: e.claims });
+          return { title: 'Reorder Reminders', state: 'OK', simulated: true, sections: [
+            salesSection('Reminder drafts (nothing sent)', plan.rows.map(r =>
+              salesKv(r.storeName || r.id, r.status + ' · cadence ' + r.cadenceDays + 'd (' + r.cadenceBasis + ')', r.status === 'DRAFT' ? 'SIMULATED' : 'OWNER_INPUT_REQUIRED'))),
+            salesSection('Guards', [salesKv('Drafted', plan.counts.draft, 'SIMULATED'), salesKv('Suppressed (opt-out/DNC)', plan.counts.suppressed, 'ACTUAL'), salesKv('Not due (recent / no history)', plan.counts.notDue, 'ACTUAL')]),
+            salesSection('Note', [salesKv('Cadence', 'explicit assumption, shown per row', 'ACTUAL'), salesKv('Actions', 'draft reminders for review; opt-out/cap/duplicate enforced; nothing sent', 'ACTUAL')]),
           ] };
         });
       },
@@ -2149,6 +2235,11 @@
       salesPipelinePanel:  [() => loadSales('salesPipelinePanel')],
       salesApprovalsPanel: [() => loadSales('salesApprovalsPanel')],
       salesVisitsPanel:    [() => loadSales('salesVisitsPanel')],
+      salesRepurposePanel: [() => loadSales('salesRepurposePanel')],
+      salesAdVariantsPanel:[() => loadSales('salesAdVariantsPanel')],
+      salesFeedbackPanel:  [() => loadSales('salesFeedbackPanel')],
+      salesCreatorOfferPanel: [() => loadSales('salesCreatorOfferPanel')],
+      salesReminderPanel:  [() => loadSales('salesReminderPanel')],
       salesSamplesPanel:   [() => loadSales('salesSamplesPanel')],
       salesAnalyticsPanel: [() => loadSales('salesAnalyticsPanel')],
       salesAgentsPanel:    [() => loadSales('salesAgentsPanel')],
