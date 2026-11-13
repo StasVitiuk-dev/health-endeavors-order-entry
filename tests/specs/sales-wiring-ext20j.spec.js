@@ -12,7 +12,7 @@ const { test, expect, login, gotoPage } = require('../helpers/dashboard');
 
 const SALES_IDS = ['salesCommandPanel', 'salesLeadsPanel', 'salesPipelinePanel',
   'salesApprovalsPanel', 'salesSamplesPanel', 'salesVisitsPanel',
-  'salesRepurposePanel', 'salesAdVariantsPanel', 'salesFeedbackPanel', 'salesCreatorOfferPanel', 'salesReminderPanel',
+  'salesRepurposePanel', 'salesAdVariantsPanel', 'salesFeedbackPanel', 'salesCreatorOfferPanel', 'salesReminderPanel', 'salesHealthPanel',
   'salesAnalyticsPanel', 'salesAgentsPanel',
   'salesLeadDetailPanel', 'salesRetentionPanel', 'salesContentPanel', 'salesTerritoryPanel',
   'salesCampaignPanel', 'salesDataQualityPanel', 'salesForecastPanel', 'salesCostPanel', 'salesSafetyPanel',
@@ -83,7 +83,7 @@ test.describe('flag ON: sales pages appear and render synthetic data', () => {
       salesVisitsPanel: 'In-Person Sample Visits',
       salesRepurposePanel: 'Content Repurposing', salesAdVariantsPanel: 'Ad Variants',
       salesFeedbackPanel: 'Feedback Analysis', salesCreatorOfferPanel: 'Creator Sample Offers',
-      salesReminderPanel: 'Reorder Reminders',
+      salesReminderPanel: 'Reorder Reminders', salesHealthPanel: 'Service Health',
       salesAnalyticsPanel: 'Sales Analytics', salesAgentsPanel: 'Sales Agent Activity',
       salesLeadDetailPanel: 'Lead Detail (example)', salesRetentionPanel: 'Retention',
       salesContentPanel: 'Content Opportunities', salesTerritoryPanel: 'Territory & Expansion',
@@ -196,6 +196,20 @@ test.describe('flag ON: sales pages appear and render synthetic data', () => {
     await expect(panel).toContainText('cadence');
     await expect(panel).toContainText('Suppressed (opt-out/DNC)');
     await expect(panel).toContainText('nothing sent');
+  });
+
+  test('#25 Service Health panel surfaces stale/error states, last success and next operator action', async ({ page }) => {
+    await login(page);
+    await gotoPage(page, 'salesHealthPanel');
+    const panel = page.locator('#salesHealthPanel');
+    await expect(page.locator('#salesHealthPanel .salesTitle')).toHaveText('Service Health');
+    // Synthetic failure states are surfaced with a next action.
+    await expect(panel).toContainText('STALE');
+    await expect(panel).toContainText('ERROR');
+    await expect(panel).toContainText('Needs attention');
+    await expect(panel).toContainText('next operator action');
+    await expect(panel).toContainText('Review the last error'); // the error job's next action
+    await expect(panel).toContainText('read-only'); // nothing is run or changed here
   });
 });
 

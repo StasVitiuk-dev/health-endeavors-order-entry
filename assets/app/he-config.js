@@ -179,6 +179,7 @@ window.HE.modules.define('he-config', { api: 1, needs: [] }, function (ctx) {
       { id: 'salesFeedbackPanel',  label: 'Feedback Analysis' },
       { id: 'salesCreatorOfferPanel', label: 'Creator Sample Offers' },
       { id: 'salesReminderPanel',  label: 'Reorder Reminders' },
+      { id: 'salesHealthPanel',    label: 'Service Health' },
       { id: 'salesAnalyticsPanel', label: 'Sales Analytics' },
       { id: 'salesAgentsPanel',    label: 'Sales Agent Activity' },
       { id: 'salesLeadDetailPanel',  label: 'Lead Detail (example)' },

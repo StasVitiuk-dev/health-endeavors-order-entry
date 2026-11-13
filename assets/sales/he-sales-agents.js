@@ -108,6 +108,71 @@
     }));
   }
 
+  // #25 Service health: from a job's own signals (enabled/paused/lastRun/
+  // lastSuccess/lastError) derive an honest STATE and the NEXT OPERATOR ACTION.
+  // Pure and deterministic — a missing signal never reads as "healthy".
+  // States, in precedence order: PAUSED, ERROR, OFF, NEVER_RUN, STALE, OK.
+  const HEALTH_STATES = ['OK', 'STALE', 'ERROR', 'NEVER_RUN', 'PAUSED', 'OFF'];
+  function hoursBetween(fromISO, toMs) {
+    const t = Date.parse(fromISO);
+    if (!isFinite(t)) return null;
+    return (toMs - t) / 36e5;
+  }
+  function jobHealth(job, nowISO, staleAfterHours) {
+    const a = job || {};
+    const nowMs = Date.parse(nowISO);
+    const now = isFinite(nowMs) ? nowMs : Date.now();
+    const stale = (typeof staleAfterHours === 'number' && staleAfterHours > 0) ? staleAfterHours : 24;
+    const sinceSuccess = a.lastSuccess ? hoursBetween(a.lastSuccess, now) : null;
+    const base = { name: a.name || a.id || null, lastRun: a.lastRun || null, lastSuccess: a.lastSuccess || null,
+      lastError: a.lastError || null, sinceSuccessHours: sinceSuccess == null ? null : Math.round(sinceSuccess * 10) / 10,
+      staleAfterHours: stale };
+    // 1) explicitly held by the owner.
+    if (a.paused === true) return { ...base, state: 'PAUSED', reason: 'held by the owner', nextAction: 'Resume the job (owner) when you want it to run again.' };
+    // 2) an unresolved error (no success since the error) is surfaced, never hidden.
+    //    lastError is a MESSAGE; the error's time is lastErrorAt if given, else the
+    //    last run time. The error is unresolved unless a success came after it.
+    const errWhen = a.lastErrorAt || a.lastRun || null;
+    const errUnresolved = !!a.lastError && (!a.lastSuccess
+      || (errWhen && isFinite(Date.parse(errWhen)) ? Date.parse(errWhen) >= Date.parse(a.lastSuccess) : true));
+    if (errUnresolved) return { ...base, state: 'ERROR', reason: 'last run failed: ' + String(a.lastError).slice(0, 80), nextAction: 'Review the last error and re-run once; if it repeats, check the provider/credentials/config.' };
+    // 3) off by default (not scheduled to run).
+    if (a.enabled === false || a.mode === 'OFF') return { ...base, state: 'OFF', reason: 'off by default — not scheduled', nextAction: 'No action needed. Turn it on (owner) only when you want it to run.' };
+    // 4) never produced a success yet.
+    if (!a.lastRun && !a.lastSuccess) return { ...base, state: 'NEVER_RUN', reason: 'has not run yet', nextAction: 'Run it once to establish a baseline and a last-success time.' };
+    // 5) ran successfully but too long ago.
+    if (sinceSuccess != null && sinceSuccess > stale) return { ...base, state: 'STALE', reason: 'last success ' + base.sinceSuccessHours + 'h ago (> ' + stale + 'h)', nextAction: 'Check the scheduler is running and re-run; confirm the last-success time updates.' };
+    // 6) healthy.
+    return { ...base, state: 'OK', reason: sinceSuccess == null ? 'running' : ('last success ' + base.sinceSuccessHours + 'h ago'), nextAction: 'No action needed.' };
+  }
+  function healthRows(jobs, nowISO, staleAfterHours) {
+    return (jobs || AGENTS).map(j => jobHealth(j, nowISO, staleAfterHours));
+  }
+  function healthSummary(jobs, nowISO, staleAfterHours) {
+    const rows = healthRows(jobs, nowISO, staleAfterHours);
+    const counts = {}; for (const s of HEALTH_STATES) counts[s] = 0;
+    rows.forEach(r => { counts[r.state] = (counts[r.state] || 0) + 1; });
+    const needsAttention = rows.filter(r => r.state === 'ERROR' || r.state === 'STALE');
+    return { counts, total: rows.length, needsAttention: needsAttention.length,
+      firstAction: needsAttention.length ? needsAttention[0].nextAction : null };
+  }
+
+  // Synthetic job records covering each health state, for the Service Health
+  // view and its tests. Times are relative to a fixed 'now' the caller passes.
+  function healthFixtures() {
+    return {
+      now: '2026-11-13T12:00:00Z', staleAfterHours: 24,
+      jobs: [
+        { id: 'nightly-check', name: 'Nightly integrity check', enabled: true, mode: 'READ_ONLY', lastRun: '2026-11-13T06:00:00Z', lastSuccess: '2026-11-13T06:00:00Z' },               // OK
+        { id: 'report-rollup', name: 'Daily report roll-up', enabled: true, mode: 'READ_ONLY', lastRun: '2026-11-11T06:00:00Z', lastSuccess: '2026-11-11T06:00:00Z' },                  // STALE (>24h)
+        { id: 'tracking-sync', name: 'Tracking sync (simulated)', enabled: true, mode: 'SIMULATION', lastRun: '2026-11-13T11:00:00Z', lastSuccess: '2026-11-12T06:00:00Z', lastError: 'provider timeout' }, // ERROR
+        { id: 'reorder-scan', name: 'Reorder point scan', enabled: true, mode: 'READ_ONLY' },                                                                                           // NEVER_RUN
+        { id: 'review-digest', name: 'Review digest', enabled: true, mode: 'READ_ONLY', paused: true, lastSuccess: '2026-11-13T06:00:00Z' },                                            // PAUSED
+        { id: 'creator-scout', name: 'Creator scout', enabled: false, mode: 'OFF' },                                                                                                    // OFF
+      ],
+    };
+  }
+
   // A compact summary for the command center / readiness view.
   function summary(agents) {
     const list = agents || AGENTS;
@@ -117,5 +182,5 @@
       draftCapable: list.filter(a => a.caps.includes('draft')).length, byGroup };
   }
 
-  return { MODES, SAFE_CAPS, FORBIDDEN_CAPS, AGENTS, assertSafe, activityRows, summary };
+  return { MODES, SAFE_CAPS, FORBIDDEN_CAPS, HEALTH_STATES, AGENTS, assertSafe, activityRows, jobHealth, healthRows, healthSummary, healthFixtures, summary };
 }));

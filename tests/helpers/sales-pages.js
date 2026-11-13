@@ -22,6 +22,7 @@ const SALES_PAGES = {
   salesFeedbackPanel: 'Feedback Analysis',
   salesCreatorOfferPanel: 'Creator Sample Offers',
   salesReminderPanel: 'Reorder Reminders',
+  salesHealthPanel: 'Service Health',
   salesAnalyticsPanel: 'Sales Analytics',
   salesAgentsPanel: 'Sales Agent Activity',
   salesLeadDetailPanel: 'Lead Detail (example)',

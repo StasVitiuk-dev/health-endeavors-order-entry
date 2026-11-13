@@ -857,7 +857,7 @@
       salesSamplesPanel: 'Samples', salesVisitsPanel: 'In-Person Sample Visits',
       salesRepurposePanel: 'Content Repurposing', salesAdVariantsPanel: 'Ad Variants',
       salesFeedbackPanel: 'Feedback Analysis', salesCreatorOfferPanel: 'Creator Sample Offers',
-      salesReminderPanel: 'Reorder Reminders',
+      salesReminderPanel: 'Reorder Reminders', salesHealthPanel: 'Service Health',
       salesAnalyticsPanel: 'Sales Analytics',
       salesAgentsPanel: 'Sales Agent Activity',
       salesLeadDetailPanel: 'Lead Detail (example)', salesRetentionPanel: 'Retention',
@@ -1026,6 +1026,27 @@
               salesKv(r.storeName || r.id, r.status + ' · cadence ' + r.cadenceDays + 'd (' + r.cadenceBasis + ')', r.status === 'DRAFT' ? 'SIMULATED' : 'OWNER_INPUT_REQUIRED'))),
             salesSection('Guards', [salesKv('Drafted', plan.counts.draft, 'SIMULATED'), salesKv('Suppressed (opt-out/DNC)', plan.counts.suppressed, 'ACTUAL'), salesKv('Not due (recent / no history)', plan.counts.notDue, 'ACTUAL')]),
             salesSection('Note', [salesKv('Cadence', 'explicit assumption, shown per row', 'ACTUAL'), salesKv('Actions', 'draft reminders for review; opt-out/cap/duplicate enforced; nothing sent', 'ACTUAL')]),
+          ] };
+        });
+      },
+      // #25 Service Health — stale jobs, last success, error state and the NEXT
+      // OPERATOR ACTION, shown with synthetic failure states. Read-only.
+      salesHealthPanel(e, opts){
+        return e.ui.page('Service Health', opts, () => {
+          const fx = e.agents.healthFixtures();
+          const rows = e.agents.healthRows(fx.jobs, fx.now, fx.staleAfterHours);
+          const sum = e.agents.healthSummary(fx.jobs, fx.now, fx.staleAfterHours);
+          return { title: 'Service Health', state: 'OK', simulated: true, sections: [
+            salesSection('Status summary (synthetic)', [
+              salesKv('Needs attention', sum.needsAttention, sum.needsAttention ? 'OWNER_INPUT_REQUIRED' : 'ACTUAL'),
+              salesKv('By state', e.agents.HEALTH_STATES.map(s => s + ':' + sum.counts[s]).join('  '), 'SIMULATED'),
+              salesKv('First action', sum.firstAction || 'none — all clear', sum.needsAttention ? 'OWNER_INPUT_REQUIRED' : 'ACTUAL'),
+            ]),
+            salesSection('Jobs — state · last success · next operator action', rows.map(r => salesKv(
+              r.name,
+              r.state + ' · ' + (r.lastSuccess ? 'last ok ' + r.sinceSuccessHours + 'h ago' : 'no success yet') + ' → ' + r.nextAction,
+              (r.state === 'OK' || r.state === 'OFF') ? 'ACTUAL' : 'OWNER_INPUT_REQUIRED'))),
+            salesSection('Note', [salesKv('Scope', 'synthetic failure states for review; read-only — nothing is run, scheduled, or changed here', 'ACTUAL')]),
           ] };
         });
       },
@@ -2240,6 +2261,7 @@
       salesFeedbackPanel:  [() => loadSales('salesFeedbackPanel')],
       salesCreatorOfferPanel: [() => loadSales('salesCreatorOfferPanel')],
       salesReminderPanel:  [() => loadSales('salesReminderPanel')],
+      salesHealthPanel:    [() => loadSales('salesHealthPanel')],
       salesSamplesPanel:   [() => loadSales('salesSamplesPanel')],
       salesAnalyticsPanel: [() => loadSales('salesAnalyticsPanel')],
       salesAgentsPanel:    [() => loadSales('salesAgentsPanel')],
