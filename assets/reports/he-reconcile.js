@@ -159,6 +159,36 @@
     };
   }
 
+  // Build the two sides from invoice records shaped like he-invoice's (number,
+  // status, total, payments[], currency) plus optional credit notes
+  // ({ invoiceNumber, amount }). What is EXPECTED for an invoice is its total
+  // less any credit notes against it. A draft has no number and is ignored. A
+  // VOID invoice expects nothing, so any payment recorded against it surfaces
+  // as UNEXPECTED rather than quietly matching. Nothing here reads or changes
+  // an invoice; it only lists.
+  function fromInvoices(invoices, creditNotes) {
+    const credited = new Map();
+    (creditNotes || []).forEach(function (c) {
+      const k = String(c && c.invoiceNumber != null ? c.invoiceNumber : '').trim();
+      if (!k || !hasAmount(c.amount)) return;
+      credited.set(k, (credited.get(k) || 0) + cents(c.amount));
+    });
+    const expected = []; const recorded = []; const skipped = [];
+    (invoices || []).forEach(function (inv, idx) {
+      const number = String(inv && inv.number != null ? inv.number : '').trim();
+      if (!inv || inv.status === 'draft' || !number) { skipped.push({ index: idx, reason: 'draft or unnumbered — not yet owed' }); return; }
+      const cur = curOf(inv);
+      if (inv.status !== 'void') {
+        const net = hasAmount(inv.total) ? money(Math.max(0, cents(inv.total) - (credited.get(number) || 0))) : null;
+        expected.push({ ref: number, amount: net, currency: cur });
+      }
+      (inv.payments || []).forEach(function (p, i) {
+        recorded.push({ id: p && p.key ? String(p.key) : number + '#' + (i + 1), ref: number, amount: p ? p.amount : null, currency: (p && p.currency) || cur });
+      });
+    });
+    return { expected: expected, recorded: recorded, skipped: skipped };
+  }
+
   function fixtures() {
     return {
       expected: [
@@ -179,5 +209,5 @@
     };
   }
 
-  return { OUTCOMES, REVIEW_STATES, ROLES_MAY_REVIEW, GUARD, reconcile, markReviewed, status, fixtures };
+  return { OUTCOMES, REVIEW_STATES, ROLES_MAY_REVIEW, GUARD, reconcile, markReviewed, status, fromInvoices, fixtures };
 }));

@@ -125,7 +125,10 @@ const ADDED = ['setReportHistoryView', 'inquiriesList', 'agentControls', 'poRece
   // #08 payment reconciliation review wired into Accounting (host-div, flag
   // reconcileOn OFF by default). The delegated [data-reconcile] listener is
   // waived by text below.
-  'reconcileResult', 'reconcileMessage', 'RECONCILE_WORDS', 'reconcileMod', 'loadReconcile', 'reconcileOn'];
+  'reconcileResult', 'reconcileMessage', 'RECONCILE_WORDS', 'reconcileMod', 'loadReconcile', 'reconcileOn',
+  // #26 operations watch wired into Report History (host-div, flag opsWatchOn
+  // OFF by default). The delegated [data-opswatch] listener is waived below.
+  'opsWatchItems', 'opsWatchMod', 'loadOpsWatch', 'opsWatchOn'];
 const NEW_MODULES = ['he-ops']; // EXT16: written new, not moved
 const CHANGED_TEXT = ["} = window.HE.helpers;", "forEach(o => Object.setPrototypeOf(o, null))", "supabase.auth.onAuthStateChange((event, session) =>", "getAttribute('data-view')", "getElementById('adjustInventoryForm').addEventListener('submit'", "getElementById('logReturnForm').addEventListener('submit'", "getElementById('retOrder').addEventListener('change'", "Release to refresh", "getElementById('docCategory')",
   // EXT20J-post-TT: the 4 static overlay scaffolds converted innerHTML->h(); each
@@ -151,7 +154,9 @@ const CHANGED_TEXT = ["} = window.HE.helpers;", "forEach(o => Object.setPrototyp
   // #70/#71: the report-versions delegated listener (anonymous top-level stmt).
   "e.target.closest('[data-reportver]')",
   // #08: the reconciliation delegated listener (anonymous top-level stmt).
-  "e.target.closest('[data-reconcile]')"];
+  "e.target.closest('[data-reconcile]')",
+  // #26: the operations-watch delegated listener (anonymous top-level stmt).
+  "e.target.closest('[data-opswatch]')"];
 
 test('the module moves were byte-identical: every original statement once, only the named edits differ', ({}, ti) => {
   nodeOnly(ti);

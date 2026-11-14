@@ -108,3 +108,46 @@ test('deterministic, tolerant of empty or odd input, and never throws', () => {
   expect(R.reconcile([], [{ amount: 5 }]).items[0]).toMatchObject({ outcome: 'UNEXPECTED', detail: 'recorded with no reference' });
   expect(R.status(null)).toMatchObject({ state: 'BALANCED' });
 });
+
+// ---- reconciling real invoice-engine records (still synthetic) ----
+const I = require('../../assets/invoice/he-invoice.js');
+const NOW = '2026-11-14T10:00:00Z';
+const mk = (number, qty) => I.issue(I.draftInvoice({ lines: [{ sku: 'SYN-A', quantity: qty, unitPrice: 10 }], taxRate: 0 }), { role: 'owner', number, now: NOW }).invoice;
+
+test('invoices from the invoice engine reconcile against their own recorded payments', () => {
+  const paid = I.applyPayment(I.applyPayment(mk('HE-2026-0001', 10), { amount: 60, key: 'SYN-K1' }).invoice, { amount: 40, key: 'SYN-K2' }).invoice;   // 100, paid in two parts
+  const part = I.applyPayment(mk('HE-2026-0002', 8), { amount: 30, key: 'SYN-K3' }).invoice;                                                        // 80, 30 paid
+  const unpaid = mk('HE-2026-0003', 5);                                                                                                            // 50, nothing paid
+  const draft = I.draftInvoice({ lines: [{ sku: 'SYN-A', quantity: 1, unitPrice: 10 }], taxRate: 0 });                                             // not owed yet
+  const sides = R.fromInvoices([paid, part, unpaid, draft]);
+  expect(sides.expected.map(e => e.ref)).toEqual(['HE-2026-0001', 'HE-2026-0002', 'HE-2026-0003']);
+  expect(sides.skipped).toHaveLength(1);
+  const res = R.reconcile(sides.expected, sides.recorded);
+  expect(byRef(res, 'HE-2026-0001').outcome).toBe('MATCHED');
+  expect(byRef(res, 'HE-2026-0002')).toMatchObject({ outcome: 'UNDERPAID', difference: -50 });
+  expect(byRef(res, 'HE-2026-0003')).toMatchObject({ outcome: 'MISSING', difference: -50 });
+  // The reconciliation agrees with the invoice engine's own balances.
+  expect(-res.totals.difference).toBe(paid.balance + part.balance + unpaid.balance);
+  // Reading the invoices changed nothing on them.
+  expect(paid.status).toBe('paid'); expect(part.status).toBe('partially_paid'); expect(unpaid.status).toBe('issued');
+});
+
+test('a credit note lowers what is expected; a payment against a void invoice is flagged', () => {
+  const inv = I.applyPayment(mk('HE-2026-0010', 10), { amount: 75, key: 'SYN-K10' }).invoice;       // 100 owed, 75 paid
+  const cn = I.creditNote(inv, { role: 'owner', amount: 25, number: 'CN-2026-0001', now: NOW }).creditNote;
+  const voided = I.voidInvoice(I.applyPayment(mk('HE-2026-0011', 4), { amount: 10, key: 'SYN-K11' }).invoice, { role: 'owner', now: NOW, reason: 'synthetic' }).invoice;
+  const sides = R.fromInvoices([inv, voided], [cn]);
+  const res = R.reconcile(sides.expected, sides.recorded);
+  expect(byRef(res, 'HE-2026-0010')).toMatchObject({ outcome: 'MATCHED', expected: 75, recorded: 75 });
+  expect(byRef(res, 'HE-2026-0011')).toMatchObject({ outcome: 'UNEXPECTED', recorded: 10, reviewState: 'OPEN' });
+  // Without the credit note the same invoice shows as short — the note matters.
+  expect(byRef(R.reconcile(R.fromInvoices([inv]).expected, R.fromInvoices([inv]).recorded), 'HE-2026-0010').outcome).toBe('UNDERPAID');
+});
+
+test('a payment with no key still gets a stable id; odd input never throws', () => {
+  const sides = R.fromInvoices([{ number: 'X-1', status: 'issued', total: 20, payments: [{ amount: 20 }, { amount: null }] }, null, { status: 'issued' }]);
+  expect(sides.recorded.map(r => r.id)).toEqual(['X-1#1', 'X-1#2']);
+  expect(sides.skipped).toHaveLength(2);
+  expect(R.reconcile(sides.expected, sides.recorded).items[0].outcome).toBe('UNKNOWN_AMOUNT');
+  expect(R.fromInvoices(null)).toEqual({ expected: [], recorded: [], skipped: [] });
+});

@@ -84,7 +84,7 @@
       nightlyOverall,
     } = window.HE.helpers;
     // @@ EXT15 modules: created in dependency order (assets/app/*.js; see docs/ops/APPLICATION_MODULE_MAP_EXT15.md)
-    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, supplierScorecardOn, reconcileOn, reportVersionsOn } = HE.modules.create('he-config', {  });
+    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, supplierScorecardOn, reconcileOn, opsWatchOn, reportVersionsOn } = HE.modules.create('he-config', {  });
     const { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, h, pageIconNode } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
     const { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
     const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, h, supabase });
@@ -2136,6 +2136,54 @@
       }
     });
 
+    // ---------- #26 Operations watch (behind opsWatchOn)
+    // Flags unusual daily figures, stock and orders for a person to look at.
+    // Daily figures come from the saved nightly reports when there are any (read
+    // only); stock and orders are example data until real feeds are approved.
+    // ADVISORY — nothing is paused, changed or corrected. "Seen" records that a
+    // person looked; it does not clear a flag. OFF by default (host renders
+    // empty, Report History unchanged).
+    let opsWatchItems = null;
+    function opsWatchMod() { try { return (window.HE && window.HE.reports && window.HE.reports['he-ops-anomaly']) || null; } catch (e) { return null; } }
+    function loadOpsWatch() {
+      const host = document.getElementById('opsWatchHost'); if (!host) return;
+      if (!(typeof opsWatchOn === 'function' && opsWatchOn())) { host.replaceChildren(); return; }
+      const eng = opsWatchMod();
+      if (!eng) { host.replaceChildren(h('p', { class: 'empty' }, 'Operations watch tools could not load.')); return; }
+      const fx = eng.fixtures();
+      const live = (typeof reportHistoryRows === 'function') ? reportHistoryRows() : [];
+      const usingLive = Array.isArray(live) && live.length > 0;
+      const res = eng.scan({ daily: usingLive ? live : fx.daily, stock: fx.stock, orders: fx.orders });
+      opsWatchItems = eng.review(opsWatchItems || [], res.flags);
+      const sum = eng.summary(opsWatchItems);
+      const sevWord = { CRITICAL: 'Urgent', WARNING: 'Check', INFO: 'For information' };
+      const rows = opsWatchItems.map(it => h('tr', { 'data-opswatch-kind': it.kind, 'data-opswatch-state': it.state },
+        h('td', null, sevWord[it.severity] || it.severity),
+        h('td', null, h('div', { class: 'taskTitle' }, it.detail), h('div', { class: 'u-fs-11 u-c-muted' }, it.nextAction)),
+        h('td', null, it.state === 'RESOLVED' ? 'Cleared — ' + it.resolvedBecause
+          : it.state === 'ACKNOWLEDGED' ? 'Seen by ' + it.acknowledged.by + ' (still present)'
+            : h('button', { type: 'button', class: 'small secondary', 'data-opswatch': 'ack', 'data-key': it.key, 'aria-label': 'Mark as seen: ' + it.detail }, 'Mark as seen'))));
+      host.replaceChildren(h('div', { class: 'opsWatch u-mb-16' },
+        h('div', { class: 'scanHead' }, h('h3', null, 'Operations watch'), h('span', { class: 'scanBadge' }, 'SIMULATED — advisory, nothing is changed')),
+        h('p', { class: 'hint u-mt-6', 'data-opswatch-summary': '1' }, sum.stillPresent + ' to look at (' + sum.open + ' not yet seen, ' + sum.acknowledged + ' seen) · ' + res.bySeverity.CRITICAL + ' urgent'),
+        h('p', { class: 'hint u-mt-6', 'data-opswatch-source': usingLive ? 'saved' : 'demo' }, 'Daily figures: ' + (usingLive ? 'your saved reports (' + live.length + ' day' + (live.length === 1 ? '' : 's') + ')' : 'example data (no saved reports yet)') + '. Stock and orders: example data.'),
+        rows.length ? h('table', { class: 'phoneCards u-mt-8' },
+          h('thead', null, h('tr', null, h('th', null, 'Level'), h('th', null, 'What was noticed'), h('th', null, 'Review'))),
+          h('tbody', null, rows)) : h('p', { class: 'empty' }, 'Nothing unusual found.'),
+        h('div', { class: 'scanToggleRow u-mt-8' }, h('button', { type: 'button', class: 'small secondary', 'data-opswatch': 'reset' }, 'Reset example')),
+        h('p', { class: 'hint u-mt-8' }, res.calibrationNote + ' Marking a flag as seen does not clear it; it clears only when a later check no longer finds it. ' + res.guard)));
+    }
+    document.addEventListener('click', (e) => {
+      const t = e.target.closest('[data-opswatch]'); if (!t) return;
+      const act = t.getAttribute('data-opswatch'); const eng = opsWatchMod(); if (!eng) return;
+      if (act === 'reset') { opsWatchItems = null; loadOpsWatch(); return; }
+      if (act === 'ack' && opsWatchItems) {
+        const out = eng.acknowledge(opsWatchItems, t.getAttribute('data-key'), { by: 'owner (example)', at: new Date().toISOString() });
+        if (out.ok) opsWatchItems = out.items;
+        loadOpsWatch();
+      }
+    });
+
     // ---------- #12/#53 Supplier scorecard (behind supplierScorecardOn)
     // Read-only worked example on the Suppliers page: delivery accuracy from
     // purchase orders (a delivery with no recorded date is UNKNOWN, never counted
@@ -2524,6 +2572,7 @@
     async function loadReportHistoryThenExport() {
       await safeRun(loadReportHistory);
       loadReportExportPreview();
+      loadOpsWatch();
     }
     const PANEL_LOADERS = {
       attentionPanel: [loadAttention, loadBusinessHealth, loadAttentionChecks, loadNightlyCheck, paintScanEntry],
