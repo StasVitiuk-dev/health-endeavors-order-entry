@@ -47,18 +47,21 @@ test('#3 invoice numbers are HE-YYYY-NNNN, per-year and gap-free, assigned at is
   expect(issued.invoice.status).toBe('issued');
 });
 
-// #5 — permissions: issuing/voiding is gated (staff cannot). NOTE: the engine
-// currently permits owner OR administrator; the owner decided OWNER-ONLY — the
-// administrator question is flagged in OWNER_DECISIONS_2026-11-14.md for
-// confirmation. This test pins the hard guarantee: a non-privileged staff role
-// can never issue or void.
-test('#5 staff cannot issue or void; the privileged gate is enforced', () => {
+// #5 — permissions (owner CONFIRMED 2026-11-14: owner AND administrator may
+// issue/void; staff may prepare drafts only).
+test('#5 owner and administrator may issue/void; staff cannot', () => {
   const draft = INV.draftInvoice({ lines: [{ sku: 'X', quantity: 1, unitPrice: 10 }] });
+  // staff is hard-blocked.
   expect(INV.issue(draft, { role: 'staff', number: 'HE-2026-0001', now: '2026-11-14' }).ok).toBe(false);
+  // owner may issue + void.
   const issued = INV.issue(draft, { role: 'owner', number: 'HE-2026-0001', now: '2026-11-14' }).invoice;
   expect(INV.voidInvoice(issued, { role: 'staff' }).ok).toBe(false);
   expect(INV.voidInvoice(issued, { role: 'owner', reason: 'test' }).ok).toBe(true);
-  // owner is always privileged.
+  // administrator may issue too (owner-confirmed to keep this power).
+  const adminIssued = INV.issue(INV.draftInvoice({ lines: [{ sku: 'Y', quantity: 1, unitPrice: 5 }] }), { role: 'administrator', number: 'HE-2026-0002', now: '2026-11-14' });
+  expect(adminIssued.ok).toBe(true);
+  expect(INV.voidInvoice(adminIssued.invoice, { role: 'administrator', reason: 'test' }).ok).toBe(true);
   expect(INV.ROLES_MAY_ISSUE.has('owner')).toBe(true);
+  expect(INV.ROLES_MAY_ISSUE.has('administrator')).toBe(true);
   expect(INV.ROLES_MAY_ISSUE.has('staff')).toBe(false);
 });
