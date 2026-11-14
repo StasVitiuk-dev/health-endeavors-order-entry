@@ -84,7 +84,7 @@
       nightlyOverall,
     } = window.HE.helpers;
     // @@ EXT15 modules: created in dependency order (assets/app/*.js; see docs/ops/APPLICATION_MODULE_MAP_EXT15.md)
-    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn } = HE.modules.create('he-config', {  });
+    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, reportVersionsOn } = HE.modules.create('he-config', {  });
     const { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, h, pageIconNode } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
     const { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
     const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, h, supabase });
@@ -2139,6 +2139,51 @@
       else if (act === 'reset') { cycleCountApproved = false; loadCycleCount(); }
     });
 
+    // ---------- #70/#71 Scheduled-report version history + simulated delivery
+    // (behind reportVersionsOn). Shows the schedule check (which days ran /
+    // missed), immutable versions with a rerun appended (new checksum, history
+    // kept), and a SIMULATED delivery lifecycle — no real email ever sends.
+    const reportSchedMod = () => { try { return (window.HE && window.HE.reports && window.HE.reports['he-report-schedule']) || null; } catch (e) { return null; } };
+    let reportRerun = false; let reportDeliveryState = 'QUEUED';
+    function loadReportVersions() {
+      const host = document.getElementById('reportVersionsHost'); if (!host) return;
+      if (!(typeof reportVersionsOn === 'function' && reportVersionsOn())) { host.replaceChildren(); return; }
+      const eng = reportSchedMod();
+      if (!eng) { host.replaceChildren(h('p', { class: 'empty' }, 'Report version tools could not load.')); return; }
+      const fx = eng.scheduleFixtures();
+      const book = eng.createReportBook();
+      book.generate('2026-11-11', fx.day11, '2026-11-11T06:00:00Z');
+      book.generate('2026-11-13', fx.day13, '2026-11-13T06:00:00Z');
+      if (reportRerun) book.generate('2026-11-13', fx.day13v2, '2026-11-13T18:00:00Z'); // corrected rerun
+      const sched = book.scheduleStatus(fx.expected);
+      const versions = book.versions('2026-11-13');
+      const verRows = versions.map(v => h('tr', null,
+        h('td', null, v.reportDate + ' v' + v.version + (v.rerun ? ' (rerun)' : '')),
+        h('td', null, v.checksum),
+        h('td', { class: 'num-cell' }, v.rows.length + ' row(s)')));
+      // Simulated delivery of the latest version.
+      let d = eng.queueDelivery(book.latest('2026-11-13'), 'email', '2026-11-13T07:00:00Z');
+      if (reportDeliveryState === 'SENT') { d = eng.applyDelivery(d, 'HELD').record; d = eng.applyDelivery(d, 'QUEUED').record; d = eng.applyDelivery(d, 'SENT').record; }
+      host.replaceChildren(h('div', { class: 'reportVersions u-mb-16' },
+        h('div', { class: 'scanHead' }, h('h3', null, 'Report versions & delivery'), h('span', { class: 'scanBadge' }, 'SIMULATED — no email is sent')),
+        h('p', { class: 'hint u-mt-6' }, 'Schedule: ' + sched.present.length + ' of ' + sched.expected.length + ' days ran · missed: ' + (sched.missing.join(', ') || 'none')),
+        h('table', { class: 'phoneCards u-mt-8' },
+          h('thead', null, h('tr', null, h('th', null, 'Version'), h('th', null, 'Checksum'), h('th', { class: 'num-cell' }, 'Rows'))),
+          h('tbody', null, verRows)),
+        h('p', { class: 'hint u-mt-8' }, 'Delivery (2026-11-13 v' + book.latest('2026-11-13').version + '): ' + d.state + ' · delivered=' + d.delivered + ' · ' + d.dependency),
+        h('div', { class: 'scanToggleRow u-mt-8' },
+          h('button', { type: 'button', class: 'small' + (reportRerun ? ' secondary' : ''), 'data-reportver': 'rerun' }, reportRerun ? 'Reran (v2 added)' : 'Rerun 2026-11-13'),
+          h('button', { type: 'button', class: 'small' + (reportDeliveryState === 'SENT' ? ' secondary' : ''), 'data-reportver': 'send' }, reportDeliveryState === 'SENT' ? 'Simulated-sent' : 'Simulate delivery'),
+          h('button', { type: 'button', class: 'small secondary', 'data-reportver': 'reset' }, 'Reset'))));
+    }
+    document.addEventListener('click', (e) => {
+      const t = e.target.closest('[data-reportver]'); if (!t) return;
+      const act = t.getAttribute('data-reportver');
+      if (act === 'rerun') { reportRerun = true; loadReportVersions(); }
+      else if (act === 'send') { reportDeliveryState = 'SENT'; loadReportVersions(); }
+      else if (act === 'reset') { reportRerun = false; reportDeliveryState = 'QUEUED'; loadReportVersions(); }
+    });
+
     // ---------- Operations output previews (read-only; behind reportExportOn /
     // invoicePreviewOn). Both are SIMULATED prototypes shown in Report History.
     // The export preview packages a synthetic day-set into a manifest with a
@@ -2358,7 +2403,7 @@
       attentionPanel: [loadAttention, loadBusinessHealth, loadAttentionChecks, loadNightlyCheck, paintScanEntry],
       calendarPanel: [loadCalendarMonth],
       dailySummaryPanel: [loadDailySummary],
-      reportHistoryPanel: [loadReportHistoryThenExport, loadRecoveryDrill, loadInvoicePreview],
+      reportHistoryPanel: [loadReportHistoryThenExport, loadRecoveryDrill, loadInvoicePreview, loadReportVersions],
       ordersPanel: [loadOrders, paintScanEntry, loadSavedViews],
       inventoryPanel: [loadInventory, loadInventoryAdjustments, loadReorderPlanning, loadSavedViews, loadCycleCount],
       returnsPanel: [loadReturns],

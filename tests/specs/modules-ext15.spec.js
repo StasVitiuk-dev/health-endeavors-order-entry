@@ -114,7 +114,11 @@ const ADDED = ['setReportHistoryView', 'inquiriesList', 'agentControls', 'poRece
   // #54/#55 cycle count + adjustment review wired into Inventory (host-div, flag
   // cycleCountOn OFF by default). Worked synthetic journey render; the delegated
   // [data-cyclecount] listener is waived by text below.
-  'cycleCountApproved', 'workedCycleCount', 'loadCycleCount', 'cycleCountOn'];
+  'cycleCountApproved', 'workedCycleCount', 'loadCycleCount', 'cycleCountOn',
+  // #70/#71 report version history + simulated delivery wired into Report
+  // History (host-div, flag reportVersionsOn OFF by default). The delegated
+  // [data-reportver] listener is waived by text below.
+  'reportSchedMod', 'reportRerun', 'reportDeliveryState', 'loadReportVersions', 'reportVersionsOn'];
 const NEW_MODULES = ['he-ops']; // EXT16: written new, not moved
 const CHANGED_TEXT = ["} = window.HE.helpers;", "forEach(o => Object.setPrototypeOf(o, null))", "supabase.auth.onAuthStateChange((event, session) =>", "getAttribute('data-view')", "getElementById('adjustInventoryForm').addEventListener('submit'", "getElementById('logReturnForm').addEventListener('submit'", "getElementById('retOrder').addEventListener('change'", "Release to refresh", "getElementById('docCategory')",
   // EXT20J-post-TT: the 4 static overlay scaffolds converted innerHTML->h(); each
@@ -136,7 +140,9 @@ const CHANGED_TEXT = ["} = window.HE.helpers;", "forEach(o => Object.setPrototyp
   // data-attribute did not exist at the 3a40095 baseline).
   "e.target.closest('[data-savedview]')",
   // #54/#55: the cycle-count delegated listener (anonymous top-level stmt).
-  "e.target.closest('[data-cyclecount]')"];
+  "e.target.closest('[data-cyclecount]')",
+  // #70/#71: the report-versions delegated listener (anonymous top-level stmt).
+  "e.target.closest('[data-reportver]')"];
 
 test('the module moves were byte-identical: every original statement once, only the named edits differ', ({}, ti) => {
   nodeOnly(ti);
