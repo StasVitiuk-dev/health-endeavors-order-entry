@@ -93,7 +93,7 @@ const ADDED = ['setReportHistoryView', 'inquiriesList', 'agentControls', 'poRece
   // Read-only, SIMULATED; issuing an invoice stays an owner decision.
   // reportExportOn / invoicePreviewOn are the he-config flag factories (OFF by
   // default), parallel to scanShipmentOn / reorderPlanningOn above.
-  'opsReportsMod', 'opsInvoiceMod', 'loadReportExportPreview', 'loadInvoicePreview',
+  'opsReportsMod', 'exportLabelFor', 'opsInvoiceMod', 'loadReportExportPreview', 'loadInvoicePreview',
   'reportExportOn', 'invoicePreviewOn',
   // EXT21 L1: composed loader so the export preview renders after Report History
   // loads its rows (the panel loaders otherwise run in parallel); and the
@@ -118,7 +118,14 @@ const ADDED = ['setReportHistoryView', 'inquiriesList', 'agentControls', 'poRece
   // #70/#71 report version history + simulated delivery wired into Report
   // History (host-div, flag reportVersionsOn OFF by default). The delegated
   // [data-reportver] listener is waived by text below.
-  'reportSchedMod', 'reportRerun', 'reportDeliveryState', 'loadReportVersions', 'reportVersionsOn'];
+  'reportSchedMod', 'reportRerun', 'reportDeliveryState', 'loadReportVersions', 'reportVersionsOn',
+  // #12/#53 supplier scorecard wired into Suppliers (host-div, flag
+  // supplierScorecardOn OFF by default). Read-only; no listener.
+  'loadSupplierScorecard', 'supplierScorecardOn',
+  // #08 payment reconciliation review wired into Accounting (host-div, flag
+  // reconcileOn OFF by default). The delegated [data-reconcile] listener is
+  // waived by text below.
+  'reconcileResult', 'reconcileMessage', 'RECONCILE_WORDS', 'reconcileMod', 'loadReconcile', 'reconcileOn'];
 const NEW_MODULES = ['he-ops']; // EXT16: written new, not moved
 const CHANGED_TEXT = ["} = window.HE.helpers;", "forEach(o => Object.setPrototypeOf(o, null))", "supabase.auth.onAuthStateChange((event, session) =>", "getAttribute('data-view')", "getElementById('adjustInventoryForm').addEventListener('submit'", "getElementById('logReturnForm').addEventListener('submit'", "getElementById('retOrder').addEventListener('change'", "Release to refresh", "getElementById('docCategory')",
   // EXT20J-post-TT: the 4 static overlay scaffolds converted innerHTML->h(); each
@@ -142,7 +149,9 @@ const CHANGED_TEXT = ["} = window.HE.helpers;", "forEach(o => Object.setPrototyp
   // #54/#55: the cycle-count delegated listener (anonymous top-level stmt).
   "e.target.closest('[data-cyclecount]')",
   // #70/#71: the report-versions delegated listener (anonymous top-level stmt).
-  "e.target.closest('[data-reportver]')"];
+  "e.target.closest('[data-reportver]')",
+  // #08: the reconciliation delegated listener (anonymous top-level stmt).
+  "e.target.closest('[data-reconcile]')"];
 
 test('the module moves were byte-identical: every original statement once, only the named edits differ', ({}, ti) => {
   nodeOnly(ti);

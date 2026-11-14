@@ -45,15 +45,18 @@ newer approved blueprint backlog. Each closed item cites its commit and tests.
 | **#65 Saved views** — engine, then wired into Orders + Inventory (`he_saved_views`) | `4542476`, `79982fb` | saved-views-ext21 (8), saved-views-wiring-ext21 (4: persists across reload, restore, reset, delete, per-screen) |
 | **#54/#55 Cycle count review** wired into Inventory (`he_cycle_count`) | `44b4822` | cycle-count-wiring-ext21 (2) |
 | **#70/#71 Scheduled reports + versions** — engine, then wired into Report History (`he_report_versions`) | `f629b49`, `8a2c7b6` | report-schedule-ext21 (5), report-versions-wiring-ext21 (2) |
-| **#17 Intake request limits / #72 traceable export labels** (tested logic) | `61ef953` | intake-export-guard-ext21 (7) |
-| **#12/#53 Supplier scorecard + document checks** (tested logic, read-only) | `c2d69ea` | supplier-scorecard-ext21 (5) |
+| **#17 Intake request limits** (tested logic) | `61ef953` | intake-export-guard-ext21 (7) |
+| **#72 Traceable export labels** — logic, then shown on the export preview and stamped on the printed report (`he_report_export`) | `61ef953`, Nov 14 wiring commit | intake-export-guard-ext21 (7), ops-preview-wiring-ext21, report-print-view-ext21 |
+| **#12/#53 Supplier scorecard + document checks** — logic, then a read-only section on Suppliers (`he_supplier_scorecard`) | `c2d69ea`, Nov 14 wiring commit | supplier-scorecard-ext21 (5), supplier-scorecard-wiring-ext21 (2) |
+| **#08 Payment reconciliation review** — new logic plus a section on Accounting (`he_reconcile`): expected vs recorded, every difference named, closed only by an owner/administrator note, figures never altered | Nov 14 wiring commit | reconcile-ext21 (8), reconcile-wiring-ext21 (2) |
+| **Owner decisions 1, 2, 4 applied inside the invoice and report engines** | Nov 14 "decisions inside the engines" commit | invoice-decisions-ext21 (8), owner-decisions-ext21 (6) |
 | **#24 baselines / #36 change record** (documents) | `62eef9c`, `0cd75ad` | performance specs on the substitute browser; see caveat below |
 | **Owner decisions 1–6** recorded; 1–5 built as draft-only logic | `fe9f2f0`, `9b0b2b8`, `3f850cb`, `5bce21f` | tax-ext21 (6), owner-decisions-ext21 (5), ops-preview-wiring-ext21 |
 
 ## Stage of each original blueprint item touched on this branch
 
-- **Dashboard screen with a browser test (8):** #21, #25, #27, #54, #55, #65, #70, #71.
-- **Tested logic, not yet connected to a screen (4):** #12, #17, #53, #72.
+- **Dashboard screen with a browser test (12):** #08, #12, #21, #25, #27, #53, #54, #55, #65, #70, #71, #72.
+- **Tested logic, not connected to a screen (1):** #17 — see the table below for why.
 - **Documents (2):** #24, #36.
 - **Live (merged and checked):** none. Nothing on this branch is on `main`.
 
@@ -61,12 +64,14 @@ newer approved blueprint backlog. Each closed item cites its commit and tests.
 
 | Item | State | Prerequisite / next step |
 |---|---|---|
-| **#17 / #72** | tested logic | Connect the request limit to the live inquiry form and the label to the live export action. No outside dependency. |
-| **#12 / #53** | tested logic | Add a read-only section on the Suppliers screen. Required-document list is an assumption (insurance, W-9, certificate of analysis) — owner to confirm. |
+| **#17** | tested logic | The form this protects (public inquiries) is part of the public website, which is a separate project and not in this repository; this dashboard has no public form to attach it to. A limit that runs in the visitor's browser is also not real protection — it has to run on the server. Next step: a draft server-side limit for the owner to review, in the website project. |
+| **#72** | on the export preview + printed report | The label names "signed-in user (preview)". Naming the real person and stamping saved files comes with enabling real exports (decision 6). |
+| **#12 / #53** | read-only section on Suppliers (example data) | Required-document list is an assumption (insurance, W-9, certificate of analysis) — owner to confirm. Scoring real suppliers needs fields the database does not store yet (listed in the section). |
 | **#24** | measured on the substitute browser only | Re-measure in CI: the CI test browser is not installed in this environment. |
-| **#08 reconciliation / #26 anomaly detection** | not reviewed | Audit for missing tests and operator review states. |
-| **Apply the Nov 14 decisions in the flows** | helpers built | Tax engine into invoice totals (needs the local rate); terms + due date at issue; daily roll-up switched to the `America/Chicago` day function. |
-| **Full-suite re-run** | last full run Nov 9 (`59cd1a7`) | Re-run all shards on the final commit before a pull request. |
+| **#26 anomaly detection** | reviewed Nov 14 — exists for sales/outreach figures only | What exists: a detector for 8 kinds of sales-side warning signs, turned into incidents with review states (acknowledging does not resolve; an incident clears only when the warning sign is gone), 11 tests, shown on the Sales & Growth screens. Gap: nothing watches orders, stock or money for unusual values. Not built. |
+| **#08 reconciliation** | reviewed and built Nov 14 (example data) | Before this, the branch had roll-up and money-trail tests but nothing that compared two sources or tracked a review. Now built as advisory logic + a screen section. Not connected to real invoices or payments: there is no payments table in the dashboard yet, and matching tolerance is the owner's call (default: exact). Real financial use stays gated. |
+| **Apply the Nov 14 decisions in the flows** | done in the engines Nov 14 | Remaining: the real local tax rate; the live day cutoff is a database change (draft for the owner). |
+| **Full-suite re-run** | see `NOV7_BOUNDED_REVIEW.md` | Re-run all shards on the final commit before a pull request. |
 
 ## Owner decisions
 
@@ -76,5 +81,6 @@ branch and open a pull request; later a business email service, a tracking
 provider and a real Safari / iPhone / VoiceOver check.
 
 ## Next actionable item
-Connect #17 / #72 / #12 / #53 to their screens, then apply the Nov 14 decisions in
-the invoice and report flows.
+Decide with the owner whether #26 should also watch orders, stock and money;
+re-measure #24 in CI; re-take the reference pictures after the owner has looked at
+the restyled screens.

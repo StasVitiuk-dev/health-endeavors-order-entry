@@ -128,10 +128,9 @@ yet applied are recorded in one place: **`OWNER_DECISIONS_2026-11-14.md`**
 An estimate, not a measurement. Everything in sections 1–3, 8 and 9 can be reviewed
 now on the branch (features default-OFF). Remaining engineering before one clean
 review package:
-- **~1 focused day:** connect #17 / #72 / #12 / #53 to their screens; apply the
-  Nov 14 decisions in the invoice and report flows (tax engine into totals once the
-  local rate is known, terms + due date at issue, daily roll-up switched to the
-  `America/Chicago` day function).
+- **Done later on Nov 14:** #72, #12 and #53 connected to their screens; the Nov 14
+  decisions applied inside the invoice and report engines (see section 10). #17
+  stays logic-only — the form it protects is in the public website project.
 - **~0.5 day:** re-run the full suite on the final commit; re-measure #24 baselines
   in CI; audit #08 and #26.
 - **Owner-side (not engineering time):** the items in section 5, then review and merge.
@@ -157,7 +156,7 @@ pages-strict + pages-data (53) — all green.
 
 ### Stage reconciliation (this branch, baseline = original ~90-item blueprint)
 - **Dashboard journey verified** (wired + browser test): #21, #25, #27, #65, #54, #55, #70, #71 (8) — plus newer W-0…W-5 panels, tracked separately.
-- **Engine tested** (synthetic test, not yet wired to a live screen): #17, #72, #12, #53 (4).
+- **Engine tested** (synthetic test, not yet wired to a live screen): #17, #72, #12, #53 (4). *Superseded later on Nov 14 — see section 10: #72, #12, #53 moved to journey-verified; #17 remains.*
 - **Live verified (deployed):** 0 — nothing pushed/merged/deployed.
 
 ### Launch rehearsal (2026-11-14, diagnostic browser)
@@ -199,3 +198,27 @@ from them, all draft-only and default-OFF:
 The invoice preview (`he_invoice_preview`) shows decisions 1–2 as a worked example
 (ops-preview-wiring-ext21 · `5bce21f`). What is built but not yet applied in the
 invoice and report flows is listed in the decisions record and in section 7.
+
+---
+
+## 10. Second wiring wave + decisions inside the engines (2026-11-14, later)
+
+| ID | What changed | Flag | Evidence |
+|---|---|---|---|
+| #72 | Trace label shown on the export preview (bound to the export's checksum, self-checking) and stamped on the printed report | `he_report_export` | ops-preview-wiring-ext21, report-print-view-ext21 |
+| #12 / #53 | Read-only supplier scorecard on Suppliers: delivery accuracy (a delivery with no recorded date is "unknown", never "on time") and required-document status | `he_supplier_scorecard` | supplier-scorecard-wiring-ext21 (2) |
+| #08 | Payment reconciliation review on Accounting: expected vs recorded, every difference named (short, over, nothing recorded, not expected, listed twice, amount unknown), closed only with an owner/administrator note; closing never changes a figure | `he_reconcile` | reconcile-ext21 (8), reconcile-wiring-ext21 (2) |
+| Decision 1 | Invoice engine taxes mandatory shipping, exempts a certified resale order, and **refuses to issue a draft whose rate is pending** | — (engine) · shown under `he_invoice_preview` | invoice-decisions-ext21 (8), ops-preview-wiring-ext21 |
+| Decision 2 | Issuing for a named account fills in terms and due date | — (engine) | invoice-decisions-ext21 |
+| Decision 4 | Daily roll-up can group by Central-time day, tested on both daylight-saving change days | — (engine) | owner-decisions-ext21 (6) |
+
+**Stage reconciliation after this wave** (same ~90-item baseline, each ID counted once
+at its highest stage):
+- **Dashboard journey verified (12):** #08, #12, #21, #25, #27, #53, #54, #55, #65, #70, #71, #72.
+- **Engine tested only (1):** #17.
+- **Documents (2):** #24, #36.
+- **Live verified:** 0.
+
+Also reviewed: **#26 anomaly detection** exists for sales/outreach figures only
+(with review states and tests); nothing watches orders, stock or money. Details in
+`NOV7_STAGING_BACKLOG_STATUS.md`.

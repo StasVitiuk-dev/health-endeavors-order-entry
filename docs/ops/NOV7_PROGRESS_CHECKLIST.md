@@ -163,10 +163,13 @@ All draft-only behind `he_sales_growth` (OFF by default); nothing sent, spent or
 - ✅ #27 recurring complaint trends (packaging / pump / quality) — `8689ddf`
 - ✅ #65 saved views — engine `4542476`, Orders + Inventory screens `79982fb`
 - ✅ #70/#71 scheduled reports, unchangeable versions, simulated delivery — engine `f629b49`, Report History screen `8a2c7b6`
-- 🟡 #17 intake request limits / #72 traceable export labels — tested logic `61ef953`; not yet connected to the live inquiry form / export action
-- 🟡 #12/#53 supplier scorecard + document checks (read-only) — tested logic `c2d69ea`; not yet on the Suppliers screen
+- 🟡 #17 intake request limits — tested logic `61ef953`; the form it protects is in the public website project, so nothing to connect here; a real limit must run on the server
+- ✅ #72 traceable export labels — shown on the export preview and stamped on the printed report (Nov 14, later)
+- ✅ #12/#53 supplier scorecard + document checks — read-only section on Suppliers behind `he_supplier_scorecard` (Nov 14, later; example data)
+- ✅ Owner decisions 1, 2, 4 applied inside the invoice and report engines (a draft with a pending tax rate cannot be issued; terms + due date at issue; Central-day roll-up)
 - 🟡 #24 screen baselines — measured on the substitute browser only; re-measure in CI. #36 change record — `62eef9c`
-- ⬜ #08 reconciliation / #26 anomaly detection — not reviewed yet
+- ✅ #08 payment reconciliation review — advisory logic + Accounting section behind `he_reconcile` (Nov 14, later; example data, real use gated)
+- 🟡 #26 anomaly detection — reviewed: exists for sales/outreach figures with review states; nothing watches orders, stock or money
 - ✅ Launch rehearsal (scanner, wholesale approval, receiving, invoice print, backup restore): 52 passed — recorded `0cd75ad`
 
 ## Owner decisions (2026-11-14) — ✅ decided and recorded
@@ -182,5 +185,5 @@ day boundary, roles and export destination.
 
 ## Still needed (as of 2026-11-14)
 - From the owner: the local tax rate; a go-ahead to push the branch and open a pull request; confirm the required supplier documents; later a business email service, a tracking provider, a real Safari / iPhone / VoiceOver check.
-- Engineering: connect #17/#72/#12/#53 to screens; apply the decisions in the flows; full-suite re-run on the final commit (last full run: Nov 9 at `59cd1a7`); #24 in CI; #08/#26 audit.
+- Engineering: full-suite re-run on the final commit (results in `NOV7_BOUNDED_REVIEW.md`); #24 in CI; decide whether #26 should also watch orders, stock and money; re-take the reference pictures after the owner has looked at the restyled screens.
 - **Durability:** branch and recovery export exist only in this session's temporary workspace until pushed or saved by the owner.

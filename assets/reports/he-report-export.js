@@ -104,12 +104,17 @@
   //   cancel  (removes the order from the count; reverses its amount if given)
   //   refund  (amount; reduces net revenue)
   //   expense (amount; tracked separately, never netted into revenue)
-  // Each event is assigned to a business day via businessDate(at, offsetHours).
+  // Each event is assigned to a business day via businessDate(at, offsetHours),
+  // or — owner decision #4 (reporting day ends at midnight Central) — via a
+  // caller-supplied dayOf(at) such as the daylight-saving-aware business day in
+  // he-report-schedule. A fixed offset is wrong for half the year in a zone
+  // that observes daylight saving; dayOf is the way to roll up by local day.
   function summarizeLedger(events, opts) {
     const o = opts || {}; const off = o.offsetHours || 0; const cur = o.currency || 'USD';
+    const dayOf = typeof o.dayOf === 'function' ? o.dayOf : function (at) { return businessDate(at, off); };
     const byDay = {};
     (events || []).forEach(function (e) {
-      const day = businessDate(e.at, off); if (!day) return;
+      const day = dayOf(e.at); if (!day) return;
       const r = byDay[day] || (byDay[day] = { report_date: day, currency: cur, orders_count: 0, revenueC: 0, refundC: 0, expenseC: 0, canceled_count: 0, revenueUnknown: false });
       if (e.type === 'order') { r.orders_count += 1; if (e.amount == null) r.revenueUnknown = true; else r.revenueC += cents(e.amount); }
       else if (e.type === 'cancel') { r.orders_count -= 1; r.canceled_count += 1; if (e.amount != null) r.revenueC -= cents(e.amount); }

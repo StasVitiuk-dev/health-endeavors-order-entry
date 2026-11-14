@@ -16,21 +16,34 @@ path changes until Stas merges to `main`.
 
 ## What "built" means here (and what is not yet applied)
 
-Each decision exists as tested, draft-only logic. Three of them are **not yet used
-by the screens that will eventually depend on them** — that is the remaining work:
+Each decision exists as tested, draft-only logic. Updated later on Nov 14 — the
+tax, terms and day-cutoff rules now work **inside** the invoice and report engines
+instead of beside them:
 
-- **Tax (1):** the rule engine is tested and shown as a worked example in the invoice
-  preview ("Per your decisions" card). The invoice draft's own totals row still uses
-  a placeholder rate; switching the totals to the engine waits for the local rate.
-- **Terms (2):** the helpers are tested and shown in the preview; issuing an invoice
-  does not yet fill in terms and due date automatically.
-- **Day cutoff (4):** the `America/Chicago` day function is tested; the daily report
-  roll-up still uses the earlier fixed-offset method and has not been switched over.
+- **Tax (1):** the invoice engine itself now follows the rules: mandatory shipping is
+  part of the taxed amount, a valid resale certificate makes the order tax-free, and
+  **a draft whose rate is still pending cannot be issued** — by the owner or an
+  administrator — until the local rate is confirmed (confirming it is a recorded
+  revision). The invoice preview shows the resulting total and "issuing: blocked".
+  *Still open:* the preview's main totals row keeps its earlier placeholder rate, and
+  the real local rate has not been supplied.
+- **Terms (2):** issuing an invoice for a named account now fills in the terms and
+  the due date: due on receipt, or Net 14 (issue date + 14 days) for an account
+  approved for credit. Asking for Net 14 on an unapproved account is refused.
+- **Day cutoff (4):** the daily roll-up can now group sales by the Central-time day,
+  tested across both daylight-saving change days. *Still open:* the saved nightly
+  reports are produced by the database, so the live cutoff is a database change
+  (a draft for the owner to run), not something this dashboard code can switch.
 - **Numbering (3), permissions (5):** already how the invoice engine behaves.
-- **Exports (6):** a procedure on the owner's Mac; nothing to switch on yet.
+- **Exports (6):** a procedure on the owner's Mac; nothing to switch on yet. Each
+  export now carries a trace label (see blueprint item #72).
 
-Evidence: `tax-ext21`, `owner-decisions-ext21`, `ops-preview-wiring-ext21` (tests);
-commits `fe9f2f0`, `9b0b2b8`, `3f850cb`, `5bce21f`.
+Invoices created the earlier way (no tax-decision fields, no account named) behave
+exactly as before; that is tested.
+
+Evidence: `tax-ext21`, `owner-decisions-ext21`, `invoice-decisions-ext21`,
+`ops-preview-wiring-ext21` (tests); commits `fe9f2f0`, `9b0b2b8`, `3f850cb`,
+`5bce21f`, and the Nov 14 "decisions inside the engines" commit.
 
 ## Still pending (owner/provider, not decided here)
 - The **combined live tax rate** (state 6.25% + the confirmed local rate) and the sourcing rule — owner confirms before any real issue.

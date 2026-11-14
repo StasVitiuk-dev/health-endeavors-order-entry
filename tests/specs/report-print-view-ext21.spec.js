@@ -21,5 +21,7 @@ test('Print report builds the report print DOM: heading row + summary, no dialog
   await expect(host.locator('.printPage thead th').first()).toHaveText('Date');
   await expect(host).toContainText('Daily report');
   await expect(host).toContainText('SIMULATED');
+  // #72: the printed page carries the trace label.
+  await expect(host.locator('[data-exportlabel="print"]')).toContainText(/HE · INTERNAL · trace [0-9a-f]{8}/);
   expect(errors.join('\n')).not.toMatch(/Trusted Type|require-trusted-types|Refused to/i);
 });

@@ -21,6 +21,42 @@ test('#4 the reporting day ends at midnight Central and handles daylight saving 
   expect(S.businessDateTZ('not-a-date')).toBeNull();
 });
 
+// #4 applied to the daily roll-up: the same sales land on the right Central day
+// in summer AND winter, including the two daylight-saving change days. A fixed
+// offset gets one season wrong; the test shows that too, so the difference is
+// on the record.
+test('#4 the daily roll-up by Central day is right across daylight-saving changes; a fixed offset is not', () => {
+  const R = require('../../assets/reports/he-report-export.js');
+  const dayOf = at => S.businessDateTZ(at);
+  const events = [
+    // Summer (UTC-5): 11:30 pm Central on Jul 1, and 12:30 am Central on Jul 2.
+    { type: 'order', at: '2026-07-02T04:30:00Z', amount: 100 },
+    { type: 'order', at: '2026-07-02T05:30:00Z', amount: 10 },
+    // Winter (UTC-6): 11:30 pm Central on Dec 1, and 12:30 am Central on Dec 2.
+    { type: 'order', at: '2026-12-02T05:30:00Z', amount: 200 },
+    { type: 'order', at: '2026-12-02T06:30:00Z', amount: 20 },
+    // Fall-back day, Nov 1 2026 (25 hours long): 12:30 am CDT and 11:30 pm CST.
+    { type: 'order', at: '2026-11-01T05:30:00Z', amount: 1 },
+    { type: 'order', at: '2026-11-02T05:30:00Z', amount: 2 },
+    // Spring-forward day, Mar 8 2026 (23 hours long): 12:30 am CST and 11:30 pm CDT.
+    { type: 'order', at: '2026-03-08T06:30:00Z', amount: 3 },
+    { type: 'order', at: '2026-03-09T04:30:00Z', amount: 4 },
+  ];
+  const byDay = Object.fromEntries(R.summarizeLedger(events, { dayOf }).map(r => [r.report_date, r]));
+  expect(byDay['2026-07-01'].revenue).toBe(100);
+  expect(byDay['2026-07-02'].revenue).toBe(10);
+  expect(byDay['2026-12-01'].revenue).toBe(200);
+  expect(byDay['2026-12-02'].revenue).toBe(20);
+  expect(byDay['2026-11-01']).toMatchObject({ orders_count: 2, revenue: 3 });
+  expect(byDay['2026-03-08']).toMatchObject({ orders_count: 2, revenue: 7 });
+  expect(Object.keys(byDay).sort()).toEqual(['2026-03-08', '2026-07-01', '2026-07-02', '2026-11-01', '2026-12-01', '2026-12-02']);
+  // The fixed winter offset (-6) puts the 11:30 pm summer sale on the wrong day...
+  const fixed = Object.fromEntries(R.summarizeLedger(events, { offsetHours: -6 }).map(r => [r.report_date, r]));
+  expect(fixed['2026-07-01'].revenue).toBe(110); // Jul 2's 12:30 am sale wrongly counted on Jul 1
+  // ...and with no options the earlier behaviour (UTC day) is untouched.
+  expect(R.summarizeLedger([{ type: 'order', at: '2026-07-02T04:30:00Z', amount: 100 }])[0].report_date).toBe('2026-07-02');
+});
+
 // #2 — payment terms: due on receipt default; Net 14 for approved credit.
 test('#2 new wholesale buyers are due on receipt; Net 14 only for an approved account', () => {
   expect(INV.termsForAccount({})).toBe('DUE_ON_RECEIPT');

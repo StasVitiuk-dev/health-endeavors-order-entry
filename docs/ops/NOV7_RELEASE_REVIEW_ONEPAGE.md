@@ -4,7 +4,8 @@
 commit `5bce21f` plus the documentation commit that follows it (local, **unpushed**),
 base `9173ccf`. **All new features default-OFF** (localStorage flags:
 `he_scan_shipment`, `he_reorder_planning`, `he_report_export`, `he_invoice_preview`,
-`he_recovery_drill`, `he_saved_views`, `he_cycle_count`, `he_report_versions`;
+`he_recovery_drill`, `he_saved_views`, `he_cycle_count`, `he_report_versions`,
+`he_supplier_scorecard`, `he_reconcile`;
 Sales & Growth behind `he_sales_growth`).
 **Local & synthetic only** — no production data, live calls, spending, or backups.
 **Not behind a switch:** early styling changes to always-visible controls (squarer

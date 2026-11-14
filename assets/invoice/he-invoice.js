@@ -21,6 +21,11 @@
 
   // Compute totals from line items + adjustments. Everything in cents, then
   // rounded once. tax is applied to the taxable subtotal after discount.
+  // Owner decision #1 (Nov 14): shipping joins the tax base only when
+  // taxShipping is true (bundled / mandatory shipping), a resale-exempt order
+  // (taxExempt) is taxed at 0, and taxRateStatus carries PENDING / CONFIRMED so
+  // a draft with an unconfirmed rate can be recognised. All three default to
+  // the earlier behaviour (goods only, not exempt, no status).
   function computeTotals(input) {
     const i = input || {};
     const lines = i.lines || [];
@@ -37,30 +42,42 @@
     const shippingC = cents(i.shipping);
     const taxableC = Math.max(0, subtotalC - orderDiscC);
     const taxRate = Number(i.taxRate) || 0;    // e.g. 0.08
-    const taxC = Math.round(taxableC * taxRate);
+    const taxShipping = i.taxShipping === true;
+    const taxExempt = i.taxExempt === true;
+    const taxBaseC = taxExempt ? 0 : taxableC + (taxShipping ? shippingC : 0);
+    const taxC = Math.round(taxBaseC * taxRate);
     const totalC = Math.max(0, taxableC + taxC + shippingC);
-    return {
+    const out = {
       lines: lineOut, currency: i.currency || 'USD',
       subtotal: money(subtotalC), orderDiscount: money(orderDiscC), shipping: money(shippingC),
       taxRate: taxRate, tax: money(taxC), total: money(totalC), _totalC: totalC,
     };
+    // Only present when the tax decision fields were supplied, so totals built
+    // the earlier way keep exactly the earlier shape.
+    if (taxShipping || taxExempt || i.taxRateStatus != null) {
+      out.taxBase = money(taxBaseC); out.taxShipping = taxShipping; out.taxExempt = taxExempt;
+      out.taxRateStatus = i.taxRateStatus != null ? String(i.taxRateStatus) : null;
+    }
+    return out;
   }
 
   // A DRAFT invoice (editable). Linked to a store account + order when supplied.
   function draftInvoice(input) {
     const i = input || {};
     const t = computeTotals(i);
-    return {
+    const taxFields = t.taxRateStatus !== undefined ? { taxBase: t.taxBase, taxShipping: t.taxShipping, taxExempt: t.taxExempt, taxRateStatus: t.taxRateStatus } : {};
+    const taxInput = t.taxRateStatus !== undefined ? { taxShipping: t.taxShipping, taxExempt: t.taxExempt, taxRateStatus: t.taxRateStatus } : {};
+    return Object.assign({
       status: 'draft', number: null, accountId: i.accountId || null, orderId: i.orderId || null,
       billTo: i.billTo || null, shipTo: i.shipTo || null, terms: i.terms || null, issueDate: null, dueDate: null,
       currency: t.currency, lines: t.lines, subtotal: t.subtotal, orderDiscount: t.orderDiscount,
       shipping: t.shipping, taxRate: t.taxRate, tax: t.tax, total: t.total,
       // _input keeps the raw adjustment fields so a later revision recomputes
       // from the same basis; it is internal (never surfaced as money).
-      _input: { orderDiscount: i.orderDiscount || 0, shipping: i.shipping || 0, taxRate: i.taxRate || 0, currency: t.currency },
+      _input: Object.assign({ orderDiscount: i.orderDiscount || 0, shipping: i.shipping || 0, taxRate: i.taxRate || 0, currency: t.currency }, taxInput),
       paid: 0, balance: t.total, payments: [], versions: [], corrections: [], revisions: [],
       synthetic: true, label: 'SIMULATED',
-    };
+    }, taxFields);
   }
 
   // Edit a DRAFT, preserving history: each revision snapshots the PRIOR totals
@@ -78,6 +95,14 @@
       taxRate: p.taxRate != null ? p.taxRate : prevInput.taxRate,
       currency: p.currency != null ? p.currency : draft.currency,
     };
+    // The tax decision fields travel with the draft; a revision keeps them
+    // unless the patch changes them (e.g. the owner confirms the local rate).
+    ['taxShipping', 'taxExempt', 'taxRateStatus'].forEach(function (k) {
+      const v = p[k] != null ? p[k] : prevInput[k];
+      if (v != null) next[k] = v;
+    });
+    // Everything a draft is linked to survives a revision.
+    ['accountId', 'orderId', 'billTo', 'shipTo', 'terms'].forEach(function (k) { if (draft[k] != null) next[k] = draft[k]; });
     const revised = draftInvoice(next);
     const snapshot = { subtotal: draft.subtotal, orderDiscount: draft.orderDiscount, shipping: draft.shipping, tax: draft.tax, total: draft.total, lines: draft.lines };
     revised.revisions = draft.revisions.concat([{ revision: draft.revisions.length + 1, at: o.now || null, by: o.actor || null, reason: o.reason || null, was: snapshot }]);
@@ -154,9 +179,24 @@
     if (!number) return { ok: false, reason: 'an invoice number is required', invoice: draft };
     const seen = o.existingNumbers instanceof Set ? o.existingNumbers : new Set(o.existingNumbers || []);
     if (seen.has(number)) return { ok: false, reason: 'invoice number already used (duplicate blocked): ' + number, invoice: draft };
+    // Owner decision #1: the live tax rate stays pending until the local rate
+    // and sourcing rule are confirmed, so a draft still carrying a PENDING rate
+    // cannot become an official invoice.
+    if (draft.taxRateStatus === 'PENDING') return { ok: false, reason: 'the tax rate on this draft is still pending — confirm the local rate before issuing', invoice: draft, pendingTax: true };
+    // Owner decision #2: payment terms. When the caller names the account (or
+    // the terms), the due date follows from the terms: due on receipt unless the
+    // account is approved for Net 14. An explicit dueDate still wins. With
+    // neither, behaviour is as before (no terms, due date as supplied).
+    let terms = draft.terms || null; let dueDate = o.dueDate || null;
+    if (o.terms != null || o.account != null) {
+      terms = o.terms != null ? String(o.terms) : termsForAccount(o.account);
+      if (PAYMENT_TERMS.indexOf(terms) < 0) return { ok: false, reason: 'unknown payment terms: ' + terms, invoice: draft };
+      if (o.terms === 'NET_14' && o.account != null && o.account.creditApproved !== true) return { ok: false, reason: 'Net 14 needs an account the owner has approved for credit', invoice: draft };
+      if (!dueDate) dueDate = dueDateFor(o.now ? String(o.now).slice(0, 10) : null, terms);
+    }
     const snapshot = JSON.parse(JSON.stringify({ lines: draft.lines, subtotal: draft.subtotal, tax: draft.tax, total: draft.total, currency: draft.currency }));
     const issued = Object.assign({}, draft, {
-      status: 'issued', number: number, issueDate: o.now || null, dueDate: o.dueDate || null,
+      status: 'issued', number: number, issueDate: o.now || null, dueDate: dueDate, terms: terms,
       balance: draft.total, paid: 0,
       versions: draft.versions.concat([{ version: draft.versions.length + 1, issuedAt: o.now || null, by: o.actor || o.role, snapshot: snapshot }]),
     });

@@ -83,5 +83,21 @@
     };
   }
 
-  return { IL_STATE_RATE, computeRate, shippingTaxable, resaleExempt, computeTax };
+  // The same decision expressed as the plain fields an invoice draft takes
+  // (he-invoice computeTotals / draftInvoice), so the invoice's own totals
+  // follow the rules instead of a side calculation. Pure data, no dependency.
+  function invoiceTaxFields(input) {
+    const i = input || {};
+    const rate = computeRate(i);
+    const exempt = resaleExempt(i);
+    const ship = shippingTaxable(i.shipping);
+    return {
+      taxRate: rate.rate, taxRateStatus: rate.rateStatus,
+      taxShipping: ship.taxable, taxExempt: exempt.exempt,
+      needsCertificate: !!exempt.needsCertificate,
+      note: rate.note || null,
+    };
+  }
+
+  return { IL_STATE_RATE, computeRate, shippingTaxable, resaleExempt, computeTax, invoiceTaxFields };
 }));

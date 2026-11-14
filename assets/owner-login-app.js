@@ -84,7 +84,7 @@
       nightlyOverall,
     } = window.HE.helpers;
     // @@ EXT15 modules: created in dependency order (assets/app/*.js; see docs/ops/APPLICATION_MODULE_MAP_EXT15.md)
-    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, reportVersionsOn } = HE.modules.create('he-config', {  });
+    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, supplierScorecardOn, reconcileOn, reportVersionsOn } = HE.modules.create('he-config', {  });
     const { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, h, pageIconNode } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
     const { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
     const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, h, supabase });
@@ -2082,6 +2082,93 @@
       }
     });
 
+    // ---------- #08 Payment reconciliation review (behind reconcileOn)
+    // A worked synthetic example on Accounting: invoices that should have been
+    // paid vs payments recorded. Every difference is named and stays OPEN until
+    // an owner/administrator closes it with a written note. ADVISORY — no money
+    // is moved, no invoice or payment is changed, and closing a difference never
+    // alters a figure. OFF by default (host renders empty, Accounting unchanged).
+    let reconcileResult = null;
+    let reconcileMessage = '';
+    const RECONCILE_WORDS = { MATCHED: 'matched', UNDERPAID: 'short', OVERPAID: 'over', MISSING: 'nothing recorded', UNEXPECTED: 'not expected', DUPLICATE: 'listed twice', CURRENCY_MISMATCH: 'other currency', UNKNOWN_AMOUNT: 'amount unknown' };
+    function reconcileMod() { try { return (window.HE && window.HE.reports && window.HE.reports['he-reconcile']) || null; } catch (e) { return null; } }
+    function loadReconcile() {
+      const host = document.getElementById('reconcileHost'); if (!host) return;
+      if (!(typeof reconcileOn === 'function' && reconcileOn())) { host.replaceChildren(); return; }
+      const eng = reconcileMod();
+      if (!eng) { host.replaceChildren(h('p', { class: 'empty' }, 'Reconciliation tools could not load.')); return; }
+      if (!reconcileResult) { const fx = eng.fixtures(); reconcileResult = eng.reconcile(fx.expected, fx.recorded); }
+      const r = reconcileResult; const st = eng.status(r);
+      const amt = v => v == null ? '?' : fmtMoney(v, 'USD');
+      const rows = r.items.map(it => h('tr', { 'data-outcome': it.outcome, 'data-review': it.reviewState },
+        h('td', null, h('div', { class: 'taskTitle' }, it.ref || '(no reference)'), h('div', { class: 'u-fs-11 u-c-muted' }, it.detail)),
+        h('td', null, RECONCILE_WORDS[it.outcome] || it.outcome),
+        h('td', { class: 'num-cell' }, amt(it.expected)),
+        h('td', { class: 'num-cell' }, amt(it.recorded)),
+        h('td', { class: 'num-cell' }, it.difference == null ? '?' : amt(it.difference)),
+        h('td', null, it.reviewState === 'NOT_NEEDED' ? '—'
+          : it.reviewState === 'REVIEWED' ? h('div', null, 'Reviewed by ' + it.review.by, h('div', { class: 'u-fs-11 u-c-muted' }, it.review.note))
+            : h('button', { type: 'button', class: 'small secondary', 'data-reconcile': 'review', 'data-line': String(it.line), 'aria-label': 'Mark line ' + it.line + ' (' + (it.ref || 'no reference') + ') reviewed' }, 'Mark reviewed'))));
+      const stateWord = st.state === 'BALANCED' ? 'Balanced' : st.state === 'NEEDS_REVIEW' ? 'Needs review — ' + st.open + ' open' : 'Closed with differences (reviewed, still not balanced)';
+      host.replaceChildren(h('div', { class: 'reconcileReview u-mb-16' },
+        h('div', { class: 'scanHead' }, h('h3', null, 'Payment reconciliation'), h('span', { class: 'scanBadge' }, 'SIMULATED — example data, no money is moved')),
+        h('p', { class: 'hint u-mt-6', 'data-reconcile-state': st.state }, 'Status: ' + stateWord + ' · expected ' + amt(r.totals.expected) + ' · recorded ' + amt(r.totals.recorded) + ' · difference ' + amt(r.totals.difference) + (r.totals.complete ? '' : ' (incomplete — some amounts unknown)')),
+        h('div', { class: 'heField heWide u-mt-8' },
+          h('label', { for: 'reconcileNote' }, 'Review note ', h('span', { class: 'heOpt' }, '(required to close a difference)')),
+          h('input', { type: 'text', id: 'reconcileNote', maxlength: '500', placeholder: 'e.g. Customer confirmed the balance arrives Friday' })),
+        reconcileMessage ? h('p', { class: 'hint u-mt-6', role: 'status', 'data-reconcile-msg': '1' }, reconcileMessage) : null,
+        h('table', { class: 'phoneCards u-mt-8' },
+          h('thead', null, h('tr', null, h('th', null, 'Invoice'), h('th', null, 'Result'), h('th', { class: 'num-cell' }, 'Expected'), h('th', { class: 'num-cell' }, 'Recorded'), h('th', { class: 'num-cell' }, 'Difference'), h('th', null, 'Review'))),
+          h('tbody', null, rows)),
+        h('div', { class: 'scanToggleRow u-mt-8' }, h('button', { type: 'button', class: 'small secondary', 'data-reconcile': 'reset' }, 'Reset example')),
+        h('p', { class: 'hint u-mt-8' }, 'Closing a difference records who looked and why; it never changes an amount. ' + r.guard)));
+    }
+    document.addEventListener('click', (e) => {
+      const t = e.target.closest('[data-reconcile]'); if (!t) return;
+      const act = t.getAttribute('data-reconcile'); const eng = reconcileMod(); if (!eng) return;
+      if (act === 'reset') { reconcileResult = null; reconcileMessage = ''; loadReconcile(); return; }
+      if (act === 'review' && reconcileResult) {
+        const noteEl = document.getElementById('reconcileNote');
+        const out = eng.markReviewed(reconcileResult, Number(t.getAttribute('data-line')), { role: 'owner', by: 'owner (example)', at: new Date().toISOString(), note: noteEl ? noteEl.value : '' });
+        if (out.ok) { reconcileResult = out.result; reconcileMessage = 'Recorded. The figures are unchanged.'; }
+        else reconcileMessage = 'Not recorded: ' + out.reason + '.';
+        loadReconcile();
+      }
+    });
+
+    // ---------- #12/#53 Supplier scorecard (behind supplierScorecardOn)
+    // Read-only worked example on the Suppliers page: delivery accuracy from
+    // purchase orders (a delivery with no recorded date is UNKNOWN, never counted
+    // as on time) and required-document status (missing / expired / expiring).
+    // Synthetic data; nothing is written and no supplier is contacted. OFF by
+    // default (host renders empty, Suppliers unchanged).
+    function loadSupplierScorecard() {
+      const host = document.getElementById('supplierScorecardHost'); if (!host) return;
+      if (!(typeof supplierScorecardOn === 'function' && supplierScorecardOn())) { host.replaceChildren(); return; }
+      let eng = null; try { eng = (window.HE && window.HE.suppliers && window.HE.suppliers['he-supplier-scorecard']) || null; } catch (e) { eng = null; }
+      if (!eng) { host.replaceChildren(h('p', { class: 'empty' }, 'Supplier scorecard tools could not load.')); return; }
+      const fx = eng.fixtures();
+      const sc = eng.scorecard(fx.supplier, fx.purchaseOrders, fx.documents, { asOfDate: fx.asOfDate });
+      const d = sc.delivery;
+      const docWord = { MISSING: 'missing', EXPIRED: 'expired', EXPIRING_SOON: 'expiring soon', VALID: 'valid', PRESENT_NO_EXPIRY: 'on file (no expiry date)' };
+      const docRows = sc.documents.rows.map(r => h('tr', { 'data-docstatus': r.status },
+        h('td', null, r.type),
+        h('td', null, docWord[r.status] || r.status),
+        h('td', null, r.expiresAt || '—'),
+        h('td', { class: 'num-cell' }, r.daysLeft == null ? '—' : String(r.daysLeft))));
+      host.replaceChildren(h('div', { class: 'supplierScorecard u-mb-16' },
+        h('div', { class: 'scanHead' }, h('h3', null, 'Supplier scorecard'), h('span', { class: 'scanBadge' }, 'SIMULATED — example data, read-only')),
+        h('div', { class: 'scanCard u-mt-8' },
+          h('div', { class: 'taskTitle' }, sc.supplier.name),
+          h('div', { class: 'scanCardRow', 'data-scorecard': 'delivery' }, 'Deliveries: ' + d.receivedPOs + ' received of ' + d.totalPOs + ' orders · on time ' + d.onTime + ' · late ' + d.late + ' · timing unknown ' + d.unknownTiming + ' · still open ' + d.open),
+          h('div', { class: 'scanCardRow' }, 'On-time rate: ' + (d.onTimeRate == null ? 'UNKNOWN (no delivery has both dates)' : d.onTimeRate + '% of the ' + (d.onTime + d.late) + ' deliveries with both dates') + (d.avgDaysLate != null ? ' · average ' + d.avgDaysLate + ' days late when late' : '')),
+          h('div', { class: 'scanCardRow', 'data-scorecard': 'attention' }, sc.needsAttention ? 'Needs attention: ' + sc.reasons.join('; ') : 'No concerns found')),
+        h('table', { class: 'phoneCards u-mt-8' },
+          h('thead', null, h('tr', null, h('th', null, 'Document'), h('th', null, 'Status'), h('th', null, 'Expires'), h('th', { class: 'num-cell' }, 'Days left'))),
+          h('tbody', null, docRows)),
+        h('p', { class: 'hint u-mt-8' }, 'Checked as of ' + fx.asOfDate + '. Required documents assumed: ' + sc.documents.required.join(', ') + ' — the owner confirms the real list. Not stored in the database yet: ' + eng.MISSING_FIELDS.length + ' fields this scorecard needs.')));
+    }
+
     // ---------- #54/#55 Cycle count + adjustment approval (behind cycleCountOn)
     // A worked synthetic count: draft -> discrepancy review -> owner-approved
     // adjustment -> audit. ADVISORY/DRAFT-ONLY — an approved adjustment names the
@@ -2189,6 +2276,15 @@
     // checksum (writes no file, sends nothing). The invoice preview shows a
     // SIMULATED draft invoice + packing slip; issuing stays an owner decision.
     const opsReportsMod = () => { try { return (window.HE && window.HE.reports && window.HE.reports['he-report-export']) || null; } catch (e) { return null; } };
+    // #72: a traceable label for an export (who / why / which content). It does
+    // not change the export or its checksum; it travels with it. Preview only —
+    // the real label will name the signed-in person once exports are enabled.
+    const exportLabelFor = (manifest, usingLive) => {
+      let mod = null; try { mod = (window.HE && window.HE.reports && window.HE.reports['he-export-label']) || null; } catch (e) { mod = null; }
+      if (!mod || !manifest) return null;
+      const label = mod.labelExport(manifest, { exportedBy: 'signed-in user (preview)', at: null, purpose: 'owner review', classification: usingLive ? 'CONFIDENTIAL' : 'INTERNAL' });
+      return { label: label, check: mod.verifyLabel(label, manifest) };
+    };
     const opsInvoiceMod = () => { try { return (window.HE && window.HE.invoice && window.HE.invoice['he-invoice']) || null; } catch (e) { return null; } };
     function loadReportExportPreview() {
       const host = document.getElementById('reportExportHost'); if (!host) return;
@@ -2208,6 +2304,7 @@
       const manifest = rx.buildManifest({ history: history });
       const v = rx.verifyManifest(manifest);
       const pm = rx.printModel({ history: history });
+      const xl = exportLabelFor(manifest, usingLive);
       const kv = (k, val) => h('div', { class: 'scanCardRow' }, h('span', { class: 'u-c-muted' }, k + ': '), String(val));
       host.replaceChildren(h('div', { class: 'reorderPlan u-mb-16' },
         h('div', { class: 'scanHead' }, h('h3', null, 'Export preview'), h('span', { class: 'scanBadge' }, 'SIMULATED — writes no file, sends nothing')),
@@ -2217,6 +2314,7 @@
           kv('Date range', (manifest.range.from || '?') + ' → ' + (manifest.range.to || '?')),
           kv('Checksum', manifest.checksum + ' (' + manifest.checksumAlgorithm + ')'),
           kv('Integrity check', v.ok ? 'OK — checksum matches' : 'MISMATCH'),
+          xl ? h('div', { class: 'scanCardRow', 'data-exportlabel': xl.check.ok ? 'ok' : 'mismatch' }, h('span', { class: 'u-c-muted' }, 'Trace label: '), xl.label.watermark + ' — ' + (xl.check.ok ? 'matches this export' : xl.check.reason)) : null,
           kv('Page', pm.page.page + ' (' + pm.page.widthPx + '×' + pm.page.heightPx + 'px) — print model, not a rendered PDF')),
         h('div', { class: 'scanToggleRow u-mt-8' }, h('button', { type: 'button', class: 'small', 'data-print': 'report' }, 'Print report (US-Letter preview)')),
         h('p', { class: 'hint u-mt-8' }, 'Values marked UNKNOWN were never measured (never shown as $0). Automatic Mac sync of the saved package is a separate component and is not enabled here.')));
@@ -2252,11 +2350,17 @@
       const taxInfo = taxMod ? taxMod.computeTax({ subtotal: draft.subtotal, orderDiscount: draft.orderDiscount, shipping: { amount: draft.shipping, mandatory: true } }) : null;
       const terms = (typeof inv.termsForAccount === 'function') ? inv.termsForAccount({}) : 'DUE_ON_RECEIPT';
       const dueDate = (typeof inv.dueDateFor === 'function') ? inv.dueDateFor('2026-11-14', terms) : null;
+      // The same rules applied inside the invoice itself: its own total, and
+      // whether it could be issued. A PENDING rate blocks issuing (decision #1).
+      const taxFields = (taxMod && typeof taxMod.invoiceTaxFields === 'function') ? taxMod.invoiceTaxFields({ shipping: { mandatory: true } }) : null;
+      const decided = taxFields ? inv.draftInvoice(Object.assign({ lines: draft.lines, orderDiscount: draft.orderDiscount, shipping: draft.shipping, currency: draft.currency }, taxFields)) : null;
+      const issueCheck = decided ? inv.issue(decided, { role: 'owner', number: suggested ? suggested.number : 'HE-0000-0000', now: '2026-11-14T00:00:00Z', account: {} }) : null;
       const decisionsCard = taxInfo ? h('div', { class: 'scanCard u-mt-8' },
         h('div', { class: 'scanCardHead' }, 'Per your decisions (draft example — nothing issued)'),
         h('div', { class: 'scanCardRow' }, 'Illinois tax: state ' + (taxInfo.stateRate * 100) + '%' + (taxInfo.localRate != null ? ' + local ' + (taxInfo.localRate * 100) + '%' : '') + ' = ' + (taxInfo.rate * 100).toFixed(2) + '% · ' + taxInfo.rateStatus),
         h('div', { class: 'scanCardRow' }, 'Taxable base ' + fmtMoney(taxInfo.taxableBase, draft.currency) + ' (shipping ' + (taxInfo.shippingTaxable ? 'included — mandatory' : 'excluded') + ') · draft tax ' + fmtMoney(taxInfo.tax, draft.currency)),
         h('div', { class: 'scanCardRow' }, 'Payment terms: ' + (terms === 'NET_14' ? 'Net 14' : 'Due on receipt') + (dueDate ? ' · due ' + dueDate : '')),
+        decided ? h('div', { class: 'scanCardRow', 'data-issuecheck': issueCheck && issueCheck.ok ? 'allowed' : 'blocked' }, 'Invoice total under these rules: ' + fmtMoney(decided.total, decided.currency) + ' · issuing: ' + (issueCheck && issueCheck.ok ? 'would be allowed' : 'blocked — ' + (issueCheck ? issueCheck.reason : 'not checked'))) : null,
         taxInfo.rateStatus === 'PENDING' ? h('div', { class: 'u-fs-11 u-c-muted' }, taxInfo.note) : null) : null;
       host.replaceChildren(h('div', { class: 'reorderPlan u-mb-16' },
         h('div', { class: 'scanHead' }, h('h3', null, 'Invoice preview'), h('span', { class: 'scanBadge' }, 'SIMULATED — draft only, nothing issued or charged')),
@@ -2360,6 +2464,7 @@
         { report_date: '2026-11-07', currency: 'USD', orders_count: 5, revenue: null, ai_calls_count: 7, ai_cost: 0.33 },
       ];
       const pm = rx.printModel({ history: history, title: 'Daily report' });
+      const xl = exportLabelFor(rx.buildManifest({ history: history }), false);
       const sum = pm.summary;
       const money = function (v) { return v === 'UNKNOWN' ? '?' : fmtMoney(v, 'USD'); };
       const num = function (v) { return v === 'UNKNOWN' ? '?' : String(v); };
@@ -2373,7 +2478,8 @@
         h('table', null,
           h('thead', null, h('tr', null, h('th', null, 'Date'), h('th', null, 'Orders'), h('th', null, 'Revenue'), h('th', null, 'New questions'), h('th', null, 'AI calls'), h('th', null, 'AI cost'))),
           h('tbody', null, bodyRows)),
-        h('div', { class: 'printTotals' }, 'Totals — orders: ' + num(sum.orders_count) + ' · revenue: ' + money(sum.revenue) + (sum.missing && sum.missing.revenue ? ' (' + sum.missing.revenue + ' day(s) UNKNOWN)' : '')))));
+        h('div', { class: 'printTotals' }, 'Totals — orders: ' + num(sum.orders_count) + ' · revenue: ' + money(sum.revenue) + (sum.missing && sum.missing.revenue ? ' (' + sum.missing.revenue + ' day(s) UNKNOWN)' : '')),
+        xl ? h('div', { class: 'printTotals', 'data-exportlabel': 'print' }, xl.label.watermark) : null)));
       try { window.print(); } catch (e) {}
     }
 
@@ -2420,12 +2526,12 @@
       ordersPanel: [loadOrders, paintScanEntry, loadSavedViews],
       inventoryPanel: [loadInventory, loadInventoryAdjustments, loadReorderPlanning, loadSavedViews, loadCycleCount],
       returnsPanel: [loadReturns],
-      suppliersPanel: [loadSuppliers],
+      suppliersPanel: [loadSuppliers, loadSupplierScorecard],
       purchaseOrdersPanel: [loadPurchaseOrders],
       qualityControlPanel: [loadQualityChecks],
       recallsPanel: [loadRecalls],
       expensesPanel: [loadExpenses, loadDeletedExpenses],
-      accountingPanel: [loadAccounting],
+      accountingPanel: [loadAccounting, loadReconcile],
       taxRecordsPanel: [loadTaxRecords],
       tasksPanel: [loadTasks],
       incidentsPanel: [loadIncidents],
