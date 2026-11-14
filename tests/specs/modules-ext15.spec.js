@@ -104,7 +104,13 @@ const ADDED = ['setReportHistoryView', 'inquiriesList', 'agentControls', 'poRece
   // L3: US-Letter invoice print view (builds into the body-level print host).
   'renderInvoicePrint',
   // follow-on: US-Letter daily-report + packing-slip print views (print host).
-  'renderReportPrint', 'renderPackingSlipPrint'];
+  'renderReportPrint', 'renderPackingSlipPrint',
+  // #65 saved views & filters wired into Orders + Inventory (host-div, flag
+  // savedViewsOn OFF by default). New top-level declarations binding the pure
+  // he-saved-views engine to localStorage + the current user + the screen host;
+  // the delegated [data-savedview] listener is waived by text below.
+  'viewsMod', 'SAVED_VIEW_HOSTS', 'SAVED_VIEW_STATUS', 'savedViewStore',
+  'renderSavedViews', 'loadSavedViews', 'savedViewsOn'];
 const NEW_MODULES = ['he-ops']; // EXT16: written new, not moved
 const CHANGED_TEXT = ["} = window.HE.helpers;", "forEach(o => Object.setPrototypeOf(o, null))", "supabase.auth.onAuthStateChange((event, session) =>", "getAttribute('data-view')", "getElementById('adjustInventoryForm').addEventListener('submit'", "getElementById('logReturnForm').addEventListener('submit'", "getElementById('retOrder').addEventListener('change'", "Release to refresh", "getElementById('docCategory')",
   // EXT20J-post-TT: the 4 static overlay scaffolds converted innerHTML->h(); each
@@ -121,7 +127,10 @@ const CHANGED_TEXT = ["} = window.HE.helpers;", "forEach(o => Object.setPrototyp
   // listener. Named handlers above; these three are anonymous top-level stmts.
   "e.target.closest('[data-scan]')", "e.target.closest('[data-reorder]')",
   // L3: the invoice print button's delegated listener (anonymous top-level stmt).
-  "e.target.closest('[data-print]')"];
+  "e.target.closest('[data-print]')",
+  // #65: the saved-views delegated listener (anonymous top-level stmt; its
+  // data-attribute did not exist at the 3a40095 baseline).
+  "e.target.closest('[data-savedview]')"];
 
 test('the module moves were byte-identical: every original statement once, only the named edits differ', ({}, ti) => {
   nodeOnly(ti);

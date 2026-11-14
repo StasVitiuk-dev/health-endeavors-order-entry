@@ -84,7 +84,7 @@
       nightlyOverall,
     } = window.HE.helpers;
     // @@ EXT15 modules: created in dependency order (assets/app/*.js; see docs/ops/APPLICATION_MODULE_MAP_EXT15.md)
-    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn } = HE.modules.create('he-config', {  });
+    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn } = HE.modules.create('he-config', {  });
     const { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, h, pageIconNode } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
     const { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
     const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, h, supabase });
@@ -2011,6 +2011,78 @@
       else if (act === 'draft') { reorderShowDraft = !reorderShowDraft; loadReorderPlanning(); }
     });
 
+    // ---------- #65 Saved views & filters (personal; behind savedViewsOn()) ----
+    // A per-person, per-screen set of named filter presets, saved in this
+    // browser's localStorage (namespaced by user so views never cross people).
+    // OFF by default: with the flag off the host renders empty, so the Orders and
+    // Inventory screens are byte-unchanged. The engine (he-saved-views) is pure;
+    // this only binds it to localStorage + the current user + the screen's host.
+    const viewsMod = (n) => { try { return (window.HE && window.HE.views && window.HE.views[n]) || null; } catch (e) { return null; } };
+    const SAVED_VIEW_HOSTS = [['savedViewsOrders', 'ordersPanel'], ['savedViewsInventory', 'inventoryPanel']];
+    const SAVED_VIEW_STATUS = {
+      ordersPanel: [['', 'Any status'], ['unfulfilled', 'Unfulfilled'], ['fulfilled', 'Fulfilled'], ['wholesale', 'Wholesale']],
+      inventoryPanel: [['', 'Any stock'], ['low', 'Low stock'], ['out', 'Out of stock'], ['damaged', 'Has damaged']],
+    };
+    function savedViewStore(eng, uid, panel) {
+      try { return eng.createViewStore({ storage: window.localStorage, userId: uid, panel: panel }); } catch (e) { return null; }
+    }
+    function renderSavedViews(host, eng, uid, panel) {
+      const store = savedViewStore(eng, uid, panel);
+      if (!store) { host.replaceChildren(); return; }
+      const views = store.list();
+      const statusOpts = (SAVED_VIEW_STATUS[panel] || [['', 'Any']]).map(([v, l]) => h('option', { value: v }, l));
+      const nameInput = h('input', { type: 'text', id: panel + 'ViewName', class: 'u-p-9-10 u-br-8 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-13', placeholder: 'Name this view', 'aria-label': 'Name this view', maxlength: '60' });
+      const searchInput = h('input', { type: 'text', id: panel + 'ViewSearch', class: 'u-p-9-10 u-br-8 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-13', placeholder: 'Search text', 'aria-label': 'Filter: search text' });
+      const statusSel = h('select', { id: panel + 'ViewStatus', class: 'u-p-9-10 u-br-8 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-13', 'aria-label': 'Filter: status' }, ...statusOpts);
+      const viewChips = views.length ? views.map(v => h('span', { class: 'savedViewChip u-mr-6' },
+        h('button', { type: 'button', class: 'small secondary', 'data-savedview': 'restore', 'data-panel': panel, 'data-name': v.name }, v.name),
+        h('button', { type: 'button', class: 'small secondary', 'data-savedview': 'delete', 'data-panel': panel, 'data-name': v.name, 'aria-label': 'Delete view ' + v.name, title: 'Delete' }, '✕')))
+        : [h('span', { class: 'empty u-fs-12' }, 'No saved views yet.')];
+      host.replaceChildren(h('div', { class: 'savedViews u-mb-14' },
+        h('div', { class: 'scanHead' }, h('h3', null, 'Saved views'), h('span', { class: 'scanBadge' }, 'Personal — saved on this device')),
+        h('div', { class: 'savedViewForm u-mt-8', role: 'group', 'aria-label': 'Save a view' }, nameInput, searchInput, statusSel,
+          h('button', { type: 'button', class: 'small', 'data-savedview': 'save', 'data-panel': panel }, 'Save view'),
+          h('button', { type: 'button', class: 'small secondary', 'data-savedview': 'reset', 'data-panel': panel }, 'Reset')),
+        h('div', { class: 'savedViewList u-mt-8' }, ...viewChips)));
+    }
+    async function loadSavedViews() {
+      const on = typeof savedViewsOn === 'function' && savedViewsOn();
+      const eng = viewsMod('he-saved-views');
+      let uid = 'anon'; try { uid = (await currentUserId()) || 'anon'; } catch (e) { /* not signed in */ }
+      SAVED_VIEW_HOSTS.forEach(([hostId, panel]) => {
+        const host = document.getElementById(hostId); if (!host) return;
+        if (!on || !eng) { host.replaceChildren(); return; }
+        renderSavedViews(host, eng, uid, panel);
+      });
+    }
+    document.addEventListener('click', async (e) => {
+      const t = e.target.closest('[data-savedview]'); if (!t) return;
+      const act = t.getAttribute('data-savedview');
+      const panel = t.getAttribute('data-panel');
+      const eng = viewsMod('he-saved-views'); if (!eng) return;
+      let uid = 'anon'; try { uid = (await currentUserId()) || 'anon'; } catch (err) { /* not signed in */ }
+      const store = savedViewStore(eng, uid, panel); if (!store) return;
+      const nameEl = document.getElementById(panel + 'ViewName');
+      const searchEl = document.getElementById(panel + 'ViewSearch');
+      const statusEl = document.getElementById(panel + 'ViewStatus');
+      if (act === 'save') {
+        const r = store.save((nameEl && nameEl.value) || '', { search: (searchEl && searchEl.value) || '', status: (statusEl && statusEl.value) || '' }, new Date().toISOString());
+        if (!r.ok) { toast(r.reason || 'Could not save that view.'); return; }
+        if (nameEl) nameEl.value = '';
+        loadSavedViews();
+      } else if (act === 'restore') {
+        const f = store.restore(t.getAttribute('data-name')) || {};
+        if (searchEl) searchEl.value = f.search || '';
+        if (statusEl) statusEl.value = f.status || '';
+      } else if (act === 'delete') {
+        store.remove(t.getAttribute('data-name'));
+        loadSavedViews();
+      } else if (act === 'reset') {
+        if (searchEl) searchEl.value = '';
+        if (statusEl) statusEl.value = '';
+      }
+    });
+
     // ---------- Operations output previews (read-only; behind reportExportOn /
     // invoicePreviewOn). Both are SIMULATED prototypes shown in Report History.
     // The export preview packages a synthetic day-set into a manifest with a
@@ -2231,8 +2303,8 @@
       calendarPanel: [loadCalendarMonth],
       dailySummaryPanel: [loadDailySummary],
       reportHistoryPanel: [loadReportHistoryThenExport, loadRecoveryDrill, loadInvoicePreview],
-      ordersPanel: [loadOrders, paintScanEntry],
-      inventoryPanel: [loadInventory, loadInventoryAdjustments, loadReorderPlanning],
+      ordersPanel: [loadOrders, paintScanEntry, loadSavedViews],
+      inventoryPanel: [loadInventory, loadInventoryAdjustments, loadReorderPlanning, loadSavedViews],
       returnsPanel: [loadReturns],
       suppliersPanel: [loadSuppliers],
       purchaseOrdersPanel: [loadPurchaseOrders],
