@@ -2246,6 +2246,19 @@
       // format. This only PROPOSES; nothing is issued. Owner confirms the scheme.
       const suggested = (typeof inv.nextInvoiceNumber === 'function') ? inv.nextInvoiceNumber({ year: new Date().getFullYear() }) : null;
       const hdr = (typeof inv.invoiceHeader === 'function') ? inv.invoiceHeader({ number: suggested ? suggested.number : null }) : null;
+      // Owner decisions #1/#2 shown as a worked example (draft only): Illinois tax
+      // (state 6.25%, LIVE rate pending the local rate) with mandatory shipping in
+      // the base, and due-on-receipt terms for a new wholesale buyer.
+      const taxMod = (function () { try { return window.HE.invoice['he-tax']; } catch (e) { return null; } })();
+      const taxInfo = taxMod ? taxMod.computeTax({ subtotal: draft.subtotal, orderDiscount: draft.orderDiscount, shipping: { amount: draft.shipping, mandatory: true } }) : null;
+      const terms = (typeof inv.termsForAccount === 'function') ? inv.termsForAccount({}) : 'DUE_ON_RECEIPT';
+      const dueDate = (typeof inv.dueDateFor === 'function') ? inv.dueDateFor('2026-11-14', terms) : null;
+      const decisionsCard = taxInfo ? h('div', { class: 'scanCard u-mt-8' },
+        h('div', { class: 'scanCardHead' }, 'Per your decisions (draft example — nothing issued)'),
+        h('div', { class: 'scanCardRow' }, 'Illinois tax: state ' + (taxInfo.stateRate * 100) + '%' + (taxInfo.localRate != null ? ' + local ' + (taxInfo.localRate * 100) + '%' : '') + ' = ' + (taxInfo.rate * 100).toFixed(2) + '% · ' + taxInfo.rateStatus),
+        h('div', { class: 'scanCardRow' }, 'Taxable base ' + fmtMoney(taxInfo.taxableBase, draft.currency) + ' (shipping ' + (taxInfo.shippingTaxable ? 'included — mandatory' : 'excluded') + ') · draft tax ' + fmtMoney(taxInfo.tax, draft.currency)),
+        h('div', { class: 'scanCardRow' }, 'Payment terms: ' + (terms === 'NET_14' ? 'Net 14' : 'Due on receipt') + (dueDate ? ' · due ' + dueDate : '')),
+        taxInfo.rateStatus === 'PENDING' ? h('div', { class: 'u-fs-11 u-c-muted' }, taxInfo.note) : null) : null;
       host.replaceChildren(h('div', { class: 'reorderPlan u-mb-16' },
         h('div', { class: 'scanHead' }, h('h3', null, 'Invoice preview'), h('span', { class: 'scanBadge' }, 'SIMULATED — draft only, nothing issued or charged')),
         hdr ? h('div', { class: 'scanCard u-mt-8' },
@@ -2261,6 +2274,7 @@
           h('tbody', null, lineRows)),
         h('div', { class: 'scanCard u-mt-8' },
           totalRow('Subtotal', draft.subtotal), totalRow('Order discount', draft.orderDiscount), totalRow('Shipping', draft.shipping), totalRow('Tax (' + Math.round(draft.taxRate * 100) + '%)', draft.tax), totalRow('Total', draft.total, 'taskTitle')),
+        decisionsCard,
         h('div', { class: 'scanCard u-mt-8' }, h('div', { class: 'scanCardHead' }, 'Packing slip — not an invoice, not a carrier label'), slipRows),
         h('div', { class: 'scanToggleRow u-mt-8' },
           h('button', { type: 'button', class: 'small', 'data-print': 'invoice' }, 'Print invoice (US-Letter)'),
