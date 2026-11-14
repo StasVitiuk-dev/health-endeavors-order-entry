@@ -1,6 +1,6 @@
 # Health Endeavors — current state (cross-project summary)
 
-**Last updated:** October 12, 2026, extension 15 (platform §1, §8; website sections unchanged from Sept 30). Internal-platform entry point from now on: `docs/ops/START_HERE_EXT14.md`. **Keep this short.** Details live in the linked documents; update this file whenever the verified state changes materially.
+**Last updated:** November 14, 2026, Nov 7 build (platform §1, §8 only — see the "Nov 7 build" bullet and decision 6; website sections unchanged from Sept 30). Before that: October 12, 2026, extension 15. Internal-platform entry point from now on: `docs/ops/START_HERE_EXT14.md`. **Keep this short.** Details live in the linked documents; update this file whenever the verified state changes materially.
 
 Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (from the owner's earlier chats, not re-checked) · **PROPOSED** · **OWNER DECISION REQUIRED** · **DEPRECATED**.
 
@@ -106,6 +106,12 @@ Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (fro
 - **Extension 18 (Oct 13, not merged, not live):** `claude/platform-ext18-security-reliability-2026-10-12`, continuing EXT17. Defensive security round: five real bugs fixed (values named like JavaScript built-ins in tax, accounting and cost reports; a misleading "not sent" note after a sign-out elsewhere), script policy narrowed to the one pinned library file, new security gates in CI, local database access-rule contract. Production RLS still UNKNOWN (Query G). Production readiness unchanged (~15%). See `docs/ops/RELEASE_REVIEW_EXT18.md` and `docs/ops/SECURITY_ARCHITECTURE_EXT18.md`.
 - **Extension 19 (Oct 13, not merged, not live):** `claude/platform-ext19-preproduction-completion-2026-10-12`, continuing EXT18. One real bug fixed ("changed by" names never shown: wrong column name), schema contract and stricter mock, half the raw-HTML sites gone (Trusted Types reports 168 → 86), whole program type-checked, high-risk operation contract. Production readiness unchanged (~15%). See `docs/ops/RELEASE_REVIEW_EXT19.md` and `docs/ops/PREPRODUCTION_GAPS_EXT19.md`.
 - **Extension 20 (Oct 17, not merged, not live):** `claude/platform-ext20-adversarial-completion-2026-10-13`, continuing EXT19. Real performance bug fixed (search palette forced a whole-page layout and built every match per keystroke), both open EXT19 intermittents closed with reproduced causes, raw-HTML sites cut again (Trusted Types 86 → 56), exactly-once proven under truly simultaneous database callers, Query G now answers the audit questions F1/F2. Production readiness unchanged (~15%). The owner's single next step: run read-only Query G. See `docs/ops/OWNER_ACTIONS_EXT20.md` and `docs/ops/RELEASE_REVIEW_EXT20.md`.
+- **Nov 7 build (Nov 2–14, not pushed, not merged, not live):** local branch `claude/ext20-recovery-2026-10-31` from `9173ccf` (112 commits at `5bce21f`), synthetic data only, every new feature behind a switch that is OFF by default, nothing sent. **Not behind a switch:** early styling changes to always-visible controls (squarer buttons and fields, labelled forms, right-aligned number columns) — the dashboard will look different as soon as this branch is merged.
+  - Operations: Scan Shipment flow, reorder planning, report export preview, recovery drill, invoice drafts with print views.
+  - Sales & Growth (54 draft-only pages): adds in-person sample visits, content repurposing, ad variants, feedback analysis with complaint trends, creator sample offers, reorder reminders, service health with manual-fallback readiness.
+  - Original blueprint items built and tested on the branch: #12, #17, #21, #25, #27, #53, #54, #55, #65, #70, #71, #72 (plus #24 / #36 as documents). Of these, #21, #25, #27, #54, #55, #65, #70, #71 are reachable as dashboard screens with browser tests; #12, #17, #53, #72 are tested logic not yet connected to a screen.
+  - Tests: full desktop suite on Nov 9 was 2,138 passed / 14 failed — 10 picture comparisons that cannot pass in the substitute test browser, and 4 real check failures fixed on Nov 14. (Earlier notes said 0 failed; that was wrong.) 95 further tests added since, passing when run on their own; full re-run result in `docs/ops/NOV7_BOUNDED_REVIEW.md`. iPhone-size results and their limits: `docs/ops/NOV7_BOUNDED_REVIEW.md`. Real Safari / iPhone / VoiceOver not tested.
+  - **Nothing here is counted as done in the progress tracker** until it is merged and checked live. Review entry point: `docs/ops/NOV7_STAGING_REVIEW_AND_OWNER_CHECKLIST.md`.
 - **Store not launched:** 0 real orders, real products not yet added, the Shopify order sync and agents #2/#3/#7/#8 switched off on purpose until products exist (REPORTED). Agent #1's on/off state is **unverified**.
 
 ## 2. Public website (customer storefront)
@@ -170,6 +176,7 @@ No merging or deploying by Claude · no production Supabase, SQL, cron, RLS or p
 3. Approve the website architecture and a separate website repository.
 4. Visual direction, approved product copy/claims, and real photography for the website.
 5. R5 product-delete behaviour · R7 verification method · approval/PO state checks · palette Enter behaviour · Agent #1 state.
+6. **(Nov 14) DECIDED — invoices, tax, terms, day cutoff, permissions, exports.** Recorded in `docs/ops/OWNER_DECISIONS_2026-11-14.md`; built as draft-only logic on the Nov 7 build branch, not live. Still needed from the owner for that work: the **local tax rate** (the 6.25% Illinois state rate is in; the combined live rate stays pending), a go-ahead to push the branch and open a pull request, and later a business email service, a tracking provider and a real iPhone check.
 
 Full website list: `docs/website/decisions-needed.md` (website workspace).
 

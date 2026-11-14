@@ -35,7 +35,9 @@ default-OFF and every external action is simulated.
 **This session moved 12 blueprint IDs from open/partial → verified-staging.**
 Earlier sessions verified the B11 phases, the operations/invoice/report items
 (#4/#5/#6 and the invoice-* / report-* suites), and the scanner (B11-01). The
-full desktop suite stands at **2,138 passed / 0 failed** (sharded; see
+full desktop suite was **2,138 passed / 14 failed** on Nov 9 (corrected Nov 14: 10
+picture comparisons that cannot pass in this environment, 4 real check failures
+fixed in `edfe565`; sharded; see
 `NOV7_BOUNDED_REVIEW.md`); this session added **69** new synthetic engine tests,
 all green.
 
@@ -93,13 +95,18 @@ before go-live.
 
 ## 5. Owner review checklist
 
-### The six decisions (each with the exact input needed)
-1. **Tax rate** — the % to charge, and whether tax also applies to shipping.
-2. **Payment terms** — e.g. due-on-receipt vs net-14 (and any per-customer terms).
-3. **Invoice issuing** — manual vs automatic, and confirm the numbering format `HE-YYYY-NNNN`.
-4. **Day-boundary convention** — fixed UTC offset vs IANA/DST-aware (which timezone).
-5. **Roles** — who besides the owner may issue/void invoices and release held notifications.
-6. **Export destination** — where exports go, and whether to enable automatic Mac sync later.
+### The six decisions — DECIDED Nov 14, 2026
+Answered by Stas on Nov 14. The answers, what was built from each, and what is not
+yet applied are recorded in one place: **`OWNER_DECISIONS_2026-11-14.md`**
+(authoritative — not repeated here). Section 9 below summarises the build.
+
+### Still needed from the owner
+- **The local tax rate** for the business location (the 6.25% Illinois state rate is
+  in; the combined live rate stays pending until this is confirmed).
+- **A go-ahead to push the branch and open a pull request** — the step that makes the
+  work durable on GitHub and reviewable. Merging stays the owner's action.
+- **Required supplier documents** — confirm the assumed list (insurance, W-9,
+  certificate of analysis) used by the supplier document check (#53).
 
 ### Device & provider checks (separate from mocks — owner/device required)
 - **Real Safari / physical iPhone / VoiceOver** — only emulated Chromium here; verify on a real device.
@@ -110,30 +117,32 @@ before go-live.
 ## 6. Checkpoint & recovery
 
 - Branch `claude/ext20-recovery-2026-10-31`, unpushed; working tree clean.
-- Recovery snapshot in `scratchpad/recovery-v42/` at this HEAD (bundle verified,
-  checksums OK) — restores the exact checkpoint.
+- A recovery export (git bundle + patches + checksums, verified) is refreshed at each
+  checkpoint; the latest is v46 at the Nov 14 documentation commit.
+- **Durability warning:** the branch and the export both live in this session's
+  temporary cloud workspace. They are preserved for good only once the branch is
+  pushed to GitHub or the export file is saved by the owner.
 
-## 7. Remaining estimate to owner-reviewable staging
+## 7. Remaining estimate to an owner-reviewable package
 
-The staging build is **owner-reviewable now** for the items in §1–§3 (engine +
-tests green; features default-OFF). Remaining to a fully wired review build:
-- **~1 focused day:** wire #65 saved-views + #54/#55 cycle-count + #70/#71 report
-  schedule into their panels (engines are done & tested; wiring follows the W-0
-  pattern) and add keyboard/mobile e2e for those panels.
-- **~0.5 day:** re-measure #24 baselines on the CI browser build and finalize the
-  #36 record.
-- **Owner-blocked (not on the engineering clock):** the six decisions + device/
-  provider checks in §5.
-
-So: **~1.5 focused engineering days** to a fully-wired, re-measured staging build;
-go-live then waits only on the owner decisions and provider/device approvals.
-
----
+An estimate, not a measurement. Everything in sections 1–3, 8 and 9 can be reviewed
+now on the branch (features default-OFF). Remaining engineering before one clean
+review package:
+- **~1 focused day:** connect #17 / #72 / #12 / #53 to their screens; apply the
+  Nov 14 decisions in the invoice and report flows (tax engine into totals once the
+  local rate is known, terms + due date at issue, daily roll-up switched to the
+  `America/Chicago` day function).
+- **~0.5 day:** re-run the full suite on the final commit; re-measure #24 baselines
+  in CI; audit #08 and #26.
+- **Owner-side (not engineering time):** the items in section 5, then review and merge.
 
 ## 8. Wiring wave (2026-11-14) — engine → dashboard journey
 
 Three engine-tested items were wired into the live dashboard behind default-OFF
-flags (host-div pattern: flag OFF → host empty → screen byte-unchanged). Each is
+flags (host-div pattern: flag OFF → host empty → these three additions show nothing;
+measured Nov 14: page heights equal the Nov 9 heights. This is about these additions
+only — the branch's earlier styling commits do change how the screens look with
+every flag off, see `NOV7_BOUNDED_REVIEW.md`). Each is
 now **dashboard-journey verified** (browser test), advancing from the "engine"
 stage to the "journey" stage (not counted twice).
 
@@ -170,3 +179,23 @@ remeasurement must run in CI. Not a regression — an environment limitation.
 - **#12 / #53** supplier scorecard: engine tested (read-only, derived); a
   Suppliers-screen surface is the remaining step.
 - **#08 reconciliation / #26 anomaly** review-state audit: not yet started.
+
+---
+
+## 9. Owner decisions wave (2026-11-14)
+
+The six decisions were made and recorded (`OWNER_DECISIONS_2026-11-14.md`). Built
+from them, all draft-only and default-OFF:
+
+| Decision | Built | Evidence (spec · commit) |
+|---|---|---|
+| 1 Tax | Illinois rule engine: 6.25% state, combined rate PENDING until the local rate is confirmed; shipping taxable when mandatory/bundled, exempt when separately stated and avoidable; resale exempt only with a valid certificate | tax-ext21 (6) · `fe9f2f0` |
+| 2 Terms | Due on receipt by default; Net 14 for a credit-approved account; due-date helper | owner-decisions-ext21 · `9b0b2b8` |
+| 3 Invoices | `HE-YYYY-NNNN`, per-year, number assigned at issue; a voided invoice keeps its number and the number is never reissued | owner-decisions-ext21 · `9b0b2b8` |
+| 4 Day cutoff | Midnight Central via `America/Chicago`, daylight saving handled (summer and winter verified) | owner-decisions-ext21 · `9b0b2b8` |
+| 5 Permissions | Owner and administrator may issue / void; staff cannot (owner confirmed administrator keeps this) | owner-decisions-ext21 · `3f850cb` |
+| 6 Exports | Recorded as an owner-side procedure; export labels default to CONFIDENTIAL | intake-export-guard-ext21 · `61ef953` |
+
+The invoice preview (`he_invoice_preview`) shows decisions 1–2 as a worked example
+(ops-preview-wiring-ext21 · `5bce21f`). What is built but not yet applied in the
+invoice and report flows is listed in the decisions record and in section 7.

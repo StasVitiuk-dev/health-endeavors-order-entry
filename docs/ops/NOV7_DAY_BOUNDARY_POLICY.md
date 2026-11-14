@@ -1,5 +1,10 @@
 # Business-day boundary — audit + missing policy (wave-2 item 4)
 
+> **Update Nov 14, 2026:** this page is a dated snapshot. The owner decisions it lists as
+> open (tax, payment terms, invoice issuing, day boundary, roles, export destination) were
+> made on Nov 14 — see `OWNER_DECISIONS_2026-11-14.md`. Current status of the whole build:
+> `NOV7_STAGING_REVIEW_AND_OWNER_CHECKLIST.md`.
+
 Status: 2026-11-08, commit on `claude/ext20-recovery-2026-10-31`. Local/synthetic.
 
 ## What is consistent today

@@ -112,11 +112,18 @@ The full desktop suite was run to completion overnight as 16 reproducible shards
 | 3/16 | 136 | 7/16 | 124 | 11/16 | 137 | 15/16 | 137 |
 | 4/16 | 138 | 8/16 | 137 | 12/16 | 131 | 16/16 | 124 |
 
-**Total: 2,138 passed, 0 failed** across all 16 shards (shard 1 also had 5
-project-skips). No non-pre-existing failures; the known `inventory-safety`
-`test.fail('not atomic yet')` cases are counted as expected and did not fail the
-run. The full desktop suite is therefore GREEN on this branch. The full iPhone
-suite remains PENDING (the bounded mobile shard stands in).
+**Total: 2,138 passed, 14 failed** across all 16 shards (shard 1 also had 5
+project-skips).
+
+> **CORRECTION (2026-11-14).** This section originally said "2,138 passed, 0 failed"
+> and "GREEN". That was wrong: the per-shard logs show 14 failures (shard 2: 1,
+> shard 3: 2, shard 13: 1, shard 16: 10). The "passed" column above is right; the
+> failures were left out. The error was found on Nov 14 while reconciling the
+> status documents against the logs. See "Correction and re-run 2026-11-14" at the
+> end of this page for what the 14 were and what was done.
+
+The full iPhone suite remains PENDING at this point (the bounded mobile shard
+stands in).
 
 ## Update 2026-11-09d — FULL iPhone suite run in 8 shards (commit 815db38 code; 4b65e8e tree)
 
@@ -151,3 +158,37 @@ browser override (`/opt/pw-browsers/chromium`, reverted before this commit):
 **Emulated vs physical — kept separate:** all of the above is emulated-Chromium at
 iPhone viewport. Real Safari / physical iPhone / VoiceOver verification is NOT
 done here and remains an owner/device task.
+
+## Correction and re-run 2026-11-14
+
+**What the Nov 9 full desktop run really was:** 2,138 passed, **14 failed**.
+
+| Failed tests | Count | Cause | Status |
+|---|---|---|---|
+| `visual.spec.js` picture comparisons (login, 8 pages, dark Orders) | 10 | Cannot pass in this environment: the same 10 fail on the untouched base commit `9173ccf` in the same substitute browser (checked Nov 14). Separately, the branch really does change how these screens look — see below. | Open: reference pictures must be re-taken in the CI browser after an owner look |
+| `docs-integrity-ext13` (2 tests) | 2 | A backlog page named a file without a path the checker can resolve (added on this branch, `75b26ea`) | Fixed `edfe565` |
+| `ci-traps-ext15` control | 1 | Type-check gate: an unused variable in the scan card code | Fixed `edfe565` |
+| `security-parsers-ext18` slow-pattern audit | 1 | A text pattern built at run time in the invoice numbering code | Fixed `edfe565` |
+
+Code added after Nov 9 had introduced two more findings in the same slow-pattern
+audit (an email-detection pattern that was slow on very long text, and another
+run-time-built pattern, both in the feedback module). Also fixed in `edfe565`.
+
+**The branch changes the dashboard's appearance even with every switch OFF.**
+Early commits in this build (`ece7d35`, `5ffcf31`, `9ba94d8`, `ee68864`, `e3ecf9d`,
+`4b8c5d8`) restyled always-visible controls: squarer buttons and fields, one arrow
+per dropdown, labelled forms on Suppliers / Inventory / Expenses, right-aligned
+number columns. Measured in the same browser, switches OFF, base → branch page
+height: Inventory 1335 → 1466 px, Expenses 1261 → 1347, Returns 1218 → 1266,
+Orders 647 → 679, Tasks 474 → 490, Tax Records 1519 → 1525, Accounting 961 → 963,
+Needs Attention 1657 → 1628. Heights on Nov 14 equal the Nov 9 heights, so the
+work after Nov 9 (saved views, cycle counts, report versions and the other
+switched-off hosts) added no visible change when off. **These styling changes are
+not behind a switch and will be visible on merge.**
+
+**iPhone-size run (Nov 9): 489 passed / 11 failed / 365 skipped** stands as
+recorded. Its 10 picture failures have the same explanation as above; its one
+timing failure was not re-checked on Nov 14.
+
+**Full desktop re-run on the fixed code:** see the next section when present; until
+then the last full run is the corrected Nov 9 result above.

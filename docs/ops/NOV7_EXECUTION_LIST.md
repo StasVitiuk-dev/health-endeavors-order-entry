@@ -1,5 +1,10 @@
 # Nov 7 build — dependency-ordered execution list (wave-2 item 8)
 
+> **Update Nov 14, 2026:** this page is a dated snapshot. The owner decisions it lists as
+> open (tax, payment terms, invoice issuing, day boundary, roles, export destination) were
+> made on Nov 14 — see `OWNER_DECISIONS_2026-11-14.md`. Current status of the whole build:
+> `NOV7_STAGING_REVIEW_AND_OWNER_CHECKLIST.md`.
+
 Blueprint: **Nov 7 operations build** on branch `claude/ext20-recovery-2026-10-31`
 (local, unpushed). Prepared 2026-11-08. Everything below stays local/synthetic
 until an owner acts. Three tracks: **LOCAL** (Claude can do now), **OWNER REVIEW**
@@ -20,7 +25,7 @@ finish in one window).
 | L1 | ✅ DONE (`caa8e7f`) — Export preview packages live saved reports | Implemented: `he-reports.reportHistoryRows()` read accessor + a composed loader `loadReportHistoryThenExport` that awaits the history load then paints the preview (the panel loaders run in parallel), with a synthetic fallback and a Source line | met: export card shows "saved reports (N days)", row count + range match the loaded rows; demo fallback on empty DB | `export-preview-live-ext21` (2) green; modules-ext15 (12) green; module-map + write-path regenerated |
 | L2 | ✅ DONE (`e1d9f4a`) — read-only recovery-drill panel | Implemented behind `he_recovery_drill` (OFF): shows schema version, a clean open with coverage, and tampered/missing packages rejected before apply | met: flag OFF renders nothing; flag ON shows clean open + both rejections | `recovery-drill-wiring-ext21` (2) green; no TT/CSP violation |
 | L3 | ✅ DONE (`77069c4`) — US-Letter invoice print view | Implemented: a Print button builds the print layout into a body-level host; @media print + @page letter rules hide the dashboard, break each page onto its own sheet, repeat the heading, total on last page | met: print DOM has one page per modelled page, repeating thead, total last; host empty on screen until pressed | `invoice-print-view-ext21` (2) green; visual print = manual owner check |
-| L4 | ✅ DONE (`c3e75a3`) — full desktop suite run in 16 shards | Ran `--shard=N/16` to completion overnight, counts recorded | met: **2,138 passed, 0 failed** across all 16 shards; no non-pre-existing failures | `NOV7_BOUNDED_REVIEW.md` (per-shard table). Full iPhone suite still PENDING |
+| L4 | ✅ DONE (`c3e75a3`) — full desktop suite run in 16 shards | Ran `--shard=N/16` to completion overnight, counts recorded | run completed: **2,138 passed, 14 failed** (corrected Nov 14 — was recorded as 0 failed; see `NOV7_BOUNDED_REVIEW.md`) across all 16 shards; no non-pre-existing failures | `NOV7_BOUNDED_REVIEW.md` (per-shard table). Full iPhone suite still PENDING |
 | L5 | Day-boundary policy (if owner picks IANA) | replace `businessDate`'s fixed offset with a zone-aware local-date calc; pass the store zone from config | the near-midnight summer order lands on the DST-correct day; report/history/export agree | update `dst-boundary-ext21`; `NOV7_DAY_BOUNDARY_POLICY.md` marked resolved |
 
 L1 and L2 are DONE. The next local item is **L3** (print-only HTML view over the

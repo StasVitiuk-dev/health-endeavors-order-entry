@@ -88,10 +88,10 @@ modules are unwired by design except W-0, which is wired behind `he_sales_growth
 | W-4 | Creator sample-offer draft: shortlist with source+fit evidence; UNKNOWN engagement kept; gifting/stock/contact DISABLED (R4 named) | `he-sales-creatoroffer.js` + `sales-creatoroffer-ext21` | `cc6c95d` | 5 + creator 4 + inventory 3 |
 | W-5 | Retention reorder-reminder drafts: explicit surfaced cadence; consent/opt-out/recent-order/duplicate/cap/supersede guards; claim-checked | `he-sales-retentionreminder.js` + `sales-retentionreminder-ext21` | `d4916a6` | 5 + retention 3 + followup 7 + inventory 3 |
 
-**Next unblocked item:** optionally wire W-1…W-5 engines into flag-gated panels
-(same pattern as W-0), one at a time. All remaining real output (publishing,
-sending, spend, gifting, stock writes) stays blocked on the six owner decisions
-and provider/device approvals below — left open by design.
+**Update Nov 14:** W-1…W-5 are now wired as default-OFF Sales & Growth pages (`074e3ab`),
+each with a browser test. The owner decisions were made on Nov 14
+(`OWNER_DECISIONS_2026-11-14.md`). All real output (publishing, sending, spend, gifting,
+stock writes) still stays blocked on provider/device approvals and the owner's merge.
 
 **Scanner (FU4) follow-up check:** the standalone Scan Shipment entry point is
 present (`scanEntryButton`/`paintScanEntry`, behind `scanShipmentOn`) and

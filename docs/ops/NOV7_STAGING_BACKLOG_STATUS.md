@@ -1,9 +1,10 @@
 # Nov 7 → staging backlog status
 
-Status: CURRENT · As of 2026-11-13 · For: Stas · Local/synthetic, default-OFF,
+Status: CURRENT · As of 2026-11-14 · For: Stas · Local/synthetic, default-OFF,
 draft/simulated only. Branch `claude/ext20-recovery-2026-10-31` (unpushed).
-Recovery snapshot: `scratchpad/recovery-v41/` at HEAD `8689ddf` (bundle verified,
-98/98 checksums OK).
+Recovery export: refreshed at each checkpoint (latest v46, Nov 14 documentation
+commit). It sits in the session's temporary workspace — not a durable backup
+until the branch is pushed or the export file is saved by the owner.
 
 This tracks the panel-wiring run + the launch-critical reconciliation + the
 newer approved blueprint backlog. Each closed item cites its commit and tests.
@@ -37,27 +38,43 @@ newer approved blueprint backlog. Each closed item cites its commit and tests.
   encrypted export + isolated scratch restore (`export-recovery-ext21`,
   `recovery-compat-ext21`, `recovery-drill-wiring-ext21`).
 
-## Open — in the ledger with named prerequisite
+## Closed after the first wave (Nov 13–14)
+
+| Blueprint item | Commit(s) | Test evidence |
+|---|---|---|
+| **#65 Saved views** — engine, then wired into Orders + Inventory (`he_saved_views`) | `4542476`, `79982fb` | saved-views-ext21 (8), saved-views-wiring-ext21 (4: persists across reload, restore, reset, delete, per-screen) |
+| **#54/#55 Cycle count review** wired into Inventory (`he_cycle_count`) | `44b4822` | cycle-count-wiring-ext21 (2) |
+| **#70/#71 Scheduled reports + versions** — engine, then wired into Report History (`he_report_versions`) | `f629b49`, `8a2c7b6` | report-schedule-ext21 (5), report-versions-wiring-ext21 (2) |
+| **#17 Intake request limits / #72 traceable export labels** (tested logic) | `61ef953` | intake-export-guard-ext21 (7) |
+| **#12/#53 Supplier scorecard + document checks** (tested logic, read-only) | `c2d69ea` | supplier-scorecard-ext21 (5) |
+| **#24 baselines / #36 change record** (documents) | `62eef9c`, `0cd75ad` | performance specs on the substitute browser; see caveat below |
+| **Owner decisions 1–6** recorded; 1–5 built as draft-only logic | `fe9f2f0`, `9b0b2b8`, `3f850cb`, `5bce21f` | tax-ext21 (6), owner-decisions-ext21 (5), ops-preview-wiring-ext21 |
+
+## Stage of each original blueprint item touched on this branch
+
+- **Dashboard screen with a browser test (8):** #21, #25, #27, #54, #55, #65, #70, #71.
+- **Tested logic, not yet connected to a screen (4):** #12, #17, #53, #72.
+- **Documents (2):** #24, #36.
+- **Live (merged and checked):** none. Nothing on this branch is on `main`.
+
+## Open — with the named prerequisite
 
 | Item | State | Prerequisite / next step |
 |---|---|---|
-| **#70/#71 Scheduled reports + versioning** | partial | Local report history + reruns exist (`report-ledger`, `report-export`); build local version-history + simulated delivery states. **Prereq for real delivery:** business email (owner decision O5/providers). |
-| **#65 Saved views & filters** | open | Persist personal views for Orders/Wholesale/Inventory; verify restore/clear/role/mobile. No external prereq — implementable next. |
-| **#12/#53 Supplier scorecards + doc validation** | blocked | Needs supplier records to already carry delivery + document data. **Prereq:** confirm supplier schema/fixtures exist before building (avoid inventing supplier data). |
-| **#17/#72 Intake protections + export watermarking** | applicability check | Confirm in-scope public intake form / export surface exists; add request limits + traceable export label where present. **Prereq:** identify the in-scope intake/export. |
-| **#24/#36 Perf baselines + change management** | doc | Record baselines for launch-critical screens + tested revision/rollback in existing docs. No external prereq. |
+| **#17 / #72** | tested logic | Connect the request limit to the live inquiry form and the label to the live export action. No outside dependency. |
+| **#12 / #53** | tested logic | Add a read-only section on the Suppliers screen. Required-document list is an assumption (insurance, W-9, certificate of analysis) — owner to confirm. |
+| **#24** | measured on the substitute browser only | Re-measure in CI: the CI test browser is not installed in this environment. |
+| **#08 reconciliation / #26 anomaly detection** | not reviewed | Audit for missing tests and operator review states. |
+| **Apply the Nov 14 decisions in the flows** | helpers built | Tax engine into invoice totals (needs the local rate); terms + due date at issue; daily roll-up switched to the `America/Chicago` day function. |
+| **Full-suite re-run** | last full run Nov 9 (`59cd1a7`) | Re-run all shards on the final commit before a pull request. |
 
-## Six owner decisions (unchanged — still open, each with the exact input needed)
+## Owner decisions
 
-1. **Tax rate** — the % to charge, and whether tax applies to shipping.
-2. **Payment terms** — e.g. due-on-receipt vs net-14.
-3. **Invoice issuing** — manual vs automatic, and confirm numbering `HE-YYYY-NNNN`.
-4. **Day-boundary convention** — fixed offset vs IANA/DST-aware.
-5. **Roles** — who besides the owner may issue/void invoices and release held notifications.
-6. **Export destination** — where exports go, and whether to enable automatic Mac sync later.
-
-Provider/device approvals (real tracking + notifications, business email, real
-Safari/iPhone/VoiceOver) remain separate and open.
+Decided Nov 14 — see `OWNER_DECISIONS_2026-11-14.md` (authoritative; not repeated
+here). Still needed from the owner: the local tax rate; a go-ahead to push the
+branch and open a pull request; later a business email service, a tracking
+provider and a real Safari / iPhone / VoiceOver check.
 
 ## Next actionable item
-**#65 Saved views & filters** — implementable with no external prerequisite.
+Connect #17 / #72 / #12 / #53 to their screens, then apply the Nov 14 decisions in
+the invoice and report flows.

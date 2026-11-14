@@ -1,5 +1,10 @@
 # Nov 7 build — go-live review walkthrough (for the owner session)
 
+> **Update Nov 14, 2026:** this page is a dated snapshot. The owner decisions it lists as
+> open (tax, payment terms, invoice issuing, day boundary, roles, export destination) were
+> made on Nov 14 — see `OWNER_DECISIONS_2026-11-14.md`. Current status of the whole build:
+> `NOV7_STAGING_REVIEW_AND_OWNER_CHECKLIST.md`.
+
 A step-by-step script for the live review. Everything here is **local and
 synthetic** and **default-OFF**: turning a flag on affects only your own browser
 until you decide to merge. Nothing is pushed, merged, deployed, sent, or charged.

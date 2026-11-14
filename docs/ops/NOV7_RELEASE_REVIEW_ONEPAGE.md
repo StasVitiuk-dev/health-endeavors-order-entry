@@ -1,10 +1,20 @@
 # Nov 7 build — one-page release review (owner)
 
-**Preview build:** branch `claude/ext20-recovery-2026-10-31`, commit `59cd1a7`
-(local, **unpushed**), base `9173ccf`. **All new features default-OFF** (localStorage
-flags: `he_scan_shipment`, `he_reorder_planning`, `he_report_export`,
-`he_invoice_preview`, `he_recovery_drill`; Sales & Growth behind `he_sales_growth`).
+**Updated Nov 14, 2026.** **Preview build:** branch `claude/ext20-recovery-2026-10-31`,
+commit `5bce21f` plus the documentation commit that follows it (local, **unpushed**),
+base `9173ccf`. **All new features default-OFF** (localStorage flags:
+`he_scan_shipment`, `he_reorder_planning`, `he_report_export`, `he_invoice_preview`,
+`he_recovery_drill`, `he_saved_views`, `he_cycle_count`, `he_report_versions`;
+Sales & Growth behind `he_sales_growth`).
 **Local & synthetic only** — no production data, live calls, spending, or backups.
+**Not behind a switch:** early styling changes to always-visible controls (squarer
+buttons and fields, labelled forms, right-aligned number columns). The dashboard
+will look different on merge even with every switch off — details and measurements
+in `NOV7_BOUNDED_REVIEW.md` ("Correction and re-run 2026-11-14").
+
+The table below is the Nov 9 reconciliation at `59cd1a7`. Work after that (wholesale
+W-0…W-5, blueprint items #12–#72, screen wiring, owner decisions) is reconciled item
+by item in `NOV7_STAGING_REVIEW_AND_OWNER_CHECKLIST.md`.
 
 ## Blueprint reconciliation (B11 phases = the NOV7 blueprint; no doc is literally named "B11-01/02/03" — naming dependency recorded)
 
@@ -14,36 +24,43 @@ flags: `he_scan_shipment`, `he_reorder_planning`, `he_report_export`,
 | B11-02 Operations: invoice / print / export / recovery | implemented + verified (synthetic) | invoice-* , report-* , export-recovery-, invoice-print/slip/report-view, lifecycle, money-props |
 | Inventory reorder & cash flow | implemented + verified | reorder-ext21, reorder-view, inv-wholesale-rehearsal, sample-reconcile |
 | B11-03 Sales & Growth (Scout, content, ad, reviews, creators, retention) | implemented + verified (engines + journeys) | scout-slice, content-ad-slice, sales-reviews, creator-slice, retention, approval-binding |
-| Full desktop suite | verified GREEN | 16 shards, 2,138 passed / 0 failed (`NOV7_BOUNDED_REVIEW.md`) |
-| Full iPhone suite (emulated) | verified w/ caveats | 489 passed / 365 skipped; 11 failures are override/env artifacts (visual pixel-diffs + 1 perf), not regressions |
-| Real invoice issuing / numbering live | implemented-unverified for production | owner decisions O1 pending (tax/terms/issuing) |
+| Full desktop suite | 2,138 passed / **14 failed** on Nov 9 (corrected Nov 14; was wrongly recorded as 0 failed) | 10 picture comparisons that cannot pass in the substitute browser; 4 real check failures fixed in `edfe565`; re-run in `NOV7_BOUNDED_REVIEW.md` |
+| Full iPhone suite (emulated) | 489 passed / 11 failed / 365 skipped (Nov 9) | 10 picture comparisons (cannot pass in the substitute browser, and the branch does restyle these screens — see `NOV7_BOUNDED_REVIEW.md`) + 1 timing test not re-checked |
+| Real invoice issuing / numbering live | implemented-unverified for production | owner decisions made Nov 14 and built as draft-only logic (`OWNER_DECISIONS_2026-11-14.md`); the combined live tax rate is still pending the local rate |
 | Real tracking + shipping notifications | absent (simulated only) | provider approval pending (E1) |
 | Automatic Mac export sync | absent (named dependency) | separate native component; owner decision O4 |
-| Day-boundary DST correctness | implemented (fixed offset); policy open | `NOV7_DAY_BOUNDARY_POLICY.md` (O2) |
+| Day-boundary DST correctness | decided Nov 14: midnight Central, `America/Chicago`; DST-aware day function built and tested alongside the fixed-offset one (reports not yet switched to it) | `NOV7_DAY_BOUNDARY_POLICY.md`, `OWNER_DECISIONS_2026-11-14.md`, owner-decisions-ext21 |
 | Real Safari / physical iPhone / VoiceOver | absent (owner/device) | emulated Chromium only here |
 
 ## Draft-PR checks (recorded, remote unchanged)
 Open draft PRs #16–#35 are prior "DO NOT MERGE" review packages. The one at my
 base is **#35** (`9173ccf`): its "Browser suite (shard 3/3)" shows **failure in one
 workflow run (41393623252) but success in a parallel run (41393630587)** — a known
-intermittent, at the base commit dated 2026-11-02, **before** this work. My 80
-commits are unpushed so no CI ran on `59cd1a7`; the failing check **does not apply
-to this checkpoint**. Current local evidence: desktop 2,138/0, iPhone 489 pass.
+intermittent, at the base commit dated 2026-11-02, **before** this work. The branch
+(now 112+ commits) is unpushed, so no CI has run on it; the failing check **does not
+apply to this checkpoint**. Local evidence: desktop 2,138 passed / 14 failed and iPhone 489 passed / 11 failed at
+`59cd1a7` (Nov 9); 95 tests added since, passing when run on their own; a 52-test launch rehearsal
+passed on Nov 14. The full suite has **not** been re-run end to end since Nov 9.
 
-## Six pending owner decisions (LEFT OPEN — needed before go-live)
-1. **Tax rate** (and whether tax applies to shipping)
-2. **Payment terms** (e.g. due-on-receipt / net-14)
-3. **Invoice issuing**: manual vs automatic (+ confirm numbering `HE-YYYY-NNNN`)
-4. **Day-boundary convention**: fixed offset vs IANA/DST-aware
-5. **Roles**: who besides owner may issue/void invoices and release held notifications
-6. **Export destination** + whether to enable automatic Mac sync later
+## Six owner decisions — DECIDED Nov 14, 2026
+All six were answered by Stas on Nov 14. The answers, what was built from each, and
+what is still pending live in one place: **`OWNER_DECISIONS_2026-11-14.md`**
+(authoritative — not repeated here).
+
+**Still needed before go-live:** the local tax rate (the combined live rate stays
+pending), a business email service, a tracking provider, a real Safari / iPhone /
+VoiceOver check, the safe stock-change function (R4), and the owner's review and
+merge.
 
 ## Rollback
 Nothing is live. If merged later and an issue appears: revert the merge commit on
 `main` (previous `main` is the immediate parent); all features are flag-OFF so a
 flag removal (`localStorage.removeItem('he_*')`) disables any preview instantly
-without a deploy. Local recovery export v37 (`scratchpad/recovery-v37/`) restores
-this exact checkpoint (bundle + checksums + tree-match verified).
+without a deploy. A local recovery export (git bundle + patches + checksums, verified)
+is refreshed at each checkpoint; the latest is v46, made at the Nov 14 documentation
+commit. **It lives in this session's temporary workspace and is not a durable
+backup** — the branch is preserved for good only once it is pushed to GitHub or the
+export file is saved by the owner.
 
 ## Known limits
 Previews are SIMULATED review tools, not production actions. Invoice issuing,

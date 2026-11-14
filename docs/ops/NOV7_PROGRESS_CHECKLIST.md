@@ -145,3 +145,42 @@ clone tree-hash `40a39ddb` matches — `scratchpad/recovery-v38/`).
   workflow): stock/cost/outcome, idempotent, UNKNOWN≠fake$0, write contract named
   (4 tests) — `683e0e2`; reconciliation + ordered agent backlog W-0..W-5 — `f6cd560`
 - FU3+FU4+FU5 specs: 12 passed (desktop, pure Node). Browser override absent from config.
+
+## Wholesale follow-ons W-0…W-5 (2026-11-09 → 11-13) — ✅ built, wired, tested
+All draft-only behind `he_sales_growth` (OFF by default); nothing sent, spent or gifted.
+- ✅ W-0 in-person sample visit page — `2b02bc4`
+- ✅ W-1 content repurposing drafts (attribution, missing-input states, injection blocked) — `5c73c2c`
+- ✅ W-2 ad variants (approval bound to exact wording + facts; no spend) — `2a513b0`
+- ✅ W-3 feedback analysis (human routing, conflicts, private details redacted) — `a4a68d7`
+- ✅ W-4 creator sample-offer drafts (unknown engagement stays unknown; contact/gifting/stock off) — `cc6c95d`
+- ✅ W-5 reorder-reminder drafts (explicit cadence; opt-out / duplicate / cap guards) — `d4916a6`
+- ✅ W-1…W-5 wired as five pages (54 Sales & Growth pages total) — `074e3ab`
+
+## Original blueprint backlog (2026-11-13 → 11-14) — ✅ built and tested on the branch
+- ✅ #25 service health: job state + next operator action — `f9625c2`
+- ✅ #21 manual-fallback readiness (each launch flow has a manual path, cited to tests) — `fa8bc11`
+- ✅ #54/#55 cycle count + adjustment approval + audit — engine `49c422a`, Inventory screen `44b4822`
+- ✅ #27 recurring complaint trends (packaging / pump / quality) — `8689ddf`
+- ✅ #65 saved views — engine `4542476`, Orders + Inventory screens `79982fb`
+- ✅ #70/#71 scheduled reports, unchangeable versions, simulated delivery — engine `f629b49`, Report History screen `8a2c7b6`
+- 🟡 #17 intake request limits / #72 traceable export labels — tested logic `61ef953`; not yet connected to the live inquiry form / export action
+- 🟡 #12/#53 supplier scorecard + document checks (read-only) — tested logic `c2d69ea`; not yet on the Suppliers screen
+- 🟡 #24 screen baselines — measured on the substitute browser only; re-measure in CI. #36 change record — `62eef9c`
+- ⬜ #08 reconciliation / #26 anomaly detection — not reviewed yet
+- ✅ Launch rehearsal (scanner, wholesale approval, receiving, invoice print, backup restore): 52 passed — recorded `0cd75ad`
+
+## Owner decisions (2026-11-14) — ✅ decided and recorded
+Authoritative record: `OWNER_DECISIONS_2026-11-14.md`. This replaces the
+"Owner decisions outstanding" list above for tax, terms, invoice issuing,
+day boundary, roles and export destination.
+- ✅ 1 Illinois tax rule engine (combined live rate still pending the local rate) — `fe9f2f0`
+- ✅ 2 payment terms · ✅ 3 numbering · ✅ 4 `America/Chicago` day cutoff — `9b0b2b8`
+- ✅ 5 owner + administrator may issue / void; staff draft-only (owner confirmed) — `3f850cb`
+- ✅ 6 export destination recorded (owner-side procedure)
+- ✅ Decisions 1–2 shown as a worked example in the invoice preview — `5bce21f`
+- 🟡 Not yet applied in the flows: tax engine in invoice totals, terms + due date at issue, daily roll-up on the new day function
+
+## Still needed (as of 2026-11-14)
+- From the owner: the local tax rate; a go-ahead to push the branch and open a pull request; confirm the required supplier documents; later a business email service, a tracking provider, a real Safari / iPhone / VoiceOver check.
+- Engineering: connect #17/#72/#12/#53 to screens; apply the decisions in the flows; full-suite re-run on the final commit (last full run: Nov 9 at `59cd1a7`); #24 in CI; #08/#26 audit.
+- **Durability:** branch and recovery export exist only in this session's temporary workspace until pushed or saved by the owner.
