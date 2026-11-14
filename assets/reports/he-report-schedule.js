@@ -17,6 +17,19 @@
 }(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
 
+  // Owner decision #4: the reporting day ends at midnight Central using the
+  // IANA zone America/Chicago, so daylight saving is handled automatically. This
+  // is additive — the fixed-offset businessDate in he-report-export is unchanged.
+  const DEFAULT_BUSINESS_TZ = 'America/Chicago';
+  function businessDateTZ(at, timeZone) {
+    const d = new Date(at);
+    if (isNaN(d.getTime())) return null;
+    try {
+      // en-CA formats as YYYY-MM-DD; the timeZone makes it the local calendar day.
+      return new Intl.DateTimeFormat('en-CA', { timeZone: timeZone || DEFAULT_BUSINESS_TZ, year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
+    } catch (e) { return d.toISOString().slice(0, 10); } // fall back to UTC date if TZ unsupported
+  }
+
   const DELIVERY_STATES = ['QUEUED', 'HELD', 'SENT', 'FAILED'];
   // Legal simulated delivery transitions. SENT is terminal-successful; HELD and
   // FAILED can return to QUEUED for a safe retry. No real send ever happens.
@@ -101,5 +114,5 @@
     };
   }
 
-  return { DELIVERY_STATES, DELIVERY_NEXT, DELIVERY_DEPENDENCY, checksumOf, createReportBook, canDeliveryTransition, queueDelivery, applyDelivery, scheduleFixtures };
+  return { DELIVERY_STATES, DELIVERY_NEXT, DELIVERY_DEPENDENCY, DEFAULT_BUSINESS_TZ, businessDateTZ, checksumOf, createReportBook, canDeliveryTransition, queueDelivery, applyDelivery, scheduleFixtures };
 }));

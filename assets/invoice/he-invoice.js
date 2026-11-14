@@ -295,5 +295,22 @@
     };
   }
 
-  return { STATES, ROLES_MAY_ISSUE, US_LETTER, BUSINESS_HEADER, MISSING_SEQUENCE_CONTRACT, computeTotals, draftInvoice, reviseDraft, nextInvoiceNumber, createNumberSequence, invoiceHeader, issue, applyPayment, voidInvoice, creditNote, withOverdue, packingSlip, paginate, invoicePrint, packingSlipPrint };
+  // Owner decision #2 — payment terms. New wholesale buyers are DUE ON RECEIPT;
+  // Net 14 applies only to an account the owner has approved for credit.
+  const PAYMENT_TERMS = ['DUE_ON_RECEIPT', 'NET_14'];
+  function termsForAccount(account) {
+    const a = account || {};
+    return (a.creditApproved === true) ? 'NET_14' : 'DUE_ON_RECEIPT';
+  }
+  // Due date from an issue date + terms. Due-on-receipt is the issue date; Net 14
+  // is +14 days. Pure date math on an ISO date (YYYY-MM-DD).
+  function dueDateFor(issueDate, terms) {
+    if (!issueDate) return null;
+    const base = new Date(issueDate + (issueDate.length === 10 ? 'T00:00:00Z' : ''));
+    if (isNaN(base.getTime())) return null;
+    const days = terms === 'NET_14' ? 14 : 0;
+    return new Date(base.getTime() + days * 86400000).toISOString().slice(0, 10);
+  }
+
+  return { STATES, ROLES_MAY_ISSUE, PAYMENT_TERMS, US_LETTER, BUSINESS_HEADER, MISSING_SEQUENCE_CONTRACT, computeTotals, draftInvoice, reviseDraft, nextInvoiceNumber, createNumberSequence, invoiceHeader, issue, applyPayment, voidInvoice, creditNote, withOverdue, packingSlip, paginate, invoicePrint, packingSlipPrint, termsForAccount, dueDateFor };
 }));
