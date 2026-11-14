@@ -33,8 +33,15 @@ instead of beside them:
   approved for credit. Asking for Net 14 on an unapproved account is refused.
 - **Day cutoff (4):** the daily roll-up can now group sales by the Central-time day,
   tested across both daylight-saving change days. *Still open:* the saved nightly
-  reports are produced by the database, so the live cutoff is a database change
-  (a draft for the owner to run), not something this dashboard code can switch.
+  reports are produced by a database job that is not in this repository, so nobody
+  can tell from the code which cutoff it uses today. **First step, ready to run:**
+  the read-only check `sql/12_READONLY_I_report_day_cutoff.sql` (Query I). It changes
+  nothing and prints only counts: for each saved report in the last 45 days it counts
+  that day's orders by the Central day and by the UTC day and says which one the
+  report agrees with. Its first row is the conclusion — PASS (already Central),
+  ACTION (uses UTC; a change is needed) or "show the result". Tested locally on
+  synthetic rows (`sql/local-test/report_day_cutoff_test.sh`, 15 checks). No change
+  to the job is drafted until this result is known.
 - **Numbering (3), permissions (5):** already how the invoice engine behaves.
 - **Exports (6):** a procedure on the owner's Mac; nothing to switch on yet. Each
   export now carries a trace label (see blueprint item #72).

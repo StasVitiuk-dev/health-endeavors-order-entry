@@ -114,6 +114,14 @@
       "env": "production",
       "schema": "check_name,verdict,flag",
       "interpret": "every row should be PASS; any FAIL means that fix drifted or was removed"
+    },
+    {
+      "file": "12_READONLY_I_report_day_cutoff.sql",
+      "id": "I",
+      "purpose": "which day cutoff the nightly report uses today: Central-time day or UTC day (owner decision of Nov 14: Central)",
+      "env": "production",
+      "schema": "item,reported,central_day,utc_day,verdict,action",
+      "interpret": "row I00 is the conclusion: PASS = already Central; ACTION = uses UTC, a change is needed; UNCLEAR / NOT ENOUGH DATA / NO DATA = show the result. Counts only, no customer data."
     }
   ],
   "changes": [

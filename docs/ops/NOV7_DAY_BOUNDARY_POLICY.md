@@ -4,6 +4,11 @@
 > open (tax, payment terms, invoice issuing, day boundary, roles, export destination) were
 > made on Nov 14 — see `OWNER_DECISIONS_2026-11-14.md`. Current status of the whole build:
 > `NOV7_STAGING_REVIEW_AND_OWNER_CHECKLIST.md`.
+>
+> **Decided:** midnight Central, `America/Chicago`. The dashboard-side roll-up can now
+> group by that day (`summarizeLedger` with `dayOf`). What the live nightly job uses
+> is unknown from this repository; the read-only Query I
+> (`sql/12_READONLY_I_report_day_cutoff.sql`) answers it from the data.
 
 Status: 2026-11-08, commit on `claude/ext20-recovery-2026-10-31`. Local/synthetic.
 
