@@ -36,7 +36,7 @@
 <script src="assets/owner-login-helpers.js?v=76dc8fc4a9"></script>
 <script src="assets/owner-login-modules.js?v=0d97adc58c"></script>
 <!-- @@ EXT15 module files (assets/app/*.js), added by tests/tools/extract-module.js @@ -->
-<script src="assets/app/he-config.js?v=49801a7c1a"></script>
+<script src="assets/app/he-config.js?v=3374a4b803"></script>
 <script src="assets/app/he-ui.js?v=156512e5ba"></script>
 <script src="assets/app/he-data.js?v=c83d91bc56"></script>
 <script src="assets/app/he-audit.js?v=b5b3a424dc"></script>
@@ -110,6 +110,7 @@
 <script src="assets/scan/he-scan-ui.js?v=26b2ea15be"></script>
 <script src="assets/inventory/he-reorder.js?v=20e2d3e8f1"></script>
 <script src="assets/views/he-saved-views.js?v=3575602f5e"></script>
+<script src="assets/inventory/he-inventory-count.js?v=aa68b11b8d"></script>
 <script src="assets/inventory/he-reorder-fixtures.js?v=885819be55"></script>
 <script src="assets/invoice/he-invoice.js?v=e2b46a3219"></script>
 <script src="assets/reports/he-report-export.js?v=fe937e6f2e"></script>
@@ -355,6 +356,7 @@
         <h3 class="u-fs-13 u-c-navy u-m-20-0-6">Recent adjustments</h3>
         <p class="hint u-mt-n2">A permanent log — never edited or deleted, so it always shows the true history of every change.</p>
         <div id="inventoryAdjustmentsWrap"><p class="empty">Loading…</p></div>
+        <div id="cycleCountHost"></div>
       </section>
 
       <!-- Returns (tied to Orders + Inventory) -->
@@ -1066,6 +1068,6 @@
   </div>
 
 <div id="invoicePrintHost" class="printView" aria-hidden="true"></div>
-<script src="assets/owner-login-app.js?v=237f8a0e5d"></script>
+<script src="assets/owner-login-app.js?v=ada269c549"></script>
 </body>
 </html>

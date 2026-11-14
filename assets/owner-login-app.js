@@ -84,7 +84,7 @@
       nightlyOverall,
     } = window.HE.helpers;
     // @@ EXT15 modules: created in dependency order (assets/app/*.js; see docs/ops/APPLICATION_MODULE_MAP_EXT15.md)
-    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn } = HE.modules.create('he-config', {  });
+    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn } = HE.modules.create('he-config', {  });
     const { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, h, pageIconNode } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
     const { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
     const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, h, supabase });
@@ -2083,6 +2083,62 @@
       }
     });
 
+    // ---------- #54/#55 Cycle count + adjustment approval (behind cycleCountOn)
+    // A worked synthetic count: draft -> discrepancy review -> owner-approved
+    // adjustment -> audit. ADVISORY/DRAFT-ONLY — an approved adjustment names the
+    // safe write (adjust_inventory R4) and is never applied to real stock. The
+    // owner-only approval boundary and the audit trail are shown live; OFF by
+    // default (host renders empty, Inventory unchanged).
+    let cycleCountApproved = false;
+    function workedCycleCount(eng) {
+      const c = eng.startCount(eng.fixtures());
+      eng.recordCount(c, 'HE-HONEY-8OZ', 38, 'staff', '2026-11-14T09:10:00Z'); // short 2
+      eng.recordCount(c, 'HE-VEGAN-8OZ', 25, 'staff', '2026-11-14T09:11:00Z'); // match
+      eng.recordCount(c, 'HE-SHEA-4OZ', 15, 'staff', '2026-11-14T09:12:00Z');  // over 3
+      eng.submitForApproval(c, 'staff', '2026-11-14T09:15:00Z');
+      return c;
+    }
+    function loadCycleCount() {
+      const host = document.getElementById('cycleCountHost'); if (!host) return;
+      if (!(typeof cycleCountOn === 'function' && cycleCountOn())) { host.replaceChildren(); return; }
+      const eng = invMod('he-inventory-count');
+      if (!eng) { host.replaceChildren(h('p', { class: 'empty' }, 'Cycle count tools could not load.')); return; }
+      const c = workedCycleCount(eng);
+      const disc = eng.discrepancies(c);
+      const discRows = disc.map(d => h('tr', null,
+        h('td', null, d.sku),
+        h('td', { class: 'num-cell' }, String(d.systemQty)),
+        h('td', { class: 'num-cell' }, String(d.countedQty)),
+        h('td', { class: 'num-cell' }, (d.delta > 0 ? '+' : '') + d.delta + ' ' + d.direction)));
+      // Try a staff approval first to show the permission boundary refuses it.
+      const staffTry = eng.approveAdjustment(c, { role: 'staff' });
+      let approvedBlock = null;
+      if (cycleCountApproved) {
+        const ap = eng.approveAdjustment(c, { role: 'owner', by: 'owner', at: '2026-11-14T10:00:00Z' });
+        approvedBlock = h('div', { class: 'scanCard u-mt-10' },
+          h('div', { class: 'scanCardHead' }, 'Approved adjustment (advisory — NOT written to stock)'),
+          ...ap.adjustments.map(a => h('div', { class: 'scanCardRow' }, a.sku + ': ' + a.from + ' → ' + a.to + ' (' + (a.delta > 0 ? '+' : '') + a.delta + ') · applied=false')),
+          h('div', { class: 'u-fs-12 u-c-muted u-mt-8' }, 'Safe write needed: ' + eng.MISSING_WRITE_CONTRACT),
+          h('div', { class: 'u-fs-12 u-c-muted u-mt-6' }, 'Audit: ' + c.audit.map(x => x.action).join(' → ')));
+      }
+      host.replaceChildren(h('div', { class: 'cycleCount u-mb-16' },
+        h('div', { class: 'scanHead' }, h('h3', null, 'Cycle count & adjustment review'), h('span', { class: 'scanBadge' }, 'SIMULATED — advisory, no stock is written')),
+        h('p', { class: 'hint u-mt-6' }, 'Status: ' + c.status + ' · staff approval attempt: ' + staffTry.reason),
+        h('table', { class: 'phoneCards u-mt-8' },
+          h('thead', null, h('tr', null, h('th', null, 'SKU'), h('th', { class: 'num-cell' }, 'System'), h('th', { class: 'num-cell' }, 'Counted'), h('th', { class: 'num-cell' }, 'Discrepancy'))),
+          h('tbody', null, discRows)),
+        h('div', { class: 'scanToggleRow u-mt-8' },
+          h('button', { type: 'button', class: 'small' + (cycleCountApproved ? ' secondary' : ''), 'data-cyclecount': 'approve' }, cycleCountApproved ? 'Approved (owner)' : 'Approve as owner'),
+          h('button', { type: 'button', class: 'small secondary', 'data-cyclecount': 'reset' }, 'Reset')),
+        approvedBlock));
+    }
+    document.addEventListener('click', (e) => {
+      const t = e.target.closest('[data-cyclecount]'); if (!t) return;
+      const act = t.getAttribute('data-cyclecount');
+      if (act === 'approve') { cycleCountApproved = true; loadCycleCount(); }
+      else if (act === 'reset') { cycleCountApproved = false; loadCycleCount(); }
+    });
+
     // ---------- Operations output previews (read-only; behind reportExportOn /
     // invoicePreviewOn). Both are SIMULATED prototypes shown in Report History.
     // The export preview packages a synthetic day-set into a manifest with a
@@ -2304,7 +2360,7 @@
       dailySummaryPanel: [loadDailySummary],
       reportHistoryPanel: [loadReportHistoryThenExport, loadRecoveryDrill, loadInvoicePreview],
       ordersPanel: [loadOrders, paintScanEntry, loadSavedViews],
-      inventoryPanel: [loadInventory, loadInventoryAdjustments, loadReorderPlanning, loadSavedViews],
+      inventoryPanel: [loadInventory, loadInventoryAdjustments, loadReorderPlanning, loadSavedViews, loadCycleCount],
       returnsPanel: [loadReturns],
       suppliersPanel: [loadSuppliers],
       purchaseOrdersPanel: [loadPurchaseOrders],
