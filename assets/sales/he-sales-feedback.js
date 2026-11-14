@@ -33,25 +33,29 @@
   const CONFLICT_THEMES = ['leaking', 'pump', 'quality', 'scent', 'texture', 'packaging'];
 
   // PII detectors. Deterministic, conservative: better to over-flag and make a
-  // human look than to leak a customer's details into a testimonial.
+  // human look than to leak a customer's details into a testimonial. Every
+  // quantifier is BOUNDED so matching stays linear on very long input (no slow
+  // pattern), and each rule carries a static global twin for redaction so no
+  // pattern is ever built at run time.
   const PII_RULES = [
-    ['email', /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/],
-    ['phone', /(?:\+?\d[\s().-]?){10,}/],
-    ['card', /\b(?:\d[ -]?){13,16}\b/],
-    ['address', /\b\d{1,5}\s+[A-Za-z0-9.\s]{3,}\b(?:street|st|avenue|ave|road|rd|lane|ln|blvd|boulevard|drive|dr|court|ct)\b/i],
+    ['email', /[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9.-]{1,253}\.[A-Za-z]{2,24}/, /[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9.-]{1,253}\.[A-Za-z]{2,24}/g],
+    ['phone', /(?:\+?\d[\s().-]?){9,19}\d/, /(?:\+?\d[\s().-]?){9,19}\d/g],
+    ['card', /\b(?:\d[ -]?){13,16}\b/, /\b(?:\d[ -]?){13,16}\b/g],
+    ['address', /\b\d{1,5} {1,3}[A-Za-z0-9.]{1,30}(?: {1,3}[A-Za-z0-9.]{1,30}){0,5} {1,3}(?:street|st|avenue|ave|road|rd|lane|ln|blvd|boulevard|drive|dr|court|ct)\b/i,
+      /\b\d{1,5} {1,3}[A-Za-z0-9.]{1,30}(?: {1,3}[A-Za-z0-9.]{1,30}){0,5} {1,3}(?:street|st|avenue|ave|road|rd|lane|ln|blvd|boulevard|drive|dr|court|ct)\b/gi],
   ];
 
   function findPII(text) {
     const s = String(text == null ? '' : text);
     const found = [];
-    for (const [kind, re] of PII_RULES) if (re.test(s)) found.push(kind);
+    for (const rule of PII_RULES) if (rule[1].test(s)) found.push(rule[0]);
     return found;
   }
 
   // Redact detected PII for display. Never mutates the stored source.
   function redactPII(text) {
     let s = String(text == null ? '' : text);
-    for (const [kind, re] of PII_RULES) s = s.replace(new RegExp(re.source, re.flags.includes('g') ? re.flags : re.flags + 'g'), '[' + kind + ' redacted]');
+    for (const rule of PII_RULES) { rule[2].lastIndex = 0; s = s.replace(rule[2], '[' + rule[0] + ' redacted]'); }
     return s;
   }
 

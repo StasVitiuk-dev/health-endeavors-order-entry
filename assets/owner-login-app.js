@@ -1776,7 +1776,6 @@
     }
 
     function scanCard(c, ui) {
-      const eng = scanMod('he-scan');
       return h('div', { class: 'scanCard' },
         h('div', { class: 'scanCardHead' }, (c.channel === 'wholesale' ? 'Wholesale' : 'Retail') + ' order ', h('b', null, c.order_number || c.order_id)),
         h('div', { class: 'scanCardRow' }, 'To: ', c.intendedRecipient, ' · ZIP ', c.destination.zip),

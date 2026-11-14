@@ -161,7 +161,7 @@ systems.**
 - CSV export already exists on specific pages (Employee Activity →
   `exportActivityCsv`, Tax Records → tax CSV). These are per-page, on-demand,
   click-to-download, single-table, unencrypted.
-- "Report History" already exists (`he-reports.js`): it *browses* nightly
+- "Report History" already exists (`assets/app/he-reports.js`): it *browses* nightly
   snapshot rows already saved in the database (daily/weekly/monthly rollups,
   missing values stay `?`). It is a read view of server data, not a file export.
 - The **current backup system** is the **private Health Endeavors backups

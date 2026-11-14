@@ -47,6 +47,21 @@ test('#3 invoice numbers are HE-YYYY-NNNN, per-year and gap-free, assigned at is
   expect(issued.invoice.status).toBe('issued');
 });
 
+test('#3 a voided invoice keeps its number in the record and the number is never handed out again', () => {
+  const draft = INV.draftInvoice({ lines: [{ sku: 'X', quantity: 1, unitPrice: 10 }] });
+  const seq = INV.createNumberSequence({ year: 2026 });
+  const first = seq.reserve();
+  expect(seq.commit(first.number).ok).toBe(true);
+  const issued = INV.issue(draft, { role: 'owner', number: first.number, now: '2026-11-14' }).invoice;
+  const voided = INV.voidInvoice(issued, { role: 'owner', reason: 'entered in error' });
+  expect(voided.ok).toBe(true);
+  expect(voided.invoice.status).toBe('void');
+  expect(voided.invoice.number).toBe(first.number);   // the number stays on the voided record
+  expect(seq.used()).toContain(first.number);         // and stays used in the sequence
+  const next = seq.reserve();
+  expect(next.number).not.toBe(first.number);         // the next invoice gets a new number
+});
+
 // #5 — permissions (owner CONFIRMED 2026-11-14: owner AND administrator may
 // issue/void; staff may prepare drafts only).
 test('#5 owner and administrator may issue/void; staff cannot', () => {

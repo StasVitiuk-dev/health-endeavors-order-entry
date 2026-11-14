@@ -94,9 +94,17 @@
     const year = Number(o.year) || new Date().getFullYear();
     const width = Number(o.width) || 4;
     const seen = o.existingNumbers instanceof Set ? o.existingNumbers : new Set(o.existingNumbers || []);
-    const re = new RegExp('^' + prefix + '-' + year + '-(\\d+)$');
+    // Match "<prefix>-<year>-<digits>" by plain string comparison (no pattern is
+    // built at run time, so nothing user-supplied can shape a regular expression).
+    const head = prefix + '-' + year + '-';
     let max = 0;
-    seen.forEach(function (n) { const m = re.exec(String(n)); if (m) { const v = parseInt(m[1], 10); if (v > max) max = v; } });
+    seen.forEach(function (n) {
+      const str = String(n);
+      if (str.indexOf(head) !== 0) return;
+      const tail = str.slice(head.length);
+      if (!/^[0-9]{1,12}$/.test(tail)) return;
+      const v = parseInt(tail, 10); if (v > max) max = v;
+    });
     const sequence = max + 1;
     const padded = String(sequence); const pad = padded.length >= width ? padded : ('0'.repeat(width - padded.length) + padded);
     return { number: prefix + '-' + year + '-' + pad, sequence: sequence, year: year, prefix: prefix, format: prefix + '-YYYY-' + '0'.repeat(width), proposed: true };
