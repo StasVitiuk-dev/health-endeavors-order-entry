@@ -127,3 +127,46 @@ tests green; features default-OFF). Remaining to a fully wired review build:
 
 So: **~1.5 focused engineering days** to a fully-wired, re-measured staging build;
 go-live then waits only on the owner decisions and provider/device approvals.
+
+---
+
+## 8. Wiring wave (2026-11-14) — engine → dashboard journey
+
+Three engine-tested items were wired into the live dashboard behind default-OFF
+flags (host-div pattern: flag OFF → host empty → screen byte-unchanged). Each is
+now **dashboard-journey verified** (browser test), advancing from the "engine"
+stage to the "journey" stage (not counted twice).
+
+| ID | Journey wired | Flag | Evidence (spec · commit) |
+|---|---|---|---|
+| #65 | Saved views on Orders + Inventory: save → persist across reload → restore → reset → delete; per-screen; labelled keyboard-focusable controls | `he_saved_views` | saved-views-wiring-ext21 (4) · `79982fb` |
+| #54/#55 | Cycle count on Inventory: discrepancies, owner-only approval boundary shown live, advisory adjustment (applied=false, R4 named), audit trail | `he_cycle_count` | cycle-count-wiring-ext21 (2) · `44b4822` |
+| #70/#71 | Report versions in Report History: schedule/missed-day, immutable versions + rerun (v2 appended), simulated delivery (SENT, delivered=false) | `he_report_versions` | report-versions-wiring-ext21 (2) · `8a2c7b6` |
+
+Regression on the live screens with flags OFF: modules-ext15 (12), csp-strict +
+pages-strict + pages-data (53) — all green.
+
+### Stage reconciliation (this branch, baseline = original ~90-item blueprint)
+- **Dashboard journey verified** (wired + browser test): #21, #25, #27, #65, #54, #55, #70, #71 (8) — plus newer W-0…W-5 panels, tracked separately.
+- **Engine tested** (synthetic test, not yet wired to a live screen): #17, #72, #12, #53 (4).
+- **Live verified (deployed):** 0 — nothing pushed/merged/deployed.
+
+### Launch rehearsal (2026-11-14, diagnostic browser)
+52 passed across scanner flow + recovery (split shipments, duplicate, outage),
+wholesale approval binding, PO receive, invoice print view, and export/backup
+recovery — no launch blocker found.
+
+### #24 baselines — status
+Baselines captured on the **diagnostic browser** (performance-scale,
+request-baseline, sales-decision-perf — all green). Remeasuring on the **CI
+browser build (1194)** is **blocked in this environment**: that build is not
+installed here (only the diagnostic build is), which is the same known
+diagnostic-browser mismatch recorded in `NOV7_BOUNDED_REVIEW.md`. CI-build
+remeasurement must run in CI. Not a regression — an environment limitation.
+
+### Still open (engine done; live-entry-point wiring remaining)
+- **#17 / #72** request limits + export labels: engines tested; wiring into the
+  live inquiry-submit path and the live export action is the remaining step.
+- **#12 / #53** supplier scorecard: engine tested (read-only, derived); a
+  Suppliers-screen surface is the remaining step.
+- **#08 reconciliation / #26 anomaly** review-state audit: not yet started.
