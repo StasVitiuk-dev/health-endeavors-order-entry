@@ -55,6 +55,10 @@ test('invoice preview ON: draft totals + packing slip; issuing stays an owner de
   // Owner decisions #1/#2 applied inside the invoice: mandatory shipping is in
   // the tax base (16.03 on 256.50 at the 6.25% state rate), the invoice's own
   // total follows, and issuing is BLOCKED while the local rate is unconfirmed.
+  // The invoice's own totals row follows the same rules (no placeholder rate).
+  await expect(host).toContainText('Tax (6.25% state rate — local rate pending): $16.03');
+  await expect(host).toContainText('Total: $272.53');
+  await expect(host).not.toContainText('Tax (8%)');
   await expect(host).toContainText('Taxable base $256.50');
   await expect(host).toContainText('Payment terms: Due on receipt');
   const check = host.locator('[data-issuecheck]');

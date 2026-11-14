@@ -25,6 +25,9 @@ test('Print builds the US-Letter print DOM: pages, repeating headings, totals la
   await expect(host.locator('.printPage thead')).toHaveCount(1);
   // the total appears on the last page
   await expect(host.locator('.printTotals')).toContainText('Total:');
+  // the printed total follows the decided tax rules, and a pending rate is said on the page
+  await expect(host.locator('.printTotals')).toContainText('Total: $272.53');
+  await expect(host.locator('[data-printnote="tax-pending"]')).toContainText('Not a final invoice');
   await expect(host).toContainText('SIMULATED');
   expect(errors.join('\n')).not.toMatch(/Trusted Type|require-trusted-types|Refused to/i);
 });

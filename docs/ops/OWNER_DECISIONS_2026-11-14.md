@@ -24,9 +24,10 @@ instead of beside them:
   part of the taxed amount, a valid resale certificate makes the order tax-free, and
   **a draft whose rate is still pending cannot be issued** — by the owner or an
   administrator — until the local rate is confirmed (confirming it is a recorded
-  revision). The invoice preview shows the resulting total and "issuing: blocked".
-  *Still open:* the preview's main totals row keeps its earlier placeholder rate, and
-  the real local rate has not been supplied.
+  revision). The invoice preview and its printout now use these rules for their own
+  totals (no placeholder rate any more), show "issuing: blocked", and the printout
+  says it is a draft at the state rate only. *Still open:* the real local rate has
+  not been supplied.
 - **Terms (2):** issuing an invoice for a named account now fills in the terms and
   the due date: due on receipt, or Net 14 (issue date + 14 days) for an account
   approved for credit. Asking for Net 14 on an unapproved account is refused.

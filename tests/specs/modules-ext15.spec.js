@@ -93,7 +93,7 @@ const ADDED = ['setReportHistoryView', 'inquiriesList', 'agentControls', 'poRece
   // Read-only, SIMULATED; issuing an invoice stays an owner decision.
   // reportExportOn / invoicePreviewOn are the he-config flag factories (OFF by
   // default), parallel to scanShipmentOn / reorderPlanningOn above.
-  'opsReportsMod', 'exportLabelFor', 'opsInvoiceMod', 'loadReportExportPreview', 'loadInvoicePreview',
+  'opsReportsMod', 'exportLabelFor', 'opsInvoiceMod', 'previewInvoiceDraft', 'loadReportExportPreview', 'loadInvoicePreview',
   'reportExportOn', 'invoicePreviewOn',
   // EXT21 L1: composed loader so the export preview renders after Report History
   // loads its rows (the panel loaders otherwise run in parallel); and the

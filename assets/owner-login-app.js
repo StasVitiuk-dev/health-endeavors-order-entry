@@ -2319,15 +2319,25 @@
         h('div', { class: 'scanToggleRow u-mt-8' }, h('button', { type: 'button', class: 'small', 'data-print': 'report' }, 'Print report (US-Letter preview)')),
         h('p', { class: 'hint u-mt-8' }, 'Values marked UNKNOWN were never measured (never shown as $0). Automatic Mac sync of the saved package is a separate component and is not enabled here.')));
     }
+    // The one example invoice the preview and its print layout both show. Its
+    // tax follows owner decision #1 through the tax rules (state rate, mandatory
+    // shipping in the taxed amount, local rate still PENDING) — not a made-up
+    // placeholder rate. Synthetic; nothing is issued.
+    function previewInvoiceDraft(inv) {
+      let taxMod = null; try { taxMod = (window.HE && window.HE.invoice && window.HE.invoice['he-tax']) || null; } catch (e) { taxMod = null; }
+      const tf = (taxMod && typeof taxMod.invoiceTaxFields === 'function') ? taxMod.invoiceTaxFields({ shipping: { mandatory: true } }) : null;
+      return inv.draftInvoice(Object.assign({ lines: [
+        { sku: 'HE-HONEY-8OZ', description: 'Honey Milk 8 oz', quantity: 10, unitPrice: 18.50, discount: 5, lotNumber: 'LOT-A' },
+        { sku: 'HE-VEGAN-8OZ', description: 'Vegan 8 oz', quantity: 4, unitPrice: 18.50, lotNumber: 'LOT-B' },
+      ], orderDiscount: 10, shipping: 12.5, currency: 'USD' },
+      tf ? { taxRate: tf.taxRate, taxRateStatus: tf.taxRateStatus, taxShipping: tf.taxShipping, taxExempt: tf.taxExempt } : { taxRate: 0 }));
+    }
     function loadInvoicePreview() {
       const host = document.getElementById('invoicePreviewHost'); if (!host) return;
       if (!(typeof invoicePreviewOn === 'function' && invoicePreviewOn())) { host.replaceChildren(); return; }
       const inv = opsInvoiceMod();
       if (!inv) { host.replaceChildren(h('p', { class: 'empty' }, 'Invoice preview tools could not load.')); return; }
-      const draft = inv.draftInvoice({ lines: [
-        { sku: 'HE-HONEY-8OZ', description: 'Honey Milk 8 oz', quantity: 10, unitPrice: 18.50, discount: 5, lotNumber: 'LOT-A' },
-        { sku: 'HE-VEGAN-8OZ', description: 'Vegan 8 oz', quantity: 4, unitPrice: 18.50, lotNumber: 'LOT-B' },
-      ], orderDiscount: 10, shipping: 12.5, taxRate: 0.08, currency: 'USD' });
+      const draft = previewInvoiceDraft(inv);
       const slip = inv.packingSlip({ orderId: 'SYN-preview', shipmentId: 'SYN-preview-s1', allocations: [
         { sku: 'HE-HONEY-8OZ', quantity: 6, lotNumber: 'LOT-A' }, { sku: 'HE-VEGAN-8OZ', quantity: 4, lotNumber: 'LOT-B' },
       ] });
@@ -2352,8 +2362,7 @@
       const dueDate = (typeof inv.dueDateFor === 'function') ? inv.dueDateFor('2026-11-14', terms) : null;
       // The same rules applied inside the invoice itself: its own total, and
       // whether it could be issued. A PENDING rate blocks issuing (decision #1).
-      const taxFields = (taxMod && typeof taxMod.invoiceTaxFields === 'function') ? taxMod.invoiceTaxFields({ shipping: { mandatory: true } }) : null;
-      const decided = taxFields ? inv.draftInvoice(Object.assign({ lines: draft.lines, orderDiscount: draft.orderDiscount, shipping: draft.shipping, currency: draft.currency }, taxFields)) : null;
+      const decided = draft.taxRateStatus !== undefined ? draft : null;
       const issueCheck = decided ? inv.issue(decided, { role: 'owner', number: suggested ? suggested.number : 'HE-0000-0000', now: '2026-11-14T00:00:00Z', account: {} }) : null;
       const decisionsCard = taxInfo ? h('div', { class: 'scanCard u-mt-8' },
         h('div', { class: 'scanCardHead' }, 'Per your decisions (draft example — nothing issued)'),
@@ -2376,7 +2385,7 @@
           h('thead', null, h('tr', null, h('th', null, 'Item'), h('th', { class: 'num-cell' }, 'Qty'), h('th', { class: 'num-cell' }, 'Unit'), h('th', { class: 'num-cell' }, 'Disc'), h('th', { class: 'num-cell' }, 'Line'))),
           h('tbody', null, lineRows)),
         h('div', { class: 'scanCard u-mt-8' },
-          totalRow('Subtotal', draft.subtotal), totalRow('Order discount', draft.orderDiscount), totalRow('Shipping', draft.shipping), totalRow('Tax (' + Math.round(draft.taxRate * 100) + '%)', draft.tax), totalRow('Total', draft.total, 'taskTitle')),
+          totalRow('Subtotal', draft.subtotal), totalRow('Order discount', draft.orderDiscount), totalRow('Shipping', draft.shipping), totalRow('Tax (' + (Math.round(draft.taxRate * 10000) / 100) + '%' + (draft.taxRateStatus === 'PENDING' ? ' state rate — local rate pending' : '') + ')', draft.tax), totalRow('Total', draft.total, 'taskTitle')),
         decisionsCard,
         h('div', { class: 'scanCard u-mt-8' }, h('div', { class: 'scanCardHead' }, 'Packing slip — not an invoice, not a carrier label'), slipRows),
         h('div', { class: 'scanToggleRow u-mt-8' },
@@ -2393,10 +2402,7 @@
       const host = document.getElementById('invoicePrintHost'); if (!host) return;
       const inv = opsInvoiceMod(); if (!inv) return;
       const suggested = inv.nextInvoiceNumber ? inv.nextInvoiceNumber({ year: new Date().getFullYear() }) : null;
-      const draft = inv.draftInvoice({ lines: [
-        { sku: 'HE-HONEY-8OZ', description: 'Honey Milk 8 oz', quantity: 10, unitPrice: 18.50, discount: 5, lotNumber: 'LOT-A' },
-        { sku: 'HE-VEGAN-8OZ', description: 'Vegan 8 oz', quantity: 4, unitPrice: 18.50, lotNumber: 'LOT-B' },
-      ], orderDiscount: 10, shipping: 12.5, taxRate: 0.08, currency: 'USD' });
+      const draft = previewInvoiceDraft(inv);
       const withNum = Object.assign({}, draft, { number: suggested ? suggested.number : null });
       const doc = inv.invoicePrint(withNum);
       const cur = doc.totals.currency;
@@ -2412,7 +2418,8 @@
                 h('td', null, fmtMoney(l.unitPrice, cur)), h('td', null, l.discount ? fmtMoney(l.discount, cur) : '—'),
                 h('td', null, fmtMoney(l.lineTotal, cur)));
             }))),
-          p.showTotals ? h('div', { class: 'printTotals' }, 'Total: ' + fmtMoney(doc.totals.total, cur)) : null);
+          p.showTotals ? h('div', { class: 'printTotals' }, 'Total: ' + fmtMoney(doc.totals.total, cur),
+            draft.taxRateStatus === 'PENDING' ? h('div', { 'data-printnote': 'tax-pending' }, 'DRAFT — tax shown at the state rate only; the local rate is not confirmed. Not a final invoice.') : null) : null);
       });
       host.replaceChildren(h('div', { class: 'printDoc' }, pages));
       try { window.print(); } catch (e) {}
