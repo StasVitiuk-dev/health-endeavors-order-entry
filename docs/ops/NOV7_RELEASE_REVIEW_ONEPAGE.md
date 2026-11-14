@@ -5,7 +5,7 @@ commit `5bce21f` plus the documentation commit that follows it (local, **unpushe
 base `9173ccf`. **All new features default-OFF** (localStorage flags:
 `he_scan_shipment`, `he_reorder_planning`, `he_report_export`, `he_invoice_preview`,
 `he_recovery_drill`, `he_saved_views`, `he_cycle_count`, `he_report_versions`,
-`he_supplier_scorecard`, `he_reconcile`;
+`he_supplier_scorecard`, `he_reconcile`, `he_ops_watch`;
 Sales & Growth behind `he_sales_growth`).
 **Local & synthetic only** — no production data, live calls, spending, or backups.
 **Not behind a switch:** early styling changes to always-visible controls (squarer
@@ -41,7 +41,9 @@ intermittent, at the base commit dated 2026-11-02, **before** this work. The bra
 (now 112+ commits) is unpushed, so no CI has run on it; the failing check **does not
 apply to this checkpoint**. Local evidence: desktop 2,138 passed / 14 failed and iPhone 489 passed / 11 failed at
 `59cd1a7` (Nov 9); 95 tests added since, passing when run on their own; a 52-test launch rehearsal
-passed on Nov 14. The full suite has **not** been re-run end to end since Nov 9.
+passed on Nov 14. Full desktop re-run on Nov 14 at `4a99dc0`: 2,239 passed / 16 failed / 46
+skipped (10 picture comparisons, 5 stale generated documents since fixed, 1 timing
+failure that passed 3 of 3 alone) — details in `NOV7_BOUNDED_REVIEW.md`.
 
 ## Six owner decisions — DECIDED Nov 14, 2026
 All six were answered by Stas on Nov 14. The answers, what was built from each, and

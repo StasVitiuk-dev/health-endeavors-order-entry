@@ -169,7 +169,10 @@ All draft-only behind `he_sales_growth` (OFF by default); nothing sent, spent or
 - ✅ Owner decisions 1, 2, 4 applied inside the invoice and report engines (a draft with a pending tax rate cannot be issued; terms + due date at issue; Central-day roll-up)
 - 🟡 #24 screen baselines — measured on the substitute browser only; re-measure in CI. #36 change record — `62eef9c`
 - ✅ #08 payment reconciliation review — advisory logic + Accounting section behind `he_reconcile` (Nov 14, later; example data, real use gated)
-- 🟡 #26 anomaly detection — reviewed: exists for sales/outreach figures with review states; nothing watches orders, stock or money
+- ✅ #26 anomaly detection — operations watch added (daily figures, stock, orders) behind `he_ops_watch`; advisory, example data, thresholds untuned (`d0011ea`)
+- ✅ Accessibility + phone sweep with every operations switch ON; dark-mode badge contrast fixed (`c8dd6b3`)
+- ✅ Read-only Query I: which day cutoff the nightly report uses (`fcef560`) — owner runs it when convenient
+- ✅ Before/after pictures of the restyled screens sent to the owner for a decision on the look
 - ✅ Launch rehearsal (scanner, wholesale approval, receiving, invoice print, backup restore): 52 passed — recorded `0cd75ad`
 
 ## Owner decisions (2026-11-14) — ✅ decided and recorded
@@ -185,5 +188,5 @@ day boundary, roles and export destination.
 
 ## Still needed (as of 2026-11-14)
 - From the owner: the local tax rate; a go-ahead to push the branch and open a pull request; confirm the required supplier documents; later a business email service, a tracking provider, a real Safari / iPhone / VoiceOver check.
-- Engineering: full-suite re-run on the final commit (results in `NOV7_BOUNDED_REVIEW.md`); #24 in CI; decide whether #26 should also watch orders, stock and money; re-take the reference pictures after the owner has looked at the restyled screens.
+- Engineering: full-suite re-run on the final commit (results in `NOV7_BOUNDED_REVIEW.md`); #24 in CI; re-take the reference pictures after the owner has looked at the restyled screens.
 - **Durability:** branch and recovery export exist only in this session's temporary workspace until pushed or saved by the owner.

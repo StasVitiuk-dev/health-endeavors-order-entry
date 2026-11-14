@@ -49,13 +49,17 @@ newer approved blueprint backlog. Each closed item cites its commit and tests.
 | **#72 Traceable export labels** — logic, then shown on the export preview and stamped on the printed report (`he_report_export`) | `61ef953`, Nov 14 wiring commit | intake-export-guard-ext21 (7), ops-preview-wiring-ext21, report-print-view-ext21 |
 | **#12/#53 Supplier scorecard + document checks** — logic, then a read-only section on Suppliers (`he_supplier_scorecard`) | `c2d69ea`, Nov 14 wiring commit | supplier-scorecard-ext21 (5), supplier-scorecard-wiring-ext21 (2) |
 | **#08 Payment reconciliation review** — new logic plus a section on Accounting (`he_reconcile`): expected vs recorded, every difference named, closed only by an owner/administrator note, figures never altered | Nov 14 wiring commit | reconcile-ext21 (8), reconcile-wiring-ext21 (2) |
+| **#26 Operations watch** — flags unusual daily figures, stock and orders for a person to look at; section on Report History (`he_ops_watch`). Advisory, thresholds declared untuned, "seen" does not clear a flag | `d0011ea` | ops-anomaly-ext21 (10), ops-watch-wiring-ext21 (2) |
+| **Reconciliation reads invoice records** — expected vs recorded built from invoices, credit notes and payments | `d0011ea` | reconcile-ext21 (11) |
+| **Accessibility + phone sweep with every operations switch ON** (new coverage; found and fixed a dark-mode contrast fault on the "SIMULATED" badge) | `c8dd6b3` | ops-flags-a11y-ext21 (6) |
+| **Read-only Query I** — which day cutoff the nightly report uses (for decision 4) | `fcef560` | local test, 15 checks on synthetic rows |
 | **Owner decisions 1, 2, 4 applied inside the invoice and report engines** | Nov 14 "decisions inside the engines" commit | invoice-decisions-ext21 (8), owner-decisions-ext21 (6) |
 | **#24 baselines / #36 change record** (documents) | `62eef9c`, `0cd75ad` | performance specs on the substitute browser; see caveat below |
 | **Owner decisions 1–6** recorded; 1–5 built as draft-only logic | `fe9f2f0`, `9b0b2b8`, `3f850cb`, `5bce21f` | tax-ext21 (6), owner-decisions-ext21 (5), ops-preview-wiring-ext21 |
 
 ## Stage of each original blueprint item touched on this branch
 
-- **Dashboard screen with a browser test (12):** #08, #12, #21, #25, #27, #53, #54, #55, #65, #70, #71, #72.
+- **Dashboard screen with a browser test (13):** #08, #12, #21, #25, #26, #27, #53, #54, #55, #65, #70, #71, #72.
 - **Tested logic, not connected to a screen (1):** #17 — see the table below for why.
 - **Documents (2):** #24, #36.
 - **Live (merged and checked):** none. Nothing on this branch is on `main`.
@@ -68,7 +72,7 @@ newer approved blueprint backlog. Each closed item cites its commit and tests.
 | **#72** | on the export preview + printed report | The label names "signed-in user (preview)". Naming the real person and stamping saved files comes with enabling real exports (decision 6). |
 | **#12 / #53** | read-only section on Suppliers (example data) | Required-document list is an assumption (insurance, W-9, certificate of analysis) — owner to confirm. Scoring real suppliers needs fields the database does not store yet (listed in the section). |
 | **#24** | measured on the substitute browser only | Re-measure in CI: the CI test browser is not installed in this environment. |
-| **#26 anomaly detection** | reviewed Nov 14 — exists for sales/outreach figures only | What exists: a detector for 8 kinds of sales-side warning signs, turned into incidents with review states (acknowledging does not resolve; an incident clears only when the warning sign is gone), 11 tests, shown on the Sales & Growth screens. Gap: nothing watches orders, stock or money for unusual values. Not built. |
+| **#26 anomaly detection** | built Nov 14 for operations as well as sales (advisory, example data) | Sales side: 8 kinds of warning signs with review states. Operations side (new): 10 kinds across daily figures, stock and orders. Daily figures read the saved nightly reports when there are any; stock and orders are example data until real feeds are approved. Thresholds are starting values — tuning them on real history is the owner's call. |
 | **#08 reconciliation** | reviewed and built Nov 14 (example data) | Before this, the branch had roll-up and money-trail tests but nothing that compared two sources or tracked a review. Now built as advisory logic + a screen section. Not connected to real invoices or payments: there is no payments table in the dashboard yet, and matching tolerance is the owner's call (default: exact). Real financial use stays gated. |
 | **Apply the Nov 14 decisions in the flows** | done in the engines Nov 14 | Remaining: the real local tax rate; the live day cutoff is a database change (draft for the owner). |
 | **Full-suite re-run** | see `NOV7_BOUNDED_REVIEW.md` | Re-run all shards on the final commit before a pull request. |
@@ -81,6 +85,6 @@ branch and open a pull request; later a business email service, a tracking
 provider and a real Safari / iPhone / VoiceOver check.
 
 ## Next actionable item
-Decide with the owner whether #26 should also watch orders, stock and money;
-re-measure #24 in CI; re-take the reference pictures after the owner has looked at
-the restyled screens.
+Owner: look at the before/after pictures of the restyled screens (sent as
+`restyle-review.html`), and run read-only Query I when convenient. Engineering:
+re-measure #24 in CI; re-take the reference pictures once the look is decided.

@@ -208,17 +208,20 @@ invoice and report flows is listed in the decisions record and in section 7.
 | #72 | Trace label shown on the export preview (bound to the export's checksum, self-checking) and stamped on the printed report | `he_report_export` | ops-preview-wiring-ext21, report-print-view-ext21 |
 | #12 / #53 | Read-only supplier scorecard on Suppliers: delivery accuracy (a delivery with no recorded date is "unknown", never "on time") and required-document status | `he_supplier_scorecard` | supplier-scorecard-wiring-ext21 (2) |
 | #08 | Payment reconciliation review on Accounting: expected vs recorded, every difference named (short, over, nothing recorded, not expected, listed twice, amount unknown), closed only with an owner/administrator note; closing never changes a figure | `he_reconcile` | reconcile-ext21 (8), reconcile-wiring-ext21 (2) |
+| #26 | Operations watch on Report History: unusual daily figures, stock and orders, most serious first, each with a suggested next step; "Mark as seen" records who looked and does not clear the flag | `he_ops_watch` | ops-anomaly-ext21 (10), ops-watch-wiring-ext21 (2) |
 | Decision 1 | Invoice engine taxes mandatory shipping, exempts a certified resale order, and **refuses to issue a draft whose rate is pending** | — (engine) · shown under `he_invoice_preview` | invoice-decisions-ext21 (8), ops-preview-wiring-ext21 |
 | Decision 2 | Issuing for a named account fills in terms and due date | — (engine) | invoice-decisions-ext21 |
 | Decision 4 | Daily roll-up can group by Central-time day, tested on both daylight-saving change days | — (engine) | owner-decisions-ext21 (6) |
 
 **Stage reconciliation after this wave** (same ~90-item baseline, each ID counted once
 at its highest stage):
-- **Dashboard journey verified (12):** #08, #12, #21, #25, #27, #53, #54, #55, #65, #70, #71, #72.
+- **Dashboard journey verified (13):** #08, #12, #21, #25, #26, #27, #53, #54, #55, #65, #70, #71, #72.
 - **Engine tested only (1):** #17.
 - **Documents (2):** #24, #36.
 - **Live verified:** 0.
 
-Also reviewed: **#26 anomaly detection** exists for sales/outreach figures only
-(with review states and tests); nothing watches orders, stock or money. Details in
-`NOV7_STAGING_BACKLOG_STATUS.md`.
+Also done in this wave: an accessibility and phone-size sweep with every operations
+switch ON (ops-flags-a11y-ext21 — this area had no such coverage; it found a
+dark-mode contrast fault on the "SIMULATED" badge, now fixed); the reconciliation
+section's logic can read invoice records; and read-only Query I for the day cutoff.
+The full re-run of Nov 14 is recorded in `NOV7_BOUNDED_REVIEW.md`.

@@ -190,5 +190,21 @@ not behind a switch and will be visible on merge.**
 recorded. Its 10 picture failures have the same explanation as above; its one
 timing failure was not re-checked on Nov 14.
 
-**Full desktop re-run on the fixed code:** see the next section when present; until
-then the last full run is the corrected Nov 9 result above.
+## Full desktop re-run, 2026-11-14 (commit `4a99dc0`, 16 shards, substitute browser)
+
+**2,239 passed / 16 failed / 46 skipped** (2,301 tests). Per-shard logs are kept
+with the session's working files. Other test jobs were running on the same
+machine during this run.
+
+| Failed tests | Count | Cause | Status |
+|---|---|---|---|
+| `visual.spec.js` picture comparisons | 10 | Same as above: cannot pass in the substitute browser, and the branch restyles these screens | Open — owner looks at the before/after pictures, then reference pictures are re-taken in CI |
+| `generated-determinism-ext20` (2) and `write-path-inventory` (3) | 5 | Three auto-generated documents (write-path matrix, its JSON inventory, the inventory page) were stale — line numbers only — after the Nov 13–14 code edits. A real miss: they were not regenerated when the code changed | Fixed in `c8dd6b3` and `d0011ea`; all five pass |
+| `schema-contract-ext19` "who changed them" | 1 | One section had not rendered within 5 seconds | Passed 3 of 3 when re-run on its own; treated as a timing failure under load, not as a code fault. Watch for it in the next full run |
+
+The four failures fixed in `edfe565` all passed in this run.
+
+**Not covered by this run:** the commits after `4a99dc0` (decisions inside the
+engines, the new screen sections, the accessibility sweep, Query I). Their own
+tests and the structure / type / pattern / document checks were run on each
+commit. A full run on the final commit is recorded below when present.
