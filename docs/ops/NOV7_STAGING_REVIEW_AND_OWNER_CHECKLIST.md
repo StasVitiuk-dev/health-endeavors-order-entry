@@ -139,6 +139,11 @@ and form styling the owner directed on Nov 3, for the owner's final look-over.
   work durable on GitHub and reviewable. Merging stays the owner's action.
 - **Required supplier documents** — confirm the assumed list (insurance, W-9,
   certificate of analysis) used by the supplier document check (#53).
+- **Later, before any real invoice:** a review and explicit approval of the invoice
+  storage draft (`sql/drafts/32_DRAFT_invoices.sql`). It adds two new tables and
+  the access rules for them; nothing is installed until the owner runs it.
+- **One permission question:** should an administrator also be allowed to approve
+  stock-count adjustments? Today only the owner can (blueprint #55).
 
 ### Device & provider checks (separate from mocks — owner/device required)
 - **Real Safari / physical iPhone / VoiceOver** — only emulated Chromium here; verify on a real device.

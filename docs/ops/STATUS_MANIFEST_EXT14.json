@@ -13,7 +13,8 @@
     "request_keys":    { "kind": "sql", "sql": ["drafts/19", "drafts/27"], "rollback": ["drafts/28", "drafts/20"], "local": "TESTED LOCALLY", "production": "UNKNOWN", "productionEvidence": null },
     "permissions":     { "kind": "sql", "sql": [], "rollback": [], "local": "NOT WRITTEN", "production": "UNKNOWN", "productionEvidence": null, "note": "waits for Query G" },
     "nightly":         { "kind": "sql", "sql": ["drafts/25", "drafts/29"], "rollback": ["drafts/30", "drafts/26"], "local": "TESTED LOCALLY", "production": "UNKNOWN", "productionEvidence": null },
-    "report_totals":   { "kind": "sql", "optional": true, "sql": ["drafts/13"], "rollback": ["drafts/31"], "local": "TESTED LOCALLY", "production": "UNKNOWN", "productionEvidence": null, "note": "optional, not in the plan; EXT14 fixed missing-total handling" }
+    "report_totals":   { "kind": "sql", "optional": true, "sql": ["drafts/13"], "rollback": ["drafts/31"], "local": "TESTED LOCALLY", "production": "UNKNOWN", "productionEvidence": null, "note": "optional, not in the plan; EXT14 fixed missing-total handling" },
+    "invoices":   { "kind": "sql", "optional": true, "sql": ["drafts/32"], "rollback": ["drafts/33"], "local": "TESTED LOCALLY", "production": "UNKNOWN", "productionEvidence": null, "note": "optional, not in the plan; storage and numbering for invoices (owner decisions of Nov 14). Adds row rules on its own two new tables: needs the owner's explicit approval like every draft" }
   },
   "switches": {
     "stock_fn_receive_po":     { "install": "switch_rows", "production": "UNKNOWN", "productionEvidence": null },

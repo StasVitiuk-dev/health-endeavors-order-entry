@@ -57,8 +57,17 @@ instead of beside them:
   date), and void an issued invoice with a written reason (its number stays on the
   record and is never reused). The signed-in person's real role decides what is
   allowed. Everything stays inside the page — nothing is stored, sent or charged.
-  *Still open:* reading real orders, and storing issued invoices in the database
-  (needs a table and a numbering function that the owner approves and runs).
+  *Still open:* reading real orders, and connecting the page to stored invoices.
+  **Storage is drafted, not installed:** `sql/drafts/32_DRAFT_invoices.sql` (rollback
+  `sql/drafts/33_DRAFT_rollback_invoices.sql`) adds two new, empty tables and puts the
+  decisions into the database itself — a pending tax rate blocks issuing, the number
+  is handed out only at the moment of issue (safe when two people issue at once, no
+  gaps, never reused), an issued invoice cannot be edited or deleted, and only the
+  owner or an administrator can issue or void while staff prepare drafts. Tested on
+  a throwaway local database only (`sql/local-test/invoices_test.sh`, 59 checks).
+  **It adds access rules on its own two new tables, so it needs the owner's explicit
+  approval before it is run — like every draft, and for that reason in particular.**
+  It touches no existing table.
 - **Numbering (3), permissions (5):** already how the invoice engine behaves.
 - **Exports (6):** a procedure on the owner's Mac; nothing to switch on yet. Each
   export now carries a trace label (see blueprint item #72).

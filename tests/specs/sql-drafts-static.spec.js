@@ -8,7 +8,7 @@ const path = require('path');
 const { test, expect } = require('@playwright/test');
 
 const DIR = path.resolve(__dirname, '..', '..', 'docs', 'ops', 'sql', 'drafts');
-const INSTALLS = ['10_DRAFT_stock_functions.sql', '13_DRAFT_report_totals.sql', '17_DRAFT_po_line_delete_guard.sql', '19_DRAFT_request_keys.sql', '21_DRAFT_stock_function_switches.sql', '23_DRAFT_integrity_constraints.sql', '25_DRAFT_integrity_check_schedule.sql', '27_DRAFT_request_keys_switch.sql', '29_DRAFT_integrity_results_on_home.sql'];
+const INSTALLS = ['10_DRAFT_stock_functions.sql', '13_DRAFT_report_totals.sql', '17_DRAFT_po_line_delete_guard.sql', '19_DRAFT_request_keys.sql', '21_DRAFT_stock_function_switches.sql', '23_DRAFT_integrity_constraints.sql', '25_DRAFT_integrity_check_schedule.sql', '27_DRAFT_request_keys_switch.sql', '29_DRAFT_integrity_results_on_home.sql', '32_DRAFT_invoices.sql'];
 const ROLLBACKS = { '10_DRAFT_stock_functions.sql': '11_DRAFT_rollback_stock_functions.sql',
   '17_DRAFT_po_line_delete_guard.sql': '18_DRAFT_rollback_po_line_delete_guard.sql',
   '19_DRAFT_request_keys.sql': '20_DRAFT_rollback_request_keys.sql',
@@ -17,7 +17,8 @@ const ROLLBACKS = { '10_DRAFT_stock_functions.sql': '11_DRAFT_rollback_stock_fun
   '25_DRAFT_integrity_check_schedule.sql': '26_DRAFT_rollback_integrity_check_schedule.sql',
   '27_DRAFT_request_keys_switch.sql': '28_DRAFT_rollback_request_keys_switch.sql',
   '29_DRAFT_integrity_results_on_home.sql': '30_DRAFT_rollback_integrity_results_on_home.sql',
-  '13_DRAFT_report_totals.sql': '31_DRAFT_rollback_report_totals.sql' }; // EXT14: 13 now has its rollback
+  '13_DRAFT_report_totals.sql': '31_DRAFT_rollback_report_totals.sql', // EXT14: 13 now has its rollback
+  '32_DRAFT_invoices.sql': '33_DRAFT_rollback_invoices.sql' };          // Nov 15: invoice storage + numbering
 const ALL = fs.readdirSync(DIR).filter(f => /^\d\d_DRAFT_.*\.sql$/.test(f) && !/_tests?_/.test(f));
 
 // Remove comments and quoted text so words inside them are not mistaken for SQL.
@@ -60,11 +61,33 @@ for (const f of ALL) {
       'create policy integrity_runs_owner_admin_read on public.integrity_check_runs for select to authenticated using (public.is_owner_or_admin());',
       'drop policy if exists integrity_results_owner_admin_read on public.integrity_check_results;',
       'create policy integrity_results_owner_admin_read on public.integrity_check_results for select to authenticated using (public.is_owner_or_admin());'];
-    const policyOk = /^(29|30)_/.test(f) ? READ_RULES.reduce((t, r) => t.split(r).join(''), sql) : sql;
+    // The second allowed set (Nov 15, drafts/32): row rules on that draft's OWN two
+    // new tables, implementing the owner's Nov 14 decision on who may do what —
+    // active staff read and prepare drafts; only the owner or an administrator
+    // can do anything else. The exact text is pinned: any other policy, or any
+    // change to these, fails this check and has to be allowed here on purpose.
+    const INVOICE_RULES = [
+      'drop policy if exists invoices_staff_read on public.invoices;',
+      'create policy invoices_staff_read on public.invoices for select to authenticated using (public.is_active_staff());',
+      'drop policy if exists invoices_staff_draft_insert on public.invoices;',
+      "create policy invoices_staff_draft_insert on public.invoices for insert to authenticated with check (public.is_active_staff() and status = 'draft');",
+      'drop policy if exists invoices_staff_draft_update on public.invoices;',
+      "create policy invoices_staff_draft_update on public.invoices for update to authenticated using (public.is_active_staff() and status = 'draft') with check (public.is_active_staff() and status = 'draft');",
+      'drop policy if exists invoices_staff_draft_delete on public.invoices;',
+      "create policy invoices_staff_draft_delete on public.invoices for delete to authenticated using (public.is_active_staff() and status = 'draft');",
+      'drop policy if exists invoices_owner_admin_all on public.invoices;',
+      'create policy invoices_owner_admin_all on public.invoices for all to authenticated using (public.is_owner_or_admin()) with check (public.is_owner_or_admin());',
+      'drop policy if exists invoice_counters_owner_admin on public.invoice_counters;',
+      'create policy invoice_counters_owner_admin on public.invoice_counters for all to authenticated using (public.is_owner_or_admin()) with check (public.is_owner_or_admin());'];
+    if (f === '32_DRAFT_invoices.sql') for (const r of INVOICE_RULES) expect(sql.split(r).length - 1, 'pinned rule present exactly once: ' + r.slice(0, 60)).toBe(1);
+    const policyOk = /^(29|30)_/.test(f) ? READ_RULES.reduce((t, r) => t.split(r).join(''), sql)
+      : f === '32_DRAFT_invoices.sql' ? INVOICE_RULES.reduce((t, r) => t.split(r).join(''), sql) : sql;
     expect(policyOk, 'policies never created, changed or dropped').not.toMatch(/\b(create|alter|drop)\s+policy\b/);
     // The one allowed drop (EXT9): the schedule rollback removes its own results table.
     const dropOk = f === '26_DRAFT_rollback_integrity_check_schedule.sql' ? sql.replace('drop table if exists public.integrity_check_results;', '')
-      : f === '30_DRAFT_rollback_integrity_results_on_home.sql' ? sql.replace('drop table if exists public.integrity_check_runs;', '') : sql;
+      : f === '30_DRAFT_rollback_integrity_results_on_home.sql' ? sql.replace('drop table if exists public.integrity_check_runs;', '')
+        // Nov 15: the invoice rollback removes its own two tables (and refuses to run at all once an invoice has been issued).
+        : f === '33_DRAFT_rollback_invoices.sql' ? sql.replace('drop table if exists public.invoices;', '').replace('drop table if exists public.invoice_counters;', '') : sql;
     expect(dropOk, 'no table or schema is dropped').not.toMatch(/\bdrop\s+(table|schema)\b/);
     // The one allowed delete (EXT9): the switches rollback removes exactly the
     // five stock_fn_* rows its install added, nothing else.

@@ -356,6 +356,31 @@
       "precheck": "reports whether 13 is installed",
       "effect": "drops the function",
       "postcheck": "to_regprocedure(...) is null"
+    },
+    {
+      "file": "drafts/32_DRAFT_invoices.sql",
+      "id": "32",
+      "class": "PRODUCTION-CHANGE-DRAFT",
+      "step": "optional (not in the plan; needed before any real invoice is issued)",
+      "dependsOn": [],
+      "risk": "LOW",
+      "rollback": "33",
+      "precheck": "stops if auth.uid(), is_owner_or_admin(), is_active_staff() or the orders table is missing",
+      "effect": "2 new empty tables (invoices, invoice_counters), a guard trigger that assigns HE-YYYY-NNNN at issue, issue_invoice() and void_invoice() (security invoker), row rules: staff draft, owner/administrator issue and void",
+      "postcheck": "both tables present and empty; anon cannot read them or run the functions; local-test/invoices_test.sh passes on a throwaway copy",
+      "lock": "NONE on existing tables: only new, empty tables are created"
+    },
+    {
+      "file": "drafts/33_DRAFT_rollback_invoices.sql",
+      "id": "33",
+      "class": "ROLLBACK",
+      "rollbackOf": "32",
+      "dependsOn": [],
+      "risk": "LOW",
+      "precheck": "stops, removing nothing, if any issued or void invoice exists (business records)",
+      "effect": "drops the two functions, the guard and the two tables; drafts are removed with them",
+      "postcheck": "to_regclass('public.invoices') is null",
+      "dynamicSql": "one format() with fixed names and values (%I / %L), so the count is not planned when the table is absent"
     }
   ],
   "local": [
