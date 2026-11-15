@@ -81,3 +81,26 @@ test('banner, synthetic sign-in, seeded pages; nothing outside is contacted', as
   expect(outside, 'outside requests').toEqual([]);
   expect(errors).toEqual([]);
 });
+
+// Owner review, Nov 3 (point 10): the review-copy notice stays visible and
+// truthful but compact. The key facts are always on screen; the longer text is
+// one click away; the scenario picker stays directly usable.
+test('the notice is compact, always shows the key facts, and the rest is one click away', async ({ page }, ti) => {
+  test.skip(ti.project.name !== 'desktop', 'sizes set here; run once');
+  await serve(page);
+  for (const [w, h, maxPx] of [[1280, 800, 40], [390, 844, 80]]) {
+    await page.setViewportSize({ width: w, height: h });
+    await page.goto(ORIGIN + '/');
+    const b = page.locator('#stagingBanner');
+    await expect(b).toBeVisible();
+    await expect(page.locator('#stagingLead')).toHaveText('DEVELOPMENT / STAGING — NOT PRODUCTION · made-up data · nothing is saved');
+    expect((await b.boundingBox()).height, `notice height at ${w}px`).toBeLessThanOrEqual(maxPx);
+    await expect(page.locator('#stagingScenario')).toBeVisible();
+    expect(await page.evaluate(() => document.scrollingElement.scrollWidth - document.scrollingElement.clientWidth)).toBeLessThanOrEqual(1);
+  }
+  const more = page.locator('#stagingMore');
+  await expect(more.locator('div')).toBeHidden();
+  await more.locator('summary').click();
+  await expect(more.locator('div')).toContainText('Not connected to the real database, Shopify or e-mail');
+  await expect(more.locator('div')).toContainText('Reloading the page starts over');
+});

@@ -156,25 +156,42 @@ bundle += `
 
   function banner() {
     if (document.getElementById('stagingBanner')) return;
+    // Owner review, Nov 3 (point 10): keep the notice visible and truthful, but
+    // compact. One line always shows what matters — not production, made-up
+    // data, nothing is saved — plus the scenario picker; the longer explanation
+    // is one click away. It stays pinned to the top while scrolling.
     var b = document.createElement('div');
     b.id = 'stagingBanner';
     b.setAttribute('role', 'note');
-    b.textContent = 'DEVELOPMENT / STAGING — NOT PRODUCTION · synthetic data only · nothing is saved: reloading starts over · not connected to the real database, Shopify or e-mail';
-    b.style.cssText = 'position:sticky;top:0;z-index:100000;background:#7a2e0e;color:#fff;font:600 13px/1.4 -apple-system,system-ui,sans-serif;padding:8px 14px;text-align:center;letter-spacing:.02em';
+    b.style.cssText = 'position:sticky;top:0;z-index:100000;background:#7a2e0e;color:#fff;font:600 12px/1.35 -apple-system,system-ui,sans-serif;padding:4px 10px;text-align:center;letter-spacing:.02em;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:2px 10px';
+    var lead = document.createElement('span');
+    lead.id = 'stagingLead';
+    lead.textContent = 'DEVELOPMENT / STAGING — NOT PRODUCTION · made-up data · nothing is saved';
+    b.appendChild(lead);
     document.body.insertBefore(b, document.body.firstChild);
     // Dev-only scenario selector (staging copy only; reloading applies it).
     var sel = document.createElement('select');
     sel.id = 'stagingScenario';
     sel.setAttribute('aria-label', 'Staging scenario (development only)');
-    sel.style.cssText = 'margin-left:10px;font:inherit;font-weight:400;max-width:100%';
+    sel.style.cssText = 'font:400 12px/1.2 -apple-system,system-ui,sans-serif;max-width:min(100%, 19em);min-height:24px;padding:1px 4px';
     stagingSeed.SCENARIOS.forEach(function (sc) {
       var o = document.createElement('option'); o.value = sc.id; o.textContent = 'Scenario (dev only): ' + sc.label;
       if (sc.id === window.__STAGING_SCENARIO) o.selected = true;
       sel.appendChild(o);
     });
     sel.addEventListener('change', function () { var q = new URLSearchParams(location.search); q.set('scenario', sel.value); location.search = q.toString(); });
-    b.appendChild(document.createElement('br'));
     b.appendChild(sel);
+    var more = document.createElement('details');
+    more.id = 'stagingMore';
+    more.style.cssText = 'font-weight:400';
+    var sum = document.createElement('summary');
+    sum.textContent = 'More';
+    sum.style.cssText = 'cursor:pointer;text-decoration:underline;min-height:24px;line-height:24px';
+    var info = document.createElement('div');
+    info.textContent = 'Synthetic data only. Reloading the page starts over. Not connected to the real database, Shopify or e-mail.';
+    info.style.cssText = 'padding:2px 0 4px';
+    more.appendChild(sum); more.appendChild(info);
+    b.appendChild(more);
     var form = document.getElementById('loginForm');
     if (form && !document.getElementById('stagingSignIn')) {
       var box = document.createElement('div');
