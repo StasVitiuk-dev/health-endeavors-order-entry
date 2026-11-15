@@ -142,7 +142,7 @@ const ADDED = ['setReportHistoryView', 'inquiriesList', 'agentControls', 'poRece
   'receiptSize', 'showReceiptStatus',
   // Sales outreach workbench on Sales Approvals (behind salesGrowthOn; owner
   // brief Nov 3, point 8). The delegated [data-workbench] listener is waived below.
-  'WORKBENCH_KEY', 'workbenchState', 'workbenchSelected', 'workbenchMessage', 'WORKBENCH_REPLIES',
+  'announce', 'refocusLike', 'WORKBENCH_KEY', 'workbenchState', 'workbenchSelected', 'workbenchMessage', 'WORKBENCH_REPLIES',
   'workbenchDeps', 'workbenchSave', 'loadSalesWorkbench', 'findWorkbenchStore'];
 const NEW_MODULES = ['he-ops']; // EXT16: written new, not moved
 const CHANGED_TEXT = ["} = window.HE.helpers;", "forEach(o => Object.setPrototypeOf(o, null))", "supabase.auth.onAuthStateChange((event, session) =>", "getAttribute('data-view')", "getElementById('adjustInventoryForm').addEventListener('submit'", "getElementById('logReturnForm').addEventListener('submit'", "getElementById('retOrder').addEventListener('change'", "Release to refresh", "getElementById('docCategory')",

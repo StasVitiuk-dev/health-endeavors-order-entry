@@ -1692,6 +1692,25 @@
     const WORKBENCH_KEY = 'he_sales_workbench';
     let workbenchState = null;
     let workbenchSelected = null;
+    // Sections that redraw themselves after a click (the workbench,
+    // reconciliation, preview switches, the invoice desk) lose the button that
+    // was pressed and recreate their message line, which screen readers often
+    // do not read out. announce() puts the result in one permanent, invisible
+    // status region (#srAnnounce, in the page from the start); refocusLike()
+    // puts keyboard focus back on the matching button after the redraw.
+    function announce(text) {
+      const el = document.getElementById('srAnnounce'); if (!el) return;
+      const msg = String(text == null ? '' : text).slice(0, 500);
+      el.textContent = '';                       // a repeated message is read again
+      if (msg) setTimeout(() => { el.textContent = msg; }, 60);
+    }
+    function refocusLike(btn) {
+      if (!btn || !btn.attributes || document.contains(btn)) return;
+      const sel = [...btn.attributes].filter(a => a.name.startsWith('data-')).map(a => '[' + a.name + '="' + CSS.escape(a.value) + '"]').join('');
+      if (!sel) return;
+      let next = null; try { next = document.querySelector(btn.tagName.toLowerCase() + sel); } catch (e) { next = null; }
+      if (next && typeof next.focus === 'function') next.focus();
+    }
     let workbenchMessage = '';
     const WORKBENCH_REPLIES = ['Sounds great — we would love to carry it. Can we set up a call?', 'Thanks! Can you send pricing and your minimum order?',
       'Please remove me from your list.', 'Not interested, thanks.', 'I am out of office until Monday.'];
@@ -1751,7 +1770,7 @@
       host.replaceChildren(h('div', { class: 'salesWorkbench u-mt-18' },
         h('div', { class: 'scanHead' }, h('h3', null, 'Outreach workbench'), h('span', { class: 'scanBadge' }, wb.GUARD)),
         h('p', { class: 'hint u-mt-6', 'data-wb-summary': '1' }, sum.stores + ' stores · ' + sum.drafts + ' drafts · ' + sum.approved + ' approved · ' + sum.simulatedSent + ' simulated-sent · ' + sum.replies + ' replies · ' + sum.doNotContact + ' do-not-contact'),
-        workbenchMessage ? h('p', { class: 'hint u-mt-6', role: 'status', 'data-wb-msg': '1' }, workbenchMessage) : null,
+        workbenchMessage ? h('p', { class: 'hint u-mt-6', 'data-wb-msg': '1' }, workbenchMessage) : null,
         st.stores.length ? h('table', { class: 'phoneCards u-mt-8' },
           h('thead', null, h('tr', null, h('th', null, 'Store'), h('th', null, 'Checks and score'), h('th', null, 'Status'), h('th', null, 'Next'))),
           h('tbody', null, storeRows))
@@ -1779,7 +1798,7 @@
       if (act === 'reset') {
         try { localStorage.removeItem(WORKBENCH_KEY); } catch (err) { /* nothing saved to clear */ }
         workbenchState = wb.empty(); workbenchSelected = null; workbenchMessage = 'The workbench was cleared.';
-        loadSalesWorkbench(); return;
+        loadSalesWorkbench(); announce(workbenchMessage); refocusLike(t); return;
       }
       if (act === 'open') { workbenchSelected = id; workbenchMessage = ''; loadSalesWorkbench(); return; }
       if (act === 'import') { out = wb.importRows(workbenchState, wb.exampleRows(), deps, who); if (out.ok) workbenchSelected = null; }
@@ -1791,7 +1810,7 @@
       if (!out) return;
       workbenchState = out.state;   // a refusal can still add a line to the record
       workbenchMessage = out.message + (workbenchSave(wb) ? '' : ' (This browser would not save it; it will be gone after a reload.)');
-      loadSalesWorkbench();
+      loadSalesWorkbench(); announce(workbenchMessage); refocusLike(t);
     });
 
     // ---------- Scan Shipment (Phase 1 prototype; behind scanShipmentOn()) ----
@@ -2231,7 +2250,7 @@
         h('div', { class: 'heField heWide u-mt-8' },
           h('label', { for: 'reconcileNote' }, 'Review note ', h('span', { class: 'heOpt' }, '(required to close a difference)')),
           h('input', { type: 'text', id: 'reconcileNote', maxlength: '500', placeholder: 'e.g. Customer confirmed the balance arrives Friday' })),
-        reconcileMessage ? h('p', { class: 'hint u-mt-6', role: 'status', 'data-reconcile-msg': '1' }, reconcileMessage) : null,
+        reconcileMessage ? h('p', { class: 'hint u-mt-6', 'data-reconcile-msg': '1' }, reconcileMessage) : null,
         h('table', { class: 'phoneCards u-mt-8' },
           h('thead', null, h('tr', null, h('th', null, 'Invoice'), h('th', null, 'Result'), h('th', { class: 'num-cell' }, 'Expected'), h('th', { class: 'num-cell' }, 'Recorded'), h('th', { class: 'num-cell' }, 'Difference'), h('th', null, 'Review'))),
           h('tbody', null, rows)),
@@ -2247,7 +2266,7 @@
         const out = eng.markReviewed(reconcileResult, Number(t.getAttribute('data-line')), { role: currentUserRole, by: String(currentUserRole || 'unknown') + ' (example)', at: new Date().toISOString(), note: noteEl ? noteEl.value : '' });
         if (out.ok) { reconcileResult = out.result; reconcileMessage = 'Recorded. The figures are unchanged.'; }
         else reconcileMessage = 'Not recorded: ' + out.reason + '.';
-        loadReconcile();
+        loadReconcile(); announce(reconcileMessage); refocusLike(t);
       }
     });
 
@@ -2275,7 +2294,7 @@
         h('h3', { class: 'u-m-18-0-6 u-fs-15' }, 'Preview features'),
         h('p', { class: 'hint u-mt-0' }, 'For looking at features that are built but not switched on. A switch here applies to this browser on this device only — it is not saved to the database and nobody else sees a change. Every preview uses example data or is read-only: nothing is sent, issued, charged or written to stock. All are off unless you turn them on.'),
         h('p', { class: 'hint u-mt-6', 'data-preview-count': String(onCount) }, onCount + ' of ' + PREVIEW_SWITCHES.length + ' on in this browser.'),
-        previewSwitchMessage ? h('p', { class: 'hint u-mt-6', role: 'status', 'data-preview-msg': '1' }, previewSwitchMessage,
+        previewSwitchMessage ? h('p', { class: 'hint u-mt-6', 'data-preview-msg': '1' }, previewSwitchMessage,
           ' ', h('button', { type: 'button', class: 'small secondary', 'data-previewswitch': 'reload' }, 'Reload now')) : null,
         h('table', { class: 'phoneCards u-mt-8' },
           h('thead', null, h('tr', null, h('th', null, 'Preview'), h('th', null, 'Where it appears'), h('th', null, 'Now'), h('th', null, 'Change'))),
@@ -2298,7 +2317,7 @@
           else { localStorage.setItem(sw.key, 'on'); previewSwitchMessage = sw.name + ' is on. Reload the page, then open ' + sw.where + '.'; }
         }
       } catch (err) { previewSwitchMessage = 'This browser would not save the switch (private window or storage blocked).'; }
-      loadPreviewSwitches();
+      loadPreviewSwitches(); announce(previewSwitchMessage); refocusLike(t);
     });
 
     // ---------- #26 Operations watch (behind opsWatchOn)
@@ -2588,7 +2607,7 @@
         const el = document.getElementById('invoiceDeskRate');
         const raw = el ? String(el.value).trim().replace('%', '') : '';
         const pct = raw === '' ? NaN : Number(raw);
-        if (!isFinite(pct) || pct < 0 || pct > 15 || !taxMod) { invoiceDeskMessage = 'Not confirmed: type the local rate as a percent between 0 and 15, for example 2.75.'; loadInvoicePreview(); return; }
+        if (!isFinite(pct) || pct < 0 || pct > 15 || !taxMod) { invoiceDeskMessage = 'Not confirmed: type the local rate as a percent between 0 and 15, for example 2.75.'; loadInvoicePreview(); announce(invoiceDeskMessage); refocusLike(t); return; }
         out = inv.deskConfirmTax(invoiceDesk, taxMod.invoiceTaxFields({ shipping: { mandatory: true }, localRate: pct / 100 }), who);
         invoiceDeskMessage = out.ok ? 'Rate confirmed for ' + out.changed + ' draft(s): state 6.25% + local ' + pct + '%. Recorded as a revision on each draft.' : 'Not confirmed: ' + out.reason + '.';
       } else if (act === 'issue') {
@@ -2600,7 +2619,7 @@
         invoiceDeskMessage = out.ok ? 'Voided ' + t.getAttribute('data-number') + '. Its number stays on the record and is not reused.' : 'Not voided: ' + out.reason + '.';
       }
       if (out && out.ok) invoiceDesk = out.desk;
-      loadInvoicePreview();
+      loadInvoicePreview(); announce(invoiceDeskMessage); refocusLike(t);
     });
     function loadInvoicePreview() {
       const host = document.getElementById('invoicePreviewHost'); if (!host) return;
@@ -2671,7 +2690,7 @@
           desk.issued.some(x => x.status !== 'void') ? h('div', { class: 'heField u-mt-8' },
             h('label', { for: 'invoiceDeskReason' }, 'Reason for voiding ', h('span', { class: 'heOpt' }, '(required)')),
             h('input', { type: 'text', id: 'invoiceDeskReason', maxlength: '200', placeholder: 'e.g. Entered twice' })) : null,
-          invoiceDeskMessage ? h('p', { class: 'hint u-mt-8', role: 'status', 'data-invoicedesk-msg': '1' }, invoiceDeskMessage) : null,
+          invoiceDeskMessage ? h('p', { class: 'hint u-mt-8', 'data-invoicedesk-msg': '1' }, invoiceDeskMessage) : null,
           h('div', { class: 'scanToggleRow u-mt-8' }, h('button', { type: 'button', class: 'small secondary', 'data-invoicedesk': 'reset' }, 'Reset example')),
           h('div', { class: 'u-fs-11 u-c-muted u-mt-6' }, 'Drafts only — nothing is issued or numbered until the owner or an administrator issues it. In this example "Issue" only reserves a number inside this page.'));
       }

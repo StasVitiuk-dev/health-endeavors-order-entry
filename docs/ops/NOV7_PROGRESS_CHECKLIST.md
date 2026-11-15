@@ -185,6 +185,8 @@ All draft-only behind `he_sales_growth` (OFF by default); nothing sent, spent or
 - ✅ Nov 3 visual review point 10: the review copy's notice is compact (one line + "More"; 9% → 4% of a computer screen, 15% → 8% of a phone) and still always says it is not production
 - ✅ Nov 3 visual review point 2: the Expenses receipt picker says what was chosen (name and size) or why it would be refused, before saving
 - ✅ Database draft for storing and numbering invoices (`sql/drafts/32`, rollback `33`) — tested locally, NOT installed; needs the owner's explicit approval (it adds access rules on its own new tables)
+- ✅ Workbench checked for accessibility and at phone size; button results now read out by screen readers and keyboard focus kept in four redrawn sections (Nov 15)
+- ✅ Export trace label names the signed-in person (#72, Nov 15)
 - ✅ Dashboard side of invoice storage (`assets/invoice/he-invoice-store.js`) — tested against the draft on a throwaway database; NOT connected to any screen; found and fixed two gaps in the draft (who the invoice bills; the tax choices) (Nov 15)
 - ✅ Sales & Growth modules hardened against malformed input: 174 accidental crashes → 0; permanent probe test covers all 54 modules (Nov 15)
 - ✅ Sales outreach workbench: the sales path runnable on one screen with saved state (this browser only) and a reset; simulated send, owner/administrator approval, do-not-contact list (Nov 15)
