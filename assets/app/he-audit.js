@@ -202,6 +202,34 @@ window.HE.modules.define('he-audit', { api: 1, needs: ['ACTIVITY_AREA_LABELS','P
         h('div', { class: 'cLine ' + cls }, sign + ' ', h('span', { class: 'jKey' }, k), ': ', hlValue(src[k]))))];
     }
 
+    // The short name shown in the record-history title. A table row gives its
+    // cells separated by " · " (Nov 15: they used to run together, as in
+    // "SYN-1001SYNTHETIC Customer Onepaid$100.00"), whole cells only up to
+    // about 48 characters, and never the text of the row's buttons.
+    function inspectLabel(host){
+      const clean = t => (t || '').trim().replace(/\s+/g, ' ');
+      const cut = t => t.length > 48 ? t.slice(0, 47) + '\u2026' : t;
+      if (!host.cells) return cut(clean(host.textContent));
+      const parts = [];
+      for (const cell of host.cells) {
+        let text = '';
+        (function walk(n){
+          for (const c of n.childNodes) {
+            if (c.nodeType === 3) text += c.data;
+            else if (c.nodeType === 1 && !/^(BUTTON|SELECT|INPUT|TEXTAREA|SCRIPT|STYLE)$/.test(c.tagName)) { walk(c); text += ' '; }
+          }
+        })(cell);
+        text = clean(text);
+        if (text) parts.push(text);
+      }
+      let label = '';
+      for (const part of parts) {
+        const next = label ? label + ' \u00b7 ' + part : part;
+        if (label && next.length > 48) break;
+        label = next;
+      }
+      return cut(label);
+    }
     function resolveInspectTarget(el){
       if (!el || !el.closest) return null;
       for (const spec of RECORD_ID_ATTRS) {
@@ -218,8 +246,7 @@ window.HE.modules.define('he-audit', { api: 1, needs: ['ACTIVITY_AREA_LABELS','P
           }
         }
         if (!table) continue;
-        const label = (host.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 48);
-        return { table, id, el: host, label };
+        return { table, id, el: host, label: inspectLabel(host) };
       }
       return null;
     }

@@ -163,6 +163,9 @@
   .skipLink{ position:absolute; left:8px; top:-60px; z-index:10000; background:var(--navy); color:#fff; padding:10px 14px; border-radius:8px; font-weight:600; text-decoration:none; }
   .skipLink:focus{ top:8px; outline:3px solid #ffbf47; outline-offset:2px; }
   main.contentArea:focus{ outline:none; }
+  /* A dialog's title takes focus when it opens so a screen reader reads it; it
+     is not a control, so it draws no ring (the controls inside still do). */
+  [role="dialog"] h3[tabindex="-1"]:focus{ outline:none; }
 
   /* ---------- Dashboard shell ---------- */
   #dash{ display:none; flex-direction:column; height:100vh; }

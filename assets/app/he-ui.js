@@ -55,6 +55,15 @@ window.HE.modules.define('he-ui', { api: 1, needs: ['EMPTY_ICONS','HELP','ICON_P
       const el = document.activeElement;
       if (el && el !== document.body && !focusReturn.has(key)) focusReturn.set(key, el);
     }
+    // A dialog that opens takes keyboard focus (its heading), so a screen reader
+    // says what opened and Enter or Space cannot press a button hidden behind
+    // it (Nov 15: the shortcut list, the guide and the record history did not).
+    function focusDialog(overlay){
+      const target = overlay && (overlay.querySelector('h3') || overlay.firstElementChild);
+      if (!target) return;
+      target.setAttribute('tabindex', '-1');
+      try { target.focus({ preventScroll: true }); } catch (e) { /* nothing to focus */ }
+    }
     function restoreFocus(key){
       const el = focusReturn.get(key);
       focusReturn.delete(key);
@@ -248,7 +257,7 @@ window.HE.modules.define('he-ui', { api: 1, needs: ['EMPTY_ICONS','HELP','ICON_P
 
     // ---- Shortcut sheet ----
     const shortcutOverlay = document.createElement('div');
-    function openShortcuts(){ rememberFocus('shortcuts'); shortcutOverlay.classList.add('open'); }
+    function openShortcuts(){ rememberFocus('shortcuts'); shortcutOverlay.classList.add('open'); focusDialog(shortcutOverlay); }
     function closeShortcuts(){ shortcutOverlay.classList.remove('open'); restoreFocus('shortcuts'); }
     function typingInField(e){
       const t = e.target;
@@ -284,5 +293,5 @@ window.HE.modules.define('he-ui', { api: 1, needs: ['EMPTY_ICONS','HELP','ICON_P
     // ---- iPhone: pull down to refresh, swipe to change page ----
     const ptr = document.createElement('div');
 
-  return { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, pageIconSvg, h, pageIconNode };
+  return { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, focusDialog, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, pageIconSvg, h, pageIconNode };
 });
