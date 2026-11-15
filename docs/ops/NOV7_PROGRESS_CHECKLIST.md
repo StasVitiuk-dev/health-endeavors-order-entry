@@ -179,6 +179,7 @@ All draft-only behind `he_sales_growth` (OFF by default); nothing sent, spent or
 - ✅ Malformed-data hardening of the operations modules, with a permanent probe test (fixed a print-layout freeze and several crashes)
 - ✅ Final full pass at `aa81876`: computer 2,285 passed / 10 failed, phone 505 passed / 11 failed — only picture comparisons and one environment-bound timing test
 - ✅ Nov 3 visual review, open points: Home empty-list wording fixed (`227aa76`); 15 long page explanations shortened to a lead plus "More about this" (warnings stay visible); empty states made compact. Details in `DASHBOARD_READINESS_ASSESSMENT_2026-11-03.md`
+- ✅ Full pass on the latest commit `1a70caf` (Nov 15): computer 2,320 passed / 10 failed, phone 507 passed / 11 failed — same failures as before, nothing new
 - ⬜ Sales & Growth modules: about 170 malformed-input crashes found by the probe (draft-only pages, example data) — tidy-up, not yet done
 - ✅ Launch rehearsal (scanner, wholesale approval, receiving, invoice print, backup restore): 52 passed — recorded `0cd75ad`
 

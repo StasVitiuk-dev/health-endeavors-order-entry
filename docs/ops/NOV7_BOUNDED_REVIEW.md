@@ -245,3 +245,20 @@ fixes and the malformed-input hardening were added. They were verified with thei
 own tests plus the structure, type, pattern, generated-document, security and
 document checks (213 tests at computer and phone size, all passing), not with
 another full pass.
+
+## Full pass on the latest commit, 2026-11-15 (commit `1a70caf`, substitute browser)
+
+Run from 02:32 to 03:40 UTC, computer size (16 shards) then phone size (8 shards).
+Nothing else ran on the machine during it. This pass covers everything up to and
+including the preview switches, automatic invoice drafts, the hardening, the Home
+wording fix and the shortened page explanations.
+
+| Size | Passed | Failed | Skipped | Total |
+|---|---|---|---|---|
+| Computer (1100 px) | **2,320** | **10** | 51 | 2,381 |
+| Phone (390 px, Chromium with an iPhone profile — not real Safari) | **507** | **11** | 387 | 905 |
+
+The failures are the same three groups as in the pass at `aa81876`, and nothing
+else: 10 picture comparisons at computer size, 10 at phone size, and the phone-size
+"50,000-character … pages draw in reasonable time" timing test, which fails the same
+way on the untouched base commit in this environment.

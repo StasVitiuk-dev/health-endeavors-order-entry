@@ -49,7 +49,9 @@ skipped (10 picture comparisons, 5 stale generated documents since fixed, 1 timi
 failure that passed 3 of 3 alone). **Final full pass at `aa81876`: computer 2,285
 passed / 10 failed / 49 skipped; phone size 505 passed / 11 failed / 376 skipped** —
 the only failures are the picture comparisons and one timing test that fails the
-same way on the untouched base. Details in `NOV7_BOUNDED_REVIEW.md`.
+same way on the untouched base. **Latest full pass, Nov 15 at `1a70caf`: computer
+2,320 passed / 10 failed / 51 skipped; phone size 507 passed / 11 failed / 387
+skipped** — the same failures and nothing else. Details in `NOV7_BOUNDED_REVIEW.md`.
 
 ## Six owner decisions — DECIDED Nov 14, 2026
 All six were answered by Stas on Nov 14. The answers, what was built from each, and
