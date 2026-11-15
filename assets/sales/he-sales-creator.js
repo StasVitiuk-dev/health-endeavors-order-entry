@@ -27,7 +27,8 @@
   });
 
   // Deterministic fit score 0..100 from public, non-sensitive signals only.
-  function fit(c) {
+  function fit(input) {
+    const c = (input && typeof input === 'object') ? input : {};
     let s = 0; const r = [];
     if (/skin|body|beauty|clean|wellness/i.test(c.niche || '')) { s += 40; r.push('on-niche'); } else r.push('niche unclear');
     if (c.audienceType === 'wholesale-buyers' || c.audienceType === 'boutique-owners') { s += 25; r.push('audience = buyers'); }
@@ -37,8 +38,9 @@
     return { score: Math.min(100, s), reasons: r, band: s >= 70 ? 'strong' : s >= 40 ? 'possible' : 'weak' };
   }
 
-  function prospect(c) {
-    const f = fit(c || {});
+  function prospect(input) {
+    const c = (input && typeof input === 'object') ? input : {};
+    const f = fit(c);
     return { id: c.id, name: c.name, platform: PLATFORMS.includes(c.platform) ? c.platform : 'other',
       audienceType: c.audienceType || 'unknown', niche: c.niche || 'unknown', publicUrl: c.publicUrl || null,
       score: f.score, band: f.band, reasons: f.reasons, status: 'IDENTIFIED',

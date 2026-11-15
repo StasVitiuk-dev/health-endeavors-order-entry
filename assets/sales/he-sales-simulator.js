@@ -90,8 +90,11 @@
     return finalize(trace, { lead, scoring, replyLabel, suppressed: false });
   }
 
-  function finalize(trace, summary) {
-    const noSideEffects = trace.every(t => t.sideEffect === false && t.sent === false);
+  function finalize(steps, summary) {
+    const trace = Array.isArray(steps) ? steps : [];
+    // A step that is missing or does not say "no side effect" counts AGAINST the
+    // guarantee — an empty or malformed trace is never reported as clean.
+    const noSideEffects = trace.length > 0 && trace.every(t => !!t && t.sideEffect === false && t.sent === false);
     return { trace, summary, noSideEffects,
       guard: 'Full lifecycle simulation. Nothing was sent, approved without the owner, or changed in production.' };
   }

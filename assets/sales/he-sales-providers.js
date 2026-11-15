@@ -38,7 +38,7 @@
   // Fallback chain: ordered list, skipping unconfigured, always ending at the
   // free deterministic provider so there is always a safe floor.
   function fallbackChain(preferred) {
-    const want = (preferred || ['strong', 'cheap', 'template']);
+    const want = Array.isArray(preferred) ? preferred : ['strong', 'cheap', 'template'];
     const chain = want.filter(id => { const p = byId(id); return p && (p.configured || id === 'template'); });
     if (!chain.includes('template')) chain.push('template');
     return chain;
@@ -47,7 +47,7 @@
   // Simulate a provider failure sweep: for each provider, what the chain falls
   // back to if it is unavailable. No real calls.
   function chaos(preferred) {
-    const chain = (preferred || ['strong', 'cheap', 'template']);
+    const chain = Array.isArray(preferred) ? preferred : ['strong', 'cheap', 'template'];
     return chain.map((id, i) => ({ down: id, fallsBackTo: fallbackChain(chain.slice(i + 1))[0] || 'template' }));
   }
 

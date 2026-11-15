@@ -44,7 +44,7 @@
       .toLowerCase();
   }
   // Collapse single-character separators so "e c z e m a" -> "eczema".
-  function deSpace(norm) { return norm.replace(/[\s._\-*]+/g, ''); }
+  function deSpace(norm) { return String(norm == null ? '' : norm).replace(/[\s._\-*]+/g, ''); }
 
   // scan(text) -> { ok, findings: [{family, match}] }
   function scan(text) {

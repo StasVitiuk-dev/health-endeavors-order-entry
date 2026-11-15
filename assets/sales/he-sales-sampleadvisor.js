@@ -22,7 +22,8 @@
   };
 
   // Candidate score 0..100 from serious-prospect signals. Explainable.
-  function candidateScore(c) {
+  function candidateScore(input) {
+    const c = (input && typeof input === 'object') ? input : {};
     let s = 0; const r = [];
     const fit = (c.scoring && c.scoring.score) || c.fit || 0;
     s += Math.round(fit * 0.4); r.push('fit ' + fit);

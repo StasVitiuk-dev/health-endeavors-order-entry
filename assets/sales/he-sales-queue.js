@@ -17,7 +17,8 @@
 
   const BUCKETS = ['NEEDS_OWNER_NOW', 'TODAY', 'THIS_WEEK', 'BLOCKED', 'WATCH'];
 
-  function item(o) {
+  function item(input) {
+    const o = (input && typeof input === 'object') ? input : {};
     return { bucket: o.bucket, reason: o.reason, priority: o.priority == null ? 3 : o.priority,
       dueDate: o.dueDate || null, leadId: o.leadId || null, nextAction: o.nextAction || '',
       ownerDecisionRequired: !!o.ownerDecisionRequired, externalSideEffect: false }; // always NO in this mode

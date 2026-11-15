@@ -28,7 +28,7 @@
   function aggregate(leads, keyFn) {
     const g = {};
     for (const l of rowsOf(leads)) {
-      const k = keyFn(l) || 'unknown';
+      const k = (typeof keyFn === 'function' ? keyFn(l) : null) || 'unknown';
       const row = g[k] || (g[k] = { key: k, leads: 0, replied: 0, interested: 0, converted: 0, samples: 0, costSum: 0, scoreSum: 0, scored: 0 });
       row.leads++;
       if (l.replied) row.replied++;

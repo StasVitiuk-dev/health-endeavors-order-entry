@@ -90,7 +90,7 @@
   }
 
   function volumeTable(options) {
-    const opts = options || [5, 10, 25, 50, 100];
+    const opts = Array.isArray(options) ? options : [5, 10, 25, 50, 100];
     return opts.map(n => simulateVolume({ perDay: n }));
   }
 

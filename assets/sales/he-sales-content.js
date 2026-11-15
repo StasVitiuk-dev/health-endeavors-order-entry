@@ -47,8 +47,9 @@
   // Run the injected claim scanner over topic + body. A scanner is a function
   // returning { safe, findings }. If none is provided, claimStatus stays UNCHECKED
   // and the item cannot be approved (fails closed).
-  function checkClaims(item, scan) {
-    const text = (item.topic + '\n' + (item.body || '')).trim();
+  function checkClaims(input, scan) {
+    const item = (input && typeof input === 'object') ? input : {};
+    const text = ((item.topic || '') + '\n' + (item.body || '')).trim();
     if (typeof scan !== 'function') return { ...item, claimStatus: 'UNCHECKED', claimFindings: [] };
     const r = scan(text) || {};
     const findings = r.findings || [];
@@ -61,6 +62,7 @@
   // SCHEDULED requires APPROVED. Illegal moves throw.
   function advance(item, to, opts) {
     const o = opts || {};
+    if (!item || typeof item !== 'object') throw new Error('illegal content transition: there is no content item');
     const allowed = NEXT[item.status] || [];
     if (!allowed.includes(to)) throw new Error(`illegal content transition ${item.status} -> ${to}`);
     if ((to === 'APPROVED') && item.claimStatus !== 'SAFE') throw new Error('cannot APPROVE content with claims unchecked or blocked');

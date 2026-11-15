@@ -112,7 +112,8 @@
     const counts = {};
     for (const s of FUNNEL_ORDER) counts[s] = 0;
     const terminalCounts = {};
-    for (const r of rows) {
+    for (const r of (Array.isArray(rows) ? rows : [])) {
+      if (!r) continue;
       if (r.terminal) { terminalCounts[r.state] = (terminalCounts[r.state] || 0) + 1; continue; }
       if (counts[r.state] == null) counts[r.state] = 0;
       counts[r.state] += 1;

@@ -34,7 +34,7 @@
   function aggregateBy(rows, keyFn) {
     const out = {};
     for (const r of rowsOf(rows)) {
-      const key = keyFn(r) || '—';
+      const key = (typeof keyFn === 'function' ? keyFn(r) : null) || '—';
       const g = out[key] || (out[key] = { key, prospects: 0, qualified: 0, won: 0, scoreSum: 0, scored: 0 });
       g.prospects++;
       if (r.scoring && r.scoring.serious) g.qualified++;
@@ -56,7 +56,8 @@
 
   // Territory score: quality (avg score) weighted down by existing coverage, so a
   // high-quality, low-coverage territory ranks as white-space. Explainable.
-  function score(t) {
+  function score(input) {
+    const t = (input && typeof input === 'object') ? input : {};
     // E6 (Reserve IV Wave E): a territory with no scored prospects has UNKNOWN
     // quality — it must NOT be given a numeric whitespace score of 0, because
     // that makes sparse data look like low potential. Its score stays null and

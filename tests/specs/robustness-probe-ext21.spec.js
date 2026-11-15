@@ -15,7 +15,7 @@ const ROOT = path.resolve(__dirname, '..', '..');
 const DIRS = ['assets/invoice', 'assets/reports', 'assets/inventory', 'assets/views', 'assets/intake', 'assets/suppliers'];
 const FILES = DIRS.flatMap(d => fs.readdirSync(path.join(ROOT, d)).filter(f => f.endsWith('.js')).map(f => d + '/' + f));
 // Deliberate, documented throws (a programming error, not a data problem).
-const ALLOWED = [/^he-saved-views\.js createViewStore\(.*unknown view panel/];
+const ALLOWED = [/^he-saved-views\.js createViewStore\(.*Error: he-saved-views: unknown view panel/];
 
 const PROBE = `
 const mod = require(process.argv[1]);
@@ -25,7 +25,7 @@ const out = [];
 for (const [fnName, fn] of Object.entries(mod)) {
   if (typeof fn !== 'function') continue;
   const seen = new Set();
-  const call = (args, label) => { process.stderr.write('CALL ' + fnName + '(' + label + ')\\n'); try { fn(...args); } catch (e) { const k = name + ' ' + fnName + '(' + label + '): ' + String(e.message).slice(0, 80); if (!seen.has(String(e.message))) { seen.add(String(e.message)); out.push(k); } } };
+  const call = (args, label) => { process.stderr.write('CALL ' + fnName + '(' + label + ')\\n'); try { fn(...args); } catch (e) { const k = name + ' ' + fnName + '(' + label + '): ' + (e && e.constructor ? e.constructor.name : 'Thrown') + ': ' + String(e && e.message).slice(0, 80); if (!seen.has(String(e && e.message))) { seen.add(String(e && e.message)); out.push(k); } } };
   call([], 'no args');
   for (const a of odd) { const j = typeof a === 'number' ? String(a) : JSON.stringify(a); call([a], j); call([a, a], 'x2 ' + j); call([a, a, a], 'x3 ' + j); }
   call([{}, [], {}], '{},[],{}'); call([[], {}, []], '[],{},[]');
@@ -52,6 +52,32 @@ for (const file of FILES) {
     expect(hungAt, hungAt || '').toBeNull();
     const throwsFound = JSON.parse(stdout).filter(line => !ALLOWED.some(re => re.test(line)));
     expect(throwsFound).toEqual([]);
+  });
+}
+
+// The Sales & Growth modules (draft-only pages) are held to a slightly different
+// rule: a function may refuse a programming mistake with a plain, worded Error
+// ("inject he-sales-claims", "unknown variant kind: x", "illegal content
+// transition …") — those are deliberate contracts and many tests rely on them.
+// What it must never do is crash by accident (TypeError / RangeError) or hang.
+const SALES_FILES = fs.readdirSync(path.join(ROOT, 'assets', 'sales')).filter(f => f.endsWith('.js')).map(f => 'assets/sales/' + f);
+
+test('the probe covers every Sales & Growth module', () => {
+  expect(SALES_FILES.length).toBeGreaterThanOrEqual(50);
+});
+
+for (const file of SALES_FILES) {
+  test(`${file}: no accidental crash or hang on empty, missing or malformed input`, () => {
+    let stdout = '', hungAt = null;
+    try {
+      stdout = execFileSync(process.execPath, ['-e', PROBE, path.join(ROOT, file)], { timeout: 30000, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 32 * 1024 * 1024 });
+    } catch (e) {
+      const calls = String(e.stderr || '').trim().split('\n');
+      hungAt = (e.killed || e.signal) ? 'timed out at ' + calls[calls.length - 1] : 'probe process failed: ' + String(e.message).slice(0, 200);
+    }
+    expect(hungAt, hungAt || '').toBeNull();
+    const accidental = JSON.parse(stdout).filter(line => !/\): Error: /.test(line));
+    expect(accidental).toEqual([]);
   });
 }
 

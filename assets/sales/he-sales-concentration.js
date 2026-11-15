@@ -39,7 +39,8 @@
 
   // Herfindahl-Hirschman Index over a list of shares that sum to 1.
   // Returns 0..1 (sum of squared shares). Empty -> 0.
-  function hhi(values) {
+  function hhi(input) {
+    const values = (Array.isArray(input) ? input : []).map(Number).filter(v => isFinite(v) && v > 0);
     const total = values.reduce((s, v) => s + v, 0);
     if (total <= 0) return 0;
     return values.reduce((s, v) => { const share = v / total; return s + share * share; }, 0);
