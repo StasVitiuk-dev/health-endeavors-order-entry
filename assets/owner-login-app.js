@@ -2491,12 +2491,20 @@
     // SIMULATED draft invoice + packing slip; issuing stays an owner decision.
     const opsReportsMod = () => { try { return (window.HE && window.HE.reports && window.HE.reports['he-report-export']) || null; } catch (e) { return null; } };
     // #72: a traceable label for an export (who / why / which content). It does
-    // not change the export or its checksum; it travels with it. Preview only —
-    // the real label will name the signed-in person once exports are enabled.
+    // not change the export or its checksum; it travels with it. It names the
+    // person signed in on this page (their sign-in email and role), so a printed
+    // or saved copy says who made it. Preview only: stamping saved files comes
+    // with enabling real exports (owner decision 6).
+    const exportLabelWho = () => {
+      const email = (typeof currentUserEmail === 'string' && currentUserEmail.trim()) ? currentUserEmail.trim().slice(0, 120) : '';
+      const role = (typeof currentUserRole === 'string' && currentUserRole.trim()) ? currentUserRole.trim().slice(0, 40) : '';
+      if (!email) return 'signed-in user (not known)';
+      return role ? email + ' (' + role + ')' : email;
+    };
     const exportLabelFor = (manifest, usingLive) => {
       let mod = null; try { mod = (window.HE && window.HE.reports && window.HE.reports['he-export-label']) || null; } catch (e) { mod = null; }
       if (!mod || !manifest) return null;
-      const label = mod.labelExport(manifest, { exportedBy: 'signed-in user (preview)', at: null, purpose: 'owner review', classification: usingLive ? 'CONFIDENTIAL' : 'INTERNAL' });
+      const label = mod.labelExport(manifest, { exportedBy: exportLabelWho(), at: null, purpose: 'owner review', classification: usingLive ? 'CONFIDENTIAL' : 'INTERNAL' });
       return { label: label, check: mod.verifyLabel(label, manifest) };
     };
     const opsInvoiceMod = () => { try { return (window.HE && window.HE.invoice && window.HE.invoice['he-invoice']) || null; } catch (e) { return null; } };

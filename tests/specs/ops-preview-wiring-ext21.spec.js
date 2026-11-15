@@ -4,7 +4,7 @@
 // (he_report_export / he_invoice_preview). Flag OFF => the host is empty and the
 // live dashboard is unchanged. Flag ON => a read-only, SIMULATED preview renders
 // with no Trusted-Types/CSP violation. Nothing is issued, written or sent.
-const { test, expect, login, gotoPage } = require('../helpers/dashboard');
+const { test, expect, login, gotoPage, OWNER_USER } = require('../helpers/dashboard');
 
 test('flags OFF (default): neither preview renders in Report History', async ({ page }) => {
   await login(page);
@@ -32,6 +32,9 @@ test('export preview ON: manifest + checksum + integrity, labeled SIMULATED, no 
   await expect(label).toHaveAttribute('data-exportlabel', 'ok');
   await expect(label).toContainText(/HE · (INTERNAL|CONFIDENTIAL) · trace [0-9a-f]{8}/);
   await expect(label).toContainText('matches this export');
+  // ...and names who is signed in, not a placeholder (Nov 15).
+  await expect(label).toContainText(OWNER_USER.email + ' (owner)');
+  await expect(label).not.toContainText('signed-in user');
   expect(errors.join('\n')).not.toMatch(/Trusted Type|require-trusted-types|Refused to/i);
 });
 

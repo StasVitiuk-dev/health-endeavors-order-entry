@@ -4,7 +4,7 @@
 // a summary row. @media print (owner-login.css) hides the dashboard and breaks
 // pages onto US-Letter sheets. Default-OFF (rides the he_report_export flag).
 // Nothing is written or sent; window.print is stubbed so no dialog blocks.
-const { test, expect, login, gotoPage } = require('../helpers/dashboard');
+const { test, expect, login, gotoPage, OWNER_USER } = require('../helpers/dashboard');
 
 test('Print report builds the report print DOM: heading row + summary, no dialog', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop', 'run once');
@@ -23,5 +23,6 @@ test('Print report builds the report print DOM: heading row + summary, no dialog
   await expect(host).toContainText('SIMULATED');
   // #72: the printed page carries the trace label.
   await expect(host.locator('[data-exportlabel="print"]')).toContainText(/HE · INTERNAL · trace [0-9a-f]{8}/);
+  await expect(host.locator('[data-exportlabel="print"]')).toContainText(OWNER_USER.email + ' (owner)');
   expect(errors.join('\n')).not.toMatch(/Trusted Type|require-trusted-types|Refused to/i);
 });
