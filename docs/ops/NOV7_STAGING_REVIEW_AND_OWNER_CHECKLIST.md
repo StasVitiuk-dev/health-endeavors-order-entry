@@ -127,7 +127,7 @@ read-only — nothing is sent, issued, charged or written to stock.
 | Report versions | Report History | Kept versions, a rerun adds a version, delivery is simulated |
 | Invoice preview | Report History | Your tax and terms rules. Try the review desk: "Issue" is refused while the local rate is pending; type a rate (for example 2.75), confirm, issue, then void with a reason |
 | Export recovery drill | Report History | A good package opens; a damaged one is refused |
-| Sales & Growth pages | Sidebar | The draft-only sales and wholesale pages |
+| Sales & Growth pages | Sidebar | The draft-only sales and wholesale pages. At the bottom of **Sales & Growth → Approvals**, the **Outreach workbench** runs the whole path on one screen: press "Load the example store list", draft an email to a store, approve it, "Send (simulated)" (nothing is sent), then record a reply. Reload the page: it is all still there. "Reset workbench" clears it |
 
 Also sent separately: before/after pictures (`restyle-review.html`) of the control
 and form styling the owner directed on Nov 3, for the owner's final look-over.
@@ -156,7 +156,7 @@ and form styling the owner directed on Nov 3, for the owner's final look-over.
 
 - Branch `claude/ext20-recovery-2026-10-31`, unpushed; working tree clean.
 - A recovery export (git bundle + patches + checksums, verified) is refreshed at each
-  checkpoint; the latest is v47, made late on Nov 14 (sent to the owner as a file).
+  checkpoint; the latest is v51, made on the evening of Nov 15 (sent to the owner as a file).
 - **Durability warning:** the branch and the export both live in this session's
   temporary cloud workspace. They are preserved for good only once the branch is
   pushed to GitHub or the export file is saved by the owner.
@@ -169,8 +169,11 @@ review package:
 - **Done later on Nov 14:** #72, #12 and #53 connected to their screens; the Nov 14
   decisions applied inside the invoice and report engines (see section 10). #17
   stays logic-only — the form it protects is in the public website project.
-- **~0.5 day:** re-run the full suite on the final commit; re-measure #24 baselines
-  in CI; audit #08 and #26.
+- **Done Nov 15:** #08 and #26 audited and built (Nov 14); full passes at `4c5efc9`
+  and `05fc2b7`; the sales path runnable end to end; the dashboard side of invoice
+  storage; keyboard and screen-reader fixes.
+- **Left:** re-measure #24 baselines in CI once the branch is pushed; new reference
+  pictures once the owner has accepted the look.
 - **Owner-side (not engineering time):** the items in section 5, then review and merge.
 
 ## 8. Wiring wave (2026-11-14) — engine → dashboard journey
