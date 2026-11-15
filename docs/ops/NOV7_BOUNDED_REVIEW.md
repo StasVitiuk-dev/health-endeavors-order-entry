@@ -279,3 +279,33 @@ separately on the throwaway local database — 59 checks, all passing).
 Same three groups of failures as the two previous passes, and nothing else: 10
 picture comparisons at each size, and the phone-size "50,000-character … pages draw
 in reasonable time" timing test that fails the same way on the untouched base.
+
+## Full pass, 2026-11-15 evening (commit `05fc2b7`, substitute browser) — run on a busy machine
+
+Run from 19:12 to 20:37 UTC, computer size (16 shards) then phone size (8 shards),
+in a separate copy of the branch. **Other tests were running on the same machine
+for most of it** (the work described below), so timing-sensitive results from this
+pass are weaker evidence than the earlier passes. Covers everything up to the
+outreach workbench and the dashboard side of invoice storage.
+
+| Size | Passed | Failed | Skipped | Total |
+|---|---|---|---|---|
+| Computer (1100 px) | **2,417** | **11** | 51 | 2,479 |
+| Phone (390 px, Chromium with an iPhone profile — not real Safari) | **508** | **11** | 393 | 912 |
+
+Failures: the 10 picture comparisons at each size, plus two that were then traced
+to real causes and fixed (not re-run and waved through):
+
+- **Computer size, `ui-chrome` "an empty quick reminder just closes without
+  saving"** — new in this pass. The quick-reminder box gave its field the cursor
+  10 ms after opening; with the machine busy, the test's Enter landed inside that
+  gap, reached nothing, and the box stayed open. Fixed in `88db1fe` (the field takes
+  focus at once); a new test checks it in the same instant and fails without the fix.
+- **Phone size, `malformed-data-ext15` "50,000-character … pages draw in reasonable
+  time"** — the failure present in every earlier pass and on the untouched base.
+  Measured cause: at phone size a table cell wraps freely, so a 50,000-character
+  task title became one card about 43,000 px tall and took about 9 s of layout; the
+  Orders page did the same on a long customer name. Fixed in `fe56d66` (any table
+  cell draws at most 600 characters of a text, then says how much is hidden).
+
+A clean pass on the commit that contains both fixes follows.
