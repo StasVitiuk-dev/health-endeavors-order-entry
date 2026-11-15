@@ -64,7 +64,15 @@ instead of beside them:
   is handed out only at the moment of issue (safe when two people issue at once, no
   gaps, never reused), an issued invoice cannot be edited or deleted, and only the
   owner or an administrator can issue or void while staff prepare drafts. Tested on
-  a throwaway local database only (`sql/local-test/invoices_test.sh`, 59 checks).
+  a throwaway local database only (`sql/local-test/invoices_test.sh`, 64 checks).
+  Since Nov 15 later the stored invoice also keeps who it bills and where it ships
+  (as they stood when the draft was made), the account it belongs to, and the two
+  tax choices (shipping taxed or not; resale exemption, which then carries no tax);
+  none of these can change once issued. The dashboard side that talks to these
+  tables is written and tested (`assets/invoice/he-invoice-store.js`; 8 tests, plus
+  29 checks against the draft on the throwaway database in
+  `sql/local-test/invoice_store_adapter_test.js`) but is **not connected to any
+  screen** and is off unless switched on in code.
   **It adds access rules on its own two new tables, so it needs the owner's explicit
   approval before it is run — like every draft, and for that reason in particular.**
   It touches no existing table.

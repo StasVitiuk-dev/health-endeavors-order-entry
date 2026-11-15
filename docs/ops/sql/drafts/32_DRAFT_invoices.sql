@@ -76,6 +76,11 @@ create table if not exists public.invoice_counters (
 create table if not exists public.invoices (
   id              uuid primary key default gen_random_uuid(),
   order_id        uuid references public.orders(id),
+  -- who is billed, as it stood when the draft was made: an issued invoice keeps
+  -- this copy even if the account's address changes later (added Nov 15)
+  account_ref     text check (account_ref is null or length(account_ref) <= 100),
+  bill_to         jsonb check (bill_to is null or (jsonb_typeof(bill_to) = 'object' and octet_length(bill_to::text) <= 4000)),
+  ship_to         jsonb check (ship_to is null or (jsonb_typeof(ship_to) = 'object' and octet_length(ship_to::text) <= 4000)),
   status          text not null default 'draft'
                   check (status in ('draft', 'issued', 'partially_paid', 'paid', 'void')),
   invoice_number  text unique,
@@ -89,6 +94,9 @@ create table if not exists public.invoices (
   shipping        numeric(12,2) not null default 0 check (shipping >= 0),
   tax_rate        numeric(7,5)  not null default 0 check (tax_rate >= 0 and tax_rate <= 0.25),
   tax_rate_status text not null default 'PENDING' check (tax_rate_status in ('PENDING', 'CONFIRMED')),
+  -- decision 1: whether shipping was in the tax base, and a resale exemption
+  tax_shipping    boolean not null default false,
+  tax_exempt      boolean not null default false,
   tax             numeric(12,2) not null default 0 check (tax >= 0),
   total           numeric(12,2) not null default 0 check (total >= 0),
   issue_date      date,
@@ -110,6 +118,8 @@ create table if not exists public.invoices (
   constraint invoices_tax_confirmed_when_issued check (status = 'draft' or tax_rate_status = 'CONFIRMED'),
   -- decision 3: a void invoice says why
   constraint invoices_void_has_reason check (status <> 'void' or (void_reason is not null and length(btrim(void_reason)) >= 5 and voided_at is not null)),
+  -- decision 1: a resale-exempt invoice carries no tax
+  constraint invoices_exempt_has_no_tax check (not tax_exempt or tax = 0),
   constraint invoices_year_seq_unique unique (invoice_year, invoice_seq),
   constraint invoices_due_not_before_issue check (due_date is null or issue_date is null or due_date >= issue_date)
 );
@@ -180,7 +190,10 @@ begin
      or new.order_discount is distinct from old.order_discount or new.shipping is distinct from old.shipping
      or new.tax_rate is distinct from old.tax_rate or new.tax_rate_status is distinct from old.tax_rate_status
      or new.tax is distinct from old.tax or new.total is distinct from old.total
-     or new.currency is distinct from old.currency or new.order_id is distinct from old.order_id then
+     or new.currency is distinct from old.currency or new.order_id is distinct from old.order_id
+     or new.account_ref is distinct from old.account_ref or new.bill_to is distinct from old.bill_to
+     or new.ship_to is distinct from old.ship_to or new.tax_shipping is distinct from old.tax_shipping
+     or new.tax_exempt is distinct from old.tax_exempt then
     raise exception 'An issued invoice cannot be edited. Void it and issue a new one.' using errcode = '22023';
   end if;
 

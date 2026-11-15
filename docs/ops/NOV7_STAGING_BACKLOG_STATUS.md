@@ -57,7 +57,8 @@ newer approved blueprint backlog. Each closed item cites its commit and tests.
 | **Automatic invoice drafts from orders** (decision 3) — one draft per order, never issued, mismatches listed for review; shown on the invoice preview | Nov 14 late commit | invoice-from-order-ext21 (5), ops-preview-wiring-ext21 |
 | **Fixes from a self-review of the day's code** — due date counted from the Central business day; Net 14 always needs an approved account; a fully credited invoice reconciles as matched; the large-order check no longer slows down on long lists; example screens use the signed-in person's real role | Nov 14 late commit | invoice-decisions-ext21 (9), reconcile-ext21 (12), ops-anomaly-ext21 (11), cycle-count-wiring-ext21 (3) |
 | **Invoice review desk** (decisions 1, 2, 3, 5 together, simulated) — on the invoice preview: confirm the local tax rate, issue a draft, void with a reason; role-checked; numbers follow the Central-time business year | Nov 15 commit | invoice-desk-ext21 (8), ops-preview-wiring-ext21 (journey) |
-| **Invoice storage and numbering — database draft** (not installed; owner approves and runs): two new tables, numbering guard, issue / void functions, access rules for its own tables; rollback refuses once an invoice has been issued | Nov 15 commit | local database test, 59 checks; SQL package and static draft checks (190 tests) |
+| **Invoice storage and numbering — database draft** (not installed; owner approves and runs): two new tables, numbering guard, issue / void functions, access rules for its own tables; rollback refuses once an invoice has been issued | Nov 15 commit; bill-to, ship-to, account and tax choices added Nov 15 later | local database test, 64 checks; SQL package and static draft checks (190 tests) |
+| **Invoice storage — dashboard side** (not connected to any screen; off unless switched on in code): turns an invoice draft into a stored row and back, and saves, issues, voids and removes drafts through the database functions, with plain-English messages. Refuses a draft whose figures do not add up, never sends an invoice number (the database assigns it), and sends a double click only once. Writing it found that the database draft did not keep who an invoice bills or the tax choices; both added | Nov 15 later commit | invoice-store-ext21 (8, including a check that every column and function name matches drafts/32); local adapter-against-database test, 29 checks |
 | **Hardening against malformed data** — every function of the operations modules is now called with empty, missing and malformed values in a permanent test. Found and fixed: the print layout froze on a bad page size; an example-data generator froze on an absurd count; several functions crashed on a list containing an empty row | Nov 14 late commit | robustness-probe-ext21 (16) |
 | **Owner decisions 1, 2, 4 applied inside the invoice and report engines** | Nov 14 "decisions inside the engines" commit | invoice-decisions-ext21 (8), owner-decisions-ext21 (6) |
 | **#24 baselines / #36 change record** (documents) | `62eef9c`, `0cd75ad` | performance specs on the substitute browser; see caveat below |
@@ -95,7 +96,6 @@ provider and a real Safari / iPhone / VoiceOver check.
 ## Next actionable item
 Owner: give the final look-over of the control and form styling you directed on
 Nov 3 (before/after pictures sent as `restyle-review.html`), and run read-only Query I
-when convenient. Engineering: finish the open points of the Nov 3 visual review
-(`DASHBOARD_READINESS_ASSESSMENT_2026-11-03.md`: report-table widths, empty states and
-long explanatory text, the Home "nothing needs attention" question); re-measure #24
-in CI; re-take the reference pictures once the look is accepted.
+when convenient. Engineering (Nov 15): the Nov 3 visual-review points that needed no owner decision are done
+(#2, #4, #5, #8, #10; points 6 and 7 are owner decisions). The dashboard side of invoice storage
+is written and tested (not connected). Next without the owner: re-measure #24 in CI once pushed; re-take the reference pictures once the look is accepted.

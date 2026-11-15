@@ -141,7 +141,8 @@ and form styling the owner directed on Nov 3, for the owner's final look-over.
   certificate of analysis) used by the supplier document check (#53).
 - **Later, before any real invoice:** a review and explicit approval of the invoice
   storage draft (`sql/drafts/32_DRAFT_invoices.sql`). It adds two new tables and
-  the access rules for them; nothing is installed until the owner runs it.
+  the access rules for them; nothing is installed until the owner runs it. The
+  dashboard code that will use it is ready and tested, but not connected.
 - **One permission question:** should an administrator also be allowed to approve
   stock-count adjustments? Today only the owner can (blueprint #55).
 

@@ -59,6 +59,9 @@ has "staff cannot issue" "$(as $E "select public.issue_invoice('$D1')")" "Only t
 has "staff cannot issue by editing the status either" "$(as $E "update invoices set status = 'issued', tax_rate_status = 'CONFIRMED' where id = '$D1'")" "ERROR"
 has "staff cannot touch the number counter" "$(as $E "insert into invoice_counters values ($Y, 500)")" "row-level security"
 ok  "  the draft is still a draft" "$(q "select status from invoices where id = '$D1'")" "draft"
+ok  "a draft keeps who it bills, where it ships and the tax choices" "$(as $E "update invoices set account_ref = 'SYN-ACCT-1', bill_to = '{\"name\":\"SYN Cedar Spa\",\"city\":\"Chicago\"}', ship_to = '{\"name\":\"SYN Cedar Spa\"}', tax_shipping = true where id = '$D1' returning account_ref||'/'||(bill_to->>'name')||'/'||tax_shipping||'/'||tax_exempt")" "SYN-ACCT-1/SYN Cedar Spa/true/false"
+has "  a bill-to that is not an object is refused" "$(as $E "update invoices set bill_to = '[1,2]' where id = '$D1'")" "violates check constraint"
+has "  a resale-exempt draft cannot carry tax" "$(as $E "update invoices set tax_exempt = true where id = '$D1'")" "invoices_exempt_has_no_tax"
 
 echo " decision 1: a pending tax rate blocks issuing"
 has "the owner cannot issue while the rate is pending" "$(as $O "select public.issue_invoice('$D1')")" "tax rate on this draft is still pending"
@@ -89,6 +92,8 @@ as $O "update invoices set status = 'issued', invoice_number = 'HE-1999-0003' wh
 ok  "issuing by a direct edit still gets the real next number" "$(q "select invoice_number from invoices where id = '$D3'")" "$(num 3)"
 has "an issued invoice cannot be edited" "$(as $O "update invoices set total = 1 where id = '$D1'")" "An issued invoice cannot be edited"
 has "  nor its number" "$(as $O "update invoices set invoice_number = 'HE-2000-0001' where id = '$D1'")" "An issued invoice cannot be edited"
+has "  nor who it bills" "$(as $O "update invoices set bill_to = '{\"name\":\"Someone else\"}' where id = '$D1'")" "An issued invoice cannot be edited"
+has "  nor whether shipping was taxed" "$(as $O "update invoices set tax_shipping = false where id = '$D1'")" "An issued invoice cannot be edited"
 has "an issued invoice cannot be deleted" "$(as $O "delete from invoices where id = '$D1'")" "stays on the record"
 has "an issued invoice cannot go back to draft" "$(as $O "update invoices set status = 'draft' where id = '$D1'")" "cannot go from issued to draft"
 psql "${CONN[@]}" -d "$DB" -qtAX -c "begin; set local role authenticated; set local request.jwt.claim.sub = '$O'; insert into invoices (order_id, tax_rate_status, total) values ('$(ORD 4)', 'CONFIRMED', 5); select public.issue_invoice((select id from invoices where order_id = '$(ORD 4)')); rollback;" >/dev/null 2>&1
