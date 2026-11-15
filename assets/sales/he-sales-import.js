@@ -14,6 +14,12 @@
   if (root && root.HE) { (root.HE.sales = root.HE.sales || {})['he-sales-import'] = api; }
 }(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
+  // Lists come from data: anything that is not a list is treated as empty, and
+  // empty rows are dropped, so one bad row cannot crash a whole page.
+  const rowsOf = (x) => {
+    const a = Array.isArray(x) ? x : ((x && typeof x === 'object' && typeof x[Symbol.iterator] === 'function') ? Array.from(x) : []);
+    return a.some(function (r) { return r == null; }) ? a.filter(function (r) { return r != null; }) : a;
+  };
 
   const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   // Bounded outer repetition (253 = max hostname length) avoids a nested
@@ -76,7 +82,10 @@
   // when they share any strong key: same email, same domain, same phone, or same
   // normalized name + same city. Returns clusters (size>1) for owner review; it
   // never merges.
-  function duplicateGraph(prepared) {
+  function duplicateGraph(preparedRows) {
+    // Positions matter here (clusters are lists of row positions), so a row that
+    // is empty or was never prepared keeps its place and simply matches nothing.
+    const prepared = (Array.isArray(preparedRows) ? preparedRows : []).map(p => (p && p.normalized) ? p : { normalized: {} });
     const n = prepared.length;
     const parent = Array.from({ length: n }, (_, i) => i);
     const find = x => (parent[x] === x ? x : (parent[x] = find(parent[x])));
@@ -97,7 +106,7 @@
 
   // Full preview for the owner: prepared rows, duplicate clusters, and a warning count.
   function importPreview(rawRows) {
-    const prepared = (rawRows || []).map(prepareRow);
+    const prepared = rowsOf(rawRows).map(prepareRow);
     const duplicates = duplicateGraph(prepared);
     const warnings = prepared.reduce((a, p) => a + p.problems.length, 0);
     return { count: prepared.length, prepared, duplicates, warnings, needsConfirmation: true };

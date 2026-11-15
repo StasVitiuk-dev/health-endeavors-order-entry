@@ -22,6 +22,12 @@
   if (root && root.HE) { (root.HE.sales = root.HE.sales || {})['he-sales-concentration'] = api; }
 }(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
+  // Lists come from data: anything that is not a list is treated as empty, and
+  // empty rows are dropped, so one bad row cannot crash a whole page.
+  const rowsOf = (x) => {
+    const a = Array.isArray(x) ? x : ((x && typeof x === 'object' && typeof x[Symbol.iterator] === 'function') ? Array.from(x) : []);
+    return a.some(function (r) { return r == null; }) ? a.filter(function (r) { return r != null; }) : a;
+  };
 
   const DEFAULTS = {
     singleDealShare: 0.35,     // one deal >35% of weighted pipeline -> risk
@@ -63,7 +69,7 @@
   //    "zero demand"), and the count of drops is reported rather than hidden.
   function analyze(deals, opts) {
     const o = Object.assign({}, DEFAULTS, opts || {});
-    const raw = (deals || []).map(dl => ({ id: (dl && dl.id) || null, accountRaw: dl && dl.account, weightedValue: num(dl && dl.weightedValue) }));
+    const raw = rowsOf(deals).map(dl => ({ id: (dl && dl.id) || null, accountRaw: dl && dl.account, weightedValue: num(dl && dl.weightedValue) }));
     const droppedNonPositive = raw.filter(r => !(r.weightedValue > 0)).length;
     const positive = raw.filter(r => r.weightedValue > 0);
 

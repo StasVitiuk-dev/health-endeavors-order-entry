@@ -15,6 +15,12 @@
   if (root && root.HE) { (root.HE.sales = root.HE.sales || {})['he-sales-leaddetail'] = api; }
 }(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
+  // Lists come from data: anything that is not a list is treated as empty, and
+  // empty rows are dropped, so one bad row cannot crash a whole page.
+  const rowsOf = (x) => {
+    const a = Array.isArray(x) ? x : ((x && typeof x === 'object' && typeof x[Symbol.iterator] === 'function') ? Array.from(x) : []);
+    return a.some(function (r) { return r == null; }) ? a.filter(function (r) { return r != null; }) : a;
+  };
 
   // Next-best-action from the current pipeline state. Advisory; never auto-acted.
   // Returns { action, why, ownerDecision } — ownerDecision true means a human
@@ -58,7 +64,7 @@
   function timeline(history) {
     const h = history || {};
     const ev = [];
-    const push = (list, type) => (list || []).forEach(x => ev.push({ at: x.at || x.date || x.ts || null, type, detail: x.summary || x.text || x.kind || x.status || '' }));
+    const push = (list, type) => rowsOf(list).forEach(x => ev.push({ at: x.at || x.date || x.ts || null, type, detail: x.summary || x.text || x.kind || x.status || '' }));
     push(h.outreach, 'outreach'); push(h.replies, 'reply'); push(h.followups, 'follow-up');
     push(h.samples, 'sample'); push(h.audit, 'audit'); push(h.notes, 'note');
     return ev.filter(e => e.at).sort((a, b) => Date.parse(a.at) - Date.parse(b.at));

@@ -23,6 +23,12 @@
   if (root && root.HE) { (root.HE.sales = root.HE.sales || {})['he-sales-ui'] = api; }
 }(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
+  // Lists come from data: anything that is not a list is treated as empty, and
+  // empty rows are dropped, so one bad row cannot crash a whole page.
+  const rowsOf = (x) => {
+    const a = Array.isArray(x) ? x : ((x && typeof x === 'object' && typeof x[Symbol.iterator] === 'function') ? Array.from(x) : []);
+    return a.some(function (r) { return r == null; }) ? a.filter(function (r) { return r != null; }) : a;
+  };
 
   const LABELS = ['ACTUAL', 'ESTIMATED', 'SIMULATED', 'UNKNOWN', 'OWNER_INPUT_REQUIRED'];
   const STATES = ['OK', 'EMPTY', 'LOADING', 'ERROR', 'DISABLED', 'BLOCKED_OWNER'];
@@ -37,6 +43,7 @@
     if (o.enabled === false) return { title, state: 'DISABLED', note: 'Sales & Growth is turned off (feature flag).', sections: [] };
     if (o.loading) return { title, state: 'LOADING', sections: [] };
     if (o.error) return { title, state: 'ERROR', note: String(o.error), sections: [] };
+    if (typeof build !== 'function') return { title, state: 'ERROR', note: 'This page has nothing to show yet.', sections: [] };
     return build();
   }
 
@@ -77,7 +84,7 @@
   // Wholesale Leads list. `rows` are scored leads (from he-sales-leads.rank()).
   function leadsView(rows, opts) {
     return page('Wholesale Leads', opts, () => {
-      const list = (rows || []).map(r => ({
+      const list = rowsOf(rows).map(r => ({
         business: r.storeName, location: [r.city, r.state].filter(Boolean).join(', ') || '—',
         score: r.scoring ? r.scoring.score : null, band: r.scoring ? r.scoring.band : 'unknown',
         source: r.source || 'unknown', reachable: !!(r.email || r.website),
@@ -90,7 +97,7 @@
   // Pipeline board — columns are the pipeline stages with counts.
   function pipelineView(stageCounts, stages, opts) {
     return page('Pipeline', opts, () => {
-      const cols = (stages || []).map(s => ({ stage: s, count: (stageCounts && stageCounts[s]) || 0, label: 'SIMULATED' }));
+      const cols = rowsOf(stages).map(s => ({ stage: s, count: (stageCounts && stageCounts[s]) || 0, label: 'SIMULATED' }));
       const total = cols.reduce((a, c) => a + c.count, 0);
       return { title: 'Pipeline', state: total ? 'OK' : 'EMPTY', columns: cols, total };
     });
@@ -99,7 +106,7 @@
   // Sales approvals inbox — APPROVE is never SEND.
   function approvalsView(drafts, opts) {
     return page('Sales Approvals', opts, () => {
-      const list = (drafts || []).map(d => ({
+      const list = rowsOf(drafts).map(d => ({
         kind: d.kind, leadId: d.leadId, status: d.status,
         claimWarnings: (d.claimFindings || d.claimScan && d.claimScan.findings || []).length,
         provider: d.provider || d.createdWith || 'template',
@@ -144,7 +151,7 @@
   // Sales agent observability — never a fake "healthy".
   function agentActivityView(agents, opts) {
     return page('Sales Agent Activity', opts, () => {
-      const rows = (agents || []).map(a => ({
+      const rows = rowsOf(agents).map(a => ({
         name: a.name, mode: a.mode || 'DRAFT_ONLY', enabled: !!a.enabled, paused: !!a.paused,
         lastRun: a.lastRun || 'never', lastSuccess: a.lastSuccess || 'never',
         lastError: a.lastError || null, draftsCreated: a.draftsCreated || 0,

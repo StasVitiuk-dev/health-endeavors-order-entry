@@ -23,6 +23,12 @@
   if (root && root.HE) { (root.HE.sales = root.HE.sales || {})['he-sales-feedback'] = api; }
 }(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
+  // Lists come from data: anything that is not a list is treated as empty, and
+  // empty rows are dropped, so one bad row cannot crash a whole page.
+  const rowsOf = (x) => {
+    const a = Array.isArray(x) ? x : ((x && typeof x === 'object' && typeof x[Symbol.iterator] === 'function') ? Array.from(x) : []);
+    return a.some(function (r) { return r == null; }) ? a.filter(function (r) { return r != null; }) : a;
+  };
 
   // Themes that must reach a human. Safety first, then quality, then packaging.
   const ROUTE_TO_HUMAN = ['safety', 'quality', 'packaging', 'leaking'];
@@ -75,7 +81,7 @@
     const seen = new Map(); // key -> first classified
     let duplicates = 0;
     const classified = [];
-    (reviews || []).forEach(function (r) {
+    rowsOf(reviews).forEach(function (r) {
       const key = reviewsApi.reviewKey(r);
       if (seen.has(key)) { duplicates += 1; return; }
       const c = reviewsApi.classifyReview(r);
@@ -155,7 +161,7 @@
     const minWeeks = (opts && opts.minWeeks) || 2;   // recurs across >= this many weeks
     // product|theme -> Set(weekKey), plus counts and the dated samples.
     const seriesWeeks = {}; const seriesCount = {}; const seriesPeriods = {};
-    (reviews || []).forEach(function (r) {
+    rowsOf(reviews).forEach(function (r) {
       const c = reviewsApi.classifyReview(r);
       const wk = isoWeekKey(r.at || r.date);
       (c.themes || []).forEach(function (t) {

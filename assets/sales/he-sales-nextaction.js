@@ -19,6 +19,12 @@
   if (root && root.HE) { (root.HE.sales = root.HE.sales || {})['he-sales-nextaction'] = api; }
 }(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
+  // Lists come from data: anything that is not a list is treated as empty, and
+  // empty rows are dropped, so one bad row cannot crash a whole page.
+  const rowsOf = (x) => {
+    const a = Array.isArray(x) ? x : ((x && typeof x === 'object' && typeof x[Symbol.iterator] === 'function') ? Array.from(x) : []);
+    return a.some(function (r) { return r == null; }) ? a.filter(function (r) { return r != null; }) : a;
+  };
 
   // Stages from which contact must never be recommended again.
   const NO_CONTACT = new Set(['DECLINED', 'DO_NOT_CONTACT']);
@@ -100,7 +106,7 @@
 
   // Recommend for a list; each carries its leadId. Nothing is acted on.
   function recommendAll(leads) {
-    const rows = (leads || []).map(l => Object.assign({ leadId: (l && l.id) || null, state: (l && l.state) || 'NEW' }, recommend(l)));
+    const rows = rowsOf(leads).map(l => Object.assign({ leadId: (l && l.id) || null, state: (l && l.state) || 'NEW' }, recommend(l)));
     return { rows, count: rows.length,
       ownerDecisions: rows.filter(r => r.ownerDecisionRequired).length,
       noExternalSideEffects: rows.every(r => r.externalSideEffect === false),

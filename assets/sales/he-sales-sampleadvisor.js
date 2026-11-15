@@ -14,6 +14,12 @@
   if (root && root.HE) { (root.HE.sales = root.HE.sales || {})['he-sales-sampleadvisor'] = api; }
 }(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
+  // Lists come from data: anything that is not a list is treated as empty, and
+  // empty rows are dropped, so one bad row cannot crash a whole page.
+  const rowsOf = (x) => {
+    const a = Array.isArray(x) ? x : ((x && typeof x === 'object' && typeof x[Symbol.iterator] === 'function') ? Array.from(x) : []);
+    return a.some(function (r) { return r == null; }) ? a.filter(function (r) { return r != null; }) : a;
+  };
 
   // Candidate score 0..100 from serious-prospect signals. Explainable.
   function candidateScore(c) {
@@ -28,7 +34,7 @@
   }
 
   function rank(candidates, budgetRemaining) {
-    const scored = (candidates || []).map(c => ({ id: c.id, storeName: c.storeName, ...candidateScore(c),
+    const scored = rowsOf(candidates).map(c => ({ id: c.id, storeName: c.storeName, ...candidateScore(c),
       withinBudget: budgetRemaining == null ? null : (budgetRemaining > 0) }));
     scored.sort((a, b) => b.score - a.score);
     return { ranked: scored, budgetRemaining: budgetRemaining == null ? null : budgetRemaining,
@@ -41,7 +47,7 @@
     const maxPerDomain = o.maxPerDomain == null ? 2 : o.maxPerDomain;
     const byDomain = {}, byContact = {}, flags = [];
     const norm = s => String(s || '').toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/.*$/, '');
-    for (const r of (requests || [])) {
+    for (const r of rowsOf(requests)) {
       const dom = norm(r.website || (r.email || '').split('@')[1]);
       const contact = String(r.email || '').toLowerCase();
       if (dom) (byDomain[dom] = byDomain[dom] || []).push(r.id);
@@ -51,7 +57,7 @@
     for (const [c, ids] of Object.entries(byContact)) if (ids.length > 1) flags.push({ kind: 'repeated-contact', severity: 'WARNING', detail: ids.length + ' requests from ' + c, ids });
     // business aliases: same domain but different store names
     for (const [dom, ids] of Object.entries(byDomain)) {
-      const names = new Set((requests || []).filter(r => ids.includes(r.id)).map(r => String(r.storeName || '').toLowerCase().trim()));
+      const names = new Set(rowsOf(requests).filter(r => ids.includes(r.id)).map(r => String(r.storeName || '').toLowerCase().trim()));
       if (names.size > 1) flags.push({ kind: 'possible-alias', severity: 'INFO', detail: 'domain ' + dom + ' used by ' + names.size + ' different names', ids });
     }
     return { flags, total: flags.length, guard: 'Advisory. Flags are for a human; no request is auto-denied or approved.' };

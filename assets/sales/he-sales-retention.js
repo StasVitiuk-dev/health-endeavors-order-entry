@@ -14,6 +14,12 @@
   if (root && root.HE) { (root.HE.sales = root.HE.sales || {})['he-sales-retention'] = api; }
 }(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
+  // Lists come from data: anything that is not a list is treated as empty, and
+  // empty rows are dropped, so one bad row cannot crash a whole page.
+  const rowsOf = (x) => {
+    const a = Array.isArray(x) ? x : ((x && typeof x === 'object' && typeof x[Symbol.iterator] === 'function') ? Array.from(x) : []);
+    return a.some(function (r) { return r == null; }) ? a.filter(function (r) { return r != null; }) : a;
+  };
 
   const SEGMENTS = ['NEW', 'REPEAT', 'VIP', 'AT_RISK', 'INACTIVE', 'LOST', 'UNKNOWN'];
   const DAY = 86400000;
@@ -27,7 +33,7 @@
   // Average gap between consecutive orders, or null when there are < 2 orders
   // or any date is unparseable (we never invent an interval).
   function reorderInterval(orderDates) {
-    const ds = (orderDates || []).map(Date.parse).filter(isFinite).sort((a, b) => a - b);
+    const ds = rowsOf(orderDates).map(Date.parse).filter(isFinite).sort((a, b) => a - b);
     if (ds.length < 2) return { avgDays: null, confidence: 'UNKNOWN', orders: ds.length };
     let sum = 0;
     for (let i = 1; i < ds.length; i++) sum += (ds[i] - ds[i - 1]) / DAY;
@@ -79,7 +85,7 @@
   function analyze(customers, asOf, opts) {
     const o = opts || {};
     const reviewWindowDays = o.reviewWindowDays != null ? o.reviewWindowDays : 30;
-    const rows = (customers || []).map(c => classify(c, asOf, o));
+    const rows = rowsOf(customers).map(c => classify(c, asOf, o));
     const counts = {};
     for (const s of SEGMENTS) counts[s] = 0;
     for (const r of rows) counts[r.segment] = (counts[r.segment] || 0) + 1;

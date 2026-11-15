@@ -14,6 +14,12 @@
   if (root && root.HE) { (root.HE.sales = root.HE.sales || {})['he-sales-content'] = api; }
 }(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
+  // Lists come from data: anything that is not a list is treated as empty, and
+  // empty rows are dropped, so one bad row cannot crash a whole page.
+  const rowsOf = (x) => {
+    const a = Array.isArray(x) ? x : ((x && typeof x === 'object' && typeof x[Symbol.iterator] === 'function') ? Array.from(x) : []);
+    return a.some(function (r) { return r == null; }) ? a.filter(function (r) { return r != null; }) : a;
+  };
 
   const TYPES = ['seo', 'faq', 'blog', 'newsletter', 'social', 'creator', 'product_copy'];
   const STATUSES = ['IDEA', 'DRAFT', 'OWNER_REVIEW', 'LEGAL_REVIEW', 'APPROVED', 'BLOCKED', 'SCHEDULED'];
@@ -67,9 +73,9 @@
   // Group items for the content calendar view.
   function calendar(items) {
     const cols = {}; for (const s of STATUSES) cols[s] = [];
-    for (const it of (items || [])) (cols[it.status] || (cols[it.status] = [])).push(it);
+    for (const it of rowsOf(items)) (cols[it.status] || (cols[it.status] = [])).push(it);
     const counts = {}; for (const s of STATUSES) counts[s] = cols[s].length;
-    return { columns: cols, counts, total: (items || []).length,
+    return { columns: cols, counts, total: rowsOf(items).length,
       guard: 'Local planning only. Nothing is published; "scheduled" is a concept the owner schedules by hand.' };
   }
 

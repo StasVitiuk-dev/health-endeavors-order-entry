@@ -26,6 +26,12 @@
   if (root && root.HE) { (root.HE.sales = root.HE.sales || {})['he-sales-agents'] = api; }
 }(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
+  // Lists come from data: anything that is not a list is treated as empty, and
+  // empty rows are dropped, so one bad row cannot crash a whole page.
+  const rowsOf = (x) => {
+    const a = Array.isArray(x) ? x : ((x && typeof x === 'object' && typeof x[Symbol.iterator] === 'function') ? Array.from(x) : []);
+    return a.some(function (r) { return r == null; }) ? a.filter(function (r) { return r != null; }) : a;
+  };
 
   const MODES = ['OFF', 'SIMULATION', 'READ_ONLY', 'DRAFT_ONLY', 'PAUSED', 'BLOCKED_OWNER_INPUT', 'ERROR'];
   // The ONLY capabilities an advisory agent may hold. Anything that would act in
@@ -88,7 +94,7 @@
   // Safety invariant: every agent OFF, caps drawn only from SAFE_CAPS, and no
   // forbidden (acting) capability anywhere. Throws on the first violation.
   function assertSafe(agents) {
-    for (const a of (agents || AGENTS)) {
+    for (const a of rowsOf(agents == null ? AGENTS : agents)) {
       if (a.enabled !== false) throw new Error('agent not OFF by default: ' + a.id);
       if (a.mode !== 'OFF') throw new Error('agent mode not OFF by default: ' + a.id);
       for (const c of a.caps) {
@@ -101,7 +107,7 @@
 
   // Rows for he-sales-ui.agentActivityView(): honest health, never a fake "healthy".
   function activityRows(agents) {
-    return (agents || AGENTS).map(a => ({
+    return rowsOf(agents == null ? AGENTS : agents).map(a => ({
       name: a.name, mode: a.mode, enabled: a.enabled, paused: a.paused,
       lastRun: a.lastRun, lastSuccess: a.lastSuccess, lastError: a.lastError,
       draftsCreated: a.draftsCreated, unknowns: a.unknowns, provider: a.provider,
@@ -146,7 +152,7 @@
     return { ...base, state: 'OK', reason: sinceSuccess == null ? 'running' : ('last success ' + base.sinceSuccessHours + 'h ago'), nextAction: 'No action needed.' };
   }
   function healthRows(jobs, nowISO, staleAfterHours) {
-    return (jobs || AGENTS).map(j => jobHealth(j, nowISO, staleAfterHours));
+    return rowsOf(jobs == null ? AGENTS : jobs).map(j => jobHealth(j, nowISO, staleAfterHours));
   }
   function healthSummary(jobs, nowISO, staleAfterHours) {
     const rows = healthRows(jobs, nowISO, staleAfterHours);
@@ -175,11 +181,11 @@
 
   // A compact summary for the command center / readiness view.
   function summary(agents) {
-    const list = agents || AGENTS;
+    const list = rowsOf(agents == null ? AGENTS : agents);
     const byGroup = {};
     for (const a of list) byGroup[a.group] = (byGroup[a.group] || 0) + 1;
     return { total: list.length, enabled: list.filter(a => a.enabled).length,
-      draftCapable: list.filter(a => a.caps.includes('draft')).length, byGroup };
+      draftCapable: list.filter(a => Array.isArray(a.caps) && a.caps.includes('draft')).length, byGroup };
   }
 
   return { MODES, SAFE_CAPS, FORBIDDEN_CAPS, HEALTH_STATES, AGENTS, assertSafe, activityRows, jobHealth, healthRows, healthSummary, healthFixtures, summary };

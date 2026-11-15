@@ -16,6 +16,12 @@
   if (root && root.HE) { (root.HE.sales = root.HE.sales || {})['he-sales-simulator'] = api; }
 }(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
+  // Lists come from data: anything that is not a list is treated as empty, and
+  // empty rows are dropped, so one bad row cannot crash a whole page.
+  const rowsOf = (x) => {
+    const a = Array.isArray(x) ? x : ((x && typeof x === 'object' && typeof x[Symbol.iterator] === 'function') ? Array.from(x) : []);
+    return a.some(function (r) { return r == null; }) ? a.filter(function (r) { return r != null; }) : a;
+  };
 
   // engine: { leads, pipeline, ai, claims, replies, followup, samples } (any
   // subset; missing modules make their step a no-op recorded as 'skipped').
@@ -95,7 +101,7 @@
   function ingestEvents(events) {
     const suppressed = new Set();
     const log = [];
-    for (const ev of (events || [])) {
+    for (const ev of rowsOf(events)) {
       const kind = ev.kind;
       if (kind === 'unsubscribe' || kind === 'dnc' || kind === 'bounce') { suppressed.add(ev.leadId); log.push({ leadId: ev.leadId, kind, action: 'SUPPRESSED' }); }
       else log.push({ leadId: ev.leadId, kind, action: 'recorded (data only)' });

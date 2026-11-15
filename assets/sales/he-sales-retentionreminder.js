@@ -26,6 +26,12 @@
   if (root && root.HE) { (root.HE.sales = root.HE.sales || {})['he-sales-retentionreminder'] = api; }
 }(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
+  // Lists come from data: anything that is not a list is treated as empty, and
+  // empty rows are dropped, so one bad row cannot crash a whole page.
+  const rowsOf = (x) => {
+    const a = Array.isArray(x) ? x : ((x && typeof x === 'object' && typeof x[Symbol.iterator] === 'function') ? Array.from(x) : []);
+    return a.some(function (r) { return r == null; }) ? a.filter(function (r) { return r != null; }) : a;
+  };
 
   const DEFAULT_CADENCE_DAYS = 45; // explicit assumption when a customer's own interval is unknown
   const DEFAULT_MAX_REMINDERS = 3;
@@ -113,7 +119,7 @@
   function planReminders(customers, asOf, opts, deps) {
     const d = deps || {};
     const states = (opts && opts.states) || {};
-    const rows = (customers || []).map(c => reminderDraft({
+    const rows = rowsOf(customers).map(c => reminderDraft({
       customer: c, asOf: asOf, opts: opts, product: opts && opts.product,
       cadenceDays: opts && opts.cadenceDays, maxReminders: opts && opts.maxReminders,
       reminderState: states[c.id] || {}, retention: d.retention, followup: d.followup, claims: d.claims,

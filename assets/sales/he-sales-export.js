@@ -16,6 +16,12 @@
   if (root && root.HE) { (root.HE.sales = root.HE.sales || {})['he-sales-export'] = api; }
 }(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
+  // Lists come from data: anything that is not a list is treated as empty, and
+  // empty rows are dropped, so one bad row cannot crash a whole page.
+  const rowsOf = (x) => {
+    const a = Array.isArray(x) ? x : ((x && typeof x === 'object' && typeof x[Symbol.iterator] === 'function') ? Array.from(x) : []);
+    return a.some(function (r) { return r == null; }) ? a.filter(function (r) { return r != null; }) : a;
+  };
 
   const DANGEROUS = /^[=+\-@\t\r]/;
 
@@ -33,7 +39,7 @@
   function chooseFields(rows, classify, opts) {
     const o = opts || {};
     const present = new Set();
-    for (const r of (rows || [])) for (const k of Object.keys(r || {})) present.add(k);
+    for (const r of rowsOf(rows)) for (const k of Object.keys(r || {})) present.add(k);
     let fields = o.fields && o.fields.length ? o.fields.filter(f => present.has(f)) : [...present];
     const cls = typeof classify === 'function' ? classify : () => 'BUSINESS';
     const dropped = [];
@@ -50,8 +56,8 @@
   function toCsv(rows, classify, opts) {
     const { fields, dropped } = chooseFields(rows, classify, opts);
     const lines = [fields.map(cell).join(',')];
-    for (const r of (rows || [])) lines.push(fields.map(f => cell(r ? r[f] : '')).join(','));
-    return { csv: lines.join('\r\n'), fields, dropped, rows: (rows || []).length,
+    for (const r of rowsOf(rows)) lines.push(fields.map(f => cell(r ? r[f] : '')).join(','));
+    return { csv: lines.join('\r\n'), fields, dropped, rows: rowsOf(rows).length,
       guard: 'Export is built in memory only; sensitive/not-needed fields are dropped and every cell is formula-injection-safe.' };
   }
 

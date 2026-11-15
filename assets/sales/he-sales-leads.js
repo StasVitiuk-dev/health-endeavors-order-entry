@@ -13,6 +13,12 @@
   if (root && root.HE) { (root.HE.sales = root.HE.sales || {})['he-sales-leads'] = api; }
 }(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
+  // Lists come from data: anything that is not a list is treated as empty, and
+  // empty rows are dropped, so one bad row cannot crash a whole page.
+  const rowsOf = (x) => {
+    const a = Array.isArray(x) ? x : ((x && typeof x === 'object' && typeof x[Symbol.iterator] === 'function') ? Array.from(x) : []);
+    return a.some(function (r) { return r == null; }) ? a.filter(function (r) { return r != null; }) : a;
+  };
 
   const CATEGORIES = ['skincare', 'body-care', 'beauty', 'spa', 'salon', 'boutique', 'wellness', 'gift', 'pharmacy', 'grocery', 'other'];
   // Category fit for a body-care / skincare line (0..1). Not a claim about the
@@ -78,7 +84,7 @@
 
   // Rank a list of leads by score (highest first), stable on ties by store name.
   function rank(leads) {
-    return (leads || []).map(l => Object.assign({}, l, { scoring: score(l) }))
+    return rowsOf(leads).map(l => Object.assign({}, l, { scoring: score(l) }))
       .sort((a, b) => b.scoring.score - a.scoring.score || String(a.storeName).localeCompare(String(b.storeName)));
   }
 

@@ -13,6 +13,12 @@
   if (root && root.HE) { (root.HE.sales = root.HE.sales || {})['he-sales-creator'] = api; }
 }(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
+  // Lists come from data: anything that is not a list is treated as empty, and
+  // empty rows are dropped, so one bad row cannot crash a whole page.
+  const rowsOf = (x) => {
+    const a = Array.isArray(x) ? x : ((x && typeof x === 'object' && typeof x[Symbol.iterator] === 'function') ? Array.from(x) : []);
+    return a.some(function (r) { return r == null; }) ? a.filter(function (r) { return r != null; }) : a;
+  };
 
   const PLATFORMS = ['instagram', 'tiktok', 'youtube', 'pinterest', 'blog', 'other'];
   const SAFETY = Object.freeze({
@@ -47,7 +53,7 @@
       outreachDraft: null, permission: c.permission || 'unknown', safety: SAFETY, synthetic: true };
   }
 
-  function rank(creators) { return (creators || []).map(prospect).sort((a, b) => b.score - a.score); }
+  function rank(creators) { return rowsOf(creators).map(prospect).sort((a, b) => b.score - a.score); }
 
   // ROI view: separates ACTUAL from UNKNOWN; attribution for creators is usually
   // UNKNOWN and must be shown as such, never fabricated.

@@ -14,6 +14,12 @@
   if (root && root.HE) { (root.HE.sales = root.HE.sales || {})['he-sales-campaign'] = api; }
 }(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
+  // Lists come from data: anything that is not a list is treated as empty, and
+  // empty rows are dropped, so one bad row cannot crash a whole page.
+  const rowsOf = (x) => {
+    const a = Array.isArray(x) ? x : ((x && typeof x === 'object' && typeof x[Symbol.iterator] === 'function') ? Array.from(x) : []);
+    return a.some(function (r) { return r == null; }) ? a.filter(function (r) { return r != null; }) : a;
+  };
 
   const VARIANT_KINDS = ['subject', 'cta', 'length', 'tone', 'segment', 'creator_angle', 'newsletter_angle'];
 
@@ -59,7 +65,7 @@
 
   // Compare variants: safe ones first, then by quality + personalization.
   function compare(variants) {
-    const scored = (variants || []).map(v => ({ ...v, combined: (v.claimSafe ? 1000 : 0) + v.qualityScore + v.personalizationScore }));
+    const scored = rowsOf(variants).map(v => ({ ...v, combined: (v.claimSafe ? 1000 : 0) + v.qualityScore + v.personalizationScore }));
     scored.sort((a, b) => b.combined - a.combined);
     return { ranked: scored, best: scored[0] || null,
       guard: 'Simulation only. No variant is sent; the owner picks and sends by hand.' };

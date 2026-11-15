@@ -12,6 +12,12 @@
   if (root && root.HE) { (root.HE.sales = root.HE.sales || {})['he-sales-lostdeals'] = api; }
 }(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
+  // Lists come from data: anything that is not a list is treated as empty, and
+  // empty rows are dropped, so one bad row cannot crash a whole page.
+  const rowsOf = (x) => {
+    const a = Array.isArray(x) ? x : ((x && typeof x === 'object' && typeof x[Symbol.iterator] === 'function') ? Array.from(x) : []);
+    return a.some(function (r) { return r == null; }) ? a.filter(function (r) { return r != null; }) : a;
+  };
 
   const REASONS = ['PRICE', 'MOQ', 'TIMING', 'NO_RESPONSE', 'PRODUCT_FIT', 'NOT_INTERESTED', 'OTHER', 'UNKNOWN'];
 
@@ -24,12 +30,12 @@
 
   function tally(deals, keyFn) {
     const out = {};
-    for (const d of (deals || [])) { const k = keyFn(d) || '—'; out[k] = (out[k] || 0) + 1; }
+    for (const d of rowsOf(deals)) { const k = keyFn(d) || '—'; out[k] = (out[k] || 0) + 1; }
     return out;
   }
 
   function analyze(deals) {
-    const ds = (deals || []).map(d => ({ ...d, reason: normReason(d.reason), band: scoreBand(d.scoreValue != null ? d.scoreValue : (d.scoring && d.scoring.score)) }));
+    const ds = rowsOf(deals).map(d => ({ ...d, reason: normReason(d.reason), band: scoreBand(d.scoreValue != null ? d.scoreValue : (d.scoring && d.scoring.score)) }));
     const byReason = {}; for (const r of REASONS) byReason[r] = 0;
     for (const d of ds) byReason[d.reason]++;
     // Re-opening candidates: lost to TIMING or NO_RESPONSE with a decent score.

@@ -13,10 +13,16 @@
   if (root && root.HE) { (root.HE.sales = root.HE.sales || {})['he-sales-anomaly'] = api; }
 }(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
+  // Lists come from data: anything that is not a list is treated as empty, and
+  // empty rows are dropped, so one bad row cannot crash a whole page.
+  const rowsOf = (x) => {
+    const a = Array.isArray(x) ? x : ((x && typeof x === 'object' && typeof x[Symbol.iterator] === 'function') ? Array.from(x) : []);
+    return a.some(function (r) { return r == null; }) ? a.filter(function (r) { return r != null; }) : a;
+  };
 
   const SEVERITY = ['CRITICAL', 'WARNING', 'INFO'];
 
-  function mean(xs) { const a = (xs || []).filter(x => typeof x === 'number'); return a.length ? a.reduce((s, x) => s + x, 0) / a.length : null; }
+  function mean(xs) { const a = rowsOf(xs).filter(x => typeof x === 'number'); return a.length ? a.reduce((s, x) => s + x, 0) / a.length : null; }
 
   function flag(kind, severity, detail, value, baseline) {
     return { kind, severity, detail, value: value == null ? null : +(+value).toFixed(3), baseline: baseline == null ? null : +(+baseline).toFixed(3) };

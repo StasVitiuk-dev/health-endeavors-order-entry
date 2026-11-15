@@ -13,6 +13,12 @@
   if (root && root.HE) { (root.HE.sales = root.HE.sales || {})['he-sales-benchmark'] = api; }
 }(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
+  // Lists come from data: anything that is not a list is treated as empty, and
+  // empty rows are dropped, so one bad row cannot crash a whole page.
+  const rowsOf = (x) => {
+    const a = Array.isArray(x) ? x : ((x && typeof x === 'object' && typeof x[Symbol.iterator] === 'function') ? Array.from(x) : []);
+    return a.some(function (r) { return r == null; }) ? a.filter(function (r) { return r != null; }) : a;
+  };
 
   // Gold sets. Each case: { input, expect }. Kept small but meaningful.
   const GOLD = {
@@ -40,7 +46,7 @@
   // scorer's raw result to a comparable label (defaults to identity).
   function runSuite(cases, scorer, labelFor) {
     const lf = labelFor || (x => x);
-    const results = (cases || []).map(c => {
+    const results = rowsOf(cases).map(c => {
       let got;
       try { got = lf(scorer(c.input)); } catch (e) { got = 'ERROR'; }
       return { input: c.input, expected: c.expect, got, pass: got === c.expect };

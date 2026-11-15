@@ -13,6 +13,12 @@
   if (root && root.HE) { (root.HE.sales = root.HE.sales || {})['he-sales-sources'] = api; }
 }(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
+  // Lists come from data: anything that is not a list is treated as empty, and
+  // empty rows are dropped, so one bad row cannot crash a whole page.
+  const rowsOf = (x) => {
+    const a = Array.isArray(x) ? x : ((x && typeof x === 'object' && typeof x[Symbol.iterator] === 'function') ? Array.from(x) : []);
+    return a.some(function (r) { return r == null; }) ? a.filter(function (r) { return r != null; }) : a;
+  };
 
   function rate(n, d) { return (d == null || d <= 0) ? null : +(n / d).toFixed(3); }
   function label(v) { return v == null ? 'UNKNOWN' : 'ESTIMATED'; }
@@ -21,7 +27,7 @@
   // converted (customer), sampleUsed (bool), cost (number), scoring.score.
   function aggregate(leads, keyFn) {
     const g = {};
-    for (const l of (leads || [])) {
+    for (const l of rowsOf(leads)) {
       const k = keyFn(l) || 'unknown';
       const row = g[k] || (g[k] = { key: k, leads: 0, replied: 0, interested: 0, converted: 0, samples: 0, costSum: 0, scoreSum: 0, scored: 0 });
       row.leads++;

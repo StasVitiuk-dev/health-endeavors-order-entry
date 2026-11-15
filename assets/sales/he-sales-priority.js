@@ -20,6 +20,12 @@
   if (root && root.HE) { (root.HE.sales = root.HE.sales || {})['he-sales-priority'] = api; }
 }(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
+  // Lists come from data: anything that is not a list is treated as empty, and
+  // empty rows are dropped, so one bad row cannot crash a whole page.
+  const rowsOf = (x) => {
+    const a = Array.isArray(x) ? x : ((x && typeof x === 'object' && typeof x[Symbol.iterator] === 'function') ? Array.from(x) : []);
+    return a.some(function (r) { return r == null; }) ? a.filter(function (r) { return r != null; }) : a;
+  };
 
   // Factor -> whether a higher raw value means higher priority (true) or lower
   // priority (false, "cost-like"). Order is the display order.
@@ -86,7 +92,7 @@
     const seen = new Set();
     let duplicatesDropped = 0;
     const kept = [];
-    for (const l of (leads || [])) {
+    for (const l of rowsOf(leads)) {
       const id = l && l.id;
       if (id != null) {
         if (seen.has(id)) { duplicatesDropped++; continue; }

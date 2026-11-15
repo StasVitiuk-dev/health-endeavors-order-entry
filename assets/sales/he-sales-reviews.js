@@ -14,6 +14,12 @@
   if (root && root.HE) { (root.HE.sales = root.HE.sales || {})['he-sales-reviews'] = api; }
 }(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
+  // Lists come from data: anything that is not a list is treated as empty, and
+  // empty rows are dropped, so one bad row cannot crash a whole page.
+  const rowsOf = (x) => {
+    const a = Array.isArray(x) ? x : ((x && typeof x === 'object' && typeof x[Symbol.iterator] === 'function') ? Array.from(x) : []);
+    return a.some(function (r) { return r == null; }) ? a.filter(function (r) { return r != null; }) : a;
+  };
 
   // Theme keywords (plain, explainable). Order independent.
   const THEME_RULES = [
@@ -95,7 +101,7 @@
   function reviewQueue(reviews, claims) {
     const seen = new Set();
     const classified = [];
-    (reviews || []).forEach(function (r) {
+    rowsOf(reviews).forEach(function (r) {
       const k = reviewKey(r);
       if (seen.has(k)) return; // duplicate feedback collapsed
       seen.add(k);
@@ -106,9 +112,9 @@
     classified.forEach(c => c.themes.forEach(t => { (byTheme[t] = byTheme[t] || []).push(c); }));
     const byProduct = {};
     classified.forEach(c => { (byProduct[c.product] = byProduct[c.product] || []).push(c); });
-    const quoteCandidates = (reviews || []).map(r => quoteCandidate(r, claims)).filter(q => q.publishable || q.permissionOk);
+    const quoteCandidates = rowsOf(reviews).map(r => quoteCandidate(r, claims)).filter(q => q.publishable || q.permissionOk);
     return {
-      count: classified.length, duplicatesCollapsed: (reviews || []).length - classified.length,
+      count: classified.length, duplicatesCollapsed: rowsOf(reviews).length - classified.length,
       urgent: urgent, byTheme: byTheme, byProduct: byProduct,
       quoteCandidates: quoteCandidates, note: 'SIMULATED — negative feedback preserved; nothing is published without permission + owner approval.',
     };

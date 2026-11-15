@@ -13,6 +13,12 @@
   if (root && root.HE) { (root.HE.sales = root.HE.sales || {})['he-sales-workload'] = api; }
 }(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
+  // Lists come from data: anything that is not a list is treated as empty, and
+  // empty rows are dropped, so one bad row cannot crash a whole page.
+  const rowsOf = (x) => {
+    const a = Array.isArray(x) ? x : ((x && typeof x === 'object' && typeof x[Symbol.iterator] === 'function') ? Array.from(x) : []);
+    return a.some(function (r) { return r == null; }) ? a.filter(function (r) { return r != null; }) : a;
+  };
 
   const DAY = 86400000;
   // Synthetic minutes-per-item defaults (owner-tunable later).
@@ -38,7 +44,7 @@
   // Durations (days) from paired timestamps; null entries ignored. Returns
   // count/avg/median or UNKNOWN when there is nothing to measure.
   function durationStats(pairs) {
-    const ds = (pairs || []).map(p => {
+    const ds = rowsOf(pairs).map(p => {
       const a = Date.parse(p.from), b = Date.parse(p.to);
       return (isFinite(a) && isFinite(b) && b >= a) ? (b - a) / DAY : null;
     }).filter(x => x != null).sort((a, b) => a - b);

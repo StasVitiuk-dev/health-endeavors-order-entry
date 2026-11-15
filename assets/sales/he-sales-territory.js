@@ -13,6 +13,12 @@
   if (root && root.HE) { (root.HE.sales = root.HE.sales || {})['he-sales-territory'] = api; }
 }(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
+  // Lists come from data: anything that is not a list is treated as empty, and
+  // empty rows are dropped, so one bad row cannot crash a whole page.
+  const rowsOf = (x) => {
+    const a = Array.isArray(x) ? x : ((x && typeof x === 'object' && typeof x[Symbol.iterator] === 'function') ? Array.from(x) : []);
+    return a.some(function (r) { return r == null; }) ? a.filter(function (r) { return r != null; }) : a;
+  };
 
   // Rough US region grouping by state code (advisory; unknown states -> OTHER).
   const REGION = {
@@ -27,7 +33,7 @@
   // Aggregate rows (leads with optional scoring + a won flag) by a key function.
   function aggregateBy(rows, keyFn) {
     const out = {};
-    for (const r of (rows || [])) {
+    for (const r of rowsOf(rows)) {
       const key = keyFn(r) || '—';
       const g = out[key] || (out[key] = { key, prospects: 0, qualified: 0, won: 0, scoreSum: 0, scored: 0 });
       g.prospects++;
@@ -84,7 +90,7 @@
       // E6: prospects exist but none scored yet — surfaced as "needs data",
       // never ranked as low-potential.
       needsData: scoredStates.filter(t => t.prospects >= 1 && !t.rankable),
-      totalProspects: (rows || []).length,
+      totalProspects: rowsOf(rows).length,
       guard: 'Advisory geography only. No exclusivity is promised or enforced. Unscored territories read UNKNOWN, not low potential.',
     };
   }

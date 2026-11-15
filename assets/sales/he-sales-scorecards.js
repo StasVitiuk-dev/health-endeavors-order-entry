@@ -16,16 +16,22 @@
   if (root && root.HE) { (root.HE.sales = root.HE.sales || {})['he-sales-scorecards'] = api; }
 }(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
+  // Lists come from data: anything that is not a list is treated as empty, and
+  // empty rows are dropped, so one bad row cannot crash a whole page.
+  const rowsOf = (x) => {
+    const a = Array.isArray(x) ? x : ((x && typeof x === 'object' && typeof x[Symbol.iterator] === 'function') ? Array.from(x) : []);
+    return a.some(function (r) { return r == null; }) ? a.filter(function (r) { return r != null; }) : a;
+  };
 
   const FAILURE_KINDS = ['timeout', 'malformed', 'unsafe-output', 'budget-block', 'stale-response', 'permission-block', 'unknown'];
 
   function rate(n, d) { return d ? +(n / d).toFixed(3) : null; }
-  function avg(xs) { const a = (xs || []).filter(x => typeof x === 'number'); return a.length ? +(a.reduce((s, x) => s + x, 0) / a.length).toFixed(4) : null; }
+  function avg(xs) { const a = rowsOf(xs).filter(x => typeof x === 'number'); return a.length ? +(a.reduce((s, x) => s + x, 0) / a.length).toFixed(4) : null; }
 
   // Per-agent scorecard from run records.
   function scorecards(runs) {
     const byAgent = {};
-    for (const r of (runs || [])) (byAgent[r.agent] || (byAgent[r.agent] = [])).push(r);
+    for (const r of rowsOf(runs)) (byAgent[r.agent] || (byAgent[r.agent] = [])).push(r);
     return Object.entries(byAgent).map(([agent, rs]) => {
       const n = rs.length;
       const ok = rs.filter(r => r.result === 'ok').length;
@@ -45,7 +51,7 @@
   // Group failures by cause across all runs.
   function failureAnalysis(runs) {
     const byKind = {}; for (const k of FAILURE_KINDS) byKind[k] = 0;
-    for (const r of (runs || [])) if (r.result === 'fail') { const k = FAILURE_KINDS.includes(r.failure) ? r.failure : 'unknown'; byKind[k]++; }
+    for (const r of rowsOf(runs)) if (r.result === 'fail') { const k = FAILURE_KINDS.includes(r.failure) ? r.failure : 'unknown'; byKind[k]++; }
     const total = Object.values(byKind).reduce((a, b) => a + b, 0);
     return { byKind, total, top: FAILURE_KINDS.slice().sort((a, b) => byKind[b] - byKind[a])[0] };
   }
@@ -53,7 +59,7 @@
   // Trend of a metric across labelled periods. Each period: { label, runs }.
   // metric is one of the scorecard rate fields; returns per-period values + direction.
   function trend(periods, agent, metric) {
-    const vals = (periods || []).map(p => {
+    const vals = rowsOf(periods).map(p => {
       const cards = scorecards((p.runs || []).filter(r => !agent || r.agent === agent));
       const total = cards.reduce((s, c) => s + (c[metric] != null ? c[metric] * c.runs : 0), 0);
       const runs = cards.reduce((s, c) => s + c.runs, 0);

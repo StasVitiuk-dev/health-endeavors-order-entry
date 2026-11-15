@@ -13,6 +13,12 @@
   if (root && root.HE) { (root.HE.sales = root.HE.sales || {})['he-sales-changes'] = api; }
 }(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
+  // Lists come from data: anything that is not a list is treated as empty, and
+  // empty rows are dropped, so one bad row cannot crash a whole page.
+  const rowsOf = (x) => {
+    const a = Array.isArray(x) ? x : ((x && typeof x === 'object' && typeof x[Symbol.iterator] === 'function') ? Array.from(x) : []);
+    return a.some(function (r) { return r == null; }) ? a.filter(function (r) { return r != null; }) : a;
+  };
 
   const DAY = 86400000;
   // Event kinds we consider "material" for the what-changed view.
@@ -21,7 +27,7 @@
 
   function windowCounts(events, since, until) {
     const c = {}; for (const k of MATERIAL) c[k] = 0;
-    for (const e of (events || [])) {
+    for (const e of rowsOf(events)) {
       const t = Date.parse(e.at);
       if (!isFinite(t) || t < since || t >= until) continue;
       if (MATERIAL.includes(e.kind)) c[e.kind]++;

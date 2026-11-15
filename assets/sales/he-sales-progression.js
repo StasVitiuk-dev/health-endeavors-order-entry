@@ -22,6 +22,12 @@
   if (root && root.HE) { (root.HE.sales = root.HE.sales || {})['he-sales-progression'] = api; }
 }(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
+  // Lists come from data: anything that is not a list is treated as empty, and
+  // empty rows are dropped, so one bad row cannot crash a whole page.
+  const rowsOf = (x) => {
+    const a = Array.isArray(x) ? x : ((x && typeof x === 'object' && typeof x[Symbol.iterator] === 'function') ? Array.from(x) : []);
+    return a.some(function (r) { return r == null; }) ? a.filter(function (r) { return r != null; }) : a;
+  };
 
   // The forward funnel, in order. Used to draw the progression map; off-funnel
   // and terminal states are shown separately.
@@ -123,7 +129,7 @@
   function analyze(leads, opts) {
     const o = opts || {};
     const asOfMs = toMs(o.asOf) != null ? toMs(o.asOf) : Date.parse('2026-10-20T00:00:00Z');
-    const rows = (leads || []).map(l => analyzeLead(l, asOfMs, o.sla));
+    const rows = rowsOf(leads).map(l => analyzeLead(l, asOfMs, o.sla));
     const histogram = {}; for (const b of BUCKETS) histogram[b] = 0; histogram.DONE = 0;
     for (const r of rows) histogram[r.agingBucket] = (histogram[r.agingBucket] || 0) + 1;
     // A3: worst first, with a deterministic id tie-break so equal-overBy leads

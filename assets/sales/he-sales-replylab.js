@@ -21,6 +21,12 @@
   if (root && root.HE) { (root.HE.sales = root.HE.sales || {})['he-sales-replylab'] = api; }
 }(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
+  // Lists come from data: anything that is not a list is treated as empty, and
+  // empty rows are dropped, so one bad row cannot crash a whole page.
+  const rowsOf = (x) => {
+    const a = Array.isArray(x) ? x : ((x && typeof x === 'object' && typeof x[Symbol.iterator] === 'function') ? Array.from(x) : []);
+    return a.some(function (r) { return r == null; }) ? a.filter(function (r) { return r != null; }) : a;
+  };
 
   // Lower rank = less certain = reviewed first. The classifier reports 0 for
   // UNKNOWN and the strings 'medium'/'high' otherwise.
@@ -40,7 +46,7 @@
   // replies: [{ id, text }]. Returns the triage view.
   function triage(replies, classifier) {
     const clf = resolveClassifier(classifier);
-    const rows = (replies || []).map(r => {
+    const rows = rowsOf(replies).map(r => {
       const res = clf.classify((r && r.text) || '');
       const suppress = typeof clf.suppresses === 'function' ? !!clf.suppresses(res.label) : false;
       const rank = confRank(res.confidence);

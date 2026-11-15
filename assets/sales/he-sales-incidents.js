@@ -23,6 +23,12 @@
   if (root && root.HE) { (root.HE.sales = root.HE.sales || {})['he-sales-incidents'] = api; }
 }(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
+  // Lists come from data: anything that is not a list is treated as empty, and
+  // empty rows are dropped, so one bad row cannot crash a whole page.
+  const rowsOf = (x) => {
+    const a = Array.isArray(x) ? x : ((x && typeof x === 'object' && typeof x[Symbol.iterator] === 'function') ? Array.from(x) : []);
+    return a.some(function (r) { return r == null; }) ? a.filter(function (r) { return r != null; }) : a;
+  };
 
   // A flag kind becomes an incident only at these severities (F1).
   const INCIDENT_SEVERITIES = new Set(['CRITICAL', 'WARNING']);
@@ -45,7 +51,7 @@
   // kind (F2); keeps only incident-severity flags (F1).
   function fromFlags(flags) {
     const byKind = new Map();
-    for (const f of (flags || [])) {
+    for (const f of rowsOf(flags)) {
       if (!f || !INCIDENT_SEVERITIES.has(f.severity)) continue; // F1
       const prev = byKind.get(f.kind);
       if (prev) { prev.occurrences += 1; continue; }            // F2: collapse
@@ -82,8 +88,8 @@
   // resolved ONLY when its kind is absent from the current flags (the condition
   // cleared) — acknowledgement alone never resolves it.
   function reconcile(openIncidents, currentFlags) {
-    const live = new Set((currentFlags || []).filter(isIncidentFlag).map(f => f.kind));
-    return (openIncidents || []).map(i => Object.assign({}, i, { resolved: !live.has(i.kind), stillOpen: live.has(i.kind) }));
+    const live = new Set(rowsOf(currentFlags).filter(isIncidentFlag).map(f => f.kind));
+    return rowsOf(openIncidents).map(i => Object.assign({}, i, { resolved: !live.has(i.kind), stillOpen: live.has(i.kind) }));
   }
 
   // F5: provider health is honest — a provider that is not connected is never
