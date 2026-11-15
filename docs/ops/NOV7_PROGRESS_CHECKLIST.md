@@ -179,7 +179,8 @@ All draft-only behind `he_sales_growth` (OFF by default); nothing sent, spent or
 - ✅ Malformed-data hardening of the operations modules, with a permanent probe test (fixed a print-layout freeze and several crashes)
 - ✅ Final full pass at `aa81876`: computer 2,285 passed / 10 failed, phone 505 passed / 11 failed — only picture comparisons and one environment-bound timing test
 - ✅ Nov 3 visual review, open points: Home empty-list wording fixed (`227aa76`); 15 long page explanations shortened to a lead plus "More about this" (warnings stay visible); empty states made compact. Details in `DASHBOARD_READINESS_ASSESSMENT_2026-11-03.md`
-- ✅ Full pass on the latest commit `4c5efc9` (Nov 15 afternoon): computer 2,387 passed / 10 failed, phone 507 passed / 11 failed — same failures as before, nothing new
+- ✅ Full pass on `4c5efc9` (Nov 15 afternoon): computer 2,387 passed / 10 failed, phone 507 passed / 11 failed — same failures as before, nothing new
+- ✅ Clean full pass on `88db1fe` (Nov 15 night, nothing else running): computer 2,431 passed / 10 failed, phone 513 passed / 10 failed — only the 20 picture comparisons; the phone-size timing test passes for the first time (its cause, very long text freezing tables, was fixed)
 - ✅ Invoice review desk (simulated): confirm local tax rate → issue → void, with numbering, terms, due date and role checks (Nov 15)
 - ✅ Nov 3 review point 8: sales workflow tested end to end with the real modules; found and fixed two faults (opt-out replies got the wrong advice; a reply template claimed an attachment that never exists)
 - ✅ Nov 3 visual review point 10: the review copy's notice is compact (one line + "More"; 9% → 4% of a computer screen, 15% → 8% of a phone) and still always says it is not production

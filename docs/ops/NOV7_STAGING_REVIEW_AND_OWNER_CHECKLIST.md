@@ -163,7 +163,7 @@ and form styling the owner directed on Nov 3, for the owner's final look-over.
 
 - Branch `claude/ext20-recovery-2026-10-31`, unpushed; working tree clean.
 - A recovery export (git bundle + patches + checksums, verified) is refreshed at each
-  checkpoint; the latest is v51, made on the evening of Nov 15 (sent to the owner as a file).
+  checkpoint; the latest is v53, made on the night of Nov 15 (sent to the owner as a file).
 - **Durability warning:** the branch and the export both live in this session's
   temporary cloud workspace. They are preserved for good only once the branch is
   pushed to GitHub or the export file is saved by the owner.
@@ -176,8 +176,8 @@ review package:
 - **Done later on Nov 14:** #72, #12 and #53 connected to their screens; the Nov 14
   decisions applied inside the invoice and report engines (see section 10). #17
   stays logic-only — the form it protects is in the public website project.
-- **Done Nov 15:** #08 and #26 audited and built (Nov 14); full passes at `4c5efc9`
-  and `05fc2b7`; the sales path runnable end to end; the dashboard side of invoice
+- **Done Nov 15:** #08 and #26 audited and built (Nov 14); full passes at `4c5efc9`,
+  `05fc2b7` and a clean one at `88db1fe` (only the 20 picture comparisons fail); the sales path runnable end to end; the dashboard side of invoice
   storage; keyboard and screen-reader fixes.
 - **Left:** re-measure #24 baselines in CI once the branch is pushed; new reference
   pictures once the owner has accepted the look.

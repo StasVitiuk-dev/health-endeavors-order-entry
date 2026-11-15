@@ -309,3 +309,31 @@ to real causes and fixed (not re-run and waved through):
   cell draws at most 600 characters of a text, then says how much is hidden).
 
 A clean pass on the commit that contains both fixes follows.
+
+## Full pass, 2026-11-15 night (commit `88db1fe`, substitute browser) — clean, quiet machine
+
+Run from 20:37 to 21:41 UTC, computer size (16 shards) then phone size (8 shards),
+in a separate copy of the branch, **with nothing else running on the machine**. It
+contains both fixes above and everything added on Nov 15 (keyboard focus,
+screen-reader announcements, the long-text rule, the quick-reminder fix).
+
+| Size | Passed | Failed | Skipped | Total |
+|---|---|---|---|---|
+| Computer (1100 px) | **2,431** | **10** | 53 | 2,494 |
+| Phone (390 px, Chromium with an iPhone profile — not real Safari) | **513** | **10** | 404 | 927 |
+
+Failures: **only the 20 picture comparisons** (`visual.spec`: login screen, eight
+pages and dark Orders, at each size). They compare against reference pictures taken
+before the restyle and stay red until the owner accepts the look and new pictures
+are taken in the CI browser. No test was retried into a pass ("flaky": none).
+
+Both failures from the previous pass are gone for a reason, not by luck:
+
+- `ui-chrome` quick reminder — passes; the fix is in this commit.
+- `malformed-data-ext15` 50,000-character timing at phone size — **passes for the
+  first time in any full pass** (it failed in every earlier one and on the untouched
+  base). This is the first full pass with no failure other than picture comparisons.
+
+Limits of this evidence, unchanged: one substitute Chromium build, not the CI
+browser; phone size is emulation, not a real iPhone or Safari; no real screen
+reader was used. The three commits after `88db1fe` change documents only.
