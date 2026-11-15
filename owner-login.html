@@ -32,7 +32,7 @@
 <meta http-equiv="Expires" content="0">
 <title>Health Endeavors — Owner Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous"></script>
-<link rel="stylesheet" href="assets/owner-login.css?v=4f8f0601d6">
+<link rel="stylesheet" href="assets/owner-login.css?v=12a00cf11d">
 <script src="assets/owner-login-helpers.js?v=76dc8fc4a9"></script>
 <script src="assets/owner-login-modules.js?v=0d97adc58c"></script>
 <!-- @@ EXT15 module files (assets/app/*.js), added by tests/tools/extract-module.js @@ -->
@@ -278,7 +278,8 @@
       <!-- Inventory (manual stock tracking, per product) -->
       <section class="panel" id="inventoryPanel">
         <h2>Inventory</h2>
-        <p class="hint">Your product catalogue and how much of each you hold, split into Available, Reserved, Damaged, Sample, Wholesale, Promotional and Returned. Add a product before you can order or stock it — receiving a purchase order and restocking a return both find products by SKU, so give everything a SKU and use the same one in Shopify. Every change is logged with who made it, when and why.</p>
+        <p class="hint hintLead">Your product catalogue and how much of each you hold, split into Available, Reserved, Damaged, Sample, Wholesale, Promotional and Returned.</p>
+        <details class="hintMore"><summary>More about this</summary><p class="hint">Add a product before you can order or stock it — receiving a purchase order and restocking a return both find products by SKU, so give everything a SKU and use the same one in Shopify. Every change is logged with who made it, when and why.</p></details>
         <div id="reorderPlanningHost"></div>
         <div class="savedViewsHost" id="savedViewsInventory"></div>
         <div class="statRow" id="inventoryStats"></div>
@@ -368,7 +369,8 @@
       <!-- Returns (tied to Orders + Inventory) -->
       <section class="panel" id="returnsPanel">
         <h2>Returns</h2>
-        <p class="hint">Track items customers send back, from request through refund. Status moves through: Requested → Approved or Rejected → Received → Refunded → Closed. Marking a return Received also records what happens to the stock — restocked, moved to Damaged, or discarded — and logs that change to Inventory automatically, so you never enter it twice. Each return is for one specific line item on an order (its full quantity), not a partial amount.</p>
+        <p class="hint hintLead">Track items customers send back, from request through refund. Each return is for one specific line item on an order (its full quantity), not a partial amount.</p>
+        <details class="hintMore"><summary>More about this</summary><p class="hint">Status moves through: Requested → Approved or Rejected → Received → Refunded → Closed. Marking a return Received also records what happens to the stock — restocked, moved to Damaged, or discarded — and logs that change to Inventory automatically, so you never enter it twice.</p></details>
         <div class="statRow" id="returnsStats"></div>
 
         <h3 class="u-fs-13 u-c-navy u-mt-14">Log a new return</h3>
@@ -427,7 +429,8 @@
       <!-- Expenses (manual entry, feeds the Accounting Agent) -->
       <section class="panel" id="expensesPanel">
         <h2>Expenses</h2>
-        <p class="hint">Log what the business spends money on here — packaging, ingredients, ads, anything. Nothing happens automatically; this is just a record, the same way Procedures or Legal Holds work. The Accounting Agent will combine these with real order revenue to show a running profit picture.</p>
+        <p class="hint hintLead">Log what the business spends money on here — packaging, ingredients, ads, anything. Nothing happens automatically; this is just a record.</p>
+        <details class="hintMore"><summary>More about this</summary><p class="hint">It works the same way Procedures or Legal Holds do. The Accounting Agent will combine these with real order revenue to show a running profit picture.</p></details>
         <div class="statRow" id="expenseStats"></div>
         <div id="expensesWrap"><p class="empty">Loading…</p></div>
 
@@ -478,7 +481,8 @@
       <!-- Accounting (live rollup — no data of its own, just combines Orders + Expenses) -->
       <section class="panel" id="accountingPanel">
         <h2>Accounting</h2>
-        <p class="hint">A live profit picture, calculated fresh every time you open this page — nothing is stored separately here. Orders that are cancelled or fully refunded are left out of revenue entirely. Partial refunds are still counted in full (the exact amount refunded isn't tracked yet), so they're listed below for you to double-check by eye.</p>
+        <p class="hint hintLead">A live profit picture, calculated fresh every time you open this page. Partial refunds are still counted in full (the exact amount refunded isn't tracked yet), so they're listed below for you to double-check by eye.</p>
+        <details class="hintMore"><summary>More about this</summary><p class="hint">Nothing is stored separately here. Orders that are cancelled or fully refunded are left out of revenue entirely.</p></details>
         <div class="viewToggle" id="acctToggle">
           <button type="button" class="small" data-range="today">Today</button>
           <button type="button" class="small secondary" data-range="week">Last 7 days</button>
@@ -504,7 +508,8 @@
       <!-- Tax Records (Agent #10) -->
       <section class="panel" id="taxRecordsPanel">
         <h2>Tax Records</h2>
-        <p class="hint">Organizes your income and expense records into a shape your accountant can actually use — categorizes transactions, flags what's missing paperwork, and builds a report you can hand off. <b>It never files anything or talks to the IRS or any state directly</b> — that stays a human decision, always.</p>
+        <p class="hint hintLead">Organizes your income and expense records into a shape your accountant can actually use. <b>It never files anything or talks to the IRS or any state directly</b> — that stays a human decision, always.</p>
+        <details class="hintMore"><summary>More about this</summary><p class="hint">It categorizes transactions, flags what's missing paperwork, and builds a report you can hand off.</p></details>
         <div class="viewToggle" id="taxToggle">
           <button type="button" class="small" data-range="year">This Year</button>
           <button type="button" class="small secondary" data-range="lastyear">Last Year</button>
@@ -513,15 +518,18 @@
         <div class="statRow" id="taxStats"></div>
 
         <h3 class="u-fs-13 u-c-navy u-m-18-0-6">Expenses by category</h3>
-        <p class="hint u-mt-n2">Split into Cost of Goods Sold (ingredients, packaging, manufacturing — the direct cost of what you make) and Operating expenses (everything else). <b>This split is a starting point based on how you've already been categorizing expenses, not tax advice</b> — have your accountant confirm the final categorization before filing anything.</p>
+        <p class="hint u-mt-n2 hintLead">Split into Cost of Goods Sold and Operating expenses. <b>This split is a starting point based on how you've already been categorizing expenses, not tax advice</b> — have your accountant confirm the final categorization before filing anything.</p>
+        <details class="hintMore"><summary>More about this</summary><p class="hint">Cost of Goods Sold: ingredients, packaging, manufacturing — the direct cost of what you make. Operating expenses: everything else.</p></details>
         <div id="taxCategoryWrap"><p class="empty">Loading…</p></div>
 
         <h3 class="u-fs-13 u-c-navy u-m-18-0-6">Estimated cost of units sold</h3>
-        <p class="hint u-mt-n2">A separate reference figure — quantity sold × each product's recorded cost — for comparing against the categorized expenses above. This is an estimate, not an authoritative Cost of Goods Sold figure (real COGS accounting also factors in beginning/ending inventory, which this system doesn't track). Items whose SKU doesn't match a product on file, or that have no cost recorded, are called out separately rather than silently left out.</p>
+        <p class="hint u-mt-n2 hintLead">A separate reference figure — quantity sold × each product's recorded cost — for comparing against the categorized expenses above. This is an estimate, not an authoritative Cost of Goods Sold figure.</p>
+        <details class="hintMore"><summary>More about this</summary><p class="hint">Real COGS accounting also factors in beginning/ending inventory, which this system doesn't track. Items whose SKU doesn't match a product on file, or that have no cost recorded, are called out separately rather than silently left out.</p></details>
         <div id="taxCogsWrap"><p class="empty">Loading…</p></div>
 
         <h3 class="u-fs-13 u-c-navy u-m-18-0-6">Sales tax collected</h3>
-        <p class="hint u-mt-n2">By state, where the state is known. <b>Honest limit:</b> orders don't yet have a dedicated state field — this reads it out of the raw synced order data instead, which hasn't been checked against a real order yet (none have synced as of this build). Treat the total as reliable and the by-state split as unverified until your first real Shopify order confirms the field is really there.</p>
+        <p class="hint u-mt-n2 hintLead">By state, where the state is known. <b>Honest limit:</b> treat the total as reliable and the by-state split as unverified until your first real Shopify order confirms the field is really there.</p>
+        <details class="hintMore"><summary>More about this</summary><p class="hint">Orders don't yet have a dedicated state field — this reads it out of the raw synced order data instead, which hasn't been checked against a real order yet (none have synced as of this build).</p></details>
         <div id="taxStateWrap"><p class="empty">Loading…</p></div>
 
         <h3 class="u-fs-13 u-c-navy u-m-18-0-6">Expenses missing a receipt</h3>
@@ -580,7 +588,8 @@
       <!-- Documents -->
       <section class="panel" id="documentsPanel">
         <h2>Documents</h2>
-        <p class="hint">A central place for contracts, certifications, insurance, tax documents, packaging specs, and anything else worth keeping on file — separate from Evidence Locker, which is only for incident-specific evidence. Upload the file itself, or paste a link to where it lives (Drive, email, etc.).</p>
+        <p class="hint hintLead">A central place for contracts, certifications, insurance, tax documents, packaging specs, and anything else worth keeping on file.</p>
+        <details class="hintMore"><summary>More about this</summary><p class="hint">Separate from Evidence Locker, which is only for incident-specific evidence. Upload the file itself, or paste a link to where it lives (Drive, email, etc.).</p></details>
         <div class="statRow" id="documentsStats"></div>
         <div id="documentsWrap"><p class="empty">Loading…</p></div>
         <form id="addDocumentForm" class="u-d-flex u-fd-column u-gap-8 u-mt-14 u-pt-16 u-bt-1-solid-line">
@@ -610,7 +619,8 @@
       <!-- Adverse Event Reports (MoCRA) -->
       <section class="panel" id="adverseEventsPanel">
         <h2>Adverse Event Reports (FDA / MoCRA)</h2>
-        <p class="hint">Log any report of a serious reaction to the product here. This calculates the FDA's 15-business-day reporting deadline automatically and opens a high-priority task so it can't be missed. This is a tracking tool, not legal advice — always confirm actual reporting decisions with a qualified regulatory professional.</p>
+        <p class="hint hintLead">Log any report of a serious reaction to the product here. This is a tracking tool, not legal advice — always confirm actual reporting decisions with a qualified regulatory professional.</p>
+        <details class="hintMore"><summary>More about this</summary><p class="hint">This calculates the FDA's 15-business-day reporting deadline automatically and opens a high-priority task so it can't be missed.</p></details>
         <div id="adverseEventsWrap"><p class="empty">Loading…</p></div>
         <form id="addAdverseEventForm" class="u-d-flex u-fd-column u-gap-8 u-mt-14 u-pt-16 u-bt-1-solid-line">
           <input type="text" id="aeProduct" placeholder="Product name (e.g. Cocoa Body Lotion)" required>
@@ -641,7 +651,8 @@
 
         <h3 class="u-m-18-0-6 u-fs-15">Agent registry — what each one can touch, and what it can't do alone</h3>
         <p class="hint u-mt-0">Of these 10, only Agent #7 (Customer Service) calls a paid AI model at all — the rest are rule-based checks with no AI model involved, so there's nothing for them to "get wrong" the way an AI reply could.</p>
-        <p class="hint u-mt-0">Each agent has its own On/Off switch below, separate from System Mode — so if one agent is misbehaving you can pause just that one without stopping everything else. Only the Owner or an Administrator can change these; the switch is recorded with who changed it and when. <b>Honest limit:</b> Agents marked "Switch enforced" really check the switch before doing anything. The rest still just record your decision for now; their own code doesn't check it yet, and that's being added one agent at a time. Until an agent says "Switch enforced" below, switching it off is a record of intent, not a guaranteed stop.</p>
+        <p class="hint u-mt-0 hintLead">Each agent has its own On/Off switch below, separate from System Mode. <b>Honest limit:</b> until an agent says "Switch enforced" below, switching it off is a record of intent, not a guaranteed stop.</p>
+        <details class="hintMore"><summary>More about this</summary><p class="hint">If one agent is misbehaving you can pause just that one without stopping everything else. Only the Owner or an Administrator can change these; the switch is recorded with who changed it and when. Agents marked "Switch enforced" really check the switch before doing anything. The rest still just record your decision for now; their own code doesn't check it yet, and that's being added one agent at a time.</p></details>
         <div id="agentRegistryWrap"><p class="empty">Loading…</p></div>
 
         <h3 class="u-m-22-0-6 u-fs-15">Live AI spending &amp; model settings</h3>
@@ -696,7 +707,8 @@
       <!-- Report History (saved nightly snapshots) -->
       <section class="panel" id="reportHistoryPanel">
         <h2>Report History</h2>
-        <p class="hint">Every night, the system automatically saves a snapshot just like the Daily Summary above — so you can look back at any past day, even ones you weren't around to check live. "Emailed" will start showing once automatic email delivery is turned on. Switch to Weekly or Monthly to see totals added up over time instead of one day at a time.</p>
+        <p class="hint hintLead">Every night, the system automatically saves a snapshot just like the Daily Summary above — so you can look back at any past day, even ones you weren't around to check live.</p>
+        <details class="hintMore"><summary>More about this</summary><p class="hint">"Emailed" will start showing once automatic email delivery is turned on. Switch to Weekly or Monthly to see totals added up over time instead of one day at a time.</p></details>
         <div class="viewToggle" id="reportHistoryToggle">
           <button type="button" class="small" data-view="daily">Daily</button>
           <button type="button" class="small secondary" data-view="weekly">Weekly</button>
@@ -726,7 +738,8 @@
           </select>
           <button type="button" id="systemModeChangeBtn" class="small">Change mode</button>
         </div>
-        <p class="hint u-mt-10">Honest limits: choosing No AI or Emergency also best-effort pauses Agent #7 (Customer Service) on the AI Agent Activity page, since that's the only agent that calls a paid AI model — and Emergency also switches off the Shopify Order Sync flag below. It does not (yet) force-disable logins or revoke other people's sessions — that would need a server-side change beyond this dashboard. See the guide entry for what's actually enforced today.</p>
+        <p class="hint u-mt-10 hintLead">Honest limits: changing the mode does not (yet) force-disable logins or revoke other people's sessions — that would need a server-side change beyond this dashboard. See the guide entry for what's actually enforced today.</p>
+        <details class="hintMore"><summary>More about this</summary><p class="hint">Choosing No AI or Emergency also best-effort pauses Agent #7 (Customer Service) on the AI Agent Activity page, since that's the only agent that calls a paid AI model — and Emergency also switches off the Shopify Order Sync flag below.</p></details>
 
         <h3 class="u-m-18-0-6 u-fs-15">Other switches</h3>
         <p class="hint u-mt-0">Only the Owner role can change these.</p>
@@ -758,7 +771,8 @@
       <!-- Employee Activity -->
       <section class="panel" id="activityPanel">
         <h2>Employee Activity</h2>
-        <p class="hint">Every change made in your system — who did it, when, and exactly what changed. Search by name, account number, area, or anything inside a change (an order number, a customer name). Changes made by automatic jobs show as "System / automatic" because no person was signed in. For areas holding customer personal information or your formula, only the field names are recorded, never the values.</p>
+        <p class="hint hintLead">Every change made in your system — who did it, when, and exactly what changed. Search by name, account number, area, or anything inside a change (an order number, a customer name).</p>
+        <details class="hintMore"><summary>More about this</summary><p class="hint">Changes made by automatic jobs show as "System / automatic" because no person was signed in. For areas holding customer personal information or your formula, only the field names are recorded, never the values.</p></details>
         <div id="activityDigest" class="digestLine u-d-none"></div>
         <div id="activityPeople" class="peopleStrip"></div>
         <div class="activityControls">
@@ -833,7 +847,8 @@
       <!-- Purchase Orders -->
       <section class="panel" id="purchaseOrdersPanel">
         <h2>Purchase Orders</h2>
-        <p class="hint">What you've ordered, what it cost, and when it's due. Open a purchase order to add the things you're buying. When the delivery arrives, marking it Received puts the stock into Inventory and records the cost as an expense — so you never type the same numbers twice.</p>
+        <p class="hint hintLead">What you've ordered, what it cost, and when it's due. Open a purchase order to add the things you're buying.</p>
+        <details class="hintMore"><summary>More about this</summary><p class="hint">When the delivery arrives, marking it Received puts the stock into Inventory and records the cost as an expense — so you never type the same numbers twice.</p></details>
         <div class="statRow" id="poStats"></div>
         <form class="heForm" id="addPoForm">
           <div class="heField heWide">

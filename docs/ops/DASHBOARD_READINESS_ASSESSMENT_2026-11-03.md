@@ -88,3 +88,19 @@ unrelated to these changes.
 alignment/width/overflow); #3 empty states + copy density + Home-scope trace;
 #4 Sales-agent end-to-end inspection before estimating. No push/merge/deploy
 without explicit per-SHA owner approval.
+
+## Update 2026-11-15 — status of the gap table (same local branch, unpushed)
+The Nov 7 build took priority after this page was written; these points were picked
+up again on Nov 15.
+
+| # | Status now | Evidence |
+|---|---|---|
+| 3 Report tables | **Done for Tax Records and Report History** (`4b8c5d8`: number columns right-aligned, table uses the panel width). Accounting has no wide data table in the example data — its lists were looked at on Nov 15 and need no change | before/after pictures; `report-tables` checks in `4b8c5d8` |
+| 4 Blank areas and dense paragraphs | **Done for the 15 longest page explanations and for empty states** (Nov 15): each long explanation shows a short lead, including any warning or stated limit, with the rest under "More about this" — nothing was deleted; empty states went from a 68 px blank band to a compact line. **Not done:** the mixed corner radii on non-control boxes (cards, tiles) were left as they are — the owner's Nov 3 correction limited the shape change to controls | `page-explanations-ext21` (5 tests); 249 accessibility / layout / policy checks pass |
+| 5 Home "nothing needs attention" | **Traced and fixed** (`227aa76`): the two are different lists (computed checks vs. tasks, approvals, incidents, events, reminders). The empty message now names what is empty and points at the checks; no check is hidden | `attention-checks` |
+| 2 File picker | Unchanged since `ee68864`: styled control, native file name shown; no inline validation message |  |
+| 6, 7 | Still owner decisions (account directory page; custom dropdown menus) |  |
+| 10 | Still needs the owner's real Safari / iPhone / VoiceOver pass |  |
+
+The owner's final look-over of the control and form styling is still open; before/
+after pictures were sent on Nov 14–15.
