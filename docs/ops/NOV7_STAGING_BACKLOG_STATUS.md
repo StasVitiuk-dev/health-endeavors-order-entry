@@ -2,7 +2,7 @@
 
 Status: CURRENT · As of 2026-11-15 · For: Stas · Local/synthetic, default-OFF,
 draft/simulated only. Branch `claude/ext20-recovery-2026-10-31` (unpushed).
-Recovery export: refreshed at each checkpoint (latest v53, night of Nov 15, sent
+Recovery export: refreshed at each checkpoint (latest v54, night of Nov 15, sent
 to the owner as a file). The branch itself sits in the session's temporary workspace —
 it is durable only once it is pushed or the owner keeps that file.
 
