@@ -262,3 +262,20 @@ The failures are the same three groups as in the pass at `aa81876`, and nothing
 else: 10 picture comparisons at computer size, 10 at phone size, and the phone-size
 "50,000-character … pages draw in reasonable time" timing test, which fails the same
 way on the untouched base commit in this environment.
+
+## Full pass, 2026-11-15 afternoon (commit `4c5efc9`, substitute browser)
+
+Run from 13:01 to 14:18 UTC, computer size (16 shards) then phone size (8 shards).
+Nothing else ran on the machine during it. Covers everything up to and including
+the invoice review desk, the Sales & Growth hardening and the invoice storage
+draft (the draft itself is checked by the static SQL tests; its database test runs
+separately on the throwaway local database — 59 checks, all passing).
+
+| Size | Passed | Failed | Skipped | Total |
+|---|---|---|---|---|
+| Computer (1100 px) | **2,387** | **10** | 51 | 2,448 |
+| Phone (390 px, Chromium with an iPhone profile — not real Safari) | **507** | **11** | 388 | 906 |
+
+Same three groups of failures as the two previous passes, and nothing else: 10
+picture comparisons at each size, and the phone-size "50,000-character … pages draw
+in reasonable time" timing test that fails the same way on the untouched base.

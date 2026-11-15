@@ -179,7 +179,7 @@ All draft-only behind `he_sales_growth` (OFF by default); nothing sent, spent or
 - ✅ Malformed-data hardening of the operations modules, with a permanent probe test (fixed a print-layout freeze and several crashes)
 - ✅ Final full pass at `aa81876`: computer 2,285 passed / 10 failed, phone 505 passed / 11 failed — only picture comparisons and one environment-bound timing test
 - ✅ Nov 3 visual review, open points: Home empty-list wording fixed (`227aa76`); 15 long page explanations shortened to a lead plus "More about this" (warnings stay visible); empty states made compact. Details in `DASHBOARD_READINESS_ASSESSMENT_2026-11-03.md`
-- ✅ Full pass on the latest commit `1a70caf` (Nov 15): computer 2,320 passed / 10 failed, phone 507 passed / 11 failed — same failures as before, nothing new
+- ✅ Full pass on the latest commit `4c5efc9` (Nov 15 afternoon): computer 2,387 passed / 10 failed, phone 507 passed / 11 failed — same failures as before, nothing new
 - ✅ Invoice review desk (simulated): confirm local tax rate → issue → void, with numbering, terms, due date and role checks (Nov 15)
 - ✅ Database draft for storing and numbering invoices (`sql/drafts/32`, rollback `33`) — tested locally, NOT installed; needs the owner's explicit approval (it adds access rules on its own new tables)
 - ✅ Sales & Growth modules hardened against malformed input: 174 accidental crashes → 0; permanent probe test covers all 54 modules (Nov 15)
