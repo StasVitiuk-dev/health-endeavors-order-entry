@@ -186,6 +186,17 @@ work after Nov 9 (saved views, cycle counts, report versions and the other
 switched-off hosts) added no visible change when off. **These styling changes are
 not behind a switch and will be visible on merge.**
 
+> **Clarification (2026-11-15).** These are not accidental side effects. They are
+> the control-shape and form-layout changes the owner directed on Nov 3: square
+> buttons, fields and dropdowns; one arrow per dropdown; labelled forms; number
+> columns right-aligned; the original colours kept (the owner rejected a palette
+> change the same day, restored in `9ba94d8`). They were never meant to sit behind
+> a switch. What is still open is the owner's final look-over of the result — the
+> Nov 3 review asked for before/after pictures and kept final acceptance with the
+> owner. Tracked in `DASHBOARD_READINESS_ASSESSMENT_2026-11-03.md`. The Nov 14 notes
+> in the status files that asked the owner to "decide whether to keep the new look"
+> described this wrongly and have been reworded.
+
 **iPhone-size run (Nov 9): 489 passed / 11 failed / 365 skipped** stands as
 recorded. Its 10 picture failures have the same explanation as above. Its one
 timing failure was checked later on Nov 14 — see the final full pass below.

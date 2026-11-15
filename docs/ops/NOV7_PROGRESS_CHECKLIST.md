@@ -172,7 +172,7 @@ All draft-only behind `he_sales_growth` (OFF by default); nothing sent, spent or
 - ✅ #26 anomaly detection — operations watch added (daily figures, stock, orders) behind `he_ops_watch`; advisory, example data, thresholds untuned (`d0011ea`)
 - ✅ Accessibility + phone sweep with every operations switch ON; dark-mode badge contrast fixed (`c8dd6b3`)
 - ✅ Read-only Query I: which day cutoff the nightly report uses (`fcef560`) — owner runs it when convenient
-- ✅ Before/after pictures of the restyled screens sent to the owner for a decision on the look
+- ✅ Before/after pictures sent to the owner for the final look-over of the control and form styling directed on Nov 3 (owner-requested, not behind a switch by design)
 - ✅ Preview switches: on/off buttons on the Feature Flags page (owner and administrators, this browser only) — no typed commands needed to review
 - ✅ Decision 3: invoice drafts generated automatically from orders (never issued); shown on the invoice preview
 - ✅ Self-review fixes: due date by Central business day, Net 14 rule, fully credited invoices, long order lists, real role on example screens

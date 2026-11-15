@@ -10,10 +10,11 @@ Sales & Growth behind `he_sales_growth`).
 The owner turns previews on and off with buttons on the **Feature Flags** page
 ("Preview features"; this browser only) — no typed commands.
 **Local & synthetic only** — no production data, live calls, spending, or backups.
-**Not behind a switch:** early styling changes to always-visible controls (squarer
-buttons and fields, labelled forms, right-aligned number columns). The dashboard
-will look different on merge even with every switch off — details and measurements
-in `NOV7_BOUNDED_REVIEW.md` ("Correction and re-run 2026-11-14").
+**Not behind a switch, by design:** the control-shape and form-layout changes the
+owner directed on Nov 3 (square buttons and fields, labelled forms, right-aligned
+number columns, original colours kept). The dashboard will look different on merge
+even with every switch off; the owner's final look-over of the result is still
+open (before/after pictures sent). Measurements in `NOV7_BOUNDED_REVIEW.md`.
 
 The table below is the Nov 9 reconciliation at `59cd1a7`. Work after that (wholesale
 W-0…W-5, blueprint items #12–#72, screen wiring, owner decisions) is reconciled item

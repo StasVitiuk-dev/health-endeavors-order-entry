@@ -90,6 +90,9 @@ branch and open a pull request; later a business email service, a tracking
 provider and a real Safari / iPhone / VoiceOver check.
 
 ## Next actionable item
-Owner: look at the before/after pictures of the restyled screens (sent as
-`restyle-review.html`), and run read-only Query I when convenient. Engineering:
-re-measure #24 in CI; re-take the reference pictures once the look is decided.
+Owner: give the final look-over of the control and form styling you directed on
+Nov 3 (before/after pictures sent as `restyle-review.html`), and run read-only Query I
+when convenient. Engineering: finish the open points of the Nov 3 visual review
+(`DASHBOARD_READINESS_ASSESSMENT_2026-11-03.md`: report-table widths, empty states and
+long explanatory text, the Home "nothing needs attention" question); re-measure #24
+in CI; re-take the reference pictures once the look is accepted.

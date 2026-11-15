@@ -129,8 +129,8 @@ read-only — nothing is sent, issued, charged or written to stock.
 | Export recovery drill | Report History | A good package opens; a damaged one is refused |
 | Sales & Growth pages | Sidebar | The draft-only sales and wholesale pages |
 
-Also sent separately: before/after pictures of the restyled screens
-(`restyle-review.html`), for the decision on the dashboard's look.
+Also sent separately: before/after pictures (`restyle-review.html`) of the control
+and form styling the owner directed on Nov 3, for the owner's final look-over.
 
 ### Still needed from the owner
 - **The local tax rate** for the business location (the 6.25% Illinois state rate is
