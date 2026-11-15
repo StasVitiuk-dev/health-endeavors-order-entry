@@ -1704,12 +1704,16 @@
       el.textContent = '';                       // a repeated message is read again
       if (msg) setTimeout(() => { el.textContent = msg; }, 60);
     }
-    function refocusLike(btn) {
+    // fallback: the section to focus when the pressed button no longer exists
+    // (for example "Approve" after approving); given an id or an element.
+    function refocusLike(btn, fallback) {
       if (!btn || !btn.attributes || document.contains(btn)) return;
       const sel = [...btn.attributes].filter(a => a.name.startsWith('data-')).map(a => '[' + a.name + '="' + CSS.escape(a.value) + '"]').join('');
-      if (!sel) return;
-      let next = null; try { next = document.querySelector(btn.tagName.toLowerCase() + sel); } catch (e) { next = null; }
-      if (next && typeof next.focus === 'function') next.focus();
+      let next = null;
+      if (sel) { try { next = document.querySelector(btn.tagName.toLowerCase() + sel); } catch (e) { next = null; } }
+      if (next && typeof next.focus === 'function') { next.focus(); return; }
+      const fb = typeof fallback === 'string' ? document.getElementById(fallback) : fallback;
+      if (fb && typeof fb.focus === 'function') { if (!fb.hasAttribute('tabindex')) fb.setAttribute('tabindex', '-1'); fb.focus(); }
     }
     let workbenchMessage = '';
     const WORKBENCH_REPLIES = ['Sounds great — we would love to carry it. Can we set up a call?', 'Thanks! Can you send pricing and your minimum order?',
@@ -1844,8 +1848,8 @@
       if (!(typeof scanShipmentOn === 'function' && scanShipmentOn())) return;
       rememberFocus();
       scanState.step = 'capture'; scanState.extracted = null; scanState.ranked = []; scanState.recognition = null; scanState.plan = null; scanState.outage = false;
-      renderScan();
       const o = scanOverlayEl(); if (o) o.style.display = 'flex';
+      renderScan();
     }
 
     // Build the extracted-fields object from a fixture scan, a barcode read, or
@@ -1995,8 +1999,38 @@
       }
       card.replaceChildren(head, close, body);
       host.replaceChildren(card);
+      scanFocusStep(host);
       if (scanState.step === 'camera') startScanCamera();
     }
+    // Keyboard and screen-reader users land inside the dialog at every step:
+    // on the first field to fill in when there is one, otherwise on the
+    // dialog's heading (which then reads the step). Nov 15 — before this, focus
+    // stayed behind the dialog when it opened and fell to the page after a step.
+    function scanFocusStep(host) {
+      if (!host || host.style.display === 'none') return;
+      const field = host.querySelector('input:not([type=hidden]):not([type=file]), select, textarea');
+      const heading = host.querySelector('h3');
+      if (heading) heading.setAttribute('tabindex', '-1');
+      const target = field || heading;
+      if (target && typeof target.focus === 'function') target.focus();
+    }
+    // Escape closes the dialog; Tab and Shift+Tab stay inside it while it is open.
+    function scanKeydown(e) {
+      const o = scanOverlayEl(); if (!o || o.style.display === 'none' || !o.firstChild) return;
+      if (e.key === 'Escape') { e.preventDefault(); closeScanFlow(); return; }
+      if (e.key !== 'Tab') return;
+      // what the browser will really Tab to: includes a <summary>, skips what a
+      // closed <details> hides (checkVisibility knows about that; older Safari
+      // falls back to layout boxes)
+      const shown = el => (typeof el.checkVisibility === 'function' ? el.checkVisibility({ checkVisibilityCSS: true }) : el.getClientRects().length > 0) && !el.closest('details:not([open]) > :not(summary)');
+      const items = [...o.querySelectorAll('button, a[href], input:not([type=hidden]), select, textarea, summary, [tabindex]:not([tabindex="-1"])')].filter(el => !el.disabled && shown(el));
+      if (!items.length) return;
+      const first = items[0], last = items[items.length - 1];
+      if (!o.contains(document.activeElement)) { e.preventDefault(); first.focus(); return; }
+      if (e.shiftKey && (document.activeElement === first || document.activeElement === o.querySelector('h3'))) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+    document.addEventListener('keydown', scanKeydown);
 
     async function startScanCamera() {
       const video = document.getElementById('scanVideo');
@@ -2139,6 +2173,7 @@
       const act = t.getAttribute('data-reorder');
       if (act === 'filter') { reorderFilter = t.getAttribute('data-kind') || 'all'; loadReorderPlanning(); }
       else if (act === 'draft') { reorderShowDraft = !reorderShowDraft; loadReorderPlanning(); }
+      refocusLike(t, 'reorderPlanningHost');
     });
 
     // ---------- #65 Saved views & filters (personal; behind savedViewsOn()) ----
@@ -2199,18 +2234,20 @@
         const r = store.save((nameEl && nameEl.value) || '', { search: (searchEl && searchEl.value) || '', status: (statusEl && statusEl.value) || '' }, new Date().toISOString());
         if (!r.ok) { toast(r.reason || 'Could not save that view.'); return; }
         if (nameEl) nameEl.value = '';
-        loadSavedViews();
+        await loadSavedViews();   // redraw first, then put focus back
       } else if (act === 'restore') {
         const f = store.restore(t.getAttribute('data-name')) || {};
         if (searchEl) searchEl.value = f.search || '';
         if (statusEl) statusEl.value = f.status || '';
       } else if (act === 'delete') {
         store.remove(t.getAttribute('data-name'));
-        loadSavedViews();
+        await loadSavedViews();   // redraw first, then put focus back
       } else if (act === 'reset') {
         if (searchEl) searchEl.value = '';
         if (statusEl) statusEl.value = '';
       }
+      const svHost = SAVED_VIEW_HOSTS.find(x => x[1] === panel);
+      refocusLike(t, svHost ? svHost[0] : null);
     });
 
     // ---------- #08 Payment reconciliation review (behind reconcileOn)
@@ -2360,12 +2397,13 @@
     document.addEventListener('click', (e) => {
       const t = e.target.closest('[data-opswatch]'); if (!t) return;
       const act = t.getAttribute('data-opswatch'); const eng = opsWatchMod(); if (!eng) return;
-      if (act === 'reset') { opsWatchItems = null; loadOpsWatch(); return; }
+      if (act === 'reset') { opsWatchItems = null; loadOpsWatch(); refocusLike(t, 'opsWatchHost'); return; }
       if (act === 'ack' && opsWatchItems) {
         const out = eng.acknowledge(opsWatchItems, t.getAttribute('data-key'), { by: String(currentUserRole || 'unknown') + ' (example)', at: new Date().toISOString() });
         if (out.ok) opsWatchItems = out.items;
         loadOpsWatch();
       }
+      refocusLike(t, 'opsWatchHost');
     });
 
     // ---------- #12/#53 Supplier scorecard (behind supplierScorecardOn)
@@ -2456,6 +2494,7 @@
       const act = t.getAttribute('data-cyclecount');
       if (act === 'approve') { cycleCountApproved = true; loadCycleCount(); }
       else if (act === 'reset') { cycleCountApproved = false; loadCycleCount(); }
+      refocusLike(t, 'cycleCountHost');
     });
 
     // ---------- #70/#71 Scheduled-report version history + simulated delivery
@@ -2501,6 +2540,7 @@
       if (act === 'rerun') { reportRerun = true; loadReportVersions(); }
       else if (act === 'send') { reportDeliveryState = 'SENT'; loadReportVersions(); }
       else if (act === 'reset') { reportRerun = false; reportDeliveryState = 'QUEUED'; loadReportVersions(); }
+      refocusLike(t, 'reportVersionsHost');
     });
 
     // ---------- Operations output previews (read-only; behind reportExportOn /

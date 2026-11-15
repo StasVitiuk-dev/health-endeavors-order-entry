@@ -81,7 +81,7 @@ const ADDED = ['setReportHistoryView', 'inquiriesList', 'agentControls', 'poRece
   // zero missing/changed — the guard still covers every original statement).
   'scanMod', 'scanState', 'scanOrders', 'scanAccessible', 'scanOverlayEl', 'stopScanCamera',
   'closeScanFlow', 'openScanFlow', 'setExtracted', 'RECOGNITION_LABEL', 'scanRecognizePhoto',
-  'scanConfirm', 'scanCard', 'renderScan', 'startScanCamera', 'captureScanFrame',
+  'scanConfirm', 'scanCard', 'renderScan', 'scanFocusStep', 'scanKeydown', 'startScanCamera', 'captureScanFrame',
   'scanEntryButton', 'paintScanEntry', 'scanShipmentOn',
   // Nov 7 Phase 2 item 4 — Inventory reorder planning view (commit 5c98e05),
   // feature-flag OFF by default (reorderPlanningOn). Read-only planning helpers;
@@ -182,7 +182,8 @@ const CHANGED_TEXT = ["} = window.HE.helpers;", "forEach(o => Object.setPrototyp
   // it clears the receipt message along with the field (showReceiptStatus()).
   "document.getElementById('addExpenseForm').addEventListener('submit', async (e) =>",
   // Sales outreach workbench: the delegated listener (anonymous top-level stmt).
-  "e.target.closest('[data-workbench]')"];
+  "e.target.closest('[data-workbench]')",
+  "document.addEventListener('keydown', scanKeydown)"];
 
 test('the module moves were byte-identical: every original statement once, only the named edits differ', ({}, ti) => {
   nodeOnly(ti);
