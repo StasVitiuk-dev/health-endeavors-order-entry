@@ -4,6 +4,10 @@
 > open (tax, payment terms, invoice issuing, day boundary, roles, export destination) were
 > made on Nov 14 — see `OWNER_DECISIONS_2026-11-14.md`. Current status of the whole build:
 > `NOV7_STAGING_REVIEW_AND_OWNER_CHECKLIST.md`.
+>
+> **Turning previews on:** the typed `localStorage` commands shown on this page are no
+> longer needed. Use the on/off buttons under "Preview features" on the **Feature Flags**
+> page — steps in `NOV7_STAGING_REVIEW_AND_OWNER_CHECKLIST.md`, section 5.
 
 A step-by-step script for the live review. Everything here is **local and
 synthetic** and **default-OFF**: turning a flag on affects only your own browser

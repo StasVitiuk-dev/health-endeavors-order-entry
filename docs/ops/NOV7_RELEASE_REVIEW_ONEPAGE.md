@@ -7,6 +7,8 @@ base `9173ccf`. **All new features default-OFF** (localStorage flags:
 `he_recovery_drill`, `he_saved_views`, `he_cycle_count`, `he_report_versions`,
 `he_supplier_scorecard`, `he_reconcile`, `he_ops_watch`;
 Sales & Growth behind `he_sales_growth`).
+The owner turns previews on and off with buttons on the **Feature Flags** page
+("Preview features"; this browser only) — no typed commands.
 **Local & synthetic only** — no production data, live calls, spending, or backups.
 **Not behind a switch:** early styling changes to always-visible controls (squarer
 buttons and fields, labelled forms, right-aligned number columns). The dashboard
@@ -43,7 +45,10 @@ apply to this checkpoint**. Local evidence: desktop 2,138 passed / 14 failed and
 `59cd1a7` (Nov 9); 95 tests added since, passing when run on their own; a 52-test launch rehearsal
 passed on Nov 14. Full desktop re-run on Nov 14 at `4a99dc0`: 2,239 passed / 16 failed / 46
 skipped (10 picture comparisons, 5 stale generated documents since fixed, 1 timing
-failure that passed 3 of 3 alone) — details in `NOV7_BOUNDED_REVIEW.md`.
+failure that passed 3 of 3 alone). **Final full pass at `aa81876`: computer 2,285
+passed / 10 failed / 49 skipped; phone size 505 passed / 11 failed / 376 skipped** —
+the only failures are the picture comparisons and one timing test that fails the
+same way on the untouched base. Details in `NOV7_BOUNDED_REVIEW.md`.
 
 ## Six owner decisions — DECIDED Nov 14, 2026
 All six were answered by Stas on Nov 14. The answers, what was built from each, and

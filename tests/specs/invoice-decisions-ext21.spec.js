@@ -113,6 +113,8 @@ test('due date follows the terms: due on receipt by default, Net 14 only for an 
   expect(refused.ok).toBe(false);
   expect(refused.reason).toMatch(/approved for credit/);
   expect(I.issue(d, { role: 'owner', number: 'HE-2026-0003', now: NOW, terms: 'NET_90' }).reason).toMatch(/unknown payment terms/);
+  // Asking for Net 14 without naming an approved account is refused too.
+  expect(I.issue(d, { role: 'owner', number: 'HE-2026-0003', now: NOW, terms: 'NET_14' }).reason).toMatch(/approved for credit/);
   // Net 14 across a month end.
   expect(I.issue(d, { role: 'owner', number: 'HE-2026-0004', now: '2026-12-24T23:30:00Z', account: { creditApproved: true } }).invoice.dueDate).toBe('2027-01-07');
 });
@@ -122,4 +124,20 @@ test('an overdue check uses the due date that the terms produced', () => {
   const inv = I.issue(d, { role: 'owner', number: 'HE-2026-0001', now: NOW, account: { creditApproved: true } }).invoice;
   expect(I.withOverdue(inv, '2026-11-27T12:00:00Z').status).toBe('issued');
   expect(I.withOverdue(inv, '2026-11-29T12:00:00Z').status).toBe('overdue');
+});
+
+test('the due date counts from the business day of issue (Central), not the UTC date', () => {
+  const d = I.draftInvoice(Object.assign({}, ORDER, T.invoiceTaxFields({ shipping: { mandatory: true }, localRate: 0 })));
+  // 10:30 pm Central on Nov 14 is already Nov 15 in UTC.
+  const late = '2026-11-15T04:30:00Z';
+  expect(I.businessDay(late)).toBe('2026-11-14');
+  expect(I.issue(d, { role: 'owner', number: 'HE-2026-0001', now: late, account: {} }).invoice.dueDate).toBe('2026-11-14');
+  expect(I.issue(d, { role: 'owner', number: 'HE-2026-0002', now: late, account: { creditApproved: true } }).invoice.dueDate).toBe('2026-11-28');
+  // Summer (daylight time): 11:30 pm Central on Jul 1 is 04:30 UTC on Jul 2.
+  expect(I.issue(d, { role: 'owner', number: 'HE-2026-0003', now: '2026-07-02T04:30:00Z', account: {} }).invoice.dueDate).toBe('2026-07-01');
+  // The caller can state the issue day outright; a missing or bad time gives no date rather than a guess.
+  expect(I.issue(d, { role: 'owner', number: 'HE-2026-0004', now: late, issueDay: '2026-11-20', account: {} }).invoice.dueDate).toBe('2026-11-20');
+  expect(I.businessDay(null)).toBeNull();
+  expect(I.businessDay('not-a-date')).toBeNull();
+  expect(I.issue(d, { role: 'owner', number: 'HE-2026-0005', account: {} }).invoice.dueDate).toBeNull();
 });

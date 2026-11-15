@@ -104,6 +104,7 @@
     // Everything a draft is linked to survives a revision.
     ['accountId', 'orderId', 'billTo', 'shipTo', 'terms'].forEach(function (k) { if (draft[k] != null) next[k] = draft[k]; });
     const revised = draftInvoice(next);
+    if (draft.orderNumber != null) revised.orderNumber = draft.orderNumber;
     const snapshot = { subtotal: draft.subtotal, orderDiscount: draft.orderDiscount, shipping: draft.shipping, tax: draft.tax, total: draft.total, lines: draft.lines };
     revised.revisions = draft.revisions.concat([{ revision: draft.revisions.length + 1, at: o.now || null, by: o.actor || null, reason: o.reason || null, was: snapshot }]);
     return { ok: true, invoice: revised };
@@ -191,8 +192,11 @@
     if (o.terms != null || o.account != null) {
       terms = o.terms != null ? String(o.terms) : termsForAccount(o.account);
       if (PAYMENT_TERMS.indexOf(terms) < 0) return { ok: false, reason: 'unknown payment terms: ' + terms, invoice: draft };
-      if (o.terms === 'NET_14' && o.account != null && o.account.creditApproved !== true) return { ok: false, reason: 'Net 14 needs an account the owner has approved for credit', invoice: draft };
-      if (!dueDate) dueDate = dueDateFor(o.now ? String(o.now).slice(0, 10) : null, terms);
+      if (terms === 'NET_14' && !(o.account != null && o.account.creditApproved === true)) return { ok: false, reason: 'Net 14 needs an account the owner has approved for credit', invoice: draft };
+      // The due date counts from the BUSINESS day of issue (owner decision #4:
+      // midnight Central), not the UTC date — an invoice issued at 10 pm Central
+      // is issued "today", not tomorrow. The caller may pass issueDay directly.
+      if (!dueDate) dueDate = dueDateFor(o.issueDay || businessDay(o.now, o.timeZone), terms);
     }
     const snapshot = JSON.parse(JSON.stringify({ lines: draft.lines, subtotal: draft.subtotal, tax: draft.tax, total: draft.total, currency: draft.currency }));
     const issued = Object.assign({}, draft, {
@@ -207,6 +211,7 @@
   // Over-payment is refused; a dedup key stops a double-apply of the same payment.
   function applyPayment(invoice, payment) {
     const p = payment || {};
+    if (!invoice || typeof invoice !== 'object') return { ok: false, reason: 'no invoice', invoice: invoice || null };
     if (invoice.status === 'void') return { ok: false, reason: 'cannot pay a void invoice', invoice: invoice };
     if (invoice.status === 'draft') return { ok: false, reason: 'issue the invoice before recording a payment', invoice: invoice };
     const amtC = cents(p.amount);
@@ -232,6 +237,7 @@
 
   // Mark overdue if past due and not fully paid (read-only derivation).
   function withOverdue(invoice, nowISO) {
+    if (!invoice || typeof invoice !== 'object') return invoice;
     if (!invoice.dueDate || invoice.status === 'paid' || invoice.status === 'void' || invoice.status === 'draft') return invoice;
     const overdue = +new Date(nowISO || Date.now()) > +new Date(invoice.dueDate) && cents(invoice.balance) > 0;
     return overdue ? Object.assign({}, invoice, { status: 'overdue' }) : invoice;
@@ -285,8 +291,11 @@
   // page only. A renderer consumes this; this module writes no file.
   const US_LETTER = Object.freeze({ page: 'us-letter', widthPx: 816, heightPx: 1056, marginPx: 48, rowsPerPage: 22 });
   function paginate(items, perPage) {
-    const per = perPage || US_LETTER.rowsPerPage; const pages = [];
-    for (let i = 0; i < (items || []).length; i += per) pages.push(items.slice(i, i + per));
+    // A page size that is not a whole number above zero would never advance the
+    // loop below (it hung the page), so anything else falls back to the default.
+    const per = (Number.isInteger(perPage) && perPage > 0) ? perPage : US_LETTER.rowsPerPage; const pages = [];
+    const list = Array.isArray(items) ? items : [];
+    for (let i = 0; i < list.length; i += per) pages.push(list.slice(i, i + per));
     if (!pages.length) pages.push([]);
     return pages;
   }
@@ -343,6 +352,92 @@
     };
   }
 
+  // Owner decision #3 — "generate drafts automatically; the owner reviews and
+  // issues them by hand". Builds a DRAFT invoice from an order and its lines
+  // (shapes as in the orders / order_items tables). It never issues, never
+  // assigns a number and never changes the order. Anything about the order that
+  // does not add up is listed in `checks` for the reviewer instead of being
+  // silently corrected.
+  //   order: { id, order_number, currency, shipping_total, total, status, deleted_at }
+  //   items: [{ sku, product_name, quantity, unit_price, line_total }]
+  //   opts:  { account:{ id, creditApproved }, taxFields (from he-tax.invoiceTaxFields) }
+  function draftFromOrder(order, items, opts) {
+    const o = opts || {}; const ord = order || {};
+    const status = String(ord.status || '').toLowerCase();
+    if (!ord.id) return { ok: false, reason: 'the order has no id' };
+    if (ord.deleted_at) return { ok: false, reason: 'the order was deleted' };
+    if (status.indexOf('cancel') !== -1) return { ok: false, reason: 'the order was cancelled' };
+    if (status.indexOf('refund') !== -1 && status.indexOf('partial') === -1) return { ok: false, reason: 'the order was fully refunded' };
+    const rows = (items || []).filter(function (it) { return it && Number(it.quantity) > 0; });
+    if (!rows.length) return { ok: false, reason: 'the order has no lines to invoice' };
+    const checks = [];
+    const lines = rows.map(function (it, idx) {
+      const qty = Number(it.quantity);
+      const label = it.sku || it.product_name || ('line ' + (idx + 1));
+      if (it.unit_price == null || !isFinite(Number(it.unit_price))) { checks.push(label + ': no unit price on the order line — set it before issuing'); return { sku: it.sku || null, description: it.product_name || '', quantity: qty, unitPrice: 0, discount: 0 }; }
+      const grossC = qty * cents(it.unit_price);
+      let discC = 0;
+      if (it.line_total != null && isFinite(Number(it.line_total))) {
+        const lineC = cents(it.line_total);
+        if (lineC < grossC) discC = grossC - lineC;                       // the order line carried a discount
+        else if (lineC > grossC) checks.push(label + ': the order line total is more than quantity x price — check the line');
+      }
+      return { sku: it.sku || null, description: it.product_name || '', quantity: qty, unitPrice: money(cents(it.unit_price)), discount: money(discC) };
+    });
+    const acct = o.account || null;
+    const tf = o.taxFields || null;
+    const input = { lines: lines, shipping: ord.shipping_total || 0, currency: ord.currency || 'USD',
+      accountId: acct && acct.id != null ? acct.id : null, orderId: ord.id, terms: termsForAccount(acct) };
+    if (tf) { input.taxRate = tf.taxRate; input.taxRateStatus = tf.taxRateStatus; input.taxShipping = tf.taxShipping; input.taxExempt = tf.taxExempt; }
+    else { input.taxRate = 0; checks.push('no tax rule was supplied — tax is shown as 0 until one is'); }
+    const draft = draftInvoice(input);
+    draft.orderNumber = ord.order_number || null;
+    if (tf && tf.taxRateStatus === 'PENDING') checks.push('the tax rate is still pending — this draft cannot be issued until the local rate is confirmed');
+    if (tf && tf.needsCertificate) checks.push('resale was claimed but no valid resale certificate is on file — taxed as normal');
+    // The order's own stored total is compared before tax (the order may have been
+    // taxed under a different rule); a difference is reported, never "fixed".
+    if (ord.subtotal != null && isFinite(Number(ord.subtotal)) && cents(ord.subtotal) !== cents(draft.subtotal)) {
+      checks.push('the order subtotal (' + money(cents(ord.subtotal)).toFixed(2) + ') differs from the lines (' + Number(draft.subtotal).toFixed(2) + ')');
+    }
+    return { ok: true, draft: draft, checks: checks, needsReview: checks.length > 0 };
+  }
+
+  // One draft per order, and only for orders that do not already have an
+  // invoice or a draft. Running it again creates nothing new (idempotent).
+  //   existing: invoices/drafts already made ({ orderId, status }); a VOID
+  //   invoice does not count, so a voided order can be drafted again.
+  function draftsForOrders(orders, existing, opts) {
+    const o = opts || {};
+    const have = new Set((Array.isArray(existing) ? existing : []).filter(function (x) { return x && x.orderId != null && x.status !== 'void'; }).map(function (x) { return String(x.orderId); }));
+    const itemsFor = typeof o.itemsFor === 'function' ? o.itemsFor : function (ord) { return ord.items || ord.order_items || []; };
+    const accountFor = typeof o.accountFor === 'function' ? o.accountFor : function () { return null; };
+    const taxFor = typeof o.taxFieldsFor === 'function' ? o.taxFieldsFor : function () { return o.taxFields || null; };
+    const drafts = []; const skipped = [];
+    (Array.isArray(orders) ? orders : []).forEach(function (ord) {
+      if (!ord || ord.id == null) { skipped.push({ orderId: null, reason: 'the order has no id' }); return; }
+      const key = String(ord.id);
+      if (have.has(key)) { skipped.push({ orderId: ord.id, reason: 'already has an invoice or a draft' }); return; }
+      const acct = accountFor(ord);
+      const r = draftFromOrder(ord, itemsFor(ord), { account: acct, taxFields: taxFor(ord, acct) });
+      if (!r.ok) { skipped.push({ orderId: ord.id, reason: r.reason }); return; }
+      have.add(key);
+      drafts.push(r);
+    });
+    return { drafts: drafts, skipped: skipped, created: drafts.length, needReview: drafts.filter(function (d) { return d.needsReview; }).length,
+      issued: 0, note: 'Drafts only — nothing is issued or numbered until the owner or an administrator issues it.' };
+  }
+
+  // The calendar day of an instant in the business time zone (default
+  // America/Chicago, daylight saving handled by the platform). Falls back to the
+  // UTC date only if the zone is not supported. null for a missing/invalid time.
+  function businessDay(at, timeZone) {
+    if (!at) return null;
+    const d = new Date(at);
+    if (isNaN(d.getTime())) return null;
+    try { return new Intl.DateTimeFormat('en-CA', { timeZone: timeZone || 'America/Chicago', year: 'numeric', month: '2-digit', day: '2-digit' }).format(d); }
+    catch (e) { return d.toISOString().slice(0, 10); }
+  }
+
   // Owner decision #2 — payment terms. New wholesale buyers are DUE ON RECEIPT;
   // Net 14 applies only to an account the owner has approved for credit.
   const PAYMENT_TERMS = ['DUE_ON_RECEIPT', 'NET_14'];
@@ -360,5 +455,5 @@
     return new Date(base.getTime() + days * 86400000).toISOString().slice(0, 10);
   }
 
-  return { STATES, ROLES_MAY_ISSUE, PAYMENT_TERMS, US_LETTER, BUSINESS_HEADER, MISSING_SEQUENCE_CONTRACT, computeTotals, draftInvoice, reviseDraft, nextInvoiceNumber, createNumberSequence, invoiceHeader, issue, applyPayment, voidInvoice, creditNote, withOverdue, packingSlip, paginate, invoicePrint, packingSlipPrint, termsForAccount, dueDateFor };
+  return { STATES, ROLES_MAY_ISSUE, PAYMENT_TERMS, US_LETTER, BUSINESS_HEADER, MISSING_SEQUENCE_CONTRACT, computeTotals, draftInvoice, reviseDraft, nextInvoiceNumber, createNumberSequence, invoiceHeader, issue, applyPayment, voidInvoice, creditNote, withOverdue, packingSlip, paginate, invoicePrint, packingSlipPrint, termsForAccount, dueDateFor, businessDay, draftFromOrder, draftsForOrders };
 }));

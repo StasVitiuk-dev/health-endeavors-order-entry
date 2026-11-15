@@ -27,10 +27,14 @@
   const SOURCES = ['manual', 'referral', 'event', 'search', 'social', 'other'];
 
   // Generate `n` synthetic leads deterministically from a seed.
+  const MAX_LEADS = 200000; // the largest set any scale test asks for is 50,000
   function leads(n, seed) {
     const r = rng(seed || 20261019);
     const out = [];
-    for (let i = 0; i < (n || 12); i++) {
+    // A count that is not a sensible whole number falls back to 12, and there is
+    // a ceiling: an absurd request (1e21) used to loop until the page froze.
+    const count = (typeof n === 'number' && isFinite(n) && n > 0) ? Math.min(Math.floor(n), MAX_LEADS) : 12;
+    for (let i = 0; i < count; i++) {
       const noun = pick(r, NOUNS), suf = pick(r, SUFFIX);
       const name = noun + ' ' + suf;
       const slug = (noun + suf).toLowerCase().replace(/[^a-z]/g, '');

@@ -173,6 +173,12 @@ All draft-only behind `he_sales_growth` (OFF by default); nothing sent, spent or
 - ✅ Accessibility + phone sweep with every operations switch ON; dark-mode badge contrast fixed (`c8dd6b3`)
 - ✅ Read-only Query I: which day cutoff the nightly report uses (`fcef560`) — owner runs it when convenient
 - ✅ Before/after pictures of the restyled screens sent to the owner for a decision on the look
+- ✅ Preview switches: on/off buttons on the Feature Flags page (owner and administrators, this browser only) — no typed commands needed to review
+- ✅ Decision 3: invoice drafts generated automatically from orders (never issued); shown on the invoice preview
+- ✅ Self-review fixes: due date by Central business day, Net 14 rule, fully credited invoices, long order lists, real role on example screens
+- ✅ Malformed-data hardening of the operations modules, with a permanent probe test (fixed a print-layout freeze and several crashes)
+- ✅ Final full pass at `aa81876`: computer 2,285 passed / 10 failed, phone 505 passed / 11 failed — only picture comparisons and one environment-bound timing test
+- ⬜ Sales & Growth modules: about 170 malformed-input crashes found by the probe (draft-only pages, example data) — tidy-up, not yet done
 - ✅ Launch rehearsal (scanner, wholesale approval, receiving, invoice print, backup restore): 52 passed — recorded `0cd75ad`
 
 ## Owner decisions (2026-11-14) — ✅ decided and recorded

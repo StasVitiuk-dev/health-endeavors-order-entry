@@ -84,7 +84,7 @@
       nightlyOverall,
     } = window.HE.helpers;
     // @@ EXT15 modules: created in dependency order (assets/app/*.js; see docs/ops/APPLICATION_MODULE_MAP_EXT15.md)
-    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, supplierScorecardOn, reconcileOn, opsWatchOn, reportVersionsOn } = HE.modules.create('he-config', {  });
+    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, supplierScorecardOn, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn } = HE.modules.create('he-config', {  });
     const { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, h, pageIconNode } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
     const { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
     const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, h, supabase });
@@ -2129,11 +2129,61 @@
       if (act === 'reset') { reconcileResult = null; reconcileMessage = ''; loadReconcile(); return; }
       if (act === 'review' && reconcileResult) {
         const noteEl = document.getElementById('reconcileNote');
-        const out = eng.markReviewed(reconcileResult, Number(t.getAttribute('data-line')), { role: 'owner', by: 'owner (example)', at: new Date().toISOString(), note: noteEl ? noteEl.value : '' });
+        const out = eng.markReviewed(reconcileResult, Number(t.getAttribute('data-line')), { role: currentUserRole, by: String(currentUserRole || 'unknown') + ' (example)', at: new Date().toISOString(), note: noteEl ? noteEl.value : '' });
         if (out.ok) { reconcileResult = out.result; reconcileMessage = 'Recorded. The figures are unchanged.'; }
         else reconcileMessage = 'Not recorded: ' + out.reason + '.';
         loadReconcile();
       }
+    });
+
+    // ---------- Preview switches (Feature Flags page; owner / administrator)
+    // On/off buttons for the preview features, so reviewing them needs no typed
+    // commands. A switch is a note in THIS browser only: it is not saved to the
+    // database, does not affect anyone else, and only ever reveals a preview that
+    // uses example data or is read-only. Only keys listed in PREVIEW_SWITCHES can
+    // be written. Shown to the owner and administrators; empty for everyone else.
+    let previewSwitchMessage = '';
+    function previewSwitchIsOn(key) { try { return localStorage.getItem(key) === 'on'; } catch (e) { return false; } }
+    function loadPreviewSwitches() {
+      const host = document.getElementById('previewSwitchesHost'); if (!host) return;
+      if (!(currentUserRole === 'owner' || currentUserRole === 'administrator') || !Array.isArray(PREVIEW_SWITCHES)) { host.replaceChildren(); return; }
+      const onCount = PREVIEW_SWITCHES.filter(sw => previewSwitchIsOn(sw.key)).length;
+      const rows = PREVIEW_SWITCHES.map(sw => {
+        const on = previewSwitchIsOn(sw.key);
+        return h('tr', { 'data-preview-key': sw.key, 'data-preview-on': on ? 'yes' : 'no' },
+          h('td', null, h('div', { class: 'taskTitle' }, sw.name), h('div', { class: 'u-fs-11 u-c-muted' }, sw.what)),
+          h('td', null, sw.where),
+          h('td', null, on ? 'On' : 'Off'),
+          h('td', null, h('button', { type: 'button', class: 'small' + (on ? ' secondary' : ''), 'data-previewswitch': 'toggle', 'data-key': sw.key, 'aria-label': (on ? 'Turn off ' : 'Turn on ') + sw.name }, on ? 'Turn off' : 'Turn on')));
+      });
+      host.replaceChildren(h('div', { class: 'previewSwitches u-mt-18' },
+        h('h3', { class: 'u-m-18-0-6 u-fs-15' }, 'Preview features'),
+        h('p', { class: 'hint u-mt-0' }, 'For looking at features that are built but not switched on. A switch here applies to this browser on this device only — it is not saved to the database and nobody else sees a change. Every preview uses example data or is read-only: nothing is sent, issued, charged or written to stock. All are off unless you turn them on.'),
+        h('p', { class: 'hint u-mt-6', 'data-preview-count': String(onCount) }, onCount + ' of ' + PREVIEW_SWITCHES.length + ' on in this browser.'),
+        previewSwitchMessage ? h('p', { class: 'hint u-mt-6', role: 'status', 'data-preview-msg': '1' }, previewSwitchMessage,
+          ' ', h('button', { type: 'button', class: 'small secondary', 'data-previewswitch': 'reload' }, 'Reload now')) : null,
+        h('table', { class: 'phoneCards u-mt-8' },
+          h('thead', null, h('tr', null, h('th', null, 'Preview'), h('th', null, 'Where it appears'), h('th', null, 'Now'), h('th', null, 'Change'))),
+          h('tbody', null, rows)),
+        h('div', { class: 'scanToggleRow u-mt-8' }, h('button', { type: 'button', class: 'small secondary', 'data-previewswitch': 'alloff' }, 'Turn all off'))));
+    }
+    document.addEventListener('click', (e) => {
+      const t = e.target.closest('[data-previewswitch]'); if (!t) return;
+      if (!(currentUserRole === 'owner' || currentUserRole === 'administrator')) return;
+      const act = t.getAttribute('data-previewswitch');
+      if (act === 'reload') { window.location.reload(); return; }
+      try {
+        if (act === 'alloff') {
+          PREVIEW_SWITCHES.forEach(sw => localStorage.removeItem(sw.key));
+          previewSwitchMessage = 'All previews are off. Reload the page to finish.';
+        } else if (act === 'toggle') {
+          const sw = PREVIEW_SWITCHES.find(x => x.key === t.getAttribute('data-key'));
+          if (!sw) return;                                   // only listed keys are ever written
+          if (previewSwitchIsOn(sw.key)) { localStorage.removeItem(sw.key); previewSwitchMessage = sw.name + ' is off. Reload the page to finish.'; }
+          else { localStorage.setItem(sw.key, 'on'); previewSwitchMessage = sw.name + ' is on. Reload the page, then open ' + sw.where + '.'; }
+        }
+      } catch (err) { previewSwitchMessage = 'This browser would not save the switch (private window or storage blocked).'; }
+      loadPreviewSwitches();
     });
 
     // ---------- #26 Operations watch (behind opsWatchOn)
@@ -2178,7 +2228,7 @@
       const act = t.getAttribute('data-opswatch'); const eng = opsWatchMod(); if (!eng) return;
       if (act === 'reset') { opsWatchItems = null; loadOpsWatch(); return; }
       if (act === 'ack' && opsWatchItems) {
-        const out = eng.acknowledge(opsWatchItems, t.getAttribute('data-key'), { by: 'owner (example)', at: new Date().toISOString() });
+        const out = eng.acknowledge(opsWatchItems, t.getAttribute('data-key'), { by: String(currentUserRole || 'unknown') + ' (example)', at: new Date().toISOString() });
         if (out.ok) opsWatchItems = out.items;
         loadOpsWatch();
       }
@@ -2248,8 +2298,9 @@
       const staffTry = eng.approveAdjustment(c, { role: 'staff' });
       let approvedBlock = null;
       if (cycleCountApproved) {
-        const ap = eng.approveAdjustment(c, { role: 'owner', by: 'owner', at: '2026-11-14T10:00:00Z' });
-        approvedBlock = h('div', { class: 'scanCard u-mt-10' },
+        // The signed-in person's real role decides: only the owner may approve.
+        const ap = eng.approveAdjustment(c, { role: currentUserRole, by: String(currentUserRole || 'unknown'), at: '2026-11-14T10:00:00Z' });
+        approvedBlock = !ap.ok ? h('div', { class: 'scanCard u-mt-10', 'data-cyclecount-refused': '1' }, 'Not approved: ' + ap.reason + '.') : h('div', { class: 'scanCard u-mt-10' },
           h('div', { class: 'scanCardHead' }, 'Approved adjustment (advisory — NOT written to stock)'),
           ...ap.adjustments.map(a => h('div', { class: 'scanCardRow' }, a.sku + ': ' + a.from + ' → ' + a.to + ' (' + (a.delta > 0 ? '+' : '') + a.delta + ') · applied=false')),
           h('div', { class: 'u-fs-12 u-c-muted u-mt-8' }, 'Safe write needed: ' + eng.MISSING_WRITE_CONTRACT),
@@ -2262,7 +2313,7 @@
           h('thead', null, h('tr', null, h('th', null, 'SKU'), h('th', { class: 'num-cell' }, 'System'), h('th', { class: 'num-cell' }, 'Counted'), h('th', { class: 'num-cell' }, 'Discrepancy'))),
           h('tbody', null, discRows)),
         h('div', { class: 'scanToggleRow u-mt-8' },
-          h('button', { type: 'button', class: 'small' + (cycleCountApproved ? ' secondary' : ''), 'data-cyclecount': 'approve' }, cycleCountApproved ? 'Approved (owner)' : 'Approve as owner'),
+          h('button', { type: 'button', class: 'small' + (cycleCountApproved ? ' secondary' : ''), 'data-cyclecount': 'approve' }, cycleCountApproved ? 'Approval requested' : 'Approve (owner only)'),
           h('button', { type: 'button', class: 'small secondary', 'data-cyclecount': 'reset' }, 'Reset')),
         approvedBlock));
     }
@@ -2419,6 +2470,31 @@
         h('div', { class: 'scanCardRow' }, 'Payment terms: ' + (terms === 'NET_14' ? 'Net 14' : 'Due on receipt') + (dueDate ? ' · due ' + dueDate : '')),
         decided ? h('div', { class: 'scanCardRow', 'data-issuecheck': issueCheck && issueCheck.ok ? 'allowed' : 'blocked' }, 'Invoice total under these rules: ' + fmtMoney(decided.total, decided.currency) + ' · issuing: ' + (issueCheck && issueCheck.ok ? 'would be allowed' : 'blocked — ' + (issueCheck ? issueCheck.reason : 'not checked'))) : null,
         taxInfo.rateStatus === 'PENDING' ? h('div', { class: 'u-fs-11 u-c-muted' }, taxInfo.note) : null) : null;
+      // Owner decision #3: drafts are generated automatically from orders and
+      // wait for the owner to review and issue them. Example orders; nothing is
+      // issued or numbered. An order that already has an invoice, or was
+      // cancelled, gets no draft and the reason is shown.
+      let autoDraftsCard = null;
+      if (typeof inv.draftsForOrders === 'function') {
+        const exLines = [{ sku: 'HE-HONEY-8OZ', product_name: 'Honey Milk 8 oz', quantity: 6, unit_price: 18.50, line_total: 111 }];
+        const exOrders = [
+          { id: 'SYN-O-2001', order_number: 'SYN-2001', status: 'paid', currency: 'USD', shipping_total: 9, items: exLines },
+          { id: 'SYN-O-2002', order_number: 'SYN-2002', status: 'paid', currency: 'USD', shipping_total: 0, items: [{ sku: 'HE-VEGAN-8OZ', product_name: 'Vegan 8 oz', quantity: 3, unit_price: null }] },
+          { id: 'SYN-O-2003', order_number: 'SYN-2003', status: 'cancelled', currency: 'USD', items: exLines },
+          { id: 'SYN-O-2004', order_number: 'SYN-2004', status: 'paid', currency: 'USD', items: exLines },
+        ];
+        const gen = inv.draftsForOrders(exOrders, [{ orderId: 'SYN-O-2004', status: 'issued' }], {
+          taxFields: (taxMod && typeof taxMod.invoiceTaxFields === 'function') ? taxMod.invoiceTaxFields({ shipping: { mandatory: true } }) : null,
+          accountFor: ord => ({ id: 'SYN-ACCT', creditApproved: ord.id === 'SYN-O-2002' }),
+        });
+        autoDraftsCard = h('div', { class: 'scanCard u-mt-8', 'data-autodrafts': String(gen.created) },
+          h('div', { class: 'scanCardHead' }, 'Drafts generated from orders — waiting for your review (example orders)'),
+          ...gen.drafts.map(d => h('div', { class: 'scanCardRow', 'data-autodraft': d.draft.orderId },
+            'Order ' + (d.draft.orderNumber || d.draft.orderId) + ' · ' + fmtMoney(d.draft.total, d.draft.currency) + ' · ' + (d.draft.terms === 'NET_14' ? 'Net 14' : 'Due on receipt') + ' · draft, not issued',
+            d.checks.length ? h('div', { class: 'u-fs-11 u-c-muted' }, 'To check: ' + d.checks.join('; ')) : null)),
+          ...gen.skipped.map(k => h('div', { class: 'scanCardRow u-c-muted', 'data-autodraft-skipped': String(k.orderId) }, 'No draft for ' + k.orderId + ': ' + k.reason)),
+          h('div', { class: 'u-fs-11 u-c-muted' }, gen.note));
+      }
       host.replaceChildren(h('div', { class: 'reorderPlan u-mb-16' },
         h('div', { class: 'scanHead' }, h('h3', null, 'Invoice preview'), h('span', { class: 'scanBadge' }, 'SIMULATED — draft only, nothing issued or charged')),
         hdr ? h('div', { class: 'scanCard u-mt-8' },
@@ -2435,11 +2511,12 @@
         h('div', { class: 'scanCard u-mt-8' },
           totalRow('Subtotal', draft.subtotal), totalRow('Order discount', draft.orderDiscount), totalRow('Shipping', draft.shipping), totalRow('Tax (' + (Math.round(draft.taxRate * 10000) / 100) + '%' + (draft.taxRateStatus === 'PENDING' ? ' state rate — local rate pending' : '') + ')', draft.tax), totalRow('Total', draft.total, 'taskTitle')),
         decisionsCard,
+        autoDraftsCard,
         h('div', { class: 'scanCard u-mt-8' }, h('div', { class: 'scanCardHead' }, 'Packing slip — not an invoice, not a carrier label'), slipRows),
         h('div', { class: 'scanToggleRow u-mt-8' },
           h('button', { type: 'button', class: 'small', 'data-print': 'invoice' }, 'Print invoice (US-Letter)'),
           h('button', { type: 'button', class: 'small secondary', 'data-print': 'slip' }, 'Print packing slip')),
-        h('p', { class: 'hint u-mt-8' }, 'Draft preview only. Issuing an invoice — numbering, payment terms and tax — is an owner decision and is not enabled here.')));
+        h('p', { class: 'hint u-mt-8' }, 'Draft preview only. Drafts are generated automatically; issuing one is done by hand by the owner or an administrator and is not enabled here (owner decision of Nov 14).')));
     }
 
     // L3: build a US-Letter print layout of the draft invoice into the body-level
@@ -2597,7 +2674,7 @@
       inquiriesPanel: [loadInquiries],
       aiPanel: [loadAI],
       continuityPanel: [loadContinuity, loadSystemStatus],
-      flagsPanel: [loadFlags, loadSystemMode],
+      flagsPanel: [loadFlags, loadSystemMode, loadPreviewSwitches],
       businessRulesPanel: [loadBusinessRules],
       approvalsPanel: [loadApprovals],
       sessionsPanel: [loadSessions],

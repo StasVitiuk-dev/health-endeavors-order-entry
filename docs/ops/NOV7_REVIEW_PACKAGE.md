@@ -1,5 +1,9 @@
 # Nov 7 build — owner review package (wave-1 item 11)
 
+> **Turning previews on:** the typed `localStorage` commands shown on this page are no
+> longer needed. Use the on/off buttons under "Preview features" on the **Feature Flags**
+> page — steps in `NOV7_STAGING_REVIEW_AND_OWNER_CHECKLIST.md`, section 5.
+
 Prepared 2026-11-08 at commit **6af669d** on `claude/ext20-recovery-2026-10-31`
 (local, unpushed). This is the single place to review the Nov 7 operations build.
 Everything here is **local and synthetic**: no production data, no live email /

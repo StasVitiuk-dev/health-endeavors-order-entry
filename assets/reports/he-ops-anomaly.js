@@ -50,6 +50,8 @@
     'unusually-large-order': 'Confirm the quantities with the customer; this may simply be a good order.',
   };
 
+  // Lists come from data: a non-list is treated as empty and empty rows are dropped.
+  const rowsOf = (x) => (Array.isArray(x) ? x : []).filter(function (r) { return r && typeof r === 'object'; });
   const known = (v) => v !== null && v !== undefined && v !== '' && v !== 'UNKNOWN' && isFinite(Number(v));
   const round2 = (n) => Math.round(n * 100) / 100;
   function mean(xs) { return xs.length ? xs.reduce(function (s, x) { return s + x; }, 0) / xs.length : null; }
@@ -62,7 +64,7 @@
   const dayNum = (iso) => { const t = Date.parse(String(iso).slice(0, 10) + 'T00:00:00Z'); return isFinite(t) ? Math.round(t / 86400000) : null; };
 
   function scanDaily(rows, o, out) {
-    const days = (rows || []).filter(function (r) { return r && dayNum(r.report_date) != null; })
+    const days = rowsOf(rows).filter(function (r) { return dayNum(r.report_date) != null; })
       .slice().sort(function (a, b) { return a.report_date < b.report_date ? -1 : a.report_date > b.report_date ? 1 : 0; });
     if (!days.length) return;
     // gaps between the first and last saved day
@@ -92,8 +94,8 @@
   }
 
   function scanStock(stock, out) {
-    (stock || []).forEach(function (s) {
-      if (!s || !s.sku) return;
+    rowsOf(stock).forEach(function (s) {
+      if (!s.sku) return;
       if (known(s.onHand) && Number(s.onHand) < 0) out.push(flag('negative-stock', 'CRITICAL', s.sku, s.sku + ' shows ' + Number(s.onHand) + ' on hand', s.onHand, 0));
       if (known(s.onHand) && known(s.reserved) && Number(s.onHand) >= 0 && Number(s.reserved) > Number(s.onHand)) {
         out.push(flag('reserved-over-stock', 'WARNING', s.sku, s.sku + ': ' + Number(s.reserved) + ' reserved but only ' + Number(s.onHand) + ' on hand', s.reserved, s.onHand));
@@ -102,7 +104,7 @@
   }
 
   function scanOrders(orders, o, out) {
-    const list = (orders || []).filter(function (x) { return x && x.id != null && x.status !== 'cancelled' && x.status !== 'canceled'; });
+    const list = rowsOf(orders).filter(function (x) { return x.id != null && x.status !== 'cancelled' && x.status !== 'canceled'; });
     list.forEach(function (x) {
       if (known(x.total) && Number(x.total) <= 0 && Number(x.itemsCount || 0) > 0) out.push(flag('order-total-not-positive', 'WARNING', x.id, 'order ' + x.id + ' has ' + x.itemsCount + ' item(s) but a total of ' + Number(x.total), x.total, null));
     });
@@ -119,13 +121,15 @@
         }
       }
     }
+    // Compared with the typical (median) order of the whole list, computed once,
+    // so this stays fast on a long list. Needs enough other orders to mean anything.
     const totals = list.filter(function (x) { return known(x.total) && Number(x.total) > 0; });
-    totals.forEach(function (x) {
-      const others = totals.filter(function (y) { return y !== x; }).map(function (y) { return Number(y.total); });
-      if (others.length < o.largeOrderMinOthers) return;
-      const med = median(others);
-      if (med > 0 && Number(x.total) > med * o.largeOrderRatio) out.push(flag('unusually-large-order', 'INFO', x.id, 'order ' + x.id + ' is ' + round2(Number(x.total) / med) + 'x the typical order', x.total, med));
-    });
+    if (totals.length - 1 >= o.largeOrderMinOthers) {
+      const med = median(totals.map(function (x) { return Number(x.total); }));
+      totals.forEach(function (x) {
+        if (med > 0 && Number(x.total) > med * o.largeOrderRatio) out.push(flag('unusually-large-order', 'INFO', x.id, 'order ' + x.id + ' is ' + round2(Number(x.total) / med) + 'x the typical order', x.total, med));
+      });
+    }
   }
 
   // input: { daily:[{report_date, orders_count, revenue}], stock:[{sku,onHand,reserved}],
@@ -146,32 +150,36 @@
   // keeps its acknowledgement; a flag no longer found becomes RESOLVED; a new
   // flag starts OPEN. Pure.
   function review(previousItems, flags) {
-    const prev = new Map(); (previousItems || []).forEach(function (p) { prev.set(p.key, p); });
+    const before = rowsOf(previousItems);
+    const prev = new Map(); before.forEach(function (p) { prev.set(p.key, p); });
     const now = new Set(); const items = [];
-    (flags || []).forEach(function (f) {
+    rowsOf(flags).forEach(function (f) {
       now.add(f.key);
       const p = prev.get(f.key);
       items.push(Object.assign({}, f, { state: p && p.state === 'ACKNOWLEDGED' ? 'ACKNOWLEDGED' : 'OPEN', acknowledged: p && p.state === 'ACKNOWLEDGED' ? p.acknowledged : null, resolvedBecause: null }));
     });
-    (previousItems || []).forEach(function (p) {
-      if (now.has(p.key) || p.state === 'RESOLVED') return;
-      items.push(Object.assign({}, p, { state: 'RESOLVED', resolvedBecause: 'no longer found on the latest check' }));
+    before.forEach(function (p) {
+      if (now.has(p.key)) return;
+      // A cleared flag stays on the list as RESOLVED (a record that it happened);
+      // if the same thing is found again later it comes back as a new OPEN flag.
+      items.push(p.state === 'RESOLVED' ? p : Object.assign({}, p, { state: 'RESOLVED', resolvedBecause: 'no longer found on the latest check' }));
     });
     return items;
   }
   // Acknowledge = "a person has seen this". It does not resolve the flag.
   function acknowledge(items, key, opts) {
     const o = opts || {};
-    const it = (items || []).find(function (x) { return x.key === key; });
+    const list = rowsOf(items);
+    const it = list.find(function (x) { return x.key === key; });
     if (!it) return { ok: false, reason: 'no such flag', items: items };
     if (it.state === 'RESOLVED') return { ok: false, reason: 'already resolved', items: items };
     if (it.state === 'ACKNOWLEDGED') return { ok: false, reason: 'already acknowledged', items: items };
     const ack = { by: String(o.by || 'unknown'), at: o.at || null };
-    return { ok: true, items: items.map(function (x) { return x.key === key ? Object.assign({}, x, { state: 'ACKNOWLEDGED', acknowledged: ack }) : x; }) };
+    return { ok: true, items: list.map(function (x) { return x.key === key ? Object.assign({}, x, { state: 'ACKNOWLEDGED', acknowledged: ack }) : x; }) };
   }
   function summary(items) {
     const c = { OPEN: 0, ACKNOWLEDGED: 0, RESOLVED: 0 };
-    (items || []).forEach(function (x) { c[x.state] = (c[x.state] || 0) + 1; });
+    rowsOf(items).forEach(function (x) { c[x.state] = (c[x.state] || 0) + 1; });
     return { open: c.OPEN, acknowledged: c.ACKNOWLEDGED, resolved: c.RESOLVED, stillPresent: c.OPEN + c.ACKNOWLEDGED };
   }
 

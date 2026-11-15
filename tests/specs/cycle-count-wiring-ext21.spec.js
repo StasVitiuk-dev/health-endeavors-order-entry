@@ -42,3 +42,19 @@ test('flag ON: discrepancies, owner-only approval, advisory adjustment and audit
   await expect(host).not.toContainText('applied=false');
   expect(errors.join('\n')).not.toMatch(/Trusted Type|Refused to|cyclecount/i);
 });
+
+test('flag ON, signed in as an administrator: the approval is refused and says why', async ({ page, backend }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'run once');
+  await enable(page);
+  await login(page);
+  backend.tables.profiles[0].role = 'administrator';
+  await page.reload(); // the page reads the signed-in person's role when it loads
+  await expect(page.locator('#dash')).toBeVisible();
+  await expect(page.locator('#whoAmI')).toContainText('role: administrator');
+  await gotoPage(page, 'inventoryPanel');
+  const host = page.locator('#cycleCountHost');
+  await expect(host.locator('.cycleCount')).toHaveCount(1);
+  await host.locator('[data-cyclecount="approve"]').click();
+  await expect(host.locator('[data-cyclecount-refused]')).toContainText('only the owner may approve a stock adjustment');
+  await expect(host).not.toContainText('applied=false');
+});

@@ -34,6 +34,8 @@
   const hasAmount = (v) => v !== null && v !== undefined && v !== '' && isFinite(Number(v));
   const cents = (v) => Math.round(Number(v) * 100);
   const money = (c) => Math.round(c) / 100;
+  // Lists come from data: a non-list is treated as empty and empty rows are dropped.
+  const rowsOf = (x) => (Array.isArray(x) ? x : []).filter(function (r) { return r && typeof r === 'object'; });
   const refOf = (x) => String(x && x.ref != null ? x.ref : '').trim();
   const curOf = (x, d) => String((x && x.currency) || d || 'USD').toUpperCase();
 
@@ -49,7 +51,7 @@
     // each repeat is reported on its own line and left OUT of the totals.
     const seenIds = new Set();
     const usable = [];
-    (recorded || []).forEach(function (r) {
+    rowsOf(recorded).forEach(function (r) {
       const id = r && r.id != null ? String(r.id) : '';
       if (id && seenIds.has(id)) {
         items.push({ ref: refOf(r), outcome: 'DUPLICATE', expected: null, recorded: hasAmount(r.amount) ? money(cents(r.amount)) : null, difference: null,
@@ -64,7 +66,7 @@
     usable.forEach(function (r) { const k = refOf(r); if (!byRef.has(k)) byRef.set(k, []); byRef.get(k).push(r); });
 
     const expectedRefs = new Set();
-    (expected || []).forEach(function (e) {
+    rowsOf(expected).forEach(function (e) {
       const ref = refOf(e); expectedRefs.add(ref);
       const cur = curOf(e, defCur);
       const recs = byRef.get(ref) || [];
@@ -75,6 +77,11 @@
         return;
       }
       const expC = cents(e.amount);
+      if (!recs.length && expC === 0) {
+        // e.g. an invoice fully covered by a credit note: nothing is owed.
+        items.push(Object.assign(base, { outcome: 'MATCHED', expected: 0, recorded: 0, difference: 0, detail: 'nothing owed and nothing recorded' }));
+        return;
+      }
       if (!recs.length) {
         items.push(Object.assign(base, { outcome: 'MISSING', expected: money(expC), recorded: 0, difference: money(-expC), detail: 'nothing recorded against this reference' }));
         return;
@@ -131,7 +138,7 @@
   // Pure: returns a new result; the input is not mutated.
   function markReviewed(result, line, opts) {
     const o = opts || {};
-    const it = (result && result.items || []).find(function (x) { return x.line === line; });
+    const it = rowsOf(result && result.items).find(function (x) { return x.line === line; });
     if (!it) return { ok: false, reason: 'no such line', result: result };
     if (!ROLES_MAY_REVIEW.has(o.role)) return { ok: false, reason: 'only an owner or administrator may close a difference', result: result };
     if (it.reviewState === 'NOT_NEEDED') return { ok: false, reason: 'a matched line needs no review', result: result };
@@ -149,7 +156,7 @@
   // Closed = every difference has been reviewed. Closed is NOT the same as
   // balanced: reviewing a shortfall does not make the money appear.
   function status(result) {
-    const r = result || { items: [] };
+    const r = { items: rowsOf(result && result.items) };
     const open = r.items.filter(function (x) { return x.reviewState === 'OPEN'; }).length;
     const reviewed = r.items.filter(function (x) { return x.reviewState === 'REVIEWED'; }).length;
     return {
@@ -168,21 +175,21 @@
   // an invoice; it only lists.
   function fromInvoices(invoices, creditNotes) {
     const credited = new Map();
-    (creditNotes || []).forEach(function (c) {
+    rowsOf(creditNotes).forEach(function (c) {
       const k = String(c && c.invoiceNumber != null ? c.invoiceNumber : '').trim();
       if (!k || !hasAmount(c.amount)) return;
       credited.set(k, (credited.get(k) || 0) + cents(c.amount));
     });
     const expected = []; const recorded = []; const skipped = [];
-    (invoices || []).forEach(function (inv, idx) {
+    (Array.isArray(invoices) ? invoices : []).forEach(function (inv, idx) {
       const number = String(inv && inv.number != null ? inv.number : '').trim();
-      if (!inv || inv.status === 'draft' || !number) { skipped.push({ index: idx, reason: 'draft or unnumbered — not yet owed' }); return; }
+      if (!inv || typeof inv !== 'object' || inv.status === 'draft' || !number) { skipped.push({ index: idx, reason: 'draft or unnumbered — not yet owed' }); return; }
       const cur = curOf(inv);
       if (inv.status !== 'void') {
         const net = hasAmount(inv.total) ? money(Math.max(0, cents(inv.total) - (credited.get(number) || 0))) : null;
         expected.push({ ref: number, amount: net, currency: cur });
       }
-      (inv.payments || []).forEach(function (p, i) {
+      (Array.isArray(inv.payments) ? inv.payments : []).forEach(function (p, i) {
         recorded.push({ id: p && p.key ? String(p.key) : number + '#' + (i + 1), ref: number, amount: p ? p.amount : null, currency: (p && p.currency) || cur });
       });
     });

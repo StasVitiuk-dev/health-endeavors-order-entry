@@ -55,7 +55,8 @@
   // fingerprint an export's canonical JSON so a later verification can confirm
   // the package was not altered. Not a cryptographic guarantee — an integrity
   // check for a local print/export workflow.
-  function fnv1a(str) {
+  function fnv1a(input) {
+    const str = String(input == null ? '' : input);
     let h = 0x811c9dc5;
     for (let i = 0; i < str.length; i++) {
       h ^= str.charCodeAt(i);
@@ -113,7 +114,8 @@
     const o = opts || {}; const off = o.offsetHours || 0; const cur = o.currency || 'USD';
     const dayOf = typeof o.dayOf === 'function' ? o.dayOf : function (at) { return businessDate(at, off); };
     const byDay = {};
-    (events || []).forEach(function (e) {
+    (Array.isArray(events) ? events : []).forEach(function (e) {
+      if (!e || typeof e !== 'object') return;                 // an empty row is skipped, not a crash
       const day = dayOf(e.at); if (!day) return;
       const r = byDay[day] || (byDay[day] = { report_date: day, currency: cur, orders_count: 0, revenueC: 0, refundC: 0, expenseC: 0, canceled_count: 0, revenueUnknown: false });
       if (e.type === 'order') { r.orders_count += 1; if (e.amount == null) r.revenueUnknown = true; else r.revenueC += cents(e.amount); }
@@ -139,7 +141,7 @@
     const r = range || {};
     const from = r.from ? String(r.from) : null;
     const to = r.to ? String(r.to) : null;
-    return (history || [])
+    return (Array.isArray(history) ? history : []).filter(function (row) { return row && typeof row === 'object'; })
       .map(normalizeRow)
       .filter(function (row) {
         if (!row.report_date) return false;
@@ -154,7 +156,7 @@
   // one row carried a real value; rows with a missing value are counted in
   // `missing` so the gap is visible rather than hidden as zero.
   function dailySummary(rows) {
-    const list = rows || [];
+    const list = (Array.isArray(rows) ? rows : []).filter(function (row) { return row && typeof row === 'object'; });
     const totals = {}; const measured = {}; const missing = {};
     METRICS.forEach(function (m) { totals[m] = 0; measured[m] = 0; missing[m] = 0; });
     list.forEach(function (row) {
@@ -239,7 +241,7 @@
   // checksum and the payload. Pure — nothing is written to disk.
   function packageOf(manifest) {
     const m = manifest || {};
-    return { schemaVersion: m.schemaVersion, entries: (m.entries || []).map(function (e) { return e.name; }), checksum: m.checksum, payload: m.payload };
+    return { schemaVersion: m.schemaVersion, entries: (Array.isArray(m.entries) ? m.entries : []).map(function (e) { return e && e.name; }), checksum: m.checksum, payload: m.payload };
   }
 
   // Open (restore) a package for a recovery drill. Rejects an unsupported schema

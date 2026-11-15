@@ -36,7 +36,7 @@
 <script src="assets/owner-login-helpers.js?v=76dc8fc4a9"></script>
 <script src="assets/owner-login-modules.js?v=0d97adc58c"></script>
 <!-- @@ EXT15 module files (assets/app/*.js), added by tests/tools/extract-module.js @@ -->
-<script src="assets/app/he-config.js?v=fa5015c5e2"></script>
+<script src="assets/app/he-config.js?v=4c456993c5"></script>
 <script src="assets/app/he-ui.js?v=156512e5ba"></script>
 <script src="assets/app/he-data.js?v=c83d91bc56"></script>
 <script src="assets/app/he-audit.js?v=b5b3a424dc"></script>
@@ -59,7 +59,7 @@
      Inert unless the Sales & Growth feature flag is ON: with the flag OFF these
      only define module factories — no nav link, no loader, no page is reachable. @@ -->
 <script src="assets/sales/he-sales-ui.js?v=df09bd0844"></script>
-<script src="assets/sales/he-sales-fixtures.js?v=4252092bb3"></script>
+<script src="assets/sales/he-sales-fixtures.js?v=1ad9b438d0"></script>
 <script src="assets/sales/he-sales-leads.js?v=ce62bb2b2b"></script>
 <script src="assets/sales/he-sales-pipeline.js?v=f72b566eff"></script>
 <script src="assets/sales/he-sales-agents.js?v=49fee3eb0f"></script>
@@ -108,18 +108,18 @@
 <script src="assets/scan/he-scan.js?v=9f23c9b498"></script>
 <script src="assets/scan/he-scan-fixtures.js?v=1e32d7b6ec"></script>
 <script src="assets/scan/he-scan-ui.js?v=26b2ea15be"></script>
-<script src="assets/inventory/he-reorder.js?v=20e2d3e8f1"></script>
+<script src="assets/inventory/he-reorder.js?v=650bff07e1"></script>
 <script src="assets/views/he-saved-views.js?v=3575602f5e"></script>
-<script src="assets/inventory/he-inventory-count.js?v=aa68b11b8d"></script>
-<script src="assets/suppliers/he-supplier-scorecard.js?v=6a75d565a3"></script>
+<script src="assets/inventory/he-inventory-count.js?v=ddc1f168f5"></script>
+<script src="assets/suppliers/he-supplier-scorecard.js?v=a8bde5e369"></script>
 <script src="assets/inventory/he-reorder-fixtures.js?v=885819be55"></script>
-<script src="assets/invoice/he-invoice.js?v=8bb5109bcb"></script>
+<script src="assets/invoice/he-invoice.js?v=64741020cc"></script>
 <script src="assets/invoice/he-tax.js?v=6dc9f146f9"></script>
-<script src="assets/reports/he-report-export.js?v=294641f89e"></script>
+<script src="assets/reports/he-report-export.js?v=115d2f9fa2"></script>
 <script src="assets/reports/he-report-schedule.js?v=fe145bfc31"></script>
 <script src="assets/reports/he-export-label.js?v=f41f82e23f"></script>
-<script src="assets/reports/he-reconcile.js?v=720d1a9c0b"></script>
-<script src="assets/reports/he-ops-anomaly.js?v=37c00c41b2"></script>
+<script src="assets/reports/he-reconcile.js?v=55ea4cebd9"></script>
+<script src="assets/reports/he-ops-anomaly.js?v=77a09d76c6"></script>
 <script src="assets/owner-login-theme.js?v=05a115a149"></script>
 </head>
 <body>
@@ -731,6 +731,7 @@
         <h3 class="u-m-18-0-6 u-fs-15">Other switches</h3>
         <p class="hint u-mt-0">Only the Owner role can change these.</p>
         <div id="flagsWrap"><p class="empty">Loading…</p></div>
+        <div id="previewSwitchesHost"></div>
       </section>
 
       <!-- Business Rules -->
@@ -1078,6 +1079,6 @@
   </div>
 
 <div id="invoicePrintHost" class="printView" aria-hidden="true"></div>
-<script src="assets/owner-login-app.js?v=61cf53d4c7"></script>
+<script src="assets/owner-login-app.js?v=084c7b331a"></script>
 </body>
 </html>

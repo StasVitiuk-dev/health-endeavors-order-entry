@@ -61,6 +61,15 @@ test('invoice preview ON: draft totals + packing slip; issuing stays an owner de
   await expect(host).not.toContainText('Tax (8%)');
   await expect(host).toContainText('Taxable base $256.50');
   await expect(host).toContainText('Payment terms: Due on receipt');
+  // Owner decision #3: drafts are generated from orders and wait for review.
+  const auto = host.locator('[data-autodrafts]');
+  await expect(auto).toHaveAttribute('data-autodrafts', '2');
+  await expect(auto.locator('[data-autodraft="SYN-O-2001"]')).toContainText('draft, not issued');
+  await expect(auto.locator('[data-autodraft="SYN-O-2001"]')).toContainText('Due on receipt');
+  await expect(auto.locator('[data-autodraft="SYN-O-2002"]')).toContainText('no unit price');
+  await expect(auto.locator('[data-autodraft-skipped="SYN-O-2003"]')).toContainText('the order was cancelled');
+  await expect(auto.locator('[data-autodraft-skipped="SYN-O-2004"]')).toContainText('already has an invoice');
+  await expect(auto).toContainText('nothing is issued or numbered');
   const check = host.locator('[data-issuecheck]');
   await expect(check).toHaveAttribute('data-issuecheck', 'blocked');
   await expect(check).toContainText('Invoice total under these rules: $272.53');

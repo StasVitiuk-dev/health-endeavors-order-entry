@@ -187,8 +187,8 @@ switched-off hosts) added no visible change when off. **These styling changes ar
 not behind a switch and will be visible on merge.**
 
 **iPhone-size run (Nov 9): 489 passed / 11 failed / 365 skipped** stands as
-recorded. Its 10 picture failures have the same explanation as above; its one
-timing failure was not re-checked on Nov 14.
+recorded. Its 10 picture failures have the same explanation as above. Its one
+timing failure was checked later on Nov 14 — see the final full pass below.
 
 ## Full desktop re-run, 2026-11-14 (commit `4a99dc0`, 16 shards, substitute browser)
 
@@ -208,3 +208,29 @@ The four failures fixed in `edfe565` all passed in this run.
 engines, the new screen sections, the accessibility sweep, Query I). Their own
 tests and the structure / type / pattern / document checks were run on each
 commit. A full run on the final commit is recorded below when present.
+
+## Final full pass, 2026-11-14 (commit `aa81876`, substitute browser)
+
+Run from 21:14 to 22:18 UTC, computer size (16 shards) then phone size (8 shards).
+No other browser tests ran on the machine during it; some short non-browser checks
+did.
+
+| Size | Passed | Failed | Skipped | Total |
+|---|---|---|---|---|
+| Computer (1100 px) | **2,285** | **10** | 49 | 2,344 |
+| Phone (390 px, Chromium with an iPhone profile — not real Safari) | **505** | **11** | 376 | 892 |
+
+| Failed tests | Count | Cause | Status |
+|---|---|---|---|
+| `visual.spec.js` picture comparisons, computer size | 10 | Cannot pass in the substitute browser (they fail on the untouched base too), and the branch restyles these screens | Open — the owner decides on the look (before/after pictures sent), then reference pictures are re-taken in CI |
+| `visual.spec.js` picture comparisons, phone size | 10 | Same | Same |
+| `malformed-data-ext15` "50,000-character … pages draw in reasonable time", phone size | 1 | The Tasks page took about 10–13 s against an 8 s limit | **Environment, not the branch:** re-run alone it failed 3 of 3 here, and the untouched base commit `9173ccf` failed it 2 of 2 with the same timing (about 11.6 s). Needs a run in CI to say whether it is a real limit on a normal machine |
+
+Everything else passed, including the five generated-document checks and the
+`schema-contract-ext19` test that failed in the earlier run.
+
+**After `aa81876`:** the preview switches, automatic invoice drafts, the self-review
+fixes and the malformed-input hardening were added. They were verified with their
+own tests plus the structure, type, pattern, generated-document, security and
+document checks (213 tests at computer and phone size, all passing), not with
+another full pass.

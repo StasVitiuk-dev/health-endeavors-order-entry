@@ -86,11 +86,11 @@ before go-live.
 - **Tested revision:** `claude/ext20-recovery-2026-10-31` HEAD (see §6), base `9173ccf`.
 - **What changed:** 12 blueprint IDs (§1) + the W-series panels (§2), all
   default-OFF / draft-only / synthetic; no production code path altered.
-- **Owner review steps:** enable `he_sales_growth` in localStorage to see the new
-  Sales & Growth pages; everything else is engine + tests (run `npm test`).
+- **Owner review steps:** see "How to look at the new features" in section 5 —
+  on/off buttons on the Feature Flags page (no typed commands).
 - **Rollback:** nothing is live. If merged later, revert the merge commit on
-  `main` (previous `main` is its parent); every new feature is flag-OFF so
-  `localStorage.removeItem('he_*')` disables any preview instantly with no deploy.
+  `main` (previous `main` is its parent); every new feature is off by default, and
+  "Turn all off" on the Feature Flags page hides any preview at once with no deploy.
   Local recovery snapshot restores this exact checkpoint (§6).
 
 ## 5. Owner review checklist
@@ -99,6 +99,38 @@ before go-live.
 Answered by Stas on Nov 14. The answers, what was built from each, and what is not
 yet applied are recorded in one place: **`OWNER_DECISIONS_2026-11-14.md`**
 (authoritative — not repeated here). Section 9 below summarises the build.
+
+### How to look at the new features (no typed commands)
+This works wherever the branch's dashboard is open (a preview copy, or the live
+site after a merge). Nothing here is on by default.
+
+1. Sign in as the owner (or an administrator).
+2. Open **Feature Flags** in the sidebar and scroll to **Preview features**.
+3. Press **Turn on** next to the feature you want to see, then **Reload now**.
+4. Open the page named in the "Where it appears" column.
+5. When finished, press **Turn all off**, then **Reload now**.
+
+A switch is remembered by that browser on that device only. It is not saved to the
+database, nobody else sees a change, and each preview uses example data or is
+read-only — nothing is sent, issued, charged or written to stock.
+
+| Preview | Where it appears | What to look for |
+|---|---|---|
+| Scan Shipment | Home and Orders | A scan button; typing a label number finds its order |
+| Reorder planning | Inventory | What to reorder and the cash it needs |
+| Saved views | Orders and Inventory | Save a filter under a name, reload, bring it back |
+| Cycle count review | Inventory | Count differences; only the owner can approve; stock is not changed |
+| Supplier scorecard | Suppliers | On-time deliveries and missing or expiring documents |
+| Payment reconciliation | Accounting | Each difference is named; closing one needs a written note |
+| Operations watch | Report History | Unusual daily figures, stock and orders, most serious first |
+| Export preview and report print | Report History | Package contents, checksum, trace label, print layout |
+| Report versions | Report History | Kept versions, a rerun adds a version, delivery is simulated |
+| Invoice preview | Report History | Your tax and terms rules; "issuing: blocked" while the local rate is pending |
+| Export recovery drill | Report History | A good package opens; a damaged one is refused |
+| Sales & Growth pages | Sidebar | The draft-only sales and wholesale pages |
+
+Also sent separately: before/after pictures of the restyled screens
+(`restyle-review.html`), for the decision on the dashboard's look.
 
 ### Still needed from the owner
 - **The local tax rate** for the business location (the 6.25% Illinois state rate is

@@ -30,7 +30,9 @@ instead of beside them:
   not been supplied.
 - **Terms (2):** issuing an invoice for a named account now fills in the terms and
   the due date: due on receipt, or Net 14 (issue date + 14 days) for an account
-  approved for credit. Asking for Net 14 on an unapproved account is refused.
+  approved for credit. Net 14 is refused unless an approved account is named. The
+  due date counts from the business day of issue (Central time), so an invoice
+  issued at 10 pm Central is dated that day, not the next.
 - **Day cutoff (4):** the daily roll-up can now group sales by the Central-time day,
   tested across both daylight-saving change days. *Still open:* the saved nightly
   reports are produced by a database job that is not in this repository, so nobody
@@ -42,6 +44,15 @@ instead of beside them:
   ACTION (uses UTC; a change is needed) or "show the result". Tested locally on
   synthetic rows (`sql/local-test/report_day_cutoff_test.sh`, 15 checks). No change
   to the job is drafted until this result is known.
+- **Invoices (3):** drafts are now generated automatically from orders
+  (`draftFromOrder`, `draftsForOrders`): one draft per order, none for a cancelled,
+  deleted or fully refunded order or one that already has an invoice, and running it
+  again creates nothing new. A draft carries the order, the account, the suggested
+  terms and the tax rule; anything that does not add up (a line with no price, a
+  subtotal that differs from the lines) is listed for the reviewer instead of being
+  corrected. Nothing is issued or numbered — issuing stays a manual step. Shown on
+  the invoice preview with example orders. *Still open:* reading real orders, and
+  the screen where the owner issues a draft.
 - **Numbering (3), permissions (5):** already how the invoice engine behaves.
 - **Exports (6):** a procedure on the owner's Mac; nothing to switch on yet. Each
   export now carries a trace label (see blueprint item #72).
@@ -50,7 +61,7 @@ Invoices created the earlier way (no tax-decision fields, no account named) beha
 exactly as before; that is tested.
 
 Evidence: `tax-ext21`, `owner-decisions-ext21`, `invoice-decisions-ext21`,
-`ops-preview-wiring-ext21` (tests); commits `fe9f2f0`, `9b0b2b8`, `3f850cb`,
+`invoice-from-order-ext21`, `ops-preview-wiring-ext21` (tests); commits `fe9f2f0`, `9b0b2b8`, `3f850cb`,
 `5bce21f`, and the Nov 14 "decisions inside the engines" commit.
 
 ## Still pending (owner/provider, not decided here)

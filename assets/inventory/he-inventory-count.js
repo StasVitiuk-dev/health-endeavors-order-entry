@@ -52,13 +52,14 @@
   }
 
   // Lines where the physical count differs from the system quantity.
+  const linesOf = (count) => (count && Array.isArray(count.lines) ? count.lines : []).filter(l => l && typeof l === 'object');
   function discrepancies(count) {
-    return (count.lines || []).filter(l => l.countedQty != null && l.systemQty != null && l.countedQty !== l.systemQty)
+    return linesOf(count).filter(l => l.countedQty != null && l.systemQty != null && l.countedQty !== l.systemQty)
       .map(l => ({ sku: l.sku, systemQty: l.systemQty, countedQty: l.countedQty,
         delta: l.countedQty - l.systemQty, direction: l.countedQty > l.systemQty ? 'OVER' : 'SHORT' }));
   }
   // Lines not yet physically counted (block submission).
-  function uncounted(count) { return (count.lines || []).filter(l => l.countedQty == null).map(l => l.sku); }
+  function uncounted(count) { return linesOf(count).filter(l => l.countedQty == null).map(l => l.sku); }
 
   // Submit a completed count for owner approval. Idempotent: a second submit of an
   // already-submitted (or approved/canceled) count is refused, never re-queued.
@@ -92,7 +93,7 @@
 
   // Cancel a draft or pending count. A canceled count is terminal.
   function cancelCount(count, by, atISO, reason) {
-    if (!count) return { ok: false, reason: 'no count' };
+    if (!count || typeof count !== 'object' || !Array.isArray(count.audit)) return { ok: false, reason: 'no count' };
     if (count.status === 'CANCELED') return { ok: false, reason: 'already canceled', duplicate: true, count: count };
     if (count.status === 'APPROVED') return { ok: false, reason: 'cannot cancel an approved count', count: count };
     count.status = 'CANCELED';

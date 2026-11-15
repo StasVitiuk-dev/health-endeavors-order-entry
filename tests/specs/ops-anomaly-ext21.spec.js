@@ -132,3 +132,13 @@ test('deterministic and input is never mutated', () => {
   fx.daily.reverse(); fx.stock.reverse(); fx.orders.reverse();
   expect(JSON.stringify(fx)).toBe(before);
 });
+
+test('a long order list is checked quickly (no slow pairwise comparison)', () => {
+  const orders = [];
+  for (let i = 0; i < 20000; i++) orders.push({ id: 'O' + i, customer: 'C' + i, total: 40 + (i % 7), itemsCount: 1, at: new Date(Date.UTC(2026, 0, 1) + i * 3600000).toISOString() });
+  orders.push({ id: 'BIG', customer: 'CX', total: 900, itemsCount: 30, at: '2026-06-01T00:00:00Z' });
+  const t0 = Date.now();
+  const r = A.scan({ orders });
+  expect(Date.now() - t0).toBeLessThan(1500);
+  expect(kinds(r)).toEqual(['unusually-large-order|BIG']);
+});

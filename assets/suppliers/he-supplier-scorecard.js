@@ -42,7 +42,7 @@
   // before the expected date. Missing dates -> UNKNOWN timing (never on-time).
   function deliveryScore(supplier, purchaseOrders) {
     const sid = supplier && supplier.id;
-    const pos = (purchaseOrders || []).filter(p => p.supplier_id === sid);
+    const pos = (Array.isArray(purchaseOrders) ? purchaseOrders : []).filter(p => p && p.supplier_id === sid);
     const received = pos.filter(p => p.status === 'received' || p.received_date);
     let onTime = 0, late = 0, unknownTiming = 0, totalLateDays = 0, lateCount = 0;
     received.forEach(p => {
@@ -64,9 +64,9 @@
   // Document status for a supplier against an explicit required-doc set.
   function documentStatus(supplier, documents, requiredTypes, asOfDate) {
     const sid = supplier && supplier.id;
-    const required = (requiredTypes && requiredTypes.length) ? requiredTypes : DEFAULT_REQUIRED_DOCS;
+    const required = (Array.isArray(requiredTypes) && requiredTypes.length) ? requiredTypes : DEFAULT_REQUIRED_DOCS;
     const asOf = asOfDate || null;
-    const mine = (documents || []).filter(d => d.supplier_id === sid);
+    const mine = (Array.isArray(documents) ? documents : []).filter(d => d && d.supplier_id === sid);
     const rows = required.map(type => {
       const doc = mine.find(d => String(d.doc_type).toLowerCase() === String(type).toLowerCase());
       if (!doc) return { type: type, status: 'MISSING', expiresAt: null };

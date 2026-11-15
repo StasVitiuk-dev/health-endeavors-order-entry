@@ -151,3 +151,18 @@ test('a payment with no key still gets a stable id; odd input never throws', () 
   expect(R.reconcile(sides.expected, sides.recorded).items[0].outcome).toBe('UNKNOWN_AMOUNT');
   expect(R.fromInvoices(null)).toEqual({ expected: [], recorded: [], skipped: [] });
 });
+
+test('an invoice fully covered by a credit note owes nothing: matched, not "missing"', () => {
+  const inv = mk('HE-2026-0020', 6);                                                     // 60 owed, never paid
+  const cn = I.creditNote(inv, { role: 'owner', number: 'CN-2026-0002', now: NOW }).creditNote;   // full credit
+  const sides = R.fromInvoices([inv], [cn]);
+  const res = R.reconcile(sides.expected, sides.recorded);
+  expect(res.items[0]).toMatchObject({ outcome: 'MATCHED', expected: 0, recorded: 0, difference: 0, reviewState: 'NOT_NEEDED' });
+  expect(res.balanced).toBe(true);
+  // A plain zero-amount line with nothing recorded is a match as well...
+  expect(R.reconcile([{ ref: 'Z', amount: 0 }], []).items[0].outcome).toBe('MATCHED');
+  // ...but money recorded against a fully credited invoice is still caught.
+  const paidAnyway = I.applyPayment(inv, { amount: 60, key: 'SYN-K20' }).invoice;
+  const s2 = R.fromInvoices([paidAnyway], [cn]);
+  expect(R.reconcile(s2.expected, s2.recorded).items[0]).toMatchObject({ outcome: 'OVERPAID', difference: 60 });
+});

@@ -49,7 +49,10 @@
     const c = daysOfCover(available, velocityPerDay);
     if (c.days == null || c.days === Infinity) return null;
     const base = nowMs != null ? +new Date(nowMs) : Date.now();
-    return new Date(base + c.days * DAY).toISOString().slice(0, 10);
+    const when = base + c.days * DAY;
+    // Beyond the range a date can hold (or an invalid "now") there is no date to give.
+    if (!isFinite(when) || Math.abs(when) > 8.64e15) return null;
+    return new Date(when).toISOString().slice(0, 10);
   }
 
   function roundToPack(qty, packSize, moq) {
@@ -134,7 +137,7 @@
   function buildProposals(items, opts) {
     const seen = new Set();
     const out = [];
-    (items || []).forEach(function (it) {
+    (Array.isArray(items) ? items : []).forEach(function (it) {
       const p = reorderProposal(it, opts);
       if (seen.has(p.key)) { p.duplicate = true; } else { seen.add(p.key); p.duplicate = false; }
       out.push(p);
