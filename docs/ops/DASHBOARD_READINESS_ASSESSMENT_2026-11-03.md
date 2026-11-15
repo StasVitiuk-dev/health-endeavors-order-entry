@@ -100,8 +100,24 @@ up again on Nov 15.
 | 5 Home "nothing needs attention" | **Traced and fixed** (`227aa76`): the two are different lists (computed checks vs. tasks, approvals, incidents, events, reminders). The empty message now names what is empty and points at the checks; no check is hidden | `attention-checks` |
 | 2 File picker | **Done** (Nov 15): as soon as a receipt is chosen, a line under the field says "Ready to attach: name (size)", or gives the same reason the save would refuse it (empty file, over 50 MB, a web page or program). It notes a file that is not a photo or PDF but still allows it, as before. Nothing is uploaded until "Add expense"; the message clears after a save. Read out by screen readers | `storage-safety` (receipt picker feedback) |
 | Preview notice (Nov 3 point 10) | **Done** (Nov 15): the review copy's notice is one line that always says "DEVELOPMENT / STAGING — NOT PRODUCTION · made-up data · nothing is saved", with the scenario picker beside it and the longer explanation under "More". Height: 74 → 32 px on a computer (9% → 4% of the screen), 129 → 66 px on a phone (15% → 8%), 147 → 66 px on a small phone with large text (23% → 10%). Still pinned to the top while scrolling | `staging-build` (compact notice test); all review-copy tests pass |
+| 8 Sales agents end to end | **Checked Nov 15**: the steps all exist as tested modules, but nothing tested them chained together. A new end-to-end test now runs the real modules in order (table below). **It found two real faults, both fixed:** a reply saying "remove me", "not interested" or a bounce got the generic advice "read it and decide" instead of "confirm they are never contacted again"; and the "interested" reply template said "I've attached the line sheet" although drafts never carry an attachment. The test fails on the old code for exactly those two reasons | `sales-endtoend-ext21` (3); all 453 Sales & Growth and related tests pass |
 | 6, 7 | Still owner decisions (account directory page; custom dropdown menus) |  |
 | 10 | Still needs the owner's real Safari / iPhone / VoiceOver pass |  |
 
 The owner's final look-over of the control and form styling is still open; before/
 after pictures were sent on Nov 14–15.
+
+### Sales workflow — what works, what is simulated, what is missing (Nov 15)
+
+| Step | State | Notes |
+|---|---|---|
+| Import a store list: check each row, find likely duplicates | **Works** (example data) | Problems are named per row; duplicates are shown for review, never merged |
+| Qualify a store, with the reasons | **Works** | Score out of 100 with each part listed; a weak store is refused a draft |
+| Draft an email from approved facts only | **Works** (free template writer) | A fact that is not approved is never used; a missing required fact blocks the draft; a health claim blocks it |
+| Owner review, edit, approve | **Works** | Any edit to subject, body, recipient, facts or terms cancels the approval until it is approved again |
+| Send | **Simulated only — switched off by design** | The real mailbox is not connected and cannot even draft. The test stand-in refuses without an approval, refuses a repeat, and refuses a suppressed recipient at the moment of sending |
+| Read a reply and suggest the next step | **Works** (fixed Nov 15) | Opt-out, "not interested" and bounces go to "confirm suppression" |
+| Audit trail | **Works** | Stages in order; every entry records "no external effect" |
+| Paid AI writers (Claude, OpenAI) | **Not connected** | Calling one is a clear refusal, never a silent switch |
+| Saved state between visits, with a reset | **Not built** | The pages show the example data fresh on every load. Nothing is kept |
+| Real mailbox, sending, deliverability | **Not built — needs the owner and outside setup** | Business email service, sign-in to it, and the owner's go-ahead |

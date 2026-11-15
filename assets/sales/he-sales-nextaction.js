@@ -28,6 +28,9 @@
 
   // Stages from which contact must never be recommended again.
   const NO_CONTACT = new Set(['DECLINED', 'DO_NOT_CONTACT']);
+  // Reply labels that mean "never contact again" — the classifier's own
+  // (UNSUBSCRIBE, BOUNCE, DECLINED) plus the older names (OPT_OUT, COMPLAINT).
+  const SUPPRESSING_REPLIES = new Set(['UNSUBSCRIBE', 'BOUNCE', 'DECLINED', 'OPT_OUT', 'COMPLAINT']);
   // Finished stages: nothing to do.
   const DONE = new Set(['CUSTOMER', 'LOST', 'NOT_A_FIT']);
 
@@ -56,7 +59,11 @@
 
     // A reply that reads as an opt-out/complaint routes to suppression review,
     // never to a follow-up.
-    if (l.hasReply && (l.replyLabel === 'OPT_OUT' || l.replyLabel === 'COMPLAINT')) {
+    // The reply classifier (he-sales-replies) labels these UNSUBSCRIBE, BOUNCE and
+    // DECLINED — the labels it says mean "never contact again". This rule used to
+    // know only OPT_OUT / COMPLAINT, so a real "remove me" reply got the generic
+    // "review reply" advice instead. Found Nov 15 by the end-to-end sales test.
+    if (l.hasReply && SUPPRESSING_REPLIES.has(l.replyLabel)) {
       return rec('REVIEW — suppress', 'Reply looks like an opt-out/complaint; confirm suppression by hand', { ownerDecisionRequired: true, confidence: 'HIGH' });
     }
     if (l.hasReply && l.replyLabel === 'UNKNOWN') {

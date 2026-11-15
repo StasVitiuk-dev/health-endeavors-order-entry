@@ -58,7 +58,9 @@
         reply_interested: () => ({
           subject: `Re: Wholesale enquiry — ${product} for ${store}`,
           body: [greeting, '',
-            'Thanks so much — glad to hear it. I\'ve attached the line sheet and wholesale pricing. Would a quick call this week suit you?',
+            // Never claims an attachment: drafts carry none (owner review, Nov 3 —
+            // no invented attachments). The owner attaches files when sending by hand.
+            'Thanks so much — glad to hear it. I\'d be happy to send the line sheet and wholesale pricing. Would a quick call this week suit you?',
             '', 'Looking forward to it,', sender].join('\n'),
         }),
       };
