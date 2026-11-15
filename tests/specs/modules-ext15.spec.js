@@ -20,6 +20,8 @@ const CHANGED = [
   'INQUIRY_ORDER_BY_ID', 'loadInquiries', 'loadEvidenceLocker', 'loadDocuments', 'loadAccounting', 'loadTaxRecords',
   // Nov 15: also shortens very long cell text when a table is drawn (clipLongCellText)
   'labelPhoneCards',
+  // Nov 15: the quick-reminder field takes focus at once (a key pressed right after the shortcut was lost)
+  'openQuickAdd',
   // EXT18: changes still waiting for a reply are counted, so a sign-out elsewhere is reported honestly:
   'capAwareFetch', 'writesWaiting', 'writesInFlight',
   // EXT19: sidebar and loading skeletons built as elements (safe builder h), not HTML strings:

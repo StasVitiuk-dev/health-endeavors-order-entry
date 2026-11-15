@@ -270,6 +270,10 @@ window.HE.modules.define('he-ui', { api: 1, needs: ['EMPTY_ICONS','HELP','ICON_P
       quickAdd.classList.add('open');
       const i = document.getElementById('quickAddInput');
       i.value = '';
+      // Nov 15: focus at once, so a key pressed straight after the shortcut is
+      // not lost (the 10 ms fallback stays for browsers that refuse focus
+      // until the box has been drawn).
+      try { i.focus(); } catch (e) { /* the fallback below still runs */ }
       setTimeout(() => i.focus(), 10);
     }
     function closeQuickAdd(){ quickAdd.classList.remove('open'); restoreFocus('quickadd'); }

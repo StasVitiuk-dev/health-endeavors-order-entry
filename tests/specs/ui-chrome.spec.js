@@ -163,6 +163,17 @@ test.describe('command palette and keyboard', () => {
     expect(backend.tableWrites()).toEqual([]);
   });
 
+  test('the quick reminder field has the cursor the instant the box opens (no lost first key)', async ({ page }) => {
+    // Nov 15: the field used to get focus 10 ms after opening; a key pressed in
+    // that gap went nowhere and the box stayed open. Checked in the same tick.
+    const focused = await page.evaluate(() => {
+      const mac = /Mac|iPhone|iPad/.test(navigator.platform);
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'n', metaKey: mac, ctrlKey: !mac, bubbles: true, cancelable: true }));
+      return { open: document.getElementById('quickAddOverlay').classList.contains('open'), active: document.activeElement && document.activeElement.id };
+    });
+    expect(focused).toEqual({ open: true, active: 'quickAddInput' });
+  });
+
   test('j / k move a row cursor on the Tasks page', async ({ page }) => {
     await openTasks(page);
     await page.locator('#tasksPanel h2').first().click();
