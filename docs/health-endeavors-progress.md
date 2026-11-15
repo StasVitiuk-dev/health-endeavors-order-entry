@@ -1,6 +1,6 @@
 # Health Endeavors — progress tracker
 
-**Last updated:** November 14, 2026 (change-log entry for the Nov 7 build added at the end; **percentages unchanged on purpose** — that work is on an unmerged local branch). Rows last revised October 10, 2026 (platform rows only; website rows unchanged from Sept 30). Update whenever meaningful work is completed or scope changes.
+**Last updated:** November 15, 2026 (change-log entries for the Nov 7 build at the end; **percentages unchanged on purpose** — that work is on an unmerged local branch). Rows last revised October 10, 2026 (platform rows only; website rows unchanged from Sept 30). Update whenever meaningful work is completed or scope changes.
 
 **How to read the percentages:** they are **planning estimates, not measurements**. "Done" means merged to `main` and, where it matters, confirmed live. Work in open PRs, prototypes or documents counts only as preparation and is weighted low. Each row states its basis.
 
@@ -86,3 +86,8 @@ The weights are a judgement call: the platform is the largest body of work, and 
   - **Owner decisions:** the six invoice / tax / terms / day-cutoff / permission / export decisions were made on Nov 14 (`docs/ops/OWNER_DECISIONS_2026-11-14.md`). Still open: the local tax rate, a go-ahead to push and open a pull request, a business email service, a tracking provider, a real iPhone check, and the safe stock-change function (R4, row 2).
   - **Estimate (not a measurement):** the branch is close to ready for an owner review as one package. Left on the engineering side: the full test re-run result on the final commit, performance re-measured in CI, and new reference pictures once the owner has looked at the restyled screens. Going live is a separate step that needs the owner's review and merge.
   - Evidence and review entry point: `docs/ops/NOV7_STAGING_REVIEW_AND_OWNER_CHECKLIST.md`.
+- **Nov 15, 2026 (Nov 7 build, same local branch, not pushed):** platform rows only; website rows unchanged. **Percentages unchanged on purpose** (nothing merged or live).
+  - **Row 1 (platform features), preparation only:** simulated invoice review desk; Outreach workbench (the sales path on one screen, simulated send); dashboard side of invoice storage (not connected); export label names the signed-in person; keyboard and screen-reader fixes.
+  - **Row 2 (database drafts):** the invoice storage draft (`docs/ops/sql/drafts/32`, rollback `33`) gained bill-to, ship-to, account and tax-choice columns; 64 local checks plus 29 adapter-against-database checks. Not installed; needs the owner's approval.
+  - **Row 4 (testing):** full pass at `4c5efc9`: computer size 2,387 passed / 10 failed / 51 skipped; phone size 507 passed / 11 failed / 388 skipped (only the known picture comparisons and one timing test that fails identically on the base). A further full pass at `05fc2b7` was running at the time of writing; its result goes to `docs/ops/NOV7_BOUNDED_REVIEW.md`.
+  - **Blueprint:** unchanged — 51 of 90 on `main`; the same 14 items built on the branch, 0 live.

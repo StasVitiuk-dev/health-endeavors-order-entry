@@ -1,9 +1,9 @@
 # Nov 7 → staging backlog status
 
-Status: CURRENT · As of 2026-11-14 · For: Stas · Local/synthetic, default-OFF,
+Status: CURRENT · As of 2026-11-15 · For: Stas · Local/synthetic, default-OFF,
 draft/simulated only. Branch `claude/ext20-recovery-2026-10-31` (unpushed).
-Recovery export: refreshed at each checkpoint (latest v47, late on Nov 14, sent to
-the owner as a file). The branch itself sits in the session's temporary workspace —
+Recovery export: refreshed at each checkpoint (latest v51, evening of Nov 15, sent
+to the owner as a file). The branch itself sits in the session's temporary workspace —
 it is durable only once it is pushed or the owner keeps that file.
 
 This tracks the panel-wiring run + the launch-critical reconciliation + the
