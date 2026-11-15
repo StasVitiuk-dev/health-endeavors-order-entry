@@ -139,7 +139,11 @@ const ADDED = ['setReportHistoryView', 'inquiriesList', 'agentControls', 'poRece
   'invoiceDesk', 'invoiceDeskSkipped', 'invoiceDeskMessage', 'invoiceDeskOpen',
   // Expenses receipt picker feedback (owner review Nov 3, point 2): name and
   // size of the chosen file, or the save's own refusal, shown on choosing.
-  'receiptSize', 'showReceiptStatus'];
+  'receiptSize', 'showReceiptStatus',
+  // Sales outreach workbench on Sales Approvals (behind salesGrowthOn; owner
+  // brief Nov 3, point 8). The delegated [data-workbench] listener is waived below.
+  'WORKBENCH_KEY', 'workbenchState', 'workbenchSelected', 'workbenchMessage', 'WORKBENCH_REPLIES',
+  'workbenchDeps', 'workbenchSave', 'loadSalesWorkbench', 'findWorkbenchStore'];
 const NEW_MODULES = ['he-ops']; // EXT16: written new, not moved
 const CHANGED_TEXT = ["} = window.HE.helpers;", "forEach(o => Object.setPrototypeOf(o, null))", "supabase.auth.onAuthStateChange((event, session) =>", "getAttribute('data-view')", "getElementById('adjustInventoryForm').addEventListener('submit'", "getElementById('logReturnForm').addEventListener('submit'", "getElementById('retOrder').addEventListener('change'", "Release to refresh", "getElementById('docCategory')",
   // EXT20J-post-TT: the 4 static overlay scaffolds converted innerHTML->h(); each
@@ -176,7 +180,9 @@ const CHANGED_TEXT = ["} = window.HE.helpers;", "forEach(o => Object.setPrototyp
   "document.getElementById('expReceipt').addEventListener('change', showReceiptStatus)",
   // ...and the Add-expense save handler gains one line: after a successful save
   // it clears the receipt message along with the field (showReceiptStatus()).
-  "document.getElementById('addExpenseForm').addEventListener('submit', async (e) =>"];
+  "document.getElementById('addExpenseForm').addEventListener('submit', async (e) =>",
+  // Sales outreach workbench: the delegated listener (anonymous top-level stmt).
+  "e.target.closest('[data-workbench]')"];
 
 test('the module moves were byte-identical: every original statement once, only the named edits differ', ({}, ti) => {
   nodeOnly(ti);

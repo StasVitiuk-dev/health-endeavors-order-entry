@@ -1682,6 +1682,118 @@
       }
     }
 
+    // ---------- Sales outreach workbench (on Sales Approvals; behind salesGrowthOn)
+    // The owner's Nov 3 brief: the sales workflow runnable end to end, with state
+    // kept and clearly labelled, and a reset. Import an example store list ->
+    // draft -> edit -> approve -> SIMULATED send -> record a reply -> next step.
+    // Nothing is sent; the state is saved in THIS browser only (localStorage) and
+    // "Reset workbench" clears it. The signed-in person's real role decides who
+    // may approve (owner or administrator). The logic is he-sales-workbench.
+    const WORKBENCH_KEY = 'he_sales_workbench';
+    let workbenchState = null;
+    let workbenchSelected = null;
+    let workbenchMessage = '';
+    const WORKBENCH_REPLIES = ['Sounds great — we would love to carry it. Can we set up a call?', 'Thanks! Can you send pricing and your minimum order?',
+      'Please remove me from your list.', 'Not interested, thanks.', 'I am out of office until Monday.'];
+    function workbenchDeps() {
+      const m = n => { try { return salesMod('he-sales-' + n); } catch (e) { return null; } };
+      return { import: m('import'), leads: m('leads'), outreach: m('outreach'), ai: m('ai'), claims: m('claims'), approval: m('approval'), replies: m('replies'), nextaction: m('nextaction') };
+    }
+    function workbenchSave(wb) {
+      try { localStorage.setItem(WORKBENCH_KEY, wb.serialize(workbenchState)); return true; } catch (e) { return false; }
+    }
+    function loadSalesWorkbench() {
+      const panel = document.getElementById('salesApprovalsPanel'); if (!panel) return;
+      let host = document.getElementById('salesWorkbenchHost');
+      if (!(typeof salesGrowthOn === 'function' && salesGrowthOn())) { if (host) host.remove(); return; }
+      if (!host || host.parentNode !== panel) { if (host) host.remove(); host = h('div', { id: 'salesWorkbenchHost' }); panel.appendChild(host); }
+      let wb = null; try { wb = salesMod('he-sales-workbench'); } catch (e) { wb = null; }
+      if (!wb) { host.replaceChildren(h('p', { class: 'empty' }, 'The outreach workbench could not load.')); return; }
+      if (!workbenchState) {
+        let raw = null; try { raw = localStorage.getItem(WORKBENCH_KEY); } catch (e) { raw = null; }
+        const r = wb.restore(raw); workbenchState = r.state; if (!r.ok) workbenchMessage = r.message;
+      }
+      const st = workbenchState; const sum = wb.summary(st);
+      const isSuppressed = s => st.suppressed.indexOf(String(s.email || '').toLowerCase()) !== -1;
+      const storeRows = st.stores.map(s => {
+        const sel = workbenchSelected === s.id;
+        const checks = s.status === 'NOT_USABLE' ? s.problems.join('; ') : (s.scoring ? s.scoring.score + ' (' + s.scoring.band + ')' + (s.problems.length ? ' · ' + s.problems.join('; ') : '') : '—');
+        const label = s.storeName || '(no name)';
+        return h('tr', { 'data-wb-store': s.id, 'data-wb-status': s.status },
+          h('td', null, h('div', { class: 'taskTitle' }, label), h('div', { class: 'u-fs-11 u-c-muted' }, s.email || s.website || 'no contact')),
+          h('td', null, checks),
+          h('td', null, s.status),
+          h('td', null, (s.status === 'NOT_USABLE' || s.status === 'LIKELY_DUPLICATE' || isSuppressed(s)) ? '—'
+            : st.drafts[s.id] ? h('button', { type: 'button', class: 'small' + (sel ? '' : ' secondary'), 'data-workbench': 'open', 'data-store': s.id, 'aria-label': 'Review the email to ' + label }, sel ? 'Reviewing' : 'Review')
+              : h('button', { type: 'button', class: 'small secondary', 'data-workbench': 'draft', 'data-store': s.id, 'aria-label': 'Draft an email to ' + label }, 'Draft email')));
+      });
+      let review = null;
+      const cur = workbenchSelected && findWorkbenchStore(st, workbenchSelected);
+      if (cur && st.drafts[cur.id]) {
+        const d = st.drafts[cur.id]; const ap = st.approvals[cur.id]; const sent = st.outbox.some(o => o.storeId === cur.id);
+        const reps = st.replies.filter(r => r.storeId === cur.id);
+        review = h('div', { class: 'scanCard u-mt-10', 'data-wb-review': cur.id },
+          h('div', { class: 'scanCardHead' }, 'Email to ' + cur.storeName + ' — version ' + d.version + (ap ? ' · approved by ' + ap.by : ' · not approved') + (sent ? ' · simulated-sent' : '')),
+          h('div', { class: 'scanCardRow' }, h('span', { class: 'u-c-muted' }, 'Subject: '), d.subject),
+          h('div', { class: 'scanCardRow u-fs-11 u-c-muted' }, 'Uses approved facts only: ' + d.factsUsed.map(f => f.fact + ' = ' + f.value).join(', ')),
+          h('div', { class: 'heField heWide u-mt-6' }, h('label', { for: 'wbBody' }, 'Email text'),
+            h('textarea', { id: 'wbBody', rows: '7', maxlength: String(wb.MAX_BODY), class: 'u-w-100pct u-p-9-10 u-br-8 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-14 u-rs-vertical' }, d.body)),
+          h('div', { class: 'scanToggleRow u-mt-6' },
+            h('button', { type: 'button', class: 'small secondary', 'data-workbench': 'save', 'data-store': cur.id }, 'Save edit'),
+            h('button', { type: 'button', class: 'small', 'data-workbench': 'approve', 'data-store': cur.id }, ap ? 'Approved' : 'Approve'),
+            h('button', { type: 'button', class: 'small secondary', 'data-workbench': 'send', 'data-store': cur.id }, 'Send (simulated)')),
+          sent ? h('div', { class: 'heField u-mt-8' },
+            h('label', { for: 'wbReply' }, 'The store replies (example)'),
+            h('select', { id: 'wbReply' }, ...WORKBENCH_REPLIES.map(t => h('option', { value: t }, t))),
+            h('div', { class: 'scanToggleRow u-mt-6' }, h('button', { type: 'button', class: 'small secondary', 'data-workbench': 'reply', 'data-store': cur.id }, 'Record this reply'))) : null,
+          ...reps.map(r => h('div', { class: 'scanCardRow', 'data-wb-reply': r.label }, 'Reply: "' + r.text + '" → read as ' + r.label + ' → next step: ' + r.next)));
+      }
+      host.replaceChildren(h('div', { class: 'salesWorkbench u-mt-18' },
+        h('div', { class: 'scanHead' }, h('h3', null, 'Outreach workbench'), h('span', { class: 'scanBadge' }, wb.GUARD)),
+        h('p', { class: 'hint u-mt-6', 'data-wb-summary': '1' }, sum.stores + ' stores · ' + sum.drafts + ' drafts · ' + sum.approved + ' approved · ' + sum.simulatedSent + ' simulated-sent · ' + sum.replies + ' replies · ' + sum.doNotContact + ' do-not-contact'),
+        workbenchMessage ? h('p', { class: 'hint u-mt-6', role: 'status', 'data-wb-msg': '1' }, workbenchMessage) : null,
+        st.stores.length ? h('table', { class: 'phoneCards u-mt-8' },
+          h('thead', null, h('tr', null, h('th', null, 'Store'), h('th', null, 'Checks and score'), h('th', null, 'Status'), h('th', null, 'Next'))),
+          h('tbody', null, storeRows))
+          : h('p', { class: 'empty' }, 'No stores yet. Load the example list to try the whole path.'),
+        review,
+        st.outbox.length ? h('div', { class: 'scanCard u-mt-10' }, h('div', { class: 'scanCardHead' }, 'Simulated outbox — nothing here was sent'),
+          ...st.outbox.map(o => h('div', { class: 'scanCardRow', 'data-wb-outbox': o.storeId }, o.to + ' · "' + o.subject + '" · version ' + o.version + ' · not delivered'))) : null,
+        st.suppressed.length ? h('p', { class: 'hint u-mt-8', 'data-wb-dnc': '1' }, 'Do not contact: ' + st.suppressed.join(', ')) : null,
+        st.audit.length ? h('details', { class: 'hintMore u-mt-8' }, h('summary', null, 'What happened, step by step (' + st.audit.length + ')'),
+          ...st.audit.slice(-20).map(a => h('div', { class: 'u-fs-11 u-c-muted' }, a.n + '. ' + a.action + (a.storeId ? ' · ' + a.storeId : '') + ' · ' + a.detail + (a.by ? ' · ' + a.by : '')))) : null,
+        h('div', { class: 'scanToggleRow u-mt-8' },
+          h('button', { type: 'button', class: 'small secondary', 'data-workbench': 'import' }, st.stores.length ? 'Load the example list again' : 'Load the example store list'),
+          h('button', { type: 'button', class: 'small secondary', 'data-workbench': 'reset' }, 'Reset workbench')),
+        h('p', { class: 'hint u-mt-6' }, 'Saved in this browser only, so it is still here after a reload. "Reset workbench" clears it. Nothing is stored in the database.')));
+    }
+    function findWorkbenchStore(st, id) { return (st.stores || []).find(s => s.id === id) || null; }
+    document.addEventListener('click', (e) => {
+      const t = e.target.closest('[data-workbench]'); if (!t) return;
+      let wb = null; try { wb = salesMod('he-sales-workbench'); } catch (err) { wb = null; }
+      if (!wb || !workbenchState) return;
+      const act = t.getAttribute('data-workbench'); const id = t.getAttribute('data-store');
+      const who = { role: currentUserRole, by: String(currentUserRole || 'unknown') + ' (example)', at: new Date().toISOString() };
+      const deps = workbenchDeps();
+      let out = null;
+      if (act === 'reset') {
+        try { localStorage.removeItem(WORKBENCH_KEY); } catch (err) { /* nothing saved to clear */ }
+        workbenchState = wb.empty(); workbenchSelected = null; workbenchMessage = 'The workbench was cleared.';
+        loadSalesWorkbench(); return;
+      }
+      if (act === 'open') { workbenchSelected = id; workbenchMessage = ''; loadSalesWorkbench(); return; }
+      if (act === 'import') { out = wb.importRows(workbenchState, wb.exampleRows(), deps, who); if (out.ok) workbenchSelected = null; }
+      else if (act === 'draft') { out = wb.draftFor(workbenchState, id, deps, who); if (out.ok) workbenchSelected = id; }
+      else if (act === 'save') { const el = document.getElementById('wbBody'); out = wb.editDraft(workbenchState, id, el ? el.value : '', deps, who); }
+      else if (act === 'approve') out = wb.approve(workbenchState, id, deps, who);
+      else if (act === 'send') out = wb.simulateSend(workbenchState, id, deps, who);
+      else if (act === 'reply') { const el = document.getElementById('wbReply'); out = wb.recordReply(workbenchState, id, el ? el.value : '', deps, who); }
+      if (!out) return;
+      workbenchState = out.state;   // a refusal can still add a line to the record
+      workbenchMessage = out.message + (workbenchSave(wb) ? '' : ' (This browser would not save it; it will be gone after a reload.)');
+      loadSalesWorkbench();
+    });
+
     // ---------- Scan Shipment (Phase 1 prototype; behind scanShipmentOn()) ----
     // A local, SIMULATED flow: read/enter a shipping label, find the matching
     // order (role-scoped, from synthetic fixtures), confirm EVERY package, attach
@@ -2745,7 +2857,7 @@
       salesCommandPanel:   [() => loadSales('salesCommandPanel')],
       salesLeadsPanel:     [() => loadSales('salesLeadsPanel')],
       salesPipelinePanel:  [() => loadSales('salesPipelinePanel')],
-      salesApprovalsPanel: [() => loadSales('salesApprovalsPanel')],
+      salesApprovalsPanel: [() => loadSales('salesApprovalsPanel'), loadSalesWorkbench],
       salesVisitsPanel:    [() => loadSales('salesVisitsPanel')],
       salesRepurposePanel: [() => loadSales('salesRepurposePanel')],
       salesAdVariantsPanel:[() => loadSales('salesAdVariantsPanel')],

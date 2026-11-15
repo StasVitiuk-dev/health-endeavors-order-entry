@@ -186,6 +186,7 @@ All draft-only behind `he_sales_growth` (OFF by default); nothing sent, spent or
 - ✅ Nov 3 visual review point 2: the Expenses receipt picker says what was chosen (name and size) or why it would be refused, before saving
 - ✅ Database draft for storing and numbering invoices (`sql/drafts/32`, rollback `33`) — tested locally, NOT installed; needs the owner's explicit approval (it adds access rules on its own new tables)
 - ✅ Sales & Growth modules hardened against malformed input: 174 accidental crashes → 0; permanent probe test covers all 54 modules (Nov 15)
+- ✅ Sales outreach workbench: the sales path runnable on one screen with saved state (this browser only) and a reset; simulated send, owner/administrator approval, do-not-contact list (Nov 15)
 - ✅ Launch rehearsal (scanner, wholesale approval, receiving, invoice print, backup restore): 52 passed — recorded `0cd75ad`
 
 ## Owner decisions (2026-11-14) — ✅ decided and recorded
