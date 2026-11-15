@@ -179,6 +179,21 @@ window.HE.modules.define('he-ui', { api: 1, needs: ['EMPTY_ICONS','HELP','ICON_P
     // per row (CSS below 600 px). Each cell gets its column name as a label,
     // and explicit table roles keep screen readers reading it as a table even
     // though the layout changes. Desktop is unaffected.
+    // Nov 15: text in a table cell is drawn up to CELL_TEXT_SHOWN characters,
+    // then a note says how much is hidden. A pasted 50,000-character title or
+    // name became one phone card ~50,000 px tall and took ~9 s to lay out
+    // (Tasks and Orders). Only what is drawn is shortened: saved data is not
+    // touched, and anything typed into a field in the table is left alone.
+    const CELL_TEXT_SHOWN = 600;
+    function clipLongCellText(cell){
+      if (!cell || cell.textContent.length <= CELL_TEXT_SHOWN) return;
+      const walker = document.createTreeWalker(cell, NodeFilter.SHOW_TEXT);
+      const long = [];
+      for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+        if (n.data.length > CELL_TEXT_SHOWN && !(n.parentElement && n.parentElement.closest('textarea, select, script, style'))) long.push(n);
+      }
+      long.forEach(n => { n.data = n.data.slice(0, CELL_TEXT_SHOWN) + '… (' + (n.data.length - CELL_TEXT_SHOWN).toLocaleString('en-US') + ' more characters not shown)'; });
+    }
     function labelPhoneCards(root){
       const tables = root.matches && root.matches('table.phoneCards') ? [root] : (root.querySelectorAll ? root.querySelectorAll('table.phoneCards') : []);
       tables.forEach(t => {
@@ -191,6 +206,7 @@ window.HE.modules.define('he-ui', { api: 1, needs: ['EMPTY_ICONS','HELP','ICON_P
             if (c.tagName === 'TH') { c.setAttribute('role', 'columnheader'); return; }
             c.setAttribute('role', 'cell');
             if (heads[i]) c.setAttribute('data-label', heads[i]); else c.classList.add('cardActions');
+            clipLongCellText(c);
           });
         });
       });

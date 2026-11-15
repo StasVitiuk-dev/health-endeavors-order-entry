@@ -18,6 +18,8 @@ const CHANGED = [
   // EXT18: lookups keyed by database/customer text use prototype-free objects ("__proto__", "constructor" are ordinary keys):
   'loadActivityDigest', 'PO_LOTS', 'loadPurchaseOrders', 'calNotes', 'loadCalendarMonth', 'agentControlsByNum', 'cronJobStatusByName', 'loadAgentControls',
   'INQUIRY_ORDER_BY_ID', 'loadInquiries', 'loadEvidenceLocker', 'loadDocuments', 'loadAccounting', 'loadTaxRecords',
+  // Nov 15: also shortens very long cell text when a table is drawn (clipLongCellText)
+  'labelPhoneCards',
   // EXT18: changes still waiting for a reply are counted, so a sign-out elsewhere is reported honestly:
   'capAwareFetch', 'writesWaiting', 'writesInFlight',
   // EXT19: sidebar and loading skeletons built as elements (safe builder h), not HTML strings:
@@ -45,7 +47,7 @@ const CHANGED = [
   // both the old and new name (the old statement is removed, the new one added):
   'loadApprovals', 'renderAgentRegistry', 'agentJobHealthHtml', 'agentJobHealthNode',
   'loadNightlyCheck', 'renderAttentionChecks', 'attnFreshnessHtml', 'attnFreshnessNodes',
-  'renderInquiries', 'loadTasks', 'loadRecentlyDoneTasks', 'TITLE_SHOWN', 'shortTitle', 'loadIncidents', 'loadActivityAreas', 'docExpiryBadge',
+  'renderInquiries', 'loadTasks', 'loadRecentlyDoneTasks', 'CELL_TEXT_SHOWN', 'clipLongCellText', 'loadIncidents', 'loadActivityAreas', 'docExpiryBadge',
   'loadDailySummary', 'loadFlags',
   // EXT20J activity + inspector wave: he-audit change renderers return DOM nodes:
   'describeChange', 'hlValue', 'codeDiff',

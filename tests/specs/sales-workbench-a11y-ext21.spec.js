@@ -123,10 +123,19 @@ test('workbench: each result is announced, and focus returns to the pressed butt
   await page.keyboard.press('Enter');
   await expect(announced(page)).toContainText('has not been approved');
   await expect(send).toBeFocused();
-  // The same refusal twice is read out twice (the region is emptied first).
+  // The same refusal twice is read out twice: the region is emptied and filled
+  // again, which is what makes a screen reader repeat it. Counted with an
+  // observer (the empty moment lasts 60 ms, too short to catch by polling).
+  await page.evaluate(() => {
+    window.__said = 0;
+    new MutationObserver(() => { if (document.getElementById('srAnnounce').textContent) window.__said++; })
+      .observe(document.getElementById('srAnnounce'), { childList: true, characterData: true, subtree: true });
+  });
   await page.keyboard.press('Enter');
-  await expect(announced(page)).toHaveText('');
+  await expect.poll(() => page.evaluate(() => window.__said)).toBe(1);
   await expect(announced(page)).toContainText('has not been approved');
+  await page.keyboard.press('Enter');
+  await expect.poll(() => page.evaluate(() => window.__said)).toBe(2);
 });
 
 test('reconciliation, preview switches and invoice desk: results are announced', async ({ page }, ti) => {
