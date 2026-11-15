@@ -150,7 +150,7 @@ Also sent separately: before/after pictures of the restyled screens
 
 - Branch `claude/ext20-recovery-2026-10-31`, unpushed; working tree clean.
 - A recovery export (git bundle + patches + checksums, verified) is refreshed at each
-  checkpoint; the latest is v46 at the Nov 14 documentation commit.
+  checkpoint; the latest is v47, made late on Nov 14 (sent to the owner as a file).
 - **Durability warning:** the branch and the export both live in this session's
   temporary cloud workspace. They are preserved for good only once the branch is
   pushed to GitHub or the export file is saved by the owner.

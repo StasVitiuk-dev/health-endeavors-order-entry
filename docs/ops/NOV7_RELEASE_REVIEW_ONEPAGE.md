@@ -65,8 +65,7 @@ Nothing is live. If merged later and an issue appears: revert the merge commit o
 `main` (previous `main` is the immediate parent); all features are flag-OFF so a
 flag removal (`localStorage.removeItem('he_*')`) disables any preview instantly
 without a deploy. A local recovery export (git bundle + patches + checksums, verified)
-is refreshed at each checkpoint; the latest is v46, made at the Nov 14 documentation
-commit. **It lives in this session's temporary workspace and is not a durable
+is refreshed at each checkpoint; the latest is v47, made late on Nov 14 and sent to the owner as a file. **It lives in this session's temporary workspace and is not a durable
 backup** — the branch is preserved for good only once it is pushed to GitHub or the
 export file is saved by the owner.
 

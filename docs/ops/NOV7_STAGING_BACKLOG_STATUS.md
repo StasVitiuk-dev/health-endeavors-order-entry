@@ -2,9 +2,9 @@
 
 Status: CURRENT · As of 2026-11-14 · For: Stas · Local/synthetic, default-OFF,
 draft/simulated only. Branch `claude/ext20-recovery-2026-10-31` (unpushed).
-Recovery export: refreshed at each checkpoint (latest v46, Nov 14 documentation
-commit). It sits in the session's temporary workspace — not a durable backup
-until the branch is pushed or the export file is saved by the owner.
+Recovery export: refreshed at each checkpoint (latest v47, late on Nov 14, sent to
+the owner as a file). The branch itself sits in the session's temporary workspace —
+it is durable only once it is pushed or the owner keeps that file.
 
 This tracks the panel-wiring run + the launch-critical reconciliation + the
 newer approved blueprint backlog. Each closed item cites its commit and tests.

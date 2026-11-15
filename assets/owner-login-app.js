@@ -2100,12 +2100,15 @@
       if (!reconcileResult) { const fx = eng.fixtures(); reconcileResult = eng.reconcile(fx.expected, fx.recorded); }
       const r = reconcileResult; const st = eng.status(r);
       const amt = v => v == null ? '?' : fmtMoney(v, 'USD');
+      // An empty figure means two different things: "nothing was expected here"
+      // (a dash) or "the amount is not known" (the word), never a bare "?".
+      const cell = (it, v) => v != null ? fmtMoney(v, 'USD') : ((it.outcome === 'UNEXPECTED' || it.outcome === 'DUPLICATE') ? '—' : 'unknown');
       const rows = r.items.map(it => h('tr', { 'data-outcome': it.outcome, 'data-review': it.reviewState },
         h('td', null, h('div', { class: 'taskTitle' }, it.ref || '(no reference)'), h('div', { class: 'u-fs-11 u-c-muted' }, it.detail)),
         h('td', null, RECONCILE_WORDS[it.outcome] || it.outcome),
-        h('td', { class: 'num-cell' }, amt(it.expected)),
-        h('td', { class: 'num-cell' }, amt(it.recorded)),
-        h('td', { class: 'num-cell' }, it.difference == null ? '?' : amt(it.difference)),
+        h('td', { class: 'num-cell' }, cell(it, it.expected)),
+        h('td', { class: 'num-cell' }, cell(it, it.recorded)),
+        h('td', { class: 'num-cell' }, cell(it, it.difference)),
         h('td', null, it.reviewState === 'NOT_NEEDED' ? '—'
           : it.reviewState === 'REVIEWED' ? h('div', null, 'Reviewed by ' + it.review.by, h('div', { class: 'u-fs-11 u-c-muted' }, it.review.note))
             : h('button', { type: 'button', class: 'small secondary', 'data-reconcile': 'review', 'data-line': String(it.line), 'aria-label': 'Mark line ' + it.line + ' (' + (it.ref || 'no reference') + ') reviewed' }, 'Mark reviewed'))));
@@ -2465,7 +2468,9 @@
       const issueCheck = decided ? inv.issue(decided, { role: 'owner', number: suggested ? suggested.number : 'HE-0000-0000', now: '2026-11-14T00:00:00Z', account: {} }) : null;
       const decisionsCard = taxInfo ? h('div', { class: 'scanCard u-mt-8' },
         h('div', { class: 'scanCardHead' }, 'Per your decisions (draft example — nothing issued)'),
-        h('div', { class: 'scanCardRow' }, 'Illinois tax: state ' + (taxInfo.stateRate * 100) + '%' + (taxInfo.localRate != null ? ' + local ' + (taxInfo.localRate * 100) + '%' : '') + ' = ' + (taxInfo.rate * 100).toFixed(2) + '% · ' + taxInfo.rateStatus),
+        h('div', { class: 'scanCardRow' }, taxInfo.localRate != null
+          ? 'Illinois tax: state ' + (taxInfo.stateRate * 100) + '% + local ' + (Math.round(taxInfo.localRate * 10000) / 100) + '% = ' + (taxInfo.rate * 100).toFixed(2) + '% (confirmed)'
+          : 'Illinois tax: state ' + (taxInfo.stateRate * 100) + '% — the local rate is not confirmed yet'),
         h('div', { class: 'scanCardRow' }, 'Taxable base ' + fmtMoney(taxInfo.taxableBase, draft.currency) + ' (shipping ' + (taxInfo.shippingTaxable ? 'included — mandatory' : 'excluded') + ') · draft tax ' + fmtMoney(taxInfo.tax, draft.currency)),
         h('div', { class: 'scanCardRow' }, 'Payment terms: ' + (terms === 'NET_14' ? 'Net 14' : 'Due on receipt') + (dueDate ? ' · due ' + dueDate : '')),
         decided ? h('div', { class: 'scanCardRow', 'data-issuecheck': issueCheck && issueCheck.ok ? 'allowed' : 'blocked' }, 'Invoice total under these rules: ' + fmtMoney(decided.total, decided.currency) + ' · issuing: ' + (issueCheck && issueCheck.ok ? 'would be allowed' : 'blocked — ' + (issueCheck ? issueCheck.reason : 'not checked'))) : null,
@@ -2492,7 +2497,7 @@
           ...gen.drafts.map(d => h('div', { class: 'scanCardRow', 'data-autodraft': d.draft.orderId },
             'Order ' + (d.draft.orderNumber || d.draft.orderId) + ' · ' + fmtMoney(d.draft.total, d.draft.currency) + ' · ' + (d.draft.terms === 'NET_14' ? 'Net 14' : 'Due on receipt') + ' · draft, not issued',
             d.checks.length ? h('div', { class: 'u-fs-11 u-c-muted' }, 'To check: ' + d.checks.join('; ')) : null)),
-          ...gen.skipped.map(k => h('div', { class: 'scanCardRow u-c-muted', 'data-autodraft-skipped': String(k.orderId) }, 'No draft for ' + k.orderId + ': ' + k.reason)),
+          ...gen.skipped.map(k => { const src = exOrders.find(x => x.id === k.orderId); return h('div', { class: 'scanCardRow u-c-muted', 'data-autodraft-skipped': String(k.orderId) }, 'No draft for order ' + ((src && src.order_number) || k.orderId) + ': ' + k.reason); }),
           h('div', { class: 'u-fs-11 u-c-muted' }, gen.note));
       }
       host.replaceChildren(h('div', { class: 'reorderPlan u-mb-16' },
