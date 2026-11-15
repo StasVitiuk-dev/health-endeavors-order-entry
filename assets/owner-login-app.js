@@ -166,7 +166,11 @@
       currentUserRole = profile.role;
       loginScreen.style.display = 'none';
       dash.style.display = 'flex';
-      whoAmI.textContent = `${profile.display_name || user.email} — role: ${profile.role}`;
+      // Nov 15: a very long account name is cut (it used to make the whole page
+      // scroll sideways at computer size); the full line stays on hover.
+      const whoName = String(profile.display_name || user.email || '');
+      whoAmI.textContent = `${whoName.length > 80 ? whoName.slice(0, 79) + '\u2026' : whoName} — role: ${profile.role}`;
+      whoAmI.title = whoAmI.textContent;
       renderSidebar('');
       showPage(getLastPage());
       loadDashboard();

@@ -187,7 +187,7 @@
     color:white; width:34px; height:34px; border-radius:8px; font-size:15px;
     align-items:center; justify-content:center; padding:0; cursor:pointer; flex:none;
   }
-  header.topbar .who{ font-size:13px; opacity:0.85; }
+  header.topbar .who{ font-size:13px; opacity:0.85; max-width:min(46ch, 38vw); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   header.topbar nav{ display:flex; gap:14px; flex-wrap:wrap; }
   header.topbar nav a{ color:var(--panel-2); font-size:13px; text-decoration:none; opacity:0.9; }
   header.topbar nav a:hover{ text-decoration:underline; }
