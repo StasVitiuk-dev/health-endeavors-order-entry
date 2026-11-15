@@ -183,3 +183,22 @@ test.describe('Checks card freshness', () => {
     expect(checkReads(backend)).toBe(before);
   });
 });
+
+// Owner review, Nov 3: Home could show an urgent check above and "Nothing needs
+// your attention" below. The two are different lists; the empty message now says
+// exactly what is empty and points at the checks instead of sounding all-clear.
+test('an empty "Needs your attention" list never reads as all-clear while a check is red', async ({ page, backend }, ti) => {
+  test.skip(ti.project.name !== 'desktop', 'wording; run once');
+  backend.tables.needs_attention = [];
+  backend.tables.purchase_orders = [{ id: 'po-r', po_number: 'PO-R', status: 'received', supplier_id: null, currency: 'USD', shipping_cost: 0, tax: 0, payment_status: 'unpaid',
+    created_at: '2026-09-01T00:00:00Z', deleted_at: null, purchase_order_items: [{ id: 'l1', product_id: 'p1', quantity: 5, quantity_received: 2 }] }];
+  await login(page);
+  await gotoPage(page, 'attentionPanel');
+  // a red check is showing above...
+  await expect(page.locator('#attnChecksWrap .attnCheck[data-key="receivedNotStocked"]')).toContainText('Data problem');
+  // ...and the empty list below does not contradict it
+  const empty = page.locator('#attentionWrap [data-attention-empty]');
+  await expect(empty).toContainText('No tasks, approvals, incidents, calendar events or reminders are waiting');
+  await expect(empty).toContainText('The checks above are a separate list');
+  await expect(page.locator('#attentionWrap')).not.toContainText('Nothing needs your attention');
+});

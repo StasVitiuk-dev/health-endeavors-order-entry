@@ -3404,7 +3404,11 @@
 
     function renderAttention(rows){
       if (!rows || !rows.length) {
-        document.getElementById('attentionWrap').replaceChildren(h('p', { class: 'empty' }, 'Nothing needs your attention right now.'));
+        // This list and the checks higher up the page are two different things:
+        // an empty list here does not mean the checks are clear (owner review,
+        // Nov 3: Home showed urgent checks above and "Nothing needs your attention"
+        // here). The message names exactly what is empty and points at the checks.
+        document.getElementById('attentionWrap').replaceChildren(h('p', { class: 'empty', 'data-attention-empty': '1' }, 'No tasks, approvals, incidents, calendar events or reminders are waiting right now. The checks above are a separate list — look there too.'));
         return;
       }
       // EXT20J: built as DOM nodes (h() text-ifies) instead of an HTML string, so
