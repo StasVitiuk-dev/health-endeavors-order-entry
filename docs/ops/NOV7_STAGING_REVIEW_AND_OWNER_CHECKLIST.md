@@ -145,6 +145,13 @@ and form styling the owner directed on Nov 3, for the owner's final look-over.
   dashboard code that will use it is ready and tested, but not connected.
 - **One permission question:** should an administrator also be allowed to approve
   stock-count adjustments? Today only the owner can (blueprint #55).
+- **The final look-over of the control and form styling** you directed on Nov 3
+  (before/after pictures were sent as `restyle-review.html`). New reference
+  pictures for the picture-comparison tests are taken only after this.
+- **When convenient: run read-only Query I**
+  (`sql/12_READONLY_I_report_day_cutoff.sql`). It changes nothing; it shows which
+  day cutoff the nightly report uses today, which decides whether the Central-time
+  cutoff (decision 4) needs a database change.
 
 ### Device & provider checks (separate from mocks — owner/device required)
 - **Real Safari / physical iPhone / VoiceOver** — only emulated Chromium here; verify on a real device.
