@@ -7957,6 +7957,29 @@
       }
     });
 
+    // Owner review, Nov 3 (point 2): say what was chosen as soon as a receipt is
+    // picked — its name and size, or the same problem the save would refuse it
+    // for — instead of only finding out when "Add expense" is pressed. Uses the
+    // exact rule the save uses (uploadProblem); nothing is uploaded here.
+    function receiptSize(bytes) {
+      if (!(bytes >= 0)) return '';
+      if (bytes < 1024) return bytes + ' bytes';
+      if (bytes < 1048576) return Math.round(bytes / 1024) + ' KB';
+      return (Math.round(bytes / 104857.6) / 10) + ' MB';
+    }
+    function showReceiptStatus() {
+      const input = document.getElementById('expReceipt');
+      const out = document.getElementById('expReceiptStatus');
+      if (!input || !out) return;
+      const file = input.files && input.files[0];
+      if (!file) { out.textContent = ''; out.removeAttribute('data-receipt'); return; }
+      const problem = uploadProblem(file);
+      if (problem) { out.textContent = problem; out.setAttribute('data-receipt', 'problem'); return; }
+      const looksRight = /^image\//.test(file.type || '') || /\.pdf$/i.test(file.name || '') || file.type === 'application/pdf';
+      out.textContent = 'Ready to attach: ' + file.name + ' (' + receiptSize(file.size) + ')' + (looksRight ? '' : ' — not a photo or PDF, but it can still be saved');
+      out.setAttribute('data-receipt', 'ok');
+    }
+    document.getElementById('expReceipt').addEventListener('change', showReceiptStatus);
     document.getElementById('addExpenseForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const categoryInput = document.getElementById('expCategory');
@@ -8019,6 +8042,7 @@
         vendorInput.value = '';
         noteInput.value = '';
         receiptInput.value = '';
+        showReceiptStatus();
         dateInput.value = localDateString();
         clearRequestKey(e.target);
         loadExpenses();

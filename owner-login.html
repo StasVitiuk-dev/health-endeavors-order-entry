@@ -466,7 +466,8 @@
           </div>
           <div class="heField heWide">
             <label for="expReceipt">Receipt <span class="heOpt">(optional — photo, screenshot, or PDF)</span></label>
-            <input type="file" id="expReceipt" accept="image/*,.pdf" class="heFileField">
+            <input type="file" id="expReceipt" accept="image/*,.pdf" class="heFileField" aria-describedby="expReceiptStatus">
+            <p class="hint u-mt-6 receiptStatus" id="expReceiptStatus" role="status" aria-live="polite"></p>
           </div>
           <div class="heActions">
             <button type="submit" class="small">Add expense</button>
@@ -1094,6 +1095,6 @@
   </div>
 
 <div id="invoicePrintHost" class="printView" aria-hidden="true"></div>
-<script src="assets/owner-login-app.js?v=a1248a3739"></script>
+<script src="assets/owner-login-app.js?v=270cf5bbed"></script>
 </body>
 </html>

@@ -314,3 +314,38 @@ test.describe('deleting a document', () => {
     await expect(page.locator('#toastHost .toast.ok')).toHaveCount(0);
   });
 });
+
+// Owner review, Nov 3 (point 2): the receipt picker says what was chosen as soon
+// as a file is picked — name and size, or the reason the save would refuse it —
+// using the save's own rule. Nothing is uploaded until "Add expense".
+test.describe('receipt picker feedback', () => {
+  test.beforeEach(({}, ti) => { test.skip(ti.project.name !== 'desktop', 'run once'); });
+
+  test('a good file: name and size; a refused file: the reason, before saving; cleared after a save', async ({ page, backend }) => {
+    backend.tables.expenses = [];
+    enableWrites(backend, ['expenses']);
+    await login(page);
+    await gotoPage(page, 'expensesPanel');
+    const status = page.locator('#expReceiptStatus');
+    await expect(status).toHaveText('');
+    await page.setInputFiles('#expReceipt', { name: 'receipt.pdf', mimeType: 'application/pdf', buffer: Buffer.alloc(2048, 1) });
+    await expect(status).toHaveAttribute('data-receipt', 'ok');
+    await expect(status).toHaveText('Ready to attach: receipt.pdf (2 KB)');
+    await page.setInputFiles('#expReceipt', { name: 'empty.pdf', mimeType: 'application/pdf', buffer: Buffer.alloc(0) });
+    await expect(status).toHaveAttribute('data-receipt', 'problem');
+    await expect(status).toContainText('That file is empty (0 bytes)');
+    await page.setInputFiles('#expReceipt', { name: 'page.html', mimeType: 'text/html', buffer: Buffer.from('<p>x</p>') });
+    await expect(status).toContainText('can’t be uploaded');
+    await page.setInputFiles('#expReceipt', { name: 'notes.txt', mimeType: 'text/plain', buffer: Buffer.from('synthetic') });
+    await expect(status).toHaveAttribute('data-receipt', 'ok');
+    await expect(status).toContainText('not a photo or PDF, but it can still be saved');
+    // The field and the message are tied together for screen readers.
+    await expect(page.locator('#expReceipt')).toHaveAttribute('aria-describedby', 'expReceiptStatus');
+    await expect(status).toHaveAttribute('role', 'status');
+    // Nothing was uploaded by choosing a file.
+    expect(uploads(backend, 'expense-receipts')).toHaveLength(0);
+    // Clearing the choice clears the message.
+    await page.setInputFiles('#expReceipt', []);
+    await expect(status).toHaveText('');
+  });
+});

@@ -136,7 +136,10 @@ const ADDED = ['setReportHistoryView', 'inquiriesList', 'agentControls', 'poRece
   // Invoice review desk (worked example on the invoice preview; flag
   // invoicePreviewOn OFF by default). The delegated [data-invoicedesk] listener
   // is waived by text below.
-  'invoiceDesk', 'invoiceDeskSkipped', 'invoiceDeskMessage', 'invoiceDeskOpen'];
+  'invoiceDesk', 'invoiceDeskSkipped', 'invoiceDeskMessage', 'invoiceDeskOpen',
+  // Expenses receipt picker feedback (owner review Nov 3, point 2): name and
+  // size of the chosen file, or the save's own refusal, shown on choosing.
+  'receiptSize', 'showReceiptStatus'];
 const NEW_MODULES = ['he-ops']; // EXT16: written new, not moved
 const CHANGED_TEXT = ["} = window.HE.helpers;", "forEach(o => Object.setPrototypeOf(o, null))", "supabase.auth.onAuthStateChange((event, session) =>", "getAttribute('data-view')", "getElementById('adjustInventoryForm').addEventListener('submit'", "getElementById('logReturnForm').addEventListener('submit'", "getElementById('retOrder').addEventListener('change'", "Release to refresh", "getElementById('docCategory')",
   // EXT20J-post-TT: the 4 static overlay scaffolds converted innerHTML->h(); each
@@ -168,7 +171,12 @@ const CHANGED_TEXT = ["} = window.HE.helpers;", "forEach(o => Object.setPrototyp
   // Preview switches: the delegated listener (anonymous top-level stmt).
   "e.target.closest('[data-previewswitch]')",
   // Invoice review desk: the delegated listener (anonymous top-level stmt).
-  "e.target.closest('[data-invoicedesk]')"];
+  "e.target.closest('[data-invoicedesk]')",
+  // Receipt picker feedback: the change listener (anonymous top-level stmt).
+  "document.getElementById('expReceipt').addEventListener('change', showReceiptStatus)",
+  // ...and the Add-expense save handler gains one line: after a successful save
+  // it clears the receipt message along with the field (showReceiptStatus()).
+  "document.getElementById('addExpenseForm').addEventListener('submit', async (e) =>"];
 
 test('the module moves were byte-identical: every original statement once, only the named edits differ', ({}, ti) => {
   nodeOnly(ti);

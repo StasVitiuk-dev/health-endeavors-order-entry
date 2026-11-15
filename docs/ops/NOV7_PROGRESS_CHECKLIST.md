@@ -181,6 +181,7 @@ All draft-only behind `he_sales_growth` (OFF by default); nothing sent, spent or
 - ✅ Nov 3 visual review, open points: Home empty-list wording fixed (`227aa76`); 15 long page explanations shortened to a lead plus "More about this" (warnings stay visible); empty states made compact. Details in `DASHBOARD_READINESS_ASSESSMENT_2026-11-03.md`
 - ✅ Full pass on the latest commit `4c5efc9` (Nov 15 afternoon): computer 2,387 passed / 10 failed, phone 507 passed / 11 failed — same failures as before, nothing new
 - ✅ Invoice review desk (simulated): confirm local tax rate → issue → void, with numbering, terms, due date and role checks (Nov 15)
+- ✅ Nov 3 visual review point 2: the Expenses receipt picker says what was chosen (name and size) or why it would be refused, before saving
 - ✅ Database draft for storing and numbering invoices (`sql/drafts/32`, rollback `33`) — tested locally, NOT installed; needs the owner's explicit approval (it adds access rules on its own new tables)
 - ✅ Sales & Growth modules hardened against malformed input: 174 accidental crashes → 0; permanent probe test covers all 54 modules (Nov 15)
 - ✅ Launch rehearsal (scanner, wholesale approval, receiving, invoice print, backup restore): 52 passed — recorded `0cd75ad`
