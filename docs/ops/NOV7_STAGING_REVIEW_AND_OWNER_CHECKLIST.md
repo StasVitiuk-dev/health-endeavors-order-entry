@@ -125,7 +125,7 @@ read-only — nothing is sent, issued, charged or written to stock.
 | Operations watch | Report History | Unusual daily figures, stock and orders, most serious first |
 | Export preview and report print | Report History | Package contents, checksum, trace label, print layout |
 | Report versions | Report History | Kept versions, a rerun adds a version, delivery is simulated |
-| Invoice preview | Report History | Your tax and terms rules; "issuing: blocked" while the local rate is pending |
+| Invoice preview | Report History | Your tax and terms rules. Try the review desk: "Issue" is refused while the local rate is pending; type a rate (for example 2.75), confirm, issue, then void with a reason |
 | Export recovery drill | Report History | A good package opens; a damaged one is refused |
 | Sales & Growth pages | Sidebar | The draft-only sales and wholesale pages |
 

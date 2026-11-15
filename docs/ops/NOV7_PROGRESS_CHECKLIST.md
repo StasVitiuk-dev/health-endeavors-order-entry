@@ -180,6 +180,7 @@ All draft-only behind `he_sales_growth` (OFF by default); nothing sent, spent or
 - ✅ Final full pass at `aa81876`: computer 2,285 passed / 10 failed, phone 505 passed / 11 failed — only picture comparisons and one environment-bound timing test
 - ✅ Nov 3 visual review, open points: Home empty-list wording fixed (`227aa76`); 15 long page explanations shortened to a lead plus "More about this" (warnings stay visible); empty states made compact. Details in `DASHBOARD_READINESS_ASSESSMENT_2026-11-03.md`
 - ✅ Full pass on the latest commit `1a70caf` (Nov 15): computer 2,320 passed / 10 failed, phone 507 passed / 11 failed — same failures as before, nothing new
+- ✅ Invoice review desk (simulated): confirm local tax rate → issue → void, with numbering, terms, due date and role checks (Nov 15)
 - ⬜ Sales & Growth modules: about 170 malformed-input crashes found by the probe (draft-only pages, example data) — tidy-up, not yet done
 - ✅ Launch rehearsal (scanner, wholesale approval, receiving, invoice print, backup restore): 52 passed — recorded `0cd75ad`
 

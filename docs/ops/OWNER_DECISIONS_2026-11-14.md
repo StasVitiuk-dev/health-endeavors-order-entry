@@ -51,8 +51,14 @@ instead of beside them:
   terms and the tax rule; anything that does not add up (a line with no price, a
   subtotal that differs from the lines) is listed for the reviewer instead of being
   corrected. Nothing is issued or numbered — issuing stays a manual step. Shown on
-  the invoice preview with example orders. *Still open:* reading real orders, and
-  the screen where the owner issues a draft.
+  the invoice preview with example orders. The manual step is there too, as a worked
+  example ("review desk"): confirm the local tax rate, issue a draft (it gets the
+  next number for the Central-time business year, the account's terms and the due
+  date), and void an issued invoice with a written reason (its number stays on the
+  record and is never reused). The signed-in person's real role decides what is
+  allowed. Everything stays inside the page — nothing is stored, sent or charged.
+  *Still open:* reading real orders, and storing issued invoices in the database
+  (needs a table and a numbering function that the owner approves and runs).
 - **Numbering (3), permissions (5):** already how the invoice engine behaves.
 - **Exports (6):** a procedure on the owner's Mac; nothing to switch on yet. Each
   export now carries a trace label (see blueprint item #72).
@@ -61,7 +67,7 @@ Invoices created the earlier way (no tax-decision fields, no account named) beha
 exactly as before; that is tested.
 
 Evidence: `tax-ext21`, `owner-decisions-ext21`, `invoice-decisions-ext21`,
-`invoice-from-order-ext21`, `ops-preview-wiring-ext21` (tests); commits `fe9f2f0`, `9b0b2b8`, `3f850cb`,
+`invoice-from-order-ext21`, `invoice-desk-ext21`, `ops-preview-wiring-ext21` (tests); commits `fe9f2f0`, `9b0b2b8`, `3f850cb`,
 `5bce21f`, and the Nov 14 "decisions inside the engines" commit.
 
 ## Still pending (owner/provider, not decided here)

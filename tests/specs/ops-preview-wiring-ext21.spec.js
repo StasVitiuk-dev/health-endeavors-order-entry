@@ -76,3 +76,54 @@ test('invoice preview ON: draft totals + packing slip; issuing stays an owner de
   await expect(check).toContainText('still pending');
   expect(errors.join('\n')).not.toMatch(/Trusted Type|require-trusted-types|Refused to/i);
 });
+
+test('invoice preview ON: the review desk — confirm the local rate, issue, void (all simulated)', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'run the journey once');
+  const errors = [];
+  page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
+  await page.addInitScript(() => { try { localStorage.setItem('he_invoice_preview', 'on'); } catch (e) {} });
+  await login(page);
+  await gotoPage(page, 'reportHistoryPanel');
+  const desk = page.locator('#invoicePreviewHost .invoiceDesk');
+  const msg = desk.locator('[data-invoicedesk-msg]');
+  await expect(desk).toHaveAttribute('data-autodrafts', '2');
+  // 1. Issuing is refused while the tax rate is pending, and says why.
+  await desk.getByRole('button', { name: 'Issue the draft for order SYN-2001 (simulated)' }).click();
+  await expect(msg).toContainText('Not issued');
+  await expect(msg).toContainText('tax rate is still pending');
+  await expect(desk.locator('[data-issued]')).toHaveCount(0);
+  // 2. A nonsense rate is refused; a real one is recorded on the drafts.
+  await desk.getByLabel(/Local tax rate, percent/).fill('abc');
+  await desk.locator('[data-invoicedesk="confirm-tax"]').click();
+  await expect(msg).toContainText('Not confirmed');
+  await desk.getByLabel(/Local tax rate, percent/).fill('2.75');
+  await desk.locator('[data-invoicedesk="confirm-tax"]').click();
+  await expect(msg).toContainText('Rate confirmed for 2 draft(s)');
+  await expect(desk.locator('[data-autodraft="SYN-O-2001"]')).toContainText('$130.80');           // (111 + 9) * 1.09
+  await expect(desk.locator('#invoiceDeskRate')).toHaveCount(0);                                 // nothing left pending
+  // 3. A draft with a missing price still cannot be issued.
+  await desk.getByRole('button', { name: 'Issue the draft for order SYN-2002 (simulated)' }).click();
+  await expect(msg).toContainText('no unit price');
+  // 4. The clean draft is issued: first number of the year, due on receipt.
+  await desk.getByRole('button', { name: 'Issue the draft for order SYN-2001 (simulated)' }).click();
+  await expect(msg).toContainText(/Issued as HE-\d{4}-0001 \(simulated\)/);
+  const issued = desk.locator('[data-issued]');
+  await expect(issued).toHaveCount(1);
+  await expect(issued).toHaveAttribute('data-issued-status', 'issued');
+  await expect(issued).toContainText('Due on receipt');
+  await expect(issued).toContainText('$130.80');
+  await expect(desk).toHaveAttribute('data-autodrafts', '1');
+  // 5. Voiding needs a written reason; the number then stays on the record.
+  await issued.locator('[data-invoicedesk="void"]').click();
+  await expect(msg).toContainText('a written reason is required');
+  await desk.getByLabel(/Reason for voiding/).fill('Entered twice (synthetic)');
+  await desk.locator('[data-issued] [data-invoicedesk="void"]').click();
+  await expect(desk.locator('[data-issued]')).toHaveAttribute('data-issued-status', 'void');
+  await expect(desk.locator('[data-issued]')).toContainText('the number stays on the record');
+  await expect(msg).toContainText('is not reused');
+  // 6. Reset returns to the starting example.
+  await desk.locator('[data-invoicedesk="reset"]').click();
+  await expect(page.locator('#invoicePreviewHost .invoiceDesk')).toHaveAttribute('data-autodrafts', '2');
+  await expect(page.locator('#invoicePreviewHost .invoiceDesk [data-issued]')).toHaveCount(0);
+  expect(errors.join('\n')).not.toMatch(/Trusted Type|require-trusted-types|Refused to/i);
+});

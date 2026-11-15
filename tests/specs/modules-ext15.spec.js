@@ -132,7 +132,11 @@ const ADDED = ['setReportHistoryView', 'inquiriesList', 'agentControls', 'poRece
   // Preview switches on the Feature Flags page (owner / administrator): on/off
   // buttons for the default-OFF preview flags. The delegated
   // [data-previewswitch] listener is waived by text below.
-  'previewSwitchMessage', 'previewSwitchIsOn', 'loadPreviewSwitches', 'PREVIEW_SWITCHES'];
+  'previewSwitchMessage', 'previewSwitchIsOn', 'loadPreviewSwitches', 'PREVIEW_SWITCHES',
+  // Invoice review desk (worked example on the invoice preview; flag
+  // invoicePreviewOn OFF by default). The delegated [data-invoicedesk] listener
+  // is waived by text below.
+  'invoiceDesk', 'invoiceDeskSkipped', 'invoiceDeskMessage', 'invoiceDeskOpen'];
 const NEW_MODULES = ['he-ops']; // EXT16: written new, not moved
 const CHANGED_TEXT = ["} = window.HE.helpers;", "forEach(o => Object.setPrototypeOf(o, null))", "supabase.auth.onAuthStateChange((event, session) =>", "getAttribute('data-view')", "getElementById('adjustInventoryForm').addEventListener('submit'", "getElementById('logReturnForm').addEventListener('submit'", "getElementById('retOrder').addEventListener('change'", "Release to refresh", "getElementById('docCategory')",
   // EXT20J-post-TT: the 4 static overlay scaffolds converted innerHTML->h(); each
@@ -162,7 +166,9 @@ const CHANGED_TEXT = ["} = window.HE.helpers;", "forEach(o => Object.setPrototyp
   // #26: the operations-watch delegated listener (anonymous top-level stmt).
   "e.target.closest('[data-opswatch]')",
   // Preview switches: the delegated listener (anonymous top-level stmt).
-  "e.target.closest('[data-previewswitch]')"];
+  "e.target.closest('[data-previewswitch]')",
+  // Invoice review desk: the delegated listener (anonymous top-level stmt).
+  "e.target.closest('[data-invoicedesk]')"];
 
 test('the module moves were byte-identical: every original statement once, only the named edits differ', ({}, ti) => {
   nodeOnly(ti);

@@ -2434,6 +2434,54 @@
       ], orderDiscount: 10, shipping: 12.5, currency: 'USD' },
       tf ? { taxRate: tf.taxRate, taxRateStatus: tf.taxRateStatus, taxShipping: tf.taxShipping, taxExempt: tf.taxExempt } : { taxRate: 0 }));
     }
+    // The review desk for generated drafts (owner decision #3's manual step), as a
+    // worked example: confirm the local tax rate, issue, void. State lives in this
+    // page only; nothing is stored, sent or charged, and the signed-in person's
+    // real role decides what is allowed.
+    let invoiceDesk = null;
+    let invoiceDeskSkipped = [];
+    let invoiceDeskMessage = '';
+    function invoiceDeskOpen(inv, taxMod) {
+      const exLines = [{ sku: 'HE-HONEY-8OZ', product_name: 'Honey Milk 8 oz', quantity: 6, unit_price: 18.50, line_total: 111 }];
+      const exOrders = [
+        { id: 'SYN-O-2001', order_number: 'SYN-2001', status: 'paid', currency: 'USD', shipping_total: 9, items: exLines },
+        { id: 'SYN-O-2002', order_number: 'SYN-2002', status: 'paid', currency: 'USD', shipping_total: 0, items: [{ sku: 'HE-VEGAN-8OZ', product_name: 'Vegan 8 oz', quantity: 3, unit_price: null }] },
+        { id: 'SYN-O-2003', order_number: 'SYN-2003', status: 'cancelled', currency: 'USD', items: exLines },
+        { id: 'SYN-O-2004', order_number: 'SYN-2004', status: 'paid', currency: 'USD', items: exLines },
+      ];
+      const gen = inv.draftsForOrders(exOrders, [{ orderId: 'SYN-O-2004', status: 'issued' }], {
+        taxFields: (taxMod && typeof taxMod.invoiceTaxFields === 'function') ? taxMod.invoiceTaxFields({ shipping: { mandatory: true } }) : null,
+        accountFor: ord => ({ id: 'SYN-ACCT', creditApproved: ord.id === 'SYN-O-2002' }),
+      });
+      invoiceDesk = inv.openDesk(gen.drafts, { usedNumbers: [] });
+      invoiceDeskSkipped = gen.skipped.map(k => { const src = exOrders.find(x => x.id === k.orderId); return { orderId: k.orderId, label: (src && src.order_number) || String(k.orderId), reason: k.reason }; });
+    }
+    document.addEventListener('click', (e) => {
+      const t = e.target.closest('[data-invoicedesk]'); if (!t) return;
+      const inv = opsInvoiceMod(); if (!inv || typeof inv.openDesk !== 'function') return;
+      let taxMod = null; try { taxMod = (window.HE && window.HE.invoice && window.HE.invoice['he-tax']) || null; } catch (err) { taxMod = null; }
+      const act = t.getAttribute('data-invoicedesk');
+      const who = { role: currentUserRole, by: String(currentUserRole || 'unknown') + ' (example)', now: new Date().toISOString() };
+      if (act === 'reset' || !invoiceDesk) { invoiceDesk = null; invoiceDeskMessage = ''; loadInvoicePreview(); return; }
+      let out = null;
+      if (act === 'confirm-tax') {
+        const el = document.getElementById('invoiceDeskRate');
+        const raw = el ? String(el.value).trim().replace('%', '') : '';
+        const pct = raw === '' ? NaN : Number(raw);
+        if (!isFinite(pct) || pct < 0 || pct > 15 || !taxMod) { invoiceDeskMessage = 'Not confirmed: type the local rate as a percent between 0 and 15, for example 2.75.'; loadInvoicePreview(); return; }
+        out = inv.deskConfirmTax(invoiceDesk, taxMod.invoiceTaxFields({ shipping: { mandatory: true }, localRate: pct / 100 }), who);
+        invoiceDeskMessage = out.ok ? 'Rate confirmed for ' + out.changed + ' draft(s): state 6.25% + local ' + pct + '%. Recorded as a revision on each draft.' : 'Not confirmed: ' + out.reason + '.';
+      } else if (act === 'issue') {
+        out = inv.deskIssue(invoiceDesk, t.getAttribute('data-order'), who);
+        invoiceDeskMessage = out.ok ? 'Issued as ' + out.number + ' (simulated).' : 'Not issued: ' + out.reason + '.';
+      } else if (act === 'void') {
+        const el = document.getElementById('invoiceDeskReason');
+        out = inv.deskVoid(invoiceDesk, t.getAttribute('data-number'), Object.assign({ reason: el ? el.value : '' }, who));
+        invoiceDeskMessage = out.ok ? 'Voided ' + t.getAttribute('data-number') + '. Its number stays on the record and is not reused.' : 'Not voided: ' + out.reason + '.';
+      }
+      if (out && out.ok) invoiceDesk = out.desk;
+      loadInvoicePreview();
+    });
     function loadInvoicePreview() {
       const host = document.getElementById('invoicePreviewHost'); if (!host) return;
       if (!(typeof invoicePreviewOn === 'function' && invoicePreviewOn())) { host.replaceChildren(); return; }
@@ -2480,25 +2528,32 @@
       // issued or numbered. An order that already has an invoice, or was
       // cancelled, gets no draft and the reason is shown.
       let autoDraftsCard = null;
-      if (typeof inv.draftsForOrders === 'function') {
-        const exLines = [{ sku: 'HE-HONEY-8OZ', product_name: 'Honey Milk 8 oz', quantity: 6, unit_price: 18.50, line_total: 111 }];
-        const exOrders = [
-          { id: 'SYN-O-2001', order_number: 'SYN-2001', status: 'paid', currency: 'USD', shipping_total: 9, items: exLines },
-          { id: 'SYN-O-2002', order_number: 'SYN-2002', status: 'paid', currency: 'USD', shipping_total: 0, items: [{ sku: 'HE-VEGAN-8OZ', product_name: 'Vegan 8 oz', quantity: 3, unit_price: null }] },
-          { id: 'SYN-O-2003', order_number: 'SYN-2003', status: 'cancelled', currency: 'USD', items: exLines },
-          { id: 'SYN-O-2004', order_number: 'SYN-2004', status: 'paid', currency: 'USD', items: exLines },
-        ];
-        const gen = inv.draftsForOrders(exOrders, [{ orderId: 'SYN-O-2004', status: 'issued' }], {
-          taxFields: (taxMod && typeof taxMod.invoiceTaxFields === 'function') ? taxMod.invoiceTaxFields({ shipping: { mandatory: true } }) : null,
-          accountFor: ord => ({ id: 'SYN-ACCT', creditApproved: ord.id === 'SYN-O-2002' }),
-        });
-        autoDraftsCard = h('div', { class: 'scanCard u-mt-8', 'data-autodrafts': String(gen.created) },
+      if (typeof inv.draftsForOrders === 'function' && typeof inv.openDesk === 'function') {
+        if (!invoiceDesk) invoiceDeskOpen(inv, taxMod);
+        const desk = invoiceDesk;
+        const termsWord = t => t === 'NET_14' ? 'Net 14' : 'Due on receipt';
+        const anyPending = desk.items.some(it => it.draft.taxRateStatus === 'PENDING');
+        autoDraftsCard = h('div', { class: 'scanCard u-mt-8 invoiceDesk', 'data-autodrafts': String(desk.items.length) },
           h('div', { class: 'scanCardHead' }, 'Drafts generated from orders — waiting for your review (example orders)'),
-          ...gen.drafts.map(d => h('div', { class: 'scanCardRow', 'data-autodraft': d.draft.orderId },
-            'Order ' + (d.draft.orderNumber || d.draft.orderId) + ' · ' + fmtMoney(d.draft.total, d.draft.currency) + ' · ' + (d.draft.terms === 'NET_14' ? 'Net 14' : 'Due on receipt') + ' · draft, not issued',
-            d.checks.length ? h('div', { class: 'u-fs-11 u-c-muted' }, 'To check: ' + d.checks.join('; ')) : null)),
-          ...gen.skipped.map(k => { const src = exOrders.find(x => x.id === k.orderId); return h('div', { class: 'scanCardRow u-c-muted', 'data-autodraft-skipped': String(k.orderId) }, 'No draft for order ' + ((src && src.order_number) || k.orderId) + ': ' + k.reason); }),
-          h('div', { class: 'u-fs-11 u-c-muted' }, gen.note));
+          ...desk.items.map(it => h('div', { class: 'scanCardRow', 'data-autodraft': it.orderId },
+            'Order ' + (it.draft.orderNumber || it.orderId) + ' · ' + fmtMoney(it.draft.total, it.draft.currency) + ' · ' + termsWord(it.draft.terms) + ' · draft, not issued ',
+            h('button', { type: 'button', class: 'small secondary', 'data-invoicedesk': 'issue', 'data-order': String(it.orderId), 'aria-label': 'Issue the draft for order ' + (it.draft.orderNumber || it.orderId) + ' (simulated)' }, 'Issue (simulated)'),
+            it.checks.length ? h('div', { class: 'u-fs-11 u-c-muted' }, 'To check: ' + it.checks.join('; ')) : null)),
+          ...invoiceDeskSkipped.map(k => h('div', { class: 'scanCardRow u-c-muted', 'data-autodraft-skipped': String(k.orderId) }, 'No draft for order ' + k.label + ': ' + k.reason)),
+          anyPending ? h('div', { class: 'heField u-mt-8' },
+            h('label', { for: 'invoiceDeskRate' }, 'Local tax rate, percent ', h('span', { class: 'heOpt' }, '(example only — not saved anywhere)')),
+            h('input', { type: 'text', inputmode: 'decimal', id: 'invoiceDeskRate', maxlength: '6', placeholder: 'e.g. 2.75' }),
+            h('div', { class: 'scanToggleRow u-mt-6' }, h('button', { type: 'button', class: 'small', 'data-invoicedesk': 'confirm-tax' }, 'Confirm rate for these drafts'))) : null,
+          desk.issued.length ? h('div', { class: 'scanCardHead u-mt-10' }, 'Issued in this example (simulated — nothing was sent or stored)') : null,
+          ...desk.issued.map(x => h('div', { class: 'scanCardRow', 'data-issued': x.number, 'data-issued-status': x.status },
+            x.number + ' · order ' + (x.orderNumber || x.orderId) + ' · ' + fmtMoney(x.total, x.currency) + ' · ' + termsWord(x.terms) + ' · due ' + (x.dueDate || '—') + ' · ' + (x.status === 'void' ? 'VOID — the number stays on the record ' : 'issued '),
+            x.status === 'void' ? null : h('button', { type: 'button', class: 'small secondary', 'data-invoicedesk': 'void', 'data-number': x.number, 'aria-label': 'Void invoice ' + x.number + ' (simulated)' }, 'Void (simulated)'))),
+          desk.issued.some(x => x.status !== 'void') ? h('div', { class: 'heField u-mt-8' },
+            h('label', { for: 'invoiceDeskReason' }, 'Reason for voiding ', h('span', { class: 'heOpt' }, '(required)')),
+            h('input', { type: 'text', id: 'invoiceDeskReason', maxlength: '200', placeholder: 'e.g. Entered twice' })) : null,
+          invoiceDeskMessage ? h('p', { class: 'hint u-mt-8', role: 'status', 'data-invoicedesk-msg': '1' }, invoiceDeskMessage) : null,
+          h('div', { class: 'scanToggleRow u-mt-8' }, h('button', { type: 'button', class: 'small secondary', 'data-invoicedesk': 'reset' }, 'Reset example')),
+          h('div', { class: 'u-fs-11 u-c-muted u-mt-6' }, 'Drafts only — nothing is issued or numbered until the owner or an administrator issues it. In this example "Issue" only reserves a number inside this page.'));
       }
       host.replaceChildren(h('div', { class: 'reorderPlan u-mb-16' },
         h('div', { class: 'scanHead' }, h('h3', null, 'Invoice preview'), h('span', { class: 'scanBadge' }, 'SIMULATED — draft only, nothing issued or charged')),

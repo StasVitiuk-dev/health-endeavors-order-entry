@@ -392,7 +392,7 @@
     else { input.taxRate = 0; checks.push('no tax rule was supplied — tax is shown as 0 until one is'); }
     const draft = draftInvoice(input);
     draft.orderNumber = ord.order_number || null;
-    if (tf && tf.taxRateStatus === 'PENDING') checks.push('the tax rate is still pending — this draft cannot be issued until the local rate is confirmed');
+    if (tf && tf.taxRateStatus === 'PENDING') checks.push(PENDING_TAX_CHECK);
     if (tf && tf.needsCertificate) checks.push('resale was claimed but no valid resale certificate is on file — taxed as normal');
     // The order's own stored total is compared before tax (the order may have been
     // taxed under a different rule); a difference is reported, never "fixed".
@@ -421,10 +421,81 @@
       const r = draftFromOrder(ord, itemsFor(ord), { account: acct, taxFields: taxFor(ord, acct) });
       if (!r.ok) { skipped.push({ orderId: ord.id, reason: r.reason }); return; }
       have.add(key);
+      r.account = acct;                 // kept with the draft so issuing can apply the account's terms
       drafts.push(r);
     });
     return { drafts: drafts, skipped: skipped, created: drafts.length, needReview: drafts.filter(function (d) { return d.needsReview; }).length,
       issued: 0, note: 'Drafts only — nothing is issued or numbered until the owner or an administrator issues it.' };
+  }
+
+  // ---- Review desk: the manual half of owner decision #3 --------------------
+  // Drafts are generated automatically (draftsForOrders); a person then reviews
+  // and issues each one. The desk is that step as pure data: every function
+  // returns a NEW desk and never changes the one it was given. SIMULATED — a
+  // number is only reserved inside the desk object, nothing is stored, sent or
+  // charged. Who may act follows ROLES_MAY_ISSUE (owner, administrator).
+  const PENDING_TAX_CHECK = 'the tax rate is still pending — this draft cannot be issued until the local rate is confirmed';
+  function openDesk(generated, opts) {
+    const o = opts || {};
+    const items = (Array.isArray(generated) ? generated : []).filter(function (g) { return g && g.draft && g.draft.status === 'draft'; })
+      .map(function (g) { return { orderId: g.draft.orderId, draft: g.draft, checks: (g.checks || []).slice(), account: g.account || null }; });
+    return { items: items, issued: [], usedNumbers: (Array.isArray(o.usedNumbers) ? o.usedNumbers : []).slice(), audit: [], synthetic: true, label: 'SIMULATED' };
+  }
+  // Record the confirmed tax rule on every draft that is still waiting for it.
+  // taxFields comes from he-tax.invoiceTaxFields({ localRate }) and must be CONFIRMED.
+  function deskConfirmTax(desk, taxFields, who) {
+    const w = who || {}; const tf = taxFields || {};
+    if (!desk || !Array.isArray(desk.items)) return { ok: false, reason: 'no desk', desk: desk || null };
+    if (!ROLES_MAY_ISSUE.has(w.role)) return { ok: false, reason: 'only an owner or administrator may confirm the tax rate', desk: desk };
+    if (tf.taxRateStatus !== 'CONFIRMED' || !isFinite(Number(tf.taxRate)) || Number(tf.taxRate) < 0 || Number(tf.taxRate) > 0.25) return { ok: false, reason: 'a confirmed tax rate between 0% and 25% is required', desk: desk };
+    let changed = 0;
+    const items = desk.items.map(function (it) {
+      if (it.draft.taxRateStatus !== 'PENDING') return it;
+      const r = reviseDraft(it.draft, { taxRate: Number(tf.taxRate), taxRateStatus: 'CONFIRMED' }, { now: w.now || null, actor: w.by || w.role, reason: 'local tax rate confirmed' });
+      if (!r.ok) return it;
+      changed += 1;
+      return Object.assign({}, it, { draft: r.invoice, checks: it.checks.filter(function (c) { return c !== PENDING_TAX_CHECK; }) });
+    });
+    if (!changed) return { ok: false, reason: 'no draft is waiting for a tax rate', desk: desk };
+    return { ok: true, changed: changed, desk: Object.assign({}, desk, { items: items,
+      audit: desk.audit.concat([{ action: 'TAX_CONFIRMED', rate: Number(tf.taxRate), drafts: changed, by: w.by || w.role, at: w.now || null }]) }) };
+  }
+  // Issue one draft: the next free number for the business year of issue, the
+  // terms and due date for its account, and the invoice moves to the issued list.
+  // A draft with anything still to check is refused — the reviewer fixes it first.
+  function deskIssue(desk, orderId, who) {
+    const w = who || {};
+    if (!desk || !Array.isArray(desk.items)) return { ok: false, reason: 'no desk', desk: desk || null };
+    const it = desk.items.find(function (x) { return String(x.orderId) === String(orderId); });
+    if (!it) return { ok: false, reason: 'no draft for that order', desk: desk };
+    if (!ROLES_MAY_ISSUE.has(w.role)) return { ok: false, reason: 'only an owner or administrator may issue an invoice', desk: desk };
+    if (it.checks.length) return { ok: false, reason: 'this draft still has something to check: ' + it.checks.join('; '), desk: desk };
+    const day = businessDay(w.now, w.timeZone);
+    if (!day) return { ok: false, reason: 'the time of issue is missing', desk: desk };
+    const next = nextInvoiceNumber({ year: Number(day.slice(0, 4)), existingNumbers: desk.usedNumbers });
+    const account = it.account || { id: it.draft.accountId, creditApproved: it.draft.terms === 'NET_14' };
+    const r = issue(it.draft, { role: w.role, actor: w.by || w.role, number: next.number, existingNumbers: desk.usedNumbers, now: w.now, timeZone: w.timeZone, account: account });
+    if (!r.ok) return { ok: false, reason: r.reason, desk: desk };
+    return { ok: true, number: next.number, invoice: r.invoice, desk: Object.assign({}, desk, {
+      items: desk.items.filter(function (x) { return x !== it; }),
+      issued: desk.issued.concat([r.invoice]),
+      usedNumbers: desk.usedNumbers.concat([next.number]),
+      audit: desk.audit.concat([{ action: 'ISSUED', number: next.number, orderId: it.orderId, by: w.by || w.role, at: w.now || null }]) }) };
+  }
+  // Void an issued invoice. Its number stays used and stays on the record.
+  function deskVoid(desk, number, who) {
+    const w = who || {};
+    if (!desk || !Array.isArray(desk.issued)) return { ok: false, reason: 'no desk', desk: desk || null };
+    const inv = desk.issued.find(function (x) { return x.number === number; });
+    if (!inv) return { ok: false, reason: 'no issued invoice with that number', desk: desk };
+    if (inv.status === 'void') return { ok: false, reason: 'already void', desk: desk };
+    const reason = String(w.reason || '').trim();
+    if (reason.length < 5) return { ok: false, reason: 'a written reason is required to void an invoice', desk: desk };
+    const r = voidInvoice(inv, { role: w.role, actor: w.by || w.role, now: w.now || null, reason: reason });
+    if (!r.ok) return { ok: false, reason: r.reason, desk: desk };
+    return { ok: true, desk: Object.assign({}, desk, {
+      issued: desk.issued.map(function (x) { return x === inv ? r.invoice : x; }),
+      audit: desk.audit.concat([{ action: 'VOIDED', number: number, by: w.by || w.role, at: w.now || null, reason: reason }]) }) };
   }
 
   // The calendar day of an instant in the business time zone (default
@@ -455,5 +526,5 @@
     return new Date(base.getTime() + days * 86400000).toISOString().slice(0, 10);
   }
 
-  return { STATES, ROLES_MAY_ISSUE, PAYMENT_TERMS, US_LETTER, BUSINESS_HEADER, MISSING_SEQUENCE_CONTRACT, computeTotals, draftInvoice, reviseDraft, nextInvoiceNumber, createNumberSequence, invoiceHeader, issue, applyPayment, voidInvoice, creditNote, withOverdue, packingSlip, paginate, invoicePrint, packingSlipPrint, termsForAccount, dueDateFor, businessDay, draftFromOrder, draftsForOrders };
+  return { STATES, ROLES_MAY_ISSUE, PAYMENT_TERMS, US_LETTER, BUSINESS_HEADER, MISSING_SEQUENCE_CONTRACT, computeTotals, draftInvoice, reviseDraft, nextInvoiceNumber, createNumberSequence, invoiceHeader, issue, applyPayment, voidInvoice, creditNote, withOverdue, packingSlip, paginate, invoicePrint, packingSlipPrint, termsForAccount, dueDateFor, businessDay, draftFromOrder, draftsForOrders, openDesk, deskConfirmTax, deskIssue, deskVoid };
 }));
