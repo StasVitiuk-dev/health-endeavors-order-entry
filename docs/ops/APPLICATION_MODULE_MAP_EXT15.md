@@ -29,7 +29,7 @@ Why it matters: a smaller file is easier to review, a mistake in one area is les
 | 6 | `he-time` | dates and calendar: today and yesterday ranges, date keys, calendar colours, event editor helpers, week and month labels | 112 | he-config: 1, he-ui: 1 | 11 |
 | 7 | `he-format` | display rules: missing values never shown as zero, mixed-currency notes, badges, number fields | 87 | helpers / program: 2, he-ui: 1 | 11 |
 | 8 | `he-nav` | navigation state: page ids, deep links, last page, sidebar groups open and pinned, back/forward stacks, unsaved-typing guard | 131 | he-config: 1 | 18 |
-| 9 | `he-tasks` | Tasks page: list, recently done, status changes (guarded: only if still in the expected state) | 124 | he-format: 1, he-config: 4, helpers / program: 4, he-ui: 2, he-data: 1 | 1 |
+| 9 | `he-tasks` | Tasks page: list, recently done, status changes (guarded: only if still in the expected state) | 133 | he-format: 1, he-config: 4, helpers / program: 4, he-ui: 2, he-data: 1 | 1 |
 | 10 | `he-approvals` | Approval Queue: list and decisions (password re-check before a decision) | 72 | he-format: 1, he-config: 1, he-ui: 2, helpers / program: 4, he-data: 2 | 1 |
 | 11 | `he-incidents` | Incidents: list, and turning a failed quality check into one incident only once | 77 | he-format: 1, he-config: 1, helpers / program: 5, he-ui: 2, he-data: 5 | 2 |
 | 12 | `he-expenses` | Expenses: list, receipts, delete to the recycle bin and restore list | 168 | he-config: 2, he-data: 6, helpers / program: 6, he-ui: 2 | 2 |

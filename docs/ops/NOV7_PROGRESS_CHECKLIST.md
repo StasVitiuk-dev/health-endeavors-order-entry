@@ -187,6 +187,7 @@ All draft-only behind `he_sales_growth` (OFF by default); nothing sent, spent or
 - ✅ Database draft for storing and numbering invoices (`sql/drafts/32`, rollback `33`) — tested locally, NOT installed; needs the owner's explicit approval (it adds access rules on its own new tables)
 - ✅ Workbench checked for accessibility and at phone size; button results now read out by screen readers and keyboard focus kept in four redrawn sections (Nov 15)
 - ✅ Export trace label names the signed-in person (#72, Nov 15)
+- ✅ Very long task titles no longer freeze the Tasks page on a phone (root cause of the long-standing phone-size timing failure; Nov 15)
 - ✅ Keyboard focus fixed in the Scan Shipment dialog (moves in, stays in, Escape closes) and in five more redrawn sections (Nov 15)
 - ✅ Dashboard side of invoice storage (`assets/invoice/he-invoice-store.js`) — tested against the draft on a throwaway database; NOT connected to any screen; found and fixed two gaps in the draft (who the invoice bills; the tax choices) (Nov 15)
 - ✅ Sales & Growth modules hardened against malformed input: 174 accidental crashes → 0; permanent probe test covers all 54 modules (Nov 15)

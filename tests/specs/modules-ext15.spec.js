@@ -45,7 +45,7 @@ const CHANGED = [
   // both the old and new name (the old statement is removed, the new one added):
   'loadApprovals', 'renderAgentRegistry', 'agentJobHealthHtml', 'agentJobHealthNode',
   'loadNightlyCheck', 'renderAttentionChecks', 'attnFreshnessHtml', 'attnFreshnessNodes',
-  'renderInquiries', 'loadTasks', 'loadRecentlyDoneTasks', 'loadIncidents', 'loadActivityAreas', 'docExpiryBadge',
+  'renderInquiries', 'loadTasks', 'loadRecentlyDoneTasks', 'TITLE_SHOWN', 'shortTitle', 'loadIncidents', 'loadActivityAreas', 'docExpiryBadge',
   'loadDailySummary', 'loadFlags',
   // EXT20J activity + inspector wave: he-audit change renderers return DOM nodes:
   'describeChange', 'hlValue', 'codeDiff',

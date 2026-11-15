@@ -4,6 +4,15 @@
 // docs/ops/APPLICATION_MODULE_MAP_EXT15.md. Created once, by the app, in order.
 window.HE.modules.define('he-tasks', { api: 1, needs: ['CLOSED_IN','SEARCH_INDEX','TASK_ALLOWED_FROM','TASK_NEXT_ACTIONS','TASK_STATUS_LABELS','explainDbError','fmtDate','h','isClosedStatus','isOverdue','showDashError','supabase'] }, function (ctx) {
     const { CLOSED_IN, SEARCH_INDEX, TASK_ALLOWED_FROM, TASK_NEXT_ACTIONS, TASK_STATUS_LABELS, explainDbError, fmtDate, h, isClosedStatus, isOverdue, showDashError, supabase } = ctx;
+    // Nov 15: a very long title (pasted text) is drawn as its first 300
+    // characters plus a note of how much is hidden. Drawing all of a 50,000-
+    // character title took ~9 s on a phone. The saved title is not changed.
+    const TITLE_SHOWN = 300;
+    function shortTitle(title){
+      const t = title == null ? '' : String(title);
+      if (t.length <= TITLE_SHOWN) return t;
+      return t.slice(0, TITLE_SHOWN) + '… (' + (t.length - TITLE_SHOWN).toLocaleString('en-US') + ' more characters not shown)';
+    }
     async function changeTaskStatus(btn){
       const row = btn.closest('tr');
       const id = row && row.getAttribute('data-id');
@@ -60,7 +69,7 @@ window.HE.modules.define('he-tasks', { api: 1, needs: ['CLOSED_IN','SEARCH_INDEX
               h('tbody', null, rows.map(t =>
                 h('tr', { 'data-id': t.id },
                   h('td', { class: 'u-ws-normal u-minw-190' },
-                    h('div', { class: 'taskTitle' }, t.title),
+                    h('div', { class: 'taskTitle' }, shortTitle(t.title)),
                     (TASK_ALLOWED_FROM.open || []).includes(t.status)
                       ? h('div', { class: 'taskActions u-mt-8' }, h('button', { type: 'button', class: 'small taskStatusBtn', 'data-to': 'open' }, 'Reopen')) : null),
                   h('td', null, TASK_STATUS_LABELS[t.status] || t.status || '—'),
@@ -104,7 +113,7 @@ window.HE.modules.define('he-tasks', { api: 1, needs: ['CLOSED_IN','SEARCH_INDEX
               h('tbody', null, open.map(t =>
                 h('tr', { class: isOverdue(t.due_at, t.status) ? 'overdue' : '', 'data-id': t.id },
                   h('td', { class: 'u-ws-normal u-minw-190' },
-                    h('div', { class: 'taskTitle' }, t.title),
+                    h('div', { class: 'taskTitle' }, shortTitle(t.title)),
                     h('div', { class: 'taskActions u-d-flex u-fwr-wrap u-gap-6 u-mt-8' },
                       (TASK_NEXT_ACTIONS[t.status] || []).map(a => h('button', { type: 'button', class: 'small taskStatusBtn', 'data-to': a.to }, a.label)))),
                   h('td', null, h('span', { class: 'badge' }, t.priority || '—')),
