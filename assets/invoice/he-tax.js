@@ -1,14 +1,22 @@
-// Sales tax rule engine (Illinois) — DRAFT ONLY, synthetic, no money movement.
-// Encodes the owner's recorded decision (OWNER_DECISIONS_2026-11-14.md):
-//   * Illinois STATE rate is 6.25%. Local taxes may increase it, so the LIVE
-//     combined rate stays PENDING until the local rate + sourcing are confirmed:
-//     computeRate reports rateStatus PENDING unless a localRate is supplied.
-//   * Shipping is taxable when BUNDLED / MANDATORY; EXEMPT when SEPARATELY STATED
-//     and the buyer could avoid it (e.g. pickup available).
-//   * A resale order needs a VALID resale certificate before the exemption
-//     applies; otherwise it is taxed as normal.
-// Produces a taxable base + rate for the invoice to consume. It never issues,
-// never moves money, and the owner confirms the live rate before any real issue.
+// Sales tax rules — DRAFT ONLY, synthetic, no money movement.
+//
+// Owner decision of Nov 16 (replaces the Nov 14 wording):
+//   * LIVE tax settings stay PENDING until the owner has confirmed the
+//     applicable Illinois rules. This file holds NO tax rate of its own: every
+//     rate comes from a setting the owner confirmed for one named place
+//     (rateSetting). There is no built-in state rate and no single rate for all
+//     sales.
+//   * Unknown tax is never shown as 0 and never guessed. Without a confirmed
+//     rate — or when the shipping terms needed to decide are not recorded — the
+//     status is PENDING and the tax amount is null ("tax pending").
+//   * Shipping: taxed when it is bundled into the price or mandatory; not taxed
+//     when it is separately stated AND the buyer could avoid it (for example
+//     pickup is offered). Anything else is UNCLEAR, which makes the tax PENDING.
+//   * Wholesale resale: exempt only with VERIFIED exemption documentation on
+//     file (a certificate number, who verified it, when, and not expired).
+//     Otherwise the order is taxed like any other, and says why.
+// These are the owner's working rules for staging; they are not tax advice and
+// the owner confirms them before anything is issued for real.
 //
 // Pure. Dual-mode (Node require + browser HE.invoice registry).
 (function (root, factory) {
@@ -19,85 +27,146 @@
 }(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
 
-  const IL_STATE_RATE = 0.0625; // Illinois state sales tax rate (6.25%)
+  const MAX_RATE = 0.25;                         // a sanity limit, not a rate
   const cents = (n) => Math.round((Number(n) || 0) * 100);
   const money = (c) => Math.round(c) / 100;
+  const text = (v) => (typeof v === 'string' ? v.trim() : '');
+  const day = (v) => { const s = text(v).slice(0, 10); return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : ''; };
 
-  // The applicable rate. Without a confirmed local component the LIVE rate is
-  // PENDING (we expose the state rate so a draft can still show a figure, clearly
-  // labelled). localRate is the confirmed local add-on (e.g. 0.0275 for 2.75%).
+  // A rate the owner confirmed for one place:
+  //   { place, rate, parts:[{ name, rate }], confirmedBy, confirmedAt, reference }
+  // `parts` is optional (for example state / county / city); when given, the
+  // parts must add up to the rate.
+  function checkRateSetting(setting) {
+    const s = setting;
+    if (!s || typeof s !== 'object') return { ok: false, reason: 'no tax rate has been confirmed for this sale' };
+    const rate = typeof s.rate === 'number' ? s.rate : NaN;
+    if (!isFinite(rate) || rate < 0 || rate > MAX_RATE) return { ok: false, reason: 'the confirmed rate must be a number between 0% and 25%' };
+    if (!text(s.place)) return { ok: false, reason: 'the confirmed rate does not say which place it is for' };
+    if (!text(s.confirmedBy) || !text(s.confirmedAt)) return { ok: false, reason: 'the rate does not record who confirmed it and when' };
+    if (s.parts != null) {
+      if (!Array.isArray(s.parts) || !s.parts.length) return { ok: false, reason: 'the parts of the rate are not a list' };
+      let sum = 0;
+      for (const p of s.parts) {
+        if (!p || !text(p.name) || typeof p.rate !== 'number' || !isFinite(p.rate) || p.rate < 0) return { ok: false, reason: 'each part of the rate needs a name and a rate' };
+        sum += p.rate;
+      }
+      if (Math.abs(sum - rate) > 1e-9) return { ok: false, reason: 'the parts of the rate do not add up to the rate' };
+    }
+    return { ok: true, reason: null };
+  }
+
+  // The rate for one sale: CONFIRMED only from a valid owner-confirmed setting.
   function computeRate(opts) {
     const o = opts || {};
-    const hasLocal = o.localRate != null && isFinite(Number(o.localRate));
-    const local = hasLocal ? Number(o.localRate) : 0;
-    const combined = IL_STATE_RATE + local;
-    return {
-      stateRate: IL_STATE_RATE,
-      localRate: hasLocal ? local : null,
-      rate: combined,
-      rateStatus: hasLocal ? 'CONFIRMED' : 'PENDING',
-      note: hasLocal ? null : 'LIVE RATE PENDING — owner must confirm the local rate + sourcing before issuing.',
-    };
+    const chk = checkRateSetting(o.rateSetting);
+    if (!chk.ok) return { rate: null, rateStatus: 'PENDING', place: null, parts: null, confirmedBy: null, confirmedAt: null, reason: chk.reason, note: 'TAX PENDING — ' + chk.reason + '.' };
+    const s = o.rateSetting;
+    return { rate: s.rate, rateStatus: 'CONFIRMED', place: text(s.place), parts: s.parts ? s.parts.map(function (p) { return { name: text(p.name), rate: p.rate }; }) : null,
+      confirmedBy: text(s.confirmedBy), confirmedAt: text(s.confirmedAt), reason: null, note: null };
   }
 
-  // Is the shipping charge part of the taxable base?
-  //   bundled OR mandatory                         -> taxable
-  //   separately stated AND avoidable (pickup etc.) -> exempt
+  // Pick the confirmed setting for a place out of several (rates differ by place).
+  function rateSettingFor(settings, place) {
+    const want = text(place).toLowerCase();
+    if (!want || !Array.isArray(settings)) return null;
+    for (const s of settings) if (s && text(s.place).toLowerCase() === want && checkRateSetting(s).ok) return s;
+    return null;
+  }
+
+  // Is the shipping charge part of the taxed amount?
+  //   status NONE         no shipping charge
+  //          TAXABLE      bundled into the price, or mandatory
+  //          NOT_TAXABLE  separately stated AND the buyer could avoid it
+  //          UNCLEAR      not recorded — the tax stays pending, nothing is guessed
   function shippingTaxable(shipping) {
     const s = shipping || {};
-    if (s.bundled === true || s.mandatory === true) return { taxable: true, reason: 'shipping is bundled/mandatory' };
-    if (s.separatelyStated === true && s.avoidable === true) return { taxable: false, reason: 'separately stated and avoidable (e.g. pickup)' };
-    // Default to taxable when unclear — safer to over-collect a draft figure and
-    // let the owner confirm than to under-state tax.
-    return { taxable: true, reason: 'shipping taxability unclear — defaulted to taxable (owner to confirm)' };
+    if (!(cents(s.amount) > 0) && s.bundled !== true) return { taxable: false, status: 'NONE', reason: 'no shipping charge' };
+    if (s.bundled === true) return { taxable: true, status: 'TAXABLE', reason: 'shipping is bundled into the price' };
+    if (s.mandatory === true) return { taxable: true, status: 'TAXABLE', reason: 'shipping is mandatory (the buyer cannot avoid it)' };
+    if (s.separatelyStated === true && s.avoidable === true) return { taxable: false, status: 'NOT_TAXABLE', reason: 'shipping is separately stated and the buyer could avoid it (for example pickup)' };
+    return { taxable: null, status: 'UNCLEAR', reason: 'the shipping terms are not recorded (is it stated separately, and could the buyer avoid it?)' };
   }
 
-  // Resale exemption: applies only with a valid resale certificate on file.
-  function resaleExempt(order) {
+  // Resale exemption: only with verified documentation on file.
+  //   order.resaleCertificate: { number, verified:true, verifiedBy, verifiedAt, expiresOn }
+  //   asOf: the day the sale is judged on (YYYY-MM-DD), for the expiry check.
+  function resaleExempt(order, asOf) {
     const o = order || {};
-    if (o.resale !== true) return { exempt: false, reason: 'not a resale order' };
-    if (o.resaleCertificate && o.resaleCertificate.valid === true) return { exempt: true, reason: 'valid resale certificate on file' };
-    return { exempt: false, reason: 'resale claimed but no valid resale certificate — taxed as normal', needsCertificate: true };
+    if (o.resale !== true) return { exempt: false, needsCertificate: false, reason: 'not a resale order' };
+    const c = o.resaleCertificate;
+    const refuse = function (why) { return { exempt: false, needsCertificate: true, reason: 'resale was claimed but ' + why + ' — taxed like any other order' }; };
+    if (!c || typeof c !== 'object') return refuse('no exemption document is on file');
+    if (!text(c.number)) return refuse('the exemption document has no certificate number');
+    if (c.verified !== true || !text(c.verifiedBy) || !text(c.verifiedAt)) return refuse('the exemption document has not been verified (who checked it, and when)');
+    const expires = day(c.expiresOn); const on = day(asOf);
+    if (c.expiresOn != null && !expires) return refuse('the expiry date on the exemption document cannot be read');
+    if (expires && !on) return refuse('the date of the sale is needed to check the exemption document has not expired');
+    if (expires && on && expires < on) return refuse('the exemption document expired on ' + expires);
+    return { exempt: true, needsCertificate: false, reason: 'resale exempt — certificate ' + text(c.number) + ' verified by ' + text(c.verifiedBy) + ' on ' + text(c.verifiedAt).slice(0, 10),
+      certificateNumber: text(c.number), verifiedBy: text(c.verifiedBy), verifiedAt: text(c.verifiedAt), expiresOn: expires || null };
   }
 
-  // Compute a draft tax figure for an order.
-  // input: { subtotal, orderDiscount, shipping:{amount, bundled, mandatory,
-  //          separatelyStated, avoidable}, localRate, resale, resaleCertificate }
+  // One decision for one sale.
+  //   status EXEMPT     verified resale: tax is 0 and says why
+  //          CONFIRMED  a confirmed rate and clear shipping terms: tax is a figure
+  //          PENDING    anything missing: tax is null, with the reasons
+  function decide(input) {
+    const i = input || {};
+    const exempt = resaleExempt(i, i.asOf);
+    const ship = shippingTaxable(i.shipping);
+    const rate = computeRate(i);
+    if (exempt.exempt) return { status: 'EXEMPT', exempt: exempt, ship: ship, rate: rate, pendingReasons: [] };
+    const pendingReasons = [];
+    if (rate.rateStatus !== 'CONFIRMED') pendingReasons.push(rate.reason);
+    if (ship.status === 'UNCLEAR') pendingReasons.push(ship.reason);
+    return { status: pendingReasons.length ? 'PENDING' : 'CONFIRMED', exempt: exempt, ship: ship, rate: rate, pendingReasons: pendingReasons };
+  }
+
+  // A draft tax figure for an order.
+  // input: { subtotal, orderDiscount, shipping:{ amount, bundled, mandatory,
+  //          separatelyStated, avoidable }, rateSetting, resale,
+  //          resaleCertificate, asOf }
   function computeTax(input) {
     const i = input || {};
-    const rate = computeRate(i);
-    const exempt = resaleExempt(i);
-    const shipAmt = (i.shipping && i.shipping.amount) || 0;
-    const shipTax = shippingTaxable(i.shipping);
+    const d = decide(i);
     const goodsBaseC = Math.max(0, cents(i.subtotal) - cents(i.orderDiscount));
-    const shipBaseC = shipTax.taxable ? cents(shipAmt) : 0;
-    const taxableBaseC = exempt.exempt ? 0 : (goodsBaseC + shipBaseC);
-    const taxC = Math.round(taxableBaseC * rate.rate);
+    const shipC = cents(i.shipping && i.shipping.amount);
+    let taxableBase = null; let tax = null;
+    if (d.status === 'EXEMPT') { taxableBase = 0; tax = 0; }
+    else if (d.status === 'CONFIRMED') {
+      const baseC = goodsBaseC + (d.ship.taxable ? shipC : 0);
+      taxableBase = money(baseC); tax = money(Math.round(baseC * d.rate.rate));
+    }
     return {
-      rate: rate.rate, rateStatus: rate.rateStatus, stateRate: rate.stateRate, localRate: rate.localRate,
-      exempt: exempt.exempt, exemptReason: exempt.reason, needsCertificate: !!exempt.needsCertificate,
-      shippingTaxable: shipTax.taxable, shippingReason: shipTax.reason,
-      taxableBase: money(taxableBaseC), tax: money(taxC),
+      status: d.status, rateStatus: d.status, pendingReasons: d.pendingReasons,
+      rate: d.status === 'CONFIRMED' ? d.rate.rate : null, place: d.rate.place, parts: d.rate.parts,
+      exempt: d.exempt.exempt, exemptReason: d.exempt.reason, needsCertificate: d.exempt.needsCertificate,
+      shippingTaxable: d.ship.taxable, shippingStatus: d.ship.status, shippingReason: d.ship.reason,
+      taxableBase: taxableBase, tax: tax,
       draft: true, synthetic: true, label: 'SIMULATED',
-      note: rate.note || (exempt.exempt ? 'Resale-exempt (certificate on file).' : null),
+      note: d.status === 'PENDING' ? 'TAX PENDING — ' + d.pendingReasons.join('; ') + '.' : (d.status === 'EXEMPT' ? d.exempt.reason + '.' : null),
     };
   }
 
-  // The same decision expressed as the plain fields an invoice draft takes
-  // (he-invoice computeTotals / draftInvoice), so the invoice's own totals
-  // follow the rules instead of a side calculation. Pure data, no dependency.
+  // The same decision as the plain fields an invoice draft takes (he-invoice
+  // computeTotals / draftInvoice), so the invoice's own totals follow the rules.
   function invoiceTaxFields(input) {
     const i = input || {};
-    const rate = computeRate(i);
-    const exempt = resaleExempt(i);
-    const ship = shippingTaxable(i.shipping);
+    const d = decide(i);
     return {
-      taxRate: rate.rate, taxRateStatus: rate.rateStatus,
-      taxShipping: ship.taxable, taxExempt: exempt.exempt,
-      needsCertificate: !!exempt.needsCertificate,
-      note: rate.note || null,
+      taxRate: d.status === 'CONFIRMED' ? d.rate.rate : null,
+      taxRateStatus: d.status,
+      taxShipping: d.status === 'EXEMPT' ? false : d.ship.taxable,
+      taxExempt: d.exempt.exempt,
+      taxExemptReason: d.exempt.exempt ? d.exempt.reason : null,
+      taxPlace: text(i.place) || d.rate.place || null,
+      needsCertificate: d.exempt.needsCertificate,
+      certificateProblem: d.exempt.needsCertificate ? d.exempt.reason : null,
+      pendingReasons: d.pendingReasons,
+      note: d.status === 'PENDING' ? 'TAX PENDING — ' + d.pendingReasons.join('; ') + '.' : null,
     };
   }
 
-  return { IL_STATE_RATE, computeRate, shippingTaxable, resaleExempt, computeTax, invoiceTaxFields };
+  return { MAX_RATE, checkRateSetting, computeRate, rateSettingFor, shippingTaxable, resaleExempt, computeTax, invoiceTaxFields };
 }));

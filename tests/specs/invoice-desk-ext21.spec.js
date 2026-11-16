@@ -17,10 +17,15 @@ const ORDERS = [
   { id: 'SYN-O2', order_number: 'SYN-2', status: 'paid', items: [{ sku: 'SYN-B', quantity: 3, unit_price: null }] },
   { id: 'SYN-O3', order_number: 'SYN-3', status: 'paid', items: LINES },
 ];
-const PENDING = T.invoiceTaxFields({ shipping: { mandatory: true } });
-const CONFIRMED = T.invoiceTaxFields({ shipping: { mandatory: true }, localRate: 0.0275 });
 const NOW = '2026-11-15T15:00:00Z';
-const open = (used) => I.openDesk(I.draftsForOrders(ORDERS, [], { taxFields: PENDING, accountFor: o => ({ id: 'ACCT-' + o.id, creditApproved: o.id === 'SYN-O3' }) }).drafts, { usedNumbers: used || [] });
+// Nov 16: no rate is built in. A rate is confirmed for one named place; 9% and
+// 7% are made-up test rates for made-up places.
+const PLACE = 'Example City A, IL';
+const RATE = { place: PLACE, rate: 0.09, confirmedBy: 'owner', confirmedAt: NOW };
+const sale = o => ({ place: PLACE, shipping: { amount: o.shipping_total || 0, mandatory: true } });
+const PENDING = T.invoiceTaxFields(sale(ORDERS[0]));
+const CONFIRMED = T.invoiceTaxFields(Object.assign(sale(ORDERS[0]), { rateSetting: RATE }));
+const open = (used) => I.openDesk(I.draftsForOrders(ORDERS, [], { taxFieldsFor: o => T.invoiceTaxFields(sale(o)), accountFor: o => ({ id: 'ACCT-' + o.id, creditApproved: o.id === 'SYN-O3' }) }).drafts, { usedNumbers: used || [] });
 
 test('a new desk holds the drafts and nothing is issued', () => {
   const d = open();
@@ -30,12 +35,14 @@ test('a new desk holds the drafts and nothing is issued', () => {
   expect(I.openDesk([{ draft: { status: 'issued' } }, null, {}]).items).toEqual([]);
 });
 
-test('nothing can be issued while the tax rate is pending, whoever asks', () => {
+test('nothing can be issued while the tax is pending, whoever asks — and a pending draft shows no tax figure', () => {
   const d = open();
+  for (const it of d.items) expect([it.draft.tax, it.draft.total, it.draft.taxRateStatus]).toEqual([null, null, 'PENDING']);
+  expect(d.items[0].draft.totalBeforeTax).toBe(120);
   for (const role of ['owner', 'administrator']) {
     const r = I.deskIssue(d, 'SYN-O1', { role, now: NOW });
     expect(r.ok).toBe(false);
-    expect(r.reason).toMatch(/tax rate is still pending/);
+    expect(r.reason).toMatch(/tax is still pending/);
     expect(r.desk).toBe(d);                                   // unchanged
   }
 });
@@ -51,12 +58,71 @@ test('confirming the rate is owner/administrator only, needs a confirmed rate, a
   const first = c.desk.items[0];
   expect(first.draft).toMatchObject({ taxRateStatus: 'CONFIRMED', tax: 10.8, total: 130.8, orderId: 'SYN-O1' });   // (111 + 9) * 9%
   expect(first.draft.revisions).toHaveLength(1);
-  expect(first.draft.revisions[0]).toMatchObject({ reason: 'local tax rate confirmed', by: 'owner' });
+  expect(first.draft.revisions[0]).toMatchObject({ reason: 'tax rate confirmed for ' + PLACE, by: 'owner' });
+  expect(first.draft.revisions[0].was.tax).toBeNull();                    // it was pending: no figure before
+  expect(first.draft.taxPlace).toBe(PLACE);
   expect(first.checks).toEqual([]);
   expect(c.desk.items[1].checks.join(' ')).toMatch(/no unit price/);      // the other problem is still listed
-  expect(c.desk.audit).toEqual([{ action: 'TAX_CONFIRMED', rate: CONFIRMED.taxRate, drafts: 3, by: 'owner', at: NOW }]);
+  expect(c.desk.audit).toEqual([{ action: 'TAX_CONFIRMED', rate: 0.09, places: [PLACE], drafts: 3, by: 'owner', at: NOW }]);
   expect(d.items[0].draft.taxRateStatus).toBe('PENDING');                 // the original desk is untouched
-  expect(I.deskConfirmTax(c.desk, CONFIRMED, { role: 'owner' }).reason).toMatch(/no draft is waiting/);
+  expect(I.deskConfirmTax(c.desk, CONFIRMED, { role: 'owner' }).reason).toMatch(/no waiting draft matches/);
+});
+
+test('there is no single rate for every sale: a rate confirmed for one place leaves another place pending', () => {
+  const B = 'Example City B, IL';
+  const places = { 'SYN-O1': PLACE, 'SYN-O2': PLACE, 'SYN-O3': B };
+  const facts = o => ({ place: places[o.id], shipping: { amount: o.shipping_total || 0, mandatory: true } });
+  const d = I.openDesk(I.draftsForOrders(ORDERS, [], { taxFieldsFor: o => T.invoiceTaxFields(facts(o)) }).drafts);
+  const a = I.deskConfirmTax(d, CONFIRMED, { role: 'owner', by: 'owner', now: NOW });
+  expect(a).toMatchObject({ ok: true, changed: 2, stillPending: 1 });
+  expect(a.desk.items.map(i => i.draft.taxRateStatus)).toEqual(['CONFIRMED', 'CONFIRMED', 'PENDING']);
+  expect(a.desk.items[2].draft.tax).toBeNull();
+  expect(I.deskIssue(a.desk, 'SYN-O3', { role: 'owner', now: NOW }).reason).toMatch(/tax is still pending/);
+  // The other place gets its own rate.
+  const rateB = { place: B, rate: 0.07, confirmedBy: 'owner', confirmedAt: NOW };
+  const b = I.deskConfirmTax(a.desk, T.invoiceTaxFields(Object.assign(facts(ORDERS[2]), { rateSetting: rateB })), { role: 'owner', by: 'owner', now: NOW });
+  expect(b).toMatchObject({ ok: true, changed: 1, stillPending: 0 });
+  expect(b.desk.items[2].draft).toMatchObject({ taxRate: 0.07, tax: 7.77, taxPlace: B });       // 111 * 7%
+  expect(b.desk.items[0].draft.taxRate).toBe(0.09);                                             // untouched
+  // A draft that does not say which place it is for is never swept up by another place's rate.
+  const noPlace = I.openDesk(I.draftsForOrders(ORDERS.slice(0, 1), [], {}).drafts);
+  expect(I.deskConfirmTax(noPlace, CONFIRMED, { role: 'owner' }).reason).toMatch(/no waiting draft matches/);
+});
+
+test('each draft is decided on its own facts: optional shipping, unrecorded shipping terms, verified and unverified resale', () => {
+  const facts = {
+    'SYN-O1': { place: PLACE, shipping: { amount: 9, separatelyStated: true, avoidable: true } },                 // optional
+    'SYN-O2': { place: PLACE, shipping: { amount: 0 }, resale: true, asOf: '2026-11-15', resaleCertificate: { number: 'SYN-R-2', verified: false } },
+    'SYN-O3': { place: PLACE, shipping: { amount: 0 }, resale: true, asOf: '2026-11-15', resaleCertificate: { number: 'SYN-R-3', verified: true, verifiedBy: 'owner', verifiedAt: '2026-11-01' } },
+    'SYN-O4': { place: PLACE, shipping: { amount: 7 } },                                                         // terms never recorded
+  };
+  const orders = ORDERS.concat([{ id: 'SYN-O4', order_number: 'SYN-4', status: 'paid', shipping_total: 7, items: LINES }]);
+  const rates = [];
+  const fieldsFor = id => T.invoiceTaxFields(Object.assign({}, facts[id], { rateSetting: T.rateSettingFor(rates, facts[id].place) }));
+  const d = I.openDesk(I.draftsForOrders(orders, [], { taxFieldsFor: o => fieldsFor(o.id) }).drafts);
+  // Before any rate: the verified resale order is already settled (tax 0, with the reason); the rest are pending.
+  expect(d.items.map(i => i.draft.taxRateStatus)).toEqual(['PENDING', 'PENDING', 'EXEMPT', 'PENDING']);
+  expect(d.items[2].draft).toMatchObject({ tax: 0, total: 111, taxExempt: true });
+  expect(d.items[2].draft.taxExemptReason).toContain('SYN-R-3');
+  expect(d.items[2].checks).toEqual([]);
+  expect(d.items[1].checks.join(' ')).toMatch(/has not been verified/);
+  rates.push(RATE);
+  const c = I.deskConfirmTax(d, it => fieldsFor(it.orderId), { role: 'owner', by: 'owner', now: NOW });
+  expect(c).toMatchObject({ ok: true, changed: 2, stillPending: 1 });
+  const by = id => c.desk.items.find(i => i.orderId === id).draft;
+  expect(by('SYN-O1')).toMatchObject({ taxRateStatus: 'CONFIRMED', taxShipping: false, tax: 9.99, total: 129.99 });   // 111 * 9%, shipping 9 not taxed
+  expect(by('SYN-O2').taxRateStatus).toBe('CONFIRMED');                                                             // unverified resale: taxed like any order
+  expect(by('SYN-O4')).toMatchObject({ taxRateStatus: 'PENDING', tax: null, total: null });
+  // ...and it now says only what is still missing (the rate is no longer the reason).
+  expect(by('SYN-O4').taxPendingReasons).toHaveLength(1);
+  expect(by('SYN-O4').taxPendingReasons[0]).toMatch(/shipping terms are not recorded/);
+  expect(d.items.find(i => i.orderId === 'SYN-O4').draft.taxPendingReasons).toHaveLength(2);     // the earlier desk is untouched
+  // The exempt invoice can be issued; the pending one cannot.
+  expect(I.deskIssue(c.desk, 'SYN-O3', { role: 'owner', now: NOW })).toMatchObject({ ok: true, number: 'HE-2026-0001' });
+  expect(I.deskIssue(c.desk, 'SYN-O4', { role: 'owner', now: NOW }).ok).toBe(false);
+  // A function that throws or returns rubbish confirms nothing.
+  expect(I.deskConfirmTax(d, () => { throw new Error('x'); }, { role: 'owner' }).ok).toBe(false);
+  expect(I.deskConfirmTax(d, () => ({ taxRateStatus: 'CONFIRMED', taxRate: 0.09 }), { role: 'owner' }).ok).toBe(false);   // no shipping decision
 });
 
 test('issuing gives the next number for the business year, the account terms and the due date', () => {

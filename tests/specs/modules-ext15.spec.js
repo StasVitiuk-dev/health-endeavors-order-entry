@@ -140,7 +140,7 @@ const ADDED = ['focusDialog', 'inspectLabel', 'keyLink', 'setReportHistoryView',
   // Invoice review desk (worked example on the invoice preview; flag
   // invoicePreviewOn OFF by default). The delegated [data-invoicedesk] listener
   // is waived by text below.
-  'invoiceDesk', 'invoiceDeskSkipped', 'invoiceDeskMessage', 'invoiceDeskOpen',
+  'invoiceDesk', 'invoiceDeskSkipped', 'invoiceDeskMessage', 'invoiceDeskOpen', 'draftTaxInput', 'invoiceDeskSales', 'invoiceDeskRates', 'invoiceDeskTaxFields',
   // Expenses receipt picker feedback (owner review Nov 3, point 2): name and
   // size of the chosen file, or the save's own refusal, shown on choosing.
   'receiptSize', 'showReceiptStatus',

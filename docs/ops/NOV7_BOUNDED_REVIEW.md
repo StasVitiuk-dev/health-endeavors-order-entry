@@ -337,3 +337,28 @@ Both failures from the previous pass are gone for a reason, not by luck:
 Limits of this evidence, unchanged: one substitute Chromium build, not the CI
 browser; phone size is emulation, not a real iPhone or Safari; no real screen
 reader was used. The three commits after `88db1fe` change documents only.
+
+## Full pass, 2026-11-16 early morning (commit `f8cd836`, substitute browser) — quiet machine
+
+Run from 01:46 to 03:03 UTC, same method (16 computer shards, 8 phone shards, a
+separate copy of the branch). Covers the dialog, account-name and left-menu
+keyboard fixes.
+
+| Size | Passed | Failed | Skipped | Total |
+|---|---|---|---|---|
+| Computer (1100 px) | **2,445** | **11** | 53 | 2,509 |
+| Phone (390 px, Chromium with an iPhone profile — not real Safari) | **515** | **10** | 417 | 942 |
+
+Failures: the 20 picture comparisons, plus **one test at computer size that was
+traced to the test itself, not the dashboard**:
+
+- `home-reauth-recovery-ext20` "Home recovers its real figures after expiry".
+  Repeated 12 times it failed 5 times on this commit and 7 times on `88db1fe` (the
+  commit of the pass above, where it happened to pass), so the newest changes did
+  not cause it. Cause: after pressing Refresh the test waited with
+  `waitForLoadState('networkidle')`, which only waits the first time on a page; the
+  last read could run before the refresh had finished. The test now waits for the
+  dashboard's own "everything has reloaded" marker. Result: 20 of 20 repeats pass.
+  The dashboard's behaviour was correct throughout.
+
+A further full pass follows on the commit that carries the Nov 16 owner decisions.

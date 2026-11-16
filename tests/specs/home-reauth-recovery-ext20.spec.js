@@ -5,7 +5,12 @@
 // valid again, Home shows the real figures again — both a legitimately-zero tile
 // (AI spend, no decisions logged → "$0.00 / $30.00") and the non-zero figures —
 // and the unavailable "?"/error state is gone. No sleeps: page.unroute restores
-// the healthy mock backend and waitForLoadState drives the timing.
+// the healthy mock backend, and each refresh is waited for through the page's
+// own marker (body data-loaded goes "loading" -> "all"). Nov 16: it used
+// waitForLoadState('networkidle') for that, which only waits the first time on
+// a page — so the last read could run before the refresh had finished, and the
+// test failed about half the time when the machine was busy (also on the
+// commit before; the dashboard itself was never at fault).
 const { test, expect, login } = require('../helpers/dashboard');
 const { NOW, seedBusiness } = require('../fixtures/business-data');
 
@@ -16,6 +21,11 @@ const EXPIRED = JSON.stringify({ code: 'PGRST301', message: 'JWT expired' });
 const expire = page => page.route('**/rest/v1/**', r => r.fulfill({ status: 401, contentType: 'application/json', body: EXPIRED }));
 
 const tiles = page => page.locator('#businessHealthStats .stat');
+// Press Refresh and wait until the dashboard says every page has reloaded.
+async function refresh(page) {
+  await page.locator('#refreshBtn').click();
+  await expect(page.locator('body')).toHaveAttribute('data-loaded', 'all', { timeout: 20000 });
+}
 
 test('Home recovers its real figures after expiry → reauth on the same page (legitimate zero and non-zero)', async ({ page, backend }) => {
   seedBusiness(backend);
@@ -34,15 +44,13 @@ test('Home recovers its real figures after expiry → reauth on the same page (l
 
   // Expire and refresh: figures must read as unavailable, never a fresh zero.
   await expire(page);
-  await page.locator('#refreshBtn').click();
-  await page.waitForLoadState('networkidle');
+  await refresh(page);
   await expect(page.locator('#dashError')).toContainText(/expired|sign in|could not be read/i);
   for (const t of await tiles(page).allTextContents()) expect(t, t).not.toMatch(/^\s*\$?0(\.00)?\s/);
 
   // Reauthenticate: the session is valid again. Refresh on the SAME mounted page.
   await page.unroute('**/rest/v1/**');
-  await page.locator('#refreshBtn').click();
-  await page.waitForLoadState('networkidle');
+  await refresh(page);
 
   // Recovery: the real figures are back, identical to the signed-in baseline —
   // the legitimate zero renders as a real "$0.00", not "could not be read", and

@@ -26,7 +26,11 @@
 --   * void_invoice(id, reason)                    owner / administrator
 --
 -- The owner's decisions, enforced by the database itself (not only by the page):
---   1 tax      a draft whose tax rate is still PENDING cannot be issued
+--   1 tax      (tightened Nov 16) unknown tax is never stored as 0: a draft whose
+--              tax is PENDING holds no rate, no tax and no total, and cannot be
+--              issued. A CONFIRMED rate names the place it is for. A resale-
+--              EXEMPT invoice carries tax 0 and must record why (the verified
+--              exemption document). The total must add up.
 --   2 terms    due on receipt by default; Net 14 only when the person issuing
 --              says the account is approved for credit; the due date follows
 --   3 invoices drafts first, issued by hand; number HE-YYYY-NNNN, per year,
@@ -92,13 +96,17 @@ create table if not exists public.invoices (
   subtotal        numeric(12,2) not null default 0 check (subtotal >= 0),
   order_discount  numeric(12,2) not null default 0 check (order_discount >= 0),
   shipping        numeric(12,2) not null default 0 check (shipping >= 0),
-  tax_rate        numeric(7,5)  not null default 0 check (tax_rate >= 0 and tax_rate <= 0.25),
-  tax_rate_status text not null default 'PENDING' check (tax_rate_status in ('PENDING', 'CONFIRMED')),
-  -- decision 1: whether shipping was in the tax base, and a resale exemption
+  -- decision 1 (Nov 16): no default rate and no default tax. Empty means "not known yet".
+  tax_rate        numeric(7,5)  check (tax_rate is null or (tax_rate >= 0 and tax_rate <= 0.25)),
+  tax_rate_status text not null default 'PENDING' check (tax_rate_status in ('PENDING', 'CONFIRMED', 'EXEMPT')),
+  -- the place the confirmed rate is for (rates differ by place)
+  tax_place       text check (tax_place is null or length(tax_place) <= 200),
+  -- whether shipping was in the tax base, and a resale exemption with its reason
   tax_shipping    boolean not null default false,
   tax_exempt      boolean not null default false,
-  tax             numeric(12,2) not null default 0 check (tax >= 0),
-  total           numeric(12,2) not null default 0 check (total >= 0),
+  tax_exempt_reason text check (tax_exempt_reason is null or length(tax_exempt_reason) <= 500),
+  tax             numeric(12,2) check (tax is null or tax >= 0),
+  total           numeric(12,2) check (total is null or total >= 0),
   issue_date      date,
   due_date        date,
   issued_at       timestamptz,
@@ -114,12 +122,22 @@ create table if not exists public.invoices (
     (status = 'draft' and invoice_number is null and invoice_year is null and invoice_seq is null and issue_date is null)
     or (status <> 'draft' and invoice_number is not null and invoice_year is not null and invoice_seq is not null
         and issue_date is not null and due_date is not null and terms is not null and issued_by is not null)),
-  -- decision 1: an invoice with an unconfirmed tax rate cannot exist outside draft
-  constraint invoices_tax_confirmed_when_issued check (status = 'draft' or tax_rate_status = 'CONFIRMED'),
+  -- decision 1: an invoice whose tax is not settled cannot exist outside draft
+  constraint invoices_tax_confirmed_when_issued check (status = 'draft' or tax_rate_status in ('CONFIRMED', 'EXEMPT')),
+  -- decision 1: pending means no figures at all (never 0); settled means all three
+  constraint invoices_pending_has_no_figures check (
+    (tax_rate_status = 'PENDING' and tax_rate is null and tax is null and total is null)
+    or (tax_rate_status <> 'PENDING' and tax_rate is not null and tax is not null and total is not null)),
+  -- decision 1: a confirmed rate says which place it is for
+  constraint invoices_confirmed_names_place check (tax_rate_status <> 'CONFIRMED' or (tax_place is not null and length(btrim(tax_place)) > 0)),
+  -- the total is what the parts add up to
+  constraint invoices_total_adds_up check (total is null or total = greatest(subtotal - order_discount, 0) + shipping + tax),
   -- decision 3: a void invoice says why
   constraint invoices_void_has_reason check (status <> 'void' or (void_reason is not null and length(btrim(void_reason)) >= 5 and voided_at is not null)),
-  -- decision 1: a resale-exempt invoice carries no tax
-  constraint invoices_exempt_has_no_tax check (not tax_exempt or tax = 0),
+  -- decision 1: a resale-exempt invoice carries no tax and records why
+  constraint invoices_exempt_is_documented check (
+    (tax_rate_status = 'EXEMPT') = tax_exempt
+    and (not tax_exempt or (tax = 0 and tax_rate = 0 and tax_exempt_reason is not null and length(btrim(tax_exempt_reason)) >= 5))),
   constraint invoices_year_seq_unique unique (invoice_year, invoice_seq),
   constraint invoices_due_not_before_issue check (due_date is null or issue_date is null or due_date >= issue_date)
 );
@@ -158,8 +176,8 @@ begin
     if not public.is_owner_or_admin() then
       raise exception 'Only the owner or an administrator can issue an invoice.' using errcode = '42501';
     end if;
-    if new.tax_rate_status <> 'CONFIRMED' then
-      raise exception 'The tax rate on this draft is still pending. Confirm the local rate before issuing.' using errcode = '22023';
+    if new.tax_rate_status not in ('CONFIRMED', 'EXEMPT') or new.tax is null or new.total is null then
+      raise exception 'The tax on this draft is still pending. It cannot be issued until the tax is confirmed.' using errcode = '22023';
     end if;
     -- decision 4: the day of issue is the Central-time calendar day
     new.issue_date := (now() at time zone 'America/Chicago')::date;
@@ -193,7 +211,8 @@ begin
      or new.currency is distinct from old.currency or new.order_id is distinct from old.order_id
      or new.account_ref is distinct from old.account_ref or new.bill_to is distinct from old.bill_to
      or new.ship_to is distinct from old.ship_to or new.tax_shipping is distinct from old.tax_shipping
-     or new.tax_exempt is distinct from old.tax_exempt then
+     or new.tax_exempt is distinct from old.tax_exempt or new.tax_place is distinct from old.tax_place
+     or new.tax_exempt_reason is distinct from old.tax_exempt_reason then
     raise exception 'An issued invoice cannot be edited. Void it and issue a new one.' using errcode = '22023';
   end if;
 

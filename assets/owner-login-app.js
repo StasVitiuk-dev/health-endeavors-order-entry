@@ -2644,36 +2644,70 @@
         h('div', { class: 'scanToggleRow u-mt-8' }, h('button', { type: 'button', class: 'small', 'data-print': 'report' }, 'Print report (US-Letter preview)')),
         h('p', { class: 'hint u-mt-8' }, 'Values marked UNKNOWN were never measured (never shown as $0). Automatic Mac sync of the saved package is a separate component and is not enabled here.')));
     }
-    // The one example invoice the preview and its print layout both show. Its
-    // tax follows owner decision #1 through the tax rules (state rate, mandatory
-    // shipping in the taxed amount, local rate still PENDING) — not a made-up
-    // placeholder rate. Synthetic; nothing is issued.
+    // The one example invoice the preview and its print layout both show.
+    // Owner decision of Nov 16: no tax rate is built in, and unknown tax is never
+    // shown as 0 — so this example carries TAX PENDING (no figure) until a rate
+    // is confirmed. Synthetic; nothing is issued.
+    function draftTaxInput(tf) {
+      if (!tf) return { taxRate: null, taxRateStatus: 'PENDING', taxPendingReasons: ['the tax rules could not load'] };
+      const out = { taxRate: tf.taxRate, taxRateStatus: tf.taxRateStatus, taxShipping: tf.taxShipping === true, taxExempt: tf.taxExempt === true };
+      if (tf.taxPlace) out.taxPlace = tf.taxPlace;
+      if (tf.taxExemptReason) out.taxExemptReason = tf.taxExemptReason;
+      if (tf.pendingReasons && tf.pendingReasons.length) out.taxPendingReasons = tf.pendingReasons.slice();
+      return out;
+    }
     function previewInvoiceDraft(inv) {
       let taxMod = null; try { taxMod = (window.HE && window.HE.invoice && window.HE.invoice['he-tax']) || null; } catch (e) { taxMod = null; }
-      const tf = (taxMod && typeof taxMod.invoiceTaxFields === 'function') ? taxMod.invoiceTaxFields({ shipping: { mandatory: true } }) : null;
+      const tf = (taxMod && typeof taxMod.invoiceTaxFields === 'function') ? taxMod.invoiceTaxFields({ shipping: { amount: 12.5, mandatory: true } }) : null;
       return inv.draftInvoice(Object.assign({ lines: [
         { sku: 'HE-HONEY-8OZ', description: 'Honey Milk 8 oz', quantity: 10, unitPrice: 18.50, discount: 5, lotNumber: 'LOT-A' },
         { sku: 'HE-VEGAN-8OZ', description: 'Vegan 8 oz', quantity: 4, unitPrice: 18.50, lotNumber: 'LOT-B' },
-      ], orderDiscount: 10, shipping: 12.5, currency: 'USD' },
-      tf ? { taxRate: tf.taxRate, taxRateStatus: tf.taxRateStatus, taxShipping: tf.taxShipping, taxExempt: tf.taxExempt } : { taxRate: 0 }));
+      ], orderDiscount: 10, shipping: 12.5, currency: 'USD', terms: 'DUE_ON_RECEIPT',
+      billTo: { name: 'SYNTHETIC Wholesale Buyer', lines: ['100 Example Street', 'Example City, IL 60000'] } }, draftTaxInput(tf)));
     }
     // The review desk for generated drafts (owner decision #3's manual step), as a
-    // worked example: confirm the local tax rate, issue, void. State lives in this
-    // page only; nothing is stored, sent or charged, and the signed-in person's
-    // real role decides what is allowed.
+    // worked example: confirm a tax rate for a place, issue, void. State lives in
+    // this page only; nothing is stored, sent or charged, and the signed-in
+    // person's real role decides what is allowed. The example orders cover the
+    // cases of the Nov 16 decision: shipping stated separately and optional,
+    // mandatory shipping, wholesale resale with a verified exemption document,
+    // resale claimed without one, and shipping terms that were never recorded.
     let invoiceDesk = null;
     let invoiceDeskSkipped = [];
     let invoiceDeskMessage = '';
+    let invoiceDeskSales = {};          // order id -> the facts its tax depends on
+    let invoiceDeskRates = [];          // rates confirmed in this example, one per place
+    function invoiceDeskTaxFields(taxMod, orderId) {
+      const sale = invoiceDeskSales[String(orderId)];
+      if (!taxMod || !sale) return null;
+      return taxMod.invoiceTaxFields(Object.assign({}, sale, { rateSetting: taxMod.rateSettingFor(invoiceDeskRates, sale.place) }));
+    }
     function invoiceDeskOpen(inv, taxMod) {
       const exLines = [{ sku: 'HE-HONEY-8OZ', product_name: 'Honey Milk 8 oz', quantity: 6, unit_price: 18.50, line_total: 111 }];
+      const A = 'Example City A, IL', B = 'Example City B, IL';
       const exOrders = [
         { id: 'SYN-O-2001', order_number: 'SYN-2001', status: 'paid', currency: 'USD', shipping_total: 9, items: exLines },
         { id: 'SYN-O-2002', order_number: 'SYN-2002', status: 'paid', currency: 'USD', shipping_total: 0, items: [{ sku: 'HE-VEGAN-8OZ', product_name: 'Vegan 8 oz', quantity: 3, unit_price: null }] },
         { id: 'SYN-O-2003', order_number: 'SYN-2003', status: 'cancelled', currency: 'USD', items: exLines },
         { id: 'SYN-O-2004', order_number: 'SYN-2004', status: 'paid', currency: 'USD', items: exLines },
+        { id: 'SYN-O-2005', order_number: 'SYN-2005', status: 'paid', currency: 'USD', shipping_total: 12, items: exLines },
+        { id: 'SYN-O-2006', order_number: 'SYN-2006', status: 'paid', currency: 'USD', shipping_total: 9, items: exLines },
+        { id: 'SYN-O-2007', order_number: 'SYN-2007', status: 'paid', currency: 'USD', shipping_total: 0, items: exLines },
+        { id: 'SYN-O-2008', order_number: 'SYN-2008', status: 'paid', currency: 'USD', shipping_total: 7, items: exLines },
       ];
+      invoiceDeskRates = [];
+      invoiceDeskSales = {
+        'SYN-O-2001': { place: A, shipping: { amount: 9, separatelyStated: true, avoidable: true } },           // optional shipping
+        'SYN-O-2002': { place: A, shipping: { amount: 0 } },
+        'SYN-O-2005': { place: B, shipping: { amount: 12, mandatory: true } },                                // mandatory shipping
+        'SYN-O-2006': { place: A, shipping: { amount: 9, mandatory: true }, resale: true, asOf: '2026-11-16',  // verified resale
+          resaleCertificate: { number: 'SYN-RESALE-0001', verified: true, verifiedBy: 'owner (example)', verifiedAt: '2026-11-01', expiresOn: '2027-11-01' } },
+        'SYN-O-2007': { place: A, shipping: { amount: 0 }, resale: true, asOf: '2026-11-16',                   // resale claimed, not verified
+          resaleCertificate: { number: 'SYN-RESALE-0002', verified: false } },
+        'SYN-O-2008': { place: A, shipping: { amount: 7 } },                                                  // shipping terms not recorded
+      };
       const gen = inv.draftsForOrders(exOrders, [{ orderId: 'SYN-O-2004', status: 'issued' }], {
-        taxFields: (taxMod && typeof taxMod.invoiceTaxFields === 'function') ? taxMod.invoiceTaxFields({ shipping: { mandatory: true } }) : null,
+        taxFieldsFor: ord => invoiceDeskTaxFields(taxMod, ord.id),
         accountFor: ord => ({ id: 'SYN-ACCT', creditApproved: ord.id === 'SYN-O-2002' }),
       });
       invoiceDesk = inv.openDesk(gen.drafts, { usedNumbers: [] });
@@ -2688,12 +2722,18 @@
       if (act === 'reset' || !invoiceDesk) { invoiceDesk = null; invoiceDeskMessage = ''; loadInvoicePreview(); return; }
       let out = null;
       if (act === 'confirm-tax') {
-        const el = document.getElementById('invoiceDeskRate');
+        const place = t.getAttribute('data-place') || '';
+        const el = t.closest('.heField') ? t.closest('.heField').querySelector('input') : null;
         const raw = el ? String(el.value).trim().replace('%', '') : '';
         const pct = raw === '' ? NaN : Number(raw);
-        if (!isFinite(pct) || pct < 0 || pct > 15 || !taxMod) { invoiceDeskMessage = 'Not confirmed: type the local rate as a percent between 0 and 15, for example 2.75.'; loadInvoicePreview(); announce(invoiceDeskMessage); refocusLike(t); return; }
-        out = inv.deskConfirmTax(invoiceDesk, taxMod.invoiceTaxFields({ shipping: { mandatory: true }, localRate: pct / 100 }), who);
-        invoiceDeskMessage = out.ok ? 'Rate confirmed for ' + out.changed + ' draft(s): state 6.25% + local ' + pct + '%. Recorded as a revision on each draft.' : 'Not confirmed: ' + out.reason + '.';
+        if (!isFinite(pct) || pct < 0 || pct > 25 || !taxMod || !place) { invoiceDeskMessage = 'Not confirmed: type the full tax rate for ' + (place || 'this place') + ' as a percent between 0 and 25, for example 8.75.'; loadInvoicePreview(); announce(invoiceDeskMessage); refocusLike(t); return; }
+        const before = invoiceDeskRates;
+        invoiceDeskRates = before.filter(r => r.place !== place).concat([{ place: place, rate: Math.round(pct * 1000) / 100000, confirmedBy: who.by, confirmedAt: who.now }]);
+        out = inv.deskConfirmTax(invoiceDesk, item => invoiceDeskTaxFields(taxMod, item.orderId), who);
+        if (!out.ok) invoiceDeskRates = before;
+        invoiceDeskMessage = out.ok
+          ? 'Rate ' + pct + '% confirmed for ' + place + ': ' + out.changed + ' draft(s) now carry tax' + (out.stillPending ? '; ' + out.stillPending + ' still pending (each says why)' : '') + '. Recorded as a revision on each draft.'
+          : 'Not confirmed: ' + out.reason + '.';
       } else if (act === 'issue') {
         out = inv.deskIssue(invoiceDesk, t.getAttribute('data-order'), who);
         invoiceDeskMessage = out.ok ? 'Issued as ' + out.number + ' (simulated).' : 'Not issued: ' + out.reason + '.';
@@ -2720,32 +2760,35 @@
         h('td', { class: 'num-cell' }, fmtMoney(l.unitPrice, draft.currency)),
         h('td', { class: 'num-cell' }, l.discount ? fmtMoney(l.discount, draft.currency) : '—'),
         h('td', { class: 'num-cell' }, fmtMoney(l.lineTotal, draft.currency))));
-      const totalRow = (label, val, cls) => h('div', { class: 'scanCardRow' }, h('span', { class: 'u-c-muted' }, label + ': '), h('span', { class: cls || '' }, fmtMoney(val, draft.currency)));
+      // One line of the totals block: a figure, or the words that stand in for a
+      // figure that is not known yet (tax pending) — never $0.00 for unknown.
+      const totalsBlock = inv.totalsLines(draft).map(l => h('div', { class: 'scanCardRow', 'data-total': l.key },
+        h('span', { class: 'u-c-muted' }, l.label + ': '),
+        h('span', { class: l.key === 'total' ? 'taskTitle' : '' }, l.amount == null ? l.text : fmtMoney(l.amount, draft.currency) + (l.text ? ' — ' + l.text : ''))));
       const slipRows = slip.lines.map(l => h('div', { class: 'scanCardRow' }, (l.sku || '—') + ' × ' + l.quantity + ' · lot ' + (l.lotNumber || '—') + (l.unitPrice === undefined ? '' : ' · ' + fmtMoney(l.unitPrice, 'USD'))));
       // Proposed numbering (O1): suggest the next number in the HE-YYYY-NNNN
       // format. This only PROPOSES; nothing is issued. Owner confirms the scheme.
       const suggested = (typeof inv.nextInvoiceNumber === 'function') ? inv.nextInvoiceNumber({ year: new Date().getFullYear() }) : null;
       const hdr = (typeof inv.invoiceHeader === 'function') ? inv.invoiceHeader({ number: suggested ? suggested.number : null }) : null;
-      // Owner decisions #1/#2 shown as a worked example (draft only): Illinois tax
-      // (state 6.25%, LIVE rate pending the local rate) with mandatory shipping in
-      // the base, and due-on-receipt terms for a new wholesale buyer.
+      // Owner decisions shown on the example (draft only). Tax: nothing is built
+      // in — the example stays TAX PENDING until a rate is confirmed (Nov 16).
       const taxMod = (function () { try { return window.HE.invoice['he-tax']; } catch (e) { return null; } })();
       const taxInfo = taxMod ? taxMod.computeTax({ subtotal: draft.subtotal, orderDiscount: draft.orderDiscount, shipping: { amount: draft.shipping, mandatory: true } }) : null;
       const terms = (typeof inv.termsForAccount === 'function') ? inv.termsForAccount({}) : 'DUE_ON_RECEIPT';
       const dueDate = (typeof inv.dueDateFor === 'function') ? inv.dueDateFor('2026-11-14', terms) : null;
-      // The same rules applied inside the invoice itself: its own total, and
-      // whether it could be issued. A PENDING rate blocks issuing (decision #1).
-      const decided = draft.taxRateStatus !== undefined ? draft : null;
-      const issueCheck = decided ? inv.issue(decided, { role: 'owner', number: suggested ? suggested.number : 'HE-0000-0000', now: '2026-11-14T00:00:00Z', account: {} }) : null;
-      const decisionsCard = taxInfo ? h('div', { class: 'scanCard u-mt-8' },
+      // The same rules applied inside the invoice itself: whether it could be
+      // issued. Pending tax blocks issuing.
+      const issueCheck = inv.issue(draft, { role: 'owner', number: suggested ? suggested.number : 'HE-0000-0000', now: '2026-11-14T00:00:00Z', account: {} });
+      const decisionsCard = taxInfo ? h('div', { class: 'scanCard u-mt-8', 'data-taxstatus': taxInfo.status },
         h('div', { class: 'scanCardHead' }, 'Per your decisions (draft example — nothing issued)'),
-        h('div', { class: 'scanCardRow' }, taxInfo.localRate != null
-          ? 'Illinois tax: state ' + (taxInfo.stateRate * 100) + '% + local ' + (Math.round(taxInfo.localRate * 10000) / 100) + '% = ' + (taxInfo.rate * 100).toFixed(2) + '% (confirmed)'
-          : 'Illinois tax: state ' + (taxInfo.stateRate * 100) + '% — the local rate is not confirmed yet'),
-        h('div', { class: 'scanCardRow' }, 'Taxable base ' + fmtMoney(taxInfo.taxableBase, draft.currency) + ' (shipping ' + (taxInfo.shippingTaxable ? 'included — mandatory' : 'excluded') + ') · draft tax ' + fmtMoney(taxInfo.tax, draft.currency)),
+        h('div', { class: 'scanCardRow' }, taxInfo.status === 'PENDING'
+          ? 'Tax: PENDING — no tax rate is built into the dashboard. A rate applies only after you confirm it for a named place.'
+          : 'Tax: ' + taxInfo.status.toLowerCase()),
+        h('div', { class: 'scanCardRow' }, 'Shipping: taxed when it is bundled or mandatory; not taxed when it is stated separately and the buyer could avoid it (for example pickup); pending when the terms were not recorded.'),
+        h('div', { class: 'scanCardRow' }, 'Wholesale resale: exempt only with a verified exemption document on file; otherwise taxed like any other order.'),
         h('div', { class: 'scanCardRow' }, 'Payment terms: ' + (terms === 'NET_14' ? 'Net 14' : 'Due on receipt') + (dueDate ? ' · due ' + dueDate : '')),
-        decided ? h('div', { class: 'scanCardRow', 'data-issuecheck': issueCheck && issueCheck.ok ? 'allowed' : 'blocked' }, 'Invoice total under these rules: ' + fmtMoney(decided.total, decided.currency) + ' · issuing: ' + (issueCheck && issueCheck.ok ? 'would be allowed' : 'blocked — ' + (issueCheck ? issueCheck.reason : 'not checked'))) : null,
-        taxInfo.rateStatus === 'PENDING' ? h('div', { class: 'u-fs-11 u-c-muted' }, taxInfo.note) : null) : null;
+        h('div', { class: 'scanCardRow', 'data-issuecheck': issueCheck && issueCheck.ok ? 'allowed' : 'blocked' }, 'Invoice total under these rules: ' + (draft.total == null ? 'pending (' + fmtMoney(draft.totalBeforeTax, draft.currency) + ' before tax)' : fmtMoney(draft.total, draft.currency)) + ' · issuing: ' + (issueCheck && issueCheck.ok ? 'would be allowed' : 'blocked — ' + (issueCheck ? issueCheck.reason : 'not checked'))),
+        taxInfo.note ? h('div', { class: 'u-fs-11 u-c-muted' }, taxInfo.note) : null) : null;
       // Owner decision #3: drafts are generated automatically from orders and
       // wait for the owner to review and issue them. Example orders; nothing is
       // issued or numbered. An order that already has an invoice, or was
@@ -2755,18 +2798,24 @@
         if (!invoiceDesk) invoiceDeskOpen(inv, taxMod);
         const desk = invoiceDesk;
         const termsWord = t => t === 'NET_14' ? 'Net 14' : 'Due on receipt';
-        const anyPending = desk.items.some(it => it.draft.taxRateStatus === 'PENDING');
+        // The places that still have a pending draft: each gets its own rate.
+        const pendingPlaces = [];
+        desk.items.forEach(it => { const pl = it.draft.taxPlace; if (it.draft.taxRateStatus === 'PENDING' && pl && pendingPlaces.indexOf(pl) < 0 && !invoiceDeskRates.some(r => r.place === pl)) pendingPlaces.push(pl); });
+        const taxWords = d => d.taxRateStatus === 'EXEMPT' ? 'tax $0.00 — ' + (d.taxExemptReason || 'resale exempt')
+          : d.taxRateStatus === 'PENDING' ? 'TAX PENDING — ' + ((d.taxPendingReasons && d.taxPendingReasons.length) ? d.taxPendingReasons.join('; ') : 'not confirmed yet')
+          : 'tax ' + fmtMoney(d.tax, d.currency) + ' at ' + (Math.round(d.taxRate * 100000) / 1000) + '% (' + (d.taxPlace || 'place not recorded') + (d.taxShipping ? ', shipping taxed' : ', shipping not taxed') + ')';
         autoDraftsCard = h('div', { class: 'scanCard u-mt-8 invoiceDesk', 'data-autodrafts': String(desk.items.length) },
           h('div', { class: 'scanCardHead' }, 'Drafts generated from orders — waiting for your review (example orders)'),
           ...desk.items.map(it => h('div', { class: 'scanCardRow', 'data-autodraft': it.orderId },
-            'Order ' + (it.draft.orderNumber || it.orderId) + ' · ' + fmtMoney(it.draft.total, it.draft.currency) + ' · ' + termsWord(it.draft.terms) + ' · draft, not issued ',
+            'Order ' + (it.draft.orderNumber || it.orderId) + ' · ' + (it.draft.total == null ? 'total pending (' + fmtMoney(it.draft.totalBeforeTax, it.draft.currency) + ' before tax)' : fmtMoney(it.draft.total, it.draft.currency)) + ' · ' + termsWord(it.draft.terms) + ' · draft, not issued ',
             h('button', { type: 'button', class: 'small secondary', 'data-invoicedesk': 'issue', 'data-order': String(it.orderId), 'aria-label': 'Issue the draft for order ' + (it.draft.orderNumber || it.orderId) + ' (simulated)' }, 'Issue (simulated)'),
+            h('div', { class: 'u-fs-11 u-c-muted', 'data-taxline': it.draft.taxRateStatus || 'PENDING' }, taxWords(it.draft)),
             it.checks.length ? h('div', { class: 'u-fs-11 u-c-muted' }, 'To check: ' + it.checks.join('; ')) : null)),
           ...invoiceDeskSkipped.map(k => h('div', { class: 'scanCardRow u-c-muted', 'data-autodraft-skipped': String(k.orderId) }, 'No draft for order ' + k.label + ': ' + k.reason)),
-          anyPending ? h('div', { class: 'heField u-mt-8' },
-            h('label', { for: 'invoiceDeskRate' }, 'Local tax rate, percent ', h('span', { class: 'heOpt' }, '(example only — not saved anywhere)')),
-            h('input', { type: 'text', inputmode: 'decimal', id: 'invoiceDeskRate', maxlength: '6', placeholder: 'e.g. 2.75' }),
-            h('div', { class: 'scanToggleRow u-mt-6' }, h('button', { type: 'button', class: 'small', 'data-invoicedesk': 'confirm-tax' }, 'Confirm rate for these drafts'))) : null,
+          ...pendingPlaces.map((pl, n) => h('div', { class: 'heField u-mt-8', 'data-taxplace': pl },
+            h('label', { for: 'invoiceDeskRate' + n }, 'Full tax rate for ' + pl + ', percent ', h('span', { class: 'heOpt' }, '(example only — not saved anywhere)')),
+            h('input', { type: 'text', inputmode: 'decimal', id: 'invoiceDeskRate' + n, maxlength: '6', placeholder: 'e.g. 8.75' }),
+            h('div', { class: 'scanToggleRow u-mt-6' }, h('button', { type: 'button', class: 'small', 'data-invoicedesk': 'confirm-tax', 'data-place': pl }, 'Confirm rate for ' + pl)))),
           desk.issued.length ? h('div', { class: 'scanCardHead u-mt-10' }, 'Issued in this example (simulated — nothing was sent or stored)') : null,
           ...desk.issued.map(x => h('div', { class: 'scanCardRow', 'data-issued': x.number, 'data-issued-status': x.status },
             x.number + ' · order ' + (x.orderNumber || x.orderId) + ' · ' + fmtMoney(x.total, x.currency) + ' · ' + termsWord(x.terms) + ' · due ' + (x.dueDate || '—') + ' · ' + (x.status === 'void' ? 'VOID — the number stays on the record ' : 'issued '),
@@ -2792,7 +2841,7 @@
           h('thead', null, h('tr', null, h('th', null, 'Item'), h('th', { class: 'num-cell' }, 'Qty'), h('th', { class: 'num-cell' }, 'Unit'), h('th', { class: 'num-cell' }, 'Disc'), h('th', { class: 'num-cell' }, 'Line'))),
           h('tbody', null, lineRows)),
         h('div', { class: 'scanCard u-mt-8' },
-          totalRow('Subtotal', draft.subtotal), totalRow('Order discount', draft.orderDiscount), totalRow('Shipping', draft.shipping), totalRow('Tax (' + (Math.round(draft.taxRate * 10000) / 100) + '%' + (draft.taxRateStatus === 'PENDING' ? ' state rate — local rate pending' : '') + ')', draft.tax), totalRow('Total', draft.total, 'taskTitle')),
+          totalsBlock),
         decisionsCard,
         autoDraftsCard,
         h('div', { class: 'scanCard u-mt-8' }, h('div', { class: 'scanCardHead' }, 'Packing slip — not an invoice, not a carrier label'), slipRows),
@@ -2814,20 +2863,34 @@
       const withNum = Object.assign({}, draft, { number: suggested ? suggested.number : null });
       const doc = inv.invoicePrint(withNum);
       const cur = doc.totals.currency;
+      const termsWord = doc.terms === 'NET_14' ? 'Net 14' : (doc.terms === 'DUE_ON_RECEIPT' ? 'Due on receipt' : '—');
+      const party = (title, who) => h('div', { class: 'printParty' }, h('div', { class: 'printLabel' }, title),
+        who ? [h('div', null, who.name || '—')].concat((who.lines || []).map(x => h('div', null, x))) : h('div', null, '—'));
       const pages = doc.pages.map(function (p) {
         return h('div', { class: 'printPage' },
+          doc.watermark ? h('div', { class: 'printMark', 'data-printmark': doc.taxPending ? 'tax-pending' : 'draft' }, doc.watermark) : null,
           h('div', { class: 'printHdr' }, h('div', { class: 'taskTitle' }, doc.header.businessName),
+            doc.header.addressLines.map(x => h('div', null, x)),
             h('div', null, 'Invoice ' + (doc.header.number || '(draft)') + ' — SIMULATED'),
             h('div', null, 'Page ' + p.pageNo + ' of ' + p.totalPages)),
+          p.pageNo === 1 ? h('div', { class: 'printMeta' },
+            party('Bill to', doc.billTo), party('Ship to', doc.shipTo),
+            h('div', { class: 'printParty' },
+              h('div', null, h('span', { class: 'printLabel' }, 'Issue date: '), doc.issueDate ? String(doc.issueDate).slice(0, 10) : 'not issued'),
+              h('div', null, h('span', { class: 'printLabel' }, 'Terms: '), termsWord),
+              h('div', null, h('span', { class: 'printLabel' }, 'Due: '), doc.dueDate || (doc.issueDate ? '—' : 'set when issued')))) : null,
           h('table', null,
             h('thead', null, h('tr', null, p.headings.map(function (x) { return h('th', null, x); }))),
             h('tbody', null, p.rows.map(function (l) {
-              return h('tr', null, h('td', null, l.sku || '—'), h('td', null, String(l.quantity)),
+              return h('tr', null, h('td', null, l.sku || '—', l.description ? h('div', null, l.description) : null), h('td', null, String(l.quantity)),
                 h('td', null, fmtMoney(l.unitPrice, cur)), h('td', null, l.discount ? fmtMoney(l.discount, cur) : '—'),
                 h('td', null, fmtMoney(l.lineTotal, cur)));
             }))),
-          p.showTotals ? h('div', { class: 'printTotals' }, 'Total: ' + fmtMoney(doc.totals.total, cur),
-            draft.taxRateStatus === 'PENDING' ? h('div', { 'data-printnote': 'tax-pending' }, 'DRAFT — tax shown at the state rate only; the local rate is not confirmed. Not a final invoice.') : null) : null);
+          p.showTotals ? h('div', { class: 'printTotals' },
+            doc.totalsLines.map(l => h('div', { class: 'printTotalRow' + (l.key === 'total' ? ' printGrand' : ''), 'data-printtotal': l.key },
+              h('span', null, l.label), h('span', null, l.amount == null ? l.text : fmtMoney(l.amount, cur) + (l.text ? ' — ' + l.text : '')))),
+            doc.taxPending ? h('div', { 'data-printnote': 'tax-pending' }, 'DRAFT — the tax is pending and is not included in any figure above. Not a final invoice.') : null,
+            h('div', { class: 'printRemit' }, doc.header.remitTo)) : null);
       });
       host.replaceChildren(h('div', { class: 'printDoc' }, pages));
       try { window.print(); } catch (e) {}

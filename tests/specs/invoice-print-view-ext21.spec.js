@@ -23,11 +23,25 @@ test('Print builds the US-Letter print DOM: pages, repeating headings, totals la
   await expect(host.locator('.printPage')).toHaveCount(1);
   await expect(host.locator('.printPage thead th').first()).toHaveText('Item');
   await expect(host.locator('.printPage thead')).toHaveCount(1);
-  // the total appears on the last page
-  await expect(host.locator('.printTotals')).toContainText('Total:');
-  // the printed total follows the decided tax rules, and a pending rate is said on the page
-  await expect(host.locator('.printTotals')).toContainText('Total: $272.53');
+  // the totals block is on the last page, line by line
+  const totals = host.locator('.printTotals');
+  await expect(totals.locator('[data-printtotal="subtotal"]')).toHaveText('Subtotal$254.00');
+  await expect(totals.locator('[data-printtotal="discount"]')).toContainText('$10.00');
+  await expect(totals.locator('[data-printtotal="shipping"]')).toHaveText('Shipping$12.50');
+  // Nov 16: tax is pending — the page prints the word, never $0.00 and never a guessed rate
+  await expect(totals.locator('[data-printtotal="tax"]')).toHaveText('TaxPENDING — no tax rate has been confirmed for this sale');
+  await expect(totals.locator('[data-printtotal="totalBeforeTax"]')).toHaveText('Total before tax$256.50');
+  await expect(totals.locator('[data-printtotal="total"]')).toHaveText('TotalPENDING — tax not confirmed');
+  await expect(totals).not.toContainText('$272.53');
+  await expect(totals).not.toContainText('6.25');
   await expect(host.locator('[data-printnote="tax-pending"]')).toContainText('Not a final invoice');
+  await expect(host.locator('[data-printmark="tax-pending"]')).toHaveText('DRAFT — TAX PENDING, NOT A FINAL INVOICE');
+  // who is billed, the terms, and that it has not been issued
+  await expect(host.locator('.printMeta')).toContainText('Bill to');
+  await expect(host.locator('.printMeta')).toContainText('SYNTHETIC Wholesale Buyer');
+  await expect(host.locator('.printMeta')).toContainText('Terms: Due on receipt');
+  await expect(host.locator('.printMeta')).toContainText('Issue date: not issued');
+  await expect(host.locator('.printHdr')).toContainText('Invoice');
   await expect(host).toContainText('SIMULATED');
   expect(errors.join('\n')).not.toMatch(/Trusted Type|require-trusted-types|Refused to/i);
 });

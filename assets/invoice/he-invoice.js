@@ -21,11 +21,12 @@
 
   // Compute totals from line items + adjustments. Everything in cents, then
   // rounded once. tax is applied to the taxable subtotal after discount.
-  // Owner decision #1 (Nov 14): shipping joins the tax base only when
-  // taxShipping is true (bundled / mandatory shipping), a resale-exempt order
-  // (taxExempt) is taxed at 0, and taxRateStatus carries PENDING / CONFIRMED so
-  // a draft with an unconfirmed rate can be recognised. All three default to
-  // the earlier behaviour (goods only, not exempt, no status).
+  // Owner decisions (Nov 14, tightened Nov 16): shipping joins the tax base only
+  // when taxShipping is true (bundled / mandatory shipping); a resale-exempt
+  // order (taxExempt, status EXEMPT) carries tax 0 and says why; and UNKNOWN TAX
+  // IS NEVER SHOWN AS 0. When the status is PENDING, or no rate was supplied at
+  // all, tax, taxRate and total are null and totalBeforeTax carries what is
+  // known. A caller that really means "no tax" passes taxRate: 0.
   function computeTotals(input) {
     const i = input || {};
     const lines = i.lines || [];
@@ -41,32 +42,42 @@
     const orderDiscC = cents(i.orderDiscount);
     const shippingC = cents(i.shipping);
     const taxableC = Math.max(0, subtotalC - orderDiscC);
-    const taxRate = Number(i.taxRate) || 0;    // e.g. 0.08
+    const statusIn = i.taxRateStatus != null ? String(i.taxRateStatus) : null;
     const taxShipping = i.taxShipping === true;
-    const taxExempt = i.taxExempt === true;
+    const taxExempt = i.taxExempt === true || statusIn === 'EXEMPT';
+    const rateKnown = i.taxRate != null && i.taxRate !== '' && isFinite(Number(i.taxRate)) && Number(i.taxRate) >= 0;
+    const pending = !taxExempt && (statusIn === 'PENDING' || !rateKnown);
+    const taxRate = taxExempt ? 0 : (pending ? null : Number(i.taxRate));    // e.g. 0.08
+    const beforeTaxC = Math.max(0, taxableC + shippingC);
     const taxBaseC = taxExempt ? 0 : taxableC + (taxShipping ? shippingC : 0);
-    const taxC = Math.round(taxBaseC * taxRate);
-    const totalC = Math.max(0, taxableC + taxC + shippingC);
+    const taxC = pending ? null : Math.round(taxBaseC * taxRate);
+    const totalC = pending ? null : beforeTaxC + taxC;
     const out = {
       lines: lineOut, currency: i.currency || 'USD',
       subtotal: money(subtotalC), orderDiscount: money(orderDiscC), shipping: money(shippingC),
-      taxRate: taxRate, tax: money(taxC), total: money(totalC), _totalC: totalC,
+      taxRate: taxRate, tax: pending ? null : money(taxC), total: pending ? null : money(totalC), _totalC: totalC,
     };
-    // Only present when the tax decision fields were supplied, so totals built
-    // the earlier way keep exactly the earlier shape.
-    if (taxShipping || taxExempt || i.taxRateStatus != null) {
-      out.taxBase = money(taxBaseC); out.taxShipping = taxShipping; out.taxExempt = taxExempt;
-      out.taxRateStatus = i.taxRateStatus != null ? String(i.taxRateStatus) : null;
+    // Only present when the tax decision fields were supplied or the tax is
+    // pending, so totals built the earlier way keep exactly the earlier shape.
+    if (taxShipping || taxExempt || statusIn != null || pending) {
+      out.taxBase = pending ? null : money(taxBaseC); out.taxShipping = taxShipping; out.taxExempt = taxExempt;
+      out.taxRateStatus = taxExempt ? 'EXEMPT' : (pending ? 'PENDING' : (statusIn != null ? statusIn : null));
+      out.taxPending = pending; out.totalBeforeTax = money(beforeTaxC);
     }
     return out;
   }
 
+  const TAX_NOTES = ['taxPlace', 'taxExemptReason', 'taxPendingReasons'];
   // A DRAFT invoice (editable). Linked to a store account + order when supplied.
   function draftInvoice(input) {
     const i = input || {};
     const t = computeTotals(i);
-    const taxFields = t.taxRateStatus !== undefined ? { taxBase: t.taxBase, taxShipping: t.taxShipping, taxExempt: t.taxExempt, taxRateStatus: t.taxRateStatus } : {};
+    const taxFields = t.taxRateStatus !== undefined ? { taxBase: t.taxBase, taxShipping: t.taxShipping, taxExempt: t.taxExempt, taxRateStatus: t.taxRateStatus, taxPending: t.taxPending, totalBeforeTax: t.totalBeforeTax } : {};
     const taxInput = t.taxRateStatus !== undefined ? { taxShipping: t.taxShipping, taxExempt: t.taxExempt, taxRateStatus: t.taxRateStatus } : {};
+    // What the tax decision was based on travels with the draft (shown to the
+    // reviewer and printed): the place the rate is for, why it is exempt, or
+    // what is still missing.
+    TAX_NOTES.forEach(function (k) { if (i[k] != null) { taxFields[k] = i[k]; taxInput[k] = i[k]; } });
     return Object.assign({
       status: 'draft', number: null, accountId: i.accountId || null, orderId: i.orderId || null,
       billTo: i.billTo || null, shipTo: i.shipTo || null, terms: i.terms || null, issueDate: null, dueDate: null,
@@ -74,7 +85,7 @@
       shipping: t.shipping, taxRate: t.taxRate, tax: t.tax, total: t.total,
       // _input keeps the raw adjustment fields so a later revision recomputes
       // from the same basis; it is internal (never surfaced as money).
-      _input: Object.assign({ orderDiscount: i.orderDiscount || 0, shipping: i.shipping || 0, taxRate: i.taxRate || 0, currency: t.currency }, taxInput),
+      _input: Object.assign({ orderDiscount: i.orderDiscount || 0, shipping: i.shipping || 0, taxRate: i.taxRate != null ? i.taxRate : null, currency: t.currency }, taxInput),
       paid: 0, balance: t.total, payments: [], versions: [], corrections: [], revisions: [],
       synthetic: true, label: 'SIMULATED',
     }, taxFields);
@@ -97,7 +108,7 @@
     };
     // The tax decision fields travel with the draft; a revision keeps them
     // unless the patch changes them (e.g. the owner confirms the local rate).
-    ['taxShipping', 'taxExempt', 'taxRateStatus'].forEach(function (k) {
+    ['taxShipping', 'taxExempt', 'taxRateStatus'].concat(TAX_NOTES).forEach(function (k) {
       const v = p[k] != null ? p[k] : prevInput[k];
       if (v != null) next[k] = v;
     });
@@ -183,7 +194,7 @@
     // Owner decision #1: the live tax rate stays pending until the local rate
     // and sourcing rule are confirmed, so a draft still carrying a PENDING rate
     // cannot become an official invoice.
-    if (draft.taxRateStatus === 'PENDING') return { ok: false, reason: 'the tax rate on this draft is still pending — confirm the local rate before issuing', invoice: draft, pendingTax: true };
+    if (draft.taxRateStatus === 'PENDING' || draft.taxPending === true || draft.tax == null || draft.total == null) return { ok: false, reason: 'the tax on this draft is still pending — it cannot be issued until the tax is confirmed', invoice: draft, pendingTax: true };
     // Owner decision #2: payment terms. When the caller names the account (or
     // the terms), the due date follows from the terms: due on receipt unless the
     // account is approved for Net 14. An explicit dueDate still wins. With
@@ -320,6 +331,33 @@
     };
   }
 
+  // Tax is pending when the draft says so, or when it carries no tax figure.
+  function taxIsPending(inv) {
+    const v = inv || {};
+    return v.taxRateStatus === 'PENDING' || v.taxPending === true || v.tax == null || v.total == null;
+  }
+  // The totals block, line by line, as shown on screen and on paper. An amount
+  // of null is printed as its `text` (never as 0.00).
+  function totalsLines(inv) {
+    const v = inv || {}; const out = [];
+    const pct = function (r) { return (Math.round(Number(r) * 100000) / 1000) + '%'; };
+    out.push({ key: 'subtotal', label: 'Subtotal', amount: v.subtotal == null ? null : v.subtotal });
+    if (Number(v.orderDiscount) > 0) out.push({ key: 'discount', label: 'Order discount', amount: -Number(v.orderDiscount) });
+    out.push({ key: 'shipping', label: 'Shipping', amount: v.shipping == null ? 0 : v.shipping });
+    if (v.taxExempt === true || v.taxRateStatus === 'EXEMPT') {
+      out.push({ key: 'tax', label: 'Tax', amount: 0, text: v.taxExemptReason || 'resale exempt' });
+      out.push({ key: 'total', label: 'Total', amount: v.total });
+    } else if (taxIsPending(v)) {
+      const why = Array.isArray(v.taxPendingReasons) && v.taxPendingReasons.length ? v.taxPendingReasons.join('; ') : 'not confirmed yet';
+      out.push({ key: 'tax', label: 'Tax', amount: null, text: 'PENDING — ' + why });
+      out.push({ key: 'totalBeforeTax', label: 'Total before tax', amount: v.totalBeforeTax != null ? v.totalBeforeTax : null });
+      out.push({ key: 'total', label: 'Total', amount: null, text: 'PENDING — tax not confirmed' });
+    } else {
+      out.push({ key: 'tax', label: 'Tax (' + pct(v.taxRate) + (v.taxPlace ? ', ' + v.taxPlace : '') + (v.taxShipping ? ', shipping taxed' : '') + ')', amount: v.tax });
+      out.push({ key: 'total', label: 'Total', amount: v.total });
+    }
+    return out;
+  }
   function invoicePrint(invoice, opts) {
     const inv = invoice || {}; const o = opts || {};
     const per = o.rowsPerPage || US_LETTER.rowsPerPage;
@@ -334,6 +372,12 @@
         return { pageNo: i + 1, totalPages: pages.length, headings: headings, repeatHeadings: true, rows: rows, showTotals: i === pages.length - 1 };
       }),
       totals: { subtotal: inv.subtotal, orderDiscount: inv.orderDiscount, shipping: inv.shipping, tax: inv.tax, total: inv.total, currency: inv.currency || 'USD' },
+      totalsLines: totalsLines(inv),
+      taxPending: taxIsPending(inv),
+      // A draft, and above all a draft whose tax is pending, must never be
+      // mistaken for a final invoice on paper.
+      watermark: inv.status === 'void' ? 'VOID' : (taxIsPending(inv) ? 'DRAFT — TAX PENDING, NOT A FINAL INVOICE' : (!inv.status || inv.status === 'draft' ? 'DRAFT — NOT ISSUED' : null)),
+      billTo: inv.billTo || null, shipTo: inv.shipTo || null, terms: inv.terms || null, issueDate: inv.issueDate || null, dueDate: inv.dueDate || null,
       note: 'Invoice print model only — not a rendered PDF and nothing is sent.',
     };
   }
@@ -388,12 +432,19 @@
     const tf = o.taxFields || null;
     const input = { lines: lines, shipping: ord.shipping_total || 0, currency: ord.currency || 'USD',
       accountId: acct && acct.id != null ? acct.id : null, orderId: ord.id, terms: termsForAccount(acct) };
-    if (tf) { input.taxRate = tf.taxRate; input.taxRateStatus = tf.taxRateStatus; input.taxShipping = tf.taxShipping; input.taxExempt = tf.taxExempt; }
-    else { input.taxRate = 0; checks.push('no tax rule was supplied — tax is shown as 0 until one is'); }
+    if (tf) {
+      input.taxRate = tf.taxRate; input.taxRateStatus = tf.taxRateStatus; input.taxShipping = tf.taxShipping; input.taxExempt = tf.taxExempt;
+      if (tf.taxPlace != null) input.taxPlace = tf.taxPlace;
+      if (tf.taxExemptReason != null) input.taxExemptReason = tf.taxExemptReason;
+      if (Array.isArray(tf.pendingReasons) && tf.pendingReasons.length) input.taxPendingReasons = tf.pendingReasons.slice();
+    } else {
+      // No tax rule at all: the tax is unknown, so it is pending — never 0.
+      input.taxRate = null; input.taxRateStatus = 'PENDING'; input.taxPendingReasons = ['no tax rule was supplied for this order'];
+    }
     const draft = draftInvoice(input);
     draft.orderNumber = ord.order_number || null;
-    if (tf && tf.taxRateStatus === 'PENDING') checks.push(PENDING_TAX_CHECK);
-    if (tf && tf.needsCertificate) checks.push('resale was claimed but no valid resale certificate is on file — taxed as normal');
+    if (draft.taxRateStatus === 'PENDING') checks.push(PENDING_TAX_CHECK);
+    if (tf && tf.needsCertificate) checks.push(tf.certificateProblem || 'resale was claimed but no verified exemption document is on file — taxed like any other order');
     // The order's own stored total is compared before tax (the order may have been
     // taxed under a different rule); a difference is reported, never "fixed".
     if (ord.subtotal != null && isFinite(Number(ord.subtotal)) && cents(ord.subtotal) !== cents(draft.subtotal)) {
@@ -434,31 +485,63 @@
   // returns a NEW desk and never changes the one it was given. SIMULATED — a
   // number is only reserved inside the desk object, nothing is stored, sent or
   // charged. Who may act follows ROLES_MAY_ISSUE (owner, administrator).
-  const PENDING_TAX_CHECK = 'the tax rate is still pending — this draft cannot be issued until the local rate is confirmed';
+  const PENDING_TAX_CHECK = 'the tax is still pending — this draft cannot be issued until the tax is confirmed for it';
   function openDesk(generated, opts) {
     const o = opts || {};
     const items = (Array.isArray(generated) ? generated : []).filter(function (g) { return g && g.draft && g.draft.status === 'draft'; })
       .map(function (g) { return { orderId: g.draft.orderId, draft: g.draft, checks: (g.checks || []).slice(), account: g.account || null }; });
     return { items: items, issued: [], usedNumbers: (Array.isArray(o.usedNumbers) ? o.usedNumbers : []).slice(), audit: [], synthetic: true, label: 'SIMULATED' };
   }
-  // Record the confirmed tax rule on every draft that is still waiting for it.
-  // taxFields comes from he-tax.invoiceTaxFields({ localRate }) and must be CONFIRMED.
+  // Record a confirmed tax decision on the drafts that are waiting for one.
+  // There is no single rate for every sale: `taxFields` is either
+  //   * a function (item) -> the fields he-tax.invoiceTaxFields gives for THAT
+  //     draft (its own place, shipping terms and exemption), or
+  //   * one set of fields, applied only to pending drafts for the same place
+  //     (taxPlace); a draft with no place recorded is left pending.
+  // A draft only leaves PENDING when its own fields come back CONFIRMED (or
+  // EXEMPT); everything else stays pending and keeps saying why.
   function deskConfirmTax(desk, taxFields, who) {
-    const w = who || {}; const tf = taxFields || {};
+    const w = who || {};
     if (!desk || !Array.isArray(desk.items)) return { ok: false, reason: 'no desk', desk: desk || null };
     if (!ROLES_MAY_ISSUE.has(w.role)) return { ok: false, reason: 'only an owner or administrator may confirm the tax rate', desk: desk };
-    if (tf.taxRateStatus !== 'CONFIRMED' || !isFinite(Number(tf.taxRate)) || Number(tf.taxRate) < 0 || Number(tf.taxRate) > 0.25) return { ok: false, reason: 'a confirmed tax rate between 0% and 25% is required', desk: desk };
-    let changed = 0;
+    const perDraft = typeof taxFields === 'function';
+    const one = perDraft ? null : (taxFields || {});
+    const usable = function (tf) {
+      if (!tf) return false;
+      if (tf.taxRateStatus === 'EXEMPT') return tf.taxExempt === true;
+      return tf.taxRateStatus === 'CONFIRMED' && typeof tf.taxRate === 'number' && isFinite(tf.taxRate) && tf.taxRate >= 0 && tf.taxRate <= 0.25 && typeof tf.taxShipping === 'boolean';
+    };
+    if (!perDraft && !usable(one)) return { ok: false, reason: 'a confirmed tax rate between 0% and 25% is required', desk: desk };
+    const samePlace = function (a, b) { return String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase(); };
+    let changed = 0; const places = [];
     const items = desk.items.map(function (it) {
       if (it.draft.taxRateStatus !== 'PENDING') return it;
-      const r = reviseDraft(it.draft, { taxRate: Number(tf.taxRate), taxRateStatus: 'CONFIRMED' }, { now: w.now || null, actor: w.by || w.role, reason: 'local tax rate confirmed' });
-      if (!r.ok) return it;
+      let tf = null;
+      if (perDraft) { try { tf = taxFields(it); } catch (e) { tf = null; } }
+      else if (it.draft.taxPlace != null && one.taxPlace != null && samePlace(it.draft.taxPlace, one.taxPlace)) tf = one;
+      if (!usable(tf)) {
+        // Still pending — but say what is missing NOW (for example the rate is
+        // confirmed and only the shipping terms are left), not what was missing before.
+        if (perDraft && tf && tf.taxRateStatus === 'PENDING' && Array.isArray(tf.pendingReasons) && tf.pendingReasons.length
+            && JSON.stringify(tf.pendingReasons) !== JSON.stringify(it.draft.taxPendingReasons || [])) {
+          const reasons = tf.pendingReasons.slice();
+          return Object.assign({}, it, { draft: Object.assign({}, it.draft, { taxPendingReasons: reasons, _input: Object.assign({}, it.draft._input, { taxPendingReasons: reasons }) }) });
+        }
+        return it;
+      }
+      const patch = { taxRate: tf.taxRateStatus === 'EXEMPT' ? 0 : tf.taxRate, taxRateStatus: tf.taxRateStatus, taxShipping: tf.taxShipping === true, taxExempt: tf.taxExempt === true, taxPendingReasons: [] };
+      if (tf.taxPlace != null) patch.taxPlace = tf.taxPlace;
+      if (tf.taxExemptReason != null) patch.taxExemptReason = tf.taxExemptReason;
+      const r = reviseDraft(it.draft, patch, { now: w.now || null, actor: w.by || w.role, reason: tf.taxRateStatus === 'EXEMPT' ? 'resale exemption verified' : 'tax rate confirmed' + (tf.taxPlace ? ' for ' + tf.taxPlace : '') });
+      if (!r.ok || r.invoice.taxRateStatus === 'PENDING') return it;
       changed += 1;
+      if (tf.taxPlace && places.indexOf(tf.taxPlace) < 0) places.push(tf.taxPlace);
       return Object.assign({}, it, { draft: r.invoice, checks: it.checks.filter(function (c) { return c !== PENDING_TAX_CHECK; }) });
     });
-    if (!changed) return { ok: false, reason: 'no draft is waiting for a tax rate', desk: desk };
-    return { ok: true, changed: changed, desk: Object.assign({}, desk, { items: items,
-      audit: desk.audit.concat([{ action: 'TAX_CONFIRMED', rate: Number(tf.taxRate), drafts: changed, by: w.by || w.role, at: w.now || null }]) }) };
+    if (!changed) return { ok: false, reason: 'no waiting draft matches this tax decision', desk: desk };
+    return { ok: true, changed: changed, stillPending: items.filter(function (it) { return it.draft.taxRateStatus === 'PENDING'; }).length,
+      desk: Object.assign({}, desk, { items: items,
+        audit: desk.audit.concat([{ action: 'TAX_CONFIRMED', rate: perDraft ? null : (one.taxRateStatus === 'EXEMPT' ? 0 : one.taxRate), places: places, drafts: changed, by: w.by || w.role, at: w.now || null }]) }) };
   }
   // Issue one draft: the next free number for the business year of issue, the
   // terms and due date for its account, and the invoice moves to the issued list.
@@ -526,5 +609,5 @@
     return new Date(base.getTime() + days * 86400000).toISOString().slice(0, 10);
   }
 
-  return { STATES, ROLES_MAY_ISSUE, PAYMENT_TERMS, US_LETTER, BUSINESS_HEADER, MISSING_SEQUENCE_CONTRACT, computeTotals, draftInvoice, reviseDraft, nextInvoiceNumber, createNumberSequence, invoiceHeader, issue, applyPayment, voidInvoice, creditNote, withOverdue, packingSlip, paginate, invoicePrint, packingSlipPrint, termsForAccount, dueDateFor, businessDay, draftFromOrder, draftsForOrders, openDesk, deskConfirmTax, deskIssue, deskVoid };
+  return { STATES, ROLES_MAY_ISSUE, PAYMENT_TERMS, US_LETTER, BUSINESS_HEADER, MISSING_SEQUENCE_CONTRACT, computeTotals, draftInvoice, reviseDraft, nextInvoiceNumber, createNumberSequence, invoiceHeader, issue, applyPayment, voidInvoice, creditNote, withOverdue, packingSlip, paginate, invoicePrint, totalsLines, taxIsPending, packingSlipPrint, termsForAccount, dueDateFor, businessDay, draftFromOrder, draftsForOrders, openDesk, deskConfirmTax, deskIssue, deskVoid };
 }));

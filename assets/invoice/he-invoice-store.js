@@ -32,7 +32,7 @@
   // Every column this file reads or writes. A test checks each one against the
   // CREATE TABLE in drafts/32, so the two cannot drift apart unnoticed.
   const WRITE_COLUMNS = ['order_id', 'account_ref', 'bill_to', 'ship_to', 'status', 'terms', 'currency', 'lines',
-    'subtotal', 'order_discount', 'shipping', 'tax_rate', 'tax_rate_status', 'tax_shipping', 'tax_exempt', 'tax', 'total'];
+    'subtotal', 'order_discount', 'shipping', 'tax_rate', 'tax_rate_status', 'tax_place', 'tax_shipping', 'tax_exempt', 'tax_exempt_reason', 'tax', 'total'];
   const READ_COLUMNS = ['id'].concat(WRITE_COLUMNS, ['invoice_number', 'invoice_year', 'invoice_seq', 'issue_date', 'due_date',
     'issued_at', 'issued_by', 'voided_at', 'voided_by', 'void_reason', 'created_at', 'updated_at']);
   const SELECT = READ_COLUMNS.join(',');
@@ -105,19 +105,32 @@
     const subtotal = moneyField('subtotal', draft.subtotal, problems);
     const orderDiscount = moneyField('order discount', draft.orderDiscount, problems);
     const shipping = moneyField('shipping', draft.shipping, problems);
-    const tax = moneyField('tax', draft.tax, problems);
-    const total = moneyField('total', draft.total, problems);
-    const rate = Number(draft.taxRate == null ? 0 : draft.taxRate);
-    if (!isFinite(rate) || rate < 0 || rate > MAX_TAX_RATE) problems.push('the tax rate must be between 0 and ' + (MAX_TAX_RATE * 100) + '%');
-    const taxExempt = draft.taxExempt === true;
+    // Decision 1 (Nov 16): unknown tax is never stored as 0. Only an explicitly
+    // CONFIRMED rate (with its place) or a documented EXEMPT order carries
+    // figures; everything else is stored PENDING with no rate, tax or total.
+    const taxExempt = draft.taxExempt === true || draft.taxRateStatus === 'EXEMPT';
+    const taxRateStatus = taxExempt ? 'EXEMPT' : (draft.taxRateStatus === 'CONFIRMED' ? 'CONFIRMED' : 'PENDING');
+    const pending = taxRateStatus === 'PENDING';
+    const tax = pending ? null : moneyField('tax', draft.tax, problems);
+    const total = pending ? null : moneyField('total', draft.total, problems);
+    let rate = null;
+    if (taxExempt) rate = 0;
+    else if (!pending) {
+      rate = typeof draft.taxRate === 'number' ? draft.taxRate : NaN;
+      if (!isFinite(rate) || rate < 0 || rate > MAX_TAX_RATE) problems.push('a confirmed tax rate must be between 0 and ' + (MAX_TAX_RATE * 100) + '%');
+    }
+    const taxPlace = draft.taxPlace == null ? null : String(draft.taxPlace).trim().slice(0, 200);
+    const taxExemptReason = draft.taxExemptReason == null ? null : String(draft.taxExemptReason).trim().slice(0, 500);
+    if (taxRateStatus === 'CONFIRMED' && !taxPlace) problems.push('a confirmed tax rate must say which place it is for');
     if (taxExempt && tax !== 0) problems.push('a resale-exempt invoice cannot carry tax');
-    // Decision 1: only an explicitly CONFIRMED rate is stored as confirmed.
-    const taxRateStatus = draft.taxRateStatus === 'CONFIRMED' ? 'CONFIRMED' : 'PENDING';
+    if (taxExempt && !(taxExemptReason && taxExemptReason.length >= 5)) problems.push('a resale-exempt invoice must record the verified exemption document');
     if (draft.terms != null && TERMS.indexOf(draft.terms) < 0) problems.push('unknown payment terms: ' + draft.terms);
     const lineSum = lines.reduce(function (s, l) { return s + cents(l.lineTotal); }, 0);
     if (srcLines && lineSum !== cents(subtotal)) problems.push('the lines do not add up to the subtotal');
-    const expectC = Math.max(0, cents(subtotal) - cents(orderDiscount)) + cents(tax) + cents(shipping);
-    if (expectC !== cents(total)) problems.push('the total does not equal subtotal - discount + tax + shipping');
+    if (!pending) {
+      const expectC = Math.max(0, cents(subtotal) - cents(orderDiscount)) + cents(tax) + cents(shipping);
+      if (expectC !== cents(total)) problems.push('the total does not equal subtotal - discount + tax + shipping');
+    }
     const currency = draft.currency == null ? 'USD' : String(draft.currency);
     if (!/^[A-Z]{3}$/.test(currency)) problems.push('the currency must be a three-letter code');
     const row = {
@@ -125,8 +138,9 @@
       bill_to: addressField('bill-to', draft.billTo, problems), ship_to: addressField('ship-to', draft.shipTo, problems),
       status: 'draft', terms: draft.terms == null ? null : draft.terms, currency: currency, lines: lines,
       subtotal: subtotal, order_discount: orderDiscount, shipping: shipping,
-      tax_rate: isFinite(rate) ? Math.round(rate * 100000) / 100000 : 0, tax_rate_status: taxRateStatus,
-      tax_shipping: draft.taxShipping === true, tax_exempt: taxExempt, tax: tax, total: total,
+      tax_rate: rate == null || !isFinite(rate) ? null : Math.round(rate * 100000) / 100000, tax_rate_status: taxRateStatus,
+      tax_place: taxPlace || null, tax_shipping: !taxExempt && draft.taxShipping === true, tax_exempt: taxExempt,
+      tax_exempt_reason: taxExempt ? taxExemptReason : null, tax: tax, total: total,
     };
     return problems.length ? { ok: false, row: null, problems: problems } : { ok: true, row: row, problems: [] };
   }
@@ -136,7 +150,9 @@
   function fromRow(row) {
     if (!isObj(row)) return null;
     const num = (v) => { const n = Number(v); return isFinite(n) ? n : 0; };
-    const total = num(row.total);
+    const pending = (row.tax_rate_status || 'PENDING') === 'PENDING' || row.tax == null || row.total == null;
+    const total = pending ? null : num(row.total);
+    const beforeTax = Math.round((Math.max(0, num(row.subtotal) - num(row.order_discount)) + num(row.shipping)) * 100) / 100;
     return {
       id: row.id || null, status: row.status || null, number: row.invoice_number || null,
       orderId: row.order_id || null, accountId: row.account_ref || null,
@@ -144,8 +160,10 @@
       terms: row.terms || null, issueDate: row.issue_date || null, dueDate: row.due_date || null,
       currency: row.currency || 'USD', lines: Array.isArray(row.lines) ? row.lines : [],
       subtotal: num(row.subtotal), orderDiscount: num(row.order_discount), shipping: num(row.shipping),
-      taxRate: num(row.tax_rate), taxRateStatus: row.tax_rate_status || 'PENDING',
-      taxShipping: row.tax_shipping === true, taxExempt: row.tax_exempt === true, tax: num(row.tax), total: total,
+      taxRate: pending ? null : num(row.tax_rate), taxRateStatus: pending ? 'PENDING' : row.tax_rate_status,
+      taxPlace: row.tax_place || null, taxExemptReason: row.tax_exempt_reason || null,
+      taxShipping: row.tax_shipping === true, taxExempt: row.tax_exempt === true, tax: pending ? null : num(row.tax), total: total,
+      taxPending: pending, totalBeforeTax: beforeTax,
       voidReason: row.void_reason || null, issuedAt: row.issued_at || null, voidedAt: row.voided_at || null,
       paid: 0, balance: total, payments: [], versions: [], corrections: [], revisions: [],
       synthetic: false, storage: 'database',

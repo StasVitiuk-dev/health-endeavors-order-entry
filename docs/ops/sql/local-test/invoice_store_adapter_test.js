@@ -115,13 +115,18 @@ function client(uid) {
     { sku: 'SYN-B', product_name: 'Synthetic item B', quantity: 4, unit_price: 18.5, line_total: 74 }];
   const mk = (n, tf, acct) => Object.assign(I.draftFromOrder({ id: ORD(n), order_number: 'SYN-' + n, currency: 'USD', shipping_total: 12.5 }, ITEMS,
     { account: acct || { id: 'SYN-ACCT-' + n }, taxFields: tf }).draft, { billTo: { name: 'SYN Store ' + n, city: 'Chicago', state: 'IL' } });
-  const PENDING = T.invoiceTaxFields({ shipping: { mandatory: true } });
-  const CONFIRMED = T.invoiceTaxFields({ shipping: { mandatory: true }, localRate: 0.0275 });
+  // Nov 16: no rate is built in. 9% is a made-up test rate confirmed for a made-up place.
+  const SHIP = { amount: 12.5, mandatory: true };
+  const RATE = { place: 'Example City, IL', rate: 0.09, confirmedBy: 'owner', confirmedAt: '2026-11-16T15:00:00Z' };
+  const PENDING = T.invoiceTaxFields({ shipping: SHIP });
+  const CONFIRMED = T.invoiceTaxFields({ shipping: SHIP, rateSetting: RATE });
+  const EXEMPT = T.invoiceTaxFields({ shipping: SHIP, resale: true, resaleCertificate: { number: 'SYN-RESALE-0001', verified: true, verifiedBy: 'owner', verifiedAt: '2026-11-01' } });
 
   const s1 = await staff.saveDraft(mk(1, PENDING)); if (!s1.ok) console.log('    (' + s1.message + ')');
   ok('staff save a draft made from an order', s1.ok, true);
   ok('  stored as a pending-rate draft with no number', psql(DB, "select status||'/'||tax_rate_status||'/'||coalesce(invoice_number,'none')||'/'||(bill_to->>'name')||'/'||tax_shipping from invoices where order_id = '" + ORD(1) + "'"), 'draft/PENDING/none/SYN Store 1/true');
-  ok('  read back through the adapter, the totals match the engine', [s1.invoice.subtotal, s1.invoice.shipping, s1.invoice.total].join('/'), [254, 12.5, mk(1, PENDING).total].join('/'));
+  ok('  the database holds no rate, no tax and no total for it (not 0)', psql(DB, "select (tax_rate is null)::text||'/'||(tax is null)::text||'/'||(total is null)::text from invoices where order_id = '" + ORD(1) + "'"), 'true/true/true');
+  ok('  read back through the adapter: tax pending, no total, the amount before tax', [s1.invoice.subtotal, s1.invoice.shipping, s1.invoice.tax, s1.invoice.total, s1.invoice.taxPending, s1.invoice.totalBeforeTax].join('/'), [254, 12.5, null, null, true, 266.5].join('/'));
   has('a second draft for the same order is refused', (await staff.saveDraft(mk(1, PENDING))).message, /already has an invoice that is not void/);
   has('staff cannot issue (refused before the database)', (await staff.issue(s1.invoice.id)).message, /Only the owner or an administrator/);
   const pageless = S.createStore({ client: client(E), enabled: true });      // a page that does not know the role
@@ -131,6 +136,7 @@ function client(uid) {
   const conf = Object.assign(mk(1, CONFIRMED), { id: s1.invoice.id });
   const up = await staff.saveDraft(conf);
   ok('staff update the draft once the rate is confirmed', up.ok && up.invoice.taxRateStatus, 'CONFIRMED');
+  ok('  the stored row names the place and adds up', psql(DB, "select tax_place||'/'||tax_rate||'/'||tax||'/'||total from invoices where id = '" + s1.invoice.id + "'"), 'Example City, IL/0.09000/23.99/290.49');
   const i1 = await owner.issue(s1.invoice.id);
   ok('the owner issues it: the database gives the number', i1.ok && /^HE-\d{4}-0001$/.test(i1.number), true);
   ok('  due on receipt, dated today in Central time', i1.terms + '/' + (i1.issueDate === i1.dueDate), 'DUE_ON_RECEIPT/true');
@@ -154,7 +160,13 @@ function client(uid) {
   ok('  it is gone', psql(DB, "select count(*) from invoices where order_id = '" + ORD(3) + "'"), '0');
   has('a row the page did not check is still refused by the database', (await (async () => {
     const r = client(E).from('invoices').insert({ order_id: ORD(3), status: 'draft', tax_exempt: true, tax: 5, total: 5 }).select('id').single();
-    return (await r).error.message; })()), /invoices_exempt_has_no_tax/);
+    return (await r).error.message; })()), /violates check constraint/);
+  has('  a zero put in for unknown tax is refused by the database too', (await (async () => {
+    const r = client(E).from('invoices').insert({ order_id: ORD(3), status: 'draft', tax: 0, total: 0 }).select('id').single();
+    return (await r).error.message; })()), /invoices_pending_has_no_figures/);
+  const sx = await staff.saveDraft(mk(3, EXEMPT));
+  ok('a verified resale order is saved as exempt, with tax 0 and the document on record', sx.ok && psql(DB, "select tax_rate_status||'/'||tax||'/'||total||'/'||(tax_exempt_reason like '%SYN-RESALE-0001%')::text from invoices where id = '" + sx.invoice.id + "'"), 'EXEMPT/0.00/266.50/true');
+  ok('  staff remove that draft again', (await staff.removeDraft(sx.invoice.id)).ok, true);
 
   const all = await owner.list(); if (!all.ok) console.log('    (' + all.message + ')');
   ok('the list shows what is stored, newest first, with numbers', all.invoices.map(x => x.status).join(','), 'void,issued');

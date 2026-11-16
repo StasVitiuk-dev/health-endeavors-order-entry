@@ -16,8 +16,11 @@ const ITEMS = [
   { sku: 'SYN-B', product_name: 'Synthetic item B', quantity: 4, unit_price: 18.5, line_total: 74 },
 ];
 const ORDER = { id: 'SYN-O1', order_number: 'SYN-1001', currency: 'USD', subtotal: 254, shipping_total: 12.5, status: 'paid' };
-const PENDING = T.invoiceTaxFields({ shipping: { mandatory: true } });
-const CONFIRMED = T.invoiceTaxFields({ shipping: { mandatory: true }, localRate: 0.0275 });
+// Nov 16: no rate is built in; 9% is a made-up test rate confirmed for a made-up place.
+const SHIP = { amount: 12.5, mandatory: true };
+const RATE = { place: 'Example City, IL', rate: 0.09, confirmedBy: 'owner', confirmedAt: '2026-11-14T10:00:00Z' };
+const PENDING = T.invoiceTaxFields({ shipping: SHIP });
+const CONFIRMED = T.invoiceTaxFields({ shipping: SHIP, rateSetting: RATE });
 
 test('a draft is built from the order: lines, discount, shipping, account, terms — and it is only a draft', () => {
   const r = I.draftFromOrder(ORDER, ITEMS, { account: { id: 'SYN-ACCT-1' }, taxFields: CONFIRMED });
@@ -37,15 +40,17 @@ test('a draft is built from the order: lines, discount, shipping, account, terms
   expect(ORDER).toEqual({ id: 'SYN-O1', order_number: 'SYN-1001', currency: 'USD', subtotal: 254, shipping_total: 12.5, status: 'paid' });
 });
 
-test('a draft made with the pending tax rate says so and cannot be issued until the rate is confirmed', () => {
+test('a draft made while the tax is pending says so, shows no tax figure, and cannot be issued until the rate is confirmed', () => {
   const r = I.draftFromOrder(ORDER, ITEMS, { account: { id: 'SYN-ACCT-1' }, taxFields: PENDING });
   expect(r.needsReview).toBe(true);
-  expect(r.checks.join(' | ')).toMatch(/tax rate is still pending/);
+  expect(r.checks.join(' | ')).toMatch(/tax is still pending/);
+  expect([r.draft.tax, r.draft.total, r.draft.totalBeforeTax]).toEqual([null, null, 266.5]);
+  expect(r.draft.taxPendingReasons.join(' ')).toMatch(/no tax rate has been confirmed/);
   const tried = I.issue(r.draft, { role: 'owner', number: 'HE-2026-0001', now: '2026-11-14T10:00:00Z', account: { id: 'SYN-ACCT-1' } });
   expect(tried.ok).toBe(false);
   expect(tried.pendingTax).toBe(true);
   // Confirming the rate (a recorded revision) keeps the order link, then issuing works.
-  const rev = I.reviseDraft(r.draft, { taxRate: CONFIRMED.taxRate, taxRateStatus: 'CONFIRMED' }, { actor: 'owner', reason: 'local rate confirmed (synthetic)' });
+  const rev = I.reviseDraft(r.draft, { taxRate: CONFIRMED.taxRate, taxRateStatus: 'CONFIRMED', taxShipping: CONFIRMED.taxShipping, taxPlace: CONFIRMED.taxPlace }, { actor: 'owner', reason: 'rate confirmed (synthetic)' });
   expect(rev.invoice).toMatchObject({ orderId: 'SYN-O1', orderNumber: 'SYN-1001', accountId: 'SYN-ACCT-1', terms: 'DUE_ON_RECEIPT' });
   const issued = I.issue(rev.invoice, { role: 'owner', number: 'HE-2026-0001', now: '2026-11-14T10:00:00Z', account: { id: 'SYN-ACCT-1' } });
   expect(issued.ok).toBe(true);
@@ -60,12 +65,15 @@ test('things that do not add up are listed for the reviewer, never silently corr
   expect(over.checks.join(' | ')).toMatch(/more than quantity x price/);
   expect(over.checks.join(' | ')).toMatch(/order subtotal \(300\.00\) differs from the lines \(20\.00\)/);
   expect(over.draft.subtotal).toBe(20);                         // built from the lines as given, not bent to match
+  // No tax rule at all: the tax is unknown, so it is pending — never 0.
   const noTax = I.draftFromOrder(ORDER, ITEMS, {});
-  expect(noTax.draft.tax).toBe(0);
-  expect(noTax.checks.join(' | ')).toMatch(/no tax rule was supplied/);
-  const resale = I.draftFromOrder(ORDER, ITEMS, { taxFields: T.invoiceTaxFields({ resale: true, localRate: 0.02, shipping: { mandatory: true } }) });
+  expect(noTax.draft.tax).toBeNull();
+  expect(noTax.draft.total).toBeNull();
+  expect(noTax.draft.taxPendingReasons).toEqual(['no tax rule was supplied for this order']);
+  expect(noTax.checks.join(' | ')).toMatch(/tax is still pending/);
+  const resale = I.draftFromOrder(ORDER, ITEMS, { taxFields: T.invoiceTaxFields({ resale: true, rateSetting: RATE, shipping: SHIP }) });
   expect(resale.draft.tax).toBeGreaterThan(0);
-  expect(resale.checks.join(' | ')).toMatch(/no valid resale certificate/);
+  expect(resale.checks.join(' | ')).toMatch(/no exemption document is on file/);
 });
 
 test('orders that should not be invoiced are refused with a reason', () => {

@@ -149,10 +149,10 @@ test('reconciliation, preview switches and invoice desk: results are announced',
   await expect(page.locator('#reconcileHost tr[data-outcome="UNDERPAID"] [data-reconcile="review"]')).toBeFocused();
   await gotoPage(page, 'reportHistoryPanel');
   const desk = page.locator('#invoicePreviewHost .invoiceDesk');
-  await desk.getByLabel(/Local tax rate, percent/).fill('abc');
-  await desk.locator('[data-invoicedesk="confirm-tax"]').click();
+  await desk.getByLabel('Full tax rate for Example City A, IL, percent').fill('abc');
+  await desk.locator('[data-invoicedesk="confirm-tax"][data-place="Example City A, IL"]').click();
   await expect(announced(page)).toContainText('Not confirmed');
-  await expect(desk.locator('[data-invoicedesk="confirm-tax"]')).toBeFocused();
+  await expect(desk.locator('[data-invoicedesk="confirm-tax"][data-place="Example City A, IL"]')).toBeFocused();
   await gotoPage(page, 'flagsPanel');
   const sw = page.locator('#previewSwitchesHost').getByRole('button', { name: 'Turn on Payment reconciliation' });
   await expect(sw).toHaveCount(0);   // already on via this test's setup, so the button offers "Turn off"

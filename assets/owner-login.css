@@ -1317,5 +1317,12 @@ table.sysStatus td{ overflow-wrap:anywhere; }
   .printView thead{ display:table-header-group; }
   .printView th, .printView td{ padding:4px 8px; text-align:left; border-bottom:1px solid #ccc; }
   .printView tr{ break-inside:avoid; }
-  .printView .printTotals{ margin-top:12px; }
+  .printView .printTotals{ margin-top:12px; margin-left:auto; width:60%; }
+  .printView .printTotalRow{ display:flex; justify-content:space-between; gap:16px; padding:3px 8px; }
+  .printView .printGrand{ font-weight:700; border-top:2px solid #000; margin-top:4px; padding-top:6px; }
+  .printView .printMeta{ display:flex; gap:24px; margin:12px 0; }
+  .printView .printParty{ flex:1; }
+  .printView .printLabel{ font-weight:700; }
+  .printView .printMark{ border:2px solid #000; padding:6px 10px; margin-bottom:10px; font-weight:700; text-align:center; letter-spacing:0.04em; }
+  .printView .printRemit{ margin-top:12px; padding:0 8px; }
 }

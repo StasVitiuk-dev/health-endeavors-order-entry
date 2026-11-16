@@ -3,7 +3,9 @@
 # Tests drafts/32 (invoice storage, numbering and the issue / void functions)
 # and drafts/33 (rollback) on a throwaway copy, acting as the owner, an
 # administrator, an employee, a deactivated account and an anonymous visitor.
-# Covers the owner's decisions of Nov 14: a pending tax rate blocks issuing;
+# Covers the owner's decisions of Nov 14 and Nov 16: pending tax holds no figures
+# (never 0) and blocks issuing; a confirmed rate names its place; a resale-exempt
+# invoice records the verified document; the total must add up;
 # due on receipt / Net 14; HE-YYYY-NNNN assigned at issue, per year, no gaps,
 # never reused, safe when two people issue at once; issued invoices cannot be
 # edited or deleted; only the owner or an administrator can issue or void.
@@ -32,7 +34,7 @@ q "delete from profiles where id in ('$O','$A','$E','$I');
    insert into profiles (id, email, role, is_active, account_number) values
    ('$O','owner@example.test','owner',true,'100000001'), ('$A','admin@example.test','administrator',true,'100000002'),
    ('$E','staff@example.test','employee',true,'100000003'), ('$I','gone@example.test','employee',false,'100000004')" >/dev/null
-for n in 1 2 3 4 5; do q "insert into orders (id, channel, status, order_number) values ('00000000-0000-4000-8000-00000000c00$n','synthetic','paid','SYN-$n')" >/dev/null; done
+for n in 1 2 3 4 5 6; do q "insert into orders (id, channel, status, order_number) values ('00000000-0000-4000-8000-00000000c00$n','synthetic','paid','SYN-$n')" >/dev/null; done
 ORD() { echo "00000000-0000-4000-8000-00000000c00$1"; }
 SNAP="select (select count(*) from orders)||'/'||(select count(*) from tasks)||'/'||(select count(*) from expenses)||'/'||(select count(*) from inventory)"
 before=$(q "$SNAP")
@@ -51,9 +53,10 @@ has "a visitor cannot read invoices" "$(as anon "select count(*) from invoices")
 has "a visitor cannot run issue_invoice" "$(as anon "select public.issue_invoice('$(ORD 1)')")" "permission denied"
 ok  "a deactivated account sees nothing" "$(as $I "select count(*) from invoices")" "0"
 has "a deactivated account cannot add a draft" "$(as $I "insert into invoices (order_id) values ('$(ORD 1)')")" "row-level security"
-D1=$(as $E "insert into invoices (order_id, lines, subtotal, shipping, tax_rate, tax, total) values ('$(ORD 1)', '[{\"sku\":\"SYN-A\",\"quantity\":6,\"unitPrice\":18.5}]', 111, 9, 0.0625, 7.5, 127.5) returning id")
+D1=$(as $E "insert into invoices (order_id, lines, subtotal, shipping) values ('$(ORD 1)', '[{\"sku\":\"SYN-A\",\"quantity\":6,\"unitPrice\":18.5}]', 111, 10) returning id")
 ok  "staff can prepare a draft" "$(q "select status||'/'||tax_rate_status||'/'||coalesce(invoice_number,'none') from invoices where id = '$D1'")" "draft/PENDING/none"
-ok  "staff can edit their draft" "$(as $E "update invoices set shipping = 10, total = 128.5 where id = '$D1' returning total")" "128.50"
+ok  "  a new draft has no tax rate, no tax and no total (not 0)" "$(q "select (tax_rate is null)::text||'/'||(tax is null)::text||'/'||(total is null)::text from invoices where id = '$D1'")" "true/true/true"
+ok  "staff can edit their draft" "$(as $E "update invoices set shipping = 9 where id = '$D1' returning shipping")" "9.00"
 has "staff cannot create a row that is already issued" "$(as $E "insert into invoices (order_id, status) values ('$(ORD 2)', 'issued')")" "ERROR"
 has "staff cannot issue" "$(as $E "select public.issue_invoice('$D1')")" "Only the owner or an administrator can issue"
 has "staff cannot issue by editing the status either" "$(as $E "update invoices set status = 'issued', tax_rate_status = 'CONFIRMED' where id = '$D1'")" "ERROR"
@@ -61,12 +64,23 @@ has "staff cannot touch the number counter" "$(as $E "insert into invoice_counte
 ok  "  the draft is still a draft" "$(q "select status from invoices where id = '$D1'")" "draft"
 ok  "a draft keeps who it bills, where it ships and the tax choices" "$(as $E "update invoices set account_ref = 'SYN-ACCT-1', bill_to = '{\"name\":\"SYN Cedar Spa\",\"city\":\"Chicago\"}', ship_to = '{\"name\":\"SYN Cedar Spa\"}', tax_shipping = true where id = '$D1' returning account_ref||'/'||(bill_to->>'name')||'/'||tax_shipping||'/'||tax_exempt")" "SYN-ACCT-1/SYN Cedar Spa/true/false"
 has "  a bill-to that is not an object is refused" "$(as $E "update invoices set bill_to = '[1,2]' where id = '$D1'")" "violates check constraint"
-has "  a resale-exempt draft cannot carry tax" "$(as $E "update invoices set tax_exempt = true where id = '$D1'")" "invoices_exempt_has_no_tax"
+has "  a draft cannot be marked exempt without the status and the document" "$(as $E "update invoices set tax_exempt = true where id = '$D1'")" "violates check constraint"
 
-echo " decision 1: a pending tax rate blocks issuing"
-has "the owner cannot issue while the rate is pending" "$(as $O "select public.issue_invoice('$D1')")" "tax rate on this draft is still pending"
+echo " decision 1: unknown tax is never 0, and pending tax blocks issuing"
+has "a pending draft cannot hold a tax figure, not even 0" "$(as $O "update invoices set tax = 0 where id = '$D1'")" "invoices_pending_has_no_figures"
+has "  nor a total" "$(as $O "update invoices set total = 120 where id = '$D1'")" "invoices_pending_has_no_figures"
+has "  nor a rate" "$(as $O "update invoices set tax_rate = 0.09 where id = '$D1'")" "invoices_pending_has_no_figures"
+has "the owner cannot issue while the tax is pending" "$(as $O "select public.issue_invoice('$D1')")" "tax on this draft is still pending"
+has "  nor by editing the status directly" "$(as $O "update invoices set status = 'issued' where id = '$D1'")" "tax on this draft is still pending"
 ok  "  no number was used" "$(q "select count(*) from invoice_counters")" "0"
-as $O "update invoices set tax_rate = 0.09, tax_rate_status = 'CONFIRMED', tax = 10.80, total = 130.80, shipping = 9 where id = '$D1'" >/dev/null
+has "a confirmed rate must say which place it is for" "$(as $O "update invoices set tax_rate = 0.09, tax_rate_status = 'CONFIRMED', tax = 10.80, total = 130.80 where id = '$D1'")" "invoices_confirmed_names_place"
+has "a confirmed draft must carry all its figures" "$(as $O "update invoices set tax_rate = 0.09, tax_rate_status = 'CONFIRMED', tax_place = 'Example City, IL' where id = '$D1'")" "invoices_pending_has_no_figures"
+has "the total must be what the parts add up to" "$(as $O "update invoices set tax_rate = 0.09, tax_rate_status = 'CONFIRMED', tax_place = 'Example City, IL', tax = 10.80, total = 131.00 where id = '$D1'")" "invoices_total_adds_up"
+has "a rate above 25% is refused" "$(as $O "update invoices set tax_rate = 0.9, tax_rate_status = 'CONFIRMED', tax_place = 'Example City, IL', tax = 108, total = 228 where id = '$D1'")" "violates check constraint"
+has "an exempt draft must record the verified document" "$(as $O "update invoices set tax_rate_status = 'EXEMPT', tax_exempt = true, tax_rate = 0, tax = 0, total = 120 where id = '$D1'")" "invoices_exempt_is_documented"
+has "  and cannot carry tax" "$(as $O "update invoices set tax_rate_status = 'EXEMPT', tax_exempt = true, tax_exempt_reason = 'certificate SYN-RESALE-0001 verified', tax_rate = 0, tax = 5, total = 125 where id = '$D1'")" "invoices_exempt_is_documented"
+ok  "  the draft is still pending with no figures after all of that" "$(q "select tax_rate_status||'/'||(tax is null)::text||'/'||(total is null)::text from invoices where id = '$D1'")" "PENDING/true/true"
+ok  "confirming the rate for a named place gives the draft its figures" "$(as $O "update invoices set tax_rate = 0.09, tax_rate_status = 'CONFIRMED', tax_place = 'Example City, IL', tax = 10.80, total = 130.80 where id = '$D1' returning total")" "130.80"
 
 echo " decisions 2, 3, 4: number, day of issue, terms and due date"
 R=$(as $O "select public.issue_invoice('$D1')")
@@ -76,7 +90,7 @@ R=$(as $O "select public.issue_invoice('$D1')")
 has "asking again is safe: same number, marked already issued" "$R" "\"already_issued\": true"
 has "  and it is the same number" "$R" "$(num 1)"
 ok  "  and the counter did not move" "$(q "select last_seq from invoice_counters where invoice_year = $Y")" "1"
-D2=$(as $E "insert into invoices (order_id, tax_rate_status, total) values ('$(ORD 2)', 'CONFIRMED', 50) returning id")
+D2=$(as $E "insert into invoices (order_id, subtotal, tax_rate, tax_rate_status, tax_place, tax, total) values ('$(ORD 2)', 50, 0, 'CONFIRMED', 'Example City, IL', 0, 50) returning id")
 has "Net 14 without a credit approval is refused" "$(as $A "select public.issue_invoice('$D2', 'NET_14')")" "only for an account approved for credit"
 has "unknown terms are refused" "$(as $A "select public.issue_invoice('$D2', 'NET_90', true)")" "Unknown payment terms"
 R=$(as $A "select public.issue_invoice('$D2', 'NET_14', true)")
@@ -84,7 +98,7 @@ has "an administrator issues with Net 14 once credit is confirmed" "$R" "$(num 2
 ok  "  due 14 days after the day of issue" "$(q "select due_date||'/'||terms from invoices where id = '$D2'")" "$PLUS14/NET_14"
 
 echo " a number cannot be typed, edited, reused or lost"
-D3=$(as $O "insert into invoices (order_id, tax_rate_status, total, invoice_number, invoice_year, invoice_seq) values ('$(ORD 3)', 'CONFIRMED', 20, 'HE-1999-0001', 1999, 1) returning id")
+D3=$(as $O "insert into invoices (order_id, subtotal, tax_rate, tax_rate_status, tax_place, tax, total, invoice_number, invoice_year, invoice_seq) values ('$(ORD 3)', 20, 0, 'CONFIRMED', 'Example City, IL', 0, 20, 'HE-1999-0001', 1999, 1) returning id")
 ok  "a typed number on a new draft is ignored" "$(q "select coalesce(invoice_number,'none') from invoices where id = '$D3'")" "none"
 as $O "update invoices set invoice_number = 'HE-1999-0002' where id = '$D3'" >/dev/null
 ok  "a typed number on an edit is ignored" "$(q "select coalesce(invoice_number,'none') from invoices where id = '$D3'")" "none"
@@ -94,12 +108,14 @@ has "an issued invoice cannot be edited" "$(as $O "update invoices set total = 1
 has "  nor its number" "$(as $O "update invoices set invoice_number = 'HE-2000-0001' where id = '$D1'")" "An issued invoice cannot be edited"
 has "  nor who it bills" "$(as $O "update invoices set bill_to = '{\"name\":\"Someone else\"}' where id = '$D1'")" "An issued invoice cannot be edited"
 has "  nor whether shipping was taxed" "$(as $O "update invoices set tax_shipping = false where id = '$D1'")" "An issued invoice cannot be edited"
+has "  nor the place its tax rate is for" "$(as $O "update invoices set tax_place = 'Somewhere else' where id = '$D1'")" "An issued invoice cannot be edited"
+has "  nor go back to pending" "$(as $O "update invoices set tax_rate_status = 'PENDING', tax_rate = null, tax = null, total = null where id = '$D1'")" "An issued invoice cannot be edited"
 has "an issued invoice cannot be deleted" "$(as $O "delete from invoices where id = '$D1'")" "stays on the record"
 has "an issued invoice cannot go back to draft" "$(as $O "update invoices set status = 'draft' where id = '$D1'")" "cannot go from issued to draft"
-psql "${CONN[@]}" -d "$DB" -qtAX -c "begin; set local role authenticated; set local request.jwt.claim.sub = '$O'; insert into invoices (order_id, tax_rate_status, total) values ('$(ORD 4)', 'CONFIRMED', 5); select public.issue_invoice((select id from invoices where order_id = '$(ORD 4)')); rollback;" >/dev/null 2>&1
+psql "${CONN[@]}" -d "$DB" -qtAX -c "begin; set local role authenticated; set local request.jwt.claim.sub = '$O'; insert into invoices (order_id, subtotal, tax_rate, tax_rate_status, tax_place, tax, total) values ('$(ORD 4)', 5, 0, 'CONFIRMED', 'Example City, IL', 0, 5); select public.issue_invoice((select id from invoices where order_id = '$(ORD 4)')); rollback;" >/dev/null 2>&1
 ok  "an attempt that is undone hands its number back (no gap)" "$(q "select last_seq from invoice_counters where invoice_year = $Y")" "3"
 q "insert into invoice_counters values (2031, 7)" >/dev/null
-D4=$(as $O "insert into invoices (order_id, tax_rate_status, total) values ('$(ORD 4)', 'CONFIRMED', 5) returning id")
+D4=$(as $O "insert into invoices (order_id, subtotal, tax_rate, tax_rate_status, tax_place, tax, total) values ('$(ORD 4)', 5, 0, 'CONFIRMED', 'Example City, IL', 0, 5) returning id")
 has "another year's counter does not affect this year" "$(as $O "select public.issue_invoice('$D4')")" "$(num 4)"
 
 echo " decision 3: voiding keeps the row and the number"
@@ -111,7 +127,7 @@ has "voiding again is safe" "$(as $O "select public.void_invoice('$D4', 'Entered
 has "a void invoice cannot be deleted" "$(as $O "delete from invoices where id = '$D4'")" "stays on the record"
 has "a draft cannot be voided (it is deleted instead)" "$(as $O "select public.void_invoice((select id from invoices where status = 'draft' limit 1), 'no draft here')" ; as $E "insert into invoices (order_id) values ('$(ORD 5)') returning 'made'" ; as $O "select public.void_invoice((select id from invoices where order_id = '$(ORD 5)'), 'not wanted')")" "A draft is not void-able"
 ok  "staff can delete a draft" "$(as $E "delete from invoices where order_id = '$(ORD 5)' returning 'gone'")" "gone"
-D5=$(as $O "insert into invoices (order_id, tax_rate_status, total) values ('$(ORD 4)', 'CONFIRMED', 5) returning id")
+D5=$(as $O "insert into invoices (order_id, subtotal, tax_rate, tax_rate_status, tax_place, tax, total) values ('$(ORD 4)', 5, 0, 'CONFIRMED', 'Example City, IL', 0, 5) returning id")
 has "the same order can be invoiced again after a void, and the voided number is not reused" "$(as $O "select public.issue_invoice('$D5')")" "$(num 5)"
 has "an order cannot have two live invoices" "$(as $O "insert into invoices (order_id) values ('$(ORD 1)')")" "invoices_one_live_per_order"
 as $O "update invoices set status = 'paid' where id = '$D5'" >/dev/null
@@ -122,7 +138,7 @@ q "delete from invoices where status = 'draft'" >/dev/null
 for n in $(seq 1 20); do
   oid=$(printf '00000000-0000-4000-8000-0000000d%04d' "$n")
   q "insert into orders (id, channel, status) values ('$oid','synthetic','paid')" >/dev/null
-  as $E "insert into invoices (order_id, tax_rate_status, total) values ('$oid', 'CONFIRMED', $n)" >/dev/null
+  as $E "insert into invoices (order_id, subtotal, tax_rate, tax_rate_status, tax_place, tax, total) values ('$oid', $n, 0, 'CONFIRMED', 'Example City, IL', 0, $n)" >/dev/null
 done
 for id in $(q "select id from invoices where status = 'draft'"); do
   ( as $O "select public.issue_invoice('$id')" >/dev/null ) &
@@ -133,10 +149,30 @@ ok  "  consecutive, with no gap and no repeat" "$(q "select min(invoice_seq)||'-
 ok  "  the counter equals the highest number" "$(q "select last_seq from invoice_counters where invoice_year = $Y")" "25"
 ok  "  every issued row has a well-formed number" "$(q "select count(*) from invoices where status <> 'draft' and invoice_number !~ '^HE-[0-9]{4}-[0-9]{4,}\$'")" "0"
 
+echo " the same draft asked for 12 times at the same moment (a double click, two tabs, a retry)"
+oid=00000000-0000-4000-8000-0000000e0001
+q "insert into orders (id, channel, status) values ('$oid','synthetic','paid')" >/dev/null
+DS=$(as $E "insert into invoices (order_id, subtotal, tax_rate, tax_rate_status, tax_place, tax, total) values ('$oid', 40, 0, 'CONFIRMED', 'Example City, IL', 0, 40) returning id")
+SAME=$(mktemp)
+for n in $(seq 1 12); do ( as $O "select public.issue_invoice('$DS')" >>"$SAME" ) & done
+wait
+ok  "all 12 requests were answered" "$(grep -c invoice_number "$SAME")" "12"
+ok  "  all with the same single number" "$(grep -o 'HE-[0-9]*-[0-9]*' "$SAME" | sort -u | wc -l | tr -d ' ')" "1"
+ok  "  exactly one of them did the issuing; the rest were told it was already issued" "$(grep -c '\"already_issued\": false' "$SAME")/$(grep -c '\"already_issued\": true' "$SAME")" "1/11"
+ok  "  one number was used, not twelve" "$(q "select last_seq from invoice_counters where invoice_year = $Y")" "26"
+ok  "  and the invoice has that number" "$(q "select invoice_number from invoices where id = '$DS'")" "$(num 26)"
+rm -f "$SAME"
+
+echo " a verified resale order: exempt, tax 0, issued like any other"
+DX=$(as $E "insert into invoices (order_id, subtotal, shipping, tax_rate, tax_rate_status, tax_exempt, tax_exempt_reason, tax, total) values ('$(ORD 6)', 111, 9, 0, 'EXEMPT', true, 'resale exempt - certificate SYN-RESALE-0001 verified by owner on 2026-11-01', 0, 120) returning id")
+has "the owner issues the exempt invoice: the next number" "$(as $O "select public.issue_invoice('$DX')")" "$(num 27)"
+ok  "  stored with tax 0 and the document on record" "$(q "select status||'/'||tax_rate_status||'/'||tax||'/'||total||'/'||(tax_exempt_reason like '%SYN-RESALE-0001%')::text from invoices where id = '$DX'")" "issued/EXEMPT/0.00/120.00/true"
+has "  and the reason cannot be changed afterwards" "$(as $O "update invoices set tax_exempt_reason = 'something else entirely' where id = '$DX'")" "An issued invoice cannot be edited"
+
 echo " rollback"
 ok  "rollback refuses while issued or void invoices exist" "$(run "$ROLLBACK")" "3"
 has "  and says why" "$(cat "$OUTF")" "issued or void invoice(s) exist"
-ok  "  nothing was removed" "$(q "select count(*) from invoices where status <> 'draft'")" "25"
+ok  "  nothing was removed" "$(q "select count(*) from invoices where status <> 'draft'")" "27"
 psql "${CONN[@]}" -d postgres -qX -c "drop database if exists $DB" >/dev/null 2>&1
 psql "${CONN[@]}" -d postgres -qX -v ON_ERROR_STOP=1 -c "create database $DB template $SRC" >/dev/null
 q "delete from profiles where id = '$E'; insert into profiles (id, email, role, is_active, account_number) values ('$E','staff@example.test','employee',true,'100000003')" >/dev/null

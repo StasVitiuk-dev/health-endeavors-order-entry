@@ -75,7 +75,7 @@ test('#3 invoice numbers are HE-YYYY-NNNN, per-year and gap-free, assigned at is
   // the year rolls over: 2027 restarts at 0001.
   expect(INV.nextInvoiceNumber({ year: 2027, sequence: 1 }).number).toBe('HE-2027-0001');
   // a draft has no number; the official number is assigned when issued by the owner.
-  const draft = INV.draftInvoice({ lines: [{ sku: 'X', quantity: 1, unitPrice: 10 }] });
+  const draft = INV.draftInvoice({ lines: [{ sku: 'X', quantity: 1, unitPrice: 10 }], taxRate: 0 });
   expect(draft.number == null || draft.status === 'draft').toBe(true);
   const issued = INV.issue(draft, { role: 'owner', number: 'HE-2026-0007', now: '2026-11-14' });
   expect(issued.ok).toBe(true);
@@ -84,7 +84,7 @@ test('#3 invoice numbers are HE-YYYY-NNNN, per-year and gap-free, assigned at is
 });
 
 test('#3 a voided invoice keeps its number in the record and the number is never handed out again', () => {
-  const draft = INV.draftInvoice({ lines: [{ sku: 'X', quantity: 1, unitPrice: 10 }] });
+  const draft = INV.draftInvoice({ lines: [{ sku: 'X', quantity: 1, unitPrice: 10 }], taxRate: 0 });
   const seq = INV.createNumberSequence({ year: 2026 });
   const first = seq.reserve();
   expect(seq.commit(first.number).ok).toBe(true);
@@ -101,7 +101,7 @@ test('#3 a voided invoice keeps its number in the record and the number is never
 // #5 — permissions (owner CONFIRMED 2026-11-14: owner AND administrator may
 // issue/void; staff may prepare drafts only).
 test('#5 owner and administrator may issue/void; staff cannot', () => {
-  const draft = INV.draftInvoice({ lines: [{ sku: 'X', quantity: 1, unitPrice: 10 }] });
+  const draft = INV.draftInvoice({ lines: [{ sku: 'X', quantity: 1, unitPrice: 10 }], taxRate: 0 });
   // staff is hard-blocked.
   expect(INV.issue(draft, { role: 'staff', number: 'HE-2026-0001', now: '2026-11-14' }).ok).toBe(false);
   // owner may issue + void.
@@ -109,7 +109,7 @@ test('#5 owner and administrator may issue/void; staff cannot', () => {
   expect(INV.voidInvoice(issued, { role: 'staff' }).ok).toBe(false);
   expect(INV.voidInvoice(issued, { role: 'owner', reason: 'test' }).ok).toBe(true);
   // administrator may issue too (owner-confirmed to keep this power).
-  const adminIssued = INV.issue(INV.draftInvoice({ lines: [{ sku: 'Y', quantity: 1, unitPrice: 5 }] }), { role: 'administrator', number: 'HE-2026-0002', now: '2026-11-14' });
+  const adminIssued = INV.issue(INV.draftInvoice({ lines: [{ sku: 'Y', quantity: 1, unitPrice: 5 }], taxRate: 0 }), { role: 'administrator', number: 'HE-2026-0002', now: '2026-11-14' });
   expect(adminIssued.ok).toBe(true);
   expect(INV.voidInvoice(adminIssued.invoice, { role: 'administrator', reason: 'test' }).ok).toBe(true);
   expect(INV.ROLES_MAY_ISSUE.has('owner')).toBe(true);

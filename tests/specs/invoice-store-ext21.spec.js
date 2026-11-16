@@ -21,8 +21,13 @@ const ITEMS = [
   { sku: 'SYN-B', product_name: 'Synthetic item B', quantity: 4, unit_price: 18.5, line_total: 74 },
 ];
 const ORDER = { id: OID, order_number: 'SYN-1001', currency: 'USD', shipping_total: 12.5, status: 'paid' };
-const CONFIRMED = T.invoiceTaxFields({ shipping: { mandatory: true }, localRate: 0.0275 });
-const PENDING = T.invoiceTaxFields({ shipping: { mandatory: true } });
+// Nov 16: no rate is built in; 9% is a made-up test rate confirmed for a made-up place.
+const SHIP = { amount: 12.5, mandatory: true };
+const RATE = { place: 'Example City, IL', rate: 0.09, confirmedBy: 'owner', confirmedAt: '2026-11-15T15:00:00Z' };
+const CERT = { number: 'SYN-RESALE-0001', verified: true, verifiedBy: 'owner', verifiedAt: '2026-11-01' };
+const CONFIRMED = T.invoiceTaxFields({ shipping: SHIP, rateSetting: RATE });
+const PENDING = T.invoiceTaxFields({ shipping: SHIP });
+const EXEMPT = T.invoiceTaxFields({ shipping: SHIP, resale: true, resaleCertificate: CERT });
 const draft = (tf, extra) => Object.assign(I.draftFromOrder(ORDER, ITEMS, { account: { id: 'SYN-ACCT-1' }, taxFields: tf || CONFIRMED }).draft,
   { billTo: { name: 'SYN Cedar Spa', city: 'Chicago', state: 'IL' } }, extra || {});
 
@@ -74,17 +79,30 @@ test('a draft from an order becomes a row: amounts, tax choices, who is billed â
   expect(r.ok).toBe(true);
   expect(Object.keys(r.row).sort()).toEqual(S.WRITE_COLUMNS.slice().sort());
   expect(r.row).toMatchObject({ order_id: OID, account_ref: 'SYN-ACCT-1', status: 'draft', terms: 'DUE_ON_RECEIPT', currency: 'USD',
-    subtotal: 254, shipping: 12.5, tax_rate_status: 'CONFIRMED', tax_shipping: true, tax_exempt: false, bill_to: { name: 'SYN Cedar Spa', city: 'Chicago', state: 'IL' } });
+    subtotal: 254, shipping: 12.5, tax_rate: 0.09, tax_rate_status: 'CONFIRMED', tax_place: 'Example City, IL', tax_shipping: true, tax_exempt: false, tax_exempt_reason: null,
+    bill_to: { name: 'SYN Cedar Spa', city: 'Chicago', state: 'IL' } });
   expect(r.row.total).toBe(r.row.subtotal - r.row.order_discount + r.row.tax + r.row.shipping);
   expect(r.row.lines.map(l => [l.sku, l.quantity, l.lineTotal])).toEqual([['SYN-A', 10, 180], ['SYN-B', 4, 74]]);
-  // Decision 1: a pending rate, or no status at all, is stored as PENDING.
-  expect(S.toRow(draft(PENDING)).row.tax_rate_status).toBe('PENDING');
+  // Decision 1 (Nov 16): pending tax, or no status at all, is stored as PENDING
+  // with NO figures â€” never a 0 that could pass for "no tax".
+  const pend = S.toRow(draft(PENDING));
+  expect(pend.ok).toBe(true);
+  expect(pend.row).toMatchObject({ tax_rate_status: 'PENDING', tax_rate: null, tax: null, total: null, subtotal: 254, shipping: 12.5 });
   const noStatus = draft(); delete noStatus.taxRateStatus;
-  expect(S.toRow(noStatus).row.tax_rate_status).toBe('PENDING');
+  expect(S.toRow(noStatus).row).toMatchObject({ tax_rate_status: 'PENDING', tax_rate: null, tax: null, total: null });
+  const pendBack = S.fromRow(Object.assign({ id: IID }, pend.row));
+  expect(pendBack).toMatchObject({ tax: null, total: null, taxRate: null, taxRateStatus: 'PENDING', taxPending: true, totalBeforeTax: 266.5 });
+  // A verified resale order is stored EXEMPT: tax 0, with the reason.
+  const ex = S.toRow(draft(EXEMPT));
+  expect(ex.ok).toBe(true);
+  expect(ex.row).toMatchObject({ tax_rate_status: 'EXEMPT', tax_exempt: true, tax: 0, tax_rate: 0, total: 266.5, tax_shipping: false });
+  expect(ex.row.tax_exempt_reason).toContain('SYN-RESALE-0001');
+  // The database rules these rows must satisfy are in the draft.
+  for (const c of ['invoices_pending_has_no_figures', 'invoices_confirmed_names_place', 'invoices_exempt_is_documented', 'invoices_total_adds_up']) expect(SQL, c).toContain('constraint ' + c);
   // Read back, it prints the same as the engine's draft.
   const back = S.fromRow(Object.assign({ id: IID, invoice_number: null }, r.row));
   const d = draft();
-  for (const k of ['subtotal', 'orderDiscount', 'shipping', 'tax', 'total', 'taxRate', 'terms', 'currency', 'billTo', 'orderId', 'accountId', 'taxShipping', 'taxExempt', 'taxRateStatus'])
+  for (const k of ['subtotal', 'orderDiscount', 'shipping', 'tax', 'total', 'taxRate', 'terms', 'currency', 'billTo', 'orderId', 'accountId', 'taxShipping', 'taxExempt', 'taxRateStatus', 'taxPlace'])
     expect(back[k], k).toEqual(d[k]);
   expect(back).toMatchObject({ id: IID, storage: 'database', synthetic: false, number: null });
 });
@@ -96,6 +114,9 @@ test('a row is refused, with every reason, rather than stored wrong', () => {
   expect(bad({ total: 1 })).toMatch(/total does not equal/);
   expect(bad({ subtotal: 999, total: 999 + 12.5 + draft().tax })).toMatch(/lines do not add up/);
   expect(bad({ taxExempt: true })).toMatch(/resale-exempt invoice cannot carry tax/);
+  expect(bad({ taxExempt: true, tax: 0, total: draft().total - draft().tax })).toMatch(/must record the verified exemption document/);
+  expect(bad({ taxPlace: null })).toMatch(/must say which place it is for/);
+  expect(bad({ taxRate: '0.09' })).toMatch(/tax rate must be between/);          // text is not a rate
   expect(bad({ terms: 'NET_90' })).toMatch(/unknown payment terms/);
   expect(bad({ taxRate: 0.5 })).toMatch(/tax rate must be between/);
   expect(bad({ shipping: -1 })).toMatch(/shipping cannot be negative/);
@@ -206,7 +227,7 @@ test('a double click sends one request, and the list is bounded', async () => {
   expect((await first).number).toBe('HE-2026-0002');
   expect(calls).toEqual(['issue_invoice']);
   expect((await store.issue(IID)).ok).toBe(true);     // free again once the first finished
-  const c = fakeClient([{ data: [{ id: IID, status: 'issued', invoice_number: 'HE-2026-0001', total: '130.80', bill_to: 'not an object' }], error: null }]);
+  const c = fakeClient([{ data: [{ id: IID, status: 'issued', invoice_number: 'HE-2026-0001', tax_rate_status: 'CONFIRMED', tax_rate: '0.09', tax: '10.80', total: '130.80', bill_to: 'not an object' }], error: null }]);
   const listed = await S.createStore({ client: c, enabled: true }).list({ limit: 10000, status: 'issued' });
   expect(listed.invoices[0]).toMatchObject({ number: 'HE-2026-0001', total: 130.8, billTo: null });
   expect(c.calls[0].ops).toContainEqual(['limit', 200]);
