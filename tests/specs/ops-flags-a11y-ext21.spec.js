@@ -14,7 +14,7 @@
 // Everything is synthetic and read-only; nothing is sent, saved or deployed.
 const { test, expect, login, gotoPage } = require('../helpers/dashboard');
 
-const FLAGS = ['he_scan_shipment', 'he_reorder_planning', 'he_saved_views', 'he_cycle_count', 'he_supplier_scorecard',
+const FLAGS = ['he_scan_shipment', 'he_reorder_planning', 'he_saved_views', 'he_cycle_count', 'he_supplier_scorecard', 'he_supplier_documents',
   'he_reconcile', 'he_report_versions', 'he_report_export', 'he_invoice_preview', 'he_recovery_drill', 'he_ops_watch'];
 // page -> the switch-gated hosts on it. heading:false = a small strip of
 // controls (not a titled section), so no heading is expected there.
@@ -24,7 +24,7 @@ const PAGES = [
   ['inventoryPanel', [['reorderPlanningHost', true], ['savedViewsInventory', false], ['cycleCountHost', true]]],
   ['accountingPanel', [['reconcileHost', true]]],
   ['reportHistoryPanel', [['reportExportHost', true], ['reportVersionsHost', true], ['recoveryDrillHost', true], ['invoicePreviewHost', true], ['opsWatchHost', true]]],
-  ['suppliersPanel', [['supplierScorecardHost', true]]],
+  ['suppliersPanel', [['supplierScorecardHost', true], ['supplierDocsHost', true]]],
 ];
 
 async function enableAll(page) {

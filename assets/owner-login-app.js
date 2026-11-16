@@ -84,7 +84,7 @@
       nightlyOverall,
     } = window.HE.helpers;
     // @@ EXT15 modules: created in dependency order (assets/app/*.js; see docs/ops/APPLICATION_MODULE_MAP_EXT15.md)
-    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, supplierScorecardOn, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn } = HE.modules.create('he-config', {  });
+    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, supplierScorecardOn, supplierDocsOn, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn } = HE.modules.create('he-config', {  });
     const { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, focusDialog, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, h, pageIconNode } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
     const { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
     const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, h, supabase });
@@ -2483,6 +2483,61 @@
         h('p', { class: 'hint u-mt-8' }, 'Checked as of ' + fx.asOfDate + '. Required documents assumed: ' + sc.documents.required.join(', ') + ' — the owner confirms the real list. Not stored in the database yet: ' + eng.MISSING_FIELDS.length + ' fields this scorecard needs.')));
     }
 
+    // ---------- Supplier document checklist (behind supplierDocsOn; owner decision of Nov 16)
+    // Read-only worked example on the Suppliers page: for each supplier, the
+    // documents its kind of supplier should have on file (purchases; lotion lab;
+    // bottles and pumps; labels or direct printing), and which are missing or
+    // waiting for review. Example data; nothing is stored, uploaded or sent. OFF
+    // by default (host renders empty, Suppliers unchanged).
+    let supplierDocsShowAll = false;
+    function loadSupplierDocs() {
+      const host = document.getElementById('supplierDocsHost'); if (!host) return;
+      if (!(typeof supplierDocsOn === 'function' && supplierDocsOn())) { host.replaceChildren(); return; }
+      let eng = null; try { eng = (window.HE && window.HE.suppliers && window.HE.suppliers['he-supplier-docs']) || null; } catch (e) { eng = null; }
+      if (!eng) { host.replaceChildren(h('p', { class: 'empty' }, 'Supplier document tools could not load.')); return; }
+      const fx = eng.fixtures();
+      const ov = eng.overview(fx.suppliers, fx.context, fx.documents, { asOf: fx.asOf });
+      if (!ov.ok) { host.replaceChildren(h('p', { class: 'empty' }, 'Supplier documents: ' + ov.reason + '.')); return; }
+      const word = { MISSING: 'Missing', REJECTED: 'Rejected — needs a new copy', EXPIRED: 'Expired — needs a new copy', AWAITING_REVIEW: 'Awaiting review', APPROVED: 'Approved' };
+      const detail = r => r.status === 'APPROVED' ? 'Reviewed by ' + r.reviewedBy + ' on ' + String(r.reviewedAt).slice(0, 10) + (r.expiresOn ? ' · valid until ' + r.expiresOn : '')
+        : r.status === 'AWAITING_REVIEW' ? 'Received ' + (r.receivedAt ? String(r.receivedAt).slice(0, 10) : '(date not recorded)') + ' — nobody has reviewed it yet'
+        : r.status === 'REJECTED' ? 'Rejected' + (r.note ? ': ' + r.note : '')
+        : r.status === 'EXPIRED' ? 'Expired on ' + (r.expiresOn || '—') : 'Nothing on file';
+      const plural = (n, one, many) => n + ' ' + (n === 1 ? one : many);
+      const cards = ov.suppliers.map(sup => {
+        const shown = supplierDocsShowAll ? sup.rows : sup.rows.filter(r => r.status !== 'APPROVED');
+        return h('div', { class: 'scanCard u-mt-8', 'data-supplierdocs-supplier': String(sup.supplier.id), 'data-missing': String(sup.missing), 'data-awaiting': String(sup.awaitingReview) },
+          h('div', { class: 'taskTitle' }, sup.supplier.name),
+          h('div', { class: 'u-fs-12 u-c-muted' }, 'Checklist: purchases' + sup.profiles.map(p => ' + ' + p.label.toLowerCase()).join('') + ' · ' + plural(sup.missing, 'document', 'documents') + ' missing · ' + sup.awaitingReview + ' awaiting review · ' + sup.approved + ' approved'),
+          shown.length ? h('table', { class: 'phoneCards u-mt-8' },
+            h('thead', null, h('tr', null, h('th', null, 'Document'), h('th', null, 'For'), h('th', null, 'Status'), h('th', null, 'Detail'))),
+            h('tbody', null, shown.map(r => h('tr', { 'data-docstate': r.status, 'data-dockey': r.key },
+              h('td', null, r.label), h('td', null, r.subjectLabel), h('td', null, h('span', { class: r.status === 'APPROVED' ? '' : 'taskTitle' }, word[r.status] || r.status)), h('td', null, detail(r))))))
+            : h('div', { class: 'u-fs-12 u-c-muted u-mt-6' }, 'Every document on this supplier\'s checklist is on file and reviewed.'));
+      });
+      const c = eng.DEFAULT_CHECKLIST;
+      const listOf = docs => docs.map(d => d.label + ' (one per ' + d.per + ')').join('; ');
+      host.replaceChildren(h('div', { class: 'supplierDocs u-mb-16' },
+        h('div', { class: 'scanHead' }, h('h3', null, 'Supplier documents'), h('span', { class: 'scanBadge' }, 'SIMULATED — example data, read-only')),
+        h('p', { class: 'hint u-mt-6', 'data-supplierdocs-totals': ov.totals.missing + '/' + ov.totals.awaitingReview + '/' + ov.totals.approved },
+          plural(ov.totals.missing, 'document', 'documents') + ' missing · ' + ov.totals.awaitingReview + ' awaiting review · ' + ov.totals.approved + ' approved, across ' + plural(ov.totals.suppliers, 'supplier', 'suppliers') + '. Checked as of ' + fx.asOf + '.'),
+        h('div', { class: 'scanToggleRow u-mt-8' },
+          h('button', { type: 'button', class: 'small' + (supplierDocsShowAll ? ' secondary' : ''), 'data-supplierdocs': 'attention', 'aria-pressed': String(!supplierDocsShowAll) }, 'Missing or awaiting review'),
+          h('button', { type: 'button', class: 'small' + (supplierDocsShowAll ? '' : ' secondary'), 'data-supplierdocs': 'all', 'aria-pressed': String(supplierDocsShowAll) }, 'Every document')),
+        cards,
+        h('details', { class: 'hintMore u-mt-10' }, h('summary', null, 'The checklist these suppliers are held to'),
+          h('div', { class: 'scanCardRow', 'data-checklist': 'purchase' }, h('span', { class: 'u-c-muted' }, 'Every purchase, where it applies: '), listOf(c.purchase)),
+          Object.keys(c.profiles).map(k => h('div', { class: 'scanCardRow', 'data-checklist': k }, h('span', { class: 'u-c-muted' }, c.profiles[k].label + ': '), listOf(c.profiles[k].documents)))),
+        h('p', { class: 'hint u-mt-8' }, 'A document counts only once someone has reviewed and approved it. The checklist can be changed per kind of supplier. These records are not stored in the database yet — that needs its own approved change.')));
+    }
+    document.addEventListener('click', (e) => {
+      const t = e.target.closest('[data-supplierdocs]'); if (!t) return;
+      supplierDocsShowAll = t.getAttribute('data-supplierdocs') === 'all';
+      loadSupplierDocs();
+      announce(supplierDocsShowAll ? 'Showing every document.' : 'Showing documents that are missing or awaiting review.');
+      refocusLike(t, 'supplierDocsHost');
+    });
+
     // ---------- #54/#55 Cycle count + adjustment approval (behind cycleCountOn)
     // A worked synthetic count: draft -> discrepancy review -> owner-approved
     // adjustment -> audit. ADVISORY/DRAFT-ONLY — an approved adjustment names the
@@ -3013,7 +3068,7 @@
       ordersPanel: [loadOrders, paintScanEntry, loadSavedViews],
       inventoryPanel: [loadInventory, loadInventoryAdjustments, loadReorderPlanning, loadSavedViews, loadCycleCount],
       returnsPanel: [loadReturns],
-      suppliersPanel: [loadSuppliers, loadSupplierScorecard],
+      suppliersPanel: [loadSuppliers, loadSupplierScorecard, loadSupplierDocs],
       purchaseOrdersPanel: [loadPurchaseOrders],
       qualityControlPanel: [loadQualityChecks],
       recallsPanel: [loadRecalls],

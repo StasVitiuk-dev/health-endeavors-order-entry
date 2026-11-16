@@ -126,6 +126,8 @@ const ADDED = ['focusDialog', 'inspectLabel', 'keyLink', 'setReportHistoryView',
   // #12/#53 supplier scorecard wired into Suppliers (host-div, flag
   // supplierScorecardOn OFF by default). Read-only; no listener.
   'loadSupplierScorecard', 'supplierScorecardOn',
+  // Supplier document checklist (Nov 16), same pattern: host empty unless the switch is on.
+  'loadSupplierDocs', 'supplierDocsOn', 'supplierDocsShowAll',
   // #08 payment reconciliation review wired into Accounting (host-div, flag
   // reconcileOn OFF by default). The delegated [data-reconcile] listener is
   // waived by text below.
@@ -179,7 +181,7 @@ const CHANGED_TEXT = ["} = window.HE.helpers;", "forEach(o => Object.setPrototyp
   // Preview switches: the delegated listener (anonymous top-level stmt).
   "e.target.closest('[data-previewswitch]')",
   // Invoice review desk: the delegated listener (anonymous top-level stmt).
-  "e.target.closest('[data-invoicedesk]')",
+  "e.target.closest('[data-invoicedesk]')", "e.target.closest('[data-supplierdocs]')",
   // Receipt picker feedback: the change listener (anonymous top-level stmt).
   "document.getElementById('expReceipt').addEventListener('change', showReceiptStatus)",
   // ...and the Add-expense save handler gains one line: after a successful save
