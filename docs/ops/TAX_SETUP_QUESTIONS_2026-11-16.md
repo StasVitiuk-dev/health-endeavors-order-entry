@@ -21,6 +21,21 @@ answers with the Illinois Department of Revenue or your accountant.
 The rates used in the tests and in the example screen (8%, 9%, 10%) are made-up
 numbers for made-up places. They are not Illinois rates.
 
+## Which answers come first (added later on Nov 16)
+
+The numbers refer to the questions below.
+
+| Order | Questions | Why | Until answered |
+|---|---|---|---|
+| 1. Blocks every real invoice | 1, 2, 5, 4, 6 | Without the place of sale, the rule that picks the rate (ship-from or ship-to), the rate itself and whether the products are general merchandise, no tax figure can be confirmed. | Every non-exempt draft stays TAX PENDING and cannot be issued. |
+| 2. Blocks shipped wholesale invoices | 9, 10, 3 | Whether shipping is taxed depends on how it is charged; selling into other states may bring other states' rules. | Drafts with shipping stay pending ("shipping terms not recorded"); out-of-state sales need their own confirmed rate. |
+| 3. Blocks exempt resale invoices | 13, 14 | "Verified" must mean something you have decided. | Resale orders are taxed like any other order. |
+| 4. Can wait: a safe default is in place | 7, 8, 11, 12, 15, 16, 17, 18, 19 | Each has a working default (tax added on top, discount before tax, owner or administrator confirms rates, etc.). | The default applies; change it when you answer. |
+
+What still needs checking outside the dashboard, whatever the answers: questions 3,
+4, 5 and 6 should be confirmed with the Illinois Department of Revenue or your
+accountant. The dashboard only records what you confirm, with your name and the date.
+
 ## What I need from you
 
 Please answer in plain words; "I don't know yet" is a fine answer, and the item
