@@ -2495,7 +2495,7 @@
       eng.recordCount(c, 'HE-HONEY-8OZ', 38, 'staff', '2026-11-14T09:10:00Z'); // short 2
       eng.recordCount(c, 'HE-VEGAN-8OZ', 25, 'staff', '2026-11-14T09:11:00Z'); // match
       eng.recordCount(c, 'HE-SHEA-4OZ', 15, 'staff', '2026-11-14T09:12:00Z');  // over 3
-      eng.submitForApproval(c, 'staff', '2026-11-14T09:15:00Z');
+      eng.submitForApproval(c, 'staff', '2026-11-14T09:15:00Z', 'Monthly shelf count: two honey jars missing, three shea jars found behind the boxes');
       return c;
     }
     function loadCycleCount() {
@@ -2510,21 +2510,29 @@
         h('td', { class: 'num-cell' }, String(d.systemQty)),
         h('td', { class: 'num-cell' }, String(d.countedQty)),
         h('td', { class: 'num-cell' }, (d.delta > 0 ? '+' : '') + d.delta + ' ' + d.direction)));
-      // Try a staff approval first to show the permission boundary refuses it.
+      // Try a staff and an ordinary-administrator approval first, to show the
+      // permission boundary refuses both (owner decision of Nov 16).
       const staffTry = eng.approveAdjustment(c, { role: 'staff' });
+      const adminTry = eng.approveAdjustment(c, { role: 'administrator' });
+      const when = t => t ? String(t).slice(0, 16).replace('T', ' ') + ' UTC' : 'time not recorded';
       let approvedBlock = null;
       if (cycleCountApproved) {
         // The signed-in person's real role decides: only the owner may approve.
         const ap = eng.approveAdjustment(c, { role: currentUserRole, by: String(currentUserRole || 'unknown'), at: '2026-11-14T10:00:00Z' });
         approvedBlock = !ap.ok ? h('div', { class: 'scanCard u-mt-10', 'data-cyclecount-refused': '1' }, 'Not approved: ' + ap.reason + '.') : h('div', { class: 'scanCard u-mt-10' },
           h('div', { class: 'scanCardHead' }, 'Approved adjustment (advisory — NOT written to stock)'),
-          ...ap.adjustments.map(a => h('div', { class: 'scanCardRow' }, a.sku + ': ' + a.from + ' → ' + a.to + ' (' + (a.delta > 0 ? '+' : '') + a.delta + ') · applied=false')),
+          ...ap.adjustments.map(a => h('div', { class: 'scanCardRow', 'data-cyclecount-record': a.sku },
+            a.sku + ': original count ' + a.originalCount + ' → requested count ' + a.requestedCount + ' (' + (a.delta > 0 ? '+' : '') + a.delta + ')',
+            h('div', { class: 'u-fs-12 u-c-muted' }, 'Reason: ' + (a.reason || '—')),
+            h('div', { class: 'u-fs-12 u-c-muted' }, 'Proposed by ' + (a.submittedBy || '—') + ', ' + when(a.submittedAt) + ' · approved by ' + (a.approvedBy || '—') + ', ' + when(a.approvedAt) + ' · not written to stock'))),
           h('div', { class: 'u-fs-12 u-c-muted u-mt-8' }, 'Safe write needed: ' + eng.MISSING_WRITE_CONTRACT),
           h('div', { class: 'u-fs-12 u-c-muted u-mt-6' }, 'Audit: ' + c.audit.map(x => x.action).join(' → ')));
       }
       host.replaceChildren(h('div', { class: 'cycleCount u-mb-16' },
         h('div', { class: 'scanHead' }, h('h3', null, 'Cycle count & adjustment review'), h('span', { class: 'scanBadge' }, 'SIMULATED — advisory, no stock is written')),
-        h('p', { class: 'hint u-mt-6' }, 'Status: ' + c.status + ' · staff approval attempt: ' + staffTry.reason),
+        h('p', { class: 'hint u-mt-6' }, 'Staff and administrators may propose an adjustment with a reason. Only the owner approves it.'),
+        h('p', { class: 'hint u-mt-6', 'data-cyclecount-status': c.status }, 'Status: ' + c.status + ' · proposed by ' + (c.submittedBy || '—') + ' · reason: ' + (c.reason || '—')),
+        h('p', { class: 'hint u-mt-6', 'data-cyclecount-boundary': '1' }, 'Staff approval attempt: ' + staffTry.reason + '. Administrator approval attempt: ' + adminTry.reason + '.'),
         h('table', { class: 'phoneCards u-mt-8' },
           h('thead', null, h('tr', null, h('th', null, 'SKU'), h('th', { class: 'num-cell' }, 'System'), h('th', { class: 'num-cell' }, 'Counted'), h('th', { class: 'num-cell' }, 'Discrepancy'))),
           h('tbody', null, discRows)),

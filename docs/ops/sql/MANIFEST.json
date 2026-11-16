@@ -136,7 +136,7 @@
       "precheck": "built-in preflight stops if any table, column, function or index is missing; Query C shows no other stock writer; backup look green today",
       "effect": "6 stock functions (R1-R5 + helper), security invoker, EXECUTE to authenticated only",
       "postcheck": "V8 fingerprint f6d9c2c8be690710eeb721041f6779d9; grants: 6 rows, anon false; Query H H01-H02 PASS",
-      "dynamicSql": "format('update inventory set %1$I \u2026') with a bucket name checked against a fixed list first",
+      "dynamicSql": "format('update inventory set %1$I …') with a bucket name checked against a fixed list first",
       "lock": "LOW: function creation only"
     },
     {
@@ -213,7 +213,7 @@
       "precheck": "stops with counts if existing rows already break a rule; Query E and F show 0 for these rules",
       "effect": "4 CHECK constraints",
       "postcheck": "4 constraints (Query H H11)",
-      "lock": "LOW at today's size: each ADD CONSTRAINT scans its table under ACCESS EXCLUSIVE (measured: docs/ops/ENGINEERING_REPORT_EXT14.md \u00a7DB)"
+      "lock": "LOW at today's size: each ADD CONSTRAINT scans its table under ACCESS EXCLUSIVE (measured: docs/ops/ENGINEERING_REPORT_EXT14.md §DB)"
     },
     {
       "file": "drafts/24_DRAFT_rollback_integrity_constraints.sql",
@@ -381,6 +381,31 @@
       "effect": "drops the two functions, the guard and the two tables; drafts are removed with them",
       "postcheck": "to_regclass('public.invoices') is null",
       "dynamicSql": "one format() with fixed names and values (%I / %L), so the count is not planned when the table is absent"
+    },
+    {
+      "file": "drafts/34_DRAFT_stock_count_adjustments.sql",
+      "id": "34",
+      "class": "PRODUCTION-CHANGE-DRAFT",
+      "step": "optional (not in the plan; needed before stock-count approval is used for real)",
+      "dependsOn": [],
+      "risk": "LOW",
+      "rollback": "35",
+      "precheck": "stops if auth.uid(), current_role(), is_owner_or_admin(), is_active_staff() or the products / inventory / profiles tables are missing",
+      "effect": "2 new empty tables (stock_count_adjustments, stock_count_approvers), a guard trigger (owner-only decisions, decided rows unchangeable, no deletes), propose / approve / reject / cancel and grant / revoke functions (security invoker); changes no stock figure",
+      "postcheck": "both tables present and empty; anon cannot read them or run the functions; an administrator cannot approve; local-test/stock_count_adjustments_test.sh passes on a throwaway copy",
+      "lock": "NONE on existing tables: only new, empty tables are created"
+    },
+    {
+      "file": "drafts/35_DRAFT_rollback_stock_count_adjustments.sql",
+      "id": "35",
+      "class": "ROLLBACK",
+      "rollbackOf": "34",
+      "dependsOn": [],
+      "risk": "LOW",
+      "precheck": "stops, removing nothing, if any approved or rejected adjustment exists (the record of decisions)",
+      "effect": "drops the functions, the guard and the two tables; open or cancelled proposals and any grant are removed with them",
+      "postcheck": "to_regclass('public.stock_count_adjustments') is null",
+      "dynamicSql": "two format() calls with fixed names and values (%I / %L), so the counts are not planned when the tables are absent"
     }
   ],
   "local": [

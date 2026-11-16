@@ -5,6 +5,13 @@
 // never writes real stock. Canceled and duplicate submissions are refused, not
 // double-applied.
 //
+// Owner decision of Nov 16: staff and ordinary administrators may PROPOSE an
+// adjustment, with a written reason; ONLY the owner approves. An administrator
+// may approve only if the owner granted it to that one account (and then never
+// their own proposal). The record keeps the original count, the requested
+// count, the reason, who submitted, who approved and when. The same rule is
+// enforced in the database draft (docs/ops/sql/drafts/34).
+//
 // State machine: DRAFT -> PENDING_APPROVAL -> APPROVED
 //                 DRAFT / PENDING_APPROVAL -> CANCELED
 // Illegal transitions are refused with a reason; every transition is audited.
@@ -63,14 +70,17 @@
 
   // Submit a completed count for owner approval. Idempotent: a second submit of an
   // already-submitted (or approved/canceled) count is refused, never re-queued.
-  function submitForApproval(count, by, atISO) {
+  function submitForApproval(count, by, atISO, reason) {
     if (!count) return { ok: false, reason: 'no count' };
     if (count.status === 'PENDING_APPROVAL') return { ok: false, reason: 'already submitted (no double-submit)', duplicate: true, count: count };
     if (count.status !== 'DRAFT') return { ok: false, reason: 'cannot submit a ' + count.status + ' count', count: count };
     const missing = uncounted(count);
     if (missing.length) return { ok: false, reason: 'count incomplete: ' + missing.join(', '), count: count };
+    const why = typeof reason === 'string' ? reason.trim().slice(0, 500) : '';
+    if (why.length < 5) return { ok: false, reason: 'a written reason is required to propose a stock adjustment', count: count };
     count.status = 'PENDING_APPROVAL';
-    audit(count, 'SUBMITTED', by, atISO, discrepancies(count).length + ' discrepancies');
+    count.reason = why; count.submittedBy = by || null; count.submittedAt = nowOr(atISO);
+    audit(count, 'SUBMITTED', by, atISO, discrepancies(count).length + ' discrepancies · reason: ' + why);
     return { ok: true, count: count };
   }
 
@@ -79,15 +89,22 @@
   function approveAdjustment(count, req) {
     const r = req || {};
     if (!count) return { ok: false, reason: 'no count' };
-    if (r.role !== 'owner') return { ok: false, reason: 'only the owner may approve a stock adjustment', count: count };
+    const granted = r.role === 'administrator' && r.grantedApprover === true;
+    if (r.role !== 'owner' && !granted) return { ok: false, reason: 'only the owner may approve a stock adjustment' + (r.role === 'administrator' ? ' (an administrator may propose one)' : ''), count: count };
+    if (granted && r.by != null && count.submittedBy != null && String(r.by) === String(count.submittedBy)) return { ok: false, reason: 'you cannot approve your own proposal — the owner or another approver must', count: count };
     if (count.status === 'APPROVED') return { ok: false, reason: 'already approved (no double-apply)', duplicate: true, count: count };
     if (count.status === 'CANCELED') return { ok: false, reason: 'cannot approve a canceled count', count: count };
     if (count.status !== 'PENDING_APPROVAL') return { ok: false, reason: 'must be submitted for approval first', count: count };
+    const approver = r.by || r.role;
     const adjustments = discrepancies(count).map(d => ({ sku: d.sku, from: d.systemQty, to: d.countedQty, delta: d.delta,
+      originalCount: d.systemQty, requestedCount: d.countedQty, reason: count.reason || null,
+      submittedBy: count.submittedBy || null, submittedAt: count.submittedAt || null,
+      approvedBy: approver, approvedAt: nowOr(r.at),
       applied: false, writeContract: MISSING_WRITE_CONTRACT }));
     count.status = 'APPROVED';
     count.adjustments = adjustments;
-    audit(count, 'APPROVED', r.by || 'owner', r.at, adjustments.length + ' adjustments (advisory; not written)');
+    count.approvedBy = approver; count.approvedAt = nowOr(r.at);
+    audit(count, 'APPROVED', approver, r.at, adjustments.length + ' adjustments (advisory; not written)');
     return { ok: true, count: count, adjustments: adjustments };
   }
 
