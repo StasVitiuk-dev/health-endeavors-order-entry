@@ -406,6 +406,31 @@
       "effect": "drops the functions, the guard and the two tables; open or cancelled proposals and any grant are removed with them",
       "postcheck": "to_regclass('public.stock_count_adjustments') is null",
       "dynamicSql": "two format() calls with fixed names and values (%I / %L), so the counts are not planned when the tables are absent"
+    },
+    {
+      "file": "drafts/36_DRAFT_supplier_documents.sql",
+      "id": "36",
+      "class": "PRODUCTION-CHANGE-DRAFT",
+      "step": "optional (not in the plan; needed before supplier documents are stored for real)",
+      "dependsOn": [],
+      "risk": "LOW",
+      "rollback": "37",
+      "precheck": "stops if auth.uid(), current_role(), is_active_staff(), is_owner_or_admin() or the suppliers / purchase_orders / profiles tables are missing",
+      "effect": "6 new tables (the checklist, its profiles by supplier type and per supplier, subjects, documents, review history); guards (owner-only review, correction and checklist changes, no deletes, history written by the database only); record / review / withdraw / correct and owner-only checklist functions (security invoker); the starting checklist of Nov 16",
+      "postcheck": "9 document types, no documents; anon cannot read them or run the functions; an administrator cannot approve; local-test/supplier_documents_test.sh passes on a throwaway copy",
+      "lock": "NONE on existing tables: only new tables are created"
+    },
+    {
+      "file": "drafts/37_DRAFT_rollback_supplier_documents.sql",
+      "id": "37",
+      "class": "ROLLBACK",
+      "rollbackOf": "36",
+      "dependsOn": [],
+      "risk": "LOW",
+      "precheck": "stops, removing nothing, if any approved or rejected supplier document exists (the record of the reviews)",
+      "effect": "drops the functions, the guards and the six tables; documents waiting for review or withdrawn are removed with them",
+      "postcheck": "to_regclass('public.supplier_documents') is null",
+      "dynamicSql": "one format() with fixed names and values (%I / %L), so the count is not planned where the table is absent"
     }
   ],
   "local": [

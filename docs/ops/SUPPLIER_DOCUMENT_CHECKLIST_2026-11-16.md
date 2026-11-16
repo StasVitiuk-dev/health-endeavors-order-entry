@@ -94,3 +94,8 @@ twice, an unknown kind) is refused outright rather than half-used.
   is built and tested; the screen is read-only for now).
 - Formulas, batches, components and artworks come from the example data; in
   production they would come from products, lots and purchase orders.
+
+## Storage (added later on Nov 16)
+
+Storing these documents, with owner-only review enforced by the database, is
+described in `SUPPLIER_DOCUMENT_STORAGE_2026-11-16.md` (drafts/36, not installed).

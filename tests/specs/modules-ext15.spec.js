@@ -149,7 +149,9 @@ const ADDED = ['focusDialog', 'inspectLabel', 'keyLink', 'setReportHistoryView',
   // Sales outreach workbench on Sales Approvals (behind salesGrowthOn; owner
   // brief Nov 3, point 8). The delegated [data-workbench] listener is waived below.
   'announce', 'refocusLike', 'WORKBENCH_KEY', 'workbenchState', 'workbenchSelected', 'workbenchMessage', 'WORKBENCH_REPLIES',
-  'workbenchDeps', 'workbenchSave', 'loadSalesWorkbench', 'findWorkbenchStore'];
+  'workbenchDeps', 'workbenchSave', 'loadSalesWorkbench', 'findWorkbenchStore',
+  // Supplier document storage (drafts/36), behind he_supplier_documents_store (OFF).
+  'supplierDocsSeq', 'supplierDocsLast', 'SD_WORD', 'sdPerson', 'sdStore', 'sdRecordForm', 'sdHistory', 'sdSettings', 'sdAfter', 'supplierDocsStoreOn'];
 const NEW_MODULES = ['he-ops']; // EXT16: written new, not moved
 const CHANGED_TEXT = ["} = window.HE.helpers;", "forEach(o => Object.setPrototypeOf(o, null))", "supabase.auth.onAuthStateChange((event, session) =>", "getAttribute('data-view')", "getElementById('adjustInventoryForm').addEventListener('submit'", "getElementById('logReturnForm').addEventListener('submit'", "getElementById('retOrder').addEventListener('change'", "Release to refresh", "getElementById('docCategory')",
   // EXT20J-post-TT: the 4 static overlay scaffolds converted innerHTML->h(); each
@@ -189,7 +191,9 @@ const CHANGED_TEXT = ["} = window.HE.helpers;", "forEach(o => Object.setPrototyp
   "document.getElementById('addExpenseForm').addEventListener('submit', async (e) =>",
   // Sales outreach workbench: the delegated listener (anonymous top-level stmt).
   "e.target.closest('[data-workbench]')",
-  "document.addEventListener('keydown', scanKeydown)"];
+  "document.addEventListener('keydown', scanKeydown)",
+  // Supplier document storage: the record form's submit listener (anonymous top-level stmt).
+  "e.target.closest('form[data-sdform]')"];
 
 test('the module moves were byte-identical: every original statement once, only the named edits differ', ({}, ti) => {
   nodeOnly(ti);

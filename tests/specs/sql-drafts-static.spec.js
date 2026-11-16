@@ -8,7 +8,7 @@ const path = require('path');
 const { test, expect } = require('@playwright/test');
 
 const DIR = path.resolve(__dirname, '..', '..', 'docs', 'ops', 'sql', 'drafts');
-const INSTALLS = ['10_DRAFT_stock_functions.sql', '13_DRAFT_report_totals.sql', '17_DRAFT_po_line_delete_guard.sql', '19_DRAFT_request_keys.sql', '21_DRAFT_stock_function_switches.sql', '23_DRAFT_integrity_constraints.sql', '25_DRAFT_integrity_check_schedule.sql', '27_DRAFT_request_keys_switch.sql', '29_DRAFT_integrity_results_on_home.sql', '32_DRAFT_invoices.sql', '34_DRAFT_stock_count_adjustments.sql'];
+const INSTALLS = ['10_DRAFT_stock_functions.sql', '13_DRAFT_report_totals.sql', '17_DRAFT_po_line_delete_guard.sql', '19_DRAFT_request_keys.sql', '21_DRAFT_stock_function_switches.sql', '23_DRAFT_integrity_constraints.sql', '25_DRAFT_integrity_check_schedule.sql', '27_DRAFT_request_keys_switch.sql', '29_DRAFT_integrity_results_on_home.sql', '32_DRAFT_invoices.sql', '34_DRAFT_stock_count_adjustments.sql', '36_DRAFT_supplier_documents.sql'];
 const ROLLBACKS = { '10_DRAFT_stock_functions.sql': '11_DRAFT_rollback_stock_functions.sql',
   '17_DRAFT_po_line_delete_guard.sql': '18_DRAFT_rollback_po_line_delete_guard.sql',
   '19_DRAFT_request_keys.sql': '20_DRAFT_rollback_request_keys.sql',
@@ -19,7 +19,8 @@ const ROLLBACKS = { '10_DRAFT_stock_functions.sql': '11_DRAFT_rollback_stock_fun
   '29_DRAFT_integrity_results_on_home.sql': '30_DRAFT_rollback_integrity_results_on_home.sql',
   '13_DRAFT_report_totals.sql': '31_DRAFT_rollback_report_totals.sql', // EXT14: 13 now has its rollback
   '32_DRAFT_invoices.sql': '33_DRAFT_rollback_invoices.sql',           // Nov 15: invoice storage + numbering
-  '34_DRAFT_stock_count_adjustments.sql': '35_DRAFT_rollback_stock_count_adjustments.sql' };   // Nov 16: owner-only stock-count approval
+  '34_DRAFT_stock_count_adjustments.sql': '35_DRAFT_rollback_stock_count_adjustments.sql',   // Nov 16: owner-only stock-count approval
+  '36_DRAFT_supplier_documents.sql': '37_DRAFT_rollback_supplier_documents.sql' };   // Nov 16, later: supplier document storage, owner-only review
 const ALL = fs.readdirSync(DIR).filter(f => /^\d\d_DRAFT_.*\.sql$/.test(f) && !/_tests?_/.test(f));
 
 // Remove comments and quoted text so words inside them are not mistaken for SQL.
@@ -80,6 +81,40 @@ for (const f of ALL) {
       'create policy invoices_owner_admin_all on public.invoices for all to authenticated using (public.is_owner_or_admin()) with check (public.is_owner_or_admin());',
       'drop policy if exists invoice_counters_owner_admin on public.invoice_counters;',
       'create policy invoice_counters_owner_admin on public.invoice_counters for all to authenticated using (public.is_owner_or_admin()) with check (public.is_owner_or_admin());'];
+    // The fourth allowed set (Nov 16, drafts/36): row rules on that draft's OWN six
+    // new tables. Active staff read everything and may record a document (status
+    // 'received') and add a subject; only the owner writes the checklist or
+    // updates a subject; who may approve, correct or withdraw a document is the
+    // guard trigger's job (owner only), on top of these rules.
+    const SUPPLIER_DOC_RULES = [
+      'drop policy if exists supplier_document_types_staff_read on public.supplier_document_types;',
+      'create policy supplier_document_types_staff_read on public.supplier_document_types for select to authenticated using (public.is_active_staff());',
+      'drop policy if exists supplier_document_types_owner_write on public.supplier_document_types;',
+      "create policy supplier_document_types_owner_write on public.supplier_document_types for all to authenticated using (public.current_role() = 'owner') with check (public.current_role() = 'owner');",
+      'drop policy if exists supplier_type_document_profiles_staff_read on public.supplier_type_document_profiles;',
+      'create policy supplier_type_document_profiles_staff_read on public.supplier_type_document_profiles for select to authenticated using (public.is_active_staff());',
+      'drop policy if exists supplier_type_document_profiles_owner_write on public.supplier_type_document_profiles;',
+      "create policy supplier_type_document_profiles_owner_write on public.supplier_type_document_profiles for all to authenticated using (public.current_role() = 'owner') with check (public.current_role() = 'owner');",
+      'drop policy if exists supplier_document_supplier_profiles_staff_read on public.supplier_document_supplier_profiles;',
+      'create policy supplier_document_supplier_profiles_staff_read on public.supplier_document_supplier_profiles for select to authenticated using (public.is_active_staff());',
+      'drop policy if exists supplier_document_supplier_profiles_owner_write on public.supplier_document_supplier_profiles;',
+      "create policy supplier_document_supplier_profiles_owner_write on public.supplier_document_supplier_profiles for all to authenticated using (public.current_role() = 'owner') with check (public.current_role() = 'owner');",
+      'drop policy if exists supplier_document_subjects_staff_read on public.supplier_document_subjects;',
+      'create policy supplier_document_subjects_staff_read on public.supplier_document_subjects for select to authenticated using (public.is_active_staff());',
+      'drop policy if exists supplier_document_subjects_staff_add on public.supplier_document_subjects;',
+      'create policy supplier_document_subjects_staff_add on public.supplier_document_subjects for insert to authenticated with check (public.is_active_staff() and is_active);',
+      'drop policy if exists supplier_document_subjects_owner_update on public.supplier_document_subjects;',
+      "create policy supplier_document_subjects_owner_update on public.supplier_document_subjects for update to authenticated using (public.current_role() = 'owner') with check (public.current_role() = 'owner');",
+      'drop policy if exists supplier_documents_staff_read on public.supplier_documents;',
+      'create policy supplier_documents_staff_read on public.supplier_documents for select to authenticated using (public.is_active_staff());',
+      'drop policy if exists supplier_documents_staff_record on public.supplier_documents;',
+      "create policy supplier_documents_staff_record on public.supplier_documents for insert to authenticated with check (public.is_active_staff() and status = 'received');",
+      'drop policy if exists supplier_documents_staff_update on public.supplier_documents;',
+      'create policy supplier_documents_staff_update on public.supplier_documents for update to authenticated using (public.is_active_staff()) with check (public.is_active_staff());',
+      'drop policy if exists supplier_document_events_staff_read on public.supplier_document_events;',
+      'create policy supplier_document_events_staff_read on public.supplier_document_events for select to authenticated using (public.is_active_staff());',
+      'drop policy if exists supplier_document_events_trigger_insert on public.supplier_document_events;',
+      'create policy supplier_document_events_trigger_insert on public.supplier_document_events for insert to authenticated with check (public.is_active_staff());'];
     if (f === '32_DRAFT_invoices.sql') for (const r of INVOICE_RULES) expect(sql.split(r).length - 1, 'pinned rule present exactly once: ' + r.slice(0, 60)).toBe(1);
     // The third allowed set (Nov 16, drafts/34): row rules on that draft's OWN two
     // new tables, implementing the owner's Nov 16 decision — active staff read
@@ -106,7 +141,14 @@ for (const f of ALL) {
     }
     const policyOk = /^(29|30)_/.test(f) ? READ_RULES.reduce((t, r) => t.split(r).join(''), sql)
       : f === '32_DRAFT_invoices.sql' ? INVOICE_RULES.reduce((t, r) => t.split(r).join(''), sql)
-        : f === '34_DRAFT_stock_count_adjustments.sql' ? STOCK_COUNT_RULES.reduce((t, r) => t.split(r).join(''), sql) : sql;
+        : f === '34_DRAFT_stock_count_adjustments.sql' ? STOCK_COUNT_RULES.reduce((t, r) => t.split(r).join(''), sql)
+          : f === '36_DRAFT_supplier_documents.sql' ? SUPPLIER_DOC_RULES.reduce((t, r) => t.split(r).join(''), sql) : sql;
+    if (f === '36_DRAFT_supplier_documents.sql') {
+      for (const r of SUPPLIER_DOC_RULES) expect(sql.split(r).length - 1, 'pinned rule present exactly once: ' + r.slice(0, 60)).toBe(1);
+      // No delete is granted on the documents or the history at all; the guards refuse one anyway.
+      expect(sql).toContain('grant select, insert, update on public.supplier_documents to authenticated;');
+      expect(sql).toContain('grant select, insert on public.supplier_document_events to authenticated;');
+    }
     expect(policyOk, 'policies never created, changed or dropped').not.toMatch(/\b(create|alter|drop)\s+policy\b/);
     // The one allowed drop (EXT9): the schedule rollback removes its own results table.
     const dropOk = f === '26_DRAFT_rollback_integrity_check_schedule.sql' ? sql.replace('drop table if exists public.integrity_check_results;', '')
@@ -114,7 +156,10 @@ for (const f of ALL) {
         // Nov 15: the invoice rollback removes its own two tables (and refuses to run at all once an invoice has been issued).
         : f === '33_DRAFT_rollback_invoices.sql' ? sql.replace('drop table if exists public.invoices;', '').replace('drop table if exists public.invoice_counters;', '')
           // Nov 16: the stock-count rollback removes its own two tables (and refuses to run once any adjustment has been approved or rejected).
-          : f === '35_DRAFT_rollback_stock_count_adjustments.sql' ? sql.replace('drop table if exists public.stock_count_adjustments;', '').replace('drop table if exists public.stock_count_approvers;', '') : sql;
+          : f === '35_DRAFT_rollback_stock_count_adjustments.sql' ? sql.replace('drop table if exists public.stock_count_adjustments;', '').replace('drop table if exists public.stock_count_approvers;', '')
+            // Nov 16, later: the supplier document rollback removes its own six tables (and refuses once any document has been reviewed).
+            : f === '37_DRAFT_rollback_supplier_documents.sql' ? ['supplier_document_events', 'supplier_documents', 'supplier_document_subjects', 'supplier_document_supplier_profiles', 'supplier_type_document_profiles', 'supplier_document_types']
+              .reduce((t, n) => t.replace('drop table if exists public.' + n + ';', ''), sql) : sql;
     expect(dropOk, 'no table or schema is dropped').not.toMatch(/\bdrop\s+(table|schema)\b/);
     // The one allowed delete (EXT9): the switches rollback removes exactly the
     // five stock_fn_* rows its install added, nothing else.

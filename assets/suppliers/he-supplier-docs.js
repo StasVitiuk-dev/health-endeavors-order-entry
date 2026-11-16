@@ -20,10 +20,11 @@
 // A document only counts when it was REVIEWED: marked approved, with who
 // approved it and when. One that has merely arrived is AWAITING REVIEW.
 //
-// Honest gap: the database has no place for this yet. The existing `documents`
-// table knows a supplier and a fixed category, not a purchase order, a batch or
-// a review. Storing these needs its own draft; until then this runs on the
-// example data in fixtures().
+// Storage: the existing `documents` table knows a supplier and a fixed category,
+// not a purchase order, a batch or a review, so these documents get their own
+// tables in docs/ops/sql/drafts/36 (not installed; needs the owner's approval).
+// he-supplier-docs-store.js reads them into the shapes this file takes. Until
+// storage is installed and switched on, the screen runs on fixtures().
 //
 // Pure. Dual-mode (Node require + browser HE.suppliers registry).
 (function (root, factory) {
@@ -190,6 +191,10 @@
         receivedAt: best ? (text(best.receivedAt) || null) : null,
         expiresOn: best ? (dayOf(best.expiresOn) || null) : null,
         note: best ? (text(best.reviewNote) || null) : null,
+        // the stored document behind this line (null for example data and missing lines)
+        documentId: best && best.id != null ? String(best.id) : null,
+        recordedBy: best ? (text(best.recordedBy) || null) : null,
+        reference: best ? (text(best.reference) || null) : null,
       });
     });
     const count = function (st) { return rows.filter(function (r) { return r.status === st; }).length; };
