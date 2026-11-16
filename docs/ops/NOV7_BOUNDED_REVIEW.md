@@ -362,3 +362,50 @@ traced to the test itself, not the dashboard**:
   The dashboard's behaviour was correct throughout.
 
 A further full pass follows on the commit that carries the Nov 16 owner decisions.
+
+## Full pass, 2026-11-16 afternoon (commit `8955917`, substitute browser)
+
+Run from 17:29 to 18:41 UTC, same method. Covers the Nov 16 owner decisions
+(tax pending, supplier documents, stock-count approval, SQL review), the visual
+details and the add-form recovery sweep.
+
+| Size | Passed | Failed | Skipped | Total |
+|---|---|---|---|---|
+| Computer (1100 px) | **2,510** | **14** | 54 | 2,578 |
+| Phone (390 px, Chromium with an iPhone profile — not real Safari) | **519** | **10** | 451 | 980 |
+
+Failures, each followed up:
+
+- The 20 picture comparisons (by design, as before).
+- `generated-determinism-ext20` and two `write-path-inventory` checks: the
+  generated write-path inventory had not been regenerated after the add-form
+  sweep. Regenerated in `d2b9a35`; all three pass.
+- `sales-workbench-a11y-ext21` "text meets AA contrast (light)" reported an
+  outlined button at 4.44:1. It passed 4 of 4 on repeat, so it was a timing
+  effect, but the cause was real: the mouse had been left over an outlined
+  button, whose grey hover fill puts the blue text at **4.31:1**, below the
+  4.5:1 minimum. Fixed in `d2b9a35` (hover text is a slightly darker blue,
+  5.11:1; dark mode unchanged). A new test in `visual-details-ext21` hovers,
+  waits for the fade and measures in both themes; it fails on the old style
+  and passes on the new one.
+
+The pass on `d2b9a35` follows below.
+
+## Full pass, 2026-11-16 evening (commit `d2b9a35`, substitute browser) — clean
+
+Run from 21:04 to 22:13 UTC, same method, quiet machine. This is the commit the
+review package's pictures and preview were made from; later commits change
+only documents.
+
+| Size | Passed | Failed | Skipped | Total |
+|---|---|---|---|---|
+| Computer (1100 px) | **2,515** | **10** | 54 | 2,579 |
+| Phone (390 px, Chromium with an iPhone profile — not real Safari) | **519** | **10** | 452 | 981 |
+
+The only failures are the 20 picture comparisons (10 per size). They fail by
+design: their reference pictures predate the owner-directed restyle and are
+retaken only after the owner accepts the look. Every other test passed,
+including the three generated-file checks and the contrast test that failed on
+`8955917`, plus the new hover test. Database tests at the same commit (local
+throwaway Postgres): invoices 87/87, stock-count approval 90/90, Query I 24/24,
+invoice storage adapter 34/34.
