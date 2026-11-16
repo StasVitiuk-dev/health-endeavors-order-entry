@@ -14,6 +14,11 @@ The exact SQL is in these files (also in the review package):
 
 ---
 
+> Later on Nov 16 this page was split into three separate review items, one per
+> decision, each with the exact SQL fingerprint, migration order, dependencies,
+> recovery steps and (for Query I) a sample summary: `docs/ops/sql-review/`.
+> This page keeps the long-form detail for draft 32 and Query I.
+
 ## Part A — SQL draft 32: invoice storage
 
 ### What it changes
