@@ -32,7 +32,7 @@
 <meta http-equiv="Expires" content="0">
 <title>Health Endeavors — Owner Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous"></script>
-<link rel="stylesheet" href="assets/owner-login.css?v=b74637b718">
+<link rel="stylesheet" href="assets/owner-login.css?v=c42462caed">
 <script src="assets/owner-login-helpers.js?v=76dc8fc4a9"></script>
 <script src="assets/owner-login-modules.js?v=0d97adc58c"></script>
 <!-- @@ EXT15 module files (assets/app/*.js), added by tests/tools/extract-module.js @@ -->
@@ -289,7 +289,8 @@
         <div class="savedViewsHost" id="savedViewsInventory"></div>
         <div class="statRow" id="inventoryStats"></div>
 
-        <form class="heForm u-mt-14" id="addProductForm">
+        <h3 class="u-fs-13 u-c-navy u-mt-14">Add a product</h3>
+        <form class="heForm u-mt-8 u-pt-16 u-bt-1-solid-line" id="addProductForm">
           <div class="heField heWide">
             <label for="prodName">Product name</label>
             <input type="text" id="prodName" placeholder="e.g. SYNTHETIC Cocoa Butter 8 oz" required>
@@ -386,7 +387,7 @@
               <option value="">Choose a recent order…</option>
             </select>
             <div class="u-d-flex u-gap-6 u-fwr-wrap u-ai-center">
-              <input type="text" id="retOrderFind" aria-label="Find an older order by its number" placeholder="Older order? Type its number" class="u-flex-1-1-160">
+              <input type="text" id="retOrderFind" aria-label="Find an older order by its number" placeholder="Older order number" class="u-flex-1-1-160">
               <button type="button" class="small" id="retOrderFindBtn">Find order</button>
             </div>
             <p class="hint u-m-0" id="retOrderHint"></p>
@@ -810,7 +811,8 @@
         <h2>Suppliers</h2>
         <p class="hint">Everyone you buy from — manufacturers, labs, packaging, freight. Purchase orders are raised against these, so add a supplier before you order from them.</p>
         <div class="statRow" id="supplierStats"></div>
-        <form class="heForm" id="addSupplierForm">
+        <h3 class="u-fs-13 u-c-navy u-mt-14">Add a supplier</h3>
+        <form class="heForm u-mt-8 u-pt-16 u-bt-1-solid-line" id="addSupplierForm">
           <div class="heField heWide">
             <label for="supName">Company name</label>
             <input type="text" id="supName" placeholder="e.g. SYNTHETIC Botanicals Co" required>
@@ -857,7 +859,8 @@
         <p class="hint hintLead">What you've ordered, what it cost, and when it's due. Open a purchase order to add the things you're buying.</p>
         <details class="hintMore"><summary>More about this</summary><p class="hint">When the delivery arrives, marking it Received puts the stock into Inventory and records the cost as an expense — so you never type the same numbers twice.</p></details>
         <div class="statRow" id="poStats"></div>
-        <form class="heForm" id="addPoForm">
+        <h3 class="u-fs-13 u-c-navy u-mt-14">Create a purchase order</h3>
+        <form class="heForm u-mt-8 u-pt-16 u-bt-1-solid-line" id="addPoForm">
           <div class="heField heWide">
             <label for="poSupplier">Supplier</label>
             <select id="poSupplier" required><option value="">Choose a supplier…</option></select>
@@ -1104,6 +1107,6 @@
 <!-- One permanent place for screen readers to hear the result of a button in a
      section that redraws itself (Nov 15). Invisible on screen. -->
 <div id="srAnnounce" class="srOnly" role="status" aria-live="polite" aria-atomic="true"></div>
-<script src="assets/owner-login-app.js?v=4f4f0405fa"></script>
+<script src="assets/owner-login-app.js?v=d65f4ef9c2"></script>
 </body>
 </html>

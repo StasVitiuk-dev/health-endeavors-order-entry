@@ -3396,7 +3396,11 @@
 
       if (!rows.length) {
         document.getElementById('activityStats').replaceChildren();
-        wrap.replaceChildren(h('p', { class: 'empty' }, 'No activity matches that search.'));
+        // Nov 16: say "no matches" only when something was searched or filtered;
+        // with nothing chosen, the honest message is that nothing is recorded.
+        const val = id => { const el = document.getElementById(id); return el ? String(el.value || '').trim() : ''; };
+        const narrowed = ACTIVITY_PERSON || val('activitySearch') || (val('activityRange') && val('activityRange') !== 'all') || val('activityArea');
+        wrap.replaceChildren(h('p', { class: 'empty' }, narrowed ? 'No activity matches that search.' : 'No changes recorded yet.'));
         return;
       }
 
@@ -6156,13 +6160,13 @@
             showingNoteNode,
             h('table', { class: 'phoneCards' },
               h('thead', null, h('tr', null,
-                h('th', null, 'Order #'), h('th', null, 'Customer'), h('th', null, 'Status'), h('th', null, 'Total'), h('th', null, 'Placed'), h('th'))),
+                h('th', null, 'Order #'), h('th', null, 'Customer'), h('th', null, 'Status'), h('th', { class: 'num-cell' }, 'Total'), h('th', null, 'Placed'), h('th'))),
               h('tbody', null, recent.map(o =>
                 h('tr', { 'data-id': o.id },
                   h('td', null, o.order_number || o.id),
                   h('td', null, o.customer_name || '—'),
-                  h('td', null, h('span', { class: 'badge' }, o.status || '—')),
-                  h('td', null, fmtMoney(o.total, o.currency)),
+                  h('td', null, h('span', { class: 'badge' }, o.status ? String(o.status).replace(/_/g, ' ') : '—')),
+                  h('td', { class: 'num-cell' }, fmtMoney(o.total, o.currency)),
                   h('td', null, fmtDate(o.placed_at)),
                   h('td', null, h('button', { class: 'small deny deleteOrderBtn' }, 'Delete'))))))
           ].filter(Boolean));
@@ -7950,7 +7954,7 @@
             actionNodes = [h('button', { type: 'button', class: 'small advanceReturnBtn', 'data-next': 'closed' }, 'Close')];
           } else if (r.status === 'received') {
             actionNodes = [
-              h('input', { type: 'number', class: 'refundAmountInput u-w-130 u-p-5-7 u-br-6 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-12', min: '0', max: '1000000', step: '0.01', placeholder: 'Refund $ (optional)' }),
+              h('input', { type: 'number', class: 'refundAmountInput u-w-130 u-p-5-7 u-br-6 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-12', min: '0', max: '1000000', step: '0.01', placeholder: 'Refund $', 'aria-label': 'Refund amount in dollars (optional)' }),
               h('button', { type: 'button', class: 'small markRefundedBtn' }, 'Mark Refunded'),
               h('button', { type: 'button', class: 'small advanceReturnBtn', 'data-next': 'closed' }, 'Close without refund'),
             ];
@@ -7959,7 +7963,7 @@
           }
 
           const detailLine = [
-            r.reason ? 'Reason: ' + (RETURN_REASON_LABELS[r.reason] || r.reason) : '',
+            r.reason ? 'Reason: ' + (RETURN_REASON_LABELS[r.reason] || (String(r.reason).charAt(0).toUpperCase() + String(r.reason).slice(1)).replace(/_/g, ' ')) : '',
             r.product_condition ? 'Condition: ' + (RETURN_CONDITION_LABELS[r.product_condition] || r.product_condition) : '',
             r.disposition ? 'Chosen outcome: ' + (RETURN_DISPOSITION_LABELS[r.disposition] || r.disposition) : '',
           ].filter(Boolean).join(' · ');

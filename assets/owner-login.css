@@ -318,7 +318,7 @@
   .activityControls{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
   .activityControls input[type=text]{
     flex:1 1 260px; margin-bottom:0; padding:9px 10px; font-size:14px;
-    border-radius:8px; border:1px solid var(--field-border);
+    border-radius:var(--ctl-radius); border:1px solid var(--field-border);   /* Nov 16: was 8px, the one rounded field left */
   }
   .peopleStrip{ display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-bottom:14px; }
   .peopleStrip .peopleLbl{
@@ -715,6 +715,10 @@
   @media (max-width: 600px){
     /* X10-23: the text takes the whole line so buttons wrap below it (min-width:0 let it shrink to a sliver) */
     .approvalRow .info, .deletedRow .info, .sessionRow .info{ flex-basis:100%; }
+    /* Nov 16: the same for rows whose text carries a flex utility (Returns): a
+       single button (e.g. "Close") squeezed the text into extra lines instead of
+       going below it like the other rows. */
+    .deletedRow .info.u-flex-1, .approvalRow .info.u-flex-1{ flex-basis:100% !important; min-width:0 !important; }
     section.panel table.phoneCards{ display:block; overflow:visible; white-space:normal; }
     table.phoneCards thead{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); clip-path:inset(50%); white-space:nowrap; }
     table.phoneCards tbody{ display:block; }
@@ -1065,6 +1069,21 @@
   .heForm .heField .heOpt{ font-weight:400; color:var(--muted); }
   .heForm .heField.heWide{ grid-column:1 / -1; }
   .heForm .heField input, .heForm .heField select, .heForm .heField textarea{ width:100%; margin:0; }
+  /* Nov 16: one height for every full-size field in a form row. Measured before:
+     dropdowns 37 px, text 39 px, date 41 px side by side, so the labels and the
+     boxes did not line up. A whole number of pixels (a calculated height rounded
+     differently from box to box): 40 px on a computer, 44 px (a full touch
+     target) at phone width. */
+  .heForm .heField input:not([type=checkbox]):not([type=radio]):not([type=file]),
+  .heForm .heField select,
+  .reminderForm > input:not([type=checkbox]):not([type=radio]):not([type=file]),
+  .reminderForm > select{ box-sizing:border-box; line-height:1.25; height:40px; padding-top:0; padding-bottom:0; }
+  @media (max-width:600px){
+    .heForm .heField input:not([type=checkbox]):not([type=radio]):not([type=file]),
+    .heForm .heField select,
+    .reminderForm > input:not([type=checkbox]):not([type=radio]):not([type=file]),
+    .reminderForm > select{ height:44px; }
+  }
   .heForm .heActions{ grid-column:1 / -1; display:flex; gap:8px; flex-wrap:wrap; margin-top:2px; }
   /* Native file input: give its button the secondary-control look. */
   .heFileField{ font-size:13px; color:var(--muted); }
