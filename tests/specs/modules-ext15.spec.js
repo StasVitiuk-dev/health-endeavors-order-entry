@@ -21,7 +21,7 @@ const CHANGED = [
   // Nov 15: also shortens very long cell text when a table is drawn (clipLongCellText)
   'labelPhoneCards',
   // Nov 15: the quick-reminder field takes focus at once (a key pressed right after the shortcut was lost)
-  'openQuickAdd', 'openShortcuts', 'resolveInspectTarget', 'showDashboardFor',
+  'openQuickAdd', 'openShortcuts', 'resolveInspectTarget', 'showDashboardFor', 'bindOrderLookupLinks',
   // EXT18: changes still waiting for a reply are counted, so a sign-out elsewhere is reported honestly:
   'capAwareFetch', 'writesWaiting', 'writesInFlight',
   // EXT19: sidebar and loading skeletons built as elements (safe builder h), not HTML strings:
@@ -63,7 +63,7 @@ const CHANGED = [
   // EXT20J calendar wave: every calendar renderer returns DOM nodes (h) instead
   // of HTML strings (data-shown/data-had carried via setAttribute, round-tripped):
   'eventHtml', 'noteEditorHtml', 'dayGroupHtml', 'renderCalendar', 'personalEventEditorHtml'];
-const ADDED = ['focusDialog', 'inspectLabel', 'setReportHistoryView', 'inquiriesList', 'agentControls', 'poReceiveOps',
+const ADDED = ['focusDialog', 'inspectLabel', 'keyLink', 'setReportHistoryView', 'inquiriesList', 'agentControls', 'poReceiveOps',
   // EXT17: manual stock adjustments report to an explicit operation state (he-ops, repeatable)
   'adjustOps', 'adjustPending', 'adjustKey', 'checkUnknownAdjustment',
   'openGroupsMem', 'pinnedMem',

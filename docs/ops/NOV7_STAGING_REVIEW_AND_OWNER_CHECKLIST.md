@@ -163,7 +163,7 @@ and form styling the owner directed on Nov 3, for the owner's final look-over.
 
 - Branch `claude/ext20-recovery-2026-10-31`, unpushed; working tree clean.
 - A recovery export (git bundle + patches + checksums, verified) is refreshed at each
-  checkpoint; the latest is v54, made on the night of Nov 15 (sent to the owner as a file).
+  checkpoint; the latest is v55, made on Nov 16 (sent to the owner as a file).
 - **Durability warning:** the branch and the export both live in this session's
   temporary cloud workspace. They are preserved for good only once the branch is
   pushed to GitHub or the export file is saved by the owner.

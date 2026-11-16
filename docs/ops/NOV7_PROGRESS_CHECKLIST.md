@@ -182,6 +182,7 @@ All draft-only behind `he_sales_growth` (OFF by default); nothing sent, spent or
 - ✅ Full pass on `4c5efc9` (Nov 15 afternoon): computer 2,387 passed / 10 failed, phone 507 passed / 11 failed — same failures as before, nothing new
 - ✅ Every dialog takes keyboard focus when it opens (shortcut list, Guide box and record history did not; Enter could press a button behind them); record-history title keeps its words apart (Nov 15 night, after the full pass)
 - ✅ Very long text checked on all 26 pages (48 free-text columns, phone and computer): pages fine; a very long account name in the header fixed (Nov 15 night)
+- ✅ The left menu works from the keyboard: Tab reaches every page link, Enter opens it, the current page is marked; nothing else on any of the 26 pages is mouse-only (Nov 16)
 - ✅ Clean full pass on `88db1fe` (Nov 15 night, nothing else running): computer 2,431 passed / 10 failed, phone 513 passed / 10 failed — only the 20 picture comparisons; the phone-size timing test passes for the first time (its cause, very long text freezing tables, was fixed)
 - ✅ Invoice review desk (simulated): confirm local tax rate → issue → void, with numbering, terms, due date and role checks (Nov 15)
 - ✅ Nov 3 review point 8: sales workflow tested end to end with the real modules; found and fixed two faults (opt-out replies got the wrong advice; a reply template claimed an attachment that never exists)

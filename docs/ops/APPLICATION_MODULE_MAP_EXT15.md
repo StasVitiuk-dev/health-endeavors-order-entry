@@ -41,7 +41,7 @@ Why it matters: a smaller file is easier to review, a mistake in one area is les
 | 18 | `he-admin` | Admin pages: signed-in sessions, SOPs, feature requests and their recycle bin (reads plus simple non-stock, non-money saves) | 209 | he-config: 4, helpers / program: 9, he-data: 4, he-ui: 2 | 4 |
 | 19 | `he-compliance` | Compliance pages: adverse events, legal holds (and released holds), documents, evidence locker (reads plus guarded record saves; no stock or money) | 393 | he-format: 2, he-config: 2, he-data: 7, helpers / program: 7, he-ui: 3 | 5 |
 
-Program file after extraction: `assets/owner-login-app.js` 8,590 lines, 558,161 bytes; 143 top-level functions; 61 mutable top-level variables (61 shared).
+Program file after extraction: `assets/owner-login-app.js` 8,632 lines, 560,936 bytes; 144 top-level functions; 61 mutable top-level variables (61 shared).
 
 Dependency graph (module ← modules it takes inputs from; the program creates them top to bottom):
 

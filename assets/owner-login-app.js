@@ -602,12 +602,34 @@
 
     // EXT19: the sidebar is built as elements (h), not as an HTML string: it was
     // the busiest raw-HTML site on the page (40 of 168 Trusted Types reports).
+    // A menu entry that is a link without an address (the page changes inside
+    // the dashboard): Tab reaches it, a screen reader calls it a link, Enter
+    // opens it (as with any link; Space keeps its other meanings). Nov 15:
+    // before, only a mouse could use these.
+    function keyLink(el, after){
+      el.setAttribute('role', 'link');
+      el.setAttribute('tabindex', '0');
+      el.addEventListener('keydown', (e) => {
+        if (e.target !== el || e.key !== 'Enter') return;   // not the pin star inside it
+        e.preventDefault();
+        e.stopPropagation();           // Enter also means "open the row" elsewhere
+        el.click();
+        if (after) after();
+      });
+      // A mouse click or a tap leaves no keyboard focus behind on the entry, as
+      // before it could take focus: "hover a row and press Space" keeps working.
+      el.addEventListener('click', (e) => {
+        if (!e.detail) return;                                // pressed from the keyboard
+        const a = document.activeElement;
+        if (a && a.getAttribute('role') === 'link' && a.classList.contains('sidebarLink')) a.blur();
+      });
+    }
     function pageLinkNode(p, pinnedSet){
       const badge = getPageBadgeCount(p.id);
       const isPinned = pinnedSet.has(p.id);
       return h('a', { class: 'sidebarLink' + (p.id === currentPageId ? ' active' : ''), 'data-page': p.id },
         h('span', { class: 'linkLabelRow' },
-          h('button', { type: 'button', class: 'pinBtn' + (isPinned ? ' pinned' : ''), 'data-pin-page': p.id, title: isPinned ? 'Unpin' : 'Pin to top' }, isPinned ? '★' : '☆'),
+          h('button', { type: 'button', class: 'pinBtn' + (isPinned ? ' pinned' : ''), 'data-pin-page': p.id, title: isPinned ? 'Unpin' : 'Pin to top', 'aria-label': isPinned ? 'Unpin ' + p.label : 'Pin ' + p.label + ' to top' }, isPinned ? '★' : '☆'),
           h('span', { class: 'pageIcon' }, pageIconNode(p.id)),
           h('span', null, p.label)),
         badge > 0 ? h('span', { class: 'sidebarBadge' }, badge) : null);
@@ -675,6 +697,18 @@
       });
 
       if (!out.length) out.push(h('p', { class: 'sidebarEmpty' }, 'No pages or records match your search.'));
+      // The menu is redrawn often (a page opens, numbers refresh). Remember which
+      // entry had keyboard focus and give it back afterwards, so a keyboard user
+      // is not thrown out of the menu (Nov 15).
+      const held = document.activeElement;
+      let holdSel = null;
+      if (held && wrap.contains(held)) {
+        const esc = v => CSS.escape(v == null ? '' : v);
+        if (held.classList.contains('pinBtn')) holdSel = '.pinBtn[data-pin-page="' + esc(held.getAttribute('data-pin-page')) + '"]';
+        else if (held.classList.contains('groupToggle')) holdSel = '.groupToggle[data-group="' + esc(held.getAttribute('data-group')) + '"]';
+        else if (held.classList.contains('searchResultLink')) holdSel = '.searchResultLink[data-result-index="' + esc(held.getAttribute('data-result-index')) + '"]';
+        else if (held.classList.contains('sidebarLink')) holdSel = '.sidebarLink[data-page="' + esc(held.getAttribute('data-page')) + '"]:not(.searchResultLink)';
+      }
       wrap.replaceChildren(...out);
       wrap.querySelectorAll('.sidebarGroup[data-group-color]').forEach(g => {
         const c = g.getAttribute('data-group-color');
@@ -682,7 +716,13 @@
       });
       wrap.querySelectorAll('.sidebarLink').forEach(link => {
         link.addEventListener('click', () => showPage(link.getAttribute('data-page')));
+        if (link.classList.contains('active')) link.setAttribute('aria-current', 'page');
+        // Opened from the keyboard: say which page opened (focus stays in the menu).
+        keyLink(link, link.classList.contains('searchResultLink') ? null
+          : () => announce((PAGE_LABEL_BY_ID[link.getAttribute('data-page')] || 'Page') + ' page opened'));
       });
+      // (after the links above were made focusable)
+      if (holdSel) { const same = wrap.querySelector(holdSel); if (same) same.focus({ preventScroll: true }); }
       wrap.querySelectorAll('.pinBtn').forEach(btn => {
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
@@ -3428,8 +3468,10 @@
     // rebuilt fresh each time it is shown, not an HTML string.
     let ORDER_LOOKUP = { q: null, render: null };
     function bindOrderLookupLinks(){
-      document.querySelectorAll('#orderLookupResults .orderLookupLink').forEach(a => a.addEventListener('click', () =>
-        openInspectorFor('orders', a.getAttribute('data-id'), a.getAttribute('data-num'))));
+      document.querySelectorAll('#orderLookupResults .orderLookupLink').forEach(a => {
+        a.addEventListener('click', () => openInspectorFor('orders', a.getAttribute('data-id'), a.getAttribute('data-num')));
+        keyLink(a);
+      });
     }
     // EXT8: order number or customer name, in every (not deleted) order,
     // matched literally; newest 20 shown. Opens the order's history.
