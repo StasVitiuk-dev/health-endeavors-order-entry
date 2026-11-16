@@ -90,3 +90,28 @@ test('every add form has a heading, like "Log a new return"', async ({ page }, t
     .map(id => { const f = document.getElementById(id); const h = f && f.previousElementSibling; return id + ':' + (h && h.tagName === 'H3' ? h.textContent : 'none'); }));
   expect(heads).toEqual(['addProductForm:Add a product', 'addPoForm:Create a purchase order', 'addSupplierForm:Add a supplier', 'logReturnForm:Log a new return', 'adjustInventoryForm:Adjust stock']);
 });
+
+// Found by the full test pass of Nov 16: a secondary (outlined) button under the
+// mouse turns its fill grey, and the blue text on that grey measured 4.31:1 —
+// under the 4.5:1 minimum. Hover now darkens the text slightly (5.11:1). Measured
+// after the fade finishes so the result never depends on timing.
+test('a secondary button under the mouse keeps readable text (light and dark)', async ({ page, backend }, ti) => {
+  test.skip(ti.project.name !== 'desktop', 'hover needs a mouse');
+  seedBusiness(backend);
+  await login(page);
+  await gotoPage(page, 'inventoryPanel');
+  for (const scheme of ['light', 'dark']) {
+    await page.emulateMedia({ colorScheme: scheme });
+    const btn = page.locator('#inventoryPanel button.secondary:visible').first();
+    await btn.hover();
+    await page.waitForTimeout(400);
+    const ratio = await btn.evaluate(el => {
+      const rgb = s => s.match(/[\d.]+/g).slice(0, 3).map(Number);
+      const lum = c => { const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }; return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]); };
+      const a = lum(rgb(getComputedStyle(el).color)), b = lum(rgb(getComputedStyle(el).backgroundColor));
+      return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+    });
+    expect(ratio, scheme).toBeGreaterThanOrEqual(4.5);
+    await page.mouse.move(0, 0);
+  }
+});

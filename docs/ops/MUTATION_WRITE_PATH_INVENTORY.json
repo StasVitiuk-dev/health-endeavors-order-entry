@@ -35,6 +35,7 @@
    "serverRule": "DB (Query A): owner/administrator only",
    "pageRoleCheck": false,
    "testFiles": [
+    "add-forms-recovery-ext21",
     "adjust-ops-ext17",
     "chaos-long-ext17",
     "failure-recovery",
@@ -81,6 +82,7 @@
    "serverRule": "DB (Query A): owner/administrator only",
    "pageRoleCheck": false,
    "testFiles": [
+    "add-forms-recovery-ext21",
     "adjust-ops-ext17",
     "chaos-long-ext17",
     "failure-recovery",
@@ -267,6 +269,7 @@
    "serverRule": "DB (Query A): owner/administrator only",
    "pageRoleCheck": false,
    "testFiles": [
+    "add-forms-recovery-ext21",
     "failure-recovery",
     "malformed-data-ext15",
     "numeric-contract",
@@ -338,6 +341,7 @@
    "serverRule": "DB (Query A): owner/administrator only",
    "pageRoleCheck": false,
    "testFiles": [
+    "add-forms-recovery-ext21",
     "failure-recovery",
     "malformed-data-ext15",
     "numeric-contract",
@@ -380,6 +384,7 @@
    "serverRule": "DB (Query A): owner/administrator only",
    "pageRoleCheck": false,
    "testFiles": [
+    "add-forms-recovery-ext21",
     "failure-recovery",
     "malformed-data-ext15",
     "numeric-contract",
@@ -422,6 +427,7 @@
    "serverRule": "DB (Query A): owner/administrator only",
    "pageRoleCheck": false,
    "testFiles": [
+    "add-forms-recovery-ext21",
     "guarded-toggles",
     "malformed-data-ext15",
     "schema-contract-ext19",
@@ -617,6 +623,7 @@
    "serverRule": "UNKNOWN until Query D (table outside the export)",
    "pageRoleCheck": false,
    "testFiles": [
+    "add-forms-recovery-ext21",
     "request-keys-ext10",
     "scale-matrix",
     "stale-tab-gaps",
@@ -649,6 +656,7 @@
    "serverRule": "UNKNOWN until Query D (table outside the export)",
    "pageRoleCheck": false,
    "testFiles": [
+    "add-forms-recovery-ext21",
     "request-keys-ext10",
     "state-transitions-2"
    ]
@@ -679,6 +687,7 @@
    "serverRule": "DB (Query A): any active staff",
    "pageRoleCheck": false,
    "testFiles": [
+    "add-forms-recovery-ext21",
     "failure-recovery",
     "link-scheme-check",
     "query-a-fixes",
@@ -742,6 +751,7 @@
    "serverRule": "UNKNOWN until Query D (table outside the export)",
    "pageRoleCheck": false,
    "testFiles": [
+    "add-forms-recovery-ext21",
     "compliance-pages",
     "ops-findings",
     "request-keys-ext10",
@@ -774,6 +784,7 @@
    "serverRule": "UNKNOWN until Query D (table outside the export)",
    "pageRoleCheck": false,
    "testFiles": [
+    "add-forms-recovery-ext21",
     "compliance-pages",
     "ops-findings",
     "request-keys-ext10",
@@ -1010,6 +1021,7 @@
    "serverRule": "UNKNOWN until Query D (table outside the export)",
    "pageRoleCheck": false,
    "testFiles": [
+    "add-forms-recovery-ext21",
     "double-submit-stale",
     "pages-data",
     "request-keys-ext10",
@@ -1043,6 +1055,7 @@
    "serverRule": "UNKNOWN until Query D (table outside the export)",
    "pageRoleCheck": false,
    "testFiles": [
+    "add-forms-recovery-ext21",
     "double-submit-stale",
     "pages-data",
     "request-keys-ext10",
@@ -1076,6 +1089,7 @@
    "serverRule": "UNKNOWN until Query D (table outside the export)",
    "pageRoleCheck": false,
    "testFiles": [
+    "add-forms-recovery-ext21",
     "double-submit-stale",
     "pages-data",
     "request-keys-ext10",
@@ -1109,6 +1123,7 @@
    "serverRule": "DB (Query A): owner/administrator only",
    "pageRoleCheck": false,
    "testFiles": [
+    "add-forms-recovery-ext21",
     "inventory-safety",
     "malformed-data-ext15",
     "numeric-contract",
@@ -1149,6 +1164,7 @@
    "serverRule": "DB (Query A): owner/administrator only",
    "pageRoleCheck": false,
    "testFiles": [
+    "add-forms-recovery-ext21",
     "guarded-toggles",
     "malformed-data-ext15",
     "schema-contract-ext19",
@@ -1248,6 +1264,7 @@
    "serverRule": "DB (Query A): owner/administrator only",
    "pageRoleCheck": false,
    "testFiles": [
+    "add-forms-recovery-ext21",
     "failure-recovery",
     "helpers-unit",
     "malformed-data-ext15",
@@ -1290,6 +1307,7 @@
    "serverRule": "DB (Query A): owner/administrator only",
    "pageRoleCheck": false,
    "testFiles": [
+    "add-forms-recovery-ext21",
     "failure-recovery",
     "helpers-unit",
     "malformed-data-ext15",
@@ -1332,6 +1350,7 @@
    "serverRule": "DB (Query A): owner/administrator only",
    "pageRoleCheck": false,
    "testFiles": [
+    "add-forms-recovery-ext21",
     "failure-recovery",
     "helpers-unit",
     "malformed-data-ext15",
@@ -1404,6 +1423,7 @@
    "serverRule": "DB (Query A): owner/administrator only",
    "pageRoleCheck": true,
    "testFiles": [
+    "add-forms-recovery-ext21",
     "failure-recovery",
     "helpers-unit",
     "malformed-data-ext15",
@@ -1545,6 +1565,7 @@
    "serverRule": "DB (Query A): owner/administrator only",
    "pageRoleCheck": true,
    "testFiles": [
+    "add-forms-recovery-ext21",
     "adjust-ops-ext17",
     "chaos-long-ext17",
     "failure-recovery",
@@ -1619,6 +1640,7 @@
    "serverRule": "DB (Query A): owner/administrator only",
    "pageRoleCheck": true,
    "testFiles": [
+    "add-forms-recovery-ext21",
     "failure-recovery",
     "malformed-data-ext15",
     "numeric-contract",
@@ -1661,6 +1683,7 @@
    "serverRule": "DB (Query A): owner/administrator only",
    "pageRoleCheck": false,
    "testFiles": [
+    "add-forms-recovery-ext21",
     "failure-recovery",
     "helpers-unit",
     "malformed-data-ext15",
@@ -1703,6 +1726,7 @@
    "serverRule": "UNKNOWN until Query D (table outside the export)",
    "pageRoleCheck": false,
    "testFiles": [
+    "add-forms-recovery-ext21",
     "compliance-pages",
     "request-keys-ext10"
    ]
@@ -1733,6 +1757,7 @@
    "serverRule": "UNKNOWN until Query D (table outside the export)",
    "pageRoleCheck": false,
    "testFiles": [
+    "add-forms-recovery-ext21",
     "compliance-pages",
     "request-keys-ext10"
    ]
@@ -1793,6 +1818,7 @@
    "serverRule": "DB (Query A): owner/administrator only",
    "pageRoleCheck": true,
    "testFiles": [
+    "add-forms-recovery-ext21",
     "double-submit-stale",
     "inventory-safety",
     "ops-findings",
@@ -1828,6 +1854,7 @@
    "serverRule": "DB (Query A): owner/administrator only",
    "pageRoleCheck": true,
    "testFiles": [
+    "add-forms-recovery-ext21",
     "adjust-ops-ext17",
     "chaos-long-ext17",
     "failure-recovery",
@@ -1869,6 +1896,7 @@
    "serverRule": "DB (Query A): owner/administrator only",
    "pageRoleCheck": true,
    "testFiles": [
+    "add-forms-recovery-ext21",
     "adjust-ops-ext17",
     "chaos-long-ext17",
     "failure-recovery",
@@ -1910,6 +1938,7 @@
    "serverRule": "DB (Query A): owner/administrator only",
    "pageRoleCheck": false,
    "testFiles": [
+    "add-forms-recovery-ext21",
     "double-submit-stale",
     "inventory-safety",
     "ops-findings",
@@ -1945,6 +1974,7 @@
    "serverRule": "DB (Query A): owner/administrator only",
    "pageRoleCheck": false,
    "testFiles": [
+    "add-forms-recovery-ext21",
     "double-submit-stale",
     "inventory-safety",
     "ops-findings",
@@ -2481,6 +2511,7 @@
    "serverRule": "UNKNOWN until Query D (table outside the export)",
    "pageRoleCheck": false,
    "testFiles": [
+    "add-forms-recovery-ext21",
     "request-keys-ext10",
     "scale-matrix",
     "stale-tab-gaps",
@@ -2513,6 +2544,7 @@
    "serverRule": "UNKNOWN until Query D (table outside the export)",
    "pageRoleCheck": false,
    "testFiles": [
+    "add-forms-recovery-ext21",
     "request-keys-ext10",
     "state-transitions-2"
    ]
@@ -2543,6 +2575,7 @@
    "serverRule": "UNKNOWN until Query D (table outside the export)",
    "pageRoleCheck": false,
    "testFiles": [
+    "add-forms-recovery-ext21",
     "request-keys-ext10",
     "state-transitions-2"
    ]
@@ -2573,6 +2606,7 @@
    "serverRule": "UNKNOWN until Query D (table outside the export)",
    "pageRoleCheck": false,
    "testFiles": [
+    "add-forms-recovery-ext21",
     "request-keys-ext10",
     "state-transitions-2"
    ]
@@ -2603,6 +2637,7 @@
    "serverRule": "DB (Query A): RLS on, policy not in export (UNKNOWN)",
    "pageRoleCheck": false,
    "testFiles": [
+    "add-forms-recovery-ext21",
     "link-scheme-check",
     "request-keys-ext10",
     "storage-safety"
@@ -2634,6 +2669,7 @@
    "serverRule": "DB (Query A): any active staff",
    "pageRoleCheck": false,
    "testFiles": [
+    "add-forms-recovery-ext21",
     "failure-recovery",
     "link-scheme-check",
     "query-a-fixes",
@@ -2668,6 +2704,7 @@
    "serverRule": "UNKNOWN until Query D (table outside the export)",
    "pageRoleCheck": false,
    "testFiles": [
+    "add-forms-recovery-ext21",
     "compliance-pages",
     "ops-findings",
     "request-keys-ext10",
@@ -2700,6 +2737,7 @@
    "serverRule": "UNKNOWN until Query D (table outside the export)",
    "pageRoleCheck": false,
    "testFiles": [
+    "add-forms-recovery-ext21",
     "compliance-pages",
     "ops-findings",
     "request-keys-ext10",
@@ -2732,6 +2770,7 @@
    "serverRule": "DB (Query A): owner/administrator only",
    "pageRoleCheck": false,
    "testFiles": [
+    "add-forms-recovery-ext21",
     "inventory-safety",
     "malformed-data-ext15",
     "numeric-contract",
@@ -2772,6 +2811,7 @@
    "serverRule": "DB (Query A): owner/administrator only",
    "pageRoleCheck": false,
    "testFiles": [
+    "add-forms-recovery-ext21",
     "inventory-safety",
     "malformed-data-ext15",
     "numeric-contract",
@@ -2842,6 +2882,7 @@
    "serverRule": "DB (Query A): owner/administrator only",
    "pageRoleCheck": true,
    "testFiles": [
+    "add-forms-recovery-ext21",
     "adjust-ops-ext17",
     "chaos-long-ext17",
     "failure-recovery",
@@ -2888,6 +2929,7 @@
    "serverRule": "DB (Query A): owner/administrator only",
    "pageRoleCheck": true,
    "testFiles": [
+    "add-forms-recovery-ext21",
     "inventory-safety",
     "malformed-data-ext15",
     "numeric-contract",
@@ -2928,6 +2970,7 @@
    "serverRule": "DB (Query A): owner/administrator only",
    "pageRoleCheck": true,
    "testFiles": [
+    "add-forms-recovery-ext21",
     "adjust-ops-ext17",
     "chaos-long-ext17",
     "failure-recovery",
@@ -2974,6 +3017,7 @@
    "serverRule": "DB (Query A): owner/administrator only",
    "pageRoleCheck": true,
    "testFiles": [
+    "add-forms-recovery-ext21",
     "adjust-ops-ext17",
     "chaos-long-ext17",
     "failure-recovery",
@@ -3020,6 +3064,7 @@
    "serverRule": "DB (Query A): owner/administrator only",
    "pageRoleCheck": true,
    "testFiles": [
+    "add-forms-recovery-ext21",
     "adjust-ops-ext17",
     "chaos-long-ext17",
     "failure-recovery",
@@ -3096,6 +3141,7 @@
    "serverRule": "DB (Query A): owner/administrator only",
    "pageRoleCheck": true,
    "testFiles": [
+    "add-forms-recovery-ext21",
     "adjust-ops-ext17",
     "chaos-long-ext17",
     "failure-recovery",
@@ -3281,6 +3327,7 @@
    "serverRule": "DB (Query A): owner/administrator only",
    "pageRoleCheck": true,
    "testFiles": [
+    "add-forms-recovery-ext21",
     "adjust-ops-ext17",
     "chaos-long-ext17",
     "failure-recovery",
@@ -3398,6 +3445,7 @@
    "serverRule": "DB (Query A): owner/administrator only",
    "pageRoleCheck": false,
    "testFiles": [
+    "add-forms-recovery-ext21",
     "failure-recovery",
     "malformed-data-ext15",
     "numeric-contract",
