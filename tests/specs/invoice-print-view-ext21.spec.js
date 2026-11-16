@@ -52,3 +52,19 @@ test('the print host is empty on screen until Print is pressed (no screen change
   // even with the preview flag off, the body-level print host exists but is empty
   await expect(page.locator('#invoicePrintHost')).toBeEmpty();
 });
+
+// Nov 16 (found while preparing the print preview for the owner): a printed
+// DRAFT carried the next invoice number, HE-YYYY-0001, although numbers are only
+// given when an invoice is issued. A numbered printout could be mistaken for a
+// real invoice. A draft now prints "(draft — numbered when issued)".
+test('a printed draft carries no invoice number', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'run once');
+  await page.addInitScript(() => { try { localStorage.setItem('he_invoice_preview', 'on'); } catch (e) {} window.print = () => {}; });
+  await login(page);
+  await gotoPage(page, 'reportHistoryPanel');
+  await page.locator('#invoicePreviewHost [data-print="invoice"]').click();
+  const num = page.locator('#invoicePrintHost [data-printnumber]');
+  await expect(num).toHaveAttribute('data-printnumber', 'draft');
+  await expect(num).toHaveText('Invoice (draft — numbered when issued) — SIMULATED');
+  await expect(page.locator('#invoicePrintHost')).not.toContainText(/HE-\d{4}-\d{4}/);
+});

@@ -49,7 +49,15 @@
   // A value is MISSING when it is null/undefined or an empty string. 0 is a
   // real value and is preserved.
   const isMissing = (v) => v === null || v === undefined || v === '';
-  const numOrUnknown = (v) => (isMissing(v) ? 'UNKNOWN' : Number(v));
+  // Nov 16: a value already marked 'UNKNOWN' (a row read back from an export)
+  // stays UNKNOWN, and so does any value that is not a readable number. Before,
+  // Number('UNKNOWN') was NaN and was written as null, so a restored export with
+  // an unmeasured figure could never reproduce its own checksum.
+  const numOrUnknown = (v) => {
+    if (isMissing(v) || v === 'UNKNOWN') return 'UNKNOWN';
+    const n = Number(v);
+    return Number.isFinite(n) ? n : 'UNKNOWN';
+  };
 
   // Deterministic, dependency-free content hash (FNV-1a, 32-bit, hex). Used to
   // fingerprint an export's canonical JSON so a later verification can confirm

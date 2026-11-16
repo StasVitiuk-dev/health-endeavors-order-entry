@@ -3077,10 +3077,10 @@
     function renderInvoicePrint() {
       const host = document.getElementById('invoicePrintHost'); if (!host) return;
       const inv = opsInvoiceMod(); if (!inv) return;
-      const suggested = inv.nextInvoiceNumber ? inv.nextInvoiceNumber({ year: new Date().getFullYear() }) : null;
+      // Nov 16: a draft prints no number. Numbers are given only when an invoice
+      // is issued; a printed draft carrying one could be taken for a real invoice.
       const draft = previewInvoiceDraft(inv);
-      const withNum = Object.assign({}, draft, { number: suggested ? suggested.number : null });
-      const doc = inv.invoicePrint(withNum);
+      const doc = inv.invoicePrint(Object.assign({}, draft, { number: null }));
       const cur = doc.totals.currency;
       const termsWord = doc.terms === 'NET_14' ? 'Net 14' : (doc.terms === 'DUE_ON_RECEIPT' ? 'Due on receipt' : '—');
       const party = (title, who) => h('div', { class: 'printParty' }, h('div', { class: 'printLabel' }, title),
@@ -3090,7 +3090,7 @@
           doc.watermark ? h('div', { class: 'printMark', 'data-printmark': doc.taxPending ? 'tax-pending' : 'draft' }, doc.watermark) : null,
           h('div', { class: 'printHdr' }, h('div', { class: 'taskTitle' }, doc.header.businessName),
             doc.header.addressLines.map(x => h('div', null, x)),
-            h('div', null, 'Invoice ' + (doc.header.number || '(draft)') + ' — SIMULATED'),
+            h('div', { 'data-printnumber': doc.header.number ? 'issued' : 'draft' }, 'Invoice ' + (doc.header.number || '(draft — numbered when issued)') + ' — SIMULATED'),
             h('div', null, 'Page ' + p.pageNo + ' of ' + p.totalPages)),
           p.pageNo === 1 ? h('div', { class: 'printMeta' },
             party('Bill to', doc.billTo), party('Ship to', doc.shipTo),

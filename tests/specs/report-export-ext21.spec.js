@@ -69,3 +69,19 @@ test('export has an explicit failure -> retry path and never double-exports', ()
   expect(again.duplicate).toBe(true);
   expect(again.attempts.length).toBe(ok.attempts.length);
 });
+
+// Nov 16 (found by docs/ops/sql/local-test/daily_export_restore_test.js): a row
+// read back from an export carries 'UNKNOWN' for a figure never measured. It used
+// to be re-read as NaN and written as null, so a restored export with any unknown
+// figure could never reproduce its own checksum. UNKNOWN stays UNKNOWN; text that
+// is not a number is UNKNOWN too, never null and never 0.
+test('a restored export re-verifies: UNKNOWN read back stays UNKNOWN, and the checksum matches', ({}, ti) => {
+  test.skip(ti.project.name !== 'desktop', 'Node-only; run once');
+  const X = require('../../assets/reports/he-report-export.js');
+  const m = X.buildManifest({ history: [{ report_date: '2026-11-15', orders_count: 2, revenue: 65 }, { report_date: '2026-11-16', orders_count: 2, revenue: null }] });
+  const readBack = JSON.parse(JSON.stringify(m.payload.reports));   // what a restore hands back
+  expect(readBack[1].revenue).toBe('UNKNOWN');
+  expect(X.verifyManifest(m, readBack).ok).toBe(true);
+  expect(X.selectReports([{ report_date: '2026-11-16', orders_count: 'abc', revenue: 'UNKNOWN' }], {})[0]).toMatchObject({ orders_count: 'UNKNOWN', revenue: 'UNKNOWN' });
+  expect(X.selectReports([{ report_date: '2026-11-16', orders_count: 0 }], {})[0].orders_count).toBe(0);
+});

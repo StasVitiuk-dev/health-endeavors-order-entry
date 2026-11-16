@@ -70,7 +70,7 @@
   // The checklist the database holds, in the shape he-supplier-docs.js takes.
   // Switched-off document types drop out of every checklist.
   function checklistFrom(types, typeProfiles) {
-    const active = (types || []).filter(function (t) { return t && t.is_active !== false; })
+    const active = (Array.isArray(types) ? types : []).filter(function (t) { return t && typeof t === 'object' && t.is_active !== false; })
       .slice().sort(function (a, b) { return (Number(a.sort_order) || 0) - (Number(b.sort_order) || 0); });
     const doc = function (t) {
       const d = { key: text(t.key), label: text(t.label), per: text(t.subject_kind) };
@@ -84,7 +84,7 @@
       profiles[p].documents.push(doc(t));
     });
     const byType = {};
-    (typeProfiles || []).forEach(function (r) {
+    (Array.isArray(typeProfiles) ? typeProfiles : []).forEach(function (r) {
       if (r && text(r.supplier_type)) byType[text(r.supplier_type)] = (Array.isArray(r.profiles) ? r.profiles : []).filter(function (p) { return profiles[p]; });
     });
     return { purchase: active.filter(function (t) { return t.profile === 'purchase'; }).map(doc), profiles: profiles, profilesByType: byType };
