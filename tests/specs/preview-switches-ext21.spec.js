@@ -8,13 +8,27 @@ const path = require('path');
 const { test, expect, login, gotoPage } = require('../helpers/dashboard');
 
 const CONFIG = fs.readFileSync(path.join(__dirname, '..', '..', 'assets', 'app', 'he-config.js'), 'utf8');
-const FLAG_KEYS = [...CONFIG.matchAll(/localStorage\.getItem\('(he_[a-z_]+)'\) === 'on'/g)].map(m => m[1]).sort();
+// Switches that are deliberately NOT previews and NOT on the Feature Flags page:
+// they read and write real records once their database draft is installed, so
+// the owner turns them on only after approving that draft (Nov 16, later).
+const NOT_PREVIEWS = ['he_supplier_documents_store'];
+const ALL_KEYS = [...CONFIG.matchAll(/localStorage\.getItem\('(he_[a-z_]+)'\) === 'on'/g)].map(m => m[1]).sort();
+const FLAG_KEYS = ALL_KEYS.filter(k => !NOT_PREVIEWS.includes(k));
 const LISTED = [...CONFIG.matchAll(/\{ key: '(he_[a-z_]+)'/g)].map(m => m[1]).sort();
 
 test('every preview flag in the code is listed for the owner, and nothing else is', async ({}, ti) => {
   test.skip(ti.project.name !== 'desktop', 'Node-only; run once');
   expect(FLAG_KEYS.length).toBeGreaterThanOrEqual(12);
   expect(LISTED).toEqual(FLAG_KEYS);
+});
+
+test('a storage switch is never offered on the page as a preview, and works only with its preview switch on', async ({}, ti) => {
+  test.skip(ti.project.name !== 'desktop', 'Node-only; run once');
+  for (const k of NOT_PREVIEWS) {
+    expect(ALL_KEYS, k + ' exists in the code').toContain(k);
+    expect(LISTED, k + ' is not on the Feature Flags page').not.toContain(k);
+  }
+  expect(CONFIG).toMatch(/function supplierDocsStoreOn\(\) \{\s*try \{ return supplierDocsOn\(\) &&/);
 });
 
 test('the owner sees every switch, all off by default; nothing is stored until one is turned on', async ({ page }, ti) => {

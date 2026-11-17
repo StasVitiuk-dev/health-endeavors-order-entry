@@ -409,3 +409,28 @@ including the three generated-file checks and the contrast test that failed on
 `8955917`, plus the new hover test. Database tests at the same commit (local
 throwaway Postgres): invoices 87/87, stock-count approval 90/90, Query I 24/24,
 invoice storage adapter 34/34.
+
+## Full pass, 2026-11-16 night (commit `c28b023`, substitute browser)
+
+Run from 23:29 to 00:43 UTC, same method, with the local throwaway Postgres
+running (so the supplier document storage tests ran against a real database
+instead of skipping). Covers supplier document storage, the tax-pending sweep,
+the stock apply-once and export restore work, and two fixes (printed draft
+number; UNKNOWN in restored exports).
+
+| Size | Passed | Failed | Skipped | Total |
+|---|---|---|---|---|
+| Computer (1100 px) | **2,532** | **12** | 54 | 2,598 |
+| Phone (390 px, Chromium with an iPhone profile — not real Safari) | **523** | **11** | 457 | 991 |
+
+Failures:
+
+- The 20 picture comparisons (by design).
+- **3 in `preview-switches-ext21`, caused by this work and fixed:** the test finds
+  every on/off switch in the code and requires it on the Feature Flags page. The
+  new supplier document *storage* switch is kept off that page on purpose (it reads
+  and writes real records once drafts/36 is installed). The test now names it as a
+  deliberate exception and checks that it stays off the page and works only with
+  its preview switch on. Test-only change; the dashboard code is unchanged from
+  `c28b023`. Rerun: 7 of 7 at both sizes. (This test should have been run before
+  committing `0358bbd`; the full pass caught it.)
