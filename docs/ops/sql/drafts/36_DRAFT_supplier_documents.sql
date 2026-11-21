@@ -5,7 +5,7 @@
 -- @depends-on:  none
 -- @risk:        LOW
 -- @precheck:    stops if auth.uid(), current_role(), is_active_staff(), is_owner_or_admin() or the suppliers / purchase_orders / profiles tables are missing
--- @effect:      6 new tables (the checklist, its profiles by supplier type and per supplier, subjects, documents, review history); guards (owner-only review, correction and checklist changes, no deletes, history written by the database only); record / review / withdraw / correct and owner-only checklist functions (security invoker); the starting checklist of Nov 16
+-- @effect:      7 new tables (the checklist, its profiles by supplier type and per supplier, subjects, documents with one file each, review history, hand-offs to the owner); guards (owner-only review, correction, hand-off resolution and checklist changes; purchase documents only for orders the person can already see; a file attached once; no deletes; history written by the database only); record / review / withdraw / correct / attach-file / hand-off functions and owner-only checklist functions (security invoker); the starting checklist of Nov 16
 -- @postcheck:   9 document types, no documents; anon cannot read them or run the functions; an administrator cannot approve; local-test/supplier_documents_test.sh passes on a throwaway copy
 -- @rollback:    drafts/37
 -- @@ end metadata @@
@@ -30,10 +30,17 @@
 --
 -- Who may do what (enforced by the guard triggers below, whoever writes)
 --   * Active staff, administrators and the owner may RECORD that a document has
---     arrived. It then waits for review; recording approves nothing. Purchase
---     documents (quote, supplier invoice, packing slip) are recorded by the owner
---     or an administrator only, because staff cannot see purchase orders under
---     the existing row rules.
+--     arrived. It then waits for review; recording approves nothing. A purchase
+--     document (quote, supplier invoice, packing slip) can be recorded only for a
+--     purchase order the person can already see under the existing row rules;
+--     those rules are NOT widened. Staff who cannot see the order HAND THE
+--     DOCUMENT OFF to the owner instead (supplier_document_handoffs): they write
+--     down the order number as printed on the paper, and the owner links it to
+--     the right order, which records it.
+--   * Files (owner decision of Nov 21): a document may carry one file, attached
+--     once by the person who recorded it or by the owner, while it waits for
+--     review. Only the owner can open files (drafts/38 holds the storage rules);
+--     approving records the fingerprint of the exact file that was approved.
 --   * ONLY THE OWNER may approve, reject or correct a document, withdraw an
 --     approved one, or change the checklist. An administrator may not.
 --   * The person who recorded a document may withdraw it while it still waits
@@ -153,7 +160,20 @@ create table if not exists public.supplier_documents (
   withdrawn_by  uuid,
   withdrawn_at  timestamptz,
   withdraw_note text check (withdraw_note is null or length(withdraw_note) <= 500),
+  -- the one file of this document (stored privately; drafts/38), and the
+  -- fingerprint of the file the owner approved
+  file_path     text check (file_path is null or file_path ~ '^[0-9a-f-]{36}/[A-Za-z0-9._-]{1,120}$'),
+  file_sha256   text check (file_sha256 is null or file_sha256 ~ '^[0-9a-f]{64}$'),
+  file_bytes    integer check (file_bytes is null or file_bytes between 1 and 10485760),
+  file_type     text check (file_type is null or file_type in ('application/pdf', 'image/jpeg', 'image/png')),
+  file_attached_by uuid,
+  file_attached_at timestamptz,
+  approved_file_sha256 text,
   constraint supplier_documents_request_key unique (request_key),
+  constraint supplier_documents_file_complete check (
+    (file_path is null) = (file_sha256 is null) and (file_path is null) = (file_bytes is null)
+    and (file_path is null) = (file_type is null) and (file_path is null) = (file_attached_at is null)),
+  constraint supplier_documents_file_is_this_document check (file_path is null or split_part(file_path, '/', 1) = id::text),
   constraint supplier_documents_expiry_after_date check (expires_on is null or document_date is null or expires_on >= document_date),
   constraint supplier_documents_review_recorded check (
     (status = 'received' and reviewed_by is null and reviewed_at is null)
@@ -173,7 +193,8 @@ create table if not exists public.supplier_document_events (
   id          bigint generated always as identity primary key,
   document_id uuid references public.supplier_documents(id),
   area        text not null check (area in ('document', 'checklist')),
-  event       text not null check (event in ('recorded', 'corrected', 'approved', 'rejected', 'withdrawn', 'checklist_changed')),
+  event       text not null check (event in ('recorded', 'corrected', 'approved', 'rejected', 'withdrawn', 'checklist_changed',
+                                             'file_attached', 'handed_off', 'handoff_recorded', 'handoff_dismissed')),
   by_user     uuid,
   at          timestamptz not null default now(),
   note        text,
@@ -258,13 +279,11 @@ begin
       raise exception 'No active supplier with that id.' using errcode = 'P0002';
     end if;
     if new.subject_kind = 'purchase' then
-      -- staff cannot see purchase orders under the existing row rules, so they
-      -- cannot say which order a document belongs to
-      if not public.is_owner_or_admin() then
-        raise exception 'Purchase documents are recorded by the owner or an administrator (staff cannot see purchase orders).' using errcode = '42501';
-      end if;
+      -- Runs with the caller's own rights, so this sees only the purchase orders
+      -- the caller may already see. The row rules on purchase orders are not
+      -- widened: staff who cannot see the order hand the document to the owner.
       if not exists (select 1 from public.purchase_orders po where po.id::text = new.subject_ref and po.supplier_id = new.supplier_id) then
-        raise exception 'That purchase order is not one of this supplier''s.' using errcode = '22023';
+        raise exception 'That purchase order is not one you can see for this supplier. Hand the document to the owner instead.' using errcode = '22023';
       end if;
     elsif new.subject_kind = 'supplier' then
       if new.subject_ref <> new.supplier_id::text then
@@ -280,6 +299,8 @@ begin
     new.recorded_by := auth.uid(); new.recorded_at := now();
     new.reviewed_by := null; new.reviewed_at := null; new.review_note := null;
     new.withdrawn_by := null; new.withdrawn_at := null; new.withdraw_note := null;
+    new.file_path := null; new.file_sha256 := null; new.file_bytes := null; new.file_type := null;
+    new.file_attached_by := null; new.file_attached_at := null; new.approved_file_sha256 := null;
     return new;
   end if;
 
@@ -304,8 +325,25 @@ begin
     end if;
   end if;
 
+  -- The file: attached once, while waiting for review, by the person who
+  -- recorded the document or by the owner. Never replaced or removed.
+  if old.file_path is null and new.file_path is not null then
+    if old.status <> 'received' or new.status <> 'received' then
+      raise exception 'A file can be attached only while the document waits for review.' using errcode = '42501';
+    end if;
+    if not (v_owner or old.recorded_by = auth.uid()) then
+      raise exception 'Only the person who recorded the document, or the owner, can attach its file.' using errcode = '42501';
+    end if;
+    new.file_attached_by := auth.uid(); new.file_attached_at := now();
+  elsif new.file_path is distinct from old.file_path or new.file_sha256 is distinct from old.file_sha256
+     or new.file_bytes is distinct from old.file_bytes or new.file_type is distinct from old.file_type
+     or new.file_attached_by is distinct from old.file_attached_by or new.file_attached_at is distinct from old.file_attached_at then
+    raise exception 'A file, once attached, cannot be replaced or removed. Withdraw the document and record it again.' using errcode = '42501';
+  end if;
+
   if new.status = old.status then
     -- nothing about the review may be typed in
+    new.approved_file_sha256 := old.approved_file_sha256;
     new.reviewed_by := old.reviewed_by; new.reviewed_at := old.reviewed_at; new.review_note := old.review_note;
     new.withdrawn_by := old.withdrawn_by; new.withdrawn_at := old.withdrawn_at; new.withdraw_note := old.withdraw_note;
     return new;
@@ -317,6 +355,8 @@ begin
     end if;
     new.reviewed_by := auth.uid(); new.reviewed_at := now();
     new.withdrawn_by := null; new.withdrawn_at := null; new.withdraw_note := null;
+    -- the exact file that was approved (if any): its fingerprint at this moment
+    new.approved_file_sha256 := case when new.status = 'approved' then old.file_sha256 else null end;
     return new;
   end if;
 
@@ -328,6 +368,7 @@ begin
       raise exception 'Only the person who recorded it, or the owner, can withdraw a document waiting for review.' using errcode = '42501';
     end if;
     new.reviewed_by := old.reviewed_by; new.reviewed_at := old.reviewed_at; new.review_note := old.review_note;
+    new.approved_file_sha256 := old.approved_file_sha256;
     new.withdrawn_by := auth.uid(); new.withdrawn_at := now();
     return new;
   end if;
@@ -361,8 +402,12 @@ begin
     insert into public.supplier_document_events (document_id, area, event, note, detail)
       values (new.id, 'document', new.status,
               case when new.status = 'withdrawn' then new.withdraw_note else new.review_note end,
-              jsonb_build_object('from', old.status, 'to', new.status));
+              jsonb_build_object('from', old.status, 'to', new.status, 'approved_file_sha256', new.approved_file_sha256));
     return null;
+  end if;
+  if old.file_path is null and new.file_path is not null then
+    insert into public.supplier_document_events (document_id, area, event, detail)
+      values (new.id, 'document', 'file_attached', jsonb_build_object('file_sha256', new.file_sha256, 'file_bytes', new.file_bytes, 'file_type', new.file_type));
   end if;
   foreach k in array array['reference', 'subject_label', 'received_on', 'document_date', 'expires_on', 'record_note'] loop
     if (to_jsonb(old) -> k) is distinct from (to_jsonb(new) -> k) then
@@ -379,6 +424,101 @@ $fn$;
 drop trigger if exists supplier_documents_history on public.supplier_documents;
 create trigger supplier_documents_history after insert or update on public.supplier_documents
   for each row execute function public.supplier_documents_history();
+
+
+-- ---------------------------------------------------------------- hand-off to the owner
+-- A purchase document that arrived for an order the person cannot see (staff,
+-- under the existing row rules). They write down what is printed on the paper;
+-- the owner links it to the right purchase order, which records the document.
+create table if not exists public.supplier_document_handoffs (
+  id            uuid primary key default gen_random_uuid(),
+  request_key   uuid not null,
+  supplier_id   uuid not null references public.suppliers(id),
+  kind          text not null references public.supplier_document_types(key),
+  po_text       text not null check (length(btrim(po_text)) between 1 and 120),   -- the order number as printed
+  reference     text check (reference is null or length(btrim(reference)) between 1 and 120),
+  received_on   date not null,
+  note          text check (note is null or length(note) <= 500),
+  status        text not null default 'waiting' check (status in ('waiting', 'recorded', 'dismissed')),
+  handed_by     uuid not null default auth.uid(),
+  handed_at     timestamptz not null default now(),
+  resolved_by   uuid,
+  resolved_at   timestamptz,
+  resolve_note  text check (resolve_note is null or length(resolve_note) <= 500),
+  document_id   uuid references public.supplier_documents(id),
+  constraint supplier_document_handoffs_request_key unique (request_key),
+  constraint supplier_document_handoffs_resolved check (
+    (status = 'waiting' and resolved_by is null and resolved_at is null and document_id is null)
+    or (status = 'recorded' and resolved_by is not null and resolved_at is not null and document_id is not null)
+    or (status = 'dismissed' and resolved_by is not null and resolved_at is not null and document_id is null
+        and resolve_note is not null and length(btrim(resolve_note)) >= 5))
+);
+
+create or replace function public.supplier_document_handoffs_guard() returns trigger
+language plpgsql
+security invoker
+set search_path = public, pg_temp
+as $fn$
+declare
+  v_type public.supplier_document_types%rowtype;
+begin
+  if tg_op = 'DELETE' then
+    raise exception 'A hand-off stays on the record and cannot be deleted.' using errcode = '42501';
+  end if;
+  if tg_op = 'INSERT' then
+    select * into v_type from public.supplier_document_types where key = new.kind;
+    if not found or v_type.subject_kind <> 'purchase' or not v_type.is_active then
+      raise exception 'Only a purchase document (quote, supplier invoice, packing slip) is handed off.' using errcode = '22023';
+    end if;
+    if new.received_on > current_date + 1 then
+      raise exception 'The date received cannot be in the future.' using errcode = '22023';
+    end if;
+    new.status := 'waiting'; new.handed_by := auth.uid(); new.handed_at := now();
+    new.resolved_by := null; new.resolved_at := null; new.resolve_note := null; new.document_id := null;
+    return new;
+  end if;
+  if not public.supplier_documents_is_owner() then
+    raise exception 'Only the owner can link or dismiss a handed-off document.' using errcode = '42501';
+  end if;
+  if old.status <> 'waiting' then
+    raise exception 'This hand-off was already %.', old.status using errcode = '42501';
+  end if;
+  if new.request_key is distinct from old.request_key or new.supplier_id is distinct from old.supplier_id
+     or new.kind is distinct from old.kind or new.po_text is distinct from old.po_text or new.reference is distinct from old.reference
+     or new.received_on is distinct from old.received_on or new.note is distinct from old.note
+     or new.handed_by is distinct from old.handed_by or new.handed_at is distinct from old.handed_at then
+    raise exception 'What was handed off cannot change.' using errcode = '42501';
+  end if;
+  if new.status = 'waiting' then
+    raise exception 'A hand-off is resolved by linking it to an order or dismissing it.' using errcode = '22023';
+  end if;
+  new.resolved_by := auth.uid(); new.resolved_at := now();
+  return new;
+end
+$fn$;
+
+drop trigger if exists supplier_document_handoffs_guard on public.supplier_document_handoffs;
+create trigger supplier_document_handoffs_guard before insert or update or delete on public.supplier_document_handoffs
+  for each row execute function public.supplier_document_handoffs_guard();
+
+create or replace function public.supplier_document_handoffs_history() returns trigger
+language plpgsql
+security invoker
+set search_path = public, pg_temp
+as $fn$
+begin
+  insert into public.supplier_document_events (document_id, area, event, note, detail)
+    values (new.document_id, 'document',
+            case when tg_op = 'INSERT' then 'handed_off' when new.status = 'recorded' then 'handoff_recorded' else 'handoff_dismissed' end,
+            case when tg_op = 'INSERT' then new.note else new.resolve_note end,
+            jsonb_build_object('handoff_id', new.id, 'kind', new.kind, 'po_text', new.po_text, 'reference', new.reference));
+  return null;
+end
+$fn$;
+
+drop trigger if exists supplier_document_handoffs_history on public.supplier_document_handoffs;
+create trigger supplier_document_handoffs_history after insert or update on public.supplier_document_handoffs
+  for each row execute function public.supplier_document_handoffs_history();
 
 -- ---------------------------------------------------------------- checklist guard + history
 create or replace function public.supplier_document_checklist_guard() returns trigger
@@ -588,6 +728,122 @@ begin
 end
 $fn$;
 
+
+-- Attach the one file of a document (after it was uploaded to the private
+-- storage, drafts/38). Safe to repeat with the same file.
+create or replace function public.attach_supplier_document_file(
+  p_id uuid, p_path text, p_sha256 text, p_bytes integer, p_type text
+) returns jsonb
+language plpgsql
+security invoker
+set search_path = public, pg_temp
+as $fn$
+declare
+  v public.supplier_documents%rowtype;
+begin
+  select * into v from public.supplier_documents where id = p_id for update;
+  if not found then
+    raise exception 'No such supplier document.' using errcode = 'P0002';
+  end if;
+  if v.file_path is not null then
+    if v.file_path = p_path and v.file_sha256 = lower(p_sha256) then
+      return jsonb_build_object('ok', true, 'already_attached', true, 'id', v.id);
+    end if;
+    raise exception 'A file, once attached, cannot be replaced or removed. Withdraw the document and record it again.' using errcode = '42501';
+  end if;
+  update public.supplier_documents set file_path = p_path, file_sha256 = lower(p_sha256), file_bytes = p_bytes, file_type = p_type
+   where id = p_id returning * into v;
+  return jsonb_build_object('ok', true, 'already_attached', false, 'id', v.id, 'file_sha256', v.file_sha256);
+end
+$fn$;
+
+-- Hand a purchase document to the owner (any active staff). Safe to repeat.
+create or replace function public.hand_off_supplier_document(
+  p_request_key uuid, p_supplier_id uuid, p_kind text, p_po_text text, p_reference text, p_received_on date, p_note text
+) returns jsonb
+language plpgsql
+security invoker
+set search_path = public, pg_temp
+as $fn$
+declare
+  v public.supplier_document_handoffs%rowtype;
+begin
+  if not public.is_active_staff() then
+    raise exception 'Only active staff can hand a document to the owner.' using errcode = '42501';
+  end if;
+  if p_request_key is null then
+    raise exception 'A request key is required, so that a retry cannot hand it off twice.' using errcode = '22023';
+  end if;
+  select * into v from public.supplier_document_handoffs where request_key = p_request_key;
+  if found then
+    return jsonb_build_object('ok', true, 'duplicate', true, 'id', v.id, 'status', v.status);
+  end if;
+  begin
+    insert into public.supplier_document_handoffs (request_key, supplier_id, kind, po_text, reference, received_on, note)
+      values (p_request_key, p_supplier_id, p_kind, btrim(p_po_text), nullif(btrim(p_reference), ''), coalesce(p_received_on, current_date), nullif(btrim(p_note), ''))
+      returning * into v;
+  exception when unique_violation then
+    select * into v from public.supplier_document_handoffs where request_key = p_request_key;
+    return jsonb_build_object('ok', true, 'duplicate', true, 'id', v.id, 'status', v.status);
+  end;
+  return jsonb_build_object('ok', true, 'duplicate', false, 'id', v.id, 'status', v.status);
+end
+$fn$;
+
+-- The owner links a hand-off to the right purchase order: the document is
+-- recorded (as the owner) and the hand-off closed. Decides once.
+create or replace function public.resolve_supplier_document_handoff(p_id uuid, p_po_id uuid) returns jsonb
+language plpgsql
+security invoker
+set search_path = public, pg_temp
+as $fn$
+declare
+  h public.supplier_document_handoffs%rowtype;
+  r jsonb;
+begin
+  if not public.supplier_documents_is_owner() then
+    raise exception 'Only the owner can link a handed-off document.' using errcode = '42501';
+  end if;
+  select * into h from public.supplier_document_handoffs where id = p_id for update;
+  if not found then
+    raise exception 'No such hand-off.' using errcode = 'P0002';
+  end if;
+  if h.status <> 'waiting' then
+    return jsonb_build_object('ok', h.status = 'recorded', 'already_resolved', true, 'status', h.status, 'document_id', h.document_id);
+  end if;
+  r := public.record_supplier_document(h.request_key, h.supplier_id, h.kind, 'purchase', p_po_id::text, null, h.reference, h.received_on, null, null,
+         'Handed off: printed order number ' || h.po_text || coalesce(' — ' || h.note, ''));
+  update public.supplier_document_handoffs set status = 'recorded', document_id = (r ->> 'id')::uuid where id = p_id;
+  return jsonb_build_object('ok', true, 'already_resolved', false, 'status', 'recorded', 'document_id', r ->> 'id');
+end
+$fn$;
+
+create or replace function public.dismiss_supplier_document_handoff(p_id uuid, p_note text) returns jsonb
+language plpgsql
+security invoker
+set search_path = public, pg_temp
+as $fn$
+declare
+  h public.supplier_document_handoffs%rowtype;
+begin
+  if not public.supplier_documents_is_owner() then
+    raise exception 'Only the owner can dismiss a handed-off document.' using errcode = '42501';
+  end if;
+  if p_note is null or length(btrim(p_note)) < 5 then
+    raise exception 'Say why the hand-off is dismissed.' using errcode = '22023';
+  end if;
+  select * into h from public.supplier_document_handoffs where id = p_id for update;
+  if not found then
+    raise exception 'No such hand-off.' using errcode = 'P0002';
+  end if;
+  if h.status <> 'waiting' then
+    return jsonb_build_object('ok', h.status = 'dismissed', 'already_resolved', true, 'status', h.status);
+  end if;
+  update public.supplier_document_handoffs set status = 'dismissed', resolve_note = btrim(p_note) where id = p_id;
+  return jsonb_build_object('ok', true, 'already_resolved', false, 'status', 'dismissed');
+end
+$fn$;
+
 -- Checklist setters. Owner only (the row rules say the same).
 create or replace function public.set_supplier_type_document_profiles(p_supplier_type text, p_profiles text[]) returns jsonb
 language plpgsql
@@ -648,14 +904,16 @@ alter table public.supplier_document_supplier_profiles enable row level security
 alter table public.supplier_document_subjects enable row level security;
 alter table public.supplier_documents enable row level security;
 alter table public.supplier_document_events enable row level security;
+alter table public.supplier_document_handoffs enable row level security;
 revoke all on public.supplier_document_types, public.supplier_type_document_profiles, public.supplier_document_supplier_profiles,
-  public.supplier_document_subjects, public.supplier_documents, public.supplier_document_events from public, anon;
+  public.supplier_document_subjects, public.supplier_documents, public.supplier_document_events, public.supplier_document_handoffs from public, anon;
 grant select, insert, update on public.supplier_document_types to authenticated;
 grant select, insert, update, delete on public.supplier_type_document_profiles to authenticated;
 grant select, insert, update, delete on public.supplier_document_supplier_profiles to authenticated;
 grant select, insert, update on public.supplier_document_subjects to authenticated;
 grant select, insert, update on public.supplier_documents to authenticated;
 grant select, insert on public.supplier_document_events to authenticated;
+grant select, insert, update on public.supplier_document_handoffs to authenticated;
 
 drop policy if exists supplier_document_types_staff_read on public.supplier_document_types;
 create policy supplier_document_types_staff_read on public.supplier_document_types for select to authenticated using (public.is_active_staff());
@@ -684,6 +942,14 @@ drop policy if exists supplier_documents_staff_update on public.supplier_documen
 create policy supplier_documents_staff_update on public.supplier_documents for update to authenticated using (public.is_active_staff()) with check (public.is_active_staff());
 drop policy if exists supplier_document_events_staff_read on public.supplier_document_events;
 create policy supplier_document_events_staff_read on public.supplier_document_events for select to authenticated using (public.is_active_staff());
+-- hand-offs: the person who handed it off, the owner and administrators see it;
+-- any active staff may hand one off; only the owner resolves (the guard says so too)
+drop policy if exists supplier_document_handoffs_read on public.supplier_document_handoffs;
+create policy supplier_document_handoffs_read on public.supplier_document_handoffs for select to authenticated using (handed_by = auth.uid() or public.is_owner_or_admin());
+drop policy if exists supplier_document_handoffs_staff_add on public.supplier_document_handoffs;
+create policy supplier_document_handoffs_staff_add on public.supplier_document_handoffs for insert to authenticated with check (public.is_active_staff() and status = 'waiting');
+drop policy if exists supplier_document_handoffs_owner_resolve on public.supplier_document_handoffs;
+create policy supplier_document_handoffs_owner_resolve on public.supplier_document_handoffs for update to authenticated using (public.current_role() = 'owner') with check (public.current_role() = 'owner');
 -- inserts come only from this feature's triggers (the history guard refuses any other)
 drop policy if exists supplier_document_events_trigger_insert on public.supplier_document_events;
 create policy supplier_document_events_trigger_insert on public.supplier_document_events for insert to authenticated with check (public.is_active_staff());
@@ -702,6 +968,12 @@ revoke all on function public.correct_supplier_document(uuid, text, date, date, 
 revoke all on function public.set_supplier_type_document_profiles(text, text[]) from public, anon;
 revoke all on function public.set_supplier_document_profiles(uuid, text[]) from public, anon;
 revoke all on function public.set_supplier_document_type_active(text, boolean) from public, anon;
+revoke all on function public.supplier_document_handoffs_guard() from public, anon;
+revoke all on function public.supplier_document_handoffs_history() from public, anon;
+revoke all on function public.attach_supplier_document_file(uuid, text, text, integer, text) from public, anon;
+revoke all on function public.hand_off_supplier_document(uuid, uuid, text, text, text, date, text) from public, anon;
+revoke all on function public.resolve_supplier_document_handoff(uuid, uuid) from public, anon;
+revoke all on function public.dismiss_supplier_document_handoff(uuid, text) from public, anon;
 grant execute on function public.supplier_documents_is_owner() to authenticated;
 grant execute on function public.supplier_document_profiles_known(text[]) to authenticated;
 grant execute on function public.record_supplier_document(uuid, uuid, text, text, text, text, text, date, date, date, text) to authenticated;
@@ -711,6 +983,10 @@ grant execute on function public.correct_supplier_document(uuid, text, date, dat
 grant execute on function public.set_supplier_type_document_profiles(text, text[]) to authenticated;
 grant execute on function public.set_supplier_document_profiles(uuid, text[]) to authenticated;
 grant execute on function public.set_supplier_document_type_active(text, boolean) to authenticated;
+grant execute on function public.attach_supplier_document_file(uuid, text, text, integer, text) to authenticated;
+grant execute on function public.hand_off_supplier_document(uuid, uuid, text, text, text, date, text) to authenticated;
+grant execute on function public.resolve_supplier_document_handoff(uuid, uuid) to authenticated;
+grant execute on function public.dismiss_supplier_document_handoff(uuid, text) to authenticated;
 
 -- ---------------------------------------------------------------- the starting checklist
 -- The owner's checklist of Nov 16. Changed later only by the owner, from the page

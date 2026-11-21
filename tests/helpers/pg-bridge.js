@@ -12,6 +12,10 @@
 //   owner's id, so "who recorded it" lines up with the page. The page's own idea
 //   of the role comes from the stand-in profile, which a test may set differently
 //   (to show the database refusing when the page's check is bypassed).
+// * storage: true also answers the storage service's upload and signed-link
+//   calls (Nov 21, drafts/38) from the database's storage rules, as the signed-in
+//   person; installs a minimal stand-in of Supabase's storage schema first, then
+//   opts.storageInstall (e.g. drafts/38).
 // * Each call creates its own database from a template, and drops it at the end.
 //
 // Needs the local Postgres (HE_PG_ARGS, default the throwaway server of
@@ -43,13 +47,22 @@ async function pgBridge(page, opts) {
   const psql = (sql, database) => run('psql', ARGS.concat(['-d', database || db, '-qtAX', '-v', 'ON_ERROR_STOP=1', '-c', sql]), { maxBuffer: 1 << 24 });
   await psql('create database ' + db + ' template ' + SRC, 'postgres');
   if (o.install) await run('psql', ARGS.concat(['-d', db, '-qX', '-v', 'ON_ERROR_STOP=1', '-f', o.install]), { maxBuffer: 1 << 24 });
+  if (o.storage) {
+    // STAND-IN for Supabase's storage schema (the shape its rules run against)
+    await psql("create schema storage; create table storage.buckets (id text primary key, name text not null, public boolean not null default false, file_size_limit bigint, allowed_mime_types text[]);" +
+      "create table storage.objects (id uuid primary key default gen_random_uuid(), bucket_id text references storage.buckets(id), name text not null, owner uuid default auth.uid(), created_at timestamptz default now(), metadata jsonb, unique (bucket_id, name));" +
+      "alter table storage.objects enable row level security; grant usage on schema storage to authenticated, anon; grant select, insert, update, delete on storage.objects to authenticated, anon; grant select on storage.buckets to authenticated, anon;");
+    if (o.storageInstall) await run('psql', ARGS.concat(['-d', db, '-qX', '-v', 'ON_ERROR_STOP=1', '-f', o.storageInstall]), { maxBuffer: 1 << 24 });
+  }
   const uid = OWNER_USER.id;
   await psql("delete from profiles where id = " + lit(uid) + "; insert into profiles (id, email, role, is_active, display_name, account_number) values (" +
     lit(uid) + ", 'bridge@example.test', " + lit(o.role || 'owner') + ", true, 'Synthetic Owner', '500000001');" + (o.setupSql || ''));
   const calls = [];
 
-  async function asUser(sql) {
-    const wrapped = 'begin; set local role authenticated; set local request.jwt.claim.sub = ' + lit(uid) + ";\nselect coalesce(jsonb_agg(t), '[]'::jsonb) from (" + sql + ') t;\ncommit;';
+  async function asUser(sql, plain) {
+    // plain: a statement run as is (an insert with no RETURNING, which needs
+    // only the insert rule, as the storage service's upload does)
+    const wrapped = 'begin; set local role authenticated; set local request.jwt.claim.sub = ' + lit(uid) + ";\n" + (plain ? sql + ';' : "select coalesce(jsonb_agg(t), '[]'::jsonb) from (" + sql + ') t;') + '\ncommit;';
     try {
       const { stdout } = await new Promise((resolve, reject) => {
         const child = execFile('psql', ARGS.concat(['-d', db, '-qtAX', '-v', 'ON_ERROR_STOP=1', '-v', 'VERBOSITY=verbose']), { maxBuffer: 1 << 24 },
@@ -82,6 +95,36 @@ async function pgBridge(page, opts) {
     return p;
   };
   await page.route(/\/rest\/v1\//, handler);
+  const storageHandler = (route) => {
+    if (closed) return route.fallback().catch(() => {});
+    const p = answerStorage(route).catch(e => { if (!closed && !/already handled|closed|Target page/i.test(String(e && e.message))) throw e; });
+    pending.add(p); p.finally(() => pending.delete(p));
+    return p;
+  };
+  if (o.storage) await page.route(/\/storage\/v1\/object\//, storageHandler);
+  // upload: POST /storage/v1/object/<bucket>/<name>; signed link: POST /storage/v1/object/sign/<bucket>/<name>
+  async function answerStorage(route) {
+    const req = route.request();
+    if (req.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: Object.assign({ 'access-control-allow-methods': 'GET,POST,PUT,DELETE,OPTIONS', 'access-control-allow-headers': '*' }, CORS) });
+    const rest = decodeURIComponent(new URL(req.url()).pathname.split('/storage/v1/object/')[1] || '');
+    const sign = rest.startsWith('sign/');
+    const parts = (sign ? rest.slice(5) : rest).split('/');
+    const bucket = parts.shift(), name = parts.join('/');
+    if (!IDENT.test(bucket.replace(/-/g, '_')) || !name) return reply(route, 400, { statusCode: '400', error: 'InvalidKey', message: 'Invalid key' });
+    if (req.method() !== 'POST') return reply(route, 400, { statusCode: '400', error: 'NotSupported', message: 'Only uploads and signed links are emulated' });
+    if (sign) {
+      calls.push('storage sign ' + bucket + '/' + name);
+      const r = await asUser('select name from storage.objects where bucket_id = ' + lit(bucket) + ' and name = ' + lit(name));
+      if (r.error || !r.data.length) return reply(route, 400, { statusCode: '404', error: 'not_found', message: 'Object not found' });
+      return reply(route, 200, { signedURL: '/object/sign/' + bucket + '/' + name + '?token=synthetic-test-token' });
+    }
+    calls.push('storage upload ' + bucket + '/' + name);
+    const b = await asUser('select 1 from storage.buckets where id = ' + lit(bucket));
+    if (!b.error && !b.data.length) return reply(route, 400, { statusCode: '404', error: 'Bucket not found', message: 'Bucket not found' });
+    const r = await asUser('insert into storage.objects (bucket_id, name) values (' + lit(bucket) + ', ' + lit(name) + ')', true);
+    if (r.error) return reply(route, 400, { statusCode: r.error.code === '23505' ? '409' : '403', error: r.error.code === '23505' ? 'Duplicate' : 'Unauthorized', message: r.error.code === '23505' ? 'The resource already exists' : r.error.message });
+    return reply(route, 200, { Key: bucket + '/' + name, Id: name });
+  }
   async function answer(route) {
     const req = route.request();
     if (req.method() === 'OPTIONS') return route.fallback();
@@ -131,6 +174,7 @@ async function pgBridge(page, opts) {
       closed = true;
       await Promise.allSettled([...pending]);
       try { await page.unroute(/\/rest\/v1\//, handler); } catch (e) { /* page closed */ }
+      if (o.storage) { try { await page.unroute(/\/storage\/v1\/object\//, storageHandler); } catch (e) { /* page closed */ } }
       await psql('drop database if exists ' + db + ' with (force)', 'postgres').catch(() => {});
     },
   };

@@ -8,7 +8,7 @@ const path = require('path');
 const { test, expect } = require('@playwright/test');
 
 const DIR = path.resolve(__dirname, '..', '..', 'docs', 'ops', 'sql', 'drafts');
-const INSTALLS = ['10_DRAFT_stock_functions.sql', '13_DRAFT_report_totals.sql', '17_DRAFT_po_line_delete_guard.sql', '19_DRAFT_request_keys.sql', '21_DRAFT_stock_function_switches.sql', '23_DRAFT_integrity_constraints.sql', '25_DRAFT_integrity_check_schedule.sql', '27_DRAFT_request_keys_switch.sql', '29_DRAFT_integrity_results_on_home.sql', '32_DRAFT_invoices.sql', '34_DRAFT_stock_count_adjustments.sql', '36_DRAFT_supplier_documents.sql'];
+const INSTALLS = ['10_DRAFT_stock_functions.sql', '13_DRAFT_report_totals.sql', '17_DRAFT_po_line_delete_guard.sql', '19_DRAFT_request_keys.sql', '21_DRAFT_stock_function_switches.sql', '23_DRAFT_integrity_constraints.sql', '25_DRAFT_integrity_check_schedule.sql', '27_DRAFT_request_keys_switch.sql', '29_DRAFT_integrity_results_on_home.sql', '32_DRAFT_invoices.sql', '34_DRAFT_stock_count_adjustments.sql', '36_DRAFT_supplier_documents.sql', '38_DRAFT_supplier_document_files.sql'];
 const ROLLBACKS = { '10_DRAFT_stock_functions.sql': '11_DRAFT_rollback_stock_functions.sql',
   '17_DRAFT_po_line_delete_guard.sql': '18_DRAFT_rollback_po_line_delete_guard.sql',
   '19_DRAFT_request_keys.sql': '20_DRAFT_rollback_request_keys.sql',
@@ -20,7 +20,8 @@ const ROLLBACKS = { '10_DRAFT_stock_functions.sql': '11_DRAFT_rollback_stock_fun
   '13_DRAFT_report_totals.sql': '31_DRAFT_rollback_report_totals.sql', // EXT14: 13 now has its rollback
   '32_DRAFT_invoices.sql': '33_DRAFT_rollback_invoices.sql',           // Nov 15: invoice storage + numbering
   '34_DRAFT_stock_count_adjustments.sql': '35_DRAFT_rollback_stock_count_adjustments.sql',   // Nov 16: owner-only stock-count approval
-  '36_DRAFT_supplier_documents.sql': '37_DRAFT_rollback_supplier_documents.sql' };   // Nov 16, later: supplier document storage, owner-only review
+  '36_DRAFT_supplier_documents.sql': '37_DRAFT_rollback_supplier_documents.sql',
+  '38_DRAFT_supplier_document_files.sql': '39_DRAFT_rollback_supplier_document_files.sql' };   // Nov 21: private files, owner-only reading   // Nov 16, later: supplier document storage, owner-only review
 const ALL = fs.readdirSync(DIR).filter(f => /^\d\d_DRAFT_.*\.sql$/.test(f) && !/_tests?_/.test(f));
 
 // Remove comments and quoted text so words inside them are not mistaken for SQL.
@@ -113,8 +114,25 @@ for (const f of ALL) {
       'create policy supplier_documents_staff_update on public.supplier_documents for update to authenticated using (public.is_active_staff()) with check (public.is_active_staff());',
       'drop policy if exists supplier_document_events_staff_read on public.supplier_document_events;',
       'create policy supplier_document_events_staff_read on public.supplier_document_events for select to authenticated using (public.is_active_staff());',
+      'drop policy if exists supplier_document_handoffs_read on public.supplier_document_handoffs;',
+      'create policy supplier_document_handoffs_read on public.supplier_document_handoffs for select to authenticated using (handed_by = auth.uid() or public.is_owner_or_admin());',
+      'drop policy if exists supplier_document_handoffs_staff_add on public.supplier_document_handoffs;',
+      "create policy supplier_document_handoffs_staff_add on public.supplier_document_handoffs for insert to authenticated with check (public.is_active_staff() and status = 'waiting');",
+      'drop policy if exists supplier_document_handoffs_owner_resolve on public.supplier_document_handoffs;',
+      "create policy supplier_document_handoffs_owner_resolve on public.supplier_document_handoffs for update to authenticated using (public.current_role() = 'owner') with check (public.current_role() = 'owner');",
       'drop policy if exists supplier_document_events_trigger_insert on public.supplier_document_events;',
       'create policy supplier_document_events_trigger_insert on public.supplier_document_events for insert to authenticated with check (public.is_active_staff());'];
+    // The fifth allowed set (Nov 21, drafts/38 + 39): the two rules on Supabase's
+    // storage.objects for the private supplier-documents bucket only (owner reads;
+    // the recorder uploads into a waiting document's folder), and their removal.
+    const SUPPLIER_FILE_RULES = [
+      'drop policy if exists supplier_document_files_owner_read on storage.objects;',
+      "create policy supplier_document_files_owner_read on storage.objects for select to authenticated using (bucket_id = 'supplier-documents' and public.supplier_documents_is_owner());",
+      'drop policy if exists supplier_document_files_upload on storage.objects;',
+      "create policy supplier_document_files_upload on storage.objects for insert to authenticated with check (bucket_id = 'supplier-documents' and public.supplier_document_file_upload_allowed(name));"];
+    const SUPPLIER_FILE_DROPS = [
+      'drop policy if exists supplier_document_files_owner_read on storage.objects;',
+      'drop policy if exists supplier_document_files_upload on storage.objects;'];
     if (f === '32_DRAFT_invoices.sql') for (const r of INVOICE_RULES) expect(sql.split(r).length - 1, 'pinned rule present exactly once: ' + r.slice(0, 60)).toBe(1);
     // The third allowed set (Nov 16, drafts/34): row rules on that draft's OWN two
     // new tables, implementing the owner's Nov 16 decision — active staff read
@@ -142,7 +160,14 @@ for (const f of ALL) {
     const policyOk = /^(29|30)_/.test(f) ? READ_RULES.reduce((t, r) => t.split(r).join(''), sql)
       : f === '32_DRAFT_invoices.sql' ? INVOICE_RULES.reduce((t, r) => t.split(r).join(''), sql)
         : f === '34_DRAFT_stock_count_adjustments.sql' ? STOCK_COUNT_RULES.reduce((t, r) => t.split(r).join(''), sql)
-          : f === '36_DRAFT_supplier_documents.sql' ? SUPPLIER_DOC_RULES.reduce((t, r) => t.split(r).join(''), sql) : sql;
+          : f === '36_DRAFT_supplier_documents.sql' ? SUPPLIER_DOC_RULES.reduce((t, r) => t.split(r).join(''), sql)
+            : f === '38_DRAFT_supplier_document_files.sql' ? SUPPLIER_FILE_RULES.reduce((t, r) => t.split(r).join(''), sql)
+              : f === '39_DRAFT_rollback_supplier_document_files.sql' ? SUPPLIER_FILE_DROPS.reduce((t, r) => t.split(r).join(''), sql) : sql;
+    if (f === '38_DRAFT_supplier_document_files.sql') {
+      for (const r of SUPPLIER_FILE_RULES) expect(sql.split(r).length - 1, 'pinned rule present exactly once: ' + r.slice(0, 60)).toBe(1);
+      expect(sql, 'the bucket is private').toContain("values ('supplier-documents', 'supplier-documents', false,");
+      expect(sql, 'no update or delete rule on files').not.toMatch(/for (update|delete|all) to/);
+    }
     if (f === '36_DRAFT_supplier_documents.sql') {
       for (const r of SUPPLIER_DOC_RULES) expect(sql.split(r).length - 1, 'pinned rule present exactly once: ' + r.slice(0, 60)).toBe(1);
       // No delete is granted on the documents or the history at all; the guards refuse one anyway.
@@ -157,8 +182,9 @@ for (const f of ALL) {
         : f === '33_DRAFT_rollback_invoices.sql' ? sql.replace('drop table if exists public.invoices;', '').replace('drop table if exists public.invoice_counters;', '')
           // Nov 16: the stock-count rollback removes its own two tables (and refuses to run once any adjustment has been approved or rejected).
           : f === '35_DRAFT_rollback_stock_count_adjustments.sql' ? sql.replace('drop table if exists public.stock_count_adjustments;', '').replace('drop table if exists public.stock_count_approvers;', '')
-            // Nov 16, later: the supplier document rollback removes its own six tables (and refuses once any document has been reviewed).
-            : f === '37_DRAFT_rollback_supplier_documents.sql' ? ['supplier_document_events', 'supplier_documents', 'supplier_document_subjects', 'supplier_document_supplier_profiles', 'supplier_type_document_profiles', 'supplier_document_types']
+            // Nov 16, later: the supplier document rollback removes its own tables (and refuses once any document has been reviewed);
+            // Nov 21 adds the hand-off table to that list.
+            : f === '37_DRAFT_rollback_supplier_documents.sql' ? ['supplier_document_handoffs', 'supplier_document_events', 'supplier_documents', 'supplier_document_subjects', 'supplier_document_supplier_profiles', 'supplier_type_document_profiles', 'supplier_document_types']
               .reduce((t, n) => t.replace('drop table if exists public.' + n + ';', ''), sql) : sql;
     expect(dropOk, 'no table or schema is dropped').not.toMatch(/\bdrop\s+(table|schema)\b/);
     // The one allowed delete (EXT9): the switches rollback removes exactly the
@@ -169,7 +195,10 @@ for (const f of ALL) {
         ? sql.replace("delete from public.feature_flags where flag_key = 'request_keys';", '')
         : f === '30_DRAFT_rollback_integrity_results_on_home.sql'
           ? sql.replace("delete from public.feature_flags where flag_key = 'integrity_results_home';", '')
-          : sql;
+          // Nov 21: the file rollback removes its own bucket row, and only after refusing if any file is stored in it.
+          : f === '39_DRAFT_rollback_supplier_document_files.sql'
+            ? sql.replace("delete from storage.buckets where id = 'supplier-documents';", '')
+            : sql;
     expect(allowed, 'no data deleted or truncated').not.toMatch(/\btruncate\b|^\s*delete\s+from\b/m);
   });
 

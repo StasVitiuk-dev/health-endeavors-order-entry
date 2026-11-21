@@ -20,6 +20,11 @@ const D = require('../../../../assets/suppliers/he-supplier-docs.js');
 const CONN = process.argv.slice(2);
 const SRC = 'he_real', DB = 'he_supplier_docs_store_test';
 const INSTALL = path.join(__dirname, '..', 'drafts', '36_DRAFT_supplier_documents.sql');
+const FILES = path.join(__dirname, '..', 'drafts', '38_DRAFT_supplier_document_files.sql');
+// STAND-IN for Supabase's storage schema (see supplier_document_files_test.sh)
+const STORAGE_STANDIN = "create schema storage; create table storage.buckets (id text primary key, name text not null, public boolean not null default false, file_size_limit bigint, allowed_mime_types text[]);" +
+  "create table storage.objects (id uuid primary key default gen_random_uuid(), bucket_id text references storage.buckets(id), name text not null, owner uuid default auth.uid(), created_at timestamptz default now(), metadata jsonb, unique (bucket_id, name));" +
+  "alter table storage.objects enable row level security; grant usage on schema storage to authenticated, anon; grant select, insert, update, delete on storage.objects to authenticated, anon; grant select on storage.buckets to authenticated, anon;";
 const O = '00000000-0000-4000-8000-0000000001a1', A = '00000000-0000-4000-8000-0000000001a2', E = '00000000-0000-4000-8000-0000000001a3';
 const LAB = '00000000-0000-4000-8000-0000000001b1', BOT = '00000000-0000-4000-8000-0000000001b2', LBL = '00000000-0000-4000-8000-0000000001b3';
 const POL = '00000000-0000-4000-8000-0000000001c1';
@@ -36,6 +41,13 @@ const val = (v) => Array.isArray(v) ? 'array[' + v.map(lit).join(',') + ']::text
   : (v !== null && typeof v === 'object') ? lit(JSON.stringify(v)) + '::jsonb' : (typeof v === 'boolean' || typeof v === 'number') ? String(v) : lit(v);
 
 function asUser(uid, sql) {
+  if (/^insert into storage\.objects/.test(sql)) {
+    const w = "begin; set local role authenticated; set local request.jwt.claim.sub = " + lit(uid) + ";\n" + sql + ";\ncommit;";
+    try {
+      execFileSync('psql', CONN.concat(['-d', DB, '-qtAX', '-v', 'ON_ERROR_STOP=1', '-v', 'VERBOSITY=verbose']), { input: w, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] });
+      return { data: [], error: null };
+    } catch (e) { const t = String(e.stderr || e.message); const m = t.match(/ERROR:\s+([0-9A-Z]{5}):\s+(.*)/); return { data: null, error: m ? { code: m[1], message: m[2].trim() } : { message: t.split('\n')[0] } }; }
+  }
   const wrapped = "begin; set local role authenticated; set local request.jwt.claim.sub = " + lit(uid) + ";\nselect coalesce(jsonb_agg(t), '[]'::jsonb) from (" + sql + ") t;\ncommit;";
   try {
     const out = execFileSync('psql', CONN.concat(['-d', DB, '-qtAX', '-v', 'ON_ERROR_STOP=1', '-v', 'VERBOSITY=verbose']), { input: wrapped, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] });
@@ -66,6 +78,25 @@ function client(uid) {
       };
       return b;
     },
+    // Stand-in for the storage service: it runs the storage rules as the
+    // signed-in person, the way Supabase's storage service does.
+    storage: {
+      from(bucket) {
+        return {
+          upload(p, body) {
+            // a plain insert: an upload needs only the insert rule (no RETURNING,
+            // which would also need the read rule that staff do not have)
+            const r = asUser(uid, "insert into storage.objects (bucket_id, name) values (" + lit(bucket) + "," + lit(p) + ")");
+            return Promise.resolve(r.error ? { data: null, error: { message: r.error.message } } : { data: { path: p }, error: null });
+          },
+          createSignedUrl(p, secs) {
+            const r = asUser(uid, "select name from storage.objects where bucket_id = " + lit(bucket) + " and name = " + lit(p));
+            if (r.error || !r.data.length) return Promise.resolve({ data: null, error: { message: 'Object not found' } });
+            return Promise.resolve({ data: { signedUrl: 'https://storage.invalid/sign/' + bucket + '/' + p + '?expires=' + secs }, error: null });
+          },
+        };
+      },
+    },
     rpc(name, args) {
       rpcCalls++;
       const r = asUser(uid, 'select public.' + name + '(' + Object.keys(args).map(k => k + ' => ' + val(args[k])).join(', ') + ') as r');
@@ -84,7 +115,7 @@ const count = (sql) => psql(DB, sql);
     "insert into profiles (id, email, role, is_active, account_number) values ('" + O + "','owner@example.test','owner',true,'400000001')," +
     "('" + A + "','admin@example.test','administrator',true,'400000002'),('" + E + "','staff@example.test','employee',true,'400000003');" +
     "insert into suppliers (id, name, supplier_type, is_active) values ('" + LAB + "','SYN Lotion Lab','lab',true),('" + BOT + "','SYN Bottles','packaging',true),('" + LBL + "','SYN Label Printer','other',true);" +
-    "insert into purchase_orders (id, po_number, supplier_id, status, payment_status) values ('" + POL + "','SYN-PO-951','" + LAB + "','received','paid');");
+    "insert into purchase_orders (id, po_number, supplier_id, status, payment_status) values ('" + POL + "','SYN-PO-951','" + LAB + "','received','paid');" + STORAGE_STANDIN);
 
   // the column list the adapter reads matches the draft's tables
   const draft = fs.readFileSync(INSTALL, 'utf8');
@@ -102,6 +133,7 @@ const count = (sql) => psql(DB, sql);
   ok('before install: storage is reported as not installed', pr.installed, false);
   has('  in plain words', pr.message, /not installed in the database yet/);
   execFileSync('psql', CONN.concat(['-d', DB, '-qX', '-v', 'ON_ERROR_STOP=1', '-f', INSTALL]), { stdio: 'ignore' });
+  execFileSync('psql', CONN.concat(['-d', DB, '-qX', '-v', 'ON_ERROR_STOP=1', '-f', FILES]), { stdio: 'ignore' });
   ok('after install: storage is readable', (await store(E, 'employee').probe()).ok, true);
 
   console.log(' the checklist comes from the database');
@@ -135,8 +167,8 @@ const count = (sql) => psql(DB, sql);
   ok('  and the batch record for that batch as missing', lab().rows.find(r => r.key === 'batch_record' && r.subjectId === 'LOT-501').status, 'MISSING');
   has('a save without a request key is refused before the database is asked', (await staff.record(Object.assign({}, input, { requestKey: 'x' }))).message, /request key/);
   has('an expiry before the document date is refused before the database is asked', (await staff.record(Object.assign({}, input, { requestKey: K(2), expiresOn: '2026-01-01' }))).message, /expiry is before/);
-  has('staff recording a purchase document: the database says who records those', (await staff.record({ requestKey: K(3), supplierId: LAB, kind: 'supplier_invoice', subjectKind: 'purchase', subjectRef: POL })).message, /recorded by the owner or an administrator/);
-  has('a purchase document for another supplier\'s order: the database says why', (await store(A, 'administrator').record({ requestKey: K(4), supplierId: BOT, kind: 'supplier_invoice', subjectKind: 'purchase', subjectRef: POL })).message, /not one of this supplier/);
+  has('staff recording a purchase document: the database says who records those', (await staff.record({ requestKey: K(3), supplierId: LAB, kind: 'supplier_invoice', subjectKind: 'purchase', subjectRef: POL })).message, /Hand the document to the owner instead/);
+  has('a purchase document for another supplier\'s order: the database says why', (await store(A, 'administrator').record({ requestKey: K(4), supplierId: BOT, kind: 'supplier_invoice', subjectKind: 'purchase', subjectRef: POL })).message, /not one you can see for this supplier/);
   const inv = await store(A, 'administrator').record({ requestKey: K(5), supplierId: LAB, kind: 'supplier_invoice', subjectKind: 'purchase', subjectRef: POL, reference: 'INV-951' });
   ok('an administrator records the supplier invoice for the lab\'s order', inv.ok + '/' + inv.duplicate, 'true/false');
 
@@ -181,6 +213,42 @@ const count = (sql) => psql(DB, sql);
   ok('the person who recorded it withdraws it', (await staff.withdraw(r9.id, 'Wrong invoice attached')).ok, true);
   L = await store(E, 'employee').load();
   ok('  after a refresh it is no longer counted, but stays in the history', (L.documents.some(d => d.id === r9.id)) + '/' + L.history.filter(h => h.document_id === r9.id).map(h => h.event).reverse().join(','), 'false/recorded,withdrawn');
+
+
+  console.log(' hand-off to the owner');
+  const ho = { requestKey: K(70), supplierId: LAB, kind: 'packing_slip', poText: 'SYN-PO-951 (as printed)', reference: 'PS-951', receivedOn: '2026-11-20' };
+  const h1 = await staff.handOff(ho);
+  ok('staff hand a packing slip to the owner', h1.ok + '/' + h1.duplicate, 'true/false');
+  ok('  sending it again adds nothing', (await store(E, 'employee').handOff(ho)).duplicate, true);
+  has('the page refuses an administrator linking it', (await store(A, 'administrator').resolveHandoff(h1.id, POL)).message, /Only the owner/);
+  has('  with the page check bypassed, the database refuses too', (await store(A, null).resolveHandoff(h1.id, POL)).message, /Only the owner can link/);
+  L = await store(O, 'owner').load();
+  ok('after a refresh the owner sees the waiting hand-off', L.handoffs.filter(h => h.status === 'waiting').map(h => h.po_text).join(','), 'SYN-PO-951 (as printed)');
+  const rs = await store(O, 'owner').resolveHandoff(h1.id, POL);
+  ok('the owner links it to the order: recorded', rs.ok + '/' + !!rs.documentId, 'true/true');
+  ok('  linking again changes nothing', (await store(O, 'owner').resolveHandoff(h1.id, POL)).alreadyResolved, true);
+  L = await store(O, 'owner').load();
+  ok('  after a refresh the packing slip waits for review on that order', L.documents.filter(d => d.kind === 'packing_slip' && d.subjectId === POL).map(d => d.status).join(','), 'received');
+
+  console.log(' files: owner-only opening');
+  const sha = 'd'.repeat(64);
+  const docF = (await store(E, 'employee').record({ requestKey: K(80), supplierId: LAB, kind: 'certificate_of_analysis', subjectKind: 'batch', subjectRef: 'LOT-800' })).id;
+  has('a file of another type is refused before anything is sent', (await staff.attachFile(docF, { type: 'application/zip', size: 10, sha256: sha })).message, /PDF, JPEG or PNG/);
+  has('an administrator cannot attach a file to what staff recorded', (await store(A, 'administrator').attachFile(docF, { type: 'application/pdf', size: 2048, sha256: sha, body: 'x' })).message, /not stored|Only the person/);
+  const at = await staff.attachFile(docF, { type: 'application/pdf', size: 2048, sha256: sha, body: 'x' });
+  ok('the person who recorded it uploads and attaches the file', at.ok + '/' + at.alreadyAttached, 'true/false');
+  L = await store(O, 'owner').load();
+  const fdoc = L.documents.find(d => d.id === docF);
+  ok('after a refresh the document carries its file fingerprint', fdoc.fileSha256, sha);
+  const own = await store(O, 'owner').openFile(fdoc);
+  ok('the owner gets a link that works for 60 seconds', own.ok + '/' + own.expiresInSeconds, 'true/60');
+  has('the page refuses to open it for staff', (await staff.openFile(fdoc)).message, /Only the owner/);
+  has('with the page check bypassed, the storage service finds no file for staff', (await store(E, null).openFile(fdoc)).message, /Object not found/);
+  has('  nor for an ordinary administrator', (await store(A, null).openFile(fdoc)).message, /Object not found/);
+  const apF = await store(O, 'owner').review(docF, 'approved');
+  ok('the owner approves', apF.status, 'approved');
+  L = await store(O, 'owner').load();
+  ok('  the approval records the exact file approved', L.allDocuments.find(d => d.id === docF).approvedFileSha256, sha);
 
   psql('postgres', 'drop database if exists ' + DB);
   console.log('passed ' + pass + ', failed ' + fail);

@@ -5,13 +5,13 @@
 -- @depends-on:  none
 -- @risk:        LOW
 -- @precheck:    stops, removing nothing, if any approved or rejected supplier document exists (the record of the reviews)
--- @effect:      drops the functions, the guards and the six tables; documents waiting for review or withdrawn are removed with them
+-- @effect:      drops the functions, the guards and the seven tables; documents waiting for review or withdrawn, and hand-offs, are removed with them
 -- @postcheck:   to_regclass('public.supplier_documents') is null
 -- @rollback:    (this file is the rollback of drafts/36)
 -- @@ end metadata @@
 -- Needs the owner's written approval. DO NOT RUN until then.
 --
--- Removes the supplier document functions, guards and the six tables. It
+-- Removes the supplier document functions, guards and the seven tables. It
 -- changes no other table (suppliers and purchase orders are untouched).
 --
 -- STOPS, and removes nothing, if any document has been approved or rejected:
@@ -48,12 +48,19 @@ drop function if exists public.correct_supplier_document(uuid, text, date, date,
 drop function if exists public.set_supplier_type_document_profiles(text, text[]);
 drop function if exists public.set_supplier_document_profiles(uuid, text[]);
 drop function if exists public.set_supplier_document_type_active(text, boolean);
+drop function if exists public.attach_supplier_document_file(uuid, text, text, integer, text);
+drop function if exists public.hand_off_supplier_document(uuid, uuid, text, text, text, date, text);
+drop function if exists public.resolve_supplier_document_handoff(uuid, uuid);
+drop function if exists public.dismiss_supplier_document_handoff(uuid, text);
 drop table if exists public.supplier_document_events;
+drop table if exists public.supplier_document_handoffs;
 drop table if exists public.supplier_documents;
 drop table if exists public.supplier_document_subjects;
 drop table if exists public.supplier_document_supplier_profiles;
 drop table if exists public.supplier_type_document_profiles;
 drop table if exists public.supplier_document_types;
+drop function if exists public.supplier_document_handoffs_guard();
+drop function if exists public.supplier_document_handoffs_history();
 drop function if exists public.supplier_documents_guard();
 drop function if exists public.supplier_documents_history();
 drop function if exists public.supplier_document_events_guard();

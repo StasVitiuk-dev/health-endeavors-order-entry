@@ -14,14 +14,16 @@ const { pgBridge, pgAvailable } = require('../helpers/pg-bridge');
 const { unnamedControls } = require('../helpers/a11y-audit');
 
 const INSTALL = path.resolve(__dirname, '..', '..', 'docs', 'ops', 'sql', 'drafts', '36_DRAFT_supplier_documents.sql');
+const FILES = path.resolve(__dirname, '..', '..', 'docs', 'ops', 'sql', 'drafts', '38_DRAFT_supplier_document_files.sql');
 const LAB = '00000000-0000-4000-8000-0000000002b1', LBL = '00000000-0000-4000-8000-0000000002b3', POL = '00000000-0000-4000-8000-0000000002c1';
 const STAFF = '00000000-0000-4000-8000-0000000002a3';
 const TABLES = ['supplier_document_types', 'supplier_type_document_profiles', 'supplier_document_supplier_profiles', 'supplier_document_subjects',
-  'supplier_documents', 'supplier_document_events', 'suppliers', 'purchase_orders'];
+  'supplier_documents', 'supplier_document_events', 'supplier_document_handoffs', 'suppliers', 'purchase_orders'];
 // profiles too, so names and roles come from the same database (except where a
 // test needs the page to believe something the database does not)
 const WITH_PROFILES = TABLES.concat(['profiles']);
-const RPCS = ['record_supplier_document', 'review_supplier_document', 'withdraw_supplier_document', 'set_supplier_type_document_profiles', 'set_supplier_document_type_active'];
+const RPCS = ['record_supplier_document', 'review_supplier_document', 'withdraw_supplier_document', 'set_supplier_type_document_profiles', 'set_supplier_document_type_active',
+  'hand_off_supplier_document', 'resolve_supplier_document_handoff', 'dismiss_supplier_document_handoff', 'attach_supplier_document_file'];
 // A lotion lab with one received, paid order; a label printer; and one
 // certificate recorded earlier by a staff member, waiting for review.
 const SEED = "insert into profiles (id, email, role, is_active, display_name, account_number) values ('" + STAFF + "','staff@example.test','employee',true,'Synthetic Staff','500000003');" +
@@ -165,7 +167,7 @@ test.describe('against a real database with drafts/36 installed', () => {
     } finally { await db.close(); }
   });
 
-  test('staff: no approve, reject or checklist controls; purchase documents not offered; may withdraw their own', async ({ page, backend }) => {
+  test('staff: no approve, reject or checklist controls; a purchase document for an order they cannot see is refused; may withdraw their own', async ({ page, backend }) => {
     await asRoleInPage(backend, 'employee');
     const db = await pgBridge(page, { install: INSTALL, tables: WITH_PROFILES, rpcs: RPCS, role: 'employee', setupSql: SEED });
     try {
@@ -174,9 +176,15 @@ test.describe('against a real database with drafts/36 installed', () => {
       const host = page.locator('#supplierDocsHost');
       await expect(host.locator('[data-sdact="approved"], [data-sdact="rejected"]')).toHaveCount(0);
       await expect(host.locator('[data-sdsettings]')).toHaveCount(0);
-      await expect(host).toContainText('Purchase documents are recorded by the owner or an administrator.');
-      await expect(page.locator('#sdKind option[value="packing_slip"]')).toHaveCount(0);
+      await expect(host.locator('[data-sdpurchasehint]')).toContainText('If its order is not listed for you, hand it to the owner below.');
+      // the order is not one staff can see (purchase-order access is unchanged): recording against it is refused on the page
       const f = page.locator('form[data-sdform]');
+      await f.locator('#sdSupplier').selectOption(LAB);
+      await f.locator('#sdKind').selectOption('packing_slip');
+      await f.locator('#sdSubject').fill('SYN-PO-971');
+      await f.locator('[data-sdsave]').click();
+      await expect(f.locator('[data-sdformmsg]')).toContainText('that is not an order you can see');
+      expect(await db.query("select count(*) from supplier_documents where kind = 'packing_slip'")).toBe('0');
       await f.locator('#sdSupplier').selectOption(LAB);
       await f.locator('#sdKind').selectOption('batch_record');
       await f.locator('#sdSubject').fill('LOT-700');
@@ -208,5 +216,155 @@ test.describe('against a real database with drafts/36 installed', () => {
       await expect(lbl.locator('tr[data-dockey="printer_proof"]')).toContainText('Missing');
       expect(await db.query("select count(*) from supplier_document_events where area = 'checklist' and by_user is not null")).toBe('1');
     } finally { await db.close(); }
+  });
+
+  test('staff hand a purchase document to the owner; a double click and a lost reply hand it over once', async ({ page, backend }) => {
+    await asRoleInPage(backend, 'employee');
+    const db = await pgBridge(page, { install: INSTALL, tables: WITH_PROFILES, rpcs: RPCS, role: 'employee', setupSql: SEED, dropReplyOnce: ['hand_off_supplier_document'] });
+    try {
+      await switchOn(page, true);
+      await login(page); await open(page);
+      await expect(page.locator('[data-sdhandoffs]')).toHaveCount(0);     // the owner's list is not shown to staff
+      const f = page.locator('form[data-sdhandoff]');
+      await f.locator('#sdhSupplier').selectOption(LAB);
+      await f.locator('#sdhKind').selectOption('packing_slip');
+      await expect(f.locator('#sdhKind option[value="certificate_of_analysis"]')).toHaveCount(0);   // purchase documents only
+      await f.locator('#sdhPo').fill('SYN-PO-971 (as printed)');
+      await f.locator('#sdhRef').fill('PS-971');
+      await f.locator('[data-sdhsave]').dblclick();
+      await expect(f.locator('[data-sdhmsg]')).toContainText(/Could not reach the database|try again/);
+      expect(await db.query("select count(*) from supplier_document_handoffs")).toBe('1');
+      await f.locator('[data-sdhsave]').click();                       // same request key
+      await expect(page.locator('[data-sdmyhandoffs] li[data-sdhstatus="waiting"]')).toContainText('SYN-PO-971 (as printed) (ref. PS-971): Waiting for the owner');
+      expect(await db.query("select count(*)||'/'||max(status) from supplier_document_handoffs")).toBe('1/waiting');
+      // after a refresh it is still there
+      await page.reload(); await expect(page.locator('#dash')).toBeVisible(); await open(page);
+      await expect(page.locator('[data-sdmyhandoffs] li')).toHaveCount(1);
+      expect(await page.locator('#supplierDocsHost').evaluate(unnamedControls)).toEqual([]);
+    } finally { await db.close(); }
+  });
+
+  test('owner links a hand-off to the order (it then waits for review) and dismisses another with a reason', async ({ page }) => {
+    const HO = "begin; set local role authenticated; set local request.jwt.claim.sub = '" + STAFF + "';" +
+      "select public.hand_off_supplier_document('00000000-0000-4000-8000-000000000911','" + LAB + "','packing_slip','971 handwritten','PS-971','2026-11-20','left at the door');" +
+      "select public.hand_off_supplier_document('00000000-0000-4000-8000-000000000912','" + LAB + "','supplier_invoice','unknown order','INV-X','2026-11-20',null); commit;";
+    const db = await pgBridge(page, { install: INSTALL, tables: WITH_PROFILES, rpcs: RPCS, role: 'owner', setupSql: SEED + HO });
+    try {
+      await switchOn(page, true);
+      await login(page); await open(page);
+      const list = page.locator('[data-sdhandoffs]');
+      await expect(list).toHaveAttribute('data-sdhandoffs', '2');
+      await expect(list).toContainText('handed over by Synthetic Staff');
+      const a = list.locator('[data-sdhandoff-id]', { hasText: '971 handwritten' });
+      await a.locator('[data-sdresolve]').click();                       // no order chosen yet
+      await expect(page.locator('.toast', { hasText: 'Choose the purchase order' })).toHaveCount(1);
+      await a.locator('[data-sdpo]').selectOption(POL);
+      await a.locator('[data-sdresolve]').click();
+      await expect(page.locator('[data-sdhandoffs]')).toHaveAttribute('data-sdhandoffs', '1');
+      await expect(page.locator('[data-supplierdocs-supplier="' + LAB + '"] tr[data-dockey="packing_slip"]')).toContainText('Awaiting review');
+      expect(await db.query("select h.status||'/'||d.subject_ref||'/'||d.status from supplier_document_handoffs h join supplier_documents d on d.id = h.document_id")).toBe('recorded/' + POL + '/received');
+      const b = page.locator('[data-sdhandoff-id]', { hasText: 'unknown order' });
+      await b.locator('[data-sddismiss]').click();                       // a reason is needed
+      await expect(page.locator('.toast', { hasText: 'Say why the hand-off is dismissed.' })).toHaveCount(1);
+      await b.locator('[data-sdhonote]').fill('Not our order; returned to the supplier');
+      await b.locator('[data-sddismiss]').click();
+      await expect(page.locator('[data-sdhandoffs]')).toHaveAttribute('data-sdhandoffs', '0');
+      expect(await db.query("select status||'/'||resolve_note from supplier_document_handoffs where reference = 'INV-X'")).toBe('dismissed/Not our order; returned to the supplier');
+    } finally { await db.close(); }
+  });
+
+  test('an administrator cannot link a hand-off, even if the page offered it: the database refuses', async ({ page }) => {
+    const HO = "begin; set local role authenticated; set local request.jwt.claim.sub = '" + STAFF + "';" +
+      "select public.hand_off_supplier_document('00000000-0000-4000-8000-000000000913','" + LAB + "','packing_slip','971','PS-971','2026-11-20',null); commit;";
+    // the page believes this is the owner; the database knows it is an administrator
+    const db = await pgBridge(page, { install: INSTALL, tables: TABLES, rpcs: RPCS, role: 'administrator', setupSql: SEED + HO });
+    try {
+      await switchOn(page, true);
+      await login(page); await open(page);
+      const a = page.locator('[data-sdhandoff-id]');
+      await a.locator('[data-sdpo]').selectOption(POL);
+      await a.locator('[data-sdresolve]').click();
+      await expect(page.locator('.toast', { hasText: 'Only the owner can link' })).toHaveCount(1);
+      expect(await db.query("select status from supplier_document_handoffs")).toBe('waiting');
+      expect(await db.query("select count(*) from supplier_documents where kind = 'packing_slip'")).toBe('0');
+    } finally { await db.close(); }
+  });
+
+  test.describe('files (drafts/38): only the owner opens one', () => {
+    const pdf = { name: 'coa-700.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4\n% synthetic test file, not a real certificate\n%%EOF\n') };
+
+    test('staff attach the file to their own document; the file then cannot be opened by staff, even through the storage service directly', async ({ page, backend }) => {
+      await asRoleInPage(backend, 'employee');
+      const db = await pgBridge(page, { install: INSTALL, tables: WITH_PROFILES, rpcs: RPCS, role: 'employee', setupSql: SEED, storage: true, storageInstall: FILES });
+      try {
+        await switchOn(page, true);
+        await login(page); await open(page);
+        // record a batch record, then attach its file
+        const f = page.locator('form[data-sdform]');
+        await f.locator('#sdSupplier').selectOption(LAB);
+        await f.locator('#sdKind').selectOption('batch_record');
+        await f.locator('#sdSubject').fill('LOT-700');
+        await f.locator('[data-sdsave]').click();
+        const row = page.locator('#supplierDocsHost tr[data-dockey="batch_record"][data-subject="LOT-700"]');
+        await expect(row).toContainText('recorded by you');
+        // someone else's certificate: no file control for staff
+        await expect(page.locator('#supplierDocsHost tr[data-dockey="certificate_of_analysis"][data-subject="LOT-700"] [data-sdfile]')).toHaveCount(0);
+        await row.locator('[data-sdfile]').setInputFiles(pdf);
+        await row.locator('[data-sdattach]').click();
+        await expect(row.locator('[data-sdfilerow]')).toContainText('File attached. Only the owner can open it.');
+        await expect(row.locator('[data-sdopen]')).toHaveCount(0);
+        const sha = require('crypto').createHash('sha256').update(pdf.buffer).digest('hex');
+        expect(await db.query("select file_sha256||'/'||file_bytes||'/'||file_type from supplier_documents where kind = 'batch_record'")).toBe(sha + '/' + pdf.buffer.length + '/application/pdf');
+        const filePath = await db.query("select file_path from supplier_documents where kind = 'batch_record'");
+        expect(await db.query("select count(*) from storage.objects where bucket_id = 'supplier-documents' and name = '" + filePath + "'")).toBe('1');
+        // a direct request to the storage service for a link, as this staff member: no such file
+        const direct = await page.evaluate(async (p) => { const r = await window.supabase.createClient('https://uizrazyehilyzmwttsrn.supabase.co', 'x').storage.from('supplier-documents').createSignedUrl(p, 60); return r.error ? r.error.message : 'LINK ' + (r.data && r.data.signedUrl); }, filePath).catch(e => 'threw ' + e.message);
+        expect(direct).toMatch(/Object not found/);
+        expect(db.calls.filter(c => c.startsWith('storage sign')).length).toBe(1);
+      } finally { await db.close(); }
+    });
+
+    test('the owner gets a link that works for 60 seconds, and approval records the exact file approved', async ({ page }) => {
+      const db = await pgBridge(page, { install: INSTALL, tables: WITH_PROFILES, rpcs: RPCS, role: 'owner', setupSql: SEED, storage: true, storageInstall: FILES });
+      try {
+        // the staff member's certificate already has its file (uploaded by them)
+        const DOC = await db.query("select id from supplier_documents where reference = 'COA-700'");
+        const sha = 'e'.repeat(64);
+        await db.query("begin; set local role authenticated; set local request.jwt.claim.sub = '" + STAFF + "'; insert into storage.objects (bucket_id, name) values ('supplier-documents', '" + DOC + "/coa.pdf');" +
+          "select public.attach_supplier_document_file('" + DOC + "','" + DOC + "/coa.pdf','" + sha + "',4096,'application/pdf'); commit;");
+        await switchOn(page, true);
+        await login(page); await open(page);
+        const row = page.locator('#supplierDocsHost tr[data-dockey="certificate_of_analysis"][data-subject="LOT-700"]');
+        await expect(row.locator('[data-sdfile]')).toHaveCount(0);       // a file is attached once
+        await row.locator('[data-sdopen]').click();
+        const link = row.locator('[data-sdfileurl]');
+        await expect(link).toContainText('this link works for 60 seconds');
+        expect(await link.getAttribute('href')).toContain('/storage/v1/object/sign/supplier-documents/' + DOC + '/coa.pdf?token=');
+        expect(await link.getAttribute('rel')).toContain('noopener');
+        await row.locator('[data-sdact="approved"]').click();
+        await expect(page.locator('#supplierDocsHost tr[data-dockey="certificate_of_analysis"][data-subject="LOT-700"]')).toHaveCount(0);
+        expect(await db.query("select status||'/'||approved_file_sha256 from supplier_documents where id = '" + DOC + "'")).toBe('approved/' + sha);
+        expect(await page.locator('#supplierDocsHost').evaluate(unnamedControls)).toEqual([]);
+      } finally { await db.close(); }
+    });
+
+    test('an ordinary administrator: the page offers Open file (it thinks this is the owner) but the storage service finds no file', async ({ page }) => {
+      const db = await pgBridge(page, { install: INSTALL, tables: TABLES, rpcs: RPCS, role: 'administrator', setupSql: SEED, storage: true, storageInstall: FILES });
+      try {
+        const DOC = await db.query("select id from supplier_documents where reference = 'COA-700'");
+        await db.query("begin; set local role authenticated; set local request.jwt.claim.sub = '" + STAFF + "'; insert into storage.objects (bucket_id, name) values ('supplier-documents', '" + DOC + "/coa.pdf');" +
+          "select public.attach_supplier_document_file('" + DOC + "','" + DOC + "/coa.pdf','" + 'e'.repeat(64) + "',4096,'application/pdf'); commit;");
+        await switchOn(page, true);
+        await login(page); await open(page);
+        const row = page.locator('#supplierDocsHost tr[data-dockey="certificate_of_analysis"][data-subject="LOT-700"]');
+        await row.locator('[data-sdopen]').click();
+        await expect(page.locator('.toast', { hasText: 'Object not found' })).toHaveCount(1);
+        await expect(row.locator('[data-sdfileurl]')).toHaveCount(0);
+        // nor approve through the backend
+        await row.locator('[data-sdact="approved"]').click();
+        await expect(page.locator('.toast', { hasText: 'Only the owner can approve' })).toHaveCount(1);
+        expect(await db.query("select status||'/'||coalesce(approved_file_sha256,'none') from supplier_documents where id = '" + DOC + "'")).toBe('received/none');
+      } finally { await db.close(); }
+    });
   });
 });

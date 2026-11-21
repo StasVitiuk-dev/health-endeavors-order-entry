@@ -76,8 +76,8 @@ ok  "  one recorded it, nine got it back as a duplicate" "$(grep -c '"duplicate"
 ok  "  exactly one batch record exists" "$(q "select count(*) from supplier_documents where kind = 'batch_record'")" "1"
 rm -f "$SAME"
 has "a second copy of the same document cannot wait for review at the same time" "$(rec $A 3 $LAB certificate_of_analysis batch LOT-301)" "already waiting for review"
-has "staff cannot record a purchase document (they cannot see purchase orders)" "$(rec $E 4 $LAB supplier_invoice purchase $POL)" "recorded by the owner or an administrator"
-has "a purchase document must be for one of this supplier's orders" "$(rec $A 4 $LAB supplier_invoice purchase $POB)" "not one of this supplier"
+has "staff cannot record a purchase document for an order they cannot see; they are told to hand it off" "$(rec $E 4 $LAB supplier_invoice purchase $POL)" "Hand the document to the owner instead"
+has "a purchase document must be for one of this supplier's orders" "$(rec $A 4 $LAB supplier_invoice purchase $POB)" "not one you can see for this supplier"
 R=$(rec $A 5 $LAB supplier_invoice purchase $POL)
 has "an administrator records the supplier invoice of the lab's order" "$R" '"status": "received"'
 DOC5=$(q "select id from supplier_documents where request_key = '$(K 5)'")
@@ -161,6 +161,66 @@ ok  "an administrator cannot switch off a batch (nothing changes)" "$(q "select 
 as $O "update supplier_document_subjects set label = 'Lot 301 (Honey Milk)' where subject_ref = 'LOT-301'" >/dev/null
 ok  "the owner can relabel it" "$(q "select label from supplier_document_subjects where subject_ref = 'LOT-301'")" "Lot 301 (Honey Milk)"
 
+
+echo " staff and purchase orders they can see (owner decision of Nov 21)"
+# TEST-ONLY row rule on this throwaway copy: lets staff read ONE purchase order,
+# to prove that staff can record a document for an order they are allowed to
+# see. drafts/36 itself widens nothing.
+q "create policy test_only_staff_reads_pob on purchase_orders for select to authenticated using (id = '$POB')" >/dev/null
+R=$(rec $E 40 $BOT packing_slip purchase $POB)
+has "staff record the packing slip of an order they can see" "$R" '"status": "received"'
+has "  but still not for one they cannot see" "$(rec $E 41 $LAB packing_slip purchase $POL)" "Hand the document to the owner instead"
+q "drop policy test_only_staff_reads_pob on purchase_orders" >/dev/null
+ok  "  (the test-only rule is gone again)" "$(as $E "select count(*) from purchase_orders")" "0"
+
+echo " hand-off to the owner"
+HO="select public.hand_off_supplier_document('$(K 50)','$LAB','supplier_invoice','SYN-PO-901 (printed)','INV-901','2026-11-20','Came in the box')"
+R=$(as $E "$HO")
+has "staff hand an invoice to the owner, with the order number as printed" "$R" '"status": "waiting"'
+H1=$(q "select id from supplier_document_handoffs where request_key = '$(K 50)'")
+has "the same hand-off sent again adds nothing" "$(as $E "$HO")" '"duplicate": true'
+ok  "  one hand-off exists" "$(q "select count(*) from supplier_document_handoffs")" "1"
+has "only purchase documents are handed off" "$(as $E "select public.hand_off_supplier_document('$(K 51)','$LAB','batch_record','x',null,current_date,null)")" "Only a purchase document"
+ok  "staff see their own hand-off" "$(as $E "select count(*) from supplier_document_handoffs")" "1"
+ok  "an administrator sees it too" "$(as $A "select count(*) from supplier_document_handoffs")" "1"
+ok  "another staff member does not" "$(as $A2 "select count(*) from supplier_document_handoffs where handed_by <> '$A2'")" "1"
+has "staff cannot link it" "$(as $E "select public.resolve_supplier_document_handoff('$H1','$POL')")" "Only the owner"
+has "an administrator cannot link it" "$(as $A "select public.resolve_supplier_document_handoff('$H1','$POL')")" "Only the owner"
+as $A "update supplier_document_handoffs set status = 'dismissed', resolve_note = 'not needed here' where id = '$H1'" >/dev/null
+ok  "  nor mark it resolved by direct edit (nothing changes)" "$(q "select status from supplier_document_handoffs where id = '$H1'")" "waiting"
+R=$(as $O "select public.resolve_supplier_document_handoff('$H1','$POL')")
+has "the owner links it to the right order: the document is recorded" "$R" '"status": "recorded"'
+D50=$(q "select document_id from supplier_document_handoffs where id = '$H1'")
+ok  "  the recorded document: the lab's order, the reference, waiting for review" "$(q "select (subject_ref = '$POL')::text||'/'||reference||'/'||status||'/'||(recorded_by = '$O')::text from supplier_documents where id = '$D50'")" "true/INV-901/received/true"
+has "linking again changes nothing" "$(as $O "select public.resolve_supplier_document_handoff('$H1','$POL')")" '"already_resolved": true'
+ok  "  still one document from that hand-off" "$(q "select count(*) from supplier_documents where request_key = '$(K 50)'")" "1"
+as $E "select public.hand_off_supplier_document('$(K 52)','$LAB','packing_slip','unreadable',null,current_date,null)" >/dev/null
+H2=$(q "select id from supplier_document_handoffs where request_key = '$(K 52)'")
+has "dismissing needs a reason" "$(as $O "select public.dismiss_supplier_document_handoff('$H2','no')")" "Say why"
+has "the owner dismisses one with a reason" "$(as $O "select public.dismiss_supplier_document_handoff('$H2','Duplicate of the slip already recorded')")" '"status": "dismissed"'
+has "a hand-off cannot be deleted" "$(as $O "delete from supplier_document_handoffs where id = '$H2'")" "cannot be deleted\|permission denied"
+ok  "the history holds the hand-offs and their outcome" "$(q "select string_agg(event, ',' order by id) from supplier_document_events where event like 'hand%'")" "handed_off,handoff_recorded,handed_off,handoff_dismissed"
+
+echo " files: attached once, approved by fingerprint"
+SHA1=$(printf 'a%.0s' $(seq 1 64)); SHA2=$(printf 'b%.0s' $(seq 1 64))
+R=$(rec $E 60 $LAB certificate_of_analysis batch LOT-600)
+D60=$(q "select id from supplier_documents where request_key = '$(K 60)'")
+has "a file path must belong to this document" "$(as $E "select public.attach_supplier_document_file('$D60','$D50/coa.pdf','$SHA1',2048,'application/pdf')")" "file_is_this_document"
+has "an administrator cannot attach a file to a document staff recorded" "$(as $A "select public.attach_supplier_document_file('$D60','$D60/coa.pdf','$SHA1',2048,'application/pdf')")" "Only the person who recorded"
+has "only PDF, JPEG or PNG" "$(as $E "select public.attach_supplier_document_file('$D60','$D60/coa.exe','$SHA1',2048,'application/x-msdownload')")" "file_type_check"
+has "the person who recorded it attaches the file" "$(as $E "select public.attach_supplier_document_file('$D60','$D60/coa.pdf','$SHA1',2048,'application/pdf')")" '"already_attached": false'
+has "  attaching the same file again changes nothing" "$(as $E "select public.attach_supplier_document_file('$D60','$D60/coa.pdf','$SHA1',2048,'application/pdf')")" '"already_attached": true'
+has "  a different file cannot replace it (owner included)" "$(as $O "select public.attach_supplier_document_file('$D60','$D60/coa-v2.pdf','$SHA2',2048,'application/pdf')")" "cannot be replaced"
+has "  nor can it be removed by direct edit" "$(as $O "update supplier_documents set file_path = null, file_sha256 = null, file_bytes = null, file_type = null, file_attached_at = null where id = '$D60'")" "cannot be replaced"
+as $E "update supplier_documents set approved_file_sha256 = '$SHA2' where id = '$D60'" >/dev/null
+ok  "nobody can type an approved fingerprint: the database puts it back" "$(q "select (approved_file_sha256 is null)::text from supplier_documents where id = '$D60'")" "true"
+has "staff cannot approve it" "$(as $E "select public.review_supplier_document('$D60','approved',null)")" "Only the owner"
+has "an administrator cannot approve it" "$(as $A "select public.review_supplier_document('$D60','approved',null)")" "Only the owner"
+has "the owner approves it" "$(as $O "select public.review_supplier_document('$D60','approved',null)")" '"status": "approved"'
+ok  "  the approval records the fingerprint of the exact file approved" "$(q "select (approved_file_sha256 = '$SHA1')::text from supplier_documents where id = '$D60'")" "true"
+has "  a file cannot be attached once a document is approved" "$(as $O "select public.attach_supplier_document_file('$DOC1','$DOC1/coa.pdf','$SHA2',100,'application/pdf')")" "only while the document waits for review"
+ok  "the file attachment is in the history" "$(q "select count(*) from supplier_document_events where document_id = '$D60' and event = 'file_attached' and detail->>'file_sha256' = '$SHA1'")" "1"
+
 echo " after everything"
 ok  "no existing table gained or lost a row" "$(q "$SNAP")" "$before"
 ok  "every approved or rejected document names its reviewer" "$(q "select count(*) from supplier_documents where status in ('approved','rejected') and (reviewed_by is null or reviewed_at is null)")" "0"
@@ -168,7 +228,7 @@ ok  "every approved or rejected document names its reviewer" "$(q "select count(
 echo " rollback"
 ok  "rollback refuses while approved or rejected documents exist" "$(run "$ROLLBACK")" "3"
 has "  and says why" "$(cat "$OUTF")" "approved or rejected supplier document(s) exist"
-ok  "  nothing was removed" "$(q "select count(*) from supplier_documents")" "5"
+ok  "  nothing was removed" "$(q "select count(*) from supplier_documents")" "8"
 setup
 before=$(q "$SNAP")
 ok  "fresh copy: install" "$(run "$INSTALL")" "0"

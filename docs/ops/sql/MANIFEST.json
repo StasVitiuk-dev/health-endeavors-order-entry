@@ -416,7 +416,7 @@
       "risk": "LOW",
       "rollback": "37",
       "precheck": "stops if auth.uid(), current_role(), is_active_staff(), is_owner_or_admin() or the suppliers / purchase_orders / profiles tables are missing",
-      "effect": "6 new tables (the checklist, its profiles by supplier type and per supplier, subjects, documents, review history); guards (owner-only review, correction and checklist changes, no deletes, history written by the database only); record / review / withdraw / correct and owner-only checklist functions (security invoker); the starting checklist of Nov 16",
+      "effect": "7 new tables (the checklist, its profiles by supplier type and per supplier, subjects, documents with one file each, review history, hand-offs to the owner); guards (owner-only review, correction, hand-off resolution and checklist changes; purchase documents only for orders the person can already see; a file attached once; no deletes; history written by the database only); record / review / withdraw / correct / attach-file / hand-off functions and owner-only checklist functions (security invoker); the starting checklist of Nov 16",
       "postcheck": "9 document types, no documents; anon cannot read them or run the functions; an administrator cannot approve; local-test/supplier_documents_test.sh passes on a throwaway copy",
       "lock": "NONE on existing tables: only new tables are created"
     },
@@ -428,9 +428,34 @@
       "dependsOn": [],
       "risk": "LOW",
       "precheck": "stops, removing nothing, if any approved or rejected supplier document exists (the record of the reviews)",
-      "effect": "drops the functions, the guards and the six tables; documents waiting for review or withdrawn are removed with them",
+      "effect": "drops the functions, the guards and the seven tables; documents waiting for review or withdrawn, and hand-offs, are removed with them",
       "postcheck": "to_regclass('public.supplier_documents') is null",
       "dynamicSql": "one format() with fixed names and values (%I / %L), so the count is not planned where the table is absent"
+    },
+    {
+      "file": "drafts/38_DRAFT_supplier_document_files.sql",
+      "id": "38",
+      "class": "PRODUCTION-CHANGE-DRAFT",
+      "step": "optional (after drafts/36; needed before supplier document files are stored)",
+      "dependsOn": ["36"],
+      "risk": "LOW",
+      "rollback": "39",
+      "precheck": "stops if storage.objects, storage.buckets, supplier_documents or supplier_documents_is_owner() is missing",
+      "effect": "a private storage bucket supplier-documents (PDF/JPEG/PNG, 10 MB); two rules on storage.objects for that bucket only: the owner reads (opens, downloads, signs links); the person who recorded a waiting document (or the owner) uploads into its folder; no replace or delete rule",
+      "postcheck": "bucket public = false; two new storage rules; local-test/supplier_document_files_test.sh passes on a throwaway copy",
+      "lock": "NONE on business tables: adds two rules on storage.objects"
+    },
+    {
+      "file": "drafts/39_DRAFT_rollback_supplier_document_files.sql",
+      "id": "39",
+      "class": "ROLLBACK",
+      "rollbackOf": "38",
+      "dependsOn": [],
+      "risk": "LOW",
+      "precheck": "stops, removing nothing, if any file is stored in the bucket",
+      "effect": "drops the two storage rules and the upload check, and removes the empty bucket",
+      "postcheck": "select count(*) from storage.buckets where id = 'supplier-documents' = 0",
+      "dynamicSql": "one format() with fixed names and values (%I / %L)"
     }
   ],
   "local": [

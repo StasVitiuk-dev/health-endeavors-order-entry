@@ -2547,6 +2547,24 @@
           isOwner ? h('button', { type: 'button', class: 'small secondary', 'data-sdact': 'rejected', 'data-docid': id }, 'Reject') : null,
           h('button', { type: 'button', class: 'small secondary', 'data-sdact': 'withdraw', 'data-docid': id }, 'Withdraw'));
       };
+      // Files (drafts/38): only the owner opens one; the person who recorded a
+      // waiting document (or the owner) attaches its one file.
+      const docById = {}; (data.documents || []).forEach(d => { docById[d.id] = d; });
+      const fileCtl = r => {
+        if (mode !== 'stored' || !r.documentId) return null;
+        const d = docById[r.documentId] || {}, id = r.documentId;
+        if (d.filePath) {
+          return isOwner ? h('div', { class: 'scanToggleRow u-mt-6', 'data-sdfilerow': id },
+            h('button', { type: 'button', class: 'small secondary', 'data-sdopen': id }, 'Open file'),
+            h('span', { class: 'u-fs-12', 'data-sdfilelink': id }))
+            : h('div', { class: 'u-fs-12 u-c-muted u-mt-6', 'data-sdfilerow': id }, 'File attached. Only the owner can open it.');
+        }
+        const mine = r.recordedBy && r.recordedBy === myId;
+        if (r.status !== 'AWAITING_REVIEW' || (!isOwner && !mine)) return null;
+        return h('div', { class: 'scanToggleRow u-mt-6', 'data-sdfilerow': id },
+          h('input', { type: 'file', accept: 'application/pdf,image/jpeg,image/png', 'aria-label': 'File for ' + r.label + ', ' + r.subjectLabel + ' (PDF, JPEG or PNG, up to 10 MB)', 'data-sdfile': id }),
+          h('button', { type: 'button', class: 'small secondary', 'data-sdattach': id }, 'Attach file'));
+      };
       const plural = (n, one, many) => n + ' ' + (n === 1 ? one : many);
       const cards = ov.suppliers.map(sup => {
         const shown = supplierDocsShowAll ? sup.rows : sup.rows.filter(r => r.status !== 'APPROVED');
@@ -2557,7 +2575,7 @@
             h('thead', null, h('tr', null, h('th', null, 'Document'), h('th', null, 'For'), h('th', null, 'Status'), h('th', null, 'Detail'))),
             h('tbody', null, shown.map(r => h('tr', { 'data-docstate': r.status, 'data-dockey': r.key, 'data-subject': r.subjectId == null ? '' : r.subjectId },
               h('td', null, r.label), h('td', null, r.subjectLabel), h('td', null, h('span', { class: r.status === 'APPROVED' ? '' : 'taskTitle' }, SD_WORD[r.status] || r.status)),
-              h('td', null, detail(r) + (r.reference ? ' · ref. ' + r.reference : ''), actions(r))))))
+              h('td', null, detail(r) + (r.reference ? ' · ref. ' + r.reference : ''), actions(r), fileCtl(r))))))
             : h('div', { class: 'u-fs-12 u-c-muted u-mt-6' }, 'Every document on this supplier\'s checklist is on file and reviewed.'));
       });
       const c = data.checklist;
@@ -2567,25 +2585,26 @@
         storeNote ? h('p', { class: 'hint u-mt-6', 'data-sdstorenote': '1' }, 'Storage is switched on but not available: ' + storeNote + ' Showing the example data instead.') : null,
         h('p', { class: 'hint u-mt-6', 'data-supplierdocs-totals': ov.totals.missing + '/' + ov.totals.awaitingReview + '/' + ov.totals.approved },
           plural(ov.totals.missing, 'document', 'documents') + ' missing · ' + ov.totals.awaitingReview + ' awaiting review · ' + ov.totals.approved + ' approved, across ' + plural(ov.totals.suppliers, 'supplier', 'suppliers') + '. Checked as of ' + asOf + '.'),
-        mode === 'stored' && currentUserRole !== 'owner' && currentUserRole !== 'administrator' ? h('p', { class: 'hint u-mt-6' }, 'Purchase documents are recorded by the owner or an administrator.') : null,
+        mode === 'stored' && !isOwner ? h('p', { class: 'hint u-mt-6', 'data-sdpurchasehint': '1' }, 'A purchase document is recorded against an order you can see. If its order is not listed for you, hand it to the owner below.') : null,
         h('div', { class: 'scanToggleRow u-mt-8' },
           h('button', { type: 'button', class: 'small' + (supplierDocsShowAll ? ' secondary' : ''), 'data-supplierdocs': 'attention', 'aria-pressed': String(!supplierDocsShowAll) }, 'Missing or awaiting review'),
           h('button', { type: 'button', class: 'small' + (supplierDocsShowAll ? '' : ' secondary'), 'data-supplierdocs': 'all', 'aria-pressed': String(supplierDocsShowAll) }, 'Every document')),
         cards,
+        mode === 'stored' && isOwner ? sdHandoffsForOwner(data) : null,
         mode === 'stored' ? sdRecordForm(data) : null,
+        mode === 'stored' && !isOwner ? sdHandoffForm(data) : null,
         mode === 'stored' ? sdHistory(data) : null,
         mode === 'stored' && isOwner ? sdSettings(data) : null,
         h('details', { class: 'hintMore u-mt-10' }, h('summary', null, 'The checklist these suppliers are held to'),
           h('div', { class: 'scanCardRow', 'data-checklist': 'purchase' }, h('span', { class: 'u-c-muted' }, 'Every purchase, where it applies: '), listOf(c.purchase)),
           Object.keys(c.profiles).map(k => h('div', { class: 'scanCardRow', 'data-checklist': k }, h('span', { class: 'u-c-muted' }, c.profiles[k].label + ': '), listOf(c.profiles[k].documents)))),
         h('p', { class: 'hint u-mt-8' }, mode === 'stored'
-          ? 'A document counts only once the owner has reviewed and approved it. Only the owner can approve, reject or change the checklist; the database enforces this. Files are not stored yet.'
+          ? 'A document counts only once the owner has reviewed and approved it. Only the owner can approve, reject or change the checklist, and only the owner can open an attached file (through a link that works for 60 seconds); the database and the file storage enforce this. A stored file cannot be replaced or deleted.'
           : 'A document counts only once someone has reviewed and approved it. The checklist can be changed per kind of supplier. These records are not stored in the database yet — that needs its own approved change.')));
     }
     // Record that a document arrived (stored mode).
     function sdRecordForm(data) {
-      const canPurchase = currentUserRole === 'owner' || currentUserRole === 'administrator';
-      const kinds = (data.types || []).filter(t => t.is_active !== false && (canPurchase || t.profile !== 'purchase'));
+      const kinds = (data.types || []).filter(t => t.is_active !== false);
       const pos = (data.context.purchaseOrders || []).filter(p => !p.deleted_at && p.status !== 'draft' && p.status !== 'cancelled');
       return h('form', { class: 'heForm u-mt-12 u-pt-16 u-bt-1-solid-line', 'data-sdform': '1', novalidate: '' },
         h('h3', null, 'Record a document that arrived'),
@@ -2618,6 +2637,52 @@
       return h('details', { class: 'hintMore u-mt-10', 'data-sdhistory': '1' }, h('summary', null, 'Review history (latest ' + rows.length + ')'),
         rows.length ? h('ul', { class: 'u-mt-6' }, rows.map(e => h('li', { 'data-sdevent': e.event }, fmtDate(e.at) + ' — ' + sdPerson(e.by_user) + ' ' + what(e))))
           : h('p', { class: 'hint' }, 'Nothing recorded yet.'));
+    }
+    // Staff (and administrators): a purchase document whose order they cannot
+    // see goes to the owner, instead of widening who can see purchase orders.
+    function sdHandoffForm(data) {
+      const kinds = (data.types || []).filter(t => t.is_active !== false && t.subject_kind === 'purchase');
+      const mine = (data.handoffs || []).slice(0, 20);
+      const word = { waiting: 'Waiting for the owner', recorded: 'Linked and recorded by the owner', dismissed: 'Dismissed by the owner' };
+      return h('form', { class: 'heForm u-mt-12 u-pt-16 u-bt-1-solid-line', 'data-sdhandoff': '1', novalidate: '' },
+        h('h3', null, 'Hand a purchase document to the owner'),
+        h('p', { class: 'hint' }, 'For a packing slip, invoice or receipt whose order you cannot see. The owner links it to the right order. Sending twice records it once.'),
+        h('div', { class: 'heField' }, h('label', { for: 'sdhSupplier' }, 'Supplier'),
+          h('select', { id: 'sdhSupplier', name: 'supplier', required: '' }, h('option', { value: '' }, 'Choose…'), data.suppliers.map(s => h('option', { value: s.id }, s.name)))),
+        h('div', { class: 'heField' }, h('label', { for: 'sdhKind' }, 'Document'),
+          h('select', { id: 'sdhKind', name: 'kind', required: '' }, h('option', { value: '' }, 'Choose…'), kinds.map(t => h('option', { value: t.key }, t.label)))),
+        h('div', { class: 'heField' }, h('label', { for: 'sdhPo' }, 'Order number as printed on the paper'), h('input', { id: 'sdhPo', name: 'poText', type: 'text', maxlength: '120', required: '' })),
+        h('div', { class: 'heField' }, h('label', { for: 'sdhRef' }, 'Reference on the document (optional)'), h('input', { id: 'sdhRef', name: 'reference', type: 'text', maxlength: '120' })),
+        h('div', { class: 'heField' }, h('label', { for: 'sdhReceived' }, 'Received on'), h('input', { id: 'sdhReceived', name: 'receivedOn', type: 'date', value: localDateString(new Date()) })),
+        h('div', { class: 'heField' }, h('label', { for: 'sdhNote' }, 'Note for the owner (optional)'), h('input', { id: 'sdhNote', name: 'note', type: 'text', maxlength: '500' })),
+        h('button', { type: 'submit', 'data-sdhsave': '1' }, 'Hand to the owner'),
+        h('p', { class: 'hint u-mt-6', role: 'status', 'data-sdhmsg': '1' }),
+        mine.length ? h('ul', { class: 'u-mt-6', 'data-sdmyhandoffs': '1' }, mine.map(x => h('li', { 'data-sdhstatus': x.status },
+          String(x.received_on || String(x.handed_at || '').slice(0, 10)) + ' — ' + x.po_text + (x.reference ? ' (ref. ' + x.reference + ')' : '') + ': ' + (word[x.status] || x.status) + (x.status === 'dismissed' && x.resolve_note ? ' — ' + x.resolve_note : '')))) : null);
+    }
+    // Owner: documents handed over, to link to the right order or dismiss.
+    function sdHandoffsForOwner(data) {
+      const waiting = (data.handoffs || []).filter(x => x.status === 'waiting');
+      const supName = {}; data.suppliers.forEach(s => { supName[s.id] = s.name; });
+      const typeLabel = {}; (data.types || []).forEach(t => { typeLabel[t.key] = t.label; });
+      const pos = (data.context.purchaseOrders || []).filter(p => !p.deleted_at && p.status !== 'draft' && p.status !== 'cancelled');
+      return h('div', { class: 'u-mt-12', 'data-sdhandoffs': String(waiting.length) },
+        h('h3', null, 'Handed to you (' + waiting.length + ')'),
+        waiting.length ? waiting.map(x => h('div', { class: 'scanCard u-mt-8', 'data-sdhandoff-id': x.id },
+          h('div', { class: 'taskTitle' }, (typeLabel[x.kind] || x.kind) + ' from ' + (supName[x.supplier_id] || 'a supplier')),
+          h('div', { class: 'u-fs-12 u-c-muted' }, 'Order on the paper: ' + x.po_text + (x.reference ? ' · ref. ' + x.reference : '') + ' · received ' + (x.received_on || '—') + ' · handed over by ' + sdPerson(x.handed_by) + (x.note ? ' · "' + x.note + '"' : '')),
+          h('div', { class: 'scanToggleRow u-mt-6' },
+            h('select', { 'aria-label': 'Purchase order for the ' + (typeLabel[x.kind] || x.kind) + ' marked ' + x.po_text, 'data-sdpo': x.id },
+              h('option', { value: '' }, 'Choose the order…'), pos.filter(p => p.supplier_id === x.supplier_id).map(p => h('option', { value: p.id }, p.po_number || p.id))),
+            h('button', { type: 'button', class: 'small', 'data-sdresolve': x.id }, 'Link and record')),
+          h('div', { class: 'scanToggleRow u-mt-6' },
+            h('input', { type: 'text', class: 'u-flex-1', maxlength: '500', placeholder: 'Reason (needed to dismiss)', 'aria-label': 'Reason to dismiss the hand-off marked ' + x.po_text, 'data-sdhonote': x.id }),
+            h('button', { type: 'button', class: 'small secondary', 'data-sddismiss': x.id }, 'Dismiss'))))
+          : h('p', { class: 'hint' }, 'Nothing waiting.'));
+    }
+    async function sdSha256(file) {
+      const mod = window.HE && window.HE.suppliers && window.HE.suppliers['he-supplier-docs-store'];
+      return mod.fileSha256(file);
     }
     // Owner only: which profiles each kind of supplier is held to.
     function sdSettings(data) {
@@ -2655,6 +2720,60 @@
         await sdAfter(res, act === 'approved' ? 'Approved.' : act === 'rejected' ? 'Rejected.' : 'Withdrawn.');
         return;
       }
+      const at = e.target.closest('[data-sdattach]');
+      if (at && supplierDocsLast && supplierDocsLast.store) {
+        if (at.disabled) return;
+        const id = at.getAttribute('data-sdattach');
+        const inp = document.querySelector('[data-sdfile="' + CSS.escape(id) + '"]');
+        const file = inp && inp.files && inp.files[0];
+        if (!file) { toast('Choose a file first.', 'err'); announce('Choose a file first.'); return; }
+        at.disabled = true;
+        let res;
+        try { res = await supplierDocsLast.store.attachFile(id, { name: file.name, type: file.type, size: file.size, sha256: await sdSha256(file), body: file }); }
+        catch (err) { res = { ok: false, message: 'The file could not be read. Nothing was attached.' }; }
+        at.disabled = false;
+        await sdAfter(res, 'File attached.');
+        return;
+      }
+      const op = e.target.closest('[data-sdopen]');
+      if (op && supplierDocsLast && supplierDocsLast.store) {
+        if (op.disabled) return;
+        const id = op.getAttribute('data-sdopen');
+        const doc = (supplierDocsLast.data.documents || []).find(d => d.id === id);
+        op.disabled = true;
+        const res = await supplierDocsLast.store.openFile(doc);
+        op.disabled = false;
+        const slot = document.querySelector('[data-sdfilelink="' + CSS.escape(id) + '"]');
+        if (!res.ok) { toast(res.message || 'The file could not be opened.', 'err'); announce(res.message || 'The file could not be opened.'); return; }
+        // A link, not a pop-up (phones block pop-ups opened after a wait).
+        if (slot) slot.replaceChildren(h('a', { href: res.url, target: '_blank', rel: 'noopener noreferrer', 'data-sdfileurl': id }, 'Open the file (this link works for 60 seconds)'));
+        announce('A link to the file is ready. It works for 60 seconds.');
+        return;
+      }
+      const rv = e.target.closest('[data-sdresolve]');
+      if (rv && supplierDocsLast && supplierDocsLast.store) {
+        if (rv.disabled) return;
+        const id = rv.getAttribute('data-sdresolve');
+        const sel = document.querySelector('[data-sdpo="' + CSS.escape(id) + '"]');
+        if (!sel || !sel.value) { toast('Choose the purchase order this document belongs to.', 'err'); announce('Choose the purchase order this document belongs to.'); if (sel) sel.focus(); return; }
+        rv.disabled = true;
+        const res = await supplierDocsLast.store.resolveHandoff(id, sel ? sel.value : '');
+        rv.disabled = false;
+        await sdAfter(res, 'Linked and recorded.');
+        return;
+      }
+      const dm = e.target.closest('[data-sddismiss]');
+      if (dm && supplierDocsLast && supplierDocsLast.store) {
+        if (dm.disabled) return;
+        const id = dm.getAttribute('data-sddismiss');
+        const n = document.querySelector('[data-sdhonote="' + CSS.escape(id) + '"]');
+        if (!n || n.value.trim().length < 5) { toast('Say why the hand-off is dismissed.', 'err'); announce('Say why the hand-off is dismissed.'); if (n) n.focus(); return; }
+        dm.disabled = true;
+        const res = await supplierDocsLast.store.dismissHandoff(id, n ? n.value : '');
+        dm.disabled = false;
+        await sdAfter(res, 'Dismissed.');
+        return;
+      }
       const s = e.target.closest('[data-sdtypesave]');
       if (s && supplierDocsLast && supplierDocsLast.store) {
         const t2 = s.getAttribute('data-sdtypesave');
@@ -2665,6 +2784,21 @@
         s.disabled = false;
         await sdAfter(res, 'Checklist updated.');
       }
+    });
+    document.addEventListener('submit', async (e) => {
+      const f = e.target.closest('form[data-sdhandoff]'); if (!f) return;
+      e.preventDefault();
+      const L = supplierDocsLast; if (!L || !L.store) return;
+      const btn = f.querySelector('[data-sdhsave]'); const msg = f.querySelector('[data-sdhmsg]');
+      if (btn.disabled) return;
+      const v = n => (f.elements[n] && f.elements[n].value || '').trim();
+      if (!f.dataset.sdKey) f.dataset.sdKey = newRequestKey();
+      btn.disabled = true; msg.textContent = 'Sending…';
+      const res = await L.store.handOff({ requestKey: f.dataset.sdKey, supplierId: v('supplier'), kind: v('kind'), poText: v('poText'), reference: v('reference'), receivedOn: v('receivedOn'), note: v('note') });
+      btn.disabled = false;
+      msg.textContent = res.message || '';
+      if (res.ok) { delete f.dataset.sdKey; await sdAfter(res, 'Handed to the owner.'); }
+      else { toast(res.message || 'Not sent.', 'err'); announce(res.message || 'Not sent.'); }
     });
     document.addEventListener('submit', async (e) => {
       const f = e.target.closest('form[data-sdform]'); if (!f) return;
@@ -2678,7 +2812,7 @@
       let subjectRef = v('subject');
       if (subjectKind === 'purchase') {
         const po = (L.data.context.purchaseOrders || []).find(p => p.po_number === subjectRef || p.id === subjectRef);
-        if (!po) { msg.textContent = 'Not saved: choose one of the purchase orders listed.'; return; }
+        if (!po) { msg.textContent = currentUserRole === 'owner' ? 'Not saved: choose one of the purchase orders listed.' : 'Not saved: that is not an order you can see. Use "Hand a purchase document to the owner" below instead.'; return; }
         subjectRef = po.id;
       } else if (subjectKind === 'supplier') subjectRef = v('supplier');
       // One request key per document being entered: kept until the save succeeds,
