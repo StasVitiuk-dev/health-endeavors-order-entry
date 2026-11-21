@@ -18,6 +18,9 @@ The exact SQL is in these files (also in the review package):
 > decision, each with the exact SQL fingerprint, migration order, dependencies,
 > recovery steps and (for Query I) a sample summary: `docs/ops/sql-review/`.
 > This page keeps the long-form detail for draft 32 and Query I.
+> On Nov 21 a fourth item was added, as its own decision: drafts 36 (supplier
+> documents) and its optional later step 38 (private files),
+> `docs/ops/sql-review/ITEM_4_DRAFT_36_SUPPLIER_DOCUMENTS.md`.
 
 ## Part A — SQL draft 32: invoice storage
 

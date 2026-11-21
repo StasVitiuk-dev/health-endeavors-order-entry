@@ -1,4 +1,4 @@
-# Review item 2 of 3 — SQL draft 34: owner-only approval of stock-count adjustments
+# Review item 2 of 4 — SQL draft 34: owner-only approval of stock-count adjustments
 
 Status: OWNER DECISION REQUIRED · production run PENDING your separate approval · 2026-11-16
 Nothing here has been run in production. I never run it myself: you run it, after approving it.

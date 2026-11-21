@@ -1,4 +1,4 @@
-# Review item 3 of 3 — read-only Query I: which day cutoff does the nightly report use?
+# Review item 3 of 4 — read-only Query I: which day cutoff does the nightly report use?
 
 Status: OWNER DECISION REQUIRED · production run PENDING your separate approval · 2026-11-16
 It changes nothing, but it reads production data, so it waits for your approval too.
