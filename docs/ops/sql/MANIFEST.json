@@ -485,6 +485,31 @@
       "effect": "drops the functions, guards and the six tables",
       "postcheck": "to_regclass('public.stock_movements') is null",
       "dynamicSql": "format() with fixed names (%I) to lock and count the tables only where they exist"
+    },
+    {
+      "file": "drafts/42_DRAFT_shopify_payouts_money_issues.sql",
+      "id": "42",
+      "class": "PRODUCTION-CHANGE-DRAFT",
+      "step": "optional (before the automatic Shopify feed; owner request of Nov 22)",
+      "dependsOn": [],
+      "risk": "LOW",
+      "rollback": "43",
+      "precheck": "stops if auth.uid() or is_owner_or_admin() is missing",
+      "effect": "3 new tables: a read-only copy of Shopify payouts and their transactions (written only by the daily sync with the service role) and the list of money differences (open until the owner or an administrator marks one checked with a note; never deleted); check_shopify_payouts(), record_money_issue(), mark_money_issue_checked(); owner and administrators read, staff and visitors nothing; no existing table changes",
+      "postcheck": "the three tables present and empty; anon cannot read them; local-test/shopify_payouts_test.sh passes on a throwaway copy",
+      "lock": "NONE (new tables only)"
+    },
+    {
+      "file": "drafts/43_DRAFT_rollback_shopify_payouts_money_issues.sql",
+      "id": "43",
+      "class": "ROLLBACK",
+      "rollbackOf": "42",
+      "dependsOn": [],
+      "risk": "LOW",
+      "precheck": "stops, removing nothing, while any difference is recorded, unless deleting them was authorized in the session",
+      "effect": "drops the functions and the three tables",
+      "postcheck": "to_regclass('public.money_match_issues') is null",
+      "dynamicSql": "format() with fixed names (%I) to lock and count the differences table only where it exists"
     }
   ],
   "local": [

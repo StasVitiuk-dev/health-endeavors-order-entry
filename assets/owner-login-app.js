@@ -84,7 +84,7 @@
       nightlyOverall,
     } = window.HE.helpers;
     // @@ EXT15 modules: created in dependency order (assets/app/*.js; see docs/ops/APPLICATION_MODULE_MAP_EXT15.md)
-    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn } = HE.modules.create('he-config', {  });
+    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, moneyIssuesOn, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn } = HE.modules.create('he-config', {  });
     const { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, focusDialog, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, h, pageIconNode } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
     const { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
     const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, h, supabase });
@@ -2447,6 +2447,8 @@
     // made-up data. Nothing is saved or changed. OFF by default.
     let mmState = { mode: 'example', bank: null, card: null, bankName: '', cardName: '', expenses: null, note: '' };
     let mmSeq = 0;
+    let mmItems = [];
+    function mmLastItems() { return mmItems.filter(it => it.needsLook); }
     const MM_WORD = { MATCHED: 'Matched', PENDING: 'Not due yet', MISSING: 'Missing', AMOUNT_DIFFERS: 'Amount differs', DOUBLED: 'Twice', UNEXPECTED: 'Not explained', NOT_RECORDED: 'Not recorded', UNKNOWN: 'Unclear' };
     const MM_KIND = { shopify_payout: 'Shopify payout', ach: 'Wholesale payment (ACH)', wire: 'Wholesale payment (wire)', check: 'Wholesale payment (check)', cash: 'Cash', other: 'Payment', refund: 'Refund paid out', bank: 'Bank', card: 'Card purchase' };
     function mmMod() { try { return (window.HE && window.HE.reports && window.HE.reports['he-money-match']) || null; } catch (e) { return null; } }
@@ -2497,6 +2499,8 @@
         needsLook = (deposits ? deposits.needsLook : 0) + (cardCheck ? cardCheck.needsLook : 0);
       }
       if (seq !== mmSeq) return;
+      mmItems = mmState.mode === 'file' ? [].concat(deposits ? deposits.items : [], cardCheck ? cardCheck.items : []) : [];
+      const canSave = mmState.mode === 'file' && mmItems.some(it => it.needsLook) && typeof moneyIssuesOn === 'function' && moneyIssuesOn() && (currentUserRole === 'owner' || currentUserRole === 'administrator');
       const fileInfo = (label, p, name) => p ? h('li', null, label + ': ' + name + ' — ' + (p.layout === 'chase_checking' ? 'Chase checking' : p.layout === 'wells_fargo' ? 'Wells Fargo' : 'statement') + ', ' + p.rows.length + ' lines, ' + p.from + ' to ' + p.to + (p.problems.length ? '; ' + p.problems.length + ' line(s) could not be read (lines ' + p.problems.slice(0, 5).map(x => x.line).join(', ') + ')' : '')) : null;
       host.replaceChildren(h('div', { class: 'moneyMatch u-mb-16', 'data-mmmode': mmState.mode, 'data-mmneedslook': String(needsLook) },
         h('div', { class: 'scanHead' }, h('h3', null, 'Money matching'),
@@ -2511,6 +2515,7 @@
         h('p', { class: 'u-fs-12 u-mt-4', role: 'status', 'data-mmmessage': '1' }, mmState.note || ''),
         mmState.mode === 'file' ? h('ul', { class: 'u-fs-12 u-c-muted' }, fileInfo('Bank', mmState.bank, mmState.bankName), fileInfo('Card', mmState.card, mmState.cardName)) : null,
         h('p', { class: 'u-mt-8 taskTitle', 'data-mmheadline': '1' }, needsLook ? needsLook + ' difference' + (needsLook === 1 ? '' : 's') + ' to look at' : 'Everything matched'),
+        canSave ? h('button', { type: 'button', class: 'small', 'data-misave': '1' }, 'Save these differences for follow-up') : null,
         notes.map(n => h('p', { class: 'hint' }, n)),
         mmTable('Shopify payouts against their own sales and fees', payoutCheck, 'payouts'),
         mmTable('Deposits and refunds in the bank', deposits, 'deposits'),
@@ -2543,6 +2548,88 @@
       await loadMoneyMatch();
       announce(mmState.note || 'Showing the example.');
       refocusLike(t, 'moneyMatchHost');
+    });
+
+    // ---------- Saved money differences (drafts/42, Nov 22; behind moneyIssuesOn)
+    // Open differences, found by the daily Shopify check or saved from Money
+    // matching, stay listed on Accounting until the owner or an administrator marks
+    // each one checked with a note; Home shows how many are open. Does nothing
+    // until drafts/42 is installed. Owner and administrators only.
+    let miSeq = 0, miMessage = '', miCheckOpen = null;
+    function miStore() {
+      let mod = null; try { mod = (window.HE && window.HE.reports && window.HE.reports['he-money-issues-store']) || null; } catch (e) { mod = null; }
+      if (!mod || !(typeof moneyIssuesOn === 'function' && moneyIssuesOn())) return null;
+      if (currentUserRole !== 'owner' && currentUserRole !== 'administrator') return null;
+      return mod.createStore({ client: supabase, enabled: true, role: currentUserRole });
+    }
+    async function loadMoneyAlert() {
+      const host = document.getElementById('moneyAlertHost'); if (!host) return;
+      const store = miStore(); if (!store) { host.replaceChildren(); return; }
+      const L = await store.listOpen();
+      if (!L.ok || !L.issues.length) { host.replaceChildren(); return; }     // nothing open, or not installed: Home stays as it is
+      const n = L.issues.length;
+      host.replaceChildren(h('div', { class: 'attnRow u-mt-12', 'data-moneyalert': String(n), role: 'status' },
+        h('span', { class: 'badge sev-high' }, 'Money'),
+        h('span', { class: 'taskTitle' }, n + (L.truncated ? '+' : '') + ' money difference' + (n === 1 ? '' : 's') + ' to look at'),
+        ' ', h('button', { type: 'button', class: 'small', 'data-goto': 'accountingPanel', 'data-moneyalertopen': '1' }, 'Review on Accounting')));
+    }
+    async function loadMoneyIssues() {
+      const host = document.getElementById('moneyIssuesHost'); if (!host) return;
+      const store = miStore(); if (!store) { host.replaceChildren(); return; }
+      const seq = ++miSeq;
+      const L = await store.listOpen(); if (seq !== miSeq) return;
+      const wrap = (...kids) => h('div', { class: 'moneyIssues u-mb-16', 'data-mimode': L.ok ? 'stored' : 'unavailable' }, h('h3', { class: 'u-fs-13 u-c-navy u-m-18-0-6' }, 'Money differences to look at'), ...kids);
+      if (!L.ok) { host.replaceChildren(wrap(h('p', { class: 'hint', 'data-minote': '1' }, L.message))); return; }
+      const rows = L.issues.map(x => h('tr', { 'data-miissue': x.id, 'data-misource': x.source },
+        h('td', { class: 'u-ws-nowrap' }, x.occurred_on || String(x.created_at || '').slice(0, 10)),
+        h('td', null, h('div', null, x.summary), h('div', { class: 'u-fs-12 u-c-muted' }, x.source === 'shopify_payout' ? 'Found by the daily Shopify check' : x.source === 'card' ? 'Saved from a card file' : 'Saved from a bank file')),
+        h('td', { class: 'num-cell' }, x.expected == null ? '—' : fmtMoney(Number(x.expected), 'USD')),
+        h('td', { class: 'num-cell' }, x.found == null ? '—' : fmtMoney(Number(x.found), 'USD')),
+        h('td', null, miCheckOpen === x.id
+          ? h('form', { 'data-micheckform': x.id, class: 'heForm', novalidate: '' },
+              h('div', { class: 'heField' }, h('label', { for: 'miNote-' + x.id }, 'What did you find? (required)'), h('input', { id: 'miNote-' + x.id, name: 'note', type: 'text', maxlength: '500', autocomplete: 'off' })),
+              h('div', { class: 'u-mt-4' }, h('button', { type: 'submit', class: 'small' }, 'Mark checked'), ' ', h('button', { type: 'button', class: 'small secondary', 'data-micheckcancel': x.id }, 'Cancel')))
+          : h('button', { type: 'button', class: 'small secondary', 'data-micheck': x.id }, 'Mark checked'))));
+      host.replaceChildren(wrap(
+        h('p', { class: 'hint u-mt-n2' }, 'Each difference stays here until you or an administrator mark it checked with a note. Nothing is deleted.'),
+        h('p', { class: 'u-fs-12 u-mt-4', role: 'status', 'data-mimessage': '1' }, miMessage),
+        rows.length ? h('table', { class: 'phoneCards u-mt-6', 'data-micount': String(rows.length) },
+          h('thead', null, h('tr', null, h('th', null, 'Date'), h('th', null, 'Difference'), h('th', { class: 'num-cell' }, 'Expected'), h('th', { class: 'num-cell' }, 'Found'), h('th', null, h('span', { class: 'srOnly' }, 'Action')))),
+          h('tbody', null, rows))
+          : h('p', { class: 'empty', 'data-micount': '0' }, 'No open differences.')));
+    }
+    async function miAfter(res) {
+      miMessage = res.message || ''; announce(miMessage);
+      if (res.ok) { await loadMoneyIssues(); await loadMoneyAlert(); const m = document.querySelector('#moneyIssuesHost [data-mimessage]'); if (m) { m.setAttribute('tabindex', '-1'); m.focus(); } }
+      else { const m = document.querySelector('#moneyIssuesHost [data-mimessage]'); if (m) m.textContent = miMessage; }
+    }
+    document.addEventListener('click', async (e) => {
+      const go = e.target.closest('#moneyAlertHost [data-moneyalertopen]');
+      if (go) { showPage('accountingPanel'); return; }
+      const t = e.target.closest('#moneyIssuesHost [data-micheck], #moneyIssuesHost [data-micheckcancel], #moneyMatchHost [data-misave]'); if (!t) return;
+      if (t.hasAttribute('data-misave')) {
+        const store = miStore(); const items = mmLastItems();
+        if (!store || !items.length) return;
+        t.disabled = true;
+        const res = await store.save(items);
+        t.disabled = false;
+        await miAfter(res);
+        const m = document.querySelector('#moneyMatchHost [data-mmmessage]'); if (m) m.textContent = res.message;
+        return;
+      }
+      miCheckOpen = t.hasAttribute('data-micheck') ? t.getAttribute('data-micheck') : null; miMessage = '';
+      await loadMoneyIssues();
+      const i = miCheckOpen && document.getElementById('miNote-' + miCheckOpen); if (i) i.focus(); else refocusLike(t, 'moneyIssuesHost');
+    });
+    document.addEventListener('submit', async (e) => {
+      const f = e.target.closest('#moneyIssuesHost form[data-micheckform]'); if (!f) return;
+      e.preventDefault();
+      const store = miStore(); if (!store) return;
+      const btn = f.querySelector('button[type="submit"]'); if (btn && btn.disabled) return;
+      if (btn) btn.disabled = true;
+      let res; try { res = await store.markChecked(f.getAttribute('data-micheckform'), f.elements.note ? f.elements.note.value : ''); } finally { if (btn && document.contains(btn)) btn.disabled = false; }
+      if (res.ok) miCheckOpen = null;
+      await miAfter(res);
     });
 
     // ---------- #08 Payment reconciliation review (behind reconcileOn)
@@ -3680,7 +3767,7 @@
       loadOpsWatch();
     }
     const PANEL_LOADERS = {
-      attentionPanel: [loadAttention, loadBusinessHealth, loadAttentionChecks, loadNightlyCheck, paintScanEntry],
+      attentionPanel: [loadAttention, loadBusinessHealth, loadAttentionChecks, loadNightlyCheck, paintScanEntry, loadMoneyAlert],
       calendarPanel: [loadCalendarMonth],
       dailySummaryPanel: [loadDailySummary],
       reportHistoryPanel: [loadReportHistoryThenExport, loadRecoveryDrill, loadInvoicePreview, loadReportVersions],
@@ -3692,7 +3779,7 @@
       qualityControlPanel: [loadQualityChecks],
       recallsPanel: [loadRecalls],
       expensesPanel: [loadExpenses, loadDeletedExpenses],
-      accountingPanel: [loadAccounting, loadReconcile, loadInvoicePayments, loadMoneyMatch],
+      accountingPanel: [loadAccounting, loadReconcile, loadInvoicePayments, loadMoneyMatch, loadMoneyIssues],
       taxRecordsPanel: [loadTaxRecords],
       tasksPanel: [loadTasks],
       incidentsPanel: [loadIncidents],
