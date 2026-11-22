@@ -84,7 +84,7 @@
       nightlyOverall,
     } = window.HE.helpers;
     // @@ EXT15 modules: created in dependency order (assets/app/*.js; see docs/ops/APPLICATION_MODULE_MAP_EXT15.md)
-    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn } = HE.modules.create('he-config', {  });
+    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn } = HE.modules.create('he-config', {  });
     const { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, focusDialog, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, h, pageIconNode } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
     const { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
     const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, h, supabase });
@@ -2437,6 +2437,114 @@
       await invPayAfter(res, 'Saved.', '#invoicePaymentsHost [data-ipmessage]');
     });
 
+    // ---------- Money matching (Nov 22; behind moneyMatchOn)
+    // Does the money show up in the bank, once and in full? The owner chooses a
+    // Chase checking or Wells Fargo card export (CSV); the file is READ IN THIS
+    // BROWSER ONLY and never sent anywhere. Card purchases are matched to the
+    // expenses recorded in the dashboard (read-only); deposits to Shopify payouts
+    // and wholesale payments once those are connected (until then every deposit
+    // is listed as not explained, and the page says why). The example uses
+    // made-up data. Nothing is saved or changed. OFF by default.
+    let mmState = { mode: 'example', bank: null, card: null, bankName: '', cardName: '', expenses: null, note: '' };
+    let mmSeq = 0;
+    const MM_WORD = { MATCHED: 'Matched', PENDING: 'Not due yet', MISSING: 'Missing', AMOUNT_DIFFERS: 'Amount differs', DOUBLED: 'Twice', UNEXPECTED: 'Not explained', NOT_RECORDED: 'Not recorded', UNKNOWN: 'Unclear' };
+    const MM_KIND = { shopify_payout: 'Shopify payout', ach: 'Wholesale payment (ACH)', wire: 'Wholesale payment (wire)', check: 'Wholesale payment (check)', cash: 'Cash', other: 'Payment', refund: 'Refund paid out', bank: 'Bank', card: 'Card purchase' };
+    function mmMod() { try { return (window.HE && window.HE.reports && window.HE.reports['he-money-match']) || null; } catch (e) { return null; } }
+    const mmCents = c => c == null ? '—' : fmtMoney(c / 100, 'USD');
+    function mmTable(title, res, key) {
+      if (!res) return null;
+      const sorted = res.items.slice().sort((a, b) => (b.needsLook - a.needsLook) || String(a.date || '').localeCompare(String(b.date || '')));
+      return h('div', { class: 'u-mt-12', 'data-mmgroup': key },
+        h('h4', null, title + ' — ' + res.headline),
+        res.items.length ? h('table', { class: 'phoneCards u-mt-6' },
+          h('thead', null, h('tr', null, h('th', null, 'Status'), h('th', null, 'Date'), h('th', null, 'What'), h('th', { class: 'num-cell' }, 'Expected'), h('th', { class: 'num-cell' }, 'Found'), h('th', null, 'Why'))),
+          h('tbody', null, sorted.map(it => h('tr', { 'data-mmoutcome': it.outcome, 'data-mmlook': String(it.needsLook) },
+            h('td', null, h('span', { class: 'badge ' + (it.needsLook ? 'sev-high' : it.outcome === 'PENDING' ? 'sev-medium' : 'sev-low') }, MM_WORD[it.outcome] || it.outcome)),
+            h('td', { class: 'u-ws-nowrap' }, it.date || '—'),
+            h('td', null, h('div', { class: 'taskTitle' }, MM_KIND[it.kind] || it.kind), h('div', { class: 'u-fs-12 u-c-muted' }, [it.ref, it.label && !(it.ref && it.label.includes(it.ref)) ? it.label : ''].filter(Boolean).join(' · ').slice(0, 120) || '—')),
+            h('td', { class: 'num-cell' }, mmCents(it.expected)),
+            h('td', { class: 'num-cell' }, mmCents(it.found)),
+            h('td', null, it.why)))))
+          : h('p', { class: 'empty' }, 'Nothing to compare.'));
+    }
+    async function loadMoneyMatch() {
+      const host = document.getElementById('moneyMatchHost'); if (!host) return;
+      if (!(typeof moneyMatchOn === 'function' && moneyMatchOn())) { host.replaceChildren(); return; }
+      const eng = mmMod();
+      if (!eng) { host.replaceChildren(h('p', { class: 'empty' }, 'Money matching could not load.')); return; }
+      const seq = ++mmSeq;
+      let payoutCheck = null, deposits = null, cardCheck = null, needsLook = 0, notes = [];
+      if (mmState.mode === 'example') {
+        const x = eng.example();
+        payoutCheck = x.payoutCheck; deposits = x.deposits; cardCheck = x.cardCheck; needsLook = x.needsLook;
+      } else {
+        if (mmState.bank) {
+          // Shopify payouts and stored wholesale payments are not connected yet
+          deposits = eng.matchDeposits([], mmState.bank.rows, { statementTo: mmState.bank.to });
+          notes.push('Shopify payouts and wholesale payments are not connected yet, so every deposit is listed as not explained. That changes once the Shopify feed and invoice storage are approved and installed.');
+        }
+        if (mmState.card) {
+          if (!mmState.expenses) {
+            const from = mmState.card.from, to = mmState.card.to;
+            const rows = await fetchAllRows('expenses', 'id, amount, expense_date, vendor, deleted_at', q => q.is('deleted_at', null).gte('expense_date', from).lte('expense_date', to)).catch(e => ({ error: e }));
+            if (seq !== mmSeq) return;
+            if (Array.isArray(rows)) mmState.expenses = rows.map(r => ({ id: r.id, date: r.expense_date, amountCents: eng.toCents(r.amount), vendor: r.vendor }));
+            else if (rows && Array.isArray(rows.data)) mmState.expenses = rows.data.map(r => ({ id: r.id, date: r.expense_date, amountCents: eng.toCents(r.amount), vendor: r.vendor }));
+            else { mmState.expenses = []; notes.push('The recorded expenses could not be read, so every card purchase is listed as not recorded. Refresh and try again.'); }
+          }
+          cardCheck = eng.matchCard(mmState.expenses, mmState.card.rows);
+        }
+        needsLook = (deposits ? deposits.needsLook : 0) + (cardCheck ? cardCheck.needsLook : 0);
+      }
+      if (seq !== mmSeq) return;
+      const fileInfo = (label, p, name) => p ? h('li', null, label + ': ' + name + ' — ' + (p.layout === 'chase_checking' ? 'Chase checking' : p.layout === 'wells_fargo' ? 'Wells Fargo' : 'statement') + ', ' + p.rows.length + ' lines, ' + p.from + ' to ' + p.to + (p.problems.length ? '; ' + p.problems.length + ' line(s) could not be read (lines ' + p.problems.slice(0, 5).map(x => x.line).join(', ') + ')' : '')) : null;
+      host.replaceChildren(h('div', { class: 'moneyMatch u-mb-16', 'data-mmmode': mmState.mode, 'data-mmneedslook': String(needsLook) },
+        h('div', { class: 'scanHead' }, h('h3', null, 'Money matching'),
+          h('span', { class: 'scanBadge' }, mmState.mode === 'example' ? 'SIMULATED — example data' : 'YOUR FILE — read in this browser only, not saved')),
+        h('p', { class: 'hint u-mt-6' }, 'Checks that every Shopify payout and wholesale payment arrived in the bank once and in full, that refunds went out, and that every card purchase is recorded as an expense. Nothing is changed.'),
+        h('div', { class: 'heForm u-mt-8' },
+          h('div', { class: 'heField' }, h('label', { for: 'mmBank' }, 'Chase checking export (CSV)'), h('input', { id: 'mmBank', type: 'file', accept: '.csv,text/csv', 'data-mmfile': 'bank' })),
+          h('div', { class: 'heField' }, h('label', { for: 'mmCard' }, 'Wells Fargo card export (CSV)'), h('input', { id: 'mmCard', type: 'file', accept: '.csv,text/csv', 'data-mmfile': 'card' })),
+          h('div', { class: 'scanToggleRow' },
+            h('button', { type: 'button', class: 'small' + (mmState.mode === 'example' ? '' : ' secondary'), 'data-mm': 'example', 'aria-pressed': String(mmState.mode === 'example') }, 'Show the example'),
+            mmState.mode === 'file' ? h('button', { type: 'button', class: 'small secondary', 'data-mm': 'clear' }, 'Forget my files') : null)),
+        h('p', { class: 'u-fs-12 u-mt-4', role: 'status', 'data-mmmessage': '1' }, mmState.note || ''),
+        mmState.mode === 'file' ? h('ul', { class: 'u-fs-12 u-c-muted' }, fileInfo('Bank', mmState.bank, mmState.bankName), fileInfo('Card', mmState.card, mmState.cardName)) : null,
+        h('p', { class: 'u-mt-8 taskTitle', 'data-mmheadline': '1' }, needsLook ? needsLook + ' difference' + (needsLook === 1 ? '' : 's') + ' to look at' : 'Everything matched'),
+        notes.map(n => h('p', { class: 'hint' }, n)),
+        mmTable('Shopify payouts against their own sales and fees', payoutCheck, 'payouts'),
+        mmTable('Deposits and refunds in the bank', deposits, 'deposits'),
+        mmTable('Card purchases against recorded expenses', cardCheck, 'card')));
+    }
+    document.addEventListener('change', (e) => {
+      const inp = e.target.closest('#moneyMatchHost input[data-mmfile]'); if (!inp) return;
+      const which = inp.getAttribute('data-mmfile'); const file = inp.files && inp.files[0]; if (!file) return;
+      const eng = mmMod(); if (!eng) return;
+      const say = (msg) => { mmState.note = msg; const m = document.querySelector('#moneyMatchHost [data-mmmessage]'); if (m) m.textContent = msg; announce(msg); };
+      if (file.size > eng.MAX_BYTES) { say('That file is larger than 5 MB; export a shorter period.'); inp.value = ''; return; }
+      const fr = new FileReader();
+      fr.onerror = () => say('The file could not be read.');
+      fr.onload = async () => {
+        const p = eng.parseStatement(String(fr.result || ''));
+        if (!p.ok) { say(file.name + ': ' + p.reason); inp.value = ''; return; }
+        if (mmState.mode !== 'file') mmState = { mode: 'file', bank: null, card: null, bankName: '', cardName: '', expenses: null, note: '' };
+        if (which === 'bank') { mmState.bank = p; mmState.bankName = file.name.slice(0, 80); }
+        else { mmState.card = p; mmState.cardName = file.name.slice(0, 80); mmState.expenses = null; }
+        mmState.note = file.name + ' read: ' + p.rows.length + ' lines. Nothing was uploaded.';
+        await loadMoneyMatch();
+        announce(mmState.note);
+        const back = document.getElementById(which === 'bank' ? 'mmBank' : 'mmCard'); if (back) back.focus();
+      };
+      fr.readAsText(file);
+    });
+    document.addEventListener('click', async (e) => {
+      const t = e.target.closest('#moneyMatchHost [data-mm]'); if (!t) return;
+      mmState = { mode: 'example', bank: null, card: null, bankName: '', cardName: '', expenses: null, note: t.getAttribute('data-mm') === 'clear' ? 'Your files were forgotten. Showing the example.' : '' };
+      await loadMoneyMatch();
+      announce(mmState.note || 'Showing the example.');
+      refocusLike(t, 'moneyMatchHost');
+    });
+
     // ---------- #08 Payment reconciliation review (behind reconcileOn)
     // A worked synthetic example on Accounting: invoices that should have been
     // paid vs payments recorded. Every difference is named and stays OPEN until
@@ -3584,7 +3692,7 @@
       qualityControlPanel: [loadQualityChecks],
       recallsPanel: [loadRecalls],
       expensesPanel: [loadExpenses, loadDeletedExpenses],
-      accountingPanel: [loadAccounting, loadReconcile, loadInvoicePayments],
+      accountingPanel: [loadAccounting, loadReconcile, loadInvoicePayments, loadMoneyMatch],
       taxRecordsPanel: [loadTaxRecords],
       tasksPanel: [loadTasks],
       incidentsPanel: [loadIncidents],

@@ -1312,6 +1312,7 @@ table.sysStatus td{ overflow-wrap:anywhere; }
 .u-w-90{width:90px !important}
 .u-w-auto{width:auto !important}
 .u-ws-normal{white-space:normal !important}
+.u-ws-nowrap{white-space:nowrap !important}
 .u-ws-pre-wrap{white-space:pre-wrap !important}
 /* @@ end utilities @@ */
 
