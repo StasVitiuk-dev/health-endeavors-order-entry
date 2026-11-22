@@ -510,6 +510,30 @@
       "effect": "drops the functions and the three tables",
       "postcheck": "to_regclass('public.money_match_issues') is null",
       "dynamicSql": "format() with fixed names (%I) to lock and count the differences table only where it exists"
+    },
+    {
+      "file": "drafts/44_DRAFT_staff_read_purchase_orders.sql",
+      "id": "44",
+      "class": "PRODUCTION-CHANGE-DRAFT",
+      "step": "optional (owner decision of Nov 22: all employees see purchase orders; needed before staff record deliveries with drafts/40)",
+      "dependsOn": [],
+      "risk": "LOW",
+      "rollback": "45",
+      "precheck": "stops if is_active_staff(), purchase_orders or purchase_order_items is missing, or row-level security is off on either table",
+      "effect": "two read-only row rules: active staff see purchase orders that are not deleted, and their lines (including unit costs); no write rule added; no data changed",
+      "postcheck": "a staff account sees purchase orders and cannot change them; local-test/staff_read_purchase_orders_test.sh passes on a throwaway copy",
+      "lock": "brief (creating a row rule on two existing tables)"
+    },
+    {
+      "file": "drafts/45_DRAFT_rollback_staff_read_purchase_orders.sql",
+      "id": "45",
+      "class": "ROLLBACK",
+      "rollbackOf": "44",
+      "dependsOn": [],
+      "risk": "LOW",
+      "precheck": "none (removing two read rules only)",
+      "effect": "drops the two staff read rules; staff no longer see purchase orders",
+      "postcheck": "a staff account sees no purchase order"
     }
   ],
   "local": [

@@ -8,7 +8,7 @@ const path = require('path');
 const { test, expect } = require('@playwright/test');
 
 const DIR = path.resolve(__dirname, '..', '..', 'docs', 'ops', 'sql', 'drafts');
-const INSTALLS = ['10_DRAFT_stock_functions.sql', '13_DRAFT_report_totals.sql', '17_DRAFT_po_line_delete_guard.sql', '19_DRAFT_request_keys.sql', '21_DRAFT_stock_function_switches.sql', '23_DRAFT_integrity_constraints.sql', '25_DRAFT_integrity_check_schedule.sql', '27_DRAFT_request_keys_switch.sql', '29_DRAFT_integrity_results_on_home.sql', '32_DRAFT_invoices.sql', '34_DRAFT_stock_count_adjustments.sql', '36_DRAFT_supplier_documents.sql', '38_DRAFT_supplier_document_files.sql', '40_DRAFT_partial_receiving_returns.sql', '42_DRAFT_shopify_payouts_money_issues.sql'];
+const INSTALLS = ['10_DRAFT_stock_functions.sql', '13_DRAFT_report_totals.sql', '17_DRAFT_po_line_delete_guard.sql', '19_DRAFT_request_keys.sql', '21_DRAFT_stock_function_switches.sql', '23_DRAFT_integrity_constraints.sql', '25_DRAFT_integrity_check_schedule.sql', '27_DRAFT_request_keys_switch.sql', '29_DRAFT_integrity_results_on_home.sql', '32_DRAFT_invoices.sql', '34_DRAFT_stock_count_adjustments.sql', '36_DRAFT_supplier_documents.sql', '38_DRAFT_supplier_document_files.sql', '40_DRAFT_partial_receiving_returns.sql', '42_DRAFT_shopify_payouts_money_issues.sql', '44_DRAFT_staff_read_purchase_orders.sql'];
 const ROLLBACKS = { '10_DRAFT_stock_functions.sql': '11_DRAFT_rollback_stock_functions.sql',
   '17_DRAFT_po_line_delete_guard.sql': '18_DRAFT_rollback_po_line_delete_guard.sql',
   '19_DRAFT_request_keys.sql': '20_DRAFT_rollback_request_keys.sql',
@@ -23,7 +23,8 @@ const ROLLBACKS = { '10_DRAFT_stock_functions.sql': '11_DRAFT_rollback_stock_fun
   '36_DRAFT_supplier_documents.sql': '37_DRAFT_rollback_supplier_documents.sql',
   '38_DRAFT_supplier_document_files.sql': '39_DRAFT_rollback_supplier_document_files.sql',
   '40_DRAFT_partial_receiving_returns.sql': '41_DRAFT_rollback_partial_receiving_returns.sql',
-  '42_DRAFT_shopify_payouts_money_issues.sql': '43_DRAFT_rollback_shopify_payouts_money_issues.sql' };   // Nov 22: Shopify payout copy and money differences   // Nov 22: partial receiving and returns (D-ops-5), owner approves stock changes   // Nov 21: private files, owner-only reading   // Nov 16, later: supplier document storage, owner-only review
+  '42_DRAFT_shopify_payouts_money_issues.sql': '43_DRAFT_rollback_shopify_payouts_money_issues.sql',
+  '44_DRAFT_staff_read_purchase_orders.sql': '45_DRAFT_rollback_staff_read_purchase_orders.sql' };   // Nov 22: owner decision, staff read purchase orders   // Nov 22: Shopify payout copy and money differences   // Nov 22: partial receiving and returns (D-ops-5), owner approves stock changes   // Nov 21: private files, owner-only reading   // Nov 16, later: supplier document storage, owner-only review
 const ALL = fs.readdirSync(DIR).filter(f => /^\d\d_DRAFT_.*\.sql$/.test(f) && !/_tests?_/.test(f));
 
 // Remove comments and quoted text so words inside them are not mistaken for SQL.
@@ -189,6 +190,13 @@ for (const f of ALL) {
       'create policy money_match_issues_add on public.money_match_issues for insert to authenticated with check (public.is_owner_or_admin());',
       'drop policy if exists money_match_issues_check on public.money_match_issues;',
       'create policy money_match_issues_check on public.money_match_issues for update to authenticated using (public.is_owner_or_admin()) with check (public.is_owner_or_admin());'];
+    // The eighth allowed set (Nov 22, drafts/44, owner decision): two READ-ONLY
+    // rules on the EXISTING purchase-order tables for active staff. Only select.
+    const STAFF_PO_RULES = [
+      'drop policy if exists staff_read_purchase_orders on public.purchase_orders;',
+      'create policy staff_read_purchase_orders on public.purchase_orders for select to authenticated using (public.is_active_staff() and deleted_at is null);',
+      'drop policy if exists staff_read_purchase_order_items on public.purchase_order_items;',
+      'create policy staff_read_purchase_order_items on public.purchase_order_items for select to authenticated using (public.is_active_staff() and exists (select 1 from public.purchase_orders po where po.id = purchase_order_items.purchase_order_id and po.deleted_at is null));'];
     const SUPPLIER_FILE_DROPS = [
       'drop policy if exists supplier_document_files_owner_read on storage.objects;',
       'drop policy if exists supplier_document_files_upload on storage.objects;'];
@@ -222,8 +230,16 @@ for (const f of ALL) {
           : f === '36_DRAFT_supplier_documents.sql' ? SUPPLIER_DOC_RULES.reduce((t, r) => t.split(r).join(''), sql)
             : f === '38_DRAFT_supplier_document_files.sql' ? SUPPLIER_FILE_RULES.reduce((t, r) => t.split(r).join(''), sql)
               : f === '39_DRAFT_rollback_supplier_document_files.sql' ? SUPPLIER_FILE_DROPS.reduce((t, r) => t.split(r).join(''), sql)
+              : f === '45_DRAFT_rollback_staff_read_purchase_orders.sql' ? STAFF_PO_RULES.filter(r => r.startsWith('drop policy')).reduce((t, r) => t.split(r).join(''), sql)
                 : f === '40_DRAFT_partial_receiving_returns.sql' ? RECEIVING_RULES.reduce((t, r) => t.split(r).join(''), sql)
-                : f === '42_DRAFT_shopify_payouts_money_issues.sql' ? MONEY_RULES.reduce((t, r) => t.split(r).join(''), sql) : sql;
+                : f === '42_DRAFT_shopify_payouts_money_issues.sql' ? MONEY_RULES.reduce((t, r) => t.split(r).join(''), sql)
+                : f === '44_DRAFT_staff_read_purchase_orders.sql' ? STAFF_PO_RULES.reduce((t, r) => t.split(r).join(''), sql) : sql;
+    if (f === '44_DRAFT_staff_read_purchase_orders.sql') {
+      for (const r of STAFF_PO_RULES) expect(sql.split(r).length - 1, 'pinned rule present exactly once: ' + r.slice(0, 60)).toBe(1);
+      // read only: no rule for insert, update or delete, and no grant at all
+      expect(sql).not.toMatch(/create policy [^;]* for (insert|update|delete|all)/);
+      expect(sql).not.toMatch(/\bgrant\b/);
+    }
     if (f === '42_DRAFT_shopify_payouts_money_issues.sql') {
       for (const r of MONEY_RULES) expect(sql.split(r).length - 1, 'pinned rule present exactly once: ' + r.slice(0, 60)).toBe(1);
       // nobody signed in may write the Shopify copy, nor delete a difference
