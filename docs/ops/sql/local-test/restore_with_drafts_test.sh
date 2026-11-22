@@ -57,10 +57,12 @@ done
 
 # made-up records in every new table: an issued invoice and a draft, a stock-count
 # proposal, a supplier document with its file, approved by the owner, and a hand-off
-D1=$(as $DB $E "insert into invoices (order_id, lines, subtotal, shipping) values ('$(ORD 1)', '[{\"sku\":\"SYN-RST-A\",\"quantity\":2,\"unitPrice\":20}]', 40, 0) returning id")
+BILL='{"name":"SYN Restore Spa","lines":["100 Example Street","Example City, IL 60000"]}'
+D1=$(as $DB $E "insert into invoices (order_id, lines, subtotal, shipping, bill_to) values ('$(ORD 1)', '[{\"sku\":\"SYN-RST-A\",\"quantity\":2,\"unitPrice\":20,\"lineTotal\":40}]', 40, 0, '$BILL') returning id")
 as $DB $O "update invoices set tax_rate = 0.09, tax_rate_status = 'CONFIRMED', tax_place = 'Example City, IL', tax = 3.60, total = 43.60 where id = '$D1'" >/dev/null
 has "  an invoice is issued on the source (first number)" "$(as $DB $O "select public.issue_invoice('$D1')")" '"invoice_number": "HE-'
-D2=$(as $DB $E "insert into invoices (order_id, subtotal, tax_rate, tax_rate_status, tax_place, tax, total) values ('$(ORD 2)', 50, 0, 'CONFIRMED', 'Example City, IL', 0, 50) returning id")
+D2=$(as $DB $E "insert into invoices (order_id, lines, subtotal, bill_to, tax_rate, tax_rate_status, tax_place, tax, total) values ('$(ORD 2)', '[{\"sku\":\"SYN-RST-B\",\"quantity\":5,\"unitPrice\":10,\"lineTotal\":50}]', 50, '$BILL', 0, 'CONFIRMED', 'Example City, IL', 0, 50) returning id")
+as $DB $O "select public.record_invoice_payment('00000000-0000-4000-8000-000000007a91', '$D1', 20, current_date, 'check', 'CHK-RST-1', null)" >/dev/null
 ADJ=$(as $DB $E "select (public.propose_stock_count_adjustment('$P1','available',38,'Counted the shelf twice')->>'id')")
 as $DB $E "select public.record_supplier_document('00000000-0000-4000-8000-000000007901','$LAB','certificate_of_analysis','batch','LOT-R1','Lot R1','COA-R1',current_date,null,null,null)" >/dev/null
 DOC=$(q $DB "select id from supplier_documents where reference = 'COA-R1'")
@@ -77,11 +79,11 @@ pg_dump "${CONN[@]}" -Fc -f "$DUMP" $DB 2>/dev/null; ok "the backup is taken (pg
 psql "${CONN[@]}" -d postgres -qX -c "create database $DST" >/dev/null
 pg_restore "${CONN[@]}" -d $DST --exit-on-error "$DUMP" >/dev/null 2>&1; ok "the backup restores into a brand-new database with no error" "$?" "0"
 
-NEW_TABLES="'invoices','invoice_counters','stock_count_adjustments','stock_count_approvers','supplier_document_types','supplier_type_document_profiles','supplier_document_supplier_profiles','supplier_document_subjects','supplier_documents','supplier_document_events','supplier_document_handoffs'"
+NEW_TABLES="'invoices','invoice_counters','invoice_payments','invoice_events','stock_count_adjustments','stock_count_approvers','supplier_document_types','supplier_type_document_profiles','supplier_document_supplier_profiles','supplier_document_subjects','supplier_documents','supplier_document_events','supplier_document_handoffs'"
 same() { local a b; a=$(q $DB "$2"); b=$(q $DST "$2"); if [ -n "$a" ] && [ "$a" = "$b" ]; then pass=$((pass+1)); echo "  ok   $1"; else fail=$((fail+1)); echo "  FAIL $1: source [$a] copy [$b]"; fi; }
 echo " the rules came back"
 same "row-level security is on for every new table, exactly as on the source" "select string_agg(relname||':'||relrowsecurity||':'||relforcerowsecurity, ',' order by relname) from pg_class where relnamespace = 'public'::regnamespace and relname in ($NEW_TABLES)"
-ok   "  (and it is on for all 11)" "$(q $DST "select count(*) from pg_class where relnamespace = 'public'::regnamespace and relname in ($NEW_TABLES) and relrowsecurity")" "11"
+ok   "  (and it is on for all 13)" "$(q $DST "select count(*) from pg_class where relnamespace = 'public'::regnamespace and relname in ($NEW_TABLES) and relrowsecurity")" "13"
 same "every row rule is identical (names, commands, roles, conditions)" "select count(*)||':'||md5(string_agg(schemaname||tablename||policyname||cmd||roles::text||coalesce(qual,'')||coalesce(with_check,''), '|' order by schemaname, tablename, policyname)) from pg_policies where schemaname in ('public','storage')"
 same "every guard (trigger) is identical and enabled" "select count(*)||':'||md5(string_agg(tgrelid::regclass::text||tgname||tgenabled||pg_get_triggerdef(oid), '|' order by tgrelid::regclass::text, tgname)) from pg_trigger where not tgisinternal"
 same "every function is identical: text, caller's rights, fixed search path" "select count(*)||':'||md5(string_agg(proname||pg_get_function_identity_arguments(oid)||md5(prosrc)||prosecdef::text||coalesce(proconfig::text,''), '|' order by proname, pg_get_function_identity_arguments(oid))) from pg_proc where pronamespace = 'public'::regnamespace"
@@ -89,7 +91,7 @@ same "every table permission is identical" "select md5(string_agg(grantee||table
 same "every function permission is identical" "select md5(string_agg(grantee||routine_name||privilege_type, '|' order by grantee, routine_name, privilege_type)) from information_schema.role_routine_grants where routine_schema = 'public'"
 ok   "  visitors still have no access to the new tables" "$(q $DST "select count(*) from information_schema.role_table_grants where grantee = 'anon' and table_name in ($NEW_TABLES)")" "0"
 echo " the records came back"
-same "every new table has the same rows" "select md5(string_agg(t||':'||c, ',' order by t)) from (select 'invoices' t, md5(string_agg(to_jsonb(x)::text, '' order by x.id))::text c from invoices x union all select 'counters', md5(string_agg(to_jsonb(x)::text, '' order by x.invoice_year)) from invoice_counters x union all select 'adj', md5(string_agg(to_jsonb(x)::text, '' order by x.id)) from stock_count_adjustments x union all select 'docs', md5(string_agg(to_jsonb(x)::text, '' order by x.id)) from supplier_documents x union all select 'events', md5(string_agg(to_jsonb(x)::text, '' order by x.id)) from supplier_document_events x union all select 'handoffs', md5(string_agg(to_jsonb(x)::text, '' order by x.id)) from supplier_document_handoffs x union all select 'files', md5(string_agg(x.bucket_id||x.name, '' order by x.name)) from storage.objects x) s"
+same "every new table has the same rows" "select md5(string_agg(t||':'||c, ',' order by t)) from (select 'invoices' t, md5(string_agg(to_jsonb(x)::text, '' order by x.id))::text c from invoices x union all select 'counters', md5(string_agg(to_jsonb(x)::text, '' order by x.invoice_year)) from invoice_counters x union all select 'adj', md5(string_agg(to_jsonb(x)::text, '' order by x.id)) from stock_count_adjustments x union all select 'docs', md5(string_agg(to_jsonb(x)::text, '' order by x.id)) from supplier_documents x union all select 'events', md5(string_agg(to_jsonb(x)::text, '' order by x.id)) from supplier_document_events x union all select 'handoffs', md5(string_agg(to_jsonb(x)::text, '' order by x.id)) from supplier_document_handoffs x union all select 'payments', md5(string_agg(to_jsonb(x)::text, '' order by x.id)) from invoice_payments x union all select 'invoice_events', md5(string_agg(to_jsonb(x)::text, '' order by x.id)) from invoice_events x union all select 'files', md5(string_agg(x.bucket_id||x.name, '' order by x.name)) from storage.objects x) s"
 same "  the private bucket is still private" "select public::text||'/'||file_size_limit from storage.buckets where id = 'supplier-documents'"
 
 echo " on the restored copy, the protections still hold"
@@ -107,7 +109,9 @@ ok  "  the owner can" "$(as $DST $O "select count(*) from storage.objects where 
 as $DST $O "delete from supplier_document_events" >/dev/null
 same "nobody can delete the review history, owner included" "select count(*) from supplier_document_events"
 has "an administrator still cannot link a hand-off" "$(as $DST $A "select public.resolve_supplier_document_handoff((select id from supplier_document_handoffs limit 1), (select id from purchase_orders limit 1))")" "Only the owner"
-ok  "the source itself was not changed by the backup" "$(q $DB "select (select count(*) from invoices where status = 'issued')||'/'||(select last_seq from invoice_counters limit 1)")" "1/1"
+ok  "a payment is still recorded only by the owner or an administrator, and the restored part payment still counts" "$(as $DST $E "select public.record_invoice_payment('00000000-0000-4000-8000-000000007a92', '$D1', 1, current_date, 'cash', null, null)" | grep -c 'Only the owner')/$(q $DST "select status||'/'||amount_paid from invoices where id = '$D1'")" "1/partially_paid/20.00"
+has "nobody can write the invoice history by hand on the copy" "$(as $DST $O "insert into invoice_events (invoice_id, event) values ('$D1', 'voided')")" "written by the database only"
+ok  "the source itself was not changed by the backup" "$(q $DB "select (select count(*) from invoices where status <> 'draft')||'/'||(select last_seq from invoice_counters limit 1)")" "1/1"
 
 echo "passed $pass, failed $fail"
 [ "$fail" = "0" ]

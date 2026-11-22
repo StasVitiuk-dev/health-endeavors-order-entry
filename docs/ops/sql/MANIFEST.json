@@ -365,10 +365,11 @@
       "dependsOn": [],
       "risk": "LOW",
       "rollback": "33",
-      "precheck": "stops if auth.uid(), is_owner_or_admin(), is_active_staff() or the orders table is missing",
-      "effect": "2 new empty tables (invoices, invoice_counters), a guard trigger that assigns HE-YYYY-NNNN at issue, issue_invoice() and void_invoice() (security invoker), row rules: staff draft, owner/administrator issue and void",
-      "postcheck": "both tables present and empty; anon cannot read them or run the functions; local-test/invoices_test.sh passes on a throwaway copy",
-      "lock": "NONE on existing tables: only new, empty tables are created"
+      "precheck": "stops if auth.uid(), is_owner_or_admin(), is_active_staff(), the orders, tasks or audit_log table, or the audit trigger on tasks is missing; stops, changing nothing, if an invoice table already exists with a different shape",
+      "effect": "4 new empty tables (invoices, invoice_counters, invoice_payments, invoice_events); guards: valid lines that add up, discounts within what they discount, confirmed tax = rate x taxable amount, lines and billing details before issue, Net 14 only with a recorded credit approval on every write path, creator and creation time unchangeable, status follows recorded payments; numbers HE-YYYY-NNNN with all digits after 9999; issue_invoice, void_invoice, record_invoice_payment, reverse_invoice_payment (security invoker); production's audit trigger attached; staff see invoices they created or whose order they can see; payments owner/administrator only",
+      "postcheck": "the four tables present and empty; anon cannot read them or run the functions; the audit trigger on invoices exists; local-test/invoices_test.sh passes on a throwaway copy",
+      "lock": "NONE on existing tables: only new, empty tables are created",
+      "dynamicSql": "attaches production's existing audit trigger function to the new tables: its name is read from the trigger on public.tasks at install time, so the CREATE TRIGGER statement is built with format() and %I (names only)"
     },
     {
       "file": "drafts/33_DRAFT_rollback_invoices.sql",
@@ -377,8 +378,8 @@
       "rollbackOf": "32",
       "dependsOn": [],
       "risk": "LOW",
-      "precheck": "stops, removing nothing, if any issued or void invoice exists (business records)",
-      "effect": "drops the two functions, the guard and the two tables; drafts are removed with them",
+      "precheck": "stops, removing nothing, if any issued, paid or void invoice exists, or if any draft exists and its deletion was not separately authorized in the session; locks the invoices table first so nothing is issued meanwhile",
+      "effect": "drops the four functions the page calls, the guards, the audit triggers and the four tables (authorized drafts and their history go with them)",
       "postcheck": "to_regclass('public.invoices') is null",
       "dynamicSql": "one format() with fixed names and values (%I / %L), so the count is not planned when the table is absent"
     },
@@ -437,7 +438,9 @@
       "id": "38",
       "class": "PRODUCTION-CHANGE-DRAFT",
       "step": "optional (after drafts/36; needed before supplier document files are stored)",
-      "dependsOn": ["36"],
+      "dependsOn": [
+        "36"
+      ],
       "risk": "LOW",
       "rollback": "39",
       "precheck": "stops if storage.objects, storage.buckets, supplier_documents or supplier_documents_is_owner() is missing",

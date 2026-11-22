@@ -71,17 +71,25 @@ for (const f of ALL) {
     // change to these, fails this check and has to be allowed here on purpose.
     const INVOICE_RULES = [
       'drop policy if exists invoices_staff_read on public.invoices;',
-      'create policy invoices_staff_read on public.invoices for select to authenticated using (public.is_active_staff());',
+      'create policy invoices_staff_read on public.invoices for select to authenticated using (public.is_active_staff() and (created_by = auth.uid() or (order_id is not null and exists (select 1 from public.orders o where o.id = invoices.order_id))));',
       'drop policy if exists invoices_staff_draft_insert on public.invoices;',
-      "create policy invoices_staff_draft_insert on public.invoices for insert to authenticated with check (public.is_active_staff() and status = 'draft');",
+      "create policy invoices_staff_draft_insert on public.invoices for insert to authenticated with check (public.is_active_staff() and status = 'draft' and (order_id is null or exists (select 1 from public.orders o where o.id = invoices.order_id)));",
       'drop policy if exists invoices_staff_draft_update on public.invoices;',
-      "create policy invoices_staff_draft_update on public.invoices for update to authenticated using (public.is_active_staff() and status = 'draft') with check (public.is_active_staff() and status = 'draft');",
+      "create policy invoices_staff_draft_update on public.invoices for update to authenticated using (public.is_active_staff() and status = 'draft' and (created_by = auth.uid() or (order_id is not null and exists (select 1 from public.orders o where o.id = invoices.order_id)))) with check (public.is_active_staff() and status = 'draft');",
       'drop policy if exists invoices_staff_draft_delete on public.invoices;',
-      "create policy invoices_staff_draft_delete on public.invoices for delete to authenticated using (public.is_active_staff() and status = 'draft');",
+      "create policy invoices_staff_draft_delete on public.invoices for delete to authenticated using (public.is_active_staff() and status = 'draft' and (created_by = auth.uid() or (order_id is not null and exists (select 1 from public.orders o where o.id = invoices.order_id))));",
       'drop policy if exists invoices_owner_admin_all on public.invoices;',
       'create policy invoices_owner_admin_all on public.invoices for all to authenticated using (public.is_owner_or_admin()) with check (public.is_owner_or_admin());',
       'drop policy if exists invoice_counters_owner_admin on public.invoice_counters;',
-      'create policy invoice_counters_owner_admin on public.invoice_counters for all to authenticated using (public.is_owner_or_admin()) with check (public.is_owner_or_admin());'];
+      'create policy invoice_counters_owner_admin on public.invoice_counters for all to authenticated using (public.is_owner_or_admin()) with check (public.is_owner_or_admin());',
+      'drop policy if exists invoice_payments_owner_admin_read on public.invoice_payments;',
+      'create policy invoice_payments_owner_admin_read on public.invoice_payments for select to authenticated using (public.is_owner_or_admin());',
+      'drop policy if exists invoice_payments_owner_admin_add on public.invoice_payments;',
+      'create policy invoice_payments_owner_admin_add on public.invoice_payments for insert to authenticated with check (public.is_owner_or_admin());',
+      'drop policy if exists invoice_events_read on public.invoice_events;',
+      'create policy invoice_events_read on public.invoice_events for select to authenticated using (public.is_owner_or_admin() or (public.is_active_staff() and exists (select 1 from public.invoices i where i.id = invoice_events.invoice_id)));',
+      'drop policy if exists invoice_events_trigger_insert on public.invoice_events;',
+      'create policy invoice_events_trigger_insert on public.invoice_events for insert to authenticated with check (public.is_active_staff());'];
     // The fourth allowed set (Nov 16, drafts/36): row rules on that draft's OWN six
     // new tables. Active staff read everything and may record a document (status
     // 'received') and add a subject; only the owner writes the checklist or
@@ -179,7 +187,7 @@ for (const f of ALL) {
     const dropOk = f === '26_DRAFT_rollback_integrity_check_schedule.sql' ? sql.replace('drop table if exists public.integrity_check_results;', '')
       : f === '30_DRAFT_rollback_integrity_results_on_home.sql' ? sql.replace('drop table if exists public.integrity_check_runs;', '')
         // Nov 15: the invoice rollback removes its own two tables (and refuses to run at all once an invoice has been issued).
-        : f === '33_DRAFT_rollback_invoices.sql' ? sql.replace('drop table if exists public.invoices;', '').replace('drop table if exists public.invoice_counters;', '')
+        : f === '33_DRAFT_rollback_invoices.sql' ? ['invoice_payments', 'invoice_events', 'invoices', 'invoice_counters'].reduce((t, n) => t.replace('drop table if exists public.' + n + ';', ''), sql)
           // Nov 16: the stock-count rollback removes its own two tables (and refuses to run once any adjustment has been approved or rejected).
           : f === '35_DRAFT_rollback_stock_count_adjustments.sql' ? sql.replace('drop table if exists public.stock_count_adjustments;', '').replace('drop table if exists public.stock_count_approvers;', '')
             // Nov 16, later: the supplier document rollback removes its own tables (and refuses once any document has been reviewed);

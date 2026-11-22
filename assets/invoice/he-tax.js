@@ -30,6 +30,17 @@
   const MAX_RATE = 0.25;                         // a sanity limit, not a rate
   const cents = (n) => Math.round((Number(n) || 0) * 100);
   const money = (c) => Math.round(c) / 100;
+  // Tax in cents, rounded exactly as the database does (Nov 22): the rate is
+  // taken to 5 decimals, as stored, and base x rate is rounded half up with
+  // whole-number arithmetic. Plain multiplication of decimals was off by a cent
+  // in about 6 of a million cases (e.g. $13,625.00 at 13.62% = $1,855.725).
+  const taxCents = (baseC, rate) => {
+    const r5 = Math.round((Number(rate) || 0) * 100000);
+    const b = Math.round(Number(baseC) || 0);
+    if (r5 <= 0 || b <= 0 || typeof BigInt !== 'function') return Math.max(0, Math.round(b * r5 / 100000));
+    const n = BigInt(b) * BigInt(r5), q = n / BigInt(100000), rem = n % BigInt(100000);
+    return Number(rem * BigInt(2) >= BigInt(100000) ? q + BigInt(1) : q);
+  };
   const text = (v) => (typeof v === 'string' ? v.trim() : '');
   const day = (v) => { const s = text(v).slice(0, 10); return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : ''; };
 
@@ -136,7 +147,7 @@
     if (d.status === 'EXEMPT') { taxableBase = 0; tax = 0; }
     else if (d.status === 'CONFIRMED') {
       const baseC = goodsBaseC + (d.ship.taxable ? shipC : 0);
-      taxableBase = money(baseC); tax = money(Math.round(baseC * d.rate.rate));
+      taxableBase = money(baseC); tax = money(taxCents(baseC, d.rate.rate));
     }
     return {
       status: d.status, rateStatus: d.status, pendingReasons: d.pendingReasons,
