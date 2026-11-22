@@ -434,3 +434,40 @@ Failures:
   its preview switch on. Test-only change; the dashboard code is unchanged from
   `c28b023`. Rerun: 7 of 7 at both sizes. (This test should have been run before
   committing `0358bbd`; the full pass caught it.)
+
+## Full pass, 2026-11-22 (commit `ff3d3cb`, substitute browser)
+
+Run from 00:35 to 01:49 UTC, same method, local throwaway Postgres running. Covers
+the Nov 21–22 work: supplier documents (hand-off, owner-only files), partial
+receiving example, restore with the drafts installed, the attach retry fix.
+
+| Size | Passed | Failed | Skipped |
+|---|---|---|---|
+| Computer (1100 px) | 2,559 | 12 | 55 |
+| Phone (390 px, Chromium with an iPhone profile — not real Safari) | 535 | 10 | 458 |
+
+Failures: the 20 picture comparisons (by design), and **2 real ones in the new
+code, found by the robustness probe and fixed in `fd6eb97`:** the supplier
+documents fingerprint helper failed in the background on input that is not a
+file (Node stops the whole process on such a failure); the partial receiving
+`reconcile()` threw when given nothing.
+
+## Full pass, 2026-11-22 (commit `fd6eb97`, substitute browser) — clean
+
+Run from 02:02 to 03:18 UTC, same method, local throwaway Postgres running. Adds
+the iPhone Duo work (nine-width sweep, menu fix after folding, cards up to 700
+points) and the two fixes above.
+
+| Size | Passed | Failed | Skipped |
+|---|---|---|---|
+| Computer (1100 px) | **2,561** | **10** | 66 |
+| Phone (390 px, Chromium with an iPhone profile — not real Safari) | **546** | **10** | 458 |
+
+The only failures are the 20 picture comparisons (by design: their reference
+pictures predate the restyle and are retaken after the owner's look review).
+More tests are skipped on the computer than before because the iPhone Duo sweep
+runs only with the touch-screen phone profile. Database tests at `fd6eb97`: 11
+suites, 528 checks, all passed (invoices 87, stock-count approval 90, Query I 24,
+supplier documents 125, supplier files 30, stock count applied once 17, restore
+drill 6, restore with the drafts installed 32, invoice adapter 34, supplier
+adapter 63, export restore 20).
