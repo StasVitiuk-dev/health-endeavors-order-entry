@@ -77,15 +77,21 @@ The only differences come from one commit, `1b85068` (Oct 6, "text contrast in
 light and dark"), which fixed text that was below the readability minimum
 (4.5 : 1 contrast):
 
-| Where | Live | Branch | Readability, live → branch |
-|---|---|---|---|
-| Dark mode: blue buttons (Restore, Open, Refresh) | #2997ff fill | #0071e3 fill (the light-mode blue) | 3.02 → 4.70 |
-| Dark mode: red Delete / Deny buttons | #ff6961 fill | #d70015 fill (the light-mode red) | 2.82 → 5.38 |
-| Light mode: green "low" badge text | #1d8a3f | #187a37 | 4.03 → 4.95 |
-| Light mode: grey labels under figures | #86868b | #6e6e73 (the theme grey) | 3.33 → 4.66 |
-| Light mode: small grey text in rows | #8a9694 | #6e6e73 | 3.06 → 5.07 |
-| Light mode: form label grey | #6b7877 | #6e6e73 | 4.59 → 5.07 |
-| Expenses "View receipt" link | browser default blue | theme blue | — |
+| # | Where | Live | Branch | Readability, live → branch |
+|---|---|---|---|---|
+| C1 | Dark mode: blue buttons (Restore, Open, Refresh) | #2997ff fill | #0071e3 fill (the light-mode blue) | 3.02 → 4.70 |
+| C2 | Dark mode: red Delete / Deny buttons | #ff6961 fill | #d70015 fill (the light-mode red) | 2.82 → 5.38 |
+| C3 | Light mode: green status badge text (Received, Paid, low) | #1d8a3f | #187a37 | 4.03 → 4.95 |
+| C4 | Light mode: grey labels under figures | #86868b | #6e6e73 (the theme grey) | 3.33 → 4.66 |
+| C5 | Light mode: small grey text in rows | #8a9694 | #6e6e73 | 3.06 → 5.07 |
+| C6 | Light mode: form label grey | #6b7877 | #6e6e73 | 4.59 → 5.07 (live already passes) |
+| C7 | Expenses "View receipt" link | browser default blue #0000ee | theme blue | light 9.40 → 4.70; dark 1.79 → 5.58 |
+
+Nov 22: each change shown in the dashboard, original first, with its own choice
+(C7 also offers "original in light mode only"): owner review page
+https://claude.ai/artifact/R7iwi8U8YrCARZdYJDfdSd (pictures taken in Chromium on
+Linux at build `fd6eb97`; no colour changed after it). Measured again on Nov 22;
+the figures above match.
 
 **Your decision:** keep these readability fixes (recommended: the live colours
 fail the minimum, and in dark mode white button text is hard to read), or

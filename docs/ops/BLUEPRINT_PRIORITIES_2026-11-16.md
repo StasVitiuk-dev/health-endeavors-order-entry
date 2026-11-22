@@ -10,6 +10,9 @@ Blueprint numbering: only the items worked on are numbered in this repository
 is your Sept 26 recount and is not stored here, so areas without a number are
 named by the earlier phase that built them.
 
+Nov 22: the counts 51 / 14 / 25 are previously reported, awaiting reconciliation;
+the evidence-linked checklist is `BLUEPRINT_EVIDENCE_CHECKLIST_2026-11-22.md`.
+
 All tests named below were rerun on this commit: 276 browser and Node tests
 passed (0 failed; 41 skipped because they run at one screen size only), plus the
 database tests listed.
