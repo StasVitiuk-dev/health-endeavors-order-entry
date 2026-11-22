@@ -9,6 +9,7 @@
 | A nightly backup and a monthly restore test exist (GitHub Actions, private backups repository) | REPORTED, not verified | PROJECT_RECORD §2 |
 | They are still running (Actions minutes ran out once, Sept 13) | **UNKNOWN** | PROJECT_RECORD history |
 | A backup can be restored into a fresh database and is complete and usable | **Proven locally only** (synthetic data, same PostgreSQL major version) | `local-test/restore_drill.sh`: 6/6, dump ≈1 s, restore ≈1 s for ~2,200 synthetic rows |
+| (Nov 22) A restored backup keeps every protection of the pending drafts 32, 34, 36, 38: row-level security on, the same rules, guards, functions and permissions; the invoice counter carries on; an administrator still cannot approve, staff still cannot open a file | **Proven locally only** (synthetic data) | `local-test/restore_with_drafts_test.sh`: 32/32 |
 | A production backup restores | **UNKNOWN** | Needs the owner's drill (§4) |
 | RPO (how much work can be lost) | **UNKNOWN**; if nightly works, up to ~24 h | Owner to confirm the schedule |
 | RTO (how long until working again) | **UNKNOWN** for production; locally seconds | Measure in the owner's drill |

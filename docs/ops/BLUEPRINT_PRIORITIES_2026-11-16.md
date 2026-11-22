@@ -89,7 +89,17 @@ function; fixed (the probe now passes 75/75).
 
 | Item | Why it is not built | Needs |
 |---|---|---|
-| Receiving part of a purchase order's quantity | changes how real stock is written; real stock writes stay gated | your decision on how partial deliveries should work |
-| Partial-quantity returns (backlog INV-17, decision D-ops-5) | the same | your decision D-ops-5 |
+| Receiving part of a purchase order's quantity | changes how real stock is written; real stock writes stay gated. **Nov 21:** rules prototype and worked example built (`PARTIAL_RECEIVING_RULES_2026-11-21.md`) | your decision D-ops-5, then a reviewed database change |
+| Partial-quantity returns (backlog INV-17, decision D-ops-5) | the same; **Nov 21:** sellable/damaged split in the same prototype | your decision D-ops-5 |
 | Applying an approved stock count to stock | gated by your standing rule | drafts 10 and 34 installed, then its own approval |
 | Real notification and email delivery | no live messages | an email provider decision |
+
+## Nov 22 additions (independent gaps; staging only)
+
+| Area | Check | Evidence | Status |
+|---|---|---|---|
+| Backups | A backup restored **with the pending drafts installed** keeps every protection: row-level security on all 11 new tables, identical rules, guards, functions (caller's rights, fixed search path) and permissions; identical records; the invoice counter carries on (the next invoice gets the next number); on the copy an administrator still cannot approve a stock count or a supplier document, an issued invoice still cannot be edited, staff and administrators still cannot open a stored file, nobody can delete review history | `docs/ops/sql/local-test/restore_with_drafts_test.sh` (new, 32/32) | **added** |
+| Backups | **Found and fixed:** the Oct 7 restore drill's clean-up removed its test order lines by their own (random) id, so each run left about 2,000 order lines pointing at deleted orders in the local template database, and a backup of it could no longer be restored. Clean-up fixed; the new test checks the template first | `restore_drill.sh` 6/6, template clean afterwards | **fixed** (local test harness only; production untouched) |
+| Failed saves | Attaching a supplier document file when the reply is lost: the page redraws with the file attached, once | `supplier-docs-storage-ext22` (new test) | **added** |
+| Failed saves | **Found and fixed:** retrying the attach from a page that had not redrawn said "The file was not stored" although the file was attached. The page now reads the document back and says "That file is already attached"; a different file afterwards is refused | `supplier-docs-storage-ext22` (new test) | **fixed** |
+| Receipt scanner, sales follow-up | Already verified on Nov 16 (sections 3 and 5 above); rerun in the final full pass | — | skipped, verified |

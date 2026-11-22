@@ -324,6 +324,58 @@ test.describe('against a real database with drafts/36 installed', () => {
       } finally { await db.close(); }
     });
 
+    test('a failed save while attaching: the upload worked, the reply was lost; the page redraws showing the file attached, once', async ({ page, backend }) => {
+      await asRoleInPage(backend, 'employee');
+      const db = await pgBridge(page, { install: INSTALL, tables: WITH_PROFILES, rpcs: RPCS, role: 'employee', setupSql: SEED, storage: true, storageInstall: FILES, dropReplyOnce: ['attach_supplier_document_file'] });
+      try {
+        await switchOn(page, true);
+        await login(page); await open(page);
+        const f = page.locator('form[data-sdform]');
+        await f.locator('#sdSupplier').selectOption(LAB);
+        await f.locator('#sdKind').selectOption('batch_record');
+        await f.locator('#sdSubject').fill('LOT-700');
+        await f.locator('[data-sdsave]').click();
+        const row = page.locator('#supplierDocsHost tr[data-dockey="batch_record"][data-subject="LOT-700"]');
+        await expect(row).toContainText('recorded by you');
+        await row.locator('[data-sdfile]').setInputFiles(pdf);
+        await row.locator('[data-sdattach]').click();
+        // the database attached it, but the page never heard back: it says so, and offers the button again
+        await expect(page.locator('.toast', { hasText: /Could not reach the database|try again/ })).toHaveCount(1);
+        expect(await db.query("select (file_path is not null)::text from supplier_documents where kind = 'batch_record'")).toBe('true');
+        // after the redraw the document already has its file: no second upload is offered
+        await expect(row.locator('[data-sdfilerow]')).toContainText('File attached. Only the owner can open it.');
+        expect(await db.query("select count(*) from storage.objects where bucket_id = 'supplier-documents'")).toBe('1');
+        expect(await db.query("select count(*) from supplier_document_events where event = 'file_attached'")).toBe('1');
+        expect(db.calls).toContain('reply lost attach_supplier_document_file');
+      } finally { await db.close(); }
+    });
+
+    test('a failed save while attaching, retried from a page that had not redrawn: the same file attaches once, a different file is refused', async ({ page }) => {
+      // the adapter on its own (no redraw between the tries), as a page left open would behave
+      const db = await pgBridge(page, { install: INSTALL, tables: WITH_PROFILES, rpcs: RPCS, role: 'owner', setupSql: SEED, storage: true, storageInstall: FILES, dropReplyOnce: ['attach_supplier_document_file'] });
+      try {
+        await switchOn(page, true);
+        await login(page); await open(page);
+        const DOC = await db.query("select id from supplier_documents where reference = 'COA-700'");
+        const out = await page.evaluate(async (args) => {
+          const mod = window.HE.suppliers['he-supplier-docs-store'];
+          const store = mod.createStore({ client: window.supabase.createClient('https://uizrazyehilyzmwttsrn.supabase.co', 'x'), enabled: true, role: 'owner' });
+          const bytes = new TextEncoder().encode('%PDF-1.4 synthetic');
+          const file = { name: 'coa.pdf', type: 'application/pdf', size: bytes.length, sha256: mod.sha256Hex(bytes), body: new Blob([bytes], { type: 'application/pdf' }) };
+          const first = await store.attachFile(args.doc, file);
+          const retry = await store.attachFile(args.doc, file);
+          const other = new TextEncoder().encode('%PDF-1.4 a different file');
+          const swap = await store.attachFile(args.doc, { name: 'b.pdf', type: 'application/pdf', size: other.length, sha256: mod.sha256Hex(other), body: new Blob([other]) });
+          return [first.ok, retry.ok + '/' + retry.alreadyAttached, swap.ok + ': ' + swap.message];
+        }, { doc: DOC });
+        expect(out[0]).toBe(false);                       // the lost reply
+        expect(out[1]).toBe('true/true');                 // the retry: already attached, nothing added
+        expect(out[2]).toMatch(/^false: /);               // a different file afterwards: refused
+        expect(await db.query("select count(*)||'/'||count(distinct file_sha256) from supplier_documents where file_path is not null")).toBe('1/1');
+        expect(await db.query("select count(*) from supplier_document_events where event = 'file_attached'")).toBe('1');
+      } finally { await db.close(); }
+    });
+
     test('the owner gets a link that works for 60 seconds, and approval records the exact file approved', async ({ page }) => {
       const db = await pgBridge(page, { install: INSTALL, tables: WITH_PROFILES, rpcs: RPCS, role: 'owner', setupSql: SEED, storage: true, storageInstall: FILES });
       try {

@@ -14,7 +14,10 @@ DUMP=$(mktemp --suffix=.dump)
 pass=0; failn=0
 check() { if [ "$2" = "$3" ]; then echo "  ok   $1"; pass=$((pass+1)); else echo "  FAIL $1 (got '$2', want '$3')"; failn=$((failn+1)); fi; }
 P() { psql $CONN -d "$1" -qtAX -v ON_ERROR_STOP=1 --set=client_min_messages=warning -c "$2"; }
-cleanup() { rm -f "$DUMP"; dropdb $CONN --if-exists "$DST" 2>/dev/null; P $SRC "set session_replication_role = replica; delete from order_items where id::text like 'f9%'; delete from orders where id::text like 'f9%'; delete from inventory where product_id::text like 'f9%'; delete from products where id::text like 'f9%';" >/dev/null 2>&1; }
+cleanup() { rm -f "$DUMP"; dropdb $CONN --if-exists "$DST" 2>/dev/null; P $SRC "set session_replication_role = replica; delete from order_items where order_id::text like 'f91%'; delete from orders where id::text like 'f9%'; delete from inventory where product_id::text like 'f9%'; delete from products where id::text like 'f9%';" >/dev/null 2>&1; }
+# Nov 22: the line above used to delete order_items by their OWN id, which is random,
+# so every run left 2,000 order lines pointing at deleted orders in the template
+# database (found when restore_with_drafts_test.sh could not restore it).
 trap cleanup EXIT
 TABLES="products inventory suppliers purchase_orders purchase_order_items inventory_lots inventory_adjustments expenses recalls orders order_items returns approval_requests documents tasks profiles audit_log"
 fp() { P "$1" "select md5(string_agg(p.proname || ':' || pg_get_function_identity_arguments(p.oid) || ':' || md5(p.prosrc), ',' order by p.proname)) from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname in ('_he_apply_stock_change','adjust_inventory','receive_purchase_order','quarantine_recall','receive_return','delete_unused_product')"; }

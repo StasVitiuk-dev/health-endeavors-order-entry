@@ -365,7 +365,16 @@
       return once('file:' + id, async function () {
         const up = await client.storage.from(BUCKET).upload(path, f.body, { contentType: f.type, upsert: false });
         if (up && up.error && /bucket not found/i.test(String(up.error.message || ''))) return refuse('File storage is not installed yet (drafts/38 needs the owner\'s approval). Nothing was attached.');
-        if (up && up.error && !/exists|duplicate/i.test(String(up.error.message || ''))) return refuse('The file was not stored: ' + String(up.error.message || 'refused') + '.');
+        if (up && up.error && !/exists|duplicate/i.test(String(up.error.message || ''))) {
+          // A retry after a lost reply: the storage rules refuse a second upload
+          // once the document has its file. Read the document back; if this very
+          // file is already attached, the earlier try succeeded.
+          let back = null;
+          try { back = await client.from('supplier_documents').select('file_path,file_sha256').eq('id', id).maybeSingle(); } catch (e) { back = null; }
+          const d = back && !back.error && back.data;
+          if (d && d.file_path === path && d.file_sha256 === f.sha256) return { ok: true, path: path, alreadyAttached: true, message: 'That file is already attached.' };
+          return refuse('The file was not stored: ' + String(up.error.message || 'refused') + '.');
+        }
         const res = await call(RPC.attachFile, [id, path, f.sha256, Number(f.size), f.type]);
         if (res.error) return refuse(res.error);
         return { ok: true, path: path, alreadyAttached: res.data.already_attached === true, message: res.data.already_attached === true ? 'That file is already attached.' : 'File attached. Only the owner can open it.' };
