@@ -1,6 +1,6 @@
 # Sales tax: what is built, and what I need from you to finish the setup
 
-Status: CURRENT · 2026-11-16 · For: Stas · OWNER DECISION REQUIRED (the answers below)
+Status: CURRENT · 2026-11-16, answers 1 and 2 recorded 2026-11-22 · For: Stas · OWNER DECISION REQUIRED (the other answers below)
 Scope: staging only (made-up data). Nothing here is live. This page is not tax
 advice: it lists what the dashboard needs to be told, so you can confirm the
 answers with the Illinois Department of Revenue or your accountant.
@@ -20,6 +20,26 @@ answers with the Illinois Department of Revenue or your accountant.
 
 The rates used in the tests and in the example screen (8%, 9%, 10%) are made-up
 numbers for made-up places. They are not Illinois rates.
+
+## Your answers so far (Nov 22)
+
+| # | Question | Your answer (Nov 22) | What it settles |
+|---|---|---|---|
+| 1 | From which address are orders shipped? | One place in Illinois, for now: your own home. The lab sends finished product to you; you hold it and ship each order yourself. | The place of sale is one Illinois location. **Its exact address and ZIP are deliberately not stored in this public repository** (you asked to keep your home details private). They go only into the dashboard's tax settings, when you confirm the rate for that place. |
+| 2 | A location where customers can buy or pick up in person? | No, not for now (it is a private home). This may change once there is a small warehouse or store. | Retail customers cannot pick up, so they cannot avoid the shipping charge. |
+
+What these two answers mean (not decided yet; nothing changed in the dashboard):
+- **Shipping tax (question 10 still open):** under the rule already in the dashboard,
+  shipping that the buyer cannot avoid is taxed. With no pickup, shipping on retail
+  orders would therefore be taxed, unless your accountant or the Department of Revenue
+  says otherwise. For wholesale, it still depends on whether a buyer may use their own
+  carrier (question 10).
+- **Still needed before any tax can be confirmed:** question 5 (does the rate follow
+  where the order ships from or where it ships to; confirm with the Illinois Department
+  of Revenue or your accountant), question 4 (the full combined rate for your location,
+  and the date it applies from) and question 6 (all products at the general rate?).
+- Until then every non-exempt invoice keeps showing **Tax pending** and cannot be
+  issued. Nothing about your address is stored anywhere yet.
 
 ## Which answers come first (added later on Nov 16)
 

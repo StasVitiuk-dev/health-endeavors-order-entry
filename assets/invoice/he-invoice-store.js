@@ -1,9 +1,9 @@
 // Invoice storage adapter — the dashboard side of docs/ops/sql/drafts/32 (Nov 15).
 //
-// NOT CONNECTED. No screen uses this file yet, and the database tables it talks
-// to are a draft the owner has not installed. It exists so that, once drafts/32
-// is approved and run, saving, issuing and voiding real invoices needs only a
-// small, reviewed wiring step.
+// Saving, issuing and voiding are NOT CONNECTED to a screen yet. Payments
+// (Nov 22) are connected to the "Invoice payments" section on Accounting, behind
+// a switch that is not on the Feature Flags page and that does anything only
+// once the database has drafts/32 installed (the owner has not installed it).
 //
 // Pure apart from the database client it is GIVEN (supabase-js shaped: from(),
 // rpc()); it never creates one, never reads keys, and holds no state except a
@@ -34,11 +34,20 @@
   const WRITE_COLUMNS = ['order_id', 'account_ref', 'bill_to', 'ship_to', 'status', 'terms', 'currency', 'lines',
     'subtotal', 'order_discount', 'shipping', 'tax_rate', 'tax_rate_status', 'tax_place', 'tax_shipping', 'tax_exempt', 'tax_exempt_reason', 'tax', 'total'];
   const READ_COLUMNS = ['id'].concat(WRITE_COLUMNS, ['invoice_number', 'invoice_year', 'invoice_seq', 'issue_date', 'due_date',
-    'issued_at', 'issued_by', 'voided_at', 'voided_by', 'void_reason', 'created_at', 'updated_at']);
+    'issued_at', 'issued_by', 'voided_at', 'voided_by', 'void_reason', 'created_at', 'updated_at',
+    'amount_paid', 'credit_approved', 'credit_approved_by', 'credit_approved_at']);
   const SELECT = READ_COLUMNS.join(',');
+  // Payments (drafts/32, Nov 22): recorded and reversed only through the two
+  // functions; the rows are never edited or deleted.
+  const PAYMENT_TABLE = 'invoice_payments';
+  const PAYMENT_COLUMNS = ['id', 'request_key', 'invoice_id', 'kind', 'amount', 'received_on', 'method', 'reference', 'note', 'reverses', 'recorded_by', 'recorded_at'];
+  const PAYMENT_METHODS = ['check', 'ach', 'card', 'cash', 'wire', 'other'];
+  const MAX_REFERENCE = 120, MAX_NOTE = 500, MIN_REVERSE_REASON = 5;
   const RPC = {
     issue: { name: 'issue_invoice', params: ['p_invoice_id', 'p_terms', 'p_credit_approved'] },
     void: { name: 'void_invoice', params: ['p_invoice_id', 'p_reason'] },
+    pay: { name: 'record_invoice_payment', params: ['p_request_key', 'p_invoice_id', 'p_amount', 'p_received_on', 'p_method', 'p_reference', 'p_note'] },
+    reverse: { name: 'reverse_invoice_payment', params: ['p_request_key', 'p_payment_id', 'p_reason'] },
   };
   const TERMS = ['DUE_ON_RECEIPT', 'NET_14'];
   const ROLES_MAY_ISSUE = new Set(['owner', 'administrator']);
@@ -165,7 +174,8 @@
       taxShipping: row.tax_shipping === true, taxExempt: row.tax_exempt === true, tax: pending ? null : num(row.tax), total: total,
       taxPending: pending, totalBeforeTax: beforeTax,
       voidReason: row.void_reason || null, issuedAt: row.issued_at || null, voidedAt: row.voided_at || null,
-      paid: 0, balance: total, payments: [], versions: [], corrections: [], revisions: [],
+      paid: num(row.amount_paid), balance: total == null ? null : Math.round((total - num(row.amount_paid)) * 100) / 100,
+      creditApproved: row.credit_approved === true, payments: [], versions: [], corrections: [], revisions: [],
       synthetic: false, storage: 'database',
     };
   }
@@ -186,6 +196,31 @@
     if (code === '22023' || code === 'P0002') return msg || 'The database refused the request.';
     if (!code && /fetch|network|timeout|failed/i.test(msg)) return 'Could not reach the database. Nothing was changed; try again.';
     return 'The database refused: ' + (msg || code || 'no reason given') + '.';
+  }
+
+  // Stored payment rows -> what the screen shows: each payment with whether (and
+  // why) it was reversed; reversals are not listed on their own.
+  function paymentsView(rows) {
+    const list = (Array.isArray(rows) ? rows : []).filter(isObj);
+    const reversalOf = {};
+    list.forEach(function (x) { if (x.kind === 'reversal' && x.reverses) reversalOf[x.reverses] = x; });
+    return list.filter(function (x) { return x.kind === 'payment'; }).map(function (x) {
+      const rv = reversalOf[x.id] || null;
+      return { id: x.id, amount: Number(x.amount) || 0, receivedOn: x.received_on || null, method: x.method || null, reference: x.reference || null,
+        note: x.note || null, recordedBy: x.recorded_by || null, recordedAt: x.recorded_at || null,
+        reversed: !!rv, reversal: rv ? { reason: rv.note || null, recordedBy: rv.recorded_by || null, recordedAt: rv.recorded_at || null } : null };
+    });
+  }
+
+  // A payment or reversal sent with a request key whose reply never came back:
+  // the database may or may not have recorded it, and pressing again is safe.
+  function keyedError(err, what) {
+    const code = err && err.code != null ? String(err.code) : '';
+    const msg = err && err.message != null ? String(err.message) : '';
+    if (!code && /fetch|network|timeout|failed|aborted/i.test(msg)) {
+      return 'Could not reach the database, so the page cannot tell whether the ' + what + ' was recorded. Press the button again: it is recorded at most once.';
+    }
+    return friendlyError(err);
   }
 
   function createStore(options) {
@@ -304,11 +339,78 @@
       });
     }
 
-    return { enabled: enabled, probe: probe, list: list, saveDraft: saveDraft, issue: issue, void: voidInvoice, removeDraft: removeDraft };
+    // ---- payments (owner or administrator; the database checks again) ----
+    async function listPayments(invoiceId) {
+      const r = ready(); if (r) return r;
+      if (!isUuid(invoiceId)) return refuse('That is not a database invoice id.');
+      if (role != null && !ROLES_MAY_ISSUE.has(role)) return refuse('Payments are visible to the owner and administrators only.', { forbidden: true });
+      return once('payments:' + invoiceId, async function () {
+        const res = await client.from(PAYMENT_TABLE).select(PAYMENT_COLUMNS.join(',')).eq('invoice_id', invoiceId).order('recorded_at', { ascending: true }).limit(MAX_LIST);
+        if (res && res.error) return refuse(friendlyError(res.error));
+        const rows = Array.isArray(res && res.data) ? res.data : [];
+        return { ok: true, payments: paymentsView(rows) };
+      });
+    }
+
+    // p: { requestKey, invoiceId, amount, receivedOn (YYYY-MM-DD), method, reference, note, balance? }
+    async function recordPayment(p) {
+      const r = ready(); if (r) return r;
+      const q = isObj(p) ? p : {};
+      if (role != null && !ROLES_MAY_ISSUE.has(role)) return refuse('Only the owner or an administrator can record payments.');
+      if (!isUuid(q.requestKey)) return refuse('The page gave this payment no request key, so a retry could not be recognised. Nothing was recorded.');
+      if (!isUuid(q.invoiceId)) return refuse('Not recorded: that is not a database invoice id.');
+      const raw = typeof q.amount === 'string' ? q.amount.trim().replace(/^\$/, '').replace(/,/g, '') : q.amount;
+      const amount = typeof raw === 'string' ? (/^\d+(\.\d{1,2})?$/.test(raw) ? Number(raw) : NaN) : Number(raw);
+      if (!isFinite(amount) || amount <= 0) return refuse('Enter the amount received in dollars and cents, more than $0.00 (for example 125.50).');
+      if (Math.abs(amount * 100 - Math.round(amount * 100)) > 1e-6) return refuse('Enter the amount in dollars and cents (for example 125.50).');
+      if (q.balance != null && isFinite(Number(q.balance)) && cents(amount) > cents(q.balance)) return refuse('That is more than is still owed ($' + money(cents(q.balance)).toFixed(2) + '). Nothing was recorded.');
+      const day = q.receivedOn == null || q.receivedOn === '' ? null : String(q.receivedOn);
+      if (day != null && !/^\d{4}-\d{2}-\d{2}$/.test(day)) return refuse('Enter the date received as a date.');
+      const method = q.method == null || q.method === '' ? null : String(q.method);
+      if (method != null && PAYMENT_METHODS.indexOf(method) < 0) return refuse('Choose how it was paid from the list.');
+      const ref = q.reference == null ? '' : String(q.reference).trim();
+      if (ref.length > MAX_REFERENCE) return refuse('The reference is too long (at most ' + MAX_REFERENCE + ' characters).');
+      const note = q.note == null ? '' : String(q.note).trim();
+      if (note.length > MAX_NOTE) return refuse('The note is too long (at most ' + MAX_NOTE + ' characters).');
+      return once('pay:' + q.invoiceId, async function () {
+        const v = [q.requestKey, q.invoiceId, money(cents(amount)), day, method, ref || null, note || null];
+        const args = {}; RPC.pay.params.forEach(function (k, i) { args[k] = v[i]; });
+        const res = await client.rpc(RPC.pay.name, args);
+        if (res && res.error) return refuse(keyedError(res.error, 'payment'), { retry: true });
+        const d = isObj(res && res.data) ? res.data : {};
+        return { ok: true, duplicate: d.duplicate === true, paymentId: d.payment_id || null, status: d.status || null, amountPaid: d.amount_paid == null ? null : Number(d.amount_paid),
+          message: d.duplicate === true ? 'Already recorded. Nothing changed.' : 'Payment of $' + money(cents(amount)).toFixed(2) + ' recorded.' };
+      });
+    }
+
+    // p: { requestKey, paymentId, reason }
+    async function reversePayment(p) {
+      const r = ready(); if (r) return r;
+      const q = isObj(p) ? p : {};
+      if (role != null && !ROLES_MAY_ISSUE.has(role)) return refuse('Only the owner or an administrator can reverse a payment.');
+      if (!isUuid(q.requestKey)) return refuse('The page gave this reversal no request key, so a retry could not be recognised. Nothing was changed.');
+      if (!isUuid(q.paymentId)) return refuse('Not reversed: that is not a recorded payment.');
+      const why = q.reason == null ? '' : String(q.reason).trim();
+      if (why.length < MIN_REVERSE_REASON) return refuse('A written reason is required to reverse a payment (at least ' + MIN_REVERSE_REASON + ' characters).');
+      if (why.length > MAX_NOTE) return refuse('The reason is too long (at most ' + MAX_NOTE + ' characters).');
+      return once('reverse:' + q.paymentId, async function () {
+        const v = [q.requestKey, q.paymentId, why];
+        const args = {}; RPC.reverse.params.forEach(function (k, i) { args[k] = v[i]; });
+        const res = await client.rpc(RPC.reverse.name, args);
+        if (res && res.error) return refuse(keyedError(res.error, 'reversal'), { retry: true });
+        const d = isObj(res && res.data) ? res.data : {};
+        return { ok: true, duplicate: d.duplicate === true, status: d.status || null, amountPaid: d.amount_paid == null ? null : Number(d.amount_paid),
+          message: d.duplicate === true ? 'Already reversed. Nothing changed.' : 'Payment reversed. The original stays on the record.' };
+      });
+    }
+
+    return { enabled: enabled, probe: probe, list: list, saveDraft: saveDraft, issue: issue, void: voidInvoice, removeDraft: removeDraft,
+      listPayments: listPayments, recordPayment: recordPayment, reversePayment: reversePayment };
   }
 
   return {
     VERSION: VERSION, TABLE: TABLE, WRITE_COLUMNS: WRITE_COLUMNS, READ_COLUMNS: READ_COLUMNS, RPC: RPC, TERMS: TERMS,
+    PAYMENT_TABLE: PAYMENT_TABLE, PAYMENT_COLUMNS: PAYMENT_COLUMNS, PAYMENT_METHODS: PAYMENT_METHODS, paymentsView: paymentsView,
     MAX_LINES: MAX_LINES, MAX_ADDRESS_BYTES: MAX_ADDRESS_BYTES, OFF_MESSAGE: OFF_MESSAGE,
     toRow: toRow, fromRow: fromRow, friendlyError: friendlyError, createStore: createStore,
   };

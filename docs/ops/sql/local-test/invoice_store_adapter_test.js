@@ -178,6 +178,43 @@ function client(uid) {
   }
   has('a visitor who is not signed in cannot issue', (await anon.issue(s1.invoice.id)).message, /permission/);
 
+  // ---- payments (Nov 22): record, retry, over-pay, reverse, who may ----
+  const K = (n) => '00000000-0000-4000-8000-00000000f0' + String(n).padStart(2, '0');
+  const total = Number(psql(DB, "select total from invoices where id = '" + s1.invoice.id + "'"));
+  const half = Math.round(total * 50) / 100;
+  const p1 = { requestKey: K(1), invoiceId: s1.invoice.id, amount: half.toFixed(2), receivedOn: '2026-11-20', method: 'check', reference: 'SYN-CHK-1001', note: 'first half' };
+  const r1 = await owner.recordPayment(p1);
+  ok('the owner records half the total by check', r1.ok && r1.status + '/' + r1.amountPaid, 'partially_paid/' + half);
+  const again = await owner.recordPayment(p1);
+  ok('  sent again with the same request key: recorded once', again.duplicate === true && psql(DB, "select count(*) from invoice_payments where invoice_id = '" + s1.invoice.id + "'"), '1');
+  has('  the same key with another amount is not a second payment either', String((await owner.recordPayment(Object.assign({}, p1, { amount: '1.00' }))).duplicate), /true/);
+  const owed = Math.round((total - half) * 100) / 100;
+  has('more than is still owed is refused by the page', (await owner.recordPayment({ requestKey: K(2), invoiceId: s1.invoice.id, amount: (owed + 1).toFixed(2), balance: owed })).message, /more than is still owed/);
+  has('  and by the database when the page check is bypassed', (await owner.recordPayment({ requestKey: K(3), invoiceId: s1.invoice.id, amount: (owed + 1).toFixed(2) })).message, /more than is still owed/);
+  has('fractions of a cent are refused', (await owner.recordPayment({ requestKey: K(4), invoiceId: s1.invoice.id, amount: '1.005' })).message, /dollars and cents/);
+  has('an unknown method is refused', (await owner.recordPayment({ requestKey: K(5), invoiceId: s1.invoice.id, amount: '1.00', method: 'bitcoin' })).message, /from the list/);
+  has('staff are refused by the page', (await staff.recordPayment({ requestKey: K(6), invoiceId: s1.invoice.id, amount: '1.00' })).message, /Only the owner or an administrator/);
+  const staffBypass = S.createStore({ client: client(E), enabled: true, role: 'owner' });
+  has('  and by the database when the page believes they are the owner', (await staffBypass.recordPayment({ requestKey: K(7), invoiceId: s1.invoice.id, amount: '1.00' })).message, /Only the owner or an administrator can record payments/);
+  has('  staff cannot read payments either (the database shows them none)', String((await staffBypass.listPayments(s1.invoice.id)).payments.length), /^0$/);
+  has('a payment on a void invoice is refused', (await admin.recordPayment({ requestKey: K(8), invoiceId: s2.invoice.id, amount: '1.00' })).message, /only against an issued invoice \(this one is void\)/);
+  const r2 = await admin.recordPayment({ requestKey: K(9), invoiceId: s1.invoice.id, amount: owed.toFixed(2), method: 'ach', reference: 'SYN-ACH-77' });
+  ok('an administrator records the rest: paid', r2.ok && r2.status, 'paid');
+  const lp = await owner.listPayments(s1.invoice.id);
+  ok('the list shows both payments, oldest first, with method and reference', lp.ok && lp.payments.map(x => x.method + ':' + x.reference).join(','), 'check:SYN-CHK-1001,ach:SYN-ACH-77');
+  ok('  each with who recorded it', lp.payments.map(x => x.recordedBy).join(','), O + ',' + A);
+  has('reversing without a reason is refused', (await owner.reversePayment({ requestKey: K(10), paymentId: lp.payments[1].id, reason: 'oops' })).message, /written reason is required/);
+  const rv = { requestKey: K(11), paymentId: lp.payments[1].id, reason: 'ACH returned by the bank (synthetic)' };
+  const rv1 = await owner.reversePayment(rv);
+  ok('the owner reverses the ACH payment: back to partially paid', rv1.ok && rv1.status + '/' + rv1.amountPaid, 'partially_paid/' + half);
+  ok('  sent again: reversed once', (await owner.reversePayment(rv)).duplicate === true && psql(DB, "select count(*) from invoice_payments where kind = 'reversal'"), '1');
+  has('  a second reversal of the same payment is refused', (await owner.reversePayment({ requestKey: K(12), paymentId: lp.payments[1].id, reason: 'Second try (synthetic)' })).message, /already been reversed/);
+  const lp2 = await owner.listPayments(s1.invoice.id);
+  ok('the list keeps the original and marks it reversed, with the reason', lp2.payments.map(x => x.reversed + ':' + (x.reversal ? x.reversal.reason : '')).join(','), 'false:,true:ACH returned by the bank (synthetic)');
+  const back = (await owner.list()).invoices.find(x => x.id === s1.invoice.id);
+  ok('  amount paid and balance come from the database', back.paid + '/' + back.balance, half + '/' + owed);
+  has('the payments table has no update or delete path: a direct change is refused', (asUser(O, 'select id from {x}', "update public.invoice_payments set amount = 1 where id = '" + lp.payments[0].id + "'").error || { message: 'NO ERROR' }).message, /permission denied|cannot be changed or deleted/);
+
   psql('postgres', 'drop database if exists ' + DB);
   console.log('passed ' + pass + ', failed ' + fail);
   process.exit(fail ? 1 : 0);

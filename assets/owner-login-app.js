@@ -84,7 +84,7 @@
       nightlyOverall,
     } = window.HE.helpers;
     // @@ EXT15 modules: created in dependency order (assets/app/*.js; see docs/ops/APPLICATION_MODULE_MAP_EXT15.md)
-    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn } = HE.modules.create('he-config', {  });
+    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn } = HE.modules.create('he-config', {  });
     const { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, focusDialog, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, h, pageIconNode } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
     const { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
     const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, h, supabase });
@@ -2302,6 +2302,141 @@
       refocusLike(t, svHost ? svHost[0] : null);
     });
 
+    // ---------- Invoice payments (drafts/32, Nov 22; behind invoicePaymentsOn)
+    // Stored invoices and the payments recorded against them, from the database
+    // (he-invoice-store.js). Owner or administrator: record a payment (amount,
+    // date received, how, reference) and reverse one with a written reason; the
+    // invoice's paid amount and status follow the recorded payments, set by the
+    // database. A payment is never edited or deleted. Each form carries one
+    // request key until it succeeds, so a second press or a retry after a lost
+    // reply records once. OFF by default; does nothing until drafts/32 is installed.
+    let invPaySeq = 0;
+    let invPayOpen = null;           // the invoice whose payments are shown
+    let invPayReverse = null;        // the payment whose reverse form is open
+    let invPayLast = null;           // { store, invoices, myId }
+    let invPayMessage = '';
+    const IP_METHOD = { check: 'Check', ach: 'ACH transfer', card: 'Card', cash: 'Cash', wire: 'Wire transfer', other: 'Other' };
+    const IP_STATUS = { issued: 'Issued, unpaid', partially_paid: 'Partly paid', paid: 'Paid', void: 'Void' };
+    function invPayStore() {
+      let mod = null; try { mod = (window.HE && window.HE.invoice && window.HE.invoice['he-invoice-store']) || null; } catch (e) { mod = null; }
+      if (!mod || !(typeof invoicePaymentsOn === 'function' && invoicePaymentsOn())) return null;
+      return mod.createStore({ client: supabase, enabled: true, role: currentUserRole });
+    }
+    function ipMoney(v) { return v == null ? 'Tax pending' : fmtMoney(v, 'USD'); }
+    function ipWho(id) { const L = invPayLast; return !id ? 'someone' : (L && L.myId && id === L.myId) ? 'you' : 'a team member'; }
+    async function loadInvoicePayments() {
+      const host = document.getElementById('invoicePaymentsHost'); if (!host) return;
+      const store = invPayStore();
+      if (!store) { host.replaceChildren(); return; }
+      const seq = ++invPaySeq;
+      const wrap = (mode, ...kids) => h('div', { class: 'invoicePayments u-mb-16', 'data-ipmode': mode }, h('h3', { class: 'u-fs-13 u-c-navy u-m-18-0-6' }, 'Invoice payments'), ...kids);
+      if (currentUserRole !== 'owner' && currentUserRole !== 'administrator') {
+        host.replaceChildren(wrap('forbidden', h('p', { class: 'hint' }, 'Payments are visible to the owner and administrators only.'))); return;
+      }
+      const pr = await store.probe(); if (seq !== invPaySeq) return;
+      if (!pr.ok) { host.replaceChildren(wrap('unavailable', h('p', { class: 'hint', 'data-ipnote': '1' }, pr.message))); return; }
+      const L = await store.list({ limit: 200 }); if (seq !== invPaySeq) return;
+      if (!L.ok) { host.replaceChildren(wrap('unavailable', h('p', { class: 'hint', 'data-ipnote': '1' }, L.message))); return; }
+      const invoices = L.invoices.filter(x => x.status && x.status !== 'draft');
+      const myId = await currentUserId().catch(() => null); if (seq !== invPaySeq) return;
+      invPayLast = { store, invoices, myId };
+      if (invPayOpen && !invoices.some(x => x.id === invPayOpen)) invPayOpen = null;
+      let pays = null;
+      if (invPayOpen) { pays = await store.listPayments(invPayOpen); if (seq !== invPaySeq) return; }
+      const open = invoices.find(x => x.id === invPayOpen) || null;
+      const rows = invoices.map(x => h('tr', { 'data-ipinvoice': x.id, 'data-ipstatus': x.status },
+        h('td', null, h('div', { class: 'taskTitle' }, x.number || '(no number)'), h('div', { class: 'u-fs-12 u-c-muted' }, (x.billTo && x.billTo.name) ? String(x.billTo.name).slice(0, 80) : 'Billing name not recorded')),
+        h('td', null, IP_STATUS[x.status] || x.status),
+        h('td', { class: 'num-cell' }, ipMoney(x.total)),
+        h('td', { class: 'num-cell' }, fmtMoney(x.paid || 0, 'USD')),
+        h('td', { class: 'num-cell' }, x.status === 'void' ? '—' : ipMoney(x.balance)),
+        h('td', null, h('button', { type: 'button', class: 'small secondary', 'data-ipopen': x.id, 'aria-expanded': String(x.id === invPayOpen) }, x.id === invPayOpen ? 'Hide payments' : 'Payments'))));
+      const list = invoices.length
+        ? h('table', { class: 'phoneCards u-mt-6' }, h('thead', null, h('tr', null, h('th', null, 'Invoice'), h('th', null, 'Status'), h('th', { class: 'num-cell' }, 'Total'), h('th', { class: 'num-cell' }, 'Paid'), h('th', { class: 'num-cell' }, 'Still owed'), h('th', null, h('span', { class: 'srOnly' }, 'Action')))), h('tbody', null, rows))
+        : h('p', { class: 'empty' }, 'No issued invoices yet. Payments can be recorded once an invoice is issued.');
+      host.replaceChildren(wrap('stored',
+        h('p', { class: 'hint u-mt-n2' }, 'Recorded payments from the database. Paid amounts and status follow the recorded payments; a payment entered in error is reversed with a reason, never edited or deleted.'),
+        h('p', { class: 'u-fs-12 u-mt-4', role: 'status', 'data-ipmessage': '1' }, invPayMessage),
+        list,
+        open ? invPayDetail(open, pays) : null));
+    }
+    function invPayDetail(inv, pays) {
+      const canPay = inv.status === 'issued' || inv.status === 'partially_paid';
+      let history;
+      if (!pays || !pays.ok) history = h('p', { class: 'hint' }, pays ? pays.message : 'Payments could not be read.');
+      else if (!pays.payments.length) history = h('p', { class: 'empty' }, 'No payments recorded yet.');
+      else history = h('table', { class: 'phoneCards u-mt-6', 'data-iphistory': String(pays.payments.length) },
+        h('thead', null, h('tr', null, h('th', null, 'Received'), h('th', { class: 'num-cell' }, 'Amount'), h('th', null, 'How'), h('th', null, 'Reference'), h('th', null, 'Recorded'), h('th', null, h('span', { class: 'srOnly' }, 'Action')))),
+        h('tbody', null, pays.payments.map(p => h('tr', { 'data-ippayment': p.id, 'data-ipreversed': String(p.reversed) },
+          h('td', null, p.receivedOn || '—'),
+          h('td', { class: 'num-cell' }, p.reversed ? h('s', null, fmtMoney(p.amount, 'USD')) : fmtMoney(p.amount, 'USD')),
+          h('td', null, p.method ? (IP_METHOD[p.method] || p.method) : '—'),
+          h('td', null, p.reference || '—', p.note ? h('div', { class: 'u-fs-12 u-c-muted' }, p.note) : null),
+          h('td', null, 'by ' + ipWho(p.recordedBy) + (p.recordedAt ? ' · ' + fmtDate(p.recordedAt) : ''),
+            p.reversed ? h('div', { class: 'u-fs-12 taskTitle' }, 'Reversed by ' + ipWho(p.reversal.recordedBy) + ': ' + (p.reversal.reason || '')) : null),
+          h('td', null, p.reversed ? null : (invPayReverse === p.id
+            ? h('form', { 'data-ipreverseform': p.id, class: 'heForm u-mt-4', novalidate: '' },
+                h('div', { class: 'heField' }, h('label', { for: 'ipReason-' + p.id }, 'Why reverse it? (required)'),
+                  h('input', { id: 'ipReason-' + p.id, name: 'reason', type: 'text', maxlength: '500', autocomplete: 'off' })),
+                h('div', { class: 'u-mt-4' }, h('button', { type: 'submit', class: 'small deny' }, 'Reverse payment'), ' ', h('button', { type: 'button', class: 'small secondary', 'data-ipreversecancel': p.id }, 'Cancel')))
+            : h('button', { type: 'button', class: 'small secondary', 'data-ipreverse': p.id }, 'Reverse')))))));
+      const today = localDateString(new Date());
+      const field = (id, label, input) => h('div', { class: 'heField' }, h('label', { for: id }, label), input);
+      const form = canPay ? h('form', { 'data-ippayform': inv.id, class: 'heForm u-mt-12 u-pt-16 u-bt-1-solid-line', novalidate: '' },
+        h('h4', null, 'Record a payment'),
+        h('p', { class: 'hint' }, 'Still owed: ' + ipMoney(inv.balance) + '. A payment cannot be more than that.'),
+        field('ipAmount', 'Amount received ($)', h('input', { id: 'ipAmount', name: 'amount', type: 'text', inputmode: 'decimal', autocomplete: 'off', placeholder: '0.00' })),
+        field('ipDate', 'Date received', h('input', { id: 'ipDate', name: 'receivedOn', type: 'date', value: today, max: today })),
+        field('ipMethod', 'How it was paid', h('select', { id: 'ipMethod', name: 'method' }, h('option', { value: '' }, 'Not recorded'), Object.keys(IP_METHOD).map(k => h('option', { value: k }, IP_METHOD[k])))),
+        field('ipRef', 'Reference (check number or transfer reference, optional)', h('input', { id: 'ipRef', name: 'reference', type: 'text', maxlength: '120', autocomplete: 'off' })),
+        field('ipNote', 'Note (optional)', h('input', { id: 'ipNote', name: 'note', type: 'text', maxlength: '500', autocomplete: 'off' })),
+        h('div', { class: 'u-mt-8' }, h('button', { type: 'submit' }, 'Record payment')))
+        : h('p', { class: 'hint u-mt-8' }, inv.status === 'paid' ? 'Paid in full. Reverse a payment above if one was entered in error.' : 'This invoice is void; payments cannot be recorded against it.');
+      return h('div', { class: 'u-mt-8', 'data-ipdetail': inv.id, tabindex: '-1' },
+        h('h4', null, 'Payments on ' + (inv.number || 'this invoice')),
+        history, form);
+    }
+    async function invPayAfter(res, okText, focusSel) {
+      invPayMessage = res.ok ? (res.message || okText) : res.message;
+      announce(invPayMessage);
+      if (res.ok) { await loadInvoicePayments(); const el = focusSel && document.querySelector(focusSel); if (el) el.focus(); }
+      else { const m = document.querySelector('#invoicePaymentsHost [data-ipmessage]'); if (m) m.textContent = invPayMessage; }
+    }
+    document.addEventListener('click', async (e) => {
+      const t = e.target.closest('#invoicePaymentsHost [data-ipopen], #invoicePaymentsHost [data-ipreverse], #invoicePaymentsHost [data-ipreversecancel]'); if (!t) return;
+      if (t.hasAttribute('data-ipopen')) {
+        const id = t.getAttribute('data-ipopen'); invPayOpen = invPayOpen === id ? null : id; invPayReverse = null; invPayMessage = '';
+        await loadInvoicePayments();
+        const d = invPayOpen && document.querySelector('#invoicePaymentsHost [data-ipdetail]');
+        if (d) d.focus(); else refocusLike(t, 'invoicePaymentsHost');
+        return;
+      }
+      if (t.hasAttribute('data-ipreverse')) { invPayReverse = t.getAttribute('data-ipreverse'); await loadInvoicePayments(); const i = document.getElementById('ipReason-' + invPayReverse); if (i) i.focus(); return; }
+      invPayReverse = null; await loadInvoicePayments(); refocusLike(t, 'invoicePaymentsHost');
+    });
+    document.addEventListener('submit', async (e) => {
+      const f = e.target.closest('#invoicePaymentsHost form[data-ippayform], #invoicePaymentsHost form[data-ipreverseform]'); if (!f) return;
+      e.preventDefault();
+      const L = invPayLast; if (!L || !L.store) return;
+      const btn = f.querySelector('button[type="submit"]');
+      if (btn && btn.disabled) return;
+      if (!f.dataset.ipKey) f.dataset.ipKey = newRequestKey();
+      const v = (n) => { const el = f.elements[n]; return el ? el.value : ''; };
+      if (btn) btn.disabled = true;
+      let res;
+      try {
+        if (f.hasAttribute('data-ippayform')) {
+          const inv = L.invoices.find(x => x.id === f.getAttribute('data-ippayform'));
+          res = await L.store.recordPayment({ requestKey: f.dataset.ipKey, invoiceId: f.getAttribute('data-ippayform'), amount: v('amount'), receivedOn: v('receivedOn'), method: v('method'), reference: v('reference'), note: v('note'), balance: inv ? inv.balance : null });
+        } else {
+          res = await L.store.reversePayment({ requestKey: f.dataset.ipKey, paymentId: f.getAttribute('data-ipreverseform'), reason: v('reason') });
+          if (res.ok) invPayReverse = null;
+        }
+      } finally { if (btn && document.contains(btn)) btn.disabled = false; }
+      if (res.ok) delete f.dataset.ipKey;
+      await invPayAfter(res, 'Saved.', '#invoicePaymentsHost [data-ipmessage]');
+    });
+
     // ---------- #08 Payment reconciliation review (behind reconcileOn)
     // A worked synthetic example on Accounting: invoices that should have been
     // paid vs payments recorded. Every difference is named and stays OPEN until
@@ -3449,7 +3584,7 @@
       qualityControlPanel: [loadQualityChecks],
       recallsPanel: [loadRecalls],
       expensesPanel: [loadExpenses, loadDeletedExpenses],
-      accountingPanel: [loadAccounting, loadReconcile],
+      accountingPanel: [loadAccounting, loadReconcile, loadInvoicePayments],
       taxRecordsPanel: [loadTaxRecords],
       tasksPanel: [loadTasks],
       incidentsPanel: [loadIncidents],

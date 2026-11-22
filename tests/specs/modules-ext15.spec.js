@@ -152,13 +152,16 @@ const ADDED = ['focusDialog', 'inspectLabel', 'keyLink', 'setReportHistoryView',
   'workbenchDeps', 'workbenchSave', 'loadSalesWorkbench', 'findWorkbenchStore',
   // Supplier document storage (drafts/36), behind he_supplier_documents_store (OFF).
   'supplierDocsSeq', 'supplierDocsLast', 'SD_WORD', 'sdPerson', 'sdStore', 'sdRecordForm', 'sdHistory', 'sdSettings', 'sdAfter', 'supplierDocsStoreOn',
+  // Nov 22: invoice payments on Accounting (drafts/32, behind he_invoice_payments)
+  'invPaySeq', 'invPayOpen', 'invPayReverse', 'invPayLast', 'invPayMessage', 'IP_METHOD', 'IP_STATUS', 'invPayStore', 'ipMoney', 'ipWho',
+  'loadInvoicePayments', 'invPayDetail', 'invPayAfter', 'invoicePaymentsOn',
   // Nov 21 (owner decision 4): hand-off to the owner and owner-only files.
   'sdHandoffForm', 'sdHandoffsForOwner', 'sdSha256',
   // Nov 21 (D-ops-5): the partial receiving example (partialReceivingOn OFF). The
   // delegated [data-partialrcv] listener is waived by text below.
   'partialReceivingShown', 'loadPartialReceiving', 'partialReceivingOn'];
 const NEW_MODULES = ['he-ops']; // EXT16: written new, not moved
-const CHANGED_TEXT = ["} = window.HE.helpers;", "forEach(o => Object.setPrototypeOf(o, null))", "supabase.auth.onAuthStateChange((event, session) =>", "getAttribute('data-view')", "getElementById('adjustInventoryForm').addEventListener('submit'", "getElementById('logReturnForm').addEventListener('submit'", "getElementById('retOrder').addEventListener('change'", "Release to refresh", "getElementById('docCategory')",
+const CHANGED_TEXT = ["} = window.HE.helpers;", "closest('#invoicePaymentsHost [data-ipopen]", "closest('#invoicePaymentsHost form[data-ippayform]", "forEach(o => Object.setPrototypeOf(o, null))", "supabase.auth.onAuthStateChange((event, session) =>", "getAttribute('data-view')", "getElementById('adjustInventoryForm').addEventListener('submit'", "getElementById('logReturnForm').addEventListener('submit'", "getElementById('retOrder').addEventListener('change'", "Release to refresh", "getElementById('docCategory')",
   // EXT20J-post-TT: the 4 static overlay scaffolds converted innerHTML->h(); each
   // card class is unique to its statement and present in both the old class="x"
   // and the new class:'x' form, so it waives exactly that one statement.
