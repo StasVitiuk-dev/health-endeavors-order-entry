@@ -52,6 +52,8 @@ UTC day) and says which count the report agrees with.
 | The query text | one statement; no word that could change data |
 | Output | six columns; no customer name |
 
+Re-checked on 2026-11-22 (commit `62e2ea8`): fingerprint unchanged; `report_day_cutoff_test.sh` 24 of 24, run again on a fresh throwaway copy.
+
 ## Sample summary (made-up data, run read-only on 2026-11-16)
 
 Fourteen made-up days, 3–5 orders a day, with an evening order every third day

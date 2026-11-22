@@ -64,6 +64,8 @@ once, decides once. Approval is refused if the stock changed since the count.
 | `local-test/stock_count_adjustments_test.sh` — propose, owner-only approval (by function and by direct edit), blind counts, stale counts, simultaneous approvals, grant/revoke, no stock figure changed, rollback | 90 of 90 |
 | `tests/specs/inventory-count-ext21.spec.js` and `cycle-count-wiring-ext21.spec.js` — the screen's rules | pass (full test pass) |
 
+Re-checked on 2026-11-22 (commit `62e2ea8`): fingerprints unchanged; `stock_count_adjustments_test.sh` 90 of 90 and `stock_count_apply_once_test.sh` 17 of 17 (a count approved twice changes stock once), run again on a fresh throwaway copy.
+
 ## After running: checks (read-only)
 
 ```sql

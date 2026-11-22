@@ -92,6 +92,8 @@ other buckets (receipts, evidence, documents) are not touched.
 | `tests/specs/supplier-docs-storage-ext22.spec.js` | the page in a browser against both drafts: record, refresh, approve; double clicks and lost replies; staff refused for an order they cannot see; hand-off and owner linking; attach; owner gets a 60-second link; approval records the exact file approved; an administrator the page mistakes for the owner is refused by the database and the storage rules | 13 of 13 desktop, 11 of 11 iPhone size, each repeated 3 times |
 | `tests/specs/sql-drafts-static.spec.js` | the exact rule text is pinned; no elevated functions; search path fixed; nothing granted to visitors; no other drops or deletes | pass |
 
+Re-checked on 2026-11-22 (commit `62e2ea8`): fingerprints unchanged; database tests 125 of 125 and 30 of 30, adapter 63 of 63, run again on fresh throwaway copies.
+
 ## After running: checks (read-only)
 
 After draft 36:
