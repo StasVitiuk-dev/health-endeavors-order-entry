@@ -72,6 +72,20 @@ said. I stop, fix only that, and send you a new link to check again.
 | P4 | Turn the phone sideways on Inventory | the form fields still line up |
 | P5 | Pull down on a page | it refreshes; nothing is lost |
 
+## iPhone Duo, if you have one (4) — added Nov 22
+
+The folding iPhone (on sale since Oct 23, 2026). Closed, it behaves like a phone;
+open, its screen is wider than any phone this dashboard was built for. The test
+browser here imitates the sizes (about 466 points wide closed, 626 open, 890 open
+and sideways), but not the fold itself.
+
+| # | Do this | You should see |
+|---|---|---|
+| F1 | Closed: sign in, open the menu (☰), pick Orders, then Inventory | one card per order, the add form in one column; nothing scrolls sideways |
+| F2 | Open it (upright) on Orders, then Expenses | the menu is still behind ☰; orders are one card each, with the full date and the Delete button in view; the page itself never scrolls sideways |
+| F3 | Open and turned sideways, on Home and Inventory | the menu stays on the left; the page next to it is readable without zooming |
+| F4 | Closed on Inventory, start typing a product name; open the phone; turn it; close it again | the typed text is still there; no dark shade is left over the page; the menu is not stuck half open |
+
 ## VoiceOver (5) — Mac: Command-F5 · iPhone: Settings → Accessibility → VoiceOver
 
 | # | Do this | You should hear |

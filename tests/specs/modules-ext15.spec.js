@@ -202,7 +202,10 @@ const CHANGED_TEXT = ["} = window.HE.helpers;", "forEach(o => Object.setPrototyp
   // Nov 21: the hand-off form's submit listener (anonymous top-level stmt).
   "e.target.closest('form[data-sdhandoff]')",
   // Nov 21: the partial receiving example's tab listener (anonymous top-level stmt).
-  "e.target.closest('[data-partialrcv]')"];
+  "e.target.closest('[data-partialrcv]')",
+  // Nov 22: closing the phone menu when an iPhone Duo is folded or unfolded
+  // across the 820-point line (anonymous top-level try statement).
+  "window.matchMedia('(max-width: 820px)')"];
 
 test('the module moves were byte-identical: every original statement once, only the named edits differ', ({}, ti) => {
   nodeOnly(ti);

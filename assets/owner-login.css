@@ -714,8 +714,12 @@
   /* EXT10 (U38): wide tables become one card per row on a phone. The cell's
      column name is shown before its value; the header row stays available to
      screen readers but is not drawn. Cells without a heading (row buttons)
-     sit at the bottom of the card. */
-  @media (max-width: 600px){
+     sit at the bottom of the card.
+     Nov 22: up to 700 px (was 600), so an iPhone Duo opened upright (about
+     626 points) gets the cards too. Between 600 and 700 a table was a little
+     too wide: dates were cut short and the Delete buttons sat out of sight in
+     a sideways scroll. Wider screens (iPad, computer) are unaffected. */
+  @media (max-width: 700px){
     /* X10-23: the text takes the whole line so buttons wrap below it (min-width:0 let it shrink to a sliver) */
     .approvalRow .info, .deletedRow .info, .sessionRow .info{ flex-basis:100%; }
     /* Nov 16: the same for rows whose text carries a flex utility (Returns): a

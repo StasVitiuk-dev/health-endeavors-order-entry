@@ -69,8 +69,14 @@
     0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
     0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
     0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2];
+  // Only real bytes are fingerprinted; anything else gets null (never a throw).
   function sha256Hex(bytes) {
-    const b = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes || []);
+    let b;
+    if (bytes instanceof Uint8Array) b = bytes;
+    else if (bytes instanceof ArrayBuffer) b = new Uint8Array(bytes);
+    else if (ArrayBuffer.isView(bytes)) b = new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    else return null;
+    if (b.length > MAX_FILE_BYTES) return null;
     const n = b.length, total = Math.ceil((n + 9) / 64) * 64;
     const m = new Uint8Array(total); m.set(b); m[n] = 0x80;
     const dv = new DataView(m.buffer);
@@ -95,9 +101,13 @@
     }
     return H.map(x => (x >>> 0).toString(16).padStart(8, '0')).join('');
   }
-  // The page's fingerprint of a chosen file: the browser's own when offered, otherwise sha256Hex.
+  // The page's fingerprint of a chosen file: the browser's own when offered,
+  // otherwise sha256Hex. Not a readable file: null (the attach then refuses).
   async function fileSha256(file) {
-    const buf = await file.arrayBuffer();
+    if (!file || typeof file.arrayBuffer !== 'function') return null;
+    let buf;
+    try { buf = await file.arrayBuffer(); } catch (e) { return null; }
+    if (!(buf instanceof ArrayBuffer) || buf.byteLength > MAX_FILE_BYTES) return null;
     const subtle = typeof crypto !== 'undefined' && crypto && crypto.subtle;
     if (subtle && typeof subtle.digest === 'function') {
       try { const dig = await subtle.digest('SHA-256', buf); return Array.from(new Uint8Array(dig)).map(x => x.toString(16).padStart(2, '0')).join(''); }

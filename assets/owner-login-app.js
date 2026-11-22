@@ -824,6 +824,14 @@
       document.getElementById('sidebarOverlay').classList.toggle('visible');
     });
     document.getElementById('sidebarOverlay').addEventListener('click', closeMobileSidebar);
+    // iPhone Duo (Nov 22): folding, unfolding or turning it can cross the
+    // 820-point line where the menu changes between a drawer and a column. Close
+    // the drawer then, so it is never left open over the page after folding back.
+    try {
+      const menuWidth = window.matchMedia('(max-width: 820px)');
+      if (menuWidth.addEventListener) menuWidth.addEventListener('change', closeMobileSidebar);
+      else if (menuWidth.addListener) menuWidth.addListener(closeMobileSidebar);   // older Safari
+    } catch (e) { /* no matchMedia: nothing to follow */ }
     toastHost.id = 'toastHost';
     // Screen readers announce confirmations politely. Error toasts repeat the
     // error banner (role="alert", already announced), so they stay silent.

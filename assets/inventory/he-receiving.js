@@ -203,6 +203,7 @@
   }
   // Re-adds every movement from the starting figures: the ledger must agree with itself.
   function reconcile(ledger, start) {
+    if (!ledger || !isObj(ledger.products) || !Array.isArray(ledger.movements)) return { ok: false, problems: ['not a ledger'] };
     const out = [];
     Object.keys(ledger.products).forEach(sku => {
       const s0 = (start && start[sku]) || { available: 0, damaged: 0 };
