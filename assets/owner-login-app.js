@@ -84,7 +84,7 @@
       nightlyOverall,
     } = window.HE.helpers;
     // @@ EXT15 modules: created in dependency order (assets/app/*.js; see docs/ops/APPLICATION_MODULE_MAP_EXT15.md)
-    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn } = HE.modules.create('he-config', {  });
+    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn } = HE.modules.create('he-config', {  });
     const { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, focusDialog, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, h, pageIconNode } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
     const { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
     const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, h, supabase });
@@ -2894,6 +2894,76 @@
       refocusLike(t, 'cycleCountHost');
     });
 
+    // ---------- D-ops-5 / INV-17 Partial receiving and returns (behind partialReceivingOn)
+    // The owner's Nov 21 example, step by step: 20 ordered, 8 then 12 received,
+    // 3 sent back to the supplier, a customer returns 2 sellable + 1 damaged, with
+    // the refused duplicates and over-quantities in between. Example data from
+    // he-receiving.js; NO stock is written. OFF by default (host renders empty).
+    let partialReceivingShown = 'steps';      // 'steps' | 'history' | 'rules'
+    function loadPartialReceiving() {
+      const host = document.getElementById('partialReceivingHost'); if (!host) return;
+      if (!(typeof partialReceivingOn === 'function' && partialReceivingOn())) { host.replaceChildren(); return; }
+      const eng = invMod('he-receiving');
+      if (!eng) { host.replaceChildren(h('p', { class: 'empty' }, 'Partial receiving tools could not load.')); return; }
+      const w = eng.workedExample();
+      const signed = n => (n > 0 ? '+' : '') + n;
+      const BW = { available: 'Available', damaged: 'Damaged' };
+      const outcome = s => s.kind === 'start' ? '—' : s.duplicate ? 'Already recorded: nothing changed' : s.ok ? 'Recorded' : 'Refused: ' + s.reason;
+      const moveText = s => s.movements.length ? s.movements.map(m => BW[m.bucket] + ' ' + signed(m.change) + ' (' + m.before + ' → ' + m.after + ')').join('; ') : 'no change';
+      const tab = (k, label) => h('button', { type: 'button', class: 'small' + (partialReceivingShown === k ? '' : ' secondary'), 'data-partialrcv': k, 'aria-pressed': String(partialReceivingShown === k) }, label);
+      let body;
+      if (partialReceivingShown === 'history') {
+        body = h('div', { class: 'u-mt-8', 'data-partialrcv-history': String(w.history.length) },
+          h('h4', null, 'History (' + w.history.length + ' changes)'),
+          h('ol', null, w.history.map(e => h('li', null, String(e.at).slice(0, 16).replace('T', ' ') + ' UTC — ' + e.by + ': ' + e.what + (e.note ? ' — ' + e.note : '')))),
+          h('h4', { class: 'u-mt-8' }, 'Stock movements (' + w.movements.length + ')'),
+          h('table', { class: 'phoneCards u-mt-6' },
+            h('thead', null, h('tr', null, h('th', null, '#'), h('th', null, 'Stock'), h('th', { class: 'num-cell' }, 'Before'), h('th', { class: 'num-cell' }, 'Change'), h('th', { class: 'num-cell' }, 'After'), h('th', null, 'Why'))),
+            h('tbody', null, w.movements.map(m => h('tr', null, h('td', null, String(m.n)), h('td', null, BW[m.bucket]), h('td', { class: 'num-cell' }, String(m.before)), h('td', { class: 'num-cell' }, signed(m.change)), h('td', { class: 'num-cell' }, String(m.after)), h('td', null, m.why))))),
+          h('h4', { class: 'u-mt-8' }, 'Refused, and recorded as refused (' + w.refusals.length + ')'),
+          h('ul', null, w.refusals.map(r => h('li', null, (r.by || 'someone') + ': ' + r.reason))),
+          h('p', { class: 'hint u-mt-6', 'data-partialrcv-reconcile': w.reconcile.ok ? 'ok' : 'problem' }, w.reconcile.ok ? 'Check: adding every movement to the starting stock gives today\'s stock exactly.' : 'Check failed: ' + w.reconcile.problems.join('; ')));
+      } else if (partialReceivingShown === 'rules') {
+        body = h('div', { class: 'u-mt-8', 'data-partialrcv-rules': '1' },
+          h('h4', null, 'The stock rules for your review (D-ops-5)'),
+          h('ol', null,
+            h('li', null, 'Whole units only; at least one unit each time.'),
+            h('li', null, 'A delivery can never be more than is still to come on that order line. If a supplier sends extra, the order is changed first.'),
+            h('li', null, 'A delivery with several lines is recorded completely or not at all.'),
+            h('li', null, 'Delivered units go to Available, or to Damaged when they arrive damaged. Both count as received.'),
+            h('li', null, 'Units sent back to the supplier can never be more than were received and kept on that order, or more than the chosen stock holds. Sending units back does not reopen the order.'),
+            h('li', null, 'A customer return can never be more than was sold and not yet returned. Sellable units go to Available; damaged units go to Damaged.'),
+            h('li', null, 'Every submission has its own key: sending it again changes nothing.'),
+            h('li', null, 'Only the owner or an administrator changes stock, as today.'),
+            h('li', null, 'Every change records who, when, why and the stock before and after. Refusals are recorded too. Nothing is edited or deleted; a mistake is corrected by a new entry.')),
+          h('p', { class: 'hint u-mt-6' }, 'Your decisions on these rules are listed in docs/ops/PARTIAL_RECEIVING_RULES_2026-11-21.md.'));
+      } else {
+        body = h('table', { class: 'phoneCards u-mt-8', 'data-partialrcv-steps': String(w.steps.length) },
+          h('thead', null, h('tr', null, h('th', null, 'Step'), h('th', { class: 'num-cell' }, 'Received'), h('th', { class: 'num-cell' }, 'Still to come'),
+            h('th', { class: 'num-cell' }, 'Sent back'), h('th', { class: 'num-cell' }, 'Customer returned'), h('th', { class: 'num-cell' }, 'Available'), h('th', { class: 'num-cell' }, 'Damaged'))),
+          h('tbody', null, w.steps.map(s => h('tr', { 'data-partialrcv-step': String(s.n), 'data-partialrcv-kind': s.kind },
+            // the first cell: a phone card shows it full width, as the card's title
+            h('td', null, h('div', null, h('div', null, s.n + '. ' + s.title),
+              s.kind === 'start' ? null : h('div', { class: 'u-fs-12 u-mt-4' + (s.ok && !s.duplicate ? ' u-c-muted' : ' taskTitle'), 'data-partialrcv-result': s.ok ? (s.duplicate ? 'duplicate' : 'recorded') : 'refused' }, outcome(s)),
+              s.kind === 'start' ? null : h('div', { class: 'u-fs-12 u-c-muted' }, 'Stock: ' + moveText(s)))),
+            h('td', { class: 'num-cell' }, s.received + ' of ' + s.ordered), h('td', { class: 'num-cell' }, String(s.toCome)), h('td', { class: 'num-cell' }, String(s.returnedToSupplier)),
+            h('td', { class: 'num-cell' }, s.customerReturned + ' of ' + s.sold), h('td', { class: 'num-cell' }, String(s.available)), h('td', { class: 'num-cell' }, String(s.damaged))))));
+      }
+      host.replaceChildren(h('div', { class: 'partialReceiving u-mb-16' },
+        h('div', { class: 'scanHead' }, h('h3', null, 'Partial receiving and returns'), h('span', { class: 'scanBadge' }, 'SIMULATED — example data, no stock is written')),
+        h('p', { class: 'hint u-mt-6' }, 'Example: purchase order SYN-PO-020 for 20 jars of ' + w.sku + '. 8 arrive first and 12 later; 3 go back to the supplier; a customer returns 3 jars (2 sellable, 1 damaged). Duplicate and too-large submissions are refused.'),
+        h('div', { class: 'scanToggleRow u-mt-8' }, tab('steps', 'Step by step'), tab('history', 'History and movements'), tab('rules', 'The rules')),
+        body,
+        h('p', { class: 'hint u-mt-8' }, 'Nothing here changes stock. Live stock still changes only through the reviewed database functions (drafts/10, behind their switches). Partial deliveries and split returns need their own reviewed change once you have decided on these rules (D-ops-5).')));
+    }
+    document.addEventListener('click', (e) => {
+      const t = e.target.closest('[data-partialrcv]'); if (!t) return;
+      partialReceivingShown = t.getAttribute('data-partialrcv');
+      loadPartialReceiving();
+      announce(partialReceivingShown === 'history' ? 'Showing the history and stock movements.' : partialReceivingShown === 'rules' ? 'Showing the stock rules.' : 'Showing the example step by step.');
+      refocusLike(t, 'partialReceivingHost');
+    });
+
     // ---------- #70/#71 Scheduled-report version history + simulated delivery
     // (behind reportVersionsOn). Shows the schedule check (which days ran /
     // missed), immutable versions with a rerun appended (new checksum, history
@@ -3356,7 +3426,7 @@
       dailySummaryPanel: [loadDailySummary],
       reportHistoryPanel: [loadReportHistoryThenExport, loadRecoveryDrill, loadInvoicePreview, loadReportVersions],
       ordersPanel: [loadOrders, paintScanEntry, loadSavedViews],
-      inventoryPanel: [loadInventory, loadInventoryAdjustments, loadReorderPlanning, loadSavedViews, loadCycleCount],
+      inventoryPanel: [loadInventory, loadInventoryAdjustments, loadReorderPlanning, loadSavedViews, loadCycleCount, loadPartialReceiving],
       returnsPanel: [loadReturns],
       suppliersPanel: [loadSuppliers, loadSupplierScorecard, loadSupplierDocs],
       purchaseOrdersPanel: [loadPurchaseOrders],
