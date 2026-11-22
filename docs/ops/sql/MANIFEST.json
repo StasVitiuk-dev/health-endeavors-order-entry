@@ -459,6 +459,32 @@
       "effect": "drops the two storage rules and the upload check, and removes the empty bucket",
       "postcheck": "select count(*) from storage.buckets where id = 'supplier-documents' = 0",
       "dynamicSql": "one format() with fixed names and values (%I / %L)"
+    },
+    {
+      "file": "drafts/40_DRAFT_partial_receiving_returns.sql",
+      "id": "40",
+      "class": "PRODUCTION-CHANGE-DRAFT",
+      "step": "optional (after the owner's D-ops-5 decisions; needed before partial deliveries and inspected customer returns are used)",
+      "dependsOn": [],
+      "risk": "MEDIUM",
+      "rollback": "41",
+      "precheck": "stops if auth.uid(), current_role(), is_active_staff(), is_owner_or_admin() or the purchase_orders, purchase_order_items, inventory, inventory_adjustments, returns, order_items or products table is missing",
+      "effect": "6 new tables (receiving records and lines, supplier returns, customer return inspections, stock movements, stock corrections); staff submit, the owner approves before any stock changes; surplus logged for the owner; rejected units stay outstanding; damaged kept go to Damaged; supplier returns reopen the outstanding quantity only when a replacement is expected; customer returns wait for inspection, opened or used never restocked; corrections are linked reversing movements with reason and approver; request keys and row locks against retries and simultaneous approvals; on approval only: inventory buckets, purchase_order_items.quantity_received, purchase_orders.status, inventory_adjustments",
+      "postcheck": "the six tables present and empty; anon cannot read them; local-test/partial_receiving_test.sh passes on a throwaway copy",
+      "lock": "NONE at install (new tables only); approvals lock the purchase-order lines and inventory rows they change",
+      "dynamicSql": "the stock bucket name (from the fixed list available, damaged, checked by the table) is placed with format() and %I; values are passed as $n parameters"
+    },
+    {
+      "file": "drafts/41_DRAFT_rollback_partial_receiving_returns.sql",
+      "id": "41",
+      "class": "ROLLBACK",
+      "rollbackOf": "40",
+      "dependsOn": [],
+      "risk": "LOW",
+      "precheck": "stops, removing nothing, if any stock movement exists, or if any request exists and its deletion was not authorized in the session",
+      "effect": "drops the functions, guards and the six tables",
+      "postcheck": "to_regclass('public.stock_movements') is null",
+      "dynamicSql": "format() with fixed names (%I) to lock and count the tables only where they exist"
     }
   ],
   "local": [

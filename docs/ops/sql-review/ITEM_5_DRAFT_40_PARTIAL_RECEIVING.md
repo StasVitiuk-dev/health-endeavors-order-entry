@@ -1,0 +1,124 @@
+# Review item 5 — SQL draft 40: partial receiving and returns (D-ops-5)
+
+Status: OWNER DECISION REQUIRED · PROPOSED 2026-11-22 · production run PENDING your separate approval
+Nothing here has been run in production. I never run it myself: you run it, after approving it.
+
+## The exact SQL
+
+| File | Lines | Fingerprint (SHA-256, first 16) |
+|---|---|---|
+| `docs/ops/sql/drafts/40_DRAFT_partial_receiving_returns.sql` (install) | 999 | `80d3cb0848c7bd0c` |
+| `docs/ops/sql/drafts/41_DRAFT_rollback_partial_receiving_returns.sql` (undo) | 77 | `b18e96ee20ccbd41` |
+
+Before running, the file you paste must show the same fingerprint
+(Terminal: `shasum -a 256 40_DRAFT_partial_receiving_returns.sql`).
+
+## Target environment
+
+The Health Endeavors **production** Supabase project, in Supabase → SQL Editor, by
+you. Tested only on throwaway local copies with made-up data.
+
+## Purpose: your rules of Nov 22, in the database
+
+| Your rule | What draft 40 does | Staging test section |
+|---|---|---|
+| Log surplus deliveries separately for owner review | Units beyond what is still to come are entered as **surplus** on the receiving line, only once the line is complete. They are not in stock. You decide: **kept** (goes into Available, with its own movement) or **returned** (no stock change). | 5 |
+| Record rejected deliveries separately; leave their quantity outstanding | Each line has a **rejected** count with a required reason. Rejected units are never received, so they stay "still to come" on the purchase order. | 3 |
+| Damaged goods we keep go into a damaged status | Damaged units we keep go into the **Damaged** bucket when you approve, and count as received. | 4 |
+| Reopen outstanding quantities for supplier returns only when a replacement is expected | A return to the supplier says whether a **replacement is expected**. Only then does the quantity become "still to come" again, and a completed order goes back to Ordered. Without one, the order stays as it is. | 7 |
+| Staff submit receiving records for permitted purchase orders; owner approval before stock changes | Staff (and administrators) submit for purchase orders their row rules let them see. **Stock never changes on a submission**, only when you approve. Only you approve, reject or decide. The submitter, or you, can cancel a request that is still waiting. | 1, 6 |
+| Customer returns into "Awaiting inspection"; opened or used skincare stays unavailable | A customer return is recorded as **awaiting inspection**, with no stock change, so it is not for sale. You inspect and give every unit an outcome: restock, damaged or unsuitable, and say whether it was opened and whether it was used. **Opened or used units can never be restocked**: the database refuses it, and a table rule refuses it too. Unsuitable units go to Damaged (there is no separate stock bucket for them); the inspection keeps "unsuitable" as its own outcome. | 8 |
+| Corrections as linked stock movements with a reason and approver | You correct a movement with a reason. The database writes a new, reversing movement that points to the original and records you as the approver. The original is never edited. Each movement can be corrected once; a correction is not corrected again. A corrected delivery is "still to come" again. Stock can never go below zero. | 9 |
+
+Also in every case:
+- **Retries and double clicks:** each submission carries a request key, so sending it again records once.
+- **Two approvals at the same moment:** approvals lock the rows they change, so the same units are never counted twice, and nothing beyond what is still to come is received.
+- **History:** every change is a stock movement (bucket, change, who asked, who approved, why, where it came from), copied into `inventory_adjustments` so today's history screen shows it. Nobody can write, change or delete a movement by hand, the owner included.
+
+## What changes in the existing tables
+
+Draft 40 adds six new tables and changes the shape of no existing table. Only when
+**you approve** something does it change:
+- `inventory`: the Available and Damaged buckets, by the approved amounts;
+- `purchase_order_items.quantity_received`;
+- `purchase_orders.status`, which becomes Received when every line is complete (and Ordered again if a replacement or a correction reopens it);
+- `inventory_adjustments`, which gets one row per movement.
+
+## Who can see what (staff exposure)
+
+| Record | Staff | Owner and administrators |
+|---|---|---|
+| Receiving records and their lines | their own | all |
+| Returns to the supplier | their own | all |
+| Customer returns waiting for, or after, inspection | all (they receive returns) | all |
+| Stock movements and corrections | none | all |
+
+**Important, to confirm before production:** today's purchase-order rules let only you and
+administrators see purchase orders. Staff can submit only for purchase orders they can see,
+so **with today's rules staff cannot submit any receiving record**: the draft keeps that rule
+and does not widen it. If you want staff to record deliveries, letting them see some or all
+purchase orders is a separate decision (a separate, reviewed change). The staging test used
+a test-only rule letting staff see two made-up purchase orders.
+
+## Migration order and dependencies
+
+- Needs, in production: `auth.uid()`, `current_role()`, `is_active_staff()`, `is_owner_or_admin()`
+  and the `purchase_orders`, `purchase_order_items`, `inventory`, `inventory_adjustments`,
+  `returns`, `order_items` and `products` tables. If one is missing, it stops and changes nothing.
+- Depends on no other draft. Independent of the invoice, stock-count and supplier-document drafts.
+- The dashboard's existing whole-order receive and whole-line return (drafts/10) are **not changed**.
+  Switching the screens over to these functions is a later, separate step.
+- Safe to run twice.
+
+## Staging results (throwaway database, made-up data)
+
+| Test | Result |
+|---|---|
+| `local-test/partial_receiving_test.sh`: first delivery (staff submit, you approve); over-receiving; rejected units stay outstanding; damaged kept go to Damaged; surplus logged and decided; simultaneous approvals (two approvals of 7 on 10 outstanding: one goes through, one is refused; the same record approved 10 times: one movement); returns to the supplier with and without a replacement, and over the limit; customer returns inspected, opened ones refused for restock; corrections; the history cannot be written or changed by hand; stock reconciles; rollback | **74 of 74** |
+| SQL drafts static checks (no security definer, fixed search path, pinned row rules, functions not granted to visitors, rollback removes only its own tables) and the SQL package checks | 108 of 108 |
+| Dashboard prototype of the same rules (`assets/inventory/he-receiving.js`): unit tests | 12 of 12 |
+| The worked example on the Inventory page, computer and phone size | 5 of 5 (one phone-only check skipped on the computer) |
+| Malformed-input probe, assets, module and SQL checks, both sizes | 231 passed |
+
+## After running: checks (read-only, paste into the SQL editor)
+
+```sql
+select to_regclass('public.receiving_records') is not null as receiving_records,
+       to_regclass('public.stock_movements') is not null as stock_movements,
+       (select count(*) from public.stock_movements) as movements,
+       (select count(*) from public.receiving_records) as records,
+       has_table_privilege('anon', 'public.stock_movements', 'select') as visitors_can_read;
+```
+Expected: `true | true | 0 | 0 | false`. Anything else: stop and send me a screenshot.
+
+## Rollback and recovery
+
+- **Nothing submitted yet:** run file 41. It removes everything 40 added. Running it twice is harmless.
+- **Requests exist but no stock has moved:** file 41 refuses and says how many. If you decide they
+  can go, run `set he.rollback_delete_stock_requests = 'yes, delete the requests';` and then file 41,
+  in the same SQL editor session.
+- **Any stock has moved through this feature:** file 41 refuses, because the movements are the
+  record of real stock changes. Instead:
+  1. stop using the feature in the dashboard;
+  2. export `stock_movements`, `receiving_records`, `receiving_record_lines`, `supplier_returns`,
+     `customer_return_inspections` and `stock_corrections` (Export CSV);
+  3. I prepare a reviewed fix.
+- `inventory_adjustments` keeps every row it received in every case.
+- Restoring a whole Supabase backup is the last resort, because it rolls back everything.
+
+## Honest limits
+
+- The dashboard screens do not call these functions yet. The Inventory page shows the same rules
+  as a simulated example only (switch "Partial receiving and returns", off by default).
+- The draft uses only the caller's own permissions (no security definer, the project rule). Your
+  own permissions on inventory and purchase orders apply when you approve.
+- "Unsuitable" units sit in the Damaged bucket; the stock table has no separate bucket for them.
+- Refunds are not part of this; returns record stock only, as today.
+- The exact row rules on production's purchase-order tables must be confirmed before running
+  (see "Who can see what").
+
+## Your decision
+
+- [ ] Approve running draft 40 in production, or
+- [ ] Not yet.
+- [ ] Separately: should staff see purchase orders, so they can record deliveries? (yes / no / only some)

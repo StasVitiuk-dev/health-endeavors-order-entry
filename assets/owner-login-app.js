@@ -2903,10 +2903,14 @@
     });
 
     // ---------- D-ops-5 / INV-17 Partial receiving and returns (behind partialReceivingOn)
-    // The owner's Nov 21 example, step by step: 20 ordered, 8 then 12 received,
-    // 3 sent back to the supplier, a customer returns 2 sellable + 1 damaged, with
-    // the refused duplicates and over-quantities in between. Example data from
-    // he-receiving.js; NO stock is written. OFF by default (host renders empty).
+    // The owner's rules of Nov 22, step by step on made-up stock: staff record
+    // deliveries and the owner approves before stock changes; rejected units stay
+    // outstanding; surplus waits for the owner; damaged kept goes to Damaged; a
+    // supplier return reopens the order only when a replacement is expected;
+    // customer returns wait for inspection and opened or used skincare is never
+    // restocked; corrections are linked movements. Example data from
+    // he-receiving.js (the same rules as SQL draft 40); NO stock is written.
+    // OFF by default (host renders empty).
     let partialReceivingShown = 'steps';      // 'steps' | 'history' | 'rules'
     function loadPartialReceiving() {
       const host = document.getElementById('partialReceivingHost'); if (!host) return;
@@ -2916,53 +2920,57 @@
       const w = eng.workedExample();
       const signed = n => (n > 0 ? '+' : '') + n;
       const BW = { available: 'Available', damaged: 'Damaged' };
-      const outcome = s => s.kind === 'start' ? '—' : s.duplicate ? 'Already recorded: nothing changed' : s.ok ? 'Recorded' : 'Refused: ' + s.reason;
+      const WHO = { staff: 'Staff', owner: 'You' };
+      const outcome = s => s.kind === 'start' ? '—' : s.duplicate ? 'Already recorded: nothing changed' : !s.ok ? 'Refused: ' + s.reason
+        : s.kind === 'submit' ? 'Recorded, waiting for your decision' : 'Done';
       const moveText = s => s.movements.length ? s.movements.map(m => BW[m.bucket] + ' ' + signed(m.change) + ' (' + m.before + ' → ' + m.after + ')').join('; ') : 'no change';
       const tab = (k, label) => h('button', { type: 'button', class: 'small' + (partialReceivingShown === k ? '' : ' secondary'), 'data-partialrcv': k, 'aria-pressed': String(partialReceivingShown === k) }, label);
       let body;
       if (partialReceivingShown === 'history') {
         body = h('div', { class: 'u-mt-8', 'data-partialrcv-history': String(w.history.length) },
-          h('h4', null, 'History (' + w.history.length + ' changes)'),
+          h('h4', null, 'History (' + w.history.length + ' entries)'),
           h('ol', null, w.history.map(e => h('li', null, String(e.at).slice(0, 16).replace('T', ' ') + ' UTC — ' + e.by + ': ' + e.what + (e.note ? ' — ' + e.note : '')))),
           h('h4', { class: 'u-mt-8' }, 'Stock movements (' + w.movements.length + ')'),
           h('table', { class: 'phoneCards u-mt-6' },
-            h('thead', null, h('tr', null, h('th', null, '#'), h('th', null, 'Stock'), h('th', { class: 'num-cell' }, 'Before'), h('th', { class: 'num-cell' }, 'Change'), h('th', { class: 'num-cell' }, 'After'), h('th', null, 'Why'))),
-            h('tbody', null, w.movements.map(m => h('tr', null, h('td', null, String(m.n)), h('td', null, BW[m.bucket]), h('td', { class: 'num-cell' }, String(m.before)), h('td', { class: 'num-cell' }, signed(m.change)), h('td', { class: 'num-cell' }, String(m.after)), h('td', null, m.why))))),
+            h('thead', null, h('tr', null, h('th', null, '#'), h('th', null, 'Stock'), h('th', { class: 'num-cell' }, 'Before'), h('th', { class: 'num-cell' }, 'Change'), h('th', { class: 'num-cell' }, 'After'), h('th', null, 'Why'), h('th', null, 'Asked by'), h('th', null, 'Approved by'))),
+            h('tbody', null, w.movements.map(m => h('tr', { 'data-partialrcv-move': String(m.n) }, h('td', null, String(m.n)), h('td', null, BW[m.bucket]), h('td', { class: 'num-cell' }, String(m.before)), h('td', { class: 'num-cell' }, signed(m.change)), h('td', { class: 'num-cell' }, String(m.after)),
+              h('td', null, m.why + (m.corrects ? ' (linked to movement ' + m.corrects + ')' : '')), h('td', null, m.requestedBy || '—'), h('td', null, m.approvedBy || '—'))))),
           h('h4', { class: 'u-mt-8' }, 'Refused, and recorded as refused (' + w.refusals.length + ')'),
           h('ul', null, w.refusals.map(r => h('li', null, (r.by || 'someone') + ': ' + r.reason))),
           h('p', { class: 'hint u-mt-6', 'data-partialrcv-reconcile': w.reconcile.ok ? 'ok' : 'problem' }, w.reconcile.ok ? 'Check: adding every movement to the starting stock gives today\'s stock exactly.' : 'Check failed: ' + w.reconcile.problems.join('; ')));
       } else if (partialReceivingShown === 'rules') {
         body = h('div', { class: 'u-mt-8', 'data-partialrcv-rules': '1' },
-          h('h4', null, 'The stock rules for your review (D-ops-5)'),
+          h('h4', null, 'Your stock rules of Nov 22 (D-ops-5)'),
           h('ol', null,
             h('li', null, 'Whole units only; at least one unit each time.'),
-            h('li', null, 'A delivery can never be more than is still to come on that order line. If a supplier sends extra, the order is changed first.'),
-            h('li', null, 'A delivery with several lines is recorded completely or not at all.'),
-            h('li', null, 'Delivered units go to Available, or to Damaged when they arrive damaged. Both count as received.'),
-            h('li', null, 'Units sent back to the supplier can never be more than were received and kept on that order, or more than the chosen stock holds. Sending units back does not reopen the order.'),
-            h('li', null, 'A customer return can never be more than was sold and not yet returned. Sellable units go to Available; damaged units go to Damaged.'),
-            h('li', null, 'Every submission has its own key: sending it again changes nothing.'),
-            h('li', null, 'Only the owner or an administrator changes stock, as today.'),
-            h('li', null, 'Every change records who, when, why and the stock before and after. Refusals are recorded too. Nothing is edited or deleted; a mistake is corrected by a new entry.')),
-          h('p', { class: 'hint u-mt-6' }, 'Your decisions on these rules are listed in docs/ops/PARTIAL_RECEIVING_RULES_2026-11-21.md.'));
+            h('li', null, 'Good and damaged units on a line can never be more than is still to come. Anything beyond is entered as surplus, and only once the line is complete.'),
+            h('li', null, 'A delivery with several lines is approved completely or not at all.'),
+            h('li', null, 'Good units go to Available and damaged units we keep go to Damaged, both when you approve. Rejected units are recorded with a reason and stay outstanding.'),
+            h('li', null, 'Surplus waits for you: kept (into Available) or returned (no stock change).'),
+            h('li', null, 'A return to the supplier can never be more than was received and kept, or more than the chosen stock holds. It reopens the order only when a replacement is expected.'),
+            h('li', null, 'A customer return can never be more than was sold and not yet returned. It waits for inspection and is not for sale. Every unit gets an outcome; opened or used skincare is never restocked.'),
+            h('li', null, 'Staff and administrators record deliveries and returns for purchase orders they may see. Only you approve, reject or decide; the person who submitted it, or you, can cancel it.'),
+            h('li', null, 'Every submission has its own key: sending it again changes nothing, and approving twice changes nothing.'),
+            h('li', null, 'Every change records who asked, who approved, when, why and the stock before and after. Refusals are recorded too. A mistake is corrected once, by a linked movement with a reason.')),
+          h('p', { class: 'hint u-mt-6' }, 'The same rules as a database change for your review: SQL draft 40 (docs/ops/sql-review/ITEM_5_DRAFT_40_PARTIAL_RECEIVING.md).'));
       } else {
         body = h('table', { class: 'phoneCards u-mt-8', 'data-partialrcv-steps': String(w.steps.length) },
           h('thead', null, h('tr', null, h('th', null, 'Step'), h('th', { class: 'num-cell' }, 'Received'), h('th', { class: 'num-cell' }, 'Still to come'),
-            h('th', { class: 'num-cell' }, 'Sent back'), h('th', { class: 'num-cell' }, 'Customer returned'), h('th', { class: 'num-cell' }, 'Available'), h('th', { class: 'num-cell' }, 'Damaged'))),
+            h('th', { class: 'num-cell' }, 'Rejected'), h('th', { class: 'num-cell' }, 'Sent back'), h('th', { class: 'num-cell' }, 'Waiting for you'), h('th', { class: 'num-cell' }, 'Available'), h('th', { class: 'num-cell' }, 'Damaged'))),
           h('tbody', null, w.steps.map(s => h('tr', { 'data-partialrcv-step': String(s.n), 'data-partialrcv-kind': s.kind },
             // the first cell: a phone card shows it full width, as the card's title
-            h('td', null, h('div', null, h('div', null, s.n + '. ' + s.title),
+            h('td', null, h('div', null, h('div', null, s.n + '. ' + (s.who ? WHO[s.who] + ': ' : '') + s.title),
               s.kind === 'start' ? null : h('div', { class: 'u-fs-12 u-mt-4' + (s.ok && !s.duplicate ? ' u-c-muted' : ' taskTitle'), 'data-partialrcv-result': s.ok ? (s.duplicate ? 'duplicate' : 'recorded') : 'refused' }, outcome(s)),
               s.kind === 'start' ? null : h('div', { class: 'u-fs-12 u-c-muted' }, 'Stock: ' + moveText(s)))),
-            h('td', { class: 'num-cell' }, s.received + ' of ' + s.ordered), h('td', { class: 'num-cell' }, String(s.toCome)), h('td', { class: 'num-cell' }, String(s.returnedToSupplier)),
-            h('td', { class: 'num-cell' }, s.customerReturned + ' of ' + s.sold), h('td', { class: 'num-cell' }, String(s.available)), h('td', { class: 'num-cell' }, String(s.damaged))))));
+            h('td', { class: 'num-cell' }, s.received + ' of ' + s.ordered), h('td', { class: 'num-cell' }, String(s.toCome)), h('td', { class: 'num-cell' }, String(s.rejected)),
+            h('td', { class: 'num-cell' }, String(s.returnedToSupplier)), h('td', { class: 'num-cell' }, String(s.waiting)), h('td', { class: 'num-cell' }, String(s.available)), h('td', { class: 'num-cell' }, String(s.damaged))))));
       }
       host.replaceChildren(h('div', { class: 'partialReceiving u-mb-16' },
         h('div', { class: 'scanHead' }, h('h3', null, 'Partial receiving and returns'), h('span', { class: 'scanBadge' }, 'SIMULATED — example data, no stock is written')),
-        h('p', { class: 'hint u-mt-6' }, 'Example: purchase order SYN-PO-020 for 20 jars of ' + w.sku + '. 8 arrive first and 12 later; 3 go back to the supplier; a customer returns 3 jars (2 sellable, 1 damaged). Duplicate and too-large submissions are refused.'),
+        h('p', { class: 'hint u-mt-6' }, 'Example: purchase order SYN-PO-020 for 20 jars of ' + w.sku + ', delivered in three parts, with rejected, damaged and surplus jars, two returns to the supplier, a customer return inspected in two parts, and one correction. Staff record; you approve before stock changes.'),
         h('div', { class: 'scanToggleRow u-mt-8' }, tab('steps', 'Step by step'), tab('history', 'History and movements'), tab('rules', 'The rules')),
         body,
-        h('p', { class: 'hint u-mt-8' }, 'Nothing here changes stock. Live stock still changes only through the reviewed database functions (drafts/10, behind their switches). Partial deliveries and split returns need their own reviewed change once you have decided on these rules (D-ops-5).')));
+        h('p', { class: 'hint u-mt-8' }, 'Nothing here changes stock. Live stock still changes only through the reviewed database functions (drafts/10, behind their switches). These rules go live only with SQL draft 40, after your separate approval.')));
     }
     document.addEventListener('click', (e) => {
       const t = e.target.closest('[data-partialrcv]'); if (!t) return;

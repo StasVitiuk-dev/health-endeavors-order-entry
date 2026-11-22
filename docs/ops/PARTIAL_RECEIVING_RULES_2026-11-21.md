@@ -1,11 +1,47 @@
 # Partial receiving and returns — the stock rules for your review (D-ops-5)
 
-Status: PROPOSED · 2026-11-21 · For: Stas · OWNER DECISION REQUIRED (D-ops-5, before any live stock change)
+Status: rules DECIDED by the owner on 2026-11-22 (below) · database change PROPOSED (draft 40, OWNER DECISION REQUIRED before production) · For: Stas
 Backlog: INV-17 (partial-quantity returns), and partial receiving of purchase orders.
 Scope: a prototype on made-up stock. **No real stock is written**, and no live
 behaviour changes. The live stock buttons keep working exactly as today.
 
-## What you asked for (Nov 21)
+## Your rules of Nov 22 (CURRENT)
+
+You answered the Nov 21 decisions with these rules (quoted):
+
+> Log surplus deliveries separately for owner review. Record rejected deliveries
+> separately and leave their quantity outstanding. Put damaged goods that we retain
+> into a damaged or quarantine status. Reopen outstanding quantities for supplier
+> returns only when a replacement is expected. Let staff submit receiving records
+> for permitted purchase orders, with owner approval before stock changes. Put
+> customer returns into "Awaiting inspection." Opened or used skincare must remain
+> unavailable for resale. Preserve corrections as linked stock movements with a
+> reason and approver. Build and test these rules in staging, then provide the
+> proposed database changes for review.
+
+| Nov 21 decision | Your Nov 22 answer | Where it is built |
+|---|---|---|
+| 1 Supplier sends more than ordered | Logged separately as surplus; you keep or return it | draft 40, prototype R2/R5 |
+| (new) Rejected on arrival | Recorded separately with a reason; stays outstanding | draft 40, prototype R4 |
+| 2 Damaged on arrival | Kept units go to Damaged and count as received | draft 40, prototype R4 |
+| 3 Sending units back to the supplier | Reopens the order only when a replacement is expected | draft 40, prototype R6 |
+| 4 Who receives deliveries | Staff submit for permitted purchase orders; you approve before stock changes | draft 40, prototype R8 |
+| 5 Customer returns | Awaiting inspection first; you decide; opened or used is never restocked | draft 40, prototype R7 |
+| (new) Corrections | A linked reversing movement with a reason and you as approver, once | draft 40, prototype R10 |
+| 6 Prepare the database change | Done: draft 40 and rollback 41, tested in staging (74 of 74) | `docs/ops/sql-review/ITEM_5_DRAFT_40_PARTIAL_RECEIVING.md` |
+
+Open point for you: with today's row rules staff cannot see purchase orders, so they
+cannot yet submit receiving records. Whether staff may see some or all purchase orders
+is a separate decision (see review item 5).
+
+The prototype on the Inventory page (`assets/inventory/he-receiving.js`, version
+2026-11-22) now follows these rules: 27 steps with three deliveries (rejected, damaged
+and surplus jars), two supplier returns (one with a replacement), a customer return
+inspected in two parts (opened jars refused for restock) and one correction. The
+step-by-step table and the rules below from Nov 21 are kept as the record of what
+you reviewed then; the rules R1 to R10 in the code replace them.
+
+## What you asked for (Nov 21) — DEPRECATED by the rules above
 
 > Show an order for 20 units where 8 arrive first, 12 arrive later, and 3 are
 > returned. Show the remaining quantity and stock movement at each step. For
@@ -38,7 +74,7 @@ Check: adding every movement to the starting stock gives the final stock exactly
 "3 are returned" could mean either sent back to the supplier or returned by a
 customer, so the example shows both, each with 3 units.
 
-## The rules (each one needs your yes or no)
+## The rules as proposed on Nov 21 (DEPRECATED: replaced by your Nov 22 rules)
 
 | # | Rule | Today (live) | Proposed |
 |---|---|---|---|
@@ -52,7 +88,7 @@ customer, so the example shows both, each with 3 units.
 | R8 | Only the owner or an administrator changes stock | same (Query A) | same (see decision 4) |
 | R9 | Every change records who, when, why, and the stock before and after; refusals are recorded too; nothing is edited or deleted; a mistake is corrected by a new entry with a reason | changes are recorded in `inventory_adjustments` | same, plus recorded refusals |
 
-## Your decisions (OWNER DECISION REQUIRED)
+## The Nov 21 decisions (ANSWERED on Nov 22, see the top)
 
 1. **A supplier sends more than ordered.** Proposed: refuse, and you change the order
    first (so the extra units are a decision, not an accident). Alternative: accept
@@ -77,14 +113,14 @@ customer, so the example shows both, each with 3 units.
 | What | File |
 |---|---|
 | The rules, as code (made-up stock only) | `assets/inventory/he-receiving.js` |
-| Tests of every rule | `tests/specs/partial-receiving-ext22.spec.js` (8 tests) |
+| Tests of every rule | `tests/specs/partial-receiving-ext22.spec.js` (12 tests, Nov 22 rules) |
+| The database change | `docs/ops/sql/drafts/40_DRAFT_partial_receiving_returns.sql`, rollback `41_…`, test `docs/ops/sql/local-test/partial_receiving_test.sh` (74 of 74) |
 | The example on the Inventory page | switch "Partial receiving and returns" on the Feature Flags page (OFF by default); `tests/specs/partial-receiving-wiring-ext22.spec.js` |
 | Live stock functions (unchanged) | `docs/ops/sql/drafts/10_DRAFT_stock_functions.sql` (`receive_purchase_order`, `receive_return`) |
 
 ## Honest limits
 
 - The prototype runs in the browser on made-up numbers. Two people pressing at the
-  same moment, and a reply lost between the dashboard and the database, are only
-  proven once the rules are in the database (decision 6); the existing stock
-  functions already handle those cases for whole orders and whole return lines.
+  same moment, and a retry after a lost reply, are proven in the database draft
+  (staging test sections 1 and 6), not in the browser prototype.
 - Refunds are not part of this; returns record stock only, as today.

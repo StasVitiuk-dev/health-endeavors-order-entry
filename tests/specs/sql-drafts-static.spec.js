@@ -8,7 +8,7 @@ const path = require('path');
 const { test, expect } = require('@playwright/test');
 
 const DIR = path.resolve(__dirname, '..', '..', 'docs', 'ops', 'sql', 'drafts');
-const INSTALLS = ['10_DRAFT_stock_functions.sql', '13_DRAFT_report_totals.sql', '17_DRAFT_po_line_delete_guard.sql', '19_DRAFT_request_keys.sql', '21_DRAFT_stock_function_switches.sql', '23_DRAFT_integrity_constraints.sql', '25_DRAFT_integrity_check_schedule.sql', '27_DRAFT_request_keys_switch.sql', '29_DRAFT_integrity_results_on_home.sql', '32_DRAFT_invoices.sql', '34_DRAFT_stock_count_adjustments.sql', '36_DRAFT_supplier_documents.sql', '38_DRAFT_supplier_document_files.sql'];
+const INSTALLS = ['10_DRAFT_stock_functions.sql', '13_DRAFT_report_totals.sql', '17_DRAFT_po_line_delete_guard.sql', '19_DRAFT_request_keys.sql', '21_DRAFT_stock_function_switches.sql', '23_DRAFT_integrity_constraints.sql', '25_DRAFT_integrity_check_schedule.sql', '27_DRAFT_request_keys_switch.sql', '29_DRAFT_integrity_results_on_home.sql', '32_DRAFT_invoices.sql', '34_DRAFT_stock_count_adjustments.sql', '36_DRAFT_supplier_documents.sql', '38_DRAFT_supplier_document_files.sql', '40_DRAFT_partial_receiving_returns.sql'];
 const ROLLBACKS = { '10_DRAFT_stock_functions.sql': '11_DRAFT_rollback_stock_functions.sql',
   '17_DRAFT_po_line_delete_guard.sql': '18_DRAFT_rollback_po_line_delete_guard.sql',
   '19_DRAFT_request_keys.sql': '20_DRAFT_rollback_request_keys.sql',
@@ -21,7 +21,8 @@ const ROLLBACKS = { '10_DRAFT_stock_functions.sql': '11_DRAFT_rollback_stock_fun
   '32_DRAFT_invoices.sql': '33_DRAFT_rollback_invoices.sql',           // Nov 15: invoice storage + numbering
   '34_DRAFT_stock_count_adjustments.sql': '35_DRAFT_rollback_stock_count_adjustments.sql',   // Nov 16: owner-only stock-count approval
   '36_DRAFT_supplier_documents.sql': '37_DRAFT_rollback_supplier_documents.sql',
-  '38_DRAFT_supplier_document_files.sql': '39_DRAFT_rollback_supplier_document_files.sql' };   // Nov 21: private files, owner-only reading   // Nov 16, later: supplier document storage, owner-only review
+  '38_DRAFT_supplier_document_files.sql': '39_DRAFT_rollback_supplier_document_files.sql',
+  '40_DRAFT_partial_receiving_returns.sql': '41_DRAFT_rollback_partial_receiving_returns.sql' };   // Nov 22: partial receiving and returns (D-ops-5), owner approves stock changes   // Nov 21: private files, owner-only reading   // Nov 16, later: supplier document storage, owner-only review
 const ALL = fs.readdirSync(DIR).filter(f => /^\d\d_DRAFT_.*\.sql$/.test(f) && !/_tests?_/.test(f));
 
 // Remove comments and quoted text so words inside them are not mistaken for SQL.
@@ -138,6 +139,42 @@ for (const f of ALL) {
       "create policy supplier_document_files_owner_read on storage.objects for select to authenticated using (bucket_id = 'supplier-documents' and public.supplier_documents_is_owner());",
       'drop policy if exists supplier_document_files_upload on storage.objects;',
       "create policy supplier_document_files_upload on storage.objects for insert to authenticated with check (bucket_id = 'supplier-documents' and public.supplier_document_file_upload_allowed(name));"];
+    // The sixth allowed set (Nov 22, drafts/40): row rules on that draft's OWN new
+    // tables for partial receiving and returns. Staff submit for purchase orders
+    // they can see; who may DECIDE (the owner) is the guards' job on top of these.
+    const RECEIVING_RULES = [
+      'drop policy if exists receiving_records_read on public.receiving_records;',
+      'create policy receiving_records_read on public.receiving_records for select to authenticated using (submitted_by = auth.uid() or public.is_owner_or_admin());',
+      'drop policy if exists receiving_records_submit on public.receiving_records;',
+      "create policy receiving_records_submit on public.receiving_records for insert to authenticated with check (public.is_active_staff() and status = 'submitted' and exists (select 1 from public.purchase_orders po where po.id = receiving_records.purchase_order_id));",
+      'drop policy if exists receiving_records_decide on public.receiving_records;',
+      'create policy receiving_records_decide on public.receiving_records for update to authenticated using (submitted_by = auth.uid() or public.stock_is_owner()) with check (submitted_by = auth.uid() or public.stock_is_owner());',
+      'drop policy if exists receiving_record_lines_read on public.receiving_record_lines;',
+      'create policy receiving_record_lines_read on public.receiving_record_lines for select to authenticated using (exists (select 1 from public.receiving_records r where r.id = receiving_record_lines.record_id));',
+      'drop policy if exists receiving_record_lines_add on public.receiving_record_lines;',
+      'create policy receiving_record_lines_add on public.receiving_record_lines for insert to authenticated with check (public.is_active_staff() and exists (select 1 from public.receiving_records r where r.id = receiving_record_lines.record_id));',
+      'drop policy if exists receiving_record_lines_surplus on public.receiving_record_lines;',
+      'create policy receiving_record_lines_surplus on public.receiving_record_lines for update to authenticated using (public.stock_is_owner()) with check (public.stock_is_owner());',
+      'drop policy if exists supplier_returns_read on public.supplier_returns;',
+      'create policy supplier_returns_read on public.supplier_returns for select to authenticated using (submitted_by = auth.uid() or public.is_owner_or_admin());',
+      'drop policy if exists supplier_returns_submit on public.supplier_returns;',
+      "create policy supplier_returns_submit on public.supplier_returns for insert to authenticated with check (public.is_active_staff() and status = 'submitted' and exists (select 1 from public.purchase_order_items i where i.id = supplier_returns.po_item_id));",
+      'drop policy if exists supplier_returns_decide on public.supplier_returns;',
+      'create policy supplier_returns_decide on public.supplier_returns for update to authenticated using (submitted_by = auth.uid() or public.stock_is_owner()) with check (submitted_by = auth.uid() or public.stock_is_owner());',
+      'drop policy if exists customer_return_inspections_read on public.customer_return_inspections;',
+      'create policy customer_return_inspections_read on public.customer_return_inspections for select to authenticated using (public.is_active_staff());',
+      'drop policy if exists customer_return_inspections_record on public.customer_return_inspections;',
+      "create policy customer_return_inspections_record on public.customer_return_inspections for insert to authenticated with check (public.is_active_staff() and status = 'awaiting_inspection');",
+      'drop policy if exists customer_return_inspections_decide on public.customer_return_inspections;',
+      'create policy customer_return_inspections_decide on public.customer_return_inspections for update to authenticated using (received_by = auth.uid() or public.stock_is_owner()) with check (received_by = auth.uid() or public.stock_is_owner());',
+      'drop policy if exists stock_movements_read on public.stock_movements;',
+      'create policy stock_movements_read on public.stock_movements for select to authenticated using (public.is_owner_or_admin());',
+      'drop policy if exists stock_movements_trigger_insert on public.stock_movements;',
+      'create policy stock_movements_trigger_insert on public.stock_movements for insert to authenticated with check (public.is_active_staff());',
+      'drop policy if exists stock_corrections_read on public.stock_corrections;',
+      'create policy stock_corrections_read on public.stock_corrections for select to authenticated using (public.is_owner_or_admin());',
+      'drop policy if exists stock_corrections_owner on public.stock_corrections;',
+      'create policy stock_corrections_owner on public.stock_corrections for insert to authenticated with check (public.stock_is_owner());'];
     const SUPPLIER_FILE_DROPS = [
       'drop policy if exists supplier_document_files_owner_read on storage.objects;',
       'drop policy if exists supplier_document_files_upload on storage.objects;'];
@@ -170,7 +207,13 @@ for (const f of ALL) {
         : f === '34_DRAFT_stock_count_adjustments.sql' ? STOCK_COUNT_RULES.reduce((t, r) => t.split(r).join(''), sql)
           : f === '36_DRAFT_supplier_documents.sql' ? SUPPLIER_DOC_RULES.reduce((t, r) => t.split(r).join(''), sql)
             : f === '38_DRAFT_supplier_document_files.sql' ? SUPPLIER_FILE_RULES.reduce((t, r) => t.split(r).join(''), sql)
-              : f === '39_DRAFT_rollback_supplier_document_files.sql' ? SUPPLIER_FILE_DROPS.reduce((t, r) => t.split(r).join(''), sql) : sql;
+              : f === '39_DRAFT_rollback_supplier_document_files.sql' ? SUPPLIER_FILE_DROPS.reduce((t, r) => t.split(r).join(''), sql)
+                : f === '40_DRAFT_partial_receiving_returns.sql' ? RECEIVING_RULES.reduce((t, r) => t.split(r).join(''), sql) : sql;
+    if (f === '40_DRAFT_partial_receiving_returns.sql') {
+      for (const r of RECEIVING_RULES) expect(sql.split(r).length - 1, 'pinned rule present exactly once: ' + r.slice(0, 60)).toBe(1);
+      // No delete is granted on any of its tables; the guards refuse one anyway.
+      expect(sql).not.toMatch(/grant [^;]*delete[^;]* to authenticated/);
+    }
     if (f === '38_DRAFT_supplier_document_files.sql') {
       for (const r of SUPPLIER_FILE_RULES) expect(sql.split(r).length - 1, 'pinned rule present exactly once: ' + r.slice(0, 60)).toBe(1);
       expect(sql, 'the bucket is private').toContain("values ('supplier-documents', 'supplier-documents', false,");
@@ -192,6 +235,9 @@ for (const f of ALL) {
           : f === '35_DRAFT_rollback_stock_count_adjustments.sql' ? sql.replace('drop table if exists public.stock_count_adjustments;', '').replace('drop table if exists public.stock_count_approvers;', '')
             // Nov 16, later: the supplier document rollback removes its own tables (and refuses once any document has been reviewed);
             // Nov 21 adds the hand-off table to that list.
+            // Nov 22: the partial receiving rollback removes its own six tables (and refuses once any stock moved).
+            : f === '41_DRAFT_rollback_partial_receiving_returns.sql' ? ['stock_corrections', 'receiving_record_lines', 'receiving_records', 'supplier_returns', 'customer_return_inspections', 'stock_movements']
+              .reduce((t, n) => t.replace('drop table if exists public.' + n + ';', ''), sql)
             : f === '37_DRAFT_rollback_supplier_documents.sql' ? ['supplier_document_handoffs', 'supplier_document_events', 'supplier_documents', 'supplier_document_subjects', 'supplier_document_supplier_profiles', 'supplier_type_document_profiles', 'supplier_document_types']
               .reduce((t, n) => t.replace('drop table if exists public.' + n + ';', ''), sql) : sql;
     expect(dropOk, 'no table or schema is dropped').not.toMatch(/\bdrop\s+(table|schema)\b/);
