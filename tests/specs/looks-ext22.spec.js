@@ -68,7 +68,8 @@ test('Aurora\'s gradient figures: both ends of each gradient are readable on the
   expect(ratio('#ffffff', '#0e7490')).toBeGreaterThanOrEqual(4.5);
 });
 
-for (const look of LOOKS) {
+// 'classic' (the previous look, kept on Feature Flags for comparison) is checked too since Nov 23
+for (const look of [...LOOKS, 'classic']) {
   test(look + ': every text is readable on the main pages, light and dark', async ({ page, backend }, ti) => {
     test.skip(ti.project.name !== 'desktop', 'colours are the same at phone size');
     test.setTimeout(180000);
@@ -76,12 +77,15 @@ for (const look of LOOKS) {
     await page.clock.setFixedTime(NOW);
     await withLook(page, look);
     await login(page);
-    expect(await page.evaluate(() => document.documentElement.getAttribute('data-look'))).toBe(look);
+    expect(await page.evaluate(() => document.documentElement.getAttribute('data-look'))).toBe(look === 'classic' ? null : look);
     const fails = [];
     for (const scheme of ['light', 'dark']) {
       await page.emulateMedia({ colorScheme: scheme, reducedMotion: 'reduce' });
       for (const id of PAGES) {
         await gotoPage(page, id); await page.waitForLoadState('networkidle');
+        // a light-to-dark switch fades button colours; measure only once every fade has finished
+        // (a button measured mid-fade read 1.19:1 one run and 3.36:1 the next)
+        await page.evaluate(() => Promise.all(document.getAnimations().map(a => a.finished.catch(() => {}))));
         const f = await page.evaluate((args) => {
           const fn = new Function('return ' + args.src)();
           const roots = [document.getElementById(args.id), document.querySelector('.sidebar'), document.querySelector('header.topbar')].filter(Boolean);
@@ -102,7 +106,9 @@ for (const look of LOOKS) {
         const f = await row.evaluate((el, src) => (new Function('return ' + src)())(el), contrastFailures.toString());
         f.forEach(x => fails.push(scheme + ' hovered menu row' + (sel.includes('.active)') ? '' : ' (current page)') + ': ' + x));
       }
-      await page.mouse.move(600, 5);
+      // park the mouse in an empty corner: at (600, 5) it could rest on a top-bar button whose
+      // hover fade was then measured halfway (1.19:1 one run, 3.36:1 the next)
+      const vp = page.viewportSize(); await page.mouse.move(vp.width - 2, vp.height - 2); await page.waitForTimeout(300);
     }
     expect(fails).toEqual([]);
   });

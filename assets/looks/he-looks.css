@@ -255,3 +255,18 @@
   :root[data-look] .sidebarLink.active::before{ background:Highlight; }
   :root[data-look] .stat .num{ color:CanvasText; background:none; }
 }
+
+/* ====================== PREVIOUS LOOK (no data-look) ======================
+   Kept on Feature Flags only for comparison. Readability fix (Nov 23): its sidebar greys were
+   under the 4.5:1 minimum (group names and pin stars 3.33:1, count bubbles 3.62:1, the pin star
+   on the current page 3.12:1 light / 2.49:1 dark). Same values Original+ already uses. */
+:root:not([data-look]){ --muted-2:#6e6e73; }
+:root:not([data-look]) .sidebarBadge{ background:#636366; }
+@media (prefers-color-scheme: dark){
+  :root:not([data-look]):not([data-theme="light"]){ --muted-2:#98989d; }
+  :root:not([data-look]):not([data-theme="light"]) .sidebarBadge{ background:#48484a; }
+}
+:root:not([data-look])[data-theme="dark"]{ --muted-2:#98989d; }
+:root:not([data-look])[data-theme="dark"] .sidebarBadge{ background:#48484a; }
+:root:not([data-look]) .sidebarLink.active .sidebarBadge{ background:var(--btn-text); color:var(--btn-fill); }
+:root:not([data-look]) .sidebarLink.active .pinBtn{ color:var(--btn-text); }
