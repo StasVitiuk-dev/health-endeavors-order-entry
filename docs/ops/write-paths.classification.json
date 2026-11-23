@@ -907,5 +907,13 @@
   "note": "EXT9: never overwrites a change made elsewhere",
   "guards": "staleCondition,readBack,doubleClickLock",
   "idempotency": "guarded: a repeat changes nothing"
+ },
+ "owner-login.html|click document|products|insert|1": {
+  "guards": "doubleClickLock",
+  "idempotency": "repeat-safe: the SKU is unique in the database, so a second insert of the same product is refused (23505) and counted as already there; request key from the SKU when keys are on",
+  "audit": "audit trigger (Query A)",
+  "partial": "one product per insert; stops at the first refusal; products already added stay, and choosing the same file again adds only the rest",
+  "sensitive": "yes",
+  "note": "Nov 23 product list import (he_product_import, off): owner/administrator only (page check on currentUserRole); one run at a time (piState.busy, button disabled while adding); only lines the checker marked NEW, and only when no line has a problem"
  }
 }

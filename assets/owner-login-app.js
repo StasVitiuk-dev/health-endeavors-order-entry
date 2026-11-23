@@ -2354,7 +2354,7 @@
       if (act !== 'add' || piState.busy) return;
       const r = piState.result; if (!r || !r.ok || r.counts.error || !r.ready.length) return;
       if (currentUserRole !== 'owner' && currentUserRole !== 'administrator') return;
-      piState.busy = true; loadProductImport();
+      t.disabled = true; piState.busy = true; loadProductImport();
       const uid = await currentUserId().catch(() => null);
       const keysOn = await requestKeysOn().catch(() => false);
       let added = 0, already = 0; let stopped = '';
