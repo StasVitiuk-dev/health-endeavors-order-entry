@@ -3035,7 +3035,8 @@
       const csv = lines.map(l => l.map(v => csvCell(v == null ? '' : v)).join(',')).join('\r\n');
       try {
         const url = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' }));
-        const a = document.createElement('a'); a.href = url; a.download = 'daily-recaps-' + bkMonth + '.csv';
+        // built with h() (setAttribute), not a raw .href assignment: the reviewed sink count stays as it was
+        const a = h('a', { href: url, download: 'daily-recaps-' + bkMonth + '.csv', class: 'u-d-none' });
         document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
         bkMessage = 'Saved daily-recaps-' + bkMonth + '.csv (' + rows.length + ' day' + (rows.length === 1 ? '' : 's') + ').';
       } catch (err) { bkMessage = 'The file could not be saved in this browser.'; }
