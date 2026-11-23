@@ -101,6 +101,22 @@ const CASES = [
   },
 ];
 
+// The control each case presses. The test waits for it to be on screen before it
+// changes the record behind the page: "network idle" alone can come before the
+// page has fetched its list when the machine is busy, and the list then arrives
+// already changed (the Nov 23 full run: approval Deny found no request to deny).
+const READY = {
+  'approval Approve': '.approvalRow[data-id="ap-1"] .approveBtn',
+  'approval Deny': '.approvalRow[data-id="ap-1"] .denyBtn',
+  'feature request "Mark in progress"': '#featureRequestsWrap [data-id="fr-1"] .frAdvanceBtn',
+  'legal hold Release': '#legalHoldsWrap [data-id="lh-1"] .lhReleaseBtn',
+  'adverse event "Mark reported to FDA"': '#adverseEventsWrap [data-id="ae-1"] .aeMarkReportedBtn',
+  'recall "Mark resolved" (shown as quarantined)': '#recallsPanel [data-id="rc-1"] .recallResolveBtn',
+  'expense Delete (shown on file)': '#expensesWrap .approvalRow[data-id="e1"] .expDeleteBtn',
+  'expense Restore (shown deleted)': '#deletedExpensesWrap .restoreExpenseBtn',
+  'feature request Restore (shown deleted)': '#deletedFeatureRequestsWrap .restoreFeatureRequestBtn',
+};
+
 for (const c of CASES) {
   for (const actual of c.states) {
     test(`${c.name}: shown as allowed, actually ${JSON.stringify(actual)}`, async ({ page, backend }) => {
@@ -109,6 +125,7 @@ for (const c of CASES) {
       await page.clock.setFixedTime(NOW);
       await login(page);
       await open(page, c.page);
+      await expect(page.locator(READY[c.name]).first()).toBeVisible({ timeout: 15000 });
       c.set(backend, actual);
       const norm = c.norm || (v => v);
       await c.act(page);

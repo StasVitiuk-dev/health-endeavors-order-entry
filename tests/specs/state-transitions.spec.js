@@ -144,8 +144,10 @@ for (const [from, map] of Object.entries(TASK_BUTTONS)) {
     for (const actual of ALLOWED.tasks.status) {
       test(`task "${label}" shown as ${from}, actually ${actual}`, async ({ page, backend }) => {
         await openTasks(page, backend, [task(from)]);
+        const btn = page.locator(`#tasksTableWrap tr[data-id="t-${from}"] .taskStatusBtn`, { hasText: label });
+        await expect(btn).toBeVisible({ timeout: 15000 });   // on screen before the record changes behind it
         backend.tables.tasks[0].status = actual; // another tab or an agent moved it
-        await page.locator(`#tasksTableWrap tr[data-id="t-${from}"] .taskStatusBtn`, { hasText: label }).click();
+        await btn.click();
         await expect.poll(() => statusWrites(backend, 'tasks').length).toBe(1);
         const ok = TASK_FROM[to].includes(actual);
         expect(backend.tables.tasks[0].status).toBe(ok ? to : actual);
@@ -160,8 +162,10 @@ for (const [from, map] of Object.entries(RETURN_BUTTONS)) {
     for (const actual of ALLOWED.returns.status) {
       test(`return "${label}" shown as ${from}, actually ${actual}`, async ({ page, backend }) => {
         await openReturns(page, backend, [ret(from)]);
+        const btn = page.locator(`#returnsWrap [data-return-id="r-${from}"] button`, { hasText: new RegExp('^' + label + '$') });
+        await expect(btn).toBeVisible({ timeout: 15000 });   // on screen before the record changes behind it
         backend.tables.returns[0].status = actual;
-        await page.locator(`#returnsWrap [data-return-id="r-${from}"] button`, { hasText: new RegExp('^' + label + '$') }).click();
+        await btn.click();
         await expect.poll(() => statusWrites(backend, 'returns').length).toBe(1);
         const ok = RETURN_FROM(from)[to].includes(actual);
         expect(backend.tables.returns[0].status).toBe(ok ? to : actual);
