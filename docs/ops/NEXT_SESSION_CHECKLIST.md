@@ -6,6 +6,8 @@ click. Nothing here goes live until you approve it.
 ## 1. Have ready (only what you have)
 
 - [ ] The two printers set up on Wi-Fi (Brother MFC-J1365DW, Rollo label printer).
+      **Owner update, Nov 23:** the Brother (paper) arrives in a few days; the Rollo (labels) will be
+      bought around Black Friday. Test each one when it arrives (section 2); they don't need to be together.
 - [ ] A few 4 × 6 labels and plain US Letter paper.
 - [ ] A ruler (to measure the 1-inch square on the test pages).
 - [ ] The payment details you mentioned (how customers pay): **never send passwords, keys or
