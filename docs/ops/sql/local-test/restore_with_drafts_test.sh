@@ -75,18 +75,25 @@ as $DB $E "select public.hand_off_supplier_document('00000000-0000-4000-8000-000
 ok "  the source holds the made-up records" "$(q $DB "select (select count(*) from invoices)||'/'||(select count(*) from stock_count_adjustments)||'/'||(select count(*) from supplier_documents)||'/'||(select count(*) from supplier_document_handoffs)||'/'||(select count(*) from storage.objects)")" "2/1/2/1/1"
 
 # --- back up and restore into a brand-new database ---------------------------
-# Use the backup tools of the SAME major version as the database when they are
-# installed: a newer pg_dump/pg_restore can write settings an older server does
-# not know, which would fail this check for a reason unrelated to the drafts.
-SMAJ=$(psql "${CONN[@]}" -d postgres -qtAX -c "select current_setting('server_version_num')::int / 10000")
-BIN=""; [ -n "$SMAJ" ] && [ -x "/usr/lib/postgresql/$SMAJ/bin/pg_restore" ] && BIN="/usr/lib/postgresql/$SMAJ/bin/"
-echo "  (server $SMAJ; $("${BIN}pg_restore" --version))"
-ERRF=$(mktemp)
-"${BIN}pg_dump" "${CONN[@]}" -Fc -f "$DUMP" $DB 2>"$ERRF"; ok "the backup is taken (pg_dump, custom format)" "$?" "0"
+# The backup tools may be newer than the database (GitHub's runner has version 18
+# tools, the test database is 16). A newer pg_restore writes settings an older
+# server does not know (transaction_timeout, from 17), so the backup is turned
+# into a plain SQL script, only those unknown settings are removed, and the
+# script runs with every other error stopping it. Same-version tools are used
+# directly when installed.
+SNUM=$(psql "${CONN[@]}" -d postgres -qtAX -c "show server_version_num"); SMAJ=$((SNUM / 10000))
+BIN=""; [ -x "/usr/lib/postgresql/$SMAJ/bin/pg_restore" ] && BIN="/usr/lib/postgresql/$SMAJ/bin/"
+DUMPOPT=(); "${BIN}pg_dump" --help 2>/dev/null | grep -q -- '--no-statistics' && DUMPOPT=(--no-statistics)
+echo "  (server $SMAJ; $("${BIN}pg_dump" --version))"
+ERRF=$(mktemp); SQLF=$(mktemp --suffix=.sql)
+"${BIN}pg_dump" "${CONN[@]}" "${DUMPOPT[@]}" -Fc -f "$DUMP" $DB 2>"$ERRF"; ok "the backup is taken (pg_dump, custom format)" "$?" "0"
 psql "${CONN[@]}" -d postgres -qX -c "create database $DST" >/dev/null
-"${BIN}pg_restore" "${CONN[@]}" -d $DST --exit-on-error "$DUMP" >/dev/null 2>>"$ERRF"; ok "the backup restores into a brand-new database with no error" "$?" "0"
-[ -s "$ERRF" ] && { echo "  backup/restore said:"; head -5 "$ERRF" | sed 's/^/    /'; }
-rm -f "$ERRF"
+"${BIN}pg_restore" -f "$SQLF" "$DUMP" 2>>"$ERRF"
+[ "$SMAJ" -lt 17 ] && sed -i '/^SET transaction_timeout = /d' "$SQLF"
+psql "${CONN[@]}" -d $DST -qX -v ON_ERROR_STOP=1 -f "$SQLF" >/dev/null 2>>"$ERRF"; rc=$?
+ok "the backup restores into a brand-new database with no error" "$rc" "0"
+if [ "$rc" != 0 ]; then echo "  the restore stopped; nothing below can be checked. It said:"; grep -m5 -i 'error\|fatal' "$ERRF" | sed 's/^/    /'; rm -f "$ERRF" "$SQLF"; echo "passed $pass, failed $fail"; exit 1; fi
+rm -f "$ERRF" "$SQLF"
 
 NEW_TABLES="'invoices','invoice_counters','invoice_payments','invoice_events','stock_count_adjustments','stock_count_approvers','supplier_document_types','supplier_type_document_profiles','supplier_document_supplier_profiles','supplier_document_subjects','supplier_documents','supplier_document_events','supplier_document_handoffs'"
 same() { local a b; a=$(q $DB "$2"); b=$(q $DST "$2"); if [ -n "$a" ] && [ "$a" = "$b" ]; then pass=$((pass+1)); echo "  ok   $1"; else fail=$((fail+1)); echo "  FAIL $1: source [$a] copy [$b]"; fi; }
