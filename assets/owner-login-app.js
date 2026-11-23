@@ -84,7 +84,7 @@
       nightlyOverall,
     } = window.HE.helpers;
     // @@ EXT15 modules: created in dependency order (assets/app/*.js; see docs/ops/APPLICATION_MODULE_MAP_EXT15.md)
-    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn } = HE.modules.create('he-config', {  });
+    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn } = HE.modules.create('he-config', {  });
     const { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, focusDialog, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, h, pageIconNode } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
     const { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
     const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, h, supabase });
@@ -2834,6 +2834,152 @@
         h('span', { class: 'taskTitle' }, n + (L.truncated ? '+' : '') + ' money difference' + (n === 1 ? '' : 's') + ' to look at'),
         ' ', h('button', { type: 'button', class: 'small', 'data-goto': 'accountingPanel', 'data-moneyalertopen': '1' }, 'Review on Accounting')));
     }
+    // ---------- One attention feed (Nov 23; behind attentionFeedOn) ----------
+    // Everything that needs the owner, in one list at the top of Home, most urgent
+    // first (assets/views/he-attention-feed.js). It reads what Home already shows
+    // (reminders and tasks, the checks, the nightly check, the money and tax
+    // notices) and the customer questions still waiting. It never writes: "Answer"
+    // opens Customer Questions, "Dismiss" uses the reminder's own Dismiss button
+    // below, "Later" hides an item until tomorrow in this browser only.
+    let feedFilter = 'all', feedQuestions = null, feedSeq = 0, feedLast = new Map();
+    const FEED_LIMIT = 100;
+    function feedMod() { try { return (window.HE && window.HE.views && window.HE.views['he-attention-feed']) || null; } catch (e) { return null; } }
+    function feedStore() { try { return window.localStorage; } catch (e) { return null; } }
+    // The feed's box exists only while the feed is on, so with the switch off Home
+    // is exactly as before (same elements, same spacing).
+    function feedHost(on) {
+      let el = document.getElementById('attentionFeedHost');
+      if (!on) { if (el) el.remove(); return null; }
+      if (!el) { const panel = document.getElementById('attentionPanel'); if (!panel) return null; el = h('div', { id: 'attentionFeedHost' }); panel.prepend(el); }
+      return el;
+    }
+    async function loadAttentionFeed() {
+      if (!feedHost(attentionFeedOn() && !!feedMod())) return;
+      const seq = ++feedSeq;
+      try {
+        const rows = await fetchAllRows('customer_inquiries', 'id, customer_name, channel, question_text, status, ai_draft_reply, sensitive, severity, created_at',
+          q => q.or('status.is.null,status.neq.answered'));
+        if (seq !== feedSeq) return;
+        feedQuestions = rows;
+      } catch (e) {
+        if (seq !== feedSeq) return;
+        feedQuestions = null;                    // the "Customer questions waiting" check stands in for them
+      }
+      paintAttentionFeed();
+    }
+    // the nightly check, as Home shows it below (its own cards keep their detail)
+    function feedNightly() {
+      const st = [...document.querySelectorAll('#nightlyCheckWrap .nightlyCard')].map(c => c.getAttribute('data-state'));
+      const see = 'See "Nightly integrity check" further down this page.';
+      if (st.includes('FAIL')) return { state: 'problems', problems: [{ key: 'fail', title: 'The nightly check found problems', detail: see, level: 'urgent' }] };
+      if (st.includes('WARN')) return { state: 'problems', problems: [{ key: 'warn', title: 'The nightly check has warnings', detail: see, level: 'today' }] };
+      if (st.includes('UNKNOWN') || st.includes('STALE')) return { state: 'unknown', reason: see };
+      return null;
+    }
+    function feedWhen(item) {
+      if (item.when == null) return '';
+      const iso = new Date(item.when).toISOString();
+      if (item.id.indexOf('na:') === 0) return (item.overdue ? 'Overdue · due ' : 'Due ') + fmtDate(iso);
+      return timeAgo(iso) || '';
+    }
+    const FEED_LEVEL_WORD = { urgent: 'Urgent', today: 'Today', info: 'Info' };
+    function paintAttentionFeed() {
+      const M = feedMod();
+      const host = feedHost(attentionFeedOn() && !!M); if (!host) return;
+      let findings = []; try { findings = ATTN_FINDINGS; } catch (e) { findings = []; }
+      const moneyEl = document.querySelector('#moneyAlertHost [data-moneyalert]');
+      const taxEl = document.querySelector('#taxRateAlertHost [data-taxratealert]');
+      const now = Date.now();
+      const items = M.buildFeed({
+        attention: Array.isArray(SEARCH_INDEX.attention) ? SEARCH_INDEX.attention : null, labels: ITEM_TYPE_LABELS,
+        checks: findings, questions: feedQuestions, nightly: feedNightly(),
+        money: moneyEl ? { open: Number(moneyEl.getAttribute('data-moneyalert')) } : null,
+        tax: taxEl ? { count: Number(taxEl.getAttribute('data-taxratealert')) } : null }, now);
+      const v = M.view(items, { now: now, snoozes: M.readSnoozes(feedStore()), filter: feedFilter });
+      feedLast = new Map(items.map(i => [i.id, i]));
+      const summary = v.caughtUp
+        ? h('p', { class: 'feedSummary feedCaughtUp', 'data-feedcaughtup': '1' }, 'All caught up. Nothing needs you right now.')
+        : h('p', { class: 'feedSummary', 'data-feedneedyou': String(v.needYou) },
+            h('b', null, v.needYou + (v.needYou === 1 ? ' thing needs you' : ' things need you')),
+            ' · ' + v.counts.urgent + ' urgent, ' + v.counts.today + ' today' + (v.counts.info ? ', ' + v.counts.info + ' to know' : ''));
+      const chips = h('div', { class: 'feedFilters', role: 'group', 'aria-label': 'Show' },
+        ...M.FILTERS.map(f => h('button', { type: 'button', class: 'small' + (v.filter === f.key ? '' : ' secondary'), 'data-feedfilter': f.key, 'aria-pressed': v.filter === f.key ? 'true' : 'false' }, f.label)));
+      const shown = v.items.slice(0, FEED_LIMIT);
+      const card = (i) => {
+        const acts = i.actions.map(a => a.kind === 'open' ? h('button', { type: 'button', class: 'small', 'data-feedopen': a.page }, a.label)
+          : a.kind === 'copy' ? h('button', { type: 'button', class: 'small secondary', 'data-feedcopy': i.id }, a.label)
+          : a.kind === 'dismiss' ? h('button', { type: 'button', class: 'small secondary', 'data-feeddismiss': a.id }, a.label) : null).filter(Boolean);
+        if (i.level !== 'info' || i.kind === 'message') acts.push(h('button', { type: 'button', class: 'small secondary', 'data-feedsnooze': i.id, title: 'Hidden in this browser until tomorrow, or until it changes' }, 'Later'));
+        const chat = i.message ? [h('div', { class: 'feedChat' },
+          h('p', { class: 'feedBubble feedThem' }, h('span', { class: 'feedWho' }, i.message.from + ' wrote'), i.message.text || '(no text)'),
+          ...(i.message.draft ? [h('p', { class: 'feedBubble feedDraft' }, h('span', { class: 'feedWho' }, 'Draft reply (not sent)'), i.message.draft)] : []))] : [];
+        return h('li', { class: 'feedItem feed-' + i.level, 'data-feeditem': i.id, 'data-feedkind': i.kind },
+          h('div', { class: 'feedHead' },
+            h('span', { class: 'feedLevel' }, FEED_LEVEL_WORD[i.level]),
+            h('span', { class: 'badge' }, i.badge),
+            h('span', { class: 'feedWhen' }, feedWhen(i))),
+          h('p', { class: 'feedTitle' }, i.title),
+          ...chat,
+          ...(i.detail ? [h('p', { class: 'feedDetail' }, i.detail)] : []),
+          ...(acts.length ? [h('div', { class: 'feedActions' }, ...acts)] : []));
+      };
+      const list = shown.length
+        ? h('ul', { class: 'feedList', 'aria-label': 'Things that need you' }, ...shown.map(card))
+        : (v.caughtUp && v.filter === 'all' ? null : h('p', { class: 'empty' }, 'Nothing here in this filter.'));
+      const more = v.items.length > shown.length ? h('p', { class: 'hint' }, 'Showing the first ' + shown.length + ' of ' + v.items.length + '. Use a filter to see the rest.') : null;
+      const snoozed = v.snoozed ? h('p', { class: 'hint feedSnoozed' }, v.snoozed + ' set aside until tomorrow (this browser). ',
+        h('button', { type: 'button', class: 'small secondary', 'data-feedunsnooze': '1' }, 'Show them again')) : null;
+      const qNote = feedQuestions === null ? h('p', { class: 'hint' }, 'Customer questions could not be read just now; the check "Customer questions waiting" stands in for them.') : null;
+      host.replaceChildren(h('section', { class: 'feed', 'data-feed': '1', 'aria-labelledby': 'feedHeading' },
+        h('h2', { id: 'feedHeading' }, 'Needs you now'),
+        summary, chips, ...[list, more, snoozed, qNote].filter(Boolean)));
+    }
+    document.addEventListener('click', async (e) => {
+      const host = e.target.closest('#attentionFeedHost'); if (!host) return;
+      const M = feedMod(); if (!M) return;
+      const f = e.target.closest('[data-feedfilter]');
+      if (f) { feedFilter = f.getAttribute('data-feedfilter'); paintAttentionFeed(); const again = host.querySelector('[data-feedfilter="' + feedFilter + '"]'); if (again) again.focus(); return; }
+      const o = e.target.closest('[data-feedopen]');
+      if (o) { showPage(o.getAttribute('data-feedopen')); return; }
+      const c = e.target.closest('[data-feedcopy]');
+      if (c) {
+        const item = feedLast.get(c.getAttribute('data-feedcopy'));
+        const act = item && item.actions.find(a => a.kind === 'copy');
+        if (!act) return;
+        try { await navigator.clipboard.writeText(act.text); announce('Reply copied. Paste it where the customer wrote, then mark the question answered.'); toast('Reply copied'); }
+        catch (err) { showDashError('Could not copy to clipboard. Open Customer Questions to select and copy the reply by hand.'); }
+        return;
+      }
+      const d = e.target.closest('[data-feeddismiss]');
+      if (d) {
+        const id = d.getAttribute('data-feeddismiss');
+        const own = [...document.querySelectorAll('#attentionWrap [data-dismiss-id]')].find(b => b.getAttribute('data-dismiss-id') === id);
+        if (!own) { showDashError('That reminder is no longer in the list.'); return; }
+        d.disabled = true; own.click(); return;
+      }
+      const z = e.target.closest('[data-feedsnooze]');
+      if (z) {
+        const li = z.closest('[data-feeditem]'); const next = li && (li.nextElementSibling || li.previousElementSibling);
+        const nextId = next && next.getAttribute('data-feeditem');
+        const ok = M.snooze(feedStore(), feedLast.get(z.getAttribute('data-feedsnooze')), Date.now());
+        if (!ok) { showDashError('This browser could not remember that. Nothing was changed.'); return; }
+        paintAttentionFeed(); announce('Set aside until tomorrow.');
+        const back = nextId ? [...host.querySelectorAll('[data-feeditem]')].find(x => x.getAttribute('data-feeditem') === nextId) : null;
+        const target = back ? back.querySelector('button') : host.querySelector('#feedHeading');
+        if (target) { if (target.id === 'feedHeading') target.setAttribute('tabindex', '-1'); target.focus(); }
+        return;
+      }
+      if (e.target.closest('[data-feedunsnooze]')) { M.unsnoozeAll(feedStore()); paintAttentionFeed(); announce('Everything set aside is back in the list.'); }
+    });
+    // Redraw when anything the feed reads from is redrawn on Home.
+    (function watchFeedSources() {
+      if (typeof MutationObserver !== 'function') return;
+      let t = null;
+      const obs = new MutationObserver(() => { if (t || !attentionFeedOn()) return; t = setTimeout(() => { t = null; paintAttentionFeed(); }, 60); });
+      ['attentionWrap', 'attnChecksWrap', 'nightlyCheckWrap', 'moneyAlertHost', 'taxRateAlertHost'].forEach(id => {
+        const el = document.getElementById(id); if (el) obs.observe(el, { childList: true, subtree: true });
+      });
+    })();
     async function loadMoneyIssues() {
       const host = document.getElementById('moneyIssuesHost'); if (!host) return;
       const store = miStore(); if (!store) { host.replaceChildren(); return; }
@@ -4605,7 +4751,7 @@
       loadOpsWatch();
     }
     const PANEL_LOADERS = {
-      attentionPanel: [loadAttention, loadBusinessHealth, loadAttentionChecks, loadNightlyCheck, paintScanEntry, loadMoneyAlert, loadTaxRateAlert],
+      attentionPanel: [loadAttention, loadBusinessHealth, loadAttentionChecks, loadNightlyCheck, paintScanEntry, loadMoneyAlert, loadTaxRateAlert, loadAttentionFeed],
       calendarPanel: [loadCalendarMonth],
       dailySummaryPanel: [loadDailySummary],
       reportHistoryPanel: [loadReportHistoryThenExport, loadRecoveryDrill, loadInvoicePreview, loadReportVersions],
