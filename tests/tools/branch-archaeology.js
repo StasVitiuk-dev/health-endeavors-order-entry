@@ -154,6 +154,12 @@ function collect(base) {
   return { mergeBase, head, rows };
 }
 
+// A fixed range (from..to), e.g. the feature branch a merge commit brought in.
+function collectRange(from, to) {
+  const raw = git(['log', `${from}..${to}`, '--format=COMMIT%x00%H%x00%ct%x00%s', '--name-only']);
+  return { mergeBase: git(['rev-parse', from]).trim(), head: git(['rev-parse', to]).trim(), rows: classifyAll(parseLog(raw)) };
+}
+
 function toMarkdown({ mergeBase, head, rows }) {
   const L = [];
   L.push('# Branch archaeology', '');
@@ -177,6 +183,6 @@ if (require.main === module) {
   else console.log(toMarkdown(data));
 }
 
-module.exports = { isExecutable, isTest, isDocs, isGenerated, classifyType, classifyCategory,
+module.exports = { collectRange, isExecutable, isTest, isDocs, isGenerated, classifyType, classifyCategory,
   classifyRisk, ownerVisible, parseLog, classifyAll, tally, collect, toMarkdown,
   CATEGORY_RULES, HIGH_RISK_CATEGORIES };
