@@ -69,6 +69,9 @@ test('storage ON but not installed (production today): says so, shows the exampl
 });
 
 test.describe('against a real database with drafts/36 installed', () => {
+  // several full page loads against a real database each: 33 s measured when the
+  // machine is busy (full run), over the 30 s default
+  test.describe.configure({ timeout: 90000 });
   test.beforeEach(needPg);
 
   test('owner: record, refresh, approve, refresh — every step is still there, with its history', async ({ page }) => {
