@@ -1,6 +1,6 @@
 # Sales tax: what is built, and what I need from you to finish the setup
 
-Status: CURRENT · 2026-11-16, answers 1 and 2 recorded 2026-11-22 · For: Stas · OWNER DECISION REQUIRED (the other answers below)
+Status: CURRENT · 2026-11-16, answers 1 and 2 recorded 2026-11-22, research on 5 and 6 added 2026-11-23 · For: Stas · OWNER DECISION REQUIRED (the other answers below)
 Scope: staging only (made-up data). Nothing here is live. This page is not tax
 advice: it lists what the dashboard needs to be told, so you can confirm the
 answers with the Illinois Department of Revenue or your accountant.
@@ -40,6 +40,19 @@ What these two answers mean (not decided yet; nothing changed in the dashboard):
   and the date it applies from) and question 6 (all products at the general rate?).
 - Until then every non-exempt invoice keeps showing **Tax pending** and cannot be
   issued. Nothing about your address is stored anywhere yet.
+
+## Research on questions 5, 6 and 10 (Nov 23; the owner asked Claude to find what can be found)
+
+Status: PROPOSED until the owner (or the accountant) confirms. Sources are the Illinois Department of
+Revenue (IDOR) and the Illinois Administrative Code; not tax advice.
+
+| # | What the sources say | What it would mean here | Still to confirm |
+|---|---|---|---|
+| 6 | IDOR: personal grooming and hygiene products (soaps, lotions, sunscreens and similar) are taxed as **general merchandise at the high rate (6.25% state, plus local taxes)**, even when they make a medicinal claim, unless prescription-only. Sources: IDOR Q&A 761 (tax.illinois.gov/questionsandanswers/answer.761.html); 86 Ill. Adm. Code 130.311. | All current products use the general-merchandise rate. | That no product is prescription-only (expected: none). |
+| 5 | For an Illinois retailer selling from inventory at one Illinois location, sales to Illinois buyers are sourced **at the seller's location (origin)**. Since Jan 1, 2025, destination sourcing applies to Illinois retailers selling **from locations outside Illinois**, and to remote sellers. Sources: IDOR bulletin FY 2026-13; Sales Tax Institute summary of S.B. 3362. | Charge the combined rate of the place the orders ship from. Sales to other states follow those states' rules (thresholds); ask the accountant once. | The accountant or IDOR, once. |
+| 4 | The combined rate for one address comes from IDOR's **Tax Rate Finder** (tax.illinois.gov). Rates can change on Jan 1 and Jul 1. | The owner looks it up (2 minutes) and sends **only the rate and its start date**; the address stays out of this repository. Re-check every Jan 1 and Jul 1. | The owner. |
+| 10 | Shipping charged to the buyer is taxed when the buyer **had no choice** (no pickup, no own carrier); not taxed when it is separately stated and the buyer could have avoided it. Explained to the owner in plain words on Nov 23. Buyers with a resale certificate (CRT-61) pay no tax at all, so this matters only for wholesale buyers without one. | The dashboard already applies this rule (table above); it needs the owner's yes / no / sometimes. | The owner. |
+| new | Collecting tax requires an Illinois sales-tax registration (free, on the same site). | Asked the owner on Nov 23 whether the business is registered. | The owner. |
 
 ## Which answers come first (added later on Nov 16)
 

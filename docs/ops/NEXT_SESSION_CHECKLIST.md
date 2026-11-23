@@ -45,6 +45,18 @@ default, with tests.
 
 ## 4. Payments (after you send the details)
 
+**Claude's recommendation (PROPOSED, Nov 23; prices change, check before signing up):** keep
+everything in Shopify. Shopify Basic about $39/month (about $29 paid yearly); card payments through
+Shopify Payments 2.9% + 30¢ per online order (using another card processor adds a 2% Shopify fee);
+wholesale buyers pay by bank transfer or check (free), or by card through a Shopify invoice (same
+card fee). No Square or PayPal unless customers ask. Example: $1,000 a month in 25 orders ≈ $37
+card fees + $39 plan ≈ $76/month. Waiting for the owner's "ok" or changes.
+
+**Business phone line (PROPOSED, Nov 23):** a separate business number in an iPhone app; Claude's
+pick is Quo (formerly OpenPhone, about $15–19/month); cheaper options Grasshopper (about $14–25),
+Line2 (about $8); Google Voice needs a paid Google Workspace. Get the number before printouts and the
+website go out, so the printout contact line (an open owner decision) can carry it.
+
 Connect the money-matching check to how customers really pay (Shopify Payments payouts,
 wholesale payments), and finish the payment screen. The bank stays a monthly file you download;
 no outside bank-connection service.
