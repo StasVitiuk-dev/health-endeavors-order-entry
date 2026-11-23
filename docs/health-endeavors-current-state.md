@@ -150,7 +150,12 @@ Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (fro
 
 ## 5. Active development (open PRs)
 
-**CURRENT (Nov 23, 2026, evening):** PR #36 is merged and live (see §1 and §4); PRs #5–#35 are
+**CURRENT (Nov 23, 2026, night):** open for the owner: #37 (documents only) and #42, which contains
+every code change since the merge (#38 fonts, #39 previous look, #40 tax-rate dates, #41 product import,
+#42 confirmed tax rates; all new features behind switches, off). Merging #37 and #42 merges everything;
+GitHub then marks #38–#41 merged. No SQL is run by merging (draft 46 is review item 8).
+
+**Earlier (Nov 23, evening):** PR #36 is merged and live (see §1 and §4); PRs #5–#35 are
 closed (their work is in #36; nothing deleted). The paragraph below is how #36 was described before
 the merge (kept for history).
 

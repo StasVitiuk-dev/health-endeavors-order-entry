@@ -78,6 +78,10 @@ no outside bank-connection service.
 
 ## 5. Approvals waiting (each one separately, when you are ready)
 
+- **Merge #37 and #42** (Nov 23 night). #42 contains #38–#41 too, so two merges bring in everything
+  (fonts, previous-look readability, tax-rate dates, product import, confirmed tax rates); every new
+  feature stays off behind its switch. Same steps as #36 ("Merge without waiting for requirements").
+
 - ~~The push of the working branch~~ done Nov 23 → **PR #36: merge it** when its final test run is
   green (guided). It contains every older open PR (#5–#35); close those afterwards.
 - SQL review items 1–7 (each about 15 minutes, guided, with a check before and after). **Start
