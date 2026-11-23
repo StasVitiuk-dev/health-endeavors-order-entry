@@ -32,7 +32,7 @@ Status: **CURRENT on the feature branch.** Local and synthetic only. Local secur
 |---|---|---|---|
 | `cdn.jsdelivr.net` (one file: supabase-js 2.117.2) | all 6 | database client | SRI `sha384` + exact URL in the script policy |
 | `*.supabase.co` | all 6 | the database API | TLS; data protected by RLS |
-| `fonts.googleapis.com`, `fonts.gstatic.com` | `dashboard`, `search`, `index`, `manual-order-entry` | Fraunces / Public Sans / IBM Plex Mono | **none possible** (Google serves different CSS per browser) |
+| ~~`fonts.googleapis.com`, `fonts.gstatic.com`~~ | none since Nov 23, 2026 | (was: Fraunces / Public Sans / IBM Plex Mono on `dashboard`, `search`, `index`, `manual-order-entry`) | **REMOVED** (option (b) below): links deleted and both hosts taken out of those pages' security policy; a test checks that no page asks Google for fonts |
 
 No unexpected origin was found.
 
@@ -44,7 +44,7 @@ No unexpected origin was found.
 | (b) Use the system fonts the main dashboard already uses | removes the outside dependency; changes the look of those 4 pages |
 | (c) Self-host | the fonts are under the SIL Open Font License, but the brief forbids publishing font files in this public repository, so (c) is not done |
 
-**Recommendation:** (b).
+**Recommendation:** (b). **DONE Nov 23, 2026:** the owner's decision "switch everything to Aurora" already gave these pages the dashboard's system font; the remaining links and hosts were removed (PR `claude/no-google-fonts`).
 
 ## 4. Hosting limits (cannot be fixed in page code)
 

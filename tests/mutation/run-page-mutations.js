@@ -587,7 +587,7 @@ const MUTATIONS = [
     'malformed-data-ext15 -g "spend cannot be read"'],
   // EXT16: strict policies on the five smaller pages.
   ['inline styles allowed again on the manual order page', 'manual-order-entry.html',
-    "style-src 'self' https://fonts.googleapis.com;", "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;",
+    "style-src 'self';", "style-src 'self' 'unsafe-inline';",
     'csp-strict-ext15 -g "ALL dashboard pages"'],
   ['the dashboard spend bar no longer gets its width', 'assets/dashboard-page.js',
     "if (fill) fill.style.width = Math.max(0, Math.min(100, Number(pct) || 0)) + '%';", "",
