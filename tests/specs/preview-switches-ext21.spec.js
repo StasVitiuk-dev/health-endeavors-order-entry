@@ -65,7 +65,7 @@ test('turning a preview on shows it on its page; turning all off hides it again'
   expect(await page.evaluate(keys => keys.filter(k => localStorage.getItem(k) !== null), FLAG_KEYS)).toEqual(['he_reconcile']);
   // The message says to reload; "Reload now" does it, and the preview is then on its page.
   await host.locator('[data-previewswitch="reload"]').click();
-  await expect(page.locator('#dash')).toBeVisible();
+  await expect(page.locator('#dash')).toBeVisible({ timeout: 15000 });   // a full page load; slower when many tests run at once
   await gotoPage(page, 'accountingPanel');
   await expect(page.locator('#reconcileHost .reconcileReview')).toHaveCount(1);
   // It is still on after the reload (it is this browser's setting)...

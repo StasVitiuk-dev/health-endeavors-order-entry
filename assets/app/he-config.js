@@ -226,17 +226,19 @@ window.HE.modules.define('he-config', { api: 1, needs: [] }, function (ctx) {
       try { return typeof localStorage !== 'undefined' && localStorage.getItem('he_backups_page') === 'on'; }
       catch (e) { return false; }
     }
-    // New look (Nov 22, preview): three design directions for the owner to compare.
-    // OFF by default; the direction is applied before the page is drawn by
-    // assets/looks/he-look-boot.js. Stored in this browser only.
+    // The look (owner decision, Nov 23): Aurora is everyone's look. On Feature Flags
+    // the owner or an administrator can pick another direction, or the previous look,
+    // for this browser only (he_look). Applied before the page is drawn by
+    // assets/looks/he-look-boot.js. newLookOn() is false only for the previous look.
     function newLookOn() {
-      try { return typeof localStorage !== 'undefined' && localStorage.getItem('he_new_look') === 'on'; }
-      catch (e) { return false; }
+      try { return !(typeof localStorage !== 'undefined' && localStorage.getItem('he_look') === 'classic'); }
+      catch (e) { return true; }
     }
     const LOOK_CHOICES = Object.freeze([
       { key: 'aurora', name: 'Aurora', what: 'Futuristic: indigo-to-cyan accent, frosted panels, a soft glow in dark mode.' },
       { key: 'graphite', name: 'Graphite', what: 'Professional: calm graphite tones with one precise teal accent and crisp lines.' },
-      { key: 'original-plus', name: 'Original+', what: 'Today\'s colours, with every detail refined: depth, hover and press feedback, focus rings, page motion.' },
+      { key: 'original-plus', name: 'Original+', what: 'The earlier blue and greys, with every detail refined: depth, hover and press feedback, focus rings, page motion.' },
+      { key: 'classic', name: 'Previous look', what: 'The dashboard as it looked before November 2026, for comparison.' },
     ]);
     // #08 payment reconciliation review (advisory, synthetic) — OFF by default.
     function reconcileOn() {
@@ -291,7 +293,6 @@ window.HE.modules.define('he-config', { api: 1, needs: [] }, function (ctx) {
       { key: 'he_supplier_documents', name: 'Supplier documents', where: 'Suppliers', what: 'The document checklist for each kind of supplier, with what is missing or awaiting review. Example data; read-only.' },
       { key: 'he_backups_page', name: 'Backups & Printouts', where: 'Operations (a new page in the menu)', what: 'Daily recaps to print or save as a spreadsheet, manuals to print (if the dashboard is down, how it works, your procedures, printer setup), and what the dashboard can see of the backups. Reads only.' },
       { key: 'he_order_slips', name: 'Packing slips', where: 'Orders', what: 'A print button on each order: a 4×6 slip for the Rollo label printer or a Letter slip for the Brother, and a test page for each printer. Printing only; nothing is changed.' },
-      { key: 'he_new_look', name: 'New look', where: 'Everywhere (choose a direction below the list)', what: 'Three design directions for the whole dashboard: colours, buttons, tables, tiles and page switching. Looks only; nothing else changes.' },
       { key: 'he_money_match', name: 'Money matching', where: 'Accounting', what: 'Checks a Chase or Wells Fargo export against Shopify payouts, wholesale payments and recorded expenses, and lists every difference. The file stays in this browser; nothing is saved.' },
       { key: 'he_reconcile', name: 'Payment reconciliation', where: 'Accounting', what: 'Invoices that should have been paid against payments recorded. Example data; no money is moved.' },
       { key: 'he_ops_watch', name: 'Operations watch', where: 'Report History', what: 'Flags unusual daily figures, stock and orders for a person to look at. Changes nothing.' },

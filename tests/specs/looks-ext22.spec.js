@@ -1,5 +1,5 @@
-// New look (owner request of Nov 22): three design directions behind the "New
-// look" preview switch. Checks: OFF changes nothing; the picker applies a
+// The look (owner request of Nov 22; owner decision of Nov 23: Aurora for everyone).
+// Checks: Aurora by default; the previous look on request changes nothing; the picker applies a
 // direction at once and remembers it; every direction keeps every text at or
 // above the 4.5:1 minimum (3:1 for large text) on the main pages, light and
 // dark; motion respects Reduce Motion; phone width has no sideways scrolling.
@@ -13,17 +13,20 @@ const lum = (h) => { const v = [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16
 const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((m, n) => n - m); return (x + 0.05) / (y + 0.05); };
 
 async function withLook(page, look) {
-  await page.addInitScript((lk) => { try { localStorage.setItem('he_new_look', 'on'); localStorage.setItem('he_look', lk); } catch (e) {} }, look);
+  await page.addInitScript((lk) => { try { localStorage.setItem('he_look', lk); } catch (e) {} }, look);
 }
 // text drawn with a gradient (Aurora's figures) has a transparent colour; its
 // gradient end colours are checked separately below
 const visibleFailures = (host) => host.evaluate((root, src) => { const f = new Function('return ' + src)(); return f(root); }, contrastFailures.toString())
   .then(list => list);
 
-test('switch OFF (the default): no look is applied and the page is unchanged', async ({ page }) => {
+test('Aurora is the look by default; the previous look, on request, is unchanged', async ({ page }) => {
   await login(page);
+  expect(await page.evaluate(() => document.documentElement.getAttribute('data-look'))).toBe('aurora');
+  // the previous look: no look applied, the primary button is the earlier blue
+  await page.evaluate(() => localStorage.setItem('he_look', 'classic'));
+  await page.reload(); await expect(page.locator('#dash')).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.getAttribute('data-look'))).toBeNull();
-  // the default primary button is today's blue
   expect(await page.locator('#refreshBtn').evaluate(b => getComputedStyle(b).backgroundColor)).toBe('rgb(0, 113, 227)');
 });
 
@@ -31,7 +34,8 @@ test('the picker on Feature Flags applies a direction at once, and the choice is
   test.skip(ti.project.name !== 'desktop', 'run once');
   await login(page); await gotoPage(page, 'flagsPanel');
   const host = page.locator('#previewSwitchesHost');
-  await host.locator('tr[data-preview-key="he_new_look"] [data-previewswitch="toggle"]').click();
+  // the look is no longer a preview switch
+  await expect(host.locator('tr[data-preview-key="he_new_look"]')).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.getAttribute('data-look'))).toBe('aurora');
   await expect(host.locator('[data-lookpicker]')).toHaveAttribute('data-lookpicker', 'aurora');
   await host.locator('[data-lookpick="graphite"]').click();
@@ -39,12 +43,17 @@ test('the picker on Feature Flags applies a direction at once, and the choice is
   await expect(host.locator('[data-lookpick="graphite"]')).toHaveAttribute('aria-pressed', 'true');
   await page.reload(); await expect(page.locator('#dash')).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.getAttribute('data-look'))).toBe('graphite');
-  // turning the switch off brings today's look back at once
+  // "Previous look" brings the earlier look back at once; "Turn all off" leaves the look alone
   await gotoPage(page, 'flagsPanel');
-  await page.locator('#previewSwitchesHost tr[data-preview-key="he_new_look"] [data-previewswitch="toggle"]').click();
+  await page.locator('#previewSwitchesHost [data-lookpick="classic"]').click();
   expect(await page.evaluate(() => document.documentElement.getAttribute('data-look'))).toBeNull();
+  await page.locator('#previewSwitchesHost [data-lookpick="aurora"]').click();
+  expect(await page.evaluate(() => document.documentElement.getAttribute('data-look'))).toBe('aurora');
+  expect(await page.evaluate(() => localStorage.getItem('he_look'))).toBeNull();
+  await page.locator('#previewSwitchesHost [data-previewswitch="alloff"]').click();
+  expect(await page.evaluate(() => document.documentElement.getAttribute('data-look'))).toBe('aurora');
   // only the listed directions are ever applied
-  await page.evaluate(() => { localStorage.setItem('he_new_look', 'on'); localStorage.setItem('he_look', 'evil"><x'); });
+  await page.evaluate(() => { localStorage.setItem('he_look', 'evil"><x'); });
   await page.reload(); await expect(page.locator('#dash')).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.getAttribute('data-look'))).toBe('aurora');
 });
@@ -145,9 +154,12 @@ test('structure lines are drawn in every look, and never with the switch off', a
     const groups = document.querySelectorAll('.sidebarGroup');
     return { title: w(document.querySelector('#suppliersPanel > h2:first-child'), 'Bottom'), form: w(document.querySelector('#suppliersPanel .heForm'), 'Left'), group: w(groups[1], 'Top') };
   });
-  expect(await lines()).toEqual({ title: 0, form: 0, group: 0 });
+  expect(await lines(), 'aurora by default').toEqual({ title: 1, form: 1, group: 1 });
+  await page.evaluate(() => localStorage.setItem('he_look', 'classic'));
+  await page.reload(); await expect(page.locator('#dash')).toBeVisible(); await gotoPage(page, 'suppliersPanel');
+  expect(await lines(), 'previous look').toEqual({ title: 0, form: 0, group: 0 });
   for (const look of LOOKS) {
-    await page.evaluate((lk) => { localStorage.setItem('he_new_look', 'on'); localStorage.setItem('he_look', lk); }, look);
+    await page.evaluate((lk) => { localStorage.setItem('he_look', lk); }, look);
     await page.reload(); await expect(page.locator('#dash')).toBeVisible(); await gotoPage(page, 'suppliersPanel');
     expect(await lines(), look).toEqual({ title: 1, form: 1, group: 1 });
   }

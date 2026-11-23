@@ -66,7 +66,8 @@ Side-by-side images: review package, `1-look-review/side-by-side/`.
 | Tasks | square buttons; "Recently finished" fold | yes |
 
 **Unintended changes found: none.** No layout or wording change outside the
-intended ones above. The reference pictures stay as they are until your styling
+intended ones above. (Nov 23: the owner accepted the screens and chose Aurora for everyone; the
+20 reference pictures were retaken in Aurora.) The reference pictures stay as they are until your styling
 review (then they are retaken in one commit).
 
 ## 4. The palette

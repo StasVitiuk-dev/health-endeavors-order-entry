@@ -84,11 +84,11 @@ test('the printouts come out on the right paper: 4 x 6 label, Letter invoice and
   expect(pdfPages(await pdf())).toEqual(['612x792']);
 });
 
-for (const look of [null, 'aurora', 'graphite', 'original-plus']) {
-  test('every printout is black on white, dark mode on screen' + (look ? ', look ' + look : ', today\'s look'), async ({ page }, ti) => {
+for (const look of ['classic', 'aurora', 'graphite', 'original-plus']) {
+  test('every printout is black on white, dark mode on screen, look ' + look, async ({ page }, ti) => {
     test.skip(ti.project.name !== 'desktop', 'run once');
     await page.emulateMedia({ colorScheme: 'dark' });
-    await openPreview(page, look ? { he_new_look: 'on', he_look: look } : {});
+    await openPreview(page, { he_look: look });
     for (const what of ['invoice', 'slip', 'slip4x6']) {
       await page.locator('#invoicePreviewHost [data-print="' + what + '"]').click();
       await page.emulateMedia({ media: 'print', colorScheme: 'dark' });

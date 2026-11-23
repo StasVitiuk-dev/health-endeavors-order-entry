@@ -1,14 +1,15 @@
-// New look (preview, Nov 22): applies the chosen direction before the page is
-// drawn, so it never flashes the old look first. Runs only when the "New look"
-// preview switch is on (localStorage he_new_look = 'on'); the direction is one
-// of a fixed list (he_look), anything else is ignored. Stored in this browser only.
+// The look (owner decision, Nov 23: Aurora for everyone): applied before the page
+// is drawn, so the old look never flashes first. Aurora unless this browser chose
+// another direction on Feature Flags (he_look, one of a fixed list; anything else
+// is ignored) or the previous look ('classic': no look applied).
 (function () {
   'use strict';
   var LOOKS = ['aurora', 'graphite', 'original-plus'];
+  var look = 'aurora';
   try {
-    if (localStorage.getItem('he_new_look') !== 'on') return;
-    var look = localStorage.getItem('he_look');
-    if (LOOKS.indexOf(look) < 0) look = 'aurora';
-    document.documentElement.setAttribute('data-look', look);
-  } catch (e) { /* storage blocked: today's look */ }
+    var chosen = localStorage.getItem('he_look');
+    if (chosen === 'classic') return;
+    if (LOOKS.indexOf(chosen) >= 0) look = chosen;
+  } catch (e) { /* storage blocked: Aurora */ }
+  document.documentElement.setAttribute('data-look', look);
 }());

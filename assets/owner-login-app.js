@@ -3134,12 +3134,15 @@
         h('div', { class: 'scanToggleRow u-mt-8' }, h('button', { type: 'button', class: 'small secondary', 'data-previewswitch': 'alloff' }, 'Turn all off')),
         lookPicker()));
     }
-    // New look (preview): pick one of the three directions; applied at once.
+    // The look: Aurora for everyone (owner decision, Nov 23); another direction or the
+    // previous look can be picked for this browser only. Applied at once.
     function lookPicker() {
-      if (!(typeof newLookOn === 'function' && newLookOn()) || !Array.isArray(LOOK_CHOICES)) return null;
-      let cur = 'aurora'; try { cur = localStorage.getItem('he_look') || 'aurora'; } catch (e) { /* default */ }
+      if (!Array.isArray(LOOK_CHOICES)) return null;
+      let cur = 'aurora';
+      try { const v = localStorage.getItem('he_look'); if (LOOK_CHOICES.some(c => c.key === v)) cur = v; } catch (e) { /* default */ }
       return h('div', { class: 'u-mt-12', 'data-lookpicker': cur },
-        h('h4', null, 'Choose the look'),
+        h('h4', null, 'Look'),
+        h('p', { class: 'hint u-mt-0' }, 'Aurora is the dashboard\'s look for everyone. A different choice here applies to this browser only.'),
         h('div', { class: 'scanToggleRow', role: 'group', 'aria-label': 'Look' },
           LOOK_CHOICES.map(c => h('button', { type: 'button', class: 'small' + (c.key === cur ? '' : ' secondary'), 'data-lookpick': c.key, 'aria-pressed': String(c.key === cur) }, c.name))),
         h('p', { class: 'hint u-mt-6' }, (LOOK_CHOICES.find(c => c.key === cur) || LOOK_CHOICES[0]).what));
@@ -3147,8 +3150,8 @@
     document.addEventListener('click', (e) => {
       const t = e.target.closest('[data-lookpick]'); if (!t) return;
       const c = (LOOK_CHOICES || []).find(x => x.key === t.getAttribute('data-lookpick')); if (!c) return;
-      try { localStorage.setItem('he_look', c.key); } catch (err) { /* this browser only; still applied below */ }
-      document.documentElement.setAttribute('data-look', c.key);
+      try { if (c.key === 'aurora') localStorage.removeItem('he_look'); else localStorage.setItem('he_look', c.key); } catch (err) { /* this browser only; still applied below */ }
+      if (c.key === 'classic') document.documentElement.removeAttribute('data-look'); else document.documentElement.setAttribute('data-look', c.key);
       loadPreviewSwitches(); announce('Look: ' + c.name + '. ' + c.what); refocusLike(t);
     });
     document.addEventListener('click', (e) => {
@@ -3159,17 +3162,12 @@
       try {
         if (act === 'alloff') {
           PREVIEW_SWITCHES.forEach(sw => localStorage.removeItem(sw.key));
-          document.documentElement.removeAttribute('data-look');
           previewSwitchMessage = 'All previews are off. Reload the page to finish.';
         } else if (act === 'toggle') {
           const sw = PREVIEW_SWITCHES.find(x => x.key === t.getAttribute('data-key'));
           if (!sw) return;                                   // only listed keys are ever written
           if (previewSwitchIsOn(sw.key)) { localStorage.removeItem(sw.key); previewSwitchMessage = sw.name + ' is off. Reload the page to finish.'; }
           else { localStorage.setItem(sw.key, 'on'); previewSwitchMessage = sw.name + ' is on. Reload the page, then open ' + sw.where + '.'; }
-          if (sw.key === 'he_new_look') {
-            if (previewSwitchIsOn('he_new_look')) { let lk = 'aurora'; try { lk = localStorage.getItem('he_look') || 'aurora'; } catch (e2) { /* default */ } document.documentElement.setAttribute('data-look', lk); previewSwitchMessage = 'New look is on. Choose a direction below; it applies at once.'; }
-            else { document.documentElement.removeAttribute('data-look'); previewSwitchMessage = 'New look is off: today\'s look is back.'; }
-          }
         }
       } catch (err) { previewSwitchMessage = 'This browser would not save the switch (private window or storage blocked).'; }
       loadPreviewSwitches(); announce(previewSwitchMessage); refocusLike(t);
