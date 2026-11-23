@@ -63,6 +63,9 @@ test.describe('flag ON: sales pages appear and render synthetic data', () => {
   });
 
   test('the group and its seven pages are present, navigable, and labelled synthetic', async ({ page, backend }) => {
+    // seven pages opened one after another: at phone size under a full 4-worker
+    // run this ran past the default 30 s once (Nov 23); alone it takes about 8 s
+    test.setTimeout(90000);
     await login(page);
 
     // The collapsible group's toggle is in the DOM (collapsed by default).
