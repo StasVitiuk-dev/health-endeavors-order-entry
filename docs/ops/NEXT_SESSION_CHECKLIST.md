@@ -1,6 +1,6 @@
 # When you're back: checklist (printers, agents, payments)
 
-Status: CURRENT · written Nov 23, updated late Nov 23 · for Stas. One step at a time; I explain each one before you
+Status: CURRENT · written Nov 23, updated Nov 23 evening (PR #36 merged and live) · for Stas. One step at a time; I explain each one before you
 click. Nothing here goes live until you approve it.
 
 ## 1. Have ready (only what you have)
@@ -16,7 +16,8 @@ click. Nothing here goes live until you approve it.
 
 ## 2. Printers (about 30 minutes)
 
-1. In the preview, Feature Flags → turn on **Packing slips**.
+1. In the live dashboard (merged Nov 23), Feature Flags → turn on **Packing slips** (only in your
+   browser; turn it off again afterwards if you like).
 2. Orders page → **Test page: Rollo 4×6** → print → measure the square (1 inch) and check the
    frame shows on all four sides. Same with **Test page: Brother Letter**.
 3. Print a **4×6 slip** and a **Letter slip** for one example order.

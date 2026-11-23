@@ -25,7 +25,7 @@ Before creating any branch, commit, pull request, issue, label, comment or file 
 
 Then wait for Stas to reply "approved", unless Stas has already given a task and said to go ahead.
 
-**Also read `docs/PROJECT_RECORD.md` alongside these rules.** It is the current status record: every feature, what is verified in the repository versus reported or still pending live, remaining work, and daily history. (Until PR #6 is merged, it's on branch `claude/project-record`.) This file holds only the standing rules. Keep status in the project record, and update it whenever something is merged, checked live, or decided.
+**Also read `docs/PROJECT_RECORD.md` alongside these rules.** It is the current status record: every feature, what is verified in the repository versus reported or still pending live, remaining work, and daily history. This file holds only the standing rules. Keep status in the project record, and update it whenever something is merged, checked live, or decided.
 
 The first verification record is saved in `docs/security/claude-access-verification.md`. Do not create it again. Any update to it goes through a normal pull request that Stas approves.
 
@@ -76,7 +76,7 @@ If a task would need anything on this list, stop, explain in plain English what'
 ## GitHub protection (as of September 29, 2026)
 
 - Ruleset `protect-main` on the default branch: pull request required; 1 approval; stale approvals dismissed on new pushes; the last push must be approved by someone else; review from Code Owners required; force pushes blocked; deletion blocked; bypass for Repository admin only.
-- `.github/` contains only `CODEOWNERS` (`@StasVitiuk-dev` owns everything). There are no workflow files. GitHub Pages publishing is GitHub's built-in process.
+- `.github/` contains `CODEOWNERS` (`@StasVitiuk-dev` owns everything) and, since PR #36 (Nov 23, 2026), one workflow, `workflows/ci.yml`: it runs the tests and checks on pull requests with a mocked network and no secrets, and touches no production system. GitHub Pages publishing is GitHub's built-in process.
 - Actions limited to GitHub-made actions; read-only `GITHUB_TOKEN`; Actions can't create or approve PRs; fork workflows need approval; no secrets or variables; the `github-pages` environment is limited to `main`.
 
 ## Tests: run before every dashboard PR
@@ -139,11 +139,11 @@ Where things are recorded:
 ## Background
 
 - **Live dashboard:** https://stasvitiuk-dev.github.io/health-endeavors-order-entry/owner-login.html
-- **Main file:** `owner-login.html` (about 505 KB, one file with all HTML/CSS/JS). Other pages: `change-password.html`, `dashboard.html`, `index.html`, `manual-order-entry.html`, `search.html`.
+- **Main file:** `owner-login.html` (since PR #36 about 75 KB; its styles and program live in `assets/`). Other pages: `change-password.html`, `dashboard.html`, `index.html`, `manual-order-entry.html`, `search.html`.
 - **Backend:** the production Supabase project. The dashboard uses only the public anon key plus the logged-in user's session. Row-level security protects the data. The `tasks` table has an audit trigger that writes to `audit_log`.
 - **Docs:** `docs/security/claude-access-verification.md` (access verification record), `docs/code-quality/owner-login-review.md` (code-quality review).
 - **Public website:** a separate project (customer storefront). Its code never goes into this repository; a separate repository needs Stas's approval. Until then it is a local workspace with its own `docs/website/`.
 
 ## Current status
 
-Kept outside this file: `docs/PROJECT_RECORD.md` (detail), `docs/health-endeavors-current-state.md` (summary) and `docs/health-endeavors-progress.md` (progress). Until PR #6 is merged they are on branch `claude/project-record`. Don't copy status into this file, so they can never disagree.
+Kept outside this file: `docs/PROJECT_RECORD.md` (detail), `docs/health-endeavors-current-state.md` (summary) and `docs/health-endeavors-progress.md` (progress). Don't copy status into this file, so they can never disagree.

@@ -1,6 +1,6 @@
 # Health Endeavors — current state (cross-project summary)
 
-**Last updated:** November 23, 2026 (§5, §8, §9: PR #36 carries everything; Nov 23 decisions). Before that: November 15, 2026 (Nov 7 build). Internal-platform entry point: `docs/ops/START_HERE_EXT14.md`. **Keep this short.** Details live in the linked documents; update this file whenever the verified state changes materially.
+**Last updated:** November 23, 2026, evening (§1, §4, §5: PR #36 merged and checked live). Earlier Nov 23: §5, §8, §9 (PR #36 carries everything; Nov 23 decisions). Before that: November 15, 2026 (Nov 7 build). Internal-platform entry point: `docs/ops/START_HERE_EXT14.md`. **Keep this short.** Details live in the linked documents; update this file whenever the verified state changes materially.
 
 Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (from the owner's earlier chats, not re-checked) · **PROPOSED** · **OWNER DECISION REQUIRED** · **DEPRECATED**.
 
@@ -13,13 +13,13 @@ Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (fro
 
 ## 1. Internal platform (the dashboard)
 
-- **CURRENT (Nov 23, 2026), read this first:** every piece of branch work listed in this section,
-  from the October extensions to the November build, is inside **draft PR #36**
-  (`claude/dashboard-nov-2026`), together with every other open PR (#5–#35). Nothing below is merged
-  or live until the owner merges #36 (`docs/ops/MERGE_GUIDE_PR36.md`). At the merge everyone gets
-  the Aurora look; every new feature stays behind its switch, off. GitHub's checks are green on the
-  final commit. The bullets below are the history of how that work was built (dated, kept for
-  reference).
+- **CURRENT (Nov 23, 2026, evening), read this first:** **PR #36 is merged into `main`** (merge
+  commit `b4ebb4b`) and **live**: the owner checked it on the computer (light and dark) and the
+  iPhone (light, dark, menu). It contains every piece of branch work listed in this section, from the
+  October extensions to the November build, and every earlier PR (#5–#35, now closed, not deleted).
+  Everyone has the Aurora look; every new feature is still behind its switch, off; no SQL was run, so
+  every database draft is still not installed. The bullets below are the history of how that work
+  was built (dated, kept for reference; where they say "not merged", that was true on their date).
 - **CURRENT:** the owner dashboard (`owner-login.html` + 5 other pages) on GitHub Pages from `main`, backed by the production Supabase project (public anon key + staff login + row-level security).
 - **REPORTED:** broad operations features are live: orders, inventory with batch/lot tracking, purchase orders, returns, recalls, quality control, adverse event reports (15-business-day deadline), legal holds, customer inquiries, accounting and tax records, tasks, calendar, employee activity, audit log, security pages, and agents #4/#5/#6 running hourly in Supabase. See PROJECT_RECORD §2.
 - **Branch work (not merged, not live), Oct 5–6:** `claude/platform-overnight-implementation` holds the Query A fixes, hardened R1–R5 stock-function drafts (tested locally only) and the state-machine, stale-tab, storage, scale, XSS, accessibility and empty-database audits, each with fixes and tests. Query B ran clean; no existing data repair is required. Queries C and D are prepared, not run. See `docs/ops/OWNER_REVIEW_2026-10-06.md`.
@@ -144,12 +144,17 @@ Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (fro
 
 ## 4. Important merged work (on `main`)
 
-- **CURRENT:** PR #1 (access verification record), PR #3 (CODEOWNERS: owner reviews everything), PR #4 (automated dashboard test suite + code-quality review). Latest `main` commit: `d3db7bc` (Sept 29).
+- **CURRENT (Nov 23, 2026):** PR #36 ("Dashboard Nov 2026", everything from #5–#35 plus the November build), merged by the owner; latest `main` commit `b4ebb4b`. Live check by the owner passed (see §1). GitHub's test workflow (`.github/workflows/ci.yml`: tests only, mocked network, no secrets, touches no production system) came in with it.
+- Earlier: PR #1 (access verification record), PR #3 (CODEOWNERS: owner reviews everything), PR #4 (automated dashboard test suite + code-quality review); `main` was `d3db7bc` (Sept 29).
 - Earlier features were added before branch protection existed (REPORTED as live; task buttons v2 is the most recent).
 
-## 5. Active development (open PRs, none merged, nothing deployed)
+## 5. Active development (open PRs)
 
-**Updated Nov 23, 2026 (CURRENT).** One pull request carries everything:
+**CURRENT (Nov 23, 2026, evening):** PR #36 is merged and live (see §1 and §4); PRs #5–#35 are
+closed (their work is in #36; nothing deleted). The paragraph below is how #36 was described before
+the merge (kept for history).
+
+**Before the merge (Nov 23):** one pull request carried everything:
 [PR #36](https://github.com/StasVitiuk-dev/health-endeavors-order-entry/pull/36), branch
 `claude/dashboard-nov-2026` (pushed with the owner's approval on Nov 23; draft).
 
