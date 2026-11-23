@@ -52,6 +52,8 @@ test('no important horizontal overflow on the home page and Tasks page', async (
 });
 
 test('every sidebar page opens without errors', async ({ page, pageErrors, backend }) => {
+  // a sweep of every page (30+) in one test: 30-40 s measured, so allow 2 minutes
+  test.setTimeout(120000);
   await login(page);
   const ids = await allPageIds(page);
   expect(ids.length).toBeGreaterThanOrEqual(20);
