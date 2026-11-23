@@ -1136,6 +1136,12 @@
   .scanToggleRow{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
   .scanOutage{ font-size:12px; color:var(--muted); display:inline-flex; align-items:center; gap:4px; }
   .scanCard{ border:1px solid var(--line); border-radius:var(--radius-sm); padding:12px; margin-top:8px; display:flex; flex-direction:column; gap:4px; }
+  /* product list import (Nov 23): what to fix stands out; notes wrap on a phone */
+  .piNotes{ margin:0; padding-left:16px; overflow-wrap:anywhere; }
+  .piNote-problem{ color:var(--danger); font-weight:600; }
+  .piNote-differs{ color:var(--warn); }
+  .piSuggest{ display:flex; gap:6px; align-items:center; }
+  @media (min-width: 701px){ .piSku{ white-space:nowrap; } }
   .scanCardHead{ font-size:14px; }
   .scanCardRow{ font-size:13px; color:var(--ink); }
   .scanReasons{ font-size:12px; color:var(--muted); }
