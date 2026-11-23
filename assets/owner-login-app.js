@@ -2756,6 +2756,24 @@
         h('p', { class: 'u-fs-12', role: 'status', 'data-trmessage': '1' }, trMessage || ''),
         form);
     }
+    // Home: a rate in force that needs its January / July re-check is said on Home
+    // too (owner only; nothing when the switch is off, nothing is due or the list
+    // cannot be read: Home then stays as it is).
+    async function loadTaxRateAlert() {
+      const host = document.getElementById('taxRateAlertHost'); if (!host) return;
+      const store = trStore(); const mod = trMod();
+      if (!store || !mod || currentUserRole !== 'owner') { host.replaceChildren(); return; }
+      let taxMod = null; try { taxMod = (window.HE && window.HE.invoice && window.HE.invoice['he-tax']) || null; } catch (e) { taxMod = null; }
+      const L = await store.list();
+      if (!L.ok) { host.replaceChildren(); return; }
+      const today = trToday();
+      const due = L.rates.filter(r => mod.standing(r, today, taxMod).state === 'RECHECK_DUE');
+      if (!due.length) { host.replaceChildren(); return; }
+      host.replaceChildren(h('div', { class: 'attnRow u-mt-12', role: 'status', 'data-taxratealert': String(due.length) },
+        h('span', { class: 'badge sev-high' }, 'Tax'),
+        h('span', { class: 'taskTitle' }, due.length + ' sales tax rate' + (due.length === 1 ? ' needs' : 's need') + ' a re-check (rates can change on January 1 and July 1); new invoices stay TAX PENDING until then'),
+        ' ', h('button', { type: 'button', class: 'small', 'data-taxratealertopen': '1' }, 'Open Tax Records')));
+    }
     function trAfter(msg, focusSel) {
       trMessage = msg;
       return loadTaxRates().then(() => {
@@ -2784,11 +2802,13 @@
       await trAfter(res.message, '#taxRatesHost [data-trmessage]');
     });
     document.addEventListener('click', async (e) => {
+      if (e.target.closest('#taxRateAlertHost [data-taxratealertopen]')) { showPage('taxRecordsPanel'); return; }
       const t = e.target.closest('#taxRatesHost [data-trrecheck]'); if (!t) return;
       const store = trStore(); if (!store) return;
       t.disabled = true;
       const res = await store.recheck(t.getAttribute('data-trrecheck'));
       await trAfter(res.message, '#taxRatesHost [data-trmessage]');
+      loadTaxRateAlert();
     });
 
     // ---------- Saved money differences (drafts/42, Nov 22; behind moneyIssuesOn)
@@ -4585,7 +4605,7 @@
       loadOpsWatch();
     }
     const PANEL_LOADERS = {
-      attentionPanel: [loadAttention, loadBusinessHealth, loadAttentionChecks, loadNightlyCheck, paintScanEntry, loadMoneyAlert],
+      attentionPanel: [loadAttention, loadBusinessHealth, loadAttentionChecks, loadNightlyCheck, paintScanEntry, loadMoneyAlert, loadTaxRateAlert],
       calendarPanel: [loadCalendarMonth],
       dailySummaryPanel: [loadDailySummary],
       reportHistoryPanel: [loadReportHistoryThenExport, loadRecoveryDrill, loadInvoicePreview, loadReportVersions],

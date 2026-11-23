@@ -172,6 +172,28 @@ test.describe('Tax Records', () => {
     });
   });
 
+  test('Home tells the owner when a rate needs its re-check, and the button opens Tax Records', async ({ page, backend }, ti) => {
+    test.skip(ti.project.name !== 'desktop', 'run once');
+    await page.clock.setFixedTime(new Date('2027-01-05T15:00:00Z'));
+    backend.tables.tax_rates = [{ id: '00000000-0000-4000-8000-00000000a001', place: 'Ships from: SYNTHETIC place', rate: '0.08750', effective_from: '2026-07-01', effective_until: null, source: 'IDOR Tax Rate Finder', note: null, confirmed_by: 'u', confirmed_at: '2026-11-24T15:00:00Z', rechecked_at: null, rechecked_by: null }];
+    await on(page); await login(page);
+    const alert = page.locator('#taxRateAlertHost [data-taxratealert]');
+    await expect(alert).toHaveAttribute('data-taxratealert', '1');
+    await expect(alert).toContainText('1 sales tax rate needs a re-check');
+    await alert.locator('[data-taxratealertopen]').click();
+    await expect(page.locator('#taxRecordsPanel')).toBeVisible();
+    await expect(page.locator('#taxRatesHost tr[data-trstanding="RECHECK_DUE"]')).toHaveCount(1);
+  });
+
+  test('Home stays as it is when no re-check is due, for staff, or with the switch off', async ({ page, backend }, ti) => {
+    test.skip(ti.project.name !== 'desktop', 'run once');
+    await page.clock.setFixedTime(new Date('2026-12-01T15:00:00Z'));
+    backend.tables.tax_rates = [{ id: '00000000-0000-4000-8000-00000000a001', place: 'Ships from: SYNTHETIC place', rate: '0.08750', effective_from: '2026-07-01', effective_until: null, source: 'IDOR Tax Rate Finder', note: null, confirmed_by: 'u', confirmed_at: '2026-11-24T15:00:00Z', rechecked_at: null, rechecked_by: null }];
+    await on(page); await login(page);
+    await expect(page.locator('#dash')).toBeVisible();
+    await expect(page.locator('#taxRateAlertHost')).toBeEmpty();
+  });
+
   test('at phone size the rates and the form fit the screen', async ({ page, backend }, ti) => {
     test.skip(ti.project.name !== 'iphone', 'phone only');
     backend.tables.tax_rates = [{ id: '00000000-0000-4000-8000-00000000a001', place: 'Ships from: SYNTHETIC place with a long name for testing', rate: '0.10125', effective_from: '2026-07-01', effective_until: null, source: 'IDOR Tax Rate Finder, checked by phone with the Department of Revenue', note: null, confirmed_by: 'u', confirmed_at: '2026-11-24T15:00:00Z', rechecked_at: null, rechecked_by: null }];

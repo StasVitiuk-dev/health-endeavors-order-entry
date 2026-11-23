@@ -170,7 +170,7 @@ const ADDED = ['focusDialog', 'inspectLabel', 'keyLink', 'setReportHistoryView',
   'partialReceivingShown', 'loadPartialReceiving', 'partialReceivingOn',
   // Nov 23: confirmed sales tax rates on Tax Records (drafts/46, behind he_tax_rates, OFF). The
   // delegated [data-trform] / [data-trrecheck] listeners are waived by text below.
-  'trSeq', 'trMessage', 'TR_STATE', 'trMod', 'trStore', 'trToday', 'loadTaxRates', 'trAfter', 'taxRatesOn',
+  'trSeq', 'trMessage', 'TR_STATE', 'trMod', 'trStore', 'trToday', 'loadTaxRates', 'trAfter', 'taxRatesOn', 'loadTaxRateAlert',
   // Nov 23: product list import on Inventory (behind he_product_import, OFF). The delegated
   // [data-pifile] / [data-pi] listeners are waived by text below.
   'piState', 'piSeq', 'PI_WORD', 'piMod', 'piExisting', 'piSay', 'piSaveText', 'piRecheck', 'loadProductImport', 'productImportOn'];
