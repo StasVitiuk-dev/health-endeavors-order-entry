@@ -95,6 +95,23 @@ test('an order with no lines on file says so and opens no print window', async (
   expect(await printed(page)).toBe(0);
 });
 
+test('pressed while the order lines are still loading: says so, opens no print window, works a moment later', async ({ page, backend }, ti) => {
+  test.skip(ti.project.name !== 'desktop', 'run once');
+  seedBusiness(backend);
+  let release; const gate = new Promise(r => { release = r; });
+  await page.route(/\/rest\/v1\/order_items/, async route => { await gate; await route.fallback(); });
+  await page.addInitScript(() => { localStorage.setItem('he_order_slips', 'on'); window.print = () => { window.__printed = (window.__printed || 0) + 1; }; });
+  await login(page); await gotoPage(page, 'ordersPanel');
+  await page.locator('#ordersTableWrap tr[data-id="o1"] [data-slip="4x6"]').click();
+  await expect(page.locator('#orderSlipsHost [data-slipmessage]')).toHaveText('The order lines are still loading. Try again in a moment.');
+  expect(await printed(page)).toBe(0);
+  release();
+  await expect(async () => {
+    await page.locator('#ordersTableWrap tr[data-id="o1"] [data-slip="4x6"]').click();
+    expect(await printed(page)).toBe(1);
+  }).toPass({ timeout: 5000 });
+});
+
 test('at phone size the slip buttons fit without sideways scrolling', async ({ page, backend }, ti) => {
   test.skip(ti.project.name !== 'iphone', 'phone only');
   await open(page, backend, true);

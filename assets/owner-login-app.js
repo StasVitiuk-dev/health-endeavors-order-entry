@@ -4150,16 +4150,18 @@
     // window straight away (Safari can refuse a print window opened after a wait).
     // Lot is left blank to write by hand. Not an invoice, not a carrier label (the
     // shipping label with the barcode comes from Shopify). Printing reads only.
-    let slipOrders = [], slipItems = {}, slipItemsError = '';
+    let slipOrders = [], slipItems = {}, slipItemsError = '', slipItemsLoading = false;
     async function prefetchSlipItems(ids) {
       slipItemsError = '';
       if (!ids.length) { slipItems = {}; return; }
+      slipItemsLoading = true;
       try {
         const { data, error } = await supabase.from('order_items').select('id, order_id, sku, product_name, quantity').in('order_id', ids).limit(2000);
         if (error) throw error;
         const by = {}; (data || []).forEach(r => { (by[r.order_id] = by[r.order_id] || []).push(r); });
         slipItems = by;
       } catch (err) { slipItems = {}; slipItemsError = 'The order lines could not be read, so no slip can be printed. Refresh the page and try again.'; }
+      finally { slipItemsLoading = false; }
     }
     function loadOrderSlipsHost() {
       const host = document.getElementById('orderSlipsHost'); if (!host) return;
@@ -4223,6 +4225,7 @@
       const size = t.getAttribute('data-slip') === '4x6' ? '4x6' : 'letter';
       const order = slipOrders.find(o => o.id === t.getAttribute('data-order'));
       if (!order) { slipMessage('That order is no longer on the list. Refresh the page.'); return; }
+      if (slipItemsLoading) { slipMessage('The order lines are still loading. Try again in a moment.'); return; }
       if (slipItemsError) { slipMessage(slipItemsError); return; }
       const items = (slipItems[order.id] || []).filter(it => Number(it.quantity) > 0);
       if (!items.length) { slipMessage('Order ' + (order.order_number || order.id) + ' has no items on file, so there is nothing to put on a slip.'); return; }
