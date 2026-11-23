@@ -57,6 +57,16 @@ monthly, for about 4 months. It was not recorded anywhere before; now it is. So 
 of the recommendation is the card fee per order. Open: is Shopify Payments turned on (Shopify admin
 → Settings → Payments)? Possible saving: yearly billing (about $29/month, about $120 a year less).
 
+**Passing the card fee to customers (owner question, Nov 23; PROPOSED, not decided):** a card
+surcharge is not banned by Illinois law, but card-network rules cap it (about 3% for Visa), forbid it
+on debit and prepaid cards, require it to be shown before payment, and reportedly need notice to the
+networks in advance; Shopify has no built-in surcharge (an app is needed, and customers must accept
+it at checkout); a few states (for example Connecticut, Massachusetts) ban surcharges for their
+buyers; whether the fee itself is taxed is a question for the accountant. Claude's suggestion:
+retail online, build about 3% into the prices instead of a separate fee; wholesale, the legal and
+simpler "discount for bank transfer or check" (for example 3% off), which the invoice could show
+later if the owner wants.
+
 **Business phone line (PROPOSED, Nov 23):** a separate business number in an iPhone app; Claude's
 pick is Quo (formerly OpenPhone, about $15–19/month); cheaper options Grasshopper (about $14–25),
 Line2 (about $8); Google Voice needs a paid Google Workspace. Get the number before printouts and the
