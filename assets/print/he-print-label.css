@@ -15,4 +15,7 @@
   .printView th, .printView td{ padding:3pt 4pt; border-bottom:0.75pt solid #000; vertical-align:top; }
   .printView td.labelQty{ font-size:13pt; font-weight:800; text-align:center; }
   .printView .labelFoot{ margin-top:6pt; font-size:9pt; }
+  /* item descriptions under the SKU stay small so 7 lines fit on one label */
+  .printView td > div{ font-size:8.5pt; line-height:1.15; }
+  .printView .printHdr{ font-size:9.5pt; line-height:1.2; }
 }

@@ -181,6 +181,30 @@
 :root[data-look] ::-webkit-scrollbar-track{ background:transparent; }
 
 /* switching pages: the new page rises in with a short fade; tiles follow one by one */
+/* ============ structure lines (owner request, Nov 23) ============
+   "Put lines so it separates things and does not look all together." Every page
+   title gets a rule with a short accent mark; each section inside a page starts
+   with a hairline; forms sit in their own framed area with the buttons set off
+   by a line; sidebar groups are divided; on a phone, each line inside a card is
+   divided. Lines only: no text colour changes, so readability is unchanged. */
+:root[data-look] section.panel > h2:first-child,
+:root[data-look] section.panel > .sectionHeadRow:first-child{ position:relative; padding-bottom:10px; margin-bottom:12px; border-bottom:1px solid var(--line); }
+:root[data-look] section.panel > h2:first-child::after,
+:root[data-look] section.panel > .sectionHeadRow:first-child::after{ content:""; position:absolute; left:0; bottom:-1px; width:56px; height:2px; border-radius:2px; background:var(--accent); }
+:root[data-look="aurora"] section.panel > h2:first-child::after,
+:root[data-look="aurora"] section.panel > .sectionHeadRow:first-child::after{ background:var(--look-gradient); width:72px; }
+:root[data-look] section.panel > h2:not(:first-child),
+:root[data-look] section.panel > h3{ border-top:1px solid var(--line); padding-top:16px; }
+:root[data-look] .heForm{ border:1px solid var(--line) !important; border-radius:calc(var(--radius) - 4px); padding:16px !important; background:var(--panel-2); }
+:root[data-look] .heForm .heActions{ border-top:1px solid var(--line); padding-top:12px; margin-top:4px; }
+:root[data-look] .sidebarGroup + .sidebarGroup{ border-top:1px solid var(--line); padding-top:12px; margin-top:12px; }
+@media (max-width: 700px){
+  /* the phone menu slides over the page: it needs a solid background (found Nov 23) */
+  :root[data-look] .sidebar{ background-color:var(--page); background-image:var(--look-page-bg); }
+  :root[data-look] table.phoneCards td + td{ border-top:1px solid var(--line); }
+  :root[data-look] table.phoneCards tr{ padding-top:4px; padding-bottom:4px; }
+}
+
 @media (prefers-reduced-motion: no-preference){
   :root[data-look] button:active:not(:disabled){ transform:scale(0.98); }
   :root[data-look] button.stat.statLink:hover{ transform:translateY(-2px); }

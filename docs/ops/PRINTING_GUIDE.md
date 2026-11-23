@@ -15,6 +15,14 @@ Status: CURRENT for the dashboard's print layouts (tested locally) · real print
 | Print packing slip | Letter | Brother |
 | Print 4×6 label slip | 4 × 6 in | Rollo |
 
+**For real orders (Nov 23):** with the preview switch "Packing slips" on, every order on the
+Orders page has **4×6 slip** (Rollo) and **Letter slip** (Brother) buttons. The slip shows the
+order number large, who it is for, each item with its quantity, a blank Lot column to write by
+hand and "Packed by / Checked" at the bottom; never prices. An order with more than 7 lines
+continues on a second label with the heading repeated. The same box has a **test page** for
+each printer: a frame that must show on all four sides and a square that must measure exactly
+1 inch. An order with no lines on file says so and opens no print window.
+
 - **Black ink only.** Every printout is black text and black lines on white, whatever look, colour
   or dark mode is on screen, so the Brother uses only its black cartridge (no colour ink).
   Before Nov 23, printing while the dashboard was in dark mode printed grey text and grey lines;
@@ -43,6 +51,7 @@ A deliberate break (the black-ink sheet turned off) makes the black-ink test fai
 
 ## Still to check on the real printers (when they arrive)
 
+0. Print the two test pages (Orders → Packing slips) and measure the 1-inch square.
 1. Brother: print the invoice preview; check it is black only and nothing is cut off.
 2. Rollo: print the 4 × 6 label slip from iPhone (AirPrint) and from the computer; check the size
    and that the text is sharp.

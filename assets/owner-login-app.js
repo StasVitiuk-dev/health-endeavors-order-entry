@@ -84,7 +84,7 @@
       nightlyOverall,
     } = window.HE.helpers;
     // @@ EXT15 modules: created in dependency order (assets/app/*.js; see docs/ops/APPLICATION_MODULE_MAP_EXT15.md)
-    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, moneyIssuesOn, receivingStoreOn, newLookOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn } = HE.modules.create('he-config', {  });
+    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, moneyIssuesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, newLookOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn } = HE.modules.create('he-config', {  });
     const { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, focusDialog, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, h, pageIconNode } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
     const { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
     const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, h, supabase });
@@ -2895,6 +2895,150 @@
       await rtnAfter(res);
     });
 
+    // ---------- Backups & Printouts (owner request, Nov 23; behind backupsPageOn)
+    // One place for the paper and file copies the owner keeps: the daily recaps
+    // (print a month on Letter, or save it as a spreadsheet file), the manuals
+    // (what to do if the dashboard is down, how the dashboard works, the owner's
+    // own procedures, the printer setup), and an honest note on the database
+    // backups, which run outside the dashboard and which it cannot see. Reads
+    // only; every printout is black on white.
+    let bkReports = null, bkSops = null, bkMonth = '', bkMessage = '', bkSeq = 0;
+    const BK_DOWN = [
+      'Orders keep arriving in Shopify while the dashboard is down. Nothing is lost.',
+      'Orders: work from Shopify admin (Orders). Shipping labels print from Shopify as usual.',
+      'Stock changes: write each one on the log at the bottom of this page (date, product, change, reason, who). Enter them in the dashboard when it is back.',
+      'Deliveries and returns: keep the paperwork together in one tray. Record them when the dashboard is back.',
+      'Money: the dashboard never moves money. Shopify payouts reach the bank as usual.',
+      'Try again in another browser, in a Private Window, or with Cmd+Shift+R. If it is still down after an hour, send a screenshot to whoever maintains the dashboard.',
+    ];
+    const BK_PRINTING = [
+      'Brother MFC-J1365DW (US Letter): invoices, packing slips, recaps and manuals. Paper Letter, scale 100%. Every printout is black only.',
+      'Rollo label printer (4 × 6 in): shipping labels from Shopify and the 4×6 packing slip. Paper size 4 × 6 (or 100 × 150 mm), margins None, scale 100%.',
+      'Test pages: Orders page → Packing slips → "Test page" for each printer. The frame must show on all four sides and the square must measure 1 inch.',
+      'If something is cut off: margins None, scale 100%, then print again.',
+    ];
+    const bkMonthOf = r => String(r.report_date || '').slice(0, 7);
+    const bkMonthName = m => { const d = new Date(m + '-01T12:00:00'); return isNaN(d) ? m : d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }); };
+    const bkNum = v => (v == null || v === '' || !isFinite(Number(v))) ? '—' : String(Number(v));
+    async function loadBackupsPage() {
+      const host = document.getElementById('backupsPanel'); if (!host) return;
+      if (!(typeof backupsPageOn === 'function' && backupsPageOn())) { host.replaceChildren(); return; }
+      const seq = ++bkSeq;
+      if (bkReports === null) host.replaceChildren(h('h2', null, 'Backups & Printouts'), h('p', { class: 'empty' }, 'Loading…'));
+      const [rep, sop] = await Promise.all([
+        supabase.from('daily_reports').select('*').order('report_date', { ascending: false }).limit(366).then(r => r, e => ({ error: e })),
+        supabase.from('sop_documents').select('id, title, category, content, updated_at').order('title', { ascending: true }).then(r => r, e => ({ error: e })),
+      ]);
+      if (seq !== bkSeq) return;
+      bkReports = rep && !rep.error && Array.isArray(rep.data) ? rep.data : false;
+      bkSops = sop && !sop.error && Array.isArray(sop.data) ? sop.data : false;
+      renderBackupsPage();
+    }
+    function bkMonthRows() { return (bkReports || []).filter(r => bkMonthOf(r) === bkMonth).sort((a, b) => String(a.report_date).localeCompare(String(b.report_date))); }
+    function renderBackupsPage() {
+      const host = document.getElementById('backupsPanel'); if (!host) return;
+      const months = [...new Set((bkReports || []).map(bkMonthOf).filter(m => /^\d{4}-\d{2}$/.test(m)))].sort().reverse();
+      if (!months.includes(bkMonth)) bkMonth = months[0] || '';
+      const rows = bkMonthRows();
+      const recaps = bkReports === false
+        ? h('p', { class: 'hint', 'data-bknote': 'recaps' }, 'The daily recaps could not be read. Refresh the page and try again.')
+        : !months.length ? h('p', { class: 'empty', 'data-bknote': 'recaps' }, 'No daily recaps saved yet. The first one appears the morning after a working day.')
+        : h('div', null,
+          h('div', { class: 'u-d-flex u-gap-8 u-fwr-wrap u-ai-flex-end u-mt-8' },
+            h('div', { class: 'heField' }, h('label', { for: 'bkMonth' }, 'Month'),
+              h('select', { id: 'bkMonth' }, months.map(m => h('option', Object.assign({ value: m }, m === bkMonth ? { selected: 'selected' } : {}), bkMonthName(m))))),
+            h('button', { type: 'button', class: 'small', 'data-bk': 'print-recaps' }, 'Print this month'),
+            h('button', { type: 'button', class: 'small secondary', 'data-bk': 'csv-recaps' }, 'Save this month as a spreadsheet (CSV)')),
+          h('div', { class: 'u-mt-8' }, h('table', { 'data-bkrecaps': String(rows.length) },
+            h('thead', null, h('tr', null, h('th', null, 'Date'), h('th', { class: 'num-cell' }, 'Orders'), h('th', { class: 'num-cell' }, 'Revenue'), h('th', { class: 'num-cell' }, 'New questions'), h('th', { class: 'num-cell' }, 'AI cost'))),
+            h('tbody', null, rows.map(r => h('tr', null, h('td', { class: 'u-ws-nowrap' }, String(r.report_date).slice(0, 10)), h('td', { class: 'num-cell' }, bkNum(r.orders_count)),
+              h('td', { class: 'num-cell' }, r.revenue == null ? '—' : fmtMoney(r.revenue, r.currency || 'USD')), h('td', { class: 'num-cell' }, bkNum(r.new_inquiries_count)),
+              h('td', { class: 'num-cell' }, r.ai_cost == null ? '—' : fmtMoney(r.ai_cost, 'USD'))))))));
+      const sopCount = Array.isArray(bkSops) ? bkSops.length : 0;
+      const manual = (key, title, what, disabled) => h('li', { class: 'u-mt-6', 'data-bkmanualrow': key },
+        h('div', { class: 'taskTitle' }, title), h('div', { class: 'u-fs-12 u-c-muted' }, what),
+        h('button', Object.assign({ type: 'button', class: 'small secondary u-mt-4', 'data-bkmanual': key, 'aria-label': 'Print: ' + title }, disabled ? { disabled: '' } : {}), 'Print'));
+      host.replaceChildren(
+        h('h2', null, 'Backups & Printouts'),
+        h('p', { class: 'hint' }, 'Paper and file copies to keep in your business folder: the daily recaps and the manuals. Everything here only reads; nothing is changed. Printouts are black only, on US Letter.'),
+        h('p', { class: 'u-fs-12', role: 'status', 'data-bkmessage': '1' }, bkMessage),
+        h('h3', null, 'Daily recaps'),
+        h('p', { class: 'hint u-mt-n2' }, 'The nightly summary of each day: orders, revenue, new customer questions and AI cost. Print a month for the folder, and save the spreadsheet to your computer and one more place (for example iCloud Drive).'),
+        recaps,
+        h('h3', null, 'Manuals to print'),
+        h('ul', null,
+          manual('down', 'If the dashboard is down', 'What to do by hand, with a paper log for stock changes.'),
+          manual('help', 'How the dashboard works', HELP.length + ' short guides: returns, inventory, activity, rules and more.'),
+          manual('sops', 'Your procedures', bkSops === false ? 'Your procedures could not be read. Refresh the page.' : sopCount ? sopCount + ' procedure' + (sopCount === 1 ? '' : 's') + ' from the Procedures page.' : 'No procedures written yet (Admin → Procedures).', !sopCount),
+          manual('printing', 'Printer setup', 'Settings for the Brother and the Rollo, and how to check them.'),
+          manual('all', 'All manuals together', 'Each manual starts on a new page.')),
+        h('h3', null, 'Database backups'),
+        h('p', { class: 'hint' }, 'The database backups run outside the dashboard, so this page cannot see whether the last one worked. It says UNKNOWN, as on Business Continuity, instead of a tick it cannot prove. Check the backups as in your owner checklist.'),
+        h('button', { type: 'button', class: 'small secondary', 'data-bkgoto': 'continuityPanel' }, 'Open Business Continuity'));
+    }
+    function bkPrintDoc(pages) {
+      const host = document.getElementById('invoicePrintHost'); if (!host) return;
+      setLabelSheet(false);
+      host.replaceChildren(h('div', { class: 'printDoc' }, pages));
+      try { window.print(); } catch (e) {}
+    }
+    const bkPrinted = () => 'Printed ' + localDateString();
+    function bkManualPage(key) {
+      const page = (title, ...kids) => h('div', { class: 'printPage', 'data-printmanual': key }, h('div', { class: 'printHdr' }, h('div', { class: 'taskTitle' }, 'Health Endeavors — ' + title), h('div', null, bkPrinted())), ...kids);
+      if (key === 'down') return page('If the dashboard is down',
+        h('ol', null, BK_DOWN.map(t => h('li', null, t))),
+        h('div', { class: 'printLabel u-mt-8' }, 'Stock change log'),
+        h('table', null, h('thead', null, h('tr', null, ['Date', 'Product', 'Change', 'Reason', 'Who'].map(x => h('th', null, x)))),
+          h('tbody', null, Array.from({ length: 14 }, () => h('tr', null, [0, 1, 2, 3, 4].map(() => h('td', null, ' ')))))));
+      if (key === 'help') return page('How the dashboard works', HELP.map(g => h('div', { class: 'u-mt-8' }, h('div', { class: 'printLabel' }, g.title),
+        String(g.body || '').split('|').map(p => h('p', null, p)))));
+      if (key === 'sops') return page('Your procedures', (bkSops || []).map(s => h('div', { class: 'u-mt-8' }, h('div', { class: 'printLabel' }, s.title + (s.category ? ' (' + s.category + ')' : '')),
+        String(s.content || '').split(/\n+/).map(p => h('p', null, p)))));
+      if (key === 'printing') return page('Printer setup', h('ul', null, BK_PRINTING.map(t => h('li', null, t))));
+      return null;
+    }
+    document.addEventListener('change', (e) => {
+      const s = e.target.closest('#backupsPanel select#bkMonth'); if (!s) return;
+      bkMonth = s.value; bkMessage = ''; renderBackupsPage();
+      const back = document.getElementById('bkMonth'); if (back) back.focus();
+    });
+    document.addEventListener('click', (e) => {
+      const g = e.target.closest('#backupsPanel [data-bkgoto]');
+      if (g) { showPage(g.getAttribute('data-bkgoto')); return; }
+      const m = e.target.closest('#backupsPanel [data-bkmanual]');
+      if (m) {
+        const key = m.getAttribute('data-bkmanual');
+        const keys = key === 'all' ? ['down', 'help'].concat(Array.isArray(bkSops) && bkSops.length ? ['sops'] : []).concat(['printing']) : [key];
+        bkPrintDoc(keys.map(bkManualPage).filter(Boolean));
+        return;
+      }
+      const t = e.target.closest('#backupsPanel [data-bk]'); if (!t) return;
+      const rows = bkMonthRows();
+      if (!rows.length) { bkMessage = 'There are no recaps for that month.'; announce(bkMessage); renderBackupsPage(); return; }
+      if (t.getAttribute('data-bk') === 'print-recaps') {
+        const sum = k => rows.reduce((a, r) => a + (isFinite(Number(r[k])) ? Number(r[k]) : 0), 0);
+        bkPrintDoc([h('div', { class: 'printPage', 'data-printrecaps': bkMonth },
+          h('div', { class: 'printHdr' }, h('div', { class: 'taskTitle' }, 'Health Endeavors — Daily recaps, ' + bkMonthName(bkMonth)), h('div', null, bkPrinted())),
+          h('table', null,
+            h('thead', null, h('tr', null, ['Date', 'Orders', 'Revenue', 'New questions', 'Tasks opened', 'Incidents', 'AI calls', 'AI cost'].map(x => h('th', null, x)))),
+            h('tbody', null, rows.map(r => h('tr', null, h('td', null, String(r.report_date).slice(0, 10)), h('td', null, bkNum(r.orders_count)), h('td', null, r.revenue == null ? '—' : fmtMoney(r.revenue, r.currency || 'USD')),
+              h('td', null, bkNum(r.new_inquiries_count)), h('td', null, bkNum(r.tasks_opened_count)), h('td', null, bkNum(r.incidents_opened_count)), h('td', null, bkNum(r.ai_calls_count)), h('td', null, r.ai_cost == null ? '—' : fmtMoney(r.ai_cost, 'USD')))))),
+          h('div', { class: 'printTotals', 'data-printtotal': 'month' }, 'Month: ' + rows.length + ' day(s) · orders ' + sum('orders_count') + ' · revenue ' + fmtMoney(sum('revenue'), (rows[0] && rows[0].currency) || 'USD') + (rows.some(r => r.revenue == null) ? ' (some days have no revenue figure)' : '')))]);
+        return;
+      }
+      const head = ['Date', 'Orders', 'Revenue', 'Currency', 'New questions', 'Tasks opened', 'Incidents opened', 'AI calls', 'AI cost (USD)'];
+      const lines = [head].concat(rows.map(r => [String(r.report_date).slice(0, 10), r.orders_count, r.revenue, r.currency || 'USD', r.new_inquiries_count, r.tasks_opened_count, r.incidents_opened_count, r.ai_calls_count, r.ai_cost]));
+      const csv = lines.map(l => l.map(v => csvCell(v == null ? '' : v)).join(',')).join('\r\n');
+      try {
+        const url = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' }));
+        const a = document.createElement('a'); a.href = url; a.download = 'daily-recaps-' + bkMonth + '.csv';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+        bkMessage = 'Saved daily-recaps-' + bkMonth + '.csv (' + rows.length + ' day' + (rows.length === 1 ? '' : 's') + ').';
+      } catch (err) { bkMessage = 'The file could not be saved in this browser.'; }
+      announce(bkMessage);
+      const msg = document.querySelector('#backupsPanel [data-bkmessage]'); if (msg) msg.textContent = bkMessage;
+    });
+
     // ---------- #08 Payment reconciliation review (behind reconcileOn)
     // A worked synthetic example on Accounting: invoices that should have been
     // paid vs payments recorded. Every difference is named and stays OPEN until
@@ -3997,6 +4141,94 @@
       try { window.print(); } catch (e) {}
     }
 
+    // Packing slips for real orders (Nov 23; behind orderSlipsOn). The order's own
+    // lines are read when the Orders page loads, so pressing Print opens the print
+    // window straight away (Safari can refuse a print window opened after a wait).
+    // Lot is left blank to write by hand. Not an invoice, not a carrier label (the
+    // shipping label with the barcode comes from Shopify). Printing reads only.
+    let slipOrders = [], slipItems = {}, slipItemsError = '';
+    async function prefetchSlipItems(ids) {
+      slipItemsError = '';
+      if (!ids.length) { slipItems = {}; return; }
+      try {
+        const { data, error } = await supabase.from('order_items').select('id, order_id, sku, product_name, quantity').in('order_id', ids).limit(2000);
+        if (error) throw error;
+        const by = {}; (data || []).forEach(r => { (by[r.order_id] = by[r.order_id] || []).push(r); });
+        slipItems = by;
+      } catch (err) { slipItems = {}; slipItemsError = 'The order lines could not be read, so no slip can be printed. Refresh the page and try again.'; }
+    }
+    function loadOrderSlipsHost() {
+      const host = document.getElementById('orderSlipsHost'); if (!host) return;
+      if (!orderSlipsOn()) { host.replaceChildren(); return; }
+      host.replaceChildren(h('div', { class: 'scanCard u-mb-10', 'data-slipsbox': '1' },
+        h('div', { class: 'scanCardHead' }, 'Packing slips'),
+        h('p', { class: 'hint u-m-0' }, 'Each order below has a 4×6 slip for the Rollo label printer and a Letter slip for the Brother. In the print window choose the printer and the paper size (4 × 6 for the Rollo), margins None, scale 100%. Lot is left blank to write by hand.'),
+        h('div', { class: 'u-mt-8 u-d-flex u-gap-8 u-fwr-wrap' },
+          h('button', { type: 'button', class: 'small secondary', 'data-printtest': '4x6' }, 'Test page: Rollo 4×6'),
+          h('button', { type: 'button', class: 'small secondary', 'data-printtest': 'letter' }, 'Test page: Brother Letter')),
+        h('p', { class: 'u-fs-12 u-mt-4', role: 'status', 'data-slipmessage': '1' })));
+    }
+    function slipMessage(text) {
+      const m = document.querySelector('#orderSlipsHost [data-slipmessage]'); if (m) m.textContent = text;
+      announce(text);
+    }
+    function renderOrderSlipPrint(order, items, size) {
+      const host = document.getElementById('invoicePrintHost'); if (!host) return false;
+      const inv = opsInvoiceMod(); if (!inv || typeof inv.packingSlipPrint !== 'function') return false;
+      const label = size === '4x6';
+      const num = order.order_number || order.id;
+      const slip = inv.packingSlip({ orderId: num, allocations: items.map(it => ({ sku: it.sku || '', description: it.product_name || '', quantity: Number(it.quantity) || 0, lotNumber: null })) });
+      const doc = inv.packingSlipPrint(slip, label ? { page: inv.LABEL_4X6.page } : undefined);
+      const pages = doc.pages.map(function (p) {
+        return h('div', { class: 'printPage', 'data-printsize': label ? '4x6' : 'letter', 'data-printorder': num },
+          h('div', { class: 'printHdr' }, h('div', { class: 'taskTitle' }, 'Health Endeavors — Packing slip'),
+            h('div', { class: label ? 'labelOrder' : 'printLabel' }, 'Order ' + num),
+            h('div', null, [order.customer_name ? 'For: ' + order.customer_name : null, order.placed_at ? 'ordered ' + String(order.placed_at).slice(0, 10) : null].filter(Boolean).join(' · ')),
+            h('div', null, 'Page ' + p.pageNo + ' of ' + p.totalPages + ' · not an invoice, not a shipping label')),
+          h('table', null,
+            h('thead', null, h('tr', null, p.headings.map(x => h('th', null, x)))),
+            h('tbody', null, p.rows.map(l => h('tr', null,
+              h('td', null, l.sku || '—', l.description ? h('div', null, l.description) : null),
+              h('td', label ? { class: 'labelQty' } : null, String(l.quantity)),
+              h('td', null, '________'))))),
+          p.pageNo === p.totalPages ? h('div', { class: 'labelFoot' }, 'Packed by: ________   Checked: ☐') : null);
+      });
+      host.replaceChildren(h('div', { class: 'printDoc' }, pages));
+      return true;
+    }
+    function renderPrinterTest(size) {
+      const host = document.getElementById('invoicePrintHost'); if (!host) return;
+      const label = size === '4x6';
+      host.replaceChildren(h('div', { class: 'printDoc' }, h('div', { class: 'printPage printTest', 'data-printsize': label ? '4x6' : 'letter' },
+        h('div', { class: 'taskTitle' }, 'Health Endeavors — printer test page'),
+        h('div', null, label ? 'Rollo label printer · 4 × 6 inch label' : 'Brother · US Letter'),
+        h('p', null, 'The frame should show on all four sides. If a side is cut off, set margins to None and scale to 100% and print again.'),
+        h('div', { class: 'printInch' }, '1 inch'),
+        h('p', null, 'The square above should measure exactly 1 inch. If it does not, the scale is not 100%.'),
+        h('p', null, 'Black only: this page has no colour.'))));
+    }
+    document.addEventListener('click', function (e) {
+      const t = e.target.closest('[data-printtest]'); if (!t) return;
+      const size = t.getAttribute('data-printtest') === '4x6' ? '4x6' : 'letter';
+      setLabelSheet(size === '4x6');
+      renderPrinterTest(size);
+      try { window.print(); } catch (err) {}
+    });
+    document.addEventListener('click', function (e) {
+      const t = e.target.closest('#ordersTableWrap [data-slip]'); if (!t) return;
+      const size = t.getAttribute('data-slip') === '4x6' ? '4x6' : 'letter';
+      const order = slipOrders.find(o => o.id === t.getAttribute('data-order'));
+      if (!order) { slipMessage('That order is no longer on the list. Refresh the page.'); return; }
+      if (slipItemsError) { slipMessage(slipItemsError); return; }
+      const items = (slipItems[order.id] || []).filter(it => Number(it.quantity) > 0);
+      if (!items.length) { slipMessage('Order ' + (order.order_number || order.id) + ' has no items on file, so there is nothing to put on a slip.'); return; }
+      setLabelSheet(size === '4x6');
+      if (!renderOrderSlipPrint(order, items, size)) { slipMessage('The slip could not be prepared. Refresh the page.'); return; }
+      slipMessage('');
+      logCustomerAccess([order], 'Printed a packing slip in Owner Dashboard – Orders panel');
+      try { window.print(); } catch (err) {}
+    });
+
     // L-follow-on: build a US-Letter print layout of the daily report rows into
     // the body-level print host (reuses the invoice print host + @media print
     // rules). Uses the live saved rows when present, else the demo set. Pure DOM.
@@ -4070,7 +4302,7 @@
       calendarPanel: [loadCalendarMonth],
       dailySummaryPanel: [loadDailySummary],
       reportHistoryPanel: [loadReportHistoryThenExport, loadRecoveryDrill, loadInvoicePreview, loadReportVersions],
-      ordersPanel: [loadOrders, paintScanEntry, loadSavedViews],
+      ordersPanel: [loadOrders, paintScanEntry, loadSavedViews, loadOrderSlipsHost],
       inventoryPanel: [loadInventory, loadInventoryAdjustments, loadReorderPlanning, loadSavedViews, loadCycleCount, loadPartialReceiving],
       returnsPanel: [loadReturns, loadStockReturns],
       suppliersPanel: [loadSuppliers, loadSupplierScorecard, loadSupplierDocs],
@@ -4094,6 +4326,7 @@
       sessionsPanel: [loadSessions],
       activityPanel: [loadActivityPeople, loadActivityAreas, loadActivityDigest, () => loadActivity(true)],
       sopsPanel: [loadSops],
+      backupsPanel: [loadBackupsPage],
       featureRequestsPanel: [loadFeatureRequests, loadDeletedFeatureRequests],
       legalHoldsPanel: [loadLegalHolds, loadReleasedLegalHolds],
       salesCommandPanel:   [() => loadSales('salesCommandPanel')],
@@ -7173,7 +7406,10 @@
                   h('td', null, h('span', { class: 'badge' }, o.status ? String(o.status).replace(/_/g, ' ') : '—')),
                   h('td', { class: 'num-cell' }, fmtMoney(o.total, o.currency)),
                   h('td', null, fmtDate(o.placed_at)),
-                  h('td', null, h('button', { class: 'small deny deleteOrderBtn' }, 'Delete'))))))
+                  h('td', null, orderSlipsOn() ? [
+                    h('button', { type: 'button', class: 'small secondary', 'data-slip': '4x6', 'data-order': o.id, 'aria-label': 'Print a 4×6 packing slip for order ' + (o.order_number || o.id) }, '4×6 slip'), ' ',
+                    h('button', { type: 'button', class: 'small secondary', 'data-slip': 'letter', 'data-order': o.id, 'aria-label': 'Print a Letter packing slip for order ' + (o.order_number || o.id) }, 'Letter slip'), ' '] : null,
+                    h('button', { class: 'small deny deleteOrderBtn' }, 'Delete'))))))
           ].filter(Boolean));
           document.querySelectorAll('.deleteOrderBtn').forEach(btn => {
             btn.addEventListener('click', async () => {
@@ -7200,6 +7436,7 @@
           });
         }
         logCustomerAccess(recent, 'Viewed in Owner Dashboard – Orders panel');
+        if (orderSlipsOn()) { slipOrders = recent; prefetchSlipItems(recent.map(o => o.id)); }
 
         // deleted / recycle bin
         const { data: deleted, error: delErr, count: delCount } = await supabase

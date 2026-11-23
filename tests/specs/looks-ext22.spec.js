@@ -113,3 +113,41 @@ for (const look of LOOKS) {
     }
   });
 }
+
+// Nov 23 (found in the pictures for the owner): the phone menu slides over the
+// page; with a see-through background the menu text overlapped the page behind.
+for (const look of LOOKS) {
+  test(look + ' at phone size: the open menu has a solid background, light and dark', async ({ page }, ti) => {
+    test.skip(ti.project.name !== 'iphone', 'phone only');
+    await withLook(page, look);
+    await login(page);
+    for (const scheme of ['light', 'dark']) {
+      await page.emulateMedia({ colorScheme: scheme });
+      await page.locator('#menuToggleBtn').click();
+      await expect(page.locator('#sidebarNav')).toHaveClass(/mobileOpen/);
+      const bg = await page.locator('#sidebarNav').evaluate(e => getComputedStyle(e).backgroundColor);
+      const alpha = /rgba\(/.test(bg) ? Number(bg.split(',')[3].replace(')', '')) : 1;
+      expect(alpha, scheme + ' ' + bg).toBe(1);
+      await page.locator('#sidebarOverlay').click({ position: { x: 370, y: 400 } });
+      await expect(page.locator('#sidebarNav')).not.toHaveClass(/mobileOpen/);
+    }
+  });
+}
+
+// Nov 23 (owner: "put lines so it separates things"): page titles carry a rule,
+// sections start with a hairline, forms are framed, sidebar groups are divided.
+test('structure lines are drawn in every look, and never with the switch off', async ({ page }, ti) => {
+  test.skip(ti.project.name !== 'desktop', 'run once');
+  await login(page); await gotoPage(page, 'suppliersPanel');
+  const lines = () => page.evaluate(() => {
+    const w = (el, side) => el ? parseFloat(getComputedStyle(el)['border' + side + 'Width']) : -1;
+    const groups = document.querySelectorAll('.sidebarGroup');
+    return { title: w(document.querySelector('#suppliersPanel > h2:first-child'), 'Bottom'), form: w(document.querySelector('#suppliersPanel .heForm'), 'Left'), group: w(groups[1], 'Top') };
+  });
+  expect(await lines()).toEqual({ title: 0, form: 0, group: 0 });
+  for (const look of LOOKS) {
+    await page.evaluate((lk) => { localStorage.setItem('he_new_look', 'on'); localStorage.setItem('he_look', lk); }, look);
+    await page.reload(); await expect(page.locator('#dash')).toBeVisible(); await gotoPage(page, 'suppliersPanel');
+    expect(await lines(), look).toEqual({ title: 1, form: 1, group: 1 });
+  }
+});

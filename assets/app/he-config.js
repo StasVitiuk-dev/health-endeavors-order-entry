@@ -212,6 +212,20 @@ window.HE.modules.define('he-config', { api: 1, needs: [] }, function (ctx) {
       try { return typeof localStorage !== 'undefined' && localStorage.getItem('he_receiving_store') === 'on'; }
       catch (e) { return false; }
     }
+    // Packing slips for real orders (Nov 23, preview): a print button on each order
+    // (4 x 6 for the Rollo label printer, Letter for the Brother) and a test page
+    // for each printer. Printing only; nothing is written. OFF by default.
+    function orderSlipsOn() {
+      try { return typeof localStorage !== 'undefined' && localStorage.getItem('he_order_slips') === 'on'; }
+      catch (e) { return false; }
+    }
+    // Backups & Printouts page (Nov 23, owner request, preview): daily recaps to
+    // print or save, manuals to print, and the backup status the dashboard can
+    // (not) see. Reads only. OFF by default; with it off the page is not in the menu.
+    function backupsPageOn() {
+      try { return typeof localStorage !== 'undefined' && localStorage.getItem('he_backups_page') === 'on'; }
+      catch (e) { return false; }
+    }
     // New look (Nov 22, preview): three design directions for the owner to compare.
     // OFF by default; the direction is applied before the page is drawn by
     // assets/looks/he-look-boot.js. Stored in this browser only.
@@ -275,6 +289,8 @@ window.HE.modules.define('he-config', { api: 1, needs: [] }, function (ctx) {
       { key: 'he_partial_receiving', name: 'Partial receiving and returns', where: 'Inventory', what: 'An order received in two deliveries, units sent back to the supplier and a customer return, with the stock rules for your review. Example data; stock is not changed.' },
       { key: 'he_supplier_scorecard', name: 'Supplier scorecard', where: 'Suppliers', what: 'On-time deliveries and required documents for one example supplier. Read-only.' },
       { key: 'he_supplier_documents', name: 'Supplier documents', where: 'Suppliers', what: 'The document checklist for each kind of supplier, with what is missing or awaiting review. Example data; read-only.' },
+      { key: 'he_backups_page', name: 'Backups & Printouts', where: 'Operations (a new page in the menu)', what: 'Daily recaps to print or save as a spreadsheet, manuals to print (if the dashboard is down, how it works, your procedures, printer setup), and what the dashboard can see of the backups. Reads only.' },
+      { key: 'he_order_slips', name: 'Packing slips', where: 'Orders', what: 'A print button on each order: a 4×6 slip for the Rollo label printer or a Letter slip for the Brother, and a test page for each printer. Printing only; nothing is changed.' },
       { key: 'he_new_look', name: 'New look', where: 'Everywhere (choose a direction below the list)', what: 'Three design directions for the whole dashboard: colours, buttons, tables, tiles and page switching. Looks only; nothing else changes.' },
       { key: 'he_money_match', name: 'Money matching', where: 'Accounting', what: 'Checks a Chase or Wells Fargo export against Shopify payouts, wholesale payments and recorded expenses, and lists every difference. The file stays in this browser; nothing is saved.' },
       { key: 'he_reconcile', name: 'Payment reconciliation', where: 'Accounting', what: 'Invoices that should have been paid against payments recorded. Example data; no money is moved.' },
@@ -342,6 +358,7 @@ window.HE.modules.define('he-config', { api: 1, needs: [] }, function (ctx) {
       { id: 'salesReplyLabPanel',       label: 'Reply Triage Lab' },
     ]};
     if (salesGrowthOn()) SIDEBAR_GROUPS.push(SALES_GROWTH_GROUP);
+    if (backupsPageOn()) { const ops = SIDEBAR_GROUPS.find(g => g.label === 'Operations'); if (ops) ops.pages.push({ id: 'backupsPanel', label: 'Backups & Printouts' }); }
     const ICON_PATHS = {
       attentionPanel:      '<path d="M8 2.2a3.2 3.2 0 0 0-3.2 3.2c0 3.1-1.2 4-1.2 4h8.8s-1.2-.9-1.2-4A3.2 3.2 0 0 0 8 2.2Z"/><path d="M6.6 11.6a1.6 1.6 0 0 0 2.8 0"/>',
       dailySummaryPanel:   '<circle cx="8" cy="8" r="2.6"/><path d="M8 1.6v1.1M8 13.3v1.1M1.6 8h1.1M13.3 8h1.1M3.6 3.6l.8.8M11.6 11.6l.8.8M12.4 3.6l-.8.8M4.4 11.6l-.8.8"/>',
@@ -356,6 +373,7 @@ window.HE.modules.define('he-config', { api: 1, needs: [] }, function (ctx) {
       tasksPanel:          '<rect x="2.4" y="2.4" width="11.2" height="11.2" rx="2.8"/><path d="m5.4 8.2 1.8 1.8 3.4-3.6"/>',
       incidentsPanel:      '<path d="M8 2.6 14 13H2Z"/><path d="M8 6.6v3M8 11.4h.01"/>',
       evidenceLockerPanel: '<rect x="2" y="3" width="12" height="3" rx="1"/><path d="M3.2 6v6a1.6 1.6 0 0 0 1.6 1.6h6.4A1.6 1.6 0 0 0 12.8 12V6"/><path d="M6.6 8.8h2.8"/>',
+      backupsPanel:        '<rect x="2.2" y="2.6" width="11.6" height="3.4" rx="0.8"/><path d="M3.2 6v6.6a1 1 0 0 0 1 1h7.6a1 1 0 0 0 1-1V6"/><path d="M6.4 9.2h3.2"/>',
       documentsPanel:      '<path d="M4.4 2h5l2.2 2.2v9.4a1 1 0 0 1-1 1H4.4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1Z"/><path d="M9.4 2v2.6H12"/><path d="M5.6 8.4h4.8M5.6 10.8h4.8"/>',
       adverseEventsPanel:  '<circle cx="8" cy="8" r="5.8"/><path d="M8 5.4v5.2M5.4 8h5.2"/>',
       inquiriesPanel:      '<path d="M13.4 8.4c0 2.5-2.4 4.5-5.4 4.5-.7 0-1.4-.1-2-.3l-3 1.2 1-2.5C3.1 10.5 2.6 9.5 2.6 8.4 2.6 5.9 5 3.9 8 3.9s5.4 2 5.4 4.5Z"/>',
@@ -843,5 +861,5 @@ window.HE.modules.define('he-config', { api: 1, needs: [] }, function (ctx) {
   // (a status, a category, a table name). Without a prototype, a value such as
   // "constructor" or "__proto__" finds nothing instead of a built-in function.
   [STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_FACE, THEME_NAME, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, GO_TO, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, ITEM_TYPE_LABELS, NIGHTLY_PAGES, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, INQ_STATUS_LABELS, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_CATEGORY_LABELS].forEach(o => Object.setPrototypeOf(o, null));
-  return { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, moneyIssuesOn, receivingStoreOn, newLookOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn };
+  return { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, moneyIssuesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, newLookOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn };
 });
