@@ -29,6 +29,13 @@ fingerprint() {
 }
 sqlfile() { cd "$ROOT" && psql $C -d he_real -q -v ON_ERROR_STOP=1 -f "$1"; }
 t0=$(date +%s)
+echo "tools: $(psql --version); $(pg_dump --version); server: $(psql $C -d postgres -qtAX -c 'show server_version' 2>&1)"
+# On GitHub only: the throwaway server stops logging the errors these tests cause
+# on purpose. GitHub prints the server's whole log at the end of the job, which
+# otherwise buries this suite's own PASS/FAIL lines.
+if [ "${GITHUB_ACTIONS:-}" = "true" ]; then
+  psql $C -d postgres -qtAX -c "alter system set log_min_messages = 'panic'" -c "alter system set log_min_error_statement = 'panic'" -c "alter system set log_checkpoints = off" -c "select pg_reload_conf()" >/dev/null 2>&1
+fi
 step "build he_real (schema + drafts 10, 13)" build
 step "R1–R5 fingerprint = reviewed version" fingerprint
 step "draft tests: R1–R5 real shape" sqlfile "$LT/draft-tests/15_DRAFT_tests_stock_functions_real_shape.sql"
