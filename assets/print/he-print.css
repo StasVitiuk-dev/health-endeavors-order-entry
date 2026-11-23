@@ -12,6 +12,13 @@
     -webkit-text-fill-color:#000 !important;
   }
   .printView th, .printView td{ border-bottom-width:0.5pt; }
+  /* Brand (Nov 23): the black wordmark from the product label, the document's name,
+     a strong rule; a footer with the swirl. Black only. */
+  .printView .printBrand{ display:flex; align-items:flex-end; justify-content:space-between; gap:12pt; border-bottom:2pt solid #000; padding-bottom:6pt; margin-bottom:8pt; }
+  .printView .printBrandMark{ height:0.5in; width:auto; display:block; }
+  .printView .printBrandTitle{ font-size:15pt; font-weight:800; letter-spacing:0.12em; text-transform:uppercase; text-align:right; }
+  .printView .printFoot{ margin-top:14pt; padding-top:6pt; border-top:0.75pt solid #000; display:flex; align-items:center; gap:8pt; font-size:9pt; font-style:italic; break-inside:avoid; }
+  .printView .printFootMark{ height:0.28in; width:auto; display:block; }
   /* Printer test page (Nov 23): a frame on all four sides and a 1-inch square */
   .printView .printTest{ border:1.5pt solid #000; padding:0.15in; box-sizing:border-box; }
   .printView .printTest[data-printsize="letter"]{ height:9.9in; }

@@ -2988,7 +2988,7 @@
     }
     const bkPrinted = () => 'Printed ' + localDateString();
     function bkManualPage(key) {
-      const page = (title, ...kids) => h('div', { class: 'printPage', 'data-printmanual': key }, h('div', { class: 'printHdr' }, h('div', { class: 'taskTitle' }, 'Health Endeavors — ' + title), h('div', null, bkPrinted())), ...kids);
+      const page = (title, ...kids) => h('div', { class: 'printPage', 'data-printmanual': key }, printBrand(title), h('div', { class: 'printHdr' }, h('div', null, bkPrinted())), ...kids);
       if (key === 'down') return page('If the dashboard is down',
         h('ol', null, BK_DOWN.map(t => h('li', null, t))),
         h('div', { class: 'printLabel u-mt-8' }, 'Stock change log'),
@@ -3022,7 +3022,7 @@
       if (t.getAttribute('data-bk') === 'print-recaps') {
         const sum = k => rows.reduce((a, r) => a + (isFinite(Number(r[k])) ? Number(r[k]) : 0), 0);
         bkPrintDoc([h('div', { class: 'printPage', 'data-printrecaps': bkMonth },
-          h('div', { class: 'printHdr' }, h('div', { class: 'taskTitle' }, 'Health Endeavors — Daily recaps, ' + bkMonthName(bkMonth)), h('div', null, bkPrinted())),
+          printBrand('Daily recaps, ' + bkMonthName(bkMonth)), h('div', { class: 'printHdr' }, h('div', null, bkPrinted())),
           h('table', null,
             h('thead', null, h('tr', null, ['Date', 'Orders', 'Revenue', 'New questions', 'Tasks opened', 'Incidents', 'AI calls', 'AI cost'].map(x => h('th', null, x)))),
             h('tbody', null, rows.map(r => h('tr', null, h('td', null, String(r.report_date).slice(0, 10)), h('td', null, bkNum(r.orders_count)), h('td', null, r.revenue == null ? '—' : fmtMoney(r.revenue, r.currency || 'USD')),
@@ -4061,6 +4061,21 @@
     // print host and open the browser print dialog. The @media print rules hide
     // the dashboard and lay each modelled page onto its own sheet with the table
     // heading repeated. Pure DOM via h(); the host is empty until this runs.
+    // Nov 23 (owner request: "show the brand"): every printout carries the black
+    // Health Endeavors wordmark (from the product label) with the document's name,
+    // and a footer with the swirl. Black only, like the rest of the printout. The
+    // images are fetched once at start, so they are ready when Print is pressed.
+    const PRINT_BRAND = { word: 'assets/brand/he-wordmark.svg', swirl: 'assets/brand/he-swirl.svg' };
+    const printBrandPreload = [h('img', { src: PRINT_BRAND.word, alt: '' }), h('img', { src: PRINT_BRAND.swirl, alt: '' })];
+    function printBrand(title) {
+      return h('div', { class: 'printBrand', 'data-printbrand': '1' },
+        h('img', { class: 'printBrandMark', src: PRINT_BRAND.word, alt: 'Health Endeavors' }),
+        h('div', { class: 'printBrandTitle' }, title));
+    }
+    function printFoot(text) {
+      return h('div', { class: 'printFoot' }, h('img', { class: 'printFootMark', src: PRINT_BRAND.swirl, alt: '' }), h('span', null, text));
+    }
+    const PRINT_TAGLINE = 'Allow yourself to indulge in the Sea of Vitality and Beauty. Thank you for your order.';
     function renderInvoicePrint() {
       const host = document.getElementById('invoicePrintHost'); if (!host) return;
       const inv = opsInvoiceMod(); if (!inv) return;
@@ -4075,6 +4090,7 @@
       const pages = doc.pages.map(function (p) {
         return h('div', { class: 'printPage' },
           doc.watermark ? h('div', { class: 'printMark', 'data-printmark': doc.taxPending ? 'tax-pending' : 'draft' }, doc.watermark) : null,
+          printBrand('Invoice'),
           h('div', { class: 'printHdr' }, h('div', { class: 'taskTitle' }, doc.header.businessName),
             doc.header.addressLines.map(x => h('div', null, x)),
             h('div', { 'data-printnumber': doc.header.number ? 'issued' : 'draft' }, 'Invoice ' + (doc.header.number || '(draft — numbered when issued)') + ' — SIMULATED'),
@@ -4096,7 +4112,8 @@
             doc.totalsLines.map(l => h('div', { class: 'printTotalRow' + (l.key === 'total' ? ' printGrand' : ''), 'data-printtotal': l.key },
               h('span', null, l.label), h('span', null, l.amount == null ? l.text : fmtMoney(l.amount, cur) + (l.text ? ' — ' + l.text : '')))),
             doc.taxPending ? h('div', { 'data-printnote': 'tax-pending' }, 'DRAFT — the tax is pending and is not included in any figure above. Not a final invoice.') : null,
-            h('div', { class: 'printRemit' }, doc.header.remitTo)) : null);
+            h('div', { class: 'printRemit' }, doc.header.remitTo)) : null,
+          p.showTotals ? printFoot('Thank you for your business.') : null);
       });
       host.replaceChildren(h('div', { class: 'printDoc' }, pages));
       try { window.print(); } catch (e) {}
@@ -4131,7 +4148,8 @@
       const doc = inv.packingSlipPrint(slip, label ? { page: inv.LABEL_4X6.page } : undefined);
       const pages = doc.pages.map(function (p) {
         return h('div', { class: 'printPage', 'data-printsize': label ? '4x6' : 'letter' },
-          h('div', { class: 'printHdr' }, h('div', { class: 'taskTitle' }, 'Health Endeavors — Packing slip'),
+          printBrand('Packing slip'),
+          h('div', { class: 'printHdr' },
             label ? h('div', { class: 'labelOrder' }, 'Order ' + (slip.orderId || '—')) : null,
             h('div', null, 'SIMULATED — not an invoice, not a carrier label'), h('div', null, 'Page ' + p.pageNo + ' of ' + p.totalPages)),
           h('table', null,
@@ -4140,7 +4158,8 @@
               const cells = [h('td', null, l.sku || '—'), h('td', label ? { class: 'labelQty' } : null, String(l.quantity)), h('td', null, l.lotNumber || '—')];
               if (doc.showPrices) cells.push(h('td', null, l.unitPrice === undefined ? '—' : fmtMoney(l.unitPrice, 'USD')));
               return h('tr', null, cells);
-            }))));
+            }))),
+          p.pageNo === p.totalPages ? printFoot(label ? 'Thank you for your order.' : PRINT_TAGLINE) : null);
       });
       host.replaceChildren(h('div', { class: 'printDoc' }, pages));
       try { window.print(); } catch (e) {}
@@ -4188,7 +4207,8 @@
       const doc = inv.packingSlipPrint(slip, label ? { page: inv.LABEL_4X6.page } : undefined);
       const pages = doc.pages.map(function (p) {
         return h('div', { class: 'printPage', 'data-printsize': label ? '4x6' : 'letter', 'data-printorder': num },
-          h('div', { class: 'printHdr' }, h('div', { class: 'taskTitle' }, 'Health Endeavors — Packing slip'),
+          printBrand('Packing slip'),
+          h('div', { class: 'printHdr' },
             h('div', { class: label ? 'labelOrder' : 'printLabel' }, 'Order ' + num),
             h('div', null, [order.customer_name ? 'For: ' + order.customer_name : null, order.placed_at ? 'ordered ' + String(order.placed_at).slice(0, 10) : null].filter(Boolean).join(' · ')),
             h('div', null, 'Page ' + p.pageNo + ' of ' + p.totalPages + ' · not an invoice, not a shipping label')),
@@ -4198,7 +4218,8 @@
               h('td', null, l.sku || '—', l.description ? h('div', null, l.description) : null),
               h('td', label ? { class: 'labelQty' } : null, String(l.quantity)),
               h('td', null, '________'))))),
-          p.pageNo === p.totalPages ? h('div', { class: 'labelFoot' }, 'Packed by: ________   Checked: ☐') : null);
+          p.pageNo === p.totalPages ? h('div', { class: 'labelFoot' }, 'Packed by: ________   Checked: ☐') : null,
+          p.pageNo === p.totalPages ? printFoot(label ? 'Thank you for your order.' : PRINT_TAGLINE) : null);
       });
       host.replaceChildren(h('div', { class: 'printDoc' }, pages));
       return true;

@@ -7,7 +7,12 @@
 @page{ size:4in 6in; margin:0.12in; }
 @media print{
   .printView .printPage{ font:11pt/1.25 -apple-system, "Helvetica Neue", Arial, sans-serif; }
-  .printView .printHdr{ border-bottom:2pt solid #000; padding-bottom:4pt; margin-bottom:6pt; }
+  .printView .printHdr{ padding-bottom:2pt; margin-bottom:4pt; }
+  .printView .printBrand{ padding-bottom:3pt; margin-bottom:4pt; gap:6pt; }
+  .printView .printBrandMark{ height:0.26in; }
+  .printView .printBrandTitle{ font-size:10pt; letter-spacing:0.08em; }
+  .printView .printFoot{ margin-top:5pt; padding-top:3pt; font-size:8.5pt; }
+  .printView .printFootMark{ height:0.18in; }
   .printView .printHdr .taskTitle{ font-size:14pt; font-weight:800; }
   .printView .labelOrder{ font-size:16pt; font-weight:800; letter-spacing:0.02em; margin:4pt 0; }
   .printView table{ font-size:10.5pt; }

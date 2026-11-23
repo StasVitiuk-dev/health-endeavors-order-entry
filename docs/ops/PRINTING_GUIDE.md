@@ -34,6 +34,17 @@ each printer: a frame that must show on all four sides and a square that must me
 - **Shipping labels** (with the carrier barcode) come from Shopify Shipping, which prints 4 × 6
   directly to the Rollo. The dashboard's slip is a packing slip, never a carrier label.
 
+## Brand on every printout (owner request, Nov 23)
+
+Every printout (invoice, both packing slips, daily recaps, manuals) starts with the black
+**Health Endeavors** wordmark from the product label and the document's name in capitals, over a
+strong rule; packing slips and invoices end with the swirl and a thank-you line (Letter packing
+slips also carry the label's tagline, "Allow yourself to indulge in the Sea of Vitality and
+Beauty."). Black only. The logo was traced from the owner's label picture into clean outlines
+(`assets/brand/he-wordmark.svg`, `assets/brand/he-swirl.svg`); the owner's original artwork file
+can replace them later for perfect edges. The logo is public on the products already, so keeping
+it in this public repository discloses nothing new.
+
 ## Settings to choose in the print window
 
 - Brother: paper Letter, scale 100 %. Optional: "Black & White" / "Greyscale" in the printer's

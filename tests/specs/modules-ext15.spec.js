@@ -162,7 +162,7 @@ const ADDED = ['focusDialog', 'inspectLabel', 'keyLink', 'setReportHistoryView',
   // Nov 22: deliveries with partial receiving (behind he_receiving_store)
   'dlvSeq', 'dlvLast', 'dlvMessage', 'dlvPo', 'dlvRejectOpen', 'dlvStore', 'dlvWho', 'dlvLineText', 'loadDeliveries', 'dlvAfter', 'receivingStoreOn', 'rtnSeq', 'rtnLast', 'rtnMessage', 'rtnOpen', 'loadStockReturns', 'rtnAfter',
   // Nov 22: new look (preview)
-  'lookPicker', 'newLookOn', 'LOOK_CHOICES', 'setLabelSheet', 'ICON_PATHS', 'backupsPageOn', 'bkReports', 'bkSops', 'bkMonth', 'bkMessage', 'bkSeq', 'BK_DOWN', 'BK_PRINTING', 'bkMonthOf', 'bkMonthName', 'bkNum', 'loadBackupsPage', 'bkMonthRows', 'renderBackupsPage', 'bkPrintDoc', 'bkPrinted', 'bkManualPage', 'orderSlipsOn', 'slipOrders', 'slipItems', 'slipItemsError', 'slipItemsLoading', 'prefetchSlipItems', 'loadOrderSlipsHost', 'slipMessage', 'renderOrderSlipPrint', 'renderPrinterTest',
+  'lookPicker', 'newLookOn', 'LOOK_CHOICES', 'setLabelSheet', 'PRINT_BRAND', 'printBrandPreload', 'printBrand', 'printFoot', 'PRINT_TAGLINE', 'ICON_PATHS', 'backupsPageOn', 'bkReports', 'bkSops', 'bkMonth', 'bkMessage', 'bkSeq', 'BK_DOWN', 'BK_PRINTING', 'bkMonthOf', 'bkMonthName', 'bkNum', 'loadBackupsPage', 'bkMonthRows', 'renderBackupsPage', 'bkPrintDoc', 'bkPrinted', 'bkManualPage', 'orderSlipsOn', 'slipOrders', 'slipItems', 'slipItemsError', 'slipItemsLoading', 'prefetchSlipItems', 'loadOrderSlipsHost', 'slipMessage', 'renderOrderSlipPrint', 'renderPrinterTest',
   // Nov 21 (owner decision 4): hand-off to the owner and owner-only files.
   'sdHandoffForm', 'sdHandoffsForOwner', 'sdSha256',
   // Nov 21 (D-ops-5): the partial receiving example (partialReceivingOn OFF). The
