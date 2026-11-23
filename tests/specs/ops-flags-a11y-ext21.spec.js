@@ -15,16 +15,19 @@
 const { test, expect, login, gotoPage } = require('../helpers/dashboard');
 
 const FLAGS = ['he_scan_shipment', 'he_reorder_planning', 'he_saved_views', 'he_cycle_count', 'he_partial_receiving', 'he_supplier_scorecard', 'he_supplier_documents',
-  'he_reconcile', 'he_report_versions', 'he_report_export', 'he_invoice_preview', 'he_recovery_drill', 'he_ops_watch'];
+  'he_reconcile', 'he_report_versions', 'he_report_export', 'he_invoice_preview', 'he_recovery_drill', 'he_ops_watch',
+  // Nov 23: the sections added since (money matching, packing slips, Backups & Printouts)
+  'he_money_match', 'he_order_slips', 'he_backups_page'];
 // page -> the switch-gated hosts on it. heading:false = a small strip of
 // controls (not a titled section), so no heading is expected there.
 const PAGES = [
   ['attentionPanel', [['scanEntryHome', false]]],
-  ['ordersPanel', [['scanEntryOrders', false], ['savedViewsOrders', false]]],
+  ['ordersPanel', [['scanEntryOrders', false], ['savedViewsOrders', false], ['orderSlipsHost', false]]],
   ['inventoryPanel', [['reorderPlanningHost', true], ['savedViewsInventory', false], ['cycleCountHost', true], ['partialReceivingHost', true]]],
-  ['accountingPanel', [['reconcileHost', true]]],
+  ['accountingPanel', [['reconcileHost', true], ['moneyMatchHost', true]]],
   ['reportHistoryPanel', [['reportExportHost', true], ['reportVersionsHost', true], ['recoveryDrillHost', true], ['invoicePreviewHost', true], ['opsWatchHost', true]]],
   ['suppliersPanel', [['supplierScorecardHost', true], ['supplierDocsHost', true]]],
+  ['backupsPanel', [['backupsPanel', true]]],
 ];
 
 async function enableAll(page) {
