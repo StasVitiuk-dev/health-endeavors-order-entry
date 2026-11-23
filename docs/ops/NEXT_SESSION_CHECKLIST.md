@@ -88,3 +88,7 @@ no outside bank-connection service.
   here:** `docs/ops/sql-review/START_HERE_GUIDED_RUNS.md` (recommended order; step 1 only reads).
 - Palette changes C1–C7 (the look itself is decided: Aurora).
 - The Shopify read-only payout app (review item 6).
+
+## Attention feed and smart scan (owner request, Nov 23 late)
+
+Plan: `docs/ops/ATTENTION_FEED_AND_SMART_SCAN_PLAN.md`. DECIDED: customer updates are approved by the owner first, automatic later. Open for the owner: where postage is bought (Shopify Shipping or the counter), and the AI reading service (about $1–5 a month). Next: step A (one feed inside the dashboard), behind a switch.
