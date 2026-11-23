@@ -1,6 +1,6 @@
 # Health Endeavors — current state (cross-project summary)
 
-**Last updated:** November 15, 2026, Nov 7 build (platform §1 only; Nov 14: §1, §8 — see the "Nov 7 build" bullet and decision 6; website sections unchanged from Sept 30). Before that: October 12, 2026, extension 15. Internal-platform entry point from now on: `docs/ops/START_HERE_EXT14.md`. **Keep this short.** Details live in the linked documents; update this file whenever the verified state changes materially.
+**Last updated:** November 23, 2026 (§5, §8, §9: PR #36 carries everything; Nov 23 decisions). Before that: November 15, 2026 (Nov 7 build). Internal-platform entry point: `docs/ops/START_HERE_EXT14.md`. **Keep this short.** Details live in the linked documents; update this file whenever the verified state changes materially.
 
 Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (from the owner's earlier chats, not re-checked) · **PROPOSED** · **OWNER DECISION REQUIRED** · **DEPRECATED**.
 
@@ -142,19 +142,20 @@ Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (fro
 
 ## 5. Active development (open PRs, none merged, nothing deployed)
 
-- **Rules and record:** #5 (`CLAUDE.md`), #6 (project record + this file + progress tracker).
-- **Fixes waiting for review:** #7 escape output on search/dashboard pages (R6) · #8 agent status wording · #9 CSV formula guard · #10 unsafe link schemes · #11 US-evening dates · #12 phone table swipe · #13 password prompt double submit · #14 phone PO tap.
-- **Tests only:** #15, #16, #19–#24. **Reviews/plans:** #17 security review, #18 modularization plan.
-- All 20 branches merged together on a scratch copy, in the recommended order: no conflicts, 404 passed (Oct 4); re-checked Oct 5.
-- **Review branches (no PRs):**
-  - `claude/ops-readiness`: the operations review and the read-only Queries A/B/C
-  - `claude/platform-overnight-implementation`: the 20 PRs plus tested fixes for stale state, double actions, R7, report totals and agent truth, plus modularization steps 1–2. Its full suite: 553 passed, 0 failed
-  - `claude/platform-overnight-extension-3`: extension 3 (see §1)
-  - `claude/platform-deep-readiness-extension-4`: extension 4 (see §1)
-  - `claude/platform-deep-readiness-extension-5`: extension 5 (see §1)
-  - `claude/platform-deep-readiness-extension-6`: extension 6 (see §1)
-  - `claude/platform-deep-readiness-extension-7`: extension 7, the newest; contains all of the above and all 20 PRs (see §1)
-  - `claude/tests-only-ci`: the CI workflow, not active
+**Updated Nov 23, 2026 (CURRENT).** One pull request carries everything:
+[PR #36](https://github.com/StasVitiuk-dev/health-endeavors-order-entry/pull/36), branch
+`claude/dashboard-nov-2026` (pushed with the owner's approval on Nov 23; draft).
+
+- It **contains every other open PR, #5 to #35** (checked with git: each PR's head commit is an
+  ancestor of #36's head). Merging #36 merges them all; afterwards #5–#35 can be closed as done.
+- Every new feature is behind a switch that is off, except two owner decisions of Nov 23 that apply
+  at the merge: **Aurora is everyone's look**, and the **branded printouts** (logo, EB Garamond +
+  Source Sans 3, one plain signature line on the invoice).
+- Database changes are separate SQL drafts in `docs/ops/sql/drafts/`; merging runs no SQL.
+- Status of the final full test run and the merge steps: the PR description.
+
+Older review branches (`claude/platform-overnight-*`, `claude/platform-deep-readiness-extension-*`,
+`claude/ops-readiness`, `claude/tests-only-ci`) are DEPRECATED: all of their work is inside #36.
 
 ## 6. Known bugs and risks (top items)
 
@@ -176,19 +177,30 @@ No merging or deploying by Claude · no production Supabase, SQL, cron, RLS or p
 
 ## 8. Pending owner decisions (most important first)
 
-0. **(EXT6, re-checked EXT7–EXT10: still open) GitHub access for Claude sessions:** connect with the non-admin account, or remove the admin bypass (X6-17). Platform decisions in full: `docs/ops/OWNER_DECISIONS_NEXT.md`.
-1. Review and merge order for PRs #5–#24 (the newest extension branch contains them all).
-2. R1–R4: run a read-only schema query, then approve the SQL drafts.
-3. Approve the website architecture and a separate website repository.
-4. Visual direction, approved product copy/claims, and real photography for the website.
-5. R5 product-delete behaviour · R7 verification method · approval/PO state checks · palette Enter behaviour · Agent #1 state.
-6. **(Nov 14) DECIDED — invoices, tax, terms, day cutoff, permissions, exports.** Recorded in `docs/ops/OWNER_DECISIONS_2026-11-14.md`; built as draft-only logic on the Nov 7 build branch, not live. Still needed from the owner for that work: the **local tax rate** (the 6.25% Illinois state rate is in; the combined live rate stays pending), a go-ahead to push the branch and open a pull request, and later a business email service, a tracking provider and a real iPhone check.
+**Updated Nov 23, 2026 (CURRENT).** Platform list in full: `docs/ops/NEXT_SESSION_CHECKLIST.md`.
+
+1. **Merge PR #36** once its final full test run is green (guided, one click at a time); then check
+   the live site in a Private Window. Then close #5–#35 (all contained in #36).
+2. **SQL review items 1–7**, one at a time, guided (about 15 minutes each, check before and after).
+3. **Tax answers 4, 5, 6 and 10** (`docs/ops/TAX_SETUP_QUESTIONS_2026-11-16.md`) for a confirmed rate.
+4. **Payment service names** (never passwords or keys) to finish money matching and the payment screen.
+5. **Product list** (exact SKUs) for the store launch and the agents waiting on products.
+6. **Printers:** a test print on each when they arrive. **Agents session** (about 1–2 hours).
+7. Website: approve a separate website repository; visual direction, approved copy and photos.
+8. Optional: website, email and phone for a contact line on printouts.
+
+DECIDED on Nov 23: Aurora for everyone; printout typefaces (option A); the invoice closing
+("Thank you for choosing Health Endeavors." / "WE APPRECIATE YOUR BUSINESS"); a plain signature line;
+today's screens accepted as the test reference pictures; the push of the branch.
 
 Full website list: `docs/website/decisions-needed.md` (website workspace).
 
 ## 9. Next recommended work
 
-1. Owner reviews #5 and #6, then the small fixes #7–#14 one at a time (each is a live deploy).
-2. Read-only schema query → R1 (PO receive) SQL draft → owner runs it → dashboard PR; then R2–R4.
-3. Approve the website repository and import the prototype; then CI (tests only).
-4. Decide the visual direction and gather approved content and photos, so the theme can move from prototype to a real unpublished Shopify theme.
+**Updated Nov 23, 2026 (CURRENT).**
+
+1. Final full test run of PR #36 green → owner merges → live check (hard refresh or Private Window).
+2. SQL items 1–7, guided, one at a time; each followed by the matching switch being turned on only
+   after the owner says so.
+3. Payments, printers and agents as the owner's details and the printers arrive.
+4. Website: separate repository once approved; then the store launch (products, SKUs, sync).

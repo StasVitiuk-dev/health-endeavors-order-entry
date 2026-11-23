@@ -1,6 +1,6 @@
 # When you're back: checklist (printers, agents, payments)
 
-Status: CURRENT · written Nov 23 · for Stas. One step at a time; I explain each one before you
+Status: CURRENT · written Nov 23, updated late Nov 23 · for Stas. One step at a time; I explain each one before you
 click. Nothing here goes live until you approve it.
 
 ## 1. Have ready (only what you have)
@@ -12,7 +12,7 @@ click. Nothing here goes live until you approve it.
       card numbers** — only the names of the services (for example "Shopify Payments").
 - [ ] Your 90-item checklist, or just the item names (no private details), to compare.
 - [ ] Answers to tax questions 4, 5, 6 and 10 if you have them (`docs/ops/TAX_SETUP_QUESTIONS_2026-11-16.md`).
-- [ ] Your pick of the look: Aurora, Graphite, Original+ (comparison page link in the chat).
+- [x] Your pick of the look: **Aurora for everyone** (decided Nov 23).
 
 ## 2. Printers (about 30 minutes)
 
@@ -48,7 +48,8 @@ no outside bank-connection service.
 
 ## 5. Approvals waiting (each one separately, when you are ready)
 
-- The push of the working branch (then a pull request you review and merge).
+- ~~The push of the working branch~~ done Nov 23 → **PR #36: merge it** when its final test run is
+  green (guided). It contains every older open PR (#5–#35); close those afterwards.
 - SQL review items 1–7 (each about 15 minutes, guided, with a check before and after).
-- Palette changes C1–C7 and the look choice.
+- Palette changes C1–C7 (the look itself is decided: Aurora).
 - The Shopify read-only payout app (review item 6).
