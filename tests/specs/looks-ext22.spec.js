@@ -138,6 +138,7 @@ for (const look of LOOKS) {
 // sections start with a hairline, forms are framed, sidebar groups are divided.
 test('structure lines are drawn in every look, and never with the switch off', async ({ page }, ti) => {
   test.skip(ti.project.name !== 'desktop', 'run once');
+  test.setTimeout(90000);   // four full page loads (switch off + three looks): ~30 s alone, more under load
   await login(page); await gotoPage(page, 'suppliersPanel');
   const lines = () => page.evaluate(() => {
     const w = (el, side) => el ? parseFloat(getComputedStyle(el)['border' + side + 'Width']) : -1;
@@ -150,4 +151,22 @@ test('structure lines are drawn in every look, and never with the switch off', a
     await page.reload(); await expect(page.locator('#dash')).toBeVisible(); await gotoPage(page, 'suppliersPanel');
     expect(await lines(), look).toEqual({ title: 1, form: 1, group: 1 });
   }
+});
+
+// Nov 23, the owner's choice: Aurora with Graphite's accent lines in Aurora's colours
+// (a line on top of each figure tile and on the menu's "you are here" marker), and a
+// calmer dark mode for long sessions (softer glow than the first Aurora).
+test('Aurora carries the accent lines in its own colours, and its dark glow is soft', async ({ page }, ti) => {
+  test.skip(ti.project.name !== 'desktop', 'run once');
+  await withLook(page, 'aurora');
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await login(page);
+  const tile = await page.locator('#businessHealthStats .stat').first().evaluate(e => { const cs = getComputedStyle(e); return { img: cs.backgroundImage, size: cs.backgroundSize }; });
+  expect(tile.img).toMatch(/linear-gradient\(90deg, rgb\(139, 147, 245\).*rgb\(79, 195, 217\)/);
+  expect(tile.size).toBe('100% 2px');
+  const link = page.locator('#sidebarGroups .sidebarLink.active').first();
+  await expect(link).toBeVisible();
+  await expect.poll(() => link.evaluate(e => getComputedStyle(e, '::before').backgroundImage)).toMatch(/linear-gradient/);
+  const glow = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--look-glow').trim());
+  expect(glow).toContain('0.28');
 });
