@@ -65,6 +65,7 @@ no outside bank-connection service.
 
 - ~~The push of the working branch~~ done Nov 23 → **PR #36: merge it** when its final test run is
   green (guided). It contains every older open PR (#5–#35); close those afterwards.
-- SQL review items 1–7 (each about 15 minutes, guided, with a check before and after).
+- SQL review items 1–7 (each about 15 minutes, guided, with a check before and after). **Start
+  here:** `docs/ops/sql-review/START_HERE_GUIDED_RUNS.md` (recommended order; step 1 only reads).
 - Palette changes C1–C7 (the look itself is decided: Aurora).
 - The Shopify read-only payout app (review item 6).

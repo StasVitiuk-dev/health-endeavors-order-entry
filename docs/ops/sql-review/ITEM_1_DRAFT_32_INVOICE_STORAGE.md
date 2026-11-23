@@ -147,8 +147,11 @@ Expected: `true | true | true | 0 | 1 | false`. Anything else: stop and send me 
 - Production's audit function is reused as it is. Its exact behaviour (what it
   writes) is production's; the install only checks that it is an after-change
   trigger for inserts, updates and deletes.
-- The dashboard's invoice code does not yet call the payment functions: payments
-  can be recorded in the database (tested) but there is no payment screen yet.
+- ~~The dashboard's invoice code does not yet call the payment functions.~~ Out of date
+  (corrected Nov 23): a payment screen built on these functions exists, behind the
+  `he_invoice_payments` switch (off), and ships with PR #36.
+- A confirmed tax rate now carries the day it starts and must be re-checked after each
+  January 1 / July 1 (PR #40); where the confirmed rate is saved is part of the tax setup.
 
 ## Your decision
 
