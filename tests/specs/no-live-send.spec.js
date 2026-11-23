@@ -74,6 +74,8 @@ test('customer inquiries: Copy reply and Mark as answered never send anything to
 });
 
 test('a full session through every page writes nothing and calls no Edge Function', async ({ page, backend }) => {
+  // a sweep of every page (30+) in one test: 27-35 s measured, so allow 2 minutes
+  test.setTimeout(120000);
   await login(page);
   await page.waitForLoadState('networkidle');
   const ids = await page.locator('#sidebarGroups .sidebarLink[data-page]').evaluateAll(els => [...new Set(els.map(e => e.getAttribute('data-page')))]);

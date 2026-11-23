@@ -52,6 +52,8 @@ test('BASELINE: normal mode gives the sign-in fields a focus indicator (outline 
 });
 
 test('status is conveyed as text, not colour alone (badges / priority pills carry a label)', async ({ page, backend }) => {
+  // a sweep of every page in one test: 34 s measured, so allow 2 minutes
+  test.setTimeout(120000);
   seedBusiness(backend);
   await page.clock.setFixedTime(NOW);
   await page.emulateMedia({ forcedColors: 'active' });
