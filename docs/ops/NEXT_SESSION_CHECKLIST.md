@@ -52,6 +52,11 @@ wholesale buyers pay by bank transfer or check (free), or by card through a Shop
 card fee). No Square or PayPal unless customers ask. Example: $1,000 a month in 25 orders ≈ $37
 card fees + $39 plan ≈ $76/month. Waiting for the owner's "ok" or changes.
 
+**Owner fact (Nov 23):** the owner already pays for the Shopify Basic plan, $39/month billed
+monthly, for about 4 months. It was not recorded anywhere before; now it is. So the only new cost
+of the recommendation is the card fee per order. Open: is Shopify Payments turned on (Shopify admin
+→ Settings → Payments)? Possible saving: yearly billing (about $29/month, about $120 a year less).
+
 **Business phone line (PROPOSED, Nov 23):** a separate business number in an iPhone app; Claude's
 pick is Quo (formerly OpenPhone, about $15–19/month); cheaper options Grasshopper (about $14–25),
 Line2 (about $8); Google Voice needs a paid Google Workspace. Get the number before printouts and the
