@@ -156,6 +156,10 @@ for (const scheme of ['light', 'dark']) {
           const ownText = [...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim());
           if (!ownText || el.offsetParent === null || el.disabled) return;
           const fg = parse(getComputedStyle(el).color); if (!fg) return;
+          // text painted with a gradient (Aurora's figure tiles: transparent colour,
+          // background clipped to the text) has no single colour; both ends of each
+          // such gradient are checked in looks-ext22 ("Aurora's gradient figures")
+          if (fg.a === 0 && /text/.test(getComputedStyle(el).backgroundClip || getComputedStyle(el).webkitBackgroundClip || '')) return;
           const L1 = lum(fg), L2 = lum(bgOf(el));
           const ratio = (Math.max(L1, L2) + 0.05) / (Math.min(L1, L2) + 0.05);
           const cs = getComputedStyle(el); const size = parseFloat(cs.fontSize); const bold = Number(cs.fontWeight) >= 700;
@@ -226,6 +230,9 @@ test('a "Skip to main content" link is the first thing Tab reaches, and it moves
 
 test('Tab and Shift+Tab stay inside every open dialog', async ({ page, backend }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop', 'keyboard; desktop only');
+  // up to 150 key presses, each followed by a check; Aurora's frosted panels make
+  // every repaint a little slower, so allow 90 s when many tests run at once
+  test.setTimeout(90000);
   seedBusiness(backend);
   await page.clock.setFixedTime(NOW);
   await login(page);

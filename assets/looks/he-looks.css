@@ -1,9 +1,9 @@
 /* New look — three directions for the owner to choose from (owner request of
    Nov 22: "professional and futuristic, but very good looking; every visual
-   detail, down to buttons and page switching"). PREVIEW ONLY: nothing here
-   applies unless the "New look" preview switch is on AND a direction is chosen
-   (assets/looks/he-look-boot.js sets <html data-look="...">). With the switch off
-   the dashboard looks exactly as it does today.
+   detail, down to buttons and page switching"). Owner decision of Nov 23: Aurora
+   is everyone's look. assets/looks/he-look-boot.js sets <html data-look="aurora">
+   before the page is drawn, unless this browser chose another direction or the
+   previous look on Feature Flags (then no data-look: the earlier look).
 
      aurora         futuristic: indigo-to-cyan accent, frosted panels, soft glow
      graphite       professional: graphite neutrals, one precise teal accent
@@ -19,6 +19,9 @@
   --ink:#0b1020; --muted:#555b70; --muted-2:#646a80; --line:#dde2f0; --field-border:#c9d0e4;
   --accent:#4f46e5; --accent-hover:#4338ca; --accent-on-tint:#4338ca; --accent-ring:rgba(79,70,229,0.28);
   --accent-tint:rgba(79,70,229,0.10); --look-badge:#4b5170;
+  /* warning text a shade darker than the base (#996400): on Aurora's tinted panels
+     the base was 4.42-4.45:1, just under the 4.5:1 minimum; this is 5.2:1 or more */
+  --warn:#8a5a00;
   --btn-fill:#4f46e5; --btn-fill-hover:#4338ca; --btn-text:#ffffff; --brand-solid:#4f46e5;
   --look-gradient:linear-gradient(135deg,#4f46e5 0%,#0e7490 100%);
   --look-gradient-hover:linear-gradient(135deg,#4338ca 0%,#155e75 100%);
