@@ -144,7 +144,7 @@ async function pgBridge(page, opts) {
       return reply(route, 200, r.data[0].r);
     }
     const table = parts[0];
-    if (!(o.tables || []).includes(table) || req.method() !== 'GET') return route.fallback();
+    if (!(o.tables || []).includes(table) || (req.method() !== 'GET' && req.method() !== 'PATCH')) return route.fallback();
     const cols = (url.searchParams.get('select') || '*').split(',').map(s => s.trim());
     if (!cols.every(c => c === '*' || IDENT.test(c))) return route.fallback();   // joins etc. stay with the stand-in
     const where = [];
@@ -157,6 +157,18 @@ async function pgBridge(page, opts) {
       const m = v.match(/^eq\.(.*)$/);
       if (IDENT.test(k) && m) where.push(k + ' = ' + lit(m[1]));
       else return route.fallback();
+    }
+    // Nov 23: an update (supabase-js .update().eq()), as the signed-in person, so
+    // the table's own row rules and triggers decide. Never without a filter.
+    if (req.method() === 'PATCH') {
+      const body = req.postDataJSON() || {};
+      const sets = Object.keys(body).filter(k => IDENT.test(k)).map(k => k + ' = ' + val(body[k]));
+      if (!where.length || !sets.length) return route.fallback();
+      calls.push('update ' + table);
+      const r = await asUser('with u as (update public.' + table + ' set ' + sets.join(', ') + ' where ' + where.join(' and ') + ' returning *) select coalesce(jsonb_agg(to_jsonb(u)), \'[]\'::jsonb) from u', true);
+      if (r.error) return reply(route, status(r.error.code), r.error);
+      if (!/return=representation/.test(req.headers()['prefer'] || '')) return route.fulfill({ status: 204, headers: CORS, body: '' });
+      return reply(route, 200, r.data.map(row => { const x = {}; for (const c of cols) { if (c === '*') return row; x[c] = row[c]; } return x; }));
     }
     calls.push('select ' + table);
     const r = await asUser('select ' + cols.join(',') + ' from public.' + table + (where.length ? ' where ' + where.join(' and ') : '') + (order ? ' order by ' + order : '') + (limit != null ? ' limit ' + limit : ''));

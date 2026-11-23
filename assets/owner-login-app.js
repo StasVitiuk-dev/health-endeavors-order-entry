@@ -2788,7 +2788,9 @@
         return h('li', { 'data-rtncr': c.id, class: 'u-mt-6' },
           h('div', { class: 'taskTitle' }, (l ? l.order + ' · ' + (l.sku || l.name || 'item') : 'An order line') + ': ' + c.quantity + ' unit(s) awaiting inspection'),
           h('div', { class: 'u-fs-12' }, 'Recorded by ' + who(c.received_by) + ' on ' + day(c.received_at) + '. Not for sale until inspected.'),
-          isOwner ? h('div', { class: 'u-mt-4' }, h('button', { type: 'button', class: 'small', 'data-rtnact': 'inspect-open', 'data-id': c.id, 'aria-expanded': String(rtnOpen === 'inspect:' + c.id) }, 'Inspect')) : null,
+          (isOwner || c.received_by === myId) ? h('div', { class: 'u-mt-4' },
+            isOwner ? h('button', { type: 'button', class: 'small', 'data-rtnact': 'inspect-open', 'data-id': c.id, 'aria-expanded': String(rtnOpen === 'inspect:' + c.id) }, 'Inspect') : null, ' ',
+            h('button', { type: 'button', class: 'small secondary', 'data-rtnact': 'cr-cancel', 'data-id': c.id }, 'Cancel (recorded by mistake)')) : null,
           isOwner && rtnOpen === 'inspect:' + c.id ? h('form', { 'data-rtnform': 'inspect', 'data-id': c.id, class: 'heForm u-mt-4', novalidate: '' },
             yesNo('rtnOpened-' + c.id, 'Was it opened?'), yesNo('rtnUsed-' + c.id, 'Was it used?'),
             num('rtnRestock-' + c.id, 'Back on the shelf (sealed only)'), num('rtnDamaged-' + c.id, 'Damaged'), num('rtnUnsuitable-' + c.id, 'Unsuitable (opened or used, never resold)'),
@@ -2810,9 +2812,10 @@
         return h('li', { 'data-rtnsr': x.id, class: 'u-mt-6' },
           h('div', { class: 'taskTitle' }, (l ? l.po + ' · ' + (l.sku || l.description || 'item') : 'A purchase-order line') + ': ' + x.quantity + ' unit(s) from ' + (x.from_bucket === 'damaged' ? 'Damaged' : 'Available')),
           h('div', { class: 'u-fs-12' }, x.reason + (x.replacement_expected ? ' · replacement expected' : '') + ' · recorded by ' + who(x.submitted_by) + ' on ' + day(x.submitted_at)),
-          isOwner ? h('div', { class: 'u-mt-4' },
-            h('button', { type: 'button', class: 'small approve', 'data-rtnact': 'sr-approve', 'data-id': x.id }, 'Approve'), ' ',
-            h('button', { type: 'button', class: 'small secondary', 'data-rtnact': 'sr-reject', 'data-id': x.id }, 'Reject')) : null);
+          h('div', { class: 'u-mt-4' },
+            isOwner ? h('button', { type: 'button', class: 'small approve', 'data-rtnact': 'sr-approve', 'data-id': x.id }, 'Approve') : null, ' ',
+            isOwner ? h('button', { type: 'button', class: 'small secondary', 'data-rtnact': 'sr-reject', 'data-id': x.id }, 'Reject') : null, ' ',
+            (isOwner || x.submitted_by === myId) ? h('button', { type: 'button', class: 'small secondary', 'data-rtnact': 'sr-cancel', 'data-id': x.id }, 'Cancel (recorded by mistake)') : null));
       });
       const srForm = h('form', { 'data-rtnform': 'sr', class: 'heForm u-mt-8', novalidate: '' },
         h('div', { class: 'heField heWide' }, h('label', { for: 'rtnSrLine' }, 'Purchase-order line'),
@@ -2869,7 +2872,8 @@
         return;
       }
       t.disabled = true;
-      const res = await L.store.decideSupplierReturn(id, act === 'sr-approve' ? 'approved' : 'rejected');
+      const res = act === 'sr-cancel' ? await L.store.cancelSupplierReturn(id) : act === 'cr-cancel' ? await L.store.cancelCustomerReturn(id)
+        : await L.store.decideSupplierReturn(id, act === 'sr-approve' ? 'approved' : 'rejected');
       if (document.contains(t)) t.disabled = false;
       await rtnAfter(res);
     });

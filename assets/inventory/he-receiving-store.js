@@ -233,6 +233,21 @@
       if (a > 0 && (q.opened || q.used)) return refuse('Opened or used skincare cannot be restocked; record it as unsuitable or damaged.');
       return call('crd:' + id, RPC.decideCustomerReturn, { p_id: id, p_restock: a, p_damaged: b, p_unsuitable: c, p_opened: q.opened, p_used: q.used, p_note: q.note ? String(q.note).trim().slice(0, 500) : null }, 'Inspection recorded.');
     }
+    // Nov 23: cancel a return recorded by mistake, while it still waits. The
+    // database lets only the person who recorded it, or the owner, do this; the
+    // record stays (status cancelled) and no stock changes.
+    async function cancelReturn(table, id, waitingStatus, key) {
+      const r = ready(); if (r) return r;
+      if (!isUuid(id)) return refuse('That is not a return.');
+      return once(key + id, async function () {
+        const res = await client.from(table).update({ status: 'cancelled' }).eq('id', id).eq('status', waitingStatus).select('id,status');
+        if (res && res.error) return refuse(friendlyError(res.error));
+        if (!Array.isArray(res && res.data) || !res.data.length) return refuse('Nothing changed: it was already decided or cancelled, or only the person who recorded it (or the owner) can cancel it.');
+        return { ok: true, status: 'cancelled', message: 'Cancelled. It stays on the record; no stock changed.' };
+      });
+    }
+    const cancelSupplierReturn = (id) => cancelReturn('supplier_returns', id, 'submitted', 'src:');
+    const cancelCustomerReturn = (id) => cancelReturn('customer_return_inspections', id, 'awaiting_inspection', 'crc:');
     async function correctMovement(d) {
       const r = ready() || ownerOnly(); if (r) return r;
       const q = isObj(d) ? d : {};
@@ -240,7 +255,7 @@
       if (String(q.reason || '').trim().length < 5) return refuse('Say why it is corrected (at least 5 characters).');
       return call('fix:' + q.movementId, RPC.correct, { p_request_key: q.requestKey, p_movement_id: q.movementId, p_reason: String(q.reason).trim().slice(0, 300) }, 'Corrected by a linked movement.');
     }
-    return { enabled, probe, load, loadReturns, submit, approve, reject, cancel, decideSurplus, submitSupplierReturn, decideSupplierReturn, recordCustomerReturn, decideCustomerReturn, correctMovement };
+    return { enabled, probe, load, loadReturns, submit, approve, reject, cancel, decideSurplus, submitSupplierReturn, decideSupplierReturn, cancelSupplierReturn, recordCustomerReturn, decideCustomerReturn, cancelCustomerReturn, correctMovement };
   }
 
   return { RPC, RECORD_COLUMNS, LINE_COLUMNS, SR_COLUMNS, CR_COLUMNS, MOVE_COLUMNS, friendlyError, createStore };

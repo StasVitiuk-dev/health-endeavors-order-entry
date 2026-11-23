@@ -139,6 +139,28 @@ test.describe('against a real database with drafts/40 installed', () => {
     } finally { await db.close(); }
   });
 
+  test('a return recorded by mistake is cancelled: it stays on the record, no stock moves, and the units can come back again', async ({ page }) => {
+    const db = await pgBridge(page, { install: INSTALL, tables: TABLES, rpcs: RPCS, role: 'owner', setupSql: SEED });
+    try {
+      await on(page); await login(page); await open(page);
+      const host = page.locator('#stockReturnsHost');
+      await customerReturn(page, 2);
+      await expect(host.locator('#rtnCrLine option[value="' + OI + '"]')).toContainText('can come back 1');
+      await host.locator('[data-rtnact="cr-cancel"]').click();
+      await expect(msg(page)).toContainText('Cancelled. It stays on the record; no stock changed.');
+      await expect(host.locator('[data-rtncrwaiting]')).toHaveAttribute('data-rtncrwaiting', '0');
+      await expect(host.locator('#rtnCrLine option[value="' + OI + '"]')).toContainText('can come back 3');
+      await supplierReturn(page, { qty: 2, from: 'available', reason: 'Recorded on the wrong order' });
+      await host.locator('[data-rtnact="sr-cancel"]').click();
+      await expect(msg(page)).toContainText('Cancelled.');
+      await expect(host.locator('[data-rtnsrwaiting]')).toHaveAttribute('data-rtnsrwaiting', '0');
+      expect(await db.query("select (select string_agg(status, ',') from customer_return_inspections)||' '||(select string_agg(status, ',') from supplier_returns)")).toBe('cancelled cancelled');
+      expect(await db.query("select i.available||'/'||i.damaged||' '||p.quantity_received||' '||(select count(*) from stock_movements) from inventory i, purchase_order_items p where i.product_id = '" + P + "' and p.id = '" + IT + "'")).toBe('5/0 10 0');
+      // a cancelled return offers nothing more to press
+      await expect(host.locator('[data-rtnact="cr-cancel"], [data-rtnact="sr-cancel"], [data-rtnact="inspect-open"], [data-rtnact="sr-approve"]')).toHaveCount(0);
+    } finally { await db.close(); }
+  });
+
   test('a double click and a retry after a lost reply record a customer return once', async ({ page }) => {
     const db = await pgBridge(page, { install: INSTALL, tables: TABLES, rpcs: RPCS, role: 'owner', setupSql: SEED, dropReplyOnce: ['record_customer_return'] });
     try {
@@ -169,6 +191,12 @@ test.describe('against a real database with drafts/40 installed', () => {
       await expect(host.locator('[data-rtnact="sr-approve"]')).toHaveCount(0);
       await expect(host.locator('[data-rtnact="inspect-open"]')).toHaveCount(0);
       await expect(host.locator('[data-rtnmoves]')).toHaveCount(0);
+      // staff can cancel what they recorded by mistake
+      await expect(host.locator('[data-rtnact="cr-cancel"]')).toHaveCount(1);
+      await customerReturn(page, 1);
+      await host.locator('[data-rtnact="cr-cancel"]').first().click();
+      await expect(msg(page)).toContainText('Cancelled.');
+      expect(await db.query("select count(*) filter (where status = 'cancelled')||'/'||count(*) from customer_return_inspections")).toBe('1/2');
       // the page now believes this person is the owner; the database knows better
       backend.tables.profiles.find(p => p.role === 'employee').role = 'owner';
       await page.reload(); await expect(page.locator('#dash')).toBeVisible(); await open(page);

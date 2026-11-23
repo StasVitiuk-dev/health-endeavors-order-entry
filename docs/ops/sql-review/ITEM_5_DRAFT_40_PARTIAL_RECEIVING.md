@@ -113,8 +113,9 @@ Expected: `true | true | 0 | 0 | false`. Anything else: stop and send me a scree
   these functions, behind the switch `he_receiving_store`, which is not on the Feature Flags page
   and does nothing until this draft is installed. The Inventory page still has the simulated
   example (switch "Partial receiving and returns", off by default).
-- A submitted supplier return or customer return can be cancelled only in the database for now
-  (no button yet).
+- Nov 23: a return recorded by mistake can be cancelled on the page while it still waits
+  ("Cancel (recorded by mistake)"): only the person who recorded it, or you; the record stays,
+  marked cancelled, and no stock changes. Tested against the real throwaway database.
 - The draft uses only the caller's own permissions (no security definer, the project rule). Your
   own permissions on inventory and purchase orders apply when you approve.
 - "Unsuitable" units sit in the Damaged bucket; the stock table has no separate bucket for them.
