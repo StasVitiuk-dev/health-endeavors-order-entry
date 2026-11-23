@@ -84,7 +84,7 @@
       nightlyOverall,
     } = window.HE.helpers;
     // @@ EXT15 modules: created in dependency order (assets/app/*.js; see docs/ops/APPLICATION_MODULE_MAP_EXT15.md)
-    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn } = HE.modules.create('he-config', {  });
+    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn } = HE.modules.create('he-config', {  });
     const { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, focusDialog, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, h, pageIconNode } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
     const { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
     const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, h, supabase });
@@ -2226,6 +2226,155 @@
       if (act === 'filter') { reorderFilter = t.getAttribute('data-kind') || 'all'; loadReorderPlanning(); }
       else if (act === 'draft') { reorderShowDraft = !reorderShowDraft; loadReorderPlanning(); }
       refocusLike(t, 'reorderPlanningHost');
+    });
+
+    // ---------- Product list import (Nov 23; behind productImportOn) ----------
+    // The owner's product list, as a CSV saved from Numbers, Excel or Google
+    // Sheets, is read and checked in this browser (he-product-import). Nothing is
+    // added while any line has a problem; when every line is right, "Add" adds the
+    // NEW products one at a time, exactly as the Add product form does. A SKU that
+    // is already in the dashboard is never changed by the import. Owner and
+    // administrators only. Running the same file again adds nothing twice: the
+    // check sees the products already there (and the database refuses a second
+    // product with the same SKU).
+    let piState = { result: null, fileName: '', text: '', useSuggested: false, message: '', busy: false, existing: null };
+    let piSeq = 0;
+    const PI_WORD = { NEW: 'New', SAME: 'Already there', DIFFERS: 'Already there, different', ERROR: 'Fix in the file' };
+    function piMod() { return invMod('he-product-import'); }
+    async function piExisting() {
+      if (piState.existing) return piState.existing;
+      const rows = await fetchAllRows('products', 'id, sku, name, status, cost, retail_price, wholesale_price, packaging_info', q => q);
+      piState.existing = rows;
+      return rows;
+    }
+    function piSay(msg) {
+      piState.message = msg;
+      const m = document.querySelector('#productImportHost [data-pimessage]'); if (m) m.textContent = msg;
+      announce(msg);
+    }
+    function piSaveText(name, text) {
+      try {
+        const url = URL.createObjectURL(new Blob([text], { type: 'text/csv;charset=utf-8;' }));
+        // built with h() (setAttribute), not a raw .href assignment
+        const a = h('a', { href: url, download: name, class: 'u-d-none' });
+        document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+        return true;
+      } catch (err) { return false; }
+    }
+    async function piRecheck() {
+      const eng = piMod(); if (!eng || !piState.text) return;
+      let existing = [];
+      try { existing = await piExisting(); }
+      catch (err) { piState.result = null; piState.message = 'The products already in the dashboard could not be read, so the list could not be checked against them. Refresh and choose the file again.'; return; }
+      piState.result = eng.checkFile(piState.text, { existing: existing, useSuggestedSkus: piState.useSuggested });
+    }
+    function loadProductImport() {
+      const host = document.getElementById('productImportHost'); if (!host) return;
+      if (!(typeof productImportOn === 'function' && productImportOn())) { host.replaceChildren(); return; }
+      const eng = piMod();
+      if (!eng) { host.replaceChildren(h('p', { class: 'empty' }, 'The product import could not load.')); return; }
+      if (currentUserRole !== 'owner' && currentUserRole !== 'administrator') {
+        host.replaceChildren(h('div', { class: 'scanCard u-mt-14' }, h('h3', null, 'Import a product list'), h('p', { class: 'hint' }, 'Only the owner or an administrator can import products.')));
+        return;
+      }
+      const r = piState.result;
+      const money = (v) => (v == null ? '—' : fmtMoney(v, 'USD'));
+      const noteList = (x) => {
+        const items = [].concat(x.problems.map(t => ['problem', t]), x.differences.map(t => ['differs', t]), x.warnings.map(t => ['warning', t]));
+        return items.length ? h('ul', { class: 'piNotes u-fs-12' }, items.map(([k, t]) => h('li', { class: 'piNote-' + k }, (k === 'problem' ? 'Fix: ' : k === 'differs' ? 'Dashboard: ' : 'Check: ') + t))) : h('span', { class: 'u-c-muted u-fs-12' }, 'OK');
+      };
+      const table = r && r.ok ? h('table', { class: 'phoneCards u-mt-10', 'data-pitable': '1' },
+        h('thead', null, h('tr', null, h('th', { class: 'num-cell' }, 'Line'), h('th', null, 'Product'), h('th', null, 'SKU'), h('th', { class: 'num-cell' }, 'Retail'), h('th', { class: 'num-cell' }, 'Wholesale'), h('th', { class: 'num-cell' }, 'Cost'), h('th', null, 'Status'), h('th', null, 'Result'), h('th', null, 'Notes'))),
+        h('tbody', null, r.rows.map(x => h('tr', { 'data-piline': String(x.line), 'data-pioutcome': x.outcome },
+          h('td', { class: 'num-cell', 'data-label': 'Line' }, String(x.line)),
+          h('td', { 'data-label': 'Product' }, x.product.name || '—'),
+          h('td', { 'data-label': 'SKU', class: 'piSku' }, x.product.sku || '—'),
+          h('td', { class: 'num-cell', 'data-label': 'Retail' }, money(x.product.retail_price)),
+          h('td', { class: 'num-cell', 'data-label': 'Wholesale' }, money(x.product.wholesale_price)),
+          h('td', { class: 'num-cell', 'data-label': 'Cost' }, x.product.cost == null ? '—' : fmtMoney(x.product.cost, 'USD')),
+          h('td', { 'data-label': 'Status' }, x.product.status || '—'),
+          h('td', { 'data-label': 'Result' }, h('span', { class: 'badge ' + (x.outcome === 'ERROR' ? 'sev-high' : x.outcome === 'DIFFERS' ? 'sev-medium' : x.outcome === 'NEW' ? 'sev-low' : '') }, PI_WORD[x.outcome] || x.outcome)),
+          h('td', { 'data-label': 'Notes' }, noteList(x)))))) : null;
+      const anySuggest = r && r.ok && r.rows.some(x => x.suggestedSku);
+      const canAdd = !!(r && r.ok && !r.counts.error && r.ready.length && !piState.busy);
+      host.replaceChildren(h('div', { class: 'scanCard u-mt-14', 'data-productimport': '1' },
+        h('div', { class: 'scanHead' }, h('h3', null, 'Import a product list'), h('span', { class: 'scanBadge' }, 'Checked before anything is added')),
+        h('ol', { class: 'hint u-fs-12' },
+          h('li', null, 'Download the template and open it in Numbers, Excel or Google Sheets.'),
+          h('li', null, 'One row per product: name, size, SKU, retail price, wholesale price, cost, status (active = selling now, draft = later), packaging. Delete the two EXAMPLE rows.'),
+          h('li', null, 'Save it as CSV and choose it below. Every line is checked; nothing is added until every line is right and you press Add.')),
+        h('div', { class: 'scanToggleRow u-mt-8' },
+          h('button', { type: 'button', class: 'small secondary', 'data-pi': 'template' }, 'Download the template'),
+          r ? h('button', { type: 'button', class: 'small secondary', 'data-pi': 'clear' }, 'Forget this file') : null),
+        h('div', { class: 'heField u-mt-8' }, h('label', { for: 'piFile' }, 'Your product list (CSV)'), h('input', { id: 'piFile', type: 'file', class: 'heFileField', accept: '.csv,text/csv', 'data-pifile': '1' })),
+        h('p', { class: 'u-fs-12', role: 'status', 'data-pimessage': '1' }, piState.message || ''),
+        r && !r.ok ? h('p', { class: 'error', 'data-pisummary': 'fail' }, piState.fileName + ': ' + r.reason) : null,
+        r && r.ok ? h('p', { class: 'taskTitle', 'data-pisummary': r.counts.error ? 'errors' : 'ready' }, r.summary) : null,
+        r && r.ok && r.ignoredColumns.length ? h('p', { class: 'hint u-fs-12' }, 'Ignored columns: ' + r.ignoredColumns.join(', ') + '.') : null,
+        anySuggest ? h('label', { class: 'u-fs-12 piSuggest' }, h('input', { type: 'checkbox', 'data-pi': 'suggest', checked: piState.useSuggested }), ' Use the suggested SKU for rows without one (use the same SKU in Shopify)') : null,
+        table,
+        r && r.ok ? h('div', { class: 'scanToggleRow u-mt-10' },
+          h('button', { type: 'button', class: 'small', 'data-pi': 'add', disabled: !canAdd }, piState.busy ? 'Adding…' : (r.ready.length ? 'Add ' + r.ready.length + ' new product' + (r.ready.length === 1 ? '' : 's') : 'Nothing new to add')),
+          h('button', { type: 'button', class: 'small secondary', 'data-pi': 'save' }, 'Save the checked list (CSV)')) : null));
+    }
+    document.addEventListener('change', async (e) => {
+      const inp = e.target.closest('#productImportHost input[data-pifile]');
+      const box = e.target.closest('#productImportHost input[data-pi="suggest"]');
+      const eng = piMod(); if (!eng || (!inp && !box)) return;
+      if (box) {
+        piState.useSuggested = !!box.checked;
+        await piRecheck(); loadProductImport();
+        const again = document.querySelector('#productImportHost input[data-pi="suggest"]'); if (again) again.focus();
+        announce(piState.result && piState.result.ok ? piState.result.summary : piState.message);
+        return;
+      }
+      const file = inp.files && inp.files[0]; if (!file) return;
+      if (file.size > eng.MAX_BYTES) { piSay('That file is larger than 1 MB; a product list should be much smaller. Is it the right file?'); inp.value = ''; return; }
+      const seq = ++piSeq;
+      const fr = new FileReader();
+      fr.onerror = () => piSay('The file could not be read.');
+      fr.onload = async () => {
+        if (seq !== piSeq) return;
+        piState.text = String(fr.result || ''); piState.fileName = file.name.slice(0, 80); piState.existing = null; piState.message = '';
+        await piRecheck();
+        if (seq !== piSeq) return;
+        if (!piState.message) piState.message = piState.fileName + ' was read in this browser. Nothing was added.';
+        loadProductImport();
+        announce((piState.result && piState.result.ok ? piState.result.summary + ' ' : '') + piState.message);
+        const back = document.getElementById('piFile'); if (back) back.focus();
+      };
+      fr.readAsText(file);
+    });
+    document.addEventListener('click', async (e) => {
+      const t = e.target.closest('#productImportHost button[data-pi]'); if (!t) return;
+      const act = t.getAttribute('data-pi'); const eng = piMod(); if (!eng) return;
+      if (act === 'template') { piSay(piSaveText('product-list-template.csv', eng.templateCsv()) ? 'Saved product-list-template.csv.' : 'The template could not be saved in this browser.'); return; }
+      if (act === 'save') { if (piState.result) piSay(piSaveText('product-list-checked.csv', eng.toCsv(piState.result)) ? 'Saved product-list-checked.csv.' : 'The file could not be saved in this browser.'); return; }
+      if (act === 'clear') { piSeq++; piState = { result: null, fileName: '', text: '', useSuggested: false, message: 'The file was forgotten. Nothing was added.', busy: false, existing: null }; loadProductImport(); announce(piState.message); refocusLike(t, 'productImportHost'); return; }
+      if (act !== 'add' || piState.busy) return;
+      const r = piState.result; if (!r || !r.ok || r.counts.error || !r.ready.length) return;
+      if (currentUserRole !== 'owner' && currentUserRole !== 'administrator') return;
+      t.disabled = true; piState.busy = true; loadProductImport();
+      const uid = await currentUserId().catch(() => null);
+      const keysOn = await requestKeysOn().catch(() => false);
+      let added = 0, already = 0; let stopped = '';
+      for (const p of r.ready) {
+        const row = Object.assign({}, p, { created_by: uid });
+        const rk = keysOn ? fixedRequestKey('product-import:' + String(p.sku).toLowerCase()) : null;
+        const { error } = await supabase.from('products').insert(withRequestKey(row, rk));
+        if (!error) { added++; continue; }
+        if (isRequestKeyRepeat(error) || String(error.code) === '23505') { already++; continue; }
+        stopped = p.name + ' (' + p.sku + '): ' + (isNetworkError(error) ? 'the connection dropped, so it is not clear whether it was added' : explainDbError(error));
+        break;
+      }
+      piState.busy = false; piState.existing = null;
+      await piRecheck();
+      piState.message = (added ? added + ' product' + (added === 1 ? '' : 's') + ' added. ' : 'No product was added. ')
+        + (already ? already + ' already existed and were left as they were. ' : '')
+        + (stopped ? 'Stopped at ' + stopped + '. Choosing the same file again is safe: products already added are not added twice.' : '');
+      loadProductImport(); announce(piState.message);
+      try { await loadInventory(); } catch (err) { /* the list refreshes on the next visit */ }
+      const back = document.querySelector('#productImportHost [data-pimessage]'); if (back) { back.setAttribute('tabindex', '-1'); back.focus(); }
     });
 
     // ---------- #65 Saved views & filters (personal; behind savedViewsOn()) ----
@@ -4441,7 +4590,7 @@
       dailySummaryPanel: [loadDailySummary],
       reportHistoryPanel: [loadReportHistoryThenExport, loadRecoveryDrill, loadInvoicePreview, loadReportVersions],
       ordersPanel: [loadOrders, paintScanEntry, loadSavedViews, loadOrderSlipsHost],
-      inventoryPanel: [loadInventory, loadInventoryAdjustments, loadReorderPlanning, loadSavedViews, loadCycleCount, loadPartialReceiving],
+      inventoryPanel: [loadInventory, loadInventoryAdjustments, loadReorderPlanning, loadSavedViews, loadCycleCount, loadPartialReceiving, loadProductImport],
       returnsPanel: [loadReturns, loadStockReturns],
       suppliersPanel: [loadSuppliers, loadSupplierScorecard, loadSupplierDocs],
       purchaseOrdersPanel: [loadPurchaseOrders, loadDeliveries],

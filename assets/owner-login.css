@@ -1138,6 +1138,12 @@
   .scanCard{ border:1px solid var(--line); border-radius:var(--radius-sm); padding:12px; margin-top:8px; display:flex; flex-direction:column; gap:4px; }
   /* confirmed tax rates (Nov 23): a date stays on one line on a computer */
   @media (min-width: 701px){ .trDate{ white-space:nowrap; } }
+  /* product list import (Nov 23): what to fix stands out; notes wrap on a phone */
+  .piNotes{ margin:0; padding-left:16px; overflow-wrap:anywhere; }
+  .piNote-problem{ color:var(--danger); font-weight:600; }
+  .piNote-differs{ color:var(--warn); }
+  .piSuggest{ display:flex; gap:6px; align-items:center; }
+  @media (min-width: 701px){ .piSku{ white-space:nowrap; } }
   .scanCardHead{ font-size:14px; }
   .scanCardRow{ font-size:13px; color:var(--ink); }
   .scanReasons{ font-size:12px; color:var(--muted); }
