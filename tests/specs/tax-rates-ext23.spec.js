@@ -9,7 +9,7 @@ const S = require('../../assets/invoice/he-tax-rate-store.js');
 const T = require('../../assets/invoice/he-tax.js');
 const { test, expect, login, gotoPage } = require('../helpers/dashboard');
 const { pgBridge, pgAvailable } = require('../helpers/pg-bridge');
-const { unnamedControls } = require('../helpers/a11y-audit');
+const { unnamedControls, contrastFailures } = require('../helpers/a11y-audit');
 
 const INSTALL = path.resolve(__dirname, '..', '..', 'docs', 'ops', 'sql', 'drafts', '46_DRAFT_tax_rates.sql');
 const TABLES = ['tax_rates'];
@@ -192,6 +192,29 @@ test.describe('Tax Records', () => {
     await on(page); await login(page);
     await expect(page.locator('#dash')).toBeVisible();
     await expect(page.locator('#taxRateAlertHost')).toBeEmpty();
+  });
+
+  test('readable in light and dark, every control named (the section, its badges and the Home notice)', async ({ page, backend }, ti) => {
+    test.skip(ti.project.name !== 'desktop', 'colours are the same at phone size');
+    await page.clock.setFixedTime(new Date('2027-01-05T15:00:00Z'));
+    backend.tables.tax_rates = [
+      { id: '00000000-0000-4000-8000-00000000a001', place: 'Ships from: SYNTHETIC place', rate: '0.08750', effective_from: '2026-07-01', effective_until: null, source: 'IDOR Tax Rate Finder', note: null, confirmed_by: 'u', confirmed_at: '2026-11-24T15:00:00Z', rechecked_at: null, rechecked_by: null },
+      { id: '00000000-0000-4000-8000-00000000a002', place: 'Ships from: SYNTHETIC place', rate: '0.08250', effective_from: '2026-01-01', effective_until: '2026-06-30', source: 'IDOR Tax Rate Finder', note: null, confirmed_by: 'u', confirmed_at: '2026-01-02T15:00:00Z', rechecked_at: null, rechecked_by: null },
+      { id: '00000000-0000-4000-8000-00000000a003', place: 'Ships from: SYNTHETIC place', rate: '0.09000', effective_from: '2027-03-01', effective_until: null, source: 'IDOR Tax Rate Finder', note: null, confirmed_by: 'u', confirmed_at: '2027-01-04T15:00:00Z', rechecked_at: null, rechecked_by: null }];
+    await on(page); await login(page);
+    const check = (loc) => loc.evaluate((root, src) => (new Function('return ' + src)())(root), contrastFailures.toString());
+    for (const scheme of ['light', 'dark']) {
+      await page.emulateMedia({ colorScheme: scheme, reducedMotion: 'reduce' });
+      await gotoPage(page, 'attentionPanel');
+      await expect(page.locator('#taxRateAlertHost [data-taxratealert]')).toBeVisible();
+      expect(await check(page.locator('#taxRateAlertHost')), scheme + ' Home notice').toEqual([]);
+      await gotoPage(page, 'taxRecordsPanel');
+      const host = page.locator('#taxRatesHost');
+      await expect(host.locator('tr[data-trrow]')).toHaveCount(3);
+      await page.evaluate(() => Promise.all(document.getAnimations().map(a => a.finished.catch(() => {}))));
+      expect(await check(host), scheme + ' Tax Records').toEqual([]);
+      expect(await host.evaluate(unnamedControls), scheme).toEqual([]);
+    }
   });
 
   test('at phone size the rates and the form fit the screen', async ({ page, backend }, ti) => {
