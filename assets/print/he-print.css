@@ -1,0 +1,67 @@
+/* Printing on the owner's printers (Nov 23).
+   Loaded for print only (media="print"); the screen is never affected.
+   Brother MFC-J1365DW (colour inkjet, US Letter): every printout is black text and
+   black lines on white paper, so only the black cartridge is used, whatever look,
+   colour or dark mode the dashboard shows on screen. No backgrounds are printed. */
+@media print{
+  html, body{ background:#fff !important; }
+  .printView{ print-color-adjust:economy; -webkit-print-color-adjust:economy; }
+  .printView, .printView *{
+    color:#000 !important; background:transparent !important; border-color:#000 !important;
+    box-shadow:none !important; text-shadow:none !important; filter:none !important;
+    -webkit-text-fill-color:#000 !important;
+  }
+  .printView th, .printView td{ border-bottom-width:0.5pt; }
+  /* Luxury layout (owner request, Nov 23): a classic serif (HE Display) for names,
+     titles and totals; widely spaced small capitals (HE Text) for labels; hairline
+     and double rules instead of boxes; generous white space; the wordmark centred
+     over the document's name; the swirl and a personal closing line at the foot.
+     Black only, like every printout. */
+  .printView .printDoc{ font-family:'HE Text', 'Helvetica Neue', Arial, sans-serif; font-weight:400; font-size:10pt; line-height:1.5; }
+  .printView .printPage{ padding:0.05in 0.2in; }
+  .printView .printBrand{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7pt; text-align:center; padding-top:0; margin-bottom:10pt; break-inside:avoid; }
+  .printView .printBrand::after{ content:""; display:block; width:100%; height:2.5pt; border-top:0.5pt solid #000; border-bottom:1.5pt solid #000; margin-top:6pt; }
+  .printView .printBrandMark{ height:0.56in; width:auto; display:block; }
+  .printView .printBrandTitle{ font-family:'HE Text', 'Helvetica Neue', Arial, sans-serif; font-weight:500; font-size:9pt; letter-spacing:0.26em; text-transform:uppercase; padding-left:0.26em; }
+  .printView .printHdr{ text-align:center; font-size:8.5pt; letter-spacing:0.05em; line-height:1.4; }
+  .printView .printHdr .taskTitle{ font-family:'HE Display', Georgia, serif; font-weight:600; font-size:13pt; letter-spacing:0.03em; }
+  .printView .printMark{ border:0.75pt solid #000; padding:5pt 8pt; margin-bottom:12pt; font-family:'HE Text', Arial, sans-serif; font-weight:500; font-size:8pt; letter-spacing:0.16em; text-align:center; }
+  .printView .printMeta{ display:flex; gap:24pt; margin:10pt 0 8pt; padding:8pt 0; border-top:0.5pt solid #000; border-bottom:0.5pt solid #000; }
+  .printView .printLabel{ font-family:'HE Text', Arial, sans-serif; font-weight:500; font-size:7.5pt; letter-spacing:0.14em; text-transform:uppercase; }
+  .printView div.printLabel{ display:block; margin-bottom:4pt; }
+  .printView .printParty > div:not(.printLabel){ font-family:'HE Display', Georgia, serif; font-size:12.5pt; line-height:1.25; }
+  .printView table{ margin-top:8pt; }
+  .printView th{ font-family:'HE Text', Arial, sans-serif; font-weight:500; font-size:7.5pt; letter-spacing:0.12em; text-transform:uppercase; padding:6pt 8pt; border-bottom:1pt solid #000; }
+  .printView td{ padding:6pt 8pt; font-size:10pt; border-bottom-width:0.4pt; }
+  .printView td > div{ font-family:'HE Display', Georgia, serif; font-style:italic; font-size:11.5pt; margin-top:1pt; }
+  .printView .printTotals{ margin-top:10pt; width:56%; }
+  /* signature beside the totals: blank room above each line for a signature or stamp */
+  .printView .printClose{ display:flex; justify-content:space-between; align-items:flex-end; gap:28pt; break-inside:avoid; }
+  .printView .printClose > .printTotals{ flex:none; margin-left:auto; }
+  .printView .printSignBlock{ flex:1; max-width:2.7in; padding-bottom:30pt; }
+  .printView .printSignLine{ border-top:0.75pt solid #000; margin-top:0.85in; }
+  .printView .printTotalRow{ padding:2pt 8pt; }
+  .printView .printGrand{ font-family:'HE Display', Georgia, serif; font-weight:600; font-size:16pt; border-top:3pt double #000; margin-top:6pt; padding-top:6pt; }
+  .printView .printRemit{ margin-top:8pt; font-size:9pt; }
+  .printView .printFoot{ display:flex; flex-direction:column; align-items:center; gap:4pt; margin-top:14pt; text-align:center; font-family:'HE Display', Georgia, serif; font-style:italic; font-size:12.5pt; line-height:1.4; break-inside:avoid; }
+  .printView .printFoot::before{ content:""; display:block; width:1.2in; border-top:0.5pt solid #000; margin-bottom:4pt; }
+  .printView .printFootMark{ height:0.34in; width:auto; display:block; }
+  .printView .printFootSign{ font-family:'HE Text', Arial, sans-serif; font-style:normal; font-weight:500; font-size:7.5pt; letter-spacing:0.2em; text-transform:uppercase; }
+  /* refinements (Nov 23, "more elegance, more business casual"): figures line up in
+     columns; money is right-aligned; on the invoice the product name leads in the
+     serif with its SKU as a small line above; dates and terms in the clean sans */
+  .printView table, .printView .printTotals{ font-variant-numeric:lining-nums tabular-nums; }
+  .printView .printItems th:not(:first-child), .printView .printItems td:not(:first-child){ text-align:right; }
+  .printView .printItems td:first-child{ font-size:7.5pt; letter-spacing:0.08em; }
+  .printView .printItems td > div{ font-style:normal; font-size:12pt; letter-spacing:0; margin-top:2pt; }
+  .printView .printItems td{ vertical-align:bottom; }
+  .printView .printMeta > .printParty:last-child > div{ font-family:'HE Text', Arial, sans-serif; font-size:10pt; line-height:1.9; }
+  .printView .printMark{ border-width:0.5pt; }
+  .printView .printHdr .taskTitle{ font-size:14pt; margin-bottom:2pt; }
+  /* Printer test page (Nov 23): a frame on all four sides and a 1-inch square */
+  .printView .printTest{ border:1.5pt solid #000; padding:0.15in; box-sizing:border-box; }
+  .printView .printTest[data-printsize="letter"]{ height:9.9in; }
+  .printView .printTest[data-printsize="4x6"]{ height:5.7in; font-size:10pt; }
+  .printView .printInch{ width:1in; height:1in; border:1pt solid #000; box-sizing:border-box; display:flex; align-items:center; justify-content:center; margin:0.15in 0; }
+  .printView .labelFoot{ margin-top:8pt; }
+}

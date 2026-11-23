@@ -1,0 +1,583 @@
+{
+  "about": "Single source for every SQL file under docs/ops/sql (EXT14, 2026-10-11). Checked by tests/tools/sql-lint.js (npm run sql:lint) and tests/specs/sql-package-ext14.spec.js. Classes: PRODUCTION-READONLY (owner may run; changes nothing), PRODUCTION-CHANGE-DRAFT (owner runs only after approval, one per sitting), ROLLBACK (undoes one change draft), LOCAL-TEST (throwaway local database only), FIXTURE (local schema), OBSOLETE (kept for history, never run). Read-only files are not edited (their SHA-256 prefixes are published in PRODUCTION_READONLY_VERIFICATION_EXT10.md); their metadata lives here.",
+  "folders": {
+    "docs/ops/sql": [
+      "PRODUCTION-READONLY"
+    ],
+    "docs/ops/sql/drafts": [
+      "PRODUCTION-CHANGE-DRAFT",
+      "ROLLBACK"
+    ],
+    "docs/ops/sql/local-test": [
+      "LOCAL-TEST",
+      "FIXTURE",
+      "OBSOLETE"
+    ],
+    "docs/ops/sql/local-test/draft-tests": [
+      "LOCAL-TEST",
+      "OBSOLETE"
+    ]
+  },
+  "readonly": [
+    {
+      "file": "00_READONLY_A_schema.sql",
+      "id": "A",
+      "purpose": "table shapes, constraints, policies export",
+      "env": "production",
+      "schema": "json/text export",
+      "interpret": "used to build local-test/01_REAL_SHAPE; already run (Oct 5)"
+    },
+    {
+      "file": "01_READONLY_B_data_health.sql",
+      "id": "B",
+      "purpose": "data health counts",
+      "env": "production",
+      "schema": "check,count",
+      "interpret": "already run (Oct 5)"
+    },
+    {
+      "file": "02_READONLY_C_agents.sql",
+      "id": "C",
+      "purpose": "counts, agents, switches, schedules, stock writers, triggers, audit coverage",
+      "env": "production",
+      "schema": "section,item,result",
+      "interpret": "npm run evidence:interpret -- QUERY_C <csv> --env production --run-date YYYY-MM-DD"
+    },
+    {
+      "file": "03_READONLY_D_definer_function_identity_check.sql",
+      "id": "D",
+      "purpose": "elevated-rights functions and their safety",
+      "env": "production",
+      "schema": "function_name,classification",
+      "interpret": "evidence:interpret QUERY_D"
+    },
+    {
+      "file": "04_READONLY_E_stock_reconciliation.sql",
+      "id": "E",
+      "purpose": "stock vs history; deliveries vs stock and expense",
+      "env": "production",
+      "schema": "section,check_name,result",
+      "interpret": "evidence:interpret QUERY_E"
+    },
+    {
+      "file": "05_READONLY_F_daily_integrity_check.sql",
+      "id": "F",
+      "purpose": "stuck work, duplicates, wrong references, impossible values (F01-F15)",
+      "env": "production",
+      "schema": "section,check_name,findings,examples",
+      "interpret": "evidence:interpret QUERY_F"
+    },
+    {
+      "file": "06_READONLY_G_permissions_inventory.sql",
+      "id": "G",
+      "purpose": "who can read or write what (G01-G07; G08 audit insert F1, G09 audit readers F2)",
+      "env": "production",
+      "schema": "check_id,level,object,detail",
+      "interpret": "evidence:interpret QUERY_G"
+    },
+    {
+      "file": "07_READONLY_H_drift_check.sql",
+      "id": "H",
+      "purpose": "does production match what was reviewed (H01-H11)",
+      "env": "production",
+      "schema": "id,item,expected,observed,status,action",
+      "interpret": "evidence:interpret QUERY_H"
+    },
+    {
+      "file": "08_READONLY_A2_outside_tables.sql",
+      "id": "A2",
+      "purpose": "shape of the 24 tables/views the page reads that Query A did not export (same format as Query A)",
+      "env": "production",
+      "schema": "section,item,detail",
+      "interpret": "node tests/tools/schema-drift.js --export query-a.csv --export query-a2.csv"
+    },
+    {
+      "file": "09_READONLY_G2_views_and_profile_role_guard.sql",
+      "id": "G2",
+      "purpose": "views that may skip row-level security (V1) and the profiles role-change guard (P1)",
+      "env": "production",
+      "schema": "check_id,level,object,detail",
+      "interpret": "read by Claude (same columns as Query G)"
+    },
+    {
+      "file": "10_READONLY_G3_timeline_view_and_profile_triggers.sql",
+      "id": "G3",
+      "purpose": "activity_timeline view text, columns and row count (no rows); profiles trigger source (secret lines removed) and update policies",
+      "env": "production",
+      "schema": "check_id,object,detail",
+      "interpret": "read by Claude"
+    },
+    {
+      "file": "11_READONLY_security_fix_drift_check.sql",
+      "id": "DRIFT",
+      "purpose": "confirm FIX 1A (anon blocked), FIX 1B (security_invoker) and FIX 2 (profiles guard trigger) are still in place",
+      "env": "production",
+      "schema": "check_name,verdict,flag",
+      "interpret": "every row should be PASS; any FAIL means that fix drifted or was removed"
+    },
+    {
+      "file": "12_READONLY_I_report_day_cutoff.sql",
+      "id": "I",
+      "purpose": "which day cutoff the nightly report uses today: Central-time day or UTC day (owner decision of Nov 14: Central)",
+      "env": "production",
+      "schema": "item,reported,central_day,utc_day,verdict,action",
+      "interpret": "row I00 is the conclusion: PASS = already Central; ACTION = uses UTC, a change is needed; UNCLEAR / NOT ENOUGH DATA / NO DATA = show the result. Counts only, no customer data."
+    }
+  ],
+  "changes": [
+    {
+      "file": "drafts/10_DRAFT_stock_functions.sql",
+      "id": "10",
+      "class": "PRODUCTION-CHANGE-DRAFT",
+      "step": "P2",
+      "dependsOn": [],
+      "risk": "LOW",
+      "rollback": "11",
+      "precheck": "built-in preflight stops if any table, column, function or index is missing; Query C shows no other stock writer; backup look green today",
+      "effect": "6 stock functions (R1-R5 + helper), security invoker, EXECUTE to authenticated only",
+      "postcheck": "V8 fingerprint f6d9c2c8be690710eeb721041f6779d9; grants: 6 rows, anon false; Query H H01-H02 PASS",
+      "dynamicSql": "format('update inventory set %1$I …') with a bucket name checked against a fixed list first",
+      "lock": "LOW: function creation only"
+    },
+    {
+      "file": "drafts/11_DRAFT_rollback_stock_functions.sql",
+      "id": "11",
+      "class": "ROLLBACK",
+      "rollbackOf": "10",
+      "dependsOn": [
+        "22"
+      ],
+      "risk": "LOW",
+      "precheck": "refuses while any stock_fn_* switch is ON (EXT14)",
+      "effect": "removes the 6 functions; no table touched",
+      "postcheck": "0 of the functions remain"
+    },
+    {
+      "file": "drafts/21_DRAFT_stock_function_switches.sql",
+      "id": "21",
+      "class": "PRODUCTION-CHANGE-DRAFT",
+      "step": "P3",
+      "dependsOn": [
+        "10"
+      ],
+      "risk": "LOW",
+      "rollback": "22",
+      "precheck": "refuses without drafts/10 or without feature_flags (and its id default)",
+      "effect": "5 stock_fn_* switch rows, all OFF",
+      "postcheck": "5 rows, enabled = false (V9)",
+      "lock": "LOW"
+    },
+    {
+      "file": "drafts/22_DRAFT_rollback_stock_function_switches.sql",
+      "id": "22",
+      "class": "ROLLBACK",
+      "rollbackOf": "21",
+      "dependsOn": [],
+      "risk": "LOW",
+      "precheck": "refuses while any stock_fn_* switch is ON",
+      "effect": "removes the 5 rows",
+      "postcheck": "0 stock_fn_* rows"
+    },
+    {
+      "file": "drafts/17_DRAFT_po_line_delete_guard.sql",
+      "id": "17",
+      "class": "PRODUCTION-CHANGE-DRAFT",
+      "step": "P5",
+      "dependsOn": [],
+      "risk": "LOW",
+      "rollback": "18",
+      "precheck": "stops if purchase_orders / purchase_order_items are missing",
+      "effect": "1 trigger refusing PO line add/change/delete during a receive",
+      "postcheck": "trigger present (Query H H10)",
+      "lock": "LOW: brief trigger-create lock on purchase_order_items"
+    },
+    {
+      "file": "drafts/18_DRAFT_rollback_po_line_delete_guard.sql",
+      "id": "18",
+      "class": "ROLLBACK",
+      "rollbackOf": "17",
+      "dependsOn": [],
+      "risk": "LOW",
+      "precheck": "none needed",
+      "effect": "drops the trigger and its function",
+      "postcheck": "trigger absent"
+    },
+    {
+      "file": "drafts/23_DRAFT_integrity_constraints.sql",
+      "id": "23",
+      "class": "PRODUCTION-CHANGE-DRAFT",
+      "step": "P6",
+      "dependsOn": [],
+      "risk": "LOW",
+      "rollback": "24",
+      "precheck": "stops with counts if existing rows already break a rule; Query E and F show 0 for these rules",
+      "effect": "4 CHECK constraints",
+      "postcheck": "4 constraints (Query H H11)",
+      "lock": "LOW at today's size: each ADD CONSTRAINT scans its table under ACCESS EXCLUSIVE (measured: docs/ops/ENGINEERING_REPORT_EXT14.md §DB)"
+    },
+    {
+      "file": "drafts/24_DRAFT_rollback_integrity_constraints.sql",
+      "id": "24",
+      "class": "ROLLBACK",
+      "rollbackOf": "23",
+      "dependsOn": [],
+      "risk": "LOW",
+      "precheck": "none needed",
+      "effect": "drops the 4 constraints",
+      "postcheck": "0 of them remain"
+    },
+    {
+      "file": "drafts/19_DRAFT_request_keys.sql",
+      "id": "19",
+      "class": "PRODUCTION-CHANGE-DRAFT",
+      "step": "P7",
+      "dependsOn": [],
+      "risk": "LOW",
+      "rollback": "20",
+      "precheck": "reports and skips missing tables; stops if the dashboard role cannot write the new column",
+      "effect": "nullable client_request_id + partial unique index on each create table",
+      "postcheck": "V11; Query H H08",
+      "dynamicSql": "format() over a fixed table list for the column and index",
+      "lock": "LOW at today's size: each index build blocks writes on its table briefly"
+    },
+    {
+      "file": "drafts/20_DRAFT_rollback_request_keys.sql",
+      "id": "20",
+      "class": "ROLLBACK",
+      "rollbackOf": "19",
+      "dependsOn": [
+        "28"
+      ],
+      "risk": "LOW",
+      "precheck": "request_keys switch OFF and its row removed (drafts/28) first",
+      "effect": "drops the indexes and columns",
+      "postcheck": "no client_request_id column remains",
+      "dynamicSql": "format() over the same fixed table list as drafts/19, to drop each index and column"
+    },
+    {
+      "file": "drafts/27_DRAFT_request_keys_switch.sql",
+      "id": "27",
+      "class": "PRODUCTION-CHANGE-DRAFT",
+      "step": "P7",
+      "dependsOn": [
+        "19"
+      ],
+      "risk": "LOW",
+      "rollback": "28",
+      "precheck": "refuses without drafts/19 or feature_flags",
+      "effect": "request_keys switch row, OFF",
+      "postcheck": "1 row, enabled = false",
+      "lock": "LOW"
+    },
+    {
+      "file": "drafts/28_DRAFT_rollback_request_keys_switch.sql",
+      "id": "28",
+      "class": "ROLLBACK",
+      "rollbackOf": "27",
+      "dependsOn": [],
+      "risk": "LOW",
+      "precheck": "refuses while the switch is ON",
+      "effect": "removes the row",
+      "postcheck": "0 rows"
+    },
+    {
+      "file": "drafts/25_DRAFT_integrity_check_schedule.sql",
+      "id": "25",
+      "class": "PRODUCTION-CHANGE-DRAFT",
+      "step": "P9",
+      "dependsOn": [],
+      "risk": "LOW",
+      "rollback": "26",
+      "precheck": "thresholds decision; notes if pg_cron is missing (then not scheduled)",
+      "effect": "results table, Query F view, check function, one named nightly job",
+      "postcheck": "cron.job has exactly 1 integrity_check_nightly row; first run writes rows",
+      "lock": "LOW"
+    },
+    {
+      "file": "drafts/26_DRAFT_rollback_integrity_check_schedule.sql",
+      "id": "26",
+      "class": "ROLLBACK",
+      "rollbackOf": "25",
+      "dependsOn": [
+        "30"
+      ],
+      "risk": "LOW",
+      "precheck": "drafts/30 first if 29 was installed",
+      "effect": "unschedules and drops the check, view and its results table (its own history only)",
+      "postcheck": "objects absent",
+      "dynamicSql": "cron.unschedule by job name only when pg_cron exists"
+    },
+    {
+      "file": "drafts/29_DRAFT_integrity_results_on_home.sql",
+      "id": "29",
+      "class": "PRODUCTION-CHANGE-DRAFT",
+      "step": "P9b",
+      "dependsOn": [
+        "25"
+      ],
+      "risk": "LOW",
+      "rollback": "30",
+      "precheck": "refuses without drafts/25, is_owner_or_admin() or feature_flags",
+      "effect": "runs table, run_id column, owner/admin read policies, Home switch row OFF",
+      "postcheck": "V12; Query H H09",
+      "lock": "LOW"
+    },
+    {
+      "file": "drafts/30_DRAFT_rollback_integrity_results_on_home.sql",
+      "id": "30",
+      "class": "ROLLBACK",
+      "rollbackOf": "29",
+      "dependsOn": [],
+      "risk": "LOW",
+      "precheck": "refuses while the Home switch is ON or if 25 is already gone",
+      "effect": "removes 29's objects",
+      "postcheck": "objects absent"
+    },
+    {
+      "file": "drafts/13_DRAFT_report_totals.sql",
+      "id": "13",
+      "class": "PRODUCTION-CHANGE-DRAFT",
+      "step": "optional (not in the plan)",
+      "dependsOn": [],
+      "risk": "LOW",
+      "rollback": "31",
+      "precheck": "refund rule N4 decided; a dashboard PR that calls it",
+      "effect": "1 read-only reporting function (security invoker)",
+      "postcheck": "function present; anon cannot run it",
+      "lock": "LOW"
+    },
+    {
+      "file": "drafts/31_DRAFT_rollback_report_totals.sql",
+      "id": "31",
+      "class": "ROLLBACK",
+      "rollbackOf": "13",
+      "dependsOn": [],
+      "risk": "LOW",
+      "precheck": "reports whether 13 is installed",
+      "effect": "drops the function",
+      "postcheck": "to_regprocedure(...) is null"
+    },
+    {
+      "file": "drafts/32_DRAFT_invoices.sql",
+      "id": "32",
+      "class": "PRODUCTION-CHANGE-DRAFT",
+      "step": "optional (not in the plan; needed before any real invoice is issued)",
+      "dependsOn": [],
+      "risk": "LOW",
+      "rollback": "33",
+      "precheck": "stops if auth.uid(), is_owner_or_admin(), is_active_staff(), the orders, tasks or audit_log table, or the audit trigger on tasks is missing; stops, changing nothing, if an invoice table already exists with a different shape",
+      "effect": "4 new empty tables (invoices, invoice_counters, invoice_payments, invoice_events); guards: valid lines that add up, discounts within what they discount, confirmed tax = rate x taxable amount, lines and billing details before issue, Net 14 only with a recorded credit approval on every write path, creator and creation time unchangeable, status follows recorded payments; numbers HE-YYYY-NNNN with all digits after 9999; issue_invoice, void_invoice, record_invoice_payment, reverse_invoice_payment (security invoker); production's audit trigger attached; staff see invoices they created or whose order they can see; payments owner/administrator only",
+      "postcheck": "the four tables present and empty; anon cannot read them or run the functions; the audit trigger on invoices exists; local-test/invoices_test.sh passes on a throwaway copy",
+      "lock": "NONE on existing tables: only new, empty tables are created",
+      "dynamicSql": "attaches production's existing audit trigger function to the new tables: its name is read from the trigger on public.tasks at install time, so the CREATE TRIGGER statement is built with format() and %I (names only)"
+    },
+    {
+      "file": "drafts/33_DRAFT_rollback_invoices.sql",
+      "id": "33",
+      "class": "ROLLBACK",
+      "rollbackOf": "32",
+      "dependsOn": [],
+      "risk": "LOW",
+      "precheck": "stops, removing nothing, if any issued, paid or void invoice exists, or if any draft exists and its deletion was not separately authorized in the session; locks the invoices table first so nothing is issued meanwhile",
+      "effect": "drops the four functions the page calls, the guards, the audit triggers and the four tables (authorized drafts and their history go with them)",
+      "postcheck": "to_regclass('public.invoices') is null",
+      "dynamicSql": "one format() with fixed names and values (%I / %L), so the count is not planned when the table is absent"
+    },
+    {
+      "file": "drafts/34_DRAFT_stock_count_adjustments.sql",
+      "id": "34",
+      "class": "PRODUCTION-CHANGE-DRAFT",
+      "step": "optional (not in the plan; needed before stock-count approval is used for real)",
+      "dependsOn": [],
+      "risk": "LOW",
+      "rollback": "35",
+      "precheck": "stops if auth.uid(), current_role(), is_owner_or_admin(), is_active_staff() or the products / inventory / profiles tables are missing",
+      "effect": "2 new empty tables (stock_count_adjustments, stock_count_approvers), a guard trigger (owner-only decisions, decided rows unchangeable, no deletes), propose / approve / reject / cancel and grant / revoke functions (security invoker); changes no stock figure",
+      "postcheck": "both tables present and empty; anon cannot read them or run the functions; an administrator cannot approve; local-test/stock_count_adjustments_test.sh passes on a throwaway copy",
+      "lock": "NONE on existing tables: only new, empty tables are created"
+    },
+    {
+      "file": "drafts/35_DRAFT_rollback_stock_count_adjustments.sql",
+      "id": "35",
+      "class": "ROLLBACK",
+      "rollbackOf": "34",
+      "dependsOn": [],
+      "risk": "LOW",
+      "precheck": "stops, removing nothing, if any approved or rejected adjustment exists (the record of decisions)",
+      "effect": "drops the functions, the guard and the two tables; open or cancelled proposals and any grant are removed with them",
+      "postcheck": "to_regclass('public.stock_count_adjustments') is null",
+      "dynamicSql": "two format() calls with fixed names and values (%I / %L), so the counts are not planned when the tables are absent"
+    },
+    {
+      "file": "drafts/36_DRAFT_supplier_documents.sql",
+      "id": "36",
+      "class": "PRODUCTION-CHANGE-DRAFT",
+      "step": "optional (not in the plan; needed before supplier documents are stored for real)",
+      "dependsOn": [],
+      "risk": "LOW",
+      "rollback": "37",
+      "precheck": "stops if auth.uid(), current_role(), is_active_staff(), is_owner_or_admin() or the suppliers / purchase_orders / profiles tables are missing",
+      "effect": "7 new tables (the checklist, its profiles by supplier type and per supplier, subjects, documents with one file each, review history, hand-offs to the owner); guards (owner-only review, correction, hand-off resolution and checklist changes; purchase documents only for orders the person can already see; a file attached once; no deletes; history written by the database only); record / review / withdraw / correct / attach-file / hand-off functions and owner-only checklist functions (security invoker); the starting checklist of Nov 16",
+      "postcheck": "9 document types, no documents; anon cannot read them or run the functions; an administrator cannot approve; local-test/supplier_documents_test.sh passes on a throwaway copy",
+      "lock": "NONE on existing tables: only new tables are created"
+    },
+    {
+      "file": "drafts/37_DRAFT_rollback_supplier_documents.sql",
+      "id": "37",
+      "class": "ROLLBACK",
+      "rollbackOf": "36",
+      "dependsOn": [],
+      "risk": "LOW",
+      "precheck": "stops, removing nothing, if any approved or rejected supplier document exists (the record of the reviews)",
+      "effect": "drops the functions, the guards and the seven tables; documents waiting for review or withdrawn, and hand-offs, are removed with them",
+      "postcheck": "to_regclass('public.supplier_documents') is null",
+      "dynamicSql": "one format() with fixed names and values (%I / %L), so the count is not planned where the table is absent"
+    },
+    {
+      "file": "drafts/38_DRAFT_supplier_document_files.sql",
+      "id": "38",
+      "class": "PRODUCTION-CHANGE-DRAFT",
+      "step": "optional (after drafts/36; needed before supplier document files are stored)",
+      "dependsOn": [
+        "36"
+      ],
+      "risk": "LOW",
+      "rollback": "39",
+      "precheck": "stops if storage.objects, storage.buckets, supplier_documents or supplier_documents_is_owner() is missing",
+      "effect": "a private storage bucket supplier-documents (PDF/JPEG/PNG, 10 MB); two rules on storage.objects for that bucket only: the owner reads (opens, downloads, signs links); the person who recorded a waiting document (or the owner) uploads into its folder; no replace or delete rule",
+      "postcheck": "bucket public = false; two new storage rules; local-test/supplier_document_files_test.sh passes on a throwaway copy",
+      "lock": "NONE on business tables: adds two rules on storage.objects"
+    },
+    {
+      "file": "drafts/39_DRAFT_rollback_supplier_document_files.sql",
+      "id": "39",
+      "class": "ROLLBACK",
+      "rollbackOf": "38",
+      "dependsOn": [],
+      "risk": "LOW",
+      "precheck": "stops, removing nothing, if any file is stored in the bucket",
+      "effect": "drops the two storage rules and the upload check, and removes the empty bucket",
+      "postcheck": "select count(*) from storage.buckets where id = 'supplier-documents' = 0",
+      "dynamicSql": "one format() with fixed names and values (%I / %L)"
+    },
+    {
+      "file": "drafts/40_DRAFT_partial_receiving_returns.sql",
+      "id": "40",
+      "class": "PRODUCTION-CHANGE-DRAFT",
+      "step": "optional (after the owner's D-ops-5 decisions; needed before partial deliveries and inspected customer returns are used)",
+      "dependsOn": [],
+      "risk": "MEDIUM",
+      "rollback": "41",
+      "precheck": "stops if auth.uid(), current_role(), is_active_staff(), is_owner_or_admin() or the purchase_orders, purchase_order_items, inventory, inventory_adjustments, returns, order_items or products table is missing",
+      "effect": "6 new tables (receiving records and lines, supplier returns, customer return inspections, stock movements, stock corrections); staff submit, the owner approves before any stock changes; surplus logged for the owner; rejected units stay outstanding; damaged kept go to Damaged; supplier returns reopen the outstanding quantity only when a replacement is expected; customer returns wait for inspection, opened or used never restocked; corrections are linked reversing movements with reason and approver; request keys and row locks against retries and simultaneous approvals; on approval only: inventory buckets, purchase_order_items.quantity_received, purchase_orders.status, inventory_adjustments",
+      "postcheck": "the six tables present and empty; anon cannot read them; local-test/partial_receiving_test.sh passes on a throwaway copy",
+      "lock": "NONE at install (new tables only); approvals lock the purchase-order lines and inventory rows they change",
+      "dynamicSql": "the stock bucket name (from the fixed list available, damaged, checked by the table) is placed with format() and %I; values are passed as $n parameters"
+    },
+    {
+      "file": "drafts/41_DRAFT_rollback_partial_receiving_returns.sql",
+      "id": "41",
+      "class": "ROLLBACK",
+      "rollbackOf": "40",
+      "dependsOn": [],
+      "risk": "LOW",
+      "precheck": "stops, removing nothing, if any stock movement exists, or if any request exists and its deletion was not authorized in the session",
+      "effect": "drops the functions, guards and the six tables",
+      "postcheck": "to_regclass('public.stock_movements') is null",
+      "dynamicSql": "format() with fixed names (%I) to lock and count the tables only where they exist"
+    },
+    {
+      "file": "drafts/42_DRAFT_shopify_payouts_money_issues.sql",
+      "id": "42",
+      "class": "PRODUCTION-CHANGE-DRAFT",
+      "step": "optional (before the automatic Shopify feed; owner request of Nov 22)",
+      "dependsOn": [],
+      "risk": "LOW",
+      "rollback": "43",
+      "precheck": "stops if auth.uid() or is_owner_or_admin() is missing",
+      "effect": "3 new tables: a read-only copy of Shopify payouts and their transactions (written only by the daily sync with the service role) and the list of money differences (open until the owner or an administrator marks one checked with a note; never deleted); check_shopify_payouts(), record_money_issue(), mark_money_issue_checked(); owner and administrators read, staff and visitors nothing; no existing table changes",
+      "postcheck": "the three tables present and empty; anon cannot read them; local-test/shopify_payouts_test.sh passes on a throwaway copy",
+      "lock": "NONE (new tables only)"
+    },
+    {
+      "file": "drafts/43_DRAFT_rollback_shopify_payouts_money_issues.sql",
+      "id": "43",
+      "class": "ROLLBACK",
+      "rollbackOf": "42",
+      "dependsOn": [],
+      "risk": "LOW",
+      "precheck": "stops, removing nothing, while any difference is recorded, unless deleting them was authorized in the session",
+      "effect": "drops the functions and the three tables",
+      "postcheck": "to_regclass('public.money_match_issues') is null",
+      "dynamicSql": "format() with fixed names (%I) to lock and count the differences table only where it exists"
+    },
+    {
+      "file": "drafts/44_DRAFT_staff_read_purchase_orders.sql",
+      "id": "44",
+      "class": "PRODUCTION-CHANGE-DRAFT",
+      "step": "optional (owner decision of Nov 22: all employees see purchase orders; needed before staff record deliveries with drafts/40)",
+      "dependsOn": [],
+      "risk": "LOW",
+      "rollback": "45",
+      "precheck": "stops if is_active_staff(), purchase_orders or purchase_order_items is missing, or row-level security is off on either table",
+      "effect": "two read-only row rules: active staff see purchase orders that are not deleted, and their lines (including unit costs); no write rule added; no data changed",
+      "postcheck": "a staff account sees purchase orders and cannot change them; local-test/staff_read_purchase_orders_test.sh passes on a throwaway copy",
+      "lock": "brief (creating a row rule on two existing tables)"
+    },
+    {
+      "file": "drafts/45_DRAFT_rollback_staff_read_purchase_orders.sql",
+      "id": "45",
+      "class": "ROLLBACK",
+      "rollbackOf": "44",
+      "dependsOn": [],
+      "risk": "LOW",
+      "precheck": "none (removing two read rules only)",
+      "effect": "drops the two staff read rules; staff no longer see purchase orders",
+      "postcheck": "a staff account sees no purchase order"
+    }
+  ],
+  "local": [
+    {
+      "file": "local-test/00_GUESSED_schema_for_local_tests.sql",
+      "class": "OBSOLETE",
+      "note": "first guessed schema (before Query A); kept for history"
+    },
+    {
+      "file": "local-test/01_REAL_SHAPE_schema_for_local_tests.sql",
+      "class": "FIXTURE"
+    },
+    {
+      "file": "local-test/invariants.sql",
+      "class": "LOCAL-TEST"
+    },
+    {
+      "file": "local-test/query_c_mock_test.sql",
+      "class": "LOCAL-TEST"
+    },
+    {
+      "file": "local-test/query_c_no_cron_test.sql",
+      "class": "LOCAL-TEST"
+    },
+    {
+      "file": "local-test/query_d_mock_test.sql",
+      "class": "LOCAL-TEST"
+    },
+    {
+      "file": "local-test/draft-tests/12_DRAFT_tests_stock_functions.sql",
+      "class": "OBSOLETE",
+      "note": "superseded by 15 (guessed schema)"
+    },
+    {
+      "file": "local-test/draft-tests/14_DRAFT_tests_report_totals.sql",
+      "class": "LOCAL-TEST"
+    },
+    {
+      "file": "local-test/draft-tests/15_DRAFT_tests_stock_functions_real_shape.sql",
+      "class": "LOCAL-TEST"
+    },
+    {
+      "file": "local-test/draft-tests/16_DRAFT_tests_hardening_and_failures.sql",
+      "class": "LOCAL-TEST"
+    }
+  ]
+}

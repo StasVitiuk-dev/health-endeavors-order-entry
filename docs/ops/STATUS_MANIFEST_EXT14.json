@@ -1,0 +1,39 @@
+{
+  "about": "EXT14 machine-readable status of every production step and switch. Validated by `npm run status:check` (tests/tools/status-validate.js). Local or staging results NEVER set a production field; only dated owner evidence from production does. Update this file whenever something is merged, installed, switched or verified.",
+  "asOf": "2026-10-12",
+  "main": "d3db7bc",
+  "liveDashboard": "unchanged since d3db7bc",
+  "scores": { "productionReadinessPercent": 15, "basis": "unchanged: no production evidence has arrived" },
+  "units": {
+    "merge":           { "kind": "code", "branch": "IMPLEMENTED IN BRANCH", "local": "TESTED LOCALLY", "merged": false, "deployed": false, "production": "NOT DEPLOYED", "productionEvidence": null },
+    "r15":             { "kind": "sql", "sql": ["drafts/10"], "rollback": ["drafts/11"], "local": "TESTED LOCALLY", "production": "UNKNOWN", "productionEvidence": null, "note": "believed not installed; Query C §6 confirms" },
+    "switch_rows":     { "kind": "sql", "sql": ["drafts/21"], "rollback": ["drafts/22"], "local": "TESTED LOCALLY", "production": "UNKNOWN", "productionEvidence": null },
+    "line_guard":      { "kind": "sql", "sql": ["drafts/17"], "rollback": ["drafts/18"], "local": "TESTED LOCALLY", "production": "UNKNOWN", "productionEvidence": null },
+    "integrity_rules": { "kind": "sql", "sql": ["drafts/23"], "rollback": ["drafts/24"], "local": "TESTED LOCALLY", "production": "UNKNOWN", "productionEvidence": null },
+    "request_keys":    { "kind": "sql", "sql": ["drafts/19", "drafts/27"], "rollback": ["drafts/28", "drafts/20"], "local": "TESTED LOCALLY", "production": "UNKNOWN", "productionEvidence": null },
+    "permissions":     { "kind": "sql", "sql": [], "rollback": [], "local": "NOT WRITTEN", "production": "UNKNOWN", "productionEvidence": null, "note": "waits for Query G" },
+    "nightly":         { "kind": "sql", "sql": ["drafts/25", "drafts/29"], "rollback": ["drafts/30", "drafts/26"], "local": "TESTED LOCALLY", "production": "UNKNOWN", "productionEvidence": null },
+    "report_totals":   { "kind": "sql", "optional": true, "sql": ["drafts/13"], "rollback": ["drafts/31"], "local": "TESTED LOCALLY", "production": "UNKNOWN", "productionEvidence": null, "note": "optional, not in the plan; EXT14 fixed missing-total handling" },
+    "invoices":   { "kind": "sql", "optional": true, "sql": ["drafts/32"], "rollback": ["drafts/33"], "local": "TESTED LOCALLY", "production": "UNKNOWN", "productionEvidence": null, "note": "optional, not in the plan; storage and numbering for invoices (owner decisions of Nov 14). Adds row rules on its own two new tables: needs the owner's explicit approval like every draft" },
+    "stock_count_adjustments": { "kind": "sql", "optional": true, "sql": ["drafts/34"], "rollback": ["drafts/35"], "local": "TESTED LOCALLY", "production": "UNKNOWN", "productionEvidence": null, "note": "optional, not in the plan; owner-only approval of stock-count adjustments (owner decision of Nov 16). Adds row rules on its own two new tables and changes no stock figure: needs the owner's explicit approval like every draft" },
+    "supplier_documents": { "kind": "sql", "optional": true, "sql": ["drafts/36"], "rollback": ["drafts/37"], "local": "TESTED LOCALLY", "production": "UNKNOWN", "productionEvidence": null, "note": "optional, not in the plan; supplier document storage with owner-only review (owner decisions of Nov 16). Adds row rules on its own six new tables: needs the owner's explicit approval like every draft" },
+    "supplier_document_files": { "kind": "sql", "optional": true, "sql": ["drafts/38"], "rollback": ["drafts/39"], "local": "TESTED LOCALLY", "production": "UNKNOWN", "productionEvidence": null, "note": "optional, after drafts/36; private supplier document files, readable by the owner only (owner decision of Nov 21). Adds two rules on storage.objects for its own bucket: needs the owner's explicit approval like every draft" },
+    "partial_receiving": { "kind": "sql", "optional": true, "sql": ["drafts/40"], "rollback": ["drafts/41"], "local": "TESTED LOCALLY", "production": "UNKNOWN", "productionEvidence": null, "note": "optional, not in the plan; deliveries received line by line, returns to suppliers, customer-return inspection and linked corrections (owner rules of Nov 22, D-ops-5). Stock changes only on the owner's approval: needs the owner's explicit approval like every draft (review item 5)" },
+    "shopify_payouts": { "kind": "sql", "optional": true, "sql": ["drafts/42"], "rollback": ["drafts/43"], "local": "TESTED LOCALLY", "production": "UNKNOWN", "productionEvidence": null, "note": "optional, not in the plan; a read-only copy of Shopify Payments payouts and the list of money differences (owner request of Nov 22). Needs the owner's explicit approval and a read-only Shopify app the owner creates (review item 6)" },
+    "staff_read_purchase_orders": { "kind": "sql", "optional": true, "sql": ["drafts/44"], "rollback": ["drafts/45"], "local": "TESTED LOCALLY", "production": "UNKNOWN", "productionEvidence": null, "note": "optional, not in the plan; two read-only rules so all employees see purchase orders (owner decision of Nov 22). Needs the owner's explicit approval like every draft (review item 7)" }
+  },
+  "switches": {
+    "stock_fn_receive_po":     { "install": "switch_rows", "production": "UNKNOWN", "productionEvidence": null },
+    "stock_fn_adjust":         { "install": "switch_rows", "production": "UNKNOWN", "productionEvidence": null },
+    "stock_fn_recall":         { "install": "switch_rows", "production": "UNKNOWN", "productionEvidence": null },
+    "stock_fn_return":         { "install": "switch_rows", "production": "UNKNOWN", "productionEvidence": null },
+    "stock_fn_delete_product": { "install": "switch_rows", "production": "UNKNOWN", "productionEvidence": null },
+    "request_keys":            { "install": "request_keys", "production": "UNKNOWN", "productionEvidence": null },
+    "integrity_results_home":  { "install": "nightly", "production": "UNKNOWN", "productionEvidence": null }
+  },
+  "facts": {
+    "backups": { "production": "UNKNOWN", "productionEvidence": null },
+    "agents": { "production": "REPORTED", "productionEvidence": null, "note": "#4/#5/#6 on, #2/#3/#7/#8 off as reported by the owner; #1 UNVERIFIED" },
+    "ci": { "branch": "IMPLEMENTED IN BRANCH", "active": false, "note": ".github/workflows/ci.yml runs only after the owner merges it" }
+  }
+}

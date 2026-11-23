@@ -1,0 +1,435 @@
+// Manual order entry page logic (EXT16: moved out of index.html / manual-order-entry.html so
+// the pages' Content-Security-Policy no longer needs 'unsafe-inline' for scripts).
+// A failed library load used to throw here with no message; now it says so (as change-password.js does).
+if (window.__sbLoadFailed || !window.supabase) {
+  const el = document.getElementById('scriptError') || document.body.appendChild(Object.assign(document.createElement('p'), { id: 'scriptError', className: 'scriptError' }));
+  el.textContent = "This page couldn't load a required file. Check your internet connection and reload the page.";
+  throw new Error('Supabase library did not load');
+}
+  const SUPABASE_URL = 'https://uizrazyehilyzmwttsrn.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_n0sEzZK0JMtwgk280a3YXA_zxtnheqj';
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  // Signed out (here or in another tab): back to the login view (EXT3).
+  // EXT6: leaving reloads the page, so the customer name / e-mail typed into
+  // the form (and any notice) does not stay hidden in the page for the next
+  // person on a shared computer.
+  // EXT7: set just before the page reloads on purpose, so the unsaved-order
+  // question below never holds up a sign-out.
+  let leavingOnPurpose = false;
+  let shownUserId = null; // whose order form this tab is showing (EXT7)
+  sb.auth.onAuthStateChange((event, session) => {
+    const app = document.getElementById('appView');
+    if (!app || app.hidden) return;
+    if (event === 'SIGNED_OUT') { leavingOnPurpose = true; window.location.reload(); return; }
+    // EXT7: a different person signed in on this computer (another tab):
+    // clear this tab, including the previous person's unfinished attempt.
+    const uid = session && session.user && session.user.id;
+    if (uid && shownUserId && uid !== shownUserId) {
+      pending = null;
+      storePending(null);
+      leavingOnPurpose = true;
+      window.location.reload();
+    }
+  });
+
+  const loginView = document.getElementById('loginView');
+  const appView = document.getElementById('appView');
+  const loginEmail = document.getElementById('loginEmail');
+  const loginPassword = document.getElementById('loginPassword');
+  const loginBtn = document.getElementById('loginBtn');
+  const loginError = document.getElementById('loginError');
+  const whoEmail = document.getElementById('whoEmail');
+  const signOutBtn = document.getElementById('signOutBtn');
+  const itemsContainer = document.getElementById('itemsContainer');
+  const addItemBtn = document.getElementById('addItemBtn');
+  const orderForm = document.getElementById('orderForm');
+  const submitBtn = document.getElementById('submitBtn');
+  const formMsg = document.getElementById('formMsg');
+  const successMsg = document.getElementById('successMsg');
+  const subtotalOut = document.getElementById('subtotalOut');
+  const totalOut = document.getElementById('totalOut');
+  const shippingTotal = document.getElementById('shippingTotal');
+  const taxTotal = document.getElementById('taxTotal');
+  const orderDate = document.getElementById('orderDate');
+
+  function showError(el, text){ el.textContent = text; el.hidden = false; }
+  // Plain words instead of raw database / browser text (EXT3, 2026-10-06).
+  function explainSaveError(err, stage){
+    const m = String((err && err.message) || err || '');
+    if (/Failed to fetch|Load failed|NetworkError/i.test(m)) {
+      return 'The connection dropped before the page heard back, so this order may or may not have been saved. Press "Save order" again: the page checks first and will not create a second copy.';
+    }
+    if (/row-level security|permission denied|42501/i.test(m) || (err && err.code === '42501')) {
+      return stage === 'items'
+        ? 'The order was saved, but its items were refused: your account is not allowed to add them. Ask the owner to check order ' + (err.orderNumber || '') + ' on the Orders page.'
+        : 'Your account is not allowed to add orders. Nothing was saved.';
+    }
+    if (/JWT expired|PGRST301/i.test(m)) return 'Your sign-in has expired. Sign in again, then press "Save order" again (it will not create a second copy).';
+    if (/violates check constraint|invalid input value for enum|23514|22P02/i.test(m)) {
+      return stage === 'items'
+        ? 'The order was saved, but one of its items has a value the database does not accept. Fix it and press "Save order" again: the page adds the items to the same order.'
+        : 'One of the values (for example the sale type or status) is not accepted by the database. Nothing was saved.';
+    }
+    if (/23505|duplicate key/i.test(m) || (err && err.code === '23505')) {
+      return stage === 'items'
+        ? 'The order was saved, but its items were refused as duplicates. Ask the owner to check order ' + (err.orderNumber || '') + ' on the Orders page before trying again.'
+        : 'That order number was taken by another order a moment ago. Nothing was saved. Press "Save order" again: the page picks a new number.';
+    }
+    // A hosting error page, a cut-off reply or a busy server says nothing
+    // about whether the order was saved (EXT4).
+    if (/<!DOCTYPE|<html[\s>]|<body[\s>]|^\s*[[{]\s*("|$)/i.test(m) || /^(502|503|504)$/.test(String(err && err.status))) {
+      return 'The server sent back an unreadable answer, so this order may or may not have been saved. Wait a minute, then press "Save order" again: the page checks first and will not create a second copy.';
+    }
+    if (/Too Many Requests|rate limit/i.test(m)) return 'The server is busy right now. Nothing was saved by this step. Wait a minute, then press "Save order" again.';
+    return m || 'Something went wrong saving this order.';
+  }
+  // The same order number is kept until the order is saved completely, so a
+  // retry after a failure finds the order saved the first time instead of
+  // creating a second one (duplicate revenue), and only adds missing items.
+  // EXT4: a retry must be the SAME order (every field and line, not just the
+  // total), the attempt survives a reload of this tab (sessionStorage), and a
+  // fresh order never reuses a number that already exists.
+  const PENDING_KEY = 'he.manualOrder.pending';
+  function loadPending(){ try { return JSON.parse(sessionStorage.getItem(PENDING_KEY) || 'null'); } catch (_) { return null; } }
+  function storePending(v){ try { if (v) sessionStorage.setItem(PENDING_KEY, JSON.stringify(v)); else sessionStorage.removeItem(PENDING_KEY); } catch (_) {} }
+  let pending = loadPending(); // { orderNumber, fingerprint, total, warned } or { orderNumber, total, resume } (EXT6)
+  let lastUser = null;
+  let saving = false;
+  // EXT5: only a hash is kept (in this tab's session storage), never the
+  // customer's name or e-mail; it is only ever compared for equality.
+  function orderFingerprint(p, items){
+    const text = JSON.stringify([p.channel, p.customer_name, p.customer_email, p.status, p.currency, orderDate.value,
+      p.subtotal, p.shipping_total, p.tax_total, p.total, items.map(i => [i.product_name, i.quantity, i.unit_price])]);
+    let h1 = 0x811c9dc5, h2 = 0x01000193;
+    for (let i = 0; i < text.length; i++) {
+      const c = text.charCodeAt(i);
+      h1 = Math.imul(h1 ^ c, 16777619) >>> 0;
+      h2 = Math.imul(h2 ^ c, 2246822519) >>> 0;
+    }
+    return 'fp1-' + h1.toString(16) + '-' + h2.toString(16) + '-' + text.length;
+  }
+  function hideError(el){ el.hidden = true; }
+  function money(n){ return '$' + (Math.round(n * 100) / 100).toFixed(2); }
+
+  function makeItemRow(){
+    const row = document.createElement('div');
+    row.className = 'item-row';
+    row.innerHTML = `
+      <div><label>Product</label><input type="text" class="item-name" required placeholder="e.g. Lavender Body Lotion 8oz" /></div>
+      <div><label>Qty</label><input type="number" class="item-qty" min="1" max="100000" step="1" value="1" required /></div>
+      <div><label>Unit price</label><input type="number" class="item-price" min="0" max="1000000" step="0.01" value="0.00" required /></div>
+      <button type="button" class="btn-remove" title="Remove item">&times;</button>
+    `;
+    row.querySelector('.btn-remove').addEventListener('click', () => { row.remove(); recalcTotals(); });
+    row.querySelector('.item-qty').addEventListener('input', recalcTotals);
+    row.querySelector('.item-price').addEventListener('input', recalcTotals);
+    itemsContainer.appendChild(row);
+  }
+
+  function getItems(){
+    return Array.from(itemsContainer.querySelectorAll('.item-row')).map(row => {
+      const name = row.querySelector('.item-name').value.trim();
+      const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
+      const price = parseFloat(row.querySelector('.item-price').value) || 0;
+      return { product_name: name, quantity: qty, unit_price: price, line_total: Math.round(qty * price * 100) / 100 };
+    });
+  }
+
+  function recalcTotals(){
+    const items = getItems();
+    const subtotal = items.reduce((sum, i) => sum + i.line_total, 0);
+    const ship = parseFloat(shippingTotal.value) || 0;
+    const tax = parseFloat(taxTotal.value) || 0;
+    subtotalOut.textContent = money(subtotal);
+    totalOut.textContent = money(subtotal + ship + tax);
+  }
+
+  shippingTotal.addEventListener('input', recalcTotals);
+  taxTotal.addEventListener('input', recalcTotals);
+  addItemBtn.addEventListener('click', () => { makeItemRow(); recalcTotals(); });
+
+  // EXT7: an order the person typed into and has not saved. Closing or
+  // reloading the tab asks first; it stays protected after a failed save and
+  // clears only when the form is reset after a successful one.
+  let orderTyped = false;
+  orderForm.addEventListener('input', e => { if (e.isTrusted) orderTyped = true; });
+  window.addEventListener('beforeunload', e => {
+    if (leavingOnPurpose || !orderTyped) return;
+    e.preventDefault();
+    e.returnValue = '';
+  });
+
+  function resetForm(){
+    orderTyped = false;
+    orderForm.reset();
+    itemsContainer.replaceChildren();
+    makeItemRow();
+    orderDate.value = localYmd(new Date()); // local date (valueAsDate used UTC: "tomorrow" after 7 pm Central)
+    recalcTotals();
+  }
+
+  // Dates on this page are the viewer's own calendar (Central for the
+  // business). new Date('YYYY-MM-DD') means midnight UTC, i.e. 7 pm the
+  // PREVIOUS evening in Central, which put a manual order on the wrong day
+  // (and on the 1st, in the wrong month) in Accounting and Tax (EXT3).
+  function localYmd(d){
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  // An order dated today keeps the current time; any other date is stored at
+  // local noon, safely inside that day in every US time zone.
+  function placedAtFor(ymd){
+    const now = new Date();
+    if (ymd === localYmd(now)) return now.toISOString();
+    const [y, m, d] = ymd.split('-').map(Number);
+    return new Date(y, m - 1, d, 12, 0, 0).toISOString();
+  }
+
+  function generateOrderNumber(){
+    const d = new Date();
+    const pad = n => String(n).padStart(2,'0');
+    return `M-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+  }
+
+  async function showApp(user){
+    shownUserId = user && user.id;
+    loginView.hidden = true;
+    appView.hidden = false;
+    whoEmail.textContent = user.email;
+    resetForm();
+    if (pending) {
+      showError(formMsg, 'An earlier save (order ' + pending.orderNumber + ', ' + money(pending.total) + ') may not have finished before this page was reloaded. Check the Orders page in the dashboard before entering it again. Entering exactly the same order again is safe: the page will not create a second copy.');
+    }
+    checkUnfinished(user);
+  }
+
+  // EXT5: an order saved without its items (items refused, connection lost,
+  // tab or browser closed in between) is found from the database itself, so
+  // it shows up in any tab, on any device, after any restart.
+  async function checkUnfinished(user){
+    const box = document.getElementById('unfinishedMsg');
+    if (!box) return;
+    lastUser = user;
+    if (pending && pending.resume) return; // finishing one now: keep its note
+    try {
+      const since = new Date(Date.now() - 7 * 86400000).toISOString();
+      const { data: recent, error } = await sb.from('orders').select('id, order_number, total')
+        .eq('entered_by', user.id).eq('source', 'manual').is('deleted_at', null).gte('created_at', since)
+        .order('created_at', { ascending: false }).limit(50);
+      if (error || !recent || !recent.length) return;
+      const { data: lines, error: linesErr } = await sb.from('order_items').select('order_id').in('order_id', recent.map(o => o.id));
+      if (linesErr) return;
+      const withLines = new Set((lines || []).map(l => l.order_id));
+      const empty = recent.filter(o => !withLines.has(o.id));
+      if (!empty.length) { box.hidden = true; return; }
+      // EXT6: the old advice ("re-enter the same order on this device") made
+      // a SECOND order once the tab had been closed, because the attempt in
+      // progress lives only in that tab. Each order now has its own button:
+      // finishing adds the items to that very order, or refuses.
+      box.textContent = 'Saved without any items: ';
+      empty.forEach((o, i) => {
+        const label = document.createElement('span');
+        label.textContent = (i ? '; ' : '') + 'order ' + (o.order_number || o.id) + ' (' + money(Number(o.total) || 0) + ') ';
+        box.append(label);
+        if (o.order_number) {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'secondary finishOrderBtn';
+          b.textContent = 'Finish this order';
+          b.addEventListener('click', () => startFinishing(o));
+          box.append(b);
+        }
+      });
+      box.append(document.createTextNode('. Its items were not saved (for example the connection dropped or the page was closed), but the order counts in the totals. '
+        + 'To finish it, press "Finish this order", enter the same customer, items and total, and save: the items are added to that order and no second order is made. '
+        + 'If it should not exist, ask the owner to delete it on the Orders page.'));
+      box.hidden = false;
+    } catch (e) { /* a check only: never block entering orders */ }
+  }
+
+  function startFinishing(o){
+    pending = { orderNumber: o.order_number, total: Number(o.total) || 0, resume: true };
+    storePending(pending);
+    const box = document.getElementById('unfinishedMsg');
+    box.textContent = 'Finishing order ' + o.order_number + ' (' + money(Number(o.total) || 0) + '): enter the same customer, items and total, then press "Save order". ';
+    const stop = document.createElement('button');
+    stop.type = 'button';
+    stop.className = 'secondary stopFinishingBtn';
+    stop.textContent = 'Stop finishing';
+    stop.addEventListener('click', () => { pending = null; storePending(null); box.hidden = true; if (lastUser) checkUnfinished(lastUser); });
+    box.append(stop);
+    box.hidden = false;
+  }
+
+  function showLogin(){
+    appView.hidden = true;
+    loginView.hidden = false;
+  }
+
+  loginBtn.addEventListener('click', async () => {
+    hideError(loginError);
+    loginBtn.disabled = true;
+    const { data, error } = await sb.auth.signInWithPassword({
+      email: loginEmail.value.trim(),
+      password: loginPassword.value
+    });
+    loginBtn.disabled = false;
+    if (error){ showError(loginError, error.message); return; }
+    showApp(data.user);
+  });
+
+  signOutBtn.addEventListener('click', async () => {
+    // A deliberate sign-out also forgets this tab's attempt in progress, so
+    // the next person on this tab does not inherit it (EXT6). An order saved
+    // without items is still listed for its owner at their next sign-in.
+    if (orderTyped && !window.confirm('This order is not saved yet. Sign out anyway? What you typed will be lost.')) return;
+    pending = null;
+    storePending(null);
+    leavingOnPurpose = true;
+    try { await sb.auth.signOut(); } finally { window.location.reload(); }
+  });
+
+  orderForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (saving) return; // Enter pressed again, or a second click, while saving
+    saving = true;
+    hideError(formMsg);
+    successMsg.hidden = true;
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Saving…';
+
+    try {
+      const { data: { user } } = await sb.auth.getUser();
+      if (!user) throw new Error('You have been signed out — please sign in again.');
+
+      const items = getItems().filter(i => i.product_name && i.quantity > 0);
+      if (items.length === 0) throw new Error('Add at least one item with a name and quantity.');
+
+      const subtotal = items.reduce((sum, i) => sum + i.line_total, 0);
+      const ship = parseFloat(shippingTotal.value) || 0;
+      const tax = parseFloat(taxTotal.value) || 0;
+      const total = Math.round((subtotal + ship + tax) * 100) / 100;
+
+      const orderPayload = {
+        source: 'manual',
+        channel: document.getElementById('channel').value,
+        order_number: null,
+        customer_name: document.getElementById('customerName').value.trim(),
+        customer_email: document.getElementById('customerEmail').value.trim() || null,
+        status: document.getElementById('status').value,
+        currency: document.getElementById('currency').value,
+        subtotal: subtotal,
+        shipping_total: ship,
+        tax_total: tax,
+        total: total,
+        placed_at: placedAtFor(orderDate.value),
+        entered_by: user.id
+      };
+      const fingerprint = orderFingerprint(orderPayload, items);
+
+      let isRetry = false;
+      if (pending && (pending.resume || pending.fingerprint === fingerprint)) {
+        isRetry = true; // the same attempt again, or finishing an order saved without items (EXT6)
+      } else if (pending && !pending.warned) {
+        // The form was changed after a failed save; the first attempt may
+        // already be saved with the old details. Don't guess: stop and say
+        // so once. Pressing again saves this as a new order.
+        pending.warned = true;
+        storePending(pending);
+        throw new Error('The previous attempt (order ' + pending.orderNumber + ', ' + money(pending.total) + ') may already be saved, and the order has changed since. Check the Orders page in the dashboard first. If it is not there, or this is a different order, press "Save order" again to save this one as a new order.');
+      }
+
+      let stage = 'order';
+      let newOrder = null;
+      let orderNumber;
+      if (isRetry) {
+        // A retry: was the order already saved the first time?
+        orderNumber = pending.orderNumber;
+        // EXT5: order numbers are not unique in the database, and two tabs of
+        // the same person can pick the same number in the same instant. So the
+        // first attempt is recognised by number AND person AND total AND
+        // customer, never by number alone; two matches means we can't tell.
+        const { data: already, error: findErr } = await sb.from('orders').select('id, customer_name, total')
+          .eq('order_number', orderNumber).eq('entered_by', user.id).is('deleted_at', null).limit(5);
+        if (findErr) throw findErr;
+        // Compare with THIS form. For a plain retry the fingerprint already
+        // proves the form is unchanged; when finishing a listed order there
+        // is no fingerprint, so the form's own total must match (EXT6).
+        const mine = (already || []).filter(o => Number(o.total) === Number(pending.resume ? total : pending.total) && (o.customer_name || '') === orderPayload.customer_name);
+        if (mine.length > 1) throw new Error('More than one order is saved under number ' + orderNumber + ' with the same customer and total, so the page cannot tell which is this one. Nothing more was saved. Check the Orders page in the dashboard and delete the extra copy.');
+        if (pending.resume && mine.length === 0) {
+          // Finishing a listed order: never make a new one instead (EXT6).
+          throw new Error('This form does not match order ' + orderNumber + ' (' + money(pending.total) + '): the customer name and the total must be the same as the first time. Nothing was saved. Correct the form, or press "Stop finishing" to save it as a new order.');
+        }
+        if (mine.length === 1) newOrder = mine[0];
+        else if (already && already.length) {
+          // Same number, but someone else's order (different customer or total): never add to it.
+          orderNumber = generateOrderNumber() + '-r' + Math.floor(Math.random() * 900 + 100);
+        }
+      } else {
+        // A new order: never reuse a number another tab or person already
+        // has (numbers are per second), or a retry could adopt their order.
+        const base = generateOrderNumber();
+        for (let n = 1; n <= 9 && !orderNumber; n++) {
+          const candidate = n === 1 ? base : base + '-' + n;
+          const { data: taken, error: takenErr } = await sb.from('orders').select('id').eq('order_number', candidate).limit(1);
+          if (takenErr) throw takenErr;
+          if (!taken || !taken.length) orderNumber = candidate;
+        }
+        if (!orderNumber) throw new Error('Could not pick a free order number. Wait a few seconds, then press "Save order" again. Nothing was saved.');
+      }
+      orderPayload.order_number = orderNumber;
+      pending = { orderNumber, fingerprint, total };
+      storePending(pending);
+
+      if (!newOrder) {
+        const { data: inserted, error: orderErr } = await sb
+          .from('orders')
+          .insert(orderPayload)
+          .select()
+          .single();
+        if (orderErr) {
+          // Taken a moment ago by someone else: this attempt saved nothing.
+          if (String(orderErr.code) === '23505') { pending = null; storePending(null); }
+          throw orderErr;
+        }
+        newOrder = inserted;
+      }
+
+      const itemsPayload = items.map(i => ({
+        order_id: newOrder.id,
+        product_name: i.product_name,
+        quantity: i.quantity,
+        unit_price: i.unit_price,
+        line_total: i.line_total
+      }));
+      stage = 'items';
+      // Items only if this order has none yet (a retry after the items were
+      // saved but the reply was lost must not add them twice).
+      const { count: itemCount, error: countErr } = await sb.from('order_items')
+        .select('id', { count: 'exact', head: true }).eq('order_id', newOrder.id);
+      if (countErr) { countErr.stage = stage; throw countErr; }
+      if (!itemCount) {
+        const { error: itemsErr } = await sb.from('order_items').insert(itemsPayload);
+        if (itemsErr) { itemsErr.stage = stage; itemsErr.orderNumber = orderNumber; throw itemsErr; }
+      }
+      pending = null;
+      storePending(null);
+
+      successMsg.textContent = `Saved — order ${orderPayload.order_number} for ${money(total)}.`;
+      successMsg.hidden = false;
+      resetForm();
+      checkUnfinished(user);
+    } catch (err) {
+      showError(formMsg, explainSaveError(err, err && err.stage));
+    } finally {
+      saving = false;
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Save order';
+    }
+  });
+
+  // On load: check if already signed in
+  sb.auth.getSession().then(({ data: { session } }) => {
+    if (session && session.user) showApp(session.user);
+    else showLogin();
+  });

@@ -1,0 +1,31 @@
+/* Rollo Wireless Label Printer, 4 x 6 inch thermal labels (Nov 23).
+   Switched on only while a 4 x 6 packing slip is being printed (the dashboard sets
+   this sheet's media to "print" just before, and back to "not all" right after),
+   so invoices and reports keep US Letter. Thermal printers print black only and
+   turn grey into speckles, so everything here is solid black, a little bigger and
+   bolder, with no grey and no background. */
+@page{ size:4in 6in; margin:0.12in; }
+@media print{
+  /* the same luxury layout, compact, and a little heavier: thermal printers lose
+     hairlines and very thin letters, so text is 400 weight and rules at least 0.75pt */
+  .printView .printDoc, .printView .printPage{ font-family:'HE Text', 'Helvetica Neue', Arial, sans-serif; font-weight:400; font-size:9.5pt; line-height:1.3; }
+  .printView .printPage{ padding:0; }
+  .printView .printBrand{ gap:3pt; padding-top:0; margin-bottom:6pt; }
+  .printView .printBrand::after{ height:2.5pt; border-top-width:0.75pt; border-bottom-width:1.5pt; margin-top:3pt; }
+  .printView .printBrandMark{ height:0.3in; }
+  .printView .printBrandTitle{ font-size:7.5pt; letter-spacing:0.22em; padding-left:0.22em; }
+  .printView .printHdr{ text-align:center; font-size:8pt; line-height:1.35; padding-bottom:2pt; margin-bottom:4pt; letter-spacing:0.03em; }
+  .printView .labelOrder{ font-family:'HE Display', Georgia, serif; font-weight:600; font-size:19pt; letter-spacing:0.02em; margin:1pt 0 2pt; }
+  .printView table{ font-size:9.5pt; margin-top:4pt; }
+  .printView th{ font-size:6.5pt; letter-spacing:0.1em; padding:3pt 4pt; border-bottom:1pt solid #000; }
+  .printView th, .printView td{ vertical-align:top; }
+  .printView td{ padding:4pt 4pt; border-bottom:0.75pt solid #000; font-size:9.5pt; }
+  .printView td.labelQty{ font-family:'HE Display', Georgia, serif; font-size:15pt; font-weight:600; text-align:center; line-height:1; }
+  /* item descriptions under the SKU stay small so 7 lines fit on one label */
+  .printView td > div{ font-family:'HE Text', Arial, sans-serif; font-style:normal; font-size:8pt; line-height:1.15; }
+  .printView .labelFoot{ margin-top:6pt; font-size:8pt; letter-spacing:0.04em; }
+  .printView .printFoot{ margin-top:6pt; gap:2pt; font-size:9.5pt; }
+  .printView .printFoot::before{ width:0.8in; border-top-width:0.75pt; margin-bottom:3pt; }
+  .printView .printFootMark{ height:0.2in; }
+  .printView .printFootSign{ font-size:6.5pt; letter-spacing:0.16em; }
+}

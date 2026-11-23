@@ -1,0 +1,46 @@
+{
+ "about": "EXT19 machine-readable contract for high-risk operations. The client state machine (assets/app/he-ops.js) must equal 'states' / 'strict' / 'repeatable' exactly (tests/specs/state-contract-ext19.spec.js). Each operation names how a duplicate or stale action is stopped and which tests prove it. CURRENT on the feature branch; database claims marked R1-R5 need the drafts installed in production (NOT installed).",
+ "vocabulary": {
+  "READY": "nothing in flight; a person may start",
+  "VALIDATING": "checking the form before sending; nothing sent",
+  "SENDING": "sent, waiting for the reply",
+  "CONFIRMED": "the database said it was done",
+  "FAILED_BEFORE_EFFECT": "refused or failed before any change; safe to try again",
+  "RESULT_UNKNOWN": "the reply was lost; it may or may not have been saved; never re-sent automatically",
+  "READBACK_CHECKING": "a person asked to check; the page reads the record back",
+  "RESOLVED": "the read-back decided; safe to start again",
+  "CONFLICT": "someone else changed it first; nothing overwritten",
+  "SESSION_EXPIRED": "sign-in ended; nothing claimed as saved",
+  "PERMISSION_DENIED": "not allowed for this person; not a technical failure"
+ },
+ "states": ["READY", "VALIDATING", "SENDING", "CONFIRMED", "FAILED_BEFORE_EFFECT", "RESULT_UNKNOWN", "READBACK_CHECKING", "RESOLVED", "CONFLICT", "SESSION_EXPIRED", "PERMISSION_DENIED"],
+ "strict": {
+  "READY": ["VALIDATING", "SENDING"],
+  "VALIDATING": ["READY", "SENDING"],
+  "SENDING": ["CONFIRMED", "FAILED_BEFORE_EFFECT", "RESULT_UNKNOWN", "CONFLICT", "SESSION_EXPIRED", "PERMISSION_DENIED"],
+  "FAILED_BEFORE_EFFECT": ["READY", "VALIDATING", "SENDING"],
+  "RESULT_UNKNOWN": ["READBACK_CHECKING"],
+  "READBACK_CHECKING": ["RESOLVED", "RESULT_UNKNOWN", "CONFLICT"],
+  "CONFLICT": ["READY"],
+  "SESSION_EXPIRED": ["READY"],
+  "PERMISSION_DENIED": ["READY"],
+  "CONFIRMED": [],
+  "RESOLVED": ["READY"]
+ },
+ "repeatableOverrides": { "CONFIRMED": ["READY", "SENDING"] },
+ "invariants": [
+  "RESULT_UNKNOWN leaves only through READBACK_CHECKING (plus SENDING for a database step that itself refuses duplicates)",
+  "no state goes from SENDING straight back to READY",
+  "CONFIRMED is final for a one-time operation",
+  "every state except CONFIRMED has a way back to READY"
+ ],
+ "operations": [
+  { "id": "po-receive", "name": "Receive a purchase order", "client": "he-ops tracker 'PO receive' (strict)", "database": "status compare-and-set; R1 receive_purchase_order when installed", "code": ["createOpTracker('PO receive')"], "tests": ["ops-state-ext16.spec.js", "po-receive.spec.js"] },
+  { "id": "stock-adjustment", "name": "Manual stock adjustment", "client": "he-ops tracker 'stock adjustment' (repeatable) + read-back", "database": "stale-value check; R4 adjust_inventory when installed", "code": ["createOpTracker('stock adjustment', { repeatable: true })", "checkUnknownAdjustment"], "tests": ["adjust-ops-ext17.spec.js"] },
+  { "id": "return-receive", "name": "Return status / receive / restock", "client": "buttons disabled while sending", "database": "updateIfUnchanged('returns', …) claim; R3 receive_return when installed", "code": ["updateIfUnchanged('returns'"], "tests": ["inventory-safety.spec.js", "state-transitions.spec.js"] },
+  { "id": "recall-quarantine", "name": "Recall quarantine", "client": "buttons disabled while sending", "database": "updateIfUnchanged('recalls', …) claim; R2 quarantine_recall when installed", "code": ["updateIfUnchanged('recalls'"], "tests": ["inventory-safety.spec.js"] },
+  { "id": "product-delete", "name": "Delete an unused product", "client": "confirmation + in-use checks", "database": "R5 delete_unused_product when installed (re-checks under the product lock)", "code": ["stockFunctionOn('deleteProduct')"], "tests": ["inventory-safety.spec.js"] },
+  { "id": "approval-decision", "name": "Approve / deny an approval request", "client": "buttons disabled while sending", "database": "updateIfUnchanged('approval_requests', …) claim", "code": ["updateIfUnchanged('approval_requests'"], "tests": ["state-transitions.spec.js"] },
+  { "id": "task-status", "name": "Task status change", "client": "confirmation for done/reopen", "database": ".in('status', allowedFrom) compare-and-set", "code": [".in('status', allowedFrom)"], "tests": ["tasks.spec.js", "session-failures.spec.js"] }
+ ]
+}
