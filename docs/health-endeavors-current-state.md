@@ -13,6 +13,13 @@ Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (fro
 
 ## 1. Internal platform (the dashboard)
 
+- **CURRENT (Nov 23, 2026), read this first:** every piece of branch work listed in this section,
+  from the October extensions to the November build, is inside **draft PR #36**
+  (`claude/dashboard-nov-2026`), together with every other open PR (#5–#35). Nothing below is merged
+  or live until the owner merges #36 (`docs/ops/MERGE_GUIDE_PR36.md`). At the merge everyone gets
+  the Aurora look; every new feature stays behind its switch, off. GitHub's checks are green on the
+  final commit. The bullets below are the history of how that work was built (dated, kept for
+  reference).
 - **CURRENT:** the owner dashboard (`owner-login.html` + 5 other pages) on GitHub Pages from `main`, backed by the production Supabase project (public anon key + staff login + row-level security).
 - **REPORTED:** broad operations features are live: orders, inventory with batch/lot tracking, purchase orders, returns, recalls, quality control, adverse event reports (15-business-day deadline), legal holds, customer inquiries, accounting and tax records, tasks, calendar, employee activity, audit log, security pages, and agents #4/#5/#6 running hourly in Supabase. See PROJECT_RECORD §2.
 - **Branch work (not merged, not live), Oct 5–6:** `claude/platform-overnight-implementation` holds the Query A fixes, hardened R1–R5 stock-function drafts (tested locally only) and the state-machine, stale-tab, storage, scale, XSS, accessibility and empty-database audits, each with fixes and tests. Query B ran clean; no existing data repair is required. Queries C and D are prepared, not run. See `docs/ops/OWNER_REVIEW_2026-10-06.md`.
@@ -158,6 +165,12 @@ Older review branches (`claude/platform-overnight-*`, `claude/platform-deep-read
 `claude/ops-readiness`, `claude/tests-only-ci`) are DEPRECATED: all of their work is inside #36.
 
 ## 6. Known bugs and risks (top items)
+
+**CURRENT (Nov 23, 2026):** the browser-side fixes for the items below ship with PR #36 when the
+owner merges it. The database halves are separate SQL drafts, none installed: the stock functions and
+guards (drafts 10–31, install order in `docs/ops/PRODUCTION_CHANGE_PACKAGE_EXT10.md`) and the
+November review items 1–7 (drafts 32–45 and Query I, `docs/ops/sql-review/`). Each needs the
+owner's separate approval and a guided run. The dated items below are kept for their history.
 
 1. Stock can be double-counted or lost on retries or concurrent edits: R1–R4.
    - On `main`: unprotected.
