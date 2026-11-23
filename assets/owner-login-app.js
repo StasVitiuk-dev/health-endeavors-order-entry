@@ -4122,12 +4122,10 @@
                 h('td', null, fmtMoney(l.unitPrice, cur)), h('td', null, l.discount ? fmtMoney(l.discount, cur) : '—'),
                 h('td', null, fmtMoney(l.lineTotal, cur)));
             }))),
-          // Nov 23 (owner request): a signature line beside the totals, with room
-          // above it for a signature or a stamp, and a date line
+          // Nov 23 (owner request): one plain line beside the totals, with room above
+          // it, to sign or stamp when asked; no words under it (owner's choice)
           p.showTotals ? h('div', { class: 'printClose' },
-            h('div', { class: 'printSignBlock', 'data-printsign': '' },
-              h('div', { class: 'printSignLine' }, h('span', { class: 'printLabel' }, 'Authorized signature / stamp')),
-              h('div', { class: 'printSignLine printSignDate' }, h('span', { class: 'printLabel' }, 'Date'))),
+            h('div', { class: 'printSignBlock', 'data-printsign': '' }, h('div', { class: 'printSignLine' })),
             h('div', { class: 'printTotals' },
             doc.totalsLines.map(l => h('div', { class: 'printTotalRow' + (l.key === 'total' ? ' printGrand' : ''), 'data-printtotal': l.key },
               h('span', null, l.label), h('span', null, l.amount == null ? l.text : fmtMoney(l.amount, cur) + (l.text ? ' — ' + l.text : '')))),

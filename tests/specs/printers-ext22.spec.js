@@ -126,8 +126,9 @@ test('the printout typefaces load from this site and the invoice and label use t
   const fam = (sel) => page.locator(sel).first().evaluate(el => getComputedStyle(el).fontFamily);
   expect(await fam('#invoicePrintHost .printGrand')).toMatch(/^"HE Display"/);
   expect(await fam('#invoicePrintHost th')).toMatch(/^"HE Text"/);
-  // a signature line (room above for a signature or stamp) and a date line beside the totals (invoice only; the label has none)
-  await expect(page.locator('#invoicePrintHost [data-printsign] .printSignLine')).toHaveText(['Authorized signature / stamp', 'Date']);
+  // one plain line beside the totals to sign or stamp when asked, no words (invoice only; the label has none)
+  await expect(page.locator('#invoicePrintHost [data-printsign] .printSignLine')).toHaveCount(1);
+  await expect(page.locator('#invoicePrintHost [data-printsign]')).toHaveText('');
   const sign = await page.locator('#invoicePrintHost [data-printsign] .printSignLine').first().boundingBox();
   const totals = await page.locator('#invoicePrintHost .printTotals').boundingBox();
   expect(sign.x + sign.width).toBeLessThan(totals.x);

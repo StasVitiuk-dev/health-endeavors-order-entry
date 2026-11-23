@@ -38,10 +38,8 @@
   /* signature beside the totals: blank room above each line for a signature or stamp */
   .printView .printClose{ display:flex; justify-content:space-between; align-items:flex-end; gap:28pt; break-inside:avoid; }
   .printView .printClose > .printTotals{ flex:none; margin-left:auto; }
-  .printView .printSignBlock{ flex:1; max-width:2.7in; display:flex; flex-direction:column; gap:20pt; padding-bottom:4pt; }
-  .printView .printSignLine{ border-top:0.75pt solid #000; padding-top:3pt; min-height:0; }
-  .printView .printSignLine:first-child{ margin-top:0.85in; }
-  .printView .printSignDate{ width:55%; }
+  .printView .printSignBlock{ flex:1; max-width:2.7in; padding-bottom:30pt; }
+  .printView .printSignLine{ border-top:0.75pt solid #000; margin-top:0.85in; }
   .printView .printTotalRow{ padding:2pt 8pt; }
   .printView .printGrand{ font-family:'HE Display', Georgia, serif; font-weight:600; font-size:16pt; border-top:3pt double #000; margin-top:6pt; padding-top:6pt; }
   .printView .printRemit{ margin-top:8pt; font-size:9pt; }

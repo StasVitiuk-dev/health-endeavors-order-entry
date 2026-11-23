@@ -67,8 +67,8 @@ tagline on Letter slips) and, in small capitals, "WE APPRECIATE YOUR BUSINESS" (
 it replaced "With gratitude · Health Endeavors"). A contact line (website · email · phone) can be
 added there once the owner gives the details (`OWNER DECISION REQUIRED`). Product names lead on
 invoice lines in the serif with the SKU as a small line above; money columns are right-aligned
-with figures that line up. Beside the totals on the invoice: a line for an authorized signature
-or stamp (with blank room above it) and a date line (owner request). The owner approved option A
+with figures that line up. Beside the totals on the invoice: one plain line, with blank room
+above it, to sign or stamp when someone asks (owner request; no words or date line under it). The owner approved option A
 on Nov 23. Black only, as before. The 4 × 6 label uses heavier text (no thin weights) and rules of at least 0.75 pt, because
 thermal printers lose very thin lines; it still holds 7 item lines per label.
 
