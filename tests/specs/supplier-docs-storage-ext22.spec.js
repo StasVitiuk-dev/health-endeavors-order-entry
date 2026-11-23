@@ -43,6 +43,15 @@ async function open(page) {
   await expect(page.locator('#supplierDocsHost .supplierDocs')).toHaveCount(1);
 }
 const needPg = () => test.skip(!pgAvailable(), 'needs the local throwaway Postgres (not available here, e.g. GitHub CI)');
+// Opens the checklist settings and waits until a type's boxes are on screen. The
+// section can redraw from the database just after a click (closing the box again);
+// a person would open it again, so this does too (full run, Nov 23).
+async function openChecklistSettings(page, type) {
+  await expect(async () => {
+    if (!(await page.locator('[data-sdsettings]').evaluate(d => d.open))) await page.locator('[data-sdsettings] summary').click();
+    await expect(page.locator('[data-sdtype="' + type + '"] input[type=checkbox]').first()).toBeVisible({ timeout: 2000 });
+  }).toPass({ timeout: 20000 });
+}
 
 test('storage switch OFF: the checklist shows the example data, exactly as before', async ({ page }, ti) => {
   test.skip(ti.project.name !== 'desktop', 'run once');
@@ -162,7 +171,7 @@ test.describe('against a real database with drafts/36 installed', () => {
       expect(await db.query("select status from supplier_documents where reference = 'COA-700'")).toBe('received');
       // nor change the checklist (after the section has redrawn from the database)
       await page.waitForLoadState('networkidle');
-      await page.locator('[data-sdsettings] summary').click();
+      await openChecklistSettings(page, 'other');
       await page.locator('[data-sdtype="other"] input[value="labels_printing"]').check();
       await page.locator('[data-sdtypesave="other"]').click();
       await expect(page.locator('.toast', { hasText: 'Only the owner can change the supplier document checklist.' })).toHaveCount(1);
@@ -210,7 +219,7 @@ test.describe('against a real database with drafts/36 installed', () => {
       await switchOn(page, true);
       await login(page); await open(page);
       await expect(page.locator('[data-supplierdocs-supplier="' + LBL + '"] tr[data-dockey="approved_artwork"]')).toHaveCount(0);
-      await page.locator('[data-sdsettings] summary').click();
+      await openChecklistSettings(page, 'other');
       await page.locator('[data-sdtype="other"] input[value="labels_printing"]').check();
       await page.locator('[data-sdtypesave="other"]').click();
       await page.reload(); await expect(page.locator('#dash')).toBeVisible(); await open(page);
