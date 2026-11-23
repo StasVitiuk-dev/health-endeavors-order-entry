@@ -54,6 +54,13 @@ Revenue (IDOR) and the Illinois Administrative Code; not tax advice.
 | 10 | Shipping charged to the buyer is taxed when the buyer **had no choice** (no pickup, no own carrier); not taxed when it is separately stated and the buyer could have avoided it. Explained to the owner in plain words on Nov 23. Buyers with a resale certificate (CRT-61) pay no tax at all, so this matters only for wholesale buyers without one. | The dashboard already applies this rule (table above); it needs the owner's yes / no / sometimes. | The owner. |
 | new | Collecting tax requires an Illinois sales-tax registration (free, on the same site). | Asked the owner on Nov 23 whether the business is registered. | The owner. |
 
+**Paused by the owner (Nov 23):** the tax questions wait until the owner has checked the business's
+registration details with the business partner (where the company is registered versus where it
+sells from). Details are deliberately not recorded here (public repository; private addresses and
+people). Until then every non-exempt invoice stays TAX PENDING, as designed. Also for later: keep the
+home address off printouts and the store (return address and contact line to use a business address
+or mailbox, owner's choice).
+
 ## Which answers come first (added later on Nov 16)
 
 The numbers refer to the questions below.
