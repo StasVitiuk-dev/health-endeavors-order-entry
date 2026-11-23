@@ -186,4 +186,6 @@
   .search-box{ border-radius:2px; }
   .search-box:focus{ border-color:var(--accent); box-shadow:0 0 0 4px rgba(79,70,229,0.18); }
   .badge{ border-radius:999px; font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+  .stat-value, .section-title{ font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; font-weight:650; letter-spacing:-0.01em; }
+  .stat-value{ font-variant-numeric:tabular-nums; }
   .error{ color:var(--danger); }

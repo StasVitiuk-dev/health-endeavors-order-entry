@@ -3,16 +3,13 @@
 <head>
 <meta charset="UTF-8" />
 <!-- EXT8 (security review S7): only this site, the pinned CDN, the Supabase project and Google Fonts may load or be contacted. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-/FjRE0R4xKhg0KIe7net9VToE2n3TUM6s5m1/uP2RqA=' https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js; style-src 'self' https://fonts.googleapis.com; img-src 'self' data: blob:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://uizrazyehilyzmwttsrn.supabase.co wss://uizrazyehilyzmwttsrn.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-/FjRE0R4xKhg0KIe7net9VToE2n3TUM6s5m1/uP2RqA=' https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js; style-src 'self'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://uizrazyehilyzmwttsrn.supabase.co wss://uizrazyehilyzmwttsrn.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'">
 <meta name="referrer" content="no-referrer">
 <!-- EXT9: never shown inside another site's frame (clickjacking). GitHub Pages cannot send the
      header that forbids framing, so the page hides itself and leaves the frame instead. -->
 <script id="frameGuard">if (window.top !== window.self) { document.documentElement.style.display = 'none'; try { window.top.location.replace(window.self.location.href); } catch (e) {} }</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Health Endeavors — Search</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous"></script>
 <link rel="stylesheet" href="assets/search-page.css?v=1d83b63623">
 </head>
