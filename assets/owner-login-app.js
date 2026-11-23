@@ -4066,9 +4066,9 @@
     // Nov 23 (owner request: "show the brand"): every printout carries the black
     // Health Endeavors wordmark (from the product label) with the document's name,
     // and a footer with the swirl. Black only, like the rest of the printout. The
-    // images are fetched once at start, so they are ready when Print is pressed.
+    // logo and typefaces are fetched when a printout screen opens (preloadPrintFonts),
+    // so they are ready when Print is pressed.
     const PRINT_BRAND = { word: 'assets/brand/he-wordmark.svg', swirl: 'assets/brand/he-swirl.svg' };
-    const printBrandPreload = [h('img', { src: PRINT_BRAND.word, alt: '' }), h('img', { src: PRINT_BRAND.swirl, alt: '' })];
     function printBrand(title) {
       return h('div', { class: 'printBrand', 'data-printbrand': '1' },
         h('img', { class: 'printBrandMark', src: PRINT_BRAND.word, alt: 'Health Endeavors' }),
@@ -4087,6 +4087,7 @@
         if (!document.fonts || typeof document.fonts.load !== 'function') return;
         ['500 12px "HE Display"', '600 12px "HE Display"', 'italic 500 12px "HE Display"', '300 12px "HE Text"', '400 12px "HE Text"', '500 12px "HE Text"']
           .forEach(f => { document.fonts.load(f).catch(() => {}); });
+        [PRINT_BRAND.word, PRINT_BRAND.swirl].forEach(src => { h('img', { src: src, alt: '' }); });
       } catch (e) { /* the printout falls back to the system fonts */ }
     }
     function renderInvoicePrint() {
@@ -4121,11 +4122,17 @@
                 h('td', null, fmtMoney(l.unitPrice, cur)), h('td', null, l.discount ? fmtMoney(l.discount, cur) : '—'),
                 h('td', null, fmtMoney(l.lineTotal, cur)));
             }))),
-          p.showTotals ? h('div', { class: 'printTotals' },
+          // Nov 23 (owner request): a signature line beside the totals, with room
+          // above it for a signature or a stamp, and a date line
+          p.showTotals ? h('div', { class: 'printClose' },
+            h('div', { class: 'printSignBlock', 'data-printsign': '' },
+              h('div', { class: 'printSignLine' }, h('span', { class: 'printLabel' }, 'Authorized signature / stamp')),
+              h('div', { class: 'printSignLine printSignDate' }, h('span', { class: 'printLabel' }, 'Date'))),
+            h('div', { class: 'printTotals' },
             doc.totalsLines.map(l => h('div', { class: 'printTotalRow' + (l.key === 'total' ? ' printGrand' : ''), 'data-printtotal': l.key },
               h('span', null, l.label), h('span', null, l.amount == null ? l.text : fmtMoney(l.amount, cur) + (l.text ? ' — ' + l.text : '')))),
             doc.taxPending ? h('div', { 'data-printnote': 'tax-pending' }, 'DRAFT — the tax is pending and is not included in any figure above. Not a final invoice.') : null,
-            h('div', { class: 'printRemit' }, doc.header.remitTo)) : null,
+            h('div', { class: 'printRemit' }, doc.header.remitTo))) : null,
           p.showTotals ? printFoot('Thank you for choosing Health Endeavors.') : null);
       });
       host.replaceChildren(h('div', { class: 'printDoc' }, pages));

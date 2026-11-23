@@ -126,11 +126,19 @@ test('the printout typefaces load from this site and the invoice and label use t
   const fam = (sel) => page.locator(sel).first().evaluate(el => getComputedStyle(el).fontFamily);
   expect(await fam('#invoicePrintHost .printGrand')).toMatch(/^"HE Display"/);
   expect(await fam('#invoicePrintHost th')).toMatch(/^"HE Text"/);
+  // a signature line (room above for a signature or stamp) and a date line beside the totals (invoice only; the label has none)
+  await expect(page.locator('#invoicePrintHost [data-printsign] .printSignLine')).toHaveText(['Authorized signature / stamp', 'Date']);
+  const sign = await page.locator('#invoicePrintHost [data-printsign] .printSignLine').first().boundingBox();
+  const totals = await page.locator('#invoicePrintHost .printTotals').boundingBox();
+  expect(sign.x + sign.width).toBeLessThan(totals.x);
+  expect(sign.y).toBeGreaterThan(totals.y);
+  await expect(page.locator('#invoicePrintHost [data-printsign]')).toHaveCount(1);
   await page.emulateMedia({ media: 'screen' });
   await page.locator('#invoicePreviewHost [data-print="slip4x6"]').click();
   await page.emulateMedia({ media: 'print' });
   expect(await fam('#invoicePrintHost .labelOrder')).toMatch(/^"HE Display"/);
   expect(await fam('#invoicePrintHost .printPage')).toMatch(/^"HE Text"/);
+  await expect(page.locator('#invoicePrintHost [data-printsign]')).toHaveCount(0);
   // the closing: thank-you line and the owner's sign-off (the earlier "With gratitude" line is gone)
   await expect(page.locator('#invoicePrintHost .printFoot')).toContainText('Thank you for choosing Health Endeavors.');
   await expect(page.locator('#invoicePrintHost [data-printsignoff]')).toHaveText('We appreciate your business');

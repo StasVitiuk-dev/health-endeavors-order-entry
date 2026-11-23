@@ -47,7 +47,7 @@ it in this public repository discloses nothing new.
 
 ### Elegant layout (owner requests, Nov 23: "luxury, professional, high level and elegance", then "more elegance, more business casual")
 
-`CURRENT` on the branch; the owner can still switch the typefaces. The invoice, packing slips and
+`CURRENT` on the branch; option A approved by the owner on Nov 23. The invoice, packing slips and
 labels use two typefaces instead of the system font:
 
 - **EB Garamond** (a classic book serif) for names, the order number, quantities on the label,
@@ -67,7 +67,9 @@ tagline on Letter slips) and, in small capitals, "WE APPRECIATE YOUR BUSINESS" (
 it replaced "With gratitude · Health Endeavors"). A contact line (website · email · phone) can be
 added there once the owner gives the details (`OWNER DECISION REQUIRED`). Product names lead on
 invoice lines in the serif with the SKU as a small line above; money columns are right-aligned
-with figures that line up. Black only, as before. The 4 × 6 label uses heavier text (no thin weights) and rules of at least 0.75 pt, because
+with figures that line up. Beside the totals on the invoice: a line for an authorized signature
+or stamp (with blank room above it) and a date line (owner request). The owner approved option A
+on Nov 23. Black only, as before. The 4 × 6 label uses heavier text (no thin weights) and rules of at least 0.75 pt, because
 thermal printers lose very thin lines; it still holds 7 item lines per label.
 
 Both typefaces are free, open-licence fonts (SIL Open Font License 1.1; licence files in
