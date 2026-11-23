@@ -28,6 +28,11 @@
   const PO_COLUMNS = ['id', 'po_number', 'status', 'supplier_id', 'deleted_at', 'created_at'];
   const ITEM_COLUMNS = ['id', 'purchase_order_id', 'sku', 'description', 'quantity', 'quantity_received'];
   const OPEN_PO = ['ordered', 'shipped', 'received'];
+  // Nov 23: the returns screens (supplier returns, customer-return checks, corrections)
+  const SR_COLUMNS = ['id', 'request_key', 'po_item_id', 'quantity', 'from_bucket', 'reason', 'replacement_expected', 'status', 'submitted_by', 'submitted_at', 'decided_by', 'decided_at', 'decision_note'];
+  const CR_COLUMNS = ['id', 'request_key', 'return_id', 'order_item_id', 'quantity', 'status', 'received_by', 'received_at', 'opened', 'used', 'restock', 'damaged', 'unsuitable', 'decided_by', 'decided_at', 'decision_note'];
+  const MOVE_COLUMNS = ['id', 'product_id', 'bucket', 'change', 'reason', 'source_kind', 'corrects', 'at'];
+  const MAX_MOVES = 50;
   const STAFF = new Set(['owner', 'administrator', 'employee']);
   const MAX_UNITS = 1000000, MAX_LIST = 200;
   const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -106,6 +111,43 @@
         const records = (recs.data || []).filter(isObj).map(x => Object.assign({}, x, { lines: lineRows.filter(l => l.record_id === x.id) }));
         return { ok: true, orders, records, waiting: records.filter(x => x.status === 'submitted'),
           surplusWaiting: lineRows.filter(l => l.surplus_status === 'waiting') };
+      });
+    }
+
+    // Everything the returns screens show, in one reading: order lines that can
+    // still come back, purchase-order lines with received units, both kinds of
+    // return, and (owner and administrators only; the database shows staff none)
+    // the latest stock movements with which of them were already corrected.
+    async function loadReturns() {
+      const r = ready(); if (r) return r;
+      return once('loadReturns', async function () {
+        const [ords, oItems, po, pItems, srs, crs, moves, prods] = await Promise.all([
+          client.from('orders').select('id,order_number,status,deleted_at,placed_at').order('placed_at', { ascending: false }).limit(MAX_LIST),
+          client.from('order_items').select('id,order_id,sku,product_name,quantity').limit(MAX_LIST * 10),
+          client.from('purchase_orders').select('id,po_number,status,deleted_at').order('created_at', { ascending: false }).limit(MAX_LIST),
+          client.from('purchase_order_items').select(ITEM_COLUMNS.join(',')).limit(MAX_LIST * 10),
+          client.from('supplier_returns').select(SR_COLUMNS.join(',')).order('submitted_at', { ascending: false }).limit(MAX_LIST),
+          client.from('customer_return_inspections').select(CR_COLUMNS.join(',')).order('received_at', { ascending: false }).limit(MAX_LIST),
+          client.from('stock_movements').select(MOVE_COLUMNS.join(',')).order('id', { ascending: false }).limit(MAX_MOVES),
+          client.from('products').select('id,sku,name').limit(MAX_LIST * 5),
+        ]);
+        for (const x of [srs, crs]) if (x && x.error) { const m = friendlyError(x.error); return refuse(m, { installed: !/not installed/.test(m) }); }
+        for (const x of [ords, oItems, po, pItems, moves, prods]) if (x && x.error) return refuse(friendlyError(x.error));
+        const rows = (x) => (Array.isArray(x && x.data) ? x.data : []).filter(isObj);
+        const cr = rows(crs), sr = rows(srs);
+        const orders = {}; rows(ords).filter(o => !o.deleted_at && !/cancel/i.test(String(o.status || ''))).forEach(o => { orders[o.id] = o; });
+        const backOn = (id) => cr.filter(c => c.order_item_id === id && c.status !== 'cancelled').reduce((a, c) => a + (Number(c.quantity) || 0), 0);
+        const orderLines = rows(oItems).filter(i => orders[i.order_id]).map(i => ({ id: i.id, order: orders[i.order_id].order_number || '(no number)', sku: i.sku || '', name: i.product_name || '',
+          sold: Number(i.quantity) || 0, canReturn: Math.max(0, (Number(i.quantity) || 0) - backOn(i.id)) })).filter(l => l.sold > 0);
+        const pos = {}; rows(po).filter(p => !p.deleted_at).forEach(p => { pos[p.id] = p; });
+        const poLines = rows(pItems).filter(i => pos[i.purchase_order_id]).map(i => ({ id: i.id, po: pos[i.purchase_order_id].po_number || '(no number)', sku: i.sku || '', description: i.description || '',
+          received: Number(i.quantity_received) || 0 })).filter(l => l.received > 0);
+        const names = {}; rows(prods).forEach(p => { names[p.id] = p.sku || p.name || 'product'; });
+        const mv = rows(moves);
+        const corrected = new Set(mv.filter(m => m.corrects != null).map(m => Number(m.corrects)));
+        const movements = mv.map(m => Object.assign({}, m, { product: names[m.product_id] || 'product', corrected: corrected.has(Number(m.id)), isCorrection: m.source_kind === 'correction' }));
+        return { ok: true, installed: true, orderLines, poLines, supplierReturns: sr, customerReturns: cr, movements,
+          supplierWaiting: sr.filter(x => x.status === 'submitted'), customerWaiting: cr.filter(x => x.status === 'awaiting_inspection') };
       });
     }
 
@@ -198,8 +240,8 @@
       if (String(q.reason || '').trim().length < 5) return refuse('Say why it is corrected (at least 5 characters).');
       return call('fix:' + q.movementId, RPC.correct, { p_request_key: q.requestKey, p_movement_id: q.movementId, p_reason: String(q.reason).trim().slice(0, 300) }, 'Corrected by a linked movement.');
     }
-    return { enabled, probe, load, submit, approve, reject, cancel, decideSurplus, submitSupplierReturn, decideSupplierReturn, recordCustomerReturn, decideCustomerReturn, correctMovement };
+    return { enabled, probe, load, loadReturns, submit, approve, reject, cancel, decideSurplus, submitSupplierReturn, decideSupplierReturn, recordCustomerReturn, decideCustomerReturn, correctMovement };
   }
 
-  return { RPC, RECORD_COLUMNS, LINE_COLUMNS, friendlyError, createStore };
+  return { RPC, RECORD_COLUMNS, LINE_COLUMNS, SR_COLUMNS, CR_COLUMNS, MOVE_COLUMNS, friendlyError, createStore };
 }));

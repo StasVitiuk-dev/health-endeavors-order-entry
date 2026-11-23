@@ -79,6 +79,7 @@ a test-only rule letting staff see two made-up purchase orders.
 | Dashboard prototype of the same rules (`assets/inventory/he-receiving.js`): unit tests | 12 of 12 |
 | The worked example on the Inventory page, computer and phone size | 5 of 5 (one phone-only check skipped on the computer) |
 | Malformed-input probe, assets, module and SQL checks, both sizes | 231 passed |
+| Nov 22–23: the real screens on these functions, against a real throwaway database with this draft installed (behind a switch not on the Feature Flags page): **Deliveries** on Purchase Orders (record, approve, reject, surplus keep or send back; a lost reply; staff refused by the database) and **Returns to check and send back** on Returns (customer return awaiting inspection, inspection with opened skincare never restocked and every unit given an outcome, return to a supplier with a replacement expected, a correction as a linked movement; a lost reply; staff can record but not approve, inspect or see stock movements, and the database refuses when the page is fooled) | 9 + 9 passed, computer and phone size |
 
 ## After running: checks (read-only, paste into the SQL editor)
 
@@ -108,8 +109,12 @@ Expected: `true | true | 0 | 0 | false`. Anything else: stop and send me a scree
 
 ## Honest limits
 
-- The dashboard screens do not call these functions yet. The Inventory page shows the same rules
-  as a simulated example only (switch "Partial receiving and returns", off by default).
+- The real screens (Deliveries on Purchase Orders, Returns to check and send back on Returns) call
+  these functions, behind the switch `he_receiving_store`, which is not on the Feature Flags page
+  and does nothing until this draft is installed. The Inventory page still has the simulated
+  example (switch "Partial receiving and returns", off by default).
+- A submitted supplier return or customer return can be cancelled only in the database for now
+  (no button yet).
 - The draft uses only the caller's own permissions (no security definer, the project rule). Your
   own permissions on inventory and purchase orders apply when you approve.
 - "Unsuitable" units sit in the Damaged bucket; the stock table has no separate bucket for them.

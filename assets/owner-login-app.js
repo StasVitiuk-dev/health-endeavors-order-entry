@@ -2754,6 +2754,147 @@
       await dlvAfter(res);
     });
 
+    // ---------- Returns and corrections (drafts/40, Nov 23; behind receivingStoreOn)
+    // The rest of the owner's Nov 22 rules on real records. Customer returns:
+    // staff record what came back; it waits "awaiting inspection" (not for sale)
+    // until the owner inspects it; opened or used skincare is never restocked.
+    // Returns to a supplier: staff record them, the owner approves (stock goes
+    // down then); "replacement expected" puts the units back on the order.
+    // Corrections: the owner reverses a wrong stock movement with a reason, as a
+    // new linked movement; nothing is edited or deleted. One request key per form.
+    let rtnSeq = 0, rtnLast = null, rtnMessage = '', rtnOpen = null;
+    async function loadStockReturns() {
+      const host = document.getElementById('stockReturnsHost'); if (!host) return;
+      const store = dlvStore(); if (!store) { host.replaceChildren(); return; }
+      const seq = ++rtnSeq;
+      const wrap = (mode, ...kids) => h('div', { class: 'stockReturns u-mb-16', 'data-rtnmode': mode }, h('h3', { class: 'u-fs-13 u-c-navy u-m-20-0-6' }, 'Returns to check and send back'), ...kids);
+      const L = await store.loadReturns(); if (seq !== rtnSeq) return;
+      if (!L.ok) { host.replaceChildren(wrap('unavailable', h('p', { class: 'hint', 'data-rtnnote': '1' }, L.message))); return; }
+      const myId = await currentUserId().catch(() => null); if (seq !== rtnSeq) return;
+      rtnLast = { store, data: L, myId };
+      const isOwner = currentUserRole === 'owner', seesMoves = isOwner || currentUserRole === 'administrator';
+      const who = id => !id ? 'someone' : (myId && id === myId) ? 'you' : 'a team member';
+      const day = v => String(v || '').slice(0, 10);
+      const oLine = {}; L.orderLines.forEach(l => { oLine[l.id] = l; });
+      const pLine = {}; L.poLines.forEach(l => { pLine[l.id] = l; });
+      const num = (id, label) => h('div', { class: 'heField' }, h('label', { for: id }, label), h('input', { id, name: id, type: 'text', inputmode: 'numeric', pattern: '[0-9]*', autocomplete: 'off', placeholder: '0' }));
+      const yesNo = (id, label) => h('div', { class: 'heField' }, h('label', { for: id }, label),
+        h('select', { id, name: id }, h('option', { value: '' }, 'Choose…'), h('option', { value: 'no' }, 'No'), h('option', { value: 'yes' }, 'Yes')));
+      const text = (id, label, max) => h('div', { class: 'heField' }, h('label', { for: id }, label), h('input', { id, name: id, type: 'text', maxlength: String(max || 300), autocomplete: 'off' }));
+
+      // customer returns
+      const crRows = L.customerWaiting.map(c => {
+        const l = oLine[c.order_item_id];
+        return h('li', { 'data-rtncr': c.id, class: 'u-mt-6' },
+          h('div', { class: 'taskTitle' }, (l ? l.order + ' · ' + (l.sku || l.name || 'item') : 'An order line') + ': ' + c.quantity + ' unit(s) awaiting inspection'),
+          h('div', { class: 'u-fs-12' }, 'Recorded by ' + who(c.received_by) + ' on ' + day(c.received_at) + '. Not for sale until inspected.'),
+          isOwner ? h('div', { class: 'u-mt-4' }, h('button', { type: 'button', class: 'small', 'data-rtnact': 'inspect-open', 'data-id': c.id, 'aria-expanded': String(rtnOpen === 'inspect:' + c.id) }, 'Inspect')) : null,
+          isOwner && rtnOpen === 'inspect:' + c.id ? h('form', { 'data-rtnform': 'inspect', 'data-id': c.id, class: 'heForm u-mt-4', novalidate: '' },
+            yesNo('rtnOpened-' + c.id, 'Was it opened?'), yesNo('rtnUsed-' + c.id, 'Was it used?'),
+            num('rtnRestock-' + c.id, 'Back on the shelf (sealed only)'), num('rtnDamaged-' + c.id, 'Damaged'), num('rtnUnsuitable-' + c.id, 'Unsuitable (opened or used, never resold)'),
+            text('rtnInspNote-' + c.id, 'Note (optional)', 500),
+            h('p', { class: 'heField heWide hint' }, 'Every unit needs one outcome: ' + c.quantity + ' in total.'),
+            h('div', { class: 'heActions' }, h('button', { type: 'submit', class: 'small' }, 'Save inspection'))) : null);
+      });
+      const crOptions = L.orderLines.filter(l => l.canReturn > 0);
+      const crForm = h('form', { 'data-rtnform': 'cr', class: 'heForm u-mt-8', novalidate: '' },
+        h('div', { class: 'heField heWide' }, h('label', { for: 'rtnCrLine' }, 'Order line'),
+          h('select', { id: 'rtnCrLine', name: 'line' }, h('option', { value: '' }, crOptions.length ? 'Choose…' : 'No order lines that can come back'),
+            crOptions.map(l => h('option', { value: l.id }, l.order + ' · ' + (l.sku || l.name || 'item') + ' — sold ' + l.sold + ', can come back ' + l.canReturn)))),
+        num('rtnCrQty', 'Units that came back'),
+        h('div', { class: 'heActions' }, h('button', { type: 'submit', class: 'small' }, 'Record (awaiting inspection)')));
+
+      // returns to a supplier
+      const srRows = L.supplierWaiting.filter(x => isOwner || x.submitted_by === myId).map(x => {
+        const l = pLine[x.po_item_id];
+        return h('li', { 'data-rtnsr': x.id, class: 'u-mt-6' },
+          h('div', { class: 'taskTitle' }, (l ? l.po + ' · ' + (l.sku || l.description || 'item') : 'A purchase-order line') + ': ' + x.quantity + ' unit(s) from ' + (x.from_bucket === 'damaged' ? 'Damaged' : 'Available')),
+          h('div', { class: 'u-fs-12' }, x.reason + (x.replacement_expected ? ' · replacement expected' : '') + ' · recorded by ' + who(x.submitted_by) + ' on ' + day(x.submitted_at)),
+          isOwner ? h('div', { class: 'u-mt-4' },
+            h('button', { type: 'button', class: 'small approve', 'data-rtnact': 'sr-approve', 'data-id': x.id }, 'Approve'), ' ',
+            h('button', { type: 'button', class: 'small secondary', 'data-rtnact': 'sr-reject', 'data-id': x.id }, 'Reject')) : null);
+      });
+      const srForm = h('form', { 'data-rtnform': 'sr', class: 'heForm u-mt-8', novalidate: '' },
+        h('div', { class: 'heField heWide' }, h('label', { for: 'rtnSrLine' }, 'Purchase-order line'),
+          h('select', { id: 'rtnSrLine', name: 'line' }, h('option', { value: '' }, L.poLines.length ? 'Choose…' : 'Nothing received yet'),
+            L.poLines.map(l => h('option', { value: l.id }, l.po + ' · ' + (l.sku || l.description || 'item') + ' — received ' + l.received)))),
+        num('rtnSrQty', 'Units going back'),
+        h('div', { class: 'heField' }, h('label', { for: 'rtnSrFrom' }, 'Taken from'),
+          h('select', { id: 'rtnSrFrom', name: 'from' }, h('option', { value: '' }, 'Choose…'), h('option', { value: 'available' }, 'Available stock'), h('option', { value: 'damaged' }, 'Damaged stock'))),
+        h('div', { class: 'heField heWide' }, h('label', { for: 'rtnSrReason' }, 'Why they go back (required)'), h('input', { id: 'rtnSrReason', name: 'rtnSrReason', type: 'text', maxlength: '300', autocomplete: 'off' })),
+        h('div', { class: 'heField heWide' }, h('label', { class: 'u-d-flex u-ai-center u-gap-8 u-fw-400' }, h('input', { type: 'checkbox', id: 'rtnSrRepl', name: 'repl', class: 'u-w-auto u-m-0' }), 'The supplier sends replacements (the units are expected again)')),
+        h('div', { class: 'heActions' }, h('button', { type: 'submit', class: 'small' }, 'Record return to supplier')));
+
+      // stock movements and corrections
+      const moveRows = seesMoves ? L.movements.map(m => h('li', { 'data-rtnmove': String(m.id), class: 'u-mt-6' },
+        h('div', null, h('span', { class: 'u-ws-nowrap' }, day(m.at)), ' · ', m.product + ' · ' + (m.bucket === 'damaged' ? 'Damaged' : 'Available') + ' ',
+          h('b', null, (m.change > 0 ? '+' : '') + m.change), ' · ' + m.reason,
+          m.corrected ? h('span', { class: 'badge u-ml-6' }, 'corrected') : null),
+        isOwner && !m.corrected && !m.isCorrection ? h('button', { type: 'button', class: 'small secondary u-mt-4', 'data-rtnact': 'fix-open', 'data-id': String(m.id), 'aria-expanded': String(rtnOpen === 'fix:' + m.id) }, 'Correct') : null,
+        isOwner && rtnOpen === 'fix:' + m.id ? h('form', { 'data-rtnform': 'fix', 'data-id': String(m.id), class: 'heForm u-mt-4', novalidate: '' },
+          h('div', { class: 'heField heWide' }, h('label', { for: 'rtnFixWhy-' + m.id }, 'Why is it wrong? (required)'), h('input', { id: 'rtnFixWhy-' + m.id, name: 'reason', type: 'text', maxlength: '300', autocomplete: 'off' })),
+          h('p', { class: 'heField heWide hint' }, 'A new movement of ' + (-m.change > 0 ? '+' : '') + (-m.change) + ' is added and linked to this one. Nothing is deleted.'),
+          h('div', { class: 'heActions' }, h('button', { type: 'submit', class: 'small deny' }, 'Correct this movement'))) : null)) : [];
+
+      host.replaceChildren(wrap('stored',
+        h('p', { class: 'hint u-mt-n2' }, 'Returned skincare waits for inspection before anything goes back on the shelf. Units sent back to a supplier and corrections change stock only when the owner approves.'),
+        h('p', { class: 'u-fs-12 u-mt-4', role: 'status', 'data-rtnmessage': '1' }, rtnMessage),
+        h('h4', null, 'Customer returns awaiting inspection (' + L.customerWaiting.length + ')'),
+        crRows.length ? h('ul', { 'data-rtncrwaiting': String(crRows.length) }, crRows) : h('p', { class: 'empty', 'data-rtncrwaiting': '0' }, 'Nothing awaiting inspection.'),
+        h('h4', { class: 'u-mt-12' }, 'Record a customer return'), crForm,
+        h('h4', { class: 'u-mt-12' }, isOwner ? 'Returns to suppliers waiting for your approval (' + L.supplierWaiting.length + ')' : 'Your returns to suppliers waiting for the owner'),
+        srRows.length ? h('ul', { 'data-rtnsrwaiting': String(srRows.length) }, srRows) : h('p', { class: 'empty', 'data-rtnsrwaiting': '0' }, 'Nothing waiting.'),
+        h('h4', { class: 'u-mt-12' }, 'Send units back to a supplier'), srForm,
+        seesMoves ? h('h4', { class: 'u-mt-12' }, 'Latest stock movements') : null,
+        seesMoves ? (moveRows.length ? h('ul', { 'data-rtnmoves': String(moveRows.length) }, moveRows) : h('p', { class: 'empty', 'data-rtnmoves': '0' }, 'No stock movements yet.')) : null));
+    }
+    async function rtnAfter(res, focusSel) {
+      rtnMessage = res.message || ''; announce(rtnMessage);
+      const m = document.querySelector('#stockReturnsHost [data-rtnmessage]');
+      if (!res.ok) { if (m) m.textContent = rtnMessage; return; }
+      await loadStockReturns();
+      const f = (focusSel && document.querySelector(focusSel)) || document.querySelector('#stockReturnsHost [data-rtnmessage]');
+      if (f) { if (!f.hasAttribute('tabindex') && f.tagName === 'P') f.setAttribute('tabindex', '-1'); f.focus(); }
+    }
+    document.addEventListener('click', async (e) => {
+      const t = e.target.closest('#stockReturnsHost [data-rtnact]'); if (!t) return;
+      const L = rtnLast; if (!L) return;
+      const id = t.getAttribute('data-id'), act = t.getAttribute('data-rtnact');
+      if (act === 'inspect-open' || act === 'fix-open') {
+        const key = (act === 'inspect-open' ? 'inspect:' : 'fix:') + id;
+        rtnOpen = rtnOpen === key ? null : key; rtnMessage = '';
+        await loadStockReturns();
+        const first = document.querySelector('#stockReturnsHost form[data-rtnform][data-id="' + id + '"] select, #stockReturnsHost form[data-rtnform][data-id="' + id + '"] input');
+        if (first) first.focus();
+        return;
+      }
+      t.disabled = true;
+      const res = await L.store.decideSupplierReturn(id, act === 'sr-approve' ? 'approved' : 'rejected');
+      if (document.contains(t)) t.disabled = false;
+      await rtnAfter(res);
+    });
+    document.addEventListener('submit', async (e) => {
+      const f = e.target.closest('#stockReturnsHost form[data-rtnform]'); if (!f) return;
+      e.preventDefault();
+      const L = rtnLast; if (!L) return;
+      const btn = f.querySelector('button[type="submit"]'); if (btn && btn.disabled) return;
+      if (btn) btn.disabled = true;
+      const kind = f.getAttribute('data-rtnform'), id = f.getAttribute('data-id');
+      const val = x => { const el = document.getElementById(x); return el ? el.value : ''; };
+      const yn = x => { const v = val(x); return v === 'yes' ? true : v === 'no' ? false : null; };
+      if (!f.dataset.rtnKey) f.dataset.rtnKey = newRequestKey();
+      let res;
+      try {
+        if (kind === 'cr') res = await L.store.recordCustomerReturn({ requestKey: f.dataset.rtnKey, orderItemId: val('rtnCrLine'), quantity: val('rtnCrQty') });
+        else if (kind === 'sr') res = await L.store.submitSupplierReturn({ requestKey: f.dataset.rtnKey, poItemId: val('rtnSrLine'), quantity: val('rtnSrQty'), fromBucket: val('rtnSrFrom'), reason: val('rtnSrReason'), replacementExpected: !!(document.getElementById('rtnSrRepl') || {}).checked });
+        else if (kind === 'inspect') res = await L.store.decideCustomerReturn(id, { opened: yn('rtnOpened-' + id), used: yn('rtnUsed-' + id), restock: val('rtnRestock-' + id), damaged: val('rtnDamaged-' + id), unsuitable: val('rtnUnsuitable-' + id), note: val('rtnInspNote-' + id) });
+        else if (kind === 'fix') res = await L.store.correctMovement({ requestKey: f.dataset.rtnKey, movementId: Number(id), reason: val('rtnFixWhy-' + id) });
+        else res = { ok: false, message: '' };
+        if (res.ok) { delete f.dataset.rtnKey; if (kind === 'inspect' || kind === 'fix') rtnOpen = null; }
+      } finally { if (btn && document.contains(btn)) btn.disabled = false; }
+      await rtnAfter(res);
+    });
+
     // ---------- #08 Payment reconciliation review (behind reconcileOn)
     // A worked synthetic example on Accounting: invoices that should have been
     // paid vs payments recorded. Every difference is named and stays OPEN until
@@ -3931,7 +4072,7 @@
       reportHistoryPanel: [loadReportHistoryThenExport, loadRecoveryDrill, loadInvoicePreview, loadReportVersions],
       ordersPanel: [loadOrders, paintScanEntry, loadSavedViews],
       inventoryPanel: [loadInventory, loadInventoryAdjustments, loadReorderPlanning, loadSavedViews, loadCycleCount, loadPartialReceiving],
-      returnsPanel: [loadReturns],
+      returnsPanel: [loadReturns, loadStockReturns],
       suppliersPanel: [loadSuppliers, loadSupplierScorecard, loadSupplierDocs],
       purchaseOrdersPanel: [loadPurchaseOrders, loadDeliveries],
       qualityControlPanel: [loadQualityChecks],
