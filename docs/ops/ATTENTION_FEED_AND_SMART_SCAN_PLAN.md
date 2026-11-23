@@ -23,8 +23,8 @@ history stay in `docs/PROJECT_RECORD.md`; this file is the one place for this pl
 |---|---|---|
 | D1 | Customer updates: **the owner approves first; automatic later**, once trusted | **DECIDED** (Nov 23) |
 | D2 | Message sources: Shopify first; later Amazon, Etsy, TikTok Shop (accounts to be created by the owner, with guidance), supplier and important emails | DECIDED (list); each connection needs its own approval |
-| D3 | Shipping labels: printed on 4×6 thermal label paper bought online; where the postage is bought (Shopify Shipping or at the carrier counter) is open | OWNER DECISION REQUIRED |
-| D4 | AI reading of receipts and screenshots (about $1–5 a month at today's volume); its key is stored by the owner in Supabase, never in chat or this repository | OWNER DECISION REQUIRED |
+| D3 | Shipping labels: the owner bought 4×6 label paper online (fine for the Rollo if it is direct thermal, 4×6, perforated). Where the postage is bought is separate and still open: buying it in Shopify (Shopify Shipping) puts every tracking number in Shopify automatically and Shopify can send the customer its own shipping email; buying at the counter needs the scan page | OWNER DECISION REQUIRED (recommended: Shopify Shipping) |
+| D4 | Reading receipts and screenshots: **free first** (text reading that runs on the phone or computer itself, open-source, nothing leaves the device; barcodes read for free). A paid AI service (about $1–5 a month) is used only if the free reading proves not good enough on the owner's real receipts; its key would be stored by the owner in Supabase, never in chat or this repository | **DECIDED** (Nov 23): free first, paid service only if needed |
 
 ## Where messages can come from (for the feed)
 
