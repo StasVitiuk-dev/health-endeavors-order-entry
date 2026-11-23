@@ -400,7 +400,9 @@ async function installMocks(page) {
         body: backend.cdnBody != null ? backend.cdnBody : fs.readFileSync(SUPABASE_UMD),
       });
     }
-    if (url.host === SUPABASE_HOST) return backend.handle(route);
+    // "already handled": the browser abandoned the request (a reload or a page
+    // change) while the stand-in was answering; nobody waits for that reply.
+    if (url.host === SUPABASE_HOST) return Promise.resolve(backend.handle(route)).catch(e => { if (!/already handled|Target page, context or browser has been closed/i.test(String(e && e.message))) throw e; });
     backend.blocked.push(url.href);
     return route.abort('blockedbyclient');
   });

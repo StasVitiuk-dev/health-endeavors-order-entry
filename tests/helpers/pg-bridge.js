@@ -36,7 +36,9 @@ function pgAvailable() {
   return available;
 }
 const lit = (v) => v == null ? 'null' : "'" + String(v).replace(/'/g, "''") + "'";
-const val = (v) => Array.isArray(v) ? 'array[' + v.map(lit).join(',') + ']::text[]'
+// a list of records (as PostgREST sends a JSON array to a jsonb argument) goes as jsonb; a list of plain values as text[]
+const val = (v) => Array.isArray(v) && v.length && v.every(x => x !== null && typeof x === 'object') ? lit(JSON.stringify(v)) + '::jsonb'
+  : Array.isArray(v) ? 'array[' + v.map(lit).join(',') + ']::text[]'
   : (v !== null && typeof v === 'object') ? lit(JSON.stringify(v)) + '::jsonb' : (typeof v === 'boolean' || typeof v === 'number') ? String(v) : lit(v);
 const IDENT = /^[a-z_][a-z0-9_]*$/;
 

@@ -159,13 +159,15 @@ const ADDED = ['focusDialog', 'inspectLabel', 'keyLink', 'setReportHistoryView',
   'mmState', 'mmSeq', 'MM_WORD', 'MM_KIND', 'mmMod', 'mmCents', 'mmTable', 'loadMoneyMatch', 'moneyMatchOn', 'mmItems', 'mmLastItems',
   // Nov 22: saved money differences (behind he_money_issues)
   'miSeq', 'miMessage', 'miCheckOpen', 'miStore', 'loadMoneyAlert', 'loadMoneyIssues', 'miAfter', 'moneyIssuesOn',
+  // Nov 22: deliveries with partial receiving (behind he_receiving_store)
+  'dlvSeq', 'dlvLast', 'dlvMessage', 'dlvPo', 'dlvRejectOpen', 'dlvStore', 'dlvWho', 'dlvLineText', 'loadDeliveries', 'dlvAfter', 'receivingStoreOn',
   // Nov 21 (owner decision 4): hand-off to the owner and owner-only files.
   'sdHandoffForm', 'sdHandoffsForOwner', 'sdSha256',
   // Nov 21 (D-ops-5): the partial receiving example (partialReceivingOn OFF). The
   // delegated [data-partialrcv] listener is waived by text below.
   'partialReceivingShown', 'loadPartialReceiving', 'partialReceivingOn'];
 const NEW_MODULES = ['he-ops']; // EXT16: written new, not moved
-const CHANGED_TEXT = ["} = window.HE.helpers;", "closest('#moneyAlertHost [data-moneyalertopen]')", "closest('#moneyIssuesHost form[data-micheckform]')", "closest('#moneyMatchHost input[data-mmfile]", "closest('#moneyMatchHost [data-mm]", "closest('#invoicePaymentsHost [data-ipopen]", "closest('#invoicePaymentsHost form[data-ippayform]", "forEach(o => Object.setPrototypeOf(o, null))", "supabase.auth.onAuthStateChange((event, session) =>", "getAttribute('data-view')", "getElementById('adjustInventoryForm').addEventListener('submit'", "getElementById('logReturnForm').addEventListener('submit'", "getElementById('retOrder').addEventListener('change'", "Release to refresh", "getElementById('docCategory')",
+const CHANGED_TEXT = ["} = window.HE.helpers;", "closest('#deliveriesHost select#dlvPo')", "closest('#deliveriesHost [data-dlvact]')", "closest('#deliveriesHost form[data-dlvform], #deliveriesHost form[data-dlvrejectform]')", "closest('#moneyAlertHost [data-moneyalertopen]')", "closest('#moneyIssuesHost form[data-micheckform]')", "closest('#moneyMatchHost input[data-mmfile]", "closest('#moneyMatchHost [data-mm]", "closest('#invoicePaymentsHost [data-ipopen]", "closest('#invoicePaymentsHost form[data-ippayform]", "forEach(o => Object.setPrototypeOf(o, null))", "supabase.auth.onAuthStateChange((event, session) =>", "getAttribute('data-view')", "getElementById('adjustInventoryForm').addEventListener('submit'", "getElementById('logReturnForm').addEventListener('submit'", "getElementById('retOrder').addEventListener('change'", "Release to refresh", "getElementById('docCategory')",
   // EXT20J-post-TT: the 4 static overlay scaffolds converted innerHTML->h(); each
   // card class is unique to its statement and present in both the old class="x"
   // and the new class:'x' form, so it waives exactly that one statement.

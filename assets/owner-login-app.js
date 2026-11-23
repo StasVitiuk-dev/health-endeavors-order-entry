@@ -84,7 +84,7 @@
       nightlyOverall,
     } = window.HE.helpers;
     // @@ EXT15 modules: created in dependency order (assets/app/*.js; see docs/ops/APPLICATION_MODULE_MAP_EXT15.md)
-    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, moneyIssuesOn, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn } = HE.modules.create('he-config', {  });
+    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, moneyIssuesOn, receivingStoreOn, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn } = HE.modules.create('he-config', {  });
     const { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, focusDialog, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, h, pageIconNode } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
     const { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
     const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, h, supabase });
@@ -2632,6 +2632,128 @@
       await miAfter(res);
     });
 
+    // ---------- Deliveries with partial receiving (drafts/40, Nov 22; behind receivingStoreOn)
+    // The owner's rules of Nov 22 on real records: staff record what arrived on
+    // a purchase order line by line (good, damaged that we keep, rejected with a
+    // reason, surplus beyond what was ordered); it waits for the owner, who
+    // approves (stock changes now, and only now) or rejects; surplus waits for
+    // the owner's keep-or-return. One request key per form, so a second press or a
+    // retry after a lost reply records once. Does nothing until drafts/40 is
+    // installed; staff see purchase orders only with drafts/44.
+    let dlvSeq = 0, dlvLast = null, dlvMessage = '', dlvPo = '', dlvRejectOpen = null;
+    function dlvStore() {
+      let mod = null; try { mod = (window.HE && window.HE.inventory && window.HE.inventory['he-receiving-store']) || null; } catch (e) { mod = null; }
+      if (!mod || !(typeof receivingStoreOn === 'function' && receivingStoreOn())) return null;
+      return mod.createStore({ client: supabase, enabled: true, role: currentUserRole });
+    }
+    function dlvWho(id) { const L = dlvLast; return !id ? 'someone' : (L && L.myId && id === L.myId) ? 'you' : 'a team member'; }
+    function dlvLineText(l, items) {
+      const it = items[l.po_item_id]; const name = it ? (it.sku || it.description || 'item') : 'item';
+      const parts = [];
+      if (l.good) parts.push(l.good + ' good'); if (l.damaged) parts.push(l.damaged + ' damaged, kept');
+      if (l.rejected) parts.push(l.rejected + ' rejected (' + (l.rejected_reason || '') + ')'); if (l.surplus) parts.push(l.surplus + ' surplus');
+      return name + ': ' + parts.join(', ');
+    }
+    async function loadDeliveries() {
+      const host = document.getElementById('deliveriesHost'); if (!host) return;
+      const store = dlvStore(); if (!store) { host.replaceChildren(); return; }
+      const seq = ++dlvSeq;
+      const wrap = (mode, ...kids) => h('div', { class: 'deliveries u-mb-16', 'data-dlvmode': mode }, h('h3', { class: 'u-fs-13 u-c-navy u-m-18-0-6' }, 'Deliveries'), ...kids);
+      const pr = await store.probe(); if (seq !== dlvSeq) return;
+      if (!pr.ok) { host.replaceChildren(wrap('unavailable', h('p', { class: 'hint', 'data-dlvnote': '1' }, pr.message))); return; }
+      const L = await store.load(); if (seq !== dlvSeq) return;
+      if (!L.ok) { host.replaceChildren(wrap('unavailable', h('p', { class: 'hint', 'data-dlvnote': '1' }, L.message))); return; }
+      const myId = await currentUserId().catch(() => null); if (seq !== dlvSeq) return;
+      dlvLast = { store, data: L, myId };
+      const isOwner = currentUserRole === 'owner';
+      const items = {}; L.orders.forEach(o => o.lines.forEach(l => { items[l.id] = Object.assign({ po: o.number }, l); }));
+      const poNum = id => { const o = L.orders.find(x => x.id === id); return o ? o.number : 'a purchase order'; };
+      const waitingRows = L.waiting.filter(r => isOwner || r.submitted_by === myId).map(r => h('li', { 'data-dlvrecord': r.id, class: 'u-mt-6' },
+        h('div', { class: 'taskTitle' }, poNum(r.purchase_order_id) + ' — recorded by ' + dlvWho(r.submitted_by) + ' on ' + String(r.submitted_at || '').slice(0, 10)),
+        h('div', { class: 'u-fs-12' }, r.lines.map(l => dlvLineText(l, items)).join('; ') + (r.note ? ' — ' + r.note : '')),
+        h('div', { class: 'u-mt-4' },
+          isOwner ? h('button', { type: 'button', class: 'small approve', 'data-dlvact': 'approve', 'data-id': r.id }, 'Approve') : null, ' ',
+          isOwner ? h('button', { type: 'button', class: 'small secondary', 'data-dlvact': 'reject-open', 'data-id': r.id }, 'Reject') : null, ' ',
+          (r.submitted_by === myId || isOwner) ? h('button', { type: 'button', class: 'small secondary', 'data-dlvact': 'cancel', 'data-id': r.id }, 'Cancel') : null),
+        dlvRejectOpen === r.id ? h('form', { 'data-dlvrejectform': r.id, class: 'heForm u-mt-4', novalidate: '' },
+          h('div', { class: 'heField' }, h('label', { for: 'dlvWhy-' + r.id }, 'Why reject it? (required)'), h('input', { id: 'dlvWhy-' + r.id, name: 'reason', type: 'text', maxlength: '500', autocomplete: 'off' })),
+          h('button', { type: 'submit', class: 'small deny u-mt-4' }, 'Reject delivery record')) : null));
+      const surplusRows = isOwner ? L.surplusWaiting.map(l => h('li', { 'data-dlvsurplus': l.id, class: 'u-mt-6' },
+        h('span', null, (items[l.po_item_id] ? items[l.po_item_id].po + ' · ' + (items[l.po_item_id].sku || 'item') : 'A line') + ': ' + l.surplus + ' unit(s) more than ordered '),
+        h('button', { type: 'button', class: 'small', 'data-dlvact': 'keep', 'data-id': l.id }, 'Keep (into stock)'), ' ',
+        h('button', { type: 'button', class: 'small secondary', 'data-dlvact': 'return', 'data-id': l.id }, 'Send back'))) : [];
+      const open = L.orders.filter(o => o.status !== 'received' || o.lines.some(l => l.toCome > 0));
+      if (dlvPo && !open.some(o => o.id === dlvPo)) dlvPo = '';
+      const chosen = open.find(o => o.id === dlvPo) || null;
+      const num = (id, label) => h('div', { class: 'heField' }, h('label', { for: id }, label), h('input', { id, name: id, type: 'text', inputmode: 'numeric', pattern: '[0-9]*', autocomplete: 'off', placeholder: '0' }));
+      const form = h('form', { 'data-dlvform': '1', class: 'heForm u-mt-12 u-pt-16 u-bt-1-solid-line', novalidate: '' },
+        h('h4', null, 'Record a delivery'),
+        h('div', { class: 'heField' }, h('label', { for: 'dlvPo' }, 'Purchase order'),
+          h('select', { id: 'dlvPo', name: 'po' }, h('option', { value: '' }, open.length ? 'Choose…' : 'No open purchase orders'), open.map(o => h('option', Object.assign({ value: o.id }, o.id === dlvPo ? { selected: 'selected' } : {}), o.number)))),
+        chosen ? chosen.lines.map(l => h('fieldset', { class: 'u-mt-8', 'data-dlvline': l.id },
+          h('legend', null, (l.sku || l.description || 'Item') + ' — ordered ' + l.ordered + ', received ' + l.received + ', still to come ' + l.toCome),
+          num('dlvGood-' + l.id, 'Good'), num('dlvDamaged-' + l.id, 'Damaged, kept'), num('dlvRejected-' + l.id, 'Rejected'),
+          h('div', { class: 'heField' }, h('label', { for: 'dlvReason-' + l.id }, 'Why rejected'), h('input', { id: 'dlvReason-' + l.id, type: 'text', maxlength: '300', autocomplete: 'off' })),
+          num('dlvSurplus-' + l.id, 'More than ordered'))) : null,
+        chosen ? h('div', { class: 'heField' }, h('label', { for: 'dlvNote' }, 'Note (optional)'), h('input', { id: 'dlvNote', type: 'text', maxlength: '500', autocomplete: 'off' })) : null,
+        chosen ? h('button', { type: 'submit', class: 'u-mt-8' }, 'Record delivery') : null);
+      host.replaceChildren(wrap('stored',
+        h('p', { class: 'hint u-mt-n2' }, 'Record what arrived, line by line. Stock changes only when the owner approves. Rejected units stay to come; units beyond the order wait for the owner.'),
+        h('p', { class: 'u-fs-12 u-mt-4', role: 'status', 'data-dlvmessage': '1' }, dlvMessage),
+        h('h4', null, isOwner ? 'Waiting for your approval (' + L.waiting.length + ')' : 'Your deliveries waiting for the owner'),
+        waitingRows.length ? h('ul', { 'data-dlvwaiting': String(waitingRows.length) }, waitingRows) : h('p', { class: 'empty', 'data-dlvwaiting': '0' }, 'Nothing waiting.'),
+        surplusRows.length ? h('div', null, h('h4', { class: 'u-mt-8' }, 'More than ordered: keep or send back?'), h('ul', null, surplusRows)) : null,
+        form));
+    }
+    async function dlvAfter(res, focusSel) {
+      dlvMessage = res.message || ''; announce(dlvMessage);
+      const m = document.querySelector('#deliveriesHost [data-dlvmessage]');
+      if (!res.ok) { if (m) m.textContent = dlvMessage; return; }
+      await loadDeliveries(); if (typeof loadPurchaseOrders === 'function' && res.status === 'approved') loadPurchaseOrders();
+      const f = (focusSel && document.querySelector(focusSel)) || document.querySelector('#deliveriesHost [data-dlvmessage]');
+      if (f) { if (!f.hasAttribute('tabindex') && f.tagName === 'P') f.setAttribute('tabindex', '-1'); f.focus(); }
+    }
+    document.addEventListener('change', async (e) => {
+      const s = e.target.closest('#deliveriesHost select#dlvPo'); if (!s) return;
+      dlvPo = s.value; dlvMessage = '';
+      await loadDeliveries();
+      const back = document.getElementById('dlvPo'); if (back) back.focus();
+    });
+    document.addEventListener('click', async (e) => {
+      const t = e.target.closest('#deliveriesHost [data-dlvact]'); if (!t) return;
+      const L = dlvLast; if (!L) return;
+      const id = t.getAttribute('data-id'), act = t.getAttribute('data-dlvact');
+      if (act === 'reject-open') { dlvRejectOpen = dlvRejectOpen === id ? null : id; await loadDeliveries(); const i = document.getElementById('dlvWhy-' + id); if (i) i.focus(); return; }
+      t.disabled = true;
+      const res = act === 'approve' ? await L.store.approve(id) : act === 'cancel' ? await L.store.cancel(id)
+        : await L.store.decideSurplus(id, act === 'keep' ? 'kept' : 'returned');
+      if (document.contains(t)) t.disabled = false;
+      if (act === 'approve' && res.ok) res.status = 'approved';
+      await dlvAfter(res);
+    });
+    document.addEventListener('submit', async (e) => {
+      const f = e.target.closest('#deliveriesHost form[data-dlvform], #deliveriesHost form[data-dlvrejectform]'); if (!f) return;
+      e.preventDefault();
+      const L = dlvLast; if (!L) return;
+      const btn = f.querySelector('button[type="submit"]'); if (btn && btn.disabled) return;
+      if (btn) btn.disabled = true;
+      let res;
+      try {
+        if (f.hasAttribute('data-dlvrejectform')) {
+          res = await L.store.reject(f.getAttribute('data-dlvrejectform'), f.elements.reason ? f.elements.reason.value : '');
+          if (res.ok) dlvRejectOpen = null;
+        } else {
+          if (!f.dataset.dlvKey) f.dataset.dlvKey = newRequestKey();
+          const o = L.data.orders.find(x => x.id === dlvPo);
+          const val = id => { const el = document.getElementById(id); return el ? el.value : ''; };
+          const toCome = {}; const lines = (o ? o.lines : []).map(l => { toCome[l.id] = l.toCome; return { poItemId: l.id, good: val('dlvGood-' + l.id), damaged: val('dlvDamaged-' + l.id), rejected: val('dlvRejected-' + l.id), rejectedReason: val('dlvReason-' + l.id), surplus: val('dlvSurplus-' + l.id) }; });
+          res = await L.store.submit({ requestKey: f.dataset.dlvKey, poId: dlvPo, lines, note: val('dlvNote'), toCome });
+          if (res.ok) { delete f.dataset.dlvKey; dlvPo = ''; }
+        }
+      } finally { if (btn && document.contains(btn)) btn.disabled = false; }
+      await dlvAfter(res);
+    });
+
     // ---------- #08 Payment reconciliation review (behind reconcileOn)
     // A worked synthetic example on Accounting: invoices that should have been
     // paid vs payments recorded. Every difference is named and stays OPEN until
@@ -3775,7 +3897,7 @@
       inventoryPanel: [loadInventory, loadInventoryAdjustments, loadReorderPlanning, loadSavedViews, loadCycleCount, loadPartialReceiving],
       returnsPanel: [loadReturns],
       suppliersPanel: [loadSuppliers, loadSupplierScorecard, loadSupplierDocs],
-      purchaseOrdersPanel: [loadPurchaseOrders],
+      purchaseOrdersPanel: [loadPurchaseOrders, loadDeliveries],
       qualityControlPanel: [loadQualityChecks],
       recallsPanel: [loadRecalls],
       expensesPanel: [loadExpenses, loadDeletedExpenses],
