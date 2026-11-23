@@ -534,6 +534,32 @@
       "precheck": "none (removing two read rules only)",
       "effect": "drops the two staff read rules; staff no longer see purchase orders",
       "postcheck": "a staff account sees no purchase order"
+    },
+    {
+      "file": "drafts/46_DRAFT_tax_rates.sql",
+      "id": "46",
+      "class": "PRODUCTION-CHANGE-DRAFT",
+      "step": "optional (before the first real invoice; owner request of Nov 23: never charge too little or too much)",
+      "dependsOn": [],
+      "risk": "LOW",
+      "rollback": "47",
+      "precheck": "stops if auth.uid(), current_role(), is_active_staff(), is_owner_or_admin(), the tasks or audit_log table, or the audit trigger on tasks is missing",
+      "effect": "1 new table tax_rates (one row per confirmed rate per place: rate, start day, end day, source, who confirmed it and when, last re-check); set_tax_rate() ends the rate in force the day before the new one starts; recheck_tax_rate(); rates never deleted or edited; only the owner writes; active staff read; production's audit trigger attached; no existing table changes",
+      "postcheck": "the table present and empty; anon cannot read it; local-test/tax_rates_test.sh passes on a throwaway copy",
+      "lock": "NONE (new table only)",
+      "dynamicSql": "format() with fixed names (%I) to attach production's audit trigger, whose function name is read from the tasks table at install time (as drafts/32)"
+    },
+    {
+      "file": "drafts/47_DRAFT_rollback_tax_rates.sql",
+      "id": "47",
+      "class": "ROLLBACK",
+      "rollbackOf": "46",
+      "dependsOn": [],
+      "risk": "LOW",
+      "precheck": "stops, removing nothing, while any tax rate is recorded, unless deleting them was authorized in the session",
+      "effect": "drops the two functions, the table and its guard",
+      "postcheck": "to_regclass('public.tax_rates') is null",
+      "dynamicSql": "format() with fixed names (%I) to lock and count the tax rates table only where it exists"
     }
   ],
   "local": [

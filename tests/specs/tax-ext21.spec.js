@@ -206,6 +206,7 @@ test('a dated rate applies only from its start day, and never to an earlier sale
   expect(ended.rateStatus).toBe('PENDING');
   expect(ended.reason).toMatch(/ended on 2026-12-31/);
   expect(T.checkRateSetting(Object.assign({}, DATED, { effectiveFrom: 'next week' })).ok).toBe(false);
+  expect(T.checkRateSetting(Object.assign({}, DATED, { effectiveFrom: '2027-02-30' })).ok).toBe(false);   // not a real day
   expect(T.checkRateSetting(Object.assign({}, DATED, { effectiveUntil: '2026-01-01' })).reason).toMatch(/ends before it starts/);
 });
 

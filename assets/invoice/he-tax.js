@@ -42,7 +42,14 @@
     return Number(rem * BigInt(2) >= BigInt(100000) ? q + BigInt(1) : q);
   };
   const text = (v) => (typeof v === 'string' ? v.trim() : '');
-  const day = (v) => { const s = text(v).slice(0, 10); return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : ''; };
+  // a real calendar day only (2027-02-30 is not a day)
+  const day = (v) => {
+    const s = text(v).slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return '';
+    const y = Number(s.slice(0, 4)), m = Number(s.slice(5, 7)), d = Number(s.slice(8, 10));
+    const t = new Date(Date.UTC(y, m - 1, d));
+    return t.getUTCFullYear() === y && t.getUTCMonth() === m - 1 && t.getUTCDate() === d ? s : '';
+  };
 
   // A rate the owner confirmed for one place:
   //   { place, rate, parts:[{ name, rate }], confirmedBy, confirmedAt, reference,

@@ -84,7 +84,7 @@
       nightlyOverall,
     } = window.HE.helpers;
     // @@ EXT15 modules: created in dependency order (assets/app/*.js; see docs/ops/APPLICATION_MODULE_MAP_EXT15.md)
-    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, moneyIssuesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn } = HE.modules.create('he-config', {  });
+    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn } = HE.modules.create('he-config', {  });
     const { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, focusDialog, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, h, pageIconNode } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
     const { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
     const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, h, supabase });
@@ -2550,6 +2550,98 @@
       refocusLike(t, 'moneyMatchHost');
     });
 
+    // ---------- Confirmed sales tax rates (drafts/46, Nov 23; behind he_tax_rates)
+    // The rates the owner confirmed (place, rate, start day, source, last re-check)
+    // on Tax Records. Only these are used on invoices; once a January 1 or July 1
+    // has passed since a rate was last checked, it shows "Re-check due" and new
+    // invoices stay TAX PENDING until the owner re-checks it. The owner confirms
+    // and re-checks; everyone else reads. Does nothing until drafts/46 is
+    // installed. `place` is a short name, never the owner's address.
+    let trSeq = 0, trMessage = '';
+    const TR_STATE = { IN_FORCE: ['In force', 'sev-low'], RECHECK_DUE: ['Re-check due', 'sev-high'], STARTS_LATER: ['Starts later', 'sev-medium'], ENDED: ['Ended', ''], UNKNOWN: ['Unclear', 'sev-medium'] };
+    function trMod() { try { return (window.HE && window.HE.invoice && window.HE.invoice['he-tax-rate-store']) || null; } catch (e) { return null; } }
+    function trStore() {
+      const mod = trMod();
+      if (!mod || !(typeof taxRatesOn === 'function' && taxRatesOn())) return null;
+      return mod.createStore({ client: supabase, enabled: true, role: currentUserRole });
+    }
+    function trToday() {
+      try { return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Chicago', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()); }
+      catch (e) { return new Date().toISOString().slice(0, 10); }
+    }
+    async function loadTaxRates() {
+      const host = document.getElementById('taxRatesHost'); if (!host) return;
+      const store = trStore(); if (!store) { host.replaceChildren(); return; }
+      const mod = trMod(); let taxMod = null; try { taxMod = (window.HE && window.HE.invoice && window.HE.invoice['he-tax']) || null; } catch (e) { taxMod = null; }
+      const seq = ++trSeq;
+      const L = await store.list();
+      if (seq !== trSeq) return;
+      const owner = currentUserRole === 'owner';
+      const today = trToday();
+      const head = [h('h3', { class: 'u-fs-13 u-c-navy u-m-18-0-6' }, 'Sales tax rates you confirmed'),
+        h('p', { class: 'hint u-mt-n2 hintLead' }, 'Invoices use only these rates, from the day each one starts. Look the rate up in the Illinois Department of Revenue\'s Tax Rate Finder (tax.illinois.gov). Rates can change on January 1 and July 1, so each rate asks to be re-checked after those days.')];
+      if (!L.ok) { host.replaceChildren(...head, h('p', { class: L.installed === false ? 'empty' : 'error', 'data-trstate': L.installed === false ? 'notinstalled' : 'error' }, L.message)); return; }
+      const rows = L.rates.map(r => ({ r: r, s: mod.standing(r, today, taxMod) }));
+      const due = rows.filter(x => x.s.state === 'RECHECK_DUE');
+      const table = rows.length ? h('table', { class: 'phoneCards u-mt-8', 'data-trtable': '1' },
+        h('thead', null, h('tr', null, h('th', null, 'Place'), h('th', { class: 'num-cell' }, 'Rate'), h('th', null, 'From'), h('th', null, 'Until'), h('th', null, 'Source'), h('th', null, 'Last checked'), h('th', null, 'Status'), owner ? h('th', null, 'Action') : null)),
+        h('tbody', null, rows.map(({ r, s }) => h('tr', { 'data-trrow': r.id, 'data-trstanding': s.state },
+          h('td', { 'data-label': 'Place' }, r.place),
+          h('td', { class: 'num-cell', 'data-label': 'Rate' }, mod.pctText(r.rate) + '%'),
+          h('td', { 'data-label': 'From', class: 'trDate' }, String(r.effective_from || '').slice(0, 10)),
+          h('td', { 'data-label': 'Until', class: 'trDate' }, r.effective_until ? String(r.effective_until).slice(0, 10) : '—'),
+          h('td', { 'data-label': 'Source' }, r.source || '—'),
+          h('td', { 'data-label': 'Last checked', class: 'trDate' }, String(r.rechecked_at || r.confirmed_at || '').slice(0, 10) || '—'),
+          h('td', { 'data-label': 'Status' }, h('span', { class: 'badge ' + (TR_STATE[s.state] || TR_STATE.UNKNOWN)[1] }, (TR_STATE[s.state] || TR_STATE.UNKNOWN)[0]), s.due && s.state !== 'ENDED' ? h('div', { class: 'u-fs-11 u-c-muted' }, 're-check due ' + s.due) : null),
+          owner ? h('td', { 'data-label': 'Action' }, s.state === 'IN_FORCE' || s.state === 'RECHECK_DUE' ? h('button', { type: 'button', class: 'small secondary', 'data-trrecheck': r.id }, 'Re-checked today, still correct') : '—') : null)))) : h('p', { class: 'empty', 'data-trstate': 'empty' }, 'No rate confirmed yet, so every invoice with tax shows TAX PENDING.');
+      const form = owner ? h('form', { class: 'heForm u-mt-10 u-pt-16 u-bt-1-solid-line', 'data-trform': '1' },
+        h('div', { class: 'heField' }, h('label', { for: 'trPlace' }, 'Place (a short name, not the address)'), h('input', { id: 'trPlace', name: 'place', type: 'text', maxlength: '80', placeholder: 'Ships from: Illinois', autocomplete: 'off' })),
+        h('div', { class: 'heField' }, h('label', { for: 'trRate' }, 'Full rate, percent'), h('input', { id: 'trRate', name: 'ratePercent', type: 'text', inputmode: 'decimal', maxlength: '7', placeholder: '8.75', autocomplete: 'off' })),
+        h('div', { class: 'heField' }, h('label', { for: 'trFrom' }, 'Starts on'), h('input', { id: 'trFrom', name: 'from', type: 'date' })),
+        h('div', { class: 'heField' }, h('label', { for: 'trSource' }, 'Where it comes from'), h('input', { id: 'trSource', name: 'source', type: 'text', maxlength: '200', value: 'IDOR Tax Rate Finder' })),
+        h('div', { class: 'heField heWide' }, h('label', { for: 'trNote' }, 'Note ', h('span', { class: 'heOpt' }, '(optional)')), h('input', { id: 'trNote', name: 'note', type: 'text', maxlength: '300' })),
+        h('div', { class: 'heActions' }, h('button', { type: 'submit', class: 'small' }, 'Confirm rate'))) : h('p', { class: 'hint u-fs-12' }, 'Only the owner confirms or re-checks a rate.');
+      host.replaceChildren(...head,
+        due.length ? h('p', { class: 'error', role: 'status', 'data-trdue': String(due.length) }, due.length + ' rate' + (due.length === 1 ? ' needs' : 's need') + ' a re-check: new invoices with ' + (due.length === 1 ? 'it' : 'them') + ' stay TAX PENDING until then.') : null,
+        table,
+        h('p', { class: 'u-fs-12', role: 'status', 'data-trmessage': '1' }, trMessage || ''),
+        form);
+    }
+    function trAfter(msg, focusSel) {
+      trMessage = msg;
+      return loadTaxRates().then(() => {
+        announce(msg);
+        const back = focusSel ? document.querySelector(focusSel) : null;
+        const m = document.querySelector('#taxRatesHost [data-trmessage]');
+        const el = back || m; if (el) { if (el === m) el.setAttribute('tabindex', '-1'); el.focus(); }
+      });
+    }
+    document.addEventListener('submit', async (e) => {
+      const f = e.target.closest('#taxRatesHost form[data-trform]'); if (!f) return;
+      e.preventDefault();
+      const store = trStore(); if (!store) return;
+      const btn = f.querySelector('button[type=submit]'); if (btn) btn.disabled = true;
+      const v = (n) => { const el = f.querySelector('[name="' + n + '"]'); return el ? el.value : ''; };
+      const keep = { place: v('place'), ratePercent: v('ratePercent'), from: v('from'), source: v('source'), note: v('note') };
+      const res = await store.confirm(keep);
+      if (!res.ok) {
+        if (btn) btn.disabled = false;
+        trMessage = res.message;
+        const m = f.parentNode && f.parentNode.querySelector('[data-trmessage]'); if (m) { m.textContent = res.message; m.className = 'u-fs-12 error'; }
+        announce(res.message);
+        const first = f.querySelector('#trPlace'); if (first) first.focus();
+        return;
+      }
+      await trAfter(res.message, '#taxRatesHost [data-trmessage]');
+    });
+    document.addEventListener('click', async (e) => {
+      const t = e.target.closest('#taxRatesHost [data-trrecheck]'); if (!t) return;
+      const store = trStore(); if (!store) return;
+      t.disabled = true;
+      const res = await store.recheck(t.getAttribute('data-trrecheck'));
+      await trAfter(res.message, '#taxRatesHost [data-trmessage]');
+    });
+
     // ---------- Saved money differences (drafts/42, Nov 22; behind moneyIssuesOn)
     // Open differences, found by the daily Shopify check or saved from Money
     // matching, stay listed on Accounting until the owner or an administrator marks
@@ -4357,7 +4449,7 @@
       recallsPanel: [loadRecalls],
       expensesPanel: [loadExpenses, loadDeletedExpenses],
       accountingPanel: [loadAccounting, loadReconcile, loadInvoicePayments, loadMoneyMatch, loadMoneyIssues],
-      taxRecordsPanel: [loadTaxRecords],
+      taxRecordsPanel: [loadTaxRecords, loadTaxRates],
       tasksPanel: [loadTasks],
       incidentsPanel: [loadIncidents],
       evidenceLockerPanel: [loadEvidenceLocker],

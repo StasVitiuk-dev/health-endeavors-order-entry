@@ -32,7 +32,7 @@
 <meta http-equiv="Expires" content="0">
 <title>Health Endeavors — Owner Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous"></script>
-<link rel="stylesheet" href="assets/owner-login.css?v=1e98e87f75">
+<link rel="stylesheet" href="assets/owner-login.css?v=76f53703ad">
 <link rel="stylesheet" href="assets/looks/he-looks.css?v=cfb4e95d72">
 <script src="assets/looks/he-look-boot.js?v=6cc916837d"></script>
 <link rel="stylesheet" href="assets/print/he-print-fonts.css?v=274ef3d170">
@@ -41,7 +41,7 @@
 <script src="assets/owner-login-helpers.js?v=76dc8fc4a9"></script>
 <script src="assets/owner-login-modules.js?v=0d97adc58c"></script>
 <!-- @@ EXT15 module files (assets/app/*.js), added by tests/tools/extract-module.js @@ -->
-<script src="assets/app/he-config.js?v=c305ecfe87"></script>
+<script src="assets/app/he-config.js?v=9048eda745"></script>
 <script src="assets/app/he-ui.js?v=72a33e864d"></script>
 <script src="assets/app/he-data.js?v=c83d91bc56"></script>
 <script src="assets/app/he-audit.js?v=583f427717"></script>
@@ -127,7 +127,8 @@
 <script src="assets/suppliers/he-supplier-docs-store.js?v=5016e5fe85"></script>
 <script src="assets/inventory/he-reorder-fixtures.js?v=885819be55"></script>
 <script src="assets/invoice/he-invoice.js?v=10275fcded"></script>
-<script src="assets/invoice/he-tax.js?v=c852f0f3f4"></script>
+<script src="assets/invoice/he-tax.js?v=e6e97a6d13"></script>
+<script src="assets/invoice/he-tax-rate-store.js?v=fb962f7428"></script>
 <script src="assets/invoice/he-invoice-store.js?v=c750e3a4b7"></script>
 <script src="assets/reports/he-report-export.js?v=b10f9ebc0c"></script>
 <script src="assets/reports/he-report-schedule.js?v=fe145bfc31"></script>
@@ -541,6 +542,7 @@
           <button type="button" class="small secondary" data-range="all">All Time</button>
         </div>
         <div class="statRow" id="taxStats"></div>
+        <div id="taxRatesHost"></div>
 
         <h3 class="u-fs-13 u-c-navy u-m-18-0-6">Expenses by category</h3>
         <p class="hint u-mt-n2 hintLead">Split into Cost of Goods Sold and Operating expenses. <b>This split is a starting point based on how you've already been categorizing expenses, not tax advice</b> — have your accountant confirm the final categorization before filing anything.</p>
@@ -1129,6 +1131,6 @@
 <!-- One permanent place for screen readers to hear the result of a button in a
      section that redraws itself (Nov 15). Invisible on screen. -->
 <div id="srAnnounce" class="srOnly" role="status" aria-live="polite" aria-atomic="true"></div>
-<script src="assets/owner-login-app.js?v=603acf0edc"></script>
+<script src="assets/owner-login-app.js?v=4d327d9a56"></script>
 </body>
 </html>
