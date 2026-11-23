@@ -1,0 +1,18 @@
+/* Rollo Wireless Label Printer, 4 x 6 inch thermal labels (Nov 23).
+   Switched on only while a 4 x 6 packing slip is being printed (the dashboard sets
+   this sheet's media to "print" just before, and back to "not all" right after),
+   so invoices and reports keep US Letter. Thermal printers print black only and
+   turn grey into speckles, so everything here is solid black, a little bigger and
+   bolder, with no grey and no background. */
+@page{ size:4in 6in; margin:0.12in; }
+@media print{
+  .printView .printPage{ font:11pt/1.25 -apple-system, "Helvetica Neue", Arial, sans-serif; }
+  .printView .printHdr{ border-bottom:2pt solid #000; padding-bottom:4pt; margin-bottom:6pt; }
+  .printView .printHdr .taskTitle{ font-size:14pt; font-weight:800; }
+  .printView .labelOrder{ font-size:16pt; font-weight:800; letter-spacing:0.02em; margin:4pt 0; }
+  .printView table{ font-size:10.5pt; }
+  .printView th{ font-weight:800; border-bottom:1.5pt solid #000; }
+  .printView th, .printView td{ padding:3pt 4pt; border-bottom:0.75pt solid #000; vertical-align:top; }
+  .printView td.labelQty{ font-size:13pt; font-weight:800; text-align:center; }
+  .printView .labelFoot{ margin-top:6pt; font-size:9pt; }
+}

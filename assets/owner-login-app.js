@@ -84,7 +84,7 @@
       nightlyOverall,
     } = window.HE.helpers;
     // @@ EXT15 modules: created in dependency order (assets/app/*.js; see docs/ops/APPLICATION_MODULE_MAP_EXT15.md)
-    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, moneyIssuesOn, receivingStoreOn, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn } = HE.modules.create('he-config', {  });
+    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, moneyIssuesOn, receivingStoreOn, newLookOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn } = HE.modules.create('he-config', {  });
     const { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, focusDialog, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, h, pageIconNode } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
     const { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
     const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, h, supabase });
@@ -2840,8 +2840,26 @@
         h('table', { class: 'phoneCards u-mt-8' },
           h('thead', null, h('tr', null, h('th', null, 'Preview'), h('th', null, 'Where it appears'), h('th', null, 'Now'), h('th', null, 'Change'))),
           h('tbody', null, rows)),
-        h('div', { class: 'scanToggleRow u-mt-8' }, h('button', { type: 'button', class: 'small secondary', 'data-previewswitch': 'alloff' }, 'Turn all off'))));
+        h('div', { class: 'scanToggleRow u-mt-8' }, h('button', { type: 'button', class: 'small secondary', 'data-previewswitch': 'alloff' }, 'Turn all off')),
+        lookPicker()));
     }
+    // New look (preview): pick one of the three directions; applied at once.
+    function lookPicker() {
+      if (!(typeof newLookOn === 'function' && newLookOn()) || !Array.isArray(LOOK_CHOICES)) return null;
+      let cur = 'aurora'; try { cur = localStorage.getItem('he_look') || 'aurora'; } catch (e) { /* default */ }
+      return h('div', { class: 'u-mt-12', 'data-lookpicker': cur },
+        h('h4', null, 'Choose the look'),
+        h('div', { class: 'scanToggleRow', role: 'group', 'aria-label': 'Look' },
+          LOOK_CHOICES.map(c => h('button', { type: 'button', class: 'small' + (c.key === cur ? '' : ' secondary'), 'data-lookpick': c.key, 'aria-pressed': String(c.key === cur) }, c.name))),
+        h('p', { class: 'hint u-mt-6' }, (LOOK_CHOICES.find(c => c.key === cur) || LOOK_CHOICES[0]).what));
+    }
+    document.addEventListener('click', (e) => {
+      const t = e.target.closest('[data-lookpick]'); if (!t) return;
+      const c = (LOOK_CHOICES || []).find(x => x.key === t.getAttribute('data-lookpick')); if (!c) return;
+      try { localStorage.setItem('he_look', c.key); } catch (err) { /* this browser only; still applied below */ }
+      document.documentElement.setAttribute('data-look', c.key);
+      loadPreviewSwitches(); announce('Look: ' + c.name + '. ' + c.what); refocusLike(t);
+    });
     document.addEventListener('click', (e) => {
       const t = e.target.closest('[data-previewswitch]'); if (!t) return;
       if (!(currentUserRole === 'owner' || currentUserRole === 'administrator')) return;
@@ -2850,12 +2868,17 @@
       try {
         if (act === 'alloff') {
           PREVIEW_SWITCHES.forEach(sw => localStorage.removeItem(sw.key));
+          document.documentElement.removeAttribute('data-look');
           previewSwitchMessage = 'All previews are off. Reload the page to finish.';
         } else if (act === 'toggle') {
           const sw = PREVIEW_SWITCHES.find(x => x.key === t.getAttribute('data-key'));
           if (!sw) return;                                   // only listed keys are ever written
           if (previewSwitchIsOn(sw.key)) { localStorage.removeItem(sw.key); previewSwitchMessage = sw.name + ' is off. Reload the page to finish.'; }
           else { localStorage.setItem(sw.key, 'on'); previewSwitchMessage = sw.name + ' is on. Reload the page, then open ' + sw.where + '.'; }
+          if (sw.key === 'he_new_look') {
+            if (previewSwitchIsOn('he_new_look')) { let lk = 'aurora'; try { lk = localStorage.getItem('he_look') || 'aurora'; } catch (e2) { /* default */ } document.documentElement.setAttribute('data-look', lk); previewSwitchMessage = 'New look is on. Choose a direction below; it applies at once.'; }
+            else { document.documentElement.removeAttribute('data-look'); previewSwitchMessage = 'New look is off: today\'s look is back.'; }
+          }
         }
       } catch (err) { previewSwitchMessage = 'This browser would not save the switch (private window or storage blocked).'; }
       loadPreviewSwitches(); announce(previewSwitchMessage); refocusLike(t);
@@ -3738,7 +3761,9 @@
         h('div', { class: 'scanCard u-mt-8' }, h('div', { class: 'scanCardHead' }, 'Packing slip — not an invoice, not a carrier label'), slipRows),
         h('div', { class: 'scanToggleRow u-mt-8' },
           h('button', { type: 'button', class: 'small', 'data-print': 'invoice' }, 'Print invoice (US-Letter)'),
-          h('button', { type: 'button', class: 'small secondary', 'data-print': 'slip' }, 'Print packing slip')),
+          h('button', { type: 'button', class: 'small secondary', 'data-print': 'slip' }, 'Print packing slip'),
+          h('button', { type: 'button', class: 'small secondary', 'data-print': 'slip4x6' }, 'Print 4×6 label slip')),
+        h('p', { class: 'hint u-mt-8' }, 'Invoices and packing slips print on US Letter (your Brother printer), in black only. The 4×6 label slip is for your Rollo label printer: choose the Rollo and paper size 4 × 6 in the print window.'),
         h('p', { class: 'hint u-mt-8' }, 'Draft preview only. Drafts are generated automatically; issuing one is done by hand by the owner or an administrator and is not enabled here (owner decision of Nov 14).')));
     }
 
@@ -3786,32 +3811,43 @@
       host.replaceChildren(h('div', { class: 'printDoc' }, pages));
       try { window.print(); } catch (e) {}
     }
+    // Nov 23: the 4 x 6 label sheet (assets/print/he-print-label.css) is on only
+    // while a label slip prints; everything else keeps US Letter.
+    function setLabelSheet(on) {
+      const l = document.getElementById('labelPrintCss'); if (!l) return;
+      l.media = on ? 'print' : 'not all';
+    }
+    window.addEventListener('afterprint', function () { setLabelSheet(false); });
     document.addEventListener('click', function (e) {
       const t = e.target.closest('[data-print]'); if (!t) return;
       const what = t.getAttribute('data-print');
+      setLabelSheet(what === 'slip4x6');
       if (what === 'invoice') renderInvoicePrint();
       else if (what === 'report') renderReportPrint();
       else if (what === 'slip') renderPackingSlipPrint();
+      else if (what === 'slip4x6') renderPackingSlipPrint('4x6');
     });
 
     // follow-on: US-Letter packing-slip print (lot numbers, prices hidden by
     // default, explicitly not an invoice and not a carrier label). Reuses the
     // print host + @media print rules. Pure DOM; window.print wrapped.
-    function renderPackingSlipPrint() {
+    function renderPackingSlipPrint(size) {
       const host = document.getElementById('invoicePrintHost'); if (!host) return;
       const inv = opsInvoiceMod(); if (!inv || typeof inv.packingSlipPrint !== 'function') return;
       const slip = inv.packingSlip({ orderId: 'SYN-preview', shipmentId: 'SYN-preview-s1', allocations: [
         { sku: 'HE-HONEY-8OZ', quantity: 6, lotNumber: 'LOT-A' }, { sku: 'HE-VEGAN-8OZ', quantity: 4, lotNumber: 'LOT-B' },
       ] });
-      const doc = inv.packingSlipPrint(slip);
+      const label = size === '4x6' && inv.LABEL_4X6;
+      const doc = inv.packingSlipPrint(slip, label ? { page: inv.LABEL_4X6.page } : undefined);
       const pages = doc.pages.map(function (p) {
-        return h('div', { class: 'printPage' },
+        return h('div', { class: 'printPage', 'data-printsize': label ? '4x6' : 'letter' },
           h('div', { class: 'printHdr' }, h('div', { class: 'taskTitle' }, 'Health Endeavors — Packing slip'),
+            label ? h('div', { class: 'labelOrder' }, 'Order ' + (slip.orderId || '—')) : null,
             h('div', null, 'SIMULATED — not an invoice, not a carrier label'), h('div', null, 'Page ' + p.pageNo + ' of ' + p.totalPages)),
           h('table', null,
             h('thead', null, h('tr', null, p.headings.map(function (x) { return h('th', null, x); }))),
             h('tbody', null, p.rows.map(function (l) {
-              const cells = [h('td', null, l.sku || '—'), h('td', null, String(l.quantity)), h('td', null, l.lotNumber || '—')];
+              const cells = [h('td', null, l.sku || '—'), h('td', label ? { class: 'labelQty' } : null, String(l.quantity)), h('td', null, l.lotNumber || '—')];
               if (doc.showPrices) cells.push(h('td', null, l.unitPrice === undefined ? '—' : fmtMoney(l.unitPrice, 'USD')));
               return h('tr', null, cells);
             }))));

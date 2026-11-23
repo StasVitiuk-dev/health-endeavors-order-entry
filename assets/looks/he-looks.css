@@ -1,0 +1,200 @@
+/* New look — three directions for the owner to choose from (owner request of
+   Nov 22: "professional and futuristic, but very good looking; every visual
+   detail, down to buttons and page switching"). PREVIEW ONLY: nothing here
+   applies unless the "New look" preview switch is on AND a direction is chosen
+   (assets/looks/he-look-boot.js sets <html data-look="...">). With the switch off
+   the dashboard looks exactly as it does today.
+
+     aurora         futuristic: indigo-to-cyan accent, frosted panels, soft glow
+     graphite       professional: graphite neutrals, one precise teal accent
+     original-plus  today's colours, every detail refined
+
+   Kept from the owner's Nov 3 review in all three: square controls (buttons,
+   fields), rectangular primary buttons, one chevron per dropdown. Text stays at
+   or above the 4.5:1 readability minimum (checked by tests/specs/looks-ext22). */
+
+/* ============================== AURORA ============================== */
+:root[data-look="aurora"]{
+  --page:#f3f5fb; --panel:rgba(255,255,255,0.86); --panel-2:#eef1f9; --sel:#e9edfb; --chip:#eef1f9;
+  --ink:#0b1020; --muted:#555b70; --muted-2:#646a80; --line:#dde2f0; --field-border:#c9d0e4;
+  --accent:#4f46e5; --accent-hover:#4338ca; --accent-on-tint:#4338ca; --accent-ring:rgba(79,70,229,0.28);
+  --accent-tint:rgba(79,70,229,0.10); --look-badge:#4b5170;
+  --btn-fill:#4f46e5; --btn-fill-hover:#4338ca; --btn-text:#ffffff; --brand-solid:#4f46e5;
+  --look-gradient:linear-gradient(135deg,#4f46e5 0%,#0e7490 100%);
+  --look-gradient-hover:linear-gradient(135deg,#4338ca 0%,#155e75 100%);
+  --navy:#0b1020; --teal:#4f46e5; --copper:#4f46e5;
+  --shadow:0 10px 40px rgba(30,41,99,0.10); --shadow-sm:0 1px 3px rgba(30,41,99,0.08);
+  --look-panel-shadow:0 1px 2px rgba(30,41,99,0.06), 0 8px 28px rgba(30,41,99,0.06);
+  --look-glow:0 6px 22px rgba(79,70,229,0.28);
+  --look-page-bg:radial-gradient(1200px 500px at 85% -10%, rgba(14,116,144,0.10), transparent 60%), radial-gradient(900px 420px at 0% 0%, rgba(79,70,229,0.10), transparent 60%);
+  --look-blur:saturate(160%) blur(18px);
+  --radius:16px; --radius-sm:12px;
+}
+@media (prefers-color-scheme: dark){
+  :root[data-look="aurora"]:not([data-theme="light"]){
+    --page:#05070f; --panel:rgba(16,20,38,0.78); --panel-2:#151a30; --sel:#1a2040; --chip:#151a30;
+    --ink:#e9ecff; --muted:#a7add0; --muted-2:#8e94b6; --line:rgba(148,163,255,0.16); --field-border:#2c3358;
+    --accent:#9aa7ff; --accent-hover:#b7c0ff; --accent-on-tint:#b7c0ff; --accent-ring:rgba(154,167,255,0.35);
+    --accent-tint:rgba(129,140,248,0.16); --look-badge:#343b63;
+    --navy:#e9ecff; --teal:#9aa7ff; --copper:#9aa7ff;
+    --shadow:0 12px 44px rgba(0,0,0,0.55); --shadow-sm:0 1px 3px rgba(0,0,0,0.5);
+    --look-panel-shadow:0 0 0 1px rgba(148,163,255,0.05), 0 12px 40px rgba(0,0,0,0.45);
+    --look-glow:0 6px 26px rgba(99,102,241,0.45);
+    --look-page-bg:radial-gradient(1100px 520px at 90% -10%, rgba(6,182,212,0.16), transparent 60%), radial-gradient(900px 480px at -5% 0%, rgba(99,102,241,0.22), transparent 60%);
+    --danger-bg:#2a1420; --warn-bg:#2a2214; --good-bg:#0f2a21; --good:#4ade80; --danger:#ff8a8a; --warn:#fbbf24;
+  }
+}
+:root[data-look="aurora"][data-theme="dark"]{
+  --page:#05070f; --panel:rgba(16,20,38,0.78); --panel-2:#151a30; --sel:#1a2040; --chip:#151a30;
+  --ink:#e9ecff; --muted:#a7add0; --muted-2:#8e94b6; --line:rgba(148,163,255,0.16); --field-border:#2c3358;
+  --accent:#9aa7ff; --accent-hover:#b7c0ff; --accent-on-tint:#b7c0ff; --accent-ring:rgba(154,167,255,0.35);
+  --accent-tint:rgba(129,140,248,0.16); --look-badge:#343b63;
+  --navy:#e9ecff; --teal:#9aa7ff; --copper:#9aa7ff;
+  --shadow:0 12px 44px rgba(0,0,0,0.55); --shadow-sm:0 1px 3px rgba(0,0,0,0.5);
+  --look-panel-shadow:0 0 0 1px rgba(148,163,255,0.05), 0 12px 40px rgba(0,0,0,0.45);
+  --look-glow:0 6px 26px rgba(99,102,241,0.45);
+  --look-page-bg:radial-gradient(1100px 520px at 90% -10%, rgba(6,182,212,0.16), transparent 60%), radial-gradient(900px 480px at -5% 0%, rgba(99,102,241,0.22), transparent 60%);
+  --danger-bg:#2a1420; --warn-bg:#2a2214; --good-bg:#0f2a21; --good:#4ade80; --danger:#ff8a8a; --warn:#fbbf24;
+}
+/* frosted surfaces where the browser supports it */
+:root[data-look="aurora"] section.panel,
+:root[data-look="aurora"] header.topbar{ -webkit-backdrop-filter:var(--look-blur); backdrop-filter:var(--look-blur); }
+:root[data-look="aurora"] button:not(.secondary):not(.approve):not(.deny):not(.dismissBtn):not(.groupToggle):not(.stat):not(.pinBtn):not(.sidebarLink),
+:root[data-look="aurora"] #refreshBtn{ background-color:var(--btn-fill); background-image:var(--look-gradient); border-color:transparent; }
+:root[data-look="aurora"] button:not(.secondary):not(.approve):not(.deny):not(.dismissBtn):not(.groupToggle):not(.stat):not(.pinBtn):not(.sidebarLink):hover:not(:disabled),
+:root[data-look="aurora"] #refreshBtn:hover{ background-color:var(--btn-fill-hover); background-image:var(--look-gradient-hover); }
+:root[data-look="aurora"] .stat .num{ background:var(--look-gradient); -webkit-background-clip:text; background-clip:text; color:transparent; }
+:root[data-look="aurora"] .stat.statCritical .num, :root[data-look="aurora"] .stat.statWarn .num, :root[data-look="aurora"] .stat.statGood .num{ background:none; -webkit-background-clip:border-box; background-clip:border-box; }
+@media (prefers-color-scheme: dark){
+  :root[data-look="aurora"]:not([data-theme="light"]) .stat .num{ background:linear-gradient(135deg,#c7d2fe,#67e8f9); -webkit-background-clip:text; background-clip:text; }
+}
+:root[data-look="aurora"][data-theme="dark"] .stat .num{ background:linear-gradient(135deg,#c7d2fe,#67e8f9); -webkit-background-clip:text; background-clip:text; }
+
+/* ============================== GRAPHITE ============================== */
+:root[data-look="graphite"]{
+  --page:#f1f2f4; --panel:#ffffff; --panel-2:#f5f6f8; --sel:#eceef2; --chip:#f5f6f8;
+  --ink:#16181d; --muted:#5a606c; --muted-2:#5f6571; --line:#e0e3e8; --field-border:#c9ced7;
+  --accent:#0f766e; --accent-hover:#115e59; --accent-on-tint:#115e59; --accent-ring:rgba(15,118,110,0.28);
+  --accent-tint:rgba(15,118,110,0.09); --look-badge:#4a505b;
+  --btn-fill:#16181d; --btn-fill-hover:#2c3038; --btn-text:#ffffff; --brand-solid:#16181d;
+  --navy:#16181d; --teal:#0f766e; --copper:#0f766e;
+  --shadow:0 8px 30px rgba(16,18,23,0.08); --shadow-sm:0 1px 2px rgba(16,18,23,0.06);
+  --look-panel-shadow:0 1px 2px rgba(16,18,23,0.05);
+  --look-glow:0 4px 14px rgba(16,18,23,0.18);
+  --look-page-bg:none;
+  --radius:10px; --radius-sm:8px;
+}
+@media (prefers-color-scheme: dark){
+  :root[data-look="graphite"]:not([data-theme="light"]){
+    --page:#0c0e11; --panel:#14171c; --panel-2:#1b1f26; --sel:#20252d; --chip:#1b1f26;
+    --ink:#eceef2; --muted:#a3a9b5; --muted-2:#8b919d; --line:#272c34; --field-border:#353b45;
+    --accent:#2dd4bf; --accent-hover:#5eead4; --accent-on-tint:#5eead4; --accent-ring:rgba(45,212,191,0.32);
+    --accent-tint:rgba(45,212,191,0.12); --look-badge:#39404b;
+    --btn-fill:#e9ecf1; --btn-fill-hover:#ffffff; --btn-text:#0c0e11; --brand-solid:#e9ecf1;
+    --navy:#eceef2; --teal:#2dd4bf; --copper:#2dd4bf;
+    --shadow:0 10px 36px rgba(0,0,0,0.5); --shadow-sm:0 1px 2px rgba(0,0,0,0.45);
+    --look-panel-shadow:0 1px 0 rgba(255,255,255,0.03) inset;
+    --look-glow:0 4px 16px rgba(0,0,0,0.5);
+    --danger-bg:#2b1717; --warn-bg:#2a2314; --good-bg:#0f2620; --good:#34d399; --danger:#ff8a80; --warn:#fbbf24;
+  }
+}
+:root[data-look="graphite"][data-theme="dark"]{
+  --page:#0c0e11; --panel:#14171c; --panel-2:#1b1f26; --sel:#20252d; --chip:#1b1f26;
+  --ink:#eceef2; --muted:#a3a9b5; --muted-2:#8b919d; --line:#272c34; --field-border:#353b45;
+  --accent:#2dd4bf; --accent-hover:#5eead4; --accent-on-tint:#5eead4; --accent-ring:rgba(45,212,191,0.32);
+  --accent-tint:rgba(45,212,191,0.12); --look-badge:#39404b;
+  --btn-fill:#e9ecf1; --btn-fill-hover:#ffffff; --btn-text:#0c0e11; --brand-solid:#e9ecf1;
+  --navy:#eceef2; --teal:#2dd4bf; --copper:#2dd4bf;
+  --shadow:0 10px 36px rgba(0,0,0,0.5); --shadow-sm:0 1px 2px rgba(0,0,0,0.45);
+  --look-panel-shadow:0 1px 0 rgba(255,255,255,0.03) inset;
+  --look-glow:0 4px 16px rgba(0,0,0,0.5);
+  --danger-bg:#2b1717; --warn-bg:#2a2314; --good-bg:#0f2620; --good:#34d399; --danger:#ff8a80; --warn:#fbbf24;
+}
+/* coloured action buttons keep white text whatever the primary text colour is */
+:root[data-look="graphite"] button.approve, :root[data-look="graphite"] button.deny{ color:#ffffff; }
+
+/* ============================ ORIGINAL+ ============================== */
+:root[data-look="original-plus"]{
+  --accent-tint:rgba(0,113,227,0.09); --muted-2:#6e6e73; --look-badge:#636366;
+  --look-panel-shadow:0 1px 2px rgba(0,0,0,0.04), 0 6px 20px rgba(0,0,0,0.04);
+  --look-glow:0 4px 14px rgba(0,113,227,0.25);
+  --look-page-bg:none;
+}
+@media (prefers-color-scheme: dark){
+  :root[data-look="original-plus"]:not([data-theme="light"]){ --accent-tint:rgba(41,151,255,0.15); --muted-2:#86868b; --look-badge:#48484a; --look-panel-shadow:0 1px 0 rgba(255,255,255,0.04) inset; --look-glow:0 4px 16px rgba(0,0,0,0.5); }
+}
+:root[data-look="original-plus"][data-theme="dark"]{ --accent-tint:rgba(41,151,255,0.15); --muted-2:#86868b; --look-badge:#48484a; --look-panel-shadow:0 1px 0 rgba(255,255,255,0.04) inset; --look-glow:0 4px 16px rgba(0,0,0,0.5); }
+
+/* ===================== shared refinements (all three) ===================== */
+:root[data-look] body{ background-color:var(--page); background-image:var(--look-page-bg); background-attachment:fixed; }
+:root[data-look] .contentArea{ background:transparent; }
+:root[data-look] section.panel{ border-color:var(--line); border-radius:var(--radius); box-shadow:var(--look-panel-shadow); }
+:root[data-look] header.topbar{ background:var(--panel); border-bottom-color:var(--line); }
+:root[data-look] .sidebar{ background:transparent; border-right-color:var(--line); }
+
+/* the page you are on: a tinted row with an accent bar, instead of a solid block */
+:root[data-look] .sidebarLink{ position:relative; transition:background-color .16s ease, color .16s ease; }
+:root[data-look] .sidebarLink.active{ background:var(--accent-tint); color:var(--accent-on-tint); font-weight:600; }
+:root[data-look] .sidebarLink.active .pageIcon{ color:var(--accent-on-tint); }
+:root[data-look] .sidebarLink.active::before{ content:""; position:absolute; left:-2px; top:7px; bottom:7px; width:3px; border-radius:3px; background:var(--accent); }
+:root[data-look] .sidebarBadge{ background:var(--look-badge); color:#ffffff; }
+:root[data-look] .sidebarLink.active .sidebarBadge{ background:var(--accent); color:var(--panel); }
+:root[data-look] .sidebarLink.active .pinBtn{ color:var(--accent-on-tint); }
+:root[data-look] .sidebarLink:hover:not(.active){ background:var(--panel-2); }
+
+/* buttons: clear hover and press feedback; one visible focus ring */
+:root[data-look] button{ transition:background .16s ease, box-shadow .16s ease, transform .12s ease, border-color .16s ease, color .16s ease; }
+:root[data-look] button:not(.secondary):not(.dismissBtn):not(.groupToggle):not(.stat):not(.pinBtn):not(.sidebarLink):hover:not(:disabled){ box-shadow:var(--look-glow); }
+:root[data-look] button.secondary:hover:not(:disabled){ border-color:var(--accent); }
+:root[data-look] button:focus-visible, :root[data-look] a:focus-visible, :root[data-look] [tabindex]:focus-visible{
+  outline:2px solid var(--accent); outline-offset:2px; box-shadow:0 0 0 5px var(--accent-ring);
+}
+:root[data-look] input:focus, :root[data-look] select:focus, :root[data-look] textarea:focus{ box-shadow:0 0 0 4px var(--accent-ring); }
+:root[data-look] input, :root[data-look] select, :root[data-look] textarea{ transition:border-color .16s ease, box-shadow .16s ease; }
+
+/* figures: steady digits, tiles that answer the pointer */
+:root[data-look] .stat{ background:var(--panel); border:1px solid var(--line); box-shadow:var(--shadow-sm); transition:transform .16s ease, box-shadow .16s ease, border-color .16s ease; }
+:root[data-look] .stat .num, :root[data-look] td.num-cell, :root[data-look] .num-cell{ font-variant-numeric:tabular-nums; }
+:root[data-look] button.stat.statLink:hover{ border-color:var(--accent); box-shadow:var(--look-glow); }
+:root[data-look] .stat.statCritical{ background:var(--danger-bg); border-color:var(--danger); }
+:root[data-look] .stat.statWarn{ background:var(--warn-bg); border-color:var(--warn); }
+:root[data-look] .stat.statGood{ background:var(--good-bg); border-color:var(--good); }
+
+/* Graphite: a fine accent line on top of each figure tile (after the shared tile rule) */
+:root[data-look="graphite"] .stat:not(.statCritical):not(.statWarn):not(.statGood){ border-top:2px solid var(--accent); }
+
+/* tables: a quiet header, a row highlight under the pointer */
+:root[data-look] table th{ color:var(--muted); font-weight:600; font-size:11.5px; letter-spacing:0.02em; }
+:root[data-look] tbody tr{ transition:background-color .12s ease; }
+:root[data-look] tbody tr:hover{ background:var(--accent-tint); }
+
+/* badges: a small status dot so state reads at a glance, not only by colour */
+:root[data-look] .badge{ display:inline-flex; align-items:center; gap:5px; }
+:root[data-look] .badge.sev-high::before, :root[data-look] .badge.sev-critical::before,
+:root[data-look] .badge.sev-medium::before, :root[data-look] .badge.sev-low::before{
+  content:""; width:6px; height:6px; border-radius:50%; background:currentColor; flex:none;
+}
+
+/* thin, theme-coloured scrollbars (WebKit / Safari) */
+:root[data-look] ::-webkit-scrollbar{ width:10px; height:10px; }
+:root[data-look] ::-webkit-scrollbar-thumb{ background:var(--field-border); border-radius:10px; border:2px solid var(--page); }
+:root[data-look] ::-webkit-scrollbar-track{ background:transparent; }
+
+/* switching pages: the new page rises in with a short fade; tiles follow one by one */
+@media (prefers-reduced-motion: no-preference){
+  :root[data-look] button:active:not(:disabled){ transform:scale(0.98); }
+  :root[data-look] button.stat.statLink:hover{ transform:translateY(-2px); }
+  :root[data-look] section.panel.activePage{ animation:heLookIn .32s cubic-bezier(.2,.7,.2,1) both; }
+  :root[data-look] section.panel.activePage .statRow > *{ animation:heLookIn .38s cubic-bezier(.2,.7,.2,1) both; }
+  :root[data-look] section.panel.activePage .statRow > *:nth-child(2){ animation-delay:.03s; }
+  :root[data-look] section.panel.activePage .statRow > *:nth-child(3){ animation-delay:.06s; }
+  :root[data-look] section.panel.activePage .statRow > *:nth-child(4){ animation-delay:.09s; }
+  :root[data-look] section.panel.activePage .statRow > *:nth-child(n+5){ animation-delay:.12s; }
+  @keyframes heLookIn{ from{ opacity:0; transform:translateY(10px); } to{ opacity:1; transform:none; } }
+}
+
+/* Windows high-contrast / forced colours: leave the system in charge */
+@media (forced-colors: active){
+  :root[data-look] .sidebarLink.active::before{ background:Highlight; }
+  :root[data-look] .stat .num{ color:CanvasText; background:none; }
+}

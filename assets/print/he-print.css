@@ -1,0 +1,15 @@
+/* Printing on the owner's printers (Nov 23).
+   Loaded for print only (media="print"); the screen is never affected.
+   Brother MFC-J1365DW (colour inkjet, US Letter): every printout is black text and
+   black lines on white paper, so only the black cartridge is used, whatever look,
+   colour or dark mode the dashboard shows on screen. No backgrounds are printed. */
+@media print{
+  html, body{ background:#fff !important; }
+  .printView{ print-color-adjust:economy; -webkit-print-color-adjust:economy; }
+  .printView, .printView *{
+    color:#000 !important; background:transparent !important; border-color:#000 !important;
+    box-shadow:none !important; text-shadow:none !important; filter:none !important;
+    -webkit-text-fill-color:#000 !important;
+  }
+  .printView th, .printView td{ border-bottom-width:0.5pt; }
+}

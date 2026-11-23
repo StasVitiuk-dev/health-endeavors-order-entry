@@ -312,6 +312,8 @@
   // pages, repeat the column headings on every page, and put totals on the last
   // page only. A renderer consumes this; this module writes no file.
   const US_LETTER = Object.freeze({ page: 'us-letter', widthPx: 816, heightPx: 1056, marginPx: 48, rowsPerPage: 22 });
+  // Nov 23: the owner's Rollo label printer (4 x 6 inch thermal labels, black only).
+  const LABEL_4X6 = Object.freeze({ page: 'label-4x6', widthPx: 384, heightPx: 576, marginPx: 12, rowsPerPage: 7 });
   function paginate(items, perPage) {
     // A page size that is not a whole number above zero would never advance the
     // loop below (it hung the page), so anything else falls back to the default.
@@ -394,12 +396,15 @@
   }
   function packingSlipPrint(slip, opts) {
     const s = slip || {}; const o = opts || {};
-    const per = o.rowsPerPage || (US_LETTER.rowsPerPage + 4); // no totals block, a few more rows fit
+    const label = o.page === LABEL_4X6.page;
+    // A 4 x 6 label is too narrow for prices: a label slip never shows them.
+    const per = o.rowsPerPage || (label ? LABEL_4X6.rowsPerPage : US_LETTER.rowsPerPage + 4); // no totals block, a few more rows fit
     const pages = paginate(s.lines, per);
-    const headings = s.showPrices ? ['Item', 'Qty', 'Lot', 'Unit'] : ['Item', 'Qty', 'Lot'];
+    const showPrices = s.showPrices === true && !label;
+    const headings = showPrices ? ['Item', 'Qty', 'Lot', 'Unit'] : ['Item', 'Qty', 'Lot'];
     return {
-      kind: 'packing_slip_print', label: 'SIMULATED', renderedPdf: false, page: US_LETTER,
-      showPrices: s.showPrices === true, pageCount: pages.length,
+      kind: 'packing_slip_print', label: 'SIMULATED', renderedPdf: false, page: label ? LABEL_4X6 : US_LETTER,
+      showPrices: showPrices, pageCount: pages.length,
       pages: pages.map(function (rows, i) {
         return { pageNo: i + 1, totalPages: pages.length, headings: headings, repeatHeadings: true, rows: rows };
       }),
@@ -620,5 +625,5 @@
     return new Date(base.getTime() + days * 86400000).toISOString().slice(0, 10);
   }
 
-  return { STATES, ROLES_MAY_ISSUE, PAYMENT_TERMS, US_LETTER, BUSINESS_HEADER, MISSING_SEQUENCE_CONTRACT, computeTotals, draftInvoice, reviseDraft, nextInvoiceNumber, createNumberSequence, invoiceHeader, issue, applyPayment, voidInvoice, creditNote, withOverdue, packingSlip, paginate, invoicePrint, totalsLines, taxIsPending, packingSlipPrint, termsForAccount, dueDateFor, businessDay, draftFromOrder, draftsForOrders, openDesk, deskConfirmTax, deskIssue, deskVoid };
+  return { STATES, ROLES_MAY_ISSUE, PAYMENT_TERMS, US_LETTER, LABEL_4X6, BUSINESS_HEADER, MISSING_SEQUENCE_CONTRACT, computeTotals, draftInvoice, reviseDraft, nextInvoiceNumber, createNumberSequence, invoiceHeader, issue, applyPayment, voidInvoice, creditNote, withOverdue, packingSlip, paginate, invoicePrint, totalsLines, taxIsPending, packingSlipPrint, termsForAccount, dueDateFor, businessDay, draftFromOrder, draftsForOrders, openDesk, deskConfirmTax, deskIssue, deskVoid };
 }));
