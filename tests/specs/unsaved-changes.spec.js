@@ -64,7 +64,9 @@ test.describe('dashboard', () => {
     await other.goto(page.url());
     await expect(other.locator('#dash')).toBeVisible();
     await other.click('#signout');
-    await expect(page.locator('#loginScreen')).toBeVisible();
+    // the first tab reloads to the sign-in screen: a full page load, slower when
+    // many tests run at once (the Nov 23 full run waited past 5 s)
+    await expect(page.locator('#loginScreen')).toBeVisible({ timeout: 15000 });
     await expect(page.locator('#loginMsg')).toContainText('You were signed out');
     await expect(page.locator('#reminderTitle')).toHaveValue('');
     expect(dialogs).toEqual([]);
