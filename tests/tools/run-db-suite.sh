@@ -54,6 +54,18 @@ step "nightly check on Home" bash "$LT/integrity_home_test.sh" $C
 step "drift check (Query H)" bash "$LT/drift_check_test.sh" $C
 step "report totals rollback lifecycle" bash "$LT/report_totals_rollback_test.sh" $C
 step "random interleavings (seed 909, 40 rounds)" bash "$LT/random_interleavings.sh" 909 40 current "$C -d he_real"
+# Nov 23: the November drafts' own tests (they were run by hand only; ~50 s together on a clean he_real)
+step "invoices (drafts/32)" bash "$LT/invoices_test.sh" $C
+step "stock-count approval (drafts/34)" bash "$LT/stock_count_adjustments_test.sh" $C
+step "stock-count apply once" bash "$LT/stock_count_apply_once_test.sh" $C
+step "supplier documents (drafts/36)" bash "$LT/supplier_documents_test.sh" $C
+step "supplier document files (drafts/38)" bash "$LT/supplier_document_files_test.sh" $C
+step "partial receiving and returns (drafts/40)" bash "$LT/partial_receiving_test.sh" $C
+step "Shopify payouts and money differences (drafts/42)" bash "$LT/shopify_payouts_test.sh" $C
+step "staff read purchase orders (drafts/44)" bash "$LT/staff_read_purchase_orders_test.sh" $C
+step "confirmed tax rates (drafts/46)" bash "$LT/tax_rates_test.sh" $C
+step "report day cutoff (Query I)" bash "$LT/report_day_cutoff_test.sh" $C
+step "restore with the November drafts" bash "$LT/restore_with_drafts_test.sh" $C
 step "stress (5 runs)" bash "$LT/stress_test.sh" 5 $C -d he_real
 step "S29 lock cycle, forced order (INT-4; must not deadlock)" bash "$LT/s29_lock_cycle_repro.sh" $C -d he_real
 step "inventory property model (30 seeds x 60 operations vs reference model)" node "$ROOT/tests/db/inventory-model.js" $C --seeds 1-30 --ops 60 --quiet
