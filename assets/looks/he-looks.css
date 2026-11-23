@@ -126,9 +126,10 @@
   --look-page-bg:none;
 }
 @media (prefers-color-scheme: dark){
-  :root[data-look="original-plus"]:not([data-theme="light"]){ --accent-tint:rgba(41,151,255,0.15); --muted-2:#86868b; --look-badge:#48484a; --look-panel-shadow:0 1px 0 rgba(255,255,255,0.04) inset; --look-glow:0 4px 16px rgba(0,0,0,0.5); }
+  /* dark --muted-2 is #98989d (was #86868b: 4.26:1 for the pin star on a hovered menu row, found on GitHub CI) */
+  :root[data-look="original-plus"]:not([data-theme="light"]){ --accent-tint:rgba(41,151,255,0.15); --muted-2:#98989d; --look-badge:#48484a; --look-panel-shadow:0 1px 0 rgba(255,255,255,0.04) inset; --look-glow:0 4px 16px rgba(0,0,0,0.5); }
 }
-:root[data-look="original-plus"][data-theme="dark"]{ --accent-tint:rgba(41,151,255,0.15); --muted-2:#86868b; --look-badge:#48484a; --look-panel-shadow:0 1px 0 rgba(255,255,255,0.04) inset; --look-glow:0 4px 16px rgba(0,0,0,0.5); }
+:root[data-look="original-plus"][data-theme="dark"]{ --accent-tint:rgba(41,151,255,0.15); --muted-2:#98989d; --look-badge:#48484a; --look-panel-shadow:0 1px 0 rgba(255,255,255,0.04) inset; --look-glow:0 4px 16px rgba(0,0,0,0.5); }
 
 /* ===================== shared refinements (all three) ===================== */
 :root[data-look] body{ background-color:var(--page); background-image:var(--look-page-bg); background-attachment:fixed; }

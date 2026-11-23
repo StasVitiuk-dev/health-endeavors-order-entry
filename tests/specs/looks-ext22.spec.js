@@ -93,6 +93,16 @@ for (const look of LOOKS) {
         const kept = gradient ? real.filter(x => !/^div\.num/.test(x)) : real;
         kept.forEach(x => fails.push(scheme + ' ' + id + ': ' + x));
       }
+      // a menu row under the mouse (hover background), on purpose: where the mouse
+      // rests after a page change depends on how text is drawn, so GitHub's machine
+      // once measured the pin star on a hovered row and this one did not
+      for (const sel of ['#sidebarGroups .sidebarLink:not(.active)', '#sidebarGroups .sidebarLink.active']) {
+        const row = page.locator(sel).first();
+        await row.scrollIntoViewIfNeeded(); await row.hover();
+        const f = await row.evaluate((el, src) => (new Function('return ' + src)())(el), contrastFailures.toString());
+        f.forEach(x => fails.push(scheme + ' hovered menu row' + (sel.includes('.active)') ? '' : ' (current page)') + ': ' + x));
+      }
+      await page.mouse.move(600, 5);
     }
     expect(fails).toEqual([]);
   });
