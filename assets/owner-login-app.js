@@ -2941,6 +2941,7 @@
     function bkMonthRows() { return (bkReports || []).filter(r => bkMonthOf(r) === bkMonth).sort((a, b) => String(a.report_date).localeCompare(String(b.report_date))); }
     function renderBackupsPage() {
       const host = document.getElementById('backupsPanel'); if (!host) return;
+      preloadPrintFonts();
       const months = [...new Set((bkReports || []).map(bkMonthOf).filter(m => /^\d{4}-\d{2}$/.test(m)))].sort().reverse();
       if (!months.includes(bkMonth)) bkMonth = months[0] || '';
       const rows = bkMonthRows();
@@ -3950,6 +3951,7 @@
       loadInvoicePreview(); announce(invoiceDeskMessage); refocusLike(t);
     });
     function loadInvoicePreview() {
+      if (typeof invoicePreviewOn === 'function' && invoicePreviewOn()) preloadPrintFonts();
       const host = document.getElementById('invoicePreviewHost'); if (!host) return;
       if (!(typeof invoicePreviewOn === 'function' && invoicePreviewOn())) { host.replaceChildren(); return; }
       const inv = opsInvoiceMod();
@@ -4073,9 +4075,20 @@
         h('div', { class: 'printBrandTitle' }, title));
     }
     function printFoot(text) {
-      return h('div', { class: 'printFoot' }, h('img', { class: 'printFootMark', src: PRINT_BRAND.swirl, alt: '' }), h('span', null, text));
+      return h('div', { class: 'printFoot' }, h('img', { class: 'printFootMark', src: PRINT_BRAND.swirl, alt: '' }), h('span', null, text),
+        h('span', { class: 'printFootSign', 'data-printsignoff': '' }, PRINT_SIGNOFF));
     }
-    const PRINT_TAGLINE = 'Allow yourself to indulge in the Sea of Vitality and Beauty. Thank you for your order.';
+    // the closing words under the thank-you line, in small capitals (owner's choice, Nov 23)
+    const PRINT_SIGNOFF = 'We appreciate your business';
+    const PRINT_TAGLINE = 'Allow yourself to indulge in the Sea of Vitality and Beauty.';
+    // the printout typefaces are fetched ahead, so the first Print already uses them
+    function preloadPrintFonts() {
+      try {
+        if (!document.fonts || typeof document.fonts.load !== 'function') return;
+        ['500 12px "HE Display"', '600 12px "HE Display"', 'italic 500 12px "HE Display"', '300 12px "HE Text"', '400 12px "HE Text"', '500 12px "HE Text"']
+          .forEach(f => { document.fonts.load(f).catch(() => {}); });
+      } catch (e) { /* the printout falls back to the system fonts */ }
+    }
     function renderInvoicePrint() {
       const host = document.getElementById('invoicePrintHost'); if (!host) return;
       const inv = opsInvoiceMod(); if (!inv) return;
@@ -4101,7 +4114,7 @@
               h('div', null, h('span', { class: 'printLabel' }, 'Issue date: '), doc.issueDate ? String(doc.issueDate).slice(0, 10) : 'not issued'),
               h('div', null, h('span', { class: 'printLabel' }, 'Terms: '), termsWord),
               h('div', null, h('span', { class: 'printLabel' }, 'Due: '), doc.dueDate || (doc.issueDate ? '—' : 'set when issued')))) : null,
-          h('table', null,
+          h('table', { class: 'printItems' },
             h('thead', null, h('tr', null, p.headings.map(function (x) { return h('th', null, x); }))),
             h('tbody', null, p.rows.map(function (l) {
               return h('tr', null, h('td', null, l.sku || '—', l.description ? h('div', null, l.description) : null), h('td', null, String(l.quantity)),
@@ -4113,7 +4126,7 @@
               h('span', null, l.label), h('span', null, l.amount == null ? l.text : fmtMoney(l.amount, cur) + (l.text ? ' — ' + l.text : '')))),
             doc.taxPending ? h('div', { 'data-printnote': 'tax-pending' }, 'DRAFT — the tax is pending and is not included in any figure above. Not a final invoice.') : null,
             h('div', { class: 'printRemit' }, doc.header.remitTo)) : null,
-          p.showTotals ? printFoot('Thank you for your business.') : null);
+          p.showTotals ? printFoot('Thank you for choosing Health Endeavors.') : null);
       });
       host.replaceChildren(h('div', { class: 'printDoc' }, pages));
       try { window.print(); } catch (e) {}
@@ -4159,7 +4172,7 @@
               if (doc.showPrices) cells.push(h('td', null, l.unitPrice === undefined ? '—' : fmtMoney(l.unitPrice, 'USD')));
               return h('tr', null, cells);
             }))),
-          p.pageNo === p.totalPages ? printFoot(label ? 'Thank you for your order.' : PRINT_TAGLINE) : null);
+          p.pageNo === p.totalPages ? printFoot(label ? 'Thank you for choosing Health Endeavors.' : PRINT_TAGLINE) : null);
       });
       host.replaceChildren(h('div', { class: 'printDoc' }, pages));
       try { window.print(); } catch (e) {}
@@ -4186,6 +4199,7 @@
     function loadOrderSlipsHost() {
       const host = document.getElementById('orderSlipsHost'); if (!host) return;
       if (!orderSlipsOn()) { host.replaceChildren(); return; }
+      preloadPrintFonts();
       host.replaceChildren(h('div', { class: 'scanCard u-mb-10', 'data-slipsbox': '1' },
         h('div', { class: 'scanCardHead' }, 'Packing slips'),
         h('p', { class: 'hint u-m-0' }, 'Each order below has a 4×6 slip for the Rollo label printer and a Letter slip for the Brother. In the print window choose the printer and the paper size (4 × 6 for the Rollo), margins None, scale 100%. Lot is left blank to write by hand.'),
@@ -4219,7 +4233,7 @@
               h('td', label ? { class: 'labelQty' } : null, String(l.quantity)),
               h('td', null, '________'))))),
           p.pageNo === p.totalPages ? h('div', { class: 'labelFoot' }, 'Packed by: ________   Checked: ☐') : null,
-          p.pageNo === p.totalPages ? printFoot(label ? 'Thank you for your order.' : PRINT_TAGLINE) : null);
+          p.pageNo === p.totalPages ? printFoot(label ? 'Thank you for choosing Health Endeavors.' : PRINT_TAGLINE) : null);
       });
       host.replaceChildren(h('div', { class: 'printDoc' }, pages));
       return true;
