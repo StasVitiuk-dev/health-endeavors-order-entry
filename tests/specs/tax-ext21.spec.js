@@ -191,3 +191,45 @@ test('a draft made from an order with no tax rule is pending and tells the revie
   expect(r.checks.join(' ')).toMatch(/tax is still pending/);
   expect(r.draft.taxPendingReasons).toEqual(['no tax rule was supplied for this order']);
 });
+
+// Nov 23 (owner: "I don't want to charge too little or too much"): Illinois rates can change on
+// January 1 and July 1 (IDOR). A confirmed rate carries the day it starts, and it is used only
+// for sales on or after that day; after the next January 1 / July 1 it must be re-checked.
+const DATED = { place: 'Example City A, IL', rate: 0.0875, confirmedBy: 'owner', confirmedAt: '2026-11-24T15:00:00Z', effectiveFrom: '2026-07-01' };
+
+test('a dated rate applies only from its start day, and never to an earlier sale', () => {
+  expect(T.computeRate({ rateSetting: DATED, asOf: '2026-12-01' }).rateStatus).toBe('CONFIRMED');
+  const early = T.computeRate({ rateSetting: DATED, asOf: '2026-06-30' });
+  expect(early.rateStatus).toBe('PENDING');
+  expect(early.reason).toMatch(/starts on 2026-07-01/);
+  const ended = T.computeRate({ rateSetting: Object.assign({}, DATED, { effectiveUntil: '2026-12-31' }), asOf: '2027-01-01' });
+  expect(ended.rateStatus).toBe('PENDING');
+  expect(ended.reason).toMatch(/ended on 2026-12-31/);
+  expect(T.checkRateSetting(Object.assign({}, DATED, { effectiveFrom: 'next week' })).ok).toBe(false);
+  expect(T.checkRateSetting(Object.assign({}, DATED, { effectiveUntil: '2026-01-01' })).reason).toMatch(/ends before it starts/);
+});
+
+test('after January 1 or July 1 the rate must be re-checked before it is used again', () => {
+  expect(T.recheckDue(DATED)).toBe('2027-01-01');
+  expect(T.recheckDue(Object.assign({}, DATED, { confirmedAt: '2026-03-02' , effectiveFrom: '2026-01-01' }))).toBe('2026-07-01');
+  const due = T.computeTax({ subtotal: 100, shipping: { amount: 0 }, rateSetting: DATED, asOf: '2027-01-01' });
+  expect(due.status).toBe('PENDING');
+  expect(due.tax).toBeNull();
+  expect(due.note).toMatch(/re-check the rate for Example City A, IL \(last checked 2026-11-24, re-check due 2027-01-01\)/);
+  // re-checked on Jan 2: usable again until July 1
+  const again = Object.assign({}, DATED, { recheckedAt: '2027-01-02' });
+  expect(T.computeTax({ subtotal: 100, shipping: { amount: 0 }, rateSetting: again, asOf: '2027-03-01' }).tax).toBe(8.75);
+  expect(T.computeTax({ subtotal: 100, shipping: { amount: 0 }, rateSetting: again, asOf: '2027-07-01' }).status).toBe('PENDING');
+  // no sale date given: the date rules cannot be applied and nothing changes (earlier behaviour)
+  expect(T.computeRate({ rateSetting: DATED }).rateStatus).toBe('CONFIRMED');
+});
+
+test('two rates for one place: the one in effect on the sale day is used', () => {
+  const old = Object.assign({}, DATED, { rate: 0.08, effectiveFrom: '2026-01-01', effectiveUntil: '2026-06-30', confirmedAt: '2026-01-02' });
+  const cur = DATED;
+  expect(T.rateSettingFor([old, cur], 'example city a, il', '2026-03-01').rate).toBe(0.08);
+  expect(T.rateSettingFor([old, cur], 'Example City A, IL', '2026-08-01').rate).toBe(0.0875);
+  // nothing in effect: a setting still comes back so its reason reaches the person
+  const r = T.computeRate({ rateSetting: T.rateSettingFor([cur], 'Example City A, IL', '2025-12-01'), asOf: '2025-12-01' });
+  expect(r.reason).toMatch(/starts on 2026-07-01/);
+});
