@@ -86,6 +86,22 @@ task (`CLAUDE.md`), a business email address on the business's own domain, an un
 every marketing email, and sending only to people who ordered or subscribed. Whether Shopify's own
 email tool should be the sender for customer marketing is to be checked before a second sender is built.
 
+### Follow-up answers the same day
+
+- **Stores, how approval works:** the owner approves the general text once, then presses Approve and
+  chooses **how many stores** it goes to and **which first: the nearest, or the best match**. Finding
+  stores through Google's map and store listings is wanted. (Google offers an official paid service
+  for this; it needs the owner's own Google account and a key kept outside this repository. Prices
+  and terms are NOT verified here. OWNER DECISION REQUIRED when that step starts.)
+- **Stores, channels:** emails and visits only for now. No texts, no other messages.
+- **Order-update emails:** the owner asked what "let Shopify send them" means. Explained in chat:
+  Shopify itself emails the customer when an order is placed, shipped and delivered. To confirm:
+  the owner looks at Shopify → Settings → Notifications and sends a screenshot.
+- **Automatic daily printing:** the owner asked for a recommendation. Claude's recommendation: print
+  **yesterday's** day pack every morning at a fixed time (a finished day, with its saved recap), on
+  the Mac next to the printer, with the Home reminder as the safety net if the Mac was off.
+  OWNER DECISION REQUIRED: the time, and which Mac.
+
 ## 3b. Agents Claude suggests adding (PROPOSED, in order of value)
 
 | Agent | What it does | Sends anything? |
