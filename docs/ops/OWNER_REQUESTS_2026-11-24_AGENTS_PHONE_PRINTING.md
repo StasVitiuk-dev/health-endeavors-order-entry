@@ -90,7 +90,7 @@ email tool should be the sender for customer marketing is to be checked before a
 
 One product and one "story" in (what it is for, an ingredient, a customer's words); out come drafts:
 short posts, ad texts in a few variations, one email paragraph, a short video script and shot list, and
-a weekly plan of what to post when. Every draft passes a wording check for supplement claims (words
+a weekly plan of what to post when. Every draft passes the existing claim firewall for health or medical claims (words
 such as cure, treat or prevent are flagged) before the owner sees it. It never posts and never spends.
 Existing draft pages on example data: Content Planner, Ad Variants, Content Repurposing, Campaign Lab.
 
@@ -161,6 +161,29 @@ The owner also wants more from the content helper (posts and ads prepared faster
 | Receipt inbox | Turns a forwarded receipt email or a photo into an expense draft | No |
 | Morning summary | One message each morning: what needs the owner today | To the owner only |
 | Content helper | Turns one product story into post, ad and email drafts (the existing draft pages, on real products) | No |
+
+## 3d. Target and build order (DECIDED Nov 24: "let's try to finish it in 14 days, no longer")
+
+Correction recorded the same day: in chat Claude called the products "supplements" several times.
+The repository's own record (`assets/sales/he-sales-claims.js`) says Health Endeavors is a
+**body-care / skincare** brand, not a supplement or drug. The rule for wording is the same (no claim
+to treat, cure or heal); the remark about a supplement category approval on Amazon does not apply as
+stated. Told to the owner in chat. If the owner says otherwise, this note is corrected.
+
+Build order, planning estimate (building days; the owner's merges, database sessions, business email
+and seller accounts run alongside):
+
+| Days | Work |
+|---|---|
+| 1–2 | Store campaign: rules (BUILT Nov 24, branch `claude/store-campaigns`, no screen yet), then the screen, drafts only |
+| 3 | Receipt photo → expense draft; full client list to print; control room finished (approvals, diary) |
+| 4–5 | One stock count for all channels |
+| 6 | Reviews and email in the attention feed; morning summary |
+| 7–8 | Content helper: several options, ready looks, claim firewall on every draft, video scripts |
+| 9–10 | Store finder: import and scoring; the Google connection waits on the owner's account |
+| 11–12 | Customer email and review request drafts; Shopify notifications checked |
+| 13 | Real sending prepared as drafts for the owner's approval (server side, database drafts) |
+| 14 | Final pass: full test run, documents, set-ups with the owner (printing, database steps) |
 
 ## 4. Rough size (planning estimates, not promises)
 
