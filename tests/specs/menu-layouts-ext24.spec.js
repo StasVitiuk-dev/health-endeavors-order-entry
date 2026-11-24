@@ -2,7 +2,10 @@
 // of them: put some inside each other if it is the same topic"). The menu keeps
 // its look, headings and page names; a layout only puts same-topic pages inside
 // one another, where they show as a row of buttons at the top of the page.
-// Chosen on Feature Flags; "Today's menu" (as shipped) puts everything back.
+// Owner's decision (Nov 24): "let's go with A option": everyone starts with
+// "1. A little shorter". Chosen on Feature Flags; "Today's menu" puts every page
+// back on its own line. (The rest of the suite runs with the full menu: see
+// tests/helpers/dashboard.js, shippedMenu.)
 // assets/views/he-menu-layouts.js. Reads only; every value is made up.
 const M = require('../../assets/views/he-menu-layouts.js');
 const { test, expect, login, gotoPage, openMenuIfMobile } = require('../helpers/dashboard');
@@ -77,6 +80,15 @@ test.describe('the three shorter menus (no browser)', () => {
     }
     expect(M.find(null, 'x')).toBeNull(); expect(M.find({ groups: 'x' }, 'x')).toBeNull(); expect(M.holds(null, 'x')).toBe(false); expect(M.count(null)).toBe(0);
     expect(M.choices().map(c => c.key)).toEqual(['', 'a', 'b', 'c']);
+    // what a browser kept: nothing or something unreadable is the owner's default; 'today' is the full menu
+    expect(M.DEFAULT_KEY).toBe('a');
+    expect([null, undefined, '', 'zzz', 'constructor', 7, {}].map(M.fromStored)).toEqual(['a', 'a', 'a', 'a', 'a', 'a', 'a']);
+    expect(['today', 'a', 'b', 'c'].map(M.fromStored)).toEqual(['', 'a', 'b', 'c']);
+    expect(['', 'a', 'b', 'c', 'zzz', null].map(M.toStored)).toEqual(['today', 'a', 'b', 'c', 'today', 'today']);
+    expect(['', 'a', 'b', 'c'].map(k => M.fromStored(M.toStored(k)))).toEqual(['', 'a', 'b', 'c']);
+    // the owner's choice for every device: only a real choice counts
+    expect([{ layout: '' }, { layout: 'today' }, { layout: 'b' }].map(M.fromShared)).toEqual(['', '', 'b']);
+    expect([null, undefined, 'x', 7, [], {}, { layout: 'zzz' }, { layout: 7 }, { layout: null }].map(M.fromShared)).toEqual([null, null, null, null, null, null, null, null, null]);
     expect(M.build('b', [{ label: 'X', pages: [{ id: 'accountingPanel', label: 'Accounting' }, { id: 'accountingPanel', label: 'Twice' }] }]).groups).toEqual(
       [{ label: 'Finance', color: '', collapsible: false, pages: [{ id: 'accountingPanel', label: 'Accounting', tabs: [{ id: 'accountingPanel', label: 'Accounting' }] }] }]);
   });
@@ -89,16 +101,16 @@ const openEntry = async (page, id) => { await openMenuIfMobile(page); await page
 const noSideways = (page) => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1);
 
 test.describe('on the dashboard', () => {
-  test('as shipped: today\'s menu, no row of buttons, nothing stored', async ({ page, backend }) => {
+  test('with the full menu chosen: every page on its own line and no row of buttons', async ({ page, backend }) => {
     await login(page);
     await gotoPage(page, 'accountingPanel');
     await expect(page.locator('#menuTabs')).toHaveCount(0);
     await gotoPage(page, 'flagsPanel');
     await expect(page.locator('[data-menulayoutpicker]')).toHaveAttribute('data-menulayoutpicker', 'today');
     await expect(page.locator('[data-menulayout="today"]')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('[data-menulayout-lines]')).toHaveAttribute('data-menulayout-lines', '30');
     await openMenuIfMobile(page);
     expect(await page.locator('#sidebarGroups .sidebarLink[data-inside]').count()).toBe(0);
-    expect(await page.evaluate(() => localStorage.getItem('he_menu_layout'))).toBeNull();
     expect(backend.requests.filter(r => r.table === 'shared_settings' && !r.params.some(([k, v]) => k === 'limit' && v === '0'))).toEqual([]);
   });
 
@@ -143,7 +155,7 @@ test.describe('on the dashboard', () => {
     await openMenuIfMobile(page);
     await expect(page.locator('#sidebarGroups .sidebarLink[data-page="expensesPanel"]')).toHaveCount(1);
     expect(await page.locator('#sidebarGroups .sidebarLink[data-inside]').count()).toBe(0);
-    expect(await page.evaluate(() => localStorage.getItem('he_menu_layout'))).toBeNull();
+    expect(await page.evaluate(() => localStorage.getItem('he_menu_layout'))).toBe('today');
   });
 
   for (const k of ['a', 'b', 'c']) {
@@ -231,6 +243,67 @@ test.describe('on the dashboard', () => {
   });
 });
 
+test.describe('as shipped (owner, Nov 24: "let\'s go with A option")', () => {
+  test.use({ shippedMenu: true });
+
+  test('a browser that never chose starts with "1. A little shorter": 16 lines, same headings, nothing asked of the database', async ({ page, backend }) => {
+    await login(page);
+    expect(await page.evaluate(() => localStorage.getItem('he_menu_layout'))).toBeNull();
+    await openMenuIfMobile(page);
+    await expect(links(page)).toHaveCount(16);
+    await expect(page.locator('#sidebarGroups .groupLabel')).toHaveText(['Overview', 'Sales', 'Inventory', 'Finance', 'Operations', 'Customers & AI', 'Admin', 'Compliance']);
+    await expect(page.locator('#sidebarGroups .sidebarLink[data-page="expensesPanel"]')).toHaveCount(0);
+    await gotoPage(page, 'expensesPanel');                                      // through Accounting and its row of buttons
+    await expect(tabs(page)).toHaveText(['Accounting', 'Expenses', 'Tax Records']);
+    await expect(page.locator('#menuTabs [aria-current="page"] .menuTabName')).toHaveText('Expenses');
+    await gotoPage(page, 'flagsPanel');
+    await expect(page.locator('[data-menulayoutpicker]')).toHaveAttribute('data-menulayoutpicker', 'a');
+    await expect(page.locator('[data-menulayout="a"]')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('[data-menulayout-lines]')).toHaveAttribute('data-menulayout-lines', '16');
+    expect(backend.requests.filter(r => r.table === 'shared_settings' && !r.params.some(([k, v]) => k === 'limit' && v === '0'))).toEqual([]);
+    expect(backend.requests.filter(r => r.rpc === 'set_shared_setting')).toEqual([]);
+  });
+
+  test('"Today\'s menu" puts every page back on its own line, and that choice is kept after a reload', async ({ page }) => {
+    await login(page);
+    await gotoPage(page, 'flagsPanel');
+    await page.locator('[data-menulayout="today"]').click();
+    await expect(page.locator('#menuTabs')).toHaveCount(0);
+    await openMenuIfMobile(page);
+    await expect(links(page)).toHaveCount(30 - 4);                               // Compliance is folded as before: its 4 pages show when opened
+    await expect(page.locator('#sidebarGroups .sidebarLink[data-page="expensesPanel"]')).toHaveCount(1);
+    expect(await page.evaluate(() => localStorage.getItem('he_menu_layout'))).toBe('today');
+    await page.reload();
+    await expect(page.locator('section#flagsPanel')).toHaveClass(/activePage/, { timeout: 20000 });
+    await openMenuIfMobile(page);
+    await expect(page.locator('#sidebarGroups .sidebarLink[data-page="expensesPanel"]')).toHaveCount(1);
+    expect(await page.locator('#sidebarGroups .sidebarLink[data-inside]').count()).toBe(0);
+  });
+
+  test('something unreadable kept in the browser is treated as no choice', async ({ page }) => {
+    await page.addInitScript(() => { try { localStorage.setItem('he_menu_layout', '{"x":1}'); } catch (e) {} });
+    await login(page);
+    await openMenuIfMobile(page);
+    await expect(links(page)).toHaveCount(16);
+  });
+
+  test('every page of the shipped menu opens and has no accessibility-name or sideways-scroll problem in its row of buttons', async ({ page }) => {
+    test.setTimeout(120000);
+    await login(page);
+    for (const id of idsOf(TODAY)) {
+      await gotoPage(page, id);
+      await expect(page.locator('main.contentArea > section.panel.activePage')).toHaveCount(1);
+      const row = page.locator('#menuTabs');
+      if (await row.count()) {
+        await expect(row).toHaveAttribute('aria-label', /^Pages inside /);
+        await expect(row.locator('[aria-current="page"]')).toHaveCount(1);
+        expect(await row.locator('button').evaluateAll(bs => bs.every(b => (b.textContent || '').trim().length > 0))).toBe(true);
+      }
+      expect(await noSideways(page), id).toBe(true);
+    }
+  });
+});
+
 test.describe('the same menu on every device (shared settings in use)', () => {
   const shared = (page) => page.addInitScript(() => { try { localStorage.setItem('he_shared_settings', 'on'); } catch (e) {} });
   const row = (layout) => ({ key: 'menu_layout', value: { layout }, audience: 'staff', updated_at: '2026-11-24T16:00:00Z', updated_by: 'u-owner' });
@@ -277,7 +350,7 @@ test.describe('the same menu on every device (shared settings in use)', () => {
     backend.rpc.set_shared_setting = () => ({ __error: { status: 403, code: '42501', message: 'Only the owner can change a shared setting.' } });
     await login(page);
     await openMenuIfMobile(page);
-    expect(await page.locator('#sidebarGroups .sidebarLink[data-inside]').count()).toBe(0);     // an unknown name is today's menu
+    expect(await page.locator('#sidebarGroups .sidebarLink[data-inside]').count()).toBe(0);     // an unknown name is no choice: this browser keeps its own
     await gotoPage(page, 'flagsPanel');
     await page.locator('[data-menulayout="b"]').click();
     await expect(page.locator('[data-menulayout-msg]')).toContainText('Could not save it for every device; it is kept in this browser.');

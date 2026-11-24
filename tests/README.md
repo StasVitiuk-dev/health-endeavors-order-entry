@@ -77,3 +77,13 @@ If Playwright asks you to install a browser, run `npx playwright install chromiu
 - Real Safari on a real iPhone. These tests use Chromium at iPhone size.
 - Value rules of tables the schema check didn't cover (incidents, legal holds, system mode…). They are listed in `docs/ops/state-machine-audit.md` and waiting for Query C.
 - The SQL drafts and concurrency. These run on a local PostgreSQL (`docs/ops/sql/drafts/1*_DRAFT_tests_*.sql`, `docs/ops/sql/local-test/stress_test.sh`), not in this suite.
+
+## Which menu the tests see
+
+The dashboard ships with a shorter menu (owner's decision, Nov 24: same-topic pages sit inside one
+another; "1. A little shorter"). Most tests are about what is on a page, and several count the menu
+lines of the full menu, so the shared set-up (`tests/helpers/dashboard.js`) chooses "Today's menu"
+(every page on its own line) before each test, the way a person chooses it on Feature Flags.
+`tests/specs/menu-layouts-ext24.spec.js` tests the menu as shipped (`test.use({ shippedMenu: true })`).
+`HE_SHIPPED_MENU=1 npm test` runs everything with the shipped menu; the tests that count menu lines
+then fail on purpose.
