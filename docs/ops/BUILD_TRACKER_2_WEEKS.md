@@ -31,6 +31,15 @@ Database changes are drafts the owner runs after approving them.
 | #44 | **Drop-off receipt**: one carrier receipt marks every parcel dropped off; database draft 48 (review item 9) | DB 47/47; screen 13; 267 related passed |
 | #45 | **Delivery watch**: stuck, late, problem and returned parcels in the feed with next step and customer message | 5 + 49 related passed |
 | #46 | **Agent diary**: every agent step in plain words on AI Agents; hand-offs in the feed (no database change) | 10 + 73 related passed |
+| #47 | **Switches for features that save real records** (Feature Flags, owner only): each shows whether its database step is installed; on needs a second tap, off always works | record switches + related passed |
+| #48 | **Daily recap**: one tap prints the latest day (with a notes box); a Home reminder stays until it is printed | backups page + related passed |
+| #49 | **Real profit** on Accounting: profit per order, product and sales channel after product cost, fees, postage and packaging; orders missing a cost are counted, never guessed (no database change) | profit 16 + related passed (83 passed in the last local run) |
+
+**How to merge (every PR above):** GitHub shows these PRs as opened by the owner's
+own account, so **Approve is not offered**. On the PR's **Conversation** tab, at the
+bottom: tick "Merge without waiting for requirements to be met (bypass rules)",
+choose **Create a merge commit** (not Squash: the PRs build on each other), merge,
+confirm. Keep the branches (rollback).
 
 **Draft 48 (in #44) is BLOCKED, DO NOT RUN:** production already has the
 Shipping/Tracking agent's `shipments` table. The draft refuses to install over it.
@@ -48,7 +57,7 @@ adapted to that table.
 | 2 | All Orders with channel badges (Amazon, Etsy, TikTok, website) | NEXT (via Shopify as hub if agreed) | Orders |
 | 3 | Business email in the feed | WAITS ON OWNER (addresses) | feed |
 | 4 | Money per channel (payouts and fees matched to the bank) | NEXT | Accounting |
-| 5 | Real profit per order, product and channel | NEXT | Accounting |
+| 5 | Real profit per order, product and channel | READY (#49); fee numbers are starting estimates for the owner to check; real postage per parcel comes with Shopify Shipping | Accounting (top, under the totals) |
 | 6 | **Batch tracing**: batch recorded on each order (by scanning the bottle when packing); recall = one button lists every customer who got that batch and holds the rest | NEXT | Inventory, Orders, Recalls |
 | 7 | Delivery watch | READY (#45); carrier tracking connects with Shopify | feed |
 | 8 | Reviews from every channel in the feed, worst first, reply to approve | NEXT | feed |
@@ -83,7 +92,7 @@ adapted to that table.
 
 - **The 2-week list** (A, B, B2, 1–9, email and the switches section, 13 pieces):
   **4 built and tested** (A, B, 7, 9), waiting to be merged; **9 to build**.
-  About **30% built**, **0% live** until the owner merges.
+  About **36% built** (Nov 24, after #47–#49), **0% live** until the owner merges.
 - **The whole business** (dashboard, database fixes R1–R10, website, store launch,
   connections): **≈ 39–42%** (`docs/health-endeavors-progress.md`). Most of the rest
   needs owner steps: merges, the database steps, seller accounts, email, website photos.
