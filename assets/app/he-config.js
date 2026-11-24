@@ -218,6 +218,63 @@ window.HE.modules.define('he-config', { api: 1, needs: [] }, function (ctx) {
       try { return typeof localStorage !== 'undefined' && localStorage.getItem('he_dropoff') === 'on'; }
       catch (e) { return false; }
     }
+    // Agent diary (Nov 24): what each agent recorded, as a plain diary on AI Agents.
+    // Reads only the existing agent log. OFF by default; on Feature Flags.
+    // Real profit (Nov 24): profit per order, product and channel on Accounting,
+    // after product cost, fees, postage and packaging. Reads only; the fee and
+    // postage estimates are kept in this browser. OFF by default; on Feature Flags.
+    function realProfitOn() {
+      try { return typeof localStorage !== 'undefined' && localStorage.getItem('he_real_profit') === 'on'; }
+      catch (e) { return false; }
+    }
+    // Money per channel (Nov 24): reads each sales channel's own money report (a
+    // file chosen in the browser) and shows what it really paid and charged, next
+    // to the fee estimates and the bank. Reads only; no file is uploaded. OFF by
+    // default; on Feature Flags.
+    function channelMoneyOn() {
+      try { return typeof localStorage !== 'undefined' && localStorage.getItem('he_channel_money') === 'on'; }
+      catch (e) { return false; }
+    }
+    // Close an incident with a note (Nov 24): on Incidents, the owner and
+    // administrators can record what was done on an incident and close it. Changes
+    // real records (columns the incidents table already has; no database step):
+    // OFF, and not a preview (the owner turns it on under "features that save real
+    // records").
+    function incidentCloseOn() {
+      try { return typeof localStorage !== 'undefined' && localStorage.getItem('he_incident_close') === 'on'; }
+      catch (e) { return false; }
+    }
+    // Which switches are for every employee once switches are shared by every
+    // device (owner decision, Nov 23): work features. Every other switch (money,
+    // revenue, sensitive documents, reports, agents) is for the owner and
+    // administrators only.
+    const SWITCH_EVERYONE = Object.freeze(['he_scan_shipment', 'he_saved_views', 'he_cycle_count', 'he_partial_receiving', 'he_order_slips', 'he_attention_feed']);
+    // Settings shared by every device (drafts/50). The dashboard asks the database
+    // for them only when this says so, so nothing is requested (and nothing fails)
+    // before the owner has installed that step:
+    //   SHARED_SETTINGS_LIVE  flipped to true in a small PR once drafts/50 is
+    //                         installed: from then on every device uses them;
+    //   he_shared_settings    the owner's own switch (Feature Flags, "features that
+    //                         save real records"), to start using them in one browser
+    //                         right after installing, before that PR.
+    const SHARED_SETTINGS_LIVE = false;
+    function sharedSettingsOn() {
+      if (SHARED_SETTINGS_LIVE) return true;
+      try { return typeof localStorage !== 'undefined' && localStorage.getItem('he_shared_settings') === 'on'; }
+      catch (e) { return false; }
+    }
+    // Real order costs (drafts/52): Real profit uses each order's real fee and
+    // postage where they were saved; money per channel can save the real fees.
+    // Reads and writes real records once drafts/52 is installed: OFF, and not a
+    // preview (the owner turns it on under "features that save real records").
+    function orderCostsOn() {
+      try { return typeof localStorage !== 'undefined' && localStorage.getItem('he_order_costs') === 'on'; }
+      catch (e) { return false; }
+    }
+    function agentDiaryOn() {
+      try { return typeof localStorage !== 'undefined' && localStorage.getItem('he_agent_diary') === 'on'; }
+      catch (e) { return false; }
+    }
     function attentionFeedOn() {
       try { return typeof localStorage !== 'undefined' && localStorage.getItem('he_attention_feed') === 'on'; }
       catch (e) { return false; }
@@ -323,6 +380,9 @@ window.HE.modules.define('he-config', { api: 1, needs: [] }, function (ctx) {
       { key: 'he_supplier_documents', name: 'Supplier documents', where: 'Suppliers', what: 'The document checklist for each kind of supplier, with what is missing or awaiting review. Example data; read-only.' },
       { key: 'he_backups_page', name: 'Backups & Printouts', where: 'Operations (a new page in the menu)', what: 'Daily recaps to print or save as a spreadsheet, manuals to print (if the dashboard is down, how it works, your procedures, printer setup), and what the dashboard can see of the backups. Reads only.' },
       { key: 'he_order_slips', name: 'Packing slips', where: 'Orders', what: 'A print button on each order: a 4×6 slip for the Rollo label printer or a Letter slip for the Brother, and a test page for each printer. Printing only; nothing is changed.' },
+      { key: 'he_real_profit', name: 'Real profit', where: 'Accounting (top)', what: 'Profit per order, per product and per sales channel after product cost, platform fees, postage and packaging. Orders missing a cost are counted, never guessed. Reads only; your fee and postage estimates are kept in this browser.' },
+      { key: 'he_channel_money', name: 'Money per channel', where: 'Accounting (after money matching)', what: 'Choose the money report of Etsy, Amazon or TikTok Shop: sales, refunds, real fees, postage labels and payouts for the period, the real fee rate next to your estimate, and each payout checked against your bank export. The file is read in this browser; nothing is uploaded or saved.' },
+      { key: 'he_agent_diary', name: 'Agent diary', where: 'AI Agents', what: 'Everything your agents recorded, in plain words and grouped by day, with a filter per agent; steps an agent passed to a person are marked. Reads only.' },
       { key: 'he_attention_feed', name: 'One attention feed', where: 'Home (Needs your attention)', what: 'Everything that needs you in one list at the top of Home, most urgent first: customer questions, tasks, approvals, reminders, checks, money and tax. Reads only; "Later" hides an item until tomorrow in this browser.' },
       { key: 'he_product_import', name: 'Product list import', where: 'Inventory', what: 'Checks your product list (a CSV saved from Numbers, Excel or Google Sheets) for missing SKUs, wrong prices and duplicates, and adds the new products only when every line is right and you press Add. Owner and administrators.' },
       { key: 'he_money_match', name: 'Money matching', where: 'Accounting', what: 'Checks a Chase or Wells Fargo export against Shopify payouts, wholesale payments and recorded expenses, and lists every difference. The file stays in this browser; nothing is saved.' },
@@ -894,5 +954,5 @@ window.HE.modules.define('he-config', { api: 1, needs: [] }, function (ctx) {
   // (a status, a category, a table name). Without a prototype, a value such as
   // "constructor" or "__proto__" finds nothing instead of a built-in function.
   [STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_FACE, THEME_NAME, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, GO_TO, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, ITEM_TYPE_LABELS, NIGHTLY_PAGES, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, INQ_STATUS_LABELS, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_CATEGORY_LABELS].forEach(o => Object.setPrototypeOf(o, null));
-  return { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, newLookOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn };
+  return { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, agentDiaryOn, realProfitOn, channelMoneyOn, SWITCH_EVERYONE, sharedSettingsOn, orderCostsOn, incidentCloseOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, newLookOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn };
 });

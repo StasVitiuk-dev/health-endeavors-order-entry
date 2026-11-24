@@ -159,6 +159,37 @@ for (const look of LOOKS) {
   });
 }
 
+// Nov 24 (the owner's screenshot): in a narrow computer window (about 790px wide)
+// the menu also slides over the page, and it was see-through there: the solid
+// background was given to phones only (700px) while the menu slides up to 820px.
+// Every width at which the menu slides over the page must give it a solid background.
+for (const look of LOOKS) {
+  test(look + ' in a narrow window (701 to 820 wide): the open menu has a solid background, light and dark', async ({ page }, ti) => {
+    test.skip(ti.project.name !== 'desktop', 'narrow computer window');
+    await withLook(page, look);
+    await page.setViewportSize({ width: 790, height: 900 });
+    await login(page);
+    for (const width of [701, 790, 820]) {
+      await page.setViewportSize({ width, height: 900 });
+      for (const scheme of ['light', 'dark']) {
+        await page.emulateMedia({ colorScheme: scheme });
+        await page.locator('#menuToggleBtn').click();
+        await expect(page.locator('#sidebarNav')).toHaveClass(/mobileOpen/);
+        const seen = await page.locator('#sidebarNav').evaluate(e => ({ bg: getComputedStyle(e).backgroundColor, pos: getComputedStyle(e).position }));
+        const alpha = /rgba\(/.test(seen.bg) ? Number(seen.bg.split(',')[3].replace(')', '')) : 1;
+        expect(seen.pos, width + ' is a slide-over menu').toBe('fixed');
+        expect(alpha, width + ' ' + scheme + ' ' + seen.bg).toBe(1);
+        await page.locator('#sidebarOverlay').click({ position: { x: width - 40, y: 400 } });
+        await expect(page.locator('#sidebarNav')).not.toHaveClass(/mobileOpen/);
+      }
+    }
+    // one step wider the menu sits beside the page again (no slide-over, no menu button)
+    await page.setViewportSize({ width: 821, height: 900 });
+    await expect(page.locator('#menuToggleBtn')).toBeHidden();
+    expect(await page.locator('#sidebarNav').evaluate(e => getComputedStyle(e).position)).not.toBe('fixed');
+  });
+}
+
 // Nov 23 (owner: "put lines so it separates things"): page titles carry a rule,
 // sections start with a hairline, forms are framed, sidebar groups are divided.
 test('structure lines are drawn in every look, and never with the switch off', async ({ page }, ti) => {

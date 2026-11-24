@@ -25,7 +25,7 @@
   const RANK = { urgent: 0, today: 1, info: 2 };
   const KINDS = Object.freeze({
     message: 'Message', task: 'Task', approval: 'Approval', reminder: 'Reminder', check: 'Check',
-    nightly: 'Nightly check', money: 'Money', tax: 'Tax', stock: 'Stock', incident: 'Incident', delivery: 'Delivery', other: 'Item' });
+    nightly: 'Nightly check', money: 'Money', tax: 'Tax', stock: 'Stock', incident: 'Incident', delivery: 'Delivery', agent: 'Agent', other: 'Item' });
   const FILTERS = Object.freeze([
     { key: 'all', label: 'All' }, { key: 'urgent', label: 'Urgent' }, { key: 'message', label: 'Messages' },
     { key: 'work', label: 'Tasks and approvals' }, { key: 'delivery', label: 'Deliveries' }, { key: 'checks', label: 'Checks' }, { key: 'money', label: 'Money and tax' }]);
@@ -150,13 +150,36 @@
     });
   }
 
+  // the newest daily recap, once it exists and has not been printed in this browser
+  // (owner, Nov 24: "print it at the end of every day")
+  function fromRecap(r) {
+    if (!r || typeof r !== 'object' || !/^\d{4}-\d{2}-\d{2}$/.test(String(r.date || ''))) return [];
+    const d = String(r.date);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(String(r.printedUpTo || '')) && String(r.printedUpTo) >= d) return [];
+    let label = d;
+    try { label = new Intl.DateTimeFormat('en-US', { timeZone: 'UTC', weekday: 'long', month: 'long', day: 'numeric' }).format(new Date(d + 'T12:00:00Z')); } catch (e) { label = d; }
+    return [{ id: 'recap:' + d, kind: 'reminder', badge: 'Print', level: 'today',
+      title: 'The daily recap for ' + label + ' is ready to print',
+      detail: 'Opens Backups & Printouts: tap "Print the latest day". Keep it in your business folder.',
+      when: null, page: 'backupsPanel', actions: [{ kind: 'open', label: 'Open Backups & Printouts', page: 'backupsPanel' }], signature: d }];
+  }
+
+  // steps an agent passed to a person (he-agent-diary.js needsPerson)
+  function fromAgents(rows) {
+    return asList(rows).filter(e => e.id && e.passedToPerson).map(e => ({
+      id: 'agent:' + text(e.id, 80), kind: 'agent', badge: 'Agent', level: 'today',
+      title: text(e.agent, 80) + ' passed this to you', detail: text(e.what, 300),
+      when: time(e.at), page: 'aiPanel', actions: [{ kind: 'open', label: 'Open AI Agents', page: 'aiPanel' }],
+      signature: text(e.what, 80) }));
+  }
+
   function buildFeed(src, now) {
     const s = src || {};
     const t = time(now) != null ? time(now) : Date.now();
     const items = [].concat(
       fromQuestions(s.questions, t), fromAttention(s.attention, t, s.labels),
       fromChecks(s.checks, { questions: Array.isArray(s.questions), attention: Array.isArray(s.attention) }),
-      fromNightly(s.nightly), fromMoney(s.money), fromTax(s.tax), fromDelivery(s.delivery));
+      fromNightly(s.nightly), fromMoney(s.money), fromTax(s.tax), fromDelivery(s.delivery), fromAgents(s.agents), fromRecap(s.recap));
     const seen = new Set();
     const unique = items.filter(i => (seen.has(i.id) ? false : (seen.add(i.id), true)));
     // most urgent first; within a level, overdue / oldest first, then undated
@@ -171,7 +194,7 @@
     switch (key) {
       case 'urgent': return item.level === 'urgent';
       case 'message': return item.kind === 'message';
-      case 'work': return ['task', 'approval', 'reminder', 'incident'].includes(item.kind);
+      case 'work': return ['task', 'approval', 'reminder', 'incident', 'agent'].includes(item.kind);
       case 'checks': return ['check', 'nightly', 'stock'].includes(item.kind) || item.id.indexOf('check:') === 0;
       case 'money': return item.kind === 'money' || item.kind === 'tax';
       case 'delivery': return item.kind === 'delivery';
@@ -214,5 +237,5 @@
   }
 
   return { LEVELS, KINDS, FILTERS, SNOOZE_KEY, buildFeed, matchesFilter, view, readSnoozes, snooze, unsnoozeAll, isSnoozed,
-    _from: { fromAttention, fromChecks, fromNightly, fromQuestions, fromMoney, fromTax, fromDelivery } };
+    _from: { fromAttention, fromChecks, fromNightly, fromQuestions, fromMoney, fromTax, fromDelivery, fromAgents, fromRecap } };
 }));

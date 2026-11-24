@@ -110,3 +110,27 @@ test('at phone size the page fits without sideways scrolling', async ({ page, ba
   const over = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(over).toBeLessThanOrEqual(0);
 });
+
+// Nov 24 (owner: "print it at the end of every day"): the newest recap is one tap
+// away on this page, and the Home feed reminds until it is printed in this browser.
+test('print the latest day; the Home reminder shows until it is printed, then clears', async ({ page, backend }) => {
+  await page.addInitScript(() => { try { localStorage.setItem('he_attention_feed', 'on'); } catch (e) {} });
+  await open(page, backend);
+  await gotoPage(page, 'attentionPanel');
+  const item = page.locator('#attentionFeedHost [data-feeditem="recap:2026-11-22"]');
+  await expect(item.locator('.feedTitle')).toHaveText('The daily recap for Sunday, November 22 is ready to print');
+  await item.locator('[data-feedopen="backupsPanel"]').click();
+  const host = page.locator('#backupsPanel');
+  await host.locator('[data-bk="print-latest"]').click();
+  expect(await page.evaluate(() => window.__printed)).toBe(1);
+  await expect(page.locator('#invoicePrintHost [data-printrecapday="2026-11-22"]')).toContainText('Revenue');
+  await expect(host.locator('[data-bkmessage]')).toContainText('Opened the recap for 2026-11-22 for printing');
+  expect(await page.evaluate(() => localStorage.getItem('he_recap_printed_upto'))).toBe('2026-11-22');
+  await page.reload(); await expect(page.locator('#dash')).toBeVisible(); await gotoPage(page, 'attentionPanel');
+  await expect(page.locator('#attentionFeedHost [data-feeditem]').first()).toBeVisible();
+  await expect(page.locator('#attentionFeedHost [data-feeditem="recap:2026-11-22"]')).toHaveCount(0);
+  // a newer day brings the reminder back
+  backend.tables.daily_reports.push(DAY('2026-11-23', 2, '60.00'));
+  await page.reload(); await expect(page.locator('#dash')).toBeVisible(); await gotoPage(page, 'attentionPanel');
+  await expect(page.locator('#attentionFeedHost [data-feeditem="recap:2026-11-23"]')).toBeVisible();
+});

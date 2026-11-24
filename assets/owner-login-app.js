@@ -84,7 +84,7 @@
       nightlyOverall,
     } = window.HE.helpers;
     // @@ EXT15 modules: created in dependency order (assets/app/*.js; see docs/ops/APPLICATION_MODULE_MAP_EXT15.md)
-    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn } = HE.modules.create('he-config', {  });
+    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, agentDiaryOn, realProfitOn, channelMoneyOn, SWITCH_EVERYONE, sharedSettingsOn, orderCostsOn, incidentCloseOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn } = HE.modules.create('he-config', {  });
     const { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, focusDialog, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, h, pageIconNode } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
     const { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
     const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, h, supabase });
@@ -94,7 +94,7 @@
     const { isGroupOpen, setGroupOpen, getPinnedPages, setPinnedPages, allPageIds, getLastPage, pageFromHash, saveLastPage, PAGE_WARNINGS, PAGE_LABEL_BY_ID, NAV_BACK, NAV_FWD, rowsOnPage, typedForms, NOT_GUARDED_FORMS, hasUnsavedTyping, CHANGE_PASSWORD_URL, SIGNED_OUT_NOTE } = HE.modules.create('he-nav', { SIDEBAR_GROUPS });
     const { loadTasks } = HE.modules.create('he-tasks', { CLOSED_IN, SEARCH_INDEX, TASK_ALLOWED_FROM, TASK_NEXT_ACTIONS, TASK_STATUS_LABELS, explainDbError, fmtDate, h, isClosedStatus, isOverdue, showDashError, supabase });
     const { loadApprovals } = HE.modules.create('he-approvals', { CLOSED_IN, SEARCH_INDEX, fmtDate, h, isClosedStatus, requireReauth, showDashError, staleMessage, supabase, updateIfUnchanged });
-    const { escalateToIncidentOnce, loadIncidents } = HE.modules.create('he-incidents', { CLOSED_IN, SEARCH_INDEX, fixedRequestKey, fmtDate, h, isClosedStatus, isOverdue, isRequestKeyRepeat, requestKeysOn, showDashError, staleMessage, supabase, updateIfUnchanged, withRequestKey });
+    const { escalateToIncidentOnce, loadIncidents } = HE.modules.create('he-incidents', { CLOSED_IN, SEARCH_INDEX, announce, currentRole, fixedRequestKey, fmtDate, h, incidentCloseOn, isClosedStatus, isOverdue, isRequestKeyRepeat, requestKeysOn, showDashError, staleMessage, supabase, updateIfUnchanged, withRequestKey });
     const { loadExpenses, loadDeletedExpenses } = HE.modules.create('he-expenses', { EXPENSE_CATEGORY_LABELS, LIST_LIMITS, SEARCH_INDEX, appendMore, confirmSecondPress, fetchAllRows, fmtDate, fmtDateOnly, fmtMoney, h, listLimit, noRowsChanged, showDashError, staleMessage, supabase, updateIfUnchanged });
     const { loadSuppliers } = HE.modules.create('he-suppliers', { SEARCH_INDEX, SUPPLIER_TYPE_LABELS, boolGuard, fetchAllRows, h, showDashError, staleMessage, updateIfUnchanged });
     const { setReportHistoryView, renderReportHistoryView, loadReportHistory, reportHistoryRows } = HE.modules.create('he-reports', { fmtDateOnly, fmtMoney, h, localDateString, missingToNaN, monthGroupLabel, reportCount, rollupReports, showDashError, startOfWeekMonday, supabase, weekGroupLabel });
@@ -139,6 +139,7 @@
     // changed by the Owner or an Administrator — the database's own rules
     // (Query A). The page checks first so it never starts a change it can't finish.
     function canChangeStock(){ return currentUserRole === 'owner' || currentUserRole === 'administrator'; }
+    function currentRole(){ return currentUserRole; }   // for modules: the role of whoever is signed in now
     applyTheme(getTheme());
     document.getElementById('themeBtn').addEventListener('click', () => {
       const next = THEME_ORDER[(THEME_ORDER.indexOf(getTheme()) + 1) % THEME_ORDER.length];
@@ -171,6 +172,7 @@
       const whoName = String(profile.display_name || user.email || '');
       whoAmI.textContent = `${whoName.length > 80 ? whoName.slice(0, 79) + '\u2026' : whoName} — role: ${profile.role}`;
       whoAmI.title = whoAmI.textContent;
+      if (await syncSharedSwitches()) return;                // this browser was brought in line: the page reloads once
       renderSidebar('');
       showPage(getLastPage());
       loadDashboard();
@@ -2686,6 +2688,7 @@
         else { mmState.card = p; mmState.cardName = file.name.slice(0, 80); mmState.expenses = null; }
         mmState.note = file.name + ' read: ' + p.rows.length + ' lines. Nothing was uploaded.';
         await loadMoneyMatch();
+        loadChannelMoney();                                  // channel payouts are checked against this bank file
         announce(mmState.note);
         const back = document.getElementById(which === 'bank' ? 'mmBank' : 'mmCard'); if (back) back.focus();
       };
@@ -2993,6 +2996,329 @@
       }
     });
 
+    // ---------- Real profit (Nov 24; behind realProfitOn) ----------
+    // Profit per order, product and channel (assets/reports/he-profit.js), right under
+    // the Accounting totals. Reads orders, their items, products and received
+    // purchase-order lines. The fee, postage and packaging estimates are the owner's,
+    // saved for every device once drafts/50 (shared settings) is installed, and kept
+    // in this browser until then. Orders, items and costs are only read.
+    const RP_KEY = 'he_profit_estimates';
+    let rpShared = { state: 'unknown', value: null, updatedAt: null };
+    // the real fee and postage of each order (drafts/52), behind orderCostsOn
+    function ocMod() { try { return (window.HE && window.HE.reports && window.HE.reports['he-order-costs-store']) || null; } catch (e) { return null; } }
+    function ocStore() { const O = ocMod(); return O && orderCostsOn() ? O.createStore({ client: supabase, enabled: true }) : null; }
+    let rpCostsNote = '';
+    function rpSettings() { try { return (window.HE && window.HE.views && window.HE.views['he-shared-settings']) || null; } catch (e) { return null; } }
+    function rpStore() { const S = rpSettings(); return S ? S.createStore({ client: supabase, enabled: sharedSettingsOn() }) : null; }   // asks the database only once the shared settings are in use
+    let rpPeriod = 'month', rpResult = null, rpSeq = 0, rpError = '', rpEditing = false, rpMessage = '';
+    function rpMod() { try { return (window.HE && window.HE.reports && window.HE.reports['he-profit']) || null; } catch (e) { return null; } }
+    function rpHost(on) {
+      let el = document.getElementById('realProfitHost');
+      if (!on) { if (el) el.remove(); return null; }
+      if (!el) { const after = document.getElementById('acctStats'); if (!after || !after.parentNode) return null; el = h('div', { id: 'realProfitHost', class: 'realProfit' }); after.after(el); }
+      return el;
+    }
+    function rpEstimates() {
+      const M = rpMod(); const base = { fees: M ? M.DEFAULT_FEES : {}, postage: null, packaging: null };
+      try {
+        // the copy every device shares wins; this browser's copy is the fallback
+        const v = rpShared.state === 'installed' && rpShared.value ? rpShared.value : JSON.parse(localStorage.getItem(RP_KEY) || 'null');
+        if (v && typeof v === 'object') return { fees: Object.assign({}, base.fees, v.fees || {}), postage: v.postage == null ? null : v.postage, packaging: v.packaging == null ? null : v.packaging };
+      } catch (e) { /* defaults */ }
+      return base;
+    }
+    function rpRange() {
+      const now = new Date();
+      if (rpPeriod === 'last') return [new Date(now.getFullYear(), now.getMonth() - 1, 1), new Date(now.getFullYear(), now.getMonth(), 1)];
+      if (rpPeriod === '90') return [new Date(now.getTime() - 90 * 86400000), now];
+      return [new Date(now.getFullYear(), now.getMonth(), 1), now];
+    }
+    async function loadRealProfit() {
+      const M = rpMod();
+      const host = rpHost(realProfitOn() && !!M); if (!host) return;
+      const seq = ++rpSeq;
+      rpResult = null; rpError = ''; renderRealProfit();
+      try {
+        const [from, to] = rpRange();
+        const store = rpStore(), S = rpSettings();
+        const sharedP = store ? store.get(S.KEYS.profitEstimates) : Promise.resolve({ state: 'unknown', value: null, updatedAt: null });
+        const orders = await fetchAllRows('orders', 'id, order_number, channel, source, status, subtotal, shipping_total, tax_total, total, placed_at, deleted_at',
+          q => q.is('deleted_at', null).gte('placed_at', from.toISOString()).lt('placed_at', to.toISOString()));
+        const ids = orders.map(o => o.id);
+        const [items, products, poLines] = await Promise.all([
+          ids.length ? fetchAllRowsIn('order_items', 'id, order_id, sku, product_name, quantity, unit_price, line_total', 'order_id', ids) : Promise.resolve([]),
+          fetchAllRows('products', 'id, sku, name, cost', q => q),
+          fetchAllRows('purchase_order_items', 'id, product_id, landed_unit_cost, quantity_received, created_at', q => q.not('product_id', 'is', null)),
+        ]);
+        const shared = await sharedP;
+        const oc = ocStore();
+        const costs = oc && ids.length ? await oc.list(ids) : { state: 'off', rows: [], message: '' };
+        if (seq !== rpSeq) return;
+        rpCostsNote = costs.state === 'error' ? 'The real order costs could not be read (' + costs.message + '), so every order uses the estimates.' : '';
+        rpShared = shared || { state: 'unknown', value: null, updatedAt: null };
+        const est = rpEstimates();
+        rpResult = M.compute({ orders: orders, items: items, products: products, poLines: poLines, fees: est.fees, postagePerOrder: est.postage, packagingPerOrder: est.packaging, orderCosts: costs.rows });
+      } catch (e) {
+        if (seq !== rpSeq) return;
+        rpError = 'Profit could not be worked out just now: ' + explainDbError(e && e.message ? e.message : String(e));
+      }
+      renderRealProfit();
+    }
+    const rpMoney = c => (c == null ? '—' : fmtMoney(c / 100, 'USD'));
+    const rpPct = p => (p == null ? '—' : p + '%');
+    function renderRealProfit() {
+      const host = document.getElementById('realProfitHost'); const M = rpMod(); if (!host || !M) return;
+      const est = rpEstimates();
+      const put = (...kids) => host.replaceChildren(...kids.flat().filter(Boolean));   // (replaceChildren would print a null as text)
+      const periods = [['month', 'This month'], ['last', 'Last month'], ['90', 'Last 90 days']];
+      const head = [h('h3', { class: 'u-fs-13 u-c-navy u-m-18-0-6', id: 'realProfitHeading' }, 'Real profit'),
+        h('p', { class: 'hint u-mt-0' }, 'What you keep from each sale after product cost, platform fees, postage and packaging. Sales tax you collect for the state is not counted as sales. An order missing a cost is counted below, never guessed.'),
+        h('div', { class: 'scanToggleRow', role: 'group', 'aria-label': 'Period' }, ...periods.map(([k, l]) => h('button', { type: 'button', class: 'small' + (rpPeriod === k ? '' : ' secondary'), 'data-rpperiod': k, 'aria-pressed': String(rpPeriod === k) }, l)),
+          h('button', { type: 'button', class: 'small secondary', 'data-rp': 'edit', 'aria-expanded': String(rpEditing) }, rpEditing ? 'Close estimates' : 'Fee and postage estimates'))];
+      const form = rpEditing ? h('form', { class: 'heForm rpForm u-mt-8', 'data-rpform': '1', novalidate: '' },
+        h('p', { class: 'hint u-mt-0' }, 'Starting estimates: check each against the platform’s own fee page and correct them. A blank box means unknown (orders from that channel then show "missing a fee estimate").'),
+        h('p', { class: 'hint u-mt-0', 'data-rpshared': rpShared.state }, rpShared.state === 'installed'
+          ? (rpShared.value ? 'These numbers are the same on every phone and computer' + (rpShared.updatedAt ? ' (last saved ' + fmtDate(rpShared.updatedAt) + ')' : '') + '. Only the owner can change them.'
+            : 'Not shared yet: press Save estimates and every phone and computer will use them.')
+          : rpShared.state === 'not_installed' ? 'Kept in this browser only for now. They become the same on every device once the shared settings database step (drafts/50) is installed.'
+            : 'Could not check the shared settings just now, so these are this browser\u2019s numbers.'),
+        h('table', { class: 'rpFees' }, h('thead', null, h('tr', null, h('th', null, 'Channel'), h('th', null, '% of the sale'), h('th', null, '$ per order'))),
+          h('tbody', null, ...Object.keys(M.DEFAULT_FEES).map(ch => {
+            const f = est.fees[ch] || {};
+            return h('tr', null, h('td', null, M.CHANNEL_NAMES[ch] || ch, h('div', { class: 'u-fs-11 u-c-muted' }, (M.DEFAULT_FEES[ch] || {}).note || '')),
+              h('td', null, h('input', { type: 'text', inputmode: 'decimal', name: ch + '_percent', value: f.percent == null ? '' : String(f.percent), 'aria-label': (M.CHANNEL_NAMES[ch] || ch) + ': percent of the sale' })),
+              h('td', null, h('input', { type: 'text', inputmode: 'decimal', name: ch + '_per', value: f.perOrder == null ? '' : String(f.perOrder), 'aria-label': (M.CHANNEL_NAMES[ch] || ch) + ': dollars per order' })));
+          }))),
+        h('div', { class: 'u-d-flex u-gap-8 u-fwr-wrap u-mt-8' },
+          h('div', { class: 'heField' }, h('label', { for: 'rpPostage' }, 'Postage per order ($)'), h('input', { id: 'rpPostage', type: 'text', inputmode: 'decimal', name: 'postage', value: est.postage == null ? '' : String(est.postage) })),
+          h('div', { class: 'heField' }, h('label', { for: 'rpPackaging' }, 'Packaging per order ($)'), h('input', { id: 'rpPackaging', type: 'text', inputmode: 'decimal', name: 'packaging', value: est.packaging == null ? '' : String(est.packaging) }))),
+        h('button', { type: 'submit', class: 'small u-mt-8' }, 'Save estimates')) : null;
+      const msg = rpMessage ? h('p', { class: 'u-fs-12', role: 'status', 'data-rpmessage': '1' }, rpMessage) : null;
+      if (rpError) { put(head, form, msg, h('p', { class: 'hint', role: 'status' }, rpError)); return; }
+      if (!rpResult) { put(head, form, msg, h('p', { class: 'empty' }, 'Working it out…')); return; }
+      const r = rpResult, t = r.totals;
+      const WHY = { 'product cost': 'a product with no cost', 'fee estimate': 'no fee estimate for the channel', 'postage estimate': 'no postage estimate', 'packaging estimate': 'no packaging estimate', 'sale amount': 'no sale amount', items: 'no items' };
+      const missingLine = t.missing ? h('p', { class: 'hint rpMissing', 'data-rpmissing': String(t.missing) }, t.missing + (t.missing === 1 ? ' order is' : ' orders are') + ' not counted in the profit: ' +
+        Object.entries(r.missingWhy).map(([k, n]) => n + ' with ' + (WHY[k] || k)).join(', ') + '.') : null;
+      const table = (cols, rows) => h('table', { class: 'phoneCards u-mt-8' }, h('thead', null, h('tr', null, ...cols.map(c => h('th', c.num ? { class: 'num-cell' } : null, c.t)))), h('tbody', null, ...rows));
+      put(head, form, msg,
+        h('div', { class: 'statRow u-mt-8', 'data-rptotals': '1' },
+          h('div', { class: 'stat' }, h('div', { class: 'num', 'data-rpprofit': String(t.profit) }, t.complete ? rpMoney(t.profit) : '—'), h('div', { class: 'lbl' }, 'Profit (' + t.complete + ' of ' + t.orders + ' orders)')),
+          h('div', { class: 'stat' }, h('div', { class: 'num' }, rpPct(t.margin)), h('div', { class: 'lbl' }, 'Margin')),
+          h('div', { class: 'stat' }, h('div', { class: 'num' }, t.complete ? rpMoney(t.revenue) : '—'), h('div', { class: 'lbl' }, 'Sales (no tax)')),
+          h('div', { class: 'stat' }, h('div', { class: 'num' }, t.complete ? rpMoney(t.productCost) : '—'), h('div', { class: 'lbl' }, 'Product cost')),
+          h('div', { class: 'stat' }, h('div', { class: 'num' }, t.complete ? rpMoney(t.fees + t.postage + t.packaging) : '—'), h('div', { class: 'lbl' }, 'Fees, postage, packaging'))),
+        missingLine,
+        orderCostsOn() ? h('p', { class: 'hint', 'data-rpexact': t.exactFees + '/' + t.exactPostage },
+          rpCostsNote || ('Real figures: the fee of ' + t.exactFees + ' and the postage of ' + t.exactPostage + ' of the ' + t.complete + ' counted ' + (t.complete === 1 ? 'order' : 'orders') + '. The rest use your estimates.')) : null,
+        r.channels.length ? h('div', null, h('h4', { class: 'u-mt-12' }, 'By sales channel'),
+          table([{ t: 'Channel' }, { t: 'Orders' }, { t: 'Sales', num: true }, { t: 'Profit', num: true }, { t: 'Margin', num: true }],
+            r.channels.map(c => h('tr', { 'data-rpchannel': c.channel }, h('td', null, c.name), h('td', null, c.complete + ' of ' + c.orders), h('td', { class: 'num-cell' }, c.complete ? rpMoney(c.revenue) : '—'), h('td', { class: 'num-cell' }, c.complete ? rpMoney(c.profit) : '—'), h('td', { class: 'num-cell' }, rpPct(c.margin)))))) : h('p', { class: 'empty' }, 'No orders in this period.'),
+        r.products.length ? h('div', null, h('h4', { class: 'u-mt-12' }, 'By product (most profit first)'),
+          table([{ t: 'Product' }, { t: 'Units' }, { t: 'Sales', num: true }, { t: 'Profit', num: true }, { t: 'Margin', num: true }],
+            r.products.slice(0, 50).map(p => h('tr', { 'data-rpproduct': p.product }, h('td', null, p.product), h('td', null, String(p.units)), h('td', { class: 'num-cell' }, rpMoney(p.revenue)), h('td', { class: 'num-cell' }, rpMoney(p.profit)), h('td', { class: 'num-cell' }, rpPct(p.margin)))))) : null,
+        r.leftOut.length ? h('p', { class: 'hint u-mt-8' }, r.leftOut.length + ' cancelled or refunded ' + (r.leftOut.length === 1 ? 'order is' : 'orders are') + ' left out.') : null);
+      labelPhoneCards(host);
+    }
+    document.addEventListener('click', (e) => {
+      const host = e.target.closest('#realProfitHost'); if (!host) return;
+      const p = e.target.closest('[data-rpperiod]');
+      if (p) { rpPeriod = p.getAttribute('data-rpperiod'); rpMessage = ''; loadRealProfit().then(() => { const b = document.querySelector('#realProfitHost [data-rpperiod="' + rpPeriod + '"]'); if (b) b.focus(); }); return; }
+      if (e.target.closest('[data-rp="edit"]')) { rpEditing = !rpEditing; rpMessage = ''; renderRealProfit(); const f = document.querySelector('#realProfitHost form input') || document.querySelector('#realProfitHost [data-rp="edit"]'); if (f) f.focus(); }
+    });
+    document.addEventListener('submit', async (e) => {
+      const f = e.target.closest('#realProfitHost form[data-rpform]'); if (!f) return;
+      e.preventDefault();
+      const M = rpMod(); if (!M) return;
+      const form = {}; [...f.querySelectorAll('input[name]')].forEach(i => { form[i.name] = i.value; });
+      const c = M.checkEstimates(form);
+      const refuse = (msg) => { rpMessage = msg; renderRealProfit(); announce(rpMessage); const first = document.querySelector('#realProfitHost form input'); if (first) first.focus(); };
+      if (!c.ok) { refuse(c.problems.join(' ')); return; }
+      const value = { fees: c.fees, postage: c.postage, packaging: c.packaging };
+      const keepHere = () => { try { localStorage.setItem(RP_KEY, JSON.stringify(value)); return true; } catch (err) { return false; } };
+      if (rpShared.state === 'installed') {
+        // every device: saved in the database (owner only; the database checks again)
+        const store = rpStore(), S = rpSettings();
+        const btn = f.querySelector('button[type="submit"]'); if (btn) btn.disabled = true;
+        const r = store ? await store.set(S.KEYS.profitEstimates, value) : { ok: false, message: 'The shared settings could not be reached.' };
+        if (!r.ok) { refuse(r.message + ' Nothing was changed.'); return; }
+        keepHere();
+        rpMessage = 'Estimates saved for every phone and computer.';
+      } else if (keepHere()) {
+        rpMessage = rpShared.state === 'not_installed'
+          ? 'Estimates saved in this browser. They become the same on every device once the shared settings database step (drafts/50) is installed.'
+          : 'Estimates saved in this browser (the shared settings could not be checked just now).';
+      } else {
+        rpMessage = 'This browser would not save the estimates (private window or storage blocked).';
+      }
+      rpEditing = false; announce(rpMessage);
+      loadRealProfit().then(() => { const m = document.querySelector('#realProfitHost [data-rpmessage]'); if (m) { m.setAttribute('tabindex', '-1'); m.focus(); } });
+    });
+
+    // ---------- Money per channel (Nov 24; behind channelMoneyOn) ----------
+    // Each channel's own money report (assets/reports/he-channel-money.js), chosen as
+    // a file and read in this browser: what the channel really paid and charged, the
+    // real fee rate against the Real profit estimate, and its payouts against the
+    // bank export loaded in money matching. Nothing is uploaded, saved or written.
+    let cmFiles = {}, cmMessage = '';
+    function cmMod() { try { return (window.HE && window.HE.reports && window.HE.reports['he-channel-money']) || null; } catch (e) { return null; } }
+    function cmHost(on) {
+      let el = document.getElementById('channelMoneyHost');
+      if (!on) { if (el) el.remove(); return null; }
+      if (!el) { const after = document.getElementById('moneyMatchHost'); if (!after || !after.parentNode) return null; el = h('div', { id: 'channelMoneyHost', class: 'channelMoney' }); after.after(el); }
+      return el;
+    }
+    function loadChannelMoney() {
+      const C = cmMod();
+      const host = cmHost(channelMoneyOn() && !!C); if (!host) return;
+      const put = (...kids) => host.replaceChildren(...kids.flat().filter(Boolean));
+      const est = rpEstimates();
+      const bank = mmState.mode === 'file' && mmState.bank ? mmState.bank : null;
+      const eng = mmMod();
+      const cards = Object.keys(C.CHANNELS).filter(ch => cmFiles[ch]).map(ch => {
+        const p = cmFiles[ch], s = C.summarize(p.rows), fc = C.feeCheck(s, est.fees[ch]);
+        const row = (label, cents, note) => h('tr', null, h('th', { scope: 'row' }, label), h('td', { class: 'num-cell' }, C.fmt(cents)), h('td', { class: 'u-fs-12 u-c-muted' }, note || ''));
+        let bankPart;
+        const expected = C.expectedDeposits(p);
+        if (!expected.length) bankPart = h('p', { class: 'hint' }, 'This report lists no payout to the bank, so there is nothing to check against the bank.');
+        else if (!bank || !eng) bankPart = h('p', { class: 'hint', 'data-cmbank': 'none' }, expected.length + (expected.length === 1 ? ' payout' : ' payouts') + ' to the bank (' + C.fmt(s.payoutTotal) + '). To check them against your bank, choose your bank export under Money matching.');
+        else {
+          const res = eng.matchDeposits(expected, bank.rows, { statementFrom: bank.from, statementTo: bank.to });
+          const mine = res.items.filter(it => String(it.ref || '').indexOf(ch + '-payout-') === 0);
+          bankPart = h('ul', { class: 'cmPayouts', 'data-cmbank': 'checked' }, ...mine.map(it => h('li', { 'data-cmoutcome': it.outcome },
+            h('strong', null, MM_WORD[it.outcome] || it.outcome), ' · ' + it.label + ' (' + fmtDateOnly(it.date) + ')' + (it.why ? ': ' + it.why : ''))));
+        }
+        return h('div', { class: 'scanCard u-mt-8', 'data-cmchannel': ch },
+          h('h4', { class: 'u-mt-0' }, p.name + ' · ' + fmtDateOnly(p.from) + ' to ' + fmtDateOnly(p.to)),
+          h('p', { class: 'hint u-mt-0' }, p.fileName + ': ' + p.rows.length + ' lines read' + (p.problems.length ? ', ' + p.problems.length + ' could not be read' : '') + '.'),
+          h('table', { class: 'cmTable' }, h('tbody', null,
+            row('Sales', s.sales, s.orders + (s.orders === 1 ? ' order' : ' orders')),
+            row('Refunds', s.refunds),
+            row('Fees', s.fees, s.feePercent == null ? '' : s.feePercent + '% of sales'),
+            s.postage ? row('Postage labels', s.postage) : null,
+            s.tax ? row('Sales tax held by the channel', s.tax, 'not your money') : null,
+            s.other ? row('Other', s.other) : null,
+            row('Earned in this period', s.net),
+            row('Paid to your bank', s.payoutTotal, s.payouts.length + (s.payouts.length === 1 ? ' payout' : ' payouts')))),
+          h('p', { class: 'u-fs-12', 'data-cmfee': fc.verdict }, fc.message),
+          bankPart,
+          p.problems.length ? h('details', null, h('summary', null, 'Lines that could not be read (' + p.problems.length + ')'), h('ul', null, ...p.problems.slice(0, 10).map(x => h('li', null, x)))) : null,
+          h('details', p.confirmed ? null : { open: '' }, h('summary', null, 'Which columns were used'),
+            p.confirmed ? null : h('p', { class: 'hint', 'data-cmunconfirmed': '1' }, 'This layout is read by its column names and has not been checked against one of your real exports yet. Check that these are the right columns before relying on the figures.'),
+            h('ul', null, ...Object.entries(p.used).map(([k, v]) => h('li', null, ({ day: 'Date', kind: 'Type', label: 'Description', order: 'Order', gross: 'Sales', fees: 'Fees', tax: 'Tax', net: 'Net' }[k] || k) + ': ' + v)))),
+          ocStore() ? h('button', { type: 'button', class: 'small', 'data-cmsave': ch, 'aria-label': 'Save the real fees of the ' + p.name + ' report to their orders' }, 'Save these real fees to their orders') : null,
+          ' ', h('button', { type: 'button', class: 'small secondary', 'data-cmremove': ch, 'aria-label': 'Remove the ' + p.name + ' report' }, 'Remove'));
+      });
+      put(h('h3', { class: 'u-fs-13 u-c-navy u-m-18-0-6' }, 'Money per channel'),
+        h('p', { class: 'hint u-mt-0' }, 'What each sales channel really paid and charged, from the channel’s own money report. Choose the file: it is read in this browser and nothing is uploaded or saved.'),
+        h('div', { class: 'heForm u-d-flex u-gap-8 u-fwr-wrap' }, ...Object.keys(C.CHANNELS).map(ch =>
+          h('div', { class: 'heField' }, h('label', { for: 'cmFile_' + ch }, C.CHANNELS[ch].name + ' money report (CSV)'),
+            h('input', { id: 'cmFile_' + ch, type: 'file', class: 'heFileField', accept: '.csv,.txt,text/csv,text/plain', 'data-cmfile': ch }),
+            h('div', { class: 'u-fs-11 u-c-muted' }, C.CHANNELS[ch].how)))),
+        h('p', { class: 'u-fs-12', role: 'status', 'data-cmmessage': '1' }, cmMessage),
+        cards.length ? cards : h('p', { class: 'empty' }, 'No report chosen yet.'));
+    }
+    document.addEventListener('change', (e) => {
+      const inp = e.target.closest('#channelMoneyHost input[data-cmfile]'); if (!inp) return;
+      const ch = inp.getAttribute('data-cmfile'); const file = inp.files && inp.files[0]; if (!file) return;
+      const C = cmMod(); if (!C) return;
+      const say = (msg) => { cmMessage = msg; loadChannelMoney(); announce(msg); const back = document.getElementById('cmFile_' + ch); if (back) back.focus(); };
+      if (file.size > C.MAX_BYTES) { say('That file is larger than 5 MB; export a shorter period.'); return; }
+      const fr = new FileReader();
+      fr.onerror = () => say('The file could not be read.');
+      fr.onload = () => {
+        const p = C.parseReport(String(fr.result || ''), ch);
+        if (!p.ok) { say(file.name.slice(0, 80) + ': ' + p.reason); return; }
+        p.fileName = file.name.slice(0, 80);
+        cmFiles[ch] = p;
+        say(p.fileName + ' read: ' + p.rows.length + ' lines. Nothing was uploaded.');
+      };
+      fr.readAsText(file);
+    });
+    document.addEventListener('click', async (e) => {
+      const b = e.target.closest('#channelMoneyHost [data-cmsave]'); if (!b) return;
+      const ch = b.getAttribute('data-cmsave'); const p = cmFiles[ch]; const O = ocMod(), store = ocStore();
+      if (!p || !O || !store) return;
+      const say = (msg) => { cmMessage = msg; loadChannelMoney(); announce(msg); const m = document.querySelector('#channelMoneyHost [data-cmmessage]'); if (m) { m.setAttribute('tabindex', '-1'); m.focus(); } };
+      b.disabled = true;
+      try {
+        const numbers = Object.keys(O.feesByOrder(p));
+        if (!numbers.length) { say('This report has no fee that belongs to an order.'); return; }
+        // the report's order numbers, as the dashboard stores them (with or without "#")
+        const wanted = [...new Set(numbers.flatMap(n => [n, '#' + n, n.toUpperCase(), '#' + n.toUpperCase()]))];
+        const orders = await fetchAllRowsIn('orders', 'id, order_number', 'order_number', wanted, q => q.is('deleted_at', null));
+        const m = O.rowsFor(p, orders);
+        if (!m.rows.length) { say('None of the ' + numbers.length + ' orders in this report is in the dashboard yet, so nothing was saved.'); return; }
+        const r = await store.save(m.rows);
+        if (!r.ok) { say(r.message + ' Nothing was saved.'); return; }
+        say('Saved the real fee of ' + r.saved + (r.saved === 1 ? ' order' : ' orders') + '.' + (m.unmatched.length ? ' ' + m.unmatched.length + ' in the report ' + (m.unmatched.length === 1 ? 'is' : 'are') + ' not in the dashboard yet.' : '') + ' Real profit now uses them.');
+      } catch (err) { say('The real fees could not be saved: ' + explainDbError(err && err.message ? err.message : String(err))); }
+    });
+    document.addEventListener('click', (e) => {
+      const b = e.target.closest('#channelMoneyHost [data-cmremove]'); if (!b) return;
+      const ch = b.getAttribute('data-cmremove'); delete cmFiles[ch];
+      cmMessage = 'Report removed.'; loadChannelMoney(); announce(cmMessage);
+      const back = document.getElementById('cmFile_' + ch); if (back) back.focus();
+    });
+
+    // ---------- Agent diary (Nov 24; behind agentDiaryOn) ----------
+    // What each agent recorded in its own log (ai_decision_log), as a plain diary on
+    // AI Agents: the agent's name, what it did, when, grouped by day, with a filter
+    // per agent. Reads only. No database change.
+    let diaryAgent = '', diaryList = null, diarySeq = 0, diaryError = '';
+    function diaryMod() { try { return (window.HE && window.HE.views && window.HE.views['he-agent-diary']) || null; } catch (e) { return null; } }
+    function diaryHost(on) {
+      let el = document.getElementById('agentDiaryHost');
+      if (!on) { if (el) el.remove(); return null; }
+      if (!el) { const after = document.getElementById('aiTableWrap'); if (!after || !after.parentNode) return null; el = h('div', { id: 'agentDiaryHost', class: 'agentDiary' }); after.after(el); }
+      return el;
+    }
+    async function loadAgentDiary() {
+      const AD = diaryMod();
+      const host = diaryHost(agentDiaryOn() && !!AD); if (!host) return;
+      const seq = ++diarySeq;
+      try {
+        const r = await supabase.from('ai_decision_log').select('id, agent_key, output_summary, confidence, escalated_to_human, created_at')
+          .gte('created_at', new Date(Date.now() - 7 * 86400000).toISOString()).order('created_at', { ascending: false }).limit(AD.MAX_ROWS);
+        if (seq !== diarySeq) return;
+        if (r.error) throw r.error;
+        diaryList = AD.entries(r.data || [], { registry: AGENT_REGISTRY }); diaryError = '';
+      } catch (e) {
+        if (seq !== diarySeq) return;
+        diaryList = null; diaryError = 'The agents’ log could not be read just now: ' + explainDbError(e && e.message ? e.message : String(e));
+      }
+      renderAgentDiary();
+    }
+    function renderAgentDiary() {
+      const host = document.getElementById('agentDiaryHost'); const AD = diaryMod(); if (!host || !AD) return;
+      const head = [h('h3', { class: 'u-m-22-0-6 u-fs-15', id: 'agentDiaryHeading' }, 'Agent diary — the last 7 days'),
+        h('p', { class: 'hint u-mt-0' }, 'Everything your agents wrote in their own log, in plain words, newest first. A step an agent passed to a person is marked, and also appears in your Home feed.')];
+      if (!diaryList) { host.replaceChildren(...head, h('p', { class: 'hint', role: 'status' }, diaryError || 'Loading…')); return; }
+      const v = AD.view(diaryList, diaryAgent);
+      const sel = h('select', { id: 'agentDiaryFilter', 'data-diaryfilter': '1' },
+        h('option', { value: '' }, 'All agents (' + diaryList.length + ')'),
+        ...v.agents.map(a => h('option', { value: a.key }, a.name + ' (' + a.count + ')')));
+      sel.value = v.agent;
+      host.replaceChildren(...head,
+        h('div', { class: 'diaryBar' }, h('label', { for: 'agentDiaryFilter' }, 'Show'), sel,
+          h('span', { class: 'u-fs-12 u-c-muted', 'data-diarycount': String(v.count) }, v.count + (v.count === 1 ? ' step' : ' steps') + (v.passedToPerson ? ' · ' + v.passedToPerson + ' passed to a person' : ''))),
+        v.days.length ? h('div', { class: 'diaryDays' }, ...v.days.map(d => h('section', { class: 'diaryDay', 'aria-label': d.day },
+          h('h4', { class: 'diaryDayTitle' }, d.day),
+          h('ul', { class: 'diaryList' }, ...d.entries.map(e => h('li', { class: 'diaryEntry' + (e.passedToPerson ? ' diaryPerson' : ''), 'data-diaryentry': e.id },
+            h('span', { class: 'diaryTime' }, e.time),
+            h('span', { class: 'diaryWho' }, e.agent),
+            h('span', { class: 'diaryWhat' }, e.what),
+            e.passedToPerson ? h('span', { class: 'badge sev-medium' }, 'Passed to a person') : null,
+            e.confidence != null ? h('span', { class: 'u-fs-12 u-c-muted' }, e.confidence + '% sure') : null))))))
+          : h('p', { class: 'empty' }, 'No steps recorded in the last 7 days. Agents that are switched off write nothing.'));
+    }
+    document.addEventListener('change', (e) => {
+      const s = e.target.closest('#agentDiaryHost select[data-diaryfilter]'); if (!s) return;
+      diaryAgent = s.value; renderAgentDiary();
+      const again = document.getElementById('agentDiaryFilter'); if (again) again.focus();
+      const n = document.querySelector('#agentDiaryHost [data-diarycount]'); if (n) announce(n.textContent);
+    });
+
     // ---------- One attention feed (Nov 23; behind attentionFeedOn) ----------
     // Everything that needs the owner, in one list at the top of Home, most urgent
     // first (assets/views/he-attention-feed.js). It reads what Home already shows
@@ -3000,7 +3326,7 @@
     // notices) and the customer questions still waiting. It never writes: "Answer"
     // opens Customer Questions, "Dismiss" uses the reminder's own Dismiss button
     // below, "Later" hides an item until tomorrow in this browser only.
-    let feedFilter = 'all', feedQuestions = null, feedSeq = 0, feedLast = new Map(), feedParcels = null;
+    let feedFilter = 'all', feedQuestions = null, feedSeq = 0, feedLast = new Map(), feedParcels = null, feedAgentSteps = null, feedRecap = null;
     const FEED_LIMIT = 100;
     function feedMod() { try { return (window.HE && window.HE.views && window.HE.views['he-attention-feed']) || null; } catch (e) { return null; } }
     function feedStore() { try { return window.localStorage; } catch (e) { return null; } }
@@ -3039,6 +3365,23 @@
           feedParcels = W.watch(r.parcels, { now: Date.now(), ordersById: byId, trackingConnected: false });
         }
       } catch (e) { if (seq !== feedSeq) return; feedParcels = null; }
+      // steps an agent passed to a person in the last 7 days (the agents' own log)
+      try {
+        const AD = diaryMod();
+        const r = AD ? await supabase.from('ai_decision_log').select('id, agent_key, output_summary, confidence, escalated_to_human, created_at')
+          .eq('escalated_to_human', true).gte('created_at', new Date(Date.now() - 7 * 86400000).toISOString()).order('created_at', { ascending: false }).limit(100) : null;
+        if (seq !== feedSeq) return;
+        feedAgentSteps = AD && r && !r.error ? AD.needsPerson(AD.entries(r.data || [], { registry: AGENT_REGISTRY }), { now: Date.now(), days: 7 }) : null;
+      } catch (e) { if (seq !== feedSeq) return; feedAgentSteps = null; }
+      // the newest daily recap, when Backups & Printouts is on and it was not printed here yet
+      try {
+        const r = typeof backupsPageOn === 'function' && backupsPageOn()
+          ? await supabase.from('daily_reports').select('report_date').order('report_date', { ascending: false }).limit(1) : null;
+        if (seq !== feedSeq) return;
+        const d = r && !r.error && r.data && r.data[0] ? String(r.data[0].report_date).slice(0, 10) : null;
+        let upto = null; try { upto = localStorage.getItem(RECAP_PRINTED_KEY); } catch (e) { upto = null; }
+        feedRecap = d ? { date: d, printedUpTo: upto } : null;
+      } catch (e) { if (seq !== feedSeq) return; feedRecap = null; }
       paintAttentionFeed();
     }
     // the nightly check, as Home shows it below (its own cards keep their detail)
@@ -3066,7 +3409,7 @@
       const now = Date.now();
       const items = M.buildFeed({
         attention: Array.isArray(SEARCH_INDEX.attention) ? SEARCH_INDEX.attention : null, labels: ITEM_TYPE_LABELS,
-        checks: findings, questions: feedQuestions, nightly: feedNightly(), delivery: feedParcels,
+        checks: findings, questions: feedQuestions, nightly: feedNightly(), delivery: feedParcels, agents: feedAgentSteps, recap: feedRecap,
         money: moneyEl ? { open: Number(moneyEl.getAttribute('data-moneyalert')) } : null,
         tax: taxEl ? { count: Number(taxEl.getAttribute('data-taxratealert')) } : null }, now);
       const v = M.view(items, { now: now, snoozes: M.readSnoozes(feedStore()), filter: feedFilter });
@@ -3504,6 +3847,9 @@
       'If something is cut off: margins None, scale 100%, then print again.',
     ];
     const bkMonthOf = r => String(r.report_date || '').slice(0, 7);
+    // the newest recap printed in this browser (the Home feed reminds until it is)
+    const RECAP_PRINTED_KEY = 'he_recap_printed_upto';
+    function bkLatest() { return (bkReports || []).filter(r => /^\d{4}-\d{2}-\d{2}/.test(String(r.report_date || ''))).sort((a, b) => String(b.report_date).localeCompare(String(a.report_date)))[0] || null; }
     const bkMonthName = m => { const d = new Date(m + '-01T12:00:00'); return isNaN(d) ? m : d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }); };
     const bkNum = v => (v == null || v === '' || !isFinite(Number(v))) ? '—' : String(Number(v));
     async function loadBackupsPage() {
@@ -3531,6 +3877,9 @@
         ? h('p', { class: 'hint', 'data-bknote': 'recaps' }, 'The daily recaps could not be read. Refresh the page and try again.')
         : !months.length ? h('p', { class: 'empty', 'data-bknote': 'recaps' }, 'No daily recaps saved yet. The first one appears the morning after a working day.')
         : h('div', null,
+          bkLatest() ? h('div', { class: 'u-d-flex u-gap-8 u-fwr-wrap u-ai-center u-mt-8' },
+            h('button', { type: 'button', class: 'small', 'data-bk': 'print-latest' }, 'Print the latest day (' + String(bkLatest().report_date).slice(0, 10) + ')'),
+            h('span', { class: 'u-fs-12 u-c-muted' }, 'Once a day: your Home feed reminds you until it is printed.')) : null,
           h('div', { class: 'u-d-flex u-gap-8 u-fwr-wrap u-ai-flex-end u-mt-8' },
             h('div', { class: 'heField' }, h('label', { for: 'bkMonth' }, 'Month'),
               h('select', { id: 'bkMonth' }, months.map(m => h('option', Object.assign({ value: m }, m === bkMonth ? { selected: 'selected' } : {}), bkMonthName(m))))),
@@ -3600,6 +3949,24 @@
         return;
       }
       const t = e.target.closest('#backupsPanel [data-bk]'); if (!t) return;
+      if (t.getAttribute('data-bk') === 'print-latest') {
+        const r = bkLatest(); if (!r) return;
+        const day = String(r.report_date).slice(0, 10);
+        const line = (label, value) => h('tr', null, h('th', null, label), h('td', { class: 'num-cell' }, value));
+        bkPrintDoc([h('div', { class: 'printPage', 'data-printrecapday': day },
+          printBrand('Daily recap, ' + day), h('div', { class: 'printHdr' }, h('div', null, bkPrinted())),
+          h('table', null, h('tbody', null,
+            line('Orders', bkNum(r.orders_count)), line('Revenue', r.revenue == null ? '—' : fmtMoney(r.revenue, r.currency || 'USD')),
+            line('New customer questions', bkNum(r.new_inquiries_count)), line('Tasks opened', bkNum(r.tasks_opened_count)),
+            line('Incidents opened', bkNum(r.incidents_opened_count)), line('AI calls', bkNum(r.ai_calls_count)),
+            line('AI cost', r.ai_cost == null ? '—' : fmtMoney(r.ai_cost, 'USD')))),
+          h('div', { class: 'printLabel u-mt-8' }, 'Notes'), h('div', { class: 'printNotes' }, ' '))]);
+        try { localStorage.setItem(RECAP_PRINTED_KEY, day); } catch (err) { /* the reminder simply stays */ }
+        bkMessage = 'Opened the recap for ' + day + ' for printing. The Home reminder is cleared for this day.';
+        announce(bkMessage);
+        const msg = document.querySelector('#backupsPanel [data-bkmessage]'); if (msg) msg.textContent = bkMessage;
+        return;
+      }
       const rows = bkMonthRows();
       if (!rows.length) { bkMessage = 'There are no recaps for that month.'; announce(bkMessage); renderBackupsPage(); return; }
       if (t.getAttribute('data-bk') === 'print-recaps') {
@@ -3691,31 +4058,131 @@
     // uses example data or is read-only. Only keys listed in PREVIEW_SWITCHES can
     // be written. Shown to the owner and administrators; empty for everyone else.
     let previewSwitchMessage = '';
+    // Switches shared by every device (assets/views/he-shared-switches.js; drafts/50).
+    // ssShared.state: 'installed' (the database keeps the switches), 'not_installed'
+    // or 'unknown' (they stay in this browser, as before).
+    let ssShared = { state: 'unknown', value: null };
+    function ssMod() { try { return (window.HE && window.HE.views && window.HE.views['he-shared-switches']) || null; } catch (e) { return null; } }
+    // At sign-in: read the shared switches and make this browser match. Returns
+    // true when something changed and the page is reloading (once per state).
+    async function syncSharedSwitches() {
+      const W = ssMod(), store = rpStore();
+      if (!W || !store || !Array.isArray(PREVIEW_SWITCHES)) return false;
+      ssShared = await store.get(W.KEY);
+      if (ssShared.state !== 'installed' || !ssShared.value) return false;
+      const want = W.effective(ssShared.value, PREVIEW_SWITCHES, currentUserRole, SWITCH_EVERYONE);
+      const changed = W.apply(want, localStorage);
+      if (!changed.length) return false;
+      const sig = 'v1:' + W.signature(want);
+      try {
+        if (sessionStorage.getItem('he_switch_sync') === sig) return false;     // already reloaded for this state
+        sessionStorage.setItem('he_switch_sync', sig);
+      } catch (e) { return false; }
+      window.location.reload();
+      return true;
+    }
     function previewSwitchIsOn(key) { try { return localStorage.getItem(key) === 'on'; } catch (e) { return false; } }
     function loadPreviewSwitches() {
       const host = document.getElementById('previewSwitchesHost'); if (!host) return;
       if (!(currentUserRole === 'owner' || currentUserRole === 'administrator') || !Array.isArray(PREVIEW_SWITCHES)) { host.replaceChildren(); return; }
       const onCount = PREVIEW_SWITCHES.filter(sw => previewSwitchIsOn(sw.key)).length;
+      const W = ssMod(), shared = ssShared.state === 'installed', ownerHere = currentUserRole === 'owner';
       const rows = PREVIEW_SWITCHES.map(sw => {
         const on = previewSwitchIsOn(sw.key);
         return h('tr', { 'data-preview-key': sw.key, 'data-preview-on': on ? 'yes' : 'no' },
           h('td', null, h('div', { class: 'taskTitle' }, sw.name), h('div', { class: 'u-fs-11 u-c-muted' }, sw.what)),
           h('td', null, sw.where),
+          h('td', { 'data-preview-audience': W ? W.audienceOf(sw.key, SWITCH_EVERYONE) : '' }, W ? W.AUDIENCE_WORD[W.audienceOf(sw.key, SWITCH_EVERYONE)] : ''),
           h('td', null, on ? 'On' : 'Off'),
-          h('td', null, h('button', { type: 'button', class: 'small' + (on ? ' secondary' : ''), 'data-previewswitch': 'toggle', 'data-key': sw.key, 'aria-label': (on ? 'Turn off ' : 'Turn on ') + sw.name }, on ? 'Turn off' : 'Turn on')));
+          h('td', null, h('button', { type: 'button', class: 'small' + (on ? ' secondary' : ''), 'data-previewswitch': 'toggle', 'data-key': sw.key, disabled: shared && !ownerHere, 'aria-label': (on ? 'Turn off ' : 'Turn on ') + sw.name }, on ? 'Turn off' : 'Turn on')));
       });
       host.replaceChildren(h('div', { class: 'previewSwitches u-mt-18' },
         h('h3', { class: 'u-m-18-0-6 u-fs-15' }, 'Preview features'),
         h('p', { class: 'hint u-mt-0' }, 'For looking at features that are built but not switched on. A switch here applies to this browser on this device only — it is not saved to the database and nobody else sees a change. Every preview uses example data or is read-only: nothing is sent, issued, charged or written to stock. All are off unless you turn them on.'),
+        h('p', { class: 'hint u-mt-6', 'data-preview-shared': ssShared.state }, shared
+          ? 'Switches are shared: turning one on here turns it on on every phone and computer' + (ssShared.value ? '' : ' (nothing is shared yet: the first change shares this browser\u2019s switches)') + '. "Every employee" switches are on for everyone; the others only for the owner and administrators. Only the owner can change a switch.'
+          : ssShared.state === 'not_installed' ? 'Until the shared settings database step (drafts/50) is installed, a switch applies to this browser only.' : ''),
         h('p', { class: 'hint u-mt-6', 'data-preview-count': String(onCount) }, onCount + ' of ' + PREVIEW_SWITCHES.length + ' on in this browser.'),
         previewSwitchMessage ? h('p', { class: 'hint u-mt-6', 'data-preview-msg': '1' }, previewSwitchMessage,
           ' ', h('button', { type: 'button', class: 'small secondary', 'data-previewswitch': 'reload' }, 'Reload now')) : null,
         h('table', { class: 'phoneCards u-mt-8' },
-          h('thead', null, h('tr', null, h('th', null, 'Preview'), h('th', null, 'Where it appears'), h('th', null, 'Now'), h('th', null, 'Change'))),
+          h('thead', null, h('tr', null, h('th', null, 'Preview'), h('th', null, 'Where it appears'), h('th', null, 'Who gets it when shared'), h('th', null, 'Now'), h('th', null, 'Change'))),
           h('tbody', null, rows)),
-        h('div', { class: 'scanToggleRow u-mt-8' }, h('button', { type: 'button', class: 'small secondary', 'data-previewswitch': 'alloff' }, 'Turn all off')),
+        h('div', { class: 'scanToggleRow u-mt-8' }, h('button', { type: 'button', class: 'small secondary', 'data-previewswitch': 'alloff', disabled: shared && !ownerHere }, 'Turn all off')),
         lookPicker()));
     }
+    // ---------- Switches that save real records (Feature Flags; OWNER only) ----------
+    // Owner rule (Nov 24): everything can be switched on the dashboard. Each of these
+    // writes real records once its database step is installed; the step is checked
+    // live (read only, no rows read). On needs the step installed and a second tap;
+    // off always works. A switch is a note in this browser only.
+    let rsStates = null, rsSeq = 0, rsConfirm = '', rsMessage = '';
+    function rsMod() { try { return (window.HE && window.HE.views && window.HE.views['he-record-switches']) || null; } catch (e) { return null; } }
+    function rsHost(on) {
+      let el = document.getElementById('recordSwitchesHost');
+      if (!on) { if (el) el.remove(); return null; }
+      if (!el) { const after = document.getElementById('previewSwitchesHost'); if (!after || !after.parentNode) return null; el = h('div', { id: 'recordSwitchesHost' }); after.after(el); }
+      return el;
+    }
+    async function loadRecordSwitches() {
+      const M = rsMod();
+      const host = rsHost(currentUserRole === 'owner' && !!M); if (!host) return;
+      const seq = ++rsSeq;
+      rsStates = null; renderRecordSwitches();
+      const states = {};
+      await Promise.all(M.RECORD_SWITCHES.map(async sw => { states[sw.key] = await M.probe(supabase, sw); }));
+      if (seq !== rsSeq) return;
+      rsStates = states; renderRecordSwitches();
+    }
+    function renderRecordSwitches() {
+      const host = document.getElementById('recordSwitchesHost'); const M = rsMod(); if (!host || !M) return;
+      const rows = M.RECORD_SWITCHES.map(sw => {
+        const on = previewSwitchIsOn(sw.key);
+        const state = rsStates ? rsStates[sw.key] : null;
+        const act = M.action(on, state || 'unknown');
+        const confirming = rsConfirm === sw.key && !on;
+        const needsOff = sw.needs && !previewSwitchIsOn(sw.needs);
+        return h('tr', { 'data-record-key': sw.key, 'data-record-on': on ? 'yes' : 'no', 'data-record-state': state || 'checking' },
+          h('td', null, h('div', { class: 'taskTitle' }, sw.name), h('div', { class: 'u-fs-11 u-c-muted' }, sw.what),
+            needsOff ? h('div', { class: 'u-fs-11 u-c-muted' }, 'Also needs the "Supplier documents" preview above.') : null),
+          h('td', null, sw.where),
+          h('td', null, h('div', null, sw.draft), h('div', { class: 'u-fs-12', 'data-record-status': '1' }, state ? M.STATE_WORD[state] : 'Checking…')),
+          h('td', null, on ? 'On' : 'Off'),
+          h('td', null, confirming
+            ? h('div', { class: 'scanToggleRow' },
+                h('button', { type: 'button', class: 'small', 'data-recordswitch': 'confirm', 'data-key': sw.key, 'aria-label': 'Yes, turn on ' + sw.name }, 'Yes, turn on'),
+                h('button', { type: 'button', class: 'small secondary', 'data-recordswitch': 'cancel', 'data-key': sw.key, 'aria-label': 'Cancel turning on ' + sw.name }, 'Cancel'))
+            : h('button', { type: 'button', class: 'small' + (on ? ' secondary' : ''), 'data-recordswitch': on ? 'off' : 'ask', 'data-key': sw.key,
+                disabled: !act.allowed || !state, 'aria-label': act.button + ' ' + sw.name }, act.button),
+            act.note ? h('div', { class: 'u-fs-11 u-c-muted u-mt-4' }, act.note) : null));
+      });
+      host.replaceChildren(h('div', { class: 'previewSwitches u-mt-18', 'data-record-switches': '1' },
+        h('h3', { class: 'u-m-18-0-6 u-fs-15' }, 'Features that save real records (owner only)'),
+        h('p', { class: 'hint u-mt-0' }, 'Unlike the previews above, these read and write your real records once their database step is installed. Each can be turned on only when its step is installed (checked live here), and asks you to confirm. Turning off always works. A switch applies to this browser on this device only.'),
+        rsMessage ? h('p', { class: 'hint u-mt-6', role: 'status', 'data-record-msg': '1' }, rsMessage, ' ', h('button', { type: 'button', class: 'small secondary', 'data-previewswitch': 'reload' }, 'Reload now')) : null,
+        h('table', { class: 'phoneCards u-mt-8' },
+          h('thead', null, h('tr', null, h('th', null, 'Feature'), h('th', null, 'Where it appears'), h('th', null, 'Database step'), h('th', null, 'Now'), h('th', null, 'Change'))),
+          h('tbody', null, rows))));
+      labelPhoneCards(host);
+    }
+    document.addEventListener('click', (e) => {
+      const t = e.target.closest('#recordSwitchesHost [data-recordswitch]'); if (!t) return;
+      if (currentUserRole !== 'owner') return;
+      const M = rsMod(); if (!M) return;
+      const sw = M.RECORD_SWITCHES.find(x => x.key === t.getAttribute('data-key')); if (!sw) return;   // only listed keys are ever written
+      const act = t.getAttribute('data-recordswitch');
+      const state = rsStates ? rsStates[sw.key] : null;
+      if (act === 'ask') { if (state !== 'installed') return; rsConfirm = sw.key; rsMessage = ''; renderRecordSwitches(); const y = document.querySelector('#recordSwitchesHost [data-recordswitch="confirm"]'); if (y) y.focus(); return; }
+      if (act === 'cancel') { rsConfirm = ''; renderRecordSwitches(); refocusLike(t); return; }
+      try {
+        if (act === 'confirm' && state === 'installed') { localStorage.setItem(sw.key, 'on'); rsMessage = sw.name + ' is on. Reload the page, then open ' + sw.where + '.'; }
+        else if (act === 'off') { localStorage.removeItem(sw.key); rsMessage = sw.name + ' is off. Reload the page to finish.'; }
+        else return;
+      } catch (err) { rsMessage = 'This browser would not save the switch (private window or storage blocked).'; }
+      rsConfirm = ''; renderRecordSwitches(); announce(rsMessage);
+      const m = document.querySelector('#recordSwitchesHost [data-record-msg]'); if (m) { m.setAttribute('tabindex', '-1'); m.focus(); }
+    });
+
     // The look: Aurora for everyone (owner decision, Nov 23); another direction or the
     // previous look can be picked for this browser only. Applied at once.
     function lookPicker() {
@@ -3736,11 +4203,31 @@
       if (c.key === 'classic') document.documentElement.removeAttribute('data-look'); else document.documentElement.setAttribute('data-look', c.key);
       loadPreviewSwitches(); announce('Look: ' + c.name + '. ' + c.what); refocusLike(t);
     });
-    document.addEventListener('click', (e) => {
+    document.addEventListener('click', async (e) => {
       const t = e.target.closest('[data-previewswitch]'); if (!t) return;
       if (!(currentUserRole === 'owner' || currentUserRole === 'administrator')) return;
       const act = t.getAttribute('data-previewswitch');
       if (act === 'reload') { window.location.reload(); return; }
+      const W = ssMod();
+      if (W && ssShared.state === 'installed' && (act === 'alloff' || act === 'toggle')) {
+        // shared by every device: saved in the database (owner only; the database checks again)
+        const sw = act === 'toggle' ? PREVIEW_SWITCHES.find(x => x.key === t.getAttribute('data-key')) : null;
+        if (act === 'toggle' && !sw) return;
+        const turnOn = sw ? !previewSwitchIsOn(sw.key) : false;
+        const base = ssShared.value || W.fromStorage(PREVIEW_SWITCHES, localStorage);
+        const next = sw ? W.nextValue(base, PREVIEW_SWITCHES, sw.key, turnOn) : W.allOff();
+        const store = rpStore();
+        const r = store ? await store.set(W.KEY, next, 'staff') : { ok: false, message: 'The shared settings could not be reached.' };
+        if (!r.ok) { previewSwitchMessage = r.message + ' Nothing was changed.'; }
+        else {
+          ssShared = { state: 'installed', value: next };
+          W.apply(W.effective(next, PREVIEW_SWITCHES, currentUserRole, SWITCH_EVERYONE), localStorage);
+          previewSwitchMessage = sw ? sw.name + (turnOn ? ' is on for every device (' + W.AUDIENCE_WORD[W.audienceOf(sw.key, SWITCH_EVERYONE)].toLowerCase() + '). Reload the page, then open ' + sw.where + '.' : ' is off on every device. Reload the page to finish.')
+            : 'All previews are off on every device. Reload the page to finish.';
+        }
+        loadPreviewSwitches(); announce(previewSwitchMessage); refocusLike(t);
+        return;
+      }
       try {
         if (act === 'alloff') {
           PREVIEW_SWITCHES.forEach(sw => localStorage.removeItem(sw.key));
@@ -4938,7 +5425,7 @@
       qualityControlPanel: [loadQualityChecks],
       recallsPanel: [loadRecalls],
       expensesPanel: [loadExpenses, loadDeletedExpenses],
-      accountingPanel: [loadAccounting, loadReconcile, loadInvoicePayments, loadMoneyMatch, loadMoneyIssues],
+      accountingPanel: [loadAccounting, loadRealProfit, loadReconcile, loadInvoicePayments, loadMoneyMatch, loadChannelMoney, loadMoneyIssues],
       taxRecordsPanel: [loadTaxRecords, loadTaxRates],
       tasksPanel: [loadTasks],
       incidentsPanel: [loadIncidents],
@@ -4946,9 +5433,9 @@
       documentsPanel: [loadDocuments],
       adverseEventsPanel: [loadAdverseEvents],
       inquiriesPanel: [loadInquiries],
-      aiPanel: [loadAI],
+      aiPanel: [loadAI, loadAgentDiary],
       continuityPanel: [loadContinuity, loadSystemStatus],
-      flagsPanel: [loadFlags, loadSystemMode, loadPreviewSwitches],
+      flagsPanel: [loadFlags, loadSystemMode, loadPreviewSwitches, loadRecordSwitches],
       businessRulesPanel: [loadBusinessRules],
       approvalsPanel: [loadApprovals],
       sessionsPanel: [loadSessions],
