@@ -6,6 +6,9 @@
 // Nov 24: also the day up to which the daily recap was printed (key "recap_printed"),
 // so the Home reminder clears on every device, not only where Print was pressed;
 // and the shorter menu the owner chose (key "menu_layout", readable by every employee).
+// Also the owner's drafts: the wording on Store Campaigns, Customer Emails and the Content
+// Helper (keys "store_campaign", "customer_emails", "content_helper"; owner and administrators).
+// Lists of stores and customers are never part of a setting.
 //
 //   get(key)          -> { state: 'installed' | 'not_installed' | 'unknown',
 //                          value: object | null, updatedAt, updatedBy }
@@ -27,7 +30,8 @@
 
   const TABLE = 'shared_settings';
   const RPC = 'set_shared_setting';
-  const KEYS = Object.freeze({ profitEstimates: 'profit_estimates', recapPrinted: 'recap_printed', menuLayout: 'menu_layout' });
+  const KEYS = Object.freeze({ profitEstimates: 'profit_estimates', recapPrinted: 'recap_printed', menuLayout: 'menu_layout',
+    storeCampaign: 'store_campaign', customerEmails: 'customer_emails', contentHelper: 'content_helper' });
   const KEY_OK = /^[a-z][a-z0-9_]{1,59}$/;
   const MAX_CHARS = 8000;
   const SECRET_NAME = /pass(word|code)?|secret|token|api[_-]?key|private[_-]?key|credential|recovery/i;

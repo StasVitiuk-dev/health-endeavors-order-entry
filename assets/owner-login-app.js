@@ -3909,6 +3909,65 @@
       await rtnAfter(res);
     });
 
+    // ---------- Drafts that follow every device (owner's rule 3; shared settings, drafts/50) ----------
+    // The owner's wording on Store Campaigns, Customer Emails and the Content Helper is saved as
+    // a shared setting, so it is the same on every phone and computer. The newer of the browser's
+    // copy and the shared copy wins. Lists of stores and customers are never part of it. Until the
+    // shared settings are in use, everything stays in the browser and nothing is requested.
+    const dsShare = {};
+    function dsOf(page) { return dsShare[page] || (dsShare[page] = { state: 'idle', message: '', timer: null, seq: 0 }); }
+    function dsLine(page, extra) {
+      const d = dsOf(page);
+      const t = !sharedSettingsOn() ? 'Kept in this browser on this device for now. Once the shared settings database step (drafts/50) is installed, it follows you to every phone and computer.'
+        : d.state === 'failed' ? 'Could not save for every device (' + d.message + ') Kept in this browser.'
+          : currentUserRole !== 'owner' ? 'Only the owner\'s changes are saved for every device. Yours are kept in this browser.'
+            : d.state === 'saving' ? 'Saving for every phone and computer…'
+              : d.state === 'saved' ? 'Saved for every phone and computer.' : 'Saved for every phone and computer as you type.';
+      return t + (extra ? ' ' + extra : '');
+    }
+    function dsState(page) { return !sharedSettingsOn() ? 'off' : dsOf(page).state; }
+    function dsNode(page, extra) { return h('p', { class: 'hint u-mt-0', role: 'status', 'data-draftshare': page, 'data-draftstate': dsState(page), 'data-draftextra': extra || '' }, dsLine(page, extra)); }
+    function dsPaint(page) { const n = document.querySelector('[data-draftshare="' + page + '"]'); if (n) { n.setAttribute('data-draftstate', dsState(page)); n.textContent = dsLine(page, n.getAttribute('data-draftextra') || ''); } }
+    function dsPushSoon(page, keyName, value) {
+      if (!sharedSettingsOn() || currentUserRole !== 'owner') return;
+      const d = dsOf(page); clearTimeout(d.timer); d.state = 'saving'; dsPaint(page);
+      d.timer = setTimeout(async () => {
+        const S = rpSettings(), store = rpStore(); if (!S || !store) return;
+        const seq = d.seq += 1;
+        const r = await store.set(S.KEYS[keyName], value(), 'owner_admin');
+        if (seq !== d.seq) return;                       // a newer save is on its way
+        d.state = r.ok ? 'saved' : 'failed'; d.message = r.ok ? '' : r.message; dsPaint(page);
+      }, 900);
+    }
+    // fields: the part of a page's state that is shared; from: makes any value safe; redraw: after the shared copy was taken over
+    function dsMake(page, keyName, fields, getState, from, redraw) {
+      const part = () => { const st = getState(), o = {}; fields.forEach(f => { o[f] = st[f]; }); return o; };
+      let last = null;
+      return {
+        seen() { last = JSON.stringify(part()); },
+        // after every change by the person: stamps the time, and saves for every device a moment later
+        touch() {
+          const snap = JSON.stringify(part()); if (snap === last) return;
+          last = snap; getState().savedAt = new Date().toISOString();
+          dsPushSoon(page, keyName, () => Object.assign(part(), { savedAt: getState().savedAt }));
+        },
+        // when the page opens: take the shared copy if it is newer; send this one up if it is newer
+        async pull() {
+          const S = rpSettings(), store = rpStore(); if (!S || !store || !sharedSettingsOn() || !getState()) return;
+          const before = getState().savedAt, d = dsOf(page);
+          const r = await store.get(S.KEYS[keyName]);
+          const st = getState(); if (!st || st.savedAt !== before) return;        // the person typed meanwhile: theirs stands
+          if (r.state !== 'installed') { d.state = 'failed'; d.message = r.message || 'the shared settings could not be read.'; dsPaint(page); return; }
+          const theirs = r.value && typeof r.value.savedAt === 'string' ? r.value.savedAt.slice(0, 40) : '';
+          if (theirs && theirs > (before || '')) {
+            const clean = from(r.value); fields.forEach(f => { st[f] = clean[f]; }); st.savedAt = theirs;
+            last = JSON.stringify(part()); d.state = 'saved'; redraw(); return;
+          }
+          if (before && before > theirs) { dsPushSoon(page, keyName, () => Object.assign(part(), { savedAt: getState().savedAt })); return; }
+          d.state = theirs ? 'saved' : 'idle'; dsPaint(page);
+        } };
+    }
+
     // ---------- Store Campaigns (owner's decision, Nov 24; behind storeCampaignsOn) ----------
     // One email for stores: its wording is checked, the owner approves it once, then
     // chooses how many stores and which first. NOTHING IS SENT: the page shows who
@@ -3948,19 +4007,24 @@
     const scMod = () => (window.HE && window.HE.sales && window.HE.sales['he-store-campaign']) || null;
     const scDeps = () => ({ claims: (window.HE && window.HE.sales && window.HE.sales['he-sales-claims']) || null, approval: (window.HE && window.HE.sales && window.HE.sales['he-sales-approval']) || null });
     const scOwner = () => currentUserRole === 'owner' || currentUserRole === 'administrator';
-    function scRead() {
-      const base = { subject: '', body: '', approval: null, storesText: '', finderText: '', example: false, count: '20', order: 'nearest', startDay: localDateString(), address: '' };
-      try { const v = JSON.parse(localStorage.getItem(SC_KEY) || 'null'); if (v && typeof v === 'object' && !Array.isArray(v)) Object.keys(base).forEach(k => { if (typeof v[k] === typeof base[k] || (k === 'approval' && v[k] && typeof v[k] === 'object')) base[k] = v[k]; }); } catch (e) { /* start empty */ }
+    function scFrom(v) {
+      const base = { subject: '', body: '', approval: null, storesText: '', finderText: '', example: false, count: '20', order: 'nearest', startDay: localDateString(), address: '', savedAt: '' };
+      if (v && typeof v === 'object' && !Array.isArray(v)) Object.keys(base).forEach(k => { if (typeof v[k] === typeof base[k] || (k === 'approval' && v[k] && typeof v[k] === 'object' && !Array.isArray(v[k]))) base[k] = typeof v[k] === 'string' ? v[k].slice(0, k === 'storesText' || k === 'finderText' ? 600000 : 4000) : v[k]; });
       return base;
     }
-    function scKeep() { try { localStorage.setItem(SC_KEY, JSON.stringify(scState)); return true; } catch (e) { return false; } }
+    function scRead() { let v = null; try { v = JSON.parse(localStorage.getItem(SC_KEY) || 'null'); } catch (e) { /* start empty */ } return scFrom(v); }
+    // what follows the owner to every device: the wording, its approval and the choices; never the lists of stores
+    const SC_SHARED = ['subject', 'body', 'approval', 'count', 'order', 'startDay', 'address'];
+    const scShare = dsMake('store', 'storeCampaign', SC_SHARED, () => scState, scFrom, () => { scResult = null; scKeep(); renderStoreCampaigns(); });
+    function scKeep() { scShare.touch(); try { localStorage.setItem(SC_KEY, JSON.stringify(scState)); return true; } catch (e) { return false; } }
     const scText = () => ({ subject: scState.subject, body: scState.body });
     function scStores() { const M = scMod(); if (!M) return { rows: [], read: 0, unread: 0, problems: [] }; if (scState.example) { const rows = M.exampleStores(); return { rows: rows, read: rows.length, unread: 0, problems: [] }; } return M.parseStores(scState.storesText); }
     function loadStoreCampaigns() {
       const host = document.getElementById('storeCampaignsPanel'); if (!host) return;
       if (!(typeof storeCampaignsOn === 'function' && storeCampaignsOn())) { host.replaceChildren(); return; }
-      if (!scState) scState = scRead();
+      if (!scState) { scState = scRead(); scShare.seen(); }
       renderStoreCampaigns();
+      scShare.pull();
     }
     // the parts that change while typing, repainted without touching the boxes being typed in
     function scPaint() {
@@ -3987,7 +4051,7 @@
       host.replaceChildren(
         h('h2', null, 'Store Campaigns'),
         h('p', { class: 'hint hintLead', 'data-scnosend': '1' }, h('b', null, 'Nothing is sent from this page.'), ' Sending is not connected yet. You write one email, approve its wording once, choose how many stores, and see exactly who would get it on which day.'),
-        h('p', { class: 'hint u-mt-0' }, 'Kept in this browser on this device for now; it will follow you to every device once its database step exists.'),
+        dsNode('store', 'Your lists of stores always stay in this browser.'),
         h('p', { class: 'u-fs-12', role: 'status', 'data-scmessage': '1' }, scMessage),
         h('h3', null, '1. The wording'),
         field('scSubject', 'Subject', h('input', { id: 'scSubject', type: 'text', maxlength: '200', value: scState.subject, 'data-scfield': 'subject' })),
@@ -4008,7 +4072,7 @@
             h('option', Object.assign({ value: 'nearest' }, scState.order === 'nearest' ? { selected: 'selected' } : {}), 'The nearest'),
             h('option', Object.assign({ value: 'best' }, scState.order === 'best' ? { selected: 'selected' } : {}), 'The best match'))),
           field('scStart', 'First day', h('input', { id: 'scStart', type: 'date', value: scState.startDay, 'data-scfield': 'startDay' }))),
-        field('scAddress', 'Business postal address', h('input', { id: 'scAddress', type: 'text', maxlength: '300', value: scState.address, 'data-scfield': 'address', autocomplete: 'off' }), 'Goes at the bottom of every email (the law asks for it). Kept in this browser only.'),
+        field('scAddress', 'Business postal address', h('input', { id: 'scAddress', type: 'text', maxlength: '300', value: scState.address, 'data-scfield': 'address', autocomplete: 'off' }), 'Goes at the bottom of every email (the law asks for it).'),
         h('button', { type: 'button', class: 'small u-mt-8', 'data-sc': 'show' }, 'Show who would get it'),
         h('div', { 'data-scresult': scResult ? '1' : '0', class: 'u-mt-12' }, scResult || null));
       scPaint();
@@ -4106,9 +4170,9 @@
     let chState = null, chShown = {};
     const chMod = () => (window.HE && window.HE.sales && window.HE.sales['he-content-helper']) || null;
     const chDeps = () => ({ claims: (window.HE && window.HE.sales && window.HE.sales['he-sales-claims']) || null });
-    function chRead() {
-      const base = { product: '', story: '', kind: 'post', tone: 'plain', round: 0, look: 'clean', own: '' };
-      try { const v = JSON.parse(localStorage.getItem(CH_KEY) || 'null'); if (v && typeof v === 'object' && !Array.isArray(v)) Object.keys(base).forEach(k => { if (typeof v[k] === typeof base[k]) base[k] = v[k]; }); } catch (e) { /* start empty */ }
+    function chFrom(v) {
+      const base = { product: '', story: '', kind: 'post', tone: 'plain', round: 0, look: 'clean', own: '', savedAt: '' };
+      if (v && typeof v === 'object' && !Array.isArray(v)) Object.keys(base).forEach(k => { if (typeof v[k] === typeof base[k]) base[k] = typeof v[k] === 'string' ? v[k].slice(0, 4000) : v[k]; });
       const M = chMod();
       if (!CH_KINDS.some(k => k[0] === base.kind)) base.kind = 'post';
       if (!M || !Object.prototype.hasOwnProperty.call(M.TONES, base.tone)) base.tone = 'plain';
@@ -4116,12 +4180,16 @@
       if (!Number.isInteger(base.round) || base.round < 0 || base.round > 50) base.round = 0;
       return base;
     }
-    function chKeep() { try { localStorage.setItem(CH_KEY, JSON.stringify(chState)); return true; } catch (e) { return false; } }
+    function chRead() { let v = null; try { v = JSON.parse(localStorage.getItem(CH_KEY) || 'null'); } catch (e) { /* start empty */ } return chFrom(v); }
+    const CH_SHARED = ['product', 'story', 'kind', 'tone', 'look', 'own'];
+    const chShare = dsMake('content', 'contentHelper', CH_SHARED, () => chState, chFrom, () => { chState.round = 0; chKeep(); renderContentHelper(); });
+    function chKeep() { chShare.touch(); try { localStorage.setItem(CH_KEY, JSON.stringify(chState)); return true; } catch (e) { return false; } }
     function loadContentHelper() {
       const host = document.getElementById('contentHelperPanel'); if (!host) return;
       if (!(typeof contentHelperOn === 'function' && contentHelperOn())) { host.replaceChildren(); return; }
-      if (!chState) chState = chRead();
+      if (!chState) { chState = chRead(); chShare.seen(); }
       renderContentHelper();
+      chShare.pull();
     }
     const chBlockedLine = (findings) => {
       const f = Array.isArray(findings) ? findings : [];
@@ -4204,7 +4272,7 @@
         h('h2', null, 'Content Helper'),
         h('p', { class: 'hint hintLead', 'data-chnosend': '1' }, h('b', null, 'Nothing is posted, sent or spent from this page.'), ' It prepares drafts for you to copy. You decide what is used and where.'),
         h('p', { class: 'hint u-mt-0' }, 'The drafts are built from ready wording around your own story, not written by an AI model. That way every fact in them is yours. An AI writer, pictures and video would need a paid service, which is your decision.'),
-        h('p', { class: 'hint u-mt-0' }, 'Kept in this browser on this device for now; it will follow you to every device once its database step exists.'),
+        dsNode('content', ''),
         h('h3', null, '1. Your product and your story'),
         field('chProduct', 'Product name', h('input', { id: 'chProduct', type: 'text', maxlength: '80', value: chState.product, 'data-chfield': 'product', autocomplete: 'off' })),
         field('chStory', 'Your story, in a sentence or two', h('textarea', { id: 'chStory', rows: '3', maxlength: '600', 'data-chfield': 'story' }, chState.story),
@@ -4269,33 +4337,40 @@
     let ceState = null, ceResult = null, ceMessage = '', ceBusy = false, ceSeq = 0;
     const ceMod = () => (window.HE && window.HE.sales && window.HE.sales['he-customer-campaign']) || null;
     const ceOwner = () => currentUserRole === 'owner' || currentUserRole === 'administrator';
-    function ceRead() {
+    function ceFrom(v) {
       const M = ceMod(), kinds = M ? Object.keys(M.KINDS) : [];
-      const base = { kind: 'welcome', texts: {}, days: {}, startDay: localDateString(), address: '' };
+      const base = { kind: 'welcome', texts: {}, days: {}, startDay: localDateString(), address: '', savedAt: '' };
       kinds.forEach(k => { base.texts[k] = { subject: '', body: '', approval: null }; base.days[k] = M.KINDS[k].days == null ? '' : String(M.KINDS[k].days); });
-      try {
-        const v = JSON.parse(localStorage.getItem(CE_KEY) || 'null');
-        if (v && typeof v === 'object' && !Array.isArray(v)) {
-          if (kinds.includes(v.kind)) base.kind = v.kind;
-          if (typeof v.startDay === 'string') base.startDay = v.startDay;
-          if (typeof v.address === 'string') base.address = v.address;
-          kinds.forEach(k => {
-            const t = v.texts && typeof v.texts === 'object' ? v.texts[k] : null;
-            if (t && typeof t === 'object') { if (typeof t.subject === 'string') base.texts[k].subject = t.subject; if (typeof t.body === 'string') base.texts[k].body = t.body; if (t.approval && typeof t.approval === 'object') base.texts[k].approval = t.approval; }
-            if (v.days && typeof v.days === 'object' && typeof v.days[k] === 'string') base.days[k] = v.days[k];
-          });
-        }
-      } catch (e) { /* start empty */ }
+      if (v && typeof v === 'object' && !Array.isArray(v)) {
+        if (kinds.includes(v.kind)) base.kind = v.kind;
+        if (typeof v.startDay === 'string') base.startDay = v.startDay.slice(0, 20);
+        if (typeof v.address === 'string') base.address = v.address.slice(0, 300);
+        if (typeof v.savedAt === 'string') base.savedAt = v.savedAt.slice(0, 40);
+        kinds.forEach(k => {
+          const t = v.texts && typeof v.texts === 'object' ? v.texts[k] : null;
+          if (t && typeof t === 'object') { if (typeof t.subject === 'string') base.texts[k].subject = t.subject.slice(0, 4000); if (typeof t.body === 'string') base.texts[k].body = t.body.slice(0, 4000); if (t.approval && typeof t.approval === 'object' && !Array.isArray(t.approval)) base.texts[k].approval = t.approval; }
+          if (v.days && typeof v.days === 'object' && typeof v.days[k] === 'string') base.days[k] = v.days[k].slice(0, 6);
+        });
+      }
+      return base;
+    }
+    function ceRead() {
+      let v = null; try { v = JSON.parse(localStorage.getItem(CE_KEY) || 'null'); } catch (e) { /* start empty */ }
+      const base = ceFrom(v);
       if (!base.address) { try { base.address = scRead().address; } catch (e) { /* none yet */ } }   // the address already typed for store campaigns
       return base;
     }
-    function ceKeep() { try { localStorage.setItem(CE_KEY, JSON.stringify(ceState)); return true; } catch (e) { return false; } }
+    // what follows the owner to every device: the wording, the approvals and the choices; never a customer
+    const CE_SHARED = ['kind', 'texts', 'days', 'startDay', 'address'];
+    const ceShare = dsMake('customer', 'customerEmails', CE_SHARED, () => ceState, ceFrom, () => { ceResult = null; ceKeep(); renderCustomerEmails(); });
+    function ceKeep() { ceShare.touch(); try { localStorage.setItem(CE_KEY, JSON.stringify(ceState)); return true; } catch (e) { return false; } }
     const ceText = () => { const t = ceState.texts[ceState.kind]; return { subject: t.subject, body: t.body }; };
     function loadCustomerEmails() {
       const host = document.getElementById('customerEmailsPanel'); if (!host) return;
       if (!(typeof customerEmailsOn === 'function' && customerEmailsOn())) { host.replaceChildren(); return; }
-      if (!ceState && ceMod()) ceState = ceRead();
+      if (!ceState && ceMod()) { ceState = ceRead(); ceShare.seen(); }
       renderCustomerEmails();
+      if (ceState) ceShare.pull();
     }
     // the parts that change while typing, repainted without touching the boxes being typed in
     function cePaint() {
@@ -4321,7 +4396,8 @@
       host.replaceChildren(
         h('h2', null, 'Customer Emails'),
         h('p', { class: 'hint hintLead', 'data-cenosend': '1' }, h('b', null, 'Nothing is sent from this page.'), ' Sending is not connected yet. You choose the email, approve its wording once, and see exactly who would get it on which day.'),
-        h('p', { class: 'hint u-mt-0' }, 'Only people who ordered from you directly (your website, wholesale, or an order you typed in) are ever chosen. People who bought through Amazon, Etsy or TikTok Shop are never emailed: those sites do not let sellers email their buyers. The wording is kept in this browser on this device for now; the customer list is read from your orders when you ask and is not kept anywhere.'),
+        h('p', { class: 'hint u-mt-0' }, 'Only people who ordered from you directly (your website, wholesale, or an order you typed in) are ever chosen. People who bought through Amazon, Etsy or TikTok Shop are never emailed: those sites do not let sellers email their buyers.'),
+        dsNode('customer', 'The customer list is read from your orders when you ask and is not kept anywhere.'),
         h('p', { class: 'u-fs-12', role: 'status', 'data-cemessage': '1' }, ceMessage),
         h('h3', null, '1. Which email'),
         h('div', { class: 'chRow', role: 'group', 'aria-label': 'Which email' }, Object.keys(M.KINDS).map(k => h('button', { type: 'button', class: 'small' + (k === ceState.kind ? '' : ' secondary'), 'data-cekind': k, 'aria-pressed': String(k === ceState.kind) }, M.KINDS[k].name))),
@@ -4338,7 +4414,7 @@
         h('h3', null, '3. Who would get it'),
         h('div', { class: 'u-d-flex u-gap-8 u-fwr-wrap u-ai-flex-end' },
           field('ceStart', 'First day', h('input', { id: 'ceStart', type: 'date', value: ceState.startDay, 'data-cefield': 'startDay' }))),
-        field('ceAddress', 'Business postal address', h('input', { id: 'ceAddress', type: 'text', maxlength: '300', value: ceState.address, 'data-cefield': 'address', autocomplete: 'off' }), 'Goes at the bottom of every email (the law asks for it). Kept in this browser only.'),
+        field('ceAddress', 'Business postal address', h('input', { id: 'ceAddress', type: 'text', maxlength: '300', value: ceState.address, 'data-cefield': 'address', autocomplete: 'off' }), 'Goes at the bottom of every email (the law asks for it).'),
         h('button', Object.assign({ type: 'button', class: 'small u-mt-8', 'data-ce': 'show' }, ceBusy ? { disabled: 'disabled' } : {}), ceBusy ? 'Reading your orders…' : 'Show who would get it'),
         h('div', { 'data-ceresult': ceResult ? '1' : '0', class: 'u-mt-12' }, ceResult || null));
       cePaint();
