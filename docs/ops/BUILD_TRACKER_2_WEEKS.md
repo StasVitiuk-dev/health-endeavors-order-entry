@@ -46,7 +46,7 @@ Database changes are drafts the owner runs after approving them.
 | #52 | **Money per channel** on Accounting: choose the money report of Etsy, Amazon or TikTok Shop; real sales, refunds, fees, postage and payouts, the real fee rate next to the estimate, payouts checked against the bank (Etsy layout confirmed; Amazon and TikTok wait for a first real export) | channel money + related passed |
 | #53 | **Feature switches shared by every device**, with an audience (work features: everyone; money, revenue, sensitive documents: owner and administrators). Audience table approved by the owner Nov 23. Needs draft 50 installed | shared switches + related passed |
 | #54 | **Real fee and postage per order** (draft 52, review item 11): Real profit uses the real numbers where saved, estimates elsewhere, and says which | DB 35/35; related browser tests passed |
-| #55 | **Incidents: record what was done and close** (owner and administrators; switch `he_incident_close`; no database step). Contains #46–#54 | 157 related passed, 33 skipped |
+| #55 | **Incidents: record what was done and close** (owner and administrators; switch `he_incident_close`; no database step). Also two fixes from the owner's screenshots of Nov 24 in a narrow computer window (about 790 wide): the slide-over menu was see-through, and tables scrolled sideways. Contains #46–#54 | 157 + 131 + 77 related passed |
 
 **How to merge (every PR above):** GitHub shows these PRs as opened by the owner's
 own account, so **Approve is not offered**. On the PR's **Conversation** tab, at the
@@ -98,17 +98,19 @@ adapted to that table.
 - Postage: **Shopify Shipping**. Label paper: fits the Rollo.
 - Website: built on Shopify (its orders are Shopify orders).
 - All nine gaps approved; agent diary confirmed ("love it").
-- PROPOSED, waiting for a yes: **Shopify as the hub** for Amazon, Etsy and TikTok
-  (their official Shopify apps bring orders in and keep one stock count).
-  Nov 24: the owner asked for an opinion; recommendation given: **yes** (one stock
-  count, one place for orders and labels, one feed for the dashboard; check the
-  connector apps' current fees before installing). OWNER DECISION REQUIRED.
+- DECIDED Nov 24: **Shopify is the hub** for Amazon, Etsy and TikTok. The owner agreed
+  after asking for an opinion: selling out fast (even on one channel) is welcome; selling
+  more than is in stock is not, and the shared stock count must prevent it. Costs and
+  fees, with sources: `docs/ops/CHANNEL_COSTS_2026-11-24.md`. OPEN: how Etsy connects
+  (Shopify's own connector appears closed to new Etsy shops).
 - Nov 24, bottle photo from the owner: the barcode on a bottle is a normal 12-digit
   **product** barcode. It does **not** carry the batch, and no batch number is printed
   on the label side shown. PROPOSED for batch tracing: the dashboard prints small
   batch stickers (Rollo) when a batch is made, and that sticker is scanned when
-  packing; or the batch is picked on screen. Open question to the owner: is a batch
-  number stamped on the bottom of the bottle?
+  packing; or the batch is picked on screen. A second photo (the bottom of the
+  bottle) shows only the recycling mark: **no batch number anywhere on the bottle**.
+  DECIDED Nov 24 (owner: "we will have to print it on label like you said"): batch
+  stickers printed by the dashboard.
 - Nov 23: the owner approved the audience split for shared switches ("looks good").
 - Nov 23: the owner confirmed the open incident about the emergency account was
   their own sign-in during setup; it will be closed with a note once #55 is live.
@@ -132,11 +134,11 @@ Decided Nov 23 (evening): **feature switches are shared by every device**; work 
 2. Business address (virtual mailbox) before the seller accounts; then Etsy, TikTok Shop, Amazon.
 3. Business email addresses (planned for tomorrow).
 4. The database steps in `docs/ops/sql-review/START_HERE_GUIDED_RUNS.md`, then review item 9 (draft 48).
-5. A yes or no on Shopify as the hub.
-6. ~~Batch barcodes~~ ANSWERED Nov 24: product code only (see decisions). Open: is a batch number stamped on the bottom of the bottle?
+5. ~~Shopify as the hub~~ DECIDED Nov 24: yes.
+6. ~~Batch barcodes~~ ANSWERED Nov 24: product code only, nothing on the bottom; batch stickers decided.
 7. ~~Read-only shape check of `shipments` and `incidents`~~ DONE Nov 23 (`docs/ops/shapes/PRODUCTION_SHAPES_2026-11-23.md`, on #54). NEXT (Claude): adapt draft 48 to the real `shipments` table.
 8. **Database step for shared settings** (review item 10, draft 50), after #50 is merged: then the Real profit numbers are the same on every device.
 9. ~~Feature switches shared?~~ DECIDED Nov 23 (yes, with audiences; #53).
-11. Read-only **Query I** (report day cutoff): SQL given in chat Nov 24; waiting for the result screenshot.
+11. ~~Read-only Query I~~ RUN Nov 23 (evening, owner's time): 45 saved daily reports, every one with 0 orders, and 0 orders in the table for those days. Verdict **NOT ENOUGH DATA**: nothing is wrong, but with no orders yet the report's day cutoff cannot be told. Run it again after the first week with real orders (at least one placed in the evening).
 12. Try **One attention feed** (Feature Flags → Turn on → Home) and say what you think.
 10. Packaging cost per box type (to replace the single packaging estimate).
