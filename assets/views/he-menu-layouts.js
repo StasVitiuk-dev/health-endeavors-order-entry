@@ -3,7 +3,11 @@
 // keeps its look, its group headings and its page names. A layout only says
 // which of today's pages sit INSIDE another page of the same topic, where they
 // appear as a row of buttons at the top of that page. Three variations, from a
-// little shorter to the shortest; '' is today's menu.
+// little shorter to the shortest; '' is the menu with every page on its own line.
+//
+// Owner's decision (Nov 24): "let's go with A option": variation 1 ("A little
+// shorter") is the menu everyone starts with (DEFAULT_KEY). The full menu and the
+// other two stay one click away under Feature Flags -> Menu.
 //
 // Nothing is removed in any layout: a page the list does not place stays in the
 // menu under its own group exactly as today, so a page added later (or one
@@ -15,6 +19,9 @@
 //   holds(page, sectionId)   -> true when the section is that page or one of its tabs
 //   count(layout)            -> how many entries the menu has
 //   choices()                -> [{ key, name, what }] for the picker
+//   fromStored(text)         -> the layout for what this browser kept (nothing kept = the default)
+//   toStored(key)            -> what to keep in the browser ('today' for the full menu)
+//   fromShared(value)        -> the layout the owner saved for every device, or null when there is none
 //
 // Pure: no page, no database. docs/ops/MENU_REORGANISATION_OPTIONS_2026-11-24.md
 (function (root, factory) {
@@ -73,8 +80,22 @@
   };
   Object.freeze(LAYOUTS);
 
+  const DEFAULT_KEY = 'a';          // owner's decision, Nov 24
+  const FULL = 'today';             // how "every page on its own line" is written down
   const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
   const keyOf = (v) => (typeof v === 'string' && Object.prototype.hasOwnProperty.call(LAYOUTS, v) ? v : '');
+  // what this browser kept: nothing (or something unreadable) is the default; 'today' is the full menu
+  function fromStored(text) {
+    if (text === FULL) return '';
+    return keyOf(text) || DEFAULT_KEY;
+  }
+  function toStored(key) { return keyOf(key) || FULL; }
+  // the owner's choice for every device: { layout: 'a' | 'b' | 'c' | '' | 'today' }; anything else is no choice
+  function fromShared(value) {
+    if (!isObj(value) || typeof value.layout !== 'string') return null;
+    if (value.layout === '' || value.layout === FULL) return '';
+    return keyOf(value.layout) || null;
+  }
 
   // todaysGroups: the menu as it is today, [{ label, color, collapsible, pages: [{ id, label }] }]
   function build(key, todaysGroups) {
@@ -120,9 +141,9 @@
   }
 
   function choices() {
-    return [{ key: '', name: 'Today\'s menu', what: 'The menu as it is now, every page on its own line.' }]
+    return [{ key: '', name: 'Today\'s menu', what: 'The full menu, every page on its own line.' }]
       .concat(Object.keys(LAYOUTS).map(k => ({ key: k, name: LAYOUTS[k].name, what: LAYOUTS[k].what })));
   }
 
-  return { LAYOUTS, keyOf, build, find, holds, count, choices };
+  return { LAYOUTS, DEFAULT_KEY, FULL, keyOf, fromStored, toStored, fromShared, build, find, holds, count, choices };
 }));

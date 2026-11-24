@@ -629,25 +629,25 @@
     }
     // ---------- A shorter menu (owner, Nov 24) ----------
     // The same menu, with same-topic pages inside one another
-    // (assets/views/he-menu-layouts.js). '' is today's menu. The choice is kept in
-    // this browser and, once the shared settings are in use, for every device.
+    // (assets/views/he-menu-layouts.js). Owner's decision, Nov 24: everyone starts with
+    // "1. A little shorter"; '' is the full menu. A different choice is kept in this
+    // browser and, once the shared settings are in use, for every device.
     const MENU_LAYOUT_KEY = 'he_menu_layout';
     const mlMod = () => (window.HE && window.HE.views && window.HE.views['he-menu-layouts']) || null;
     let mlKey = '';
-    try { const M0 = mlMod(); mlKey = M0 ? M0.keyOf(localStorage.getItem(MENU_LAYOUT_KEY)) : ''; } catch (e) { mlKey = ''; }
+    try { const M0 = mlMod(); mlKey = M0 ? M0.fromStored(localStorage.getItem(MENU_LAYOUT_KEY)) : ''; } catch (e) { const M1 = mlMod(); mlKey = M1 ? M1.DEFAULT_KEY : ''; }
     function mlLayout() { const M = mlMod(); return M && mlKey ? M.build(mlKey, SIDEBAR_GROUPS) : null; }
     function mlRemember(key) {
-      mlKey = key;
-      try { if (key) localStorage.setItem(MENU_LAYOUT_KEY, key); else localStorage.removeItem(MENU_LAYOUT_KEY); } catch (e) { /* still applied on this page */ }
+      const M = mlMod(); mlKey = key;
+      try { if (M) localStorage.setItem(MENU_LAYOUT_KEY, M.toStored(key)); } catch (e) { /* still applied on this page */ }
     }
     // At sign-in, with the shared settings in use: the menu the owner chose for every device.
     async function syncMenuLayout() {
       const M = mlMod(), S = rpSettings(), store = rpStore();
       if (!M || !S || !store || !sharedSettingsOn()) return;
       const r = await store.get(S.KEYS.menuLayout);
-      if (r.state !== 'installed' || !r.value || typeof r.value.layout !== 'string') return;
-      const want = M.keyOf(r.value.layout);
-      if (want !== mlKey) mlRemember(want);
+      const want = r.state === 'installed' ? M.fromShared(r.value) : null;   // null: the owner has not chosen for everyone
+      if (want !== null && want !== mlKey) mlRemember(want);
     }
     // Saves the choice for every device. true = saved for everyone; false = this browser only.
     async function menuLayoutShare(key) {
@@ -4306,7 +4306,7 @@
       const lines = layout ? M.count(layout) : SIDEBAR_GROUPS.reduce((n, g) => n + g.pages.length, 0);
       return h('div', { class: 'u-mt-12', 'data-menulayoutpicker': cur.key || 'today' },
         h('h4', null, 'Menu'),
-        h('p', { class: 'hint u-mt-0' }, 'The same menu, shorter: pages about the same topic sit inside one another and appear as a row of buttons at the top of the page. Nothing is removed, search still finds every page, and "Today\'s menu" puts everything back.'),
+        h('p', { class: 'hint u-mt-0' }, 'The same menu, shorter: pages about the same topic sit inside one another and appear as a row of buttons at the top of the page. Nothing is removed, search still finds every page, and "Today\'s menu" puts every page back on its own line. Everyone starts with "1. A little shorter".'),
         h('div', { class: 'scanToggleRow', role: 'group', 'aria-label': 'Menu' },
           list.map(c => h('button', { type: 'button', class: 'small' + (c.key === cur.key ? '' : ' secondary'), 'data-menulayout': c.key || 'today', 'aria-pressed': String(c.key === cur.key) }, c.name))),
         h('p', { class: 'hint u-mt-6', 'data-menulayout-lines': String(lines) }, cur.what + ' The menu now has ' + lines + ' lines.'),
