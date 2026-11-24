@@ -1,6 +1,6 @@
 # Owner requests, Nov 24, 2026: phone line, agents that write to stores and customers, marketing agents, seeing and stopping agents, smart camera, backups and printing
 
-Status: PROPOSED · several items OWNER DECISION REQUIRED · nothing here sends a real message
+Status: CURRENT plan · owner's answers of Nov 24 recorded in section 3 · nothing here sends a real message
 
 The owner asked for all of this to be discussed, checked against what exists, and added to the list.
 What exists was checked in the repository on Nov 24 (agent registry in `assets/app/he-config.js`,
@@ -61,14 +61,42 @@ stored safely.
 paper → filed with the supplier. Reading the amounts automatically needs a text-reading service; first
 step is photo plus typed amount.
 
-## 3. Decisions for the owner
+## 3. The owner's answers (Nov 24)
 
-1. OWNER DECISION REQUIRED: stores and customer replies at "approve first" (recommended)?
-2. OWNER DECISION REQUIRED: stores by email, visits and calls first, no cold texts (recommended)?
-3. OWNER DECISION REQUIRED: let Shopify send the order-update emails (recommended, to be checked)?
-4. OWNER DECISION REQUIRED: automatic daily printing: is the Mac on every day, and at what time?
-5. Any real sending needs the owner's explicit approval per task, a business email address on the
-   business's own domain, and for texts a registered texting service.
+1. **Phone:** the line is on the owner's personal plan, not a business line. The current number is
+   used now and changed to the new number when the new phone arrives (Dec 13). DECIDED: **no texting
+   at the start**; no business texting registration for now. Email only.
+2. **Approval:** DECIDED: the owner approves **the text of an email or a campaign once**, not each
+   single send (a campaign may go to many people a day). Applies to stores and to customers.
+3. **Customers too:** email marketing agents are wanted for regular customers (people who ordered or
+   subscribed), not only for stores. Customers will have personal accounts on the website; a reward
+   programme may come later. (The website is a separate project; nothing of it goes in this repository.)
+4. **Marketing agents:** the draft pages are liked. Wanted in addition: more ways to bring stores to
+   buy, and more agents that bring customers.
+5. **Seeing and stopping agents:** approved. First part BUILT Nov 24 (PR #64, not merged): "Agents at a
+   glance" on the AI Agents page. The owner asks to be told which further agents are needed.
+6. **Emails to customers and replies (section D):** approved as proposed.
+7. **Printing:** approved ("do it"). Day pack BUILT Nov 24 (PR #63, not merged). Automatic daily
+   printing: OWNER DECISION REQUIRED only on the time of day and whether the Mac is on then.
+8. **Time-savers:** approved: receipt inbox, review request after delivery, morning summary.
+   **NOT wanted for now: low stock → purchase order draft** (owner: "I don't need it for now").
+
+Still true whatever is built: any real sending needs the owner's explicit approval of that specific
+task (`CLAUDE.md`), a business email address on the business's own domain, an unsubscribe link in
+every marketing email, and sending only to people who ordered or subscribed. Whether Shopify's own
+email tool should be the sender for customer marketing is to be checked before a second sender is built.
+
+## 3b. Agents Claude suggests adding (PROPOSED, in order of value)
+
+| Agent | What it does | Sends anything? |
+|---|---|---|
+| Store finder | Builds the list of stores worth contacting, scores them, removes ones already contacted | No |
+| Store outreach | Drafts the first email and the follow-ups to a store; the owner approves the text once per campaign | Only after approval |
+| Customer email | Drafts campaigns for customers who ordered or subscribed (welcome, reorder time, new product, win-back); approve once per campaign | Only after approval |
+| Review request | A few days after delivery, drafts a short "how was it" email | Only after approval |
+| Receipt inbox | Turns a forwarded receipt email or a photo into an expense draft | No |
+| Morning summary | One message each morning: what needs the owner today | To the owner only |
+| Content helper | Turns one product story into post, ad and email drafts (the existing draft pages, on real products) | No |
 
 ## 4. Rough size (planning estimates, not promises)
 
