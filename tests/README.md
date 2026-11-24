@@ -77,3 +77,10 @@ If Playwright asks you to install a browser, run `npx playwright install chromiu
 - Real Safari on a real iPhone. These tests use Chromium at iPhone size.
 - Value rules of tables the schema check didn't cover (incidents, legal holds, system mode…). They are listed in `docs/ops/state-machine-audit.md` and waiting for Query C.
 - The SQL drafts and concurrency. These run on a local PostgreSQL (`docs/ops/sql/drafts/1*_DRAFT_tests_*.sql`, `docs/ops/sql/local-test/stress_test.sh`), not in this suite.
+
+## Before every push (lesson of Nov 23)
+
+When only a few specs are run locally instead of the whole suite, always include these two: they catch what a feature's own tests do not.
+
+- `specs/robustness-probe-ext21.spec.js`: feeds empty, missing and broken input to every pure module; a new module is picked up automatically.
+- `specs/request-baseline.spec.js`: the list of database requests every page makes with all switches off. If a change is intended, regenerate with `UPDATE_BASELINES=1` and say so in the PR.

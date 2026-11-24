@@ -34,10 +34,10 @@ Database changes are drafts the owner runs after approving them.
 | PR | What | Tests |
 |---|---|---|
 | ~~#37~~ | Documents and plans: **MERGED Nov 23 (evening), by the owner** (`096a8c2`) | docs checks |
-| #42 | Confirm tax rate screen (+ #38–#41: fonts, readable sidebar, tax dates, product list import) | 3,259 passed on GitHub |
-| #43 | **One attention feed** on Home ("Needs you now") | feed 13 + 68 related passed; GitHub green |
-| #44 | **Drop-off receipt**: one carrier receipt marks every parcel dropped off; database draft 48 (review item 9) | DB 47/47; screen 13; 267 related passed |
-| #45 | **Delivery watch**: stuck, late, problem and returned parcels in the feed with next step and customer message | 5 + 49 related passed |
+| ~~#42~~ **MERGED Nov 23, live check passed** | Confirm tax rate screen (+ #38–#41: fonts, readable sidebar, tax dates, product list import) | 3,259 passed on GitHub |
+| ~~#43~~ **MERGED Nov 23, live check passed** | **One attention feed** on Home ("Needs you now") | feed 13 + 68 related passed; GitHub green |
+| ~~#44~~ **MERGED Nov 23, live check passed** | **Drop-off receipt**: one carrier receipt marks every parcel dropped off; database draft 48 (review item 9) | DB 47/47; screen 13; 267 related passed |
+| ~~#45~~ **MERGED Nov 23, live check passed** | **Delivery watch**: stuck, late, problem and returned parcels in the feed with next step and customer message | 5 + 49 related passed |
 | #46 | **Agent diary**: every agent step in plain words on AI Agents; hand-offs in the feed (no database change) | 10 + 73 related passed |
 | #47 | **Switches for features that save real records** (Feature Flags, owner only): each shows whether its database step is installed; on needs a second tap, off always works | record switches + related passed |
 | #48 | **Daily recap**: one tap prints the latest day (with a notes box); a Home reminder stays until it is printed | backups page + related passed |
@@ -107,6 +107,8 @@ adapted to that table.
   needs owner steps: merges, the database steps, seller accounts, email, website photos.
 
 ## Waits on the owner
+
+Decided Nov 23 (evening): **feature switches are shared by every device**; work features are for every employee; money, revenue and sensitive documents are for the owner and administrators only. NEXT: switches with an audience, stored in shared settings (draft 50).
 
 1. Merge the PRs above (in order).
 2. Business address (virtual mailbox) before the seller accounts; then Etsy, TikTok Shop, Amazon.
