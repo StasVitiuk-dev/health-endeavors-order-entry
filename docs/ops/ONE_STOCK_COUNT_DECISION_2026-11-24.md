@@ -43,4 +43,8 @@ channels, keeping a safety buffer.
 A database step so that **every order takes its bottles off the dashboard's book count exactly once**
 (and gives them back when an order is cancelled), with a record of each move. Under option 1 it keeps
 the book count honest for comparing with Shopify; under option 2 it is the count itself.
-NEXT after the owner's answer: that database step as a draft with a local test, then the screen.
+BLOCKED on one read-only check first: the real columns of `order_items` in production are not on
+record (the local test schema only guesses them: order, product name, SKU, quantity; no link to the
+product). The step must not be written against a guess. NEXT: the owner runs a read-only shape check of
+`orders`, `order_items` and `inventory` (given in chat), as was done for `shipments`; then the database
+step as a draft with a local test; then the screen.
