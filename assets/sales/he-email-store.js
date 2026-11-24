@@ -22,6 +22,7 @@
   'use strict';
 
   const MAX_AT_ONCE = 500;                      // the database takes at most this many addresses at a time
+  const PAGE = 1000, MAX_PAGES = 40;            // reading a campaign's emails: 1,000 per request, 40,000 at most
   const KINDS = Object.freeze(['store', 'customer']);
   const STATUS_WORDS = Object.freeze({ approved: 'Ready to send (nothing is sent yet)', paused: 'Paused', stopped: 'Stopped', done: 'Finished' });
   const EMAIL = /^[^\s@<>(),;:"']+@[^\s@<>(),;:"']+\.[a-z]{2,}$/i;
@@ -130,6 +131,25 @@
       } catch (e) { return refuse(friendlyError(e)); } finally { busy = false; }
     }
 
+    // Every email of these campaigns. The database answers with at most 1,000 rows at a time
+    // (fewer if set so), so they are read page by page, in the order of their ids, until every
+    // counted one is in: a campaign's numbers are exact, or they are marked as not complete.
+    async function outbox(ids) {
+      const rows = []; let last = null, total = null;
+      for (let page = 0; page < MAX_PAGES; page += 1) {
+        let q = client.from('email_outbox').select('id, campaign_id, status', page === 0 ? { count: 'exact' } : undefined).in('campaign_id', ids);
+        if (last !== null) q = q.gt('id', last);
+        const o = await q.order('id', { ascending: true }).limit(PAGE);
+        if (o && o.error) return { error: o.error, rows: [], complete: false };
+        if (page === 0 && o && typeof o.count === 'number') total = o.count;
+        const batch = (o && Array.isArray(o.data) ? o.data : []).filter(r => isObj(r) && typeof r.id === 'string');
+        batch.forEach(r => rows.push(r));
+        if (!batch.length || (total !== null && rows.length >= total)) return { rows: rows, complete: total === null || rows.length >= total };
+        last = batch[batch.length - 1].id;
+      }
+      return { rows: rows, complete: false };
+    }
+
     // the saved campaigns of one kind, newest first, with what happened to their emails
     async function campaigns(kind) {
       if (!usable) return refuse('Saving campaigns is not switched on.', { rows: [] });
@@ -138,14 +158,14 @@
         const c = await client.from('email_campaigns').select('id, kind, name, subject, status, stop_reason, approved_at').eq('kind', kind).order('approved_at', { ascending: false }).limit(20);
         if (c && c.error) return refuse(friendlyError(c.error), { rows: [], notInstalled: notInstalled(c.error) });
         const list = (c && Array.isArray(c.data) ? c.data : []).filter(r => isObj(r) && typeof r.id === 'string');
-        let counts = Object.create(null);
+        let counts = Object.create(null), partial = false;
         if (list.length) {
-          const o = await client.from('email_outbox').select('campaign_id, status').in('campaign_id', list.map(r => r.id)).limit(10000);
-          if (o && o.error) return refuse(friendlyError(o.error), { rows: [] });
-          counts = tally(o && Array.isArray(o.data) ? o.data : []);
+          const o = await outbox(list.map(r => r.id));
+          if (o.error) return refuse(friendlyError(o.error), { rows: [] });
+          counts = tally(o.rows); partial = !o.complete;
         }
-        return { ok: true, message: '', rows: list.map(r => ({ id: r.id, name: str(r.name, 120), subject: str(r.subject, 200), status: str(r.status, 20), stopReason: str(r.stop_reason, 500),
-          approvedAt: typeof r.approved_at === 'string' ? r.approved_at : '', counts: counts[r.id] || { queued: 0, sent: 0, skipped: 0, failed: 0, back: 0, total: 0 } })) };
+        return { ok: true, message: '', countsComplete: !partial, rows: list.map(r => ({ id: r.id, name: str(r.name, 120), subject: str(r.subject, 200), status: str(r.status, 20), stopReason: str(r.stop_reason, 500),
+          approvedAt: typeof r.approved_at === 'string' ? r.approved_at : '', counts: Object.assign(counts[r.id] || { queued: 0, sent: 0, skipped: 0, failed: 0, back: 0, total: 0 }, { partial: partial }) })) };
       } catch (e) { return refuse(friendlyError(e), { rows: [] }); }
     }
 

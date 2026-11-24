@@ -66,6 +66,56 @@ test.describe('the rules (no browser)', () => {
   });
 });
 
+test.describe('the counts of a saved campaign are exact (no browser)', () => {
+  test.beforeEach(({}, ti) => { test.skip(ti.project.name !== 'desktop', 'run once'); });
+  // a database stand-in that answers like the real one: at most `cap` rows per request, in id order, with the full count when asked
+  const fake = (emails, cap, opts) => {
+    const o = opts || {}, asked = [];
+    const client = { rpc: async () => ({ data: null, error: null }), from: (table) => {
+      const q = { table, after: null, wantCount: false };
+      const chain = { select: (cols, how) => { q.wantCount = !!(how && how.count); return chain; }, eq: () => chain, in: () => chain, gt: (c, v) => { q.after = v; return chain; }, order: () => chain,
+        limit: async (n) => {
+          if (table === 'email_campaigns') return { data: [{ id: id(900), kind: 'store', name: 'SYNTHETIC big campaign', subject: 'S', status: 'approved', stop_reason: null, approved_at: '2026-11-20T15:00:00Z' }], error: null };
+          asked.push(q.after);
+          if (o.failAt === asked.length) return { data: null, error: { code: '', message: 'TypeError: Failed to fetch' } };
+          const rest = emails.filter(e => q.after === null || e.id > q.after);
+          return { data: rest.slice(0, Math.min(n, cap)), error: null, count: q.wantCount ? (o.count != null ? o.count : emails.length) : undefined };
+        } };
+      return chain; } };
+    return { client, asked };
+  };
+  const emails = (n) => Array.from({ length: n }, (_, i) => ({ id: id(100000 + i), campaign_id: id(900), status: i % 10 === 0 ? 'sent' : 'queued' }));
+
+  test('2,500 emails are read in pages of 1,000, and the counts are all of them, not the first 1,000', async () => {
+    const f = fake(emails(2500), 1000);
+    const r = await E.createStore({ client: f.client, enabled: true }).campaigns('store');
+    expect(r.ok).toBe(true); expect(r.countsComplete).toBe(true);
+    expect(r.rows[0].counts).toEqual({ queued: 2250, sent: 250, skipped: 0, failed: 0, back: 0, total: 2500, partial: false });
+    expect(f.asked).toEqual([null, id(100999), id(101999)]);                    // three requests, each starting after the last id read
+  });
+
+  test('a database set to answer with fewer rows at a time (300) still gives every email', async () => {
+    const f = fake(emails(1000), 300);
+    const r = await E.createStore({ client: f.client, enabled: true }).campaigns('store');
+    expect(r.rows[0].counts.total).toBe(1000); expect(r.countsComplete).toBe(true);
+    expect(f.asked).toHaveLength(4);
+  });
+
+  test('if not every counted email can be read, the counts are marked as not complete instead of looking exact', async () => {
+    const f = fake(emails(400), 1000, { count: 900 });                           // the database says 900 but hands over 400
+    const r = await E.createStore({ client: f.client, enabled: true }).campaigns('store');
+    expect(r.ok).toBe(true); expect(r.countsComplete).toBe(false);
+    expect(r.rows[0].counts.partial).toBe(true); expect(r.rows[0].counts.total).toBe(400);
+  });
+
+  test('a failure in the middle of reading is said, and no half count is shown', async () => {
+    const f = fake(emails(2500), 1000, { failAt: 2 });
+    const r = await E.createStore({ client: f.client, enabled: true }).campaigns('store');
+    expect(r.ok).toBe(false); expect(r.rows).toEqual([]);
+    expect(r.message).toContain('Could not reach the database');
+  });
+});
+
 // a small stand-in for drafts/56 inside the mock database
 function install(backend, opts) {
   const o = opts || {};
@@ -249,6 +299,36 @@ test.describe('saving a campaign on Store Campaigns', () => {
     await expect(S.locator('[data-esresult]')).toHaveCount(0);
     expect(rpcs(backend)).toEqual(['approve_email_campaign']);                                    // nothing was queued
     await expect(S.locator('[data-es="save"]')).toHaveText('Save the campaign and queue 4 emails');   // ready to try again, from the first tap
+  });
+
+  test('a campaign with more emails than the database hands over at once shows all of them; if they cannot all be read, the page says the numbers are too low', async ({ page, backend, pageErrors }) => {
+    install(backend);
+    backend.tables.email_outbox = Array.from({ length: 1200 }, (_, i) => ({ id: id(200000 + i), campaign_id: id(900), status: i < 1150 ? 'queued' : 'sent' }));
+    backend.maxRows = 1000;                                                      // like the real database: 1,000 rows per reply
+    await on(page, true);
+    await login(page);
+    await gotoPage(page, 'storeCampaignsPanel');
+    const S = page.locator('[data-emailsave="store"]'), row = S.locator('[data-escampaign]').first();
+    await expect(S.locator('[data-eslist]')).toHaveAttribute('data-eslist', '1');
+    await expect(row.locator('td.num-cell').nth(0)).toHaveText('1150');          // queued: beyond the first 1,000
+    await expect(row.locator('td.num-cell').nth(1)).toHaveText('50');            // sent
+    await expect(S.locator('[data-escountspartial]')).toHaveCount(0);
+    expect(pageErrors).toEqual([]);
+  });
+
+  test('when the database counts more emails than it hands over, the page says the numbers are too low; pausing and stopping stay possible', async ({ page, backend }) => {
+    install(backend);
+    await on(page, true);
+    let n = 0;
+    await page.route('**/rest/v1/email_outbox?*', route => { n += 1; return route.fulfill({ status: 200, contentType: 'application/json',
+      headers: { 'access-control-allow-origin': '*', 'access-control-expose-headers': 'content-range', 'content-range': n === 1 ? '0-1/50' : '*/50' },
+      body: JSON.stringify(n === 1 ? [{ id: id(901), campaign_id: id(900), status: 'queued' }, { id: id(902), campaign_id: id(900), status: 'sent' }] : []) }); });
+    await login(page);
+    await gotoPage(page, 'storeCampaignsPanel');
+    const S = page.locator('[data-emailsave="store"]');
+    await expect(S.locator('[data-escountspartial]')).toContainText('the numbers above are too low');
+    await expect(S.locator('[data-es="pause"]')).toHaveCount(1);
+    await expect(S.locator('[data-es="stop"]')).toHaveCount(1);
   });
 
   test('an administrator sees the saved campaigns and can add to the do-not-email list, but cannot save, pause or stop', async ({ page, backend }) => {

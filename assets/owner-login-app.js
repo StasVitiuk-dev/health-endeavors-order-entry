@@ -4071,6 +4071,7 @@
                 h('td', null, owner && (c.status === 'approved' || c.status === 'paused') ? h('div', { class: 'chRow' },
                   h('button', { type: 'button', class: 'small secondary', 'data-es': c.status === 'paused' ? 'resume' : 'pause', 'data-espage': page, 'data-esid': c.id, 'aria-label': (c.status === 'paused' ? 'Resume ' : 'Pause ') + c.name }, c.status === 'paused' ? 'Resume' : 'Pause'),
                   h('button', { type: 'button', class: 'small secondary', 'data-es': 'stop', 'data-espage': page, 'data-esid': c.id, 'aria-label': 'Stop ' + c.name }, es.stopId === c.id ? 'Tap again to stop for good' : 'Stop')) : null))))),
+        es.rows && es.rows.some(c => c.counts.partial) ? h('p', { class: 'error u-fs-12p5', role: 'status', 'data-escountspartial': '1' }, 'Not every email of these campaigns could be read, so the numbers above are too low. Reload the page to try again.') : null,
         h('h3', null, 'Someone asked not to be emailed'),
         h('p', { class: 'hint u-mt-0' }, 'The address goes on the do-not-email list for good, for every campaign, and its queued emails are skipped. It cannot be taken off again from the dashboard.'),
         h('div', { class: 'u-d-flex u-gap-8 u-fwr-wrap u-ai-flex-end' },
