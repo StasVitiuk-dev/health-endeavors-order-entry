@@ -3439,7 +3439,16 @@
     function feedSnoozePush() {
       const M = feedMod(), S = rpSettings(), st = fsStore(); if (!M || !S || !st || !mySettingsOn()) return;
       clearTimeout(fsTimer);
-      fsTimer = setTimeout(async () => { const r = await st.set(S.MY_KEYS.feedSnooze, M.pack(feedStore())); fsShared = !!r.ok; }, 700);
+      // Read first, join, then save: what another of this person's devices saved a moment ago
+      // is kept (and taken in here) instead of being overwritten by this browser's list.
+      fsTimer = setTimeout(async () => {
+        const now = await st.get(S.MY_KEYS.feedSnooze);
+        if (now.state !== 'installed') { fsShared = false; return; }
+        const mine = M.pack(feedStore()), joined = M.merge(mine, now.value, Date.now());
+        if (JSON.stringify(joined) !== JSON.stringify(mine)) { M.unpack(feedStore(), joined); paintAttentionFeed(); }
+        if (JSON.stringify(joined) === JSON.stringify(M.merge(now.value, null, Date.now()))) { fsShared = true; return; }   // the database already has all of it
+        const r = await st.set(S.MY_KEYS.feedSnooze, joined); fsShared = !!r.ok;
+      }, 700);
     }
     async function feedSnoozePull() {
       const M = feedMod(), S = rpSettings(), st = fsStore(); if (!M || !S || !st || !mySettingsOn() || fsPulled) return;

@@ -383,6 +383,25 @@ test.describe('set aside on every device: on Home', () => {
     expect(pageErrors).toEqual([]);
   });
 
+  test('two devices open at the same time: what the other one set aside a moment ago is kept, not overwritten by this one', async ({ page, backend, pageErrors }) => {
+    seed(backend); install(backend); await on(page); await mine(page);
+    await login(page); await gotoPage(page, 'attentionPanel');
+    const f = feed(page), bo = f.locator(`[data-feeditem="${BO}"]`);
+    await expect(bo).toBeVisible();
+    // the other device saves something of its own after this page has already read the list
+    const OTHER = 'q:00000000-0000-4000-8000-00000000f999';
+    const theirs = { until: Date.parse('2026-11-25T14:00:00Z'), at: Date.parse('2026-11-24T14:59:30Z'), sig: 'SYNTHETIC-sig' };
+    backend.tables.my_settings = [{ key: 'feed_snooze', value: { items: { [OTHER]: theirs }, clearedAt: 0 }, updated_at: '2026-11-24T14:59:30Z' }];
+    await bo.locator('[data-feedsnooze]').click();
+    await expect.poll(() => saves(backend).length).toBe(1);
+    expect(Object.keys(saves(backend)[0].p_value.items).sort()).toEqual([BO, OTHER].sort());   // both, joined
+    expect(saves(backend)[0].p_value.items[OTHER]).toEqual(theirs);
+    // and this browser took the other device's entry in as well
+    expect(Object.keys(JSON.parse(await page.evaluate(() => localStorage.getItem('he_feed_snooze')))).sort()).toEqual([BO, OTHER].sort());
+    expect(writes(backend)).toEqual([]);
+    expect(pageErrors).toEqual([]);
+  });
+
   test('switched on but not installed, or the database refuses: setting aside still works in this browser', async ({ page, backend, pageErrors }) => {
     seed(backend); await on(page); await mine(page);
     await page.route('**/rest/v1/my_settings?*', route => route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify({ code: 'PGRST205', message: "Could not find the table 'public.my_settings' in the schema cache" }) }));
