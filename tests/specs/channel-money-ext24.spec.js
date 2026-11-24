@@ -162,6 +162,7 @@ test.describe('on Accounting', () => {
       await page.emulateMedia({ colorScheme: scheme, reducedMotion: 'reduce' });
       await gotoPage(page, 'accountingPanel');
       await page.locator('#channelMoneyHost #cmFile_etsy').setInputFiles(file('etsy.csv', ETSY));
+      await expect(page.locator('#channelMoneyHost [data-cmchannel="etsy"]')).toHaveCount(1);   // the section redraws after each file: wait before the next
       await page.locator('#channelMoneyHost #cmFile_amazon').setInputFiles(file('amazon.csv', AMAZON));
       await expect(page.locator('#channelMoneyHost [data-cmchannel]')).toHaveCount(2);
       await page.evaluate(() => Promise.all(document.getAnimations().map(a => a.finished.catch(() => {}))));
