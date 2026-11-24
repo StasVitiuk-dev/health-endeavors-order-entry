@@ -80,7 +80,11 @@ If Playwright asks you to install a browser, run `npx playwright install chromiu
 
 ## Before every push (lesson of Nov 23)
 
-When only a few specs are run locally instead of the whole suite, always include these two: they catch what a feature's own tests do not.
+When only a few specs are run locally instead of the whole suite, always include these (the first two since Nov 23, the others since Nov 24): they catch what a feature's own tests do not.
 
 - `specs/robustness-probe-ext21.spec.js`: feeds empty, missing and broken input to every pure module; a new module is picked up automatically.
 - `specs/request-baseline.spec.js`: the list of database requests every page makes with all switches off. If a change is intended, regenerate with `UPDATE_BASELINES=1` and say so in the PR.
+- `specs/write-path-inventory.spec.js`: every save in the dashboard must be listed in `docs/ops/write-paths.classification.json`. A new save without its entry was the one red check on PR #55 (Nov 24).
+- `specs/modules-ext15.spec.js`: new names and listeners in the program file must be registered there.
+
+Do not regenerate the request baseline in a run that may be cut short or that runs beside other tests: on Nov 24 that dropped six unrelated entries. Change the one line by hand when only one request changed.
