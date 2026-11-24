@@ -1446,3 +1446,10 @@ table.sysStatus td{ overflow-wrap:anywhere; }
 .rpFees th:first-child{ width:46%; }
 .rpFees th, .rpFees td{ vertical-align:top; white-space:normal; overflow-wrap:anywhere; text-align:left; }
 .rpFees input{ width:100%; min-width:0; margin:0; box-sizing:border-box; padding-left:8px; padding-right:8px; }
+
+/* Money per channel (Accounting): a plain three-column list per channel that fits a phone */
+.cmTable, section.panel table.cmTable{ display:table; width:100%; max-width:620px; white-space:normal; overflow:visible; }
+.cmTable th{ text-align:left; font-weight:600; }
+.cmTable th, .cmTable td{ white-space:normal; overflow-wrap:anywhere; }
+.cmTable td.num-cell{ white-space:nowrap; overflow-wrap:normal; }   /* an amount never breaks across lines */
+.cmPayouts{ margin:6px 0; padding-left:18px; font-size:13px; }

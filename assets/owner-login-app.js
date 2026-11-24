@@ -84,7 +84,7 @@
       nightlyOverall,
     } = window.HE.helpers;
     // @@ EXT15 modules: created in dependency order (assets/app/*.js; see docs/ops/APPLICATION_MODULE_MAP_EXT15.md)
-    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, agentDiaryOn, realProfitOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn } = HE.modules.create('he-config', {  });
+    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, agentDiaryOn, realProfitOn, channelMoneyOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn } = HE.modules.create('he-config', {  });
     const { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, focusDialog, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, h, pageIconNode } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
     const { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
     const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, h, supabase });
@@ -2686,6 +2686,7 @@
         else { mmState.card = p; mmState.cardName = file.name.slice(0, 80); mmState.expenses = null; }
         mmState.note = file.name + ' read: ' + p.rows.length + ' lines. Nothing was uploaded.';
         await loadMoneyMatch();
+        loadChannelMoney();                                  // channel payouts are checked against this bank file
         announce(mmState.note);
         const back = document.getElementById(which === 'bank' ? 'mmBank' : 'mmCard'); if (back) back.focus();
       };
@@ -3141,6 +3142,92 @@
       }
       rpEditing = false; announce(rpMessage);
       loadRealProfit().then(() => { const m = document.querySelector('#realProfitHost [data-rpmessage]'); if (m) { m.setAttribute('tabindex', '-1'); m.focus(); } });
+    });
+
+    // ---------- Money per channel (Nov 24; behind channelMoneyOn) ----------
+    // Each channel's own money report (assets/reports/he-channel-money.js), chosen as
+    // a file and read in this browser: what the channel really paid and charged, the
+    // real fee rate against the Real profit estimate, and its payouts against the
+    // bank export loaded in money matching. Nothing is uploaded, saved or written.
+    let cmFiles = {}, cmMessage = '';
+    function cmMod() { try { return (window.HE && window.HE.reports && window.HE.reports['he-channel-money']) || null; } catch (e) { return null; } }
+    function cmHost(on) {
+      let el = document.getElementById('channelMoneyHost');
+      if (!on) { if (el) el.remove(); return null; }
+      if (!el) { const after = document.getElementById('moneyMatchHost'); if (!after || !after.parentNode) return null; el = h('div', { id: 'channelMoneyHost', class: 'channelMoney' }); after.after(el); }
+      return el;
+    }
+    function loadChannelMoney() {
+      const C = cmMod();
+      const host = cmHost(channelMoneyOn() && !!C); if (!host) return;
+      const put = (...kids) => host.replaceChildren(...kids.flat().filter(Boolean));
+      const est = rpEstimates();
+      const bank = mmState.mode === 'file' && mmState.bank ? mmState.bank : null;
+      const eng = mmMod();
+      const cards = Object.keys(C.CHANNELS).filter(ch => cmFiles[ch]).map(ch => {
+        const p = cmFiles[ch], s = C.summarize(p.rows), fc = C.feeCheck(s, est.fees[ch]);
+        const row = (label, cents, note) => h('tr', null, h('th', { scope: 'row' }, label), h('td', { class: 'num-cell' }, C.fmt(cents)), h('td', { class: 'u-fs-12 u-c-muted' }, note || ''));
+        let bankPart;
+        const expected = C.expectedDeposits(p);
+        if (!expected.length) bankPart = h('p', { class: 'hint' }, 'This report lists no payout to the bank, so there is nothing to check against the bank.');
+        else if (!bank || !eng) bankPart = h('p', { class: 'hint', 'data-cmbank': 'none' }, expected.length + (expected.length === 1 ? ' payout' : ' payouts') + ' to the bank (' + C.fmt(s.payoutTotal) + '). To check them against your bank, choose your bank export under Money matching.');
+        else {
+          const res = eng.matchDeposits(expected, bank.rows, { statementFrom: bank.from, statementTo: bank.to });
+          const mine = res.items.filter(it => String(it.ref || '').indexOf(ch + '-payout-') === 0);
+          bankPart = h('ul', { class: 'cmPayouts', 'data-cmbank': 'checked' }, ...mine.map(it => h('li', { 'data-cmoutcome': it.outcome },
+            h('strong', null, MM_WORD[it.outcome] || it.outcome), ' · ' + it.label + ' (' + fmtDateOnly(it.date) + ')' + (it.why ? ': ' + it.why : ''))));
+        }
+        return h('div', { class: 'scanCard u-mt-8', 'data-cmchannel': ch },
+          h('h4', { class: 'u-mt-0' }, p.name + ' · ' + fmtDateOnly(p.from) + ' to ' + fmtDateOnly(p.to)),
+          h('p', { class: 'hint u-mt-0' }, p.fileName + ': ' + p.rows.length + ' lines read' + (p.problems.length ? ', ' + p.problems.length + ' could not be read' : '') + '.'),
+          h('table', { class: 'cmTable' }, h('tbody', null,
+            row('Sales', s.sales, s.orders + (s.orders === 1 ? ' order' : ' orders')),
+            row('Refunds', s.refunds),
+            row('Fees', s.fees, s.feePercent == null ? '' : s.feePercent + '% of sales'),
+            s.postage ? row('Postage labels', s.postage) : null,
+            s.tax ? row('Sales tax held by the channel', s.tax, 'not your money') : null,
+            s.other ? row('Other', s.other) : null,
+            row('Earned in this period', s.net),
+            row('Paid to your bank', s.payoutTotal, s.payouts.length + (s.payouts.length === 1 ? ' payout' : ' payouts')))),
+          h('p', { class: 'u-fs-12', 'data-cmfee': fc.verdict }, fc.message),
+          bankPart,
+          p.problems.length ? h('details', null, h('summary', null, 'Lines that could not be read (' + p.problems.length + ')'), h('ul', null, ...p.problems.slice(0, 10).map(x => h('li', null, x)))) : null,
+          h('details', p.confirmed ? null : { open: '' }, h('summary', null, 'Which columns were used'),
+            p.confirmed ? null : h('p', { class: 'hint', 'data-cmunconfirmed': '1' }, 'This layout is read by its column names and has not been checked against one of your real exports yet. Check that these are the right columns before relying on the figures.'),
+            h('ul', null, ...Object.entries(p.used).map(([k, v]) => h('li', null, ({ day: 'Date', kind: 'Type', label: 'Description', order: 'Order', gross: 'Sales', fees: 'Fees', tax: 'Tax', net: 'Net' }[k] || k) + ': ' + v)))),
+          h('button', { type: 'button', class: 'small secondary', 'data-cmremove': ch, 'aria-label': 'Remove the ' + p.name + ' report' }, 'Remove'));
+      });
+      put(h('h3', { class: 'u-fs-13 u-c-navy u-m-18-0-6' }, 'Money per channel'),
+        h('p', { class: 'hint u-mt-0' }, 'What each sales channel really paid and charged, from the channel’s own money report. Choose the file: it is read in this browser and nothing is uploaded or saved.'),
+        h('div', { class: 'heForm u-d-flex u-gap-8 u-fwr-wrap' }, ...Object.keys(C.CHANNELS).map(ch =>
+          h('div', { class: 'heField' }, h('label', { for: 'cmFile_' + ch }, C.CHANNELS[ch].name + ' money report (CSV)'),
+            h('input', { id: 'cmFile_' + ch, type: 'file', class: 'heFileField', accept: '.csv,.txt,text/csv,text/plain', 'data-cmfile': ch }),
+            h('div', { class: 'u-fs-11 u-c-muted' }, C.CHANNELS[ch].how)))),
+        h('p', { class: 'u-fs-12', role: 'status', 'data-cmmessage': '1' }, cmMessage),
+        cards.length ? cards : h('p', { class: 'empty' }, 'No report chosen yet.'));
+    }
+    document.addEventListener('change', (e) => {
+      const inp = e.target.closest('#channelMoneyHost input[data-cmfile]'); if (!inp) return;
+      const ch = inp.getAttribute('data-cmfile'); const file = inp.files && inp.files[0]; if (!file) return;
+      const C = cmMod(); if (!C) return;
+      const say = (msg) => { cmMessage = msg; loadChannelMoney(); announce(msg); const back = document.getElementById('cmFile_' + ch); if (back) back.focus(); };
+      if (file.size > C.MAX_BYTES) { say('That file is larger than 5 MB; export a shorter period.'); return; }
+      const fr = new FileReader();
+      fr.onerror = () => say('The file could not be read.');
+      fr.onload = () => {
+        const p = C.parseReport(String(fr.result || ''), ch);
+        if (!p.ok) { say(file.name.slice(0, 80) + ': ' + p.reason); return; }
+        p.fileName = file.name.slice(0, 80);
+        cmFiles[ch] = p;
+        say(p.fileName + ' read: ' + p.rows.length + ' lines. Nothing was uploaded.');
+      };
+      fr.readAsText(file);
+    });
+    document.addEventListener('click', (e) => {
+      const b = e.target.closest('#channelMoneyHost [data-cmremove]'); if (!b) return;
+      const ch = b.getAttribute('data-cmremove'); delete cmFiles[ch];
+      cmMessage = 'Report removed.'; loadChannelMoney(); announce(cmMessage);
+      const back = document.getElementById('cmFile_' + ch); if (back) back.focus();
     });
 
     // ---------- Agent diary (Nov 24; behind agentDiaryOn) ----------
@@ -5259,7 +5346,7 @@
       qualityControlPanel: [loadQualityChecks],
       recallsPanel: [loadRecalls],
       expensesPanel: [loadExpenses, loadDeletedExpenses],
-      accountingPanel: [loadAccounting, loadRealProfit, loadReconcile, loadInvoicePayments, loadMoneyMatch, loadMoneyIssues],
+      accountingPanel: [loadAccounting, loadRealProfit, loadReconcile, loadInvoicePayments, loadMoneyMatch, loadChannelMoney, loadMoneyIssues],
       taxRecordsPanel: [loadTaxRecords, loadTaxRates],
       tasksPanel: [loadTasks],
       incidentsPanel: [loadIncidents],
