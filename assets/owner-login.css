@@ -1542,6 +1542,11 @@ tr.obVoid td:first-child{ text-decoration:line-through; }
 .scSample{ border:1px solid var(--line); border-radius:8px; padding:12px; max-width:640px; }
 .scSampleBody{ white-space:pre-wrap; overflow-wrap:anywhere; margin-top:6px; }
 
+/* Customer Emails (he_customer_emails): the same full-width boxes as Store Campaigns */
+#customerEmailsPanel .scField{ display:block; max-width:640px; margin-top:8px; }
+#customerEmailsPanel .scField input[type="text"], #customerEmailsPanel .scField textarea{ display:block; width:100%; box-sizing:border-box; }
+#customerEmailsPanel .u-d-flex > .scField{ flex:1 1 150px; max-width:220px; }
+
 /* Content Helper (he_content_helper): drafts, and six ready looks for a text card.
    The looks carry their own colours on purpose: a card looks the same in the light and the dark dashboard. */
 #contentHelperPanel .chField{ display:block; max-width:640px; margin-top:8px; }

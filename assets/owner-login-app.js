@@ -84,7 +84,7 @@
       nightlyOverall,
     } = window.HE.helpers;
     // @@ EXT15 modules: created in dependency order (assets/app/*.js; see docs/ops/APPLICATION_MODULE_MAP_EXT15.md)
-    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, agentDiaryOn, realProfitOn, channelMoneyOn, SWITCH_EVERYONE, sharedSettingsOn, orderCostsOn, incidentCloseOn, batchLabelsOn, orderBatchesOn, orderChannelsOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn, storeCampaignsOn, receiptReaderOn, contentHelperOn } = HE.modules.create('he-config', {  });
+    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, agentDiaryOn, realProfitOn, channelMoneyOn, SWITCH_EVERYONE, sharedSettingsOn, orderCostsOn, incidentCloseOn, batchLabelsOn, orderBatchesOn, orderChannelsOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn, storeCampaignsOn, receiptReaderOn, contentHelperOn, customerEmailsOn } = HE.modules.create('he-config', {  });
     const { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, focusDialog, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, h, pageIconNode } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
     const { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
     const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, h, supabase });
@@ -4207,6 +4207,169 @@
       }
     });
 
+    // ---------- Customer Emails (owner, Nov 24; behind customerEmailsOn) ----------
+    // Email campaigns for people who ordered: choose the email, start from a ready
+    // text, approve the wording once, and see exactly who would get it. NOTHING IS
+    // SENT. Rules: assets/sales/he-customer-campaign.js. The wording is kept in this
+    // browser; the customer list is read from the orders when asked and kept nowhere.
+    const CE_KEY = 'he_customer_emails_v1';
+    let ceState = null, ceResult = null, ceMessage = '', ceBusy = false, ceSeq = 0;
+    const ceMod = () => (window.HE && window.HE.sales && window.HE.sales['he-customer-campaign']) || null;
+    const ceOwner = () => currentUserRole === 'owner' || currentUserRole === 'administrator';
+    function ceRead() {
+      const M = ceMod(), kinds = M ? Object.keys(M.KINDS) : [];
+      const base = { kind: 'welcome', texts: {}, days: {}, startDay: localDateString(), address: '' };
+      kinds.forEach(k => { base.texts[k] = { subject: '', body: '', approval: null }; base.days[k] = M.KINDS[k].days == null ? '' : String(M.KINDS[k].days); });
+      try {
+        const v = JSON.parse(localStorage.getItem(CE_KEY) || 'null');
+        if (v && typeof v === 'object' && !Array.isArray(v)) {
+          if (kinds.includes(v.kind)) base.kind = v.kind;
+          if (typeof v.startDay === 'string') base.startDay = v.startDay;
+          if (typeof v.address === 'string') base.address = v.address;
+          kinds.forEach(k => {
+            const t = v.texts && typeof v.texts === 'object' ? v.texts[k] : null;
+            if (t && typeof t === 'object') { if (typeof t.subject === 'string') base.texts[k].subject = t.subject; if (typeof t.body === 'string') base.texts[k].body = t.body; if (t.approval && typeof t.approval === 'object') base.texts[k].approval = t.approval; }
+            if (v.days && typeof v.days === 'object' && typeof v.days[k] === 'string') base.days[k] = v.days[k];
+          });
+        }
+      } catch (e) { /* start empty */ }
+      if (!base.address) { try { base.address = scRead().address; } catch (e) { /* none yet */ } }   // the address already typed for store campaigns
+      return base;
+    }
+    function ceKeep() { try { localStorage.setItem(CE_KEY, JSON.stringify(ceState)); return true; } catch (e) { return false; } }
+    const ceText = () => { const t = ceState.texts[ceState.kind]; return { subject: t.subject, body: t.body }; };
+    function loadCustomerEmails() {
+      const host = document.getElementById('customerEmailsPanel'); if (!host) return;
+      if (!(typeof customerEmailsOn === 'function' && customerEmailsOn())) { host.replaceChildren(); return; }
+      if (!ceState && ceMod()) ceState = ceRead();
+      renderCustomerEmails();
+    }
+    // the parts that change while typing, repainted without touching the boxes being typed in
+    function cePaint() {
+      const host = document.getElementById('customerEmailsPanel'), M = ceMod(); if (!host || !M || !ceState) return;
+      const t = ceState.texts[ceState.kind], check = M.checkWording(ceText(), scDeps());
+      const still = t.approval ? M.stillApproved(t.approval, ceText(), scDeps()) : { valid: false, reason: '' };
+      const state = still.valid ? 'approved' : t.approval ? 'changed' : 'none';
+      const w = host.querySelector('[data-cewording]');
+      if (w) { w.setAttribute('data-cewording', check.ok ? 'ok' : 'problems'); w.replaceChildren(...(check.ok ? [h('p', { class: 'hint u-mt-6' }, 'This wording passes the check.')] : [h('ul', { class: 'u-fs-12p5 u-mt-6' }, check.problems.map(p => h('li', null, p)))])); }
+      const a = host.querySelector('[data-ceapproval]');
+      if (a) { a.setAttribute('data-ceapproval', state);
+        a.textContent = state === 'approved' ? 'Approved' + (t.approval.approvedBy ? ' by ' + t.approval.approvedBy : '') + (t.approval.approvedAt ? ' on ' + fmtDate(t.approval.approvedAt) : '') + '. The approval covers exactly this wording, for everyone this email goes to. Approved does not mean sent.'
+          : state === 'changed' ? 'The wording changed after it was approved. Read it again and approve the new wording.' : 'Not approved yet.'; }
+      const b = host.querySelector('[data-ce="approve"]');
+      if (b) b.disabled = !check.ok || state === 'approved';
+    }
+    function renderCustomerEmails() {
+      const host = document.getElementById('customerEmailsPanel'), M = ceMod(); if (!host) return;
+      if (!M || !ceState) { host.replaceChildren(h('h2', null, 'Customer Emails'), h('p', { class: 'empty' }, 'The customer email tools could not load. Refresh the page.')); return; }
+      if (!ceOwner()) { host.replaceChildren(h('h2', null, 'Customer Emails'), h('p', { class: 'hint' }, 'Only the owner and administrators can prepare customer emails.')); return; }
+      const K = M.KINDS[ceState.kind], t = ceState.texts[ceState.kind];
+      const field = (id, label, node, hint) => h('div', { class: 'heField scField' }, h('label', { for: id }, label), node, hint ? h('div', { class: 'u-fs-12 u-c-muted' }, hint) : null);
+      host.replaceChildren(
+        h('h2', null, 'Customer Emails'),
+        h('p', { class: 'hint hintLead', 'data-cenosend': '1' }, h('b', null, 'Nothing is sent from this page.'), ' Sending is not connected yet. You choose the email, approve its wording once, and see exactly who would get it on which day.'),
+        h('p', { class: 'hint u-mt-0' }, 'Only people who ordered from you are ever chosen. The wording is kept in this browser on this device for now; the customer list is read from your orders when you ask and is not kept anywhere.'),
+        h('p', { class: 'u-fs-12', role: 'status', 'data-cemessage': '1' }, ceMessage),
+        h('h3', null, '1. Which email'),
+        h('div', { class: 'chRow', role: 'group', 'aria-label': 'Which email' }, Object.keys(M.KINDS).map(k => h('button', { type: 'button', class: 'small' + (k === ceState.kind ? '' : ' secondary'), 'data-cekind': k, 'aria-pressed': String(k === ceState.kind) }, M.KINDS[k].name))),
+        h('p', { class: 'u-fs-12p5 u-mt-6', 'data-cewho': ceState.kind }, 'Goes to: ' + K.who.replace('{days}', K.days == null ? '' : (ceState.days[ceState.kind] || String(K.days)))),
+        K.days == null ? null : field('ceDays', 'How many days', h('input', { id: 'ceDays', type: 'number', min: '1', max: '730', step: '1', value: ceState.days[ceState.kind], 'data-cefield': 'days' }), 'From ' + K.min + ' to ' + K.max + '.'),
+        h('h3', null, '2. The wording'),
+        h('p', { class: 'hint u-mt-0' }, 'Start from a ready text and change it, or write your own. Pressing a ready text replaces what is in the boxes.'),
+        h('div', { class: 'chRow', role: 'group', 'aria-label': 'Ready texts' }, M.templates(ceState.kind).map(x => h('button', { type: 'button', class: 'small secondary', 'data-cetemplate': x.key }, x.name))),
+        field('ceSubject', 'Subject', h('input', { id: 'ceSubject', type: 'text', maxlength: '200', value: t.subject, 'data-cefield': 'subject' })),
+        field('ceBody', 'Email', h('textarea', { id: 'ceBody', rows: '9', maxlength: '4000', 'data-cefield': 'body' }, t.body), 'Write {name} where the customer\'s first name goes. A line on how to stop these emails and your business address are added at the bottom of every email.'),
+        h('div', { 'data-cewording': 'problems' }),
+        h('p', { class: 'u-fs-12p5 u-mt-6', 'data-ceapproval': 'none' }),
+        h('button', { type: 'button', class: 'small', 'data-ce': 'approve' }, 'Approve this wording'),
+        h('h3', null, '3. Who would get it'),
+        h('div', { class: 'u-d-flex u-gap-8 u-fwr-wrap u-ai-flex-end' },
+          field('ceStart', 'First day', h('input', { id: 'ceStart', type: 'date', value: ceState.startDay, 'data-cefield': 'startDay' }))),
+        field('ceAddress', 'Business postal address', h('input', { id: 'ceAddress', type: 'text', maxlength: '300', value: ceState.address, 'data-cefield': 'address', autocomplete: 'off' }), 'Goes at the bottom of every email (the law asks for it). Kept in this browser only.'),
+        h('button', Object.assign({ type: 'button', class: 'small u-mt-8', 'data-ce': 'show' }, ceBusy ? { disabled: 'disabled' } : {}), ceBusy ? 'Reading your orders…' : 'Show who would get it'),
+        h('div', { 'data-ceresult': ceResult ? '1' : '0', class: 'u-mt-12' }, ceResult || null));
+      cePaint();
+    }
+    async function ceShow() {
+      const M = ceMod(), dp = dpMod(), SC = scMod(); if (!M || ceBusy) return;
+      const say = (msg) => { ceMessage = msg; ceResult = null; renderCustomerEmails(); announce(msg); const m = document.querySelector('#customerEmailsPanel [data-cemessage]'); if (m) { m.setAttribute('tabindex', '-1'); m.focus(); } };
+      const kind = ceState.kind, t = ceState.texts[kind];
+      const still = t.approval ? M.stillApproved(t.approval, ceText(), scDeps()) : { valid: false };
+      if (!still.valid) { say(t.approval ? 'The wording changed after it was approved. Approve the new wording first.' : 'Approve the wording first (step 2).'); return; }
+      if (!dp || !SC) { say('The order tools could not load. Refresh the page.'); return; }
+      const pre = M.audience(kind, [], { days: ceState.days[kind] });
+      if (!pre.ok) { say(pre.reason); return; }
+      const seq = ++ceSeq; ceBusy = true; ceMessage = 'Reading your orders…'; ceResult = null; renderCustomerEmails();
+      let orders;
+      try { orders = await fetchAllRows('orders', 'id, customer_name, customer_email, status, currency, total, placed_at, deleted_at', q => q.is('deleted_at', null)); }
+      catch (e) { if (seq !== ceSeq) return; ceBusy = false; say('Your orders could not be read (' + explainDbError(e && e.message ? e.message : String(e)) + '). Nothing was sent.'); return; }
+      if (seq !== ceSeq || ceState.kind !== kind) { ceBusy = false; return; }
+      ceBusy = false;
+      const list = dp.clientList(orders), who = M.audience(kind, list.clients, { nowMs: Date.now(), days: ceState.days[kind] });
+      if (!who.ok) { say(who.reason); return; }
+      const n = who.chosen.length;
+      const days = n ? SC.plan(Math.min(n, 500), { startDay: ceState.startDay }) : [];
+      if (n && !days.length) { say('Choose the first day.'); return; }
+      const sample = n ? M.render(ceText(), who.chosen[0], { postalAddress: ceState.address }) : null;
+      const day = (iso) => { const d = iso ? new Date(iso) : null; return d && !isNaN(d) ? localDateString(d) : '—'; };
+      ceMessage = n + (n === 1 ? ' customer' : ' customers') + ' would get this email' + (n ? ' over ' + days.length + (days.length === 1 ? ' working day.' : ' working days.') : '.') + ' Nothing was sent.';
+      ceResult = h('div', null,
+        h('h3', null, 'Who would get it'),
+        h('p', { class: 'hint u-mt-0', 'data-cecount': String(n) }, who.rule + ' Exact, from ' + list.totals.orders + (list.totals.orders === 1 ? ' order' : ' orders') + ' of ' + list.totals.clients + (list.totals.clients === 1 ? ' customer' : ' customers') + '; ' + who.notFit + ' do not fit this email.'),
+        n > 500 ? h('p', { class: 'hint' }, 'The day plan below covers the first 500; the rest would follow at 100 a day.') : null,
+        n ? h('table', { class: 'phoneCards', 'data-cechosen': String(n) },
+          h('thead', null, h('tr', null, h('th', null, 'Customer'), h('th', null, 'Email'), h('th', { class: 'num-cell' }, 'Orders'), h('th', null, 'Last order'), h('th', { class: 'num-cell' }, 'Days ago'))),
+          h('tbody', null, who.chosen.slice(0, 200).map(c => h('tr', null, h('td', null, c.name || '—'), h('td', null, c.email), h('td', { class: 'num-cell' }, String(c.orders)), h('td', null, day(c.last)), h('td', { class: 'num-cell' }, String(c.daysSince))))))
+          : h('p', { class: 'empty' }, 'Nobody fits this email right now.'),
+        n > 200 ? h('p', { class: 'hint' }, 'The first 200 are shown; ' + (n - 200) + ' more would get it too.') : null,
+        who.skipped.length ? h('details', { class: 'u-mt-8', 'data-ceskipped': String(who.skipped.length) }, h('summary', null, who.skipped.length + ' left out, with the reason'),
+          h('ul', { class: 'u-fs-12p5' }, who.skipped.slice(0, 200).map(x => h('li', null, x.name + ': ' + x.why)))) : null,
+        days.length ? h('div', null, h('h3', null, 'On which days'),
+          h('p', { class: 'hint u-mt-0' }, 'A slow start keeps a new email address out of spam: 20 a day in the first working week, then 40, 60, 80 and 100. Never on a weekend. If too many emails come back or people mark it as spam, a campaign stops by itself.'),
+          h('table', { class: 'phoneCards', 'data-cedays': String(days.length) }, h('thead', null, h('tr', null, h('th', null, 'Day'), h('th', { class: 'num-cell' }, 'Emails'))),
+            h('tbody', null, days.map(d => h('tr', null, h('td', null, d.day), h('td', { class: 'num-cell' }, String(d.count))))))) : null,
+        sample ? h('div', null, h('h3', null, 'What the first customer would read'),
+          sample.problems.length ? h('ul', { class: 'u-fs-12p5', 'data-cesampleproblems': String(sample.problems.length) }, sample.problems.map(p => h('li', null, p))) : null,
+          h('div', { class: 'scSample', 'data-cesample': '1' }, h('div', { class: 'taskTitle' }, sample.subject), h('div', { class: 'scSampleBody' }, sample.body))) : null);
+      renderCustomerEmails(); labelPhoneCards(document.getElementById('customerEmailsPanel')); announce(ceMessage);
+      const r = document.querySelector('#customerEmailsPanel [data-ceresult]'); if (r) { r.setAttribute('tabindex', '-1'); r.focus({ preventScroll: true }); }
+    }
+    document.addEventListener('input', (e) => {
+      const f = e.target.closest('#customerEmailsPanel [data-cefield]'); if (!f || !ceState) return;
+      const k = f.getAttribute('data-cefield'), v = String(f.value).slice(0, 4000);
+      if (k === 'subject' || k === 'body') ceState.texts[ceState.kind][k] = v;
+      else if (k === 'days') { ceState.days[ceState.kind] = v.slice(0, 6); const M = ceMod(), w = document.querySelector('#customerEmailsPanel [data-cewho]'); if (M && w) w.textContent = 'Goes to: ' + M.KINDS[ceState.kind].who.replace('{days}', v.slice(0, 6) || '…'); }
+      else ceState[k] = v.slice(0, 300);
+      ceKeep(); cePaint();
+    });
+    document.addEventListener('click', (e) => {
+      const t = e.target.closest('#customerEmailsPanel button'); if (!t || !ceState) return;
+      const M = ceMod(); if (!M || !ceOwner()) return;
+      const refocus = (sel) => { const b = document.querySelector('#customerEmailsPanel ' + sel); if (b) b.focus(); };
+      if (t.hasAttribute('data-cekind')) {
+        const k = t.getAttribute('data-cekind'); if (!M.KINDS[k] || ceBusy) return;
+        ceState.kind = k; ceResult = null; ceMessage = ''; ceSeq += 1; ceKeep(); renderCustomerEmails(); refocus('[data-cekind="' + k + '"]'); announce(M.KINDS[k].name + ' email.');
+        return;
+      }
+      if (t.hasAttribute('data-cetemplate')) {
+        const x = M.templates(ceState.kind).find(y => y.key === t.getAttribute('data-cetemplate')); if (!x) return;
+        const cur = ceState.texts[ceState.kind]; cur.subject = x.subject; cur.body = x.body;
+        ceResult = null; ceMessage = 'Ready text put in. Change it as you like, then approve it.'; ceKeep(); renderCustomerEmails(); refocus('[data-cetemplate="' + x.key + '"]'); announce(ceMessage);
+        return;
+      }
+      const act = t.getAttribute('data-ce');
+      if (act === 'approve') {
+        const who = String((document.getElementById('whoAmI') || {}).textContent || '').split(' — role')[0].trim();   // the name, without the role
+        const r = M.approveWording(ceText(), who, new Date().toISOString(), scDeps());
+        if (r.status !== 'APPROVED') { ceMessage = 'Not approved: ' + r.reason; }
+        else { ceState.texts[ceState.kind].approval = r; ceMessage = ceKeep() ? 'Wording approved. Nothing was sent.' : 'Wording approved for now, but this browser would not keep it (private window or storage blocked).'; }
+        ceResult = null; renderCustomerEmails(); announce(ceMessage);
+        const a = document.querySelector('#customerEmailsPanel [data-ceapproval]'); if (a) { a.setAttribute('tabindex', '-1'); a.focus(); }
+        return;
+      }
+      if (act === 'show') ceShow();
+    });
+
     // ---------- Backups & Printouts (owner request, Nov 23; behind backupsPageOn)
     // One place for the paper and file copies the owner keeps: the daily recaps
     // (print a month on Letter, or save it as a spreadsheet file), the manuals
@@ -6274,6 +6437,7 @@
       backupsPanel: [loadBackupsPage],
       storeCampaignsPanel: [loadStoreCampaigns],
       contentHelperPanel: [loadContentHelper],
+      customerEmailsPanel: [loadCustomerEmails],
       featureRequestsPanel: [loadFeatureRequests, loadDeletedFeatureRequests],
       legalHoldsPanel: [loadLegalHolds, loadReleasedLegalHolds],
       salesCommandPanel:   [() => loadSales('salesCommandPanel')],
