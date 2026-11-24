@@ -22,7 +22,7 @@ selling more than is in stock is not, and one shared stock count is what prevent
 |---|---|---|
 | Shopify website | Shopify plan (monthly) | Card processing about 2.9% + $0.30 on the Basic plan (the estimate already used in Real profit) |
 | Amazon | Professional plan $39.99 a month | Referral fee, Beauty / Health & Personal Care: 8% when the item is $10 or less, 15% above $10; $0.30 minimum |
-| Etsy | none | $0.20 per listing (renews every 4 months or on sale) + 6.5% transaction fee + 3% + $0.25 payment processing. Optional Offsite Ads: 12–15% only on sales that come from those ads |
+| Etsy | **one-time $29 set-up fee** to open the shop (shown to the owner on Etsy's own sign-up page, Nov 23 evening; my first lookup missed it and said "none") | $0.20 per listing (renews every 4 months or on sale) + 6.5% transaction fee + 3% + $0.25 payment processing. Optional Offsite Ads: 12–15% only on sales that come from those ads |
 | TikTok Shop | none | Referral fee 6% for most categories on TikTok's public table (May 2026); some seller sites report 8% since Aug 2026 (UNCONFIRMED, check Seller Center). New sellers: 3% for the first 30 days. Creator (affiliate) commission is extra and chosen by the seller |
 
 Worked example, one $25 bottle, before postage and the product's own cost:
