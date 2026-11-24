@@ -39,7 +39,7 @@
   const cents = (v) => { if (v == null || v === '') return null; const n = Number(v); return isFinite(n) ? Math.round(n * 100) : null; };
   const num = (v) => { if (v == null || v === '') return null; const n = Number(v); return isFinite(n) ? n : null; };
   const key = (v) => String(v == null ? '' : v).trim().toLowerCase();
-  const channelOf = (o) => { const c = key(o.channel || o.source); return c.includes('amazon') ? 'amazon' : c.includes('etsy') ? 'etsy' : c.includes('tiktok') ? 'tiktok' : c.includes('wholesale') ? 'wholesale' : c === 'manual' ? 'manual' : c.includes('shopify') || c === 'web' || c === 'online' ? 'shopify' : (c || 'unknown'); };
+  const channelOf = (o) => { const c = key(o && typeof o === 'object' ? (o.channel || o.source) : ''); return c.includes('amazon') ? 'amazon' : c.includes('etsy') ? 'etsy' : c.includes('tiktok') ? 'tiktok' : c.includes('wholesale') ? 'wholesale' : c === 'manual' ? 'manual' : c.includes('shopify') || c === 'web' || c === 'online' ? 'shopify' : (c || 'unknown'); };
 
   // true unit cost per product: newest landed cost from received purchase-order
   // lines (product_id), else products.cost; null when none is known

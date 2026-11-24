@@ -62,6 +62,8 @@ test.describe('the arithmetic (no browser)', () => {
     expect(r.orders[0]).toMatchObject({ revenue: 1000, profit: null, check: 'partly refunded: check the refund' });
     expect(r.orders[0].missing).toContain('product cost');
     expect(P.compute(undefined).totals).toMatchObject({ orders: 0, profit: 0, margin: null });
+    // found by the robustness probe: a missing order has no channel, and that is not a crash
+    expect([P.channelOf(), P.channelOf(null), P.channelOf('x'), P.channelOf({ source: 'Etsy' })]).toEqual(['unknown', 'unknown', 'unknown', 'etsy']);
   });
 
   test('the estimates form is checked', ({}, ti) => {
@@ -116,7 +118,7 @@ test.describe('on Accounting', () => {
     // the period
     await host.getByRole('button', { name: 'Last month' }).click();
     await expect(host.getByRole('button', { name: 'Last month' })).toHaveAttribute('aria-pressed', 'true');
-    await expect(host.locator('.empty')).toHaveText('No orders in this period.');
+    await expect(host.locator('.empty')).toContainText('No orders in this period.');   // (an icon may be added in front)
     await host.getByRole('button', { name: 'This month' }).click();
     await expect(host.locator('[data-rpprofit]')).toHaveText('$30.18');
     // estimates: a wrong value is refused and nothing is saved
