@@ -3916,11 +3916,40 @@
     // this browser until its database step exists.
     const SC_KEY = 'he_store_campaign_v1';
     let scState = null, scResult = null, scMessage = '';
+    // Store finder (inside this page): scores a pasted list so "best match" means something. Rules: assets/sales/he-store-finder.js.
+    let sfFound = null;
+    const sfMod = () => (window.HE && window.HE.sales && window.HE.sales['he-store-finder']) || null;
+    function sfNode() {
+      const F = sfMod(); if (!F) return null;
+      const r = sfFound;
+      return h('div', { 'data-sfinder': r ? (r.ok ? 'scored' : 'problems') : 'empty' },
+        h('h3', null, 'Store finder (optional): score a list first'),
+        h('p', { class: 'hint u-mt-0' }, 'Paste a list of stores with what you know about them. Each store gets a score from 0 to 100 and the reasons, so "the best match" in step 3 means something you can read. Nothing is looked up: finding stores automatically from Google\'s listings is not connected (it needs your own Google account, and its cost has not been checked). Until then the list is yours: a spreadsheet, a maps export, or typed.'),
+        h('div', { class: 'heField scField' }, h('label', { for: 'sfText' }, 'Your list of stores'),
+          h('textarea', { id: 'sfText', rows: '5', 'data-scfield': 'finderText', placeholder: 'name, email, city, type, rating, reviews, distance, website' }, scState.finderText),
+          h('div', { class: 'u-fs-12 u-c-muted' }, 'The first line names the columns. Needed: name. Useful: email, city, type (the kind of shop), rating, reviews, distance (miles), website.')),
+        h('div', { class: 'scanToggleRow u-mt-6' },
+          h('button', { type: 'button', class: 'small', 'data-sc': 'sf-score' }, 'Score this list'),
+          h('button', { type: 'button', class: 'small secondary', 'data-sc': 'sf-example' }, 'Put in example stores')),
+        r && !r.ok ? h('ul', { class: 'u-fs-12p5 u-mt-6', 'data-sfproblems': String(r.problems.length) }, r.problems.map(p => h('li', null, p))) : null,
+        r && r.ok ? h('div', { class: 'u-mt-8', 'data-sfresult': '1' },
+          h('p', { class: 'u-fs-12p5', 'data-sfsummary': String(r.read), tabindex: '-1' }, r.read + (r.read === 1 ? ' store' : ' stores') + ' scored' + (r.unread ? ', ' + r.unread + (r.unread === 1 ? ' line' : ' lines') + ' without a name left out' : '') + '. '
+            + r.withEmail + (r.withEmail === 1 ? ' has' : ' have') + ' an email address' + (r.withoutEmail ? '; ' + r.withoutEmail + (r.withoutEmail === 1 ? ' does' : ' do') + ' not and cannot be written to until you find one.' : '.')),
+          h('table', { class: 'phoneCards', 'data-sfstores': String(r.stores.length) },
+            h('thead', null, h('tr', null, h('th', { class: 'num-cell' }, 'Score'), h('th', null, 'Store and why'), h('th', null, 'Town'), h('th', { class: 'num-cell' }, 'Miles'), h('th', null, 'Email'))),
+            h('tbody', null, r.stores.slice(0, 200).map(st => h('tr', { 'data-sfband': st.scoring.band },
+              h('td', { class: 'num-cell sfScore' }, String(st.scoring.score)),
+              h('td', null, h('div', null, st.name), h('ul', { class: 'sfWhy' }, st.scoring.reasons.map(x => h('li', null, x)))),
+              h('td', null, st.city || '—'), h('td', { class: 'num-cell' }, st.distanceMiles == null ? '—' : String(st.distanceMiles)),
+              h('td', null, st.email || (st.emailGiven ? 'not a usable address' : 'none')))))),
+          r.stores.length > 200 ? h('p', { class: 'hint' }, 'The first 200 are shown; all ' + r.stores.length + ' are scored.') : null,
+          h('button', Object.assign({ type: 'button', class: 'small u-mt-8', 'data-sc': 'sf-use' }, r.withEmail ? {} : { disabled: 'disabled' }), 'Use the ' + r.withEmail + (r.withEmail === 1 ? ' store' : ' stores') + ' with an email in step 2')) : null);
+    }
     const scMod = () => (window.HE && window.HE.sales && window.HE.sales['he-store-campaign']) || null;
     const scDeps = () => ({ claims: (window.HE && window.HE.sales && window.HE.sales['he-sales-claims']) || null, approval: (window.HE && window.HE.sales && window.HE.sales['he-sales-approval']) || null });
     const scOwner = () => currentUserRole === 'owner' || currentUserRole === 'administrator';
     function scRead() {
-      const base = { subject: '', body: '', approval: null, storesText: '', example: false, count: '20', order: 'nearest', startDay: localDateString(), address: '' };
+      const base = { subject: '', body: '', approval: null, storesText: '', finderText: '', example: false, count: '20', order: 'nearest', startDay: localDateString(), address: '' };
       try { const v = JSON.parse(localStorage.getItem(SC_KEY) || 'null'); if (v && typeof v === 'object' && !Array.isArray(v)) Object.keys(base).forEach(k => { if (typeof v[k] === typeof base[k] || (k === 'approval' && v[k] && typeof v[k] === 'object')) base[k] = v[k]; }); } catch (e) { /* start empty */ }
       return base;
     }
@@ -3966,6 +3995,7 @@
         h('div', { 'data-scwording': 'problems' }),
         h('p', { class: 'u-fs-12p5 u-mt-6', 'data-scapproval': 'none' }),
         h('button', { type: 'button', class: 'small', 'data-sc': 'approve' }, 'Approve this wording'),
+        sfNode(),
         h('h3', null, '2. The stores'),
         field('scStores', 'Paste your list of stores', h('textarea', { id: 'scStores', rows: '5', 'data-scfield': 'storesText', placeholder: 'name, email, city, distance, score' }, scState.example ? '' : scState.storesText),
           'The first line names the columns. Needed: name, email. Optional: city, distance (miles), score, last contacted, unsubscribed, bounced.'),
@@ -3982,6 +4012,7 @@
         h('button', { type: 'button', class: 'small u-mt-8', 'data-sc': 'show' }, 'Show who would get it'),
         h('div', { 'data-scresult': scResult ? '1' : '0', class: 'u-mt-12' }, scResult || null));
       scPaint();
+      labelPhoneCards(host);
     }
     function scShow() {
       const M = scMod(); if (!M) return;
@@ -4019,7 +4050,12 @@
     document.addEventListener('input', (e) => {
       const f = e.target.closest('#storeCampaignsPanel [data-scfield]'); if (!f || !scState) return;
       const k = f.getAttribute('data-scfield');
-      scState[k] = String(f.value).slice(0, k === 'storesText' ? 600000 : 4000);
+      scState[k] = String(f.value).slice(0, k === 'storesText' || k === 'finderText' ? 600000 : 4000);
+      if (k === 'finderText') {   // scored only when asked; an old result is not left standing next to a changed list
+        if (sfFound) { sfFound = null; const box = document.querySelector('#storeCampaignsPanel [data-sfinder]'), old = box && box.querySelector('[data-sfresult], [data-sfproblems]');
+          if (box) box.setAttribute('data-sfinder', 'empty'); if (old) old.replaceWith(h('p', { class: 'hint', 'data-sfstale': '1' }, 'The list changed. Press "Score this list" to score it again.')); }
+        scKeep(); return;
+      }
       if (k === 'storesText' && scState.example) scState.example = false;
       scKeep(); scPaint();
     });
@@ -4035,6 +4071,23 @@
         else { scState.approval = r; scMessage = scKeep() ? 'Wording approved. Nothing was sent.' : 'Wording approved for now, but this browser would not keep it (private window or storage blocked).'; }
         scResult = null; renderStoreCampaigns(); announce(scMessage);
         const a = document.querySelector('#storeCampaignsPanel [data-scapproval]'); if (a) { a.setAttribute('tabindex', '-1'); a.focus(); }
+        return;
+      }
+      if (act === 'sf-example' || act === 'sf-score' || act === 'sf-use') {
+        const F = sfMod(); if (!F) return;
+        const focus = (sel) => { const n = document.querySelector('#storeCampaignsPanel ' + sel); if (n) n.focus(); };
+        if (act === 'sf-example') { scState.finderText = F.exampleText(); sfFound = null; scMessage = ''; scKeep(); renderStoreCampaigns(); focus('[data-sc="sf-example"]'); announce('Example stores put in. None of them exists.'); return; }
+        if (act === 'sf-score') {
+          sfFound = F.find(scState.finderText); scMessage = '';
+          renderStoreCampaigns(); labelPhoneCards(document.getElementById('storeCampaignsPanel'));
+          if (sfFound.ok) { focus('[data-sfsummary]'); announce(sfFound.read + (sfFound.read === 1 ? ' store scored.' : ' stores scored.')); } else { focus('#sfText'); announce(sfFound.problems.join(' ')); }
+          return;
+        }
+        if (!sfFound || !sfFound.ok) return;
+        const out = F.toCampaign(sfFound.stores); if (!out.count) return;
+        scState.storesText = out.text; scState.example = false; scResult = null;
+        scMessage = out.count + (out.count === 1 ? ' store' : ' stores') + ' put into step 2 with ' + (out.count === 1 ? 'its score' : 'their scores') + '. In step 3 choose "The best match" to start with the best.';
+        scKeep(); renderStoreCampaigns(); labelPhoneCards(document.getElementById('storeCampaignsPanel')); focus('#scStores'); announce(scMessage);
         return;
       }
       if (act === 'example') { scState.example = !scState.example; scResult = null; scMessage = ''; scKeep(); renderStoreCampaigns(); const b = document.querySelector('#storeCampaignsPanel [data-sc="example"]'); if (b) b.focus(); return; }

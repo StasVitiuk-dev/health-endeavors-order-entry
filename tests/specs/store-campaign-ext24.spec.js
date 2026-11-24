@@ -119,6 +119,68 @@ test('a pasted list: the first line names the columns; lines without a name or a
 });
 });
 
+// Store finder (owner, Nov 24: "choose nearest location or our best target store"): a pasted
+// list of stores gets a score with reasons. assets/sales/he-store-finder.js. Nothing is looked up.
+const F = require('../../assets/sales/he-store-finder.js');
+test.describe('the store finder rules (no browser)', () => {
+  test.beforeEach(({}, ti) => { test.skip(ti.project.name !== 'desktop', 'Node-only; run once'); });
+
+  test('the kind of shop is read from its own words, as whole words; an unknown kind is said to be unknown', () => {
+    const kinds = (list) => list.map(t => F.typeOf(t).key);
+    expect(kinds(['Day spa', 'Spas', 'Nail salon & spa', 'Hair Salon', 'Gift Shops', 'Boutique', 'Bath and body shop', 'Apothecary', 'Health food store', 'Pharmacy', 'Hotel', 'Food market']))
+      .toEqual(['spa', 'spa', 'spa', 'salon', 'gift', 'boutique', 'skincare', 'skincare', 'wellness', 'pharmacy', 'hotel', 'grocery']);
+    expect(kinds(['Sparkling wines', 'Hospital', 'Soapbox Theatre', 'Hardware store', 'Giftware wholesale'])).toEqual(['other', 'other', 'other', 'other', 'other']);
+    expect(kinds(['', null, undefined, 7, {}])).toEqual(['unknown', 'unknown', 'unknown', 'other', 'unknown']);
+  });
+
+  test('the score: 0 to 100, every point explained; a missing detail is said to be missing, never guessed high', () => {
+    const best = F.score({ type: 'Day spa', distanceMiles: 3, rating: 4.8, reviews: 212, email: 'a@example.test' });
+    expect(best).toMatchObject({ score: 96, band: 'strong', type: 'spa' });
+    expect(best.reasons).toEqual(['Spa: +36 of 40', '3 miles away: +20 of 20', 'Rated 4.8 of 5: +15 of 15', '212 reviews: +10 of 10', 'Has an email address: +15 of 15']);
+    // the points in the reasons add up to the score
+    const sum = (r) => r.reasons.reduce((n, t) => n + Number((/: \+(\d+) of/.exec(t) || [0, 0])[1]), 0);
+    expect(sum(best)).toBe(best.score);
+    const bare = F.score({ name: 'x' });
+    expect(bare.reasons).toEqual(['Kind of shop not given: +8 of 40', 'Distance not given: +8 of 20', 'Rating not given: +6 of 15', 'Number of reviews not given: +4 of 10', 'No email address and no website: +0 of 15']);
+    expect(bare).toMatchObject({ score: 26, band: 'weak' });
+    expect(sum(bare)).toBe(26);
+    // a shop that does not sell body care never ranks as a good match, however near and well rated
+    const hardware = F.score({ type: 'Hardware store', distanceMiles: 1, rating: 5, reviews: 900, email: 'h@example.test' });
+    expect(hardware).toMatchObject({ score: 40, band: 'weak' });
+    expect(hardware.reasons[hardware.reasons.length - 1]).toBe('Not a kind of shop that usually sells body care: held at 40 at most');
+    // far away, poorly rated, website only
+    expect(F.score({ type: 'Boutique', distanceMiles: 80, rating: 3.2, reviews: 2, website: 'shop.example.test' })).toMatchObject({ score: 35, band: 'weak' });
+    // impossible values count as not given
+    expect(F.score({ type: 'Spa', distanceMiles: -5, rating: 9, reviews: -1, email: 'not an email' }).reasons.slice(1, 4)).toEqual(['Distance not given: +8 of 20', 'Rating not given: +6 of 15', 'Number of reviews not given: +4 of 10']);
+    for (const junk of [null, undefined, 'x', 7, [], {}]) expect(F.score(junk).score).toBe(26);
+  });
+
+  test('a pasted list: only a name is needed; best first; stores without an email are counted, kept in the list and left out of a campaign', () => {
+    const r = F.find(F.exampleText());
+    expect(r).toMatchObject({ ok: true, read: 8, unread: 0, withEmail: 6, withoutEmail: 2 });
+    expect(r.stores.map(s => s.scoring.score)).toEqual([...r.stores.map(s => s.scoring.score)].sort((a, b) => b - a));
+    expect(r.stores[0].name).toBe('EXAMPLE Glow Day Spa');
+    expect(r.stores.find(s => s.name === 'EXAMPLE Hardware & Paint').scoring.score).toBe(40);
+    const out = F.toCampaign(r.stores);
+    expect(out.count).toBe(6);
+    expect(out.text.split('\n')[0]).toBe('name, email, city, distance, score, last contacted, unsubscribed, bounced');
+    expect(out.text).not.toContain('EXAMPLE Old Apothecary');                                 // no email: cannot be written to
+    // Store Campaigns reads it back exactly, with the scores, so "the best match" starts with the best
+    const back = C.parseStores(out.text);
+    expect(back).toMatchObject({ read: 6, unread: 0, problems: [] });
+    expect(C.pick(back.rows, { count: 2, order: 'best' }).chosen.map(s => s.name + ':' + s.score)).toEqual(['EXAMPLE Glow Day Spa:96', 'EXAMPLE Fern Boutique:75']);
+    // names with commas and quotes survive the hand-over
+    const odd = F.find('name, email, type\n"Soap, Suds & ""Co""", a@example.test, soap shop\n, b@example.test, spa\nNo Mail Shop, not-an-email, spa');
+    expect(odd).toMatchObject({ read: 2, unread: 1, withEmail: 1, withoutEmail: 1 });
+    expect(odd.stores.find(s => s.name === 'No Mail Shop')).toMatchObject({ email: '', emailGiven: true });
+    expect(C.parseStores(F.toCampaign(odd.stores).text).rows[0].name).toBe('Soap, Suds & "Co"');
+    expect(F.find('').problems).toEqual(['Paste your list of stores first.']);
+    expect(F.find('city, type\nTestville, spa').problems[0]).toContain('The first line must name the columns, with at least: name.');
+    expect(F.find(Array.from({ length: 5002 }, (x, i) => (i ? 'S' + i : 'name')).join('\n')).problems).toEqual(['That list is too long (5000 stores at most at a time).']);
+    for (const junk of [null, undefined, 7, [], {}]) { expect(F.find(junk).ok).toBe(false); expect(F.toCampaign(junk)).toEqual({ text: '', count: 0 }); expect(F.parse(junk).rows).toEqual([]); }
+  });
+});
+
 const on = (page) => page.addInitScript(() => { try { localStorage.setItem('he_store_campaigns', 'on'); } catch (e) {} });
 const GOOD = { subject: 'A body-care line for {store}', body: 'Hello {store}, we make small-batch body lotion and would love to send a sample to your shop in {city}.' };
 
@@ -225,5 +287,75 @@ test.describe('the Store Campaigns page', () => {
     await gotoPage(page, 'storeCampaignsPanel');
     await page.locator('#storeCampaignsPanel').getByRole('button', { name: 'Use example stores' }).click();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true);
+  });
+});
+
+test.describe('the store finder on the Store Campaigns page', () => {
+  test('paste or use example stores, score them with reasons, and hand the ones with an email to the campaign; nothing is looked up, sent or written', async ({ page, backend, pageErrors }, ti) => {
+    test.skip(ti.project.name !== 'desktop', 'run once');
+    await on(page);
+    await login(page);
+    await gotoPage(page, 'storeCampaignsPanel');
+    const P = page.locator('#storeCampaignsPanel');
+    await expect(P.locator('[data-sfinder]')).toHaveAttribute('data-sfinder', 'empty');
+    await expect(P.locator('[data-sfinder]')).toContainText('Nothing is looked up');
+    // nothing pasted: said plainly
+    await P.locator('[data-sc="sf-score"]').click();
+    await expect(P.locator('[data-sfproblems]')).toHaveText('Paste your list of stores first.');
+    await expect(page.locator('#sfText')).toBeFocused();
+    await P.locator('[data-sc="sf-example"]').click();
+    await expect(page.locator('#sfText')).toHaveValue(/EXAMPLE Glow Day Spa/);
+    await P.locator('[data-sc="sf-score"]').click();
+    await expect(P.locator('[data-sfsummary]')).toHaveText('8 stores scored. 6 have an email address; 2 do not and cannot be written to until you find one.');
+    await expect(P.locator('[data-sfsummary]')).toBeFocused();
+    const rows = P.locator('[data-sfstores] tbody tr');
+    await expect(rows).toHaveCount(8);
+    await expect(rows.first().locator('td').first()).toHaveText('96');
+    await expect(rows.first()).toContainText('EXAMPLE Glow Day Spa');
+    await expect(rows.first().locator('.sfWhy li')).toHaveText(['Spa: +36 of 40', '3 miles away: +20 of 20', 'Rated 4.8 of 5: +15 of 15', '212 reviews: +10 of 10', 'Has an email address: +15 of 15']);
+    await expect(P.locator('[data-sfstores] tr', { hasText: 'EXAMPLE Old Apothecary' }).locator('td').last()).toHaveText('none');
+    // hand them to the campaign: step 2 is filled in with the scores
+    await P.locator('[data-sc="sf-use"]').click();
+    await expect(P.locator('[data-scmessage]')).toContainText('6 stores put into step 2 with their scores.');
+    await expect(page.locator('#scStores')).toHaveValue(/^name, email, city, distance, score/);
+    await expect(page.locator('#scStores')).toBeFocused();
+    await expect(P.locator('[data-scstores]')).toHaveAttribute('data-scstores', '6');
+    // and the campaign then starts with the best match
+    await page.fill('#scSubject', GOOD.subject); await page.fill('#scBody', GOOD.body);
+    await P.locator('[data-sc="approve"]').click();
+    await page.selectOption('#scOrder', 'best'); await page.fill('#scCount', '3');
+    await P.locator('[data-sc="show"]').click();
+    await expect(P.locator('[data-scchosen] tbody tr').first()).toContainText('EXAMPLE Glow Day Spa');
+    await expect(P.locator('[data-scchosen] tbody tr').first().locator('td').last()).toHaveText('96');
+    await expect(P.locator('[data-sfstores] tbody tr')).toHaveCount(8);                      // the scored list is still there
+    // changing the list: the old scores are not left standing
+    await page.locator('#sfText').focus();
+    await page.keyboard.press('Control+End');
+    await page.locator('#sfText').pressSequentially('\nEXAMPLE Late Spa, late@example.test, Testville, Spa, 4.9, 10, 1, ');
+    await expect(P.locator('[data-sfstale]')).toHaveText('The list changed. Press "Score this list" to score it again.');
+    await expect(P.locator('[data-sfstores]')).toHaveCount(0);
+    await expect(page.locator('#sfText')).toBeFocused();
+    await P.locator('[data-sc="sf-score"]').click();
+    await expect(P.locator('[data-sfstores] tbody tr')).toHaveCount(9);
+    // kept after a reload (the pasted list, in this browser); nothing written anywhere
+    await page.reload();
+    await expect(page.locator('#dash')).toBeVisible();
+    await gotoPage(page, 'storeCampaignsPanel');
+    await expect(page.locator('#sfText')).toHaveValue(/EXAMPLE Late Spa/);
+    expect(backend.requests.filter(r => r.method !== 'GET' && r.method !== 'HEAD' && !r.rpc && String(r.path || '').startsWith('/rest/v1/'))).toEqual([]);
+    expect(pageErrors).toEqual([]);
+  });
+
+  test('on a phone: the scored list fits', async ({ page, pageErrors }, ti) => {
+    test.skip(ti.project.name === 'desktop', 'phone size only');
+    await on(page);
+    await login(page);
+    await gotoPage(page, 'storeCampaignsPanel');
+    const P = page.locator('#storeCampaignsPanel');
+    await P.locator('[data-sc="sf-example"]').click();
+    await P.locator('[data-sc="sf-score"]').click();
+    await expect(P.locator('[data-sfstores] tbody tr')).toHaveCount(8);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
+    expect(pageErrors).toEqual([]);
   });
 });

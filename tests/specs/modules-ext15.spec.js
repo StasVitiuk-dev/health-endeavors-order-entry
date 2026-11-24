@@ -185,6 +185,7 @@ const ADDED = ['focusDialog', 'inspectLabel', 'keyLink', 'setReportHistoryView',
   // Nov 24: daily recap reminder (Backups & Printouts + feed)
   'storeCampaignsOn', 'SC_KEY', 'scState', 'scResult', 'scMessage', 'scMod', 'scDeps', 'scOwner', 'scRead', 'scKeep', 'scText', 'scStores', 'loadStoreCampaigns', 'scPaint', 'renderStoreCampaigns', 'scShow',
   'bkDay', 'bkDayBusy', 'dpMod', 'bkSay', 'printDayPack', 'bkPeriod', 'printClientList',
+  'sfFound', 'sfMod', 'sfNode',
   'customerEmailsOn', 'CE_KEY', 'ceState', 'ceResult', 'ceMessage', 'ceBusy', 'ceSeq', 'ceMod', 'ceOwner', 'ceRead', 'ceKeep', 'ceText', 'loadCustomerEmails', 'cePaint', 'renderCustomerEmails', 'ceShow',
   'contentHelperOn', 'CH_KEY', 'CH_KINDS', 'chState', 'chShown', 'chMod', 'chDeps', 'chRead', 'chKeep', 'loadContentHelper', 'chBlockedLine', 'chPaint', 'renderContentHelper',
   'receiptReaderOn', 'rrMod', 'rrCanRead', 'rrSay', 'loadReceiptReader', 'rrFill', 'feedSummary', 'glanceLinksNode', 'refreshAgentGlanceLinks', 'renderAgentGlance',

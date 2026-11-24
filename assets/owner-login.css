@@ -1542,6 +1542,10 @@ tr.obVoid td:first-child{ text-decoration:line-through; }
 .scSample{ border:1px solid var(--line); border-radius:8px; padding:12px; max-width:640px; }
 .scSampleBody{ white-space:pre-wrap; overflow-wrap:anywhere; margin-top:6px; }
 
+/* Store finder (inside Store Campaigns): the reasons for a score, small, under the store's name */
+.sfWhy{ margin:4px 0 0; padding-left:16px; font-size:12px; color:var(--muted); }
+.sfScore{ font-weight:700; }
+
 /* Customer Emails (he_customer_emails): the same full-width boxes as Store Campaigns */
 #customerEmailsPanel .scField{ display:block; max-width:640px; margin-top:8px; }
 #customerEmailsPanel .scField input[type="text"], #customerEmailsPanel .scField textarea{ display:block; width:100%; box-sizing:border-box; }
