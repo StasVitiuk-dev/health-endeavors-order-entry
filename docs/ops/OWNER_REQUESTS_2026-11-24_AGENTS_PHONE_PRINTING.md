@@ -16,13 +16,13 @@ texting rules, seller accounts) are Claude's general understanding and are NOT v
 | Customer Service Agent | CURRENT, switched off. It **drafts** a reply to a customer question; a person sends. |
 | Agent diary (every agent step written down) | Built, behind the preview switch `he_agent_diary` (off). |
 | Sales & Growth pages (wholesale leads, pipeline, samples, in-person visits, outreach studio, reply centre, content planner, ad variants, campaign lab, creator prospects and more) | Built as **draft-only pages on example data**, behind `he_sales_growth` (off). Nothing is sent, spent or posted. |
-| Finding real stores near the owner | NOT STARTED. Needs a source of store data (a decision and an account). |
-| Sending real email or text from an agent | NOT STARTED. Standing rule in `CLAUDE.md`: no real customer messages without the owner's explicit approval of that specific task. |
+| Finding real stores near the owner | PARTLY BUILT Nov 24 (PR #72, not merged): a pasted list of stores is scored with reasons and handed to Store Campaigns. Looking stores up by itself is NOT STARTED: it needs a source of store data (a decision and an account). |
+| Sending real email or text from an agent | NOT STARTED, and nothing sends today. Prepared Nov 24 as drafts (PR #75, #77, not merged, database draft 56 not installed): the records and rules for sending, and saving an approved campaign. What real sending still needs is in the email sending plan that arrives with those PRs. Standing rule in `CLAUDE.md`: no real customer messages without the owner's explicit approval of that specific task. |
 | Smart camera | Step B built (tracking barcodes → orders → dropped off; batch stickers; batch sticker from a photo). Receipts, expenses and supplier papers (B2) NOT STARTED; an expense can already carry a photo of its receipt. |
 | Backups & Printouts page | Built and merged, behind the preview switch `he_backups_page` (off), which is why the owner does not see it. Prints a day's recap, a month of recaps, the manuals; saves recaps as a spreadsheet; shows what the dashboard can see of the backups. |
 | A "day pack" to print on demand (a day's orders, clients, totals, recap) | BUILT Nov 24 (PR #63, not merged), on Backups & Printouts. |
 | A client list to print | BUILT Nov 24 (PR #66, not merged), from orders: the dashboard reads no separate customer table. |
-| Printing automatically every day | NOT STARTED (needs a helper on the owner's Mac; 8:00 AM decided). |
+| Printing automatically every day | PARTLY BUILT Nov 24 (PR #74, not merged): a daily link that opens the dashboard and prints yesterday's day pack once. The 8:00 AM reminder on the owner's Mac is NOT STARTED: it is set up together with the owner. |
 
 ## 2. Proposed plan
 
