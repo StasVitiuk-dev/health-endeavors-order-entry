@@ -1541,3 +1541,7 @@ tr.obVoid td:first-child{ text-decoration:line-through; }
 #storeCampaignsPanel .u-d-flex > .scField{ flex:1 1 150px; max-width:220px; }
 .scSample{ border:1px solid var(--line); border-radius:8px; padding:12px; max-width:640px; }
 .scSampleBody{ white-space:pre-wrap; overflow-wrap:anywhere; margin-top:6px; }
+
+/* Expenses: fill in from a receipt (he_receipt_reader) */
+.receiptReader{ border-top:1px solid var(--line); padding-top:12px; }
+.receiptReader textarea{ display:block; box-sizing:border-box; }

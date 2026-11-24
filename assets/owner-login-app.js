@@ -84,7 +84,7 @@
       nightlyOverall,
     } = window.HE.helpers;
     // @@ EXT15 modules: created in dependency order (assets/app/*.js; see docs/ops/APPLICATION_MODULE_MAP_EXT15.md)
-    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, agentDiaryOn, realProfitOn, channelMoneyOn, SWITCH_EVERYONE, sharedSettingsOn, orderCostsOn, incidentCloseOn, batchLabelsOn, orderBatchesOn, orderChannelsOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn, storeCampaignsOn } = HE.modules.create('he-config', {  });
+    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, agentDiaryOn, realProfitOn, channelMoneyOn, SWITCH_EVERYONE, sharedSettingsOn, orderCostsOn, incidentCloseOn, batchLabelsOn, orderBatchesOn, orderChannelsOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn, storeCampaignsOn, receiptReaderOn } = HE.modules.create('he-config', {  });
     const { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, focusDialog, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, h, pageIconNode } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
     const { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
     const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, h, supabase });
@@ -6078,7 +6078,7 @@
       purchaseOrdersPanel: [loadPurchaseOrders, loadDeliveries],
       qualityControlPanel: [loadQualityChecks],
       recallsPanel: [loadRecalls],
-      expensesPanel: [loadExpenses, loadDeletedExpenses],
+      expensesPanel: [loadExpenses, loadDeletedExpenses, loadReceiptReader],
       accountingPanel: [loadAccounting, loadRealProfit, loadReconcile, loadInvoicePayments, loadMoneyMatch, loadChannelMoney, loadMoneyIssues],
       taxRecordsPanel: [loadTaxRecords, loadTaxRates],
       tasksPanel: [loadTasks],
@@ -11365,6 +11365,59 @@
       out.setAttribute('data-receipt', 'ok');
     }
     document.getElementById('expReceipt').addEventListener('change', showReceiptStatus);
+    // ---------- Fill an expense in from a receipt's text (Nov 24; behind receiptReaderOn) ----------
+    // Paste the text of a receipt, or let the browser read the chosen photo where it
+    // can. The amount, date and shop are filled in on the form above for the owner to
+    // check; nothing is saved here. assets/scan/he-receipt-text.js.
+    const rrMod = () => (window.HE && window.HE.scan && window.HE.scan['he-receipt-text']) || null;
+    const rrCanRead = () => typeof window.TextDetector === 'function' && typeof window.createImageBitmap === 'function';
+    function rrSay(msg) { const el = document.querySelector('#receiptReaderHost [data-rrstatus]'); if (el) el.textContent = msg; announce(msg); }
+    function loadReceiptReader() {
+      const status = document.getElementById('expReceiptStatus');
+      let host = document.getElementById('receiptReaderHost');
+      if (!(typeof receiptReaderOn === 'function' && receiptReaderOn()) || !rrMod() || !status || !status.parentNode) { if (host) host.remove(); return; }
+      if (host) return;                                       // already there: what was typed stays
+      host = h('div', { id: 'receiptReaderHost', class: 'heField heWide receiptReader' },
+        h('h4', { class: 'u-m-0' }, 'Fill in from a receipt'),
+        h('p', { class: 'hint u-mt-6' }, 'On an iPhone: open the photo of the receipt, press and hold on its text, choose Select All, then Copy, and paste it here. The amount, the date and the shop are filled in above for you to check. Nothing is saved until you press Add expense.'),
+        h('label', { for: 'rrText' }, 'The text of the receipt'),
+        h('textarea', { id: 'rrText', rows: '4', maxlength: '20000', class: 'u-w-100pct' }),
+        h('div', { class: 'scanToggleRow u-mt-6' },
+          h('button', { type: 'button', class: 'small secondary', 'data-rr': 'fill' }, 'Fill in from this text'),
+          rrCanRead() ? h('button', { type: 'button', class: 'small secondary', 'data-rr': 'read' }, 'Read the chosen photo') : null),
+        h('p', { class: 'hint u-mt-6', role: 'status', 'data-rrstatus': '1' }));
+      status.parentNode.after(host);
+    }
+    function rrFill(text) {
+      const M = rrMod(); if (!M) return;
+      const r = M.parse(text, Date.now());
+      const amount = document.getElementById('expAmount'), date = document.getElementById('expDate'), vendor = document.getElementById('expVendor');
+      const did = [];
+      if (r.total != null && amount) { amount.value = r.total.toFixed(2); did.push('amount ' + fmtMoney(r.total, 'USD') + (r.totalHow === 'largest amount' ? ' (a guess: the largest amount)' : ' (from the total line)')); }
+      if (r.date && date) { date.value = r.date; did.push('date ' + r.date); }
+      if (r.vendor && vendor) { vendor.value = r.vendor; did.push('vendor ' + r.vendor); }
+      const host = document.getElementById('receiptReaderHost'); if (host) host.setAttribute('data-rrfound', String(r.found));
+      rrSay((did.length ? 'Filled in: ' + did.join('; ') + '. Check each one before saving.' : 'Nothing could be filled in.') + (r.notes.length ? ' ' + r.notes.join(' ') : ''));
+    }
+    document.addEventListener('click', async (e) => {
+      const b = e.target.closest('#receiptReaderHost [data-rr]'); if (!b) return;
+      const box = document.getElementById('rrText');
+      if (b.getAttribute('data-rr') === 'fill') { rrFill(box ? box.value : ''); return; }
+      // read the chosen photo, where this browser can
+      const input = document.getElementById('expReceipt'), file = input && input.files && input.files[0];
+      if (!file) { rrSay('Choose the photo of the receipt first (the Receipt box above).'); return; }
+      if (!/^image\//.test(file.type || '')) { rrSay('Only a photo can be read. For a PDF, copy its text and paste it here.'); return; }
+      b.disabled = true; rrSay('Reading the photo…');
+      try {
+        const bitmap = await window.createImageBitmap(file);
+        const found = await new window.TextDetector().detect(bitmap);
+        const text = (Array.isArray(found) ? found : []).map(t => String((t && t.rawValue) || '')).filter(Boolean).join('\n').slice(0, 20000);
+        if (!text.trim()) { rrSay('No text was found in the photo. Paste the text instead.'); return; }
+        if (box) box.value = text;
+        rrFill(text);
+      } catch (err) { rrSay('This browser could not read the photo. Paste the text instead.'); }
+      finally { b.disabled = false; }
+    });
     document.getElementById('addExpenseForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const categoryInput = document.getElementById('expCategory');
