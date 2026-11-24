@@ -87,6 +87,14 @@ task (`CLAUDE.md`), a business email address on the business's own domain, an un
 every marketing email, and sending only to people who ordered or subscribed. Whether Shopify's own
 email tool should be the sender for customer marketing is to be checked before a second sender is built.
 
+**Automatic daily printing, the dashboard's part (PR #74, CURRENT, not merged yet):** on Backups &
+Printouts there is a daily link. Opened with that link, the dashboard prints yesterday's day pack by
+itself, once per day per browser. A web page cannot wake up by itself, so the rest is a set-up on the
+Mac next to the printer, done once together with the owner (OWNER ACTION REQUIRED): a repeating 8:00 AM
+reminder that opens the link, the Mac on and signed in to the dashboard, and, for printing with no click
+at all, the browser started in its automatic printing mode. The exact clicks on the Mac are NOT
+verified here and are worked out with the owner at the Mac.
+
 **Drafts on every device (PR #73, CURRENT, not merged yet):** the owner's rule "the same on every phone
 and computer" now covers the three draft pages. The wording, approvals and choices on Store Campaigns,
 Customer Emails and the Content Helper are saved as shared settings (database draft 50, the same step
