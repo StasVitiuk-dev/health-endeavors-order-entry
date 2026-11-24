@@ -145,7 +145,8 @@ and there are far fewer pages; three variations asked for. PROPOSED with a pictu
 said "I like how it is right now, I just want less of them: put some inside each other if it is the same
 topic". BUILT (PR #61): the same menu, look and page names, with same-topic pages inside one another as a
 row of buttons at the top of the page; three variations (16, 10 or 6 lines instead of 30) chosen under
-Feature Flags → Menu; "Today's menu" is the default. OWNER DECISION REQUIRED: which variation to keep.
+Feature Flags → Menu. DECIDED Nov 24 ("let's go with A option"): variation 1, "A little shorter" (16 lines),
+is the menu everyone starts with; "Today's menu" and the other two stay one click away. Nothing is deleted.
 
 ## Waits on the owner
 

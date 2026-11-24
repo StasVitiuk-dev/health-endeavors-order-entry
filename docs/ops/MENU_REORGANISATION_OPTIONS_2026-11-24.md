@@ -1,6 +1,6 @@
 # A shorter dashboard menu: three variations (Nov 24, 2026)
 
-Status: CURRENT (built, PR #61, not merged) · OWNER DECISION REQUIRED (which variation to keep)
+Status: CURRENT (built, PR #61 and #62, not merged) · DECIDED Nov 24: variation 1 is the starting menu
 
 Owner's request (Nov 23 evening): go through the whole dashboard and put things of the same kind
 next to each other (shipping with shipping, accounting with finance), so there are fewer separate
@@ -35,7 +35,12 @@ carries the counts of all of them. Nothing is removed: search finds every page, 
 `#page=` links and Back/Forward work as before. A page a list does not place (a new page, or the
 Sales & Growth pages behind their switch) stays in the menu where it is today.
 
-Chosen on **Feature Flags → Menu**. "Today's menu" is the default and puts everything back.
+**Owner's decision (Nov 24): "let's go with A option".** Variation 1 ("A little shorter") is the menu
+everyone starts with. The owner also asked to confirm that nothing is deleted: confirmed, all 30
+pages keep everything on them; 14 lines only move inside a page of the same topic.
+
+Chosen on **Feature Flags → Menu**. "Today's menu" puts every page back on its own line; a choice is
+remembered (in the browser as `he_menu_layout`: `today`, `a`, `b` or `c`; nothing kept = variation 1).
 
 | Variation | Lines | Menu |
 |---|---|---|
@@ -43,8 +48,8 @@ Chosen on **Feature Flags → Menu**. "Today's menu" is the default and puts eve
 | 2. One page per topic | 10 | Overview: Needs Your Attention · Daily Summary (+ Report History, Calendar). Sales: Orders & Revenue (+ Returns, Customer Inquiries). Inventory: Inventory (+ Purchase Orders, Suppliers) · Quality Control (+ Recalls, Adverse Event Reports). Finance: Accounting (+ Expenses, Tax Records). Operations: Tasks (+ Approval Queue, Incidents) · Documents (+ Evidence Locker, Procedures, Backups & Printouts, Legal Holds, Business Continuity). Admin: Feature Flags (+ Business Rules, Feature Requests) · Employee Activity (+ Active Sessions, AI Agent Activity). |
 | 3. Shortest | 6 | No headings; one line per group with every page of the group inside: Overview (4) · Sales (3) · Inventory (6) · Finance (3) · Operations (7) · Admin (8). |
 
-Recommendation (Claude's, not a decision): variation 2. It is short enough for a phone and no row
-of buttons is longer than six.
+Claude first suggested variation 2, then, asked to choose between leaving the menu and variation 1,
+recommended variation 1 (smallest change). The owner chose variation 1.
 
 Where the choice is kept: in the browser where it was made; once the shared settings (draft 50) are
 in use, the owner's choice is saved as shared setting `menu_layout` (readable by every employee) and
@@ -56,8 +61,11 @@ still there exactly once.
 
 Not done: Sales & Growth pages are not regrouped. Pinning a line with pages inside pins its first page.
 
-NEXT: the owner tries 1, 2 and 3 on the live dashboard after merging #61 and says which to keep;
-that one can then be made the default for everyone in a one-line change.
+Tests: the shared test set-up chooses "Today's menu" before each test (most tests are about page
+content and several count the full menu's lines); `menu-layouts-ext24` tests the menu as shipped.
+See `tests/README.md`, "Which menu the tests see".
+
+NEXT: the owner merges #62 (contains #61) and checks the live menu has 16 lines.
 
 ## DEPRECATED: the first proposal (Nov 24, before the owner's correction)
 
