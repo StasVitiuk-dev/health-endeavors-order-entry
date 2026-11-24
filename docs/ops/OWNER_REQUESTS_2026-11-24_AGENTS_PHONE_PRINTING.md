@@ -177,7 +177,7 @@ and seller accounts run alongside):
 | Days | Work |
 |---|---|
 | 1–2 | Store campaign: rules and screen BUILT Nov 24 (PR #65, not merged), drafts only, nothing sent |
-| 3 | Receipt photo → expense draft; full client list to print; control room finished (approvals, diary) |
+| 3 | Receipt text → expense form BUILT (PR #67); client list to print BUILT (PR #66); control room: glance BUILT (#64), approvals and diary in it still to do |
 | 4–5 | One stock count for all channels |
 | 6 | Reviews and email in the attention feed; morning summary |
 | 7–8 | Content helper: several options, ready looks, claim firewall on every draft, video scripts |

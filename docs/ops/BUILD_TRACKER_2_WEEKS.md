@@ -59,6 +59,7 @@ Database changes are drafts the owner runs after approving them.
 | #64 | **Agents at a glance** on AI Agent Activity: counts (working, paused, off on purpose, need a look), one line per agent with state and last run, a jump to its switch; read-only, no switch. Contains #56–#63 | 204 + 119 related passed |
 | #65 | **Store Campaigns** page (switch `he_store_campaigns`, owner and administrators): write one email, wording checked by the claim firewall, approve the wording once, paste stores or use example stores, choose how many and nearest or best first, see who would get it on which day; slow start and stop rule; **nothing is sent**; kept in the browser for now. Contains #56–#64 | 224 + 77 related passed |
 | #66 | **Client list to print** on Backups & Printouts (from orders: each client once, counted orders, exact total, first and last order; periods 30/90/365 days or all); the sending guard listed with the approved agents. Contains #56–#65 | 141 related passed after one real fix found by the safety probe |
+| #67 | **Fill an expense in from a receipt's text** on Expenses (switch `he_receipt_reader`): paste the text or let the browser read the photo where it can; total, date and shop filled in for checking; never saves by itself; a guess is labelled, a date is never guessed. Contains #56–#66 | 178 related passed after one real fix (a made-up month name was read as a month) |
 
 **How to merge (every PR above):** GitHub shows these PRs as opened by the owner's
 own account, so **Approve is not offered**. On the PR's **Conversation** tab, at the
@@ -161,7 +162,7 @@ The owner answered the same day (section 3 there): no texting at the start, emai
 
 Decided Nov 23 (evening): **feature switches are shared by every device**; work features are for every employee; money, revenue and sensitive documents are for the owner and administrators only. NEXT: switches with an audience, stored in shared settings (draft 50).
 
-1. Merge **one** PR: the highest green one contains all earlier ones (#55 merged Nov 23 evening, which also brought in #46–#54; live check by the owner passed the same evening: Feature Flags rows fit a narrow window, and INC-20260917-0001 was closed with a note through the new button. #66 contains the rest once its checks are green).
+1. Merge **one** PR: the highest green one contains all earlier ones (#55 merged Nov 23 evening, which also brought in #46–#54; live check by the owner passed the same evening: Feature Flags rows fit a narrow window, and INC-20260917-0001 was closed with a note through the new button. #67 contains the rest once its checks are green).
 2. Business address (virtual mailbox) before the seller accounts; then Etsy, TikTok Shop, Amazon.
 3. Business email addresses (planned for tomorrow).
 4. The database steps in `docs/ops/sql-review/START_HERE_GUIDED_RUNS.md`, then review item 9 (draft 48).
