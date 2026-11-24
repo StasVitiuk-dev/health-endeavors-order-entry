@@ -87,6 +87,15 @@ task (`CLAUDE.md`), a business email address on the business's own domain, an un
 every marketing email, and sending only to people who ordered or subscribed. Whether Shopify's own
 email tool should be the sender for customer marketing is to be checked before a second sender is built.
 
+**Store finder, as built (PR #72, CURRENT, not merged yet):** a section at the top of the stores step on
+the Store Campaigns page. The owner pastes a list of stores with what is known about them; each store
+gets a score from 0 to 100 with every point explained (kind of shop 40, distance 20, rating 15, number
+of reviews 10, reachable by email 15). A missing detail is said to be missing and scores low-middle, never
+high. A shop that does not usually sell body care is held at 40 at most. One press hands the stores that
+have an email address to the campaign with their scores. It looks nothing up: no map service, no website
+visits. **OWNER DECISION REQUIRED (unchanged):** finding stores automatically from Google's listings needs
+the owner's own Google account, and its cost and terms have not been checked.
+
 **Customer emails, as built (PR #71, CURRENT, not merged yet):** the Customer Emails page under Sales,
 behind the preview switch "Customer Emails" (off), for the owner and administrators. Four kinds: welcome
 (first and only order in the last 14 days), time to reorder (last order 30 to 119 days ago), something
