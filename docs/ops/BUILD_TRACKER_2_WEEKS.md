@@ -52,6 +52,7 @@ Database changes are drafts the owner runs after approving them.
 | #58 | **Batch on each order** (draft 54, review item 12; switch `he_order_batches`): scan the batch sticker onto the order when packing, void a wrong scan with a reason, and "Who got a batch". Also lists the incident save in the write-path list (the one red check on #55) and steadies the request-baseline test. Contains #56–#57 | DB 48/48, whole DB suite 0 failed; 171 related passed |
 | #59 | **Sales channel on every order** (Orders): a "Sold on" badge per order and buttons to see one channel with its count; preview switch `he_order_channels`; reads only. Contains #56–#58 | 183 related passed; one unrelated test race fixed and re-run twice clean |
 | #60 | **The "recap printed" note on every device** (needs shared settings, draft 50): printing the daily recap clears the Home reminder on every phone and computer. Contains #56–#59 | 161 related passed, 36 skipped |
+| (branch `claude/batch-camera`, PR to open with the menu work) | **Batch sticker from a phone photo** on the batch screen: each sticker in the photo is one bottle on the open order; other barcodes are ignored | 171 related passed |
 
 **How to merge (every PR above):** GitHub shows these PRs as opened by the owner's
 own account, so **Approve is not offered**. On the PR's **Conversation** tab, at the
@@ -134,6 +135,12 @@ adapted to that table.
 Nov 23 (evening): the owner began opening the **Etsy** shop and found Etsy's one-time $29 set-up fee
 (`docs/ops/CHANNEL_COSTS_2026-11-24.md` corrected). Still to move off one browser: the feed's "Later"
 snoozes (per person; needs a per-person settings step, not the owner-wide shared settings).
+
+Nov 23 (evening), owner request: **regroup the whole dashboard** so things of the same kind sit together
+and there are far fewer pages; three variations asked for. PROPOSED with a picture: A "follow the work"
+(6 pages with tabs, recommended), B "fewest pages" (4 + settings), C "tidy what is there" (about 16 pages).
+`docs/ops/MENU_REORGANISATION_OPTIONS_2026-11-24.md`. OWNER DECISION REQUIRED. NEXT: one mechanism with the
+three lists behind a preview switch, to try live.
 
 ## Waits on the owner
 
