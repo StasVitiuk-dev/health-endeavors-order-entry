@@ -48,6 +48,7 @@ Database changes are drafts the owner runs after approving them.
 | #54 | **Real fee and postage per order** (draft 52, review item 11): Real profit uses the real numbers where saved, estimates elsewhere, and says which | DB 35/35; related browser tests passed |
 | #55 | **Incidents: record what was done and close** (owner and administrators; switch `he_incident_close`; no database step). Also two fixes from the owner's screenshots of Nov 24 in a narrow computer window (about 790 wide): the slide-over menu was see-through, and tables scrolled sideways. Contains #46–#54 | 157 + 131 + 77 related passed |
 | #56 | **Drop-off database step (draft 48) adapted to production**: its own tables (`order_parcels`), the Shipping agent's `shipments` table only read and never changed; review item 9 no longer blocked. Contains #46–#55 | DB 64/64, whole DB suite 0 failed; 284 related browser tests passed |
+| #57 | **Batch stickers** on Inventory: the batch in words and as a barcode (Code 128), for a small label roll (2.25 × 1.25 in) or a 4 × 6 label cut into 8 strips; preview switch `he_batch_labels`; reads only. Contains #46–#56 | 178 related passed, 54 skipped; barcode identical to an established library on 304 texts |
 
 **How to merge (every PR above):** GitHub shows these PRs as opened by the owner's
 own account, so **Approve is not offered**. On the PR's **Conversation** tab, at the
@@ -72,7 +73,7 @@ adapted to that table.
 | 3 | Business email in the feed | WAITS ON OWNER (addresses) | feed |
 | 4 | Money per channel (payouts and fees matched to the bank) | IN PROGRESS: the reader for each channel's own money report is written (Etsy format confirmed from Etsy's help pages; Amazon and TikTok read by column name, to confirm with the first real export); the Accounting screen is next. Gives **exact fees per order** to Real profit | Accounting |
 | 5 | Real profit per order, product and channel | READY (#49); fee numbers are starting estimates for the owner to check; real postage per parcel comes with Shopify Shipping | Accounting (top, under the totals) |
-| 6 | **Batch tracing**: batch recorded on each order (by scanning the bottle when packing); recall = one button lists every customer who got that batch and holds the rest | NEXT | Inventory, Orders, Recalls |
+| 6 | **Batch tracing**: batch recorded on each order (by scanning the bottle's batch sticker when packing); recall = one button lists every customer who got that batch and holds the rest | IN PROGRESS: stickers built (#57, not yet printed on the real printer). NEXT: read the sticker when packing and save the batch on the order (small database step), then the recall list | Inventory, Orders, Recalls |
 | 7 | Delivery watch | READY (#45); carrier tracking connects with Shopify | feed |
 | 8 | Reviews from every channel in the feed, worst first, reply to approve | NEXT | feed |
 | 9 | **Agent diary**: every automatic step written down (which agent, what, when, which order), shown on AI Agents and in the feed when it needs the owner; each agent keeps its on/off switch | READY (#46) | AI Agents, feed |
@@ -131,7 +132,7 @@ adapted to that table.
 
 Decided Nov 23 (evening): **feature switches are shared by every device**; work features are for every employee; money, revenue and sensitive documents are for the owner and administrators only. NEXT: switches with an audience, stored in shared settings (draft 50).
 
-1. Merge **one** PR: the highest green one contains all earlier ones (#48 green Nov 24; #56 contains everything once its checks are green).
+1. Merge **one** PR: the highest green one contains all earlier ones (#48 green Nov 24; #57 contains everything once its checks are green).
 2. Business address (virtual mailbox) before the seller accounts; then Etsy, TikTok Shop, Amazon.
 3. Business email addresses (planned for tomorrow).
 4. The database steps in `docs/ops/sql-review/START_HERE_GUIDED_RUNS.md`, then review item 9 (draft 48).
