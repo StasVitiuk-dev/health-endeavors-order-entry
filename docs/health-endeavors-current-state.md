@@ -1,6 +1,6 @@
 # Health Endeavors — current state (cross-project summary)
 
-**Last updated:** November 24, 2026 (§1, §4, §5, §8, §9: what is merged, what is open in PR #81, the owner's open decisions). Before that: November 23, 2026, evening (§1, §4, §5: PR #36 merged and checked live). Earlier Nov 23: §5, §8, §9 (PR #36 carries everything; Nov 23 decisions). Before that: November 15, 2026 (Nov 7 build). Internal-platform entry point: `docs/ops/START_HERE_EXT14.md`. **Keep this short.** Details live in the linked documents; update this file whenever the verified state changes materially.
+**Last updated:** November 24, 2026 (§1, §4, §5, §8, §9: what is merged, what is open in PR #82, the owner's open decisions). Before that: November 23, 2026, evening (§1, §4, §5: PR #36 merged and checked live). Earlier Nov 23: §5, §8, §9 (PR #36 carries everything; Nov 23 decisions). Before that: November 15, 2026 (Nov 7 build). Internal-platform entry point: `docs/ops/START_HERE_EXT14.md`. **Keep this short.** Details live in the linked documents; update this file whenever the verified state changes materially.
 
 Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (from the owner's earlier chats, not re-checked) · **PROPOSED** · **OWNER DECISION REQUIRED** · **DEPRECATED**.
 
@@ -16,9 +16,9 @@ Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (fro
 - **CURRENT (Nov 24, 2026), read this first:** `main` is at `e08ec8c` and is the live dashboard. The
   owner merged PR #36, then #37, #45 (which contains #38–#44) and #55 (which contains #46–#54), all on
   Nov 23, and checked the live site after the last one. Everything built since is **open, not merged,
-  not live**: PR #81 contains #56–#80 (the owner's requests of Nov 24: shorter menu, printing, agents
+  not live**: PR #82 contains #56–#81 (the owner's requests of Nov 24: shorter menu, printing, agents
   at a glance, Store Campaigns, Customer Emails, Content Helper, store finder, drafts on every device,
-  the email sending records as a database draft, personal settings on every device, a "Handled" button for agent hand-offs, copying an approved customer email). Every new page
+  the email sending records as a database draft, personal settings on every device, a "Handled" button for agent hand-offs, copying an approved customer email, a Reviews page). Every new page
   is behind a switch that is off. **No SQL was run: every database draft is still not installed**, and
   **nothing sends an email or a text.** Item by item: `docs/ops/BUILD_TRACKER_2_WEEKS.md`.
 - **Nov 23, 2026, evening (kept for history):** **PR #36 is merged into `main`** (merge
@@ -163,7 +163,7 @@ Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (fro
 
 ## 5. Active development (open PRs)
 
-**CURRENT (Nov 24, 2026):** open for the owner: **PR #81**, which contains #56–#80 (one merge brings
+**CURRENT (Nov 24, 2026):** open for the owner: **PR #82**, which contains #56–#81 (one merge brings
 all of them in; GitHub then marks the others merged), and **PR #51** (documents only). Merging runs no
 SQL. "Screenshots (informational)" shows red on these PRs and never blocks: its reference pictures
 come from another machine. What each PR holds: `docs/ops/BUILD_TRACKER_2_WEEKS.md`.
@@ -220,7 +220,7 @@ No merging or deploying by Claude · no production Supabase, SQL, cron, RLS or p
 
 **Updated Nov 24, 2026 (CURRENT).** Platform list in full: `docs/ops/NEXT_SESSION_CHECKLIST.md`.
 
-1. **Merge PR #81** once its checks are green (it contains #56–#80; #80, #79 or #78 can also be merged on their own), then PR #51 (documents).
+1. **Merge PR #82** once its checks are green (it contains #56–#81; #81 is green and can also be merged on its own), then PR #51 (documents).
 2. **One stock count for all channels:** `docs/ops/ONE_STOCK_COUNT_DECISION_2026-11-24.md` (orders do
    not lower the dashboard's stock today; Shopify keeps its own count). A read-only shape check comes first.
 3. **Business email on the business's own domain** (`docs/ops/BUSINESS_EMAIL_PLAN.md`) and **which
@@ -258,13 +258,13 @@ Full website list: `docs/website/decisions-needed.md` (website workspace).
 
 **Updated Nov 24, 2026 (CURRENT).**
 
-1. Owner merges PR #81 (green checks) → live check with a hard refresh → PR #51.
+1. Owner merges PR #82 (green checks) → live check with a hard refresh → PR #51.
 2. Database draft 50 in a guided sitting; then a one-line PR that makes the shared switches and
    drafts the same on every device.
 3. One stock count, after the owner's decision and the read-only shape check.
 4. Real email sending only after: business email, the service choice, the sender settings, draft 56,
    the sending program (not written yet) and the owner's approval of the first send.
-5. Not built yet, needing a data source or an account: reviews and business email in the feed, real
+5. Not built yet, needing a data source or an account: reading reviews from the sites by itself (pasting them in is built, #82), business email in the feed, real
    stores from a listing service, agents running on a schedule.
 
 **Before Nov 24 (kept for history):**
