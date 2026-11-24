@@ -29,6 +29,8 @@
       what: 'Saves supplier documents and their review; needs the Supplier documents preview on too.' },
     { key: 'he_shared_settings', name: 'Settings shared by every device', where: 'Feature Flags and Accounting', draft: 'drafts/50 (review item 10)', probe: 'shared_settings',
       what: 'Your switches and your Real profit numbers are kept in the database, the same on every phone and computer. Turn it on here to start in this browser; it becomes the rule for every device with a small update after the step is installed.' },
+    { key: 'he_order_costs', name: 'Real fees and postage per order', where: 'Accounting', draft: 'drafts/52 (review item 11)', probe: 'order_costs',
+      what: 'Real profit uses each order\'s real fee and postage where they are saved, instead of your estimates; Money per channel can save the real fees from a channel\'s report.' },
     { key: 'he_dropoff', name: 'Drop-off receipts', where: 'Orders', draft: 'drafts/48 (review item 9, BLOCKED until adapted)', probe: 'shipment_events',
       what: 'One carrier receipt marks every parcel on it dropped off.' },
   ]);

@@ -50,6 +50,7 @@
   "GET legal_holds?order=placed_at.desc&select=id,title,description,related_type,related_reference,placed_at&status=eq.active",
   "GET money_match_issues?limit=0&select=*",
   "GET needs_attention?order=due_at.asc.nullslast&select=*",
+  "GET order_costs?limit=0&select=*",
   "GET order_items?limit=1000&offset=0&order=id.asc&order_id=in.(o1,o3)&select=id,order_id,sku,product_name,quantity",
   "GET orders?deleted_at=is.null&limit=1000&offset=0&order=id.asc&placed_at=gte.2026-01-01T06:00:00.000Z&select=id,order_number,total,tax_total,currency,status,placed_at,deleted_at,source,raw_data",
   "GET orders?deleted_at=is.null&limit=1000&offset=0&order=id.asc&placed_at=gte.2026-06-15T05:00:00.000Z&select=id,order_number,total,currency,status,placed_at,deleted_at,source",

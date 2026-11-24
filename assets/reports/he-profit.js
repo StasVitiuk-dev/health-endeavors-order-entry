@@ -78,6 +78,15 @@
     const costs = unitCosts(i.products, i.poLines);
     const fees = Object.assign({}, DEFAULT_FEES, i.fees || {});
     const postC = cents(i.postagePerOrder), packC = cents(i.packagingPerOrder);
+    // the real fee and postage of an order, where they were saved (docs/ops/sql/drafts/52):
+    // an exact figure replaces the estimate for that part of that order
+    const exact = {};
+    (Array.isArray(i.orderCosts) ? i.orderCosts : []).forEach(c => {
+      if (!c || typeof c !== 'object' || !c.order_id) return;
+      const f = Number.isInteger(c.fee_cents) && c.fee_cents >= 0 ? c.fee_cents : null;
+      const p = Number.isInteger(c.postage_cents) && c.postage_cents >= 0 ? c.postage_cents : null;
+      if (f != null || p != null) exact[c.order_id] = { fee: f, postage: p };
+    });
     const itemsBy = {};
     (Array.isArray(i.items) ? i.items : []).forEach(it => { if (it && it.order_id) (itemsBy[it.order_id] = itemsBy[it.order_id] || []).push(it); });
     const orders = [], leftOut = [];
@@ -99,15 +108,19 @@
       if (revenue == null) missing.push('sale amount');
       if (!lines.length) missing.push('items');
       if (lines.some(l => !l.costKnown)) missing.push('product cost');
-      const fee = feeFor(channel, revenue, fees);
+      const real = exact[o.id] || {};
+      const feeExact = real.fee != null, postageExact = real.postage != null;
+      const fee = feeExact ? real.fee : feeFor(channel, revenue, fees);
+      const postage = postageExact ? real.postage : postC;
       if (fee == null) missing.push('fee estimate');
-      if (postC == null) missing.push('postage estimate');
+      if (postage == null) missing.push('postage estimate');
       if (packC == null) missing.push('packaging estimate');
       const productCost = lines.length && lines.every(l => l.costKnown) ? lines.reduce((s, l) => s + l.cost, 0) : null;
-      const complete = revenue != null && productCost != null && fee != null && postC != null && packC != null;
+      const complete = revenue != null && productCost != null && fee != null && postage != null && packC != null;
       orders.push({ id: o.id, order: String(o.order_number || ''), channel: channel, placedAt: o.placed_at || null,
-        revenue: revenue, productCost: productCost, fee: fee, postage: postC, packaging: packC,
-        profit: complete ? revenue - productCost - fee - postC - packC : null, missing: missing,
+        revenue: revenue, productCost: productCost, fee: fee, postage: postage, packaging: packC,
+        feeExact: feeExact, postageExact: postageExact,
+        profit: complete ? revenue - productCost - fee - postage - packC : null, missing: missing,
         check: status === 'partially_refunded' ? 'partly refunded: check the refund' : null, lines: lines });
     });
     // by channel and by product (only complete orders count toward profit)
@@ -133,6 +146,9 @@
     const totals = { orders: orders.length, complete: complete.length, missing: orders.length - complete.length,
       revenue: sum('revenue'), productCost: sum('productCost'), fees: sum('fee'), postage: sum('postage'), packaging: sum('packaging'), profit: sum('profit') };
     totals.margin = pct(totals.profit, totals.revenue);
+    // how many of the counted orders use a real figure instead of an estimate
+    totals.exactFees = complete.filter(o => o.feeExact).length;
+    totals.exactPostage = complete.filter(o => o.postageExact).length;
     const channels = Object.values(byChannel).map(c => Object.assign(c, { margin: pct(c.profit, c.revenue) })).sort((a, b) => b.revenue - a.revenue);
     const products = Object.values(byProduct).map(p => Object.assign(p, { margin: pct(p.profit, p.revenue) })).sort((a, b) => b.profit - a.profit);
     const missingWhy = {};

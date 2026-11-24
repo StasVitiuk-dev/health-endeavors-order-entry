@@ -84,7 +84,7 @@
       nightlyOverall,
     } = window.HE.helpers;
     // @@ EXT15 modules: created in dependency order (assets/app/*.js; see docs/ops/APPLICATION_MODULE_MAP_EXT15.md)
-    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, agentDiaryOn, realProfitOn, channelMoneyOn, SWITCH_EVERYONE, sharedSettingsOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn } = HE.modules.create('he-config', {  });
+    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, agentDiaryOn, realProfitOn, channelMoneyOn, SWITCH_EVERYONE, sharedSettingsOn, orderCostsOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn } = HE.modules.create('he-config', {  });
     const { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, focusDialog, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, h, pageIconNode } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
     const { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
     const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, h, supabase });
@@ -3003,6 +3003,10 @@
     // in this browser until then. Orders, items and costs are only read.
     const RP_KEY = 'he_profit_estimates';
     let rpShared = { state: 'unknown', value: null, updatedAt: null };
+    // the real fee and postage of each order (drafts/52), behind orderCostsOn
+    function ocMod() { try { return (window.HE && window.HE.reports && window.HE.reports['he-order-costs-store']) || null; } catch (e) { return null; } }
+    function ocStore() { const O = ocMod(); return O && orderCostsOn() ? O.createStore({ client: supabase, enabled: true }) : null; }
+    let rpCostsNote = '';
     function rpSettings() { try { return (window.HE && window.HE.views && window.HE.views['he-shared-settings']) || null; } catch (e) { return null; } }
     function rpStore() { const S = rpSettings(); return S ? S.createStore({ client: supabase, enabled: sharedSettingsOn() }) : null; }   // asks the database only once the shared settings are in use
     let rpPeriod = 'month', rpResult = null, rpSeq = 0, rpError = '', rpEditing = false, rpMessage = '';
@@ -3046,10 +3050,13 @@
           fetchAllRows('purchase_order_items', 'id, product_id, landed_unit_cost, quantity_received, created_at', q => q.not('product_id', 'is', null)),
         ]);
         const shared = await sharedP;
+        const oc = ocStore();
+        const costs = oc && ids.length ? await oc.list(ids) : { state: 'off', rows: [], message: '' };
         if (seq !== rpSeq) return;
+        rpCostsNote = costs.state === 'error' ? 'The real order costs could not be read (' + costs.message + '), so every order uses the estimates.' : '';
         rpShared = shared || { state: 'unknown', value: null, updatedAt: null };
         const est = rpEstimates();
-        rpResult = M.compute({ orders: orders, items: items, products: products, poLines: poLines, fees: est.fees, postagePerOrder: est.postage, packagingPerOrder: est.packaging });
+        rpResult = M.compute({ orders: orders, items: items, products: products, poLines: poLines, fees: est.fees, postagePerOrder: est.postage, packagingPerOrder: est.packaging, orderCosts: costs.rows });
       } catch (e) {
         if (seq !== rpSeq) return;
         rpError = 'Profit could not be worked out just now: ' + explainDbError(e && e.message ? e.message : String(e));
@@ -3101,6 +3108,8 @@
           h('div', { class: 'stat' }, h('div', { class: 'num' }, t.complete ? rpMoney(t.productCost) : '—'), h('div', { class: 'lbl' }, 'Product cost')),
           h('div', { class: 'stat' }, h('div', { class: 'num' }, t.complete ? rpMoney(t.fees + t.postage + t.packaging) : '—'), h('div', { class: 'lbl' }, 'Fees, postage, packaging'))),
         missingLine,
+        orderCostsOn() ? h('p', { class: 'hint', 'data-rpexact': t.exactFees + '/' + t.exactPostage },
+          rpCostsNote || ('Real figures: the fee of ' + t.exactFees + ' and the postage of ' + t.exactPostage + ' of the ' + t.complete + ' counted ' + (t.complete === 1 ? 'order' : 'orders') + '. The rest use your estimates.')) : null,
         r.channels.length ? h('div', null, h('h4', { class: 'u-mt-12' }, 'By sales channel'),
           table([{ t: 'Channel' }, { t: 'Orders' }, { t: 'Sales', num: true }, { t: 'Profit', num: true }, { t: 'Margin', num: true }],
             r.channels.map(c => h('tr', { 'data-rpchannel': c.channel }, h('td', null, c.name), h('td', null, c.complete + ' of ' + c.orders), h('td', { class: 'num-cell' }, c.complete ? rpMoney(c.revenue) : '—'), h('td', { class: 'num-cell' }, c.complete ? rpMoney(c.profit) : '—'), h('td', { class: 'num-cell' }, rpPct(c.margin)))))) : h('p', { class: 'empty' }, 'No orders in this period.'),
@@ -3196,7 +3205,8 @@
           h('details', p.confirmed ? null : { open: '' }, h('summary', null, 'Which columns were used'),
             p.confirmed ? null : h('p', { class: 'hint', 'data-cmunconfirmed': '1' }, 'This layout is read by its column names and has not been checked against one of your real exports yet. Check that these are the right columns before relying on the figures.'),
             h('ul', null, ...Object.entries(p.used).map(([k, v]) => h('li', null, ({ day: 'Date', kind: 'Type', label: 'Description', order: 'Order', gross: 'Sales', fees: 'Fees', tax: 'Tax', net: 'Net' }[k] || k) + ': ' + v)))),
-          h('button', { type: 'button', class: 'small secondary', 'data-cmremove': ch, 'aria-label': 'Remove the ' + p.name + ' report' }, 'Remove'));
+          ocStore() ? h('button', { type: 'button', class: 'small', 'data-cmsave': ch, 'aria-label': 'Save the real fees of the ' + p.name + ' report to their orders' }, 'Save these real fees to their orders') : null,
+          ' ', h('button', { type: 'button', class: 'small secondary', 'data-cmremove': ch, 'aria-label': 'Remove the ' + p.name + ' report' }, 'Remove'));
       });
       put(h('h3', { class: 'u-fs-13 u-c-navy u-m-18-0-6' }, 'Money per channel'),
         h('p', { class: 'hint u-mt-0' }, 'What each sales channel really paid and charged, from the channel’s own money report. Choose the file: it is read in this browser and nothing is uploaded or saved.'),
@@ -3223,6 +3233,25 @@
         say(p.fileName + ' read: ' + p.rows.length + ' lines. Nothing was uploaded.');
       };
       fr.readAsText(file);
+    });
+    document.addEventListener('click', async (e) => {
+      const b = e.target.closest('#channelMoneyHost [data-cmsave]'); if (!b) return;
+      const ch = b.getAttribute('data-cmsave'); const p = cmFiles[ch]; const O = ocMod(), store = ocStore();
+      if (!p || !O || !store) return;
+      const say = (msg) => { cmMessage = msg; loadChannelMoney(); announce(msg); const m = document.querySelector('#channelMoneyHost [data-cmmessage]'); if (m) { m.setAttribute('tabindex', '-1'); m.focus(); } };
+      b.disabled = true;
+      try {
+        const numbers = Object.keys(O.feesByOrder(p));
+        if (!numbers.length) { say('This report has no fee that belongs to an order.'); return; }
+        // the report's order numbers, as the dashboard stores them (with or without "#")
+        const wanted = [...new Set(numbers.flatMap(n => [n, '#' + n, n.toUpperCase(), '#' + n.toUpperCase()]))];
+        const orders = await fetchAllRowsIn('orders', 'id, order_number', 'order_number', wanted, q => q.is('deleted_at', null));
+        const m = O.rowsFor(p, orders);
+        if (!m.rows.length) { say('None of the ' + numbers.length + ' orders in this report is in the dashboard yet, so nothing was saved.'); return; }
+        const r = await store.save(m.rows);
+        if (!r.ok) { say(r.message + ' Nothing was saved.'); return; }
+        say('Saved the real fee of ' + r.saved + (r.saved === 1 ? ' order' : ' orders') + '.' + (m.unmatched.length ? ' ' + m.unmatched.length + ' in the report ' + (m.unmatched.length === 1 ? 'is' : 'are') + ' not in the dashboard yet.' : '') + ' Real profit now uses them.');
+      } catch (err) { say('The real fees could not be saved: ' + explainDbError(err && err.message ? err.message : String(err))); }
     });
     document.addEventListener('click', (e) => {
       const b = e.target.closest('#channelMoneyHost [data-cmremove]'); if (!b) return;
