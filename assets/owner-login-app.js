@@ -4598,6 +4598,8 @@
           : state === 'changed' ? 'The wording changed after it was approved. Read it again and approve the new wording.' : 'Not approved yet.'; }
       const b = host.querySelector('[data-ce="approve"]');
       if (b) b.disabled = !check.ok || state === 'approved';
+      const c = host.querySelector('[data-cecopy]');
+      if (c) { c.setAttribute('data-cecopy', state === 'approved' ? 'ready' : 'none'); c.querySelectorAll('button').forEach(x => { x.disabled = state !== 'approved'; }); }
     }
     function renderCustomerEmails() {
       const host = document.getElementById('customerEmailsPanel'), M = ceMod(); if (!host) return;
@@ -4623,6 +4625,10 @@
         h('div', { 'data-cewording': 'problems' }),
         h('p', { class: 'u-fs-12p5 u-mt-6', 'data-ceapproval': 'none' }),
         h('button', { type: 'button', class: 'small', 'data-ce': 'approve' }, 'Approve this wording'),
+        h('div', { class: 'chRow u-mt-12', role: 'group', 'aria-label': 'Copy the approved wording', 'data-cecopy': 'none' },
+          h('button', { type: 'button', class: 'small secondary', 'data-ce': 'copy-subject' }, 'Copy the subject'),
+          h('button', { type: 'button', class: 'small secondary', 'data-ce': 'copy-body' }, 'Copy the email')),
+        h('p', { class: 'hint u-mt-6', 'data-cecopyhint': '1' }, 'For sending it yourself from your store\'s own email tool, which writes only to people who agreed to get emails. Only an approved wording can be copied. Where the copied text says [first name], put the name in with that tool\'s own "personalize" button. Make sure the email there carries a way to stop the emails and your business address.'),
         h('h3', null, '3. Who would get it'),
         h('div', { class: 'u-d-flex u-gap-8 u-fwr-wrap u-ai-flex-end' },
           field('ceStart', 'First day', h('input', { id: 'ceStart', type: 'date', value: ceState.startDay, 'data-cefield': 'startDay' }))),
@@ -4715,6 +4721,17 @@
         else { ceState.texts[ceState.kind].approval = r; ceMessage = ceKeep() ? 'Wording approved. Nothing was sent.' : 'Wording approved for now, but this browser would not keep it (private window or storage blocked).'; }
         ceResult = null; renderCustomerEmails(); announce(ceMessage);
         const a = document.querySelector('#customerEmailsPanel [data-ceapproval]'); if (a) { a.setAttribute('tabindex', '-1'); a.focus(); }
+        return;
+      }
+      if (act === 'copy-subject' || act === 'copy-body') {
+        const cur = ceState.texts[ceState.kind];
+        if (!cur.approval || !M.stillApproved(cur.approval, ceText(), scDeps()).valid) { ceMessage = 'Approve the wording first. Only an approved wording can be copied.'; renderCustomerEmails(); announce(ceMessage); refocus('[data-ce="approve"]'); return; }
+        const out = M.forOwnTool(ceText()), what = act === 'copy-subject' ? 'subject' : 'email';
+        navigator.clipboard.writeText(act === 'copy-subject' ? out.subject : out.body).then(() => {
+          ceMessage = 'The ' + what + ' is copied. Nothing was sent.' + (out.hasName ? ' Where it says [first name], use the "personalize" button of your email tool.' : '');
+          const m = document.querySelector('#customerEmailsPanel [data-cemessage]'); if (m) m.textContent = ceMessage;
+          announce(ceMessage); toast('Copied');
+        }).catch(() => { showDashError('Could not copy to the clipboard. Select the text in the box and copy it by hand.'); });
         return;
       }
       if (act === 'show') ceShow();

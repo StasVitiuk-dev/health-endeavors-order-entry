@@ -171,6 +171,15 @@
     return /^[A-Za-zÀ-ɏ][A-Za-zÀ-ɏ'\-]{1,29}$/.test(first) ? first.charAt(0).toUpperCase() + first.slice(1) : 'there';
   }
   // one customer's email as it would go out, with the two lines the law asks for
+  // The approved wording as text to paste into the store's own email tool (for example
+  // Shopify's), which sends to its own list of people who agreed. {name} becomes a
+  // visible [first name] mark: that tool puts the real name in with its own
+  // "personalize" button. Nothing is added: that tool has its own footer.
+  function forOwnTool(text) {
+    const d = wordingDraft(text);
+    const mark = (t) => t.replace(/\{([^{}\n]{0,40})\}/g, (all, f) => (f.trim().toLowerCase() === 'name' ? '[first name]' : all));
+    return { subject: mark(d.subject), body: mark(d.body), hasName: /\[first name\]/.test(mark(d.subject) + mark(d.body)) };
+  }
   function render(text, client, opts) {
     const d = wordingDraft(text), c = obj(client), o = obj(opts), problems = [];
     const address = str(o.postalAddress, 300);
@@ -181,5 +190,5 @@
     return { ok: problems.length === 0, subject: fill(d.subject), body: body, problems: problems };
   }
 
-  return { KINDS, WINBACK_FROM, REVIEW_WINDOW, OWN_CHANNELS, MARKETPLACES, ownOrders, whoText, templates, audience, wordingDraft, checkWording, approveWording, stillApproved, firstName, render };
+  return { KINDS, WINBACK_FROM, REVIEW_WINDOW, OWN_CHANNELS, MARKETPLACES, ownOrders, whoText, templates, audience, wordingDraft, checkWording, approveWording, stillApproved, firstName, render, forOwnTool };
 }));

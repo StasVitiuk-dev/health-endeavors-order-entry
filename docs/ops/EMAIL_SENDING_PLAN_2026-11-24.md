@@ -10,7 +10,7 @@ Written November 24, 2026. Status labels: CURRENT (in the repository), PROPOSED,
 |---|---|---|
 | Store Campaigns page: write one email, wording check, approve once, choose how many stores and which first, see who would get it on which day | dashboard, switch "Store Campaigns" (off) | built; drafts only |
 | Store finder: score a pasted list of stores, with reasons | on the Store Campaigns page | built; looks nothing up |
-| Customer Emails page: five kinds, ready texts, approve once, exact list of who would get it; marketplace buyers never | dashboard, switch "Customer Emails" (off) | built; drafts only |
+| Customer Emails page: five kinds, ready texts, approve once, exact list of who would get it; marketplace buyers never; an approved wording can be copied (subject, email) to paste into the store's own email tool | dashboard, switch "Customer Emails" (off) | built; drafts only |
 | The drafts of these pages on every device | shared settings, `docs/ops/sql/drafts/50_DRAFT_shared_settings.sql` | built; needs draft 50 installed |
 | **The database records and rules for sending** | `docs/ops/sql/drafts/56_DRAFT_email_sending.sql`, rollback `docs/ops/sql/drafts/57_DRAFT_rollback_email_sending.sql` | DRAFT, not installed; 96 local checks pass (`docs/ops/sql/local-test/email_sending_test.sh`) |
 | Saving a campaign from the dashboard into those records | `assets/sales/he-email-store.js`, switch "Saved email campaigns" under "features that save real records" (off) | built; sends nothing; usable only after draft 56 is installed |

@@ -42,6 +42,8 @@ A business mailbox on the business's own domain is needed in every case (point 1
    - it reaches only customers who ticked "email me offers", which is fewer people than "everyone who ordered";
    - these sends would be recorded in Shopify, not in the outbox of database draft 56;
    - it is an action in Shopify, so it happens only when the owner does it or approves that specific task.
+
+   Built for this on Nov 24: once a wording is approved, the Customer Emails page has **Copy the subject** and **Copy the email**. `{name}` is copied as a visible `[first name]` mark, to be replaced with the email tool's own "personalize" button (Shopify's help pages describe one for the first name; read through search summaries, not tried here).
 2. **Store outreach: do not sign up for a sending service yet.** First read the chosen service's terms on emailing businesses that did not ask. Until then the safe way is the one already designed: few emails a day, personal, from the separate outreach address, each with the business postal address and a line on how to stop the emails.
 3. **Database draft 56 and the sending program stay as designed** for the moment a sending service is chosen. Nothing built is wasted: the approval, the slow start, the do-not-email list and the automatic stop are needed with any service.
 
@@ -63,7 +65,7 @@ The strictest of these rules apply from about 5,000 emails a day, far above this
 
 ## Sources
 
-- Shopify: https://www.shopify.com/email-marketing , https://help.shopify.com/en/manual/promoting-marketing/create-marketing/shopify-email/faq , https://help.shopify.com/en/manual/promoting-marketing/create-marketing/shopify-messaging/email/subscriber-list-management , https://www.shopify.com/legal/terms
+- Shopify: https://www.shopify.com/email-marketing , https://help.shopify.com/en/manual/promoting-marketing/create-marketing/shopify-messaging/email/create-email/create-campaigns , https://help.shopify.com/en/manual/promoting-marketing/create-marketing/shopify-email/faq , https://help.shopify.com/en/manual/promoting-marketing/create-marketing/shopify-messaging/email/subscriber-list-management , https://www.shopify.com/legal/terms
 - Resend: https://resend.com/pricing , https://resend.com/docs/knowledge-base/account-quotas-and-limits
 - Postmark: https://postmarkapp.com/pricing
 - Amazon SES: https://aws.amazon.com/ses/pricing/ , https://aws.amazon.com/about-aws/whats-new/2026/07/amazon-ses-pricing-plans/

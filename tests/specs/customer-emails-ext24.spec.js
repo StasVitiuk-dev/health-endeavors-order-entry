@@ -289,3 +289,65 @@ test.describe('the Customer Emails page', () => {
     expect(pageErrors).toEqual([]);
   });
 });
+
+// Nov 24: copying an approved wording, to paste into the store's own email tool
+// (which writes only to people who agreed). Only an approved wording can be copied;
+// {name} becomes a visible [first name] mark. Nothing is sent, read or written.
+test.describe('copy an approved wording', () => {
+  const clip = (page) => page.addInitScript(() => { window.__copied = []; try { Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: (t) => { window.__copied.push(String(t)); return Promise.resolve(); } } }); } catch (e) {} });
+
+  test('the rule (no browser): {name} becomes [first name], other braces stay, junk never throws', ({}, ti) => {
+    test.skip(ti.project.name !== 'desktop', 'Node-only; run once');
+    expect(C.forOwnTool(TEXT)).toEqual({ subject: 'Thank you, [first name]', body: 'Hi [first name], thank you for ordering from our small shop. Reply any time you have a question.', hasName: true });
+    expect(C.forOwnTool({ subject: 'Hello there', body: 'Dear { NAME }, your {order} is ready.' })).toEqual({ subject: 'Hello there', body: 'Dear [first name], your {order} is ready.', hasName: true });
+    expect(C.forOwnTool({ subject: 'Hello there', body: 'No name in this one.' }).hasName).toBe(false);
+    for (const junk of [null, undefined, 7, 'x', [], { subject: {}, body: [] }]) expect(() => C.forOwnTool(junk)).not.toThrow();
+    // nothing is added: no "to stop these emails" line, no address (the other tool has its own footer)
+    expect(C.forOwnTool(TEXT).body).not.toMatch(/unsubscribe|stop these emails/i);
+  });
+
+  test('not approved: the copy buttons are off; approved: subject and email are copied with [first name]; a changed wording turns them off again', async ({ page, backend, pageErrors }, ti) => {
+    test.skip(ti.project.name !== 'desktop', 'run once');
+    seed(backend);
+    await on(page); await clip(page);
+    await login(page);
+    await gotoPage(page, 'customerEmailsPanel');
+    const P = page.locator('#customerEmailsPanel');
+    const subjectBtn = P.locator('[data-ce="copy-subject"]'), bodyBtn = P.locator('[data-ce="copy-body"]');
+    await expect(P.locator('[data-cecopy]')).toHaveAttribute('data-cecopy', 'none');
+    await expect(subjectBtn).toBeDisabled();
+    await expect(bodyBtn).toBeDisabled();
+    await expect(P.locator('[data-cecopyhint]')).toContainText('Only an approved wording can be copied.');
+    await P.locator('#ceSubject').fill(TEXT.subject);
+    await P.locator('#ceBody').fill(TEXT.body);
+    await expect(subjectBtn).toBeDisabled();                                // a wording that passes the check is still not approved
+    await P.locator('[data-ce="approve"]').click();
+    await expect(P.locator('[data-cecopy]')).toHaveAttribute('data-cecopy', 'ready');
+    await subjectBtn.click();
+    await expect(P.locator('[data-cemessage]')).toHaveText('The subject is copied. Nothing was sent. Where it says [first name], use the "personalize" button of your email tool.');
+    await bodyBtn.click();
+    await expect(P.locator('[data-cemessage]')).toContainText('The email is copied. Nothing was sent.');
+    expect(await page.evaluate(() => window.__copied)).toEqual(['Thank you, [first name]', 'Hi [first name], thank you for ordering from our small shop. Reply any time you have a question.']);
+    // one changed letter: no longer approved, so no longer copyable
+    await P.locator('#ceBody').fill(TEXT.body + ' Thanks!');
+    await expect(P.locator('[data-ceapproval]')).toHaveAttribute('data-ceapproval', 'changed');
+    await expect(subjectBtn).toBeDisabled();
+    await expect(bodyBtn).toBeDisabled();
+    expect(await page.evaluate(() => window.__copied.length)).toBe(2);
+    expect(ownReads(backend)).toEqual([]);                                  // copying reads no customers
+    expect(writes(backend)).toEqual([]);
+    expect(pageErrors).toEqual([]);
+  });
+
+  test('on a phone the copy buttons fit and are easy to tap', async ({ page, backend }, ti) => {
+    test.skip(ti.project.name !== 'iphone', 'phone only');
+    seed(backend);
+    await on(page);
+    await login(page);
+    await gotoPage(page, 'customerEmailsPanel');
+    const P = page.locator('#customerEmailsPanel');
+    await expect(P.locator('[data-ce="copy-body"]')).toBeVisible();
+    expect(await page.evaluate(() => document.scrollingElement.scrollWidth - document.scrollingElement.clientWidth)).toBeLessThanOrEqual(1);
+    for (const sel of ['[data-ce="copy-subject"]', '[data-ce="copy-body"]']) expect((await P.locator(sel).boundingBox()).height).toBeGreaterThanOrEqual(40);
+  });
+});
