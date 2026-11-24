@@ -112,6 +112,7 @@ test.describe('on the Inventory page', () => {
     await expect(host.locator('#blLot option')).toHaveCount(2);                       // the batch with no number is not offered
     await expect(host.locator('#blLot')).toHaveValue('lot-2');                        // newest first
     await expect(host.locator('#blCount')).toHaveValue('12');
+    await expect(host.locator('#blCount')).toHaveAttribute('max', String(B.MAX_COUNT));   // the box's limit and the rule agree
     await expect(host.locator('[data-blpreview]')).toHaveAttribute('data-blpreview', 'B-SYN-2026-11-B');
     await expect(host.locator('[data-blpreview] .blLot')).toHaveText('Batch SYN-2026-11-B');
     await expect(host.locator('[data-blpreview] .blProduct')).toHaveText('SYNTHETIC Honey balm');

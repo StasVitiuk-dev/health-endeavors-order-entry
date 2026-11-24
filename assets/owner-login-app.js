@@ -5457,7 +5457,7 @@
         h('div', { class: 'blForm' },
           h('label', null, 'Batch', h('select', { id: 'blLot' }, blLots.map(l => h('option', { value: String(l.id), selected: String(l.id) === blState.lotId },
             (l.product || 'Product') + ' — ' + l.lot_number + (l.received_at ? ' (received ' + String(l.received_at).slice(0, 10) + ')' : ''))))),
-          h('label', null, 'How many stickers', h('input', { id: 'blCount', type: 'number', min: '1', max: String(M.MAX_COUNT), step: '1', inputmode: 'numeric', value: blState.count })),
+          h('label', null, 'How many stickers', h('input', { id: 'blCount', type: 'number', min: '1', max: '500', step: '1', inputmode: 'numeric', value: blState.count })),
           h('label', null, 'Printed on', h('select', { id: 'blLayout' }, Object.keys(M.LAYOUTS).map(k => h('option', { value: k, selected: k === blState.layout }, M.LAYOUTS[k].name))))),
         one.ok ? h('div', { class: 'blPreview', 'data-blpreview': one.text }, h('div', { class: 'u-fs-12 u-c-muted' }, 'One sticker (the size on screen is not the printed size):'), blSticker(M, lot, one)) : null,
         h('div', { class: 'u-mt-8 u-d-flex u-gap-8 u-fwr-wrap' },
