@@ -42,7 +42,7 @@ test.describe('the list and the rules (no browser)', () => {
 test.describe('on Feature Flags', () => {
   test('the owner sees live install states; on needs a confirmation; off always works; reads only', async ({ page, backend }, ti) => {
     test.skip(ti.project.name !== 'desktop', 'run once');
-    for (const t of ['invoice_payments', 'money_match_issues', 'receiving_records', 'supplier_documents', 'shipment_events']) {
+    for (const t of ['invoice_payments', 'money_match_issues', 'receiving_records', 'supplier_documents', 'order_parcels']) {
       await page.route(`**/rest/v1/${t}?*`, route => route.fulfill(NOT_INSTALLED));
     }
     await login(page); await gotoPage(page, 'flagsPanel');

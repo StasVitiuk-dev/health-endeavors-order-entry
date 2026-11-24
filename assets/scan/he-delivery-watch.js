@@ -1,5 +1,5 @@
 // Delivery watch (owner, Nov 24: "it must work like a Swiss watch, to the smallest
-// detail"). Looks at every parcel that is not finished (drafts/48, shipments) and
+// detail"). Looks at every parcel that is not finished (drafts/48, order_parcels) and
 // says which ones need the owner, how urgently, what to do next, and a suggested
 // message to the customer (copied by the owner, never sent from here).
 //
@@ -74,7 +74,7 @@
     }
   }
 
-  // shipments: rows of drafts/48; ordersById: { id: { order_number, customer_name } }
+  // shipments: rows of drafts/48 (order_parcels); ordersById: { id: { order_number, customer_name } }
   function watch(shipments, opts) {
     const o = opts || {};
     const now = time(o.now) != null ? time(o.now) : Date.now();

@@ -71,7 +71,7 @@ step "partial receiving and returns (drafts/40)" bash "$LT/partial_receiving_tes
 step "Shopify payouts and money differences (drafts/42)" bash "$LT/shopify_payouts_test.sh" $C
 step "staff read purchase orders (drafts/44)" bash "$LT/staff_read_purchase_orders_test.sh" $C
 step "confirmed tax rates (drafts/46)" bash "$LT/tax_rates_test.sh" $C
-step "parcels and drop-off receipts (drafts/48)" bash "$LT/shipments_test.sh" $C
+step "parcels and drop-off receipts (drafts/48)" bash "$LT/order_parcels_test.sh" $C
 step "settings shared by every device (drafts/50)" bash "$LT/shared_settings_test.sh" $C
 step "the real fee and postage of each order (drafts/52)" bash "$LT/order_costs_test.sh" $C
 step "report day cutoff (Query I)" bash "$LT/report_day_cutoff_test.sh" $C

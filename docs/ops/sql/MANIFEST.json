@@ -562,30 +562,30 @@
       "dynamicSql": "format() with fixed names (%I) to lock and count the tax rates table only where it exists"
     },
     {
-      "file": "drafts/48_DRAFT_shipments.sql",
+      "file": "drafts/48_DRAFT_order_parcels.sql",
       "id": "48",
       "class": "PRODUCTION-CHANGE-DRAFT",
       "step": "optional (before the scan page marks parcels dropped off; owner request of Nov 23: one drop-off receipt updates every order on it)",
       "dependsOn": [],
       "risk": "LOW",
       "rollback": "49",
-      "precheck": "stops, changing nothing, if a shipments or shipment_events table exists that is not this draft's own (production has the Shipping/Tracking agent's shipments table: BLOCKED until adapted to it); stops if auth.uid(), is_active_staff(), is_owner_or_admin(), the orders, tasks or audit_log table, or the audit trigger on tasks is missing",
-      "effect": "2 new tables: shipments (one row per parcel: order, carrier, tracking number unique per carrier, status, dropped-off and delivered times, who added it) and shipment_events (the parcel's diary, written by the database only); add_shipment() keeps a tracking number with its order (refused on a different order); mark_dropped_off() marks every known parcel on a receipt (up to 500) once; status only moves forward; parcels never deleted; active staff, administrators and the owner read and write; production's audit trigger attached; no existing table changes",
-      "postcheck": "both tables present and empty; anon cannot read them; local-test/shipments_test.sh passes on a throwaway copy",
-      "lock": "NONE (new tables only)",
+      "precheck": "stops, changing nothing, if the Shipping/Tracking agent's shipments table is missing or lacks order_id, carrier or tracking_number (it is only read); stops if an order_parcels or order_parcel_events table, or a function with one of this draft's names, exists that this draft did not create (it checks its own marks); stops if auth.uid(), is_active_staff(), is_owner_or_admin(), the orders, tasks or audit_log table, or the audit trigger on tasks is missing",
+      "effect": "2 new tables of its own: order_parcels (one row per parcel: order, carrier, tracking number unique per carrier, status, dropped-off and delivered times, how and by whom it was added) and order_parcel_events (the parcel's diary, written by the database only); add_order_parcel() keeps a tracking number with its order (refused on a different order); mark_parcels_dropped_off() marks every parcel on a receipt (up to 500) once, looking a label it has not seen up in the agent's shipments table (read only); status only moves forward; nothing is deleted; the agent's shipments table is never changed",
+      "postcheck": "both tables present and empty; anon cannot read them; public.shipments has the same columns, rules, triggers and links as before; local-test/order_parcels_test.sh passes on a throwaway copy",
+      "lock": "NONE (new tables only; public.shipments is only read)",
       "dynamicSql": "format() with fixed names (%I) to attach production's audit trigger, whose function name is read from the tasks table at install time (as drafts/32)"
     },
     {
-      "file": "drafts/49_DRAFT_rollback_shipments.sql",
+      "file": "drafts/49_DRAFT_rollback_order_parcels.sql",
       "id": "49",
       "class": "ROLLBACK",
       "rollbackOf": "48",
       "dependsOn": [],
       "risk": "LOW",
-      "precheck": "stops, removing nothing, while any parcel is recorded, unless deleting them was authorized in the session",
-      "effect": "drops the two functions, both tables and their three guards",
-      "postcheck": "to_regclass('public.shipments') is null",
-      "dynamicSql": "format() with fixed names (%I) to lock and count the shipments table only where it exists"
+      "precheck": "stops, removing nothing, while any parcel is recorded, unless deleting them was authorized in the session; stops if the table or a function of these names was not created by drafts/48",
+      "effect": "drops the two functions, both of the draft's own tables and their three guards; never mentions the agent's shipments table",
+      "postcheck": "to_regclass('public.order_parcels') is null; public.shipments unchanged",
+      "dynamicSql": "format() with fixed names (%I) to lock and count the order_parcels table only where it exists"
     },
     {
       "file": "drafts/50_DRAFT_shared_settings.sql",

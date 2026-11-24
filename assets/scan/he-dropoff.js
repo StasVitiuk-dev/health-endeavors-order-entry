@@ -1,7 +1,7 @@
 // Drop-off receipt (owner request, Nov 23: "100 parcels at UPS: scan the receipt
 // and every order updates"). Finds every tracking number in text read from a
 // carrier receipt (pasted from the iPhone's Live Text, typed, or read from
-// barcodes), and turns the database's answer (drafts/48, mark_dropped_off) into
+// barcodes), and turns the database's answer (drafts/48, mark_parcels_dropped_off) into
 // plain words.
 //
 // Receipts print numbers in groups ("1Z 999 AA1 01 2345 6784") and next to other
@@ -111,7 +111,7 @@
     already: 'Already dropped off or further along',
     not_found: 'Not on any order yet',
     not_marked: 'Not marked (cancelled or returned)',
-    ambiguous: 'On two carriers; check it by hand',
+    ambiguous: 'On two orders or two carriers; check it by hand',
   };
   function summarize(results, ordersById) {
     const rows = (Array.isArray(results) ? results : []).filter(r => r && typeof r === 'object' && r.tracking).map(r => {
@@ -165,7 +165,7 @@
       if (!list.length) return refuse('Choose at least one tracking number.');
       if (list.length > MAX_FOUND) return refuse('At most ' + MAX_FOUND + ' tracking numbers at a time.');
       return once('mark', async function () {
-        const res = await client.rpc('mark_dropped_off', { p_trackings: list });
+        const res = await client.rpc('mark_parcels_dropped_off', { p_trackings: list });
         if (res && res.error) return refuse(friendlyError(res.error), { installed: !/not installed/.test(friendlyError(res.error)) });
         const d = (res && res.data) || {};
         return { ok: true, results: Array.isArray(d.results) ? d.results : [] };
@@ -179,7 +179,7 @@
       if (!CARRIERS.includes(c)) return refuse('Choose the carrier.');
       if (t.length < 8 || t.length > 40) return refuse('That is not a tracking number.');
       return once('attach:' + t, async function () {
-        const res = await client.rpc('add_shipment', { p_order_id: orderId, p_carrier: c, p_tracking: t, p_source: 'typed' });
+        const res = await client.rpc('add_order_parcel', { p_order_id: orderId, p_carrier: c, p_tracking: t, p_source: 'typed' });
         if (res && res.error) return refuse(friendlyError(res.error));
         const d = (res && res.data) || {};
         return { ok: true, duplicate: d.duplicate === true, id: d.id || null };
@@ -190,7 +190,7 @@
       const r = ready(); if (r) return r;
       if (typeof client.from !== 'function') return refuse('No database connection was given.');
       return once('listOpen', async function () {
-        const res = await client.from('shipments').select('id, order_id, carrier, tracking_number, status, status_at, created_at')
+        const res = await client.from('order_parcels').select('id, order_id, carrier, tracking_number, status, status_at, created_at')
           .not('status', 'in', '(delivered,cancelled)').order('status_at', { ascending: true }).limit(500);
         if (res && res.error) return refuse(friendlyError(res.error), { installed: !/not installed/.test(friendlyError(res.error)) });
         const rows = Array.isArray(res && res.data) ? res.data : [];
