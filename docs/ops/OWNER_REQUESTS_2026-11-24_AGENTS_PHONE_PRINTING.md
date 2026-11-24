@@ -177,7 +177,7 @@ and seller accounts run alongside):
 | Days | Work |
 |---|---|
 | 1–2 | Store campaign: rules and screen BUILT Nov 24 (PR #65, not merged), drafts only, nothing sent |
-| 3 | Receipt text → expense form BUILT (PR #67); client list to print BUILT (PR #66); control room: glance BUILT (#64), approvals and diary in it still to do |
+| 3 | Receipt text → expense form BUILT (PR #67); client list to print BUILT (PR #66); control room BUILT: glance (#64), approvals waiting and the way to the diary (#69) |
 | 4–5 | One stock count for all channels: OWNER DECISION REQUIRED first (`docs/ops/ONE_STOCK_COUNT_DECISION_2026-11-24.md`): orders do not lower the dashboard's stock today, and Shopify keeps its own count |
 | 6 | Morning summary: copy button BUILT (PR #68); sending it each morning needs a server-side step. Reviews and email in the feed still to do |
 | 7–8 | Content helper: several options, ready looks, claim firewall on every draft, video scripts |
