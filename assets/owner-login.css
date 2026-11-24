@@ -1531,3 +1531,6 @@ tr.obVoid td:first-child{ text-decoration:line-through; }
 .agentGlanceRow:first-child{ border-top:0; }
 .agentGlanceName{ font-weight:600; flex:1 1 200px; min-width:0; overflow-wrap:anywhere; }
 .agentGlanceRan{ flex:1 1 160px; min-width:0; font-size:12.5px; color:var(--muted); }
+.agentPlanned summary{ cursor:pointer; font-weight:600; }
+.agentPlannedRow{ padding:8px 0; border-top:1px solid var(--line); overflow-wrap:anywhere; }
+.agentPlannedRow:first-child{ border-top:0; }

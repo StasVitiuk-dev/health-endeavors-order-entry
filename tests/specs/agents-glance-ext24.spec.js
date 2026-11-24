@@ -36,7 +36,40 @@ test.describe('the wording (no browser)', () => {
   });
 });
 
+test.describe('agents approved but not running yet (no browser)', () => {
+  test('seven, each saying what it does, what it sends and what exists today; none claims to run', ({}, ti) => {
+    node(ti);
+    expect(G.PLANNED.map(a => a.key)).toEqual(['store_finder', 'store_outreach', 'customer_email', 'review_request', 'receipt_inbox', 'morning_summary', 'content_helper']);
+    for (const a of G.PLANNED) {
+      for (const k of ['name', 'what', 'sends', 'now']) expect(typeof a[k] === 'string' && a[k].length > 5, a.key + ' ' + k).toBe(true);
+      expect(a.now, a.key).toMatch(/^Not (running|built yet)/);
+      // anything that writes to a person says it waits for the owner's approval
+      if (/email/i.test(a.sends)) expect(a.sends, a.key).toMatch(/only after you approve/);
+      expect(Object.isFrozen(a)).toBe(true);
+    }
+    expect(G.PLANNED.some(a => /text message|sms/i.test(a.sends + a.what))).toBe(false);          // owner: no texting at the start
+  });
+});
+
 test.describe('on the AI Agents page', () => {
+  test('the approved agents are listed apart, folded, and are never counted as working', async ({ page }) => {
+    await login(page);
+    await gotoPage(page, 'aiPanel');
+    const host = page.locator('#agentGlanceHost');
+    await expect(host.locator('[data-glance]')).toHaveCount(10);
+    const more = host.locator('details[data-planned="7"]');
+    await expect(more.locator('summary')).toHaveText('7 more agents approved, not running yet');
+    expect(await more.evaluate(d => d.open)).toBe(false);
+    await more.locator('summary').click();
+    await expect(more.locator('[data-plannedagent]')).toHaveCount(7);
+    await expect(more.locator('[data-plannedagent="store_outreach"]')).toContainText('Email, only after you approve the wording.');
+    await expect(more.locator('[data-plannedagent="content_helper"]')).toContainText('It never posts and never spends money.');
+    await expect(more).toContainText('None of them runs or sends anything yet');
+    const parts = (await host.locator('[data-glancesum]').getAttribute('data-glancesum')).split('/').map(Number);
+    expect(parts.reduce((a, b) => a + b, 0)).toBe(10);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true);
+  });
+
   test('one line per agent, in the same words as its card below, with the counts on top; nothing new is asked', async ({ page, backend }) => {
     await login(page);
     await gotoPage(page, 'aiPanel');

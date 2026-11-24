@@ -122,7 +122,16 @@ window.HE.modules.define('he-agents', { api: 1, needs: ['AGENT_REGISTRY','AGENT_
           h('span', { class: 'agentGlanceName' }, '#' + r.num + ' ' + r.name),
           h('span', { class: 'badge ' + r.cls }, r.label),
           h('span', { class: 'agentGlanceRan' }, 'Last ran: ' + r.ran),
-          h('button', { type: 'button', class: 'small secondary', 'data-agentjump': r.num, 'aria-label': 'Go to the switch of ' + r.name }, 'Its switch')))));
+          h('button', { type: 'button', class: 'small secondary', 'data-agentjump': r.num, 'aria-label': 'Go to the switch of ' + r.name }, 'Its switch')))),
+        // approved, not running yet: kept apart so they are never counted as working
+        h('details', { class: 'agentPlanned u-mt-8', 'data-planned': String(G.PLANNED.length) },
+          h('summary', null, G.PLANNED.length + ' more agents approved, not running yet'),
+          h('p', { class: 'hint u-mt-6' }, 'You approved these on November 24. None of them runs or sends anything yet; each line says what exists today. An agent moves to the list above only when it really runs.'),
+          h('ul', { class: 'agentGlanceList' }, G.PLANNED.map(a => h('li', { class: 'agentPlannedRow', 'data-plannedagent': a.key },
+            h('div', { class: 'agentGlanceName' }, a.name),
+            h('div', null, a.what),
+            h('div', { class: 'agentGlanceRan' }, 'Sends: ' + a.sends),
+            h('div', { class: 'agentGlanceRan' }, 'Now: ' + a.now))))));
     }
     document.addEventListener('click', (e) => {
       const b = e.target.closest('#agentGlanceHost [data-agentjump]'); if (!b) return;
