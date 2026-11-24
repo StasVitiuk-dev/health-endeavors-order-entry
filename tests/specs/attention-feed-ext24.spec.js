@@ -395,3 +395,170 @@ test.describe('set aside on every device: on Home', () => {
     expect(pageErrors.filter(e => !/404|PGRST|Failed to load resource/.test(e))).toEqual([]);
   });
 });
+
+// ---------- Agent hand-offs: "Handled", and the supervisor rule (Nov 24) ----------
+// The plan's rule for the Supervisor: what an agent passed to a person and nobody
+// handled within a day is raised to urgent. Until now a hand-off could not be marked
+// handled at all (it simply stayed 7 days), so both come together, behind the preview
+// switch he_handoff_handled (OFF). The marks are kept in this browser and, with the
+// shared settings in use (drafts/50), in the database for every device.
+test.describe('agent hand-offs: the rules (no browser)', () => {
+  test.beforeEach(({}, ti) => { test.skip(ti.project.name !== 'desktop', 'Node-only; run once'); });
+  const H = 3600000;
+  const steps = () => [
+    { id: 'a-new', passedToPerson: true, agent: 'Order Intake', what: 'SYNTHETIC could not match an order.', at: NOW - 2 * H },
+    { id: 'a-old', passedToPerson: true, agent: 'Accounting', what: 'SYNTHETIC a payout differs.', at: NOW - 30 * H },
+    { id: 'a-edge', passedToPerson: true, agent: 'Accounting', what: 'SYNTHETIC exactly a day.', at: NOW - 24 * H },
+    { id: 'a-done', passedToPerson: true, agent: 'Shipping', what: 'SYNTHETIC done already.', at: NOW - 40 * H },
+    { id: 'a-nodate', passedToPerson: true, agent: 'Shipping', what: 'SYNTHETIC no time recorded.', at: null }];
+
+  test('without the switch nothing changes: no Handled button, nothing raised, however old', () => {
+    const items = F.buildFeed({ agents: steps() }, NOW);
+    expect(items.map(i => i.level)).toEqual(['today', 'today', 'today', 'today', 'today']);
+    expect(items.every(i => i.actions.length === 1 && i.actions[0].kind === 'open')).toBe(true);
+    expect(items.some(i => /Waiting/.test(i.detail))).toBe(false);
+  });
+
+  test('with it: a handled hand-off leaves the list; one waiting a day or more is urgent and says so; one without a time is never raised', () => {
+    const items = F.buildFeed({ agents: steps(), handled: { 'a-done': NOW - H } }, NOW);
+    const by = Object.fromEntries(items.map(i => [i.id, i]));
+    expect(Object.keys(by).sort()).toEqual(['agent:a-edge', 'agent:a-new', 'agent:a-nodate', 'agent:a-old']);
+    expect(by['agent:a-old'].level).toBe('urgent');
+    expect(by['agent:a-old'].detail).toBe('SYNTHETIC a payout differs. Waiting more than a day.');
+    expect(by['agent:a-edge'].level).toBe('urgent');                       // exactly 24 hours counts
+    expect(by['agent:a-new'].level).toBe('today');
+    expect(by['agent:a-new'].detail).toBe('SYNTHETIC could not match an order.');
+    expect(by['agent:a-nodate'].level).toBe('today');
+    expect(items.every(i => i.actions.map(a => a.kind).join('+') === 'open+handled')).toBe(true);
+    expect(by['agent:a-old'].actions[1]).toEqual({ kind: 'handled', label: 'Handled', id: 'a-old' });
+    // urgent ones come first, and they are counted as urgent
+    expect(items[0].level).toBe('urgent');
+    expect(F.view(items, { now: NOW, snoozes: {} }).counts).toEqual({ urgent: 2, today: 2, info: 0 });
+    // only agent hand-offs follow this rule: a parcel keeps its own clock
+    const parcel = F.buildFeed({ delivery: [{ id: 'p1', level: 'today', title: 'SYNTHETIC parcel', next: 'Check it.', since: NOW - 90 * H }], handled: {} }, NOW)[0];
+    expect(parcel.level).toBe('today');
+  });
+
+  test('marking: remembered with its time, never twice, joined across devices with the first time kept', () => {
+    const st = memStore();
+    expect(F.readHandled(st, NOW)).toEqual({});
+    expect(F.markHandled(st, 'a-old', NOW)).toBe(true);
+    expect(F.markHandled(st, 'a-old', NOW + H)).toBe(true);                  // pressing again changes nothing
+    expect(F.readHandled(st, NOW + H)).toEqual({ 'a-old': NOW });
+    expect(F.markHandled(st, '', NOW)).toBe(false);
+    expect(F.markHandled(null, 'x', NOW)).toBe(false);                       // no storage: says so, never throws
+    expect(F.mergeHandled({ 'a-old': NOW, x: NOW - H }, { 'a-old': NOW - 2 * H, y: NOW - 3 * H }, NOW)).toEqual({ 'a-old': NOW - 2 * H, x: NOW - H, y: NOW - 3 * H });
+    expect(F.mergeHandled(null, undefined, NOW)).toEqual({});
+  });
+
+  test('the list stays small: marks older than 30 days are dropped, at most the 100 newest are kept, and it always fits one saved setting', () => {
+    const many = {};
+    for (let i = 0; i < 300; i++) many['00000000-0000-4000-8000-' + String(i).padStart(12, '0')] = NOW - i * 1000;
+    many['very-old'] = NOW - 31 * 86400000;
+    const kept = F.mergeHandled(many, null, NOW);
+    expect(Object.keys(kept).length).toBe(F.HANDLED_MAX);
+    expect(kept['very-old']).toBeUndefined();
+    expect(kept['00000000-0000-4000-8000-000000000000']).toBe(NOW);          // the newest are the ones kept
+    expect(kept['00000000-0000-4000-8000-000000000299']).toBeUndefined();
+    expect(JSON.stringify({ items: kept }).length).toBeLessThan(8000);
+    // junk never throws and is never kept
+    for (const junk of [null, 7, 'x', [], [1, 2], { a: 'soon', b: -5, c: NaN, d: NOW + 10 * 86400000, e: {} }]) {
+      expect(F.mergeHandled(junk, junk, NOW)).toEqual({});
+    }
+    const broken = { getItem() { return '{not json'; }, setItem() { throw new Error('full'); } };
+    expect(F.readHandled(broken, NOW)).toEqual({});
+    expect(F.markHandled(broken, 'x', NOW)).toBe(false);
+  });
+});
+
+test.describe('agent hand-offs: on Home', () => {
+  test.beforeEach(async ({ page }, ti) => { test.skip(ti.project.name !== 'desktop', 'run once'); await page.clock.setFixedTime(new Date('2026-11-24T15:00:00Z')); });
+  const OLD = '00000000-0000-4000-8000-00000000d001', NEW = '00000000-0000-4000-8000-00000000d002';
+  const agents = (backend) => { backend.tables.ai_decision_log = [
+    { id: OLD, agent_key: 'accounting', output_summary: 'SYNTHETIC a payout differs from the bank line.', confidence: 0.4, escalated_to_human: true, created_at: '2026-11-23T09:00:00Z' },
+    { id: NEW, agent_key: 'order_intake', output_summary: 'SYNTHETIC could not match an order.', confidence: 0.5, escalated_to_human: true, created_at: '2026-11-24T13:00:00Z' }]; };
+  const handledOn = (page, shared) => page.addInitScript((sharedOn) => { try { localStorage.setItem('he_handoff_handled', 'on'); if (sharedOn) localStorage.setItem('he_shared_settings', 'on'); } catch (e) {} }, shared);
+  const saves = (backend) => backend.requests.filter(r => r.rpc === 'set_shared_setting').map(r => r.body);
+  const reads = (backend) => backend.requests.filter(r => r.table === 'shared_settings' && r.method === 'GET' && r.params.some(([k, v]) => k === 'key' && /handoffs_handled/.test(v)));
+  const install = (backend, rows) => { backend.tables.shared_settings = rows || []; backend.rpc.set_shared_setting = (b) => {
+    backend.tables.shared_settings = backend.tables.shared_settings.filter(r => r.key !== b.p_key).concat([{ key: b.p_key, value: b.p_value, audience: b.p_audience || 'owner_admin', updated_at: '2026-11-24T15:00:05Z' }]); return { ok: true, updated_at: '2026-11-24T15:00:05Z' }; }; };
+  const item = (page, id) => feed(page).locator(`[data-feeditem="agent:${id}"]`);
+
+  test('switch off (as shipped): hand-offs are listed as before, no Handled button, nothing raised', async ({ page, backend }) => {
+    seed(backend); agents(backend); install(backend); await on(page);
+    await login(page); await gotoPage(page, 'attentionPanel');
+    await expect(item(page, OLD)).toBeVisible();
+    await expect(item(page, OLD)).toHaveClass(/feed-today/);
+    await expect(feed(page).locator('[data-feedhandled]')).toHaveCount(0);
+    await expect(item(page, OLD)).not.toContainText('Waiting more than a day');
+    await page.waitForTimeout(900);
+    expect(reads(backend)).toEqual([]);
+    expect(saves(backend)).toEqual([]);
+  });
+
+  test('switched on: the one waiting over a day is urgent and says so; Handled takes it off the list and it stays off after a reload; no record is changed', async ({ page, backend, pageErrors }) => {
+    seed(backend); agents(backend); await on(page); await handledOn(page, false);
+    await login(page); await gotoPage(page, 'attentionPanel');
+    await expect(item(page, OLD)).toHaveClass(/feed-urgent/);
+    await expect(item(page, OLD)).toContainText('SYNTHETIC a payout differs from the bank line. Waiting more than a day.');
+    await expect(item(page, NEW)).toHaveClass(/feed-today/);
+    await expect(item(page, NEW)).not.toContainText('Waiting more than a day');
+    const before = Number(await feed(page).locator('[data-feedneedyou]').getAttribute('data-feedneedyou'));
+    const btn = item(page, OLD).locator('[data-feedhandled]');
+    await expect(btn).toHaveText('Handled');
+    await expect(btn).toHaveAttribute('title', 'Done: it leaves the list (in this browser)');
+    await btn.click();
+    await expect(item(page, OLD)).toHaveCount(0);
+    await expect(item(page, NEW)).toBeVisible();
+    await expect(feed(page).locator('[data-feedneedyou]')).toHaveAttribute('data-feedneedyou', String(before - 1));
+    expect(Object.keys(JSON.parse(await page.evaluate(() => localStorage.getItem('he_handoffs_handled'))))).toEqual([OLD]);
+    // keyboard focus moved to a neighbour, not lost
+    expect(await page.evaluate(() => !!document.activeElement && document.activeElement !== document.body)).toBe(true);
+    await page.reload(); await expect(page.locator('#dash')).toBeVisible(); await gotoPage(page, 'attentionPanel');
+    await expect(item(page, NEW)).toBeVisible();
+    await expect(item(page, OLD)).toHaveCount(0);
+    await page.waitForTimeout(900);
+    expect(reads(backend)).toEqual([]);                                     // shared settings not in use: nothing asked
+    expect(saves(backend)).toEqual([]);
+    expect(writes(backend)).toEqual([]);                                    // the agents' own log is never changed
+    expect(pageErrors).toEqual([]);
+  });
+
+  test('with the shared settings in use: Handled is saved for every device (ids and times only), and another device shows it handled', async ({ page, backend, pageErrors }) => {
+    seed(backend); agents(backend); install(backend); await on(page); await handledOn(page, true);
+    await login(page); await gotoPage(page, 'attentionPanel');
+    await item(page, OLD).locator('[data-feedhandled]').click();
+    await expect(item(page, OLD)).toHaveCount(0);
+    await expect.poll(() => saves(backend).length).toBe(1);
+    const saved = saves(backend)[0];
+    expect(saved.p_key).toBe('handoffs_handled');
+    expect(saved.p_audience).toBe('owner_admin');
+    expect(Object.keys(saved.p_value)).toEqual(['items']);
+    expect(Object.keys(saved.p_value.items)).toEqual([OLD]);
+    expect(typeof saved.p_value.items[OLD]).toBe('number');
+    expect(JSON.stringify(saved)).not.toMatch(/SYNTHETIC|payout/);          // never what the agent wrote
+    // "another device": this browser forgets its own marks; the saved ones bring them back
+    await page.evaluate(() => localStorage.removeItem('he_handoffs_handled'));
+    await page.reload(); await expect(page.locator('#dash')).toBeVisible(); await gotoPage(page, 'attentionPanel');
+    await expect(item(page, NEW)).toBeVisible();
+    await expect(item(page, OLD)).toHaveCount(0);
+    await expect(item(page, NEW).locator('[data-feedhandled]')).toHaveAttribute('title', 'Done: it leaves the list (on every device)');
+    await page.waitForTimeout(900);
+    expect(saves(backend).length).toBe(1);                                  // nothing new to say: nothing saved again
+    expect(writes(backend)).toEqual([]);
+    expect(pageErrors).toEqual([]);
+  });
+
+  test('shared settings switched on but not installed, or the save refused: Handled still works in this browser', async ({ page, backend, pageErrors }) => {
+    seed(backend); agents(backend); await on(page); await handledOn(page, true);
+    await page.route('**/rest/v1/shared_settings?*', route => route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify({ code: 'PGRST205', message: "Could not find the table 'public.shared_settings' in the schema cache" }) }));
+    await login(page); await gotoPage(page, 'attentionPanel');
+    const btn = item(page, OLD).locator('[data-feedhandled]');
+    await expect(btn).toHaveAttribute('title', 'Done: it leaves the list (in this browser)');
+    await btn.click();
+    await expect(item(page, OLD)).toHaveCount(0);
+    await page.waitForTimeout(900);
+    expect(saves(backend)).toEqual([]);
+    expect(pageErrors.filter(e => !/404|PGRST|Failed to load resource/.test(e))).toEqual([]);   // the 404 is this test's own "not installed"
+  });
+});

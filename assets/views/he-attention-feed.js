@@ -33,6 +33,9 @@
   const SNOOZE_KEY = 'he_feed_snooze';
   const CLEARED_KEY = 'he_feed_snooze_cleared';      // when "Show them again" was last pressed
   const DAY = 86400000;
+  const HANDLED_KEY = 'he_handoffs_handled';         // agent hand-offs marked handled
+  const HANDLED_MAX = 100, HANDLED_KEEP_DAYS = 30;
+  const RAISE_HOURS = 24;                            // supervisor rule: waiting a day = urgent
 
   const text = (v, max) => { const s = (v == null ? '' : String(v)).replace(/\s+/g, ' ').trim(); return s.length > (max || MAX_TEXT) ? s.slice(0, (max || MAX_TEXT) - 1) + '…' : s; };
   // a message keeps its line breaks (greeting, paragraphs, signature); only spaces
@@ -166,12 +169,58 @@
   }
 
   // steps an agent passed to a person (he-agent-diary.js needsPerson)
-  function fromAgents(rows) {
-    return asList(rows).filter(e => e.id && e.passedToPerson).map(e => ({
-      id: 'agent:' + text(e.id, 80), kind: 'agent', badge: 'Agent', level: 'today',
-      title: text(e.agent, 80) + ' passed this to you', detail: text(e.what, 300),
-      when: time(e.at), page: 'aiPanel', actions: [{ kind: 'open', label: 'Open AI Agents', page: 'aiPanel' }],
-      signature: text(e.what, 80) }));
+  // With `opts.handled` given (the "Handled" switch is on): a hand-off someone marked
+  // handled leaves the list, each one gets a "Handled" button, and one that has waited
+  // `opts.raiseAfterHours` (the supervisor rule: a day) is raised to urgent. Without
+  // it the list is exactly as before.
+  function fromAgents(rows, now, opts) {
+    const o = opts || {};
+    const handled = o.handled && typeof o.handled === 'object' ? o.handled : null;
+    const after = Number(o.raiseAfterHours) > 0 ? Number(o.raiseAfterHours) : RAISE_HOURS;
+    return asList(rows).filter(e => e.id && e.passedToPerson && !(handled && Object.prototype.hasOwnProperty.call(handled, text(e.id, 80)))).map(e => {
+      const id = text(e.id, 80), at = time(e.at);
+      const raised = !!handled && at != null && time(now) != null && (time(now) - at) / 3600000 >= after;
+      const actions = [{ kind: 'open', label: 'Open AI Agents', page: 'aiPanel' }];
+      if (handled) actions.push({ kind: 'handled', label: 'Handled', id: id });
+      return { id: 'agent:' + id, kind: 'agent', badge: 'Agent', level: raised ? 'urgent' : 'today', raised: raised,
+        title: text(e.agent, 80) + ' passed this to you', detail: text(e.what, 300) + (raised ? ' Waiting more than a day.' : ''),
+        when: at, page: 'aiPanel', actions: actions,
+        signature: text(e.what, 80) };
+    });
+  }
+
+  // Hand-offs marked handled: { id: when (ms) }. Kept small on purpose: a hand-off
+  // is in the feed for 7 days, so marks older than 30 days are dropped and at most
+  // the 100 newest are kept (which always fits one shared setting).
+  function cleanHandled(v, now) {
+    const out = {};
+    const src = v && typeof v === 'object' && !Array.isArray(v) ? v : {};
+    const t = time(now) != null ? time(now) : Date.now();
+    Object.keys(src).forEach(k => {
+      const at = Number(src[k]);
+      if (typeof k === 'string' && k && k.length <= 80 && isFinite(at) && at > 0 && at <= t + DAY && t - at <= HANDLED_KEEP_DAYS * DAY) out[k] = Math.floor(at);
+    });
+    const keys = Object.keys(out).sort((a, b) => out[b] - out[a] || (a < b ? -1 : 1)).slice(0, HANDLED_MAX);
+    const kept = {}; keys.sort().forEach(k => { kept[k] = out[k]; });
+    return kept;
+  }
+  function readHandled(store, now) {
+    try { return cleanHandled(JSON.parse((store && store.getItem(HANDLED_KEY)) || '{}'), now); } catch (e) { return {}; }
+  }
+  function writeHandled(store, v) { try { if (store) store.setItem(HANDLED_KEY, JSON.stringify(v)); return !!store; } catch (e) { return false; } }
+  function markHandled(store, id, now) {
+    const key = text(id, 80); if (!key) return false;
+    const t = time(now) != null ? time(now) : Date.now();
+    const all = readHandled(store, t);
+    if (!all[key]) all[key] = t;
+    return writeHandled(store, cleanHandled(all, t));
+  }
+  // two devices' marks joined: every handled hand-off stays handled; for one marked
+  // on both, the earlier time is kept (when it was first handled)
+  function mergeHandled(a, b, now) {
+    const x = cleanHandled(a, now), y = cleanHandled(b, now), out = {};
+    Object.keys(x).concat(Object.keys(y)).forEach(k => { out[k] = Math.min(x[k] || Infinity, y[k] || Infinity); });
+    return cleanHandled(out, now);
   }
 
   function buildFeed(src, now) {
@@ -180,7 +229,7 @@
     const items = [].concat(
       fromQuestions(s.questions, t), fromAttention(s.attention, t, s.labels),
       fromChecks(s.checks, { questions: Array.isArray(s.questions), attention: Array.isArray(s.attention) }),
-      fromNightly(s.nightly), fromMoney(s.money), fromTax(s.tax), fromDelivery(s.delivery), fromAgents(s.agents), fromRecap(s.recap));
+      fromNightly(s.nightly), fromMoney(s.money), fromTax(s.tax), fromDelivery(s.delivery), fromAgents(s.agents, t, { handled: s.handled, raiseAfterHours: s.raiseAfterHours }), fromRecap(s.recap));
     const seen = new Set();
     const unique = items.filter(i => (seen.has(i.id) ? false : (seen.add(i.id), true)));
     // most urgent first; within a level, overdue / oldest first, then undated
@@ -305,5 +354,6 @@
   }
 
   return { LEVELS, KINDS, FILTERS, SNOOZE_KEY, SUMMARY_MAX, summaryText, buildFeed, matchesFilter, view, readSnoozes, snooze, unsnoozeAll, isSnoozed, CLEARED_KEY, pack, merge, unpack,
+    HANDLED_KEY, HANDLED_MAX, RAISE_HOURS, readHandled, markHandled, mergeHandled,
     _from: { fromAttention, fromChecks, fromNightly, fromQuestions, fromMoney, fromTax, fromDelivery, fromAgents, fromRecap } };
 }));

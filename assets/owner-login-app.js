@@ -84,7 +84,7 @@
       nightlyOverall,
     } = window.HE.helpers;
     // @@ EXT15 modules: created in dependency order (assets/app/*.js; see docs/ops/APPLICATION_MODULE_MAP_EXT15.md)
-    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, agentDiaryOn, realProfitOn, channelMoneyOn, SWITCH_EVERYONE, sharedSettingsOn, orderCostsOn, incidentCloseOn, batchLabelsOn, orderBatchesOn, orderChannelsOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn, storeCampaignsOn, receiptReaderOn, contentHelperOn, customerEmailsOn, emailSendingOn, mySettingsOn } = HE.modules.create('he-config', {  });
+    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, agentDiaryOn, realProfitOn, channelMoneyOn, SWITCH_EVERYONE, sharedSettingsOn, orderCostsOn, incidentCloseOn, batchLabelsOn, orderBatchesOn, orderChannelsOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn, storeCampaignsOn, receiptReaderOn, contentHelperOn, customerEmailsOn, emailSendingOn, mySettingsOn, handoffHandledOn } = HE.modules.create('he-config', {  });
     const { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, focusDialog, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, h, pageIconNode } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
     const { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
     const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, h, supabase });
@@ -3426,6 +3426,35 @@
       if (JSON.stringify(joined) !== JSON.stringify(mine)) { M.unpack(feedStore(), joined); paintAttentionFeed(); }
       if (JSON.stringify(joined) !== JSON.stringify(M.merge(r.value, null, Date.now()))) feedSnoozePush();   // this browser knew something the database did not
     }
+    // Agent hand-offs marked "Handled" (behind handoffHandledOn). The marks live in this
+    // browser; with the shared settings in use (drafts/50) they are also kept in the
+    // database, so a hand-off handled on one device is gone on every device. Saving
+    // there is the owner's: for anyone else the mark stays in their own browser.
+    let hhPulled = false, hhTimer = null, hhShared = false;
+    function hhPush() {
+      const M = feedMod(), S = rpSettings(), store = rpStore(); if (!M || !S || !store || !handoffHandledOn() || !sharedSettingsOn()) return;
+      clearTimeout(hhTimer);
+      hhTimer = setTimeout(async () => {
+        const now = await store.get(S.KEYS.handoffsHandled);
+        if (now.state !== 'installed') { hhShared = false; return; }
+        const mine = M.readHandled(feedStore(), Date.now());
+        const joined = M.mergeHandled(mine, now.value && now.value.items, Date.now());
+        if (JSON.stringify(joined) === JSON.stringify(M.mergeHandled(now.value && now.value.items, null, Date.now()))) { hhShared = true; return; }
+        const r = await store.set(S.KEYS.handoffsHandled, { items: joined }, 'owner_admin');
+        hhShared = !!r.ok;
+      }, 700);
+    }
+    async function hhPull() {
+      const M = feedMod(), S = rpSettings(), store = rpStore(); if (!M || !S || !store || !handoffHandledOn() || !sharedSettingsOn() || hhPulled) return;
+      hhPulled = true;
+      const r = await store.get(S.KEYS.handoffsHandled);
+      if (r.state !== 'installed') return;
+      hhShared = true;
+      const mine = M.readHandled(feedStore(), Date.now());
+      const joined = M.mergeHandled(mine, r.value && r.value.items, Date.now());
+      if (JSON.stringify(joined) !== JSON.stringify(mine)) { try { feedStore().setItem(M.HANDLED_KEY, JSON.stringify(joined)); } catch (e) { /* this browser keeps its own list */ } paintAttentionFeed(); }
+      if (JSON.stringify(joined) !== JSON.stringify(M.mergeHandled(r.value && r.value.items, null, Date.now()))) hhPush();   // this browser knew something the database did not
+    }
     // The feed's box exists only while the feed is on, so with the switch off Home
     // is exactly as before (same elements, same spacing).
     function feedHost(on) {
@@ -3437,6 +3466,7 @@
     async function loadAttentionFeed() {
       if (!feedHost(attentionFeedOn() && !!feedMod())) return;
       feedSnoozePull();
+      hhPull();
       const seq = ++feedSeq;
       try {
         const rows = await fetchAllRows('customer_inquiries', 'id, customer_name, channel, question_text, status, ai_draft_reply, sensitive, severity, created_at',
@@ -3508,6 +3538,7 @@
       const items = M.buildFeed({
         attention: Array.isArray(SEARCH_INDEX.attention) ? SEARCH_INDEX.attention : null, labels: ITEM_TYPE_LABELS,
         checks: findings, questions: feedQuestions, nightly: feedNightly(), delivery: feedParcels, agents: feedAgentSteps, recap: feedRecap,
+        handled: handoffHandledOn() && typeof M.readHandled === 'function' ? M.readHandled(feedStore(), now) : null,
         money: moneyEl ? { open: Number(moneyEl.getAttribute('data-moneyalert')) } : null,
         tax: taxEl ? { count: Number(taxEl.getAttribute('data-taxratealert')) } : null }, now);
       const v = M.view(items, { now: now, snoozes: M.readSnoozes(feedStore()), filter: feedFilter });
@@ -3525,7 +3556,8 @@
       const card = (i) => {
         const acts = i.actions.map(a => a.kind === 'open' ? h('button', { type: 'button', class: 'small', 'data-feedopen': a.page }, a.label)
           : a.kind === 'copy' ? h('button', { type: 'button', class: 'small secondary', 'data-feedcopy': i.id }, a.label)
-          : a.kind === 'dismiss' ? h('button', { type: 'button', class: 'small secondary', 'data-feeddismiss': a.id }, a.label) : null).filter(Boolean);
+          : a.kind === 'dismiss' ? h('button', { type: 'button', class: 'small secondary', 'data-feeddismiss': a.id }, a.label)
+          : a.kind === 'handled' ? h('button', { type: 'button', class: 'small secondary', 'data-feedhandled': a.id, title: 'Done: it leaves the list (' + (sharedSettingsOn() && hhShared ? 'on every device' : 'in this browser') + ')' }, a.label) : null).filter(Boolean);
         if (i.level !== 'info' || i.kind === 'message') acts.push(h('button', { type: 'button', class: 'small secondary', 'data-feedsnooze': i.id, title: 'Hidden in this browser until tomorrow, or until it changes' }, 'Later'));
         const chat = i.message ? [h('div', { class: 'feedChat' },
           h('p', { class: 'feedBubble feedThem' }, h('span', { class: 'feedWho' }, i.message.from + ' wrote'), i.message.text || '(no text)'),
@@ -3581,6 +3613,18 @@
         const own = [...document.querySelectorAll('#attentionWrap [data-dismiss-id]')].find(b => b.getAttribute('data-dismiss-id') === id);
         if (!own) { showDashError('That reminder is no longer in the list.'); return; }
         d.disabled = true; own.click(); return;
+      }
+      const hd = e.target.closest('[data-feedhandled]');
+      if (hd) {
+        const li = hd.closest('[data-feeditem]'); const next = li && (li.nextElementSibling || li.previousElementSibling);
+        const nextId = next && next.getAttribute('data-feeditem');
+        if (!M.markHandled(feedStore(), hd.getAttribute('data-feedhandled'), Date.now())) { showDashError('This browser could not remember that. Nothing was changed.'); return; }
+        hhPush();
+        paintAttentionFeed(); announce('Marked as handled. It left the list.');
+        const back = nextId ? [...host.querySelectorAll('[data-feeditem]')].find(x => x.getAttribute('data-feeditem') === nextId) : null;
+        const target = back ? back.querySelector('button') : host.querySelector('#feedHeading');
+        if (target) { if (target.id === 'feedHeading') target.setAttribute('tabindex', '-1'); target.focus(); }
+        return;
       }
       const z = e.target.closest('[data-feedsnooze]');
       if (z) {

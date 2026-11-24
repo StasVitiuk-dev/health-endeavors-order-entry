@@ -31,7 +31,8 @@
   const TABLE = 'shared_settings';
   const RPC = 'set_shared_setting';
   const KEYS = Object.freeze({ profitEstimates: 'profit_estimates', recapPrinted: 'recap_printed', menuLayout: 'menu_layout',
-    storeCampaign: 'store_campaign', customerEmails: 'customer_emails', contentHelper: 'content_helper' });
+    storeCampaign: 'store_campaign', customerEmails: 'customer_emails', contentHelper: 'content_helper',
+    handoffsHandled: 'handoffs_handled' });
   const KEY_OK = /^[a-z][a-z0-9_]{1,59}$/;
   const MAX_CHARS = 8000;
   const SECRET_NAME = /pass(word|code)?|secret|token|api[_-]?key|private[_-]?key|credential|recovery/i;
