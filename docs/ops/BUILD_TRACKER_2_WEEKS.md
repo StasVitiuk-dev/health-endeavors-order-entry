@@ -55,6 +55,7 @@ Database changes are drafts the owner runs after approving them.
 | #61 (first commit) | **Batch sticker from a phone photo** on the batch screen: each sticker in the photo is one bottle on the open order; other barcodes are ignored | 171 related passed |
 | #61 | **A shorter menu**: same-topic pages inside one another, three variations, chooser under Feature Flags → Menu, default unchanged; choice shared with every device once draft 50 is in use. Contains #56–#60 | 28 new tests passed, 6 skipped; 480 related passed, 124 skipped |
 | #62 | **Packaging cost per box type** on Real profit: up to four boxes (name, bottles that fit, cost); each order gets the smallest box that holds it; shown as an estimate; no boxes = the one amount as before; no database change. Contains #56–#61 | 352 related passed, 59 skipped |
+| #63 | **Day pack** on Backups & Printouts: choose a day, print its orders with items, its clients once each, exact totals and the saved recap; reads only, on demand. Contains #56–#62 | 373 related passed, 49 skipped |
 
 **How to merge (every PR above):** GitHub shows these PRs as opened by the owner's
 own account, so **Approve is not offered**. On the PR's **Conversation** tab, at the
@@ -157,7 +158,7 @@ PROPOSED; four OWNER DECISIONS REQUIRED there. Nothing sends a real message.
 
 Decided Nov 23 (evening): **feature switches are shared by every device**; work features are for every employee; money, revenue and sensitive documents are for the owner and administrators only. NEXT: switches with an audience, stored in shared settings (draft 50).
 
-1. Merge **one** PR: the highest green one contains all earlier ones (#55 merged Nov 23 evening, which also brought in #46–#54; live check by the owner passed the same evening: Feature Flags rows fit a narrow window, and INC-20260917-0001 was closed with a note through the new button. #62 contains the rest once its checks are green).
+1. Merge **one** PR: the highest green one contains all earlier ones (#55 merged Nov 23 evening, which also brought in #46–#54; live check by the owner passed the same evening: Feature Flags rows fit a narrow window, and INC-20260917-0001 was closed with a note through the new button. #63 contains the rest once its checks are green).
 2. Business address (virtual mailbox) before the seller accounts; then Etsy, TikTok Shop, Amazon.
 3. Business email addresses (planned for tomorrow).
 4. The database steps in `docs/ops/sql-review/START_HERE_GUIDED_RUNS.md`, then review item 9 (draft 48).
