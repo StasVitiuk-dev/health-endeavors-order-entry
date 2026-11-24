@@ -37,7 +37,7 @@ Who may do what: only the owner approves a campaign, chooses who it goes to, and
 | # | What | Who | State |
 |---|---|---|---|
 | 1 | A business email address on the business's own domain (for example hello@ the business's domain), and a second address for outreach so order emails are never affected | Owner | OWNER DECISION REQUIRED |
-| 2 | An account with an email sending service, in the owner's own name. Which service, its price and its terms are **not checked yet** | Owner, with a comparison prepared first | OWNER DECISION REQUIRED |
+| 2 | An account with an email sending service, in the owner's own name. The options, their published prices and what is still not confirmed are in `docs/ops/EMAIL_SERVICE_COMPARISON_2026-11-24.md` | Owner, after reading the comparison | OWNER DECISION REQUIRED |
 | 3 | The domain's sender settings (the records that prove an email really comes from the business), set where the domain is managed | Owner, guided one step at a time | NOT STARTED |
 | 4 | Install database draft 56 | Owner, after approving it, in a guided sitting | NOT STARTED |
 | 5 | The sending program: a small server-side piece that asks the database for today's emails, hands each to the email service, and records what happened. It holds the service's key, which the owner enters in the database's own settings; the key never appears in this repository, in a pull request or in chat | To be written as a draft for the owner's approval | PROPOSED, not written |
