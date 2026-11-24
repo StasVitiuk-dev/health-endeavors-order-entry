@@ -1,6 +1,6 @@
 # Merging PR #36: step by step, live check, undo
 
-Status: CURRENT · written Nov 23, 2026 · for Stas. Replaces `docs/ops/pr-merge-order.md` (DEPRECATED:
+Status: DONE (merged Nov 23, 2026 as `b4ebb4b`, checked live by the owner; PRs #5–#35 closed) · kept for the undo steps below · written Nov 23, 2026 · for Stas. Replaces `docs/ops/pr-merge-order.md` (DEPRECATED:
 that order was for PRs #5–#24, which are all inside #36).
 
 Merging PR #36 **is the live deploy**: GitHub Pages publishes `main` 1–5 minutes later. Merging runs
@@ -33,6 +33,11 @@ Merging PR #36 **is the live deploy**: GitHub Pages publishes `main` 1–5 minut
 Why you can approve: you are the code owner, and the last push came from Claude's account, so your
 approval counts as "someone else". Claude cannot approve or merge.
 
+**Correction (Nov 23, after the merge):** that was wrong for #36. GitHub showed #36 as opened by your
+own account (Claude's GitHub connection acts through it), and the author of a PR cannot approve it.
+You merged with the admin option "Merge without waiting for requirements to be met" instead. For
+future PRs opened the same way, expect the same.
+
 ## Live check (5 minutes after the merge)
 
 1. Open a **Private Window** (Safari: File → New Private Window), or hard refresh with Cmd+Shift+R.
@@ -57,5 +62,5 @@ approval counts as "someone else". Claude cannot approve or merge.
 
 ## After a good live check
 
-- Close the older PRs #5–#35 (each one: **Close pull request**). Their work is inside #36.
+- ~~Close the older PRs #5–#35.~~ Done Nov 23 by Claude at the owner's request (closed with a note, not deleted).
 - Next: SQL review items 1–7, one at a time, guided (`docs/ops/NEXT_SESSION_CHECKLIST.md`).
