@@ -1546,3 +1546,4 @@ tr.obVoid td:first-child{ text-decoration:line-through; }
 .receiptReader{ border-top:1px solid var(--line); padding-top:12px; }
 .receiptReader textarea{ display:block; box-sizing:border-box; }
 .feedCopySummary{ margin-top:12px; }
+.agentGlanceLinks button{ margin-top:4px; }

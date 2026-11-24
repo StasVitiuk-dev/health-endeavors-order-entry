@@ -99,7 +99,7 @@
     const { loadSuppliers } = HE.modules.create('he-suppliers', { SEARCH_INDEX, SUPPLIER_TYPE_LABELS, boolGuard, fetchAllRows, h, showDashError, staleMessage, updateIfUnchanged });
     const { setReportHistoryView, renderReportHistoryView, loadReportHistory, reportHistoryRows } = HE.modules.create('he-reports', { fmtDateOnly, fmtMoney, h, localDateString, missingToNaN, monthGroupLabel, reportCount, rollupReports, showDashError, startOfWeekMonday, supabase, weekGroupLabel });
     const { inquiriesList, loadInquiries, renderInquiries } = HE.modules.create('he-inquiries', { INQ_ANSWERED_CAP, INQ_STATUS_LABELS, fetchAllRows, fetchAllRowsIn, fmtDate, h, inqStatusBadgeClass, noRowsChanged, showDashError, staleMessage, supabase, updateIfUnchanged });
-    const { agentControls, agentTruth, loadAgentControls } = HE.modules.create('he-agents', { AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, currentUserId, fmtDate, h, maskSensitive, requireReauth, showDashError, staleMessage, supabase, toast, updateIfUnchanged });
+    const { agentControls, agentTruth, loadAgentControls, refreshAgentGlanceLinks } = HE.modules.create('he-agents', { AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, currentUserId, fmtDate, getPageBadgeCount, h, maskSensitive, requireReauth, showDashError, showPage, staleMessage, supabase, toast, updateIfUnchanged });
     const { createOpTracker } = HE.modules.create('he-ops', {});
     const { loadSessions, loadSops, loadFeatureRequests, loadDeletedFeatureRequests } = HE.modules.create('he-admin', { FR_NEXT_LABEL, FR_NEXT_STATUS, FR_STATUS_LABELS, SEARCH_INDEX, advanceFeatureRequest, appendMore, boolGuard, deleteFeatureRequest, deviceLabel, fmtDate, h, listLimit, noRowsChanged, requireReauth, showDashError, showPageWarning, staleMessage, supabase, updateIfUnchanged });
     const { loadAdverseEvents, loadLegalHolds, loadReleasedLegalHolds, loadDocuments, loadEvidenceLocker } = HE.modules.create('he-compliance', { CLOSED_IN, DOCUMENT_CATEGORY_LABELS, SEARCH_INDEX, appendMore, confirmSecondPress, docExpiryBadge, fetchAllRows, fetchAllRowsIn, fmtDate, fmtDateOnly, h, isSafeLink, listLimit, newLoadToken, noRowsChanged, requireReauth, showDashError, showPageWarning, staleMessage, supabase, updateIfUnchanged });
@@ -815,6 +815,7 @@
         });
       });
       renderMenuTabs();
+      refreshAgentGlanceLinks();                             // the approvals count on the agents overview follows the menu's
     }
     // EXT8: the browser's Back / Forward move between dashboard pages
     // instead of leaving the dashboard.

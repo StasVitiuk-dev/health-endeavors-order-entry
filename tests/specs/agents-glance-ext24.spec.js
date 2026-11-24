@@ -117,6 +117,44 @@ test.describe('on the AI Agents page', () => {
     expect((await usable.count()) + (await locked.count())).toBeGreaterThan(0);
   });
 
+  test('what is waiting for the owner is counted with a way to it; the agent diary is one press away, or it says where to turn it on', async ({ page, backend }, ti) => {
+    test.skip(ti.project.name !== 'desktop', 'run once');
+    backend.tables.approval_requests = [
+      { id: 'ap-1', status: 'pending', request_type: 'refund', title: 'SYNTHETIC refund over the limit', created_at: '2026-11-24T10:00:00Z' },
+      { id: 'ap-2', status: 'pending', request_type: 'refund', title: 'SYNTHETIC second request', created_at: '2026-11-24T11:00:00Z' },
+      { id: 'ap-3', status: 'approved', request_type: 'refund', title: 'SYNTHETIC done', created_at: '2026-11-23T10:00:00Z' }];
+    await login(page);
+    await gotoPage(page, 'aiPanel');
+    const host = page.locator('#agentGlanceHost');
+    await expect(host.locator('[data-glance]')).toHaveCount(10);
+    // the count is the same one the menu shows for the Approval Queue
+    const menu = page.locator('#sidebarGroups .sidebarLink[data-page="approvalsPanel"] .sidebarBadge');
+    const shown = (await menu.count()) ? Number(await menu.innerText()) : 0;
+    expect(shown).toBeGreaterThan(0);                                          // the made-up requests really are waiting
+    await expect(host.locator('[data-glanceapprovals]')).toHaveAttribute('data-glanceapprovals', String(shown));
+    await expect(host.locator('[data-glanceapprovals]')).toContainText(shown ? 'waiting for your approval' : 'Nothing is waiting for your approval.');
+    // the diary is off as shipped: it says where to turn it on, and offers no dead button
+    await expect(host.locator('[data-glancenodiary]')).toContainText('turn it on under Feature Flags');
+    await expect(host.locator('[data-glancediary]')).toHaveCount(0);
+    await host.getByRole('button', { name: 'Open Approval Queue' }).click();
+    await expect(page.locator('section#approvalsPanel')).toHaveClass(/activePage/);
+    expect(backend.tableWrites()).toEqual([]);
+  });
+
+  test('with the Agent diary switched on: "See what each agent did" takes you to it', async ({ page }, ti) => {
+    test.skip(ti.project.name !== 'desktop', 'run once');
+    await page.addInitScript(() => { try { localStorage.setItem('he_agent_diary', 'on'); } catch (e) {} });
+    await login(page);
+    await gotoPage(page, 'aiPanel');
+    await expect(page.locator('#agentDiaryHost')).toHaveCount(1);
+    const btn = page.locator('#agentGlanceHost [data-glancediary]');
+    // the diary's box may arrive just after the overview is drawn: the line follows by itself
+    await expect(btn).toHaveCount(1, { timeout: 15000 });
+    await btn.click();
+    await expect(page.locator('#agentDiaryHost')).toBeFocused();
+    await expect(page.locator('#agentDiaryHost')).toBeInViewport();
+  });
+
   test('the switches cannot be read: every line says Unknown and needs a look, never "working"', async ({ page }) => {
     await page.route('**/rest/v1/agent_controls?*', route => route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ code: 'XX000', message: 'SYNTHETIC failure' }) }));
     await login(page);
