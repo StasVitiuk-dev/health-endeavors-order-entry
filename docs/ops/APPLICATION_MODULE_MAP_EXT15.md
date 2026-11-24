@@ -36,7 +36,7 @@ Why it matters: a smaller file is easier to review, a mistake in one area is les
 | 13 | `he-suppliers` | Suppliers: list | 69 | he-config: 2, helpers / program: 3, he-data: 2, he-ui: 1 | 1 |
 | 14 | `he-reports` | Report history: daily / weekly / monthly views (missing values stay '?', never zero) | 87 | helpers / program: 6, he-ui: 1, he-format: 2, he-time: 2, he-data: 1 | 4 |
 | 15 | `he-inquiries` | Customer questions: list, severity, saved drafts, copy reply, mark answered (never sends anything) | 212 | he-config: 2, he-data: 4, he-ui: 2, he-format: 1, helpers / program: 3 | 3 |
-| 16 | `he-agents` | AI agents: switch states, scheduled-job health, honest status (unknown is never 'running'), paused banner | 258 | he-config: 2, he-data: 3, he-ui: 3, helpers / program: 4 | 3 |
+| 16 | `he-agents` | AI agents: switch states, scheduled-job health, honest status (unknown is never 'running'), paused banner | 291 | he-config: 2, he-data: 3, he-ui: 3, helpers / program: 4 | 3 |
 | 17 | `he-ops` | high-risk operation states: one explicit state per record for | 83 | — | 4 |
 | 18 | `he-admin` | Admin pages: signed-in sessions, SOPs, feature requests and their recycle bin (reads plus simple non-stock, non-money saves) | 209 | he-config: 4, helpers / program: 9, he-data: 4, he-ui: 2 | 4 |
 | 19 | `he-compliance` | Compliance pages: adverse events, legal holds (and released holds), documents, evidence locker (reads plus guarded record saves; no stock or money) | 393 | he-format: 2, he-config: 2, he-data: 7, helpers / program: 7, he-ui: 3 | 5 |

@@ -100,7 +100,40 @@ window.HE.modules.define('he-agents', { api: 1, needs: ['AGENT_REGISTRY','AGENT_
         ...body);
     }
 
+    // Agents at a glance (owner, Nov 24): every agent on one line at the top of the
+    // page, from what the page already read. assets/views/he-agents-glance.js.
+    function renderAgentGlance(){
+      const G = (window.HE && window.HE.views && window.HE.views['he-agents-glance']) || null;
+      const panel = document.getElementById('aiPanel');
+      if (!G || !panel) return;
+      let host = document.getElementById('agentGlanceHost');
+      if (!host) { const lead = panel.querySelector('p.hint'); if (!lead) return; host = h('div', { id: 'agentGlanceHost', class: 'agentGlance' }); lead.after(host); }
+      const rows = AGENT_REGISTRY.map(a => {
+        const ctrl = agentControlsByNum[a.num];
+        const truth = agentTruth(a, ctrl);
+        return { num: a.num, name: a.name, truthKey: truth.key, label: truth.label, cls: truth.cls,
+          ran: a.dashboardOnly ? 'each time this page opens' : G.lastRan(ctrl && ctrl.last_run_at) };
+      });
+      const sum = G.summarise(rows);
+      host.replaceChildren(
+        h('h3', { class: 'u-m-18-0-6 u-fs-15' }, 'Agents at a glance'),
+        h('p', { class: 'hint u-mt-0', 'data-glancesum': [sum.on, sum.paused, sum.off, sum.look].join('/') }, sum.line + '. To pause or restart one, press "Its switch": it takes you to that agent below.'),
+        h('ul', { class: 'agentGlanceList' }, rows.map(r => h('li', { class: 'agentGlanceRow', 'data-glance': r.num, 'data-glancestate': G.bucketOf(r.truthKey) },
+          h('span', { class: 'agentGlanceName' }, '#' + r.num + ' ' + r.name),
+          h('span', { class: 'badge ' + r.cls }, r.label),
+          h('span', { class: 'agentGlanceRan' }, 'Last ran: ' + r.ran),
+          h('button', { type: 'button', class: 'small secondary', 'data-agentjump': r.num, 'aria-label': 'Go to the switch of ' + r.name }, 'Its switch')))));
+    }
+    document.addEventListener('click', (e) => {
+      const b = e.target.closest('#agentGlanceHost [data-agentjump]'); if (!b) return;
+      const card = document.querySelector('#agentRegistryWrap [data-agent="' + CSS.escape(b.getAttribute('data-agentjump')) + '"]'); if (!card) return;
+      card.scrollIntoView({ block: 'center' });
+      const sw = card.querySelector('input.agentToggle');
+      if (sw && !sw.disabled) sw.focus({ preventScroll: true });
+      else { card.setAttribute('tabindex', '-1'); card.focus({ preventScroll: true }); }
+    });
     function renderAgentRegistry(){
+      renderAgentGlance();
       // EXT20G: built as DOM nodes (h() text-ifies) instead of an HTML string;
       // same classes, data-* and switch wiring, safe under Trusted Types.
       document.getElementById('agentRegistryWrap').replaceChildren(...AGENT_REGISTRY.map(a => {
