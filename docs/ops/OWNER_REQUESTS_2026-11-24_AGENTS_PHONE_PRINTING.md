@@ -97,9 +97,14 @@ visits. **OWNER DECISION REQUIRED (unchanged):** finding stores automatically fr
 the owner's own Google account, and its cost and terms have not been checked.
 
 **Customer emails, as built (PR #71, CURRENT, not merged yet):** the Customer Emails page under Sales,
-behind the preview switch "Customer Emails" (off), for the owner and administrators. Four kinds: welcome
+behind the preview switch "Customer Emails" (off), for the owner and administrators. Five kinds: welcome
 (first and only order in the last 14 days), time to reorder (last order 30 to 119 days ago), something
-new (everyone who ordered), we miss you (no order for 120 days or more); the day counts can be changed.
+new (everyone who ordered), we miss you (no order for 120 days or more), and "how was it?" (the review
+request: last order 10 to 31 days ago; it never asks for a good review and offers nothing for one); the
+day counts can be changed. **Only orders the business took itself are used** (website, wholesale, typed
+in by hand). Orders from Amazon, Etsy or TikTok Shop, and orders with an unknown channel, are never
+used: those sites' seller rules do not allow marketing email to their buyers (general practice; to be
+re-checked against each site's current rules before any real sending).
 Three ready texts per kind; none promises a discount or anything else on the owner's behalf. The wording
 is checked for health claims and approved once per kind. "Show who would get it" reads the orders and
 lists exactly who fits, who is left out and why, the slow-start day plan, and what the first customer
