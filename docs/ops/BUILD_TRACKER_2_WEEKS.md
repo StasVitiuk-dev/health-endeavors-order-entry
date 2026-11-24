@@ -62,6 +62,7 @@ Database changes are drafts the owner runs after approving them.
 | #67 | **Fill an expense in from a receipt's text** on Expenses (switch `he_receipt_reader`): paste the text or let the browser read the photo where it can; total, date and shop filled in for checking; never saves by itself; a guess is labelled, a date is never guessed. Contains #56–#66 | 178 related passed after one real fix (a made-up month name was read as a month) |
 | #68 | **Morning summary to copy** on the attention feed: the day, how many things need the owner, the most urgent by name, how many more; copied with one press; nothing sent. Contains #56–#67 | 180 related passed, 30 skipped |
 | #69 | **Agents overview finished**: requests waiting for the owner's approval (kept in step with the menu's count) with a button to the Approval Queue, and a way to the Agent diary. Contains #56–#68. Full GitHub run on #61 (shorter menu, after the test fix): green | 238 related passed after one real fix (a stale count) |
+| #70 | **Content Helper** (page under Sales, switch off): a product name and the owner's own story in; three ready drafts at a time for a post, an ad headline, an ad text and an email paragraph, with "Show me others" (up to 18 per kind and tone, no repeats), a short video (what to say, what to film; three versions), a week's plan, three tones, the owner's own version checked live, six ready looks for a text card. Fixed wording around the owner's story, NOT an AI model, so no fact is invented. Every draft passes the health-claim check; a blocked draft cannot be copied. Nothing posted, sent, spent or written. Contains #56–#69 | 13 new passed; 344 pre-push passed, 62 switch/menu passed. The claim check caught one of the ready phrases ("Treat yourself"), replaced |
 
 **How to merge (every PR above):** GitHub shows these PRs as opened by the owner's
 own account, so **Approve is not offered**. On the PR's **Conversation** tab, at the
@@ -164,7 +165,7 @@ The owner answered the same day (section 3 there): no texting at the start, emai
 
 Decided Nov 23 (evening): **feature switches are shared by every device**; work features are for every employee; money, revenue and sensitive documents are for the owner and administrators only. NEXT: switches with an audience, stored in shared settings (draft 50).
 
-1. Merge **one** PR: the highest green one contains all earlier ones (#55 merged Nov 23 evening, which also brought in #46–#54; live check by the owner passed the same evening: Feature Flags rows fit a narrow window, and INC-20260917-0001 was closed with a note through the new button. #69 contains the rest once its checks are green).
+1. Merge **one** PR: the highest green one contains all earlier ones (#55 merged Nov 23 evening, which also brought in #46–#54; live check by the owner passed the same evening: Feature Flags rows fit a narrow window, and INC-20260917-0001 was closed with a note through the new button. #70 contains the rest once its checks are green; #69 if #70 is not green yet).
 2. Business address (virtual mailbox) before the seller accounts; then Etsy, TikTok Shop, Amazon.
 3. Business email addresses (planned for tomorrow).
 4. The database steps in `docs/ops/sql-review/START_HERE_GUIDED_RUNS.md`, then review item 9 (draft 48).

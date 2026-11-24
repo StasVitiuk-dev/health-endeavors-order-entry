@@ -104,6 +104,19 @@ shot-list options. OWNER DECISION REQUIRED later, when that step starts: brand-n
 finished videos need a paid picture/video service; unlimited "Make another" for text needs the paid AI
 model running on the server side (a production step the owner approves).
 
+**As built (PR #70, CURRENT, not merged yet):** the Content Helper page under Sales, behind the preview
+switch "Content Helper" (off). Product name and the owner's own story in; three ready drafts at a time
+for a post, an ad headline, an ad text and an email paragraph, with "Show me others" (up to 18 per kind
+and tone, never a repeat); a short video as three lines to say and four things to film (three versions);
+a week's plan; three tones (Plain, Friendly, Premium); the owner's own version, checked as it is typed;
+six ready looks for a text card (lettering and colours, a preview only). The drafts are **fixed wording
+around the owner's own story, not an AI model**, so no fact is invented; the page says so. Every draft
+passes the claim firewall, and a blocked draft is shown with the words that caused it and cannot be
+copied. Nothing is posted, sent, spent or written to the database; what is typed is kept in that browser
+until a database step exists. **Not built (OWNER DECISION REQUIRED):** an AI writer for unlimited new
+wording, looks applied to the owner's own photos, AI-made pictures and finished videos (each needs a
+paid service or a server-side step the owner approves).
+
 ### Automatic daily printing, recommendation given
 
 8:00 AM every day, yesterday's day pack, on the Mac next to the printer, which may sleep but not be
