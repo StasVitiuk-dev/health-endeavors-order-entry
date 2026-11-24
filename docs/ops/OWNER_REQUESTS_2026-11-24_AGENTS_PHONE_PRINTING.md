@@ -21,7 +21,8 @@ texting rules, seller accounts) are Claude's general understanding and are NOT v
 | Smart camera | Step B built (tracking barcodes → orders → dropped off; batch stickers; batch sticker from a photo). Receipts, expenses and supplier papers (B2) NOT STARTED; an expense can already carry a photo of its receipt. |
 | Backups & Printouts page | Built and merged, behind the preview switch `he_backups_page` (off), which is why the owner does not see it. Prints a day's recap, a month of recaps, the manuals; saves recaps as a spreadsheet; shows what the dashboard can see of the backups. |
 | A "day pack" to print on demand (a day's orders, clients, totals, recap) | BUILT Nov 24 (PR #63, not merged), on Backups & Printouts. |
-| A full client list to print; printing automatically every day | NOT STARTED. |
+| A client list to print | BUILT Nov 24 (PR #66, not merged), from orders: the dashboard reads no separate customer table. |
+| Printing automatically every day | NOT STARTED (needs a helper on the owner's Mac; 8:00 AM decided). |
 
 ## 2. Proposed plan
 
