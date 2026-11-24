@@ -1453,3 +1453,16 @@ table.sysStatus td{ overflow-wrap:anywhere; }
 .cmTable th, .cmTable td{ white-space:normal; overflow-wrap:anywhere; }
 .cmTable td.num-cell{ white-space:nowrap; overflow-wrap:normal; }   /* an amount never breaks across lines */
 .cmPayouts{ margin:6px 0; padding-left:18px; font-size:13px; }
+
+/* Incidents: record what was done and close (he_incident_close) */
+.icHost:empty{ display:none; }
+.icForm{ margin:12px 0 4px; padding:12px 14px; border:1px solid var(--line); border-radius:10px; max-width:720px; }
+.icForm h3{ margin:0 0 6px; font-size:15px; overflow-wrap:anywhere; }
+.icForm label{ display:block; margin:10px 0 0; font-weight:600; }
+.icForm textarea{ display:block; width:100%; margin-top:4px; font-weight:400; }
+.icAbout, .icNote{ white-space:pre-wrap; overflow-wrap:anywhere; }
+.icButtons{ display:flex; flex-wrap:wrap; gap:8px; margin:10px 0 4px; }
+.icClosed{ margin-top:14px; }
+.icClosed summary{ cursor:pointer; font-weight:600; }
+.icResult{ font-weight:600; }
+section.panel table.phoneCards td.icNote{ white-space:pre-wrap !important; }

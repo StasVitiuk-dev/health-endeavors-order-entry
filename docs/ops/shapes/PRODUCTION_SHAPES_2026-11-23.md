@@ -33,6 +33,14 @@ Triggers: `incidents_audit` (after insert/update/delete, `audit_trigger_function
 What follows:
 - **No database step is needed to close an incident from the dashboard**: an owner or administrator
   may update `status`, `actions_taken`, `resolution` and `closed_at`, and the audit trigger records it.
+- CURRENT (built Nov 24, behind the owner's switch `he_incident_close`, off until turned on under
+  Feature Flags → "features that save real records"): the Incidents page offers the owner and
+  administrators **Record what was done** on each open incident. It saves `actions_taken` (and
+  `resolution` when filled), and on "Save and close" also `status = 'closed'` and `closed_at`. The save
+  only goes through while the incident is unchanged since the list was read (`status` and `updated_at`
+  must still match). Nothing is deleted; closed incidents are listed with their note. Rules:
+  `assets/views/he-incident-close.js`; screen: `assets/app/he-incidents.js`; tests:
+  `tests/specs/incident-close-ext24.spec.js`.
 - OWNER DECISION REQUIRED (not urgent): `incidents_update` lets any active employee edit any
   incident. The dashboard's close button is offered to the owner and administrators only; tightening
   the rule in the database would be a separate draft.

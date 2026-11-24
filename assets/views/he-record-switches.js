@@ -31,6 +31,8 @@
       what: 'Your switches and your Real profit numbers are kept in the database, the same on every phone and computer. Turn it on here to start in this browser; it becomes the rule for every device with a small update after the step is installed.' },
     { key: 'he_order_costs', name: 'Real fees and postage per order', where: 'Accounting', draft: 'drafts/52 (review item 11)', probe: 'order_costs',
       what: 'Real profit uses each order\'s real fee and postage where they are saved, instead of your estimates; Money per channel can save the real fees from a channel\'s report.' },
+    { key: 'he_incident_close', name: 'Close an incident with a note', where: 'Incidents', draft: 'No database step needed', probe: 'incidents',
+      what: 'The owner and administrators get a "Record what was done" button on each open incident: write what was done, then keep it open or close it. Nothing is deleted; closed incidents stay listed with their note.' },
     { key: 'he_dropoff', name: 'Drop-off receipts', where: 'Orders', draft: 'drafts/48 (review item 9, BLOCKED until adapted)', probe: 'shipment_events',
       what: 'One carrier receipt marks every parcel on it dropped off.' },
   ]);

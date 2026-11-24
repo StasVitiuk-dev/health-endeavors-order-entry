@@ -34,6 +34,7 @@
   "GET feature_requests?deleted_at=is.null&order=requested_at.desc&select=id,title,description,status,priority,requested_at,updated_at,resolution_notes",
   "GET feature_requests?deleted_at=not.is.null&limit=50&order=deleted_at.desc&select=id,title,deleted_at",
   "GET incidents?created_at=gte.2026-06-14T05:00:00.000Z&created_at=lt.2026-06-15T05:00:00.000Z&limit=1000&offset=0&order=id.asc&select=id,created_at",
+  "GET incidents?limit=0&select=*",
   "GET incidents?limit=100&or=(status.is.null,status.not.in.(\"done\",\"complete\",\"completed\",\"resolved\",\"closed\",\"cancelled\",\"canceled\",\"denied\",\"rejected\",\"approved\",\"fulfilled\"))&order=due_at.asc.nullslast&select=id,incident_number,title,severity,status,due_at",
   "GET incidents?limit=1000&offset=0&or=(status.is.null,status.not.in.(\"done\",\"complete\",\"completed\",\"resolved\",\"closed\",\"cancelled\",\"canceled\",\"denied\",\"rejected\",\"approved\",\"fulfilled\"))&order=id.asc&select=id,incident_number,title,created_at",
   "GET incidents?limit=1000&offset=0&or=(status.is.null,status.not.in.(\"done\",\"complete\",\"completed\",\"resolved\",\"closed\",\"cancelled\",\"canceled\",\"denied\",\"rejected\",\"approved\",\"fulfilled\"))&order=id.asc&select=id,severity,status,created_at",
