@@ -8,7 +8,7 @@ click. Nothing here goes live until you approve it.
 The full list of what waits on you, in order, is in `docs/health-endeavors-current-state.md`, section 8.
 In short:
 
-- [ ] Merge PR #83 once its checks are green (it contains #56–#82; #81 is already green), then PR #51 (documents).
+- [ ] Merge PR #84 once its checks are green (it contains #56–#83; #82 is already green), then PR #51 (documents).
 - [ ] One stock count: your decision, after the read-only shape check
       (`docs/ops/ONE_STOCK_COUNT_DECISION_2026-11-24.md`).
 - [ ] Business email and which email service (`docs/ops/BUSINESS_EMAIL_PLAN.md`; the comparison arrives with PR #78).
