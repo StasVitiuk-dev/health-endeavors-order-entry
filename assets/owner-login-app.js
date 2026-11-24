@@ -84,7 +84,7 @@
       nightlyOverall,
     } = window.HE.helpers;
     // @@ EXT15 modules: created in dependency order (assets/app/*.js; see docs/ops/APPLICATION_MODULE_MAP_EXT15.md)
-    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, agentDiaryOn, realProfitOn, channelMoneyOn, SWITCH_EVERYONE, sharedSettingsOn, orderCostsOn, incidentCloseOn, batchLabelsOn, orderBatchesOn, orderChannelsOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn, storeCampaignsOn, receiptReaderOn } = HE.modules.create('he-config', {  });
+    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, agentDiaryOn, realProfitOn, channelMoneyOn, SWITCH_EVERYONE, sharedSettingsOn, orderCostsOn, incidentCloseOn, batchLabelsOn, orderBatchesOn, orderChannelsOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn, storeCampaignsOn, receiptReaderOn, contentHelperOn } = HE.modules.create('he-config', {  });
     const { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, focusDialog, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, h, pageIconNode } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
     const { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
     const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, h, supabase });
@@ -4041,6 +4041,172 @@
       if (act === 'show') scShow();
     });
 
+    // ---------- Content Helper (owner, Nov 24; behind contentHelperOn) ----------
+    // A product and the owner's own story in; several ready drafts out (post, ad
+    // headline, ad text, email paragraph, short video, a week's plan), in three
+    // tones, with others on request, the owner's own version, and six ready looks.
+    // NOTHING IS POSTED, SENT OR SPENT. Every draft passes the claim firewall; a
+    // blocked draft is shown as blocked and cannot be copied. Rules:
+    // assets/sales/he-content-helper.js. Kept in this browser for now.
+    const CH_KEY = 'he_content_helper_v1';
+    const CH_KINDS = [['post', 'Post'], ['adHeadline', 'Ad headline'], ['adText', 'Ad text'], ['email', 'Email paragraph'], ['video', 'Short video'], ['week', 'A week\'s plan']];
+    let chState = null, chShown = {};
+    const chMod = () => (window.HE && window.HE.sales && window.HE.sales['he-content-helper']) || null;
+    const chDeps = () => ({ claims: (window.HE && window.HE.sales && window.HE.sales['he-sales-claims']) || null });
+    function chRead() {
+      const base = { product: '', story: '', kind: 'post', tone: 'plain', round: 0, look: 'clean', own: '' };
+      try { const v = JSON.parse(localStorage.getItem(CH_KEY) || 'null'); if (v && typeof v === 'object' && !Array.isArray(v)) Object.keys(base).forEach(k => { if (typeof v[k] === typeof base[k]) base[k] = v[k]; }); } catch (e) { /* start empty */ }
+      const M = chMod();
+      if (!CH_KINDS.some(k => k[0] === base.kind)) base.kind = 'post';
+      if (!M || !Object.prototype.hasOwnProperty.call(M.TONES, base.tone)) base.tone = 'plain';
+      if (!M || !M.LOOKS.some(l => l.key === base.look)) base.look = 'clean';
+      if (!Number.isInteger(base.round) || base.round < 0 || base.round > 50) base.round = 0;
+      return base;
+    }
+    function chKeep() { try { localStorage.setItem(CH_KEY, JSON.stringify(chState)); return true; } catch (e) { return false; } }
+    function loadContentHelper() {
+      const host = document.getElementById('contentHelperPanel'); if (!host) return;
+      if (!(typeof contentHelperOn === 'function' && contentHelperOn())) { host.replaceChildren(); return; }
+      if (!chState) chState = chRead();
+      renderContentHelper();
+    }
+    const chBlockedLine = (findings) => {
+      const f = Array.isArray(findings) ? findings : [];
+      return h('p', { class: 'chBlocked', 'data-chblocked': '1' }, f.some(x => x.family === 'unavailable')
+        ? 'Blocked: the wording check could not load, so no draft is offered. Refresh the page.'
+        : 'Blocked: this wording makes a health or medical claim (' + [...new Set(f.map(x => '“' + x.match + '”'))].join(', ') + '). Change your story; this product may not say it.');
+    };
+    // everything that changes (the drafts, the checks, the look), repainted without touching the boxes being typed in
+    function chPaint() {
+      const host = document.getElementById('contentHelperPanel'), M = chMod(); if (!host || !M || !chState) return;
+      const press = (attr, value) => host.querySelectorAll('[' + attr + ']').forEach(b => { const on = b.getAttribute(attr) === value; b.setAttribute('aria-pressed', String(on)); b.classList.toggle('secondary', !on); });
+      press('data-chkind', chState.kind); press('data-chtone', chState.tone); press('data-chlook', chState.look);
+      const inp = { product: chState.product, story: chState.story, tone: chState.tone, round: chState.round };
+      const res = host.querySelector('[data-chresult]'); chShown = {};
+      let nodes = [], first = '', state = 'ready';
+      const moreRow = (r, word) => h('div', { class: 'u-mt-8' },
+        h('button', { type: 'button', class: 'small', 'data-ch': 'more' }, word),
+        h('span', { class: 'u-fs-12 u-c-muted', 'data-chset': (r.round + 1) + '/' + r.rounds }, ' Set ' + (r.round + 1) + ' of ' + r.rounds + (r.last ? '. That was the last one; the next press starts again from the first.' : '.')));
+      const check = M.checkInput(inp);
+      if (!check.ok) {
+        state = 'waiting';
+        nodes = !chState.product.trim() && !chState.story.trim() ? [h('p', { class: 'hint' }, 'Type the product\'s name and your story above. The drafts appear here as you type.')]
+          : [h('ul', { class: 'u-fs-12p5', 'data-chproblems': String(check.problems.length) }, check.problems.map(p => h('li', null, p)))];
+      } else if (chState.kind === 'video') {
+        const r = M.video(inp, chDeps()); chState.round = r.round;
+        const text = 'SAY\n' + r.script.map((l, i) => (i + 1) + '. ' + l).join('\n') + '\n\nFILM\n' + r.shots.map((l, i) => (i + 1) + '. ' + l).join('\n');
+        if (!r.blocked) { chShown.video = text; first = r.script.join(' '); }
+        nodes = [h('div', { class: 'chOption', 'data-choption': 'video', 'data-chstate': r.blocked ? 'blocked' : 'ok' },
+          h('div', { class: 'taskTitle' }, 'What to say (about 15 to 30 seconds)'), h('ol', { 'data-chscript': String(r.script.length) }, r.script.map(l => h('li', null, l))),
+          h('div', { class: 'taskTitle' }, 'What to film'), h('ol', { 'data-chshots': String(r.shots.length) }, r.shots.map(l => h('li', null, l))),
+          r.blocked ? chBlockedLine(r.findings) : h('button', { type: 'button', class: 'small secondary', 'data-ch': 'copy', 'data-chid': 'video' }, 'Copy')),
+          moreRow(r, 'Show me another')];
+      } else if (chState.kind === 'week') {
+        const r = M.week(inp, chDeps()); chState.round = r.round;
+        const ok = r.days.filter(d => !d.blocked);
+        if (!r.blocked) { chShown.week = r.days.map(d => d.day + ' — ' + d.kindName + '\n' + d.text + (d.shots ? '\nFilm: ' + d.shots.join(' ') : '')).join('\n\n'); }
+        first = ok.length ? ok[0].text : '';
+        nodes = [h('p', { class: 'hint u-mt-0' }, 'A suggestion for one week. Nothing is scheduled or posted; you copy what you want to use.'),
+          h('table', { class: 'phoneCards', 'data-chweek': String(r.days.length) }, h('thead', null, h('tr', null, h('th', null, 'Day'), h('th', null, 'What'), h('th', null, 'Draft'))),
+            h('tbody', null, r.days.map(d => h('tr', { 'data-chstate': d.blocked ? 'blocked' : 'ok' }, h('td', null, d.day), h('td', null, d.kindName),
+              h('td', null, h('div', { class: 'chOptionText' }, d.text), d.shots ? h('div', { class: 'u-fs-12 u-c-muted' }, 'Film: ' + d.shots.join(' ')) : null, d.blocked ? chBlockedLine(d.findings) : null))))),
+          r.blocked ? null : h('button', { type: 'button', class: 'small secondary u-mt-8', 'data-ch': 'copy', 'data-chid': 'week' }, 'Copy the whole week'),
+          moreRow(r, 'Show me another week')];
+      } else {
+        const r = M.options(Object.assign({ kind: chState.kind, count: 3 }, inp), chDeps()); chState.round = r.round;
+        r.options.forEach(o => { if (!o.blocked) { chShown[o.id] = o.text; if (!first) first = o.text; } });
+        nodes = r.options.length ? r.options.map(o => h('div', { class: 'chOption', 'data-choption': o.id, 'data-chstate': o.blocked ? 'blocked' : 'ok' },
+          h('div', { class: 'u-fs-12 u-c-muted' }, o.angleName + ' · ' + o.chars + ' of ' + o.limit + ' characters'),
+          h('div', { class: 'chOptionText' }, o.text),
+          o.blocked ? chBlockedLine(o.findings) : h('div', { class: 'chRow' },
+            h('button', { type: 'button', class: 'small secondary', 'data-ch': 'copy', 'data-chid': o.id }, 'Copy'),
+            h('button', { type: 'button', class: 'small secondary', 'data-ch': 'use', 'data-chid': o.id }, 'Use this one'))))
+          : [h('p', { class: 'empty' }, 'Nothing fits here: the product\'s name is too long for this kind of draft.')];
+        if (r.options.length) nodes.push(moreRow(r, 'Show me others'));
+      }
+      if (res) { res.setAttribute('data-chresult', state); res.replaceChildren(...nodes.filter(Boolean)); labelPhoneCards(res); }
+      // the owner's own version: the same check, live
+      const kind = Object.prototype.hasOwnProperty.call(M.KINDS, chState.kind) ? chState.kind : '';
+      const oc = M.checkOwn(chState.own, kind, chDeps()), ownEl = host.querySelector('[data-chown]');
+      const ownState = oc.empty ? 'empty' : oc.blocked ? 'blocked' : oc.tooLong ? 'long' : 'ok';
+      if (ownEl) { ownEl.setAttribute('data-chown', ownState);
+        ownEl.replaceChildren(ownState === 'blocked' ? chBlockedLine(oc.findings) : h('p', { class: 'u-fs-12p5 u-mt-6' },
+          ownState === 'empty' ? 'Press "Use this one" on a draft, or write your own here. It is checked as you type.'
+            : ownState === 'long' ? oc.chars + ' characters: too long for ' + (kind ? 'this kind of draft' : 'one draft') + ' (' + oc.limit + ' at most).'
+              : oc.chars + ' of ' + oc.limit + ' characters. This wording passes the check.')); }
+      const copyOwn = host.querySelector('[data-ch="copy-own"]'); if (copyOwn) copyOwn.disabled = ownState !== 'ok';
+      // the look: lettering and colours on a text card (no picture file is made)
+      const card = host.querySelector('[data-chcard]');
+      if (card) { const words = ownState === 'ok' ? chState.own.trim() : ownState === 'empty' ? first : '';
+        card.className = 'chCard chLook-' + chState.look; card.setAttribute('data-chcard', chState.look);
+        card.replaceChildren(h('div', { class: 'chCardName' }, chState.product.trim() || 'Your product'), h('div', { class: 'chCardText' }, words || (ownState === 'blocked' || ownState === 'long' ? 'Your own version does not pass the check yet.' : 'Your words appear here.'))); }
+      const lookNote = host.querySelector('[data-chlooknote]'); if (lookNote) { const l = M.LOOKS.find(x => x.key === chState.look); lookNote.textContent = l ? l.name + ': ' + l.what : ''; }
+    }
+    function renderContentHelper() {
+      const host = document.getElementById('contentHelperPanel'), M = chMod(); if (!host) return;
+      if (!M) { host.replaceChildren(h('h2', null, 'Content Helper'), h('p', { class: 'empty' }, 'The content helper could not load. Refresh the page.')); return; }
+      const field = (id, label, node, hint) => h('div', { class: 'heField chField' }, h('label', { for: id }, label), node, hint ? h('div', { class: 'u-fs-12 u-c-muted' }, hint) : null);
+      const pick = (attr, list, label) => h('div', { class: 'chRow', role: 'group', 'aria-label': label }, list.map(([key, name]) => h('button', { type: 'button', class: 'small secondary', [attr]: key, 'aria-pressed': 'false' }, name)));
+      host.replaceChildren(
+        h('h2', null, 'Content Helper'),
+        h('p', { class: 'hint hintLead', 'data-chnosend': '1' }, h('b', null, 'Nothing is posted, sent or spent from this page.'), ' It prepares drafts for you to copy. You decide what is used and where.'),
+        h('p', { class: 'hint u-mt-0' }, 'The drafts are built from ready wording around your own story, not written by an AI model. That way every fact in them is yours. An AI writer, pictures and video would need a paid service, which is your decision.'),
+        h('p', { class: 'hint u-mt-0' }, 'Kept in this browser on this device for now; it will follow you to every device once its database step exists.'),
+        h('h3', null, '1. Your product and your story'),
+        field('chProduct', 'Product name', h('input', { id: 'chProduct', type: 'text', maxlength: '80', value: chState.product, 'data-chfield': 'product', autocomplete: 'off' })),
+        field('chStory', 'Your story, in a sentence or two', h('textarea', { id: 'chStory', rows: '3', maxlength: '600', 'data-chfield': 'story' }, chState.story),
+          'What it is, who it is for, or what a customer said. Use only what is true. No health or medical promises: a draft that makes one is blocked.'),
+        h('h3', null, '2. What to make, and how it should sound'),
+        pick('data-chkind', CH_KINDS, 'What to make'),
+        pick('data-chtone', Object.keys(M.TONES).map(k => [k, M.TONES[k]]), 'How it should sound'),
+        h('h3', null, '3. The drafts'),
+        h('div', { 'data-chresult': 'waiting', role: 'region', 'aria-label': 'The drafts', 'aria-live': 'polite' }),
+        h('h3', null, '4. Your own version'),
+        field('chOwn', 'Change a draft, or write your own', h('textarea', { id: 'chOwn', rows: '4', maxlength: '4000', 'data-chfield': 'own' }, chState.own)),
+        h('div', { 'data-chown': 'empty' }),
+        h('button', { type: 'button', class: 'small secondary', 'data-ch': 'copy-own' }, 'Copy my version'),
+        h('h3', null, '5. How it could look'),
+        h('p', { class: 'hint u-mt-0' }, 'Six ready looks for a text card: lettering and colours. A preview only; no picture file is made.'),
+        pick('data-chlook', M.LOOKS.map(l => [l.key, l.name]), 'The look'),
+        h('p', { class: 'u-fs-12 u-c-muted u-mt-6', 'data-chlooknote': '1' }),
+        h('div', { class: 'chCard chLook-clean', 'data-chcard': 'clean' }));
+      chPaint();
+    }
+    document.addEventListener('input', (e) => {
+      const f = e.target.closest('#contentHelperPanel [data-chfield]'); if (!f || !chState) return;
+      const k = f.getAttribute('data-chfield');
+      chState[k] = String(f.value).slice(0, 4000);
+      if (k !== 'own') chState.round = 0;
+      chKeep(); chPaint();
+    });
+    document.addEventListener('click', async (e) => {
+      const t = e.target.closest('#contentHelperPanel button'); if (!t || !chState || !chMod()) return;
+      const set = (key, value) => { chState[key] = value; if (key !== 'look') chState.round = 0; chKeep(); chPaint(); };
+      if (t.hasAttribute('data-chkind')) { set('kind', t.getAttribute('data-chkind')); announce(t.textContent + ' drafts shown.'); return; }
+      if (t.hasAttribute('data-chtone')) { set('tone', t.getAttribute('data-chtone')); announce(t.textContent + ' tone.'); return; }
+      if (t.hasAttribute('data-chlook')) { set('look', t.getAttribute('data-chlook')); announce(t.textContent + ' look.'); return; }
+      const act = t.getAttribute('data-ch');
+      if (act === 'more') {
+        chState.round += 1; chKeep(); chPaint();
+        const s = document.querySelector('#contentHelperPanel [data-chset]'), b = document.querySelector('#contentHelperPanel [data-ch="more"]');
+        announce(s ? s.textContent.trim() : 'Other drafts shown.'); if (b) b.focus();
+        return;
+      }
+      if (act === 'use') {
+        const text = chShown[t.getAttribute('data-chid')]; if (!text) return;
+        chState.own = text; chKeep();
+        const box = document.getElementById('chOwn'); if (box) { box.value = text; box.focus(); }
+        chPaint(); announce('Put into your own version. Change it as you like.');
+        return;
+      }
+      if (act === 'copy' || act === 'copy-own') {
+        const text = act === 'copy-own' ? chState.own.trim() : chShown[t.getAttribute('data-chid')];
+        if (!text || (act === 'copy-own' && !chMod().checkOwn(text, Object.prototype.hasOwnProperty.call(chMod().KINDS, chState.kind) ? chState.kind : '', chDeps()).ok)) return;
+        try { await navigator.clipboard.writeText(text); announce('Copied. Paste it where you want to use it. Nothing was posted or sent.'); toast('Copied'); }
+        catch (err) { showDashError('Could not copy to the clipboard in this browser. Select the text and copy it by hand.'); }
+      }
+    });
+
     // ---------- Backups & Printouts (owner request, Nov 23; behind backupsPageOn)
     // One place for the paper and file copies the owner keeps: the daily recaps
     // (print a month on Letter, or save it as a spreadsheet file), the manuals
@@ -6107,6 +6273,7 @@
       sopsPanel: [loadSops],
       backupsPanel: [loadBackupsPage],
       storeCampaignsPanel: [loadStoreCampaigns],
+      contentHelperPanel: [loadContentHelper],
       featureRequestsPanel: [loadFeatureRequests, loadDeletedFeatureRequests],
       legalHoldsPanel: [loadLegalHolds, loadReleasedLegalHolds],
       salesCommandPanel:   [() => loadSales('salesCommandPanel')],
