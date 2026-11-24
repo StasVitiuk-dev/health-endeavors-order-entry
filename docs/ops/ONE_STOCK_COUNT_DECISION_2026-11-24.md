@@ -48,3 +48,46 @@ record (the local test schema only guesses them: order, product name, SKU, quant
 product). The step must not be written against a guess. NEXT: the owner runs a read-only shape check of
 `orders`, `order_items` and `inventory` (given in chat), as was done for `shipments`; then the database
 step as a draft with a local test; then the screen.
+
+## The read-only shape check (prepared Nov 24, NOT RUN on production)
+
+One statement. It changes nothing and reads no rows: only the names and types of the columns of
+`orders`, `order_items`, `inventory` and `products`, their keys and links, the names of their triggers,
+and whether row-level security is on. No customer, no order, no amount is in the answer. Tried on the
+local throwaway database only.
+
+How to run it: Supabase → SQL Editor → New query → paste → Run → Export → Download CSV → send the CSV.
+
+```sql
+with t(tbl) as (values ('orders'), ('order_items'), ('inventory'), ('products'))
+select '0 table missing' as section, t.tbl as item, 'not found in schema public' as detail
+  from t where not exists (select 1 from information_schema.tables x where x.table_schema = 'public' and x.table_name = t.tbl)
+union all
+select '1 column', c.table_name,
+       lpad(c.ordinal_position::text, 2, '0') || ' ' || c.column_name || ' ' || c.data_type ||
+       case when c.is_nullable = 'NO' then ' NOT NULL' else '' end ||
+       case when c.column_default is not null then ' (has a default)' else '' end
+  from information_schema.columns c join t on t.tbl = c.table_name
+ where c.table_schema = 'public'
+union all
+select '2 key or link', cl.relname, con.conname || ': ' || pg_get_constraintdef(con.oid)
+  from pg_constraint con
+  join pg_class cl on cl.oid = con.conrelid
+  join pg_namespace n on n.oid = cl.relnamespace and n.nspname = 'public'
+  join t on t.tbl = cl.relname
+ where con.contype in ('p', 'f', 'u')
+union all
+select '3 trigger', cl.relname, tg.tgname || ' -> ' || p.proname
+  from pg_trigger tg
+  join pg_class cl on cl.oid = tg.tgrelid
+  join pg_namespace n on n.oid = cl.relnamespace and n.nspname = 'public'
+  join pg_proc p on p.oid = tg.tgfoid
+  join t on t.tbl = cl.relname
+ where not tg.tgisinternal
+union all
+select '4 rls', cl.relname, 'row level security ' || case when cl.relrowsecurity then 'ON' else 'OFF' end
+  from pg_class cl join pg_namespace n on n.oid = cl.relnamespace and n.nspname = 'public'
+  join t on t.tbl = cl.relname
+ where cl.relkind in ('r', 'p')
+order by 1, 2, 3;
+```
