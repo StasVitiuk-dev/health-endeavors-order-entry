@@ -69,7 +69,7 @@
   // the diary as the page shows it: the agents present (for the filter), and the
   // entries of the chosen agent grouped by day
   function view(list, agentKey) {
-    const all = Array.isArray(list) ? list : [];
+    const all = (Array.isArray(list) ? list : []).filter(e => e && typeof e === 'object');   // a broken row is skipped, never a crash
     const agents = [];
     const seen = new Set();
     all.forEach(e => { if (!seen.has(e.agentKey)) { seen.add(e.agentKey); agents.push({ key: e.agentKey, name: e.agent, count: all.filter(x => x.agentKey === e.agentKey).length }); } });
