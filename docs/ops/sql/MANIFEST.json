@@ -586,6 +586,32 @@
       "effect": "drops the two functions, both tables and their three guards",
       "postcheck": "to_regclass('public.shipments') is null",
       "dynamicSql": "format() with fixed names (%I) to lock and count the shipments table only where it exists"
+    },
+    {
+      "file": "drafts/50_DRAFT_shared_settings.sql",
+      "id": "50",
+      "class": "PRODUCTION-CHANGE-DRAFT",
+      "step": "optional (owner request of Nov 24: settings typed once are the same on every phone and computer; first use: the Real profit estimates)",
+      "dependsOn": [],
+      "risk": "LOW",
+      "rollback": "51",
+      "precheck": "stops, changing nothing, if a shared_settings table exists that this file did not create (it checks its own mark); stops if auth.uid(), current_role(), is_active_staff(), is_owner_or_admin(), the tasks or audit_log table, or the audit trigger on tasks is missing",
+      "effect": "1 new table shared_settings (one row per setting: key, a small JSON value, who may read it, who saved it last and when); set_shared_setting() saves or replaces a setting; settings never deleted, keys never renamed; only the owner writes; the owner and administrators read all, active staff only settings marked for staff; production's audit trigger attached; no existing table changes",
+      "postcheck": "the table present and empty; anon cannot read it; local-test/shared_settings_test.sh passes on a throwaway copy",
+      "lock": "NONE (new table only)",
+      "dynamicSql": "format() with fixed names (%I) to attach production's audit trigger, whose function name is read from the tasks table at install time (as drafts/32)"
+    },
+    {
+      "file": "drafts/51_DRAFT_rollback_shared_settings.sql",
+      "id": "51",
+      "class": "ROLLBACK",
+      "rollbackOf": "50",
+      "dependsOn": [],
+      "risk": "LOW",
+      "precheck": "stops, removing nothing, while any setting is saved, unless deleting them was authorized in the session; stops if the table was not created by drafts/50",
+      "effect": "drops the function, the table and its guard",
+      "postcheck": "to_regclass('public.shared_settings') is null",
+      "dynamicSql": "format() with fixed names (%I) to lock and count the shared settings table only where it exists"
     }
   ],
   "local": [

@@ -78,7 +78,11 @@ test.describe('the arithmetic (no browser)', () => {
   });
 });
 
+// the shared settings database step (drafts/50) is not installed in these tests:
+// the estimates then stay in the browser (the shared path: shared-settings-ext24)
+const NOT_INSTALLED = { status: 404, contentType: 'application/json', body: JSON.stringify({ code: 'PGRST205', message: 'Could not find the table in the schema cache' }) };
 async function seed(page, backend) {
+  await page.route('**/rest/v1/shared_settings?*', route => route.fulfill(NOT_INSTALLED));
   await page.clock.setFixedTime(new Date('2026-11-24T16:00:00Z'));
   backend.tables.orders = ORDERS.map(o => Object.assign({}, o));
   backend.tables.order_items = ITEMS.map((o, i) => Object.assign({ id: id(100 + i) }, o));
@@ -127,7 +131,8 @@ test.describe('on Accounting', () => {
     expect(JSON.parse(await page.evaluate(() => localStorage.getItem('he_profit_estimates'))).postage).toBe(4);
     await host.getByLabel('Postage per order ($)').fill('5');
     await host.getByRole('button', { name: 'Save estimates' }).click();
-    await expect(host.locator('[data-rpmessage]')).toHaveText('Estimates saved in this browser.');
+    await expect(host.locator('[data-rpmessage]')).toHaveText('Estimates saved in this browser. They become the same on every device once the shared settings database step (drafts/50) is installed.');
+    expect(backend.requests.filter(r => r.rpc === 'set_shared_setting')).toEqual([]);   // not installed: nothing is sent to the database
     await expect(host.locator('[data-rpprofit]')).toHaveText('$28.18');   // one dollar more postage on each of the 2 counted orders
     expect(JSON.parse(await page.evaluate(() => localStorage.getItem('he_profit_estimates'))).postage).toBe(5);
     expect(backend.requests.filter(r => r.method && r.method !== 'GET' && r.method !== 'HEAD' && !r.rpc && String(r.path || '').startsWith('/rest/v1/')).map(r => r.method + ' ' + r.path)).toEqual([]);

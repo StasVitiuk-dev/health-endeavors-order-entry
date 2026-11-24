@@ -2997,8 +2997,12 @@
     // Profit per order, product and channel (assets/reports/he-profit.js), right under
     // the Accounting totals. Reads orders, their items, products and received
     // purchase-order lines. The fee, postage and packaging estimates are the owner's,
-    // kept in this browser. Nothing is written.
+    // saved for every device once drafts/50 (shared settings) is installed, and kept
+    // in this browser until then. Orders, items and costs are only read.
     const RP_KEY = 'he_profit_estimates';
+    let rpShared = { state: 'unknown', value: null, updatedAt: null };
+    function rpSettings() { try { return (window.HE && window.HE.views && window.HE.views['he-shared-settings']) || null; } catch (e) { return null; } }
+    function rpStore() { const S = rpSettings(); return S ? S.createStore({ client: supabase, enabled: true }) : null; }
     let rpPeriod = 'month', rpResult = null, rpSeq = 0, rpError = '', rpEditing = false, rpMessage = '';
     function rpMod() { try { return (window.HE && window.HE.reports && window.HE.reports['he-profit']) || null; } catch (e) { return null; } }
     function rpHost(on) {
@@ -3009,7 +3013,11 @@
     }
     function rpEstimates() {
       const M = rpMod(); const base = { fees: M ? M.DEFAULT_FEES : {}, postage: null, packaging: null };
-      try { const v = JSON.parse(localStorage.getItem(RP_KEY) || 'null'); if (v && typeof v === 'object') return { fees: Object.assign({}, base.fees, v.fees || {}), postage: v.postage == null ? null : v.postage, packaging: v.packaging == null ? null : v.packaging }; } catch (e) { /* defaults */ }
+      try {
+        // the copy every device shares wins; this browser's copy is the fallback
+        const v = rpShared.state === 'installed' && rpShared.value ? rpShared.value : JSON.parse(localStorage.getItem(RP_KEY) || 'null');
+        if (v && typeof v === 'object') return { fees: Object.assign({}, base.fees, v.fees || {}), postage: v.postage == null ? null : v.postage, packaging: v.packaging == null ? null : v.packaging };
+      } catch (e) { /* defaults */ }
       return base;
     }
     function rpRange() {
@@ -3025,6 +3033,8 @@
       rpResult = null; rpError = ''; renderRealProfit();
       try {
         const [from, to] = rpRange();
+        const store = rpStore(), S = rpSettings();
+        const sharedP = store ? store.get(S.KEYS.profitEstimates) : Promise.resolve({ state: 'unknown', value: null, updatedAt: null });
         const orders = await fetchAllRows('orders', 'id, order_number, channel, source, status, subtotal, shipping_total, tax_total, total, placed_at, deleted_at',
           q => q.is('deleted_at', null).gte('placed_at', from.toISOString()).lt('placed_at', to.toISOString()));
         const ids = orders.map(o => o.id);
@@ -3033,7 +3043,9 @@
           fetchAllRows('products', 'id, sku, name, cost', q => q),
           fetchAllRows('purchase_order_items', 'id, product_id, landed_unit_cost, quantity_received, created_at', q => q.not('product_id', 'is', null)),
         ]);
+        const shared = await sharedP;
         if (seq !== rpSeq) return;
+        rpShared = shared || { state: 'unknown', value: null, updatedAt: null };
         const est = rpEstimates();
         rpResult = M.compute({ orders: orders, items: items, products: products, poLines: poLines, fees: est.fees, postagePerOrder: est.postage, packagingPerOrder: est.packaging });
       } catch (e) {
@@ -3054,7 +3066,12 @@
         h('div', { class: 'scanToggleRow', role: 'group', 'aria-label': 'Period' }, ...periods.map(([k, l]) => h('button', { type: 'button', class: 'small' + (rpPeriod === k ? '' : ' secondary'), 'data-rpperiod': k, 'aria-pressed': String(rpPeriod === k) }, l)),
           h('button', { type: 'button', class: 'small secondary', 'data-rp': 'edit', 'aria-expanded': String(rpEditing) }, rpEditing ? 'Close estimates' : 'Fee and postage estimates'))];
       const form = rpEditing ? h('form', { class: 'heForm rpForm u-mt-8', 'data-rpform': '1', novalidate: '' },
-        h('p', { class: 'hint u-mt-0' }, 'Starting estimates: check each against the platform’s own fee page and correct them. A blank box means unknown (orders from that channel then show "missing a fee estimate"). Kept in this browser.'),
+        h('p', { class: 'hint u-mt-0' }, 'Starting estimates: check each against the platform’s own fee page and correct them. A blank box means unknown (orders from that channel then show "missing a fee estimate").'),
+        h('p', { class: 'hint u-mt-0', 'data-rpshared': rpShared.state }, rpShared.state === 'installed'
+          ? (rpShared.value ? 'These numbers are the same on every phone and computer' + (rpShared.updatedAt ? ' (last saved ' + fmtDate(rpShared.updatedAt) + ')' : '') + '. Only the owner can change them.'
+            : 'Not shared yet: press Save estimates and every phone and computer will use them.')
+          : rpShared.state === 'not_installed' ? 'Kept in this browser only for now. They become the same on every device once the shared settings database step (drafts/50) is installed.'
+            : 'Could not check the shared settings just now, so these are this browser\u2019s numbers.'),
         h('table', { class: 'rpFees' }, h('thead', null, h('tr', null, h('th', null, 'Channel'), h('th', null, '% of the sale'), h('th', null, '$ per order'))),
           h('tbody', null, ...Object.keys(M.DEFAULT_FEES).map(ch => {
             const f = est.fees[ch] || {};
@@ -3097,15 +3114,31 @@
       if (p) { rpPeriod = p.getAttribute('data-rpperiod'); rpMessage = ''; loadRealProfit().then(() => { const b = document.querySelector('#realProfitHost [data-rpperiod="' + rpPeriod + '"]'); if (b) b.focus(); }); return; }
       if (e.target.closest('[data-rp="edit"]')) { rpEditing = !rpEditing; rpMessage = ''; renderRealProfit(); const f = document.querySelector('#realProfitHost form input') || document.querySelector('#realProfitHost [data-rp="edit"]'); if (f) f.focus(); }
     });
-    document.addEventListener('submit', (e) => {
+    document.addEventListener('submit', async (e) => {
       const f = e.target.closest('#realProfitHost form[data-rpform]'); if (!f) return;
       e.preventDefault();
       const M = rpMod(); if (!M) return;
       const form = {}; [...f.querySelectorAll('input[name]')].forEach(i => { form[i.name] = i.value; });
       const c = M.checkEstimates(form);
-      if (!c.ok) { rpMessage = c.problems.join(' '); renderRealProfit(); announce(rpMessage); const first = document.querySelector('#realProfitHost form input'); if (first) first.focus(); return; }
-      try { localStorage.setItem(RP_KEY, JSON.stringify({ fees: c.fees, postage: c.postage, packaging: c.packaging })); rpMessage = 'Estimates saved in this browser.'; }
-      catch (err) { rpMessage = 'This browser would not save the estimates (private window or storage blocked).'; }
+      const refuse = (msg) => { rpMessage = msg; renderRealProfit(); announce(rpMessage); const first = document.querySelector('#realProfitHost form input'); if (first) first.focus(); };
+      if (!c.ok) { refuse(c.problems.join(' ')); return; }
+      const value = { fees: c.fees, postage: c.postage, packaging: c.packaging };
+      const keepHere = () => { try { localStorage.setItem(RP_KEY, JSON.stringify(value)); return true; } catch (err) { return false; } };
+      if (rpShared.state === 'installed') {
+        // every device: saved in the database (owner only; the database checks again)
+        const store = rpStore(), S = rpSettings();
+        const btn = f.querySelector('button[type="submit"]'); if (btn) btn.disabled = true;
+        const r = store ? await store.set(S.KEYS.profitEstimates, value) : { ok: false, message: 'The shared settings could not be reached.' };
+        if (!r.ok) { refuse(r.message + ' Nothing was changed.'); return; }
+        keepHere();
+        rpMessage = 'Estimates saved for every phone and computer.';
+      } else if (keepHere()) {
+        rpMessage = rpShared.state === 'not_installed'
+          ? 'Estimates saved in this browser. They become the same on every device once the shared settings database step (drafts/50) is installed.'
+          : 'Estimates saved in this browser (the shared settings could not be checked just now).';
+      } else {
+        rpMessage = 'This browser would not save the estimates (private window or storage blocked).';
+      }
       rpEditing = false; announce(rpMessage);
       loadRealProfit().then(() => { const m = document.querySelector('#realProfitHost [data-rpmessage]'); if (m) { m.setAttribute('tabindex', '-1'); m.focus(); } });
     });
