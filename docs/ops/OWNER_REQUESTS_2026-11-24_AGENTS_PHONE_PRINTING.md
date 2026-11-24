@@ -87,6 +87,16 @@ task (`CLAUDE.md`), a business email address on the business's own domain, an un
 every marketing email, and sending only to people who ordered or subscribed. Whether Shopify's own
 email tool should be the sender for customer marketing is to be checked before a second sender is built.
 
+**Real sending prepared for approval (PR #75, CURRENT as drafts, not merged, not installed):** database
+drafts 56 (install) and 57 (rollback) hold what sending needs: approved campaigns, an outbox, a
+do-not-email list, and the sending guard enforced by the database itself. Nothing in them sends an
+email. What real sending still needs is listed, in order, in the plan document that comes with that pull
+request (`docs/ops/EMAIL_SENDING_PLAN_2026-11-24.md` on the code branch): a business email address on the
+business's own domain, an account with an email sending service in the owner's name (which one, its
+price and terms: NOT checked yet), the domain's sender settings, installing draft 56, the sending
+program (not written), and the owner's approval of the first real send. OWNER DECISION REQUIRED for the
+address, the service and the first send.
+
 **Automatic daily printing, the dashboard's part (PR #74, CURRENT, not merged yet):** on Backups &
 Printouts there is a daily link. Opened with that link, the dashboard prints yesterday's day pack by
 itself, once per day per browser. A web page cannot wake up by itself, so the rest is a set-up on the
