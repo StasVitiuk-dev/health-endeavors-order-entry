@@ -84,7 +84,7 @@
       nightlyOverall,
     } = window.HE.helpers;
     // @@ EXT15 modules: created in dependency order (assets/app/*.js; see docs/ops/APPLICATION_MODULE_MAP_EXT15.md)
-    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, agentDiaryOn, realProfitOn, channelMoneyOn, SWITCH_EVERYONE, sharedSettingsOn, orderCostsOn, incidentCloseOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn } = HE.modules.create('he-config', {  });
+    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, agentDiaryOn, realProfitOn, channelMoneyOn, SWITCH_EVERYONE, sharedSettingsOn, orderCostsOn, incidentCloseOn, batchLabelsOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn } = HE.modules.create('he-config', {  });
     const { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, focusDialog, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, h, pageIconNode } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
     const { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
     const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, h, supabase });
@@ -5209,7 +5209,12 @@
       const l = document.getElementById('labelPrintCss'); if (!l) return;
       l.media = on ? 'print' : 'not all';
     }
-    window.addEventListener('afterprint', function () { setLabelSheet(false); });
+    // Nov 24: the small sticker roll (assets/print/he-print-sticker.css), the same way
+    function setStickerSheet(on) {
+      const l = document.getElementById('stickerPrintCss'); if (!l) return;
+      l.media = on ? 'print' : 'not all';
+    }
+    window.addEventListener('afterprint', function () { setLabelSheet(false); setStickerSheet(false); });
     document.addEventListener('click', function (e) {
       const t = e.target.closest('[data-print]'); if (!t) return;
       const what = t.getAttribute('data-print');
@@ -5249,6 +5254,129 @@
       host.replaceChildren(h('div', { class: 'printDoc' }, pages));
       try { window.print(); } catch (e) {}
     }
+
+    // ---------- Batch stickers (Nov 24; behind batchLabelsOn) ----------
+    // The barcode printed on a bottle says which product it is, not which batch
+    // (owner's photos, Nov 24). Inventory prints a sticker per bottle: the batch in
+    // words and as a Code 128 barcode (assets/scan/he-batch-labels.js). The batches
+    // are read when the page loads, so Print opens the print window at once.
+    // Reads inventory_lots and products; writes nothing.
+    let blLots = null, blError = '', blSeq = 0, blMessage = '';
+    const blState = { lotId: '', count: '', layout: 'roll' };
+    const blMod = () => (window.HE && window.HE.scan && window.HE.scan['he-batch-labels']) || null;
+    function blHost(on) {
+      let host = document.getElementById('batchLabelsHost');
+      if (!on) { if (host) host.remove(); return null; }
+      if (!host) {
+        const after = document.getElementById('productImportHost'); if (!after || !after.parentNode) return null;
+        host = h('div', { id: 'batchLabelsHost' });
+        after.parentNode.insertBefore(host, after.nextSibling);
+      }
+      return host;
+    }
+    // the barcode as an SVG picture: black bars only, sized in inches so it prints true
+    function blBarcode(M, text, moduleInch, heightInch) {
+      const b = M.bars(text);
+      const NS = 'http://www.w3.org/2000/svg';
+      const svg = document.createElementNS(NS, 'svg');
+      [['viewBox', '0 0 ' + b.width + ' 10'], ['preserveAspectRatio', 'none'], ['width', (Math.round(b.width * moduleInch * 1000) / 1000) + 'in'], ['height', heightInch + 'in'],
+        ['class', 'blBars'], ['role', 'img'], ['aria-label', 'Barcode ' + text], ['shape-rendering', 'crispEdges']].forEach(([k, v]) => svg.setAttribute(k, v));
+      b.bars.forEach(r => {
+        const el = document.createElementNS(NS, 'rect');
+        [['x', r.x], ['y', 0], ['width', r.w], ['height', 10], ['fill', '#000']].forEach(([k, v]) => el.setAttribute(k, String(v)));
+        svg.appendChild(el);
+      });
+      return svg;
+    }
+    function blSticker(M, lot, p) {
+      return h('div', { class: 'blSticker', 'data-blsticker': p.text },
+        h('div', { class: 'blProduct' }, String(lot.product || 'Product').slice(0, 60)),
+        blBarcode(M, p.text, p.moduleInch, p.layout === 'roll' ? 0.42 : 0.3),
+        h('div', { class: 'blLot' }, 'Batch ' + lot.lot_number));
+    }
+    const blChosen = () => (blLots || []).find(l => String(l.id) === blState.lotId) || null;
+    async function loadBatchLabels() {
+      const M = blMod();
+      const host = blHost(batchLabelsOn() && !!M); if (!host) return;
+      const seq = ++blSeq;
+      preloadPrintFonts();
+      if (!blLots) host.replaceChildren(h('div', { class: 'scanCard u-mt-14' }, h('h3', null, 'Batch stickers'), h('p', { class: 'empty' }, 'Loading the batches…')));
+      try {
+        const [lots, products] = await Promise.all([
+          fetchAllRows('inventory_lots', 'id, lot_number, product_id, received_at, quantity_received', q => q),
+          fetchAllRows('products', 'id, name, sku', q => q),
+        ]);
+        if (seq !== blSeq) return;
+        const names = Object.create(null);
+        products.forEach(p => { if (p && p.id != null) names[p.id] = p.name || p.sku || ''; });
+        blLots = lots.filter(l => l && l.id != null && typeof l.lot_number === 'string' && l.lot_number.trim())
+          .map(l => ({ id: l.id, lot_number: l.lot_number.trim(), product: names[l.product_id] || '', received_at: l.received_at || '', quantity: Number(l.quantity_received) || 0 }))
+          .sort((a, b) => String(b.received_at).localeCompare(String(a.received_at))).slice(0, 200);
+        blError = '';
+      } catch (err) {
+        if (seq !== blSeq) return;
+        blLots = null; blError = 'The batches could not be read. Refresh the page and try again.';
+      }
+      if (blLots && !blChosen()) {
+        blState.lotId = blLots.length ? String(blLots[0].id) : '';
+        blState.count = blLots.length ? String(Math.min(M.MAX_COUNT, Math.max(1, blLots[0].quantity))) : '';
+      }
+      renderBatchLabels();
+    }
+    function renderBatchLabels() {
+      const M = blMod(), host = document.getElementById('batchLabelsHost'); if (!M || !host) return;
+      const head = [h('h3', null, 'Batch stickers'),
+        h('p', { class: 'hint' }, 'The barcode printed on a bottle says which product it is, not which batch. These stickers add the batch: its number in words and as a barcode a phone camera or a scanner reads. Printing only; nothing is changed.')];
+      if (blError) { host.replaceChildren(h('div', { class: 'scanCard u-mt-14' }, head, h('p', { class: 'hint u-c-warn', role: 'alert' }, blError))); return; }
+      if (!blLots || !blLots.length) {
+        host.replaceChildren(h('div', { class: 'scanCard u-mt-14' }, head, h('p', { class: 'empty' }, 'No batch has been received yet. A batch appears here once a delivery is received with a lot number.')));
+        return;
+      }
+      const lot = blChosen();
+      const p = M.plan({ lot: lot ? lot.lot_number : '', count: blState.count, layout: blState.layout });
+      const one = lot ? M.plan({ lot: lot.lot_number, count: 1, layout: blState.layout }) : { ok: false };
+      host.replaceChildren(h('div', { class: 'scanCard u-mt-14', 'data-blcard': '1' }, head,
+        h('div', { class: 'blForm' },
+          h('label', null, 'Batch', h('select', { id: 'blLot' }, blLots.map(l => h('option', { value: String(l.id), selected: String(l.id) === blState.lotId },
+            (l.product || 'Product') + ' — ' + l.lot_number + (l.received_at ? ' (received ' + String(l.received_at).slice(0, 10) + ')' : ''))))),
+          h('label', null, 'How many stickers', h('input', { id: 'blCount', type: 'number', min: '1', max: String(M.MAX_COUNT), step: '1', inputmode: 'numeric', value: blState.count })),
+          h('label', null, 'Printed on', h('select', { id: 'blLayout' }, Object.keys(M.LAYOUTS).map(k => h('option', { value: k, selected: k === blState.layout }, M.LAYOUTS[k].name))))),
+        one.ok ? h('div', { class: 'blPreview', 'data-blpreview': one.text }, h('div', { class: 'u-fs-12 u-c-muted' }, 'One sticker (the size on screen is not the printed size):'), blSticker(M, lot, one)) : null,
+        h('div', { class: 'u-mt-8 u-d-flex u-gap-8 u-fwr-wrap' },
+          h('button', { type: 'button', class: 'small', 'data-blprint': '1', disabled: !p.ok }, p.ok ? 'Print ' + p.count + (p.count === 1 ? ' sticker' : ' stickers') + (p.pages > 1 || p.perPage > 1 ? ' (' + p.pages + (p.pages === 1 ? ' label)' : ' labels)') : '') : 'Print stickers')),
+        h('p', { class: 'u-fs-12 u-mt-4', role: 'status', 'data-blmessage': p.ok ? 'ok' : 'no' },
+          blMessage || (p.ok ? 'In the print window choose the label printer and the paper size ' + (p.layout === 'roll' ? '2.25 × 1.25 inch' : '4 × 6 inch') + ', scale 100%.' : p.reason))));
+    }
+    document.addEventListener('change', function (e) {
+      const t = e.target instanceof Element ? e.target.closest('#batchLabelsHost select, #batchLabelsHost input') : null; if (!t) return;
+      const M = blMod(); if (!M) return;
+      blMessage = '';
+      if (t.id === 'blLot') {
+        blState.lotId = t.value;
+        const lot = blChosen();
+        blState.count = lot ? String(Math.min(M.MAX_COUNT, Math.max(1, lot.quantity))) : '';
+      } else if (t.id === 'blCount') blState.count = t.value;
+      else if (t.id === 'blLayout') blState.layout = M.LAYOUTS[t.value] ? t.value : 'roll';
+      renderBatchLabels();
+      const back = document.getElementById(t.id); if (back) back.focus();
+    });
+    document.addEventListener('click', function (e) {
+      const t = e.target instanceof Element ? e.target.closest('#batchLabelsHost [data-blprint]') : null; if (!t) return;
+      const M = blMod(), host = document.getElementById('invoicePrintHost'), lot = blChosen(); if (!M || !host || !lot) return;
+      const typed = document.getElementById('blCount'); if (typed) blState.count = typed.value;
+      const p = M.plan({ lot: lot.lot_number, count: blState.count, layout: blState.layout });
+      if (!p.ok) { blMessage = ''; renderBatchLabels(); return; }
+      const pages = [];
+      for (let i = 0; i < p.count; i += p.perPage) {
+        const n = Math.min(p.perPage, p.count - i);
+        pages.push(h('div', { class: 'printPage blPage blPage-' + p.layout, 'data-printsize': p.layout === 'roll' ? 'sticker' : '4x6' }, Array.from({ length: n }, () => blSticker(M, lot, p))));
+      }
+      host.replaceChildren(h('div', { class: 'printDoc blDoc', 'data-bldoc': String(p.count) }, pages));
+      setLabelSheet(p.layout === 'sheet'); setStickerSheet(p.layout === 'roll');
+      blMessage = p.count + (p.count === 1 ? ' sticker' : ' stickers') + ' for batch ' + lot.lot_number + ' sent to the print window.';
+      renderBatchLabels(); announce(blMessage);
+      try { window.print(); } catch (err) {}
+    });
 
     // Packing slips for real orders (Nov 23; behind orderSlipsOn). The order's own
     // lines are read when the Orders page loads, so pressing Print opens the print
@@ -5418,7 +5546,7 @@
       dailySummaryPanel: [loadDailySummary],
       reportHistoryPanel: [loadReportHistoryThenExport, loadRecoveryDrill, loadInvoicePreview, loadReportVersions],
       ordersPanel: [loadOrders, paintScanEntry, loadSavedViews, loadOrderSlipsHost, loadDropoff],
-      inventoryPanel: [loadInventory, loadInventoryAdjustments, loadReorderPlanning, loadSavedViews, loadCycleCount, loadPartialReceiving, loadProductImport],
+      inventoryPanel: [loadInventory, loadInventoryAdjustments, loadReorderPlanning, loadSavedViews, loadCycleCount, loadPartialReceiving, loadProductImport, loadBatchLabels],
       returnsPanel: [loadReturns, loadStockReturns],
       suppliersPanel: [loadSuppliers, loadSupplierScorecard, loadSupplierDocs],
       purchaseOrdersPanel: [loadPurchaseOrders, loadDeliveries],

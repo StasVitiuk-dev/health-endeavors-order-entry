@@ -1476,3 +1476,24 @@ table.sysStatus td{ overflow-wrap:anywhere; }
 .icClosed summary{ cursor:pointer; font-weight:600; }
 .icResult{ font-weight:600; }
 section.panel table.phoneCards td.icNote{ white-space:pre-wrap !important; }
+
+/* Batch stickers (he_batch_labels): the form and one sticker on screen */
+.blForm{ display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:10px 14px; margin-top:8px; }
+.blForm label{ display:block; font-weight:600; min-width:0; }
+.blForm select, .blForm input{ display:block; width:100%; max-width:100%; margin-top:4px; font-weight:400; }
+.blPreview{ margin-top:12px; }
+.blSticker{ display:inline-flex; flex-direction:column; align-items:center; gap:2px; max-width:100%; padding:6px 10px; margin-top:4px; background:#fff; color:#000; border:1px solid var(--line); border-radius:6px; text-align:center; overflow:hidden; }
+.blSticker .blBars{ display:block; max-width:100%; }
+.blProduct{ font-size:11px; line-height:1.15; max-width:100%; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+.blLot{ font-size:13px; font-weight:700; letter-spacing:0.02em; overflow-wrap:anywhere; }
+@media print{
+  /* stickers: black on white, no frame; one per small label, or eight strips on a 4 x 6 label */
+  .printView .blDoc{ font-family:Arial, 'Helvetica Neue', sans-serif; }
+  .printView .blPage{ padding:0; }
+  .printView .blSticker{ display:flex; border:0; border-radius:0; padding:0; margin:0; width:100%; break-inside:avoid; }
+  .printView .blPage-roll .blSticker{ height:1.1in; justify-content:center; }
+  .printView .blPage-sheet .blSticker{ height:0.7in; justify-content:center; border-bottom:0.5pt dashed #000; }
+  .printView .blPage-sheet .blSticker:last-child{ border-bottom:0; }
+  .printView .blProduct{ font-size:7pt; }
+  .printView .blLot{ font-size:9pt; }
+}

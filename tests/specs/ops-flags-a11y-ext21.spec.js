@@ -18,14 +18,14 @@ const FLAGS = ['he_scan_shipment', 'he_reorder_planning', 'he_saved_views', 'he_
   'he_reconcile', 'he_report_versions', 'he_report_export', 'he_invoice_preview', 'he_recovery_drill', 'he_ops_watch',
   // Nov 23: the sections added since (money matching, packing slips, Backups & Printouts)
   'he_money_match', 'he_order_slips', 'he_backups_page',
-  // Nov 23: product list import
-  'he_product_import'];
+  // Nov 23: product list import; Nov 24: batch stickers
+  'he_product_import', 'he_batch_labels'];
 // page -> the switch-gated hosts on it. heading:false = a small strip of
 // controls (not a titled section), so no heading is expected there.
 const PAGES = [
   ['attentionPanel', [['scanEntryHome', false]]],
   ['ordersPanel', [['scanEntryOrders', false], ['savedViewsOrders', false], ['orderSlipsHost', false]]],
-  ['inventoryPanel', [['reorderPlanningHost', true], ['savedViewsInventory', false], ['cycleCountHost', true], ['partialReceivingHost', true], ['productImportHost', true]]],
+  ['inventoryPanel', [['reorderPlanningHost', true], ['savedViewsInventory', false], ['cycleCountHost', true], ['partialReceivingHost', true], ['productImportHost', true], ['batchLabelsHost', true]]],
   ['accountingPanel', [['reconcileHost', true], ['moneyMatchHost', true]]],
   ['reportHistoryPanel', [['reportExportHost', true], ['reportVersionsHost', true], ['recoveryDrillHost', true], ['invoicePreviewHost', true], ['opsWatchHost', true]]],
   ['suppliersPanel', [['supplierScorecardHost', true], ['supplierDocsHost', true]]],
