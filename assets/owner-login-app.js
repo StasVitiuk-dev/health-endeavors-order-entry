@@ -84,7 +84,7 @@
       nightlyOverall,
     } = window.HE.helpers;
     // @@ EXT15 modules: created in dependency order (assets/app/*.js; see docs/ops/APPLICATION_MODULE_MAP_EXT15.md)
-    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, agentDiaryOn, realProfitOn, channelMoneyOn, SWITCH_EVERYONE, sharedSettingsOn, orderCostsOn, incidentCloseOn, batchLabelsOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn } = HE.modules.create('he-config', {  });
+    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, agentDiaryOn, realProfitOn, channelMoneyOn, SWITCH_EVERYONE, sharedSettingsOn, orderCostsOn, incidentCloseOn, batchLabelsOn, orderBatchesOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn } = HE.modules.create('he-config', {  });
     const { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, focusDialog, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, h, pageIconNode } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
     const { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
     const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, h, supabase });
@@ -5255,6 +5255,124 @@
       try { window.print(); } catch (e) {}
     }
 
+    // ---------- Batch on each order (Nov 24; behind orderBatchesOn, drafts/54) ----------
+    // When packing, the batch sticker (see Batch stickers below) is scanned onto the
+    // order; "Who got a batch" lists every order that received one. The rules are in
+    // the database (drafts/54) and assets/scan/he-order-batches.js; a wrong scan is
+    // voided with a reason, never deleted.
+    const obState = { order: null, rows: null, recall: null, message: '', voiding: '' };
+    const obMod = () => (window.HE && window.HE.scan && window.HE.scan['he-order-batches']) || null;
+    function obStore() { const M = obMod(); return M && orderBatchesOn() ? M.createStore({ client: supabase, enabled: true }) : null; }
+    function obHost(on) {
+      let el = document.getElementById('orderBatchesHost');
+      if (!on) { if (el) el.remove(); return null; }
+      if (!el) { const after = document.getElementById('orderSlipsHost'); if (!after || !after.parentNode) return null; el = h('div', { id: 'orderBatchesHost' }); after.after(el); }
+      return el;
+    }
+    function loadOrderBatches() { if (obHost(orderBatchesOn() && !!obMod())) renderOrderBatches(); }
+    function obSay(text) { obState.message = text; renderOrderBatches(); announce(text); }
+    function renderOrderBatches() {
+      const host = document.getElementById('orderBatchesHost'); if (!host) return;
+      const mayVoid = currentUserRole === 'owner' || currentUserRole === 'administrator';
+      const o = obState.order;
+      const day = (t) => (t ? String(t).slice(0, 10) : '—');
+      const rowsTable = o && obState.rows && obState.rows.length ? h('table', { class: 'phoneCards u-mt-8', 'data-obrows': String(obState.rows.length) },
+        h('thead', null, h('tr', null, h('th', null, 'Batch'), h('th', { class: 'num-cell' }, 'Bottles'), h('th', null, 'Recorded'), h('th', null, 'Change'))),
+        h('tbody', null, obState.rows.map(r => h('tr', { 'data-obrow': String(r.id), class: r.voided_at ? 'obVoid' : '' },
+          h('td', null, r.lot_number),
+          h('td', { class: 'num-cell', 'data-label': 'Bottles' }, String(r.quantity)),
+          h('td', { 'data-label': 'Recorded' }, day(r.recorded_at)),
+          h('td', { 'data-label': 'Change' }, r.voided_at ? 'Void: ' + (r.void_reason || 'no reason kept')
+            : !mayVoid ? '—'
+            : obState.voiding === String(r.id) ? h('form', { class: 'obVoidForm', 'data-obform': 'void', 'data-id': String(r.id) },
+                h('label', null, 'Why is this line wrong?', h('input', { type: 'text', name: 'reason', maxlength: '300', required: true, autocomplete: 'off' })),
+                h('button', { type: 'submit', class: 'small' }, 'Void this line'), h('button', { type: 'button', class: 'small secondary', 'data-obvoid': '' }, 'Cancel'))
+            : h('button', { type: 'button', class: 'small secondary', 'data-obvoid': String(r.id), 'aria-label': 'Void batch ' + r.lot_number + ' on this order' }, 'Void')))))) : null;
+      const rc = obState.recall;
+      host.replaceChildren(h('div', { class: 'scanCard u-mb-10', 'data-obcard': '1' },
+        h('div', { class: 'scanCardHead' }, 'Batch on each order'),
+        h('p', { class: 'hint u-m-0' }, 'When you pack an order, scan the batch sticker of each bottle (a scanner types it for you) or type the batch number. If a batch ever has a problem, "Who got a batch" lists every order that received it.'),
+        h('form', { class: 'obForm u-mt-8', 'data-obform': 'find' },
+          h('label', null, 'Order number', h('input', { type: 'text', id: 'obOrder', maxlength: '60', autocomplete: 'off', value: o ? o.order_number : '' })),
+          h('button', { type: 'submit', class: 'small secondary' }, 'Find the order')),
+        o ? h('div', { 'data-oborder': String(o.id) },
+          h('p', { class: 'u-fs-13 u-mt-8' }, 'Order ' + o.order_number + [o.customer_name ? ' · ' + o.customer_name : '', o.placed_at ? ' · ordered ' + day(o.placed_at) : ''].join('')),
+          h('form', { class: 'obForm', 'data-obform': 'record' },
+            h('label', null, 'Batch (scan the sticker or type the number)', h('input', { type: 'text', id: 'obLot', maxlength: '40', autocomplete: 'off', autocapitalize: 'characters' })),
+            h('label', { class: 'obQty' }, 'Bottles', h('input', { type: 'number', id: 'obQty', min: '1', max: '10000', step: '1', inputmode: 'numeric', value: '1' })),
+            h('button', { type: 'submit', class: 'small' }, 'Save the batch')),
+          obState.rows && !obState.rows.length ? h('p', { class: 'hint' }, 'No batch is recorded on this order yet.') : rowsTable) : null,
+        h('p', { class: 'u-fs-12 u-mt-4', role: 'status', 'data-obmessage': '1' }, obState.message),
+        h('form', { class: 'obForm u-mt-8', 'data-obform': 'recall' },
+          h('label', null, 'Who got a batch? Type or scan its number', h('input', { type: 'text', id: 'obRecall', maxlength: '40', autocomplete: 'off', value: rc ? rc.lot : '' })),
+          h('button', { type: 'submit', class: 'small secondary' }, 'Show the orders')),
+        rc ? h('div', { 'data-obrecall': rc.lot },
+          h('p', { class: 'u-fs-13 u-mt-8', 'data-obrecalltotal': rc.orders + '/' + rc.bottles },
+            rc.orders ? 'Batch ' + rc.lot + ': ' + rc.orders + (rc.orders === 1 ? ' order, ' : ' orders, ') + rc.bottles + (rc.bottles === 1 ? ' bottle.' : ' bottles.') + (rc.truncated ? ' Only the latest 1,000 lines are shown.' : '')
+              : 'No order has batch ' + rc.lot + ' recorded.'),
+          rc.orders ? h('table', { class: 'phoneCards' },
+            h('thead', null, h('tr', null, h('th', null, 'Order'), h('th', null, 'Customer'), h('th', null, 'Ordered'), h('th', { class: 'num-cell' }, 'Bottles'), h('th', null, 'Scanned'))),
+            h('tbody', null, rc.lines.map(l => h('tr', { 'data-obrecallrow': String(l.order_id) },
+              h('td', null, l.order_number), h('td', { 'data-label': 'Customer' }, l.customer_name || '—'), h('td', { 'data-label': 'Ordered' }, day(l.placed_at)),
+              h('td', { class: 'num-cell', 'data-label': 'Bottles' }, String(l.quantity)), h('td', { 'data-label': 'Scanned' }, day(l.recorded_at)))))) : null) : null));
+    }
+    async function obLoadRows() {
+      const store = obStore(), o = obState.order; if (!store || !o) return;
+      const r = await store.forOrder(o.id);
+      if (!obState.order || obState.order.id !== o.id) return;
+      obState.rows = r.ok ? r.rows : null;
+      if (!r.ok && !r.busy) obState.message = r.message;
+    }
+    document.addEventListener('submit', async function (e) {
+      const form = e.target instanceof Element ? e.target.closest('#orderBatchesHost form[data-obform]') : null; if (!form) return;
+      e.preventDefault();
+      const M = obMod(), store = obStore(); if (!M || !store) return;
+      const what = form.getAttribute('data-obform');
+      if (what === 'find') {
+        const numbers = M.orderNumbers(document.getElementById('obOrder').value);
+        if (!numbers.length) { obSay('Type the order number first.'); return; }
+        try {
+          const { data, error } = await supabase.from('orders').select('id, order_number, customer_name, placed_at, status').in('order_number', numbers).is('deleted_at', null).limit(5);
+          if (error) throw error;
+          if (!data || !data.length) { obState.order = null; obState.rows = null; obSay('No order has that number.'); return; }
+          if (data.length > 1) { obState.order = null; obState.rows = null; obSay('More than one order has that number. Type it exactly as the order shows it.'); return; }
+          obState.order = data[0]; obState.rows = null; obState.voiding = ''; obState.message = '';
+          await obLoadRows();
+          renderOrderBatches();
+          const lot = document.getElementById('obLot'); if (lot) lot.focus();
+        } catch (err) { obSay('Could not look the order up: ' + explainDbError(err && err.message ? err.message : String(err))); }
+      } else if (what === 'record') {
+        if (!obState.order) return;
+        const lotBox = document.getElementById('obLot'), qtyBox = document.getElementById('obQty');
+        const typed = lotBox.value;
+        const r = await store.record(obState.order.id, typed, qtyBox.value, /^B-/.test(typed.trim()) ? 'scan' : 'typed');
+        if (r.busy) return;
+        if (!r.ok) { obSay(r.message); const back = document.getElementById('obLot'); if (back) { back.value = typed; back.focus(); } return; }
+        await obLoadRows();
+        obSay('Batch ' + r.lot + ': ' + r.quantity + (r.quantity === 1 ? ' bottle' : ' bottles') + ' on order ' + obState.order.order_number + '. ' + r.message);
+        const next = document.getElementById('obLot'); if (next) next.focus();
+      } else if (what === 'void') {
+        const r = await store.voidRow(form.getAttribute('data-id'), form.elements.reason.value);
+        if (r.busy) return;
+        if (!r.ok) { const box = form.elements.reason, kept = box.value; obSay(r.message); const again = document.querySelector('#orderBatchesHost form[data-obform="void"] input[name="reason"]'); if (again) { again.value = kept; again.focus(); } return; }
+        obState.voiding = '';
+        await obLoadRows();
+        obSay(r.already ? 'That line was already void.' : 'The line is void. It stays on the record; scan the right batch as a new line.');
+      } else if (what === 'recall') {
+        const r = await store.forBatch(document.getElementById('obRecall').value);
+        if (r.busy) return;
+        if (!r.ok) { obState.recall = null; obSay(r.message); return; }
+        obState.recall = r;
+        obSay(r.orders ? 'Batch ' + r.lot + ': ' + r.orders + (r.orders === 1 ? ' order.' : ' orders.') : 'No order has batch ' + r.lot + ' recorded.');
+      }
+    });
+    document.addEventListener('click', function (e) {
+      const t = e.target instanceof Element ? e.target.closest('#orderBatchesHost [data-obvoid]') : null; if (!t) return;
+      obState.voiding = t.getAttribute('data-obvoid') || ''; obState.message = '';
+      renderOrderBatches();
+      const box = document.querySelector('#orderBatchesHost form[data-obform="void"] input[name="reason"]'); if (box) box.focus();
+    });
+
     // ---------- Batch stickers (Nov 24; behind batchLabelsOn) ----------
     // The barcode printed on a bottle says which product it is, not which batch
     // (owner's photos, Nov 24). Inventory prints a sticker per bottle: the batch in
@@ -5545,7 +5663,7 @@
       calendarPanel: [loadCalendarMonth],
       dailySummaryPanel: [loadDailySummary],
       reportHistoryPanel: [loadReportHistoryThenExport, loadRecoveryDrill, loadInvoicePreview, loadReportVersions],
-      ordersPanel: [loadOrders, paintScanEntry, loadSavedViews, loadOrderSlipsHost, loadDropoff],
+      ordersPanel: [loadOrders, paintScanEntry, loadSavedViews, loadOrderSlipsHost, loadDropoff, loadOrderBatches],
       inventoryPanel: [loadInventory, loadInventoryAdjustments, loadReorderPlanning, loadSavedViews, loadCycleCount, loadPartialReceiving, loadProductImport, loadBatchLabels],
       returnsPanel: [loadReturns, loadStockReturns],
       suppliersPanel: [loadSuppliers, loadSupplierScorecard, loadSupplierDocs],

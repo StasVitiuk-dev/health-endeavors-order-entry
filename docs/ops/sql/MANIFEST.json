@@ -638,6 +638,32 @@
       "effect": "drops the function, the table and its guard; orders untouched",
       "postcheck": "to_regclass('public.order_costs') is null",
       "dynamicSql": "format() with fixed names (%I) to lock and count the order costs table only where it exists"
+    },
+    {
+      "file": "drafts/54_DRAFT_order_batches.sql",
+      "id": "54",
+      "class": "PRODUCTION-CHANGE-DRAFT",
+      "step": "optional (owner decision of Nov 24: the batch is on a printed sticker; scanning it when packing keeps which batch went into which order, so a batch problem gives one list of orders)",
+      "dependsOn": [],
+      "risk": "LOW",
+      "rollback": "55",
+      "precheck": "stops, changing nothing, if an order_batches table or a function with one of this draft's names exists that this file did not create (it checks its own marks); stops if auth.uid(), is_active_staff(), is_owner_or_admin(), the orders, inventory_lots (with id, lot_number, product_id), products, tasks or audit_log table, or the audit trigger on tasks is missing",
+      "effect": "1 new table order_batches (one live row per order and batch: the order, the batch number as scanned, the matching batch in stock and its product when exactly one is visible, how many bottles, who and when; void fields); record_order_batch() adds bottles (the same batch on the same order adds to its count) and answers whether the number matched stock (one, none, several, or unchecked where the person may not read stock batches); void_order_batch() marks a wrong scan void with a reason (owner and administrators, once); nothing is deleted",
+      "postcheck": "the table present and empty; anon cannot read it; local-test/order_batches_test.sh passes on a throwaway copy",
+      "lock": "NONE (new table only; foreign keys to orders, inventory_lots and products are checked on insert and never block removing a lot or product)",
+      "dynamicSql": "format() with fixed names (%I) to attach production's audit trigger, whose function name is read from the tasks table at install time (as drafts/32)"
+    },
+    {
+      "file": "drafts/55_DRAFT_rollback_order_batches.sql",
+      "id": "55",
+      "class": "ROLLBACK",
+      "rollbackOf": "54",
+      "dependsOn": [],
+      "risk": "LOW",
+      "precheck": "stops, removing nothing, while any batch is recorded, unless deleting them was authorized in the session; stops if the table or a function of these names was not created by drafts/54",
+      "effect": "drops the two functions, the table and its guard; orders, inventory_lots and products untouched",
+      "postcheck": "to_regclass('public.order_batches') is null",
+      "dynamicSql": "format() with fixed names (%I) to lock and count the order_batches table only where it exists"
     }
   ],
   "local": [

@@ -1497,3 +1497,14 @@ section.panel table.phoneCards td.icNote{ white-space:pre-wrap !important; }
   .printView .blProduct{ font-size:7pt; }
   .printView .blLot{ font-size:9pt; }
 }
+
+/* Batch on each order (he_order_batches) */
+.obForm{ display:flex; flex-wrap:wrap; align-items:flex-end; gap:8px 12px; }
+.obForm label{ display:block; font-weight:600; flex:1 1 220px; min-width:0; }
+.obForm label.obQty{ flex:0 1 110px; }
+.obForm input{ display:block; width:100%; max-width:100%; margin-top:4px; font-weight:400; }
+.obVoidForm{ display:flex; flex-wrap:wrap; align-items:flex-end; gap:6px 8px; }
+.obVoidForm label{ display:block; flex:1 1 180px; min-width:0; font-weight:600; }
+.obVoidForm input{ display:block; width:100%; margin-top:4px; font-weight:400; }
+tr.obVoid td{ color:var(--muted); }
+tr.obVoid td:first-child{ text-decoration:line-through; }
