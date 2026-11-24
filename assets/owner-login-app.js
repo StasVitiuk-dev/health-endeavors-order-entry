@@ -3782,6 +3782,78 @@
         h('div', { class: 'scanToggleRow u-mt-8' }, h('button', { type: 'button', class: 'small secondary', 'data-previewswitch': 'alloff' }, 'Turn all off')),
         lookPicker()));
     }
+    // ---------- Switches that save real records (Feature Flags; OWNER only) ----------
+    // Owner rule (Nov 24): everything can be switched on the dashboard. Each of these
+    // writes real records once its database step is installed; the step is checked
+    // live (read only, no rows read). On needs the step installed and a second tap;
+    // off always works. A switch is a note in this browser only.
+    let rsStates = null, rsSeq = 0, rsConfirm = '', rsMessage = '';
+    function rsMod() { try { return (window.HE && window.HE.views && window.HE.views['he-record-switches']) || null; } catch (e) { return null; } }
+    function rsHost(on) {
+      let el = document.getElementById('recordSwitchesHost');
+      if (!on) { if (el) el.remove(); return null; }
+      if (!el) { const after = document.getElementById('previewSwitchesHost'); if (!after || !after.parentNode) return null; el = h('div', { id: 'recordSwitchesHost' }); after.after(el); }
+      return el;
+    }
+    async function loadRecordSwitches() {
+      const M = rsMod();
+      const host = rsHost(currentUserRole === 'owner' && !!M); if (!host) return;
+      const seq = ++rsSeq;
+      rsStates = null; renderRecordSwitches();
+      const states = {};
+      await Promise.all(M.RECORD_SWITCHES.map(async sw => { states[sw.key] = await M.probe(supabase, sw); }));
+      if (seq !== rsSeq) return;
+      rsStates = states; renderRecordSwitches();
+    }
+    function renderRecordSwitches() {
+      const host = document.getElementById('recordSwitchesHost'); const M = rsMod(); if (!host || !M) return;
+      const rows = M.RECORD_SWITCHES.map(sw => {
+        const on = previewSwitchIsOn(sw.key);
+        const state = rsStates ? rsStates[sw.key] : null;
+        const act = M.action(on, state || 'unknown');
+        const confirming = rsConfirm === sw.key && !on;
+        const needsOff = sw.needs && !previewSwitchIsOn(sw.needs);
+        return h('tr', { 'data-record-key': sw.key, 'data-record-on': on ? 'yes' : 'no', 'data-record-state': state || 'checking' },
+          h('td', null, h('div', { class: 'taskTitle' }, sw.name), h('div', { class: 'u-fs-11 u-c-muted' }, sw.what),
+            needsOff ? h('div', { class: 'u-fs-11 u-c-muted' }, 'Also needs the "Supplier documents" preview above.') : null),
+          h('td', null, sw.where),
+          h('td', null, h('div', null, sw.draft), h('div', { class: 'u-fs-12', 'data-record-status': '1' }, state ? M.STATE_WORD[state] : 'Checking…')),
+          h('td', null, on ? 'On' : 'Off'),
+          h('td', null, confirming
+            ? h('div', { class: 'scanToggleRow' },
+                h('button', { type: 'button', class: 'small', 'data-recordswitch': 'confirm', 'data-key': sw.key, 'aria-label': 'Yes, turn on ' + sw.name }, 'Yes, turn on'),
+                h('button', { type: 'button', class: 'small secondary', 'data-recordswitch': 'cancel', 'data-key': sw.key, 'aria-label': 'Cancel turning on ' + sw.name }, 'Cancel'))
+            : h('button', { type: 'button', class: 'small' + (on ? ' secondary' : ''), 'data-recordswitch': on ? 'off' : 'ask', 'data-key': sw.key,
+                disabled: !act.allowed || !state, 'aria-label': act.button + ' ' + sw.name }, act.button),
+            act.note ? h('div', { class: 'u-fs-11 u-c-muted u-mt-4' }, act.note) : null));
+      });
+      host.replaceChildren(h('div', { class: 'previewSwitches u-mt-18', 'data-record-switches': '1' },
+        h('h3', { class: 'u-m-18-0-6 u-fs-15' }, 'Features that save real records (owner only)'),
+        h('p', { class: 'hint u-mt-0' }, 'Unlike the previews above, these read and write your real records once their database step is installed. Each can be turned on only when its step is installed (checked live here), and asks you to confirm. Turning off always works. A switch applies to this browser on this device only.'),
+        rsMessage ? h('p', { class: 'hint u-mt-6', role: 'status', 'data-record-msg': '1' }, rsMessage, ' ', h('button', { type: 'button', class: 'small secondary', 'data-previewswitch': 'reload' }, 'Reload now')) : null,
+        h('table', { class: 'phoneCards u-mt-8' },
+          h('thead', null, h('tr', null, h('th', null, 'Feature'), h('th', null, 'Where it appears'), h('th', null, 'Database step'), h('th', null, 'Now'), h('th', null, 'Change'))),
+          h('tbody', null, rows))));
+      labelPhoneCards(host);
+    }
+    document.addEventListener('click', (e) => {
+      const t = e.target.closest('#recordSwitchesHost [data-recordswitch]'); if (!t) return;
+      if (currentUserRole !== 'owner') return;
+      const M = rsMod(); if (!M) return;
+      const sw = M.RECORD_SWITCHES.find(x => x.key === t.getAttribute('data-key')); if (!sw) return;   // only listed keys are ever written
+      const act = t.getAttribute('data-recordswitch');
+      const state = rsStates ? rsStates[sw.key] : null;
+      if (act === 'ask') { if (state !== 'installed') return; rsConfirm = sw.key; rsMessage = ''; renderRecordSwitches(); const y = document.querySelector('#recordSwitchesHost [data-recordswitch="confirm"]'); if (y) y.focus(); return; }
+      if (act === 'cancel') { rsConfirm = ''; renderRecordSwitches(); refocusLike(t); return; }
+      try {
+        if (act === 'confirm' && state === 'installed') { localStorage.setItem(sw.key, 'on'); rsMessage = sw.name + ' is on. Reload the page, then open ' + sw.where + '.'; }
+        else if (act === 'off') { localStorage.removeItem(sw.key); rsMessage = sw.name + ' is off. Reload the page to finish.'; }
+        else return;
+      } catch (err) { rsMessage = 'This browser would not save the switch (private window or storage blocked).'; }
+      rsConfirm = ''; renderRecordSwitches(); announce(rsMessage);
+      const m = document.querySelector('#recordSwitchesHost [data-record-msg]'); if (m) { m.setAttribute('tabindex', '-1'); m.focus(); }
+    });
+
     // The look: Aurora for everyone (owner decision, Nov 23); another direction or the
     // previous look can be picked for this browser only. Applied at once.
     function lookPicker() {
@@ -5014,7 +5086,7 @@
       inquiriesPanel: [loadInquiries],
       aiPanel: [loadAI, loadAgentDiary],
       continuityPanel: [loadContinuity, loadSystemStatus],
-      flagsPanel: [loadFlags, loadSystemMode, loadPreviewSwitches],
+      flagsPanel: [loadFlags, loadSystemMode, loadPreviewSwitches, loadRecordSwitches],
       businessRulesPanel: [loadBusinessRules],
       approvalsPanel: [loadApprovals],
       sessionsPanel: [loadSessions],
