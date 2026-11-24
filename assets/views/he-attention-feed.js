@@ -232,10 +232,37 @@
     const counts = { urgent: 0, today: 0, info: 0 };
     visible.forEach(i => { counts[i.level] = (counts[i.level] || 0) + 1; });
     const filter = FILTERS.some(f => f.key === o.filter) ? o.filter : 'all';
-    return { items: visible.filter(i => matchesFilter(i, filter)), filter: filter, counts: counts,
+    return { items: visible.filter(i => matchesFilter(i, filter)), all: visible, filter: filter, counts: counts,
       needYou: counts.urgent + counts.today, snoozed: snoozed.length, caughtUp: counts.urgent + counts.today === 0 };
   }
 
-  return { LEVELS, KINDS, FILTERS, SNOOZE_KEY, buildFeed, matchesFilter, view, readSnoozes, snooze, unsnoozeAll, isSnoozed,
+  // The morning summary (owner, Nov 24: "one message each morning: what needs you
+  // today"). The feed as a short text: how many things need the owner, the most
+  // urgent ones by name, and how many more. Today it is copied with one press;
+  // sending it each morning needs a server-side step that is not built.
+  //   summaryText(viewed, { dayLabel, max }) -> text      viewed = what view() returned
+  const SUMMARY_MAX = 8;
+  const LEVEL_WORD = { urgent: 'Urgent', today: 'Today', info: 'To know' };
+  function summaryText(viewed, opts) {
+    const v = viewed !== null && typeof viewed === 'object' ? viewed : {}, o = opts !== null && typeof opts === 'object' ? opts : {};
+    const max = Number.isInteger(o.max) && o.max >= 1 && o.max <= 50 ? o.max : SUMMARY_MAX;
+    const counts = v.counts !== null && typeof v.counts === 'object' ? v.counts : {};
+    const n = (k) => (Number.isInteger(counts[k]) && counts[k] > 0 ? counts[k] : 0);
+    const need = n('urgent') + n('today');
+    const lines = ['Health Endeavors' + (text(o.dayLabel, 60) ? ', ' + text(o.dayLabel, 60) : '')];
+    if (!need) { lines.push('All caught up. Nothing needs you right now.'); }
+    else {
+      lines.push(need + (need === 1 ? ' thing needs you: ' : ' things need you: ') + n('urgent') + ' urgent, ' + n('today') + ' today' + (n('info') ? ', ' + n('info') + ' to know' : '') + '.');
+      // the whole list, most urgent first, whatever filter the page is showing
+      const items = asList(v.all || v.items).filter(i => i && (i.level === 'urgent' || i.level === 'today'))
+        .slice().sort((a, b) => (RANK[a.level] - RANK[b.level]));
+      items.slice(0, max).forEach(i => lines.push('- [' + LEVEL_WORD[i.level] + '] ' + text(i.title, 140)));
+      if (items.length > max) lines.push('...and ' + (items.length - max) + ' more on the dashboard.');
+    }
+    if (Number.isInteger(v.snoozed) && v.snoozed > 0) lines.push(v.snoozed + ' set aside until tomorrow.');
+    return lines.join('\n');
+  }
+
+  return { LEVELS, KINDS, FILTERS, SNOOZE_KEY, SUMMARY_MAX, summaryText, buildFeed, matchesFilter, view, readSnoozes, snooze, unsnoozeAll, isSnoozed,
     _from: { fromAttention, fromChecks, fromNightly, fromQuestions, fromMoney, fromTax, fromDelivery, fromAgents, fromRecap } };
 }));

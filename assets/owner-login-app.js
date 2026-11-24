@@ -3400,7 +3400,7 @@
     // notices) and the customer questions still waiting. It never writes: "Answer"
     // opens Customer Questions, "Dismiss" uses the reminder's own Dismiss button
     // below, "Later" hides an item until tomorrow in this browser only.
-    let feedFilter = 'all', feedQuestions = null, feedSeq = 0, feedLast = new Map(), feedParcels = null, feedAgentSteps = null, feedRecap = null;
+    let feedFilter = 'all', feedQuestions = null, feedSeq = 0, feedLast = new Map(), feedParcels = null, feedAgentSteps = null, feedRecap = null, feedSummary = '';
     const FEED_LIMIT = 100;
     function feedMod() { try { return (window.HE && window.HE.views && window.HE.views['he-attention-feed']) || null; } catch (e) { return null; } }
     function feedStore() { try { return window.localStorage; } catch (e) { return null; } }
@@ -3489,6 +3489,8 @@
         tax: taxEl ? { count: Number(taxEl.getAttribute('data-taxratealert')) } : null }, now);
       const v = M.view(items, { now: now, snoozes: M.readSnoozes(feedStore()), filter: feedFilter });
       feedLast = new Map(items.map(i => [i.id, i]));
+      // the morning summary: the same list as a short text, copied with one press
+      feedSummary = typeof M.summaryText === 'function' ? M.summaryText(v, { dayLabel: new Date(now).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }) }) : '';
       const summary = v.caughtUp
         ? h('p', { class: 'feedSummary feedCaughtUp', 'data-feedcaughtup': '1' }, 'All caught up. Nothing needs you right now.')
         : h('p', { class: 'feedSummary', 'data-feedneedyou': String(v.needYou) },
@@ -3523,9 +3525,11 @@
       const snoozed = v.snoozed ? h('p', { class: 'hint feedSnoozed' }, v.snoozed + ' set aside until tomorrow (this browser). ',
         h('button', { type: 'button', class: 'small secondary', 'data-feedunsnooze': '1' }, 'Show them again')) : null;
       const qNote = feedQuestions === null ? h('p', { class: 'hint' }, 'Customer questions could not be read just now; the check "Customer questions waiting" stands in for them.') : null;
+      const copy = feedSummary ? h('p', { class: 'feedCopySummary' }, h('button', { type: 'button', class: 'small secondary', 'data-feedsummary': '1' }, 'Copy this as a morning summary'),
+        h('span', { class: 'u-fs-12 u-c-muted' }, ' A short text of what needs you today, to paste into a note or a message.')) : null;
       host.replaceChildren(h('section', { class: 'feed', 'data-feed': '1', 'aria-labelledby': 'feedHeading' },
         h('h2', { id: 'feedHeading' }, 'Needs you now'),
-        summary, chips, ...[list, more, snoozed, qNote].filter(Boolean)));
+        summary, chips, ...[list, more, snoozed, qNote, copy].filter(Boolean)));
     }
     document.addEventListener('click', async (e) => {
       const host = e.target.closest('#attentionFeedHost'); if (!host) return;
@@ -3534,6 +3538,11 @@
       if (f) { feedFilter = f.getAttribute('data-feedfilter'); paintAttentionFeed(); const again = host.querySelector('[data-feedfilter="' + feedFilter + '"]'); if (again) again.focus(); return; }
       const o = e.target.closest('[data-feedopen]');
       if (o) { showPage(o.getAttribute('data-feedopen')); return; }
+      if (e.target.closest('[data-feedsummary]')) {
+        try { await navigator.clipboard.writeText(feedSummary); announce('Morning summary copied. Paste it into a note or a message.'); toast('Copied'); }
+        catch (err) { showDashError('Could not copy to the clipboard in this browser.'); }
+        return;
+      }
       const c = e.target.closest('[data-feedcopy]');
       if (c) {
         const item = feedLast.get(c.getAttribute('data-feedcopy'));

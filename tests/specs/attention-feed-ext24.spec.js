@@ -91,6 +91,32 @@ test.describe('the feed builder (no browser)', () => {
     expect(F.view(F.buildFeed({ attention: [], checks: [], questions: [] }, NOW), { now: NOW })).toMatchObject({ caughtUp: true, needYou: 0 });
   });
 
+  test('the morning summary: the counts, the most urgent things by name, how many more; never the filter the page happens to show', ({}, ti) => {
+    node(ti);
+    const items = F.buildFeed(SRC(), NOW);
+    const v = F.view(items, { now: NOW, snoozes: {}, filter: 'money' });
+    const text = F.summaryText(v, { dayLabel: 'Tuesday, November 24' });
+    const lines = text.split('\n');
+    expect(lines[0]).toBe('Health Endeavors, Tuesday, November 24');
+    expect(lines[1]).toBe(v.needYou + ' things need you: ' + v.counts.urgent + ' urgent, ' + v.counts.today + ' today' + (v.counts.info ? ', ' + v.counts.info + ' to know' : '') + '.');
+    // every urgent line comes before every "today" line, whatever the filter
+    const kinds = lines.slice(2).filter(l => l.startsWith('- [')).map(l => l.slice(3, l.indexOf(']')));
+    expect(kinds.length).toBe(Math.min(F.SUMMARY_MAX, v.needYou));
+    expect(kinds.join(',')).toBe(kinds.slice().sort((a, b) => (a === b ? 0 : a === 'Urgent' ? -1 : 1)).join(','));
+    expect(kinds.filter(k => k === 'Urgent').length).toBe(Math.min(F.SUMMARY_MAX, v.counts.urgent));
+    expect(text).not.toContain('To know]');                                   // things only "to know" are counted, not listed
+    // a short limit says how many are left
+    const two = F.summaryText(v, { max: 2 }).split('\n');
+    expect(two[0]).toBe('Health Endeavors');
+    expect(two[two.length - 1]).toBe('...and ' + (v.needYou - 2) + ' more on the dashboard.');
+    // nothing needs the owner
+    expect(F.summaryText(F.view([], { now: NOW }), { dayLabel: 'Monday' })).toBe('Health Endeavors, Monday\nAll caught up. Nothing needs you right now.');
+    // set-aside items are mentioned, never dropped silently
+    const store = memStore(); F.snooze(store, items.find(i => i.level !== 'info'), NOW);
+    expect(F.summaryText(F.view(items, { now: NOW, snoozes: F.readSnoozes(store) }), {})).toContain('1 set aside until tomorrow.');
+    for (const junk of [null, undefined, 'x', 7, [], {}, { counts: 'x', items: 'y', all: 7, snoozed: 'z' }]) expect(typeof F.summaryText(junk, junk)).toBe('string');
+  });
+
   test('broken input and blocked storage never break it', ({}, ti) => {
     node(ti);
     expect(() => F.buildFeed(null, 'not a date')).not.toThrow();
@@ -186,6 +212,26 @@ test.describe('the Home section', () => {
     expect(writes(backend)).toEqual([]);
     await f.locator('[data-feeddismiss="00000000-0000-4000-8000-00000000f001"]').click();
     await expect.poll(() => writes(backend).map(r => r.method + ' ' + r.table)).toEqual(['PATCH manual_attention_items']);
+  });
+
+  test('Copy this as a morning summary: the feed as a short text on the clipboard; nothing is sent or written', async ({ page, backend }) => {
+    seed(backend); await on(page);
+    await page.addInitScript(() => { window.__copied = []; try { Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: (t) => { window.__copied.push(t); return Promise.resolve(); } } }); } catch (e) {} });
+    await login(page); await gotoPage(page, 'attentionPanel');
+    const f = feed(page);
+    const need = Number(await f.locator('[data-feedneedyou]').getAttribute('data-feedneedyou'));
+    expect(need).toBeGreaterThan(0);
+    await f.getByRole('button', { name: 'Copy this as a morning summary' }).click();
+    await expect.poll(() => page.evaluate(() => window.__copied.length)).toBe(1);
+    const text = await page.evaluate(() => window.__copied[0]);
+    const lines = text.split('\n');
+    expect(lines[0]).toBe('Health Endeavors, Tuesday, November 24');
+    expect(lines[1].startsWith(need + ' things need you: ')).toBe(true);
+    expect(lines.filter(l => l.startsWith('- [')).length).toBe(Math.min(F.SUMMARY_MAX, need));
+    // the first thing on the page is the first thing in the text
+    const top = (await f.locator('.feedItem .feedTitle').first().innerText()).trim();
+    expect(lines[2]).toContain(top.slice(0, 40));
+    expect(writes(backend)).toEqual([]);
   });
 
   test('readable in light and dark; every control named', async ({ page, backend }, ti) => {
