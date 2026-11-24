@@ -1,13 +1,36 @@
 # Review item 9 — SQL draft 48: parcels and drop-off receipts
 
-Status: OWNER DECISION REQUIRED · production run PENDING your separate approval · written 2026-11-24
+Status: **BLOCKED — DO NOT RUN** (Nov 24) · written 2026-11-24
+
+> **Why blocked:** production already has a `shipments` table, filled every hour by the
+> Shipping/Tracking agent (#5) since September. Its exact columns are not in our records. This
+> draft was written as if there were none, so it must first be adapted to that table. It now
+> **refuses to install** over a table it did not create (it stops and changes nothing), so a run by
+> mistake is harmless. **Next step for you (read-only, safe):** run the shape check below and send
+> me a screenshot of the result; I then rewrite this draft to work with the agent's table.
+
+## Step 0 — read-only shape check (changes nothing; shows structure and a count, no customer data)
+
+```sql
+select 'column' as kind, column_name || ' ' || data_type || case when is_nullable = 'NO' then ' not null' else '' end
+         || coalesce(' default ' || column_default, '') as detail
+  from information_schema.columns where table_schema = 'public' and table_name = 'shipments'
+union all
+select 'constraint', conname || ': ' || pg_get_constraintdef(oid) from pg_constraint where conrelid = to_regclass('public.shipments')
+union all
+select 'rule', policyname || ' (' || cmd || ') ' || roles::text from pg_policies where schemaname = 'public' and tablename = 'shipments'
+union all
+select 'trigger', tgname from pg_trigger where tgrelid = to_regclass('public.shipments') and not tgisinternal
+union all
+select 'rows', count(*)::text from public.shipments;
+```
 Nothing here has been run in production. I never run it myself: you run it, after approving it.
 
 ## The exact SQL
 
 | File | Lines | Fingerprint (SHA-256, first 16) |
 |---|---|---|
-| `docs/ops/sql/drafts/48_DRAFT_shipments.sql` (install) | 312 | `21dc4b9c15213485` |
+| `docs/ops/sql/drafts/48_DRAFT_shipments.sql` (install) | 330 | `f954c717d48d9655` |
 | `docs/ops/sql/drafts/49_DRAFT_rollback_shipments.sql` (undo) | 46 | `9f57badd6477c258` |
 
 ## Target environment
@@ -55,7 +78,7 @@ can be added to its order right there.
 
 ## Local test (throwaway database, made-up data)
 
-`docs/ops/sql/local-test/shipments_test.sh`: **47 of 47 passed** (Nov 24): install twice; staff add
+`docs/ops/sql/local-test/shipments_test.sh`: **50 of 50 passed** (Nov 24): refuses, changing nothing, over a shipments table it did not create; install twice; staff add
 a parcel (spaces and lower case cleaned), who and when recorded; the same number twice is one parcel;
 on another order refused; administrator and owner too; deactivated account and visitor refused;
 unknown order or carrier refused; who can read; one receipt marks two parcels, a repeated number

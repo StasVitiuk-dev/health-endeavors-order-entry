@@ -4,7 +4,7 @@
 -- @environment: production only after the owner's written approval; tested on the local throwaway database
 -- @depends-on:  none
 -- @risk:        LOW
--- @precheck:    stops if auth.uid(), is_active_staff(), is_owner_or_admin(), the orders, tasks or audit_log table, or the audit trigger on tasks is missing
+-- @precheck:    stops, changing nothing, if a shipments or shipment_events table exists that is not this draft's own (production has the Shipping/Tracking agent's shipments table: BLOCKED until adapted to it); stops if auth.uid(), is_active_staff(), is_owner_or_admin(), the orders, tasks or audit_log table, or the audit trigger on tasks is missing
 -- @effect:      2 new tables: shipments (one row per parcel: order, carrier, tracking number unique per carrier, status, dropped-off and delivered times, who added it) and shipment_events (the parcel's diary, written by the database only); add_shipment() keeps a tracking number with its order (refused on a different order); mark_dropped_off() marks every known parcel on a receipt (up to 500) once; status only moves forward; parcels never deleted; active staff, administrators and the owner read and write; production's audit trigger attached; no existing table changes
 -- @postcheck:   both tables present and empty; anon cannot read them; local-test/shipments_test.sh passes on a throwaway copy
 -- @rollback:    drafts/49
@@ -42,6 +42,10 @@
 -- audit_log with who and when.
 --
 -- Honest limits
+--   * BLOCKED (Nov 24): production already has a shipments table (the
+--     Shipping/Tracking agent's, shape not exported). This draft refuses to
+--     install over it. Before any production run it must be adapted to that
+--     table (review item 9: run the read-only shape check first).
 --   * Nothing here contacts a carrier or a customer. "Dropped off" is what the
 --     owner's receipt says; the carrier's own tracking comes later (delivery watch).
 --   * No existing table changes; orders are only read.
@@ -62,6 +66,18 @@ begin
   if to_regclass('public.audit_log') is null then missing := missing || 'table public.audit_log'::text; end if;
   if array_length(missing, 1) is not null then
     raise exception 'Not installed: this database is missing %', array_to_string(missing, ', ');
+  end if;
+  -- Production already has a shipments table, filled hourly by the Shipping/Tracking
+  -- agent (#5). This draft must never take it over, add rules to it or block that
+  -- agent: it installs only where no shipments table exists, or where it is this
+  -- draft's own (marked below). Otherwise it stops and changes nothing.
+  if to_regclass('public.shipments') is not null
+     and coalesce(obj_description(to_regclass('public.shipments'), 'pg_class'), '') <> 'Health Endeavors drafts/48: parcels and drop-off receipts' then
+    raise exception 'Not installed: a shipments table already exists (the Shipping/Tracking agent''s). Nothing was changed. Send this message to the session: the draft must be adapted to that table first.';
+  end if;
+  if to_regclass('public.shipment_events') is not null
+     and coalesce(obj_description(to_regclass('public.shipment_events'), 'pg_class'), '') <> 'Health Endeavors drafts/48: parcel diary' then
+    raise exception 'Not installed: a shipment_events table already exists. Nothing was changed. Send this message to the session.';
   end if;
   select t.tgtype into v_tg from pg_trigger t
    where t.tgrelid = 'public.tasks'::regclass and not t.tgisinternal and lower(t.tgname) like '%audit%' limit 1;
@@ -89,6 +105,7 @@ create table if not exists public.shipments (
   created_at      timestamptz not null default now(),
   constraint shipments_one_parcel_per_label unique (carrier, tracking_number)
 );
+comment on table public.shipments is 'Health Endeavors drafts/48: parcels and drop-off receipts';
 create index if not exists shipments_by_order on public.shipments (order_id);
 create index if not exists shipments_by_tracking on public.shipments (tracking_number);
 create index if not exists shipments_open on public.shipments (status, status_at) where status not in ('delivered', 'returned', 'cancelled');
@@ -100,6 +117,7 @@ create table if not exists public.shipment_events (
   at           timestamptz not null default now(),
   recorded_by  uuid default auth.uid()
 );
+comment on table public.shipment_events is 'Health Endeavors drafts/48: parcel diary';
 create index if not exists shipment_events_by_shipment on public.shipment_events (shipment_id, at);
 
 -- Status only moves forward; a parcel's order, carrier and number never change.
