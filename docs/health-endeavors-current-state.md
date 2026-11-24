@@ -230,7 +230,8 @@ No merging or deploying by Claude · no production Supabase, SQL, cron, RLS or p
    (email sending records) and 58 (personal settings); the earlier review items stay open.
 5. **Shopify notifications:** one screenshot of Settings → Notifications, so the customer emails do
    not repeat what Shopify already sends.
-6. **Printing at 8:00 AM:** a set-up sitting on the owner's Mac (the dashboard part is built).
+6. **Printing at 8:00 AM:** a set-up sitting on the owner's Mac (the dashboard part is built; the
+   steps are in `docs/ops/AUTO_PRINT_MAC_SETUP_2026-11-24.md`).
 7. Seller accounts and the business postal address (never the home address); box sizes and costs; a
    test print of a batch sticker.
 8. Still open from before: tax answers, payment service names, the product list, the website repository.

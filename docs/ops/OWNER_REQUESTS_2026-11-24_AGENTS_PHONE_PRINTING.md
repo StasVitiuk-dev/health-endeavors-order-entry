@@ -22,7 +22,7 @@ texting rules, seller accounts) are Claude's general understanding and are NOT v
 | Backups & Printouts page | Built and merged, behind the preview switch `he_backups_page` (off), which is why the owner does not see it. Prints a day's recap, a month of recaps, the manuals; saves recaps as a spreadsheet; shows what the dashboard can see of the backups. |
 | A "day pack" to print on demand (a day's orders, clients, totals, recap) | BUILT Nov 24 (PR #63, not merged), on Backups & Printouts. |
 | A client list to print | BUILT Nov 24 (PR #66, not merged), from orders: the dashboard reads no separate customer table. |
-| Printing automatically every day | PARTLY BUILT Nov 24 (PR #74, not merged): a daily link that opens the dashboard and prints yesterday's day pack once. The 8:00 AM reminder on the owner's Mac is NOT STARTED: it is set up together with the owner. |
+| Printing automatically every day | PARTLY BUILT Nov 24 (PR #74, not merged): a daily link that opens the dashboard and prints yesterday's day pack once. The 8:00 AM reminder on the owner's Mac is NOT STARTED: it is set up together with the owner, following `docs/ops/AUTO_PRINT_MAC_SETUP_2026-11-24.md`. |
 
 ## 2. Proposed plan
 
@@ -109,8 +109,9 @@ Printouts there is a daily link. Opened with that link, the dashboard prints yes
 itself, once per day per browser. A web page cannot wake up by itself, so the rest is a set-up on the
 Mac next to the printer, done once together with the owner (OWNER ACTION REQUIRED): a repeating 8:00 AM
 reminder that opens the link, the Mac on and signed in to the dashboard, and, for printing with no click
-at all, the browser started in its automatic printing mode. The exact clicks on the Mac are NOT
-verified here and are worked out with the owner at the Mac.
+at all, the browser started in its automatic printing mode. The steps for the Mac, taken from Apple's
+own help pages (two ways; not tried on a Mac from here), are in
+`docs/ops/AUTO_PRINT_MAC_SETUP_2026-11-24.md`; they are done with the owner, one step at a time.
 
 **Drafts on every device (PR #73, CURRENT, not merged yet):** the owner's rule "the same on every phone
 and computer" now covers the three draft pages. The wording, approvals and choices on Store Campaigns,
