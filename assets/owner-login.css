@@ -1403,7 +1403,7 @@ table.sysStatus td{ overflow-wrap:anywhere; }
 @media (max-width:640px){
   .feedItem{ padding:10px 12px; }
   .feedBubble{ max-width:100%; }
-  .feedActions button, .feedFilters button{ min-height:40px; }
+  .feedActions button, .feedFilters button, .diaryEntry button{ min-height:40px; }
   .feedFilters{ flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; padding-bottom:4px; scrollbar-width:none; }
   .feedFilters button{ flex:0 0 auto; }
 }

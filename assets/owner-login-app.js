@@ -3352,6 +3352,7 @@
     async function loadAgentDiary() {
       const AD = diaryMod();
       const host = diaryHost(agentDiaryOn() && !!AD); if (!host) return;
+      hhPull();
       const seq = ++diarySeq;
       try {
         const r = await supabase.from('ai_decision_log').select('id, agent_key, output_summary, confidence, escalated_to_human, created_at')
@@ -3371,6 +3372,16 @@
         h('p', { class: 'hint u-mt-0' }, 'Everything your agents wrote in their own log, in plain words, newest first. A step an agent passed to a person is marked, and also appears in your Home feed.')];
       if (!diaryList) { host.replaceChildren(...head, h('p', { class: 'hint', role: 'status' }, diaryError || 'Loading…')); return; }
       const v = AD.view(diaryList, diaryAgent);
+      // with the "Handled" switch on: a step passed to a person shows whether it was
+      // handled (the same marks as the Home list), or a button to say so
+      const FM = feedMod();
+      const marks = handoffHandledOn() && FM && typeof FM.readHandled === 'function' ? FM.readHandled(feedStore(), Date.now()) : null;
+      const handledBit = (e) => {
+        if (!marks || !e.passedToPerson) return null;
+        const at = marks[e.id];
+        return at ? h('span', { class: 'badge sev-low', 'data-diaryhandledon': e.id }, 'Handled ' + new Date(at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }))
+          : h('button', { type: 'button', class: 'small secondary', 'data-diaryhandled': e.id, 'aria-label': 'Handled: ' + e.agent + ', ' + e.time }, 'Handled');
+      };
       const sel = h('select', { id: 'agentDiaryFilter', 'data-diaryfilter': '1' },
         h('option', { value: '' }, 'All agents (' + diaryList.length + ')'),
         ...v.agents.map(a => h('option', { value: a.key }, a.name + ' (' + a.count + ')')));
@@ -3385,9 +3396,19 @@
             h('span', { class: 'diaryWho' }, e.agent),
             h('span', { class: 'diaryWhat' }, e.what),
             e.passedToPerson ? h('span', { class: 'badge sev-medium' }, 'Passed to a person') : null,
+            handledBit(e),
             e.confidence != null ? h('span', { class: 'u-fs-12 u-c-muted' }, e.confidence + '% sure') : null))))))
           : h('p', { class: 'empty' }, 'No steps recorded in the last 7 days. Agents that are switched off write nothing.'));
     }
+    document.addEventListener('click', (e) => {
+      const b = e.target.closest('#agentDiaryHost [data-diaryhandled]'); if (!b) return;
+      const FM = feedMod(), id = b.getAttribute('data-diaryhandled');
+      if (!FM || !FM.markHandled(feedStore(), id, Date.now())) { showDashError('This browser could not remember that. Nothing was changed.'); return; }
+      hhPush();
+      renderAgentDiary(); paintAttentionFeed(); announce('Marked as handled. It also left the Home list.');
+      const li = [...document.querySelectorAll('#agentDiaryHost [data-diaryentry]')].find(x => x.getAttribute('data-diaryentry') === id);
+      if (li) { li.setAttribute('tabindex', '-1'); li.focus(); }
+    });
     document.addEventListener('change', (e) => {
       const s = e.target.closest('#agentDiaryHost select[data-diaryfilter]'); if (!s) return;
       diaryAgent = s.value; renderAgentDiary();
@@ -3452,7 +3473,7 @@
       hhShared = true;
       const mine = M.readHandled(feedStore(), Date.now());
       const joined = M.mergeHandled(mine, r.value && r.value.items, Date.now());
-      if (JSON.stringify(joined) !== JSON.stringify(mine)) { try { feedStore().setItem(M.HANDLED_KEY, JSON.stringify(joined)); } catch (e) { /* this browser keeps its own list */ } paintAttentionFeed(); }
+      if (JSON.stringify(joined) !== JSON.stringify(mine)) { try { feedStore().setItem(M.HANDLED_KEY, JSON.stringify(joined)); } catch (e) { /* this browser keeps its own list */ } paintAttentionFeed(); renderAgentDiary(); }
       if (JSON.stringify(joined) !== JSON.stringify(M.mergeHandled(r.value && r.value.items, null, Date.now()))) hhPush();   // this browser knew something the database did not
     }
     // The feed's box exists only while the feed is on, so with the switch off Home
@@ -3620,7 +3641,7 @@
         const nextId = next && next.getAttribute('data-feeditem');
         if (!M.markHandled(feedStore(), hd.getAttribute('data-feedhandled'), Date.now())) { showDashError('This browser could not remember that. Nothing was changed.'); return; }
         hhPush();
-        paintAttentionFeed(); announce('Marked as handled. It left the list.');
+        paintAttentionFeed(); renderAgentDiary(); announce('Marked as handled. It left the list.');   // the diary, if it is drawn, shows the mark too
         const back = nextId ? [...host.querySelectorAll('[data-feeditem]')].find(x => x.getAttribute('data-feeditem') === nextId) : null;
         const target = back ? back.querySelector('button') : host.querySelector('#feedHeading');
         if (target) { if (target.id === 'feedHeading') target.setAttribute('tabindex', '-1'); target.focus(); }
