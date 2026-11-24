@@ -84,7 +84,7 @@
       nightlyOverall,
     } = window.HE.helpers;
     // @@ EXT15 modules: created in dependency order (assets/app/*.js; see docs/ops/APPLICATION_MODULE_MAP_EXT15.md)
-    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, agentDiaryOn, realProfitOn, channelMoneyOn, SWITCH_EVERYONE, sharedSettingsOn, orderCostsOn, incidentCloseOn, batchLabelsOn, orderBatchesOn, orderChannelsOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn, storeCampaignsOn, receiptReaderOn, contentHelperOn, customerEmailsOn, emailSendingOn, mySettingsOn, handoffHandledOn } = HE.modules.create('he-config', {  });
+    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, agentDiaryOn, realProfitOn, channelMoneyOn, SWITCH_EVERYONE, sharedSettingsOn, orderCostsOn, incidentCloseOn, batchLabelsOn, orderBatchesOn, orderChannelsOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn, storeCampaignsOn, receiptReaderOn, contentHelperOn, customerEmailsOn, emailSendingOn, mySettingsOn, handoffHandledOn, reviewInboxOn } = HE.modules.create('he-config', {  });
     const { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, focusDialog, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, h, pageIconNode } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
     const { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
     const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, h, supabase });
@@ -3564,6 +3564,7 @@
         attention: Array.isArray(SEARCH_INDEX.attention) ? SEARCH_INDEX.attention : null, labels: ITEM_TYPE_LABELS,
         checks: findings, questions: feedQuestions, nightly: feedNightly(), delivery: feedParcels, agents: feedAgentSteps, recap: feedRecap,
         handled: handoffHandledOn() && typeof M.readHandled === 'function' ? M.readHandled(feedStore(), now) : null,
+        reviews: riFeedRows(),
         money: moneyEl ? { open: Number(moneyEl.getAttribute('data-moneyalert')) } : null,
         tax: taxEl ? { count: Number(taxEl.getAttribute('data-taxratealert')) } : null }, now);
       const v = M.view(items, { now: now, snoozes: M.readSnoozes(feedStore()), filter: feedFilter });
@@ -4735,6 +4736,166 @@
         return;
       }
       if (act === 'show') ceShow();
+    });
+
+    // ---------- Reviews (owner plan item 8, Nov 24; behind reviewInboxOn) ----------
+    // The owner pastes or types reviews in; the worst come first, each with ready
+    // replies to copy. A review that needs the owner also shows on Home ("Needs you
+    // now"). NOTHING IS POSTED OR SENT: a reply is pasted by the owner on the site
+    // where the review was written. Rules: assets/sales/he-review-inbox.js. Kept in
+    // this browser for now; a database step will put them on every device.
+    const RI_KEY = 'he_review_inbox_v1';
+    let riList = null, riMessage = '', riFilter = 'waiting', riOpen = '', riRemoveId = '';
+    const riDraft = { riStarsIn: '', riChannelIn: '', riDateIn: '', riTextIn: '', riPasteIn: '', open: false, cleared: [] };   // what is being typed, kept across redraws
+    const riMod = () => (window.HE && window.HE.sales && window.HE.sales['he-review-inbox']) || null;
+    const riDeps = () => { const S = (window.HE && window.HE.sales) || {}; return { reviews: S['he-sales-reviews'] || null, feedback: S['he-sales-feedback'] || null, claims: S['he-sales-claims'] || null }; };
+    const riOwner = () => currentUserRole === 'owner' || currentUserRole === 'administrator';
+    function riRead() {
+      const M = riMod(); if (!M) return [];
+      let v = null; try { v = JSON.parse(localStorage.getItem(RI_KEY) || 'null'); } catch (e) { v = null; }
+      return M.add(v && Array.isArray(v.reviews) ? v.reviews : [], [], Date.now()).list;      // checked again on the way in
+    }
+    function riKeep() { try { localStorage.setItem(RI_KEY, JSON.stringify({ reviews: riList })); return true; } catch (e) { return false; } }
+    // what Home shows: only for the people who can see the Reviews page
+    function riFeedRows() {
+      const M = riMod(); if (!M || !reviewInboxOn() || !riOwner()) return null;
+      if (!riList) riList = riRead();
+      return M.toFeed(riList, riDeps());
+    }
+    function loadReviewInbox() {
+      const host = document.getElementById('reviewsPanel'); if (!host) return;
+      if (!(typeof reviewInboxOn === 'function' && reviewInboxOn())) { host.replaceChildren(); return; }
+      if (!riList) riList = riRead();
+      renderReviewInbox();
+    }
+    const RI_LEVEL_WORD = { urgent: 'Urgent', today: 'Today', info: 'Good news' };
+    const riStars = (n) => '★'.repeat(n) + '☆'.repeat(5 - n);
+    function renderReviewInbox() {
+      const host = document.getElementById('reviewsPanel'), M = riMod(); if (!host) return;
+      if (!M) { host.replaceChildren(h('h2', null, 'Reviews'), h('p', { class: 'empty' }, 'The review tools could not load. Refresh the page.')); return; }
+      if (!riOwner()) { host.replaceChildren(h('h2', null, 'Reviews'), h('p', { class: 'hint' }, 'Only the owner and administrators can see reviews here.')); return; }
+      const deps = riDeps(), ranked = M.rank(riList, deps), sum = M.summary(riList, deps);
+      // what is being typed survives a redraw (a handler empties riDraft's fields itself after adding)
+      const typed = (id) => { const el = document.getElementById(id); return el ? String(el.value || '') : null; };
+      ['riStarsIn', 'riChannelIn', 'riDateIn', 'riTextIn', 'riPasteIn'].forEach(id => { const v = typed(id); if (v !== null && !riDraft.cleared.includes(id)) riDraft[id] = v; else if (riDraft.cleared.includes(id)) riDraft[id] = ''; });
+      const box = host.querySelector('[data-ripastebox]'); if (box) riDraft.open = box.open;
+      riDraft.cleared = [];
+      const redact = deps.feedback && typeof deps.feedback.redactPII === 'function' ? deps.feedback.redactPII : null;
+      const field = (id, label, node, hint) => h('div', { class: 'heField scField' }, h('label', { for: id }, label), node, hint ? h('div', { class: 'u-fs-12 u-c-muted' }, hint) : null);
+      const shown = ranked.filter(r => riFilter === 'all' || (r.status === 'new' && r.level !== 'info'));
+      const card = (r) => {
+        const text = redact ? redact(r.text) : r.text, hidden = text !== r.text;
+        const rep = riOpen === r.id ? M.replies(r, deps) : null;
+        const waiting = r.status === 'new';
+        return h('li', { class: 'feedItem' + (waiting && r.level !== 'info' ? ' feed-' + r.level : ''), 'data-rireview': r.id, 'data-rilevel': r.level, 'data-ristatus': r.status },
+          h('div', { class: 'feedHead' },
+            h('span', { class: 'feedLevel' }, waiting ? RI_LEVEL_WORD[r.level] : M.STATUSES[r.status]),
+            h('span', { class: 'badge' }, M.CHANNELS[r.channel]),
+            r.product ? h('span', null, r.product) : null,
+            h('span', { class: 'feedWhen' }, r.date ? new Date(r.date + 'T12:00:00Z').toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric' }) : 'no date given')),
+          h('p', { class: 'feedTitle' }, h('span', { 'aria-hidden': 'true' }, riStars(r.stars) + ' '), r.stars + ' of 5 stars' + (r.reasons.filter(x => !/ stars?$/.test(x)).length ? ' · ' + r.reasons.filter(x => !/ stars?$/.test(x)).join(', ') : '')),
+          h('p', { class: 'feedDetail riText' }, text),
+          hidden ? h('p', { class: 'hint u-mt-4' }, 'Private details in this review (a phone number, an email or an address) are hidden here.') : null,
+          r.safety ? h('p', { class: 'u-fs-12p5 u-mt-6', 'data-risafety': '1' }, h('b', null, 'This may be a reaction to the product.'), ' Answer it yourself, today. If a customer was harmed, also record it under Adverse Event Reports: that record has its own deadline. ',
+            h('button', { type: 'button', class: 'small secondary', 'data-ri': 'adverse' }, 'Open Adverse Event Reports')) : null,
+          rep ? h('div', { class: 'feedChat', 'data-rireplies': rep.bucket },
+            h('p', { class: 'hint u-mt-0' }, rep.rule + ' Copy one, change it as you like, and paste it where the review was written.'),
+            ...rep.options.map(o => o.blocked
+              ? h('p', { class: 'chBlocked', 'data-riblocked': o.key }, 'This ready reply is not offered: the wording check could not confirm it. Refresh the page.')
+              : h('div', { class: 'riReply' }, h('p', { class: 'feedBubble feedDraft' }, h('span', { class: 'feedWho' }, 'Ready reply (not posted)'), o.text),
+                  h('button', { type: 'button', class: 'small secondary', 'data-ricopy': o.key, 'data-riid': r.id }, 'Copy this reply')))) : null,
+          h('div', { class: 'feedActions' },
+            h('button', { type: 'button', class: 'small', 'data-ri': 'replies', 'data-riid': r.id, 'aria-expanded': String(riOpen === r.id) }, riOpen === r.id ? 'Hide the replies' : 'Ready replies'),
+            waiting ? h('button', { type: 'button', class: 'small secondary', 'data-ri': 'answered', 'data-riid': r.id }, 'I answered it') : null,
+            waiting ? h('button', { type: 'button', class: 'small secondary', 'data-ri': 'noreply', 'data-riid': r.id }, 'No reply needed') : null,
+            waiting ? null : h('button', { type: 'button', class: 'small secondary', 'data-ri': 'new', 'data-riid': r.id }, 'Put it back'),
+            h('button', { type: 'button', class: 'small secondary', 'data-ri': 'remove', 'data-riid': r.id }, riRemoveId === r.id ? 'Tap again to remove' : 'Remove')));
+      };
+      host.replaceChildren(
+        h('h2', null, 'Reviews'),
+        h('p', { class: 'hint hintLead', 'data-rinosend': '1' }, h('b', null, 'Nothing is posted from this page.'), ' You paste or type your reviews in. The ones that need you come first, each with ready replies. You copy a reply and paste it on the site where the review was written.'),
+        h('p', { class: 'hint u-mt-0', 'data-rikept': '1' }, 'Kept in this browser only for now. Having them on every phone and computer needs a database step, which is prepared separately.'),
+        h('p', { class: 'u-fs-12', role: 'status', 'data-rimessage': '1' }, riMessage),
+        h('h3', null, '1. Add reviews'),
+        h('div', { class: 'u-d-flex u-gap-8 u-fwr-wrap u-ai-flex-end' },
+          field('riStarsIn', 'Stars', h('select', { id: 'riStarsIn' }, [5, 4, 3, 2, 1].map(n => h('option', { value: String(n) }, n + (n === 1 ? ' star' : ' stars'))))),
+          field('riChannelIn', 'Where it was written', h('select', { id: 'riChannelIn' }, Object.keys(M.CHANNELS).map(k => h('option', { value: k }, M.CHANNELS[k])))),
+          field('riDateIn', 'Date (if you know it)', h('input', { id: 'riDateIn', type: 'date' }))),
+        field('riTextIn', 'What the review says', h('textarea', { id: 'riTextIn', rows: '3', maxlength: String(M.MAX_TEXT) })),
+        h('button', { type: 'button', class: 'small u-mt-8', 'data-ri': 'add-one' }, 'Add this review'),
+        h('details', { class: 'u-mt-12', 'data-ripastebox': '1' }, h('summary', null, 'Or paste a list of reviews'),
+          field('riPasteIn', 'The list', h('textarea', { id: 'riPasteIn', rows: '6', maxlength: '200000', placeholder: M.EXAMPLE }),
+            'The first line names the columns: at least "stars" and "text". Useful: "channel" (Amazon, Etsy, TikTok, website, Google), "date", "product". Up to ' + M.MAX_LINES + ' reviews at a time. A review already here is not added twice.'),
+          h('button', { type: 'button', class: 'small u-mt-8', 'data-ri': 'paste' }, 'Read the list')),
+        h('h3', null, '2. Your reviews'),
+        h('p', { class: 'feedSummary', 'data-risummary': String(sum.total), 'data-riwaiting': String(sum.waiting) }, sum.total
+          ? [h('b', null, sum.waiting + (sum.waiting === 1 ? ' review needs you' : ' reviews need you')), ' · ' + sum.urgent + ' urgent, ' + sum.today + ' today · ' + sum.total + (sum.total === 1 ? ' review' : ' reviews') + ' here, average ' + sum.average + ' of 5 (exact, of the reviews here only)']
+          : 'No reviews here yet.'),
+        sum.total ? h('div', { class: 'feedFilters', role: 'group', 'aria-label': 'Show' },
+          h('button', { type: 'button', class: 'small' + (riFilter === 'waiting' ? '' : ' secondary'), 'data-rifilter': 'waiting', 'aria-pressed': String(riFilter === 'waiting') }, 'Need you (' + sum.waiting + ')'),
+          h('button', { type: 'button', class: 'small' + (riFilter === 'all' ? '' : ' secondary'), 'data-rifilter': 'all', 'aria-pressed': String(riFilter === 'all') }, 'All (' + sum.total + ')')) : null,
+        shown.length ? h('ul', { class: 'feedList', 'aria-label': 'Reviews, the ones that need you first' }, shown.map(card))
+          : (sum.total ? h('p', { class: 'feedCaughtUp', 'data-ricaughtup': '1' }, 'No review needs you right now.') : null));
+      ['riStarsIn', 'riChannelIn', 'riDateIn', 'riTextIn', 'riPasteIn'].forEach(id => { const el = document.getElementById(id); if (el && riDraft[id]) el.value = riDraft[id]; });
+      const again = host.querySelector('[data-ripastebox]'); if (again && riDraft.open) again.open = true;
+    }
+    function riChanged(message, focusSel) {
+      riMessage = riKeep() ? message : message + ' This browser would not keep it (private window or storage blocked).';
+      renderReviewInbox(); paintAttentionFeed(); announce(riMessage);
+      const el = focusSel ? document.querySelector('#reviewsPanel ' + focusSel) : null;
+      const target = el || document.querySelector('#reviewsPanel [data-rimessage]');
+      if (target) { if (!el) target.setAttribute('tabindex', '-1'); target.focus(); }
+    }
+    document.addEventListener('click', (e) => {
+      const t = e.target.closest('#reviewsPanel button'); if (!t || !riList) return;
+      const M = riMod(); if (!M || !riOwner()) return;
+      if (t.hasAttribute('data-rifilter')) { riFilter = t.getAttribute('data-rifilter') === 'all' ? 'all' : 'waiting'; renderReviewInbox(); const b = document.querySelector('#reviewsPanel [data-rifilter="' + riFilter + '"]'); if (b) b.focus(); return; }
+      if (t.hasAttribute('data-ricopy')) {
+        const r = M.rank(riList, riDeps()).find(x => x.id === t.getAttribute('data-riid'));
+        const o = r ? M.replies(r, riDeps()).options.find(x => x.key === t.getAttribute('data-ricopy') && !x.blocked) : null;
+        if (!o) { showDashError('That reply is no longer offered. Open the replies again.'); return; }
+        navigator.clipboard.writeText(o.text).then(() => {
+          riMessage = 'Reply copied. Nothing was posted. Paste it where the review was written, then press "I answered it".';
+          const m = document.querySelector('#reviewsPanel [data-rimessage]'); if (m) m.textContent = riMessage;
+          announce(riMessage); toast('Copied');
+        }).catch(() => { showDashError('Could not copy to the clipboard. Select the reply and copy it by hand.'); });
+        return;
+      }
+      const act = t.getAttribute('data-ri'), id = t.getAttribute('data-riid') || '';
+      if (act !== 'remove') riRemoveId = '';
+      if (act === 'adverse') { showPage('adverseEventsPanel'); return; }
+      if (act === 'add-one') {
+        const v = (x) => (document.getElementById(x) || {}).value || '';
+        const c = M.clean({ stars: v('riStarsIn'), channel: v('riChannelIn'), date: v('riDateIn'), text: v('riTextIn') });
+        if (!c.ok) { riMessage = 'Not added: ' + c.problems.join(' '); renderReviewInbox(); announce(riMessage); const f = document.getElementById('riTextIn'); if (f) f.focus(); return; }
+        const r = M.add(riList, [c.review], Date.now()); riList = r.list;
+        riDraft.cleared = ['riTextIn', 'riDateIn'];
+        riChanged(r.added ? 'Review added.' : 'That review is already here; it was not added twice.', '#riTextIn');
+        return;
+      }
+      if (act === 'paste') {
+        const p = M.parse((document.getElementById('riPasteIn') || {}).value || '');
+        if (p.problems.length || !p.read) {
+          riMessage = p.problems.length ? p.problems.join(' ') : (p.unread ? 'No line could be read as a review (stars from 1 to 5, and the text).' : 'Paste your list of reviews first.');
+          const m = document.querySelector('#reviewsPanel [data-rimessage]'); if (m) m.textContent = riMessage; announce(riMessage); return;
+        }
+        const r = M.add(riList, p.rows, Date.now()); riList = r.list;
+        riDraft.cleared = ['riPasteIn'];
+        riChanged(r.added + (r.added === 1 ? ' review added' : ' reviews added') + (r.duplicates ? ', ' + r.duplicates + ' already here' : '') + (p.unread ? ', ' + p.unread + (p.unread === 1 ? ' line' : ' lines') + ' could not be read' : '') + '.', '[data-rifilter="waiting"]');
+        return;
+      }
+      if (act === 'replies') { riOpen = riOpen === id ? '' : id; renderReviewInbox(); const b = [...document.querySelectorAll('#reviewsPanel [data-ri="replies"]')].find(x => x.getAttribute('data-riid') === id); if (b) b.focus(); return; }
+      if (act === 'answered' || act === 'noreply' || act === 'new') {
+        const r = M.setStatus(riList, id, act, Date.now()); if (!r.ok) return;
+        riList = r.list; if (riOpen === id) riOpen = '';
+        riChanged(act === 'answered' ? 'Marked as answered.' : act === 'noreply' ? 'Marked: no reply needed.' : 'Put back among the ones that need you.');
+        return;
+      }
+      if (act === 'remove') {
+        if (riRemoveId !== id) { riRemoveId = id; renderReviewInbox(); const b = [...document.querySelectorAll('#reviewsPanel [data-ri="remove"]')].find(x => x.getAttribute('data-riid') === id); if (b) b.focus(); announce('Tap again to remove this review from this browser.'); return; }
+        riRemoveId = ''; riList = riList.filter(x => x.id !== id);
+        riChanged('Review removed from this browser.');
+      }
     });
 
     // ---------- Backups & Printouts (owner request, Nov 23; behind backupsPageOn)
@@ -6847,6 +7008,7 @@
       storeCampaignsPanel: [loadStoreCampaigns],
       contentHelperPanel: [loadContentHelper],
       customerEmailsPanel: [loadCustomerEmails],
+      reviewsPanel: [loadReviewInbox],
       featureRequestsPanel: [loadFeatureRequests, loadDeletedFeatureRequests],
       legalHoldsPanel: [loadLegalHolds, loadReleasedLegalHolds],
       salesCommandPanel:   [() => loadSales('salesCommandPanel')],

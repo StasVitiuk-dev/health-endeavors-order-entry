@@ -25,7 +25,7 @@
   const RANK = { urgent: 0, today: 1, info: 2 };
   const KINDS = Object.freeze({
     message: 'Message', task: 'Task', approval: 'Approval', reminder: 'Reminder', check: 'Check',
-    nightly: 'Nightly check', money: 'Money', tax: 'Tax', stock: 'Stock', incident: 'Incident', delivery: 'Delivery', agent: 'Agent', other: 'Item' });
+    nightly: 'Nightly check', money: 'Money', tax: 'Tax', stock: 'Stock', incident: 'Incident', delivery: 'Delivery', agent: 'Agent', review: 'Review', other: 'Item' });
   const FILTERS = Object.freeze([
     { key: 'all', label: 'All' }, { key: 'urgent', label: 'Urgent' }, { key: 'message', label: 'Messages' },
     { key: 'work', label: 'Tasks and approvals' }, { key: 'delivery', label: 'Deliveries' }, { key: 'checks', label: 'Checks' }, { key: 'money', label: 'Money and tax' }]);
@@ -246,13 +246,22 @@
     return cleanHandled(out, now);
   }
 
+  // reviews that need the owner (he-review-inbox.js toFeed): pasted in by the owner, kept in this browser
+  function fromReviews(rows) {
+    return asList(rows).filter(r => r.id && (r.level === 'urgent' || r.level === 'today')).map(r => ({
+      id: 'review:' + text(r.id, 80), kind: 'review', badge: 'Review', level: r.level,
+      title: text(r.title, 200) || 'A review needs you', detail: text(r.detail, 200),
+      when: time(r.since), page: 'reviewsPanel', actions: [{ kind: 'open', label: 'Open Reviews', page: 'reviewsPanel' }],
+      signature: [r.level, fp(r.title), fp(r.detail)].join('|') }));
+  }
+
   function buildFeed(src, now) {
     const s = src || {};
     const t = time(now) != null ? time(now) : Date.now();
     const items = [].concat(
       fromQuestions(s.questions, t), fromAttention(s.attention, t, s.labels),
       fromChecks(s.checks, { questions: Array.isArray(s.questions), attention: Array.isArray(s.attention) }),
-      fromNightly(s.nightly), fromMoney(s.money), fromTax(s.tax), fromDelivery(s.delivery), fromAgents(s.agents, t, { handled: s.handled, raiseAfterHours: s.raiseAfterHours }), fromRecap(s.recap));
+      fromNightly(s.nightly), fromMoney(s.money), fromTax(s.tax), fromDelivery(s.delivery), fromAgents(s.agents, t, { handled: s.handled, raiseAfterHours: s.raiseAfterHours }), fromReviews(s.reviews), fromRecap(s.recap));
     const seen = new Set();
     const unique = items.filter(i => (seen.has(i.id) ? false : (seen.add(i.id), true)));
     // most urgent first; within a level, overdue / oldest first, then undated
@@ -266,7 +275,7 @@
   function matchesFilter(item, key) {
     switch (key) {
       case 'urgent': return item.level === 'urgent';
-      case 'message': return item.kind === 'message';
+      case 'message': return item.kind === 'message' || item.kind === 'review';
       case 'work': return ['task', 'approval', 'reminder', 'incident', 'agent'].includes(item.kind);
       case 'checks': return ['check', 'nightly', 'stock'].includes(item.kind) || item.id.indexOf('check:') === 0;
       case 'money': return item.kind === 'money' || item.kind === 'tax';
@@ -378,5 +387,5 @@
 
   return { LEVELS, KINDS, FILTERS, SNOOZE_KEY, SUMMARY_MAX, summaryText, buildFeed, matchesFilter, view, readSnoozes, snooze, unsnoozeAll, isSnoozed, CLEARED_KEY, pack, merge, unpack,
     HANDLED_KEY, HANDLED_MAX, RAISE_HOURS, readMarks, readHandled, markHandled, unmarkHandled, mergeHandled,
-    _from: { fromAttention, fromChecks, fromNightly, fromQuestions, fromMoney, fromTax, fromDelivery, fromAgents, fromRecap } };
+    _from: { fromAttention, fromChecks, fromNightly, fromQuestions, fromMoney, fromTax, fromDelivery, fromAgents, fromReviews, fromRecap } };
 }));

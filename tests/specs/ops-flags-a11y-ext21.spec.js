@@ -17,7 +17,7 @@ const { test, expect, login, gotoPage } = require('../helpers/dashboard');
 const FLAGS = ['he_scan_shipment', 'he_reorder_planning', 'he_saved_views', 'he_cycle_count', 'he_partial_receiving', 'he_supplier_scorecard', 'he_supplier_documents',
   'he_reconcile', 'he_report_versions', 'he_report_export', 'he_invoice_preview', 'he_recovery_drill', 'he_ops_watch',
   // Nov 23: the sections added since (money matching, packing slips, Backups & Printouts)
-  'he_money_match', 'he_order_slips', 'he_backups_page', 'he_store_campaigns', 'he_content_helper', 'he_customer_emails',
+  'he_money_match', 'he_order_slips', 'he_backups_page', 'he_store_campaigns', 'he_content_helper', 'he_customer_emails', 'he_review_inbox',
   // Nov 23: product list import; Nov 24: batch stickers
   'he_product_import', 'he_batch_labels', 'he_order_channels', 'he_receipt_reader'];
 // page -> the switch-gated hosts on it. heading:false = a small strip of
@@ -33,6 +33,7 @@ const PAGES = [
   ['storeCampaignsPanel', [['storeCampaignsPanel', true]]],
   ['contentHelperPanel', [['contentHelperPanel', true]]],
   ['customerEmailsPanel', [['customerEmailsPanel', true]]],
+  ['reviewsPanel', [['reviewsPanel', true]]],
   ['expensesPanel', [['receiptReaderHost', true]]],
 ];
 
