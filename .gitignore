@@ -1,3 +1,5 @@
+# with and without the slash: a link named node_modules must never be committed either
+node_modules
 node_modules/
 test-results/
 playwright-report/
