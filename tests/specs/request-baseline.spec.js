@@ -48,10 +48,11 @@ test('every page opens with realistic data; the request list matches the baselin
   for (const id of ids) {
     await gotoPage(page, id);
     await expect(page.locator(`section#${id}`)).toBeVisible();
-    // Nov 24: System status sends its install checks only while its page is still the
-    // open one. Moving on at once (a busy machine, another test running beside this
-    // one) skipped them, and six requests went missing from the list by chance.
-    if (id === 'continuityPanel') await page.waitForLoadState('networkidle');
+    // Nov 24: some pages send follow-up requests only while they are still the open
+    // page (System status sends its install checks that way). Moving on at once, on a
+    // busy machine with another test running beside this one, skipped them by chance
+    // and requests went missing from the list. So each page is given time to finish.
+    await page.waitForLoadState('networkidle');
   }
   await page.waitForLoadState('networkidle');
 
