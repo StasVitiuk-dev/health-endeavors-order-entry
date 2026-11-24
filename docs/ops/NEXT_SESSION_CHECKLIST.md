@@ -1,7 +1,21 @@
 # When you're back: checklist (printers, agents, payments)
 
-Status: CURRENT · written Nov 23, updated Nov 23 evening (PR #36 merged and live) · for Stas. One step at a time; I explain each one before you
+Status: CURRENT · written Nov 23, updated Nov 24 (section 0 added) · for Stas. One step at a time; I explain each one before you
 click. Nothing here goes live until you approve it.
+
+## 0. Added Nov 24 (CURRENT): do these first
+
+The full list of what waits on you, in order, is in `docs/health-endeavors-current-state.md`, section 8.
+In short:
+
+- [ ] Merge PR #80 once its checks are green (it contains #56–#79), then PR #51 (documents).
+- [ ] One stock count: your decision, after the read-only shape check
+      (`docs/ops/ONE_STOCK_COUNT_DECISION_2026-11-24.md`).
+- [ ] Business email and which email service (`docs/ops/BUSINESS_EMAIL_PLAN.md`; the comparison arrives with PR #78).
+- [ ] Database draft 50 in a guided sitting (it makes switches and drafts the same on every device).
+- [ ] The 8:00 AM printing set-up on your Mac (`docs/ops/AUTO_PRINT_MAC_SETUP_2026-11-24.md`).
+
+The sections below are from Nov 23 and still apply.
 
 ## 1. Have ready (only what you have)
 
