@@ -3000,7 +3000,7 @@
     // notices) and the customer questions still waiting. It never writes: "Answer"
     // opens Customer Questions, "Dismiss" uses the reminder's own Dismiss button
     // below, "Later" hides an item until tomorrow in this browser only.
-    let feedFilter = 'all', feedQuestions = null, feedSeq = 0, feedLast = new Map();
+    let feedFilter = 'all', feedQuestions = null, feedSeq = 0, feedLast = new Map(), feedParcels = null;
     const FEED_LIMIT = 100;
     function feedMod() { try { return (window.HE && window.HE.views && window.HE.views['he-attention-feed']) || null; } catch (e) { return null; } }
     function feedStore() { try { return window.localStorage; } catch (e) { return null; } }
@@ -3024,6 +3024,21 @@
         if (seq !== feedSeq) return;
         feedQuestions = null;                    // the "Customer questions waiting" check stands in for them
       }
+      // parcels that need the owner (drafts/48; nothing when it is not installed)
+      try {
+        const W = (window.HE && window.HE.scan && window.HE.scan['he-delivery-watch']) || null;
+        const r = W ? await supabase.from('shipments').select('id, order_id, carrier, tracking_number, status, status_at, created_at')
+          .not('status', 'in', '(delivered,cancelled)').order('status_at', { ascending: true }).limit(500) : null;
+        if (seq !== feedSeq) return;
+        if (!W || !r || r.error) feedParcels = null;
+        else {
+          const ids = [...new Set((r.data || []).map(x => x.order_id).filter(Boolean))];
+          const orders = ids.length ? await fetchAllRowsIn('orders', 'id, order_number, customer_name', 'id', ids) : [];
+          if (seq !== feedSeq) return;
+          const byId = Object.create(null); orders.forEach(o => { byId[o.id] = o; });
+          feedParcels = W.watch(r.data || [], { now: Date.now(), ordersById: byId, trackingConnected: false });
+        }
+      } catch (e) { if (seq !== feedSeq) return; feedParcels = null; }
       paintAttentionFeed();
     }
     // the nightly check, as Home shows it below (its own cards keep their detail)
@@ -3051,7 +3066,7 @@
       const now = Date.now();
       const items = M.buildFeed({
         attention: Array.isArray(SEARCH_INDEX.attention) ? SEARCH_INDEX.attention : null, labels: ITEM_TYPE_LABELS,
-        checks: findings, questions: feedQuestions, nightly: feedNightly(),
+        checks: findings, questions: feedQuestions, nightly: feedNightly(), delivery: feedParcels,
         money: moneyEl ? { open: Number(moneyEl.getAttribute('data-moneyalert')) } : null,
         tax: taxEl ? { count: Number(taxEl.getAttribute('data-taxratealert')) } : null }, now);
       const v = M.view(items, { now: now, snoozes: M.readSnoozes(feedStore()), filter: feedFilter });
@@ -3071,7 +3086,8 @@
         if (i.level !== 'info' || i.kind === 'message') acts.push(h('button', { type: 'button', class: 'small secondary', 'data-feedsnooze': i.id, title: 'Hidden in this browser until tomorrow, or until it changes' }, 'Later'));
         const chat = i.message ? [h('div', { class: 'feedChat' },
           h('p', { class: 'feedBubble feedThem' }, h('span', { class: 'feedWho' }, i.message.from + ' wrote'), i.message.text || '(no text)'),
-          ...(i.message.draft ? [h('p', { class: 'feedBubble feedDraft' }, h('span', { class: 'feedWho' }, 'Draft reply (not sent)'), i.message.draft)] : []))] : [];
+          ...(i.message.draft ? [h('p', { class: 'feedBubble feedDraft' }, h('span', { class: 'feedWho' }, 'Draft reply (not sent)'), i.message.draft)] : []))]
+          : i.suggestion ? [h('div', { class: 'feedChat' }, h('p', { class: 'feedBubble feedDraft' }, h('span', { class: 'feedWho' }, 'Suggested message to the customer (not sent)'), i.suggestion))] : [];
         return h('li', { class: 'feedItem feed-' + i.level, 'data-feeditem': i.id, 'data-feedkind': i.kind },
           h('div', { class: 'feedHead' },
             h('span', { class: 'feedLevel' }, FEED_LEVEL_WORD[i.level]),
@@ -3105,7 +3121,7 @@
         const item = feedLast.get(c.getAttribute('data-feedcopy'));
         const act = item && item.actions.find(a => a.kind === 'copy');
         if (!act) return;
-        try { await navigator.clipboard.writeText(act.text); announce('Reply copied. Paste it where the customer wrote, then mark the question answered.'); toast('Reply copied'); }
+        try { await navigator.clipboard.writeText(act.text); announce(item.kind === 'message' ? 'Reply copied. Paste it where the customer wrote, then mark the question answered.' : 'Message copied. Paste it into your message to the customer.'); toast('Copied'); }
         catch (err) { showDashError('Could not copy to clipboard. Open Customer Questions to select and copy the reply by hand.'); }
         return;
       }

@@ -25,15 +25,18 @@
   const RANK = { urgent: 0, today: 1, info: 2 };
   const KINDS = Object.freeze({
     message: 'Message', task: 'Task', approval: 'Approval', reminder: 'Reminder', check: 'Check',
-    nightly: 'Nightly check', money: 'Money', tax: 'Tax', stock: 'Stock', incident: 'Incident', other: 'Item' });
+    nightly: 'Nightly check', money: 'Money', tax: 'Tax', stock: 'Stock', incident: 'Incident', delivery: 'Delivery', other: 'Item' });
   const FILTERS = Object.freeze([
     { key: 'all', label: 'All' }, { key: 'urgent', label: 'Urgent' }, { key: 'message', label: 'Messages' },
-    { key: 'work', label: 'Tasks and approvals' }, { key: 'checks', label: 'Checks' }, { key: 'money', label: 'Money and tax' }]);
+    { key: 'work', label: 'Tasks and approvals' }, { key: 'delivery', label: 'Deliveries' }, { key: 'checks', label: 'Checks' }, { key: 'money', label: 'Money and tax' }]);
   const MAX_TEXT = 600;
   const SNOOZE_KEY = 'he_feed_snooze';
   const DAY = 86400000;
 
   const text = (v, max) => { const s = (v == null ? '' : String(v)).replace(/\s+/g, ' ').trim(); return s.length > (max || MAX_TEXT) ? s.slice(0, (max || MAX_TEXT) - 1) + '…' : s; };
+  // a message keeps its line breaks (greeting, paragraphs, signature); only spaces
+  // within a line are tidied and very long texts are cut
+  const para = (v, max) => { const s = (v == null ? '' : String(v)).replace(/\r\n?/g, '\n').split('\n').map(l => l.replace(/[ \t]+/g, ' ').trim()).join('\n').replace(/\n{3,}/g, '\n\n').trim(); return s.length > max ? s.slice(0, max - 1) + '…' : s; };
   const time = (v) => { if (v == null || v === '') return null; const t = typeof v === 'number' ? v : Date.parse(String(v)); return isFinite(t) ? t : null; };
   const startOfNextDay = (now) => { const d = new Date(now); d.setHours(24, 0, 0, 0); return d.getTime(); };
   // a short fingerprint of a text, so a snooze ends when the text changes without
@@ -104,11 +107,11 @@
       const who = text(q.customer_name, 80) || 'A customer';
       const channel = text(q.channel, 40);
       const actions = [{ kind: 'open', label: 'Answer', page: 'inquiriesPanel' }];
-      if (text(q.ai_draft_reply)) actions.unshift({ kind: 'copy', label: 'Copy reply', text: text(q.ai_draft_reply, 4000) });
+      if (text(q.ai_draft_reply)) actions.unshift({ kind: 'copy', label: 'Copy reply', text: para(q.ai_draft_reply, 4000) });
       return { id: 'q:' + text(q.id, 80), kind: 'message', badge: 'Message', level: level,
         title: who + (channel ? ' · ' + channel : ''), detail: sensitive ? 'Sensitive: check before replying.' : (ageH >= 24 ? 'Waiting more than a day.' : ''),
         when: at, page: 'inquiriesPanel', actions: actions,
-        message: { from: who, text: text(q.question_text, 2000), draft: text(q.ai_draft_reply, 4000) || null },
+        message: { from: who, text: para(q.question_text, 2000), draft: para(q.ai_draft_reply, 4000) || null },
         signature: [q.status, q.severity, fp(q.question_text), fp(q.ai_draft_reply)].join('|') };
     });
   }
@@ -132,13 +135,28 @@
       when: time(t.due), page: 'taxRecordsPanel', actions: [{ kind: 'open', label: 'Open', page: 'taxRecordsPanel' }], signature: text(t.due, 20) + '|' + (t.count || '') }));
   }
 
+  // parcels that need the owner (he-delivery-watch.js), each with the next step and,
+  // where it helps, a suggested message to the customer (copied, never sent)
+  function fromDelivery(rows) {
+    return asList(rows).filter(d => d.id && LEVELS.includes(d.level)).map(d => {
+      const actions = [{ kind: 'open', label: 'Open Orders', page: 'ordersPanel' }];
+      if (d.customerMessage) actions.unshift({ kind: 'copy', label: 'Copy message', text: para(d.customerMessage, 4000) });
+      return { id: 'parcel:' + text(d.id, 80), kind: 'delivery', badge: 'Delivery', level: d.level,
+        title: text(d.title, 200) + (d.order ? ' · order #' + text(d.order, 30) : ''),
+        detail: text(d.next) + (d.tracking ? ' Tracking ' + text(d.tracking, 40) + '.' : ''),
+        when: time(d.since), page: 'ordersPanel', actions: actions,
+        suggestion: d.customerMessage ? para(d.customerMessage, 4000) : null,
+        signature: [d.status, d.level, d.title].join('|') };
+    });
+  }
+
   function buildFeed(src, now) {
     const s = src || {};
     const t = time(now) != null ? time(now) : Date.now();
     const items = [].concat(
       fromQuestions(s.questions, t), fromAttention(s.attention, t, s.labels),
       fromChecks(s.checks, { questions: Array.isArray(s.questions), attention: Array.isArray(s.attention) }),
-      fromNightly(s.nightly), fromMoney(s.money), fromTax(s.tax));
+      fromNightly(s.nightly), fromMoney(s.money), fromTax(s.tax), fromDelivery(s.delivery));
     const seen = new Set();
     const unique = items.filter(i => (seen.has(i.id) ? false : (seen.add(i.id), true)));
     // most urgent first; within a level, overdue / oldest first, then undated
@@ -156,6 +174,7 @@
       case 'work': return ['task', 'approval', 'reminder', 'incident'].includes(item.kind);
       case 'checks': return ['check', 'nightly', 'stock'].includes(item.kind) || item.id.indexOf('check:') === 0;
       case 'money': return item.kind === 'money' || item.kind === 'tax';
+      case 'delivery': return item.kind === 'delivery';
       default: return true;
     }
   }
@@ -195,5 +214,5 @@
   }
 
   return { LEVELS, KINDS, FILTERS, SNOOZE_KEY, buildFeed, matchesFilter, view, readSnoozes, snooze, unsnoozeAll, isSnoozed,
-    _from: { fromAttention, fromChecks, fromNightly, fromQuestions, fromMoney, fromTax } };
+    _from: { fromAttention, fromChecks, fromNightly, fromQuestions, fromMoney, fromTax, fromDelivery } };
 }));

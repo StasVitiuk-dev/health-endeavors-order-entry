@@ -175,7 +175,7 @@ const ADDED = ['focusDialog', 'inspectLabel', 'keyLink', 'setReportHistoryView',
   // [data-pifile] / [data-pi] listeners are waived by text below.
   'piState', 'piSeq', 'PI_WORD', 'piMod', 'piExisting', 'piSay', 'piSaveText', 'piRecheck', 'loadProductImport', 'productImportOn',
   // Nov 23: one attention feed (behind he_attention_feed)
-  'feedFilter', 'feedQuestions', 'feedSeq', 'feedLast', 'FEED_LIMIT', 'feedMod', 'feedStore', 'feedHost', 'loadAttentionFeed', 'feedNightly', 'feedWhen', 'FEED_LEVEL_WORD', 'paintAttentionFeed', 'attentionFeedOn',
+  'feedFilter', 'feedQuestions', 'feedSeq', 'feedLast', 'feedParcels', 'FEED_LIMIT', 'feedMod', 'feedStore', 'feedHost', 'loadAttentionFeed', 'feedNightly', 'feedWhen', 'FEED_LEVEL_WORD', 'paintAttentionFeed', 'attentionFeedOn',
   // Nov 24: drop-off receipts (behind he_dropoff, drafts/48)
   'DO', 'doMod', 'doEng', 'doStore', 'doHost', 'DO_CARRIER', 'doFind', 'loadDropoff', 'renderDropoff', 'doOrdersFor', 'doMark', 'dropoffOn'];
 const NEW_MODULES = ['he-ops']; // EXT16: written new, not moved
