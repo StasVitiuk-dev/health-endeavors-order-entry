@@ -915,5 +915,13 @@
   "partial": "one product per insert; stops at the first refusal; products already added stay, and choosing the same file again adds only the rest",
   "sensitive": "yes",
   "note": "Nov 23 product list import (he_product_import, off): owner/administrator only (page check on currentUserRole); one run at a time (piState.busy, button disabled while adding); only lines the checker marked NEW, and only when no line has a problem"
+ },
+ "owner-login.html|icSave|incidents|updateIfUnchanged|1": {
+  "guards": "staleCondition,readBack,doubleClickLock",
+  "idempotency": "guarded: a repeat changes nothing (the save only goes through while status and updated_at still match what the list showed)",
+  "audit": "audit trigger (incidents_audit, production shape check of Nov 23)",
+  "partial": "no (single write)",
+  "sensitive": "yes",
+  "note": "Nov 24: record what was done on an incident and close it; owner and administrators; behind he_incident_close"
  }
 }

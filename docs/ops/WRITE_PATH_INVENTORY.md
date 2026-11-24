@@ -11,9 +11,8 @@
 | Server rule UNKNOWN (needs Query D) | 36 |
 | No test file names the table | 0 |
 
-- SAFE ALREADY: 76
+- SAFE ALREADY: 77
 - REQUEST KEY IN PAGE: 19
-- UNRESOLVED: 1
 - DATABASE REQUEST KEY NEEDED: 7
 - CLIENT-SIDE MITIGATION ONLY: 4
 
@@ -25,7 +24,7 @@
 | 4 | owner-login:4343 | changeTaskStatus | tasks | update | — | — | — | DB (Query A): any active staff | — | SAFE ALREADY | no (single write) | activity-page, agent-safety-ext20, concurrent-operators, csv-export-guard +11 |
 | 5 | owner-login:4502 | decideApproval | approval_requests | updateIfUnchanged | — | — | — | DB (Query A): any active staff | — | SAFE ALREADY | no (single write) | admin-pages, attention-checks, failure-recovery, malformed-data-ext15 +4 |
 | 6 | owner-login:4537 | escalateToIncidentOnce | incidents | insert | — | — | — | UNKNOWN until Query D (table outside the export) | — | REQUEST KEY IN PAGE | no (single write) | general, incident-close-ext24, malformed-data-ext15, request-keys-ext10 |
-| 7 | owner-login:4595 | icSave | incidents | updateIfUnchanged | — | — | — | UNKNOWN until Query D (table outside the export) | — | UNRESOLVED | ? | general, incident-close-ext24, malformed-data-ext15, request-keys-ext10 |
+| 7 | owner-login:4595 | icSave | incidents | updateIfUnchanged | — | — | — | UNKNOWN until Query D (table outside the export) | — | SAFE ALREADY | no (single write) | general, incident-close-ext24, malformed-data-ext15, request-keys-ext10 |
 | 8 | owner-login:4795 | removeExpenseReceipt | expenses | updateIfUnchanged | ✓ | — | — | DB (Query A): owner/administrator only | — | SAFE ALREADY | unlink first; a stray file possible, reported | add-forms-recovery-ext21, failure-recovery, malformed-data-ext15, numeric-contract +11 |
 | 9 | owner-login:4797 | removeExpenseReceipt | storage:expense-receipts | storage.remove | — | — | — | sign-in system / storage / function rules | — | SAFE ALREADY | unlink first; a stray file possible, reported | storage-safety |
 | 10 | owner-login:4813 | deleteExpense | expenses | update | ✓ | — | — | DB (Query A): owner/administrator only | — | SAFE ALREADY | no (single write) | add-forms-recovery-ext21, failure-recovery, malformed-data-ext15, numeric-contract +11 |
