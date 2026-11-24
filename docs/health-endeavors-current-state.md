@@ -228,8 +228,11 @@ No merging or deploying by Claude · no production Supabase, SQL, cron, RLS or p
    approves a specific first send.
 4. **Guided database sittings**, one draft at a time: draft 50 (shared settings) first; later 56
    (email sending records, review item 13), 58 (personal settings, review item 14) and 60 (reviews, review item 15); the earlier review items stay open.
-5. **Shopify notifications:** one screenshot of Settings → Notifications, so the customer emails do
-   not repeat what Shopify already sends.
+5. ~~Shopify notifications~~ DONE Nov 24 (evening): the owner's screenshots show Shopify sends the
+   order confirmation and shipping confirmation itself, so the dashboard builds no order-update
+   emails. They also show the store's sender email is not on the business's own domain (customers
+   see a shopifyemail.com sender): the business email in point 3 fixes that. Detail:
+   `docs/ops/OWNER_REQUESTS_2026-11-24_AGENTS_PHONE_PRINTING.md`, "Order-update emails".
 6. **Printing at 8:00 AM:** a set-up sitting on the owner's Mac (the dashboard part is built; the
    steps are in `docs/ops/AUTO_PRINT_MAC_SETUP_2026-11-24.md`).
 7. Seller accounts and the business postal address (never the home address); box sizes and costs; a

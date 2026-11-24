@@ -201,8 +201,23 @@ change.
 
 ### Order-update emails
 
-The owner is fine with Shopify sending them if Shopify has that option. Still to confirm with a
-screenshot of Shopify → Settings → Notifications.
+The owner is fine with Shopify sending them if Shopify has that option. CONFIRMED Nov 24 (evening)
+from the owner's screenshots of Shopify → Settings → Notifications → Customer notifications (seen
+on screen, nothing was changed):
+
+- Shopify has its own customer emails for **order confirmation** ("sent when a customer places an
+  order") and **shipping confirmation** ("sent when you mark an order as fulfilled"), plus order
+  edited, canceled, refund, payment receipt and payment errors. These have no on/off switch on that
+  page. The three local-delivery emails have switches and are on.
+- DECISION that follows: the dashboard does not build order-update emails. Customer Emails on the
+  dashboard stays for the marketing kinds only (people who ordered or subscribed).
+- NOT SEEN in the screenshots: whether "out for delivery" and "delivered" emails are on (they would
+  be lower on the same page). To look at when carrier tracking is connected.
+- The store's sender email is a personal address on a public mail service. Shopify's own notice on
+  that page says such addresses do not support custom sending, so customers see a
+  shopifyemail.com sender instead of the brand. A business address on the business's own domain
+  fixes it (`docs/ops/BUSINESS_EMAIL_PLAN.md`). OWNER ACTION REQUIRED. The address itself is not
+  written here.
 
 ### Follow-up answers the same day
 
@@ -213,8 +228,8 @@ screenshot of Shopify → Settings → Notifications.
   and terms are NOT verified here. OWNER DECISION REQUIRED when that step starts.)
 - **Stores, channels:** emails and visits only for now. No texts, no other messages.
 - **Order-update emails:** the owner asked what "let Shopify send them" means. Explained in chat:
-  Shopify itself emails the customer when an order is placed, shipped and delivered. To confirm:
-  the owner looks at Shopify → Settings → Notifications and sends a screenshot.
+  Shopify itself emails the customer when an order is placed, shipped and delivered. Confirmed from
+  the owner's screenshots on Nov 24 (see "Order-update emails" above).
 - **Automatic daily printing:** the owner asked for a recommendation. Claude's recommendation: print
   **yesterday's** day pack every morning at a fixed time (a finished day, with its saved recap), on
   the Mac next to the printer, with the Home reminder as the safety net if the Mac was off.
