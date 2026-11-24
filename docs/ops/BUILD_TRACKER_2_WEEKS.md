@@ -54,6 +54,7 @@ Database changes are drafts the owner runs after approving them.
 | #60 | **The "recap printed" note on every device** (needs shared settings, draft 50): printing the daily recap clears the Home reminder on every phone and computer. Contains #56–#59 | 161 related passed, 36 skipped |
 | #61 (first commit) | **Batch sticker from a phone photo** on the batch screen: each sticker in the photo is one bottle on the open order; other barcodes are ignored | 171 related passed |
 | #61 | **A shorter menu**: same-topic pages inside one another, three variations, chooser under Feature Flags → Menu, default unchanged; choice shared with every device once draft 50 is in use. Contains #56–#60 | 28 new tests passed, 6 skipped; 480 related passed, 124 skipped |
+| #62 | **Packaging cost per box type** on Real profit: up to four boxes (name, bottles that fit, cost); each order gets the smallest box that holds it; shown as an estimate; no boxes = the one amount as before; no database change. Contains #56–#61 | 352 related passed, 59 skipped |
 
 **How to merge (every PR above):** GitHub shows these PRs as opened by the owner's
 own account, so **Approve is not offered**. On the PR's **Conversation** tab, at the
@@ -150,7 +151,7 @@ Feature Flags → Menu; "Today's menu" is the default. OWNER DECISION REQUIRED: 
 
 Decided Nov 23 (evening): **feature switches are shared by every device**; work features are for every employee; money, revenue and sensitive documents are for the owner and administrators only. NEXT: switches with an audience, stored in shared settings (draft 50).
 
-1. Merge **one** PR: the highest green one contains all earlier ones (#55 merged Nov 23 evening, which also brought in #46–#54; live check by the owner passed the same evening: Feature Flags rows fit a narrow window, and INC-20260917-0001 was closed with a note through the new button. #61 contains the rest once its checks are green).
+1. Merge **one** PR: the highest green one contains all earlier ones (#55 merged Nov 23 evening, which also brought in #46–#54; live check by the owner passed the same evening: Feature Flags rows fit a narrow window, and INC-20260917-0001 was closed with a note through the new button. #62 contains the rest once its checks are green).
 2. Business address (virtual mailbox) before the seller accounts; then Etsy, TikTok Shop, Amazon.
 3. Business email addresses (planned for tomorrow).
 4. The database steps in `docs/ops/sql-review/START_HERE_GUIDED_RUNS.md`, then review item 9 (draft 48).
@@ -161,4 +162,4 @@ Decided Nov 23 (evening): **feature switches are shared by every device**; work 
 9. ~~Feature switches shared?~~ DECIDED Nov 23 (yes, with audiences; #53).
 11. ~~Read-only Query I~~ RUN Nov 23 (evening, owner's time): 45 saved daily reports, every one with 0 orders, and 0 orders in the table for those days. Verdict **NOT ENOUGH DATA**: nothing is wrong, but with no orders yet the report's day cutoff cannot be told. Run it again after the first week with real orders (at least one placed in the evening).
 12. ~~Try One attention feed~~ DONE: the owner turned it on and sent pictures on Nov 23; no change was asked for. Not to be asked again.
-10. Packaging cost per box type (to replace the single packaging estimate).
+10. Packaging cost per box type: BUILT (#62). Waits on the owner only for the real box names, sizes and costs, typed on the Real profit estimates form after merging.
