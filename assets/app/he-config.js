@@ -192,8 +192,38 @@ window.HE.modules.define('he-config', { api: 1, needs: [] }, function (ctx) {
     // Money matching (Nov 22): bank and card exports against Shopify payouts,
     // wholesale payments and recorded expenses — OFF by default. The file is read
     // in this browser only and never uploaded; nothing is saved or changed.
+    // Confirmed sales tax RATES (drafts/46, Nov 23) — OFF by default and not on the
+    // Feature Flags page: once drafts/46 is installed the owner confirms real rates
+    // here (Tax Records). Turned on only after the owner approves drafts/46:
+    //   localStorage.setItem('he_tax_rates','on')
+    function taxRatesOn() {
+      try { return typeof localStorage !== 'undefined' && localStorage.getItem('he_tax_rates') === 'on'; }
+      catch (e) { return false; }
+    }
     function moneyMatchOn() {
       try { return typeof localStorage !== 'undefined' && localStorage.getItem('he_money_match') === 'on'; }
+      catch (e) { return false; }
+    }
+    // Product list import (Nov 23): the owner's product list (CSV) is checked in
+    // this browser and, only when every line is right and the owner presses Add,
+    // the new products are added like the Add product form does. OFF by default.
+    // One attention feed (owner request, Nov 23): everything that needs the owner
+    // in one list at the top of Home, most urgent first. Reads only; snooze is kept
+    // in this browser. OFF by default; on Feature Flags as a preview.
+    // Drop-off receipts (drafts/48, Nov 24): one carrier receipt marks every parcel
+    // on it dropped off. OFF by default and NOT on Feature Flags: it writes real
+    // records once drafts/48 is installed, so the owner turns it on after that.
+    //   localStorage.setItem('he_dropoff','on')
+    function dropoffOn() {
+      try { return typeof localStorage !== 'undefined' && localStorage.getItem('he_dropoff') === 'on'; }
+      catch (e) { return false; }
+    }
+    function attentionFeedOn() {
+      try { return typeof localStorage !== 'undefined' && localStorage.getItem('he_attention_feed') === 'on'; }
+      catch (e) { return false; }
+    }
+    function productImportOn() {
+      try { return typeof localStorage !== 'undefined' && localStorage.getItem('he_product_import') === 'on'; }
       catch (e) { return false; }
     }
     // Saved money DIFFERENCES (drafts/42, Nov 22) — OFF by default and not on the
@@ -293,6 +323,8 @@ window.HE.modules.define('he-config', { api: 1, needs: [] }, function (ctx) {
       { key: 'he_supplier_documents', name: 'Supplier documents', where: 'Suppliers', what: 'The document checklist for each kind of supplier, with what is missing or awaiting review. Example data; read-only.' },
       { key: 'he_backups_page', name: 'Backups & Printouts', where: 'Operations (a new page in the menu)', what: 'Daily recaps to print or save as a spreadsheet, manuals to print (if the dashboard is down, how it works, your procedures, printer setup), and what the dashboard can see of the backups. Reads only.' },
       { key: 'he_order_slips', name: 'Packing slips', where: 'Orders', what: 'A print button on each order: a 4×6 slip for the Rollo label printer or a Letter slip for the Brother, and a test page for each printer. Printing only; nothing is changed.' },
+      { key: 'he_attention_feed', name: 'One attention feed', where: 'Home (Needs your attention)', what: 'Everything that needs you in one list at the top of Home, most urgent first: customer questions, tasks, approvals, reminders, checks, money and tax. Reads only; "Later" hides an item until tomorrow in this browser.' },
+      { key: 'he_product_import', name: 'Product list import', where: 'Inventory', what: 'Checks your product list (a CSV saved from Numbers, Excel or Google Sheets) for missing SKUs, wrong prices and duplicates, and adds the new products only when every line is right and you press Add. Owner and administrators.' },
       { key: 'he_money_match', name: 'Money matching', where: 'Accounting', what: 'Checks a Chase or Wells Fargo export against Shopify payouts, wholesale payments and recorded expenses, and lists every difference. The file stays in this browser; nothing is saved.' },
       { key: 'he_reconcile', name: 'Payment reconciliation', where: 'Accounting', what: 'Invoices that should have been paid against payments recorded. Example data; no money is moved.' },
       { key: 'he_ops_watch', name: 'Operations watch', where: 'Report History', what: 'Flags unusual daily figures, stock and orders for a person to look at. Changes nothing.' },
@@ -862,5 +894,5 @@ window.HE.modules.define('he-config', { api: 1, needs: [] }, function (ctx) {
   // (a status, a category, a table name). Without a prototype, a value such as
   // "constructor" or "__proto__" finds nothing instead of a built-in function.
   [STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_FACE, THEME_NAME, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, GO_TO, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, ITEM_TYPE_LABELS, NIGHTLY_PAGES, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, INQ_STATUS_LABELS, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_CATEGORY_LABELS].forEach(o => Object.setPrototypeOf(o, null));
-  return { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, moneyIssuesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, newLookOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn };
+  return { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, newLookOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn };
 });

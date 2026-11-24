@@ -11,7 +11,7 @@ const CONFIG = fs.readFileSync(path.join(__dirname, '..', '..', 'assets', 'app',
 // Switches that are deliberately NOT previews and NOT on the Feature Flags page:
 // they read and write real records once their database draft is installed, so
 // the owner turns them on only after approving that draft (Nov 16, later).
-const NOT_PREVIEWS = ['he_supplier_documents_store', 'he_invoice_payments', 'he_money_issues', 'he_receiving_store'];
+const NOT_PREVIEWS = ['he_supplier_documents_store', 'he_invoice_payments', 'he_money_issues', 'he_receiving_store', 'he_tax_rates', 'he_dropoff'];
 const ALL_KEYS = [...CONFIG.matchAll(/localStorage\.getItem\('(he_[a-z_]+)'\) === 'on'/g)].map(m => m[1]).sort();
 const FLAG_KEYS = ALL_KEYS.filter(k => !NOT_PREVIEWS.includes(k));
 const LISTED = [...CONFIG.matchAll(/\{ key: '(he_[a-z_]+)'/g)].map(m => m[1]).sort();

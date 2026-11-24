@@ -42,10 +42,22 @@
     return Number(rem * BigInt(2) >= BigInt(100000) ? q + BigInt(1) : q);
   };
   const text = (v) => (typeof v === 'string' ? v.trim() : '');
-  const day = (v) => { const s = text(v).slice(0, 10); return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : ''; };
+  // a real calendar day only (2027-02-30 is not a day)
+  const day = (v) => {
+    const s = text(v).slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return '';
+    const y = Number(s.slice(0, 4)), m = Number(s.slice(5, 7)), d = Number(s.slice(8, 10));
+    const t = new Date(Date.UTC(y, m - 1, d));
+    return t.getUTCFullYear() === y && t.getUTCMonth() === m - 1 && t.getUTCDate() === d ? s : '';
+  };
 
   // A rate the owner confirmed for one place:
-  //   { place, rate, parts:[{ name, rate }], confirmedBy, confirmedAt, reference }
+  //   { place, rate, parts:[{ name, rate }], confirmedBy, confirmedAt, reference,
+  //     effectiveFrom, effectiveUntil, recheckedAt }
+  // effectiveFrom / effectiveUntil (YYYY-MM-DD, optional): the days the rate applies.
+  // Illinois rates can change on January 1 and July 1 (IDOR), so a rate is due for a
+  // re-check on the first such day after it was confirmed (or last re-checked); from
+  // then on a sale dated that day or later stays PENDING until the owner re-checks.
   // `parts` is optional (for example state / county / city); when given, the
   // parts must add up to the rate.
   function checkRateSetting(setting) {
@@ -55,6 +67,9 @@
     if (!isFinite(rate) || rate < 0 || rate > MAX_RATE) return { ok: false, reason: 'the confirmed rate must be a number between 0% and 25%' };
     if (!text(s.place)) return { ok: false, reason: 'the confirmed rate does not say which place it is for' };
     if (!text(s.confirmedBy) || !text(s.confirmedAt)) return { ok: false, reason: 'the rate does not record who confirmed it and when' };
+    if (s.effectiveFrom != null && !day(s.effectiveFrom)) return { ok: false, reason: 'the date the rate starts is not a date (YYYY-MM-DD)' };
+    if (s.effectiveUntil != null && !day(s.effectiveUntil)) return { ok: false, reason: 'the date the rate ends is not a date (YYYY-MM-DD)' };
+    if (day(s.effectiveFrom) && day(s.effectiveUntil) && day(s.effectiveUntil) < day(s.effectiveFrom)) return { ok: false, reason: 'the rate ends before it starts' };
     if (s.parts != null) {
       if (!Array.isArray(s.parts) || !s.parts.length) return { ok: false, reason: 'the parts of the rate are not a list' };
       let sum = 0;
@@ -67,22 +82,61 @@
     return { ok: true, reason: null };
   }
 
-  // The rate for one sale: CONFIRMED only from a valid owner-confirmed setting.
+  // The first January 1 or July 1 strictly after a day (YYYY-MM-DD).
+  function nextChangeDay(d) {
+    const y = Number(d.slice(0, 4)), md = d.slice(5);
+    if (md < '07-01') return y + '-07-01';
+    return (y + 1) + '-01-01';
+  }
+  // Is the setting usable for a sale on `asOf`? (no date given: no date checks)
+  function dateProblem(s, asOf) {
+    const on = day(asOf);
+    if (!on) return null;
+    const pl = text(s.place);
+    if (day(s.effectiveFrom) && on < day(s.effectiveFrom)) return 'the confirmed rate for ' + pl + ' starts on ' + day(s.effectiveFrom) + ', after this sale (' + on + ')';
+    if (day(s.effectiveUntil) && on > day(s.effectiveUntil)) return 'the confirmed rate for ' + pl + ' ended on ' + day(s.effectiveUntil) + '; confirm the rate that applies now';
+    const last = [day(s.recheckedAt), day(s.confirmedAt), day(s.effectiveFrom)].filter(Boolean).sort().pop();
+    if (last) {
+      const due = nextChangeDay(last);
+      if (on >= due) return 'rates can change on January 1 and July 1; re-check the rate for ' + pl + ' (last checked ' + last + ', re-check due ' + due + ')';
+    }
+    return null;
+  }
+  function recheckDue(setting) {
+    const s = setting || {};
+    const last = [day(s.recheckedAt), day(s.confirmedAt), day(s.effectiveFrom)].filter(Boolean).sort().pop();
+    return last ? nextChangeDay(last) : null;
+  }
+
+  // The rate for one sale: CONFIRMED only from a valid owner-confirmed setting
+  // that applies on the sale's date (opts.asOf, when given).
   function computeRate(opts) {
     const o = opts || {};
     const chk = checkRateSetting(o.rateSetting);
-    if (!chk.ok) return { rate: null, rateStatus: 'PENDING', place: null, parts: null, confirmedBy: null, confirmedAt: null, reason: chk.reason, note: 'TAX PENDING — ' + chk.reason + '.' };
+    const why = chk.ok ? dateProblem(o.rateSetting, o.asOf) : chk.reason;
+    if (why) return { rate: null, rateStatus: 'PENDING', place: null, parts: null, confirmedBy: null, confirmedAt: null, reason: why, note: 'TAX PENDING — ' + why + '.' };
     const s = o.rateSetting;
     return { rate: s.rate, rateStatus: 'CONFIRMED', place: text(s.place), parts: s.parts ? s.parts.map(function (p) { return { name: text(p.name), rate: p.rate }; }) : null,
       confirmedBy: text(s.confirmedBy), confirmedAt: text(s.confirmedAt), reason: null, note: null };
   }
 
   // Pick the confirmed setting for a place out of several (rates differ by place).
-  function rateSettingFor(settings, place) {
+  // With a sale date: the one in effect that day (latest start wins); a setting
+  // that starts later is never used for an earlier sale.
+  function rateSettingFor(settings, place, asOf) {
     const want = text(place).toLowerCase();
     if (!want || !Array.isArray(settings)) return null;
-    for (const s of settings) if (s && text(s.place).toLowerCase() === want && checkRateSetting(s).ok) return s;
-    return null;
+    const on = day(asOf);
+    const fits = settings.filter(s => s && text(s.place).toLowerCase() === want && checkRateSetting(s).ok
+      && (!on || ((!day(s.effectiveFrom) || day(s.effectiveFrom) <= on) && (!day(s.effectiveUntil) || day(s.effectiveUntil) >= on))));
+    if (!fits.length) {
+      // nothing in effect that day: return the first valid one for the place, so the
+      // reason ("starts on ...", "ended on ...") reaches the person
+      for (const s of settings) if (s && text(s.place).toLowerCase() === want && checkRateSetting(s).ok) return s;
+      return null;
+    }
+    fits.sort((a, b) => (day(b.effectiveFrom) || '').localeCompare(day(a.effectiveFrom) || ''));
+    return fits[0];
   }
 
   // Is the shipping charge part of the taxed amount?
@@ -179,5 +233,5 @@
     };
   }
 
-  return { MAX_RATE, checkRateSetting, computeRate, rateSettingFor, shippingTaxable, resaleExempt, computeTax, invoiceTaxFields };
+  return { MAX_RATE, checkRateSetting, computeRate, rateSettingFor, recheckDue, shippingTaxable, resaleExempt, computeTax, invoiceTaxFields };
 }));

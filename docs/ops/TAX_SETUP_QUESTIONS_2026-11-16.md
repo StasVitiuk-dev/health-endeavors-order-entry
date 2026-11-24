@@ -17,6 +17,8 @@ answers with the Illinois Department of Revenue or your accountant.
 | Shipping terms not recorded on the order | The tax stays pending and says that the shipping terms are missing. Nothing is guessed. | `tax-ext21`, `invoice-desk-ext21` |
 | Wholesale resale with verified exemption documentation | Tax is $0.00 and the invoice names the certificate, who verified it and when. | `tax-ext21` case 3 |
 | Resale claimed without verified documentation, or with an expired document | Not exempt: taxed like any other order, and the reviewer is told which piece is missing. | `tax-ext21` |
+| A confirmed rate has a start day (added Nov 23) | Used only for sales on or after the day it starts (and up to its end day, if one is given). Two rates for one place: the one in effect on the sale day is used. | `tax-ext21` (dated rate) |
+| Rates can change on January 1 and July 1 (added Nov 23) | After the first January 1 or July 1 since the rate was confirmed (or last re-checked), new sales stay **Tax: PENDING** with "re-check the rate" until the owner re-checks it. Nothing old is charged by mistake. | `tax-ext21` (re-check) |
 
 The rates used in the tests and in the example screen (8%, 9%, 10%) are made-up
 numbers for made-up places. They are not Illinois rates.

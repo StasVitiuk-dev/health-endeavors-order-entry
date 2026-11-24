@@ -1136,6 +1136,14 @@
   .scanToggleRow{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
   .scanOutage{ font-size:12px; color:var(--muted); display:inline-flex; align-items:center; gap:4px; }
   .scanCard{ border:1px solid var(--line); border-radius:var(--radius-sm); padding:12px; margin-top:8px; display:flex; flex-direction:column; gap:4px; }
+  /* confirmed tax rates (Nov 23): a date stays on one line on a computer */
+  @media (min-width: 701px){ .trDate{ white-space:nowrap; } }
+  /* product list import (Nov 23): what to fix stands out; notes wrap on a phone */
+  .piNotes{ margin:0; padding-left:16px; overflow-wrap:anywhere; }
+  .piNote-problem{ color:var(--danger); font-weight:600; }
+  .piNote-differs{ color:var(--warn); }
+  .piSuggest{ display:flex; gap:6px; align-items:center; }
+  @media (min-width: 701px){ .piSku{ white-space:nowrap; } }
   .scanCardHead{ font-size:14px; }
   .scanCardRow{ font-size:13px; color:var(--ink); }
   .scanReasons{ font-size:12px; color:var(--muted); }
@@ -1352,4 +1360,67 @@ table.sysStatus td{ overflow-wrap:anywhere; }
   .printView .printLabel{ font-weight:700; }
   .printView .printMark{ border:2px solid #000; padding:6px 10px; margin-bottom:10px; font-weight:700; text-align:center; letter-spacing:0.04em; }
   .printView .printRemit{ margin-top:12px; padding:0 8px; }
+}
+
+/* One attention feed (Nov 23; behind he_attention_feed): one list, most urgent
+   first, customer questions as chat bubbles. Colours come from the theme tokens,
+   so light, dark and every look stay readable. */
+.feed{ margin:0 0 22px; }
+.feed h2{ margin-bottom:4px; }
+.feedSummary{ margin:0 0 10px; color:var(--ink); }
+.feedCaughtUp{ padding:12px 14px; border-radius:var(--radius); background:var(--good-bg); color:var(--good); font-weight:600; }
+.feedFilters{ display:flex; flex-wrap:wrap; gap:6px; margin:0 0 12px; }
+.feedFilters button{ min-height:32px; }
+.feedList{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:10px; }
+.feedItem{ background:var(--panel); border:1px solid var(--line); border-left:4px solid var(--line); border-radius:var(--radius); padding:12px 14px; box-shadow:var(--shadow-sm); min-width:0; }
+.feedItem.feed-urgent{ border-left-color:var(--danger); }
+.feedItem.feed-today{ border-left-color:var(--warn); }
+.feedHead{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; font-size:12px; color:var(--muted); }
+.feedLevel{ font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
+.feed-urgent .feedLevel{ color:var(--danger); }
+.feed-today .feedLevel{ color:var(--warn); }
+.feedWhen{ margin-left:auto; }
+.feedTitle{ margin:6px 0 0; font-weight:600; color:var(--ink); overflow-wrap:anywhere; }
+.feedDetail{ margin:4px 0 0; font-size:13px; color:var(--muted); overflow-wrap:anywhere; }
+.feedChat{ display:flex; flex-direction:column; gap:6px; margin:8px 0 0; }
+.feedBubble{ margin:0; padding:8px 12px; border-radius:14px; max-width:88%; font-size:14px; line-height:1.4; color:var(--ink); overflow-wrap:anywhere; white-space:pre-wrap; }
+.feedThem{ align-self:flex-start; background:var(--panel-2); border:1px solid var(--line); border-bottom-left-radius:4px; }
+.feedDraft{ align-self:flex-end; background:var(--panel); border:1px dashed var(--accent); border-bottom-right-radius:4px; }
+.feedWho{ display:block; font-size:11px; font-weight:700; color:var(--muted); margin-bottom:2px; }
+.feedActions{ display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+.feedActions button{ min-height:32px; }
+.feedSnoozed{ margin-top:10px; }
+@media (max-width:640px){
+  .feedItem{ padding:10px 12px; }
+  .feedBubble{ max-width:100%; }
+  .feedActions button, .feedFilters button{ min-height:40px; }
+  .feedFilters{ flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; padding-bottom:4px; scrollbar-width:none; }
+  .feedFilters button{ flex:0 0 auto; }
+}
+
+/* Drop-off receipt (Nov 24; behind he_dropoff, drafts/48) */
+.dropoff{ margin:0 0 18px; padding:12px 14px; border:1px solid var(--line); border-radius:var(--radius); background:var(--panel); }
+.doInputs{ display:flex; flex-direction:column; gap:6px; max-width:640px; }
+.doInputs textarea{ width:100%; min-height:88px; font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:13px; }
+.doButtons{ display:flex; flex-wrap:wrap; gap:6px; margin-top:4px; }
+.doList{ list-style:none; margin:10px 0; padding:0; display:flex; flex-direction:column; gap:6px; }
+.doItem{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; min-width:0; }
+.doItem input[type=checkbox]{ width:22px; height:22px; margin:0; }
+.doItem label{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; min-width:0; cursor:pointer; }
+.doNum{ font-family:ui-monospace, SFMono-Regular, Menlo, monospace; overflow-wrap:anywhere; color:var(--ink); }
+.doUnsure .doNum{ color:var(--warn); }
+.doMark{ margin-top:6px; }
+.doResults{ margin-top:12px; }
+.doSentence{ font-weight:600; color:var(--ink); }
+.doTable{ width:100%; border-collapse:collapse; font-size:13px; }
+.doTable th, .doTable td{ text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
+.doAttach{ display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+.doAttach select{ max-width:260px; }
+@media (max-width:640px){
+  .dropoff{ padding:10px 12px; }
+  .doTable thead{ display:none; }
+  .doTable tr{ display:block; border-bottom:1px solid var(--line); padding:6px 0; }
+  .doTable td{ display:block; border:0; padding:2px 0; }
+  .doAttach select{ max-width:100%; width:100%; }
+  .doButtons button, .doMark, .doAttach button{ min-height:40px; }
 }

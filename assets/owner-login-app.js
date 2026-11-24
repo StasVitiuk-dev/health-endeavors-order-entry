@@ -84,7 +84,7 @@
       nightlyOverall,
     } = window.HE.helpers;
     // @@ EXT15 modules: created in dependency order (assets/app/*.js; see docs/ops/APPLICATION_MODULE_MAP_EXT15.md)
-    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, moneyIssuesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn } = HE.modules.create('he-config', {  });
+    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn } = HE.modules.create('he-config', {  });
     const { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, focusDialog, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, h, pageIconNode } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
     const { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
     const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, h, supabase });
@@ -2228,6 +2228,155 @@
       refocusLike(t, 'reorderPlanningHost');
     });
 
+    // ---------- Product list import (Nov 23; behind productImportOn) ----------
+    // The owner's product list, as a CSV saved from Numbers, Excel or Google
+    // Sheets, is read and checked in this browser (he-product-import). Nothing is
+    // added while any line has a problem; when every line is right, "Add" adds the
+    // NEW products one at a time, exactly as the Add product form does. A SKU that
+    // is already in the dashboard is never changed by the import. Owner and
+    // administrators only. Running the same file again adds nothing twice: the
+    // check sees the products already there (and the database refuses a second
+    // product with the same SKU).
+    let piState = { result: null, fileName: '', text: '', useSuggested: false, message: '', busy: false, existing: null };
+    let piSeq = 0;
+    const PI_WORD = { NEW: 'New', SAME: 'Already there', DIFFERS: 'Already there, different', ERROR: 'Fix in the file' };
+    function piMod() { return invMod('he-product-import'); }
+    async function piExisting() {
+      if (piState.existing) return piState.existing;
+      const rows = await fetchAllRows('products', 'id, sku, name, status, cost, retail_price, wholesale_price, packaging_info', q => q);
+      piState.existing = rows;
+      return rows;
+    }
+    function piSay(msg) {
+      piState.message = msg;
+      const m = document.querySelector('#productImportHost [data-pimessage]'); if (m) m.textContent = msg;
+      announce(msg);
+    }
+    function piSaveText(name, text) {
+      try {
+        const url = URL.createObjectURL(new Blob([text], { type: 'text/csv;charset=utf-8;' }));
+        // built with h() (setAttribute), not a raw .href assignment
+        const a = h('a', { href: url, download: name, class: 'u-d-none' });
+        document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+        return true;
+      } catch (err) { return false; }
+    }
+    async function piRecheck() {
+      const eng = piMod(); if (!eng || !piState.text) return;
+      let existing = [];
+      try { existing = await piExisting(); }
+      catch (err) { piState.result = null; piState.message = 'The products already in the dashboard could not be read, so the list could not be checked against them. Refresh and choose the file again.'; return; }
+      piState.result = eng.checkFile(piState.text, { existing: existing, useSuggestedSkus: piState.useSuggested });
+    }
+    function loadProductImport() {
+      const host = document.getElementById('productImportHost'); if (!host) return;
+      if (!(typeof productImportOn === 'function' && productImportOn())) { host.replaceChildren(); return; }
+      const eng = piMod();
+      if (!eng) { host.replaceChildren(h('p', { class: 'empty' }, 'The product import could not load.')); return; }
+      if (currentUserRole !== 'owner' && currentUserRole !== 'administrator') {
+        host.replaceChildren(h('div', { class: 'scanCard u-mt-14' }, h('h3', null, 'Import a product list'), h('p', { class: 'hint' }, 'Only the owner or an administrator can import products.')));
+        return;
+      }
+      const r = piState.result;
+      const money = (v) => (v == null ? '—' : fmtMoney(v, 'USD'));
+      const noteList = (x) => {
+        const items = [].concat(x.problems.map(t => ['problem', t]), x.differences.map(t => ['differs', t]), x.warnings.map(t => ['warning', t]));
+        return items.length ? h('ul', { class: 'piNotes u-fs-12' }, items.map(([k, t]) => h('li', { class: 'piNote-' + k }, (k === 'problem' ? 'Fix: ' : k === 'differs' ? 'Dashboard: ' : 'Check: ') + t))) : h('span', { class: 'u-c-muted u-fs-12' }, 'OK');
+      };
+      const table = r && r.ok ? h('table', { class: 'phoneCards u-mt-10', 'data-pitable': '1' },
+        h('thead', null, h('tr', null, h('th', { class: 'num-cell' }, 'Line'), h('th', null, 'Product'), h('th', null, 'SKU'), h('th', { class: 'num-cell' }, 'Retail'), h('th', { class: 'num-cell' }, 'Wholesale'), h('th', { class: 'num-cell' }, 'Cost'), h('th', null, 'Status'), h('th', null, 'Result'), h('th', null, 'Notes'))),
+        h('tbody', null, r.rows.map(x => h('tr', { 'data-piline': String(x.line), 'data-pioutcome': x.outcome },
+          h('td', { class: 'num-cell', 'data-label': 'Line' }, String(x.line)),
+          h('td', { 'data-label': 'Product' }, x.product.name || '—'),
+          h('td', { 'data-label': 'SKU', class: 'piSku' }, x.product.sku || '—'),
+          h('td', { class: 'num-cell', 'data-label': 'Retail' }, money(x.product.retail_price)),
+          h('td', { class: 'num-cell', 'data-label': 'Wholesale' }, money(x.product.wholesale_price)),
+          h('td', { class: 'num-cell', 'data-label': 'Cost' }, x.product.cost == null ? '—' : fmtMoney(x.product.cost, 'USD')),
+          h('td', { 'data-label': 'Status' }, x.product.status || '—'),
+          h('td', { 'data-label': 'Result' }, h('span', { class: 'badge ' + (x.outcome === 'ERROR' ? 'sev-high' : x.outcome === 'DIFFERS' ? 'sev-medium' : x.outcome === 'NEW' ? 'sev-low' : '') }, PI_WORD[x.outcome] || x.outcome)),
+          h('td', { 'data-label': 'Notes' }, noteList(x)))))) : null;
+      const anySuggest = r && r.ok && r.rows.some(x => x.suggestedSku);
+      const canAdd = !!(r && r.ok && !r.counts.error && r.ready.length && !piState.busy);
+      host.replaceChildren(h('div', { class: 'scanCard u-mt-14', 'data-productimport': '1' },
+        h('div', { class: 'scanHead' }, h('h3', null, 'Import a product list'), h('span', { class: 'scanBadge' }, 'Checked before anything is added')),
+        h('ol', { class: 'hint u-fs-12' },
+          h('li', null, 'Download the template and open it in Numbers, Excel or Google Sheets.'),
+          h('li', null, 'One row per product: name, size, SKU, retail price, wholesale price, cost, status (active = selling now, draft = later), packaging. Delete the two EXAMPLE rows.'),
+          h('li', null, 'Save it as CSV and choose it below. Every line is checked; nothing is added until every line is right and you press Add.')),
+        h('div', { class: 'scanToggleRow u-mt-8' },
+          h('button', { type: 'button', class: 'small secondary', 'data-pi': 'template' }, 'Download the template'),
+          r ? h('button', { type: 'button', class: 'small secondary', 'data-pi': 'clear' }, 'Forget this file') : null),
+        h('div', { class: 'heField u-mt-8' }, h('label', { for: 'piFile' }, 'Your product list (CSV)'), h('input', { id: 'piFile', type: 'file', class: 'heFileField', accept: '.csv,text/csv', 'data-pifile': '1' })),
+        h('p', { class: 'u-fs-12', role: 'status', 'data-pimessage': '1' }, piState.message || ''),
+        r && !r.ok ? h('p', { class: 'error', 'data-pisummary': 'fail' }, piState.fileName + ': ' + r.reason) : null,
+        r && r.ok ? h('p', { class: 'taskTitle', 'data-pisummary': r.counts.error ? 'errors' : 'ready' }, r.summary) : null,
+        r && r.ok && r.ignoredColumns.length ? h('p', { class: 'hint u-fs-12' }, 'Ignored columns: ' + r.ignoredColumns.join(', ') + '.') : null,
+        anySuggest ? h('label', { class: 'u-fs-12 piSuggest' }, h('input', { type: 'checkbox', 'data-pi': 'suggest', checked: piState.useSuggested }), ' Use the suggested SKU for rows without one (use the same SKU in Shopify)') : null,
+        table,
+        r && r.ok ? h('div', { class: 'scanToggleRow u-mt-10' },
+          h('button', { type: 'button', class: 'small', 'data-pi': 'add', disabled: !canAdd }, piState.busy ? 'Adding…' : (r.ready.length ? 'Add ' + r.ready.length + ' new product' + (r.ready.length === 1 ? '' : 's') : 'Nothing new to add')),
+          h('button', { type: 'button', class: 'small secondary', 'data-pi': 'save' }, 'Save the checked list (CSV)')) : null));
+    }
+    document.addEventListener('change', async (e) => {
+      const inp = e.target.closest('#productImportHost input[data-pifile]');
+      const box = e.target.closest('#productImportHost input[data-pi="suggest"]');
+      const eng = piMod(); if (!eng || (!inp && !box)) return;
+      if (box) {
+        piState.useSuggested = !!box.checked;
+        await piRecheck(); loadProductImport();
+        const again = document.querySelector('#productImportHost input[data-pi="suggest"]'); if (again) again.focus();
+        announce(piState.result && piState.result.ok ? piState.result.summary : piState.message);
+        return;
+      }
+      const file = inp.files && inp.files[0]; if (!file) return;
+      if (file.size > eng.MAX_BYTES) { piSay('That file is larger than 1 MB; a product list should be much smaller. Is it the right file?'); inp.value = ''; return; }
+      const seq = ++piSeq;
+      const fr = new FileReader();
+      fr.onerror = () => piSay('The file could not be read.');
+      fr.onload = async () => {
+        if (seq !== piSeq) return;
+        piState.text = String(fr.result || ''); piState.fileName = file.name.slice(0, 80); piState.existing = null; piState.message = '';
+        await piRecheck();
+        if (seq !== piSeq) return;
+        if (!piState.message) piState.message = piState.fileName + ' was read in this browser. Nothing was added.';
+        loadProductImport();
+        announce((piState.result && piState.result.ok ? piState.result.summary + ' ' : '') + piState.message);
+        const back = document.getElementById('piFile'); if (back) back.focus();
+      };
+      fr.readAsText(file);
+    });
+    document.addEventListener('click', async (e) => {
+      const t = e.target.closest('#productImportHost button[data-pi]'); if (!t) return;
+      const act = t.getAttribute('data-pi'); const eng = piMod(); if (!eng) return;
+      if (act === 'template') { piSay(piSaveText('product-list-template.csv', eng.templateCsv()) ? 'Saved product-list-template.csv.' : 'The template could not be saved in this browser.'); return; }
+      if (act === 'save') { if (piState.result) piSay(piSaveText('product-list-checked.csv', eng.toCsv(piState.result)) ? 'Saved product-list-checked.csv.' : 'The file could not be saved in this browser.'); return; }
+      if (act === 'clear') { piSeq++; piState = { result: null, fileName: '', text: '', useSuggested: false, message: 'The file was forgotten. Nothing was added.', busy: false, existing: null }; loadProductImport(); announce(piState.message); refocusLike(t, 'productImportHost'); return; }
+      if (act !== 'add' || piState.busy) return;
+      const r = piState.result; if (!r || !r.ok || r.counts.error || !r.ready.length) return;
+      if (currentUserRole !== 'owner' && currentUserRole !== 'administrator') return;
+      t.disabled = true; piState.busy = true; loadProductImport();
+      const uid = await currentUserId().catch(() => null);
+      const keysOn = await requestKeysOn().catch(() => false);
+      let added = 0, already = 0; let stopped = '';
+      for (const p of r.ready) {
+        const row = Object.assign({}, p, { created_by: uid });
+        const rk = keysOn ? fixedRequestKey('product-import:' + String(p.sku).toLowerCase()) : null;
+        const { error } = await supabase.from('products').insert(withRequestKey(row, rk));
+        if (!error) { added++; continue; }
+        if (isRequestKeyRepeat(error) || String(error.code) === '23505') { already++; continue; }
+        stopped = p.name + ' (' + p.sku + '): ' + (isNetworkError(error) ? 'the connection dropped, so it is not clear whether it was added' : explainDbError(error));
+        break;
+      }
+      piState.busy = false; piState.existing = null;
+      await piRecheck();
+      piState.message = (added ? added + ' product' + (added === 1 ? '' : 's') + ' added. ' : 'No product was added. ')
+        + (already ? already + ' already existed and were left as they were. ' : '')
+        + (stopped ? 'Stopped at ' + stopped + '. Choosing the same file again is safe: products already added are not added twice.' : '');
+      loadProductImport(); announce(piState.message);
+      try { await loadInventory(); } catch (err) { /* the list refreshes on the next visit */ }
+      const back = document.querySelector('#productImportHost [data-pimessage]'); if (back) { back.setAttribute('tabindex', '-1'); back.focus(); }
+    });
+
     // ---------- #65 Saved views & filters (personal; behind savedViewsOn()) ----
     // A per-person, per-screen set of named filter presets, saved in this
     // browser's localStorage (namespaced by user so views never cross people).
@@ -2550,6 +2699,118 @@
       refocusLike(t, 'moneyMatchHost');
     });
 
+    // ---------- Confirmed sales tax rates (drafts/46, Nov 23; behind he_tax_rates)
+    // The rates the owner confirmed (place, rate, start day, source, last re-check)
+    // on Tax Records. Only these are used on invoices; once a January 1 or July 1
+    // has passed since a rate was last checked, it shows "Re-check due" and new
+    // invoices stay TAX PENDING until the owner re-checks it. The owner confirms
+    // and re-checks; everyone else reads. Does nothing until drafts/46 is
+    // installed. `place` is a short name, never the owner's address.
+    let trSeq = 0, trMessage = '';
+    const TR_STATE = { IN_FORCE: ['In force', 'sev-low'], RECHECK_DUE: ['Re-check due', 'sev-high'], STARTS_LATER: ['Starts later', 'sev-medium'], ENDED: ['Ended', ''], UNKNOWN: ['Unclear', 'sev-medium'] };
+    function trMod() { try { return (window.HE && window.HE.invoice && window.HE.invoice['he-tax-rate-store']) || null; } catch (e) { return null; } }
+    function trStore() {
+      const mod = trMod();
+      if (!mod || !(typeof taxRatesOn === 'function' && taxRatesOn())) return null;
+      return mod.createStore({ client: supabase, enabled: true, role: currentUserRole });
+    }
+    function trToday() {
+      try { return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Chicago', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()); }
+      catch (e) { return new Date().toISOString().slice(0, 10); }
+    }
+    async function loadTaxRates() {
+      const host = document.getElementById('taxRatesHost'); if (!host) return;
+      const store = trStore(); if (!store) { host.replaceChildren(); return; }
+      const mod = trMod(); let taxMod = null; try { taxMod = (window.HE && window.HE.invoice && window.HE.invoice['he-tax']) || null; } catch (e) { taxMod = null; }
+      const seq = ++trSeq;
+      const L = await store.list();
+      if (seq !== trSeq) return;
+      const owner = currentUserRole === 'owner';
+      const today = trToday();
+      const head = [h('h3', { class: 'u-fs-13 u-c-navy u-m-18-0-6' }, 'Sales tax rates you confirmed'),
+        h('p', { class: 'hint u-mt-n2 hintLead' }, 'Invoices use only these rates, from the day each one starts. Look the rate up in the Illinois Department of Revenue\'s Tax Rate Finder (tax.illinois.gov). Rates can change on January 1 and July 1, so each rate asks to be re-checked after those days.')];
+      if (!L.ok) { host.replaceChildren(...head, h('p', { class: L.installed === false ? 'empty' : 'error', 'data-trstate': L.installed === false ? 'notinstalled' : 'error' }, L.message)); return; }
+      const rows = L.rates.map(r => ({ r: r, s: mod.standing(r, today, taxMod) }));
+      const due = rows.filter(x => x.s.state === 'RECHECK_DUE');
+      const table = rows.length ? h('table', { class: 'phoneCards u-mt-8', 'data-trtable': '1' },
+        h('thead', null, h('tr', null, h('th', null, 'Place'), h('th', { class: 'num-cell' }, 'Rate'), h('th', null, 'From'), h('th', null, 'Until'), h('th', null, 'Source'), h('th', null, 'Last checked'), h('th', null, 'Status'), owner ? h('th', null, 'Action') : null)),
+        h('tbody', null, rows.map(({ r, s }) => h('tr', { 'data-trrow': r.id, 'data-trstanding': s.state },
+          h('td', { 'data-label': 'Place' }, r.place),
+          h('td', { class: 'num-cell', 'data-label': 'Rate' }, mod.pctText(r.rate) + '%'),
+          h('td', { 'data-label': 'From', class: 'trDate' }, String(r.effective_from || '').slice(0, 10)),
+          h('td', { 'data-label': 'Until', class: 'trDate' }, r.effective_until ? String(r.effective_until).slice(0, 10) : '—'),
+          h('td', { 'data-label': 'Source' }, r.source || '—'),
+          h('td', { 'data-label': 'Last checked', class: 'trDate' }, String(r.rechecked_at || r.confirmed_at || '').slice(0, 10) || '—'),
+          h('td', { 'data-label': 'Status' }, h('span', { class: 'badge ' + (TR_STATE[s.state] || TR_STATE.UNKNOWN)[1] }, (TR_STATE[s.state] || TR_STATE.UNKNOWN)[0]), s.due && s.state !== 'ENDED' ? h('div', { class: 'u-fs-11 u-c-muted' }, 're-check due ' + s.due) : null),
+          owner ? h('td', { 'data-label': 'Action' }, s.state === 'IN_FORCE' || s.state === 'RECHECK_DUE' ? h('button', { type: 'button', class: 'small secondary', 'data-trrecheck': r.id }, 'Re-checked today, still correct') : '—') : null)))) : h('p', { class: 'empty', 'data-trstate': 'empty' }, 'No rate confirmed yet, so every invoice with tax shows TAX PENDING.');
+      const form = owner ? h('form', { class: 'heForm u-mt-10 u-pt-16 u-bt-1-solid-line', 'data-trform': '1' },
+        h('div', { class: 'heField' }, h('label', { for: 'trPlace' }, 'Place (a short name, not the address)'), h('input', { id: 'trPlace', name: 'place', type: 'text', maxlength: '80', placeholder: 'Ships from: Illinois', autocomplete: 'off' })),
+        h('div', { class: 'heField' }, h('label', { for: 'trRate' }, 'Full rate, percent'), h('input', { id: 'trRate', name: 'ratePercent', type: 'text', inputmode: 'decimal', maxlength: '7', placeholder: '8.75', autocomplete: 'off' })),
+        h('div', { class: 'heField' }, h('label', { for: 'trFrom' }, 'Starts on'), h('input', { id: 'trFrom', name: 'from', type: 'date' })),
+        h('div', { class: 'heField' }, h('label', { for: 'trSource' }, 'Where it comes from'), h('input', { id: 'trSource', name: 'source', type: 'text', maxlength: '200', value: 'IDOR Tax Rate Finder' })),
+        h('div', { class: 'heField heWide' }, h('label', { for: 'trNote' }, 'Note ', h('span', { class: 'heOpt' }, '(optional)')), h('input', { id: 'trNote', name: 'note', type: 'text', maxlength: '300' })),
+        h('div', { class: 'heActions' }, h('button', { type: 'submit', class: 'small' }, 'Confirm rate'))) : h('p', { class: 'hint u-fs-12' }, 'Only the owner confirms or re-checks a rate.');
+      host.replaceChildren(...head,
+        due.length ? h('p', { class: 'error', role: 'status', 'data-trdue': String(due.length) }, due.length + ' rate' + (due.length === 1 ? ' needs' : 's need') + ' a re-check: new invoices with ' + (due.length === 1 ? 'it' : 'them') + ' stay TAX PENDING until then.') : null,
+        table,
+        h('p', { class: 'u-fs-12', role: 'status', 'data-trmessage': '1' }, trMessage || ''),
+        form);
+    }
+    // Home: a rate in force that needs its January / July re-check is said on Home
+    // too (owner only; nothing when the switch is off, nothing is due or the list
+    // cannot be read: Home then stays as it is).
+    async function loadTaxRateAlert() {
+      const host = document.getElementById('taxRateAlertHost'); if (!host) return;
+      const store = trStore(); const mod = trMod();
+      if (!store || !mod || currentUserRole !== 'owner') { host.replaceChildren(); return; }
+      let taxMod = null; try { taxMod = (window.HE && window.HE.invoice && window.HE.invoice['he-tax']) || null; } catch (e) { taxMod = null; }
+      const L = await store.list();
+      if (!L.ok) { host.replaceChildren(); return; }
+      const today = trToday();
+      const due = L.rates.filter(r => mod.standing(r, today, taxMod).state === 'RECHECK_DUE');
+      if (!due.length) { host.replaceChildren(); return; }
+      host.replaceChildren(h('div', { class: 'attnRow u-mt-12', role: 'status', 'data-taxratealert': String(due.length) },
+        h('span', { class: 'badge sev-high' }, 'Tax'),
+        h('span', { class: 'taskTitle' }, due.length + ' sales tax rate' + (due.length === 1 ? ' needs' : 's need') + ' a re-check (rates can change on January 1 and July 1); new invoices stay TAX PENDING until then'),
+        ' ', h('button', { type: 'button', class: 'small', 'data-taxratealertopen': '1' }, 'Open Tax Records')));
+    }
+    function trAfter(msg, focusSel) {
+      trMessage = msg;
+      return loadTaxRates().then(() => {
+        announce(msg);
+        const back = focusSel ? document.querySelector(focusSel) : null;
+        const m = document.querySelector('#taxRatesHost [data-trmessage]');
+        const el = back || m; if (el) { if (el === m) el.setAttribute('tabindex', '-1'); el.focus(); }
+      });
+    }
+    document.addEventListener('submit', async (e) => {
+      const f = e.target.closest('#taxRatesHost form[data-trform]'); if (!f) return;
+      e.preventDefault();
+      const store = trStore(); if (!store) return;
+      const btn = f.querySelector('button[type=submit]'); if (btn) btn.disabled = true;
+      const v = (n) => { const el = f.querySelector('[name="' + n + '"]'); return el ? el.value : ''; };
+      const keep = { place: v('place'), ratePercent: v('ratePercent'), from: v('from'), source: v('source'), note: v('note') };
+      const res = await store.confirm(keep);
+      if (!res.ok) {
+        if (btn) btn.disabled = false;
+        trMessage = res.message;
+        const m = f.parentNode && f.parentNode.querySelector('[data-trmessage]'); if (m) { m.textContent = res.message; m.className = 'u-fs-12 error'; }
+        announce(res.message);
+        const first = f.querySelector('#trPlace'); if (first) first.focus();
+        return;
+      }
+      await trAfter(res.message, '#taxRatesHost [data-trmessage]');
+    });
+    document.addEventListener('click', async (e) => {
+      if (e.target.closest('#taxRateAlertHost [data-taxratealertopen]')) { showPage('taxRecordsPanel'); return; }
+      const t = e.target.closest('#taxRatesHost [data-trrecheck]'); if (!t) return;
+      const store = trStore(); if (!store) return;
+      t.disabled = true;
+      const res = await store.recheck(t.getAttribute('data-trrecheck'));
+      await trAfter(res.message, '#taxRatesHost [data-trmessage]');
+      loadTaxRateAlert();
+    });
+
     // ---------- Saved money differences (drafts/42, Nov 22; behind moneyIssuesOn)
     // Open differences, found by the daily Shopify check or saved from Money
     // matching, stay listed on Accounting until the owner or an administrator marks
@@ -2573,6 +2834,327 @@
         h('span', { class: 'taskTitle' }, n + (L.truncated ? '+' : '') + ' money difference' + (n === 1 ? '' : 's') + ' to look at'),
         ' ', h('button', { type: 'button', class: 'small', 'data-goto': 'accountingPanel', 'data-moneyalertopen': '1' }, 'Review on Accounting')));
     }
+    // ---------- Drop-off receipt (Nov 24; behind dropoffOn, drafts/48) ----------
+    // One carrier receipt marks every parcel on it "dropped off" (owner: "100 parcels
+    // at UPS, scan the receipt and every order updates"). The numbers come from a
+    // photo of the barcodes (where the browser can read them), or from the receipt's
+    // text (the iPhone's Live Text: Select All, Copy, paste), or typed. Only numbers
+    // whose carrier check digit is right are ticked; FedEx (no check digit) is shown
+    // for checking. A number on no order yet can be added to its order here.
+    const DO = { text: '', found: [], unsure: [], picked: new Set(), results: null, orders: null, message: '', busy: false };
+    function doMod() { try { return (window.HE && window.HE.scan && window.HE.scan['he-dropoff']) || null; } catch (e) { return null; } }
+    function doEng() { try { return (window.HE && window.HE.scan && window.HE.scan['he-scan']) || null; } catch (e) { return null; } }
+    function doStore() { const M = doMod(); return M && dropoffOn() ? M.createStore({ client: supabase, enabled: true }) : null; }
+    function doHost(on) {
+      let el = document.getElementById('dropoffHost');
+      if (!on) { if (el) el.remove(); return null; }
+      if (!el) { const after = document.getElementById('savedViewsOrders'); if (!after || !after.parentNode) return null; el = h('div', { id: 'dropoffHost', class: 'dropoff' }); after.after(el); }
+      return el;
+    }
+    const DO_CARRIER = { ups: 'UPS', usps: 'USPS', fedex: 'FedEx', dhl: 'DHL', other: 'Other' };
+    function doFind(values, fromBarcodes) {
+      const M = doMod(), eng = doEng(); if (!M || !eng) return;
+      const r = fromBarcodes ? M.fromBarcodes(values, eng) : M.extractTrackings(values, eng);
+      DO.found = r.found; DO.unsure = r.unsure; DO.results = null;
+      DO.picked = new Set(r.found.map(x => x.tracking));
+      const n = r.found.length + r.unsure.length;
+      DO.message = n ? (n + (n === 1 ? ' tracking number found' : ' tracking numbers found') + (r.unsure.length ? ' (' + r.unsure.length + ' to check: FedEx numbers have no check digit)' : '') + (r.truncated ? '. Only the first 500 are used; mark them, then the rest.' : '.'))
+        : 'No tracking number found. Check that the whole receipt was copied, or type the numbers one per line.';
+    }
+    async function loadDropoff() {
+      const host = doHost(dropoffOn() && !!doMod() && !!doEng()); if (!host) return;
+      renderDropoff();
+    }
+    function renderDropoff() {
+      const host = document.getElementById('dropoffHost'); if (!host) return;
+      const M = doMod();
+      const all = DO.found.concat(DO.unsure);
+      const pickedN = all.filter(x => DO.picked.has(x.tracking)).length;
+      const list = all.length ? h('ul', { class: 'doList', 'aria-label': 'Tracking numbers found' }, ...all.map(x => {
+        const box = h('input', { type: 'checkbox', id: 'do-' + x.tracking, 'data-dopick': x.tracking });
+        box.checked = DO.picked.has(x.tracking);
+        return h('li', { class: 'doItem' + (x.confidence === 'checkdigit' ? '' : ' doUnsure') },
+          box, ' ', h('label', { for: 'do-' + x.tracking }, h('span', { class: 'doNum' }, x.tracking), ' ',
+            h('span', { class: 'badge' }, DO_CARRIER[x.carrier] || x.carrier), ' ',
+            h('span', { class: 'u-fs-12 u-c-muted' }, x.confidence === 'checkdigit' ? 'check digit OK' : 'check this one')));
+      })) : null;
+      let results = null;
+      if (DO.results && M) {
+        const byId = Object.create(null); (DO.orders || []).forEach(o => { byId[o.id] = o; });
+        const s = M.summarize(DO.results, byId);
+        const orderOptions = (DO.orders || []).filter(o => o.order_number).slice(0, 100);
+        results = h('div', { class: 'doResults', 'data-doresults': '1' },
+          h('p', { class: 'doSentence', role: 'status' }, s.sentence),
+          h('table', { class: 'doTable' }, h('thead', null, h('tr', null, h('th', null, 'Tracking number'), h('th', null, 'Result'), h('th', null, 'Order'))),
+            h('tbody', null, ...s.rows.map(r => h('tr', { 'data-doresult': r.result },
+              h('td', { class: 'doNum' }, r.tracking),
+              h('td', null, r.word),
+              h('td', null, r.result === 'not_found'
+                ? h('div', { class: 'doAttach' },
+                    h('label', { for: 'doOrder-' + r.tracking, class: 'u-fs-12' }, 'Its order'),
+                    h('select', { id: 'doOrder-' + r.tracking, 'data-doorder': r.tracking },
+                      h('option', { value: '' }, orderOptions.length ? 'Choose the order' : 'No recent orders found'),
+                      ...orderOptions.map(o => h('option', { value: o.id }, '#' + o.order_number + (o.customer_name ? ' · ' + o.customer_name : '')))),
+                    h('button', { type: 'button', class: 'small', 'data-doattach': r.tracking }, 'Add and mark'))
+                : (r.order ? '#' + r.order : '—')))))));
+      }
+      host.replaceChildren(
+        h('h3', { class: 'u-fs-13 u-c-navy u-m-18-0-6' }, 'Drop-off receipt: mark parcels handed to the carrier'),
+        h('p', { class: 'hint' }, 'After you drop parcels at UPS, USPS or FedEx, give the dashboard the receipt: every parcel on it is marked "dropped off" on its order, once. On iPhone: open the receipt photo, press and hold the text, tap Select All, then Copy, and paste it below.'),
+        h('div', { class: 'doInputs' },
+          h('label', { for: 'doPhoto', class: 'doPhotoLbl' }, 'Photo of the barcodes'),
+          h('input', { type: 'file', id: 'doPhoto', accept: 'image/*', capture: 'environment', 'data-dophoto': '1' }),
+          h('label', { for: 'doText' }, 'Receipt text, or tracking numbers one per line'),
+          h('textarea', { id: 'doText', rows: '4', maxlength: '200000', 'data-dotext': '1', placeholder: 'Paste the receipt here' }),
+          h('div', { class: 'doButtons' },
+            h('button', { type: 'button', class: 'small', 'data-do': 'find' }, 'Find tracking numbers'),
+            all.length || DO.results ? h('button', { type: 'button', class: 'small secondary', 'data-do': 'clear' }, 'Start again') : null)),
+        DO.message ? h('p', { class: 'u-fs-12', 'data-domessage': '1', role: 'status' }, DO.message) : null,
+        list,
+        all.length ? h('button', { type: 'button', class: 'doMark', 'data-do': 'mark', disabled: pickedN === 0 || DO.busy }, 'Mark ' + pickedN + (pickedN === 1 ? ' parcel' : ' parcels') + ' dropped off') : null,
+        results);
+      const ta = host.querySelector('#doText'); if (ta) ta.value = DO.text;
+    }
+    async function doOrdersFor(ids) {
+      const need = [...new Set(ids)].filter(Boolean);
+      const recent = await supabase.from('orders').select('id, order_number, customer_name, placed_at').is('deleted_at', null).order('placed_at', { ascending: false }).limit(100);
+      let named = [];
+      if (need.length) { try { named = await fetchAllRowsIn('orders', 'id, order_number, customer_name', 'id', need); } catch (e) { named = []; } }
+      const map = new Map(); [...(recent && !recent.error && recent.data ? recent.data : []), ...named].forEach(o => map.set(o.id, o));
+      return [...map.values()];
+    }
+    async function doMark(list) {
+      const store = doStore(); if (!store) return;
+      DO.busy = true; renderDropoff();
+      const res = await store.markDroppedOff(list);
+      DO.busy = false;
+      if (!res.ok) { DO.message = res.message; renderDropoff(); announce(res.message); return; }
+      const before = new Map((DO.results || []).map(r => [r.tracking, r]));
+      res.results.forEach(r => before.set(r.tracking, r));
+      DO.results = [...before.values()];
+      DO.orders = await doOrdersFor(DO.results.map(r => r.order_id));
+      DO.message = '';
+      renderDropoff();
+      const M = doMod(); const s = M ? M.summarize(DO.results, null).sentence : '';
+      announce(s);
+      const r = document.querySelector('#dropoffHost [data-doresults] .doSentence'); if (r) { r.setAttribute('tabindex', '-1'); r.focus(); }
+    }
+    document.addEventListener('input', (e) => {
+      const ta = e.target.closest('#dropoffHost textarea[data-dotext]'); if (ta) DO.text = ta.value;
+    });
+    document.addEventListener('change', async (e) => {
+      const box = e.target.closest('#dropoffHost input[data-dopick]');
+      if (box) {
+        const t = box.getAttribute('data-dopick');
+        if (box.checked) DO.picked.add(t); else DO.picked.delete(t);
+        const n = DO.found.concat(DO.unsure).filter(x => DO.picked.has(x.tracking)).length;
+        const b = document.querySelector('#dropoffHost [data-do="mark"]');
+        if (b) { b.textContent = 'Mark ' + n + (n === 1 ? ' parcel' : ' parcels') + ' dropped off'; b.disabled = n === 0 || DO.busy; }
+        return;
+      }
+      const ph = e.target.closest('#dropoffHost input[data-dophoto]');
+      if (!ph || !ph.files || !ph.files[0]) return;
+      let values = null;
+      try {
+        if (typeof window.BarcodeDetector === 'function') {
+          const bitmap = await createImageBitmap(ph.files[0]);
+          const codes = await new window.BarcodeDetector().detect(bitmap);
+          values = (codes || []).map(c => c.rawValue || '').filter(Boolean);
+        }
+      } catch (err) { values = null; }
+      if (values === null) { DO.message = 'This browser cannot read barcodes from a photo. On iPhone, use Live Text instead: open the photo, press and hold the text, Select All, Copy, and paste it below.'; DO.found = []; DO.unsure = []; DO.results = null; }
+      else doFind(values, true);
+      renderDropoff(); announce(DO.message);
+    });
+    document.addEventListener('click', async (e) => {
+      const host = e.target.closest('#dropoffHost'); if (!host) return;
+      const b = e.target.closest('[data-do]');
+      if (b) {
+        const what = b.getAttribute('data-do');
+        if (what === 'find') { doFind(DO.text, false); renderDropoff(); announce(DO.message); const first = document.querySelector('#dropoffHost [data-dopick]') || document.querySelector('#dropoffHost [data-domessage]'); if (first) { if (!first.matches('input')) first.setAttribute('tabindex', '-1'); first.focus(); } return; }
+        if (what === 'clear') { DO.text = ''; DO.found = []; DO.unsure = []; DO.picked = new Set(); DO.results = null; DO.message = ''; renderDropoff(); const ta = document.getElementById('doText'); if (ta) ta.focus(); return; }
+        if (what === 'mark') {
+          if (DO.busy) return;
+          b.disabled = true;
+          await doMark(DO.found.concat(DO.unsure).filter(x => DO.picked.has(x.tracking)).map(x => x.tracking));
+          return;
+        }
+      }
+      const a = e.target.closest('[data-doattach]');
+      if (a) {
+        const t = a.getAttribute('data-doattach');
+        const sel = [...host.querySelectorAll('select[data-doorder]')].find(s => s.getAttribute('data-doorder') === t);
+        const item = DO.found.concat(DO.unsure).find(x => x.tracking === t);
+        const store = doStore(); if (!store) return;
+        a.disabled = true;
+        const res = await store.attach(sel ? sel.value : '', item ? item.carrier : 'other', t);
+        if (!res.ok) { a.disabled = false; DO.message = res.message; renderDropoff(); announce(res.message); return; }
+        await doMark([t]);
+      }
+    });
+
+    // ---------- One attention feed (Nov 23; behind attentionFeedOn) ----------
+    // Everything that needs the owner, in one list at the top of Home, most urgent
+    // first (assets/views/he-attention-feed.js). It reads what Home already shows
+    // (reminders and tasks, the checks, the nightly check, the money and tax
+    // notices) and the customer questions still waiting. It never writes: "Answer"
+    // opens Customer Questions, "Dismiss" uses the reminder's own Dismiss button
+    // below, "Later" hides an item until tomorrow in this browser only.
+    let feedFilter = 'all', feedQuestions = null, feedSeq = 0, feedLast = new Map(), feedParcels = null;
+    const FEED_LIMIT = 100;
+    function feedMod() { try { return (window.HE && window.HE.views && window.HE.views['he-attention-feed']) || null; } catch (e) { return null; } }
+    function feedStore() { try { return window.localStorage; } catch (e) { return null; } }
+    // The feed's box exists only while the feed is on, so with the switch off Home
+    // is exactly as before (same elements, same spacing).
+    function feedHost(on) {
+      let el = document.getElementById('attentionFeedHost');
+      if (!on) { if (el) el.remove(); return null; }
+      if (!el) { const panel = document.getElementById('attentionPanel'); if (!panel) return null; el = h('div', { id: 'attentionFeedHost' }); panel.prepend(el); }
+      return el;
+    }
+    async function loadAttentionFeed() {
+      if (!feedHost(attentionFeedOn() && !!feedMod())) return;
+      const seq = ++feedSeq;
+      try {
+        const rows = await fetchAllRows('customer_inquiries', 'id, customer_name, channel, question_text, status, ai_draft_reply, sensitive, severity, created_at',
+          q => q.or('status.is.null,status.neq.answered'));
+        if (seq !== feedSeq) return;
+        feedQuestions = rows;
+      } catch (e) {
+        if (seq !== feedSeq) return;
+        feedQuestions = null;                    // the "Customer questions waiting" check stands in for them
+      }
+      // parcels that need the owner (drafts/48; nothing when it is not installed)
+      try {
+        const W = (window.HE && window.HE.scan && window.HE.scan['he-delivery-watch']) || null;
+        const DM = doMod();
+        const r = W && DM ? await DM.createStore({ client: supabase, enabled: true }).listOpen() : null;
+        if (seq !== feedSeq) return;
+        if (!W || !r || !r.ok) feedParcels = null;
+        else {
+          const ids = [...new Set(r.parcels.map(x => x.order_id).filter(Boolean))];
+          const orders = ids.length ? await fetchAllRowsIn('orders', 'id, order_number, customer_name', 'id', ids) : [];
+          if (seq !== feedSeq) return;
+          const byId = Object.create(null); orders.forEach(o => { byId[o.id] = o; });
+          feedParcels = W.watch(r.parcels, { now: Date.now(), ordersById: byId, trackingConnected: false });
+        }
+      } catch (e) { if (seq !== feedSeq) return; feedParcels = null; }
+      paintAttentionFeed();
+    }
+    // the nightly check, as Home shows it below (its own cards keep their detail)
+    function feedNightly() {
+      const st = [...document.querySelectorAll('#nightlyCheckWrap .nightlyCard')].map(c => c.getAttribute('data-state'));
+      const see = 'See "Nightly integrity check" further down this page.';
+      if (st.includes('FAIL')) return { state: 'problems', problems: [{ key: 'fail', title: 'The nightly check found problems', detail: see, level: 'urgent' }] };
+      if (st.includes('WARN')) return { state: 'problems', problems: [{ key: 'warn', title: 'The nightly check has warnings', detail: see, level: 'today' }] };
+      if (st.includes('UNKNOWN') || st.includes('STALE')) return { state: 'unknown', reason: see };
+      return null;
+    }
+    function feedWhen(item) {
+      if (item.when == null) return '';
+      const iso = new Date(item.when).toISOString();
+      if (item.id.indexOf('na:') === 0) return (item.overdue ? 'Overdue · due ' : 'Due ') + fmtDate(iso);
+      return timeAgo(iso) || '';
+    }
+    const FEED_LEVEL_WORD = { urgent: 'Urgent', today: 'Today', info: 'Info' };
+    function paintAttentionFeed() {
+      const M = feedMod();
+      const host = feedHost(attentionFeedOn() && !!M); if (!host) return;
+      let findings = []; try { findings = ATTN_FINDINGS; } catch (e) { findings = []; }
+      const moneyEl = document.querySelector('#moneyAlertHost [data-moneyalert]');
+      const taxEl = document.querySelector('#taxRateAlertHost [data-taxratealert]');
+      const now = Date.now();
+      const items = M.buildFeed({
+        attention: Array.isArray(SEARCH_INDEX.attention) ? SEARCH_INDEX.attention : null, labels: ITEM_TYPE_LABELS,
+        checks: findings, questions: feedQuestions, nightly: feedNightly(), delivery: feedParcels,
+        money: moneyEl ? { open: Number(moneyEl.getAttribute('data-moneyalert')) } : null,
+        tax: taxEl ? { count: Number(taxEl.getAttribute('data-taxratealert')) } : null }, now);
+      const v = M.view(items, { now: now, snoozes: M.readSnoozes(feedStore()), filter: feedFilter });
+      feedLast = new Map(items.map(i => [i.id, i]));
+      const summary = v.caughtUp
+        ? h('p', { class: 'feedSummary feedCaughtUp', 'data-feedcaughtup': '1' }, 'All caught up. Nothing needs you right now.')
+        : h('p', { class: 'feedSummary', 'data-feedneedyou': String(v.needYou) },
+            h('b', null, v.needYou + (v.needYou === 1 ? ' thing needs you' : ' things need you')),
+            ' · ' + v.counts.urgent + ' urgent, ' + v.counts.today + ' today' + (v.counts.info ? ', ' + v.counts.info + ' to know' : ''));
+      const chips = h('div', { class: 'feedFilters', role: 'group', 'aria-label': 'Show' },
+        ...M.FILTERS.map(f => h('button', { type: 'button', class: 'small' + (v.filter === f.key ? '' : ' secondary'), 'data-feedfilter': f.key, 'aria-pressed': v.filter === f.key ? 'true' : 'false' }, f.label)));
+      const shown = v.items.slice(0, FEED_LIMIT);
+      const card = (i) => {
+        const acts = i.actions.map(a => a.kind === 'open' ? h('button', { type: 'button', class: 'small', 'data-feedopen': a.page }, a.label)
+          : a.kind === 'copy' ? h('button', { type: 'button', class: 'small secondary', 'data-feedcopy': i.id }, a.label)
+          : a.kind === 'dismiss' ? h('button', { type: 'button', class: 'small secondary', 'data-feeddismiss': a.id }, a.label) : null).filter(Boolean);
+        if (i.level !== 'info' || i.kind === 'message') acts.push(h('button', { type: 'button', class: 'small secondary', 'data-feedsnooze': i.id, title: 'Hidden in this browser until tomorrow, or until it changes' }, 'Later'));
+        const chat = i.message ? [h('div', { class: 'feedChat' },
+          h('p', { class: 'feedBubble feedThem' }, h('span', { class: 'feedWho' }, i.message.from + ' wrote'), i.message.text || '(no text)'),
+          ...(i.message.draft ? [h('p', { class: 'feedBubble feedDraft' }, h('span', { class: 'feedWho' }, 'Draft reply (not sent)'), i.message.draft)] : []))]
+          : i.suggestion ? [h('div', { class: 'feedChat' }, h('p', { class: 'feedBubble feedDraft' }, h('span', { class: 'feedWho' }, 'Suggested message to the customer (not sent)'), i.suggestion))] : [];
+        return h('li', { class: 'feedItem feed-' + i.level, 'data-feeditem': i.id, 'data-feedkind': i.kind },
+          h('div', { class: 'feedHead' },
+            h('span', { class: 'feedLevel' }, FEED_LEVEL_WORD[i.level]),
+            h('span', { class: 'badge' }, i.badge),
+            h('span', { class: 'feedWhen' }, feedWhen(i))),
+          h('p', { class: 'feedTitle' }, i.title),
+          ...chat,
+          ...(i.detail ? [h('p', { class: 'feedDetail' }, i.detail)] : []),
+          ...(acts.length ? [h('div', { class: 'feedActions' }, ...acts)] : []));
+      };
+      const list = shown.length
+        ? h('ul', { class: 'feedList', 'aria-label': 'Things that need you' }, ...shown.map(card))
+        : (v.caughtUp && v.filter === 'all' ? null : h('p', { class: 'empty' }, 'Nothing here in this filter.'));
+      const more = v.items.length > shown.length ? h('p', { class: 'hint' }, 'Showing the first ' + shown.length + ' of ' + v.items.length + '. Use a filter to see the rest.') : null;
+      const snoozed = v.snoozed ? h('p', { class: 'hint feedSnoozed' }, v.snoozed + ' set aside until tomorrow (this browser). ',
+        h('button', { type: 'button', class: 'small secondary', 'data-feedunsnooze': '1' }, 'Show them again')) : null;
+      const qNote = feedQuestions === null ? h('p', { class: 'hint' }, 'Customer questions could not be read just now; the check "Customer questions waiting" stands in for them.') : null;
+      host.replaceChildren(h('section', { class: 'feed', 'data-feed': '1', 'aria-labelledby': 'feedHeading' },
+        h('h2', { id: 'feedHeading' }, 'Needs you now'),
+        summary, chips, ...[list, more, snoozed, qNote].filter(Boolean)));
+    }
+    document.addEventListener('click', async (e) => {
+      const host = e.target.closest('#attentionFeedHost'); if (!host) return;
+      const M = feedMod(); if (!M) return;
+      const f = e.target.closest('[data-feedfilter]');
+      if (f) { feedFilter = f.getAttribute('data-feedfilter'); paintAttentionFeed(); const again = host.querySelector('[data-feedfilter="' + feedFilter + '"]'); if (again) again.focus(); return; }
+      const o = e.target.closest('[data-feedopen]');
+      if (o) { showPage(o.getAttribute('data-feedopen')); return; }
+      const c = e.target.closest('[data-feedcopy]');
+      if (c) {
+        const item = feedLast.get(c.getAttribute('data-feedcopy'));
+        const act = item && item.actions.find(a => a.kind === 'copy');
+        if (!act) return;
+        try { await navigator.clipboard.writeText(act.text); announce(item.kind === 'message' ? 'Reply copied. Paste it where the customer wrote, then mark the question answered.' : 'Message copied. Paste it into your message to the customer.'); toast('Copied'); }
+        catch (err) { showDashError('Could not copy to clipboard. Open Customer Questions to select and copy the reply by hand.'); }
+        return;
+      }
+      const d = e.target.closest('[data-feeddismiss]');
+      if (d) {
+        const id = d.getAttribute('data-feeddismiss');
+        const own = [...document.querySelectorAll('#attentionWrap [data-dismiss-id]')].find(b => b.getAttribute('data-dismiss-id') === id);
+        if (!own) { showDashError('That reminder is no longer in the list.'); return; }
+        d.disabled = true; own.click(); return;
+      }
+      const z = e.target.closest('[data-feedsnooze]');
+      if (z) {
+        const li = z.closest('[data-feeditem]'); const next = li && (li.nextElementSibling || li.previousElementSibling);
+        const nextId = next && next.getAttribute('data-feeditem');
+        const ok = M.snooze(feedStore(), feedLast.get(z.getAttribute('data-feedsnooze')), Date.now());
+        if (!ok) { showDashError('This browser could not remember that. Nothing was changed.'); return; }
+        paintAttentionFeed(); announce('Set aside until tomorrow.');
+        const back = nextId ? [...host.querySelectorAll('[data-feeditem]')].find(x => x.getAttribute('data-feeditem') === nextId) : null;
+        const target = back ? back.querySelector('button') : host.querySelector('#feedHeading');
+        if (target) { if (target.id === 'feedHeading') target.setAttribute('tabindex', '-1'); target.focus(); }
+        return;
+      }
+      if (e.target.closest('[data-feedunsnooze]')) { M.unsnoozeAll(feedStore()); paintAttentionFeed(); announce('Everything set aside is back in the list.'); }
+    });
+    // Redraw when anything the feed reads from is redrawn on Home.
+    (function watchFeedSources() {
+      if (typeof MutationObserver !== 'function') return;
+      let t = null;
+      const obs = new MutationObserver(() => { if (t || !attentionFeedOn()) return; t = setTimeout(() => { t = null; paintAttentionFeed(); }, 60); });
+      ['attentionWrap', 'attnChecksWrap', 'nightlyCheckWrap', 'moneyAlertHost', 'taxRateAlertHost'].forEach(id => {
+        const el = document.getElementById(id); if (el) obs.observe(el, { childList: true, subtree: true });
+      });
+    })();
     async function loadMoneyIssues() {
       const host = document.getElementById('moneyIssuesHost'); if (!host) return;
       const store = miStore(); if (!store) { host.replaceChildren(); return; }
@@ -4344,12 +4926,12 @@
       loadOpsWatch();
     }
     const PANEL_LOADERS = {
-      attentionPanel: [loadAttention, loadBusinessHealth, loadAttentionChecks, loadNightlyCheck, paintScanEntry, loadMoneyAlert],
+      attentionPanel: [loadAttention, loadBusinessHealth, loadAttentionChecks, loadNightlyCheck, paintScanEntry, loadMoneyAlert, loadTaxRateAlert, loadAttentionFeed],
       calendarPanel: [loadCalendarMonth],
       dailySummaryPanel: [loadDailySummary],
       reportHistoryPanel: [loadReportHistoryThenExport, loadRecoveryDrill, loadInvoicePreview, loadReportVersions],
-      ordersPanel: [loadOrders, paintScanEntry, loadSavedViews, loadOrderSlipsHost],
-      inventoryPanel: [loadInventory, loadInventoryAdjustments, loadReorderPlanning, loadSavedViews, loadCycleCount, loadPartialReceiving],
+      ordersPanel: [loadOrders, paintScanEntry, loadSavedViews, loadOrderSlipsHost, loadDropoff],
+      inventoryPanel: [loadInventory, loadInventoryAdjustments, loadReorderPlanning, loadSavedViews, loadCycleCount, loadPartialReceiving, loadProductImport],
       returnsPanel: [loadReturns, loadStockReturns],
       suppliersPanel: [loadSuppliers, loadSupplierScorecard, loadSupplierDocs],
       purchaseOrdersPanel: [loadPurchaseOrders, loadDeliveries],
@@ -4357,7 +4939,7 @@
       recallsPanel: [loadRecalls],
       expensesPanel: [loadExpenses, loadDeletedExpenses],
       accountingPanel: [loadAccounting, loadReconcile, loadInvoicePayments, loadMoneyMatch, loadMoneyIssues],
-      taxRecordsPanel: [loadTaxRecords],
+      taxRecordsPanel: [loadTaxRecords, loadTaxRates],
       tasksPanel: [loadTasks],
       incidentsPanel: [loadIncidents],
       evidenceLockerPanel: [loadEvidenceLocker],
