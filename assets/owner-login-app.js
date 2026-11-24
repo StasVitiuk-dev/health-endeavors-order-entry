@@ -173,6 +173,7 @@
       whoAmI.textContent = `${whoName.length > 80 ? whoName.slice(0, 79) + '\u2026' : whoName} — role: ${profile.role}`;
       whoAmI.title = whoAmI.textContent;
       if (await syncSharedSwitches()) return;                // this browser was brought in line: the page reloads once
+      await syncMenuLayout();                                // the menu chosen for every device, when settings are shared
       renderSidebar('');
       showPage(getLastPage());
       loadDashboard();
@@ -626,10 +627,67 @@
         if (a && a.getAttribute('role') === 'link' && a.classList.contains('sidebarLink')) a.blur();
       });
     }
+    // ---------- A shorter menu (owner, Nov 24) ----------
+    // The same menu, with same-topic pages inside one another
+    // (assets/views/he-menu-layouts.js). '' is today's menu. The choice is kept in
+    // this browser and, once the shared settings are in use, for every device.
+    const MENU_LAYOUT_KEY = 'he_menu_layout';
+    const mlMod = () => (window.HE && window.HE.views && window.HE.views['he-menu-layouts']) || null;
+    let mlKey = '';
+    try { const M0 = mlMod(); mlKey = M0 ? M0.keyOf(localStorage.getItem(MENU_LAYOUT_KEY)) : ''; } catch (e) { mlKey = ''; }
+    function mlLayout() { const M = mlMod(); return M && mlKey ? M.build(mlKey, SIDEBAR_GROUPS) : null; }
+    function mlRemember(key) {
+      mlKey = key;
+      try { if (key) localStorage.setItem(MENU_LAYOUT_KEY, key); else localStorage.removeItem(MENU_LAYOUT_KEY); } catch (e) { /* still applied on this page */ }
+    }
+    // At sign-in, with the shared settings in use: the menu the owner chose for every device.
+    async function syncMenuLayout() {
+      const M = mlMod(), S = rpSettings(), store = rpStore();
+      if (!M || !S || !store || !sharedSettingsOn()) return;
+      const r = await store.get(S.KEYS.menuLayout);
+      if (r.state !== 'installed' || !r.value || typeof r.value.layout !== 'string') return;
+      const want = M.keyOf(r.value.layout);
+      if (want !== mlKey) mlRemember(want);
+    }
+    // Saves the choice for every device. true = saved for everyone; false = this browser only.
+    async function menuLayoutShare(key) {
+      const S = rpSettings(), store = rpStore();
+      if (!S || !store || !sharedSettingsOn() || currentUserRole !== 'owner') return false;
+      const saved = await store.set(S.KEYS.menuLayout, { layout: key }, 'staff');
+      return !!saved.ok;
+    }
+    // The row of buttons at the top of a page that has other pages inside it.
+    let mlTabsSig = '';
+    function renderMenuTabs(){
+      const main = document.querySelector('main.contentArea');
+      let host = document.getElementById('menuTabs');
+      const M = mlMod(), layout = mlLayout();
+      const entry = layout ? M.find(layout, currentPageId) : null;
+      if (!main || !entry || entry.tabs.length < 2) { if (host) host.remove(); mlTabsSig = ''; return; }
+      const sig = layout.key + '|' + currentPageId + '|' + entry.tabs.map(t => t.id + ':' + (getPageBadgeCount(t.id) || 0)).join(',');
+      if (host && sig === mlTabsSig) return;                 // nothing changed: keyboard focus stays where it is
+      const hadFocus = !!(host && host.contains(document.activeElement));
+      if (!host) { host = h('nav', { id: 'menuTabs', class: 'menuTabs' }); main.insertBefore(host, main.querySelector('section.panel')); }
+      host.setAttribute('aria-label', 'Pages inside ' + entry.label);
+      host.replaceChildren(...entry.tabs.map(t => {
+        const n = getPageBadgeCount(t.id) || 0, here = t.id === currentPageId;
+        return h('button', { type: 'button', class: 'small menuTab' + (here ? '' : ' secondary'), 'data-menutab': t.id, 'aria-current': here ? 'page' : null },
+          h('span', { class: 'menuTabName' }, t.label), n > 0 ? h('span', { class: 'sidebarBadge' }, n) : null);
+      }));
+      mlTabsSig = sig;
+      if (hadFocus) { const a = host.querySelector('[aria-current="page"]'); if (a) a.focus(); }
+    }
+    document.addEventListener('click', (e) => {
+      const t = e.target.closest('[data-menutab]'); if (!t) return;
+      showPage(t.getAttribute('data-menutab'));
+    });
     function pageLinkNode(p, pinnedSet){
-      const badge = getPageBadgeCount(p.id);
+      // an entry with other pages inside it: lit while any of them is open, and it carries all their counts
+      const inside = Array.isArray(p.tabs) && p.tabs.length > 1 ? p.tabs : null;
+      const badge = inside ? inside.reduce((n, t) => n + (getPageBadgeCount(t.id) || 0), 0) : getPageBadgeCount(p.id);
       const isPinned = pinnedSet.has(p.id);
-      return h('a', { class: 'sidebarLink' + (p.id === currentPageId ? ' active' : ''), 'data-page': p.id },
+      const here = inside ? inside.some(t => t.id === currentPageId) : p.id === currentPageId;
+      return h('a', { class: 'sidebarLink' + (here ? ' active' : ''), 'data-page': p.id, 'data-inside': inside ? String(inside.length) : null },
         h('span', { class: 'linkLabelRow' },
           h('button', { type: 'button', class: 'pinBtn' + (isPinned ? ' pinned' : ''), 'data-pin-page': p.id, title: isPinned ? 'Unpin' : 'Pin to top', 'aria-label': isPinned ? 'Unpin ' + p.label : 'Pin ' + p.label + ' to top' }, isPinned ? '★' : '☆'),
           h('span', { class: 'pageIcon' }, pageIconNode(p.id)),
@@ -675,7 +733,9 @@
           results));
       }
 
-      SIDEBAR_GROUPS.forEach(group => {
+      // A shorter menu, when one is chosen. A search always looks through every single page.
+      const shorter = q ? null : mlLayout();
+      (shorter ? shorter.groups : SIDEBAR_GROUPS).forEach(group => {
         const pages = group.pages.filter(p => !q || p.label.toLowerCase().includes(q));
         if (!pages.length) return;
         // EXT15: no inline style (strict style policy): the colour travels as data and is
@@ -694,7 +754,7 @@
             open ? pages.map(p => pageLinkNode(p, pinnedSet)) : null));
           return;
         }
-        out.push(h('div', { class: 'sidebarGroup', 'data-group-color': color }, h('div', { class: 'groupLabel' }, group.label),
+        out.push(h('div', { class: 'sidebarGroup', 'data-group-color': color }, group.label ? h('div', { class: 'groupLabel' }, group.label) : null,
           pages.map(p => pageLinkNode(p, pinnedSet))));
       });
 
@@ -754,6 +814,7 @@
           loadActivity(true);
         });
       });
+      renderMenuTabs();
     }
     // EXT8: the browser's Back / Forward move between dashboard pages
     // instead of leaving the dashboard.
@@ -4135,7 +4196,8 @@
           h('thead', null, h('tr', null, h('th', null, 'Preview'), h('th', null, 'Where it appears'), h('th', null, 'Who gets it when shared'), h('th', null, 'Now'), h('th', null, 'Change'))),
           h('tbody', null, rows)),
         h('div', { class: 'scanToggleRow u-mt-8' }, h('button', { type: 'button', class: 'small secondary', 'data-previewswitch': 'alloff', disabled: shared && !ownerHere }, 'Turn all off')),
-        lookPicker()));
+        lookPicker(),
+        menuLayoutPicker()));
     }
     // ---------- Switches that save real records (Feature Flags; OWNER only) ----------
     // Owner rule (Nov 24): everything can be switched on the dashboard. Each of these
@@ -4222,6 +4284,36 @@
           LOOK_CHOICES.map(c => h('button', { type: 'button', class: 'small' + (c.key === cur ? '' : ' secondary'), 'data-lookpick': c.key, 'aria-pressed': String(c.key === cur) }, c.name))),
         h('p', { class: 'hint u-mt-6' }, (LOOK_CHOICES.find(c => c.key === cur) || LOOK_CHOICES[0]).what));
     }
+    // The menu: today's, or one of three shorter ones with same-topic pages inside one another.
+    let mlMessage = '';
+    function menuLayoutPicker() {
+      const M = mlMod(); if (!M) return null;
+      const list = M.choices(), cur = list.find(c => c.key === mlKey) || list[0];
+      const layout = mlLayout();
+      const lines = layout ? M.count(layout) : SIDEBAR_GROUPS.reduce((n, g) => n + g.pages.length, 0);
+      return h('div', { class: 'u-mt-12', 'data-menulayoutpicker': cur.key || 'today' },
+        h('h4', null, 'Menu'),
+        h('p', { class: 'hint u-mt-0' }, 'The same menu, shorter: pages about the same topic sit inside one another and appear as a row of buttons at the top of the page. Nothing is removed, search still finds every page, and "Today\'s menu" puts everything back.'),
+        h('div', { class: 'scanToggleRow', role: 'group', 'aria-label': 'Menu' },
+          list.map(c => h('button', { type: 'button', class: 'small' + (c.key === cur.key ? '' : ' secondary'), 'data-menulayout': c.key || 'today', 'aria-pressed': String(c.key === cur.key) }, c.name))),
+        h('p', { class: 'hint u-mt-6', 'data-menulayout-lines': String(lines) }, cur.what + ' The menu now has ' + lines + ' lines.'),
+        mlMessage ? h('p', { class: 'hint u-mt-6', 'data-menulayout-msg': '1' }, mlMessage) : null);
+    }
+    document.addEventListener('click', async (e) => {
+      const t = e.target.closest('[data-menulayout]'); if (!t) return;
+      const M = mlMod(); if (!M) return;
+      const want = t.getAttribute('data-menulayout') === 'today' ? '' : M.keyOf(t.getAttribute('data-menulayout'));
+      const c = M.choices().find(x => x.key === want); if (!c) return;
+      mlRemember(c.key);
+      mlMessage = sharedSettingsOn() ? 'Saving for every device…' : 'Kept in this browser. Once the shared settings database step (drafts/50) is installed, the owner\'s choice applies to every phone and computer.';
+      renderSidebar(document.getElementById('sidebarSearch').value);
+      loadPreviewSwitches(); announce('Menu: ' + c.name + '. ' + c.what); refocusLike(t);
+      if (!sharedSettingsOn()) return;
+      const everywhere = await menuLayoutShare(c.key);
+      mlMessage = everywhere ? 'Saved: every phone and computer shows this menu the next time it opens the dashboard.'
+        : (currentUserRole === 'owner' ? 'Could not save it for every device; it is kept in this browser.' : 'Kept in this browser. Only the owner can choose the menu for every device.');
+      loadPreviewSwitches(); announce(mlMessage);
+    });
     document.addEventListener('click', (e) => {
       const t = e.target.closest('[data-lookpick]'); if (!t) return;
       const c = (LOOK_CHOICES || []).find(x => x.key === t.getAttribute('data-lookpick')); if (!c) return;

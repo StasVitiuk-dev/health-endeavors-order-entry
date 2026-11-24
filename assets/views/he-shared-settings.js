@@ -4,7 +4,8 @@
 // once is read from the database by every phone and computer, instead of living
 // in one browser. First use: the Real profit estimates (key "profit_estimates").
 // Nov 24: also the day up to which the daily recap was printed (key "recap_printed"),
-// so the Home reminder clears on every device, not only where Print was pressed.
+// so the Home reminder clears on every device, not only where Print was pressed;
+// and the shorter menu the owner chose (key "menu_layout", readable by every employee).
 //
 //   get(key)          -> { state: 'installed' | 'not_installed' | 'unknown',
 //                          value: object | null, updatedAt, updatedBy }
@@ -26,7 +27,7 @@
 
   const TABLE = 'shared_settings';
   const RPC = 'set_shared_setting';
-  const KEYS = Object.freeze({ profitEstimates: 'profit_estimates', recapPrinted: 'recap_printed' });
+  const KEYS = Object.freeze({ profitEstimates: 'profit_estimates', recapPrinted: 'recap_printed', menuLayout: 'menu_layout' });
   const KEY_OK = /^[a-z][a-z0-9_]{1,59}$/;
   const MAX_CHARS = 8000;
   const SECRET_NAME = /pass(word|code)?|secret|token|api[_-]?key|private[_-]?key|credential|recovery/i;

@@ -1515,3 +1515,9 @@ tr.obVoid td:first-child{ text-decoration:line-through; }
 .obPhoto{ margin-top:8px; }
 .obPhoto label{ display:block; font-weight:600; }
 .obPhoto input{ display:block; max-width:100%; margin-top:4px; }
+
+/* A shorter menu (Nov 24): the row of pages inside the open page. It wraps onto
+   more lines on a narrow screen and never scrolls sideways. */
+.menuTabs{ display:flex; flex-wrap:wrap; gap:8px; max-width:900px; margin:0 auto 14px; }
+.menuTabs .menuTab{ display:inline-flex; align-items:center; gap:6px; max-width:100%; }
+@media print{ .menuTabs{ display:none; } }
