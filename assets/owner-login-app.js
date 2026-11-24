@@ -84,7 +84,7 @@
       nightlyOverall,
     } = window.HE.helpers;
     // @@ EXT15 modules: created in dependency order (assets/app/*.js; see docs/ops/APPLICATION_MODULE_MAP_EXT15.md)
-    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, agentDiaryOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn } = HE.modules.create('he-config', {  });
+    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, agentDiaryOn, realProfitOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn } = HE.modules.create('he-config', {  });
     const { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, focusDialog, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, h, pageIconNode } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
     const { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
     const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, h, supabase });
@@ -2993,6 +2993,123 @@
       }
     });
 
+    // ---------- Real profit (Nov 24; behind realProfitOn) ----------
+    // Profit per order, product and channel (assets/reports/he-profit.js), right under
+    // the Accounting totals. Reads orders, their items, products and received
+    // purchase-order lines. The fee, postage and packaging estimates are the owner's,
+    // kept in this browser. Nothing is written.
+    const RP_KEY = 'he_profit_estimates';
+    let rpPeriod = 'month', rpResult = null, rpSeq = 0, rpError = '', rpEditing = false, rpMessage = '';
+    function rpMod() { try { return (window.HE && window.HE.reports && window.HE.reports['he-profit']) || null; } catch (e) { return null; } }
+    function rpHost(on) {
+      let el = document.getElementById('realProfitHost');
+      if (!on) { if (el) el.remove(); return null; }
+      if (!el) { const after = document.getElementById('acctStats'); if (!after || !after.parentNode) return null; el = h('div', { id: 'realProfitHost', class: 'realProfit' }); after.after(el); }
+      return el;
+    }
+    function rpEstimates() {
+      const M = rpMod(); const base = { fees: M ? M.DEFAULT_FEES : {}, postage: null, packaging: null };
+      try { const v = JSON.parse(localStorage.getItem(RP_KEY) || 'null'); if (v && typeof v === 'object') return { fees: Object.assign({}, base.fees, v.fees || {}), postage: v.postage == null ? null : v.postage, packaging: v.packaging == null ? null : v.packaging }; } catch (e) { /* defaults */ }
+      return base;
+    }
+    function rpRange() {
+      const now = new Date();
+      if (rpPeriod === 'last') return [new Date(now.getFullYear(), now.getMonth() - 1, 1), new Date(now.getFullYear(), now.getMonth(), 1)];
+      if (rpPeriod === '90') return [new Date(now.getTime() - 90 * 86400000), now];
+      return [new Date(now.getFullYear(), now.getMonth(), 1), now];
+    }
+    async function loadRealProfit() {
+      const M = rpMod();
+      const host = rpHost(realProfitOn() && !!M); if (!host) return;
+      const seq = ++rpSeq;
+      rpResult = null; rpError = ''; renderRealProfit();
+      try {
+        const [from, to] = rpRange();
+        const orders = await fetchAllRows('orders', 'id, order_number, channel, source, status, subtotal, shipping_total, tax_total, total, placed_at, deleted_at',
+          q => q.is('deleted_at', null).gte('placed_at', from.toISOString()).lt('placed_at', to.toISOString()));
+        const ids = orders.map(o => o.id);
+        const [items, products, poLines] = await Promise.all([
+          ids.length ? fetchAllRowsIn('order_items', 'id, order_id, sku, product_name, quantity, unit_price, line_total', 'order_id', ids) : Promise.resolve([]),
+          fetchAllRows('products', 'id, sku, name, cost', q => q),
+          fetchAllRows('purchase_order_items', 'id, product_id, landed_unit_cost, quantity_received, created_at', q => q.not('product_id', 'is', null)),
+        ]);
+        if (seq !== rpSeq) return;
+        const est = rpEstimates();
+        rpResult = M.compute({ orders: orders, items: items, products: products, poLines: poLines, fees: est.fees, postagePerOrder: est.postage, packagingPerOrder: est.packaging });
+      } catch (e) {
+        if (seq !== rpSeq) return;
+        rpError = 'Profit could not be worked out just now: ' + explainDbError(e && e.message ? e.message : String(e));
+      }
+      renderRealProfit();
+    }
+    const rpMoney = c => (c == null ? '—' : fmtMoney(c / 100, 'USD'));
+    const rpPct = p => (p == null ? '—' : p + '%');
+    function renderRealProfit() {
+      const host = document.getElementById('realProfitHost'); const M = rpMod(); if (!host || !M) return;
+      const est = rpEstimates();
+      const put = (...kids) => host.replaceChildren(...kids.flat().filter(Boolean));   // (replaceChildren would print a null as text)
+      const periods = [['month', 'This month'], ['last', 'Last month'], ['90', 'Last 90 days']];
+      const head = [h('h3', { class: 'u-fs-13 u-c-navy u-m-18-0-6', id: 'realProfitHeading' }, 'Real profit'),
+        h('p', { class: 'hint u-mt-0' }, 'What you keep from each sale after product cost, platform fees, postage and packaging. Sales tax you collect for the state is not counted as sales. An order missing a cost is counted below, never guessed.'),
+        h('div', { class: 'scanToggleRow', role: 'group', 'aria-label': 'Period' }, ...periods.map(([k, l]) => h('button', { type: 'button', class: 'small' + (rpPeriod === k ? '' : ' secondary'), 'data-rpperiod': k, 'aria-pressed': String(rpPeriod === k) }, l)),
+          h('button', { type: 'button', class: 'small secondary', 'data-rp': 'edit', 'aria-expanded': String(rpEditing) }, rpEditing ? 'Close estimates' : 'Fee and postage estimates'))];
+      const form = rpEditing ? h('form', { class: 'heForm rpForm u-mt-8', 'data-rpform': '1', novalidate: '' },
+        h('p', { class: 'hint u-mt-0' }, 'Starting estimates: check each against the platform’s own fee page and correct them. A blank box means unknown (orders from that channel then show "missing a fee estimate"). Kept in this browser.'),
+        h('table', { class: 'rpFees' }, h('thead', null, h('tr', null, h('th', null, 'Channel'), h('th', null, '% of the sale'), h('th', null, '$ per order'))),
+          h('tbody', null, ...Object.keys(M.DEFAULT_FEES).map(ch => {
+            const f = est.fees[ch] || {};
+            return h('tr', null, h('td', null, M.CHANNEL_NAMES[ch] || ch, h('div', { class: 'u-fs-11 u-c-muted' }, (M.DEFAULT_FEES[ch] || {}).note || '')),
+              h('td', null, h('input', { type: 'text', inputmode: 'decimal', name: ch + '_percent', value: f.percent == null ? '' : String(f.percent), 'aria-label': (M.CHANNEL_NAMES[ch] || ch) + ': percent of the sale' })),
+              h('td', null, h('input', { type: 'text', inputmode: 'decimal', name: ch + '_per', value: f.perOrder == null ? '' : String(f.perOrder), 'aria-label': (M.CHANNEL_NAMES[ch] || ch) + ': dollars per order' })));
+          }))),
+        h('div', { class: 'u-d-flex u-gap-8 u-fwr-wrap u-mt-8' },
+          h('div', { class: 'heField' }, h('label', { for: 'rpPostage' }, 'Postage per order ($)'), h('input', { id: 'rpPostage', type: 'text', inputmode: 'decimal', name: 'postage', value: est.postage == null ? '' : String(est.postage) })),
+          h('div', { class: 'heField' }, h('label', { for: 'rpPackaging' }, 'Packaging per order ($)'), h('input', { id: 'rpPackaging', type: 'text', inputmode: 'decimal', name: 'packaging', value: est.packaging == null ? '' : String(est.packaging) }))),
+        h('button', { type: 'submit', class: 'small u-mt-8' }, 'Save estimates')) : null;
+      const msg = rpMessage ? h('p', { class: 'u-fs-12', role: 'status', 'data-rpmessage': '1' }, rpMessage) : null;
+      if (rpError) { put(head, form, msg, h('p', { class: 'hint', role: 'status' }, rpError)); return; }
+      if (!rpResult) { put(head, form, msg, h('p', { class: 'empty' }, 'Working it out…')); return; }
+      const r = rpResult, t = r.totals;
+      const WHY = { 'product cost': 'a product with no cost', 'fee estimate': 'no fee estimate for the channel', 'postage estimate': 'no postage estimate', 'packaging estimate': 'no packaging estimate', 'sale amount': 'no sale amount', items: 'no items' };
+      const missingLine = t.missing ? h('p', { class: 'hint rpMissing', 'data-rpmissing': String(t.missing) }, t.missing + (t.missing === 1 ? ' order is' : ' orders are') + ' not counted in the profit: ' +
+        Object.entries(r.missingWhy).map(([k, n]) => n + ' with ' + (WHY[k] || k)).join(', ') + '.') : null;
+      const table = (cols, rows) => h('table', { class: 'phoneCards u-mt-8' }, h('thead', null, h('tr', null, ...cols.map(c => h('th', c.num ? { class: 'num-cell' } : null, c.t)))), h('tbody', null, ...rows));
+      put(head, form, msg,
+        h('div', { class: 'statRow u-mt-8', 'data-rptotals': '1' },
+          h('div', { class: 'stat' }, h('div', { class: 'num', 'data-rpprofit': String(t.profit) }, t.complete ? rpMoney(t.profit) : '—'), h('div', { class: 'lbl' }, 'Profit (' + t.complete + ' of ' + t.orders + ' orders)')),
+          h('div', { class: 'stat' }, h('div', { class: 'num' }, rpPct(t.margin)), h('div', { class: 'lbl' }, 'Margin')),
+          h('div', { class: 'stat' }, h('div', { class: 'num' }, t.complete ? rpMoney(t.revenue) : '—'), h('div', { class: 'lbl' }, 'Sales (no tax)')),
+          h('div', { class: 'stat' }, h('div', { class: 'num' }, t.complete ? rpMoney(t.productCost) : '—'), h('div', { class: 'lbl' }, 'Product cost')),
+          h('div', { class: 'stat' }, h('div', { class: 'num' }, t.complete ? rpMoney(t.fees + t.postage + t.packaging) : '—'), h('div', { class: 'lbl' }, 'Fees, postage, packaging'))),
+        missingLine,
+        r.channels.length ? h('div', null, h('h4', { class: 'u-mt-12' }, 'By sales channel'),
+          table([{ t: 'Channel' }, { t: 'Orders' }, { t: 'Sales', num: true }, { t: 'Profit', num: true }, { t: 'Margin', num: true }],
+            r.channels.map(c => h('tr', { 'data-rpchannel': c.channel }, h('td', null, c.name), h('td', null, c.complete + ' of ' + c.orders), h('td', { class: 'num-cell' }, c.complete ? rpMoney(c.revenue) : '—'), h('td', { class: 'num-cell' }, c.complete ? rpMoney(c.profit) : '—'), h('td', { class: 'num-cell' }, rpPct(c.margin)))))) : h('p', { class: 'empty' }, 'No orders in this period.'),
+        r.products.length ? h('div', null, h('h4', { class: 'u-mt-12' }, 'By product (most profit first)'),
+          table([{ t: 'Product' }, { t: 'Units' }, { t: 'Sales', num: true }, { t: 'Profit', num: true }, { t: 'Margin', num: true }],
+            r.products.slice(0, 50).map(p => h('tr', { 'data-rpproduct': p.product }, h('td', null, p.product), h('td', null, String(p.units)), h('td', { class: 'num-cell' }, rpMoney(p.revenue)), h('td', { class: 'num-cell' }, rpMoney(p.profit)), h('td', { class: 'num-cell' }, rpPct(p.margin)))))) : null,
+        r.leftOut.length ? h('p', { class: 'hint u-mt-8' }, r.leftOut.length + ' cancelled or refunded ' + (r.leftOut.length === 1 ? 'order is' : 'orders are') + ' left out.') : null);
+      labelPhoneCards(host);
+    }
+    document.addEventListener('click', (e) => {
+      const host = e.target.closest('#realProfitHost'); if (!host) return;
+      const p = e.target.closest('[data-rpperiod]');
+      if (p) { rpPeriod = p.getAttribute('data-rpperiod'); rpMessage = ''; loadRealProfit().then(() => { const b = document.querySelector('#realProfitHost [data-rpperiod="' + rpPeriod + '"]'); if (b) b.focus(); }); return; }
+      if (e.target.closest('[data-rp="edit"]')) { rpEditing = !rpEditing; rpMessage = ''; renderRealProfit(); const f = document.querySelector('#realProfitHost form input') || document.querySelector('#realProfitHost [data-rp="edit"]'); if (f) f.focus(); }
+    });
+    document.addEventListener('submit', (e) => {
+      const f = e.target.closest('#realProfitHost form[data-rpform]'); if (!f) return;
+      e.preventDefault();
+      const M = rpMod(); if (!M) return;
+      const form = {}; [...f.querySelectorAll('input[name]')].forEach(i => { form[i.name] = i.value; });
+      const c = M.checkEstimates(form);
+      if (!c.ok) { rpMessage = c.problems.join(' '); renderRealProfit(); announce(rpMessage); const first = document.querySelector('#realProfitHost form input'); if (first) first.focus(); return; }
+      try { localStorage.setItem(RP_KEY, JSON.stringify({ fees: c.fees, postage: c.postage, packaging: c.packaging })); rpMessage = 'Estimates saved in this browser.'; }
+      catch (err) { rpMessage = 'This browser would not save the estimates (private window or storage blocked).'; }
+      rpEditing = false; announce(rpMessage);
+      loadRealProfit().then(() => { const m = document.querySelector('#realProfitHost [data-rpmessage]'); if (m) { m.setAttribute('tabindex', '-1'); m.focus(); } });
+    });
+
     // ---------- Agent diary (Nov 24; behind agentDiaryOn) ----------
     // What each agent recorded in its own log (ai_decision_log), as a plain diary on
     // AI Agents: the agent's name, what it did, when, grouped by day, with a filter
@@ -5109,7 +5226,7 @@
       qualityControlPanel: [loadQualityChecks],
       recallsPanel: [loadRecalls],
       expensesPanel: [loadExpenses, loadDeletedExpenses],
-      accountingPanel: [loadAccounting, loadReconcile, loadInvoicePayments, loadMoneyMatch, loadMoneyIssues],
+      accountingPanel: [loadAccounting, loadRealProfit, loadReconcile, loadInvoicePayments, loadMoneyMatch, loadMoneyIssues],
       taxRecordsPanel: [loadTaxRecords, loadTaxRates],
       tasksPanel: [loadTasks],
       incidentsPanel: [loadIncidents],
