@@ -43,6 +43,17 @@ const expect = base.expect;
 // signs out and reloads really is signed out afterwards. Default: OFF (every test signs in
 // through the form, as before).
 let SAVED_SESSION = null;
+// Nov 24: signing out reloads the page on its own a moment later. A test that signs
+// in again straight away could have its own navigation cut short by that reload
+// ("interrupted by another navigation"), by chance. Let the page settle and go again.
+async function gotoLogin(page) {
+  try { await page.goto('/owner-login.html'); }
+  catch (e) {
+    if (!/interrupted by another navigation/.test(String(e && e.message))) throw e;
+    await page.waitForLoadState('load');
+    await page.goto('/owner-login.html');
+  }
+}
 async function login(page) {
   if (process.env.HE_FAST_LOGIN === '1' && SAVED_SESSION) {
     await page.addInitScript(entries => {
@@ -52,12 +63,12 @@ async function login(page) {
         for (const [k, v] of entries) localStorage.setItem(k, v);
       } catch (e) { /* storage blocked: the page then shows the sign-in form */ }
     }, SAVED_SESSION);
-    await page.goto('/owner-login.html');
+    await gotoLogin(page);
     await expect(page.locator('#dash')).toBeVisible();
     await expect(page.locator('#whoAmI')).toContainText('Synthetic Owner');
     return;
   }
-  await page.goto('/owner-login.html');
+  await gotoLogin(page);
   await page.fill('#email', OWNER_USER.email);
   await page.fill('#password', OWNER_USER.password);
   await page.click('#loginBtn');
