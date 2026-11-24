@@ -37,6 +37,10 @@ test.describe('the store (no browser)', () => {
     expect(await store({ error: { code: '42501', message: 'permission denied' } }).get('profit_estimates')).toMatchObject({ state: 'unknown', value: null });
     expect(await S.createStore({ client: { from: () => { throw new Error('x'); } } }).get('profit_estimates')).toMatchObject({ state: 'unknown' });
     expect(await S.createStore({ client: null }).get('profit_estimates')).toMatchObject({ state: 'unknown' });
+    // not in use yet: nothing is asked of the database at all
+    let asked = 0;
+    expect(await S.createStore({ client: { from: () => { asked++; return {}; } }, enabled: false }).get('profit_estimates')).toMatchObject({ state: 'not_installed', value: null });
+    expect(asked).toBe(0);
     expect(await store({ data: [] }).get('Bad Key')).toMatchObject({ state: 'unknown' });
   });
 
@@ -70,7 +74,7 @@ async function seed(page, backend, shared) {
   backend.tables.purchase_order_items = [];
   backend.tables.shared_settings = shared ? [{ id: 'profit_estimates', key: 'profit_estimates', value: shared, audience: 'owner_admin', updated_at: '2026-11-23T15:00:00Z', updated_by: id(1) }] : [];
   // the browser holds DIFFERENT numbers (postage 4, packaging 1), to show which copy wins
-  await page.addInitScript(() => { try { localStorage.setItem('he_real_profit', 'on'); if (!localStorage.getItem('he_profit_estimates')) localStorage.setItem('he_profit_estimates', JSON.stringify({ postage: 4, packaging: 1 })); } catch (e) {} });
+  await page.addInitScript(() => { try { localStorage.setItem('he_shared_settings', 'on'); localStorage.setItem('he_real_profit', 'on'); if (!localStorage.getItem('he_profit_estimates')) localStorage.setItem('he_profit_estimates', JSON.stringify({ postage: 4, packaging: 1 })); } catch (e) {} });
 }
 
 test.describe('Real profit with the shared settings installed', () => {

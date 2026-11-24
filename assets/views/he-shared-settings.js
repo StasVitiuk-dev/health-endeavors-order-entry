@@ -71,6 +71,7 @@
 
     async function get(key) {
       const none = (state, message) => ({ state: state, value: null, updatedAt: null, updatedBy: null, message: message || '' });
+      if (d.enabled === false) return none('not_installed', 'Settings for every device are not in use yet.');   // nothing is requested
       if (!usable) return none('unknown', 'The database is not available here.');
       if (!KEY_OK.test(String(key == null ? '' : key))) return none('unknown', 'This setting has no valid name.');
       try {

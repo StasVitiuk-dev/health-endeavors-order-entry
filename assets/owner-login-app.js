@@ -84,7 +84,7 @@
       nightlyOverall,
     } = window.HE.helpers;
     // @@ EXT15 modules: created in dependency order (assets/app/*.js; see docs/ops/APPLICATION_MODULE_MAP_EXT15.md)
-    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, agentDiaryOn, realProfitOn, channelMoneyOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn } = HE.modules.create('he-config', {  });
+    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, agentDiaryOn, realProfitOn, channelMoneyOn, SWITCH_EVERYONE, sharedSettingsOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn } = HE.modules.create('he-config', {  });
     const { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, focusDialog, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, h, pageIconNode } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
     const { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
     const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, h, supabase });
@@ -171,6 +171,7 @@
       const whoName = String(profile.display_name || user.email || '');
       whoAmI.textContent = `${whoName.length > 80 ? whoName.slice(0, 79) + '\u2026' : whoName} — role: ${profile.role}`;
       whoAmI.title = whoAmI.textContent;
+      if (await syncSharedSwitches()) return;                // this browser was brought in line: the page reloads once
       renderSidebar('');
       showPage(getLastPage());
       loadDashboard();
@@ -3003,7 +3004,7 @@
     const RP_KEY = 'he_profit_estimates';
     let rpShared = { state: 'unknown', value: null, updatedAt: null };
     function rpSettings() { try { return (window.HE && window.HE.views && window.HE.views['he-shared-settings']) || null; } catch (e) { return null; } }
-    function rpStore() { const S = rpSettings(); return S ? S.createStore({ client: supabase, enabled: true }) : null; }
+    function rpStore() { const S = rpSettings(); return S ? S.createStore({ client: supabase, enabled: sharedSettingsOn() }) : null; }   // asks the database only once the shared settings are in use
     let rpPeriod = 'month', rpResult = null, rpSeq = 0, rpError = '', rpEditing = false, rpMessage = '';
     function rpMod() { try { return (window.HE && window.HE.reports && window.HE.reports['he-profit']) || null; } catch (e) { return null; } }
     function rpHost(on) {
@@ -4027,29 +4028,57 @@
     // uses example data or is read-only. Only keys listed in PREVIEW_SWITCHES can
     // be written. Shown to the owner and administrators; empty for everyone else.
     let previewSwitchMessage = '';
+    // Switches shared by every device (assets/views/he-shared-switches.js; drafts/50).
+    // ssShared.state: 'installed' (the database keeps the switches), 'not_installed'
+    // or 'unknown' (they stay in this browser, as before).
+    let ssShared = { state: 'unknown', value: null };
+    function ssMod() { try { return (window.HE && window.HE.views && window.HE.views['he-shared-switches']) || null; } catch (e) { return null; } }
+    // At sign-in: read the shared switches and make this browser match. Returns
+    // true when something changed and the page is reloading (once per state).
+    async function syncSharedSwitches() {
+      const W = ssMod(), store = rpStore();
+      if (!W || !store || !Array.isArray(PREVIEW_SWITCHES)) return false;
+      ssShared = await store.get(W.KEY);
+      if (ssShared.state !== 'installed' || !ssShared.value) return false;
+      const want = W.effective(ssShared.value, PREVIEW_SWITCHES, currentUserRole, SWITCH_EVERYONE);
+      const changed = W.apply(want, localStorage);
+      if (!changed.length) return false;
+      const sig = 'v1:' + W.signature(want);
+      try {
+        if (sessionStorage.getItem('he_switch_sync') === sig) return false;     // already reloaded for this state
+        sessionStorage.setItem('he_switch_sync', sig);
+      } catch (e) { return false; }
+      window.location.reload();
+      return true;
+    }
     function previewSwitchIsOn(key) { try { return localStorage.getItem(key) === 'on'; } catch (e) { return false; } }
     function loadPreviewSwitches() {
       const host = document.getElementById('previewSwitchesHost'); if (!host) return;
       if (!(currentUserRole === 'owner' || currentUserRole === 'administrator') || !Array.isArray(PREVIEW_SWITCHES)) { host.replaceChildren(); return; }
       const onCount = PREVIEW_SWITCHES.filter(sw => previewSwitchIsOn(sw.key)).length;
+      const W = ssMod(), shared = ssShared.state === 'installed', ownerHere = currentUserRole === 'owner';
       const rows = PREVIEW_SWITCHES.map(sw => {
         const on = previewSwitchIsOn(sw.key);
         return h('tr', { 'data-preview-key': sw.key, 'data-preview-on': on ? 'yes' : 'no' },
           h('td', null, h('div', { class: 'taskTitle' }, sw.name), h('div', { class: 'u-fs-11 u-c-muted' }, sw.what)),
           h('td', null, sw.where),
+          h('td', { 'data-preview-audience': W ? W.audienceOf(sw.key, SWITCH_EVERYONE) : '' }, W ? W.AUDIENCE_WORD[W.audienceOf(sw.key, SWITCH_EVERYONE)] : ''),
           h('td', null, on ? 'On' : 'Off'),
-          h('td', null, h('button', { type: 'button', class: 'small' + (on ? ' secondary' : ''), 'data-previewswitch': 'toggle', 'data-key': sw.key, 'aria-label': (on ? 'Turn off ' : 'Turn on ') + sw.name }, on ? 'Turn off' : 'Turn on')));
+          h('td', null, h('button', { type: 'button', class: 'small' + (on ? ' secondary' : ''), 'data-previewswitch': 'toggle', 'data-key': sw.key, disabled: shared && !ownerHere, 'aria-label': (on ? 'Turn off ' : 'Turn on ') + sw.name }, on ? 'Turn off' : 'Turn on')));
       });
       host.replaceChildren(h('div', { class: 'previewSwitches u-mt-18' },
         h('h3', { class: 'u-m-18-0-6 u-fs-15' }, 'Preview features'),
         h('p', { class: 'hint u-mt-0' }, 'For looking at features that are built but not switched on. A switch here applies to this browser on this device only — it is not saved to the database and nobody else sees a change. Every preview uses example data or is read-only: nothing is sent, issued, charged or written to stock. All are off unless you turn them on.'),
+        h('p', { class: 'hint u-mt-6', 'data-preview-shared': ssShared.state }, shared
+          ? 'Switches are shared: turning one on here turns it on on every phone and computer' + (ssShared.value ? '' : ' (nothing is shared yet: the first change shares this browser\u2019s switches)') + '. "Every employee" switches are on for everyone; the others only for the owner and administrators. Only the owner can change a switch.'
+          : ssShared.state === 'not_installed' ? 'Until the shared settings database step (drafts/50) is installed, a switch applies to this browser only.' : ''),
         h('p', { class: 'hint u-mt-6', 'data-preview-count': String(onCount) }, onCount + ' of ' + PREVIEW_SWITCHES.length + ' on in this browser.'),
         previewSwitchMessage ? h('p', { class: 'hint u-mt-6', 'data-preview-msg': '1' }, previewSwitchMessage,
           ' ', h('button', { type: 'button', class: 'small secondary', 'data-previewswitch': 'reload' }, 'Reload now')) : null,
         h('table', { class: 'phoneCards u-mt-8' },
-          h('thead', null, h('tr', null, h('th', null, 'Preview'), h('th', null, 'Where it appears'), h('th', null, 'Now'), h('th', null, 'Change'))),
+          h('thead', null, h('tr', null, h('th', null, 'Preview'), h('th', null, 'Where it appears'), h('th', null, 'Who gets it when shared'), h('th', null, 'Now'), h('th', null, 'Change'))),
           h('tbody', null, rows)),
-        h('div', { class: 'scanToggleRow u-mt-8' }, h('button', { type: 'button', class: 'small secondary', 'data-previewswitch': 'alloff' }, 'Turn all off')),
+        h('div', { class: 'scanToggleRow u-mt-8' }, h('button', { type: 'button', class: 'small secondary', 'data-previewswitch': 'alloff', disabled: shared && !ownerHere }, 'Turn all off')),
         lookPicker()));
     }
     // ---------- Switches that save real records (Feature Flags; OWNER only) ----------
@@ -4144,11 +4173,31 @@
       if (c.key === 'classic') document.documentElement.removeAttribute('data-look'); else document.documentElement.setAttribute('data-look', c.key);
       loadPreviewSwitches(); announce('Look: ' + c.name + '. ' + c.what); refocusLike(t);
     });
-    document.addEventListener('click', (e) => {
+    document.addEventListener('click', async (e) => {
       const t = e.target.closest('[data-previewswitch]'); if (!t) return;
       if (!(currentUserRole === 'owner' || currentUserRole === 'administrator')) return;
       const act = t.getAttribute('data-previewswitch');
       if (act === 'reload') { window.location.reload(); return; }
+      const W = ssMod();
+      if (W && ssShared.state === 'installed' && (act === 'alloff' || act === 'toggle')) {
+        // shared by every device: saved in the database (owner only; the database checks again)
+        const sw = act === 'toggle' ? PREVIEW_SWITCHES.find(x => x.key === t.getAttribute('data-key')) : null;
+        if (act === 'toggle' && !sw) return;
+        const turnOn = sw ? !previewSwitchIsOn(sw.key) : false;
+        const base = ssShared.value || W.fromStorage(PREVIEW_SWITCHES, localStorage);
+        const next = sw ? W.nextValue(base, PREVIEW_SWITCHES, sw.key, turnOn) : W.allOff();
+        const store = rpStore();
+        const r = store ? await store.set(W.KEY, next, 'staff') : { ok: false, message: 'The shared settings could not be reached.' };
+        if (!r.ok) { previewSwitchMessage = r.message + ' Nothing was changed.'; }
+        else {
+          ssShared = { state: 'installed', value: next };
+          W.apply(W.effective(next, PREVIEW_SWITCHES, currentUserRole, SWITCH_EVERYONE), localStorage);
+          previewSwitchMessage = sw ? sw.name + (turnOn ? ' is on for every device (' + W.AUDIENCE_WORD[W.audienceOf(sw.key, SWITCH_EVERYONE)].toLowerCase() + '). Reload the page, then open ' + sw.where + '.' : ' is off on every device. Reload the page to finish.')
+            : 'All previews are off on every device. Reload the page to finish.';
+        }
+        loadPreviewSwitches(); announce(previewSwitchMessage); refocusLike(t);
+        return;
+      }
       try {
         if (act === 'alloff') {
           PREVIEW_SWITCHES.forEach(sw => localStorage.removeItem(sw.key));
