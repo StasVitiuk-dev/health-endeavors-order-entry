@@ -148,6 +148,11 @@ row of buttons at the top of the page; three variations (16, 10 or 6 lines inste
 Feature Flags → Menu. DECIDED Nov 24 ("let's go with A option"): variation 1, "A little shorter" (16 lines),
 is the menu everyone starts with; "Today's menu" and the other two stay one click away. Nothing is deleted.
 
+Nov 24, owner requests added to the list (phone line, agents writing to stores and customers, marketing
+agents, one place to see and stop agents, smart camera for receipts, day-pack and automatic printing):
+checked against what exists and planned in `docs/ops/OWNER_REQUESTS_2026-11-24_AGENTS_PHONE_PRINTING.md`.
+PROPOSED; four OWNER DECISIONS REQUIRED there. Nothing sends a real message.
+
 ## Waits on the owner
 
 Decided Nov 23 (evening): **feature switches are shared by every device**; work features are for every employee; money, revenue and sensitive documents are for the owner and administrators only. NEXT: switches with an audience, stored in shared settings (draft 50).
