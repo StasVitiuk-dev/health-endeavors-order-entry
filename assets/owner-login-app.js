@@ -84,7 +84,7 @@
       nightlyOverall,
     } = window.HE.helpers;
     // @@ EXT15 modules: created in dependency order (assets/app/*.js; see docs/ops/APPLICATION_MODULE_MAP_EXT15.md)
-    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, agentDiaryOn, realProfitOn, channelMoneyOn, SWITCH_EVERYONE, sharedSettingsOn, orderCostsOn, incidentCloseOn, batchLabelsOn, orderBatchesOn, orderChannelsOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn, storeCampaignsOn, receiptReaderOn, contentHelperOn, customerEmailsOn } = HE.modules.create('he-config', {  });
+    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, agentDiaryOn, realProfitOn, channelMoneyOn, SWITCH_EVERYONE, sharedSettingsOn, orderCostsOn, incidentCloseOn, batchLabelsOn, orderBatchesOn, orderChannelsOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn, storeCampaignsOn, receiptReaderOn, contentHelperOn, customerEmailsOn, emailSendingOn } = HE.modules.create('he-config', {  });
     const { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, focusDialog, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, h, pageIconNode } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
     const { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
     const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, h, supabase });
@@ -3910,6 +3910,122 @@
       await rtnAfter(res);
     });
 
+    // ---------- Saved email campaigns (behind emailSendingOn; database drafts/56) ----------
+    // On Store Campaigns and Customer Emails: save the approved wording and the list of who
+    // it goes to in the database, with the sending guard; see the saved campaigns; pause,
+    // resume or stop one; put an address on the do-not-email list. NOTHING IS SENT: the
+    // database keeps the records, the sending program is separate and not connected.
+    // Adapter: assets/sales/he-email-store.js.
+    const esUi = {};
+    const esMod = () => (window.HE && window.HE.sales && window.HE.sales['he-email-store']) || null;
+    function esStore() { const M = esMod(); return M ? M.createStore({ client: supabase, enabled: emailSendingOn() }) : null; }
+    function esOf(page) { return esUi[page] || (esUi[page] = { name: '', confirm: false, busy: false, message: '', result: null, rows: null, state: '', stopId: '', email: '', seq: 0 }); }
+    const esRedraw = (page) => { if (page === 'store') renderStoreCampaigns(); else renderCustomerEmails(); };
+    const esSay = (page, msg, focusSel) => { esOf(page).message = msg; esRedraw(page); announce(msg); const n = document.querySelector('[data-emailsave="' + page + '"] ' + (focusSel || '[data-esmessage]')); if (n) { if (!focusSel) n.setAttribute('tabindex', '-1'); n.focus(); } };
+    // what would be saved, from what the page is showing right now; null when nothing is shown or the wording is no longer the approved one
+    function esReady(page) {
+      const M = esMod(); if (!M) return null;
+      if (page === 'store') {
+        const SC = scMod(); if (!SC || !scState || !scResult || !scShown || !scState.approval || !SC.stillApproved(scState.approval, scText(), scDeps()).valid) return null;
+        return { kind: 'store', recipients: M.recipients('store', scShown), text: scText(), address: scState.address, startDay: scState.startDay };
+      }
+      const CE = ceMod(); if (!CE || !ceState || !ceResult || !ceShown || ceShown.kind !== ceState.kind) return null;
+      const t = ceState.texts[ceState.kind]; if (!t.approval || !CE.stillApproved(t.approval, ceText(), scDeps()).valid) return null;
+      return { kind: 'customer', recipients: M.recipients('customer', ceShown.rows, { firstName: CE.firstName }), text: ceText(), address: ceState.address, startDay: ceState.startDay };
+    }
+    async function esLoad(page) {
+      const store = esStore(), es = esOf(page); if (!store || !emailSendingOn()) return;
+      const seq = ++es.seq;
+      const st = await store.state(); if (seq !== es.seq) return;
+      es.state = st;
+      if (st === 'installed') { const r = await store.campaigns(page === 'store' ? 'store' : 'customer'); if (seq !== es.seq) return; es.rows = r.ok ? r.rows : []; if (!r.ok) es.message = r.message; }
+      esRedraw(page);
+    }
+    function esNode(page) {
+      const M = esMod(); if (!M || !emailSendingOn()) return null;
+      const es = esOf(page), owner = currentUserRole === 'owner', ready = esReady(page), who = page === 'store' ? 'stores' : 'customers';
+      const n = ready ? ready.recipients.length : 0;
+      const head = [h('h3', null, 'Save this campaign (nothing is sent)'),
+        h('p', { class: 'hint u-mt-0' }, 'Saving puts the approved wording and the list of ' + who + ' into the database, with the sending guard: the slow start, the do-not-email list and the automatic stop. It sends nothing; the sending program is not connected. A saved wording cannot be changed afterwards.')];
+      if (es.state !== 'installed') {
+        return h('div', { 'data-emailsave': page, 'data-esstate': es.state || 'checking', class: 'u-mt-12' }, ...head,
+          h('p', { class: 'u-fs-12p5', role: 'status', 'data-esmessage': '1' }, es.state === 'not_installed' ? 'Saving campaigns is switched on, but its database step (drafts/56) is not installed yet. Nothing can be saved.'
+            : es.state === 'unknown' ? 'Could not check whether saving campaigns is installed. Refresh the page to try again.' : 'Checking the database…'));
+      }
+      const day = (iso) => { const d = iso ? new Date(iso) : null; return d && !isNaN(d) ? localDateString(d) : '—'; };
+      const r = es.result;
+      return h('div', { 'data-emailsave': page, 'data-esstate': 'installed', class: 'u-mt-12' }, ...head,
+        h('p', { class: 'u-fs-12p5', role: 'status', 'data-esmessage': '1' }, es.message),
+        !owner ? h('p', { class: 'hint' }, 'Only the owner can save a campaign.')
+          : !ready ? h('p', { class: 'hint', 'data-esnotready': '1' }, 'Approve the wording and press "Show who would get it" first. What is shown there is what would be saved.')
+            : h('div', { 'data-esform': String(n) },
+              h('div', { class: 'heField scField' }, h('label', { for: 'esName-' + page }, 'A name for this campaign'),
+                h('input', { id: 'esName-' + page, type: 'text', maxlength: '120', value: es.name || M.campaignName(ready.kind, ready.text.subject, ready.startDay), 'data-esfield': 'name', 'data-espage': page, autocomplete: 'off' })),
+              h('button', Object.assign({ type: 'button', class: 'small u-mt-8', 'data-es': 'save', 'data-espage': page }, es.busy || !n ? { disabled: 'disabled' } : {}),
+                es.busy ? 'Saving…' : es.confirm ? 'Tap again to save: ' + n + (n === 1 ? ' email' : ' emails') + ' will be queued, none sent' : 'Save the campaign and queue ' + n + (n === 1 ? ' email' : ' emails'))),
+        r ? h('div', { class: 'u-mt-8', 'data-esresult': String(r.queued), tabindex: '-1' },
+          h('p', { class: 'u-fs-12p5' }, 'Saved. ' + r.queued + (r.queued === 1 ? ' email is' : ' emails are') + ' queued' + (r.firstDay ? (r.firstDay === r.lastDay ? ' for ' + r.firstDay : ' from ' + r.firstDay + ' to ' + r.lastDay) : '') + '. Nothing was sent.'),
+          r.skipped.length ? h('details', { 'data-esskipped': String(r.skipped.length) }, h('summary', null, r.skipped.length + ' left out by the database, with the reason'),
+            h('ul', { class: 'u-fs-12p5' }, r.skipped.slice(0, 200).map(x => h('li', null, x.email + ': ' + x.why)))) : null) : null,
+        h('h3', null, 'Saved campaigns'),
+        es.rows === null ? h('p', { class: 'empty' }, 'Loading…')
+          : !es.rows.length ? h('p', { class: 'empty', 'data-eslist': '0' }, 'No campaign is saved yet.')
+            : h('table', { class: 'phoneCards', 'data-eslist': String(es.rows.length) },
+              h('thead', null, h('tr', null, ['Campaign', 'State', 'Approved', 'Queued', 'Sent', 'Left out', 'Came back', ''].map((x, i) => h('th', i > 2 && i < 7 ? { class: 'num-cell' } : null, x)))),
+              h('tbody', null, es.rows.map(c => h('tr', { 'data-escampaign': c.id, 'data-esstatus': c.status },
+                h('td', null, c.name), h('td', null, (M.STATUS_WORDS[c.status] || c.status) + (c.stopReason ? '. ' + c.stopReason : '')), h('td', null, day(c.approvedAt)),
+                h('td', { class: 'num-cell' }, String(c.counts.queued)), h('td', { class: 'num-cell' }, String(c.counts.sent)), h('td', { class: 'num-cell' }, String(c.counts.skipped)), h('td', { class: 'num-cell' }, String(c.counts.back)),
+                h('td', null, owner && (c.status === 'approved' || c.status === 'paused') ? h('div', { class: 'chRow' },
+                  h('button', { type: 'button', class: 'small secondary', 'data-es': c.status === 'paused' ? 'resume' : 'pause', 'data-espage': page, 'data-esid': c.id, 'aria-label': (c.status === 'paused' ? 'Resume ' : 'Pause ') + c.name }, c.status === 'paused' ? 'Resume' : 'Pause'),
+                  h('button', { type: 'button', class: 'small secondary', 'data-es': 'stop', 'data-espage': page, 'data-esid': c.id, 'aria-label': 'Stop ' + c.name }, es.stopId === c.id ? 'Tap again to stop for good' : 'Stop')) : null))))),
+        h('h3', null, 'Someone asked not to be emailed'),
+        h('p', { class: 'hint u-mt-0' }, 'The address goes on the do-not-email list for good, for every campaign, and its queued emails are skipped. It cannot be taken off again from the dashboard.'),
+        h('div', { class: 'u-d-flex u-gap-8 u-fwr-wrap u-ai-flex-end' },
+          h('div', { class: 'heField scField' }, h('label', { for: 'esEmail-' + page }, 'Email address'),
+            h('input', { id: 'esEmail-' + page, type: 'email', maxlength: '254', value: es.email, 'data-esfield': 'email', 'data-espage': page, autocomplete: 'off' })),
+          h('button', { type: 'button', class: 'small secondary', 'data-es': 'suppress', 'data-espage': page }, 'Never email this address')));
+    }
+    document.addEventListener('input', (e) => {
+      const f = e.target.closest('[data-emailsave] [data-esfield]'); if (!f) return;
+      const es = esOf(f.getAttribute('data-espage'));
+      es[f.getAttribute('data-esfield')] = String(f.value).slice(0, 254); es.confirm = false;
+    });
+    document.addEventListener('click', async (e) => {
+      const t = e.target.closest('[data-emailsave] [data-es]'); if (!t || !emailSendingOn()) return;
+      const page = t.getAttribute('data-espage') === 'store' ? 'store' : 'customer', es = esOf(page), store = esStore(), M = esMod(); if (!store || !M || es.busy) return;
+      const act = t.getAttribute('data-es'), id = t.getAttribute('data-esid') || '';
+      if (act === 'save') {
+        const ready = esReady(page);
+        if (!ready) { es.confirm = false; esSay(page, 'The wording or the list changed. Approve the wording and press "Show who would get it" again.'); return; }
+        if (!es.confirm) { es.confirm = true; es.stopId = ''; esRedraw(page); const b = document.querySelector('[data-emailsave="' + page + '"] [data-es="save"]'); if (b) b.focus(); announce('Tap again to save. Nothing will be sent.'); return; }
+        es.confirm = false; es.busy = true; es.result = null; es.message = 'Saving…'; esRedraw(page);
+        const name = (es.name || M.campaignName(ready.kind, ready.text.subject, ready.startDay)).trim();
+        const r = await store.saveAndQueue({ kind: ready.kind, name: name, subject: ready.text.subject, body: ready.text.body, postalAddress: ready.address, startDay: ready.startDay }, ready.recipients);
+        es.busy = false;
+        if (r.ok) { es.result = r; es.name = ''; }
+        const list = await store.campaigns(ready.kind); if (list.ok) es.rows = list.rows;
+        esSay(page, r.ok ? 'Campaign saved. Nothing was sent.' : r.message, r.ok ? '[data-esresult]' : '');
+        return;
+      }
+      if (act === 'pause' || act === 'resume' || act === 'stop') {
+        if (act === 'stop' && es.stopId !== id) { es.stopId = id; es.confirm = false; esRedraw(page); const b = document.querySelector('[data-emailsave="' + page + '"] [data-es="stop"][data-esid="' + CSS.escape(id) + '"]'); if (b) b.focus(); announce('Tap again to stop this campaign for good.'); return; }
+        es.stopId = ''; es.busy = true;
+        const r = await store.setStatus(id, act === 'pause' ? 'paused' : act === 'resume' ? 'approved' : 'stopped', act === 'stop' ? 'stopped on the dashboard' : '');
+        es.busy = false;
+        const list = await store.campaigns(page === 'store' ? 'store' : 'customer'); if (list.ok) es.rows = list.rows;
+        esSay(page, !r.ok ? r.message : act === 'pause' ? 'Paused. Nothing of it will be handed out for sending until you resume it.' : act === 'resume' ? 'Resumed.' : 'Stopped for good. ' + r.skipped + (r.skipped === 1 ? ' queued email was' : ' queued emails were') + ' skipped.');
+        return;
+      }
+      if (act === 'suppress') {
+        if (!(currentUserRole === 'owner' || currentUserRole === 'administrator')) return;
+        es.busy = true;
+        const r = await store.suppress(es.email, 'added on the dashboard');
+        es.busy = false;
+        if (r.ok) { es.email = ''; const list = await store.campaigns(page === 'store' ? 'store' : 'customer'); if (list.ok) es.rows = list.rows; }
+        esSay(page, !r.ok ? r.message : (r.added ? r.email + ' is on the do-not-email list now.' : r.email + ' was already on the do-not-email list.') + ' ' + r.skipped + (r.skipped === 1 ? ' queued email was' : ' queued emails were') + ' skipped.');
+      }
+    });
+
     // ---------- Drafts that follow every device (owner's rule 3; shared settings, drafts/50) ----------
     // The owner's wording on Store Campaigns, Customer Emails and the Content Helper is saved as
     // a shared setting, so it is the same on every phone and computer. The newer of the browser's
@@ -3975,7 +4091,7 @@
     // would get it on which day. Rules: assets/sales/he-store-campaign.js. Kept in
     // this browser until its database step exists.
     const SC_KEY = 'he_store_campaign_v1';
-    let scState = null, scResult = null, scMessage = '';
+    let scState = null, scResult = null, scMessage = '', scShown = null;   // scShown: the stores of the result on screen
     // Store finder (inside this page): scores a pasted list so "best match" means something. Rules: assets/sales/he-store-finder.js.
     let sfFound = null;
     const sfMod = () => (window.HE && window.HE.sales && window.HE.sales['he-store-finder']) || null;
@@ -4026,6 +4142,7 @@
       if (!scState) { scState = scRead(); scShare.seen(); }
       renderStoreCampaigns();
       scShare.pull();
+      esLoad('store');
     }
     // the parts that change while typing, repainted without touching the boxes being typed in
     function scPaint() {
@@ -4075,7 +4192,8 @@
           field('scStart', 'First day', h('input', { id: 'scStart', type: 'date', value: scState.startDay, 'data-scfield': 'startDay' }))),
         field('scAddress', 'Business postal address', h('input', { id: 'scAddress', type: 'text', maxlength: '300', value: scState.address, 'data-scfield': 'address', autocomplete: 'off' }), 'Goes at the bottom of every email (the law asks for it).'),
         h('button', { type: 'button', class: 'small u-mt-8', 'data-sc': 'show' }, 'Show who would get it'),
-        h('div', { 'data-scresult': scResult ? '1' : '0', class: 'u-mt-12' }, scResult || null));
+        h('div', { 'data-scresult': scResult ? '1' : '0', class: 'u-mt-12' }, scResult || null),
+        esNode('store'));
       scPaint();
       labelPhoneCards(host);
     }
@@ -4091,6 +4209,7 @@
       const days = M.plan(picked.chosen.length, { startDay: scState.startDay });
       if (picked.chosen.length && !days.length) { say('Choose the first day.'); return; }
       const sample = picked.chosen.length ? M.render(scText(), picked.chosen[0], { postalAddress: scState.address }) : null;
+      scShown = picked.chosen;
       scMessage = picked.chosen.length + (picked.chosen.length === 1 ? ' store' : ' stores') + ' would get this email over ' + days.length + (days.length === 1 ? ' working day.' : ' working days.') + ' Nothing was sent.';
       scResult = h('div', null,
         h('h3', null, 'Who would get it'),
@@ -4335,7 +4454,7 @@
     // SENT. Rules: assets/sales/he-customer-campaign.js. The wording is kept in this
     // browser; the customer list is read from the orders when asked and kept nowhere.
     const CE_KEY = 'he_customer_emails_v1';
-    let ceState = null, ceResult = null, ceMessage = '', ceBusy = false, ceSeq = 0;
+    let ceState = null, ceResult = null, ceMessage = '', ceBusy = false, ceSeq = 0, ceShown = null;   // ceShown: the customers of the result on screen
     const ceMod = () => (window.HE && window.HE.sales && window.HE.sales['he-customer-campaign']) || null;
     const ceOwner = () => currentUserRole === 'owner' || currentUserRole === 'administrator';
     function ceFrom(v) {
@@ -4372,6 +4491,7 @@
       if (!ceState && ceMod()) { ceState = ceRead(); ceShare.seen(); }
       renderCustomerEmails();
       if (ceState) ceShare.pull();
+      if (ceState) esLoad('customer');
     }
     // the parts that change while typing, repainted without touching the boxes being typed in
     function cePaint() {
@@ -4417,8 +4537,10 @@
           field('ceStart', 'First day', h('input', { id: 'ceStart', type: 'date', value: ceState.startDay, 'data-cefield': 'startDay' }))),
         field('ceAddress', 'Business postal address', h('input', { id: 'ceAddress', type: 'text', maxlength: '300', value: ceState.address, 'data-cefield': 'address', autocomplete: 'off' }), 'Goes at the bottom of every email (the law asks for it).'),
         h('button', Object.assign({ type: 'button', class: 'small u-mt-8', 'data-ce': 'show' }, ceBusy ? { disabled: 'disabled' } : {}), ceBusy ? 'Reading your orders…' : 'Show who would get it'),
-        h('div', { 'data-ceresult': ceResult ? '1' : '0', class: 'u-mt-12' }, ceResult || null));
+        h('div', { 'data-ceresult': ceResult ? '1' : '0', class: 'u-mt-12' }, ceResult || null),
+        esNode('customer'));
       cePaint();
+      labelPhoneCards(host);
     }
     async function ceShow() {
       const M = ceMod(), dp = dpMod(), SC = scMod(); if (!M || ceBusy) return;
@@ -4441,6 +4563,7 @@
       const list = dp.clientList(split.own), who = M.audience(kind, list.clients, { nowMs: Date.now(), days: ceState.days[kind] });
       if (!who.ok) { say(who.reason); return; }
       const n = who.chosen.length;
+      ceShown = { kind: kind, rows: who.chosen };
       const days = n ? SC.plan(Math.min(n, 500), { startDay: ceState.startDay }) : [];
       if (n && !days.length) { say('Choose the first day.'); return; }
       const sample = n ? M.render(ceText(), who.chosen[0], { postalAddress: ceState.address }) : null;

@@ -35,6 +35,8 @@
       what: 'When packing, scan the batch sticker onto the order. "Who got a batch" then lists every order that received it. A wrong scan is voided with a reason, never deleted.' },
     { key: 'he_incident_close', name: 'Close an incident with a note', where: 'Incidents', draft: 'No database step needed', probe: 'incidents',
       what: 'The owner and administrators get a "Record what was done" button on each open incident: write what was done, then keep it open or close it. Nothing is deleted; closed incidents stay listed with their note.' },
+    { key: 'he_email_sending', name: 'Saved email campaigns', where: 'Store Campaigns and Customer Emails', draft: 'drafts/56', probe: 'email_campaigns',
+      what: 'Saves a campaign you approved and the list of who it goes to in the database, with the sending guard (slow start, do-not-email list, automatic stop). It still sends nothing: the sending program is separate and not connected.' },
     { key: 'he_dropoff', name: 'Drop-off receipts', where: 'Orders', draft: 'drafts/48 (review item 9)', probe: 'order_parcels',
       what: 'One carrier receipt marks every parcel on it dropped off.' },
   ]);

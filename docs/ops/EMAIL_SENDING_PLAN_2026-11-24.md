@@ -13,6 +13,7 @@ Written November 24, 2026. Status labels: CURRENT (in the repository), PROPOSED,
 | Customer Emails page: five kinds, ready texts, approve once, exact list of who would get it; marketplace buyers never | dashboard, switch "Customer Emails" (off) | built; drafts only |
 | The drafts of these pages on every device | shared settings, `docs/ops/sql/drafts/50_DRAFT_shared_settings.sql` | built; needs draft 50 installed |
 | **The database records and rules for sending** | `docs/ops/sql/drafts/56_DRAFT_email_sending.sql`, rollback `docs/ops/sql/drafts/57_DRAFT_rollback_email_sending.sql` | DRAFT, not installed; 96 local checks pass (`docs/ops/sql/local-test/email_sending_test.sh`) |
+| Saving a campaign from the dashboard into those records | `assets/sales/he-email-store.js`, switch "Saved email campaigns" under "features that save real records" (off) | built; sends nothing; usable only after draft 56 is installed |
 
 ### What draft 56 does, in plain words
 
@@ -41,10 +42,10 @@ Who may do what: only the owner approves a campaign, chooses who it goes to, and
 | 4 | Install database draft 56 | Owner, after approving it, in a guided sitting | NOT STARTED |
 | 5 | The sending program: a small server-side piece that asks the database for today's emails, hands each to the email service, and records what happened. It holds the service's key, which the owner enters in the database's own settings; the key never appears in this repository, in a pull request or in chat | To be written as a draft for the owner's approval | PROPOSED, not written |
 | 6 | A way for the email service to report bounces, complaints and unsubscribes back, so the do-not-email list fills by itself | Part of piece 5 | PROPOSED, not written |
-| 7 | The dashboard buttons that save an approved campaign and its list into the database (today the pages only show who would get it) | To be built after draft 56 is installed | PROPOSED, not written |
+| 7 | The dashboard part that saves an approved campaign and its list into the database: on Store Campaigns and Customer Emails, "Save this campaign (nothing is sent)", the list of saved campaigns with pause, resume and stop, and "Someone asked not to be emailed" | Built, behind the switch "Saved email campaigns" (off; it can only be turned on once draft 56 is installed) | CURRENT (`assets/sales/he-email-store.js`); tested against a stand-in for the database, not against production |
 | 8 | The owner's approval of the first real send, to a small list, with the owner's own address in it | Owner | OWNER DECISION REQUIRED |
 
-Order: 1 and 2 first (they take the longest and are outside the dashboard), then 3, then 4, then 5 to 7, then 8.
+Order: 1 and 2 first (they take the longest and are outside the dashboard), then 3, then 4 (after which piece 7 can be switched on), then 5 and 6, then 8.
 
 ## 3. Rules that stay in force
 
