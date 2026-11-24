@@ -97,7 +97,30 @@ Existing draft pages on example data: Content Planner, Ad Variants, Content Repu
 ### Automatic daily printing, recommendation given
 
 8:00 AM every day, yesterday's day pack, on the Mac next to the printer, which may sleep but not be
-shut down. OWNER DECISION REQUIRED: confirm the time.
+shut down. DECIDED Nov 24 (owner: "like it, let's do it"). NEXT: set up the helper on the owner's Mac
+together, after the day pack (PR #63/#64) is merged.
+
+### Staying out of spam (owner's question, Nov 24)
+
+The owner asked whether many email addresses are needed to send about 100 emails a day to stores, and
+whether an agent should watch for spam. Claude's answer (general practice, NOT verified against any
+one email provider): one address on the business's own domain is enough; many addresses are not
+needed and are a spammer's pattern. What matters: the domain's sender records set up, a slow start
+(20–30 a day, rising over 2–3 weeks), a clean list of real store addresses, short plain emails, an
+unsubscribe line and the business's postal address in every email, and a separate sub-address for
+outreach so order emails are never affected.
+
+DECIDED to add (PROPOSED by Claude, wanted by the owner's question): a **sending guard** inside the
+store outreach and customer email agents. It keeps the daily limit and the slow start, spreads sends
+over the day, never writes to the same store twice within a set time, removes addresses that bounce,
+honours every unsubscribe at once, checks wording, and **stops the campaign by itself and tells the
+owner** if bounces or complaints pass a limit. To be listed on the AI Agents page with the next code
+change.
+
+### Order-update emails
+
+The owner is fine with Shopify sending them if Shopify has that option. Still to confirm with a
+screenshot of Shopify → Settings → Notifications.
 
 ### Follow-up answers the same day
 
