@@ -1424,3 +1424,16 @@ table.sysStatus td{ overflow-wrap:anywhere; }
   .doAttach select{ max-width:100%; width:100%; }
   .doButtons button, .doMark, .doAttach button{ min-height:40px; }
 }
+
+/* Agent diary (Nov 24; behind he_agent_diary) */
+.diaryBar{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:6px 0 10px; }
+.diaryBar select{ max-width:320px; }
+.diaryDay{ margin:0 0 12px; }
+.diaryDayTitle{ margin:0 0 6px; font-size:13px; color:var(--muted); font-weight:700; }
+.diaryList{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:4px; }
+.diaryEntry{ display:flex; flex-wrap:wrap; align-items:baseline; gap:8px; padding:6px 10px; border-radius:10px; background:var(--panel); border:1px solid var(--line); min-width:0; }
+.diaryPerson{ border-left:4px solid var(--warn); }
+.diaryTime{ font-variant-numeric:tabular-nums; color:var(--muted); font-size:12px; min-width:62px; }
+.diaryWho{ font-weight:600; color:var(--ink); }
+.diaryWhat{ color:var(--ink); overflow-wrap:anywhere; flex:1 1 240px; min-width:0; }
+@media (max-width:640px){ .diaryBar select{ max-width:100%; width:100%; } }

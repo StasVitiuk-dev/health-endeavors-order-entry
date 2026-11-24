@@ -84,7 +84,7 @@
       nightlyOverall,
     } = window.HE.helpers;
     // @@ EXT15 modules: created in dependency order (assets/app/*.js; see docs/ops/APPLICATION_MODULE_MAP_EXT15.md)
-    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn } = HE.modules.create('he-config', {  });
+    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, agentDiaryOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn } = HE.modules.create('he-config', {  });
     const { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, focusDialog, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, h, pageIconNode } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
     const { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
     const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, h, supabase });
@@ -2993,6 +2993,64 @@
       }
     });
 
+    // ---------- Agent diary (Nov 24; behind agentDiaryOn) ----------
+    // What each agent recorded in its own log (ai_decision_log), as a plain diary on
+    // AI Agents: the agent's name, what it did, when, grouped by day, with a filter
+    // per agent. Reads only. No database change.
+    let diaryAgent = '', diaryList = null, diarySeq = 0, diaryError = '';
+    function diaryMod() { try { return (window.HE && window.HE.views && window.HE.views['he-agent-diary']) || null; } catch (e) { return null; } }
+    function diaryHost(on) {
+      let el = document.getElementById('agentDiaryHost');
+      if (!on) { if (el) el.remove(); return null; }
+      if (!el) { const after = document.getElementById('aiTableWrap'); if (!after || !after.parentNode) return null; el = h('div', { id: 'agentDiaryHost', class: 'agentDiary' }); after.after(el); }
+      return el;
+    }
+    async function loadAgentDiary() {
+      const AD = diaryMod();
+      const host = diaryHost(agentDiaryOn() && !!AD); if (!host) return;
+      const seq = ++diarySeq;
+      try {
+        const r = await supabase.from('ai_decision_log').select('id, agent_key, output_summary, confidence, escalated_to_human, created_at')
+          .gte('created_at', new Date(Date.now() - 7 * 86400000).toISOString()).order('created_at', { ascending: false }).limit(AD.MAX_ROWS);
+        if (seq !== diarySeq) return;
+        if (r.error) throw r.error;
+        diaryList = AD.entries(r.data || [], { registry: AGENT_REGISTRY }); diaryError = '';
+      } catch (e) {
+        if (seq !== diarySeq) return;
+        diaryList = null; diaryError = 'The agents’ log could not be read just now: ' + explainDbError(e && e.message ? e.message : String(e));
+      }
+      renderAgentDiary();
+    }
+    function renderAgentDiary() {
+      const host = document.getElementById('agentDiaryHost'); const AD = diaryMod(); if (!host || !AD) return;
+      const head = [h('h3', { class: 'u-m-22-0-6 u-fs-15', id: 'agentDiaryHeading' }, 'Agent diary — the last 7 days'),
+        h('p', { class: 'hint u-mt-0' }, 'Everything your agents wrote in their own log, in plain words, newest first. A step an agent passed to a person is marked, and also appears in your Home feed.')];
+      if (!diaryList) { host.replaceChildren(...head, h('p', { class: 'hint', role: 'status' }, diaryError || 'Loading…')); return; }
+      const v = AD.view(diaryList, diaryAgent);
+      const sel = h('select', { id: 'agentDiaryFilter', 'data-diaryfilter': '1' },
+        h('option', { value: '' }, 'All agents (' + diaryList.length + ')'),
+        ...v.agents.map(a => h('option', { value: a.key }, a.name + ' (' + a.count + ')')));
+      sel.value = v.agent;
+      host.replaceChildren(...head,
+        h('div', { class: 'diaryBar' }, h('label', { for: 'agentDiaryFilter' }, 'Show'), sel,
+          h('span', { class: 'u-fs-12 u-c-muted', 'data-diarycount': String(v.count) }, v.count + (v.count === 1 ? ' step' : ' steps') + (v.passedToPerson ? ' · ' + v.passedToPerson + ' passed to a person' : ''))),
+        v.days.length ? h('div', { class: 'diaryDays' }, ...v.days.map(d => h('section', { class: 'diaryDay', 'aria-label': d.day },
+          h('h4', { class: 'diaryDayTitle' }, d.day),
+          h('ul', { class: 'diaryList' }, ...d.entries.map(e => h('li', { class: 'diaryEntry' + (e.passedToPerson ? ' diaryPerson' : ''), 'data-diaryentry': e.id },
+            h('span', { class: 'diaryTime' }, e.time),
+            h('span', { class: 'diaryWho' }, e.agent),
+            h('span', { class: 'diaryWhat' }, e.what),
+            e.passedToPerson ? h('span', { class: 'badge sev-medium' }, 'Passed to a person') : null,
+            e.confidence != null ? h('span', { class: 'u-fs-12 u-c-muted' }, e.confidence + '% sure') : null))))))
+          : h('p', { class: 'empty' }, 'No steps recorded in the last 7 days. Agents that are switched off write nothing.'));
+    }
+    document.addEventListener('change', (e) => {
+      const s = e.target.closest('#agentDiaryHost select[data-diaryfilter]'); if (!s) return;
+      diaryAgent = s.value; renderAgentDiary();
+      const again = document.getElementById('agentDiaryFilter'); if (again) again.focus();
+      const n = document.querySelector('#agentDiaryHost [data-diarycount]'); if (n) announce(n.textContent);
+    });
+
     // ---------- One attention feed (Nov 23; behind attentionFeedOn) ----------
     // Everything that needs the owner, in one list at the top of Home, most urgent
     // first (assets/views/he-attention-feed.js). It reads what Home already shows
@@ -3000,7 +3058,7 @@
     // notices) and the customer questions still waiting. It never writes: "Answer"
     // opens Customer Questions, "Dismiss" uses the reminder's own Dismiss button
     // below, "Later" hides an item until tomorrow in this browser only.
-    let feedFilter = 'all', feedQuestions = null, feedSeq = 0, feedLast = new Map(), feedParcels = null;
+    let feedFilter = 'all', feedQuestions = null, feedSeq = 0, feedLast = new Map(), feedParcels = null, feedAgentSteps = null;
     const FEED_LIMIT = 100;
     function feedMod() { try { return (window.HE && window.HE.views && window.HE.views['he-attention-feed']) || null; } catch (e) { return null; } }
     function feedStore() { try { return window.localStorage; } catch (e) { return null; } }
@@ -3039,6 +3097,14 @@
           feedParcels = W.watch(r.parcels, { now: Date.now(), ordersById: byId, trackingConnected: false });
         }
       } catch (e) { if (seq !== feedSeq) return; feedParcels = null; }
+      // steps an agent passed to a person in the last 7 days (the agents' own log)
+      try {
+        const AD = diaryMod();
+        const r = AD ? await supabase.from('ai_decision_log').select('id, agent_key, output_summary, confidence, escalated_to_human, created_at')
+          .eq('escalated_to_human', true).gte('created_at', new Date(Date.now() - 7 * 86400000).toISOString()).order('created_at', { ascending: false }).limit(100) : null;
+        if (seq !== feedSeq) return;
+        feedAgentSteps = AD && r && !r.error ? AD.needsPerson(AD.entries(r.data || [], { registry: AGENT_REGISTRY }), { now: Date.now(), days: 7 }) : null;
+      } catch (e) { if (seq !== feedSeq) return; feedAgentSteps = null; }
       paintAttentionFeed();
     }
     // the nightly check, as Home shows it below (its own cards keep their detail)
@@ -3066,7 +3132,7 @@
       const now = Date.now();
       const items = M.buildFeed({
         attention: Array.isArray(SEARCH_INDEX.attention) ? SEARCH_INDEX.attention : null, labels: ITEM_TYPE_LABELS,
-        checks: findings, questions: feedQuestions, nightly: feedNightly(), delivery: feedParcels,
+        checks: findings, questions: feedQuestions, nightly: feedNightly(), delivery: feedParcels, agents: feedAgentSteps,
         money: moneyEl ? { open: Number(moneyEl.getAttribute('data-moneyalert')) } : null,
         tax: taxEl ? { count: Number(taxEl.getAttribute('data-taxratealert')) } : null }, now);
       const v = M.view(items, { now: now, snoozes: M.readSnoozes(feedStore()), filter: feedFilter });
@@ -4946,7 +5012,7 @@
       documentsPanel: [loadDocuments],
       adverseEventsPanel: [loadAdverseEvents],
       inquiriesPanel: [loadInquiries],
-      aiPanel: [loadAI],
+      aiPanel: [loadAI, loadAgentDiary],
       continuityPanel: [loadContinuity, loadSystemStatus],
       flagsPanel: [loadFlags, loadSystemMode, loadPreviewSwitches],
       businessRulesPanel: [loadBusinessRules],
