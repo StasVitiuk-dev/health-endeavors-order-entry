@@ -1521,3 +1521,6 @@ tr.obVoid td:first-child{ text-decoration:line-through; }
 .menuTabs{ display:flex; flex-wrap:wrap; gap:8px; max-width:900px; margin:0 auto 14px; }
 .menuTabs .menuTab{ display:inline-flex; align-items:center; gap:6px; max-width:100%; }
 @media print{ .menuTabs{ display:none; } }
+
+/* Real profit: box sizes (three equal columns; the table wraps instead of scrolling) */
+.rpFees.rpBoxes th:first-child{ width:40%; }

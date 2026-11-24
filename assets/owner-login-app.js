@@ -3080,11 +3080,11 @@
       return el;
     }
     function rpEstimates() {
-      const M = rpMod(); const base = { fees: M ? M.DEFAULT_FEES : {}, postage: null, packaging: null };
+      const M = rpMod(); const base = { fees: M ? M.DEFAULT_FEES : {}, postage: null, packaging: null, boxes: [] };
       try {
         // the copy every device shares wins; this browser's copy is the fallback
         const v = rpShared.state === 'installed' && rpShared.value ? rpShared.value : JSON.parse(localStorage.getItem(RP_KEY) || 'null');
-        if (v && typeof v === 'object') return { fees: Object.assign({}, base.fees, v.fees || {}), postage: v.postage == null ? null : v.postage, packaging: v.packaging == null ? null : v.packaging };
+        if (v && typeof v === 'object') return { fees: Object.assign({}, base.fees, v.fees || {}), postage: v.postage == null ? null : v.postage, packaging: v.packaging == null ? null : v.packaging, boxes: Array.isArray(v.boxes) ? v.boxes : [] };
       } catch (e) { /* defaults */ }
       return base;
     }
@@ -3118,7 +3118,7 @@
         rpCostsNote = costs.state === 'error' ? 'The real order costs could not be read (' + costs.message + '), so every order uses the estimates.' : '';
         rpShared = shared || { state: 'unknown', value: null, updatedAt: null };
         const est = rpEstimates();
-        rpResult = M.compute({ orders: orders, items: items, products: products, poLines: poLines, fees: est.fees, postagePerOrder: est.postage, packagingPerOrder: est.packaging, orderCosts: costs.rows });
+        rpResult = M.compute({ orders: orders, items: items, products: products, poLines: poLines, fees: est.fees, postagePerOrder: est.postage, packagingPerOrder: est.packaging, boxes: est.boxes, orderCosts: costs.rows });
       } catch (e) {
         if (seq !== rpSeq) return;
         rpError = 'Profit could not be worked out just now: ' + explainDbError(e && e.message ? e.message : String(e));
@@ -3153,6 +3153,17 @@
         h('div', { class: 'u-d-flex u-gap-8 u-fwr-wrap u-mt-8' },
           h('div', { class: 'heField' }, h('label', { for: 'rpPostage' }, 'Postage per order ($)'), h('input', { id: 'rpPostage', type: 'text', inputmode: 'decimal', name: 'postage', value: est.postage == null ? '' : String(est.postage) })),
           h('div', { class: 'heField' }, h('label', { for: 'rpPackaging' }, 'Packaging per order ($)'), h('input', { id: 'rpPackaging', type: 'text', inputmode: 'decimal', name: 'packaging', value: est.packaging == null ? '' : String(est.packaging) }))),
+        // packaging by box size (optional): the smallest box that holds the order's bottles
+        h('h4', { class: 'u-mt-12' }, 'Boxes (optional)'),
+        h('p', { class: 'hint u-mt-0' }, 'If you fill these in, packaging is worked out from the number of bottles in each order: the smallest box that holds them (a bigger order uses the largest box more than once). Leave them empty to use the one "Packaging per order" amount. This is an estimate: which box was really used is not recorded.'),
+        h('table', { class: 'rpFees rpBoxes' }, h('thead', null, h('tr', null, h('th', null, 'Box'), h('th', null, 'Holds up to (bottles)'), h('th', null, 'Cost of one ($)'))),
+          h('tbody', null, ...Array.from({ length: M.MAX_BOXES }, (x, n) => {
+            const b = (M.cleanBoxes(est.boxes)[n]) || null, no = n + 1;
+            return h('tr', null,
+              h('td', null, h('input', { type: 'text', name: 'box' + no + '_name', maxlength: '40', value: b ? b.name : '', placeholder: no === 1 ? 'for example Small box' : '', 'aria-label': 'Box ' + no + ': name' })),
+              h('td', null, h('input', { type: 'text', inputmode: 'numeric', name: 'box' + no + '_upto', value: b ? String(b.upTo) : '', 'aria-label': 'Box ' + no + ': how many bottles fit' })),
+              h('td', null, h('input', { type: 'text', inputmode: 'decimal', name: 'box' + no + '_cost', value: b ? String(b.costC / 100) : '', 'aria-label': 'Box ' + no + ': cost of one in dollars' })));
+          }))),
         h('button', { type: 'submit', class: 'small u-mt-8' }, 'Save estimates')) : null;
       const msg = rpMessage ? h('p', { class: 'u-fs-12', role: 'status', 'data-rpmessage': '1' }, rpMessage) : null;
       if (rpError) { put(head, form, msg, h('p', { class: 'hint', role: 'status' }, rpError)); return; }
@@ -3170,6 +3181,7 @@
           h('div', { class: 'stat' }, h('div', { class: 'num' }, t.complete ? rpMoney(t.productCost) : '—'), h('div', { class: 'lbl' }, 'Product cost')),
           h('div', { class: 'stat' }, h('div', { class: 'num' }, t.complete ? rpMoney(t.fees + t.postage + t.packaging) : '—'), h('div', { class: 'lbl' }, 'Fees, postage, packaging'))),
         missingLine,
+        t.boxed ? h('p', { class: 'hint', 'data-rpboxed': String(t.boxed) }, 'Packaging: ' + t.boxed + ' of the ' + t.complete + ' counted ' + (t.complete === 1 ? 'order uses' : 'orders use') + ' your box sizes (an estimate from the number of bottles; the box really used is not recorded).') : null,
         orderCostsOn() ? h('p', { class: 'hint', 'data-rpexact': t.exactFees + '/' + t.exactPostage },
           rpCostsNote || ('Real figures: the fee of ' + t.exactFees + ' and the postage of ' + t.exactPostage + ' of the ' + t.complete + ' counted ' + (t.complete === 1 ? 'order' : 'orders') + '. The rest use your estimates.')) : null,
         r.channels.length ? h('div', null, h('h4', { class: 'u-mt-12' }, 'By sales channel'),
@@ -3196,6 +3208,7 @@
       const refuse = (msg) => { rpMessage = msg; renderRealProfit(); announce(rpMessage); const first = document.querySelector('#realProfitHost form input'); if (first) first.focus(); };
       if (!c.ok) { refuse(c.problems.join(' ')); return; }
       const value = { fees: c.fees, postage: c.postage, packaging: c.packaging };
+      if (c.boxes.length) value.boxes = c.boxes;             // box sizes, when any are filled in
       const keepHere = () => { try { localStorage.setItem(RP_KEY, JSON.stringify(value)); return true; } catch (err) { return false; } };
       if (rpShared.state === 'installed') {
         // every device: saved in the database (owner only; the database checks again)
