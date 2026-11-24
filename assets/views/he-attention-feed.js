@@ -31,6 +31,7 @@
     { key: 'work', label: 'Tasks and approvals' }, { key: 'delivery', label: 'Deliveries' }, { key: 'checks', label: 'Checks' }, { key: 'money', label: 'Money and tax' }]);
   const MAX_TEXT = 600;
   const SNOOZE_KEY = 'he_feed_snooze';
+  const CLEARED_KEY = 'he_feed_snooze_cleared';      // when "Show them again" was last pressed
   const DAY = 86400000;
 
   const text = (v, max) => { const s = (v == null ? '' : String(v)).replace(/\s+/g, ' ').trim(); return s.length > (max || MAX_TEXT) ? s.slice(0, (max || MAX_TEXT) - 1) + '…' : s; };
@@ -211,12 +212,52 @@
   function snooze(store, item, now) {
     if (!item || !item.id) return false;
     const v = readSnoozes(store); const t = time(now) != null ? time(now) : Date.now();
-    v[item.id] = { until: startOfNextDay(t), sig: String(item.signature || '') };
+    v[item.id] = { until: startOfNextDay(t), sig: String(item.signature || ''), at: t };
     // forget snoozes that ended more than a week ago, so the list stays small
     Object.keys(v).forEach(k => { if (!v[k] || !(Number(v[k].until) > t - 7 * DAY)) delete v[k]; });
     return writeSnoozes(store, v);
   }
-  function unsnoozeAll(store) { return writeSnoozes(store, {}); }
+  // "Show them again": everything set aside before this moment is back, on every device of this person
+  function unsnoozeAll(store, now) {
+    const t = time(now) != null ? time(now) : Date.now();
+    try { if (store) store.setItem(CLEARED_KEY, String(t)); } catch (e) { /* this browser only then */ }
+    return writeSnoozes(store, {});
+  }
+  // ---- the same set-aside list on every device of one person (drafts/58) ----
+  //   pack(store)              -> { items, clearedAt }   what this browser holds
+  //   merge(a, b, now)         -> { items, clearedAt }   both lists joined: the later of two entries wins,
+  //                               and "show them again" on one device clears what was set aside before it
+  //   unpack(store, packed)    -> writes it into this browser
+  const MAX_SHARED = 60;        // with the longest ids this stays well under the 8,000 characters one setting may hold
+  const cleanEntry = (e) => (e && typeof e === 'object' && isFinite(Number(e.until)) ? { until: Number(e.until), sig: String(e.sig == null ? '' : e.sig).slice(0, 80), at: isFinite(Number(e.at)) ? Number(e.at) : 0 } : null);
+  function pack(store) {
+    let cleared = 0;
+    try { const raw = store && store.getItem(CLEARED_KEY); cleared = raw && isFinite(Number(raw)) ? Number(raw) : 0; } catch (e) { cleared = 0; }
+    return merge({ items: readSnoozes(store), clearedAt: cleared }, null, null);
+  }
+  function merge(a, b, now) {
+    const A = a && typeof a === 'object' && !Array.isArray(a) ? a : {}, B = b && typeof b === 'object' && !Array.isArray(b) ? b : {};
+    const num = (v) => (isFinite(Number(v)) && Number(v) > 0 ? Number(v) : 0);
+    const clearedAt = Math.max(num(A.clearedAt), num(B.clearedAt));
+    const t = time(now), out = Object.create(null);
+    [A.items, B.items].forEach(list => {
+      if (!list || typeof list !== 'object' || Array.isArray(list)) return;
+      Object.keys(list).slice(0, 2000).forEach(id => {
+        const e = cleanEntry(list[id]); if (!e || id.length > 200) return;
+        if (e.at <= clearedAt && clearedAt > 0) return;                       // set aside before "show them again"
+        if (t != null && !(e.until > t - 7 * DAY)) return;                    // ended more than a week ago
+        if (!out[id] || e.at > out[id].at || (e.at === out[id].at && e.until > out[id].until)) out[id] = e;
+      });
+    });
+    const ids = Object.keys(out).sort((x, y) => out[y].at - out[x].at || (x < y ? -1 : 1)).slice(0, MAX_SHARED);
+    const items = {}; ids.sort().forEach(id => { items[id] = out[id]; });
+    return { items: items, clearedAt: clearedAt };
+  }
+  function unpack(store, packed) {
+    const p = merge(packed, null, null);
+    try { if (store) store.setItem(CLEARED_KEY, String(p.clearedAt)); } catch (e) { return false; }
+    return writeSnoozes(store, p.items);
+  }
   function isSnoozed(snoozes, item, now) {
     const s = snoozes && item && snoozes[item.id];
     return !!(s && Number(s.until) > now && String(s.sig) === String(item.signature || ''));
@@ -263,6 +304,6 @@
     return lines.join('\n');
   }
 
-  return { LEVELS, KINDS, FILTERS, SNOOZE_KEY, SUMMARY_MAX, summaryText, buildFeed, matchesFilter, view, readSnoozes, snooze, unsnoozeAll, isSnoozed,
+  return { LEVELS, KINDS, FILTERS, SNOOZE_KEY, SUMMARY_MAX, summaryText, buildFeed, matchesFilter, view, readSnoozes, snooze, unsnoozeAll, isSnoozed, CLEARED_KEY, pack, merge, unpack,
     _from: { fromAttention, fromChecks, fromNightly, fromQuestions, fromMoney, fromTax, fromDelivery, fromAgents, fromRecap } };
 }));

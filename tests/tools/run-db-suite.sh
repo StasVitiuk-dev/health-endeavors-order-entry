@@ -76,6 +76,7 @@ step "settings shared by every device (drafts/50)" bash "$LT/shared_settings_tes
 step "the real fee and postage of each order (drafts/52)" bash "$LT/order_costs_test.sh" $C
 step "which batch went into which order (drafts/54)" bash "$LT/order_batches_test.sh" $C
 step "email sending records: campaigns, outbox, do-not-email list (drafts/56)" bash "$LT/email_sending_test.sh" $C
+step "one person's settings on every device (drafts/58)" bash "$LT/my_settings_test.sh" $C
 step "report day cutoff (Query I)" bash "$LT/report_day_cutoff_test.sh" $C
 step "restore with the November drafts" bash "$LT/restore_with_drafts_test.sh" $C
 step "stress (5 runs)" bash "$LT/stress_test.sh" 5 $C -d he_real

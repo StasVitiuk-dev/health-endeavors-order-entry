@@ -115,5 +115,44 @@
     return { get: get, set: set };
   }
 
-  return { TABLE, RPC, KEYS, MAX_CHARS, checkValue, friendlyError, latestDay, createStore };
+  // One person's own settings (drafts/58): the same on every device that person signs in to.
+  // Each person reads and saves only their own; nobody else sees them, the owner included.
+  const MY_TABLE = 'my_settings', MY_RPC = 'set_my_setting';
+  const MY_KEYS = Object.freeze({ feedSnooze: 'feed_snooze' });
+  function createPersonalStore(deps) {
+    const d = deps || {};
+    const client = d.client;
+    const usable = !!(client && typeof client.from === 'function' && d.enabled !== false);
+    const mine = (err) => { const t = friendlyError(err); return t.replace('Settings for every device are not installed in the database yet (drafts/50 needs the owner\'s approval).', 'Your own settings on every device are not installed in the database yet (drafts/58 needs the owner\'s approval).'); };
+
+    async function get(key) {
+      const none = (state, message) => ({ state: state, value: null, updatedAt: null, message: message || '' });
+      if (d.enabled === false) return none('not_installed', 'Your own settings on every device are not in use yet.');   // nothing is requested
+      if (!usable) return none('unknown', 'The database is not available here.');
+      if (!KEY_OK.test(String(key == null ? '' : key))) return none('unknown', 'This setting has no valid name.');
+      try {
+        const res = await client.from(MY_TABLE).select('key, value, updated_at').eq('key', key).limit(1);
+        if (res && res.error) return notInstalled(res.error) ? none('not_installed', mine(res.error)) : none('unknown', mine(res.error));
+        const row = res && Array.isArray(res.data) ? res.data[0] : null;
+        if (!row || !isObj(row.value)) return none('installed');
+        return { state: 'installed', value: row.value, updatedAt: row.updated_at || null, message: '' };
+      } catch (e) { return none('unknown', mine(e)); }
+    }
+
+    async function set(key, value) {
+      if (!usable || typeof client.rpc !== 'function') return { ok: false, message: 'The database is not available here.' };
+      const c = checkValue(key, value);
+      if (!c.ok) return { ok: false, message: c.reason };
+      try {
+        const res = await client.rpc(MY_RPC, { p_key: key, p_value: c.value });
+        if (res && res.error) return { ok: false, message: mine(res.error), notInstalled: notInstalled(res.error) || String(res.error.code || '') === 'PGRST202' };
+        const out = res && isObj(res.data) ? res.data : {};
+        return { ok: true, message: '', updatedAt: out.updated_at || null };
+      } catch (e) { return { ok: false, message: mine(e) }; }
+    }
+
+    return { get: get, set: set };
+  }
+
+  return { TABLE, RPC, KEYS, MY_TABLE, MY_RPC, MY_KEYS, MAX_CHARS, checkValue, friendlyError, latestDay, createStore, createPersonalStore };
 }));

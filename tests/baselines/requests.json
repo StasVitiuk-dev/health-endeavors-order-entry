@@ -51,6 +51,7 @@
   "GET legal_holds?limit=50&order=released_at.desc&select=id,title,released_at&status=eq.released",
   "GET legal_holds?order=placed_at.desc&select=id,title,description,related_type,related_reference,placed_at&status=eq.active",
   "GET money_match_issues?limit=0&select=*",
+  "GET my_settings?limit=0&select=*",
   "GET needs_attention?order=due_at.asc.nullslast&select=*",
   "GET order_batches?limit=0&select=*",
   "GET order_costs?limit=0&select=*",

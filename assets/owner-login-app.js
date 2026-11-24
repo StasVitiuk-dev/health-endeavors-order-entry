@@ -84,7 +84,7 @@
       nightlyOverall,
     } = window.HE.helpers;
     // @@ EXT15 modules: created in dependency order (assets/app/*.js; see docs/ops/APPLICATION_MODULE_MAP_EXT15.md)
-    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, agentDiaryOn, realProfitOn, channelMoneyOn, SWITCH_EVERYONE, sharedSettingsOn, orderCostsOn, incidentCloseOn, batchLabelsOn, orderBatchesOn, orderChannelsOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn, storeCampaignsOn, receiptReaderOn, contentHelperOn, customerEmailsOn, emailSendingOn } = HE.modules.create('he-config', {  });
+    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, agentDiaryOn, realProfitOn, channelMoneyOn, SWITCH_EVERYONE, sharedSettingsOn, orderCostsOn, incidentCloseOn, batchLabelsOn, orderBatchesOn, orderChannelsOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn, storeCampaignsOn, receiptReaderOn, contentHelperOn, customerEmailsOn, emailSendingOn, mySettingsOn } = HE.modules.create('he-config', {  });
     const { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, focusDialog, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, h, pageIconNode } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
     const { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
     const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, h, supabase });
@@ -3406,6 +3406,26 @@
     const FEED_LIMIT = 100;
     function feedMod() { try { return (window.HE && window.HE.views && window.HE.views['he-attention-feed']) || null; } catch (e) { return null; } }
     function feedStore() { try { return window.localStorage; } catch (e) { return null; } }
+    // What a person set aside follows that person to every device (drafts/58, behind mySettingsOn).
+    // Pulled once when the feed first loads and joined with this browser's list; pushed a moment
+    // after each change. Until the switch is on, nothing is asked of the database.
+    let fsPulled = false, fsTimer = null, fsShared = false;
+    function fsStore() { const S = rpSettings(); return S && S.createPersonalStore ? S.createPersonalStore({ client: supabase, enabled: mySettingsOn() }) : null; }
+    function feedSnoozePush() {
+      const M = feedMod(), S = rpSettings(), st = fsStore(); if (!M || !S || !st || !mySettingsOn()) return;
+      clearTimeout(fsTimer);
+      fsTimer = setTimeout(async () => { const r = await st.set(S.MY_KEYS.feedSnooze, M.pack(feedStore())); fsShared = !!r.ok; }, 700);
+    }
+    async function feedSnoozePull() {
+      const M = feedMod(), S = rpSettings(), st = fsStore(); if (!M || !S || !st || !mySettingsOn() || fsPulled) return;
+      fsPulled = true;
+      const r = await st.get(S.MY_KEYS.feedSnooze);
+      if (r.state !== 'installed') return;
+      fsShared = true;
+      const mine = M.pack(feedStore()), joined = M.merge(mine, r.value, Date.now());
+      if (JSON.stringify(joined) !== JSON.stringify(mine)) { M.unpack(feedStore(), joined); paintAttentionFeed(); }
+      if (JSON.stringify(joined) !== JSON.stringify(M.merge(r.value, null, Date.now()))) feedSnoozePush();   // this browser knew something the database did not
+    }
     // The feed's box exists only while the feed is on, so with the switch off Home
     // is exactly as before (same elements, same spacing).
     function feedHost(on) {
@@ -3416,6 +3436,7 @@
     }
     async function loadAttentionFeed() {
       if (!feedHost(attentionFeedOn() && !!feedMod())) return;
+      feedSnoozePull();
       const seq = ++feedSeq;
       try {
         const rows = await fetchAllRows('customer_inquiries', 'id, customer_name, channel, question_text, status, ai_draft_reply, sensitive, severity, created_at',
@@ -3524,7 +3545,7 @@
         ? h('ul', { class: 'feedList', 'aria-label': 'Things that need you' }, ...shown.map(card))
         : (v.caughtUp && v.filter === 'all' ? null : h('p', { class: 'empty' }, 'Nothing here in this filter.'));
       const more = v.items.length > shown.length ? h('p', { class: 'hint' }, 'Showing the first ' + shown.length + ' of ' + v.items.length + '. Use a filter to see the rest.') : null;
-      const snoozed = v.snoozed ? h('p', { class: 'hint feedSnoozed' }, v.snoozed + ' set aside until tomorrow (this browser). ',
+      const snoozed = v.snoozed ? h('p', { class: 'hint feedSnoozed' }, v.snoozed + ' set aside until tomorrow (' + (mySettingsOn() && fsShared ? 'on every device you sign in to' : 'this browser') + '). ',
         h('button', { type: 'button', class: 'small secondary', 'data-feedunsnooze': '1' }, 'Show them again')) : null;
       const qNote = feedQuestions === null ? h('p', { class: 'hint' }, 'Customer questions could not be read just now; the check "Customer questions waiting" stands in for them.') : null;
       const copy = feedSummary ? h('p', { class: 'feedCopySummary' }, h('button', { type: 'button', class: 'small secondary', 'data-feedsummary': '1' }, 'Copy this as a morning summary'),
@@ -3567,13 +3588,14 @@
         const nextId = next && next.getAttribute('data-feeditem');
         const ok = M.snooze(feedStore(), feedLast.get(z.getAttribute('data-feedsnooze')), Date.now());
         if (!ok) { showDashError('This browser could not remember that. Nothing was changed.'); return; }
+        feedSnoozePush();
         paintAttentionFeed(); announce('Set aside until tomorrow.');
         const back = nextId ? [...host.querySelectorAll('[data-feeditem]')].find(x => x.getAttribute('data-feeditem') === nextId) : null;
         const target = back ? back.querySelector('button') : host.querySelector('#feedHeading');
         if (target) { if (target.id === 'feedHeading') target.setAttribute('tabindex', '-1'); target.focus(); }
         return;
       }
-      if (e.target.closest('[data-feedunsnooze]')) { M.unsnoozeAll(feedStore()); paintAttentionFeed(); announce('Everything set aside is back in the list.'); }
+      if (e.target.closest('[data-feedunsnooze]')) { M.unsnoozeAll(feedStore(), Date.now()); feedSnoozePush(); paintAttentionFeed(); announce('Everything set aside is back in the list.'); }
     });
     // Redraw when anything the feed reads from is redrawn on Home.
     (function watchFeedSources() {

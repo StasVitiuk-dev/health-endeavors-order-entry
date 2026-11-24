@@ -261,3 +261,137 @@ test.describe('the Home section', () => {
     expect(small).toBe(0);
   });
 });
+
+// What a person set aside follows that person to every device (owner's rule 3; database
+// draft 58, behind he_my_settings: a switch that saves real records, OFF). The database
+// part is tested against a real local PostgreSQL (docs/ops/sql/local-test/my_settings_test.sh).
+test.describe('set aside on every device: the rules (no browser)', () => {
+  test.beforeEach(({}, ti) => { test.skip(ti.project.name !== 'desktop', 'Node-only; run once'); });
+  const mem = () => { const m = {}; return { getItem: k => (k in m ? m[k] : null), setItem: (k, v) => { m[k] = String(v); } }; };
+  const T = Date.parse('2026-11-24T15:00:00Z');
+
+  test('two devices are joined: both lists count, the later entry wins, and "Show them again" on one clears what was set aside before it', () => {
+    const phone = mem(), mac = mem();
+    F.snooze(phone, { id: 'task:1', signature: 's1' }, T);
+    F.snooze(mac, { id: 'task:2', signature: 's2' }, T + 1000);
+    let joined = F.merge(F.pack(phone), F.pack(mac), T + 2000);
+    expect(Object.keys(joined.items)).toEqual(['task:1', 'task:2']);
+    expect(joined.items['task:1']).toEqual({ until: F.readSnoozes(phone)['task:1'].until, sig: 's1', at: T });
+    // the same item set aside again later, with a changed text: the later one stands
+    F.snooze(mac, { id: 'task:1', signature: 's1-changed' }, T + 3000);
+    expect(F.merge(F.pack(phone), F.pack(mac), T + 4000).items['task:1'].sig).toBe('s1-changed');
+    // "Show them again" on the Mac: everything set aside before that moment is back, on the phone too
+    F.unsnoozeAll(mac, T + 5000);
+    joined = F.merge(F.pack(phone), F.pack(mac), T + 6000);
+    expect(joined).toEqual({ items: {}, clearedAt: T + 5000 });
+    // something set aside after it stays
+    F.snooze(phone, { id: 'task:3', signature: 's3' }, T + 9000);
+    joined = F.merge(F.pack(phone), F.pack(mac), T + 9500);
+    expect(Object.keys(joined.items)).toEqual(['task:3']);
+    F.unpack(mac, joined);
+    expect(Object.keys(F.readSnoozes(mac))).toEqual(['task:3']);
+    expect(F.pack(mac)).toEqual(joined);
+  });
+
+  test('old entries are dropped, the list stays small, and junk never throws', () => {
+    const old = { items: { gone: { until: T - 8 * 86400000, sig: 'x', at: T - 9 * 86400000 }, kept: { until: T + 1000, sig: 'y', at: T - 1000 } }, clearedAt: 0 };
+    expect(Object.keys(F.merge(old, null, T).items)).toEqual(['kept']);
+    // ids as long as the real ones ("q:" + a 36-character id), each with a fingerprint
+    const longId = (i) => 'q:00000000-0000-4000-8000-' + String(i).padStart(12, '0');
+    const many = { items: Object.fromEntries(Array.from({ length: 400 }, (x, i) => [longId(i), { until: T + 1000, sig: 'abcdef12', at: T + i }])), clearedAt: 0 };
+    const cut = F.merge(many, null, T);
+    expect(Object.keys(cut.items)).toHaveLength(60);
+    expect(cut.items[longId(399)]).toBeTruthy(); expect(cut.items[longId(0)]).toBeUndefined();   // the most recent are kept
+    for (const junk of [null, undefined, 'x', 7, [], { items: 'x', clearedAt: 'y' }, { items: { a: null, b: { until: 'soon' }, ['z'.repeat(300)]: { until: T } }, clearedAt: -5 }]) {
+      expect(F.merge(junk, junk, T)).toEqual({ items: {}, clearedAt: 0 });
+      expect(F.unpack(mem(), junk)).toBe(true);
+    }
+    expect(F.pack(null)).toEqual({ items: {}, clearedAt: 0 });
+    expect(JSON.stringify(F.merge(many, null, T)).length).toBeLessThan(8000);                  // fits in one setting
+  });
+
+  test('the personal store asks nothing while it is off, and names its own database step when that is missing', async () => {
+    const SS = require('../../assets/views/he-shared-settings.js');
+    const calls = [];
+    const client = { from: (t) => ({ select: () => ({ eq: () => ({ limit: async () => { calls.push(t); return { data: null, error: { code: 'PGRST205', message: "Could not find the table 'public.my_settings' in the schema cache" } }; } }) }) }),
+      rpc: async (n, a) => { calls.push([n, a]); return { data: { ok: true, updated_at: 'now' }, error: null }; } };
+    const off = SS.createPersonalStore({ client, enabled: false });
+    expect((await off.get('feed_snooze')).state).toBe('not_installed');
+    expect((await off.set('feed_snooze', {})).ok).toBe(false);
+    expect(calls).toEqual([]);
+    const on = SS.createPersonalStore({ client, enabled: true });
+    const got = await on.get('feed_snooze');
+    expect(got.state).toBe('not_installed');
+    expect(got.message).toContain('drafts/58');
+    expect((await on.set('feed_snooze', { items: {}, clearedAt: 0 })).ok).toBe(true);
+    expect(calls[1]).toEqual(['set_my_setting', { p_key: 'feed_snooze', p_value: { items: {}, clearedAt: 0 } }]);
+    expect((await on.set('feed_snooze', { password: 'x' })).message).toContain('never saved as settings');
+    expect((await on.set('Bad Key', {})).ok).toBe(false);
+  });
+});
+
+test.describe('set aside on every device: on Home', () => {
+  test.beforeEach(async ({ page }, ti) => { test.skip(ti.project.name !== 'desktop', 'run once'); await page.clock.setFixedTime(new Date('2026-11-24T15:00:00Z')); });
+  const mine = (page) => page.addInitScript(() => { try { localStorage.setItem('he_my_settings', 'on'); } catch (e) {} });
+  const saves = (backend) => backend.requests.filter(r => r.rpc === 'set_my_setting').map(r => r.body);
+  const reads = (backend) => backend.requests.filter(r => r.table === 'my_settings' && !r.params.some(([k, v]) => k === 'limit' && v === '0'));
+  const install = (backend) => { backend.tables.my_settings = []; backend.rpc.set_my_setting = (b) => { backend.tables.my_settings = [{ key: b.p_key, value: b.p_value, updated_at: '2026-11-24T15:00:05Z' }]; return { ok: true, key: b.p_key, updated_at: '2026-11-24T15:00:05Z' }; }; };
+  const BO = 'q:00000000-0000-4000-8000-00000000f102';
+
+  test('switch off (as shipped): setting aside stays in this browser and nothing is asked of the database for it', async ({ page, backend }) => {
+    seed(backend); install(backend); await on(page);
+    await login(page); await gotoPage(page, 'attentionPanel');
+    const f = feed(page);
+    await f.locator(`[data-feeditem="${BO}"] [data-feedsnooze]`).click();
+    await expect(f.locator('.feedSnoozed')).toContainText('1 set aside until tomorrow (this browser).');
+    await page.waitForTimeout(1000);
+    expect(reads(backend)).toEqual([]);
+    expect(saves(backend)).toEqual([]);
+  });
+
+  test('switched on: what is set aside is saved for this person, and another device shows it set aside too; "Show them again" travels as well', async ({ page, backend, pageErrors }) => {
+    seed(backend); install(backend); await on(page); await mine(page);
+    await login(page); await gotoPage(page, 'attentionPanel');
+    const f = feed(page), bo = f.locator(`[data-feeditem="${BO}"]`);
+    await expect(bo).toBeVisible();
+    await bo.locator('[data-feedsnooze]').click();
+    await expect(f.locator('.feedSnoozed')).toContainText('1 set aside until tomorrow (on every device you sign in to).');
+    await expect.poll(() => saves(backend).length).toBe(1);
+    const saved = saves(backend)[0];
+    expect(saved.p_key).toBe('feed_snooze');
+    expect(Object.keys(saved.p_value)).toEqual(['items', 'clearedAt']);
+    expect(Object.keys(saved.p_value.items)).toEqual([BO]);
+    expect(Object.keys(saved.p_value.items[BO]).sort()).toEqual(['at', 'sig', 'until']);          // no text of the question, no customer
+    expect(JSON.stringify(saved)).not.toMatch(/SYNTHETIC|example\.test/);
+    // "another device": this browser forgets its own list; the saved one brings it back
+    await page.evaluate(() => { localStorage.removeItem('he_feed_snooze'); localStorage.removeItem('he_feed_snooze_cleared'); });
+    await page.reload(); await expect(page.locator('#dash')).toBeVisible(); await gotoPage(page, 'attentionPanel');
+    await expect(f.locator('.feedSnoozed')).toContainText('1 set aside until tomorrow (on every device you sign in to).');
+    await expect(bo).toHaveCount(0);
+    await page.waitForTimeout(1000);
+    expect(saves(backend).length).toBe(1);                                                    // nothing new to say: nothing saved again
+    // "Show them again" here clears it for every device
+    await f.locator('[data-feedunsnooze]').click();
+    await expect(bo).toBeVisible();
+    await expect.poll(() => saves(backend).length).toBe(2);
+    expect(saves(backend)[1].p_value.items).toEqual({});
+    expect(saves(backend)[1].p_value.clearedAt).toBeGreaterThan(0);
+    await page.reload(); await expect(page.locator('#dash')).toBeVisible(); await gotoPage(page, 'attentionPanel');
+    await expect(bo).toBeVisible();
+    await expect(f.locator('.feedSnoozed')).toHaveCount(0);
+    expect(writes(backend)).toEqual([]);                                                      // no business record was ever changed
+    expect(pageErrors).toEqual([]);
+  });
+
+  test('switched on but not installed, or the database refuses: setting aside still works in this browser', async ({ page, backend, pageErrors }) => {
+    seed(backend); await on(page); await mine(page);
+    await page.route('**/rest/v1/my_settings?*', route => route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify({ code: 'PGRST205', message: "Could not find the table 'public.my_settings' in the schema cache" }) }));
+    await login(page); await gotoPage(page, 'attentionPanel');
+    const f = feed(page);
+    await f.locator(`[data-feeditem="${BO}"] [data-feedsnooze]`).click();
+    await expect(f.locator('.feedSnoozed')).toContainText('1 set aside until tomorrow (this browser).');
+    await page.reload(); await expect(page.locator('#dash')).toBeVisible(); await gotoPage(page, 'attentionPanel');
+    await expect(f.locator('.feedSnoozed')).toBeVisible();
+    expect(pageErrors.filter(e => !/404|PGRST|Failed to load resource/.test(e))).toEqual([]);
+  });
+});

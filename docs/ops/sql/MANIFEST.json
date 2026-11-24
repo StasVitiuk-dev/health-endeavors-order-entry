@@ -690,6 +690,31 @@
       "effect": "drops the six functions, the three tables, their guards and the daily-cap function; no other table touched. The do-not-email list is lost with it: save it first",
       "postcheck": "to_regclass('public.email_outbox') is null",
       "dynamicSql": "format() with fixed names (%I) to lock and count the three tables only where they exist"
+    },
+    {
+      "file": "drafts/58_DRAFT_my_settings.sql",
+      "id": "58",
+      "class": "PRODUCTION-CHANGE-DRAFT",
+      "step": "optional (owner rule of Nov 24: the same on every phone and computer; this one for the small choices that belong to one person, first use: what a person set aside until tomorrow on Home)",
+      "dependsOn": [],
+      "risk": "LOW",
+      "rollback": "59",
+      "precheck": "stops, changing nothing, if a my_settings table exists that this file did not create (it checks its own mark); stops if auth.uid(), is_active_staff() or is_owner_or_admin() is missing",
+      "effect": "1 new table my_settings (one row per person and setting: the person, a short key, a small JSON value, when it was saved); set_my_setting() saves or replaces the signed-in person's own setting; each active person reads and writes only their own rows, the owner included; never deleted, keys never renamed; at most 40 settings per person; not audited on purpose (view preferences, not business records); no existing table changes",
+      "postcheck": "the table present and empty; anon cannot read it; local-test/my_settings_test.sh passes on a throwaway copy",
+      "lock": "NONE (new table only)"
+    },
+    {
+      "file": "drafts/59_DRAFT_rollback_my_settings.sql",
+      "id": "59",
+      "class": "ROLLBACK",
+      "rollbackOf": "58",
+      "dependsOn": [],
+      "risk": "LOW",
+      "precheck": "stops, removing nothing, while any setting is saved, unless deleting them was authorized in the session; stops if the table was not created by drafts/58",
+      "effect": "drops the function, the table and its guard",
+      "postcheck": "to_regclass('public.my_settings') is null",
+      "dynamicSql": "format() with fixed names (%I) to lock and count the my_settings table only where it exists"
     }
   ],
   "local": [
