@@ -192,7 +192,7 @@ const ADDED = ['focusDialog', 'inspectLabel', 'keyLink', 'setReportHistoryView',
   // Nov 24: agent hand-offs marked handled, and raised after a day (behind he_handoff_handled)
   'handoffHandledOn', 'hhPulled', 'hhTimer', 'hhShared', 'hhPush', 'hhPull',
   // Nov 24: Reviews page (behind he_review_inbox)
-  'reviewInboxOn', 'RI_KEY', 'riList', 'riMessage', 'riFilter', 'riOpen', 'riRemoveId', 'riDraft', 'riMod', 'riDeps', 'riOwner', 'riRead', 'riKeep', 'riFeedRows', 'loadReviewInbox', 'reviewStoreOn', 'riShared', 'riStoreState', 'riIds', 'riPulling', 'riMoved', 'riStore', 'riPull', 'riAddRows', 'riMark', 'riBusy', 'riSettled', 'RI_LEVEL_WORD', 'riStars', 'renderReviewInbox', 'riChanged',
+  'reviewInboxOn', 'RI_KEY', 'riList', 'riMessage', 'riFilter', 'riOpen', 'riRemoveId', 'riDraft', 'riMod', 'riDeps', 'riOwner', 'riRead', 'riKeep', 'riFeedRows', 'loadReviewInbox', 'reviewStoreOn', 'riShared', 'riStoreState', 'riIds', 'riPulling', 'riMoved', 'riStore', 'riPull', 'riAddRows', 'riMark', 'riBusy', 'riSettled', 'riFromDatabase', 'RI_LEVEL_WORD', 'riStars', 'renderReviewInbox', 'riChanged',
   'sfFound', 'sfMod', 'sfNode',
   'customerEmailsOn', 'CE_KEY', 'ceState', 'ceResult', 'ceMessage', 'ceBusy', 'ceSeq', 'ceMod', 'ceOwner', 'ceRead', 'ceKeep', 'ceText', 'loadCustomerEmails', 'cePaint', 'renderCustomerEmails', 'ceShow',
   'contentHelperOn', 'CH_KEY', 'CH_KINDS', 'chState', 'chShown', 'chMod', 'chDeps', 'chRead', 'chKeep', 'loadContentHelper', 'chBlockedLine', 'chPaint', 'renderContentHelper',

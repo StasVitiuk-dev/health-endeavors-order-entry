@@ -4756,7 +4756,9 @@
       let v = null; try { v = JSON.parse(localStorage.getItem(RI_KEY) || 'null'); } catch (e) { v = null; }
       return M.add(v && Array.isArray(v.reviews) ? v.reviews : [], [], Date.now()).list;      // checked again on the way in
     }
-    function riKeep() { try { localStorage.setItem(RI_KEY, JSON.stringify({ reviews: riList })); return true; } catch (e) { return false; } }
+    // `from: 'database'` says this browser's copy was read from the database and not changed here since
+    function riKeep() { try { localStorage.setItem(RI_KEY, JSON.stringify(riShared ? { reviews: riList, from: 'database' } : { reviews: riList })); return true; } catch (e) { return false; } }
+    function riFromDatabase() { try { const v = JSON.parse(localStorage.getItem(RI_KEY) || 'null'); return !!v && v.from === 'database'; } catch (e) { return false; } }
     // With the real-records switch "Reviews on every device" on and drafts/60 installed, the
     // database is where the reviews live: riShared is true, riIds maps a review to its row,
     // and this browser only keeps a copy so Home can draw at once. Reviews that were kept in
@@ -4773,24 +4775,31 @@
         let r = await st.list();
         if (!r.ok) { riShared = false; riStoreState = 'unknown'; return false; }
         // once per visit: what this browser held and the database never saw goes to the database
-        // (a review that was removed there is known, so it is not brought back by an old copy here).
-        // If any of it cannot be saved, nothing is switched over: the reviews stay in this browser,
-        // untouched, and the move is tried again on the next visit. Nothing is ever lost by it.
+        // (a review that was removed there is known, so it is not brought back by an old copy here),
+        // and so does an "answered" or "no reply needed" mark made in this browser. If any of it
+        // cannot be saved, nothing is switched over: the reviews stay in this browser, untouched,
+        // and the move is tried again on the next visit. Nothing is ever lost by it.
         if (!riMoved) {
-          const known = new Set(r.known), mine = (riList || riRead()).filter(x => !known.has(x.id));
+          const stay = () => { riShared = false; riStoreState = 'unknown'; return false; };
+          const local = riList || riRead(), known = new Set(r.known), mine = local.filter(x => !known.has(x.id));
           if (mine.length) {
-            const stay = () => { riShared = false; riStoreState = 'unknown'; return false; };
+            let taken = 0;
             for (let i = 0; i < mine.length; i += M.MAX_LINES) {                 // the database takes 200 at a time
               const a = await st.add(mine.slice(i, i + M.MAX_LINES));
-              if (!a.ok) return stay();
+              if (!a.ok || a.refused) return stay();
+              taken += a.added + a.duplicates;
             }
+            if (taken < mine.length) return stay();                             // the database did not say it has every one of them
             r = await st.list();
             if (!r.ok) return stay();
-            const now = new Set(r.known);
-            if (mine.some(x => !now.has(x.id))) return stay();                  // the database did not take every one of them
-            for (const x of mine.filter(y => y.status === 'answered' || y.status === 'noreply')) { const row = r.rows.find(z => z.id === x.id); if (row) await st.mark(row.dbId, x.status); }
-            r = await st.list();
-            if (!r.ok) return stay();
+          }
+          if (!riFromDatabase()) {
+            let marked = false;
+            for (const x of local.filter(y => y.status === 'answered' || y.status === 'noreply')) {
+              const row = r.rows.find(z => z.id === x.id);
+              if (row && row.status === 'new') { const m = await st.mark(row.dbId, x.status); if (!m.ok) return stay(); marked = true; }
+            }
+            if (marked) { r = await st.list(); if (!r.ok) return stay(); }
           }
           riMoved = true;
         }
@@ -4952,6 +4961,7 @@
         if (riBusy) return; riBusy = true;
         const r = await riAddRows([c.review]).finally(() => { riBusy = false; });
         if (!r.ok) { riMessage = 'Not added: ' + r.message; renderReviewInbox(); announce(riMessage); return; }
+        if (r.refused && !r.added && !r.duplicates) { riMessage = 'Not added: the database would not take that review (the stars, the text or the date). Nothing was saved.'; renderReviewInbox(); announce(riMessage); return; }
         riDraft.cleared = ['riTextIn', 'riDateIn'];
         riChanged(r.added ? 'Review added.' : 'That review is already here; it was not added twice.', '#riTextIn');
         return;
@@ -4966,7 +4976,7 @@
         const r = await riAddRows(p.rows).finally(() => { riBusy = false; });
         if (!r.ok) { riMessage = 'Not added: ' + r.message; renderReviewInbox(); announce(riMessage); return; }
         riDraft.cleared = ['riPasteIn'];
-        riChanged(r.added + (r.added === 1 ? ' review added' : ' reviews added') + (r.duplicates ? ', ' + r.duplicates + ' already here' : '') + (p.unread ? ', ' + p.unread + (p.unread === 1 ? ' line' : ' lines') + ' could not be read' : '') + '.', '[data-rifilter="waiting"]');
+        riChanged(r.added + (r.added === 1 ? ' review added' : ' reviews added') + (r.duplicates ? ', ' + r.duplicates + ' already here' : '') + (r.refused ? ', ' + r.refused + ' not taken by the database' : '') + (p.unread ? ', ' + p.unread + (p.unread === 1 ? ' line' : ' lines') + ' could not be read' : '') + '.', '[data-rifilter="waiting"]');
         return;
       }
       if (act === 'replies') { riOpen = riOpen === id ? '' : id; renderReviewInbox(); const b = [...document.querySelectorAll('#reviewsPanel [data-ri="replies"]')].find(x => x.getAttribute('data-riid') === id); if (b) b.focus(); return; }

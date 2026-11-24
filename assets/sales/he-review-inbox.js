@@ -37,7 +37,7 @@
     channel: 'channel', source: 'channel', where: 'channel', platform: 'channel', marketplace: 'channel',
     date: 'date', 'review date': 'date', when: 'date', product: 'product', item: 'product', title: 'product' });
 
-  const str = (v, max) => { const s = (typeof v === 'string' ? v : (typeof v === 'number' && isFinite(v) ? String(v) : '')).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, '').trim(); return max ? s.slice(0, max) : s; };
+  const str = (v, max) => { const s = (typeof v === 'string' ? v : (typeof v === 'number' && isFinite(v) ? String(v) : '')).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, '').trim(); return max ? s.slice(0, max).replace(/[\ud800-\udbff]$/, '') : s; };   // a cut never leaves half of an emoji behind
   const obj = (v) => (v !== null && typeof v === 'object' && !Array.isArray(v) ? v : {});
   const asList = (v) => (Array.isArray(v) ? v.filter(x => x !== null && typeof x === 'object' && !Array.isArray(x)) : []);
   const time = (v) => { if (typeof v === 'number') return isFinite(v) ? v : null; const s = str(v, 40); if (!s) return null; const t = Date.parse(s); return isFinite(t) ? t : null; };
@@ -72,7 +72,7 @@
     const stars = typeof r.stars === 'number' ? (Number.isInteger(r.stars) && r.stars >= 1 && r.stars <= 5 ? r.stars : null) : starsOf(r.stars);
     const text = str(r.text, MAX_TEXT + 1);
     if (stars == null) problems.push('Choose the stars (1 to 5).');
-    if (text.length < 3) problems.push('Write what the review says.');
+    if (Array.from(text).length < 3) problems.push('Write what the review says (three characters at least).');   // counted the way the database counts: an emoji is one
     if (text.length > MAX_TEXT) problems.push('The review is too long (' + MAX_TEXT + ' characters at most).');
     const when = time(r.date);
     if (str(r.date, 40) && when == null) problems.push('The date is not a date (for example 2026-11-24).');
