@@ -11,6 +11,16 @@ for the owner to merge) · **IN PROGRESS** · **NEXT** · **WAITS ON OWNER**.
 Every new feature ships behind a switch that is off until the owner turns it on.
 Database changes are drafts the owner runs after approving them.
 
+## The owner's standing rules for everything we build (Nov 24)
+
+1. **Every agent and every feature can be seen and switched on, off or paused on
+   the dashboard** (agents: AI Agents page; features: Feature Flags). Nothing
+   needs a typed command. (Switches that save real records get their own owner-only
+   section on Feature Flags, with a warning and whether their database step is
+   installed: NEXT.)
+2. **Everything sits where the owner would look for it**: sorted, organised, on
+   the page it belongs to, so nothing has to be searched for.
+
 ## Ready for the owner to merge (in this order)
 
 | PR | What | Tests |
@@ -20,13 +30,19 @@ Database changes are drafts the owner runs after approving them.
 | #43 | **One attention feed** on Home ("Needs you now") | feed 13 + 68 related passed; GitHub green |
 | #44 | **Drop-off receipt**: one carrier receipt marks every parcel dropped off; database draft 48 (review item 9) | DB 47/47; screen 13; 267 related passed |
 | #45 | **Delivery watch**: stuck, late, problem and returned parcels in the feed with next step and customer message | 5 + 49 related passed |
+| #46 | **Agent diary**: every agent step in plain words on AI Agents; hand-offs in the feed (no database change) | 10 + 73 related passed |
+
+**Draft 48 (in #44) is BLOCKED, DO NOT RUN:** production already has the
+Shipping/Tracking agent's `shipments` table. The draft refuses to install over it.
+Next: the owner runs the read-only shape check in review item 9; then the draft is
+adapted to that table.
 
 ## The plan, item by item
 
 | # | Item | Status | Where |
 |---|---|---|---|
 | A | One attention feed, the main screen | READY (#43) | Home |
-| B | Smart scan: drop-off receipts (paste, photo of barcodes, typing) | READY (#44) | Orders |
+| B | Smart scan: drop-off receipts (paste, photo of barcodes, typing) | READY (#44); its database step BLOCKED until adapted to the agent's table | Orders |
 | B2 | Smart scan for everything (receipts, expenses, supplier papers, **bottle barcodes for batches**), free reading on the phone first | NEXT | scan page |
 | 1 | One stock count for all channels | NEXT (via Shopify as hub if agreed) | Inventory |
 | 2 | All Orders with channel badges (Amazon, Etsy, TikTok, website) | NEXT (via Shopify as hub if agreed) | Orders |
@@ -36,7 +52,7 @@ Database changes are drafts the owner runs after approving them.
 | 6 | **Batch tracing**: batch recorded on each order (by scanning the bottle when packing); recall = one button lists every customer who got that batch and holds the rest | NEXT | Inventory, Orders, Recalls |
 | 7 | Delivery watch | READY (#45); carrier tracking connects with Shopify | feed |
 | 8 | Reviews from every channel in the feed, worst first, reply to approve | NEXT | feed |
-| 9 | **Agent diary**: every automatic step written down (which agent, what, when, which order), shown on AI Agents and in the feed when it needs the owner; each agent keeps its on/off switch | NEXT (owner: "love it") | AI Agents, feed |
+| 9 | **Agent diary**: every automatic step written down (which agent, what, when, which order), shown on AI Agents and in the feed when it needs the owner; each agent keeps its on/off switch | READY (#46) | AI Agents, feed |
 
 ## What each agent will do (agents stay off until the owner switches them on)
 
@@ -63,6 +79,15 @@ Database changes are drafts the owner runs after approving them.
 - PROPOSED, waiting for a yes: **Shopify as the hub** for Amazon, Etsy and TikTok
   (their official Shopify apps bring orders in and keep one stock count).
 
+## Progress (rough, planning estimates)
+
+- **The 2-week list** (A, B, B2, 1–9, email and the switches section, 13 pieces):
+  **4 built and tested** (A, B, 7, 9), waiting to be merged; **9 to build**.
+  About **30% built**, **0% live** until the owner merges.
+- **The whole business** (dashboard, database fixes R1–R10, website, store launch,
+  connections): **≈ 39–42%** (`docs/health-endeavors-progress.md`). Most of the rest
+  needs owner steps: merges, the database steps, seller accounts, email, website photos.
+
 ## Waits on the owner
 
 1. Merge the PRs above (in order).
@@ -71,3 +96,4 @@ Database changes are drafts the owner runs after approving them.
 4. The database steps in `docs/ops/sql-review/START_HERE_GUIDED_RUNS.md`, then review item 9 (draft 48).
 5. A yes or no on Shopify as the hub.
 6. Batch barcodes: does the barcode on each bottle carry the **batch** number, or only the product code?
+7. **Read-only shape check** of the `shipments` table (review item 9, step 0): one paste in the SQL editor, screenshot.
