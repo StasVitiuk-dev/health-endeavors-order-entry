@@ -30,6 +30,8 @@ const WIDTHS = [
   ['closed, narrow band', 440, 678], ['closed', 466, 678],
   ['open upright, edge of the phone layout', 600, 890], ['open upright, first in-between width', 601, 890],
   ['open upright', 626, 890], ['open upright, wide band', 700, 890],
+  // Nov 24: between the phone cards and the menu-beside-the-page layout (the owner's narrow computer window)
+  ['first width with tables instead of cards', 701, 890], ['narrow computer window', 790, 800],
   ['last drawer width', 820, 626], ['first column width', 821, 626], ['open sideways', 890, 626],
 ];
 
@@ -133,4 +135,39 @@ test('open upright (626 points): orders are one card each, with the full date an
   // and at 701 points (wider than any phone, narrower than a tablet's column layout) the table comes back
   await page.setViewportSize({ width: 701, height: 890 });
   await expect.poll(() => row.evaluate(el => getComputedStyle(el).display)).toBe('table-row');
+});
+
+// Nov 24 (the owner's screenshots): in a computer window about 790 wide, the
+// Feature Flags list kept each description on one long line and scrolled
+// sideways, so the name, the On/Off word and the button were never visible
+// together. Between 701 and 820 wide a table wraps its text and fits.
+test('narrow computer window (790 wide): a Feature Flags row shows its name, where, On/Off and button together', async ({ page }, ti) => {
+  test.skip(ti.project.name !== 'desktop', 'narrow computer window');
+  await page.setViewportSize({ width: 790, height: 800 });
+  await login(page);
+  await gotoPage(page, 'flagsPanel');
+  // both lists on the page: the previews, and the features that save real records
+  const tables = page.locator('#flagsPanel table.phoneCards');
+  await expect(tables.first().locator('tbody tr').first()).toBeVisible();
+  const seen = await tables.evaluateAll(els => {
+    const W = document.documentElement.clientWidth;
+    return els.filter(el => el.querySelector('tbody tr button')).map(el => {
+      const rows = [...el.querySelectorAll('tbody tr')].filter(r => r.querySelector('button'));
+      return {
+        display: getComputedStyle(rows[0]).display,
+        sideways: el.scrollWidth - el.clientWidth,
+        page: document.scrollingElement.scrollWidth - document.scrollingElement.clientWidth,
+        outside: rows.filter(r => { const b = r.querySelector('button').getBoundingClientRect(), n = r.querySelector('td').getBoundingClientRect(); return b.right > W + 1 || n.left < 0; }).length,
+        rows: rows.length,
+      };
+    });
+  });
+  expect(seen.length).toBeGreaterThanOrEqual(2);
+  expect(seen.reduce((n, t) => n + t.rows, 0)).toBeGreaterThan(15);
+  for (const t of seen) {
+    expect(t.display, 'still a table, not cards').toBe('table-row');
+    expect(t.sideways, 'the table does not scroll sideways').toBeLessThanOrEqual(1);
+    expect(t.page, 'the page does not scroll sideways').toBeLessThanOrEqual(1);
+    expect(t.outside, 'every row has its name and its button on screen').toBe(0);
+  }
 });
