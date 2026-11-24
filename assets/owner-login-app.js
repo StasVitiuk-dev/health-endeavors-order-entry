@@ -177,6 +177,7 @@
       renderSidebar('');
       showPage(getLastPage());
       loadDashboard();
+      autoPrintCheck(false);                                 // opened by the daily print link: yesterday's day pack, once
       const expDateInput = document.getElementById('expDate');
       if (expDateInput && !expDateInput.value) expDateInput.value = localDateString();
     }
@@ -4517,11 +4518,13 @@
     let bkDay = '', bkDayBusy = false, bkPeriod = '90';
     const dpMod = () => (window.HE && window.HE.reports && window.HE.reports['he-day-pack']) || null;
     const bkSay = (msg) => { bkMessage = msg; announce(msg); const m = document.querySelector('#backupsPanel [data-bkmessage]'); if (m) m.textContent = msg; };
-    async function printDayPack() {
-      const M = dpMod(); if (!M || bkDayBusy) return;
+    // true once the pages were handed to the printer; false when nothing was printed
+    async function printDayPack(day) {
+      const M = dpMod(); if (!M || bkDayBusy) return false;
       const field = document.getElementById('bkDay');
-      const c = M.checkDay(field ? field.value : bkDay);
-      if (!c.ok) { bkSay(c.reason); if (field) field.focus(); return; }
+      const c = M.checkDay(typeof day === 'string' ? day : (field ? field.value : bkDay));
+      if (!c.ok) { bkSay(c.reason); if (field) field.focus(); return false; }
+      if (typeof day === 'string' && field) field.value = c.day;
       bkDay = c.day;
       const range = M.bounds(c.day);
       bkDayBusy = true; bkSay('Reading the orders of ' + c.day + '…');
@@ -4535,7 +4538,7 @@
       } catch (e) {
         bkDayBusy = false;
         bkSay('The orders of ' + c.day + ' could not be read (' + explainDbError(e && e.message ? e.message : String(e)) + '). Nothing was printed.');
-        return;
+        return false;
       }
       bkDayBusy = false;
       const t = pack.totals;
@@ -4573,6 +4576,28 @@
             : h('p', null, 'No clients on this day.'),
           h('p', { class: 'u-fs-12 u-mt-8' }, 'This page holds customer names and email addresses. Keep it in the business folder.'))]);
       bkSay('Opened the day pack for ' + c.day + ' for printing: ' + t.orders + (t.orders === 1 ? ' order, ' : ' orders, ') + t.clients + (t.clients === 1 ? ' client.' : ' clients.'));
+      return true;
+    }
+    // ---- Automatic daily printing: the dashboard's part (rules: assets/reports/he-auto-print.js) ----
+    // Something on the Mac next to the printer opens the dashboard with the daily link each
+    // morning; the dashboard prints yesterday's day pack, once a day per browser. force = the
+    // "Try it now" button. Reads only; the day it last printed is noted in this browser.
+    const AP_KEY = 'he_auto_print_day';
+    const apMod = () => (window.HE && window.HE.reports && window.HE.reports['he-auto-print']) || null;
+    function apLast() { try { const v = localStorage.getItem(AP_KEY) || ''; return /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : ''; } catch (e) { return ''; } }
+    async function autoPrintCheck(force) {
+      const A = apMod(); if (!A) return;
+      if (!force && !A.wants(location.search)) return;
+      if (!(typeof backupsPageOn === 'function' && backupsPageOn()) || !dpMod()) { showDashError('The daily print link needs the "Backups & Printouts" switch turned on (Admin → Feature Flags). Nothing was printed.'); return; }
+      const d = A.due(apLast(), Date.now());
+      showPage('backupsPanel');
+      await loadBackupsPage();                             // the saved recap of the day belongs in the pack
+      if (!force && !d.due) { bkSay('The day pack for ' + d.day + ' was already printed from this link in this browser. Nothing was printed again.'); return; }
+      const ok = await printDayPack(d.day);
+      if (!ok) return;
+      try { localStorage.setItem(AP_KEY, d.day); } catch (e) { /* it would print again at the next opening */ }
+      const last = document.querySelector('#backupsPanel [data-bkautolast]');
+      if (last) { last.setAttribute('data-bkautolast', d.day); last.textContent = 'Last printed this way in this browser: the day pack for ' + d.day + '.'; }
     }
     const BK_DOWN = [
       'Orders keep arriving in Shopify while the dashboard is down. Nothing is lost.',
@@ -4674,6 +4699,16 @@
             h('div', { class: 'heField' }, h('label', { for: 'bkPeriod' }, 'Period'),
               h('select', { id: 'bkPeriod' }, dpMod().PERIODS.map(p => h('option', Object.assign({ value: p.key }, p.key === bkPeriod ? { selected: 'selected' } : {}), p.name)))),
             h('button', { type: 'button', class: 'small', 'data-bk': 'print-clients' }, 'Print the client list'))) : null,
+        dpMod() && apMod() ? h('div', { 'data-bkauto': '1' },
+          h('h3', null, 'Automatic daily printing'),
+          h('p', { class: 'hint u-mt-n2' }, 'Every morning the Mac next to the printer can open the dashboard with the link below. The dashboard then prints yesterday\'s day pack by itself, once a day. A web page cannot wake up on its own: something on the Mac has to open the link at 8:00 AM (a repeating reminder), and the Mac must be on and signed in to the dashboard. That part is set up on the Mac once, together.'),
+          h('div', { class: 'heField' }, h('label', { for: 'bkAutoLink' }, 'The daily link'),
+            h('input', { id: 'bkAutoLink', type: 'text', readonly: 'readonly', value: apMod().link(location.href) })),
+          h('div', { class: 'scanToggleRow u-mt-6' },
+            h('button', { type: 'button', class: 'small secondary', 'data-bk': 'auto-copy' }, 'Copy the link'),
+            h('button', { type: 'button', class: 'small', 'data-bk': 'auto-try' }, 'Try it now')),
+          h('p', { class: 'u-fs-12p5 u-mt-6', 'data-bkautolast': apLast() }, apLast() ? 'Last printed this way in this browser: the day pack for ' + apLast() + '.' : 'Not printed this way in this browser yet.'),
+          h('p', { class: 'hint' }, 'The print window asks for one click on Print. Printing with no click at all needs the browser on that Mac started in its automatic printing mode; that is part of the same set-up. The pages hold customer names and emails, so use this only on a computer in your own office.')) : null,
         h('h3', null, 'Manuals to print'),
         h('ul', null,
           manual('down', 'If the dashboard is down', 'What to do by hand, with a paper log for stock changes.'),
@@ -4755,6 +4790,14 @@
       }
       const t = e.target.closest('#backupsPanel [data-bk]'); if (!t) return;
       if (t.getAttribute('data-bk') === 'print-daypack') { printDayPack(); return; }
+      if (t.getAttribute('data-bk') === 'auto-try') { autoPrintCheck(true); return; }
+      if (t.getAttribute('data-bk') === 'auto-copy') {
+        const box = document.getElementById('bkAutoLink'), text = box ? box.value : '';
+        if (!text) return;
+        navigator.clipboard.writeText(text).then(() => { bkSay('Link copied. It goes into the repeating reminder on the Mac next to the printer.'); toast('Copied'); },
+          () => { if (box) { box.focus(); box.select(); } bkSay('Could not copy in this browser. The link is selected: copy it by hand.'); });
+        return;
+      }
       if (t.getAttribute('data-bk') === 'print-clients') { printClientList(); return; }
       if (t.getAttribute('data-bk') === 'print-latest') {
         const r = bkLatest(); if (!r) return;
