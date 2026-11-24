@@ -189,37 +189,60 @@
     });
   }
 
-  // Hand-offs marked handled: { id: when (ms) }. Kept small on purpose: a hand-off
-  // is in the feed for 7 days, so marks older than 30 days are dropped and at most
-  // the 100 newest are kept (which always fits one shared setting).
+  // Hand-offs marked handled: { id: when (ms) }. A mark that was taken back is kept
+  // as a negative time (when it was taken back), so that the later action wins when
+  // two devices are joined. Kept small on purpose: a hand-off is in the feed for
+  // 7 days, so entries older than 30 days are dropped and at most the 100 newest
+  // are kept (which always fits one shared setting).
   function cleanHandled(v, now) {
     const out = {};
     const src = v && typeof v === 'object' && !Array.isArray(v) ? v : {};
     const t = time(now) != null ? time(now) : Date.now();
     Object.keys(src).forEach(k => {
-      const at = Number(src[k]);
-      if (typeof k === 'string' && k && k.length <= 80 && isFinite(at) && at > 0 && at <= t + DAY && t - at <= HANDLED_KEEP_DAYS * DAY) out[k] = Math.floor(at);
+      const raw = Number(src[k]), at = Math.abs(raw);
+      if (typeof k === 'string' && k && k.length <= 80 && isFinite(raw) && at > 0 && at <= t + DAY && t - at <= HANDLED_KEEP_DAYS * DAY) out[k] = raw < 0 ? -Math.floor(at) : Math.floor(at);
     });
-    const keys = Object.keys(out).sort((a, b) => out[b] - out[a] || (a < b ? -1 : 1)).slice(0, HANDLED_MAX);
+    const keys = Object.keys(out).sort((x, y) => Math.abs(out[y]) - Math.abs(out[x]) || (x < y ? -1 : 1)).slice(0, HANDLED_MAX);
     const kept = {}; keys.sort().forEach(k => { kept[k] = out[k]; });
     return kept;
   }
-  function readHandled(store, now) {
+  // everything remembered, marks taken back included (for saving and joining)
+  function readMarks(store, now) {
     try { return cleanHandled(JSON.parse((store && store.getItem(HANDLED_KEY)) || '{}'), now); } catch (e) { return {}; }
+  }
+  // only what counts as handled now: { id: when }
+  function readHandled(store, now) {
+    const all = readMarks(store, now), out = {};
+    Object.keys(all).forEach(k => { if (all[k] > 0) out[k] = all[k]; });
+    return out;
   }
   function writeHandled(store, v) { try { if (store) store.setItem(HANDLED_KEY, JSON.stringify(v)); return !!store; } catch (e) { return false; } }
   function markHandled(store, id, now) {
     const key = text(id, 80); if (!key) return false;
     const t = time(now) != null ? time(now) : Date.now();
-    const all = readHandled(store, t);
-    if (!all[key]) all[key] = t;
+    const all = readMarks(store, t);
+    if (!(all[key] > 0)) all[key] = t;
     return writeHandled(store, cleanHandled(all, t));
   }
-  // two devices' marks joined: every handled hand-off stays handled; for one marked
-  // on both, the earlier time is kept (when it was first handled)
+  // "Undo": the hand-off counts as not handled again (on every device once joined)
+  function unmarkHandled(store, id, now) {
+    const key = text(id, 80); if (!key) return false;
+    const t = time(now) != null ? time(now) : Date.now();
+    const all = readMarks(store, t);
+    if (!(all[key] > 0)) return false;
+    all[key] = -Math.max(t, all[key] + 1);
+    return writeHandled(store, cleanHandled(all, t));
+  }
+  // two devices joined. Handled on both: the earlier time is kept (when it was first
+  // handled). Handled on one and taken back on the other: the later action wins.
   function mergeHandled(a, b, now) {
     const x = cleanHandled(a, now), y = cleanHandled(b, now), out = {};
-    Object.keys(x).concat(Object.keys(y)).forEach(k => { out[k] = Math.min(x[k] || Infinity, y[k] || Infinity); });
+    Object.keys(x).concat(Object.keys(y)).forEach(k => {
+      const p = x[k], q = y[k];
+      if (p == null || q == null) out[k] = p == null ? q : p;
+      else if (p > 0 && q > 0) out[k] = Math.min(p, q);
+      else out[k] = Math.abs(p) >= Math.abs(q) ? p : q;
+    });
     return cleanHandled(out, now);
   }
 
@@ -354,6 +377,6 @@
   }
 
   return { LEVELS, KINDS, FILTERS, SNOOZE_KEY, SUMMARY_MAX, summaryText, buildFeed, matchesFilter, view, readSnoozes, snooze, unsnoozeAll, isSnoozed, CLEARED_KEY, pack, merge, unpack,
-    HANDLED_KEY, HANDLED_MAX, RAISE_HOURS, readHandled, markHandled, mergeHandled,
+    HANDLED_KEY, HANDLED_MAX, RAISE_HOURS, readMarks, readHandled, markHandled, unmarkHandled, mergeHandled,
     _from: { fromAttention, fromChecks, fromNightly, fromQuestions, fromMoney, fromTax, fromDelivery, fromAgents, fromRecap } };
 }));

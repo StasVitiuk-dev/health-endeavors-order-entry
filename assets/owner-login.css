@@ -1441,6 +1441,7 @@ table.sysStatus td{ overflow-wrap:anywhere; }
 .diaryDay{ margin:0 0 12px; }
 .diaryDayTitle{ margin:0 0 6px; font-size:13px; color:var(--muted); font-weight:700; }
 .diaryList{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:4px; }
+.diaryHandled{ display:inline-flex; flex-wrap:wrap; align-items:center; gap:6px; }
 .diaryEntry{ display:flex; flex-wrap:wrap; align-items:baseline; gap:8px; padding:6px 10px; border-radius:10px; background:var(--panel); border:1px solid var(--line); min-width:0; }
 .diaryPerson{ border-left:4px solid var(--warn); }
 .diaryTime{ font-variant-numeric:tabular-nums; color:var(--muted); font-size:12px; min-width:62px; }

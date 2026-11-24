@@ -562,3 +562,46 @@ test.describe('agent hand-offs: on Home', () => {
     expect(pageErrors.filter(e => !/404|PGRST|Failed to load resource/.test(e))).toEqual([]);   // the 404 is this test's own "not installed"
   });
 });
+
+// "Undo" for a hand-off marked handled by mistake (Nov 24). The mark is not erased:
+// it is kept as "taken back at <time>", so that when two devices are joined the
+// later action wins and the hand-off does not come back as handled from the other one.
+test.describe('agent hand-offs: taking a Handled mark back (no browser)', () => {
+  test.beforeEach(({}, ti) => { test.skip(ti.project.name !== 'desktop', 'Node-only; run once'); });
+  const H = 3600000;
+
+  test('Undo: not handled any more, the hand-off is back in the list; pressing Handled again works', () => {
+    const st = memStore();
+    const rows = [{ id: 'a1', passedToPerson: true, agent: 'Accounting', what: 'SYNTHETIC x', at: NOW - 3 * H }];
+    expect(F.unmarkHandled(st, 'a1', NOW)).toBe(false);                      // nothing to take back
+    expect(F.markHandled(st, 'a1', NOW - 2 * H)).toBe(true);
+    expect(F.buildFeed({ agents: rows, handled: F.readHandled(st, NOW) }, NOW)).toEqual([]);
+    expect(F.unmarkHandled(st, 'a1', NOW - H)).toBe(true);
+    expect(F.readHandled(st, NOW)).toEqual({});
+    expect(F.readMarks(st, NOW)).toEqual({ a1: -(NOW - H) });                // remembered as taken back, with the time
+    expect(F.buildFeed({ agents: rows, handled: F.readHandled(st, NOW) }, NOW).map(i => i.id)).toEqual(['agent:a1']);
+    expect(F.unmarkHandled(st, 'a1', NOW)).toBe(false);                      // twice changes nothing
+    expect(F.markHandled(st, 'a1', NOW)).toBe(true);
+    expect(F.readHandled(st, NOW)).toEqual({ a1: NOW });
+    expect(F.unmarkHandled(null, 'a1', NOW)).toBe(false);
+    expect(F.unmarkHandled(st, '', NOW)).toBe(false);
+  });
+
+  test('two devices: the later action wins, whichever device it was on', () => {
+    // handled on the phone, taken back later on the computer: not handled
+    expect(F.mergeHandled({ a: NOW - 2 * H }, { a: -(NOW - H) }, NOW)).toEqual({ a: -(NOW - H) });
+    // taken back, then handled again later on the other device: handled
+    expect(F.mergeHandled({ a: -(NOW - 2 * H) }, { a: NOW - H }, NOW)).toEqual({ a: NOW - H });
+    // handled on both: the first time is kept
+    expect(F.mergeHandled({ a: NOW - 3 * H }, { a: NOW - H }, NOW)).toEqual({ a: NOW - 3 * H });
+    // taken back on both: the later one is kept
+    expect(F.mergeHandled({ a: -(NOW - 3 * H) }, { a: -(NOW - H) }, NOW)).toEqual({ a: -(NOW - H) });
+    // the order of the two devices never matters
+    for (const [x, y] of [[{ a: NOW - 2 * H, b: -(NOW - H) }, { a: -(NOW - H), b: NOW - 5 * H, c: NOW }]]) {
+      expect(F.mergeHandled(x, y, NOW)).toEqual(F.mergeHandled(y, x, NOW));
+    }
+    // a taken-back mark an instant after the handling still wins over it (same millisecond)
+    const st = memStore(); F.markHandled(st, 'z', NOW); F.unmarkHandled(st, 'z', NOW);
+    expect(F.mergeHandled(F.readMarks(st, NOW), { z: NOW }, NOW).z).toBeLessThan(0);
+  });
+});

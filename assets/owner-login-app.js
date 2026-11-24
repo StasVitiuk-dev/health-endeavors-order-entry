@@ -3379,7 +3379,9 @@
       const handledBit = (e) => {
         if (!marks || !e.passedToPerson) return null;
         const at = marks[e.id];
-        return at ? h('span', { class: 'badge sev-low', 'data-diaryhandledon': e.id }, 'Handled ' + new Date(at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }))
+        return at ? h('span', { class: 'diaryHandled' },
+            h('span', { class: 'badge sev-low', 'data-diaryhandledon': e.id }, 'Handled ' + new Date(at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })),
+            h('button', { type: 'button', class: 'small secondary', 'data-diaryunhandled': e.id, 'aria-label': 'Undo handled: ' + e.agent + ', ' + e.time }, 'Undo'))
           : h('button', { type: 'button', class: 'small secondary', 'data-diaryhandled': e.id, 'aria-label': 'Handled: ' + e.agent + ', ' + e.time }, 'Handled');
       };
       const sel = h('select', { id: 'agentDiaryFilter', 'data-diaryfilter': '1' },
@@ -3401,11 +3403,13 @@
           : h('p', { class: 'empty' }, 'No steps recorded in the last 7 days. Agents that are switched off write nothing.'));
     }
     document.addEventListener('click', (e) => {
-      const b = e.target.closest('#agentDiaryHost [data-diaryhandled]'); if (!b) return;
-      const FM = feedMod(), id = b.getAttribute('data-diaryhandled');
-      if (!FM || !FM.markHandled(feedStore(), id, Date.now())) { showDashError('This browser could not remember that. Nothing was changed.'); return; }
+      const b = e.target.closest('#agentDiaryHost [data-diaryhandled], #agentDiaryHost [data-diaryunhandled]'); if (!b) return;
+      const undo = b.hasAttribute('data-diaryunhandled');
+      const FM = feedMod(), id = b.getAttribute(undo ? 'data-diaryunhandled' : 'data-diaryhandled');
+      const ok = FM && (undo ? FM.unmarkHandled(feedStore(), id, Date.now()) : FM.markHandled(feedStore(), id, Date.now()));
+      if (!ok) { showDashError('This browser could not remember that. Nothing was changed.'); return; }
       hhPush();
-      renderAgentDiary(); paintAttentionFeed(); announce('Marked as handled. It also left the Home list.');
+      renderAgentDiary(); paintAttentionFeed(); announce(undo ? 'Not handled any more. It is back in the Home list.' : 'Marked as handled. It also left the Home list.');
       const li = [...document.querySelectorAll('#agentDiaryHost [data-diaryentry]')].find(x => x.getAttribute('data-diaryentry') === id);
       if (li) { li.setAttribute('tabindex', '-1'); li.focus(); }
     });
@@ -3458,7 +3462,7 @@
       hhTimer = setTimeout(async () => {
         const now = await store.get(S.KEYS.handoffsHandled);
         if (now.state !== 'installed') { hhShared = false; return; }
-        const mine = M.readHandled(feedStore(), Date.now());
+        const mine = M.readMarks(feedStore(), Date.now());
         const joined = M.mergeHandled(mine, now.value && now.value.items, Date.now());
         if (JSON.stringify(joined) === JSON.stringify(M.mergeHandled(now.value && now.value.items, null, Date.now()))) { hhShared = true; return; }
         const r = await store.set(S.KEYS.handoffsHandled, { items: joined }, 'owner_admin');
@@ -3471,7 +3475,7 @@
       const r = await store.get(S.KEYS.handoffsHandled);
       if (r.state !== 'installed') return;
       hhShared = true;
-      const mine = M.readHandled(feedStore(), Date.now());
+      const mine = M.readMarks(feedStore(), Date.now());
       const joined = M.mergeHandled(mine, r.value && r.value.items, Date.now());
       if (JSON.stringify(joined) !== JSON.stringify(mine)) { try { feedStore().setItem(M.HANDLED_KEY, JSON.stringify(joined)); } catch (e) { /* this browser keeps its own list */ } paintAttentionFeed(); renderAgentDiary(); }
       if (JSON.stringify(joined) !== JSON.stringify(M.mergeHandled(r.value && r.value.items, null, Date.now()))) hhPush();   // this browser knew something the database did not
