@@ -53,6 +53,8 @@
       sends: 'Nothing.', now: 'Not built yet. An expense can already carry a photo of its receipt.' },
     { key: 'morning_summary', name: 'Morning summary', what: 'One message each morning: what needs you today.',
       sends: 'To you only.', now: 'Not built yet. Home already lists what needs you.' },
+    { key: 'sending_guard', name: 'Sending guard', what: 'Works inside the two email agents: keeps the daily limit and the slow start, never writes to the same store twice within 90 days, removes addresses that bounce, honours every unsubscribe, and stops a campaign by itself if emails come back or are marked as spam.',
+      sends: 'Nothing.', now: 'Not running. Its rules are built and tested (Store Campaigns shows the slow start and who is left out).' },
     { key: 'content_helper', name: 'Content helper', what: 'Turns one product story into post, ad and email drafts.',
       sends: 'Nothing. It never posts and never spends money.', now: 'Not running. Draft pages exist on example data (Content Planner, Ad Variants, Content Repurposing).' },
   ].map(a => Object.freeze(a)));

@@ -6,6 +6,8 @@
 //   checkDay(text)                 -> { ok, day, reason }          a real YYYY-MM-DD date
 //   bounds(day)                    -> [fromIso, toIso] | null      that day on the viewer's own calendar
 //   build({ day, orders, items })  -> { day, orders, clients, totals }
+//   PERIODS, periodBounds(key, nowMs) -> [fromIso | null, toIso]    for the client list
+//   clientList(orders)             -> { clients, totals }          every client in those orders, once
 //
 // Every figure is exact for the orders listed: nothing is estimated. Cancelled and
 // refunded orders are listed (the paper is a record) but not added to the totals.
@@ -80,5 +82,47 @@
     return { day: day, orders: orders, clients: clients, totals: totals };
   }
 
-  return { NOT_COUNTED, MAX_ORDERS, checkDay, bounds, build };
+  // The client list (owner, Nov 24: "clients list ... when I need"). Every client who
+  // placed an order in the period, once: how many orders, what they add up to, the first
+  // and the last order. Worked out from the orders themselves, so every figure is exact.
+  // Cancelled and refunded orders are not counted; a client with only such orders is
+  // still listed, with 0 counted orders, because the paper is a record.
+  const PERIODS = Object.freeze([
+    Object.freeze({ key: '30', name: 'The last 30 days', days: 30 }),
+    Object.freeze({ key: '90', name: 'The last 90 days', days: 90 }),
+    Object.freeze({ key: '365', name: 'The last 12 months', days: 365 }),
+    Object.freeze({ key: 'all', name: 'All orders', days: null })]);
+  function periodBounds(key, nowMs) {
+    const p = PERIODS.find(x => x.key === key) || PERIODS[1];
+    // a time a calendar cannot hold (far outside any real date) is treated as "now"
+    const now = typeof nowMs === 'number' && Math.abs(nowMs) <= 8.0e15 ? nowMs : Date.now();
+    return { key: p.key, name: p.name, from: p.days == null ? null : new Date(now - p.days * 86400000).toISOString(), to: new Date(now).toISOString() };
+  }
+  const MAX_LIST_ORDERS = 50000;
+  function clientList(orders) {
+    const by = Object.create(null), clients = [];
+    let counted = 0, listed = 0;
+    (Array.isArray(orders) ? orders : []).slice(0, MAX_LIST_ORDERS).forEach(o => {
+      if (!o || typeof o !== 'object' || o.id == null || o.deleted_at) return;
+      listed += 1;
+      const name = text(o.customer_name, 120), email = text(o.customer_email, 200);
+      const key = email ? 'e:' + email.toLowerCase() : name ? 'n:' + name.toLowerCase() : 'none';
+      let c = by[key];
+      if (!c) { c = by[key] = { name: name || (key === 'none' ? 'No name on the order' : ''), email: email, orders: 0, notCounted: 0, money: Object.create(null), first: null, last: null }; clients.push(c); }
+      if (!c.name && name) c.name = name;
+      const day = typeof o.placed_at === 'string' && !isNaN(Date.parse(o.placed_at)) ? o.placed_at : null;
+      if (day && (c.first === null || day < c.first)) c.first = day;
+      if (day && (c.last === null || day > c.last)) c.last = day;
+      if (NOT_COUNTED.includes(text(o.status, 40).toLowerCase())) { c.notCounted += 1; return; }
+      c.orders += 1; counted += 1;
+      const amount = cents(o.total), cur = (text(o.currency, 8) || 'USD').toUpperCase();
+      if (amount != null) c.money[cur] = (c.money[cur] || 0) + amount;
+    });
+    const out = clients.map(c => ({ name: c.name, email: c.email, orders: c.orders, notCounted: c.notCounted, first: c.first, last: c.last,
+      byCurrency: Object.keys(c.money).sort().map(cur => ({ currency: cur, cents: c.money[cur] })) }));
+    out.sort((a, b) => (a.name || a.email).toLowerCase().localeCompare((b.name || b.email).toLowerCase()) || a.email.localeCompare(b.email));
+    return { clients: out, totals: { clients: out.length, orders: listed, counted: counted, repeat: out.filter(c => c.orders > 1).length } };
+  }
+
+  return { NOT_COUNTED, MAX_ORDERS, MAX_LIST_ORDERS, PERIODS, checkDay, bounds, build, periodBounds, clientList };
 }));

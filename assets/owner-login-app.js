@@ -4040,7 +4040,7 @@
     // only; every printout is black on white.
     let bkReports = null, bkSops = null, bkMonth = '', bkMessage = '', bkSeq = 0;
     // Day pack (owner, Nov 24): one day on paper, read when Print is pressed (assets/reports/he-day-pack.js)
-    let bkDay = '', bkDayBusy = false;
+    let bkDay = '', bkDayBusy = false, bkPeriod = '90';
     const dpMod = () => (window.HE && window.HE.reports && window.HE.reports['he-day-pack']) || null;
     const bkSay = (msg) => { bkMessage = msg; announce(msg); const m = document.querySelector('#backupsPanel [data-bkmessage]'); if (m) m.textContent = msg; };
     async function printDayPack() {
@@ -4193,7 +4193,13 @@
           h('p', { class: 'hint u-mt-n2' }, 'One day on paper: every order of the day with its items, the clients of the day, the totals and the saved recap. It is read from the database when you press Print; nothing is changed. The pages hold customer names and emails, so keep them in the business folder.'),
           h('div', { class: 'u-d-flex u-gap-8 u-fwr-wrap u-ai-flex-end u-mt-8' },
             h('div', { class: 'heField' }, h('label', { for: 'bkDay' }, 'Day'), h('input', { id: 'bkDay', type: 'date', value: bkDay || localDateString() })),
-            h('button', { type: 'button', class: 'small', 'data-bk': 'print-daypack' }, 'Print the day pack'))) : null,
+            h('button', { type: 'button', class: 'small', 'data-bk': 'print-daypack' }, 'Print the day pack')),
+          h('h3', null, 'Client list'),
+          h('p', { class: 'hint u-mt-n2' }, 'Every client who ordered in the period, once: how many orders, what they add up to, and the first and the last order. Worked out from the orders when you press Print, so the figures are exact; nothing is changed. The pages hold customer names and emails.'),
+          h('div', { class: 'u-d-flex u-gap-8 u-fwr-wrap u-ai-flex-end u-mt-8' },
+            h('div', { class: 'heField' }, h('label', { for: 'bkPeriod' }, 'Period'),
+              h('select', { id: 'bkPeriod' }, dpMod().PERIODS.map(p => h('option', Object.assign({ value: p.key }, p.key === bkPeriod ? { selected: 'selected' } : {}), p.name)))),
+            h('button', { type: 'button', class: 'small', 'data-bk': 'print-clients' }, 'Print the client list'))) : null,
         h('h3', null, 'Manuals to print'),
         h('ul', null,
           manual('down', 'If the dashboard is down', 'What to do by hand, with a paper log for stock changes.'),
@@ -4226,7 +4232,39 @@
       if (key === 'printing') return page('Printer setup', h('ul', null, BK_PRINTING.map(t => h('li', null, t))));
       return null;
     }
+    async function printClientList() {
+      const M = dpMod(); if (!M || bkDayBusy) return;
+      const sel = document.getElementById('bkPeriod');
+      const period = M.periodBounds(sel ? sel.value : bkPeriod, Date.now());
+      bkPeriod = period.key;
+      bkDayBusy = true; bkSay('Reading the orders (' + period.name.toLowerCase() + ')…');
+      let list = null;
+      try {
+        const orders = await fetchAllRows('orders', 'id, order_number, customer_name, customer_email, status, currency, total, placed_at, deleted_at',
+          q => { let x = q.is('deleted_at', null).lt('placed_at', period.to); if (period.from) x = x.gte('placed_at', period.from); return x; });
+        list = M.clientList(orders);
+      } catch (e) {
+        bkDayBusy = false;
+        bkSay('The orders could not be read (' + explainDbError(e && e.message ? e.message : String(e)) + '). Nothing was printed.');
+        return;
+      }
+      bkDayBusy = false;
+      const t = list.totals;
+      const money = (c) => c.byCurrency.length ? c.byCurrency.map(m => fmtMoney(m.cents / 100, m.currency)).join(' + ') : '—';
+      const day = (iso) => { const d = iso ? new Date(iso) : null; return d && !isNaN(d) ? localDateString(d) : '—'; };   // the day on the viewer's own calendar
+      bkPrintDoc([h('div', { class: 'printPage', 'data-printclients': String(t.clients) },
+        printBrand('Client list, ' + period.name.toLowerCase()), h('div', { class: 'printHdr' }, h('div', null, bkPrinted())),
+        h('p', { class: 'u-fs-12' }, t.clients + (t.clients === 1 ? ' client' : ' clients') + ' · ' + t.counted + ' counted ' + (t.counted === 1 ? 'order' : 'orders') + ' · ' + t.repeat + ' ordered more than once. Exact figures from the orders; cancelled and refunded orders are not counted.'),
+        t.clients ? h('table', null,
+          h('thead', null, h('tr', null, ['Client', 'Email', 'Orders', 'Total', 'First order', 'Last order'].map(x => h('th', null, x)))),
+          h('tbody', null, list.clients.map(c => h('tr', null, h('td', null, c.name || '—'), h('td', null, c.email || '—'),
+            h('td', { class: 'num-cell' }, String(c.orders) + (c.notCounted ? ' (+' + c.notCounted + ' cancelled)' : '')), h('td', { class: 'num-cell' }, money(c)), h('td', null, day(c.first)), h('td', null, day(c.last))))))
+          : h('p', null, 'No orders in this period.'),
+        h('p', { class: 'u-fs-12 u-mt-8' }, 'This page holds customer names and email addresses. Keep it in the business folder.'))]);
+      bkSay('Opened the client list for printing: ' + t.clients + (t.clients === 1 ? ' client' : ' clients') + ' from ' + t.orders + (t.orders === 1 ? ' order.' : ' orders.'));
+    }
     document.addEventListener('change', (e) => {
+      const p = e.target.closest('#backupsPanel select#bkPeriod'); if (p) { bkPeriod = p.value; return; }
       const s = e.target.closest('#backupsPanel select#bkMonth'); if (!s) return;
       bkMonth = s.value; bkMessage = ''; renderBackupsPage();
       const back = document.getElementById('bkMonth'); if (back) back.focus();
@@ -4243,6 +4281,7 @@
       }
       const t = e.target.closest('#backupsPanel [data-bk]'); if (!t) return;
       if (t.getAttribute('data-bk') === 'print-daypack') { printDayPack(); return; }
+      if (t.getAttribute('data-bk') === 'print-clients') { printClientList(); return; }
       if (t.getAttribute('data-bk') === 'print-latest') {
         const r = bkLatest(); if (!r) return;
         const day = String(r.report_date).slice(0, 10);
