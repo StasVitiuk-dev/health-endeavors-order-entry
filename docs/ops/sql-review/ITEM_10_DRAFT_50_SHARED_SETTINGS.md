@@ -69,9 +69,20 @@ select to_regclass('public.shared_settings') is not null as table_present,
 ```
 Expected: `true | 0 | 1 | false`. Anything else: stop and send me a screenshot.
 
-Then on the dashboard: Accounting → Real profit → **Fee and postage estimates** → **Save
-estimates**. The message reads "Estimates saved for every phone and computer." Open the dashboard
-on your phone: the same numbers are there.
+Then on the dashboard:
+
+1. **Feature Flags → Features that save real records → Settings shared by every device → Turn on**
+   (it shows "Installed" once this step has run), then reload the page.
+2. Accounting → Real profit → **Fee and postage estimates** → **Save estimates**. The message reads
+   "Estimates saved for every phone and computer."
+3. Feature Flags → flip any preview switch: the message says it is on (or off) for every device.
+4. On your phone: turn on "Settings shared by every device" there too, reload, and check the same
+   numbers and switches are there.
+5. Tell Claude it works. Claude then opens a one-line PR (`SHARED_SETTINGS_LIVE`) that makes the
+   shared settings the rule for every device, employees included, with no switch to turn on.
+
+Why the switch in step 1: until this step is installed the dashboard must not ask the database for
+shared settings at all (a failed request at every sign-in), so it asks only where you turned it on.
 
 ## Undo
 
@@ -84,7 +95,7 @@ on your phone: the same numbers are there.
 
 | Kept per browser today | Effect on a second device | Proposed |
 |---|---|---|
-| Preview switches (Feature Flags) | a feature turned on here is off there | move to shared settings, so one switch turns a feature on for every device (your decision: for you only, or for staff too) |
+| Preview switches (Feature Flags) | a feature turned on here is off there | **BUILT (PR #53), owner decision of Nov 23:** shared by every device; work features for every employee; money, revenue and sensitive documents for the owner and administrators |
 | "Daily recap printed" mark | the Home reminder shows on the other device | move |
 | Snoozed items in the attention feed | a snoozed item still shows on the other device | move |
 | Chosen look (Aurora / previous) | each device keeps its own look | keep per device (a look is a personal choice), unless you say otherwise |
