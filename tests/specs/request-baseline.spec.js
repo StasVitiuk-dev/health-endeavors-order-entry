@@ -48,11 +48,16 @@ test('every page opens with realistic data; the request list matches the baselin
   for (const id of ids) {
     await gotoPage(page, id);
     await expect(page.locator(`section#${id}`)).toBeVisible();
-    // Nov 24: some pages send follow-up requests only while they are still the open
-    // page (System status sends its install checks that way). Moving on at once, on a
-    // busy machine with another test running beside this one, skipped them by chance
-    // and requests went missing from the list. So each page is given time to finish.
-    await page.waitForLoadState('networkidle');
+    // Nov 24: System status sends its install checks only while its page is still the
+    // open one. Moving on at once, on a busy machine with another test running beside
+    // this one, skipped them by chance and requests went missing from the list (seen
+    // four times). Waiting for "network idle" does not help: the page already went
+    // idle once at sign-in, so that wait returns at once. Wait for the page to SAY its
+    // checks are done instead.
+    if (id === 'continuityPanel') {
+      await expect(page.locator('#systemStatusWrap')).toContainText(/: (installed|not installed|UNKNOWN)/, { timeout: 30000 });
+      await expect(page.locator('#systemStatusWrap')).not.toContainText('not checked yet');
+    }
   }
   await page.waitForLoadState('networkidle');
 
