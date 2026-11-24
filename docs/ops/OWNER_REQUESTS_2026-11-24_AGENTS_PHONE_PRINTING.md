@@ -87,6 +87,13 @@ task (`CLAUDE.md`), a business email address on the business's own domain, an un
 every marketing email, and sending only to people who ordered or subscribed. Whether Shopify's own
 email tool should be the sender for customer marketing is to be checked before a second sender is built.
 
+**Saving a campaign and personal settings (PR #77 and #78, CURRENT, not merged):** #77 is the dashboard
+part that saves an approved campaign and its list into the records of draft 56 (switch "Saved email
+campaigns", off; sends nothing). #78 adds database drafts 58/59 and the dashboard part for the small
+choices that belong to one person: what a person set aside until tomorrow on Home follows that person
+to every device (switch "Your own settings on every device", off). Both switches can only be turned on
+once their database step is installed.
+
 **Real sending prepared for approval (PR #75, CURRENT as drafts, not merged, not installed):** database
 drafts 56 (install) and 57 (rollback) hold what sending needs: approved campaigns, an outbox, a
 do-not-email list, and the sending guard enforced by the database itself. Nothing in them sends an
