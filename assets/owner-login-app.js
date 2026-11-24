@@ -84,7 +84,7 @@
       nightlyOverall,
     } = window.HE.helpers;
     // @@ EXT15 modules: created in dependency order (assets/app/*.js; see docs/ops/APPLICATION_MODULE_MAP_EXT15.md)
-    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn } = HE.modules.create('he-config', {  });
+    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn } = HE.modules.create('he-config', {  });
     const { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, focusDialog, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, h, pageIconNode } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
     const { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
     const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, h, supabase });
@@ -2834,6 +2834,165 @@
         h('span', { class: 'taskTitle' }, n + (L.truncated ? '+' : '') + ' money difference' + (n === 1 ? '' : 's') + ' to look at'),
         ' ', h('button', { type: 'button', class: 'small', 'data-goto': 'accountingPanel', 'data-moneyalertopen': '1' }, 'Review on Accounting')));
     }
+    // ---------- Drop-off receipt (Nov 24; behind dropoffOn, drafts/48) ----------
+    // One carrier receipt marks every parcel on it "dropped off" (owner: "100 parcels
+    // at UPS, scan the receipt and every order updates"). The numbers come from a
+    // photo of the barcodes (where the browser can read them), or from the receipt's
+    // text (the iPhone's Live Text: Select All, Copy, paste), or typed. Only numbers
+    // whose carrier check digit is right are ticked; FedEx (no check digit) is shown
+    // for checking. A number on no order yet can be added to its order here.
+    const DO = { text: '', found: [], unsure: [], picked: new Set(), results: null, orders: null, message: '', busy: false };
+    function doMod() { try { return (window.HE && window.HE.scan && window.HE.scan['he-dropoff']) || null; } catch (e) { return null; } }
+    function doEng() { try { return (window.HE && window.HE.scan && window.HE.scan['he-scan']) || null; } catch (e) { return null; } }
+    function doStore() { const M = doMod(); return M && dropoffOn() ? M.createStore({ client: supabase, enabled: true }) : null; }
+    function doHost(on) {
+      let el = document.getElementById('dropoffHost');
+      if (!on) { if (el) el.remove(); return null; }
+      if (!el) { const after = document.getElementById('savedViewsOrders'); if (!after || !after.parentNode) return null; el = h('div', { id: 'dropoffHost', class: 'dropoff' }); after.after(el); }
+      return el;
+    }
+    const DO_CARRIER = { ups: 'UPS', usps: 'USPS', fedex: 'FedEx', dhl: 'DHL', other: 'Other' };
+    function doFind(values, fromBarcodes) {
+      const M = doMod(), eng = doEng(); if (!M || !eng) return;
+      const r = fromBarcodes ? M.fromBarcodes(values, eng) : M.extractTrackings(values, eng);
+      DO.found = r.found; DO.unsure = r.unsure; DO.results = null;
+      DO.picked = new Set(r.found.map(x => x.tracking));
+      const n = r.found.length + r.unsure.length;
+      DO.message = n ? (n + (n === 1 ? ' tracking number found' : ' tracking numbers found') + (r.unsure.length ? ' (' + r.unsure.length + ' to check: FedEx numbers have no check digit)' : '') + (r.truncated ? '. Only the first 500 are used; mark them, then the rest.' : '.'))
+        : 'No tracking number found. Check that the whole receipt was copied, or type the numbers one per line.';
+    }
+    async function loadDropoff() {
+      const host = doHost(dropoffOn() && !!doMod() && !!doEng()); if (!host) return;
+      renderDropoff();
+    }
+    function renderDropoff() {
+      const host = document.getElementById('dropoffHost'); if (!host) return;
+      const M = doMod();
+      const all = DO.found.concat(DO.unsure);
+      const pickedN = all.filter(x => DO.picked.has(x.tracking)).length;
+      const list = all.length ? h('ul', { class: 'doList', 'aria-label': 'Tracking numbers found' }, ...all.map(x => {
+        const box = h('input', { type: 'checkbox', id: 'do-' + x.tracking, 'data-dopick': x.tracking });
+        box.checked = DO.picked.has(x.tracking);
+        return h('li', { class: 'doItem' + (x.confidence === 'checkdigit' ? '' : ' doUnsure') },
+          box, ' ', h('label', { for: 'do-' + x.tracking }, h('span', { class: 'doNum' }, x.tracking), ' ',
+            h('span', { class: 'badge' }, DO_CARRIER[x.carrier] || x.carrier), ' ',
+            h('span', { class: 'u-fs-12 u-c-muted' }, x.confidence === 'checkdigit' ? 'check digit OK' : 'check this one')));
+      })) : null;
+      let results = null;
+      if (DO.results && M) {
+        const byId = Object.create(null); (DO.orders || []).forEach(o => { byId[o.id] = o; });
+        const s = M.summarize(DO.results, byId);
+        const orderOptions = (DO.orders || []).filter(o => o.order_number).slice(0, 100);
+        results = h('div', { class: 'doResults', 'data-doresults': '1' },
+          h('p', { class: 'doSentence', role: 'status' }, s.sentence),
+          h('table', { class: 'doTable' }, h('thead', null, h('tr', null, h('th', null, 'Tracking number'), h('th', null, 'Result'), h('th', null, 'Order'))),
+            h('tbody', null, ...s.rows.map(r => h('tr', { 'data-doresult': r.result },
+              h('td', { class: 'doNum' }, r.tracking),
+              h('td', null, r.word),
+              h('td', null, r.result === 'not_found'
+                ? h('div', { class: 'doAttach' },
+                    h('label', { for: 'doOrder-' + r.tracking, class: 'u-fs-12' }, 'Its order'),
+                    h('select', { id: 'doOrder-' + r.tracking, 'data-doorder': r.tracking },
+                      h('option', { value: '' }, orderOptions.length ? 'Choose the order' : 'No recent orders found'),
+                      ...orderOptions.map(o => h('option', { value: o.id }, '#' + o.order_number + (o.customer_name ? ' · ' + o.customer_name : '')))),
+                    h('button', { type: 'button', class: 'small', 'data-doattach': r.tracking }, 'Add and mark'))
+                : (r.order ? '#' + r.order : '—')))))));
+      }
+      host.replaceChildren(
+        h('h3', { class: 'u-fs-13 u-c-navy u-m-18-0-6' }, 'Drop-off receipt: mark parcels handed to the carrier'),
+        h('p', { class: 'hint' }, 'After you drop parcels at UPS, USPS or FedEx, give the dashboard the receipt: every parcel on it is marked "dropped off" on its order, once. On iPhone: open the receipt photo, press and hold the text, tap Select All, then Copy, and paste it below.'),
+        h('div', { class: 'doInputs' },
+          h('label', { for: 'doPhoto', class: 'doPhotoLbl' }, 'Photo of the barcodes'),
+          h('input', { type: 'file', id: 'doPhoto', accept: 'image/*', capture: 'environment', 'data-dophoto': '1' }),
+          h('label', { for: 'doText' }, 'Receipt text, or tracking numbers one per line'),
+          h('textarea', { id: 'doText', rows: '4', maxlength: '200000', 'data-dotext': '1', placeholder: 'Paste the receipt here' }),
+          h('div', { class: 'doButtons' },
+            h('button', { type: 'button', class: 'small', 'data-do': 'find' }, 'Find tracking numbers'),
+            all.length || DO.results ? h('button', { type: 'button', class: 'small secondary', 'data-do': 'clear' }, 'Start again') : null)),
+        DO.message ? h('p', { class: 'u-fs-12', 'data-domessage': '1', role: 'status' }, DO.message) : null,
+        list,
+        all.length ? h('button', { type: 'button', class: 'doMark', 'data-do': 'mark', disabled: pickedN === 0 || DO.busy }, 'Mark ' + pickedN + (pickedN === 1 ? ' parcel' : ' parcels') + ' dropped off') : null,
+        results);
+      const ta = host.querySelector('#doText'); if (ta) ta.value = DO.text;
+    }
+    async function doOrdersFor(ids) {
+      const need = [...new Set(ids)].filter(Boolean);
+      const recent = await supabase.from('orders').select('id, order_number, customer_name, placed_at').is('deleted_at', null).order('placed_at', { ascending: false }).limit(100);
+      let named = [];
+      if (need.length) { try { named = await fetchAllRowsIn('orders', 'id, order_number, customer_name', 'id', need); } catch (e) { named = []; } }
+      const map = new Map(); [...(recent && !recent.error && recent.data ? recent.data : []), ...named].forEach(o => map.set(o.id, o));
+      return [...map.values()];
+    }
+    async function doMark(list) {
+      const store = doStore(); if (!store) return;
+      DO.busy = true; renderDropoff();
+      const res = await store.markDroppedOff(list);
+      DO.busy = false;
+      if (!res.ok) { DO.message = res.message; renderDropoff(); announce(res.message); return; }
+      const before = new Map((DO.results || []).map(r => [r.tracking, r]));
+      res.results.forEach(r => before.set(r.tracking, r));
+      DO.results = [...before.values()];
+      DO.orders = await doOrdersFor(DO.results.map(r => r.order_id));
+      DO.message = '';
+      renderDropoff();
+      const M = doMod(); const s = M ? M.summarize(DO.results, null).sentence : '';
+      announce(s);
+      const r = document.querySelector('#dropoffHost [data-doresults] .doSentence'); if (r) { r.setAttribute('tabindex', '-1'); r.focus(); }
+    }
+    document.addEventListener('input', (e) => {
+      const ta = e.target.closest('#dropoffHost textarea[data-dotext]'); if (ta) DO.text = ta.value;
+    });
+    document.addEventListener('change', async (e) => {
+      const box = e.target.closest('#dropoffHost input[data-dopick]');
+      if (box) {
+        const t = box.getAttribute('data-dopick');
+        if (box.checked) DO.picked.add(t); else DO.picked.delete(t);
+        const n = DO.found.concat(DO.unsure).filter(x => DO.picked.has(x.tracking)).length;
+        const b = document.querySelector('#dropoffHost [data-do="mark"]');
+        if (b) { b.textContent = 'Mark ' + n + (n === 1 ? ' parcel' : ' parcels') + ' dropped off'; b.disabled = n === 0 || DO.busy; }
+        return;
+      }
+      const ph = e.target.closest('#dropoffHost input[data-dophoto]');
+      if (!ph || !ph.files || !ph.files[0]) return;
+      let values = null;
+      try {
+        if (typeof window.BarcodeDetector === 'function') {
+          const bitmap = await createImageBitmap(ph.files[0]);
+          const codes = await new window.BarcodeDetector().detect(bitmap);
+          values = (codes || []).map(c => c.rawValue || '').filter(Boolean);
+        }
+      } catch (err) { values = null; }
+      if (values === null) { DO.message = 'This browser cannot read barcodes from a photo. On iPhone, use Live Text instead: open the photo, press and hold the text, Select All, Copy, and paste it below.'; DO.found = []; DO.unsure = []; DO.results = null; }
+      else doFind(values, true);
+      renderDropoff(); announce(DO.message);
+    });
+    document.addEventListener('click', async (e) => {
+      const host = e.target.closest('#dropoffHost'); if (!host) return;
+      const b = e.target.closest('[data-do]');
+      if (b) {
+        const what = b.getAttribute('data-do');
+        if (what === 'find') { doFind(DO.text, false); renderDropoff(); announce(DO.message); const first = document.querySelector('#dropoffHost [data-dopick]') || document.querySelector('#dropoffHost [data-domessage]'); if (first) { if (!first.matches('input')) first.setAttribute('tabindex', '-1'); first.focus(); } return; }
+        if (what === 'clear') { DO.text = ''; DO.found = []; DO.unsure = []; DO.picked = new Set(); DO.results = null; DO.message = ''; renderDropoff(); const ta = document.getElementById('doText'); if (ta) ta.focus(); return; }
+        if (what === 'mark') {
+          if (DO.busy) return;
+          b.disabled = true;
+          await doMark(DO.found.concat(DO.unsure).filter(x => DO.picked.has(x.tracking)).map(x => x.tracking));
+          return;
+        }
+      }
+      const a = e.target.closest('[data-doattach]');
+      if (a) {
+        const t = a.getAttribute('data-doattach');
+        const sel = [...host.querySelectorAll('select[data-doorder]')].find(s => s.getAttribute('data-doorder') === t);
+        const item = DO.found.concat(DO.unsure).find(x => x.tracking === t);
+        const store = doStore(); if (!store) return;
+        a.disabled = true;
+        const res = await store.attach(sel ? sel.value : '', item ? item.carrier : 'other', t);
+        if (!res.ok) { a.disabled = false; DO.message = res.message; renderDropoff(); announce(res.message); return; }
+        await doMark([t]);
+      }
+    });
+
     // ---------- One attention feed (Nov 23; behind attentionFeedOn) ----------
     // Everything that needs the owner, in one list at the top of Home, most urgent
     // first (assets/views/he-attention-feed.js). It reads what Home already shows
@@ -4755,7 +4914,7 @@
       calendarPanel: [loadCalendarMonth],
       dailySummaryPanel: [loadDailySummary],
       reportHistoryPanel: [loadReportHistoryThenExport, loadRecoveryDrill, loadInvoicePreview, loadReportVersions],
-      ordersPanel: [loadOrders, paintScanEntry, loadSavedViews, loadOrderSlipsHost],
+      ordersPanel: [loadOrders, paintScanEntry, loadSavedViews, loadOrderSlipsHost, loadDropoff],
       inventoryPanel: [loadInventory, loadInventoryAdjustments, loadReorderPlanning, loadSavedViews, loadCycleCount, loadPartialReceiving, loadProductImport],
       returnsPanel: [loadReturns, loadStockReturns],
       suppliersPanel: [loadSuppliers, loadSupplierScorecard, loadSupplierDocs],

@@ -1397,3 +1397,30 @@ table.sysStatus td{ overflow-wrap:anywhere; }
   .feedFilters{ flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; padding-bottom:4px; scrollbar-width:none; }
   .feedFilters button{ flex:0 0 auto; }
 }
+
+/* Drop-off receipt (Nov 24; behind he_dropoff, drafts/48) */
+.dropoff{ margin:0 0 18px; padding:12px 14px; border:1px solid var(--line); border-radius:var(--radius); background:var(--panel); }
+.doInputs{ display:flex; flex-direction:column; gap:6px; max-width:640px; }
+.doInputs textarea{ width:100%; min-height:88px; font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:13px; }
+.doButtons{ display:flex; flex-wrap:wrap; gap:6px; margin-top:4px; }
+.doList{ list-style:none; margin:10px 0; padding:0; display:flex; flex-direction:column; gap:6px; }
+.doItem{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; min-width:0; }
+.doItem input[type=checkbox]{ width:22px; height:22px; margin:0; }
+.doItem label{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; min-width:0; cursor:pointer; }
+.doNum{ font-family:ui-monospace, SFMono-Regular, Menlo, monospace; overflow-wrap:anywhere; color:var(--ink); }
+.doUnsure .doNum{ color:var(--warn); }
+.doMark{ margin-top:6px; }
+.doResults{ margin-top:12px; }
+.doSentence{ font-weight:600; color:var(--ink); }
+.doTable{ width:100%; border-collapse:collapse; font-size:13px; }
+.doTable th, .doTable td{ text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
+.doAttach{ display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+.doAttach select{ max-width:260px; }
+@media (max-width:640px){
+  .dropoff{ padding:10px 12px; }
+  .doTable thead{ display:none; }
+  .doTable tr{ display:block; border-bottom:1px solid var(--line); padding:6px 0; }
+  .doTable td{ display:block; border:0; padding:2px 0; }
+  .doAttach select{ max-width:100%; width:100%; }
+  .doButtons button, .doMark, .doAttach button{ min-height:40px; }
+}
