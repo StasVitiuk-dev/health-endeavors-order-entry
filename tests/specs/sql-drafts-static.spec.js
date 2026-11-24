@@ -8,7 +8,7 @@ const path = require('path');
 const { test, expect } = require('@playwright/test');
 
 const DIR = path.resolve(__dirname, '..', '..', 'docs', 'ops', 'sql', 'drafts');
-const INSTALLS = ['10_DRAFT_stock_functions.sql', '13_DRAFT_report_totals.sql', '17_DRAFT_po_line_delete_guard.sql', '19_DRAFT_request_keys.sql', '21_DRAFT_stock_function_switches.sql', '23_DRAFT_integrity_constraints.sql', '25_DRAFT_integrity_check_schedule.sql', '27_DRAFT_request_keys_switch.sql', '29_DRAFT_integrity_results_on_home.sql', '32_DRAFT_invoices.sql', '34_DRAFT_stock_count_adjustments.sql', '36_DRAFT_supplier_documents.sql', '38_DRAFT_supplier_document_files.sql', '40_DRAFT_partial_receiving_returns.sql', '42_DRAFT_shopify_payouts_money_issues.sql', '44_DRAFT_staff_read_purchase_orders.sql', '46_DRAFT_tax_rates.sql', '48_DRAFT_order_parcels.sql', '50_DRAFT_shared_settings.sql', '52_DRAFT_order_costs.sql', '54_DRAFT_order_batches.sql'];
+const INSTALLS = ['10_DRAFT_stock_functions.sql', '13_DRAFT_report_totals.sql', '17_DRAFT_po_line_delete_guard.sql', '19_DRAFT_request_keys.sql', '21_DRAFT_stock_function_switches.sql', '23_DRAFT_integrity_constraints.sql', '25_DRAFT_integrity_check_schedule.sql', '27_DRAFT_request_keys_switch.sql', '29_DRAFT_integrity_results_on_home.sql', '32_DRAFT_invoices.sql', '34_DRAFT_stock_count_adjustments.sql', '36_DRAFT_supplier_documents.sql', '38_DRAFT_supplier_document_files.sql', '40_DRAFT_partial_receiving_returns.sql', '42_DRAFT_shopify_payouts_money_issues.sql', '44_DRAFT_staff_read_purchase_orders.sql', '46_DRAFT_tax_rates.sql', '48_DRAFT_order_parcels.sql', '50_DRAFT_shared_settings.sql', '52_DRAFT_order_costs.sql', '54_DRAFT_order_batches.sql', '56_DRAFT_email_sending.sql'];
 const ROLLBACKS = { '10_DRAFT_stock_functions.sql': '11_DRAFT_rollback_stock_functions.sql',
   '17_DRAFT_po_line_delete_guard.sql': '18_DRAFT_rollback_po_line_delete_guard.sql',
   '19_DRAFT_request_keys.sql': '20_DRAFT_rollback_request_keys.sql',
@@ -29,7 +29,8 @@ const ROLLBACKS = { '10_DRAFT_stock_functions.sql': '11_DRAFT_rollback_stock_fun
   '48_DRAFT_order_parcels.sql': '49_DRAFT_rollback_order_parcels.sql',   // Nov 24: parcels and drop-off receipts
   '50_DRAFT_shared_settings.sql': '51_DRAFT_rollback_shared_settings.sql',   // Nov 24: settings shared by every device
   '52_DRAFT_order_costs.sql': '53_DRAFT_rollback_order_costs.sql',
-  '54_DRAFT_order_batches.sql': '55_DRAFT_rollback_order_batches.sql' };   // Nov 24: which batch went into which order     // Nov 24: the real fee and postage of each order   // Nov 24: settings shared by every device   // Nov 24: parcels and drop-off receipts   // Nov 22: owner decision, staff read purchase orders   // Nov 22: Shopify payout copy and money differences   // Nov 22: partial receiving and returns (D-ops-5), owner approves stock changes   // Nov 21: private files, owner-only reading   // Nov 16, later: supplier document storage, owner-only review
+  '54_DRAFT_order_batches.sql': '55_DRAFT_rollback_order_batches.sql',
+  '56_DRAFT_email_sending.sql': '57_DRAFT_rollback_email_sending.sql' };   // Nov 24: email sending records (nothing in it sends)   // Nov 24: which batch went into which order     // Nov 24: the real fee and postage of each order   // Nov 24: settings shared by every device   // Nov 24: parcels and drop-off receipts   // Nov 22: owner decision, staff read purchase orders   // Nov 22: Shopify payout copy and money differences   // Nov 22: partial receiving and returns (D-ops-5), owner approves stock changes   // Nov 21: private files, owner-only reading   // Nov 16, later: supplier document storage, owner-only review
 const ALL = fs.readdirSync(DIR).filter(f => /^\d\d_DRAFT_.*\.sql$/.test(f) && !/_tests?_/.test(f));
 
 // Remove comments and quoted text so words inside them are not mistaken for SQL.
@@ -202,6 +203,27 @@ for (const f of ALL) {
     // table (which batch went into which order): packing is staff work, so every
     // active team member, administrators and the owner read and record; the guard
     // limits what a change may be (more bottles, or a void by owner/administrator).
+    // The thirteenth allowed set (Nov 24, drafts/56): row rules on that draft's OWN three new
+    // tables (approved email campaigns, the outbox, the do-not-email list). They hold customer
+    // and store email addresses, so only the owner and administrators read; only the owner
+    // approves and queues; the guards limit every change (a person can only skip a queued email).
+    const EMAIL_RULES = [
+      'drop policy if exists email_suppressions_read on public.email_suppressions;',
+      'create policy email_suppressions_read on public.email_suppressions for select to authenticated using (public.is_owner_or_admin());',
+      'drop policy if exists email_suppressions_add on public.email_suppressions;',
+      'create policy email_suppressions_add on public.email_suppressions for insert to authenticated with check (public.is_owner_or_admin());',
+      'drop policy if exists email_campaigns_read on public.email_campaigns;',
+      'create policy email_campaigns_read on public.email_campaigns for select to authenticated using (public.is_owner_or_admin());',
+      'drop policy if exists email_campaigns_owner_add on public.email_campaigns;',
+      "create policy email_campaigns_owner_add on public.email_campaigns for insert to authenticated with check (coalesce(public.current_role(), '') = 'owner');",
+      'drop policy if exists email_campaigns_owner_change on public.email_campaigns;',
+      "create policy email_campaigns_owner_change on public.email_campaigns for update to authenticated\n  using (coalesce(public.current_role(), '') = 'owner') with check (coalesce(public.current_role(), '') = 'owner');",
+      'drop policy if exists email_outbox_read on public.email_outbox;',
+      'create policy email_outbox_read on public.email_outbox for select to authenticated using (public.is_owner_or_admin());',
+      'drop policy if exists email_outbox_owner_add on public.email_outbox;',
+      "create policy email_outbox_owner_add on public.email_outbox for insert to authenticated with check (coalesce(public.current_role(), '') = 'owner');",
+      'drop policy if exists email_outbox_skip on public.email_outbox;',
+      'create policy email_outbox_skip on public.email_outbox for update to authenticated\n  using (public.is_owner_or_admin()) with check (public.is_owner_or_admin());'];
     const ORDER_BATCH_RULES = [
       'drop policy if exists order_batches_read on public.order_batches;',
       'create policy order_batches_read on public.order_batches for select to authenticated using (public.is_active_staff() or public.is_owner_or_admin());',
@@ -296,7 +318,29 @@ for (const f of ALL) {
                 : f === '48_DRAFT_order_parcels.sql' ? SHIPMENT_RULES.reduce((t, r) => t.split(r).join(''), sql)
                 : f === '50_DRAFT_shared_settings.sql' ? SETTINGS_RULES.reduce((t, r) => t.split(r).join(''), sql)
                 : f === '52_DRAFT_order_costs.sql' ? ORDER_COST_RULES.reduce((t, r) => t.split(r).join(''), sql)
-                : f === '54_DRAFT_order_batches.sql' ? ORDER_BATCH_RULES.reduce((t, r) => t.split(r).join(''), sql) : sql;
+                : f === '54_DRAFT_order_batches.sql' ? ORDER_BATCH_RULES.reduce((t, r) => t.split(r).join(''), sql)
+                : f === '56_DRAFT_email_sending.sql' ? EMAIL_RULES.reduce((t, r) => t.split(r).join(''), sql) : sql;
+    if (f === '56_DRAFT_email_sending.sql') {
+      for (const r of EMAIL_RULES) expect(sql.split(r).length - 1, 'pinned rule present exactly once: ' + r.slice(0, 60)).toBe(1);
+      const whole = fs.readFileSync(path.join(DIR, f), 'utf8');
+      // nothing is ever deleted from these tables by a person: no delete is granted, and no delete rule exists
+      expect(sql).not.toMatch(/grant [^;]*delete[^;]* to authenticated/);
+      expect(sql).not.toMatch(/for (delete|all) to/);
+      // the do-not-email list only grows: no update is granted on it either
+      expect(sql).toContain('grant select, insert on public.email_suppressions to authenticated;');
+      // the sending program's two functions are never given to a signed-in person or a visitor
+      expect(sql).toContain('revoke all on function public.next_emails_to_send(integer) from public, anon, authenticated;');
+      expect(sql).toContain('revoke all on function public.record_email_result(uuid, text, text, text) from public, anon, authenticated;');
+      expect(sql).not.toMatch(/grant execute on function public\.(next_emails_to_send|record_email_result)/);
+      // it refuses to install over tables it did not create, and says in its own words that it sends nothing
+      expect(whole).toContain("not like 'Health Endeavors drafts/56:%'");
+      expect(whole).toContain('NOTHING IN THIS FILE SENDS AN EMAIL.');
+      // it reaches no network and schedules nothing: no extension, no http call, no cron job
+      const live = whole.split('\n').filter(l => !/^\s*--/.test(l)).join('\n');
+      expect(live).not.toMatch(/\b(create extension|pg_net|net\.http|http_post|cron\.schedule|dblink)\b/i);
+      // existing tables are only read: the only tables it creates or alters are its own three
+      expect([...live.matchAll(/\b(?:create table if not exists|alter table) public\.(\w+)/g)].map(m => m[1]).filter(t => !/^email_(campaigns|outbox|suppressions)$/.test(t))).toEqual([]);
+    }
     if (f === '54_DRAFT_order_batches.sql') {
       for (const r of ORDER_BATCH_RULES) expect(sql.split(r).length - 1, 'pinned rule present exactly once: ' + r.slice(0, 60)).toBe(1);
       // a recorded batch is voided, never deleted: no delete is granted, and no delete rule exists
@@ -401,6 +445,8 @@ for (const f of ALL) {
             // Nov 24: the order costs rollback removes its own table (and refuses while any costs are saved, unless authorized).
             // Nov 24: the order batches rollback removes its own table (and refuses while any batch is recorded, unless authorized).
             : f === '55_DRAFT_rollback_order_batches.sql' ? sql.replace('drop table if exists public.order_batches;', '')
+            // Nov 24: the email sending rollback removes its own three tables (and refuses while any email record is saved, unless authorized).
+            : f === '57_DRAFT_rollback_email_sending.sql' ? ['email_outbox', 'email_campaigns', 'email_suppressions'].reduce((t, n) => t.replace('drop table if exists public.' + n + ';', ''), sql)
             : f === '53_DRAFT_rollback_order_costs.sql' ? sql.replace('drop table if exists public.order_costs;', '')
             : f === '51_DRAFT_rollback_shared_settings.sql' ? sql.replace('drop table if exists public.shared_settings;', '')
             : f === '49_DRAFT_rollback_order_parcels.sql' ? sql.replace('drop table if exists public.order_parcel_events;', '').replace('drop table if exists public.order_parcels;', '')

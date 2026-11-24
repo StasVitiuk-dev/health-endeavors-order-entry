@@ -664,6 +664,32 @@
       "effect": "drops the two functions, the table and its guard; orders, inventory_lots and products untouched",
       "postcheck": "to_regclass('public.order_batches') is null",
       "dynamicSql": "format() with fixed names (%I) to lock and count the order_batches table only where it exists"
+    },
+    {
+      "file": "drafts/56_DRAFT_email_sending.sql",
+      "id": "56",
+      "class": "PRODUCTION-CHANGE-DRAFT",
+      "step": "optional (owner decision of Nov 24: approve the wording of a campaign once, then choose who it goes to; a sending guard keeps the business out of spam). Records and rules only: nothing in it sends an email",
+      "dependsOn": [],
+      "risk": "MEDIUM",
+      "rollback": "57",
+      "precheck": "stops, changing nothing, if an email_campaigns, email_outbox or email_suppressions table exists that this file did not create (it checks its own marks); stops if auth.uid(), current_role(), is_owner_or_admin(), gen_random_uuid(), the tasks or audit_log table, or the audit trigger on tasks is missing",
+      "effect": "3 new tables: email_campaigns (one row per approved wording; the wording never changes), email_outbox (one row per email to go out and what happened to it; never deleted), email_suppressions (the do-not-email list; only grows). approve_email_campaign() (owner only; refuses a health claim), queue_campaign_emails() (owner only; at most 500 at a time; leaves out unusable, suppressed and repeated addresses and stores written to in the last 90 days; gives each email the first working day with room), email_daily_cap() (20 a day in the first working week, then 40, 60, 80, 100; 0 on a weekend), set_email_campaign_status() (owner pauses, resumes, stops), add_email_suppression() (owner and administrators), next_emails_to_send() and record_email_result() (the sending program only, never a signed-in person). A bounce or spam complaint adds the address to the do-not-email list by itself; a campaign stops by itself after 2 complaints or when more than 5% of at least 20 sent emails came back. Production's audit trigger attached. No existing table changes. Holds customer and store email addresses",
+      "postcheck": "the three tables present and empty; anon cannot read them; authenticated cannot execute next_emails_to_send or record_email_result; local-test/email_sending_test.sh passes on a throwaway copy",
+      "lock": "NONE (new tables only)",
+      "dynamicSql": "format() with fixed names (%I) to attach production's audit trigger, whose function name is read from the tasks table at install time (as drafts/32)"
+    },
+    {
+      "file": "drafts/57_DRAFT_rollback_email_sending.sql",
+      "id": "57",
+      "class": "ROLLBACK",
+      "rollbackOf": "56",
+      "dependsOn": [],
+      "risk": "MEDIUM",
+      "precheck": "stops, removing nothing, while any campaign, email or do-not-email address is saved, unless deleting them was authorized in the session; stops if a table of these names was not created by drafts/56",
+      "effect": "drops the six functions, the three tables, their guards and the daily-cap function; no other table touched. The do-not-email list is lost with it: save it first",
+      "postcheck": "to_regclass('public.email_outbox') is null",
+      "dynamicSql": "format() with fixed names (%I) to lock and count the three tables only where they exist"
     }
   ],
   "local": [
