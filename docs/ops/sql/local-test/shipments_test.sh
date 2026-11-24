@@ -29,6 +29,13 @@ q "delete from profiles where id in ('$O','$A','$E','$X');
    insert into orders (id, channel, order_number, status, total) values ('$O1','manual','SYN-1001','paid',10), ('$O2','manual','SYN-1002','paid',20), ('$O3','manual','SYN-1003','paid',30);" >/dev/null
 echo "Shipments (throwaway database $DB)"
 
+echo " 0. never over the Shipping/Tracking agent's own shipments table"
+q "create table public.shipments (id uuid primary key default gen_random_uuid(), order_id uuid, tracking_number text, status text)" >/dev/null
+ok  "a shipments table that is not this draft's: refused" "$(run "$INSTALL")" "3"
+has "  and says why" "$(cat "$OUTF")" "already exists (the Shipping/Tracking agent's). Nothing was changed"
+ok  "  nothing was changed: no rules, no guards, no functions" "$(q "select (select count(*) from pg_policies where tablename = 'shipments')||'/'||(select count(*) from pg_trigger where tgrelid = 'public.shipments'::regclass and not tgisinternal)||'/'||(to_regprocedure('public.mark_dropped_off(text[])') is null)||'/'||(to_regclass('public.shipment_events') is null)")" "0/0/true/true"
+q "drop table public.shipments" >/dev/null
+
 echo " 1. install"
 ok  "install" "$(run "$INSTALL")" "0"
 ok  "  safe to run twice" "$(run "$INSTALL")" "0"
