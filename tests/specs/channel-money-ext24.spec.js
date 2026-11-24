@@ -115,7 +115,7 @@ test.describe('on Accounting', () => {
     const host = page.locator('#channelMoneyHost');
     await expect(host.locator('h3')).toHaveText('Money per channel');
     expect(await page.evaluate(() => document.getElementById('moneyMatchHost').nextElementSibling.id)).toBe('channelMoneyHost');
-    await expect(host.locator('.empty')).toContainText('No report chosen yet.');
+    await expect(host.locator('.empty')).toContainText('No report chosen yet.');   // (an icon may be added in front)
     // a file that is not that channel's report is refused in plain words
     await host.locator('#cmFile_amazon').setInputFiles(file('etsy.csv', ETSY));
     await expect(host.locator('[data-cmmessage]')).toContainText('etsy.csv: This does not look like the Amazon report');
