@@ -68,7 +68,8 @@ test('Aurora\'s gradient figures: both ends of each gradient are readable on the
   expect(ratio('#ffffff', '#0e7490')).toBeGreaterThanOrEqual(4.5);
 });
 
-for (const look of LOOKS) {
+// 'classic' (the previous look, kept on Feature Flags for comparison) is checked too since Nov 23
+for (const look of [...LOOKS, 'classic']) {
   test(look + ': every text is readable on the main pages, light and dark', async ({ page, backend }, ti) => {
     test.skip(ti.project.name !== 'desktop', 'colours are the same at phone size');
     test.setTimeout(180000);
@@ -76,12 +77,15 @@ for (const look of LOOKS) {
     await page.clock.setFixedTime(NOW);
     await withLook(page, look);
     await login(page);
-    expect(await page.evaluate(() => document.documentElement.getAttribute('data-look'))).toBe(look);
+    expect(await page.evaluate(() => document.documentElement.getAttribute('data-look'))).toBe(look === 'classic' ? null : look);
     const fails = [];
     for (const scheme of ['light', 'dark']) {
       await page.emulateMedia({ colorScheme: scheme, reducedMotion: 'reduce' });
       for (const id of PAGES) {
         await gotoPage(page, id); await page.waitForLoadState('networkidle');
+        // a light-to-dark switch fades button colours; measure only once every fade has finished
+        // (a button measured mid-fade read 1.19:1 one run and 3.36:1 the next)
+        await page.evaluate(() => Promise.all(document.getAnimations().map(a => a.finished.catch(() => {}))));
         const f = await page.evaluate((args) => {
           const fn = new Function('return ' + args.src)();
           const roots = [document.getElementById(args.id), document.querySelector('.sidebar'), document.querySelector('header.topbar')].filter(Boolean);
@@ -102,7 +106,9 @@ for (const look of LOOKS) {
         const f = await row.evaluate((el, src) => (new Function('return ' + src)())(el), contrastFailures.toString());
         f.forEach(x => fails.push(scheme + ' hovered menu row' + (sel.includes('.active)') ? '' : ' (current page)') + ': ' + x));
       }
-      await page.mouse.move(600, 5);
+      // park the mouse in an empty corner: at (600, 5) it could rest on a top-bar button whose
+      // hover fade was then measured halfway (1.19:1 one run, 3.36:1 the next)
+      const vp = page.viewportSize(); await page.mouse.move(vp.width - 2, vp.height - 2); await page.waitForTimeout(300);
     }
     expect(fails).toEqual([]);
   });
@@ -150,6 +156,37 @@ for (const look of LOOKS) {
       await page.locator('#sidebarOverlay').click({ position: { x: 370, y: 400 } });
       await expect(page.locator('#sidebarNav')).not.toHaveClass(/mobileOpen/);
     }
+  });
+}
+
+// Nov 24 (the owner's screenshot): in a narrow computer window (about 790px wide)
+// the menu also slides over the page, and it was see-through there: the solid
+// background was given to phones only (700px) while the menu slides up to 820px.
+// Every width at which the menu slides over the page must give it a solid background.
+for (const look of LOOKS) {
+  test(look + ' in a narrow window (701 to 820 wide): the open menu has a solid background, light and dark', async ({ page }, ti) => {
+    test.skip(ti.project.name !== 'desktop', 'narrow computer window');
+    await withLook(page, look);
+    await page.setViewportSize({ width: 790, height: 900 });
+    await login(page);
+    for (const width of [701, 790, 820]) {
+      await page.setViewportSize({ width, height: 900 });
+      for (const scheme of ['light', 'dark']) {
+        await page.emulateMedia({ colorScheme: scheme });
+        await page.locator('#menuToggleBtn').click();
+        await expect(page.locator('#sidebarNav')).toHaveClass(/mobileOpen/);
+        const seen = await page.locator('#sidebarNav').evaluate(e => ({ bg: getComputedStyle(e).backgroundColor, pos: getComputedStyle(e).position }));
+        const alpha = /rgba\(/.test(seen.bg) ? Number(seen.bg.split(',')[3].replace(')', '')) : 1;
+        expect(seen.pos, width + ' is a slide-over menu').toBe('fixed');
+        expect(alpha, width + ' ' + scheme + ' ' + seen.bg).toBe(1);
+        await page.locator('#sidebarOverlay').click({ position: { x: width - 40, y: 400 } });
+        await expect(page.locator('#sidebarNav')).not.toHaveClass(/mobileOpen/);
+      }
+    }
+    // one step wider the menu sits beside the page again (no slide-over, no menu button)
+    await page.setViewportSize({ width: 821, height: 900 });
+    await expect(page.locator('#menuToggleBtn')).toBeHidden();
+    expect(await page.locator('#sidebarNav').evaluate(e => getComputedStyle(e).position)).not.toBe('fixed');
   });
 }
 

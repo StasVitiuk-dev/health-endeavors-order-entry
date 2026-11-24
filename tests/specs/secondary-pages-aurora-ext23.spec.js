@@ -68,3 +68,21 @@ for (const scheme of ['light', 'dark']) {
     expect(await check(page), 'manual order entry').toEqual([]);
   });
 }
+
+// Google Fonts removed (Nov 23, owner decision "switch everything to Aurora" = option (b) in
+// docs/ops/SECURITY_HARDENING_EXT20.md §3): the pages use the dashboard's system font, so they
+// make no request to Google, and their security policy no longer allows Google's font hosts.
+test('the four older pages contact no outside font service', async ({ page }) => {
+  const asked = [];
+  page.on('request', r => { if (/fonts\.(googleapis|gstatic)\.com/.test(r.url())) asked.push(r.url()); });
+  for (const f of ['/search.html', '/dashboard.html', '/index.html', '/manual-order-entry.html']) {
+    await page.goto(f);
+    const csp = await page.locator('meta[http-equiv="Content-Security-Policy"]').getAttribute('content');
+    expect(csp, f).not.toMatch(/fonts\.(googleapis|gstatic)\.com/);
+    expect(await page.locator('link[href*="fonts.g"]').count(), f).toBe(0);
+    const families = await page.evaluate(() => [...document.querySelectorAll('h1, .eyebrow, .badge, .stat-value, .section-title, body')]
+      .map(el => getComputedStyle(el).fontFamily).filter(ff => /Fraunces|Public Sans|IBM Plex/.test(ff)));
+    expect(families, f).toEqual([]);
+  }
+  expect(asked).toEqual([]);
+});

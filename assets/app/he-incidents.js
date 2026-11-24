@@ -1,9 +1,10 @@
-// assets/app/he-incidents.js — Incidents: list, and turning a failed quality check into one incident only once
+// assets/app/he-incidents.js — Incidents: list, turning a failed quality check into one incident only once,
+// and (behind incidentCloseOn) recording what was done on an incident and closing it
 // EXT15: moved unchanged out of assets/owner-login-app.js (initApp). Its inputs
 // arrive explicitly in ctx; it returns only what other code still uses. Map:
 // docs/ops/APPLICATION_MODULE_MAP_EXT15.md. Created once, by the app, in order.
-window.HE.modules.define('he-incidents', { api: 1, needs: ['CLOSED_IN','SEARCH_INDEX','fixedRequestKey','fmtDate','h','isClosedStatus','isOverdue','isRequestKeyRepeat','requestKeysOn','showDashError','staleMessage','supabase','updateIfUnchanged','withRequestKey'] }, function (ctx) {
-    const { CLOSED_IN, SEARCH_INDEX, fixedRequestKey, fmtDate, h, isClosedStatus, isOverdue, isRequestKeyRepeat, requestKeysOn, showDashError, staleMessage, supabase, updateIfUnchanged, withRequestKey } = ctx;
+window.HE.modules.define('he-incidents', { api: 1, needs: ['CLOSED_IN','SEARCH_INDEX','announce','currentRole','fixedRequestKey','fmtDate','h','incidentCloseOn','isClosedStatus','isOverdue','isRequestKeyRepeat','requestKeysOn','showDashError','staleMessage','supabase','updateIfUnchanged','withRequestKey'] }, function (ctx) {
+    const { CLOSED_IN, SEARCH_INDEX, announce, currentRole, fixedRequestKey, fmtDate, h, incidentCloseOn, isClosedStatus, isOverdue, isRequestKeyRepeat, requestKeysOn, showDashError, staleMessage, supabase, updateIfUnchanged, withRequestKey } = ctx;
     // "Escalate to Incident" for a quality check or a recall, at most once.
     // A tab opened earlier (or a second person) must not create a second
     // incident and silently re-point the record at it, leaving the first one
@@ -31,11 +32,113 @@ window.HE.modules.define('he-incidents', { api: 1, needs: ['CLOSED_IN','SEARCH_I
       return true;
     }
 
+    // ---- Record what was done, and close (Nov 24; behind incidentCloseOn) ----
+    // The owner and administrators get one button per open incident: write what
+    // was done, then keep it open or close it. Nothing is deleted; a closed
+    // incident moves to "Closed incidents" below with its note. Rules:
+    // assets/views/he-incident-close.js. Uses columns the table already has.
+    const icMod = () => (window.HE && window.HE.views && window.HE.views['he-incident-close']) || null;
+    const icOn = () => { const IC = icMod(); return !!(IC && incidentCloseOn() && IC.canClose(currentRole())); };
+    const icName = (i) => (i.incident_number || 'Incident') + ' — ' + (i.title || 'no title');
+    let icRows = [];      // the open incidents on screen, with their notes
+    let icResult = '';    // what the last save did, shown once above the list
+    function icForm(i){
+      const IC = icMod();
+      return h('form', { class: 'icForm', 'data-incform': String(i.id), 'aria-label': 'Record what was done for ' + icName(i) },
+        h('h3', null, icName(i)),
+        i.description ? h('p', { class: 'hint icAbout' }, String(i.description).slice(0, 2000)) : null,
+        h('label', null, 'What was done', h('textarea', { name: 'done', rows: '4', maxlength: String(IC.MAX_CHARS), required: true }, i.actions_taken || '')),
+        h('label', null, 'How it ended (optional)', h('textarea', { name: 'ended', rows: '2', maxlength: String(IC.MAX_CHARS) }, i.resolution || '')),
+        h('p', { class: 'hint' }, 'Never type passwords or codes here. The note stays with the incident, and the incident is kept after closing (nothing is deleted).'),
+        h('div', { class: 'icButtons' },
+          h('button', { type: 'submit', class: 'small', 'data-incsave': 'close' }, 'Save and close the incident'),
+          h('button', { type: 'submit', class: 'small secondary', 'data-incsave': 'note' }, 'Save the note, keep it open'),
+          h('button', { type: 'button', class: 'small secondary', 'data-inccancel': '1' }, 'Cancel')),
+        h('p', { class: 'hint', role: 'status', 'data-incmessage': '1' }, ''));
+    }
+    function icOpenForm(id){
+      const wrap = document.getElementById('incidentsTableWrap'), i = icRows.find(r => String(r.id) === String(id));
+      const host = wrap && wrap.querySelector('[data-inchost]');
+      if (!host || !i || !icOn()) return;
+      host.replaceChildren(icForm(i));
+      const box = host.querySelector('textarea[name="done"]'); if (box) box.focus();
+    }
+    async function icSave(form, mode){
+      const IC = icMod(); if (!IC) return;
+      const say = (t) => { const p = form.querySelector('[data-incmessage]'); if (p) p.textContent = t; };
+      const row = icRows.find(r => String(r.id) === form.getAttribute('data-incform'));
+      if (!row) { say('This incident is no longer in the list. Open the page again.'); return; }
+      if (!icOn()) { say('Only the owner and administrators can do this.'); return; }
+      const c = IC.check({ done: form.elements.done.value, ended: form.elements.ended.value });
+      if (!c.ok) { say(c.reason); form.elements.done.focus(); return; }
+      const buttons = Array.from(form.querySelectorAll('button'));
+      buttons.forEach(b => { b.disabled = true; });
+      say('Saving…');
+      try {
+        // only while nobody changed the incident since this list was read
+        const saved = await updateIfUnchanged('incidents', row.id, IC.patch(mode, c, new Date().toISOString()),
+          { status: row.status == null ? null : row.status, updated_at: row.updated_at == null ? null : row.updated_at });
+        icResult = !saved ? staleMessage('That incident')
+          : mode === 'close' ? icName(row) + ' is closed. Your note is saved with it under "Closed incidents".'
+          : 'Your note is saved on ' + icName(row) + '. It stays open.';
+        announce(icResult);
+        await loadIncidents();
+        const done = document.querySelector('#incidentsTableWrap [data-incresult]'); if (done) done.focus();
+      } catch (err) {
+        say(IC.friendlyError(err));
+        buttons.forEach(b => { b.disabled = false; });
+      }
+    }
+    (function icListen(){
+      const wrap = document.getElementById('incidentsTableWrap'); if (!wrap) return;
+      wrap.addEventListener('click', (e) => {
+        const t = e.target instanceof Element ? e.target : null; if (!t) return;
+        const open = t.closest('button[data-increcord]');
+        if (open) { icOpenForm(open.getAttribute('data-increcord')); return; }
+        if (t.closest('button[data-inccancel]')) {
+          const host = wrap.querySelector('[data-inchost]'), id = host && host.querySelector('form') ? host.querySelector('form').getAttribute('data-incform') : '';
+          if (host) host.replaceChildren();
+          const back = Array.from(wrap.querySelectorAll('button[data-increcord]')).find(b => b.getAttribute('data-increcord') === id); if (back) back.focus();
+        }
+      });
+      wrap.addEventListener('submit', (e) => {
+        const form = e.target instanceof Element ? e.target.closest('form[data-incform]') : null; if (!form) return;
+        e.preventDefault();
+        const by = e.submitter instanceof Element ? e.submitter.getAttribute('data-incsave') : '';
+        icSave(form, by === 'close' ? 'close' : 'note');   // anything unclear only saves the note
+      });
+    })();
+    // the latest closed incidents with their notes (owner and administrators)
+    async function icClosedList(){
+      const IC = icMod();
+      try {
+        const { data, error } = await supabase.from('incidents')
+          .select('id, incident_number, title, status, actions_taken, resolution, closed_at, updated_at')
+          .in('status', IC.CLOSED_WORDS).order('updated_at', { ascending: false }).limit(10);
+        if (error) throw error;
+        const rows = (Array.isArray(data) ? data : []).filter(r => r && typeof r === 'object');
+        return h('details', { class: 'icClosed', 'data-incclosed': String(rows.length) },
+          h('summary', null, 'Closed incidents (the latest ' + rows.length + ')'),
+          rows.length ? h('table', { class: 'phoneCards' },
+            h('thead', null, h('tr', null, h('th', null, '#'), h('th', null, 'Title'), h('th', null, 'What was done'), h('th', null, 'How it ended'), h('th', null, 'Closed'))),
+            h('tbody', null, rows.map(r => h('tr', { 'data-id': r.id },
+              h('td', null, r.incident_number || '—'),
+              h('td', { 'data-label': 'Title' }, r.title || '—'),
+              h('td', { 'data-label': 'What was done', class: 'icNote' }, r.actions_taken || '—'),
+              h('td', { 'data-label': 'How it ended', class: 'icNote' }, r.resolution || '—'),
+              h('td', { 'data-label': 'Closed' }, fmtDate(r.closed_at || r.updated_at))))))
+            : h('p', { class: 'hint' }, 'No incident has been closed yet.'));
+      } catch (err) {
+        return h('p', { class: 'hint', 'data-incclosed': 'error' }, 'Could not read the closed incidents just now.');
+      }
+    }
+
     async function loadIncidents(){
       try {
+        const closing = icOn();
         const { data: incidents, error, count } = await supabase
           .from('incidents')
-          .select('id, incident_number, title, severity, status, due_at', { count: 'exact' })
+          .select('id, incident_number, title, severity, status, due_at' + (closing ? ', description, actions_taken, resolution, updated_at' : ''), { count: 'exact' })
           // Open = no status yet, or a status that is not a closed word (EXT7,
           // same reason as loadTasks). A row without a status stays visible.
           .or('status.is.null,status.not.in.' + CLOSED_IN)
@@ -45,6 +148,7 @@ window.HE.modules.define('he-incidents', { api: 1, needs: ['CLOSED_IN','SEARCH_I
         SEARCH_INDEX.incidents = incidents;
 
         const open = incidents.filter(i => !isClosedStatus(i.status));
+        icRows = closing ? open : [];
         const truncated = count != null && count > incidents.length;
         // EXT20J: built as DOM nodes (h() text-ifies) instead of an HTML string,
         // so the Incidents screen is safe under Trusted Types. An incident title
@@ -52,19 +156,25 @@ window.HE.modules.define('he-incidents', { api: 1, needs: ['CLOSED_IN','SEARCH_I
         // and is now only ever a text node.
         const cutoffNoteNode = truncated
           ? h('p', { class: 'hint u-m-0-0-8 u-c-warn' }, `Showing the ${incidents.length} soonest-due of ${count} open incidents.`) : null;
+        const resultNode = closing && icResult ? h('p', { class: 'hint icResult', role: 'status', tabindex: '-1', 'data-incresult': '1' }, icResult) : null;
+        icResult = '';
+        const closedNode = closing ? await icClosedList() : null;
         if (!open.length) {
-          document.getElementById('incidentsTableWrap').replaceChildren(...[cutoffNoteNode, h('p', { class: 'empty' }, 'No open incidents.')].filter(Boolean));
+          document.getElementById('incidentsTableWrap').replaceChildren(...[resultNode, cutoffNoteNode, h('p', { class: 'empty' }, 'No open incidents.'), closedNode].filter(Boolean));
         } else {
-          document.getElementById('incidentsTableWrap').replaceChildren(...[cutoffNoteNode,
+          document.getElementById('incidentsTableWrap').replaceChildren(...[resultNode, cutoffNoteNode,
             h('table', { class: 'phoneCards' },
-              h('thead', null, h('tr', null, h('th', null, '#'), h('th', null, 'Title'), h('th', null, 'Severity'), h('th', null, 'Status'), h('th', null, 'Due'))),
+              h('thead', null, h('tr', null, h('th', null, '#'), h('th', null, 'Title'), h('th', null, 'Severity'), h('th', null, 'Status'), h('th', null, 'Due'), closing ? h('th', null, 'Action') : null)),
               h('tbody', null, open.map(i =>
                 h('tr', { class: isOverdue(i.due_at, i.status) ? 'overdue' : '', 'data-id': i.id },
                   h('td', null, i.incident_number || '—'),
                   h('td', null, i.title),
                   h('td', null, h('span', { class: 'badge sev-' + (i.severity || '').toLowerCase() }, i.severity || '—')),
                   h('td', null, i.status || '—'),
-                  h('td', null, fmtDate(i.due_at))))))
+                  h('td', null, fmtDate(i.due_at)),
+                  closing ? h('td', null, h('button', { type: 'button', class: 'small secondary', 'data-increcord': String(i.id), 'aria-label': 'Record what was done for ' + icName(i) }, 'Record what was done')) : null)))),
+            closing ? h('div', { class: 'icHost', 'data-inchost': '1' }) : null,
+            closedNode
           ].filter(Boolean));
         }
       } catch (err) {

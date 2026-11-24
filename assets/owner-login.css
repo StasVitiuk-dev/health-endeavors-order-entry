@@ -740,6 +740,16 @@
     table.phoneCards tr.overdue td{ background:transparent; }
   }
 
+  /* Nov 24 (the owner's narrow Safari window, about 790 wide): between the phone
+     cards (up to 700) and the menu-beside-the-page layout (from 821) a table kept
+     every cell on one line and scrolled sideways, so a long description pushed the
+     On/Off column and its button out of sight. In this band the page is wider than
+     the column next to the menu at 821, where tables already wrap and fit; so they
+     wrap here too, and everything in a row is visible at once. */
+  @media (min-width: 701px) and (max-width: 820px){
+    section.panel table{ display:table; overflow-x:visible; white-space:normal; }
+  }
+
   /* On a phone the record inspector opens by tapping, so make rows feel tappable */
   @media (hover: none){
     .actRow{ cursor:pointer; }
@@ -1136,6 +1146,14 @@
   .scanToggleRow{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
   .scanOutage{ font-size:12px; color:var(--muted); display:inline-flex; align-items:center; gap:4px; }
   .scanCard{ border:1px solid var(--line); border-radius:var(--radius-sm); padding:12px; margin-top:8px; display:flex; flex-direction:column; gap:4px; }
+  /* confirmed tax rates (Nov 23): a date stays on one line on a computer */
+  @media (min-width: 701px){ .trDate{ white-space:nowrap; } }
+  /* product list import (Nov 23): what to fix stands out; notes wrap on a phone */
+  .piNotes{ margin:0; padding-left:16px; overflow-wrap:anywhere; }
+  .piNote-problem{ color:var(--danger); font-weight:600; }
+  .piNote-differs{ color:var(--warn); }
+  .piSuggest{ display:flex; gap:6px; align-items:center; }
+  @media (min-width: 701px){ .piSku{ white-space:nowrap; } }
   .scanCardHead{ font-size:14px; }
   .scanCardRow{ font-size:13px; color:var(--ink); }
   .scanReasons{ font-size:12px; color:var(--muted); }
@@ -1353,3 +1371,108 @@ table.sysStatus td{ overflow-wrap:anywhere; }
   .printView .printMark{ border:2px solid #000; padding:6px 10px; margin-bottom:10px; font-weight:700; text-align:center; letter-spacing:0.04em; }
   .printView .printRemit{ margin-top:12px; padding:0 8px; }
 }
+
+/* One attention feed (Nov 23; behind he_attention_feed): one list, most urgent
+   first, customer questions as chat bubbles. Colours come from the theme tokens,
+   so light, dark and every look stay readable. */
+.feed{ margin:0 0 22px; }
+.feed h2{ margin-bottom:4px; }
+.feedSummary{ margin:0 0 10px; color:var(--ink); }
+.feedCaughtUp{ padding:12px 14px; border-radius:var(--radius); background:var(--good-bg); color:var(--good); font-weight:600; }
+.feedFilters{ display:flex; flex-wrap:wrap; gap:6px; margin:0 0 12px; }
+.feedFilters button{ min-height:32px; }
+.feedList{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:10px; }
+.feedItem{ background:var(--panel); border:1px solid var(--line); border-left:4px solid var(--line); border-radius:var(--radius); padding:12px 14px; box-shadow:var(--shadow-sm); min-width:0; }
+.feedItem.feed-urgent{ border-left-color:var(--danger); }
+.feedItem.feed-today{ border-left-color:var(--warn); }
+.feedHead{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; font-size:12px; color:var(--muted); }
+.feedLevel{ font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
+.feed-urgent .feedLevel{ color:var(--danger); }
+.feed-today .feedLevel{ color:var(--warn); }
+.feedWhen{ margin-left:auto; }
+.feedTitle{ margin:6px 0 0; font-weight:600; color:var(--ink); overflow-wrap:anywhere; }
+.feedDetail{ margin:4px 0 0; font-size:13px; color:var(--muted); overflow-wrap:anywhere; }
+.feedChat{ display:flex; flex-direction:column; gap:6px; margin:8px 0 0; }
+.feedBubble{ margin:0; padding:8px 12px; border-radius:14px; max-width:88%; font-size:14px; line-height:1.4; color:var(--ink); overflow-wrap:anywhere; white-space:pre-wrap; }
+.feedThem{ align-self:flex-start; background:var(--panel-2); border:1px solid var(--line); border-bottom-left-radius:4px; }
+.feedDraft{ align-self:flex-end; background:var(--panel); border:1px dashed var(--accent); border-bottom-right-radius:4px; }
+.feedWho{ display:block; font-size:11px; font-weight:700; color:var(--muted); margin-bottom:2px; }
+.feedActions{ display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+.feedActions button{ min-height:32px; }
+.feedSnoozed{ margin-top:10px; }
+@media (max-width:640px){
+  .feedItem{ padding:10px 12px; }
+  .feedBubble{ max-width:100%; }
+  .feedActions button, .feedFilters button{ min-height:40px; }
+  .feedFilters{ flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; padding-bottom:4px; scrollbar-width:none; }
+  .feedFilters button{ flex:0 0 auto; }
+}
+
+/* Drop-off receipt (Nov 24; behind he_dropoff, drafts/48) */
+.dropoff{ margin:0 0 18px; padding:12px 14px; border:1px solid var(--line); border-radius:var(--radius); background:var(--panel); }
+.doInputs{ display:flex; flex-direction:column; gap:6px; max-width:640px; }
+.doInputs textarea{ width:100%; min-height:88px; font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:13px; }
+.doButtons{ display:flex; flex-wrap:wrap; gap:6px; margin-top:4px; }
+.doList{ list-style:none; margin:10px 0; padding:0; display:flex; flex-direction:column; gap:6px; }
+.doItem{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; min-width:0; }
+.doItem input[type=checkbox]{ width:22px; height:22px; margin:0; }
+.doItem label{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; min-width:0; cursor:pointer; }
+.doNum{ font-family:ui-monospace, SFMono-Regular, Menlo, monospace; overflow-wrap:anywhere; color:var(--ink); }
+.doUnsure .doNum{ color:var(--warn); }
+.doMark{ margin-top:6px; }
+.doResults{ margin-top:12px; }
+.doSentence{ font-weight:600; color:var(--ink); }
+.doTable{ width:100%; border-collapse:collapse; font-size:13px; }
+.doTable th, .doTable td{ text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
+.doAttach{ display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+.doAttach select{ max-width:260px; }
+@media (max-width:640px){
+  .dropoff{ padding:10px 12px; }
+  .doTable thead{ display:none; }
+  .doTable tr{ display:block; border-bottom:1px solid var(--line); padding:6px 0; }
+  .doTable td{ display:block; border:0; padding:2px 0; }
+  .doAttach select{ max-width:100%; width:100%; }
+  .doButtons button, .doMark, .doAttach button{ min-height:40px; }
+}
+
+/* Agent diary (Nov 24; behind he_agent_diary) */
+.diaryBar{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:6px 0 10px; }
+.diaryBar select{ max-width:320px; }
+.diaryDay{ margin:0 0 12px; }
+.diaryDayTitle{ margin:0 0 6px; font-size:13px; color:var(--muted); font-weight:700; }
+.diaryList{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:4px; }
+.diaryEntry{ display:flex; flex-wrap:wrap; align-items:baseline; gap:8px; padding:6px 10px; border-radius:10px; background:var(--panel); border:1px solid var(--line); min-width:0; }
+.diaryPerson{ border-left:4px solid var(--warn); }
+.diaryTime{ font-variant-numeric:tabular-nums; color:var(--muted); font-size:12px; min-width:62px; }
+.diaryWho{ font-weight:600; color:var(--ink); }
+.diaryWhat{ color:var(--ink); overflow-wrap:anywhere; flex:1 1 240px; min-width:0; }
+@media (max-width:640px){ .diaryBar select{ max-width:100%; width:100%; } }
+
+/* Daily recap printout: a ruled box for handwritten notes */
+.printNotes{ min-height:2.5in; border:1px solid #000; margin-top:4px; }
+
+/* Real profit (Accounting): the fee estimates fit a phone: three columns, boxes fill their cell */
+.rpFees, section.panel table.rpFees{ display:table; width:100%; max-width:560px; table-layout:fixed; white-space:normal; overflow:visible; }
+.rpFees th:first-child{ width:46%; }
+.rpFees th, .rpFees td{ vertical-align:top; white-space:normal; overflow-wrap:anywhere; text-align:left; }
+.rpFees input{ width:100%; min-width:0; margin:0; box-sizing:border-box; padding-left:8px; padding-right:8px; }
+
+/* Money per channel (Accounting): a plain three-column list per channel that fits a phone */
+.cmTable, section.panel table.cmTable{ display:table; width:100%; max-width:620px; white-space:normal; overflow:visible; }
+.cmTable th{ text-align:left; font-weight:600; }
+.cmTable th, .cmTable td{ white-space:normal; overflow-wrap:anywhere; }
+.cmTable td.num-cell{ white-space:nowrap; overflow-wrap:normal; }   /* an amount never breaks across lines */
+.cmPayouts{ margin:6px 0; padding-left:18px; font-size:13px; }
+
+/* Incidents: record what was done and close (he_incident_close) */
+.icHost:empty{ display:none; }
+.icForm{ margin:12px 0 4px; padding:12px 14px; border:1px solid var(--line); border-radius:10px; max-width:720px; }
+.icForm h3{ margin:0 0 6px; font-size:15px; overflow-wrap:anywhere; }
+.icForm label{ display:block; margin:10px 0 0; font-weight:600; }
+.icForm textarea{ display:block; width:100%; margin-top:4px; font-weight:400; }
+.icAbout, .icNote{ white-space:pre-wrap; overflow-wrap:anywhere; }
+.icButtons{ display:flex; flex-wrap:wrap; gap:8px; margin:10px 0 4px; }
+.icClosed{ margin-top:14px; }
+.icClosed summary{ cursor:pointer; font-weight:600; }
+.icResult{ font-weight:600; }
+section.panel table.phoneCards td.icNote{ white-space:pre-wrap !important; }

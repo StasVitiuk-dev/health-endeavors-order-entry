@@ -231,9 +231,14 @@
 :root[data-look] .heForm{ border:1px solid var(--line) !important; border-radius:calc(var(--radius) - 4px); padding:16px !important; background:var(--panel-2); }
 :root[data-look] .heForm .heActions{ border-top:1px solid var(--line); padding-top:12px; margin-top:4px; }
 :root[data-look] .sidebarGroup + .sidebarGroup{ border-top:1px solid var(--line); padding-top:12px; margin-top:12px; }
-@media (max-width: 700px){
-  /* the phone menu slides over the page: it needs a solid background (found Nov 23) */
+@media (max-width: 820px){
+  /* The menu slides over the page at this width and below (the same 820px as the
+     drawer rule in owner-login.css): it needs a solid background. Found Nov 23 and
+     fixed for phones only (700px); on Nov 24 the owner's narrow Safari window (about
+     790px wide) fell in the gap between the two and showed the menu see-through. */
   :root[data-look] .sidebar{ background-color:var(--page); background-image:var(--look-page-bg); }
+}
+@media (max-width: 700px){
   :root[data-look] table.phoneCards td + td{ border-top:1px solid var(--line); }
   :root[data-look] table.phoneCards tr{ padding-top:4px; padding-bottom:4px; }
 }
@@ -255,3 +260,18 @@
   :root[data-look] .sidebarLink.active::before{ background:Highlight; }
   :root[data-look] .stat .num{ color:CanvasText; background:none; }
 }
+
+/* ====================== PREVIOUS LOOK (no data-look) ======================
+   Kept on Feature Flags only for comparison. Readability fix (Nov 23): its sidebar greys were
+   under the 4.5:1 minimum (group names and pin stars 3.33:1, count bubbles 3.62:1, the pin star
+   on the current page 3.12:1 light / 2.49:1 dark). Same values Original+ already uses. */
+:root:not([data-look]){ --muted-2:#6e6e73; }
+:root:not([data-look]) .sidebarBadge{ background:#636366; }
+@media (prefers-color-scheme: dark){
+  :root:not([data-look]):not([data-theme="light"]){ --muted-2:#98989d; }
+  :root:not([data-look]):not([data-theme="light"]) .sidebarBadge{ background:#48484a; }
+}
+:root:not([data-look])[data-theme="dark"]{ --muted-2:#98989d; }
+:root:not([data-look])[data-theme="dark"] .sidebarBadge{ background:#48484a; }
+:root:not([data-look]) .sidebarLink.active .sidebarBadge{ background:var(--btn-text); color:var(--btn-fill); }
+:root:not([data-look]) .sidebarLink.active .pinBtn{ color:var(--btn-text); }
