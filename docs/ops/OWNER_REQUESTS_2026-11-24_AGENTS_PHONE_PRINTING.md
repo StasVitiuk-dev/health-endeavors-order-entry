@@ -87,6 +87,18 @@ task (`CLAUDE.md`), a business email address on the business's own domain, an un
 every marketing email, and sending only to people who ordered or subscribed. Whether Shopify's own
 email tool should be the sender for customer marketing is to be checked before a second sender is built.
 
+**Customer emails, as built (PR #71, CURRENT, not merged yet):** the Customer Emails page under Sales,
+behind the preview switch "Customer Emails" (off), for the owner and administrators. Four kinds: welcome
+(first and only order in the last 14 days), time to reorder (last order 30 to 119 days ago), something
+new (everyone who ordered), we miss you (no order for 120 days or more); the day counts can be changed.
+Three ready texts per kind; none promises a discount or anything else on the owner's behalf. The wording
+is checked for health claims and approved once per kind. "Show who would get it" reads the orders and
+lists exactly who fits, who is left out and why, the slow-start day plan, and what the first customer
+would read, including the line on how to stop the emails and the business postal address. Nothing is
+sent. Only the wording is kept in the browser; the customer list is not kept anywhere. **Not built yet:**
+the "do not email" list (it comes with real sending; the rules already honour one), real sending, and
+the website accounts and rewards the owner mentioned for later.
+
 ## 3c. Content helper: what it would do (PROPOSED, explained to the owner in chat)
 
 One product and one "story" in (what it is for, an ingredient, a customer's words); out come drafts:
