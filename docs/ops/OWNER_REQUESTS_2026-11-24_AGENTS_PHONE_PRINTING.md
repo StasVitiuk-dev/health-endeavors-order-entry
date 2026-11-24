@@ -94,6 +94,15 @@ a weekly plan of what to post when. Every draft passes a wording check for suppl
 such as cure, treat or prevent are flagged) before the owner sees it. It never posts and never spends.
 Existing draft pages on example data: Content Planner, Ad Variants, Content Repurposing, Campaign Lab.
 
+**Owner's requirement (Nov 24), DECIDED:** the content helper must always offer **several ready
+options** for each thing (picture, video, email, text, font and look), and the owner must be able to
+**ask for a new one at any time**. Planned shape: 3–5 text options per draft with "Make another" and
+tone buttons (shorter, friendlier, more premium); a set of ready looks (font, colours, layout) to flip
+through, applied to the owner's own product photos, with new looks addable; video as several script and
+shot-list options. OWNER DECISION REQUIRED later, when that step starts: brand-new AI-made pictures or
+finished videos need a paid picture/video service; unlimited "Make another" for text needs the paid AI
+model running on the server side (a production step the owner approves).
+
 ### Automatic daily printing, recommendation given
 
 8:00 AM every day, yesterday's day pack, on the Mac next to the printer, which may sleep but not be
