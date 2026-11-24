@@ -86,6 +86,19 @@ task (`CLAUDE.md`), a business email address on the business's own domain, an un
 every marketing email, and sending only to people who ordered or subscribed. Whether Shopify's own
 email tool should be the sender for customer marketing is to be checked before a second sender is built.
 
+## 3c. Content helper: what it would do (PROPOSED, explained to the owner in chat)
+
+One product and one "story" in (what it is for, an ingredient, a customer's words); out come drafts:
+short posts, ad texts in a few variations, one email paragraph, a short video script and shot list, and
+a weekly plan of what to post when. Every draft passes a wording check for supplement claims (words
+such as cure, treat or prevent are flagged) before the owner sees it. It never posts and never spends.
+Existing draft pages on example data: Content Planner, Ad Variants, Content Repurposing, Campaign Lab.
+
+### Automatic daily printing, recommendation given
+
+8:00 AM every day, yesterday's day pack, on the Mac next to the printer, which may sleep but not be
+shut down. OWNER DECISION REQUIRED: confirm the time.
+
 ### Follow-up answers the same day
 
 - **Stores, how approval works:** the owner approves the general text once, then presses Approve and
@@ -102,7 +115,10 @@ email tool should be the sender for customer marketing is to be checked before a
   the Mac next to the printer, with the Home reminder as the safety net if the Mac was off.
   OWNER DECISION REQUIRED: the time, and which Mac.
 
-## 3b. Agents Claude suggests adding (PROPOSED, in order of value)
+## 3b. Agents to add (DECIDED Nov 24: the owner approved all seven, "let's add them as well")
+
+Listed on the AI Agents page as "approved, not running yet" (PR #64). None runs or sends anything yet.
+The owner also wants more from the content helper (posts and ads prepared faster): see 3c.
 
 | Agent | What it does | Sends anything? |
 |---|---|---|
