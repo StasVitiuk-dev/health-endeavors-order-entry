@@ -87,6 +87,13 @@ task (`CLAUDE.md`), a business email address on the business's own domain, an un
 every marketing email, and sending only to people who ordered or subscribed. Whether Shopify's own
 email tool should be the sender for customer marketing is to be checked before a second sender is built.
 
+**Drafts on every device (PR #73, CURRENT, not merged yet):** the owner's rule "the same on every phone
+and computer" now covers the three draft pages. The wording, approvals and choices on Store Campaigns,
+Customer Emails and the Content Helper are saved as shared settings (database draft 50, the same step
+that carries the profit estimates and the menu choice; no new database step). The newer copy wins. Only
+the owner's changes are saved for every device; lists of stores and customers never leave the browser.
+Until draft 50 is installed and in use, each page says it is kept in that browser.
+
 **Store finder, as built (PR #72, CURRENT, not merged yet):** a section at the top of the stores step on
 the Store Campaigns page. The owner pastes a list of stores with what is known about them; each store
 gets a score from 0 to 100 with every point explained (kind of shop 40, distance 20, rating 15, number
