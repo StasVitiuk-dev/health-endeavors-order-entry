@@ -3058,7 +3058,7 @@
     // notices) and the customer questions still waiting. It never writes: "Answer"
     // opens Customer Questions, "Dismiss" uses the reminder's own Dismiss button
     // below, "Later" hides an item until tomorrow in this browser only.
-    let feedFilter = 'all', feedQuestions = null, feedSeq = 0, feedLast = new Map(), feedParcels = null, feedAgentSteps = null;
+    let feedFilter = 'all', feedQuestions = null, feedSeq = 0, feedLast = new Map(), feedParcels = null, feedAgentSteps = null, feedRecap = null;
     const FEED_LIMIT = 100;
     function feedMod() { try { return (window.HE && window.HE.views && window.HE.views['he-attention-feed']) || null; } catch (e) { return null; } }
     function feedStore() { try { return window.localStorage; } catch (e) { return null; } }
@@ -3105,6 +3105,15 @@
         if (seq !== feedSeq) return;
         feedAgentSteps = AD && r && !r.error ? AD.needsPerson(AD.entries(r.data || [], { registry: AGENT_REGISTRY }), { now: Date.now(), days: 7 }) : null;
       } catch (e) { if (seq !== feedSeq) return; feedAgentSteps = null; }
+      // the newest daily recap, when Backups & Printouts is on and it was not printed here yet
+      try {
+        const r = typeof backupsPageOn === 'function' && backupsPageOn()
+          ? await supabase.from('daily_reports').select('report_date').order('report_date', { ascending: false }).limit(1) : null;
+        if (seq !== feedSeq) return;
+        const d = r && !r.error && r.data && r.data[0] ? String(r.data[0].report_date).slice(0, 10) : null;
+        let upto = null; try { upto = localStorage.getItem(RECAP_PRINTED_KEY); } catch (e) { upto = null; }
+        feedRecap = d ? { date: d, printedUpTo: upto } : null;
+      } catch (e) { if (seq !== feedSeq) return; feedRecap = null; }
       paintAttentionFeed();
     }
     // the nightly check, as Home shows it below (its own cards keep their detail)
@@ -3132,7 +3141,7 @@
       const now = Date.now();
       const items = M.buildFeed({
         attention: Array.isArray(SEARCH_INDEX.attention) ? SEARCH_INDEX.attention : null, labels: ITEM_TYPE_LABELS,
-        checks: findings, questions: feedQuestions, nightly: feedNightly(), delivery: feedParcels, agents: feedAgentSteps,
+        checks: findings, questions: feedQuestions, nightly: feedNightly(), delivery: feedParcels, agents: feedAgentSteps, recap: feedRecap,
         money: moneyEl ? { open: Number(moneyEl.getAttribute('data-moneyalert')) } : null,
         tax: taxEl ? { count: Number(taxEl.getAttribute('data-taxratealert')) } : null }, now);
       const v = M.view(items, { now: now, snoozes: M.readSnoozes(feedStore()), filter: feedFilter });
@@ -3570,6 +3579,9 @@
       'If something is cut off: margins None, scale 100%, then print again.',
     ];
     const bkMonthOf = r => String(r.report_date || '').slice(0, 7);
+    // the newest recap printed in this browser (the Home feed reminds until it is)
+    const RECAP_PRINTED_KEY = 'he_recap_printed_upto';
+    function bkLatest() { return (bkReports || []).filter(r => /^\d{4}-\d{2}-\d{2}/.test(String(r.report_date || ''))).sort((a, b) => String(b.report_date).localeCompare(String(a.report_date)))[0] || null; }
     const bkMonthName = m => { const d = new Date(m + '-01T12:00:00'); return isNaN(d) ? m : d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }); };
     const bkNum = v => (v == null || v === '' || !isFinite(Number(v))) ? '—' : String(Number(v));
     async function loadBackupsPage() {
@@ -3597,6 +3609,9 @@
         ? h('p', { class: 'hint', 'data-bknote': 'recaps' }, 'The daily recaps could not be read. Refresh the page and try again.')
         : !months.length ? h('p', { class: 'empty', 'data-bknote': 'recaps' }, 'No daily recaps saved yet. The first one appears the morning after a working day.')
         : h('div', null,
+          bkLatest() ? h('div', { class: 'u-d-flex u-gap-8 u-fwr-wrap u-ai-center u-mt-8' },
+            h('button', { type: 'button', class: 'small', 'data-bk': 'print-latest' }, 'Print the latest day (' + String(bkLatest().report_date).slice(0, 10) + ')'),
+            h('span', { class: 'u-fs-12 u-c-muted' }, 'Once a day: your Home feed reminds you until it is printed.')) : null,
           h('div', { class: 'u-d-flex u-gap-8 u-fwr-wrap u-ai-flex-end u-mt-8' },
             h('div', { class: 'heField' }, h('label', { for: 'bkMonth' }, 'Month'),
               h('select', { id: 'bkMonth' }, months.map(m => h('option', Object.assign({ value: m }, m === bkMonth ? { selected: 'selected' } : {}), bkMonthName(m))))),
@@ -3666,6 +3681,24 @@
         return;
       }
       const t = e.target.closest('#backupsPanel [data-bk]'); if (!t) return;
+      if (t.getAttribute('data-bk') === 'print-latest') {
+        const r = bkLatest(); if (!r) return;
+        const day = String(r.report_date).slice(0, 10);
+        const line = (label, value) => h('tr', null, h('th', null, label), h('td', { class: 'num-cell' }, value));
+        bkPrintDoc([h('div', { class: 'printPage', 'data-printrecapday': day },
+          printBrand('Daily recap, ' + day), h('div', { class: 'printHdr' }, h('div', null, bkPrinted())),
+          h('table', null, h('tbody', null,
+            line('Orders', bkNum(r.orders_count)), line('Revenue', r.revenue == null ? '—' : fmtMoney(r.revenue, r.currency || 'USD')),
+            line('New customer questions', bkNum(r.new_inquiries_count)), line('Tasks opened', bkNum(r.tasks_opened_count)),
+            line('Incidents opened', bkNum(r.incidents_opened_count)), line('AI calls', bkNum(r.ai_calls_count)),
+            line('AI cost', r.ai_cost == null ? '—' : fmtMoney(r.ai_cost, 'USD')))),
+          h('div', { class: 'printLabel u-mt-8' }, 'Notes'), h('div', { class: 'printNotes' }, ' '))]);
+        try { localStorage.setItem(RECAP_PRINTED_KEY, day); } catch (err) { /* the reminder simply stays */ }
+        bkMessage = 'Opened the recap for ' + day + ' for printing. The Home reminder is cleared for this day.';
+        announce(bkMessage);
+        const msg = document.querySelector('#backupsPanel [data-bkmessage]'); if (msg) msg.textContent = bkMessage;
+        return;
+      }
       const rows = bkMonthRows();
       if (!rows.length) { bkMessage = 'There are no recaps for that month.'; announce(bkMessage); renderBackupsPage(); return; }
       if (t.getAttribute('data-bk') === 'print-recaps') {

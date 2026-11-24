@@ -1437,3 +1437,6 @@ table.sysStatus td{ overflow-wrap:anywhere; }
 .diaryWho{ font-weight:600; color:var(--ink); }
 .diaryWhat{ color:var(--ink); overflow-wrap:anywhere; flex:1 1 240px; min-width:0; }
 @media (max-width:640px){ .diaryBar select{ max-width:100%; width:100%; } }
+
+/* Daily recap printout: a ruled box for handwritten notes */
+.printNotes{ min-height:2.5in; border:1px solid #000; margin-top:4px; }

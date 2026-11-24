@@ -150,6 +150,20 @@
     });
   }
 
+  // the newest daily recap, once it exists and has not been printed in this browser
+  // (owner, Nov 24: "print it at the end of every day")
+  function fromRecap(r) {
+    if (!r || typeof r !== 'object' || !/^\d{4}-\d{2}-\d{2}$/.test(String(r.date || ''))) return [];
+    const d = String(r.date);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(String(r.printedUpTo || '')) && String(r.printedUpTo) >= d) return [];
+    let label = d;
+    try { label = new Intl.DateTimeFormat('en-US', { timeZone: 'UTC', weekday: 'long', month: 'long', day: 'numeric' }).format(new Date(d + 'T12:00:00Z')); } catch (e) { label = d; }
+    return [{ id: 'recap:' + d, kind: 'reminder', badge: 'Print', level: 'today',
+      title: 'The daily recap for ' + label + ' is ready to print',
+      detail: 'Opens Backups & Printouts: tap "Print the latest day". Keep it in your business folder.',
+      when: null, page: 'backupsPanel', actions: [{ kind: 'open', label: 'Open Backups & Printouts', page: 'backupsPanel' }], signature: d }];
+  }
+
   // steps an agent passed to a person (he-agent-diary.js needsPerson)
   function fromAgents(rows) {
     return asList(rows).filter(e => e.id && e.passedToPerson).map(e => ({
@@ -165,7 +179,7 @@
     const items = [].concat(
       fromQuestions(s.questions, t), fromAttention(s.attention, t, s.labels),
       fromChecks(s.checks, { questions: Array.isArray(s.questions), attention: Array.isArray(s.attention) }),
-      fromNightly(s.nightly), fromMoney(s.money), fromTax(s.tax), fromDelivery(s.delivery), fromAgents(s.agents));
+      fromNightly(s.nightly), fromMoney(s.money), fromTax(s.tax), fromDelivery(s.delivery), fromAgents(s.agents), fromRecap(s.recap));
     const seen = new Set();
     const unique = items.filter(i => (seen.has(i.id) ? false : (seen.add(i.id), true)));
     // most urgent first; within a level, overdue / oldest first, then undated
@@ -223,5 +237,5 @@
   }
 
   return { LEVELS, KINDS, FILTERS, SNOOZE_KEY, buildFeed, matchesFilter, view, readSnoozes, snooze, unsnoozeAll, isSnoozed,
-    _from: { fromAttention, fromChecks, fromNightly, fromQuestions, fromMoney, fromTax, fromDelivery, fromAgents } };
+    _from: { fromAttention, fromChecks, fromNightly, fromQuestions, fromMoney, fromTax, fromDelivery, fromAgents, fromRecap } };
 }));
