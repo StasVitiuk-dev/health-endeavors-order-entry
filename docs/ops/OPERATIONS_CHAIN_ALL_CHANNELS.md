@@ -1,6 +1,6 @@
 # Operations chain across every sales channel — map and gaps (Nov 23, 2026)
 
-Status: **PROPOSED** (owner request, Nov 23: "everything connected — website,
+Status: **AGREED** (owner, Nov 24: gaps 1–9 all approved; order and details below). Owner request, Nov 23: "everything connected — website,
 Shopify, Amazon, Etsy, TikTok Shop and the rest — automated as much as possible,
 agents controlling and tracing every step; tell me what we are missing").
 One authoritative page for the whole chain; detail lives in the linked docs.
@@ -39,6 +39,27 @@ Related: `docs/ops/ATTENTION_FEED_AND_SMART_SCAN_PLAN.md` (feed and scan),
 | 13 | Batch and lot tracing | which batch went to which order | same | same | same | **partly**: packing slip has a blank lot column; full lot-to-order trace **not built** |
 | 14 | Reviews | store reviews | Amazon reviews | Etsy reviews | TikTok reviews | **not built** |
 | 15 | Agents watch every step | Supervisor Agent #8 watches the others; the feed shows what needs the owner | | | | agents registered with switches; most **off on purpose** until launch |
+
+## Owner decisions (Nov 24) and the order of work
+
+All nine gaps are approved. Order of work for the 2 weeks (each piece small,
+tested, behind a switch, and merged by the owner when ready):
+
+| Order | Piece | How it works | Needs the owner |
+|---|---|---|---|
+| 1 | Scan page (Step B) | camera or screenshot; tracking barcodes matched to orders; "dropped off" | review |
+| 2 | **One stock count for all channels** (gap 1) | the dashboard holds the true count; a sale on any channel lowers it; the dashboard sends the new number to every channel, keeping a small safety buffer per channel | database step approval; each channel connection |
+| 3 | **All Orders page with channel orders** (gap 2) | orders from Amazon, Etsy and TikTok come **into** the dashboard (not to the website), each with a channel badge and its channel order number, and then follow the same chain (pack, label, tracking). First by dropping in each channel's order download (checked like the product list), then automatically every few minutes once each channel approves access | seller accounts |
+| 4 | **Delivery problems, done like a Swiss watch** (gap 7) | every shipment watched: label made but not handed over in 24 h; no movement for 3 days; delivery exception; returned to sender; delivered. Each becomes a feed item with the next step, and a ready message for the customer (approve first) | review |
+| 5 | **Money per channel** (gap 4) | each channel's settlement or payout file matched to the bank, like the Shopify check | review |
+| 6 | **Real profit** (gap 5) | builds on what exists: Accounting already shows overall profit (sales minus expenses) and receiving already works out each product's true unit cost. Added: cost per product, channel fees and postage, giving profit per order, per product and per channel | review |
+| 7 | **Batch tracing** (gap 6) | each batch of lotion gets a number (on the jar label); when an order is packed, the batch is recorded; if there is ever a reaction or an ingredient recall, the dashboard lists exactly who received that batch and holds the remaining jars. Connects to the existing Recalls, Adverse events and Quality checks pages | review |
+| 8 | **Reviews in the feed** (gap 8) | new reviews from the store and every marketplace in one place, lowest stars first, with a drafted reply to approve | channel connections |
+| 9 | **Agent diary in the feed** (gap 9) | every automatic step an agent takes is written down (which agent, what, when, which order), shown on AI Agents and in the feed when it needs the owner; each agent keeps its on/off switch | review |
+| 10 | **Business email in the feed** (gap 3) | `docs/ops/BUSINESS_EMAIL_PLAN.md`; connected when the owner sets up the addresses | addresses and approval |
+
+Also on the critical path for the owner: the database steps waiting in
+`docs/ops/sql-review/START_HERE_GUIDED_RUNS.md` (several pieces above use them).
 
 ## What is missing (gaps), most important first
 
