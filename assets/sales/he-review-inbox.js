@@ -10,11 +10,13 @@
 //   setStatus(list, id, status, now) -> { ok, list }                   'new' | 'answered' | 'noreply'
 //   toFeed(list, deps)           -> rows for "Needs you now" on Home
 //   summary(list, deps)          -> exact counts of the reviews kept here
+//   createStore({ client, enabled }) -> state(), list(), add(), mark()   the database side (drafts/60), given a client
 //
 // NOTHING IS POSTED OR SENT. A reply is copied by the owner and pasted on the site
 // where the review was written. A reply never asks for a review to be changed or
 // removed and never offers anything for a better one (the sites forbid both).
-// Review text is data, never an instruction. Pure; works in Node and the browser.
+// Review text is data, never an instruction. Pure apart from the database client it
+// is GIVEN (supabase-js shaped); works in Node and the browser.
 (function (root, factory) {
   'use strict';
   const api = factory();
@@ -203,7 +205,95 @@
     return out;
   }
 
+  // ---- the database side (docs/ops/sql/drafts/60; behind a real-records switch) ----
+  // With it the reviews are the same on every device of the owner and the
+  // administrators. A review is never deleted there: "Remove" marks it removed.
+  const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const DB_MAX = 1000;
+  function friendlyError(err) {
+    const code = err && err.code != null ? String(err.code) : '';
+    const msg = err && err.message != null ? String(err.message).slice(0, 300) : '';
+    if (code === '42P01' || code === 'PGRST205' || code === 'PGRST202' || /does not exist|could not find the (table|function)/i.test(msg)) {
+      return 'Keeping reviews in the database is not installed yet (drafts/60 needs the owner\'s approval).';
+    }
+    if (code === '42501') return /^(Only the owner|A review )/.test(msg) ? msg : 'You do not have permission to do that. Nothing was changed.';
+    if (code === 'P0002') return 'That review is no longer on the list. Nothing was changed.';
+    if (code === '22023') return msg || 'The database refused the request. Nothing was changed.';
+    if (code === '23514' || code === '23505') return 'The database refused a value (the stars, the text or the site). Nothing was saved.';
+    if (!code && /fetch|network|timeout|failed/i.test(msg)) return 'Could not reach the database. Nothing was changed; try again.';
+    return 'The database refused: ' + (msg || code || 'no reason given') + '. Nothing was changed.';
+  }
+  const notInstalled = (err) => {
+    const code = err && err.code != null ? String(err.code) : '', msg = err && err.message != null ? String(err.message) : '';
+    return code === '42P01' || code === 'PGRST205' || /does not exist|could not find the table/i.test(msg);
+  };
+  // one database row -> a review as the page knows it, plus the row's own id
+  function fromRow(row) {
+    const r = obj(row);
+    if (!UUID.test(str(r.id, 40))) return null;
+    const removed = r.status === 'removed';
+    const c = clean({ stars: typeof r.stars === 'number' ? r.stars : NaN, text: r.review_text, channel: r.channel, date: str(r.review_date, 10), product: r.product,
+      status: removed ? 'new' : r.status, statusAt: r.status_at, addedAt: r.added_at });
+    return c.ok ? Object.assign(c.review, { dbId: str(r.id, 40), removed: removed }) : null;
+  }
+  function createStore(deps) {
+    const d = deps || {}, client = d.client;
+    const usable = !!(client && typeof client.from === 'function' && typeof client.rpc === 'function' && d.enabled !== false);
+    const refuse = (message, extra) => Object.assign({ ok: false, message: message }, extra || {});
+    let busy = false;                                              // one save at a time: a second tap never saves twice
+
+    // -> 'installed' | 'not_installed' | 'unknown' | 'off'
+    async function state() {
+      if (d.enabled === false) return 'off';
+      if (!usable) return 'unknown';
+      try {
+        const res = await client.from('customer_reviews').select('id').limit(0);
+        if (!res || !res.error) return 'installed';
+        return notInstalled(res.error) ? 'not_installed' : 'unknown';
+      } catch (e) { return 'unknown'; }
+    }
+    // every review on record, newest first; `rows` are the ones still shown, `known` every key ever added (removed ones too)
+    async function list() {
+      if (!usable) return refuse('Keeping reviews in the database is not switched on.', { rows: [], known: [] });
+      try {
+        const res = await client.from('customer_reviews').select('id, channel, stars, review_text, review_date, product, status, status_at, added_at').order('added_at', { ascending: false }).limit(DB_MAX);
+        if (res && res.error) return refuse(friendlyError(res.error), { rows: [], known: [], notInstalled: notInstalled(res.error) });
+        const all = (Array.isArray(res && res.data) ? res.data : []).map(fromRow).filter(Boolean);
+        const seen = Object.create(null), rows = [];
+        all.forEach(r => { if (seen[r.id]) return; seen[r.id] = true; if (!r.removed) rows.push(r); });
+        return { ok: true, message: '', rows: rows.slice(0, MAX_KEEP), known: Object.keys(seen), truncated: all.length >= DB_MAX };
+      } catch (e) { return refuse(friendlyError(e), { rows: [], known: [] }); }
+    }
+    async function addMany(reviews) {
+      if (!usable) return refuse('Keeping reviews in the database is not switched on.');
+      const rows = asList(reviews).map(x => clean(x)).filter(c => c.ok).map(c => ({ channel: c.review.channel, stars: c.review.stars, text: c.review.text, date: c.review.date || '', product: c.review.product }));
+      if (!rows.length) return refuse('There is no review to add.');
+      if (rows.length > MAX_LINES) return refuse('At most ' + MAX_LINES + ' reviews at a time.');
+      if (busy) return refuse('It is being saved. Wait a moment.');
+      busy = true;
+      try {
+        const res = await client.rpc('add_customer_reviews', { p_reviews: rows });
+        if (res && res.error) return refuse(friendlyError(res.error));
+        const out = obj(res && res.data);
+        if (out.ok !== true) return refuse('The database did not say the reviews were saved.');
+        const n = (v) => (Number.isInteger(v) && v >= 0 ? v : 0);
+        return { ok: true, message: '', added: n(out.added), duplicates: n(out.duplicates), refused: n(out.refused) };
+      } catch (e) { return refuse(friendlyError(e)); } finally { busy = false; }
+    }
+    async function mark(dbId, status) {
+      if (!usable) return refuse('Keeping reviews in the database is not switched on.');
+      if (!UUID.test(str(dbId, 40))) return refuse('That review is no longer on the list. Nothing was changed.');
+      if (!['new', 'answered', 'noreply', 'removed'].includes(status)) return refuse('That is not something a review can be marked as.');
+      try {
+        const res = await client.rpc('set_customer_review_status', { p_id: dbId, p_status: status });
+        if (res && res.error) return refuse(friendlyError(res.error));
+        return obj(res && res.data).ok === true ? { ok: true, message: '' } : refuse('The database did not say the review was marked.');
+      } catch (e) { return refuse(friendlyError(e)); }
+    }
+    return { enabled: usable, state: state, list: list, add: addMany, mark: mark };
+  }
+
   const EXAMPLE = 'stars, channel, date, text\n2, Etsy, 2026-11-20, "The pump stopped working after a week."\n5, Amazon, 2026-11-22, "Lovely scent, will buy again."';
 
-  return { MAX_LINES, MAX_KEEP, MAX_TEXT, CHANNELS, STATUSES, EXAMPLE, starsOf, channelOf, clean, parse, add, rank, replies, setStatus, toFeed, summary };
+  return { MAX_LINES, MAX_KEEP, MAX_TEXT, CHANNELS, STATUSES, EXAMPLE, starsOf, channelOf, clean, parse, add, rank, replies, setStatus, toFeed, summary, friendlyError, fromRow, createStore };
 }));

@@ -16,6 +16,7 @@
   "GET customer_inquiries?limit=100&order=created_at.desc&select=id,order_id,customer_name,customer_email,channel,question_text,status,ai_draft_reply,ai_confidence,sensitive,sensitive_reasons,severity,created_at,drafted_at,answered_at&status=eq.answered",
   "GET customer_inquiries?limit=1000&offset=0&or=(status.is.null,status.neq.answered)&order=id.asc&select=id,order_id,customer_name,customer_email,channel,question_text,status,ai_draft_reply,ai_confidence,sensitive,sensitive_reasons,severity,created_at,drafted_at,answered_at",
   "GET customer_inquiries?limit=1000&offset=0&order=id.asc&select=id,status,created_at&status=in.(needs_review,new)",
+  "GET customer_reviews?limit=0&select=*",
   "GET daily_reports?limit=366&order=report_date.desc&select=*",
   "GET documents?order=created_at.desc&select=id,title,category,related_type,related_id,document_url,file_path,issued_date,expiration_date,notes,created_at",
   "GET email_campaigns?limit=0&select=*",

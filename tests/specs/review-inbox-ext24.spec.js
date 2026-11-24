@@ -281,3 +281,177 @@ test.describe('the Reviews page', () => {
     expect(pageErrors).toEqual([]);
   });
 });
+
+// ---------- Reviews on every device (docs/ops/sql/drafts/60; behind he_review_store) ----------
+// A switch that saves real records: OFF, and usable only once the draft is installed.
+// With it the reviews live in the database (the same on every device of the owner and the
+// administrators); without it everything above stays exactly as it is. The database part
+// is tested against a real local PostgreSQL (docs/ops/sql/local-test/customer_reviews_test.sh).
+test.describe('reviews on every device: the database side (no browser)', () => {
+  test.beforeEach(({}, ti) => { test.skip(ti.project.name !== 'desktop', 'Node-only; run once'); });
+  const row = (n, extra) => Object.assign({ id: '00000000-0000-4000-8000-' + String(n).padStart(12, '0'), channel: 'etsy', stars: 2, review_text: 'SYNTHETIC review ' + n, review_date: '2026-11-20', product: '', status: 'new', status_at: null, added_at: '2026-11-24T18:00:0' + n + 'Z' }, extra || {});
+  const fake = (rows, opts) => { const calls = [], o = opts || {};
+    return { calls, client: { from: (t) => ({ select: (cols) => ({ limit: async () => { calls.push(['probe', t]); return o.probeError ? { data: null, error: o.probeError } : { data: [], error: null }; },
+        order: () => ({ limit: async () => { calls.push(['list', t, cols]); return o.listError ? { data: null, error: o.listError } : { data: rows, error: null }; } }) }) }),
+      rpc: async (name, body) => { calls.push(['rpc', name, body]); return o.rpcError ? { data: null, error: o.rpcError } : { data: o.rpcData || { ok: true, added: 1, duplicates: 0, refused: 0 }, error: null }; } } }; };
+
+  test('off, or without a client, it asks nothing; installed or not is read from one empty question', async () => {
+    const f = fake([]);
+    const off = R.createStore({ client: f.client, enabled: false });
+    expect([await off.state(), (await off.list()).ok, (await off.add([{ stars: 5, text: 'SYNTHETIC x' }])).ok, (await off.mark(row(1).id, 'answered')).ok]).toEqual(['off', false, false, false]);
+    expect(f.calls).toEqual([]);
+    expect(await R.createStore({ client: null }).state()).toBe('unknown');
+    expect(await R.createStore({ client: f.client }).state()).toBe('installed');
+    expect(await R.createStore({ client: fake([], { probeError: { code: 'PGRST205', message: "Could not find the table 'public.customer_reviews' in the schema cache" } }).client }).state()).toBe('not_installed');
+    expect(await R.createStore({ client: fake([], { probeError: { code: '500', message: 'SYNTHETIC failure' } }).client }).state()).toBe('unknown');
+  });
+
+  test('the list: rows become reviews with the same identity as in the browser; removed ones are known but not shown; junk rows are dropped', async () => {
+    const rows = [row(1), row(2, { status: 'answered', status_at: '2026-11-24T18:30:00Z' }), row(3, { status: 'removed' }), { id: 'not-an-id', stars: 5, review_text: 'SYNTHETIC junk' }, row(5, { stars: 9 }), null];
+    const st = R.createStore({ client: fake(rows).client });
+    const r = await st.list();
+    expect(r.ok).toBe(true);
+    expect(r.rows.map(x => [x.text, x.status, x.dbId])).toEqual([['SYNTHETIC review 1', 'new', row(1).id], ['SYNTHETIC review 2', 'answered', row(2).id]]);
+    expect(r.known.length).toBe(3);                                           // the removed one is known, so an old copy cannot bring it back
+    // the identity is the browser's own: same site, date and words
+    expect(r.rows[0].id).toBe(R.clean({ stars: 2, channel: 'etsy', date: '2026-11-20', text: 'SYNTHETIC review 1' }).review.id);
+    const bad = await R.createStore({ client: fake([], { listError: { code: '42501', message: 'permission denied for table customer_reviews' } }).client }).list();
+    expect(bad).toMatchObject({ ok: false, rows: [], message: 'You do not have permission to do that. Nothing was changed.' });
+  });
+
+  test('adding and marking: only checked reviews are sent, as plain fields; refusals are said in plain words', async () => {
+    const f = fake([]);
+    const st = R.createStore({ client: f.client });
+    expect(await st.add([{ stars: 5, channel: 'Amazon', date: '2026-11-22', text: ' SYNTHETIC Lovely ', product: 'SYNTHETIC lotion' }, { stars: 0, text: 'SYNTHETIC not a review' }, null])).toMatchObject({ ok: true, added: 1 });
+    expect(f.calls).toEqual([['rpc', 'add_customer_reviews', { p_reviews: [{ channel: 'amazon', stars: 5, text: 'SYNTHETIC Lovely', date: '2026-11-22', product: 'SYNTHETIC lotion' }] }]]);
+    expect((await st.add([{ stars: 0, text: '' }])).message).toBe('There is no review to add.');
+    expect((await st.add(Array.from({ length: R.MAX_LINES + 1 }, (_, i) => ({ stars: 5, text: 'SYNTHETIC many ' + i })))).message).toContain('at a time');
+    expect((await st.mark('nope', 'answered')).ok).toBe(false);
+    expect((await st.mark(row(1).id, 'published')).ok).toBe(false);
+    const g = fake([], { rpcData: { ok: true, id: row(1).id, status: 'removed' } });
+    expect(await R.createStore({ client: g.client }).mark(row(1).id, 'removed')).toEqual({ ok: true, message: '' });
+    expect(g.calls).toEqual([['rpc', 'set_customer_review_status', { p_id: row(1).id, p_status: 'removed' }]]);
+    expect(R.friendlyError({ code: '42501', message: 'Only the owner and administrators can keep reviews.' })).toBe('Only the owner and administrators can keep reviews.');
+    expect(R.friendlyError({ code: 'PGRST202', message: 'Could not find the function' })).toContain('not installed yet');
+    expect(R.friendlyError({ message: 'Failed to fetch' })).toContain('Could not reach the database');
+    expect(R.friendlyError(null)).toContain('The database refused');
+  });
+});
+
+test.describe('reviews on every device: on the page', () => {
+  test.beforeEach(async ({ page }, ti) => { test.skip(ti.project.name !== 'desktop', 'run once'); await page.clock.setFixedTime(new Date(NOW)); });
+  const KEPT = JSON.stringify({ reviews: [
+    { stars: 2, channel: 'etsy', date: '2026-11-20', text: 'SYNTHETIC The pump stopped working.', status: 'new', addedAt: NOW - 5000 },
+    { stars: 3, channel: 'tiktok', date: '2026-11-21', text: 'SYNTHETIC It is fine', status: 'answered', statusAt: NOW - 1000, addedAt: NOW - 4000 }] });
+  const flags = (page, store, kept) => page.addInitScript(([withStore, v]) => { try { localStorage.setItem('he_review_inbox', 'on'); localStorage.setItem('he_attention_feed', 'on'); if (withStore) localStorage.setItem('he_review_store', 'on'); if (v && !localStorage.getItem('he_review_inbox_v1') && !sessionStorage.getItem('seeded')) { localStorage.setItem('he_review_inbox_v1', v); sessionStorage.setItem('seeded', '1'); } } catch (e) {} }, [store, kept]);
+  const install = (backend) => {
+    backend.tables.customer_reviews = []; let n = 0;
+    const key = (r) => [r.channel, r.date || '', String(r.text).toLowerCase().replace(/\s+/g, ' ').trim()].join('|');
+    backend.rpc.add_customer_reviews = (b) => { let added = 0, duplicates = 0;
+      (b.p_reviews || []).forEach(r => { const ex = backend.tables.customer_reviews.find(x => x.k === key(r));
+        if (!ex) { n += 1; backend.tables.customer_reviews.push({ id: '00000000-0000-4000-8000-' + String(n).padStart(12, '0'), k: key(r), channel: r.channel, stars: r.stars, review_text: r.text, review_date: r.date || null, product: r.product || '', status: 'new', status_at: null, added_at: new Date(Date.parse('2026-11-24T18:00:00Z') + n * 1000).toISOString() }); added += 1; }
+        else if (ex.status === 'removed') { ex.status = 'new'; added += 1; } else duplicates += 1; });
+      return { ok: true, added, duplicates, refused: 0 }; };
+    backend.rpc.set_customer_review_status = (b) => { const x = backend.tables.customer_reviews.find(r => r.id === b.p_id); if (x) { x.status = b.p_status; x.status_at = '2026-11-24T18:05:00Z'; } return { ok: !!x, id: b.p_id, status: b.p_status }; };
+  };
+  const rpcs = (backend, name) => backend.requests.filter(r => r.rpc === name).map(r => r.body);
+  const reads = (backend) => backend.requests.filter(r => r.table === 'customer_reviews' && !r.params.some(([k, v]) => k === 'limit' && v === '0'));
+  // Feature Flags asks once whether the table exists (select=*, no rows) to show "installed"; that is not the Reviews page asking
+  const probes = (backend) => backend.requests.filter(r => r.table === 'customer_reviews' && !(r.params.some(([k, v]) => k === 'limit' && v === '0') && r.params.some(([k, v]) => k === 'select' && v === '*')));
+
+  test('switch off (as shipped): the reviews stay in this browser and nothing is asked of the database for them', async ({ page, backend }) => {
+    install(backend); await flags(page, false, KEPT);
+    await login(page); await gotoPage(page, 'reviewsPanel');
+    const P = page.locator('#reviewsPanel');
+    await expect(P.locator('[data-rikept]')).toHaveAttribute('data-rikept', 'browser');
+    await expect(P.locator('[data-rireview]')).toHaveCount(1);
+    await P.locator('#riTextIn').fill('SYNTHETIC a new one'); await P.locator('[data-ri="add-one"]').click();
+    await expect(P.locator('[data-rimessage]')).toHaveText('Review added.');
+    await gotoPage(page, 'attentionPanel');
+    await expect(page.locator('#attentionFeedHost [data-feedkind="review"]')).toHaveCount(1);
+    await page.waitForTimeout(500);
+    expect(probes(backend)).toEqual([]);
+    expect(rpcs(backend, 'add_customer_reviews').concat(rpcs(backend, 'set_customer_review_status'))).toEqual([]);
+    expect(backend.tables.customer_reviews).toEqual([]);
+  });
+
+  test('switched on and installed: what this browser held moves to the database once; adding, answering and removing are saved there; another device shows the same, and an old copy cannot bring a removed review back', async ({ page, backend, pageErrors }) => {
+    install(backend); await flags(page, true, KEPT);
+    await login(page); await gotoPage(page, 'reviewsPanel');
+    const P = page.locator('#reviewsPanel'), cards = P.locator('[data-rireview]');
+    await expect(P.locator('[data-rikept]')).toHaveAttribute('data-rikept', 'database');
+    await expect(P.locator('[data-rikept]')).toHaveText('Kept in the database: the same on every phone and computer, for you and the administrators.');
+    // moved once: both reviews, and the one that was already answered keeps its mark
+    expect(rpcs(backend, 'add_customer_reviews').length).toBe(1);
+    expect(rpcs(backend, 'add_customer_reviews')[0].p_reviews.map(r => [r.channel, r.stars, r.text, r.date])).toEqual([['tiktok', 3, 'SYNTHETIC It is fine', '2026-11-21'], ['etsy', 2, 'SYNTHETIC The pump stopped working.', '2026-11-20']]);
+    expect(rpcs(backend, 'set_customer_review_status')).toEqual([{ p_id: '00000000-0000-4000-8000-000000000001', p_status: 'answered' }]);
+    await expect(cards).toHaveCount(1);
+    await expect(P.locator('[data-risummary]')).toContainText('1 review needs you');
+    // a new one is saved in the database
+    await P.locator('#riStarsIn').selectOption('1'); await P.locator('#riChannelIn').selectOption('amazon'); await P.locator('#riTextIn').fill('SYNTHETIC it leaked in the box');
+    await P.locator('[data-ri="add-one"]').click();
+    await expect(P.locator('[data-rimessage]')).toHaveText('Review added.');
+    await expect(cards).toHaveCount(2);
+    expect(backend.tables.customer_reviews.map(r => r.review_text)).toEqual(['SYNTHETIC It is fine', 'SYNTHETIC The pump stopped working.', 'SYNTHETIC it leaked in the box']);
+    // answered: saved with the row's own id
+    await P.locator('[data-rireview]', { hasText: 'it leaked in the box' }).locator('[data-ri="answered"]').click();
+    await expect(P.locator('[data-rimessage]')).toHaveText('Marked as answered.');
+    expect(backend.tables.customer_reviews[2].status).toBe('answered');
+    // Remove marks it removed; the row stays
+    const pump = P.locator('[data-rireview]', { hasText: 'The pump stopped working' });
+    await pump.locator('[data-ri="remove"]').click(); await pump.locator('[data-ri="remove"]').click();
+    await expect(P.locator('[data-rimessage]')).toHaveText('Review removed from the list. It stays on the record, marked as removed.');
+    await expect(cards).toHaveCount(0);
+    expect(backend.tables.customer_reviews.map(r => r.status)).toEqual(['answered', 'removed', 'answered']);
+    expect(backend.tables.customer_reviews.length).toBe(3);
+    // "another device", which still holds an old copy with the removed review: Home is opened first, not the Reviews page
+    const adds = rpcs(backend, 'add_customer_reviews').length;
+    await page.evaluate((v) => localStorage.setItem('he_review_inbox_v1', v), KEPT);
+    await page.reload(); await expect(page.locator('#dash')).toBeVisible(); await gotoPage(page, 'attentionPanel');
+    await expect(page.locator('#attentionFeedHost')).toBeVisible();
+    await expect(page.locator('#attentionFeedHost [data-feedkind="review"]')).toHaveCount(0);   // nothing waits: one removed, two answered
+    await gotoPage(page, 'reviewsPanel');
+    await expect(P.locator('[data-rikept]')).toHaveAttribute('data-rikept', 'database');
+    await P.locator('[data-rifilter="all"]').click();
+    await expect(cards).toHaveCount(2);
+    await expect(P).not.toContainText('The pump stopped working');
+    expect(rpcs(backend, 'add_customer_reviews').length).toBe(adds);                           // the old copy added nothing
+    expect(backend.tables.customer_reviews.map(r => r.status)).toEqual(['answered', 'removed', 'answered']);
+    // putting one back travels too
+    await P.locator('[data-rireview]', { hasText: 'It is fine' }).locator('[data-ri="new"]').click();
+    await expect(P.locator('[data-rimessage]')).toHaveText('Put back among the ones that need you.');
+    expect(backend.tables.customer_reviews[0].status).toBe('new');
+    await gotoPage(page, 'attentionPanel');
+    await expect(page.locator('#attentionFeedHost [data-feedkind="review"]')).toHaveCount(1);
+    expect(writes(backend)).toEqual([]);                                                       // only through the two functions, never a direct write
+    expect(pageErrors).toEqual([]);
+  });
+
+  test('switched on but not installed: said in plain words, and the page keeps working in this browser', async ({ page, backend, pageErrors }) => {
+    await flags(page, true, KEPT);
+    await page.route('**/rest/v1/customer_reviews?*', route => route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify({ code: 'PGRST205', message: "Could not find the table 'public.customer_reviews' in the schema cache" }) }));
+    await login(page); await gotoPage(page, 'reviewsPanel');
+    const P = page.locator('#reviewsPanel');
+    await expect(P.locator('[data-rikept]')).toHaveText('Kept in this browser only: the database step for reviews (draft 60) is not installed yet.');
+    await expect(P.locator('[data-rireview]')).toHaveCount(1);
+    await P.locator('#riTextIn').fill('SYNTHETIC still works here'); await P.locator('#riStarsIn').selectOption('2'); await P.locator('[data-ri="add-one"]').click();
+    await expect(P.locator('[data-rimessage]')).toHaveText('Review added.');
+    await expect(P.locator('[data-rireview]')).toHaveCount(2);
+    expect(rpcs(backend, 'add_customer_reviews')).toEqual([]);
+    expect(pageErrors.filter(e => !/404|PGRST|Failed to load resource/.test(e))).toEqual([]);   // the 404 is this test's own "not installed"
+  });
+
+  test('the database refuses a save: nothing changes on the page and the reason is shown', async ({ page, backend, pageErrors }) => {
+    install(backend); await flags(page, true, null);
+    await login(page); await gotoPage(page, 'reviewsPanel');
+    const P = page.locator('#reviewsPanel');
+    await expect(P.locator('[data-rikept]')).toHaveAttribute('data-rikept', 'database');
+    await page.route('**/rest/v1/rpc/add_customer_reviews*', route => route.fulfill({ status: 403, contentType: 'application/json', body: JSON.stringify({ code: '42501', message: 'Only the owner and administrators can keep reviews.' }) }));
+    await P.locator('#riTextIn').fill('SYNTHETIC will be refused'); await P.locator('[data-ri="add-one"]').click();
+    await expect(P.locator('[data-rimessage]')).toHaveText('Not added: Only the owner and administrators can keep reviews.');
+    await expect(P.locator('[data-rireview]')).toHaveCount(0);
+    await expect(P.locator('#riTextIn')).toHaveValue('SYNTHETIC will be refused');              // what was typed is still there to try again
+    expect(backend.tables.customer_reviews).toEqual([]);
+    expect(pageErrors.filter(e => !/403|42501|Failed to load resource/.test(e))).toEqual([]);
+  });
+});

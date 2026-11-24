@@ -715,6 +715,32 @@
       "effect": "drops the function, the table and its guard",
       "postcheck": "to_regclass('public.my_settings') is null",
       "dynamicSql": "format() with fixed names (%I) to lock and count the my_settings table only where it exists"
+    },
+    {
+      "file": "drafts/60_DRAFT_customer_reviews.sql",
+      "id": "60",
+      "class": "PRODUCTION-CHANGE-DRAFT",
+      "step": "optional (owner rule of Nov 24: the same on every phone and computer; this one for the reviews the owner pastes or types in on the Reviews page). Records only: nothing in it posts or sends",
+      "dependsOn": [],
+      "risk": "LOW",
+      "rollback": "61",
+      "precheck": "stops, changing nothing, if a customer_reviews table exists that this file did not create (it checks its own mark); stops if auth.uid(), is_owner_or_admin(), gen_random_uuid(), the tasks or audit_log table, or the audit trigger on tasks is missing",
+      "effect": "1 new table customer_reviews (one row per review: the site, the stars, the text, its date, a product, and whether it still needs a look); add_customer_reviews() adds up to 200 at a time and never keeps the same review twice (a removed one comes back as new); set_customer_review_status() marks one new, answered, no reply needed or removed; the owner and administrators only; a review is never deleted and only its status can change; production's audit trigger is attached; no existing table changes",
+      "postcheck": "the table present and empty; anon cannot read it; local-test/customer_reviews_test.sh passes on a throwaway copy",
+      "lock": "NONE (new table only)",
+      "dynamicSql": "format() with fixed names (%I) to attach production's own audit trigger function, whose name is read at install time"
+    },
+    {
+      "file": "drafts/61_DRAFT_rollback_customer_reviews.sql",
+      "id": "61",
+      "class": "ROLLBACK",
+      "rollbackOf": "60",
+      "dependsOn": [],
+      "risk": "LOW",
+      "precheck": "stops, removing nothing, while any review is saved, unless deleting them was authorized in the session; stops if the table was not created by drafts/60",
+      "effect": "drops the two functions, the table, its guard and the key function",
+      "postcheck": "to_regclass('public.customer_reviews') is null",
+      "dynamicSql": "format() with fixed names (%I) to lock and count the customer_reviews table only where it exists"
     }
   ],
   "local": [

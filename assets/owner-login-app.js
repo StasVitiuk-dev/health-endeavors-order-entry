@@ -84,7 +84,7 @@
       nightlyOverall,
     } = window.HE.helpers;
     // @@ EXT15 modules: created in dependency order (assets/app/*.js; see docs/ops/APPLICATION_MODULE_MAP_EXT15.md)
-    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, agentDiaryOn, realProfitOn, channelMoneyOn, SWITCH_EVERYONE, sharedSettingsOn, orderCostsOn, incidentCloseOn, batchLabelsOn, orderBatchesOn, orderChannelsOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn, storeCampaignsOn, receiptReaderOn, contentHelperOn, customerEmailsOn, emailSendingOn, mySettingsOn, handoffHandledOn, reviewInboxOn } = HE.modules.create('he-config', {  });
+    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, agentDiaryOn, realProfitOn, channelMoneyOn, SWITCH_EVERYONE, sharedSettingsOn, orderCostsOn, incidentCloseOn, batchLabelsOn, orderBatchesOn, orderChannelsOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn, storeCampaignsOn, receiptReaderOn, contentHelperOn, customerEmailsOn, emailSendingOn, mySettingsOn, handoffHandledOn, reviewInboxOn, reviewStoreOn } = HE.modules.create('he-config', {  });
     const { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, focusDialog, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, h, pageIconNode } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
     const { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
     const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, h, supabase });
@@ -3492,6 +3492,7 @@
       if (!feedHost(attentionFeedOn() && !!feedMod())) return;
       feedSnoozePull();
       hhPull();
+      if (riStore()) riPull().then((got) => { if (got) paintAttentionFeed(); });
       const seq = ++feedSeq;
       try {
         const rows = await fetchAllRows('customer_inquiries', 'id, customer_name, channel, question_text, status, ai_draft_reply, sensitive, severity, created_at',
@@ -4756,6 +4757,68 @@
       return M.add(v && Array.isArray(v.reviews) ? v.reviews : [], [], Date.now()).list;      // checked again on the way in
     }
     function riKeep() { try { localStorage.setItem(RI_KEY, JSON.stringify({ reviews: riList })); return true; } catch (e) { return false; } }
+    // With the real-records switch "Reviews on every device" on and drafts/60 installed, the
+    // database is where the reviews live: riShared is true, riIds maps a review to its row,
+    // and this browser only keeps a copy so Home can draw at once. Reviews that were kept in
+    // this browser before are moved to the database once. Until then nothing is asked of it.
+    let riShared = false, riStoreState = 'off', riIds = Object.create(null), riPulling = null, riMoved = false;
+    function riStore() { const M = riMod(); return M && M.createStore && reviewInboxOn() && reviewStoreOn() && riOwner() ? M.createStore({ client: supabase, enabled: true }) : null; }
+    function riPull() {
+      if (riPulling) return riPulling;
+      riPulling = (async () => {
+        const M = riMod(), st = riStore();
+        if (!M || !st) { riShared = false; riStoreState = 'off'; return false; }
+        riStoreState = await st.state();
+        if (riStoreState !== 'installed') { riShared = false; return false; }
+        let r = await st.list();
+        if (!r.ok) { riShared = false; riStoreState = 'unknown'; return false; }
+        // once per visit: what this browser held and the database never saw goes to the database
+        // (a review that was removed there is known, so it is not brought back by an old copy here)
+        if (!riMoved) {
+          riMoved = true;
+          const known = new Set(r.known), mine = (riList || riRead()).filter(x => !known.has(x.id));
+          if (mine.length) {
+            const a = await st.add(mine);
+            if (a.ok) {
+              r = await st.list();
+              for (const x of mine.filter(y => y.status === 'answered' || y.status === 'noreply')) { const row = r.ok ? r.rows.find(z => z.id === x.id) : null; if (row) await st.mark(row.dbId, x.status); }
+              r = await st.list();
+            }
+            if (!r.ok) { riShared = false; riStoreState = 'unknown'; return false; }
+          }
+        }
+        riIds = Object.create(null); r.rows.forEach(x => { riIds[x.id] = x.dbId; });
+        riList = M.add(r.rows, [], Date.now()).list;
+        riShared = true; riKeep();
+        return true;
+      })().finally(() => { riPulling = null; });
+      return riPulling;
+    }
+    // one change, in the database when the reviews live there, otherwise in this browser
+    async function riAddRows(rows) {
+      const M = riMod();
+      if (riShared) {
+        const st = riStore(); if (!st) return { ok: false, message: 'Keeping reviews in the database was switched off. Reload the page.' };
+        const a = await st.add(rows); if (!a.ok) return a;
+        await riPull();
+        return a;
+      }
+      const r = M.add(riList, rows, Date.now()); riList = r.list;
+      return { ok: true, message: '', added: r.added, duplicates: r.duplicates };
+    }
+    async function riMark(id, status) {
+      const M = riMod();
+      if (riShared) {
+        const st = riStore(); if (!st) return { ok: false, message: 'Keeping reviews in the database was switched off. Reload the page.' };
+        const a = await st.mark(riIds[id], status); if (!a.ok) return a;
+        await riPull();
+        return a;
+      }
+      if (status === 'removed') { riList = riList.filter(x => x.id !== id); return { ok: true, message: '' }; }
+      const r = M.setStatus(riList, id, status, Date.now()); if (!r.ok) return { ok: false, message: 'That review is no longer on the list.' };
+      riList = r.list;
+      return { ok: true, message: '' };
+    }
     // what Home shows: only for the people who can see the Reviews page
     function riFeedRows() {
       const M = riMod(); if (!M || !reviewInboxOn() || !riOwner()) return null;
@@ -4767,6 +4830,7 @@
       if (!(typeof reviewInboxOn === 'function' && reviewInboxOn())) { host.replaceChildren(); return; }
       if (!riList) riList = riRead();
       renderReviewInbox();
+      if (riStore()) riPull().then(() => { renderReviewInbox(); paintAttentionFeed(); });
     }
     const RI_LEVEL_WORD = { urgent: 'Urgent', today: 'Today', info: 'Good news' };
     const riStars = (n) => '★'.repeat(n) + '☆'.repeat(5 - n);
@@ -4814,7 +4878,11 @@
       host.replaceChildren(
         h('h2', null, 'Reviews'),
         h('p', { class: 'hint hintLead', 'data-rinosend': '1' }, h('b', null, 'Nothing is posted from this page.'), ' You paste or type your reviews in. The ones that need you come first, each with ready replies. You copy a reply and paste it on the site where the review was written.'),
-        h('p', { class: 'hint u-mt-0', 'data-rikept': '1' }, 'Kept in this browser only for now. Having them on every phone and computer needs a database step, which is prepared separately.'),
+        h('p', { class: 'hint u-mt-0', 'data-rikept': riShared ? 'database' : 'browser' }, riShared
+          ? 'Kept in the database: the same on every phone and computer, for you and the administrators.'
+          : reviewStoreOn() && riStoreState === 'not_installed' ? 'Kept in this browser only: the database step for reviews (draft 60) is not installed yet.'
+          : reviewStoreOn() && riStoreState === 'unknown' ? 'Kept in this browser only for now: the database could not be reached for reviews. Reload to try again.'
+          : 'Kept in this browser only for now. To have them on every phone and computer, the database step for reviews (draft 60) has to be installed, then "Reviews on every device" turned on under Feature Flags.'),
         h('p', { class: 'u-fs-12', role: 'status', 'data-rimessage': '1' }, riMessage),
         h('h3', null, '1. Add reviews'),
         h('div', { class: 'u-d-flex u-gap-8 u-fwr-wrap u-ai-flex-end' },
@@ -4846,7 +4914,8 @@
       const target = el || document.querySelector('#reviewsPanel [data-rimessage]');
       if (target) { if (!el) target.setAttribute('tabindex', '-1'); target.focus(); }
     }
-    document.addEventListener('click', (e) => {
+    let riBusy = false;
+    document.addEventListener('click', async (e) => {
       const t = e.target.closest('#reviewsPanel button'); if (!t || !riList) return;
       const M = riMod(); if (!M || !riOwner()) return;
       if (t.hasAttribute('data-rifilter')) { riFilter = t.getAttribute('data-rifilter') === 'all' ? 'all' : 'waiting'; renderReviewInbox(); const b = document.querySelector('#reviewsPanel [data-rifilter="' + riFilter + '"]'); if (b) b.focus(); return; }
@@ -4868,7 +4937,9 @@
         const v = (x) => (document.getElementById(x) || {}).value || '';
         const c = M.clean({ stars: v('riStarsIn'), channel: v('riChannelIn'), date: v('riDateIn'), text: v('riTextIn') });
         if (!c.ok) { riMessage = 'Not added: ' + c.problems.join(' '); renderReviewInbox(); announce(riMessage); const f = document.getElementById('riTextIn'); if (f) f.focus(); return; }
-        const r = M.add(riList, [c.review], Date.now()); riList = r.list;
+        if (riBusy) return; riBusy = true;
+        const r = await riAddRows([c.review]).finally(() => { riBusy = false; });
+        if (!r.ok) { riMessage = 'Not added: ' + r.message; renderReviewInbox(); announce(riMessage); return; }
         riDraft.cleared = ['riTextIn', 'riDateIn'];
         riChanged(r.added ? 'Review added.' : 'That review is already here; it was not added twice.', '#riTextIn');
         return;
@@ -4879,22 +4950,30 @@
           riMessage = p.problems.length ? p.problems.join(' ') : (p.unread ? 'No line could be read as a review (stars from 1 to 5, and the text).' : 'Paste your list of reviews first.');
           const m = document.querySelector('#reviewsPanel [data-rimessage]'); if (m) m.textContent = riMessage; announce(riMessage); return;
         }
-        const r = M.add(riList, p.rows, Date.now()); riList = r.list;
+        if (riBusy) return; riBusy = true;
+        const r = await riAddRows(p.rows).finally(() => { riBusy = false; });
+        if (!r.ok) { riMessage = 'Not added: ' + r.message; renderReviewInbox(); announce(riMessage); return; }
         riDraft.cleared = ['riPasteIn'];
         riChanged(r.added + (r.added === 1 ? ' review added' : ' reviews added') + (r.duplicates ? ', ' + r.duplicates + ' already here' : '') + (p.unread ? ', ' + p.unread + (p.unread === 1 ? ' line' : ' lines') + ' could not be read' : '') + '.', '[data-rifilter="waiting"]');
         return;
       }
       if (act === 'replies') { riOpen = riOpen === id ? '' : id; renderReviewInbox(); const b = [...document.querySelectorAll('#reviewsPanel [data-ri="replies"]')].find(x => x.getAttribute('data-riid') === id); if (b) b.focus(); return; }
       if (act === 'answered' || act === 'noreply' || act === 'new') {
-        const r = M.setStatus(riList, id, act, Date.now()); if (!r.ok) return;
-        riList = r.list; if (riOpen === id) riOpen = '';
+        if (riBusy) return; riBusy = true;
+        const r = await riMark(id, act).finally(() => { riBusy = false; });
+        if (!r.ok) { riMessage = 'Not changed: ' + r.message; renderReviewInbox(); announce(riMessage); return; }
+        if (riOpen === id) riOpen = '';
         riChanged(act === 'answered' ? 'Marked as answered.' : act === 'noreply' ? 'Marked: no reply needed.' : 'Put back among the ones that need you.');
         return;
       }
       if (act === 'remove') {
-        if (riRemoveId !== id) { riRemoveId = id; renderReviewInbox(); const b = [...document.querySelectorAll('#reviewsPanel [data-ri="remove"]')].find(x => x.getAttribute('data-riid') === id); if (b) b.focus(); announce('Tap again to remove this review from this browser.'); return; }
-        riRemoveId = ''; riList = riList.filter(x => x.id !== id);
-        riChanged('Review removed from this browser.');
+        if (riRemoveId !== id) { riRemoveId = id; renderReviewInbox(); const b = [...document.querySelectorAll('#reviewsPanel [data-ri="remove"]')].find(x => x.getAttribute('data-riid') === id); if (b) b.focus(); announce(riShared ? 'Tap again to remove this review from the list.' : 'Tap again to remove this review from this browser.'); return; }
+        riRemoveId = '';
+        if (riBusy) return; riBusy = true;
+        const wasShared = riShared;
+        const r = await riMark(id, 'removed').finally(() => { riBusy = false; });
+        if (!r.ok) { riMessage = 'Not removed: ' + r.message; renderReviewInbox(); announce(riMessage); return; }
+        riChanged(wasShared ? 'Review removed from the list. It stays on the record, marked as removed.' : 'Review removed from this browser.');
       }
     });
 

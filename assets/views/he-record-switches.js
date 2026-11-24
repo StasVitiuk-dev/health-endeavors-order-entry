@@ -39,6 +39,8 @@
       what: 'Saves a campaign you approved and the list of who it goes to in the database, with the sending guard (slow start, do-not-email list, automatic stop). It still sends nothing: the sending program is separate and not connected.' },
     { key: 'he_my_settings', name: 'Your own settings on every device', where: 'Home (Needs you now)', draft: 'drafts/58', probe: 'my_settings',
       what: 'What you set aside until tomorrow on Home follows you to every phone and computer you sign in to. Each person has their own; nobody else sees them.' },
+    { key: 'he_review_store', name: 'Reviews on every device', where: 'Sales → Reviews, and Home', draft: 'drafts/60', probe: 'customer_reviews',
+      what: 'The reviews you paste or type in are kept in the database, so every phone and computer of yours and of the administrators shows the same reviews and the same "answered". Needs the preview switch "Reviews". Nothing is posted.' },
     { key: 'he_dropoff', name: 'Drop-off receipts', where: 'Orders', draft: 'drafts/48 (review item 9)', probe: 'order_parcels',
       what: 'One carrier receipt marks every parcel on it dropped off.' },
   ]);
