@@ -42,12 +42,27 @@ test.describe('agents approved but not running yet (no browser)', () => {
     expect(G.PLANNED.map(a => a.key)).toEqual(['store_finder', 'store_outreach', 'customer_email', 'review_request', 'receipt_inbox', 'morning_summary', 'sending_guard', 'content_helper']);
     for (const a of G.PLANNED) {
       for (const k of ['name', 'what', 'sends', 'now']) expect(typeof a[k] === 'string' && a[k].length > 5, a.key + ' ' + k).toBe(true);
-      expect(a.now, a.key).toMatch(/^Not (running|built yet)/);
+      expect(a.now, a.key).toMatch(/^Not running/);
       // anything that writes to a person says it waits for the owner's approval
       if (/email/i.test(a.sends)) expect(a.sends, a.key).toMatch(/only after you approve/);
       expect(Object.isFrozen(a)).toBe(true);
     }
     expect(G.PLANNED.some(a => /text message|sms/i.test(a.sends + a.what))).toBe(false);          // owner: no texting at the start
+  });
+
+  test('each says where it lives: a real page, and a real switch on Feature Flags with exactly that name', ({}, ti) => {
+    node(ti);
+    const fs = require('fs'), path = require('path');
+    const config = fs.readFileSync(path.resolve(__dirname, '..', '..', 'assets', 'app', 'he-config.js'), 'utf8');
+    const html = fs.readFileSync(path.resolve(__dirname, '..', '..', 'owner-login.html'), 'utf8');
+    for (const a of G.PLANNED) {
+      if (!a.page) { expect(a.key).toBe('sending_guard'); expect(a.switchKey + a.switchName).toBe(''); continue; }   // the guard has no page of its own
+      expect(html, a.key + ' page').toContain('id="' + a.page + '"');
+      expect(config, a.key + ' switch').toContain("{ key: '" + a.switchKey + "', name: '" + a.switchName + "',");
+      expect(a.now, a.key).toMatch(/Built: /);
+    }
+    // the customer email agent says who is never written to
+    expect(G.PLANNED.find(a => a.key === 'customer_email').sends).toContain('never to people who bought through Amazon, Etsy or TikTok Shop');
   });
 });
 
@@ -65,6 +80,10 @@ test.describe('on the AI Agents page', () => {
     await expect(more.locator('[data-plannedagent="store_outreach"]')).toContainText('Email, only after you approve the wording.');
     await expect(more.locator('[data-plannedagent="content_helper"]')).toContainText('It never posts and never spends money.');
     await expect(more).toContainText('None of them runs or sends anything yet');
+    // as shipped the pages are behind their switches: each line says which switch shows it
+    await expect(more.locator('[data-plannedgo]')).toHaveCount(0);
+    await expect(more.locator('[data-plannedagent="content_helper"] [data-plannedswitch]')).toHaveText('To see it: turn on "Content Helper" under Admin → Feature Flags.');
+    await expect(more.locator('[data-plannedagent="sending_guard"] [data-plannedswitch]')).toHaveCount(0);
     const parts = (await host.locator('[data-glancesum]').getAttribute('data-glancesum')).split('/').map(Number);
     expect(parts.reduce((a, b) => a + b, 0)).toBe(10);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true);
@@ -172,5 +191,27 @@ test.describe('on the AI Agents page', () => {
     await gotoPage(page, 'aiPanel');
     await expect(page.locator('#agentGlanceHost [data-glance]')).toHaveCount(10);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true);
+  });
+});
+
+test.describe('an approved agent whose page is switched on', () => {
+  test('its line has a button that opens the page; the others still name their switch', async ({ page }, ti) => {
+    test.skip(ti.project.name !== 'desktop', 'run once');
+    await page.addInitScript(() => { try { localStorage.setItem('he_content_helper', 'on'); localStorage.setItem('he_customer_emails', 'on'); } catch (e) {} });
+    await login(page);
+    await gotoPage(page, 'aiPanel');
+    const more = page.locator('#agentGlanceHost details[data-planned="8"]');
+    await more.locator('summary').click();
+    await expect(more.locator('[data-plannedgo]')).toHaveCount(3);                               // content helper, customer email, review request
+    await expect(more.locator('[data-plannedagent="store_finder"] [data-plannedswitch]')).toContainText('"Store Campaigns"');
+    await expect(more.locator('[data-plannedagent="review_request"] [data-plannedgo]')).toHaveAccessibleName('Open the page of Review request');
+    await more.locator('[data-plannedagent="content_helper"] [data-plannedgo]').click();
+    await expect(page.locator('section#contentHelperPanel')).toHaveClass(/activePage/);
+    await expect(page.locator('#contentHelperPanel h2')).toHaveText('Content Helper');
+    await gotoPage(page, 'aiPanel');
+    const again = page.locator('#agentGlanceHost details[data-planned="8"]');
+    if (!(await again.evaluate(d => d.open))) await again.locator('summary').click();           // it may still be unfolded from before
+    await again.locator('[data-plannedagent="customer_email"] [data-plannedgo]').click();
+    await expect(page.locator('section#customerEmailsPanel')).toHaveClass(/activePage/);
   });
 });

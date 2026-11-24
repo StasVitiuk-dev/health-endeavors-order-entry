@@ -40,23 +40,33 @@
   // Approved by the owner on Nov 24 ("let's add them as well"). None of these runs or
   // sends anything yet: the list says honestly what exists today. An agent moves from
   // here to the real list above only when it really runs.
+  // `now` says what exists today; `page` is where it lives and `switchKey`/`switchName` the
+  // Feature Flags switch that shows that page. None of them runs or sends by itself.
   const PLANNED = Object.freeze([
     { key: 'store_finder', name: 'Store finder', what: 'Builds and scores the list of stores worth contacting.',
-      sends: 'Nothing.', now: 'Not running. Lead and scoring pages exist on example data (Sales & Growth). Needs a source of real store data.' },
+      sends: 'Nothing.', now: 'Not running by itself. Built: on Store Campaigns you paste a list of stores and each one gets a score with the reasons. Finding stores by itself needs your own account with a listings service.',
+      page: 'storeCampaignsPanel', switchKey: 'he_store_campaigns', switchName: 'Store Campaigns' },
     { key: 'store_outreach', name: 'Store outreach', what: 'Drafts the first email and the follow-ups to a store. You approve the wording once, then choose how many stores and which first.',
-      sends: 'Email, only after you approve the wording.', now: 'Not running. Draft pages exist on example data (Outreach Studio). Real sending is not built.' },
-    { key: 'customer_email', name: 'Customer email', what: 'Drafts campaigns for customers who ordered or subscribed: welcome, time to reorder, new product, win-back.',
-      sends: 'Email, only after you approve the wording, and only to people who ordered or subscribed.', now: 'Not running. Reorder reminder drafts exist on example data.' },
-    { key: 'review_request', name: 'Review request', what: 'A few days after delivery, drafts a short "how was it" email.',
-      sends: 'Email, only after you approve the wording.', now: 'Not built yet.' },
+      sends: 'Email, only after you approve the wording.', now: 'Not running. Built: on Store Campaigns you write the email, it is checked, you approve it once and see who would get it on which day. Nothing is sent: real sending waits for your approval, a business email address and a database step.',
+      page: 'storeCampaignsPanel', switchKey: 'he_store_campaigns', switchName: 'Store Campaigns' },
+    { key: 'customer_email', name: 'Customer email', what: 'Drafts campaigns for customers who ordered from you directly: welcome, time to reorder, something new, we miss you.',
+      sends: 'Email, only after you approve the wording, and never to people who bought through Amazon, Etsy or TikTok Shop.', now: 'Not running. Built: on Customer Emails you choose the email, approve the wording once and see exactly who would get it. Nothing is sent.',
+      page: 'customerEmailsPanel', switchKey: 'he_customer_emails', switchName: 'Customer Emails' },
+    { key: 'review_request', name: 'Review request', what: 'A while after an order, drafts a short "how was it" email. It never asks for a good review and offers nothing for one.',
+      sends: 'Email, only after you approve the wording.', now: 'Not running. Built: the "How was it?" email on Customer Emails. Nothing is sent.',
+      page: 'customerEmailsPanel', switchKey: 'he_customer_emails', switchName: 'Customer Emails' },
     { key: 'receipt_inbox', name: 'Receipt inbox', what: 'Turns a forwarded receipt or a photo into an expense draft for you to check.',
-      sends: 'Nothing.', now: 'Not built yet. An expense can already carry a photo of its receipt.' },
+      sends: 'Nothing.', now: 'Not running by itself. Built: on Expenses you can fill an expense in from the text of a receipt, and you check it before saving. Reading forwarded emails is not built.',
+      page: 'expensesPanel', switchKey: 'he_receipt_reader', switchName: 'Fill in from a receipt' },
     { key: 'morning_summary', name: 'Morning summary', what: 'One message each morning: what needs you today.',
-      sends: 'To you only.', now: 'Not built yet. Home already lists what needs you.' },
+      sends: 'To you only.', now: 'Not running by itself. Built: on Home, "Copy this as a morning summary" gives you the summary with one press. Sending it to you each morning is not built.',
+      page: 'attentionPanel', switchKey: 'he_attention_feed', switchName: 'One attention feed' },
     { key: 'sending_guard', name: 'Sending guard', what: 'Works inside the two email agents: keeps the daily limit and the slow start, never writes to the same store twice within 90 days, removes addresses that bounce, honours every unsubscribe, and stops a campaign by itself if emails come back or are marked as spam.',
-      sends: 'Nothing.', now: 'Not running. Its rules are built and tested (Store Campaigns shows the slow start and who is left out).' },
-    { key: 'content_helper', name: 'Content helper', what: 'Turns one product story into post, ad and email drafts.',
-      sends: 'Nothing. It never posts and never spends money.', now: 'Not running. Draft pages exist on example data (Content Planner, Ad Variants, Content Repurposing).' },
+      sends: 'Nothing.', now: 'Not running. Its rules are built and tested twice: on the pages (the slow start, who is left out) and as a database draft that is not installed.',
+      page: '', switchKey: '', switchName: '' },
+    { key: 'content_helper', name: 'Content helper', what: 'Turns one product story into ready drafts: a post, an ad, an email paragraph, a short video and a week\'s plan.',
+      sends: 'Nothing. It never posts and never spends money.', now: 'Not running by itself. Built: on the Content Helper page you get several ready drafts in three tones, others on request, your own version and six looks. Every draft passes the health-claim check.',
+      page: 'contentHelperPanel', switchKey: 'he_content_helper', switchName: 'Content Helper' },
   ].map(a => Object.freeze(a)));
 
   function summarise(rows) {

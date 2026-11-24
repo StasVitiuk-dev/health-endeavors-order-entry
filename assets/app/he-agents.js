@@ -153,8 +153,14 @@ window.HE.modules.define('he-agents', { api: 1, needs: ['AGENT_REGISTRY','AGENT_
             h('div', { class: 'agentGlanceName' }, a.name),
             h('div', null, a.what),
             h('div', { class: 'agentGlanceRan' }, 'Sends: ' + a.sends),
-            h('div', { class: 'agentGlanceRan' }, 'Now: ' + a.now))))));
+            h('div', { class: 'agentGlanceRan' }, 'Now: ' + a.now),
+            // where it lives: a button when its page is shown, otherwise which switch shows it
+            !a.page ? null : plannedShown(a)
+              ? h('button', { type: 'button', class: 'small secondary u-mt-6', 'data-glancego': a.page, 'data-plannedgo': a.key, 'aria-label': 'Open the page of ' + a.name }, 'Open its page')
+              : h('div', { class: 'agentGlanceRan', 'data-plannedswitch': a.switchKey }, 'To see it: turn on "' + a.switchName + '" under Admin → Feature Flags.'))))));
     }
+    // a planned agent's page is shown when its switch is on in this browser (the switches follow every device once shared)
+    function plannedShown(a) { try { return !!a.switchKey && localStorage.getItem(a.switchKey) === 'on'; } catch (e) { return false; } }
     document.addEventListener('click', (e) => {
       const go = e.target.closest('#agentGlanceHost [data-glancego]');
       if (go) { showPage(go.getAttribute('data-glancego')); return; }
