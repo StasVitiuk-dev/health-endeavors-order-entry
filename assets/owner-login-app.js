@@ -3379,7 +3379,8 @@
           ? await supabase.from('daily_reports').select('report_date').order('report_date', { ascending: false }).limit(1) : null;
         if (seq !== feedSeq) return;
         const d = r && !r.error && r.data && r.data[0] ? String(r.data[0].report_date).slice(0, 10) : null;
-        let upto = null; try { upto = localStorage.getItem(RECAP_PRINTED_KEY); } catch (e) { upto = null; }
+        const upto = d ? await recapPrintedUpTo() : null;
+        if (seq !== feedSeq) return;
         feedRecap = d ? { date: d, printedUpTo: upto } : null;
       } catch (e) { if (seq !== feedSeq) return; feedRecap = null; }
       paintAttentionFeed();
@@ -3849,6 +3850,25 @@
     const bkMonthOf = r => String(r.report_date || '').slice(0, 7);
     // the newest recap printed in this browser (the Home feed reminds until it is)
     const RECAP_PRINTED_KEY = 'he_recap_printed_upto';
+    // Nov 24 (owner rule: nothing kept in only one browser): with the shared settings
+    // in use, the printed-up-to day is also kept in the database, so printing the
+    // recap on one device clears the Home reminder on every device. The later of the
+    // two days counts; without the shared settings it is this browser's note as before.
+    async function recapPrintedUpTo() {
+      let here = null; try { here = localStorage.getItem(RECAP_PRINTED_KEY); } catch (e) { here = null; }
+      const S = rpSettings(), store = rpStore(); if (!S || !store) return here;
+      const r = await store.get(S.KEYS.recapPrinted);
+      return S.latestDay(here, r && r.value && typeof r.value.day === 'string' ? r.value.day : null);
+    }
+    async function recapPrintedSave(day) {
+      const S = rpSettings(), store = rpStore(); if (!S || !store || !sharedSettingsOn()) return false;
+      const now = await store.get(S.KEYS.recapPrinted);
+      if (now.state !== 'installed') return false;
+      const best = S.latestDay(day, now.value && typeof now.value.day === 'string' ? now.value.day : null);
+      if (now.value && now.value.day === best) return true;                 // already there (a later day stays)
+      const saved = await store.set(S.KEYS.recapPrinted, { day: best }, 'owner_admin');
+      return !!saved.ok;
+    }
     function bkLatest() { return (bkReports || []).filter(r => /^\d{4}-\d{2}-\d{2}/.test(String(r.report_date || ''))).sort((a, b) => String(b.report_date).localeCompare(String(a.report_date)))[0] || null; }
     const bkMonthName = m => { const d = new Date(m + '-01T12:00:00'); return isNaN(d) ? m : d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }); };
     const bkNum = v => (v == null || v === '' || !isFinite(Number(v))) ? '—' : String(Number(v));
@@ -3965,6 +3985,12 @@
         bkMessage = 'Opened the recap for ' + day + ' for printing. The Home reminder is cleared for this day.';
         announce(bkMessage);
         const msg = document.querySelector('#backupsPanel [data-bkmessage]'); if (msg) msg.textContent = bkMessage;
+        // after the print window opened: tell every device (only when the shared settings are in use)
+        recapPrintedSave(day).then(function (everywhere) {
+          if (!everywhere) return;
+          bkMessage = 'Opened the recap for ' + day + ' for printing. The Home reminder is cleared for this day on every device.';
+          const m2 = document.querySelector('#backupsPanel [data-bkmessage]'); if (m2) m2.textContent = bkMessage;
+        }, function () { /* this browser's note stands */ });
         return;
       }
       const rows = bkMonthRows();

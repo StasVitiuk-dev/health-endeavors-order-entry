@@ -3,6 +3,8 @@
 // bunch of phones and the computer at the same time"). A setting the owner types
 // once is read from the database by every phone and computer, instead of living
 // in one browser. First use: the Real profit estimates (key "profit_estimates").
+// Nov 24: also the day up to which the daily recap was printed (key "recap_printed"),
+// so the Home reminder clears on every device, not only where Print was pressed.
 //
 //   get(key)          -> { state: 'installed' | 'not_installed' | 'unknown',
 //                          value: object | null, updatedAt, updatedBy }
@@ -24,7 +26,7 @@
 
   const TABLE = 'shared_settings';
   const RPC = 'set_shared_setting';
-  const KEYS = Object.freeze({ profitEstimates: 'profit_estimates' });
+  const KEYS = Object.freeze({ profitEstimates: 'profit_estimates', recapPrinted: 'recap_printed' });
   const KEY_OK = /^[a-z][a-z0-9_]{1,59}$/;
   const MAX_CHARS = 8000;
   const SECRET_NAME = /pass(word|code)?|secret|token|api[_-]?key|private[_-]?key|credential|recovery/i;
@@ -64,6 +66,16 @@
     return { ok: true, value: JSON.parse(text) };
   }
 
+  // the latest of several days written YYYY-MM-DD (anything else is ignored); null when none
+  function latestDay() {
+    let best = null;
+    for (let i = 0; i < arguments.length; i += 1) {
+      const d = typeof arguments[i] === 'string' ? arguments[i].slice(0, 10) : '';
+      if (/^\d{4}-\d{2}-\d{2}$/.test(d) && (best === null || d > best)) best = d;
+    }
+    return best;
+  }
+
   function createStore(deps) {
     const d = deps || {};
     const client = d.client;
@@ -98,5 +110,5 @@
     return { get: get, set: set };
   }
 
-  return { TABLE, RPC, KEYS, MAX_CHARS, checkValue, friendlyError, createStore };
+  return { TABLE, RPC, KEYS, MAX_CHARS, checkValue, friendlyError, latestDay, createStore };
 }));
