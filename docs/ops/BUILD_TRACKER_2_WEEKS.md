@@ -20,12 +20,20 @@ Database changes are drafts the owner runs after approving them.
    installed: NEXT.)
 2. **Everything sits where the owner would look for it**: sorted, organised, on
    the page it belongs to, so nothing has to be searched for.
+3. **Everything is the same on every phone and computer, right away** ("I need
+   everything to be updated everywhere"): nothing the owner types or decides is kept
+   in only one browser. New settings go into the shared settings store (database
+   draft 50, #50). Still per browser today, to move next: the feature switches, the
+   "recap printed" mark and feed snoozes (review item 10 lists them).
+4. **Exact numbers over estimates wherever a platform records them**: real fees
+   and real postage per order replace estimates as soon as their source is
+   connected; every figure says whether it is exact or an estimate.
 
 ## Ready for the owner to merge (in this order)
 
 | PR | What | Tests |
 |---|---|---|
-| #37 | Documents and plans (this file, the chain, email plan, record) | docs checks |
+| ~~#37~~ | Documents and plans: **MERGED Nov 23 (evening), by the owner** (`096a8c2`) | docs checks |
 | #42 | Confirm tax rate screen (+ #38–#41: fonts, readable sidebar, tax dates, product list import) | 3,259 passed on GitHub |
 | #43 | **One attention feed** on Home ("Needs you now") | feed 13 + 68 related passed; GitHub green |
 | #44 | **Drop-off receipt**: one carrier receipt marks every parcel dropped off; database draft 48 (review item 9) | DB 47/47; screen 13; 267 related passed |
@@ -34,6 +42,7 @@ Database changes are drafts the owner runs after approving them.
 | #47 | **Switches for features that save real records** (Feature Flags, owner only): each shows whether its database step is installed; on needs a second tap, off always works | record switches + related passed |
 | #48 | **Daily recap**: one tap prints the latest day (with a notes box); a Home reminder stays until it is printed | backups page + related passed |
 | #49 | **Real profit** on Accounting: profit per order, product and sales channel after product cost, fees, postage and packaging; orders missing a cost are counted, never guessed (no database change) | profit 16 + related passed (83 passed in the last local run) |
+| #50 | **Same numbers on every device**: Real profit estimates saved in the database once draft 50 is installed (review item 10); owner-only changes | DB 40/40; 198 related browser tests passed |
 
 **How to merge (every PR above):** GitHub shows these PRs as opened by the owner's
 own account, so **Approve is not offered**. On the PR's **Conversation** tab, at the
@@ -56,7 +65,7 @@ adapted to that table.
 | 1 | One stock count for all channels | NEXT (via Shopify as hub if agreed) | Inventory |
 | 2 | All Orders with channel badges (Amazon, Etsy, TikTok, website) | NEXT (via Shopify as hub if agreed) | Orders |
 | 3 | Business email in the feed | WAITS ON OWNER (addresses) | feed |
-| 4 | Money per channel (payouts and fees matched to the bank) | NEXT | Accounting |
+| 4 | Money per channel (payouts and fees matched to the bank) | IN PROGRESS: the reader for each channel's own money report is written (Etsy format confirmed from Etsy's help pages; Amazon and TikTok read by column name, to confirm with the first real export); the Accounting screen is next. Gives **exact fees per order** to Real profit | Accounting |
 | 5 | Real profit per order, product and channel | READY (#49); fee numbers are starting estimates for the owner to check; real postage per parcel comes with Shopify Shipping | Accounting (top, under the totals) |
 | 6 | **Batch tracing**: batch recorded on each order (by scanning the bottle when packing); recall = one button lists every customer who got that batch and holds the rest | NEXT | Inventory, Orders, Recalls |
 | 7 | Delivery watch | READY (#45); carrier tracking connects with Shopify | feed |
@@ -106,3 +115,6 @@ adapted to that table.
 5. A yes or no on Shopify as the hub.
 6. Batch barcodes: does the barcode on each bottle carry the **batch** number, or only the product code?
 7. **Read-only shape check** of the `shipments` table (review item 9, step 0): one paste in the SQL editor, screenshot.
+8. **Database step for shared settings** (review item 10, draft 50), after #50 is merged: then the Real profit numbers are the same on every device.
+9. Decide: should the **feature switches** also be shared by every device (for you only, or for staff too)?
+10. Packaging cost per box type (to replace the single packaging estimate).
