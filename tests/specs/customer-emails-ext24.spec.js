@@ -15,8 +15,8 @@ const TEXT = { subject: 'Thank you, {name}', body: 'Hi {name}, thank you for ord
 test.describe('the rules (no browser)', () => {
   test.beforeEach(({}, ti) => { test.skip(ti.project.name !== 'desktop', 'Node-only; run once'); });
 
-  test('four kinds of email, each with three ready texts that pass the wording check (one waits for the owner\'s own words)', () => {
-    expect(Object.keys(C.KINDS)).toEqual(['welcome', 'reorder', 'newProduct', 'winBack']);
+  test('five kinds of email, each with three ready texts that pass the wording check (one waits for the owner\'s own words)', () => {
+    expect(Object.keys(C.KINDS)).toEqual(['welcome', 'reorder', 'newProduct', 'winBack', 'review']);
     for (const kind of Object.keys(C.KINDS)) {
       const ready = C.templates(kind);
       expect(ready).toHaveLength(3);
@@ -28,6 +28,7 @@ test.describe('the rules (no browser)', () => {
         else expect(r.ok, kind + ' ' + t.key + ' ' + r.problems.join(' ')).toBe(true);
         expect(t.body).toContain('{name}');
         expect(t.body).not.toMatch(/discount|% off|free shipping|guarantee/i);   // a ready text never promises anything for the owner
+        expect(t.subject + t.body).not.toMatch(/5.star|five.star|positive review|in exchange|reward/i);   // and never asks for a good review or offers anything for one
       }
     }
     expect(C.templates('nope')).toEqual([]);
@@ -47,9 +48,28 @@ test.describe('the rules (no browser)', () => {
     const w = C.audience('welcome', list, { nowMs: NOW });
     expect(w).toMatchObject({ ok: true, days: 14, notFit: 6, rule: 'People whose first and only order was in the last 14 days.' });
     expect(C.audience('newProduct', list, { nowMs: NOW })).toMatchObject({ days: null, notFit: 0, rule: 'Everyone who has ordered at least once.' });
+    // "how was it?": from the chosen day, for three weeks, then never again
+    expect(emails('review')).toEqual(['person10:10', 'person20:20']);
+    expect(emails('review', { days: 3 })).toEqual(['person3:3', 'person10:10', 'person20:20']);
+    expect(C.audience('review', list, { nowMs: NOW }).rule).toBe('People whose last order was 10 to 31 days ago.');
+    expect(C.whoText('review', '5')).toBe('People whose last order was 5 to 26 days ago.');
+    expect(C.whoText('nope')).toBe('');
     // nobody is in both "time to reorder" and "we miss you"
     const re = new Set(emails('reorder').map(e => e.split(':')[0]));
     expect(emails('winBack').some(e => re.has(e.split(':')[0]))).toBe(false);
+  });
+
+  test('only orders the business took itself are used: marketplace buyers and unknown channels never', () => {
+    const CH = require('../../assets/views/he-order-channels.js');
+    const orders = [{ id: 1, channel: 'shopify' }, { id: 2, channel: 'Amazon' }, { id: 3, channel: 'etsy' }, { id: 4, channel: 'TikTok Shop' }, { id: 5, source: 'manual' }, { id: 6, channel: 'wholesale' },
+      { id: 7, channel: 'something new' }, { id: 8 }, null, 'x'];
+    const r = C.ownOrders(orders, CH.channelOf);
+    expect(r.own.map(o => o.id)).toEqual([1, 5, 6]);
+    expect(r).toMatchObject({ ok: true, marketplace: 3, unknown: 2 });
+    // without a way to tell the channel, nothing is used
+    for (const junk of [null, undefined, 'x', 7, {}]) expect(C.ownOrders(orders, junk)).toEqual({ ok: false, own: [], marketplace: 0, unknown: 0 });
+    expect(C.ownOrders(orders, () => { throw new Error('boom'); })).toMatchObject({ ok: true, own: [], unknown: 8 });
+    for (const junk of [null, undefined, 'x', 7, {}]) expect(C.ownOrders(junk, CH.channelOf).own).toEqual([]);
   });
 
   test('left out with the reason: no order that counts, no email, a bad email, the same email twice, asked not to be emailed', () => {
@@ -108,12 +128,13 @@ test.describe('the rules (no browser)', () => {
 });
 
 const on = (page) => page.addInitScript(() => { try { localStorage.setItem('he_customer_emails', 'on'); } catch (e) {} });
-const order = (n, days, extra) => Object.assign({ id: 'ce-' + n, order_number: 'HE-' + (2000 + n), customer_name: 'SYNTHETIC Person' + n, customer_email: 'person' + n + '@example.test', status: 'paid', currency: 'USD', total: 20,
+const order = (n, days, extra) => Object.assign({ id: 'ce-' + n, order_number: 'HE-' + (2000 + n), customer_name: 'SYNTHETIC Person' + n, customer_email: 'person' + n + '@example.test', channel: 'shopify', source: 'shopify', status: 'paid', currency: 'USD', total: 20,
   placed_at: ago(days, Date.now() - 3600000), deleted_at: null }, extra || {});
 const seed = (backend) => { backend.tables.orders = [order(1, 2, { customer_name: 'Ann SYNTHETIC' }), order(2, 40), order(3, 50, { customer_email: 'person2@example.test', customer_name: 'SYNTHETIC Person2' }),
-  order(4, 200), order(5, 3, { customer_email: null }), order(6, 4, { status: 'cancelled' }), order(7, 5, { deleted_at: new Date().toISOString() })]; };
+  order(4, 200), order(5, 3, { customer_email: null }), order(6, 4, { status: 'cancelled' }), order(7, 5, { deleted_at: new Date().toISOString() }),
+  order(8, 2, { channel: 'amazon', source: 'amazon' }), order(9, 2, { channel: 'popup', source: 'popup' })]; };   // a marketplace buyer and an unknown channel: never used
 const writes = (backend) => backend.requests.filter(r => r.method !== 'GET' && r.method !== 'HEAD' && !r.rpc && String(r.path || '').startsWith('/rest/v1/'));
-const ownReads = (backend) => backend.requests.filter(r => r.table === 'orders' && r.method === 'GET' && r.params.some(([k, v]) => k === 'select' && v === 'id,customer_name,customer_email,status,currency,total,placed_at,deleted_at'));
+const ownReads = (backend) => backend.requests.filter(r => r.table === 'orders' && r.method === 'GET' && r.params.some(([k, v]) => k === 'select' && v === 'id,customer_name,customer_email,channel,source,status,currency,total,placed_at,deleted_at'));
 
 test.describe('the Customer Emails page', () => {
   test('switch off (as shipped): no page in the menu, nothing drawn, nothing kept, no orders read for it', async ({ page, backend }) => {
@@ -132,7 +153,8 @@ test.describe('the Customer Emails page', () => {
     await gotoPage(page, 'customerEmailsPanel');
     const P = page.locator('#customerEmailsPanel');
     await expect(P.locator('[data-cenosend]')).toContainText('Nothing is sent from this page.');
-    await expect(P.locator('[data-cekind]')).toHaveCount(4);
+    await expect(P.locator('[data-cekind]')).toHaveCount(5);
+    await expect(P).toContainText('People who bought through Amazon, Etsy or TikTok Shop are never emailed');
     await expect(P.locator('[data-cekind="welcome"]')).toHaveAttribute('aria-pressed', 'true');
     await expect(P.locator('[data-cewho]')).toHaveText('Goes to: People whose first and only order was in the last 14 days.');
     expect(ownReads(backend)).toEqual([]);                                   // opening the page reads no customers
@@ -164,6 +186,9 @@ test.describe('the Customer Emails page', () => {
     await expect(P.locator('[data-cechosen] tbody tr')).toContainText(['Ann SYNTHETIC']);
     await expect(P.locator('[data-cechosen] tbody tr').first()).toContainText('person1@example.test');
     await expect(P.locator('[data-cecount]')).toContainText('Exact, from 6 orders of 5 customers; 2 do not fit this email.');
+    // the marketplace buyer and the unknown channel are not in the list, and the page says so
+    await expect(P.locator('[data-cechosen]')).not.toContainText('person8@example.test');
+    await expect(P.locator('[data-cenotused]')).toHaveText('1 order from Amazon, Etsy or TikTok Shop is not used: those sites do not let sellers email their buyers. 1 order with an unknown sales channel is not used.');
     await expect(P.locator('[data-ceskipped]')).toHaveAttribute('data-ceskipped', '2');
     await P.locator('[data-ceskipped] summary').click();
     await expect(P.locator('[data-ceskipped] li')).toHaveText(['SYNTHETIC Person5: no email address on the order', 'SYNTHETIC Person6: no order that counts (only cancelled or refunded)']);
@@ -198,6 +223,22 @@ test.describe('the Customer Emails page', () => {
     await P.locator('[data-ce="approve"]').click();
     await P.locator('[data-ce="show"]').click();
     await expect(P.locator('[data-cechosen] tbody tr').first()).toContainText('person4@example.test');
+    // "how was it?": the people who ordered a few days ago, from your own shop only
+    await P.locator('[data-cekind="review"]').click();
+    await expect(P.locator('[data-cewho]')).toHaveText('Goes to: People whose last order was 10 to 31 days ago.');
+    await page.fill('#ceDays', '3');
+    await expect(P.locator('[data-cewho]')).toHaveText('Goes to: People whose last order was 3 to 24 days ago.');
+    await page.fill('#ceDays', '2');
+    await P.locator('[data-cetemplate="ask"]').click();
+    await P.locator('[data-ce="approve"]').click();
+    await P.locator('[data-ce="show"]').click();
+    await expect(P.locator('[data-cemessage]')).toHaveText('Type a whole number of days, from 3 to 60.');
+    await page.fill('#ceDays', '1');
+    await page.fill('#ceDays', '3');
+    await P.locator('[data-ce="show"]').click();
+    await expect(P.locator('[data-cechosen]')).toHaveCount(0);                                  // person1 ordered 2 days ago: too early
+    await expect(P.locator('[data-ceresult]')).toContainText('Nobody fits this email right now.');
+    await P.locator('[data-cekind="winBack"]').click();
     // nothing about customers is kept in the browser; nothing was written anywhere
     const kept = await page.evaluate(() => localStorage.getItem('he_customer_emails_v1'));
     expect(kept).not.toMatch(/person\d@example\.test|SYNTHETIC Person|Ann SYNTHETIC/);

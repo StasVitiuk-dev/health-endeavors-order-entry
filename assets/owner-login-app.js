@@ -4268,11 +4268,11 @@
       host.replaceChildren(
         h('h2', null, 'Customer Emails'),
         h('p', { class: 'hint hintLead', 'data-cenosend': '1' }, h('b', null, 'Nothing is sent from this page.'), ' Sending is not connected yet. You choose the email, approve its wording once, and see exactly who would get it on which day.'),
-        h('p', { class: 'hint u-mt-0' }, 'Only people who ordered from you are ever chosen. The wording is kept in this browser on this device for now; the customer list is read from your orders when you ask and is not kept anywhere.'),
+        h('p', { class: 'hint u-mt-0' }, 'Only people who ordered from you directly (your website, wholesale, or an order you typed in) are ever chosen. People who bought through Amazon, Etsy or TikTok Shop are never emailed: those sites do not let sellers email their buyers. The wording is kept in this browser on this device for now; the customer list is read from your orders when you ask and is not kept anywhere.'),
         h('p', { class: 'u-fs-12', role: 'status', 'data-cemessage': '1' }, ceMessage),
         h('h3', null, '1. Which email'),
         h('div', { class: 'chRow', role: 'group', 'aria-label': 'Which email' }, Object.keys(M.KINDS).map(k => h('button', { type: 'button', class: 'small' + (k === ceState.kind ? '' : ' secondary'), 'data-cekind': k, 'aria-pressed': String(k === ceState.kind) }, M.KINDS[k].name))),
-        h('p', { class: 'u-fs-12p5 u-mt-6', 'data-cewho': ceState.kind }, 'Goes to: ' + K.who.replace('{days}', K.days == null ? '' : (ceState.days[ceState.kind] || String(K.days)))),
+        h('p', { class: 'u-fs-12p5 u-mt-6', 'data-cewho': ceState.kind }, 'Goes to: ' + M.whoText(ceState.kind, ceState.days[ceState.kind])),
         K.days == null ? null : field('ceDays', 'How many days', h('input', { id: 'ceDays', type: 'number', min: '1', max: '730', step: '1', value: ceState.days[ceState.kind], 'data-cefield': 'days' }), 'From ' + K.min + ' to ' + K.max + '.'),
         h('h3', null, '2. The wording'),
         h('p', { class: 'hint u-mt-0' }, 'Start from a ready text and change it, or write your own. Pressing a ready text replaces what is in the boxes.'),
@@ -4301,11 +4301,14 @@
       if (!pre.ok) { say(pre.reason); return; }
       const seq = ++ceSeq; ceBusy = true; ceMessage = 'Reading your orders…'; ceResult = null; renderCustomerEmails();
       let orders;
-      try { orders = await fetchAllRows('orders', 'id, customer_name, customer_email, status, currency, total, placed_at, deleted_at', q => q.is('deleted_at', null)); }
+      try { orders = await fetchAllRows('orders', 'id, customer_name, customer_email, channel, source, status, currency, total, placed_at, deleted_at', q => q.is('deleted_at', null)); }
       catch (e) { if (seq !== ceSeq) return; ceBusy = false; say('Your orders could not be read (' + explainDbError(e && e.message ? e.message : String(e)) + '). Nothing was sent.'); return; }
       if (seq !== ceSeq || ceState.kind !== kind) { ceBusy = false; return; }
       ceBusy = false;
-      const list = dp.clientList(orders), who = M.audience(kind, list.clients, { nowMs: Date.now(), days: ceState.days[kind] });
+      const CH = (window.HE && window.HE.views && window.HE.views['he-order-channels']) || null;
+      const split = M.ownOrders(orders, CH && CH.channelOf);
+      if (!split.ok) { say('The order tools could not load, so nobody was chosen. Refresh the page.'); return; }
+      const list = dp.clientList(split.own), who = M.audience(kind, list.clients, { nowMs: Date.now(), days: ceState.days[kind] });
       if (!who.ok) { say(who.reason); return; }
       const n = who.chosen.length;
       const days = n ? SC.plan(Math.min(n, 500), { startDay: ceState.startDay }) : [];
@@ -4316,6 +4319,9 @@
       ceResult = h('div', null,
         h('h3', null, 'Who would get it'),
         h('p', { class: 'hint u-mt-0', 'data-cecount': String(n) }, who.rule + ' Exact, from ' + list.totals.orders + (list.totals.orders === 1 ? ' order' : ' orders') + ' of ' + list.totals.clients + (list.totals.clients === 1 ? ' customer' : ' customers') + '; ' + who.notFit + ' do not fit this email.'),
+        split.marketplace || split.unknown ? h('p', { class: 'hint u-mt-0', 'data-cenotused': String(split.marketplace + split.unknown) },
+          (split.marketplace ? split.marketplace + (split.marketplace === 1 ? ' order' : ' orders') + ' from Amazon, Etsy or TikTok Shop ' + (split.marketplace === 1 ? 'is' : 'are') + ' not used: those sites do not let sellers email their buyers. ' : '')
+          + (split.unknown ? split.unknown + (split.unknown === 1 ? ' order' : ' orders') + ' with an unknown sales channel ' + (split.unknown === 1 ? 'is' : 'are') + ' not used.' : '')) : null,
         n > 500 ? h('p', { class: 'hint' }, 'The day plan below covers the first 500; the rest would follow at 100 a day.') : null,
         n ? h('table', { class: 'phoneCards', 'data-cechosen': String(n) },
           h('thead', null, h('tr', null, h('th', null, 'Customer'), h('th', null, 'Email'), h('th', { class: 'num-cell' }, 'Orders'), h('th', null, 'Last order'), h('th', { class: 'num-cell' }, 'Days ago'))),
@@ -4338,7 +4344,7 @@
       const f = e.target.closest('#customerEmailsPanel [data-cefield]'); if (!f || !ceState) return;
       const k = f.getAttribute('data-cefield'), v = String(f.value).slice(0, 4000);
       if (k === 'subject' || k === 'body') ceState.texts[ceState.kind][k] = v;
-      else if (k === 'days') { ceState.days[ceState.kind] = v.slice(0, 6); const M = ceMod(), w = document.querySelector('#customerEmailsPanel [data-cewho]'); if (M && w) w.textContent = 'Goes to: ' + M.KINDS[ceState.kind].who.replace('{days}', v.slice(0, 6) || '…'); }
+      else if (k === 'days') { ceState.days[ceState.kind] = v.slice(0, 6); const M = ceMod(), w = document.querySelector('#customerEmailsPanel [data-cewho]'); if (M && w) w.textContent = 'Goes to: ' + M.whoText(ceState.kind, v.slice(0, 6) || '…'); }
       else ceState[k] = v.slice(0, 300);
       ceKeep(); cePaint();
     });
