@@ -612,6 +612,32 @@
       "effect": "drops the function, the table and its guard",
       "postcheck": "to_regclass('public.shared_settings') is null",
       "dynamicSql": "format() with fixed names (%I) to lock and count the shared settings table only where it exists"
+    },
+    {
+      "file": "drafts/52_DRAFT_order_costs.sql",
+      "id": "52",
+      "class": "PRODUCTION-CHANGE-DRAFT",
+      "step": "optional (owner request of Nov 23: exact fees and postage per order instead of estimates in Real profit)",
+      "dependsOn": [],
+      "risk": "LOW",
+      "rollback": "53",
+      "precheck": "stops, changing nothing, if an order_costs table exists that this file did not create (it checks its own mark); stops if auth.uid(), is_owner_or_admin(), the orders, tasks or audit_log table, or the audit trigger on tasks is missing",
+      "effect": "1 new table order_costs (one row per order: real fee and real postage in cents, each with its source, who saved it and when); set_order_costs() saves up to 500 orders at once, keeps a part that is not given, skips orders that do not exist; rows never deleted, never moved to another order; only the owner and administrators read and write; production's audit trigger attached; no existing table changes",
+      "postcheck": "the table present and empty; anon cannot read it; local-test/order_costs_test.sh passes on a throwaway copy",
+      "lock": "NONE (new table only; a foreign key to orders is checked on insert)",
+      "dynamicSql": "format() with fixed names (%I) to attach production's audit trigger, whose function name is read from the tasks table at install time (as drafts/32)"
+    },
+    {
+      "file": "drafts/53_DRAFT_rollback_order_costs.sql",
+      "id": "53",
+      "class": "ROLLBACK",
+      "rollbackOf": "52",
+      "dependsOn": [],
+      "risk": "LOW",
+      "precheck": "stops, removing nothing, while any order's costs are saved, unless deleting them was authorized in the session; stops if the table was not created by drafts/52",
+      "effect": "drops the function, the table and its guard; orders untouched",
+      "postcheck": "to_regclass('public.order_costs') is null",
+      "dynamicSql": "format() with fixed names (%I) to lock and count the order costs table only where it exists"
     }
   ],
   "local": [

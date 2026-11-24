@@ -73,6 +73,7 @@ step "staff read purchase orders (drafts/44)" bash "$LT/staff_read_purchase_orde
 step "confirmed tax rates (drafts/46)" bash "$LT/tax_rates_test.sh" $C
 step "parcels and drop-off receipts (drafts/48)" bash "$LT/shipments_test.sh" $C
 step "settings shared by every device (drafts/50)" bash "$LT/shared_settings_test.sh" $C
+step "the real fee and postage of each order (drafts/52)" bash "$LT/order_costs_test.sh" $C
 step "report day cutoff (Query I)" bash "$LT/report_day_cutoff_test.sh" $C
 step "restore with the November drafts" bash "$LT/restore_with_drafts_test.sh" $C
 step "stress (5 runs)" bash "$LT/stress_test.sh" 5 $C -d he_real
