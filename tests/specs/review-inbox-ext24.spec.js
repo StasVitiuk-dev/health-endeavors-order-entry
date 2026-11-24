@@ -455,3 +455,78 @@ test.describe('reviews on every device: on the page', () => {
     expect(pageErrors.filter(e => !/403|42501|Failed to load resource/.test(e))).toEqual([]);
   });
 });
+
+// Found on a second reading of the move-to-the-database step (Nov 24): if the first save
+// failed, the reviews held in the browser were overwritten by the (empty) database list.
+// Now nothing is switched over unless every review was taken, and a long list goes in parts.
+test.describe('reviews on every device: moving what the browser held', () => {
+  test.beforeEach(async ({ page }, ti) => { test.skip(ti.project.name !== 'desktop', 'run once'); await page.clock.setFixedTime(new Date(NOW)); });
+  const kept = (n) => JSON.stringify({ reviews: Array.from({ length: n }, (_, i) => ({ stars: 1 + (i % 5), channel: 'etsy', date: '2026-11-20', text: 'SYNTHETIC kept review number ' + i, status: 'new', addedAt: NOW - i * 1000 })) });
+  const flags = (page, v) => page.addInitScript((val) => { try { localStorage.setItem('he_review_inbox', 'on'); localStorage.setItem('he_review_store', 'on'); if (!sessionStorage.getItem('seeded')) { localStorage.setItem('he_review_inbox_v1', val); sessionStorage.setItem('seeded', '1'); } } catch (e) {} }, v);
+  const install = (backend) => { backend.tables.customer_reviews = []; let n = 0;
+    backend.rpc.add_customer_reviews = (b) => { (b.p_reviews || []).forEach(r => { n += 1; backend.tables.customer_reviews.push({ id: '00000000-0000-4000-8000-' + String(n).padStart(12, '0'), channel: r.channel, stars: r.stars, review_text: r.text, review_date: r.date || null, product: '', status: 'new', status_at: null, added_at: new Date(Date.parse('2026-11-24T18:00:00Z') + n * 1000).toISOString() }); }); return { ok: true, added: (b.p_reviews || []).length, duplicates: 0, refused: 0 }; }; };
+  const adds = (backend) => backend.requests.filter(r => r.rpc === 'add_customer_reviews').map(r => r.body.p_reviews.length);
+
+  test('the first save fails: the reviews stay in this browser, untouched, and the page says nothing was lost; the next visit moves them', async ({ page, backend, pageErrors }) => {
+    install(backend); await flags(page, kept(3));
+    let fail = true;
+    await page.route('**/rest/v1/rpc/add_customer_reviews*', route => (fail ? route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ code: '503', message: 'SYNTHETIC the database is busy' }) }) : route.fallback()));
+    await login(page); await gotoPage(page, 'reviewsPanel');
+    const P = page.locator('#reviewsPanel');
+    await expect(P.locator('[data-rikept]')).toContainText('Nothing was lost.');
+    await expect(P.locator('[data-rikept]')).toHaveAttribute('data-rikept', 'browser');
+    await P.locator('[data-rifilter="all"]').click();
+    await expect(P.locator('[data-rireview]')).toHaveCount(3);
+    expect(JSON.parse(await page.evaluate(() => localStorage.getItem('he_review_inbox_v1'))).reviews.length).toBe(3);
+    expect(backend.tables.customer_reviews).toEqual([]);
+    // the next visit, with the database answering again
+    fail = false;
+    await page.reload(); await expect(page.locator('#dash')).toBeVisible(); await gotoPage(page, 'reviewsPanel');
+    await expect(P.locator('[data-rikept]')).toHaveAttribute('data-rikept', 'database');
+    await P.locator('[data-rifilter="all"]').click();
+    await expect(P.locator('[data-rireview]')).toHaveCount(3);
+    expect(backend.tables.customer_reviews.length).toBe(3);
+    expect(pageErrors.filter(e => !/503|Failed to load resource/.test(e))).toEqual([]);          // the 503 is this test's own failure
+  });
+
+  test('more than 200 reviews held in the browser go to the database in parts, all of them', async ({ page, backend, pageErrors }) => {
+    install(backend); await flags(page, kept(250));
+    await login(page); await gotoPage(page, 'reviewsPanel');
+    const P = page.locator('#reviewsPanel');
+    await expect(P.locator('[data-rikept]')).toHaveAttribute('data-rikept', 'database');
+    expect(adds(backend)).toEqual([200, 50]);
+    expect(backend.tables.customer_reviews.length).toBe(250);
+    await expect(P.locator('[data-risummary]')).toHaveAttribute('data-risummary', '250');
+    expect(pageErrors).toEqual([]);
+  });
+
+  test('a review added while the page is still reading the database is saved there, not lost', async ({ page, backend, pageErrors }) => {
+    install(backend); await flags(page, kept(0));
+    backend.delayMs.customer_reviews = 1500;                                  // a slow connection: the first read takes a while
+    await login(page); await gotoPage(page, 'reviewsPanel');
+    const P = page.locator('#reviewsPanel');
+    await P.locator('#riStarsIn').selectOption('2'); await P.locator('#riTextIn').fill('SYNTHETIC typed at once');
+    await P.locator('[data-ri="add-one"]').click();                           // pressed before the database has answered
+    await expect(P.locator('[data-rimessage]')).toHaveText('Review added.', { timeout: 15000 });
+    await expect(P.locator('[data-rikept]')).toHaveAttribute('data-rikept', 'database');
+    await expect(P.locator('[data-rireview]')).toHaveCount(1);
+    expect(backend.tables.customer_reviews.map(r => r.review_text)).toEqual(['SYNTHETIC typed at once']);
+    backend.delayMs.customer_reviews = 0;
+    await page.reload(); await expect(page.locator('#dash')).toBeVisible(); await gotoPage(page, 'reviewsPanel');
+    await expect(P.locator('[data-rireview]')).toHaveCount(1);
+    expect(pageErrors).toEqual([]);
+  });
+
+  test('the database takes only some of them: nothing is switched over and nothing is lost', async ({ page, backend, pageErrors }) => {
+    install(backend); await flags(page, kept(3));
+    const real = backend.rpc.add_customer_reviews;
+    backend.rpc.add_customer_reviews = (b) => real({ p_reviews: (b.p_reviews || []).slice(0, 2) });   // one is silently not taken
+    await login(page); await gotoPage(page, 'reviewsPanel');
+    const P = page.locator('#reviewsPanel');
+    await expect(P.locator('[data-rikept]')).toContainText('Nothing was lost.');
+    await P.locator('[data-rifilter="all"]').click();
+    await expect(P.locator('[data-rireview]')).toHaveCount(3);
+    expect(JSON.parse(await page.evaluate(() => localStorage.getItem('he_review_inbox_v1'))).reviews.length).toBe(3);
+    expect(pageErrors).toEqual([]);
+  });
+});

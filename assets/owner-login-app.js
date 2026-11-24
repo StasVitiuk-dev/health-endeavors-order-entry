@@ -4773,19 +4773,26 @@
         let r = await st.list();
         if (!r.ok) { riShared = false; riStoreState = 'unknown'; return false; }
         // once per visit: what this browser held and the database never saw goes to the database
-        // (a review that was removed there is known, so it is not brought back by an old copy here)
+        // (a review that was removed there is known, so it is not brought back by an old copy here).
+        // If any of it cannot be saved, nothing is switched over: the reviews stay in this browser,
+        // untouched, and the move is tried again on the next visit. Nothing is ever lost by it.
         if (!riMoved) {
-          riMoved = true;
           const known = new Set(r.known), mine = (riList || riRead()).filter(x => !known.has(x.id));
           if (mine.length) {
-            const a = await st.add(mine);
-            if (a.ok) {
-              r = await st.list();
-              for (const x of mine.filter(y => y.status === 'answered' || y.status === 'noreply')) { const row = r.ok ? r.rows.find(z => z.id === x.id) : null; if (row) await st.mark(row.dbId, x.status); }
-              r = await st.list();
+            const stay = () => { riShared = false; riStoreState = 'unknown'; return false; };
+            for (let i = 0; i < mine.length; i += M.MAX_LINES) {                 // the database takes 200 at a time
+              const a = await st.add(mine.slice(i, i + M.MAX_LINES));
+              if (!a.ok) return stay();
             }
-            if (!r.ok) { riShared = false; riStoreState = 'unknown'; return false; }
+            r = await st.list();
+            if (!r.ok) return stay();
+            const now = new Set(r.known);
+            if (mine.some(x => !now.has(x.id))) return stay();                  // the database did not take every one of them
+            for (const x of mine.filter(y => y.status === 'answered' || y.status === 'noreply')) { const row = r.rows.find(z => z.id === x.id); if (row) await st.mark(row.dbId, x.status); }
+            r = await st.list();
+            if (!r.ok) return stay();
           }
+          riMoved = true;
         }
         riIds = Object.create(null); r.rows.forEach(x => { riIds[x.id] = x.dbId; });
         riList = M.add(r.rows, [], Date.now()).list;
@@ -4795,12 +4802,16 @@
       return riPulling;
     }
     // one change, in the database when the reviews live there, otherwise in this browser
+    // A change made while the reviews are still being read from the database waits for that
+    // read first: otherwise it would land in this browser's list and be overwritten a moment later.
+    const riSettled = async () => { if (riPulling) { try { await riPulling; } catch (e) { /* the read's own failure is shown on the page */ } } };
     async function riAddRows(rows) {
       const M = riMod();
+      await riSettled();
       if (riShared) {
         const st = riStore(); if (!st) return { ok: false, message: 'Keeping reviews in the database was switched off. Reload the page.' };
         const a = await st.add(rows); if (!a.ok) return a;
-        await riPull();
+        await riSettled(); await riPull();
         return a;
       }
       const r = M.add(riList, rows, Date.now()); riList = r.list;
@@ -4808,10 +4819,11 @@
     }
     async function riMark(id, status) {
       const M = riMod();
+      await riSettled();
       if (riShared) {
         const st = riStore(); if (!st) return { ok: false, message: 'Keeping reviews in the database was switched off. Reload the page.' };
         const a = await st.mark(riIds[id], status); if (!a.ok) return a;
-        await riPull();
+        await riSettled(); await riPull();
         return a;
       }
       if (status === 'removed') { riList = riList.filter(x => x.id !== id); return { ok: true, message: '' }; }
@@ -4881,7 +4893,7 @@
         h('p', { class: 'hint u-mt-0', 'data-rikept': riShared ? 'database' : 'browser' }, riShared
           ? 'Kept in the database: the same on every phone and computer, for you and the administrators.'
           : reviewStoreOn() && riStoreState === 'not_installed' ? 'Kept in this browser only: the database step for reviews (draft 60) is not installed yet.'
-          : reviewStoreOn() && riStoreState === 'unknown' ? 'Kept in this browser only for now: the database could not be reached for reviews. Reload to try again.'
+          : reviewStoreOn() && riStoreState === 'unknown' ? 'Kept in this browser only for now: the database could not be reached for reviews, or would not take them. Nothing was lost. Reload to try again.'
           : 'Kept in this browser only for now. To have them on every phone and computer, the database step for reviews (draft 60) has to be installed, then "Reviews on every device" turned on under Feature Flags.'),
         h('p', { class: 'u-fs-12', role: 'status', 'data-rimessage': '1' }, riMessage),
         h('h3', null, '1. Add reviews'),
