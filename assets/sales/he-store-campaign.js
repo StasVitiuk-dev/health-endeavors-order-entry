@@ -15,6 +15,8 @@
 //   plan(n, opts)                      -> [{ day, count }]      slow start, weekdays only
 //   guard(counts)                      -> { stop, why }         bounces / complaints
 //   render(text, store, opts)          -> { ok, subject, body, problems }
+//   parseStores(csvText)               -> { rows, read, unread, problems }   a pasted list with a heading line
+//   exampleStores()                    -> made-up stores for trying the page
 //
 // deps = { claims: he-sales-claims, approval: he-sales-approval }. Pure. Dual-mode.
 (function (root, factory) {
@@ -146,5 +148,54 @@
     return { ok: problems.length === 0, subject: fill(d.subject), body: body, problems: [...new Set(problems)] };
   }
 
-  return { MAX_COUNT, REST_DAYS, LADDER, FIELDS, STOP, wordingDraft, checkWording, approveWording, stillApproved, pick, plan, guard, render };
+  // A pasted list: the first line names the columns. Needed: name, email. Optional: city,
+  // distance (miles), score, last contacted (a date), unsubscribed, bounced (yes/no).
+  const MAX_LINES = 5000;
+  const COLUMN = Object.freeze({ name: 'name', store: 'name', 'store name': 'name', email: 'email', 'e-mail': 'email', city: 'city', town: 'city',
+    distance: 'distanceMiles', miles: 'distanceMiles', 'distance miles': 'distanceMiles', 'distance (miles)': 'distanceMiles', score: 'score',
+    'last contacted': 'lastContactedAt', 'last contact': 'lastContactedAt', unsubscribed: 'unsubscribed', 'opted out': 'unsubscribed', bounced: 'bounced' });
+  function cells(line) {
+    const out = []; let cur = '', quoted = false;
+    for (let i = 0; i < line.length; i += 1) {
+      const ch = line[i];
+      if (quoted) { if (ch === '"') { if (line[i + 1] === '"') { cur += '"'; i += 1; } else quoted = false; } else cur += ch; }
+      else if (ch === '"') quoted = true;
+      else if (ch === ',' || ch === '\t' || ch === ';') { out.push(cur); cur = ''; }
+      else cur += ch;
+    }
+    out.push(cur);
+    return out.map(c => c.trim());
+  }
+  function parseStores(csvText) {
+    const none = (problem) => ({ rows: [], read: 0, unread: 0, problems: problem ? [problem] : [] });
+    const text = typeof csvText === 'string' ? csvText.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n') : '';
+    const lines = text.split('\n').filter(l => l.trim() !== '');
+    if (!lines.length) return none('');
+    if (lines.length > MAX_LINES + 1) return none('That list is too long (' + MAX_LINES + ' stores at most at a time).');
+    const head = cells(lines[0]).map(h => COLUMN[h.toLowerCase().replace(/[_]+/g, ' ').replace(/\s+/g, ' ')] || null);
+    if (!head.includes('name') || !head.includes('email')) return none('The first line must name the columns, with at least: name, email. Optional: city, distance, score, last contacted, unsubscribed, bounced.');
+    const yes = (v) => /^(yes|y|true|1|x)$/i.test(v);
+    const rows = []; let unread = 0;
+    lines.slice(1).forEach((line, i) => {
+      const c = cells(line), row = { id: 'row-' + (i + 2) };
+      head.forEach((key, k) => { if (key && c[k] !== undefined && c[k] !== '') row[key] = c[k]; });
+      if (!row.name || !row.email) { unread += 1; return; }
+      const dist = num(row.distanceMiles), score = num(row.score);
+      rows.push({ id: row.id, name: str(row.name, 160), email: str(row.email, 254), city: str(row.city, 120),
+        distanceMiles: dist != null && dist >= 0 ? dist : null, score: score,
+        lastContactedAt: row.lastContactedAt && !isNaN(Date.parse(row.lastContactedAt)) ? new Date(Date.parse(row.lastContactedAt)).toISOString() : null,
+        unsubscribed: yes(row.unsubscribed || ''), bounced: yes(row.bounced || '') });
+    });
+    return { rows: rows, read: rows.length, unread: unread, problems: [] };
+  }
+
+  // made-up stores for trying the page: none of them exists
+  function exampleStores() {
+    const cities = ['Reno', 'Sparks', 'Carson City', 'Truckee', 'Fernley', 'Minden'];
+    return Array.from({ length: 12 }, (x, i) => ({ id: 'example-' + (i + 1), name: 'EXAMPLE Store ' + String(i + 1).padStart(2, '0'), email: 'example' + (i + 1) + '@example.test',
+      city: cities[i % cities.length], distanceMiles: 2 + i * 4, score: 95 - ((i * 7) % 40), lastContactedAt: i === 9 ? new Date(Date.now() - 20 * 86400000).toISOString() : null,
+      unsubscribed: i === 10, bounced: i === 11 }));
+  }
+
+  return { MAX_COUNT, REST_DAYS, LADDER, FIELDS, STOP, MAX_LINES, wordingDraft, checkWording, approveWording, stillApproved, pick, plan, guard, render, parseStores, exampleStores };
 }));

@@ -1534,3 +1534,10 @@ tr.obVoid td:first-child{ text-decoration:line-through; }
 .agentPlanned summary{ cursor:pointer; font-weight:600; }
 .agentPlannedRow{ padding:8px 0; border-top:1px solid var(--line); overflow-wrap:anywhere; }
 .agentPlannedRow:first-child{ border-top:0; }
+
+/* Store Campaigns (he_store_campaigns): full-width boxes; the example email keeps its line breaks */
+#storeCampaignsPanel .scField{ display:block; max-width:640px; margin-top:8px; }
+#storeCampaignsPanel .scField input[type="text"], #storeCampaignsPanel .scField textarea{ display:block; width:100%; box-sizing:border-box; }
+#storeCampaignsPanel .u-d-flex > .scField{ flex:1 1 150px; max-width:220px; }
+.scSample{ border:1px solid var(--line); border-radius:8px; padding:12px; max-width:640px; }
+.scSampleBody{ white-space:pre-wrap; overflow-wrap:anywhere; margin-top:6px; }

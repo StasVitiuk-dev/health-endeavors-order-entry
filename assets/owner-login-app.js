@@ -84,7 +84,7 @@
       nightlyOverall,
     } = window.HE.helpers;
     // @@ EXT15 modules: created in dependency order (assets/app/*.js; see docs/ops/APPLICATION_MODULE_MAP_EXT15.md)
-    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, agentDiaryOn, realProfitOn, channelMoneyOn, SWITCH_EVERYONE, sharedSettingsOn, orderCostsOn, incidentCloseOn, batchLabelsOn, orderBatchesOn, orderChannelsOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn } = HE.modules.create('he-config', {  });
+    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, agentDiaryOn, realProfitOn, channelMoneyOn, SWITCH_EVERYONE, sharedSettingsOn, orderCostsOn, incidentCloseOn, batchLabelsOn, orderBatchesOn, orderChannelsOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn, storeCampaignsOn } = HE.modules.create('he-config', {  });
     const { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, focusDialog, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, h, pageIconNode } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
     const { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
     const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, h, supabase });
@@ -3899,6 +3899,138 @@
       await rtnAfter(res);
     });
 
+    // ---------- Store Campaigns (owner's decision, Nov 24; behind storeCampaignsOn) ----------
+    // One email for stores: its wording is checked, the owner approves it once, then
+    // chooses how many stores and which first. NOTHING IS SENT: the page shows who
+    // would get it on which day. Rules: assets/sales/he-store-campaign.js. Kept in
+    // this browser until its database step exists.
+    const SC_KEY = 'he_store_campaign_v1';
+    let scState = null, scResult = null, scMessage = '';
+    const scMod = () => (window.HE && window.HE.sales && window.HE.sales['he-store-campaign']) || null;
+    const scDeps = () => ({ claims: (window.HE && window.HE.sales && window.HE.sales['he-sales-claims']) || null, approval: (window.HE && window.HE.sales && window.HE.sales['he-sales-approval']) || null });
+    const scOwner = () => currentUserRole === 'owner' || currentUserRole === 'administrator';
+    function scRead() {
+      const base = { subject: '', body: '', approval: null, storesText: '', example: false, count: '20', order: 'nearest', startDay: localDateString(), address: '' };
+      try { const v = JSON.parse(localStorage.getItem(SC_KEY) || 'null'); if (v && typeof v === 'object' && !Array.isArray(v)) Object.keys(base).forEach(k => { if (typeof v[k] === typeof base[k] || (k === 'approval' && v[k] && typeof v[k] === 'object')) base[k] = v[k]; }); } catch (e) { /* start empty */ }
+      return base;
+    }
+    function scKeep() { try { localStorage.setItem(SC_KEY, JSON.stringify(scState)); return true; } catch (e) { return false; } }
+    const scText = () => ({ subject: scState.subject, body: scState.body });
+    function scStores() { const M = scMod(); if (!M) return { rows: [], read: 0, unread: 0, problems: [] }; if (scState.example) { const rows = M.exampleStores(); return { rows: rows, read: rows.length, unread: 0, problems: [] }; } return M.parseStores(scState.storesText); }
+    function loadStoreCampaigns() {
+      const host = document.getElementById('storeCampaignsPanel'); if (!host) return;
+      if (!(typeof storeCampaignsOn === 'function' && storeCampaignsOn())) { host.replaceChildren(); return; }
+      if (!scState) scState = scRead();
+      renderStoreCampaigns();
+    }
+    // the parts that change while typing, repainted without touching the boxes being typed in
+    function scPaint() {
+      const host = document.getElementById('storeCampaignsPanel'), M = scMod(); if (!host || !M || !scState) return;
+      const check = M.checkWording(scText(), scDeps());
+      const still = scState.approval ? M.stillApproved(scState.approval, scText(), scDeps()) : { valid: false, reason: '' };
+      const state = still.valid ? 'approved' : scState.approval ? 'changed' : 'none';
+      const w = host.querySelector('[data-scwording]');
+      if (w) { w.setAttribute('data-scwording', check.ok ? 'ok' : 'problems'); w.replaceChildren(...(check.ok ? [h('p', { class: 'hint u-mt-6' }, 'This wording passes the check.')] : [h('ul', { class: 'u-fs-12p5 u-mt-6' }, check.problems.map(p => h('li', null, p)))])); }
+      const a = host.querySelector('[data-scapproval]');
+      if (a) { a.setAttribute('data-scapproval', state);
+        a.textContent = state === 'approved' ? 'Approved' + (scState.approval.approvedBy ? ' by ' + scState.approval.approvedBy : '') + (scState.approval.approvedAt ? ' on ' + fmtDate(scState.approval.approvedAt) : '') + '. The approval covers exactly this wording, for as many stores as you choose. Approved does not mean sent.'
+          : state === 'changed' ? 'The wording changed after it was approved. Read it again and approve the new wording.' : 'Not approved yet.'; }
+      const b = host.querySelector('[data-sc="approve"]');
+      if (b) b.disabled = !check.ok || state === 'approved' || !scOwner();
+      const st = scStores(), sEl = host.querySelector('[data-scstores]');
+      if (sEl) { sEl.setAttribute('data-scstores', String(st.read)); sEl.textContent = st.problems.length ? st.problems.join(' ') : scState.example ? st.read + ' example stores (made up; none of them exists).' : st.read ? st.read + (st.read === 1 ? ' store read' : ' stores read') + (st.unread ? ', ' + st.unread + (st.unread === 1 ? ' line' : ' lines') + ' without a name or an email left out.' : '.') : 'No stores yet.'; }
+    }
+    function renderStoreCampaigns() {
+      const host = document.getElementById('storeCampaignsPanel'), M = scMod(); if (!host) return;
+      if (!M) { host.replaceChildren(h('h2', null, 'Store Campaigns'), h('p', { class: 'empty' }, 'The store campaign tools could not load. Refresh the page.')); return; }
+      if (!scOwner()) { host.replaceChildren(h('h2', null, 'Store Campaigns'), h('p', { class: 'hint' }, 'Only the owner and administrators can prepare store campaigns.')); return; }
+      const field = (id, label, node, hint) => h('div', { class: 'heField scField' }, h('label', { for: id }, label), node, hint ? h('div', { class: 'u-fs-12 u-c-muted' }, hint) : null);
+      host.replaceChildren(
+        h('h2', null, 'Store Campaigns'),
+        h('p', { class: 'hint hintLead', 'data-scnosend': '1' }, h('b', null, 'Nothing is sent from this page.'), ' Sending is not connected yet. You write one email, approve its wording once, choose how many stores, and see exactly who would get it on which day.'),
+        h('p', { class: 'hint u-mt-0' }, 'Kept in this browser on this device for now; it will follow you to every device once its database step exists.'),
+        h('p', { class: 'u-fs-12', role: 'status', 'data-scmessage': '1' }, scMessage),
+        h('h3', null, '1. The wording'),
+        field('scSubject', 'Subject', h('input', { id: 'scSubject', type: 'text', maxlength: '200', value: scState.subject, 'data-scfield': 'subject' })),
+        field('scBody', 'Email', h('textarea', { id: 'scBody', rows: '8', maxlength: '4000', 'data-scfield': 'body' }, scState.body), 'Write {store} where the store\'s name goes and {city} for its town. A "no thanks" line and your business address are added at the bottom of every email.'),
+        h('div', { 'data-scwording': 'problems' }),
+        h('p', { class: 'u-fs-12p5 u-mt-6', 'data-scapproval': 'none' }),
+        h('button', { type: 'button', class: 'small', 'data-sc': 'approve' }, 'Approve this wording'),
+        h('h3', null, '2. The stores'),
+        field('scStores', 'Paste your list of stores', h('textarea', { id: 'scStores', rows: '5', 'data-scfield': 'storesText', placeholder: 'name, email, city, distance, score' }, scState.example ? '' : scState.storesText),
+          'The first line names the columns. Needed: name, email. Optional: city, distance (miles), score, last contacted, unsubscribed, bounced.'),
+        h('div', { class: 'scanToggleRow u-mt-6' }, h('button', { type: 'button', class: 'small secondary', 'data-sc': 'example', 'aria-pressed': String(scState.example) }, scState.example ? 'Stop using example stores' : 'Use example stores')),
+        h('p', { class: 'u-fs-12p5 u-mt-6', 'data-scstores': '0' }),
+        h('h3', null, '3. How many, and which first'),
+        h('div', { class: 'u-d-flex u-gap-8 u-fwr-wrap u-ai-flex-end' },
+          field('scCount', 'How many stores', h('input', { id: 'scCount', type: 'number', min: '1', max: '500', step: '1', value: scState.count, 'data-scfield': 'count' })),
+          field('scOrder', 'Which first', h('select', { id: 'scOrder', 'data-scfield': 'order' },
+            h('option', Object.assign({ value: 'nearest' }, scState.order === 'nearest' ? { selected: 'selected' } : {}), 'The nearest'),
+            h('option', Object.assign({ value: 'best' }, scState.order === 'best' ? { selected: 'selected' } : {}), 'The best match'))),
+          field('scStart', 'First day', h('input', { id: 'scStart', type: 'date', value: scState.startDay, 'data-scfield': 'startDay' }))),
+        field('scAddress', 'Business postal address', h('input', { id: 'scAddress', type: 'text', maxlength: '300', value: scState.address, 'data-scfield': 'address', autocomplete: 'off' }), 'Goes at the bottom of every email (the law asks for it). Kept in this browser only.'),
+        h('button', { type: 'button', class: 'small u-mt-8', 'data-sc': 'show' }, 'Show who would get it'),
+        h('div', { 'data-scresult': scResult ? '1' : '0', class: 'u-mt-12' }, scResult || null));
+      scPaint();
+    }
+    function scShow() {
+      const M = scMod(); if (!M) return;
+      const say = (msg) => { scMessage = msg; scResult = null; renderStoreCampaigns(); announce(msg); const m = document.querySelector('#storeCampaignsPanel [data-scmessage]'); if (m) { m.setAttribute('tabindex', '-1'); m.focus(); } };
+      const still = scState.approval ? M.stillApproved(scState.approval, scText(), scDeps()) : { valid: false };
+      if (!still.valid) { say(scState.approval ? 'The wording changed after it was approved. Approve the new wording first.' : 'Approve the wording first (step 1).'); return; }
+      const st = scStores();
+      if (!st.read) { say(st.problems.join(' ') || 'Add your stores first (step 2), or use the example stores.'); return; }
+      const picked = M.pick(st.rows, { count: scState.count, order: scState.order, nowMs: Date.now() });
+      if (!picked.ok) { say(picked.reason); return; }
+      const days = M.plan(picked.chosen.length, { startDay: scState.startDay });
+      if (picked.chosen.length && !days.length) { say('Choose the first day.'); return; }
+      const sample = picked.chosen.length ? M.render(scText(), picked.chosen[0], { postalAddress: scState.address }) : null;
+      scMessage = picked.chosen.length + (picked.chosen.length === 1 ? ' store' : ' stores') + ' would get this email over ' + days.length + (days.length === 1 ? ' working day.' : ' working days.') + ' Nothing was sent.';
+      scResult = h('div', null,
+        h('h3', null, 'Who would get it'),
+        picked.short ? h('p', { class: 'hint', 'data-scshort': String(picked.short) }, 'You asked for ' + scState.count + ', but only ' + picked.chosen.length + ' can be written to.') : null,
+        picked.unknownOrder && picked.chosen.length ? h('p', { class: 'hint' }, picked.unknownOrder + (picked.unknownOrder === 1 ? ' store has' : ' stores have') + ' no ' + (picked.order === 'best' ? 'score' : 'distance') + ', so ' + (picked.unknownOrder === 1 ? 'it comes' : 'they come') + ' last.') : null,
+        picked.chosen.length ? h('table', { class: 'phoneCards', 'data-scchosen': String(picked.chosen.length) },
+          h('thead', null, h('tr', null, h('th', null, '#'), h('th', null, 'Store'), h('th', null, 'Town'), h('th', { class: 'num-cell' }, picked.order === 'best' ? 'Score' : 'Miles'))),
+          h('tbody', null, picked.chosen.map((s, i) => h('tr', null, h('td', null, String(i + 1)), h('td', null, s.name), h('td', null, s.city || '—'),
+            h('td', { class: 'num-cell' }, (picked.order === 'best' ? s.score : s.distanceMiles) == null ? '—' : String(picked.order === 'best' ? s.score : s.distanceMiles)))))) : h('p', { class: 'empty' }, 'No store on the list can be written to.'),
+        picked.skipped.length ? h('details', { class: 'u-mt-8', 'data-scskipped': String(picked.skipped.length) }, h('summary', null, picked.skipped.length + ' left out, with the reason'),
+          h('ul', { class: 'u-fs-12p5' }, picked.skipped.slice(0, 200).map(s => h('li', null, s.name + ': ' + s.why)))) : null,
+        days.length ? h('div', null, h('h3', null, 'On which days'),
+          h('p', { class: 'hint u-mt-0' }, 'A slow start keeps a new email address out of spam: 20 a day in the first working week, then 40, 60, 80 and 100. Never on a weekend. If too many emails come back or people mark it as spam, a campaign stops by itself.'),
+          h('table', { class: 'phoneCards', 'data-scdays': String(days.length) }, h('thead', null, h('tr', null, h('th', null, 'Day'), h('th', { class: 'num-cell' }, 'Emails'))),
+            h('tbody', null, days.map(d => h('tr', null, h('td', null, d.day), h('td', { class: 'num-cell' }, String(d.count))))))) : null,
+        sample ? h('div', null, h('h3', null, 'What the first store would read'),
+          sample.problems.length ? h('ul', { class: 'u-fs-12p5', 'data-scsampleproblems': String(sample.problems.length) }, sample.problems.map(p => h('li', null, p))) : null,
+          h('div', { class: 'scSample', 'data-scsample': '1' }, h('div', { class: 'taskTitle' }, sample.subject), h('div', { class: 'scSampleBody' }, sample.body))) : null);
+      renderStoreCampaigns(); labelPhoneCards(document.getElementById('storeCampaignsPanel')); announce(scMessage);
+      const r = document.querySelector('#storeCampaignsPanel [data-scresult]'); if (r) { r.setAttribute('tabindex', '-1'); r.focus({ preventScroll: true }); }
+    }
+    document.addEventListener('input', (e) => {
+      const f = e.target.closest('#storeCampaignsPanel [data-scfield]'); if (!f || !scState) return;
+      const k = f.getAttribute('data-scfield');
+      scState[k] = String(f.value).slice(0, k === 'storesText' ? 600000 : 4000);
+      if (k === 'storesText' && scState.example) scState.example = false;
+      scKeep(); scPaint();
+    });
+    document.addEventListener('click', (e) => {
+      const t = e.target.closest('#storeCampaignsPanel [data-sc]'); if (!t || !scState) return;
+      const M = scMod(); if (!M) return;
+      const act = t.getAttribute('data-sc');
+      if (act === 'approve') {
+        if (!scOwner()) return;
+        const who = String((document.getElementById('whoAmI') || {}).textContent || '').split(' — role')[0].trim();   // the name, without the role
+        const r = M.approveWording(scText(), who, new Date().toISOString(), scDeps());
+        if (r.status !== 'APPROVED') { scMessage = 'Not approved: ' + r.reason; }
+        else { scState.approval = r; scMessage = scKeep() ? 'Wording approved. Nothing was sent.' : 'Wording approved for now, but this browser would not keep it (private window or storage blocked).'; }
+        scResult = null; renderStoreCampaigns(); announce(scMessage);
+        const a = document.querySelector('#storeCampaignsPanel [data-scapproval]'); if (a) { a.setAttribute('tabindex', '-1'); a.focus(); }
+        return;
+      }
+      if (act === 'example') { scState.example = !scState.example; scResult = null; scMessage = ''; scKeep(); renderStoreCampaigns(); const b = document.querySelector('#storeCampaignsPanel [data-sc="example"]'); if (b) b.focus(); return; }
+      if (act === 'show') scShow();
+    });
+
     // ---------- Backups & Printouts (owner request, Nov 23; behind backupsPageOn)
     // One place for the paper and file copies the owner keeps: the daily recaps
     // (print a month on Letter, or save it as a spreadsheet file), the manuals
@@ -5925,6 +6057,7 @@
       activityPanel: [loadActivityPeople, loadActivityAreas, loadActivityDigest, () => loadActivity(true)],
       sopsPanel: [loadSops],
       backupsPanel: [loadBackupsPage],
+      storeCampaignsPanel: [loadStoreCampaigns],
       featureRequestsPanel: [loadFeatureRequests, loadDeletedFeatureRequests],
       legalHoldsPanel: [loadLegalHolds, loadReleasedLegalHolds],
       salesCommandPanel:   [() => loadSales('salesCommandPanel')],

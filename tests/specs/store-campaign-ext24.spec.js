@@ -5,13 +5,15 @@
 // order and on which day. Node only; every store and address is made up.
 const C = require('../../assets/sales/he-store-campaign.js');
 const deps = { claims: require('../../assets/sales/he-sales-claims.js'), approval: require('../../assets/sales/he-sales-approval.js') };
-const { test, expect } = require('../helpers/dashboard');
+const { test, expect, login, gotoPage } = require('../helpers/dashboard');
 
-test.beforeEach(({}, ti) => { test.skip(ti.project.name !== 'desktop', 'Node-only; run once'); });
 
 const TEXT = { subject: 'A body-care line for {store}', body: 'Hello {store}, we make small-batch body oils and would love to send a sample to your shop in {city}.' };
 const store = (n, extra) => Object.assign({ id: 's' + n, name: 'SYNTHETIC store ' + String(n).padStart(2, '0'), email: 'shop' + n + '@example.test', city: 'Testville', distanceMiles: n * 3, score: 100 - n }, extra || {});
 const NOW = Date.parse('2026-11-24T18:00:00Z');
+
+test.describe('the rules (no browser)', () => {
+  test.beforeEach(({}, ti) => { test.skip(ti.project.name !== 'desktop', 'Node-only; run once'); });
 
 test('the wording: a clear text passes; a health claim, an unknown fill-in or a missing part is refused with the reason', () => {
   expect(C.checkWording(TEXT, deps)).toMatchObject({ ok: true, problems: [], findings: [] });
@@ -98,4 +100,130 @@ test('one store\'s email: its name and city filled in, a "no thanks" line and th
   expect(C.render(TEXT, store(1), {}).problems).toEqual(['Add the business postal address before any real sending (marketing email must carry it).']);
   expect(C.render(TEXT, { name: 'SYNTHETIC store' }, { postalAddress: 'x' }).problems).toEqual(['This store has no city to fill in.']);
   for (const junk of [null, undefined, 'x', 7]) expect(C.render(junk, junk, junk).ok).toBe(false);
+});
+
+test('a pasted list: the first line names the columns; lines without a name or an email are left out and counted', () => {
+  const r = C.parseStores('Name,Email,City,Distance,Score,Last contacted,Unsubscribed,Bounced\n"Shop, The",a@example.test,Reno,3.5,80,2026-10-01,,\nNo Email,,Reno\nB Shop;b@example.test;Sparks;x;;;yes;\n\n');
+  expect(r).toMatchObject({ read: 2, unread: 1, problems: [] });
+  expect(r.rows[0]).toEqual({ id: 'row-2', name: 'Shop, The', email: 'a@example.test', city: 'Reno', distanceMiles: 3.5, score: 80, lastContactedAt: '2026-10-01T00:00:00.000Z', unsubscribed: false, bounced: false });
+  expect(r.rows[1]).toMatchObject({ name: 'B Shop', distanceMiles: null, score: null, unsubscribed: true });
+  expect(C.parseStores('a,b\n1,2').problems).toEqual(['The first line must name the columns, with at least: name, email. Optional: city, distance, score, last contacted, unsubscribed, bounced.']);
+  expect(C.parseStores('store name\temail\nX\tx@example.test').read).toBe(1);
+  expect(C.parseStores('name,email\n' + Array.from({ length: C.MAX_LINES + 1 }, (x, i) => 's' + i + ',s' + i + '@example.test').join('\n')).problems).toEqual(['That list is too long (5000 stores at most at a time).']);
+  for (const junk of [null, undefined, '', '   ', 7, {}, []]) expect(C.parseStores(junk)).toEqual({ rows: [], read: 0, unread: 0, problems: [] });
+  // the example stores are made up and show every case: one written to lately, one unsubscribed, one bounced
+  const ex = C.exampleStores();
+  expect(ex).toHaveLength(12);
+  expect(ex.every(s => /^EXAMPLE Store \d\d$/.test(s.name) && /@example\.test$/.test(s.email))).toBe(true);
+  expect(C.pick(ex, { count: 12 }).skipped.map(s => s.why)).toEqual(['written to in the last 90 days', 'asked not to be written to', 'an earlier email came back']);
+});
+});
+
+const on = (page) => page.addInitScript(() => { try { localStorage.setItem('he_store_campaigns', 'on'); } catch (e) {} });
+const GOOD = { subject: 'A body-care line for {store}', body: 'Hello {store}, we make small-batch body lotion and would love to send a sample to your shop in {city}.' };
+
+test.describe('the Store Campaigns page', () => {
+  test('switch off (as shipped): no page in the menu, nothing drawn, nothing kept', async ({ page }) => {
+    await login(page);
+    await expect(page.locator('#sidebarNav')).not.toContainText('Store Campaigns');
+    await expect(page.locator('#storeCampaignsPanel')).toBeEmpty();
+    expect(await page.evaluate(() => localStorage.getItem('he_store_campaign_v1'))).toBeNull();
+  });
+
+  test('write, check, approve once, choose how many and which first, and see who would get it on which day; nothing is sent or written', async ({ page, backend }, ti) => {
+    test.skip(ti.project.name !== 'desktop', 'run once');
+    await on(page);
+    await page.clock.setFixedTime(new Date('2026-11-24T18:00:00Z'));
+    await login(page);
+    await gotoPage(page, 'storeCampaignsPanel');
+    const host = page.locator('#storeCampaignsPanel');
+    await expect(host.locator('h2')).toHaveText('Store Campaigns');
+    await expect(host.locator('[data-scnosend]')).toContainText('Nothing is sent from this page.');
+    const before = backend.requests.length;
+    // an empty text cannot be approved
+    await expect(host.locator('[data-sc="approve"]')).toBeDisabled();
+    await expect(host.locator('[data-scapproval]')).toHaveText('Not approved yet.');
+    // a health claim is flagged and blocks approval
+    await host.getByLabel('Subject').fill('Hello {store}');
+    await host.getByLabel('Email', { exact: true }).fill('Our lotion heals dry skin and cures eczema for every customer you have.');
+    await expect(host.locator('[data-scwording]')).toHaveAttribute('data-scwording', 'problems');
+    await expect(host.locator('[data-scwording]')).toContainText('flagged a health or medical claim');
+    await expect(host.locator('[data-sc="approve"]')).toBeDisabled();
+    // a clear text passes and can be approved
+    await host.getByLabel('Subject').fill(GOOD.subject);
+    await host.getByLabel('Email', { exact: true }).fill(GOOD.body);
+    await expect(host.locator('[data-scwording]')).toHaveText('This wording passes the check.');
+    // showing before approving is refused
+    await host.getByRole('button', { name: 'Show who would get it' }).click();
+    await expect(host.locator('[data-scmessage]')).toHaveText('Approve the wording first (step 1).');
+    await host.getByRole('button', { name: 'Approve this wording' }).click();
+    await expect(host.locator('[data-scapproval]')).toHaveAttribute('data-scapproval', 'approved');
+    await expect(host.locator('[data-scapproval]')).toContainText('Approved does not mean sent.');
+    await expect(host.locator('[data-scapproval]')).toContainText('Approved by Synthetic Owner on ');
+    await expect(host.locator('[data-scmessage]')).toHaveText('Wording approved. Nothing was sent.');
+    // one changed letter: the approval no longer covers it; putting it back restores it
+    await host.getByLabel('Email', { exact: true }).fill(GOOD.body + '!');
+    await expect(host.locator('[data-scapproval]')).toHaveAttribute('data-scapproval', 'changed');
+    await host.getByLabel('Email', { exact: true }).fill(GOOD.body);
+    await expect(host.locator('[data-scapproval]')).toHaveAttribute('data-scapproval', 'approved');
+    // stores: the example list, 5 nearest, starting on a Saturday
+    await host.getByRole('button', { name: 'Show who would get it' }).click();
+    await expect(host.locator('[data-scmessage]')).toHaveText('Add your stores first (step 2), or use the example stores.');
+    await host.getByRole('button', { name: 'Use example stores' }).click();
+    await expect(host.locator('[data-scstores]')).toHaveText('12 example stores (made up; none of them exists).');
+    await host.getByLabel('How many stores').fill('5');
+    await host.getByLabel('First day').fill('2026-11-28');
+    await host.getByLabel('Business postal address').fill('SYNTHETIC postal address');
+    await host.getByRole('button', { name: 'Show who would get it' }).click();
+    await expect(host.locator('[data-scmessage]')).toHaveText('5 stores would get this email over 1 working day. Nothing was sent.');
+    await expect(host.locator('[data-scchosen="5"] tbody tr')).toHaveCount(5);
+    await expect(host.locator('[data-scchosen] tbody tr').first()).toContainText('EXAMPLE Store 01');
+    await expect(host.locator('[data-scdays="1"] tbody tr')).toHaveText(['2026-11-305']);                    // Saturday waits for Monday
+    await expect(host.locator('[data-scskipped="3"] summary')).toHaveText('3 left out, with the reason');
+    await expect(host.locator('[data-scsample] .taskTitle')).toHaveText('A body-care line for EXAMPLE Store 01');
+    await expect(host.locator('[data-scsample]')).toContainText('reply "no thanks" and we will not write again.');
+    await expect(host.locator('[data-scsample]')).toContainText('SYNTHETIC postal address');
+    // best match first, all of them: only 9 can be written to
+    await host.getByLabel('Which first').selectOption('best');
+    await host.getByLabel('How many stores').fill('40');
+    await host.getByRole('button', { name: 'Show who would get it' }).click();
+    await expect(host.locator('[data-scshort="31"]')).toHaveText('You asked for 40, but only 9 can be written to.');
+    await expect(host.locator('[data-scchosen="9"] thead')).toContainText('Score');
+    // kept after a reload, still approved
+    await page.reload(); await gotoPage(page, 'storeCampaignsPanel');
+    await expect(host.getByLabel('Subject')).toHaveValue(GOOD.subject);
+    await expect(host.locator('[data-scapproval]')).toHaveAttribute('data-scapproval', 'approved');
+    await expect(host.getByLabel('Which first')).toHaveValue('best');
+    // nothing was written to the database and nothing left the page
+    expect(backend.tableWrites()).toEqual([]);
+    expect(backend.requests.slice(before).filter(r => r.method !== 'GET' && r.method !== 'HEAD' && !r.rpc && String(r.path || '').startsWith('/rest/v1/')).map(r => r.method + ' ' + r.path)).toEqual([]);
+  });
+
+  test('a pasted list is read as typed; a list without the needed columns says what is needed', async ({ page }, ti) => {
+    test.skip(ti.project.name !== 'desktop', 'run once');
+    await on(page);
+    await login(page);
+    await gotoPage(page, 'storeCampaignsPanel');
+    const host = page.locator('#storeCampaignsPanel');
+    await host.getByLabel('Paste your list of stores').fill('shop,mail\nA,a@example.test');
+    await expect(host.locator('[data-scstores]')).toContainText('The first line must name the columns');
+    await host.getByLabel('Paste your list of stores').fill('name,email,city,distance\nSYNTHETIC A,a@example.test,Reno,4\nSYNTHETIC B,,Reno,2\nSYNTHETIC C,c@example.test,Sparks,1');
+    await expect(host.locator('[data-scstores]')).toHaveText('2 stores read, 1 line without a name or an email left out.');
+  });
+
+  test('an employee is told it is for the owner and administrators; at phone size the page does not scroll sideways', async ({ page, backend }, ti) => {
+    await on(page);
+    if (ti.project.name === 'desktop') {
+      backend.tables.profiles[0].role = 'employee';
+      await login(page);
+      await gotoPage(page, 'storeCampaignsPanel');
+      await expect(page.locator('#storeCampaignsPanel')).toContainText('Only the owner and administrators can prepare store campaigns.');
+      await expect(page.locator('#storeCampaignsPanel input, #storeCampaignsPanel textarea')).toHaveCount(0);
+      return;
+    }
+    await login(page);
+    await gotoPage(page, 'storeCampaignsPanel');
+    await page.locator('#storeCampaignsPanel').getByRole('button', { name: 'Use example stores' }).click();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true);
+  });
 });
