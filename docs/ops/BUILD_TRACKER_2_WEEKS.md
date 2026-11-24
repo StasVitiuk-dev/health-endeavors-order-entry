@@ -47,6 +47,7 @@ Database changes are drafts the owner runs after approving them.
 | #53 | **Feature switches shared by every device**, with an audience (work features: everyone; money, revenue, sensitive documents: owner and administrators). Audience table approved by the owner Nov 23. Needs draft 50 installed | shared switches + related passed |
 | #54 | **Real fee and postage per order** (draft 52, review item 11): Real profit uses the real numbers where saved, estimates elsewhere, and says which | DB 35/35; related browser tests passed |
 | #55 | **Incidents: record what was done and close** (owner and administrators; switch `he_incident_close`; no database step). Also two fixes from the owner's screenshots of Nov 24 in a narrow computer window (about 790 wide): the slide-over menu was see-through, and tables scrolled sideways. Contains #46–#54 | 157 + 131 + 77 related passed |
+| #56 | **Drop-off database step (draft 48) adapted to production**: its own tables (`order_parcels`), the Shipping agent's `shipments` table only read and never changed; review item 9 no longer blocked. Contains #46–#55 | DB 64/64, whole DB suite 0 failed; 284 related browser tests passed |
 
 **How to merge (every PR above):** GitHub shows these PRs as opened by the owner's
 own account, so **Approve is not offered**. On the PR's **Conversation** tab, at the
@@ -64,7 +65,7 @@ adapted to that table.
 | # | Item | Status | Where |
 |---|---|---|---|
 | A | One attention feed, the main screen | READY (#43) | Home |
-| B | Smart scan: drop-off receipts (paste, photo of barcodes, typing) | READY (#44); its database step BLOCKED until adapted to the agent's table | Orders |
+| B | Smart scan: drop-off receipts (paste, photo of barcodes, typing) | READY (#44, live); its database step is adapted and READY FOR REVIEW (#56, review item 9) | Orders |
 | B2 | Smart scan for everything (receipts, expenses, supplier papers, **bottle barcodes for batches**), free reading on the phone first | NEXT | scan page |
 | 1 | One stock count for all channels | NEXT (via Shopify as hub if agreed) | Inventory |
 | 2 | All Orders with channel badges (Amazon, Etsy, TikTok, website) | NEXT (via Shopify as hub if agreed) | Orders |
@@ -130,13 +131,13 @@ adapted to that table.
 
 Decided Nov 23 (evening): **feature switches are shared by every device**; work features are for every employee; money, revenue and sensitive documents are for the owner and administrators only. NEXT: switches with an audience, stored in shared settings (draft 50).
 
-1. Merge **one** PR: the highest green one contains all earlier ones (#48 green Nov 24; #55 contains everything once its checks are green).
+1. Merge **one** PR: the highest green one contains all earlier ones (#48 green Nov 24; #56 contains everything once its checks are green).
 2. Business address (virtual mailbox) before the seller accounts; then Etsy, TikTok Shop, Amazon.
 3. Business email addresses (planned for tomorrow).
 4. The database steps in `docs/ops/sql-review/START_HERE_GUIDED_RUNS.md`, then review item 9 (draft 48).
 5. ~~Shopify as the hub~~ DECIDED Nov 24: yes.
 6. ~~Batch barcodes~~ ANSWERED Nov 24: product code only, nothing on the bottom; batch stickers decided.
-7. ~~Read-only shape check of `shipments` and `incidents`~~ DONE Nov 23 (`docs/ops/shapes/PRODUCTION_SHAPES_2026-11-23.md`, on #54). NEXT (Claude): adapt draft 48 to the real `shipments` table.
+7. ~~Read-only shape check of `shipments` and `incidents`~~ DONE Nov 23 (`docs/ops/shapes/PRODUCTION_SHAPES_2026-11-23.md`, on #54). Draft 48 adapted Nov 24 (#56): the agent's table is only read.
 8. **Database step for shared settings** (review item 10, draft 50), after #50 is merged: then the Real profit numbers are the same on every device.
 9. ~~Feature switches shared?~~ DECIDED Nov 23 (yes, with audiences; #53).
 11. ~~Read-only Query I~~ RUN Nov 23 (evening, owner's time): 45 saved daily reports, every one with 0 orders, and 0 orders in the table for those days. Verdict **NOT ENOUGH DATA**: nothing is wrong, but with no orders yet the report's day cutoff cannot be told. Run it again after the first week with real orders (at least one placed in the evening).
