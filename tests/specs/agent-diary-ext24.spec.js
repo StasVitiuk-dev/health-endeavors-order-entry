@@ -23,6 +23,10 @@ test.describe('the diary (no browser)', () => {
     expect(A.agentName('agent-5', REG)).toBe('#5 Shipping/Tracking Agent');
     expect(A.agentName('pricing_helper_agent', REG)).toBe('Pricing helper agent');
     expect(A.agentName('', REG)).toBe('Unknown agent');
+    // broken rows are skipped (found by the robustness probe on GitHub)
+    expect(A.view([null, undefined, 'x', 7]).count).toBe(0);
+    expect(A.view([null]).days).toEqual([]);
+    expect(A.needsPerson([null, undefined])).toEqual([]);
     const e = A.entries(ROWS, { registry: REG });
     expect(e.map(x => [x.day, x.time, x.agent])).toEqual([
       ['Tuesday, November 24', '9:02 AM', '#5 Shipping/Tracking Agent'],
