@@ -1,13 +1,16 @@
 // Customer emails — the rules behind email campaigns for people who ordered (owner,
 // Nov 24: "email marketing agents for regular customers who order with us ... not only
-// stores"). Four kinds: a welcome after a first order, time to reorder, something new,
-// and a hello to people who have not ordered for a while. The owner approves the
+// stores"). Five kinds: a welcome after a first order, time to reorder, something new,
+// a hello to people who have not ordered for a while, and "how was it?" a while after
+// an order. Only orders the business took itself are used. The owner approves the
 // wording once; the page shows exactly who would get it.
 //
 // NOTHING HERE SENDS. Approved never means sent (assets/sales/he-sales-approval.js).
 // Only people who ordered are ever chosen; anyone on the "do not email" list is left out.
 //
 //   KINDS, templates(kind)             -> three ready texts to start from
+//   ownOrders(orders, channelOf)       -> { ok, own, marketplace, unknown }   marketplace buyers are never used
+//   whoText(kind, days)                -> who an email goes to, in words
 //   audience(kind, clients, opts)      -> { ok, reason, rule, chosen, skipped, notFit }
 //        clients: rows of he-day-pack clientList(); opts: { nowMs, days, unsubscribed: [emails] }
 //   wordingDraft / checkWording / approveWording / stillApproved   as for store campaigns
@@ -30,7 +33,14 @@
     welcome: Object.freeze({ key: 'welcome', name: 'Welcome', days: 14, min: 1, max: 60, who: 'People whose first and only order was in the last {days} days.' }),
     reorder: Object.freeze({ key: 'reorder', name: 'Time to reorder', days: 30, min: 7, max: 119, who: 'People whose last order was at least {days} days ago, and less than 120 days ago.' }),
     newProduct: Object.freeze({ key: 'newProduct', name: 'Something new', days: null, who: 'Everyone who has ordered at least once.' }),
-    winBack: Object.freeze({ key: 'winBack', name: 'We miss you', days: 120, min: 60, max: 730, who: 'People who have not ordered for {days} days or more.' }) });
+    winBack: Object.freeze({ key: 'winBack', name: 'We miss you', days: 120, min: 60, max: 730, who: 'People who have not ordered for {days} days or more.' }),
+    review: Object.freeze({ key: 'review', name: 'How was it?', days: 10, min: 3, max: 60, who: 'People whose last order was {days} to {to} days ago.' }) });
+  const REVIEW_WINDOW = 21;                                // "how was it" is asked once, in the three weeks after the chosen day
+  // Only orders the business took itself are used. Buyers on Amazon, Etsy and TikTok Shop are those
+  // sites' customers; their seller rules do not allow marketing email to them (to be re-checked
+  // against each site's current rules before any real sending). An unknown channel is left out too.
+  const OWN_CHANNELS = Object.freeze(['shopify', 'wholesale', 'manual']);
+  const MARKETPLACES = Object.freeze(['amazon', 'etsy', 'tiktok']);
   const WINBACK_FROM = 120;
 
   const str = (v, max) => (typeof v === 'string' ? v : (typeof v === 'number' && isFinite(v) ? String(v) : '')).replace(/\r\n?/g, '\n').trim().slice(0, max || 4000);
@@ -55,7 +65,28 @@
     winBack: [
       T('miss', 'We miss you', 'We miss you, {name}', 'Hi {name},\n\nIt has been a while since your last order and we wanted to say hello. If you would like to order again, our shop is open.\n\nIf something was not right last time, please reply and tell us; we read every reply.'),
       T('short', 'Short', 'A hello from us', 'Hi {name},\n\nA short hello from us. It has been a while, and we would be glad to see you in our shop again.'),
-      T('ask', 'Asks why', 'It has been a while', 'Hi {name},\n\nIt has been a while since you ordered from us. Was something not right? Reply to this email and tell us; it helps a small business a lot.\n\nAnd if you would simply like to order again, our shop is open.')] });
+      T('ask', 'Asks why', 'It has been a while', 'Hi {name},\n\nIt has been a while since you ordered from us. Was something not right? Reply to this email and tell us; it helps a small business a lot.\n\nAnd if you would simply like to order again, our shop is open.')],
+    review: [
+      T('ask', 'Asks how it went', 'How was your order?', 'Hi {name},\n\nYour order should have reached you by now, and we would love to know how it went. Just reply to this email with a line or two; a person reads every reply.\n\nThank you for ordering from us.'),
+      T('short', 'Short', 'A quick question, {name}', 'Hi {name},\n\nOne quick question: how do you like your order so far? Reply to this email and tell us, good or bad. It helps a small business a lot.'),
+      T('share', 'Asks for a few words', 'Would you share a few words?', 'Hi {name},\n\nIf you have a minute, would you share a few honest words about your order? You can reply to this email, or leave a review in our shop.\n\nGood or bad, we read all of it. Thank you.')] });
+  function ownOrders(orders, channelOf) {
+    if (typeof channelOf !== 'function') return { ok: false, own: [], marketplace: 0, unknown: 0 };   // without the channel nothing is used
+    const own = []; let marketplace = 0, unknown = 0;
+    (Array.isArray(orders) ? orders : []).forEach(o => {
+      if (!o || typeof o !== 'object') return;
+      let ch; try { ch = channelOf(o); } catch (e) { ch = 'other'; }
+      if (OWN_CHANNELS.includes(ch)) own.push(o); else if (MARKETPLACES.includes(ch)) marketplace += 1; else unknown += 1;
+    });
+    return { ok: true, own: own, marketplace: marketplace, unknown: unknown };
+  }
+  // who an email goes to, in words
+  function whoText(kind, days) {
+    const k = kindOf(kind); if (!k) return '';
+    const d = days == null || days === '' ? k.days : days;
+    const n = num(d);
+    return k.who.replace('{days}', String(d == null ? '' : d)).replace('{to}', n == null ? '…' : String(n + REVIEW_WINDOW));
+  }
   function templates(kind) { const k = kindOf(kind); return k ? READY[k.key].slice() : []; }
 
   // who would get it: only people with at least one order that counts, an email address, and not on the "do not email" list
@@ -88,13 +119,14 @@
       const since = Math.max(0, Math.floor((now - last) / DAY)), sinceFirst = isNaN(first) ? since : Math.max(0, Math.floor((now - first) / DAY));
       const fits = k.key === 'welcome' ? orders === 1 && sinceFirst <= days
         : k.key === 'reorder' ? since >= days && since < WINBACK_FROM
-          : k.key === 'winBack' ? since >= days : true;
+          : k.key === 'winBack' ? since >= days
+            : k.key === 'review' ? since >= days && since <= days + REVIEW_WINDOW : true;
       if (!fits) { notFit += 1; return; }
       seen[email] = true;
       chosen.push({ name: name, email: email, orders: orders, last: c.last, daysSince: since });
     });
     chosen.sort((a, b) => a.daysSince - b.daysSince || (a.name || a.email).toLowerCase().localeCompare((b.name || b.email).toLowerCase()) || a.email.localeCompare(b.email));
-    return { ok: true, reason: '', rule: k.who.replace('{days}', String(days)), days: days, chosen: chosen, skipped: skipped, notFit: notFit };
+    return { ok: true, reason: '', rule: whoText(k.key, days), days: days, chosen: chosen, skipped: skipped, notFit: notFit };
   }
 
   function wordingDraft(text) {
@@ -149,5 +181,5 @@
     return { ok: problems.length === 0, subject: fill(d.subject), body: body, problems: problems };
   }
 
-  return { KINDS, WINBACK_FROM, templates, audience, wordingDraft, checkWording, approveWording, stillApproved, firstName, render };
+  return { KINDS, WINBACK_FROM, REVIEW_WINDOW, OWN_CHANNELS, MARKETPLACES, ownOrders, whoText, templates, audience, wordingDraft, checkWording, approveWording, stillApproved, firstName, render };
 }));
