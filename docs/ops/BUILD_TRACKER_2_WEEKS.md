@@ -52,7 +52,8 @@ Database changes are drafts the owner runs after approving them.
 | #58 | **Batch on each order** (draft 54, review item 12; switch `he_order_batches`): scan the batch sticker onto the order when packing, void a wrong scan with a reason, and "Who got a batch". Also lists the incident save in the write-path list (the one red check on #55) and steadies the request-baseline test. Contains #56–#57 | DB 48/48, whole DB suite 0 failed; 171 related passed |
 | #59 | **Sales channel on every order** (Orders): a "Sold on" badge per order and buttons to see one channel with its count; preview switch `he_order_channels`; reads only. Contains #56–#58 | 183 related passed; one unrelated test race fixed and re-run twice clean |
 | #60 | **The "recap printed" note on every device** (needs shared settings, draft 50): printing the daily recap clears the Home reminder on every phone and computer. Contains #56–#59 | 161 related passed, 36 skipped |
-| (branch `claude/batch-camera`, PR to open with the menu work) | **Batch sticker from a phone photo** on the batch screen: each sticker in the photo is one bottle on the open order; other barcodes are ignored | 171 related passed |
+| #61 (first commit) | **Batch sticker from a phone photo** on the batch screen: each sticker in the photo is one bottle on the open order; other barcodes are ignored | 171 related passed |
+| #61 | **A shorter menu**: same-topic pages inside one another, three variations, chooser under Feature Flags → Menu, default unchanged; choice shared with every device once draft 50 is in use. Contains #56–#60 | 28 new tests passed, 6 skipped; 480 related passed, 124 skipped |
 
 **How to merge (every PR above):** GitHub shows these PRs as opened by the owner's
 own account, so **Approve is not offered**. On the PR's **Conversation** tab, at the
@@ -139,14 +140,17 @@ snoozes (per person; needs a per-person settings step, not the owner-wide shared
 Nov 23 (evening), owner request: **regroup the whole dashboard** so things of the same kind sit together
 and there are far fewer pages; three variations asked for. PROPOSED with a picture: A "follow the work"
 (6 pages with tabs, recommended), B "fewest pages" (4 + settings), C "tidy what is there" (about 16 pages).
-`docs/ops/MENU_REORGANISATION_OPTIONS_2026-11-24.md`. OWNER DECISION REQUIRED. NEXT: one mechanism with the
-three lists behind a preview switch, to try live.
+`docs/ops/MENU_REORGANISATION_OPTIONS_2026-11-24.md`. That first proposal is DEPRECATED: on Nov 24 the owner
+said "I like how it is right now, I just want less of them: put some inside each other if it is the same
+topic". BUILT (PR #61): the same menu, look and page names, with same-topic pages inside one another as a
+row of buttons at the top of the page; three variations (16, 10 or 6 lines instead of 30) chosen under
+Feature Flags → Menu; "Today's menu" is the default. OWNER DECISION REQUIRED: which variation to keep.
 
 ## Waits on the owner
 
 Decided Nov 23 (evening): **feature switches are shared by every device**; work features are for every employee; money, revenue and sensitive documents are for the owner and administrators only. NEXT: switches with an audience, stored in shared settings (draft 50).
 
-1. Merge **one** PR: the highest green one contains all earlier ones (#55 merged Nov 23 evening, which also brought in #46–#54; live check by the owner passed the same evening: Feature Flags rows fit a narrow window, and INC-20260917-0001 was closed with a note through the new button. #60 contains the rest once its checks are green).
+1. Merge **one** PR: the highest green one contains all earlier ones (#55 merged Nov 23 evening, which also brought in #46–#54; live check by the owner passed the same evening: Feature Flags rows fit a narrow window, and INC-20260917-0001 was closed with a note through the new button. #61 contains the rest once its checks are green).
 2. Business address (virtual mailbox) before the seller accounts; then Etsy, TikTok Shop, Amazon.
 3. Business email addresses (planned for tomorrow).
 4. The database steps in `docs/ops/sql-review/START_HERE_GUIDED_RUNS.md`, then review item 9 (draft 48).
