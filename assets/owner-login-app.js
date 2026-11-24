@@ -3027,16 +3027,16 @@
       // parcels that need the owner (drafts/48; nothing when it is not installed)
       try {
         const W = (window.HE && window.HE.scan && window.HE.scan['he-delivery-watch']) || null;
-        const r = W ? await supabase.from('shipments').select('id, order_id, carrier, tracking_number, status, status_at, created_at')
-          .not('status', 'in', '(delivered,cancelled)').order('status_at', { ascending: true }).limit(500) : null;
+        const DM = doMod();
+        const r = W && DM ? await DM.createStore({ client: supabase, enabled: true }).listOpen() : null;
         if (seq !== feedSeq) return;
-        if (!W || !r || r.error) feedParcels = null;
+        if (!W || !r || !r.ok) feedParcels = null;
         else {
-          const ids = [...new Set((r.data || []).map(x => x.order_id).filter(Boolean))];
+          const ids = [...new Set(r.parcels.map(x => x.order_id).filter(Boolean))];
           const orders = ids.length ? await fetchAllRowsIn('orders', 'id, order_number, customer_name', 'id', ids) : [];
           if (seq !== feedSeq) return;
           const byId = Object.create(null); orders.forEach(o => { byId[o.id] = o; });
-          feedParcels = W.watch(r.data || [], { now: Date.now(), ordersById: byId, trackingConnected: false });
+          feedParcels = W.watch(r.parcels, { now: Date.now(), ordersById: byId, trackingConnected: false });
         }
       } catch (e) { if (seq !== feedSeq) return; feedParcels = null; }
       paintAttentionFeed();

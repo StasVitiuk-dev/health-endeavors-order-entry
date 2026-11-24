@@ -185,7 +185,19 @@
         return { ok: true, duplicate: d.duplicate === true, id: d.id || null };
       });
     }
-    return { enabled: enabled, markDroppedOff: markDroppedOff, attach: attach };
+    // every parcel not delivered or cancelled (oldest change first), for the delivery watch
+    async function listOpen() {
+      const r = ready(); if (r) return r;
+      if (typeof client.from !== 'function') return refuse('No database connection was given.');
+      return once('listOpen', async function () {
+        const res = await client.from('shipments').select('id, order_id, carrier, tracking_number, status, status_at, created_at')
+          .not('status', 'in', '(delivered,cancelled)').order('status_at', { ascending: true }).limit(500);
+        if (res && res.error) return refuse(friendlyError(res.error), { installed: !/not installed/.test(friendlyError(res.error)) });
+        const rows = Array.isArray(res && res.data) ? res.data : [];
+        return { ok: true, parcels: rows, truncated: rows.length === 500 };
+      });
+    }
+    return { enabled: enabled, markDroppedOff: markDroppedOff, attach: attach, listOpen: listOpen };
   }
 
   return { MAX_FOUND, WORD, CARRIERS, groupsOf, extractTrackings, fromBarcodes, summarize, friendlyError, createStore };
