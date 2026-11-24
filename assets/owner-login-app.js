@@ -84,7 +84,7 @@
       nightlyOverall,
     } = window.HE.helpers;
     // @@ EXT15 modules: created in dependency order (assets/app/*.js; see docs/ops/APPLICATION_MODULE_MAP_EXT15.md)
-    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, agentDiaryOn, realProfitOn, channelMoneyOn, SWITCH_EVERYONE, sharedSettingsOn, orderCostsOn, incidentCloseOn, batchLabelsOn, orderBatchesOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn } = HE.modules.create('he-config', {  });
+    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, agentDiaryOn, realProfitOn, channelMoneyOn, SWITCH_EVERYONE, sharedSettingsOn, orderCostsOn, incidentCloseOn, batchLabelsOn, orderBatchesOn, orderChannelsOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn } = HE.modules.create('he-config', {  });
     const { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, focusDialog, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, h, pageIconNode } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
     const { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
     const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, h, supabase });
@@ -5496,6 +5496,16 @@
       try { window.print(); } catch (err) {}
     });
 
+    document.addEventListener('click', function (e) {
+      const t = e.target instanceof Element ? e.target.closest('#ordersTableWrap [data-ochannel]') : null; if (!t) return;
+      ochFilter = t.getAttribute('data-ochannel') || 'all';
+      loadOrders().then(function () {
+        const back = Array.from(document.querySelectorAll('#ordersTableWrap [data-ochannel]')).find(b => b.getAttribute('data-ochannel') === ochFilter);
+        if (back) back.focus();
+        const CH = ochMod(); announce(ochFilter === 'all' || !CH ? 'All orders shown.' : CH.NAMES[ochFilter] + ' orders shown.');
+      });
+    });
+
     // Packing slips for real orders (Nov 23; behind orderSlipsOn). The order's own
     // lines are read when the Orders page loads, so pressing Print opens the print
     // window straight away (Safari can refuse a print window opened after a wait).
@@ -8712,11 +8722,16 @@
       document.body.dataset.loaded = 'all';
     }
 
+    // Nov 24: the sales channel on every order (behind orderChannelsOn): a badge per
+    // order and a row of buttons to see one channel (assets/views/he-order-channels.js).
+    let ochFilter = 'all';
+    const ochMod = () => (orderChannelsOn() && window.HE && window.HE.views && window.HE.views['he-order-channels']) || null;
     async function loadOrders(){
       try {
+        const CH = ochMod();
         const { data: orders, error, count } = await supabase
           .from('orders')
-          .select('id, order_number, customer_name, customer_email, status, currency, total, placed_at, deleted_at', { count: 'exact' })
+          .select('id, order_number, customer_name, customer_email, status, currency, total, placed_at, deleted_at' + (CH ? ', channel' : ''), { count: 'exact' })
           .is('deleted_at', null)
           .order('placed_at', { ascending: false })
           .limit(300);
@@ -8749,21 +8764,32 @@
         const ordersMixed = mixedCurrencyNote(orders, 'Orders', currency);
         showPageWarning('ordersPanel', ordersMixed); // X8-19
 
-        const recent = orders.slice(0, 15);
+        const channelTally = CH ? CH.tally(orders) : [];
+        if (CH && ochFilter !== 'all' && !channelTally.some(t => t.key === ochFilter)) ochFilter = 'all';
+        const ofChannel = CH ? CH.pick(orders, ochFilter) : orders;
+        const recent = ofChannel.slice(0, 15);
+        // the row of channel buttons: only when there is more than one thing to choose
+        const channelBar = CH && orders.length ? h('div', { class: 'ochBar', role: 'group', 'aria-label': 'Show the orders of one sales channel', 'data-ochbar': ochFilter },
+          [{ key: 'all', name: 'All', count: orders.length }].concat(channelTally).map(t =>
+            h('button', { type: 'button', class: 'small' + (t.key === ochFilter ? '' : ' secondary'), 'data-ochannel': t.key, 'aria-pressed': t.key === ochFilter ? 'true' : 'false' }, t.name + ' ' + t.count))) : null;
         if (!recent.length) {
           document.getElementById('ordersTableWrap').replaceChildren(h('p', { class: 'empty' }, 'No orders yet.'));
         } else {
-          const showingNoteNode = totalOrders > recent.length
+          const showingNoteNode = CH && ochFilter !== 'all'
+            ? h('p', { class: 'hint u-m-0-0-8', 'data-ochnote': ochFilter }, `Showing the ${recent.length} most recent ${CH.NAMES[ochFilter]} orders` + (ofChannel.length > recent.length ? ` of ${ofChannel.length}` : '') + (totalOrders > orders.length ? ` among the newest ${orders.length} orders.` : '.'))
+            : totalOrders > recent.length
             ? h('p', { class: 'hint u-m-0-0-8' }, `Showing the ${recent.length} most recent of ${totalOrders} orders total.`) : null;
           document.getElementById('ordersTableWrap').replaceChildren(...[
+            channelBar,
             showingNoteNode,
             h('table', { class: 'phoneCards' },
               h('thead', null, h('tr', null,
-                h('th', null, 'Order #'), h('th', null, 'Customer'), h('th', null, 'Status'), h('th', { class: 'num-cell' }, 'Total'), h('th', null, 'Placed'), h('th'))),
+                h('th', null, 'Order #'), h('th', null, 'Customer'), CH ? h('th', null, 'Sold on') : null, h('th', null, 'Status'), h('th', { class: 'num-cell' }, 'Total'), h('th', null, 'Placed'), h('th'))),
               h('tbody', null, recent.map(o =>
                 h('tr', { 'data-id': o.id },
                   h('td', null, o.order_number || o.id),
                   h('td', null, o.customer_name || '—'),
+                  CH ? h('td', { 'data-label': 'Sold on' }, h('span', { class: 'badge ochBadge och-' + CH.channelOf(o), 'data-ochbadge': CH.channelOf(o) }, CH.NAMES[CH.channelOf(o)])) : null,
                   h('td', null, h('span', { class: 'badge' }, o.status ? String(o.status).replace(/_/g, ' ') : '—')),
                   h('td', { class: 'num-cell' }, fmtMoney(o.total, o.currency)),
                   h('td', null, fmtDate(o.placed_at)),

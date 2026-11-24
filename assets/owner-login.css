@@ -1508,3 +1508,7 @@ section.panel table.phoneCards td.icNote{ white-space:pre-wrap !important; }
 .obVoidForm input{ display:block; width:100%; margin-top:4px; font-weight:400; }
 tr.obVoid td{ color:var(--muted); }
 tr.obVoid td:first-child{ text-decoration:line-through; }
+
+/* Sales channel on every order (he_order_channels) */
+.ochBar{ display:flex; flex-wrap:wrap; gap:6px 8px; margin:0 0 10px; }
+.ochBadge{ white-space:nowrap; }
