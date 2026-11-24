@@ -5327,6 +5327,9 @@
             h('label', null, 'Batch (scan the sticker or type the number)', h('input', { type: 'text', id: 'obLot', maxlength: '40', autocomplete: 'off', autocapitalize: 'characters' })),
             h('label', { class: 'obQty' }, 'Bottles', h('input', { type: 'number', id: 'obQty', min: '1', max: '10000', step: '1', inputmode: 'numeric', value: '1' })),
             h('button', { type: 'submit', class: 'small' }, 'Save the batch')),
+          h('div', { class: 'obPhoto' },
+            h('label', { for: 'obPhoto' }, 'Or a photo of the batch sticker (phone camera)'),
+            h('input', { type: 'file', id: 'obPhoto', accept: 'image/*', capture: 'environment', 'data-obphoto': '1' })),
           obState.rows && !obState.rows.length ? h('p', { class: 'hint' }, 'No batch is recorded on this order yet.') : rowsTable) : null,
         h('p', { class: 'u-fs-12 u-mt-4', role: 'status', 'data-obmessage': '1' }, obState.message),
         h('form', { class: 'obForm u-mt-8', 'data-obform': 'recall' },
@@ -5391,6 +5394,31 @@
         obState.recall = r;
         obSay(r.orders ? 'Batch ' + r.lot + ': ' + r.orders + (r.orders === 1 ? ' order.' : ' orders.') : 'No order has batch ' + r.lot + ' recorded.');
       }
+    });
+    // Nov 24: a photo of the sticker(s), read by the phone itself where it can. Each
+    // batch sticker found is saved as one bottle; anything else in the photo is ignored.
+    document.addEventListener('change', async function (e) {
+      const ph = e.target instanceof Element ? e.target.closest('#orderBatchesHost input[data-obphoto]') : null;
+      if (!ph || !ph.files || !ph.files[0]) return;
+      const M = obMod(), store = obStore(); if (!M || !store || !obState.order) return;
+      let values = null;
+      try {
+        if (typeof window.BarcodeDetector === 'function') {
+          const bitmap = await createImageBitmap(ph.files[0]);
+          const codes = await new window.BarcodeDetector().detect(bitmap);
+          values = (codes || []).map(c => c.rawValue || '').filter(Boolean);
+        }
+      } catch (err) { values = null; }
+      if (values === null) { obSay('This browser cannot read a barcode from a photo. Type the batch number printed under the barcode.'); return; }
+      const lots = M.lotsFromBarcodes(values);
+      if (!lots.length) { obSay('No batch sticker was found in the photo. Try again closer, or type the batch number printed under the barcode.'); return; }
+      const saved = [], failed = [];
+      for (const lot of lots) {
+        const r = await store.record(obState.order.id, M.PREFIX + lot, 1, 'scan');
+        if (r.ok) saved.push(r.lot + ' (' + r.quantity + ')'); else failed.push(lot + ': ' + r.message);
+      }
+      await obLoadRows();
+      obSay((saved.length ? 'From the photo, on order ' + obState.order.order_number + ': ' + saved.join(', ') + '. ' : '') + (failed.length ? 'Not saved: ' + failed.join(' ') : ''));
     });
     document.addEventListener('click', function (e) {
       const t = e.target instanceof Element ? e.target.closest('#orderBatchesHost [data-obvoid]') : null; if (!t) return;

@@ -3,6 +3,7 @@
 // batch went into which order, so a batch problem gives one list of orders).
 //
 //   lotFrom(text)                 -> { ok, lot, reason }     a scanned sticker ("B-LOT") or a typed number
+//   lotsFromBarcodes(values)      -> the batches on a photo (only our own stickers count)
 //   orderNumbers(text)            -> the ways an order number may be written ("1001", "#1001")
 //   word(matched)                 -> the plain sentence for the database's answer
 //   recallList(rows, orders)      -> { lines, orders, bottles }   who got a batch
@@ -29,6 +30,23 @@
     if (!t) return { ok: false, lot: '', reason: 'Scan the batch sticker or type the batch number.' };
     if (t.length > MAX_LOT || !/^[\x20-\x7e]+$/.test(t)) return { ok: false, lot: '', reason: 'That is not a batch number (1 to ' + MAX_LOT + ' plain characters).' };
     return { ok: true, lot: t, reason: '' };
+  }
+
+  // what the phone read from a photo -> the batches on it: only our own stickers
+  // ("B-" + number) count, so a product barcode or a tracking number in the same
+  // photo is never taken for a batch; each batch once, at most 20
+  function lotsFromBarcodes(values) {
+    const out = [], seen = Object.create(null);
+    (Array.isArray(values) ? values : []).slice(0, 200).forEach(v => {
+      const t = str(v).trim();
+      if (t.slice(0, PREFIX.length) !== PREFIX || t.length <= PREFIX.length) return;
+      const lot = lotFrom(t);
+      if (!lot.ok) return;
+      const key = lot.lot.toLowerCase();
+      if (seen[key] || out.length >= 20) return;
+      seen[key] = true; out.push(lot.lot);
+    });
+    return out;
   }
 
   function orderNumbers(text) {
@@ -151,5 +169,5 @@
     return { enabled: enabled, record: record, voidRow: voidRow, forOrder: forOrder, forBatch: forBatch };
   }
 
-  return { PREFIX, MAX_LOT, lotFrom, orderNumbers, word, recallList, friendlyError, createStore };
+  return { PREFIX, MAX_LOT, lotFrom, lotsFromBarcodes, orderNumbers, word, recallList, friendlyError, createStore };
 }));

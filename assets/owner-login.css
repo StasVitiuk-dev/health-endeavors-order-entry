@@ -1512,3 +1512,6 @@ tr.obVoid td:first-child{ text-decoration:line-through; }
 /* Sales channel on every order (he_order_channels) */
 .ochBar{ display:flex; flex-wrap:wrap; gap:6px 8px; margin:0 0 10px; }
 .ochBadge{ white-space:nowrap; }
+.obPhoto{ margin-top:8px; }
+.obPhoto label{ display:block; font-weight:600; }
+.obPhoto input{ display:block; max-width:100%; margin-top:4px; }

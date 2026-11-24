@@ -21,6 +21,10 @@ test.describe('the rules on the dashboard side (no browser)', () => {
     expect(M.lotFrom('x'.repeat(25)).ok).toBe(false);
     expect(M.lotFrom('café').ok).toBe(false);
     for (const junk of [null, undefined, {}, [], NaN]) expect(M.lotFrom(junk).ok).toBe(false);
+    // a photo: only our own stickers count, each batch once
+    expect(M.lotsFromBarcodes(['850558001222', 'B-LOT-A', '1Z999AA10123456784', 'B-lot-a', ' B-LOT-B ', 'B-', 'LOT-C', null, 7, 'B-' + 'x'.repeat(30)])).toEqual(['LOT-A', 'LOT-B']);
+    expect(M.lotsFromBarcodes(Array.from({ length: 50 }, (_, i) => 'B-L' + i))).toHaveLength(20);
+    for (const junk of [null, undefined, 'B-LOT', {}, 7]) expect(M.lotsFromBarcodes(junk)).toEqual([]);
     expect(M.orderNumbers('#1001')).toEqual(['#1001', '1001']);
     expect(M.orderNumbers(' 1001 ')).toEqual(['1001', '#1001']);
     for (const junk of ['', '   ', '#', null, undefined, {}]) expect(M.orderNumbers(junk)).toEqual([]);
@@ -213,6 +217,48 @@ test.describe('on the Orders page', () => {
     await host.locator('#obRecall').fill('');
     await host.locator('form[data-obform="recall"] button').click();
     await expect(host.locator('[data-obmessage]')).toContainText('Scan the batch sticker or type the batch number');
+  });
+
+  // the smallest valid picture; the phone's barcode reader is stood in for by a fake
+  const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
+  const camera = (page, codes) => page.addInitScript((list) => {
+    window.createImageBitmap = async () => ({});
+    if (list) window.BarcodeDetector = class { async detect() { return list.map(v => ({ rawValue: v })); } };
+    else { try { delete window.BarcodeDetector; } catch (e) {} window.BarcodeDetector = undefined; }
+  }, codes);
+
+  test('a photo of the stickers: each batch sticker found is saved as one bottle; other barcodes in the photo are ignored', async ({ page, backend }) => {
+    install(backend);
+    await on(page);
+    await camera(page, ['850558001222', 'B-LOT-A', 'B-LOT-B', 'B-lot-a']);
+    await login(page);
+    await gotoPage(page, 'ordersPanel');
+    const host = page.locator('#orderBatchesHost');
+    await host.locator('#obOrder').fill('1001');
+    await host.locator('#obOrder').press('Enter');
+    await host.locator('#obPhoto').setInputFiles({ name: 'sticker.png', mimeType: 'image/png', buffer: PNG });
+    await expect(host.locator('[data-obmessage]')).toHaveText('From the photo, on order #1001: LOT-A (1), LOT-B (1). ');
+    expect(rpcCalls(backend, 'record_order_batch').map(r => r.body)).toEqual([
+      { p_order_id: id(1), p_lot_number: 'LOT-A', p_quantity: 1, p_source: 'scan' },
+      { p_order_id: id(1), p_lot_number: 'LOT-B', p_quantity: 1, p_source: 'scan' }]);
+    await expect(host.locator('tr[data-obrow]')).toHaveCount(2);
+  });
+
+  test('a photo with no batch sticker, and a browser that cannot read barcodes: said plainly, nothing saved', async ({ page, backend }) => {
+    install(backend);
+    await on(page);
+    await camera(page, ['850558001222', '1Z999AA10123456784']);
+    await login(page);
+    await gotoPage(page, 'ordersPanel');
+    const host = page.locator('#orderBatchesHost');
+    await host.locator('#obOrder').fill('1001');
+    await host.locator('#obOrder').press('Enter');
+    await host.locator('#obPhoto').setInputFiles({ name: 'box.png', mimeType: 'image/png', buffer: PNG });
+    await expect(host.locator('[data-obmessage]')).toContainText('No batch sticker was found in the photo');
+    await page.evaluate(() => { window.BarcodeDetector = undefined; });
+    await host.locator('#obPhoto').setInputFiles({ name: 'sticker.png', mimeType: 'image/png', buffer: PNG });
+    await expect(host.locator('[data-obmessage]')).toContainText('This browser cannot read a barcode from a photo. Type the batch number');
+    expect(rpcCalls(backend, 'record_order_batch')).toEqual([]);
   });
 
   test('the section fits the screen (no sideways scrolling)', async ({ page, backend }) => {
