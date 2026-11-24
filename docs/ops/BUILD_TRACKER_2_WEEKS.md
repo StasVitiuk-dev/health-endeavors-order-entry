@@ -43,6 +43,10 @@ Database changes are drafts the owner runs after approving them.
 | #48 | **Daily recap**: one tap prints the latest day (with a notes box); a Home reminder stays until it is printed | backups page + related passed |
 | #49 | **Real profit** on Accounting: profit per order, product and sales channel after product cost, fees, postage and packaging; orders missing a cost are counted, never guessed (no database change) | profit 16 + related passed (83 passed in the last local run) |
 | #50 | **Same numbers on every device**: Real profit estimates saved in the database once draft 50 is installed (review item 10); owner-only changes | DB 40/40; 198 related browser tests passed |
+| #52 | **Money per channel** on Accounting: choose the money report of Etsy, Amazon or TikTok Shop; real sales, refunds, fees, postage and payouts, the real fee rate next to the estimate, payouts checked against the bank (Etsy layout confirmed; Amazon and TikTok wait for a first real export) | channel money + related passed |
+| #53 | **Feature switches shared by every device**, with an audience (work features: everyone; money, revenue, sensitive documents: owner and administrators). Audience table approved by the owner Nov 23. Needs draft 50 installed | shared switches + related passed |
+| #54 | **Real fee and postage per order** (draft 52, review item 11): Real profit uses the real numbers where saved, estimates elsewhere, and says which | DB 35/35; related browser tests passed |
+| #55 | **Incidents: record what was done and close** (owner and administrators; switch `he_incident_close`; no database step). Contains #46–#54 | 157 related passed, 33 skipped |
 
 **How to merge (every PR above):** GitHub shows these PRs as opened by the owner's
 own account, so **Approve is not offered**. On the PR's **Conversation** tab, at the
@@ -96,12 +100,26 @@ adapted to that table.
 - All nine gaps approved; agent diary confirmed ("love it").
 - PROPOSED, waiting for a yes: **Shopify as the hub** for Amazon, Etsy and TikTok
   (their official Shopify apps bring orders in and keep one stock count).
+  Nov 24: the owner asked for an opinion; recommendation given: **yes** (one stock
+  count, one place for orders and labels, one feed for the dashboard; check the
+  connector apps' current fees before installing). OWNER DECISION REQUIRED.
+- Nov 24, bottle photo from the owner: the barcode on a bottle is a normal 12-digit
+  **product** barcode. It does **not** carry the batch, and no batch number is printed
+  on the label side shown. PROPOSED for batch tracing: the dashboard prints small
+  batch stickers (Rollo) when a batch is made, and that sticker is scanned when
+  packing; or the batch is picked on screen. Open question to the owner: is a batch
+  number stamped on the bottom of the bottle?
+- Nov 23: the owner approved the audience split for shared switches ("looks good").
+- Nov 23: the owner confirmed the open incident about the emergency account was
+  their own sign-in during setup; it will be closed with a note once #55 is live.
 
 ## Progress (rough, planning estimates)
 
 - **The 2-week list** (A, B, B2, 1–9, email and the switches section, 13 pieces):
   **4 built and tested** (A, B, 7, 9), waiting to be merged; **9 to build**.
-  About **36% built** (Nov 24, after #47–#49), **0% live** until the owner merges.
+  About **36% built** (Nov 24, after #47–#49); Real profit (5) and Money per channel (4)
+  are now built too (#49–#54). Merged and live so far: #37, #42–#45 (feed, smart scan,
+  delivery watch). Whole list roughly **55–58% built, 25% merged, 0% in daily use**.
 - **The whole business** (dashboard, database fixes R1–R10, website, store launch,
   connections): **≈ 39–42%** (`docs/health-endeavors-progress.md`). Most of the rest
   needs owner steps: merges, the database steps, seller accounts, email, website photos.
@@ -110,13 +128,15 @@ adapted to that table.
 
 Decided Nov 23 (evening): **feature switches are shared by every device**; work features are for every employee; money, revenue and sensitive documents are for the owner and administrators only. NEXT: switches with an audience, stored in shared settings (draft 50).
 
-1. Merge the PRs above (in order).
+1. Merge **one** PR: the highest green one contains all earlier ones (#48 green Nov 24; #55 contains everything once its checks are green).
 2. Business address (virtual mailbox) before the seller accounts; then Etsy, TikTok Shop, Amazon.
 3. Business email addresses (planned for tomorrow).
 4. The database steps in `docs/ops/sql-review/START_HERE_GUIDED_RUNS.md`, then review item 9 (draft 48).
 5. A yes or no on Shopify as the hub.
-6. Batch barcodes: does the barcode on each bottle carry the **batch** number, or only the product code?
-7. **Read-only shape check** of the `shipments` table (review item 9, step 0): one paste in the SQL editor, screenshot.
+6. ~~Batch barcodes~~ ANSWERED Nov 24: product code only (see decisions). Open: is a batch number stamped on the bottom of the bottle?
+7. ~~Read-only shape check of `shipments` and `incidents`~~ DONE Nov 23 (`docs/ops/shapes/PRODUCTION_SHAPES_2026-11-23.md`, on #54). NEXT (Claude): adapt draft 48 to the real `shipments` table.
 8. **Database step for shared settings** (review item 10, draft 50), after #50 is merged: then the Real profit numbers are the same on every device.
-9. Decide: should the **feature switches** also be shared by every device (for you only, or for staff too)?
+9. ~~Feature switches shared?~~ DECIDED Nov 23 (yes, with audiences; #53).
+11. Read-only **Query I** (report day cutoff): SQL given in chat Nov 24; waiting for the result screenshot.
+12. Try **One attention feed** (Feature Flags → Turn on → Home) and say what you think.
 10. Packaging cost per box type (to replace the single packaging estimate).
