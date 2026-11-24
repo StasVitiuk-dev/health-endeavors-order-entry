@@ -168,14 +168,14 @@ Correction recorded the same day: in chat Claude called the products "supplement
 The repository's own record (`assets/sales/he-sales-claims.js`) says Health Endeavors is a
 **body-care / skincare** brand, not a supplement or drug. The rule for wording is the same (no claim
 to treat, cure or heal); the remark about a supplement category approval on Amazon does not apply as
-stated. Told to the owner in chat. If the owner says otherwise, this note is corrected.
+stated. Told to the owner in chat. CONFIRMED by the owner the same day: the product is a body lotion (body care) and no medical claim is made. Ingredient details are deliberately not written here.
 
 Build order, planning estimate (building days; the owner's merges, database sessions, business email
 and seller accounts run alongside):
 
 | Days | Work |
 |---|---|
-| 1–2 | Store campaign: rules (BUILT Nov 24, branch `claude/store-campaigns`, no screen yet), then the screen, drafts only |
+| 1–2 | Store campaign: rules and screen BUILT Nov 24 (PR #65, not merged), drafts only, nothing sent |
 | 3 | Receipt photo → expense draft; full client list to print; control room finished (approvals, diary) |
 | 4–5 | One stock count for all channels |
 | 6 | Reviews and email in the attention feed; morning summary |
