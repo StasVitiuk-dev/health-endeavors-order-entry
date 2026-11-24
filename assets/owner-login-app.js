@@ -3907,6 +3907,67 @@
     // backups, which run outside the dashboard and which it cannot see. Reads
     // only; every printout is black on white.
     let bkReports = null, bkSops = null, bkMonth = '', bkMessage = '', bkSeq = 0;
+    // Day pack (owner, Nov 24): one day on paper, read when Print is pressed (assets/reports/he-day-pack.js)
+    let bkDay = '', bkDayBusy = false;
+    const dpMod = () => (window.HE && window.HE.reports && window.HE.reports['he-day-pack']) || null;
+    const bkSay = (msg) => { bkMessage = msg; announce(msg); const m = document.querySelector('#backupsPanel [data-bkmessage]'); if (m) m.textContent = msg; };
+    async function printDayPack() {
+      const M = dpMod(); if (!M || bkDayBusy) return;
+      const field = document.getElementById('bkDay');
+      const c = M.checkDay(field ? field.value : bkDay);
+      if (!c.ok) { bkSay(c.reason); if (field) field.focus(); return; }
+      bkDay = c.day;
+      const range = M.bounds(c.day);
+      bkDayBusy = true; bkSay('Reading the orders of ' + c.day + '…');
+      let pack = null;
+      try {
+        const orders = await fetchAllRows('orders', 'id, order_number, customer_name, customer_email, status, currency, total, placed_at, deleted_at',
+          q => q.is('deleted_at', null).gte('placed_at', range[0]).lt('placed_at', range[1]));
+        const ids = orders.map(o => o.id);
+        const items = ids.length ? await fetchAllRowsIn('order_items', 'id, order_id, sku, product_name, quantity', 'order_id', ids) : [];
+        pack = M.build({ day: c.day, orders: orders, items: items });
+      } catch (e) {
+        bkDayBusy = false;
+        bkSay('The orders of ' + c.day + ' could not be read (' + explainDbError(e && e.message ? e.message : String(e)) + '). Nothing was printed.');
+        return;
+      }
+      bkDayBusy = false;
+      const t = pack.totals;
+      const recap = (bkReports || []).find(r => String(r.report_date || '').slice(0, 10) === c.day) || null;
+      const line = (label, value) => h('tr', null, h('th', null, label), h('td', { class: 'num-cell' }, value));
+      const sales = t.byCurrency.length ? t.byCurrency.map(m => fmtMoney(m.cents / 100, m.currency)).join(' + ') : (t.counted ? '—' : fmtMoney(0, 'USD'));
+      const time = (iso) => { const d = iso ? new Date(iso) : null; return d && !isNaN(d) ? d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '—'; };
+      const head = (title) => [printBrand(title), h('div', { class: 'printHdr' }, h('div', null, bkPrinted()))];
+      bkPrintDoc([
+        h('div', { class: 'printPage', 'data-printdaypack': c.day }, ...head('Day pack, ' + c.day),
+          h('table', null, h('tbody', null,
+            line('Orders placed this day', String(t.orders)),
+            line('Order totals (tax and shipping included)', sales),
+            line('Bottles and other items sold', String(t.units)),
+            line('Clients', String(t.clients)),
+            t.notCounted ? line('Cancelled or refunded (listed, not in the totals)', String(t.notCounted)) : null,
+            t.noAmount ? line('Orders with no amount saved (not in the totals)', String(t.noAmount)) : null)),
+          h('p', { class: 'u-fs-12' }, 'Exact figures, added up from the orders listed in this pack. Nothing is estimated.'),
+          recap ? h('div', null, h('div', { class: 'printLabel u-mt-8' }, 'The saved nightly recap of this day'),
+            h('table', null, h('tbody', null, line('Orders', bkNum(recap.orders_count)), line('Revenue', recap.revenue == null ? '—' : fmtMoney(recap.revenue, recap.currency || 'USD')),
+              line('New customer questions', bkNum(recap.new_inquiries_count)), line('Tasks opened', bkNum(recap.tasks_opened_count)), line('Incidents opened', bkNum(recap.incidents_opened_count)))))
+            : h('p', { class: 'u-fs-12' }, 'No nightly recap is saved for this day yet (it is written the next morning).'),
+          h('div', { class: 'printLabel u-mt-8' }, 'Notes'), h('div', { class: 'printNotes' }, ' ')),
+        h('div', { class: 'printPage', 'data-printdayorders': String(t.orders) }, ...head('Orders of ' + c.day),
+          t.orders ? h('table', null,
+            h('thead', null, h('tr', null, ['Time', 'Order', 'Client', 'Items', 'Total', 'Status'].map(x => h('th', null, x)))),
+            h('tbody', null, pack.orders.map(o => h('tr', null, h('td', null, time(o.placedAt)), h('td', null, o.number), h('td', null, o.customer || o.email || '—'),
+              h('td', null, o.lines.length ? o.lines.map(l => l.qty + ' × ' + l.name).join('; ') : 'no items saved'),
+              h('td', { class: 'num-cell' }, o.totalCents == null ? '—' : fmtMoney(o.totalCents / 100, o.currency)), h('td', null, o.status.replace(/_/g, ' '))))))
+            : h('p', null, 'No orders were placed on this day.')),
+        h('div', { class: 'printPage', 'data-printdayclients': String(t.clients) }, ...head('Clients of ' + c.day),
+          t.clients ? h('table', null,
+            h('thead', null, h('tr', null, ['Client', 'Email', 'Orders'].map(x => h('th', null, x)))),
+            h('tbody', null, pack.clients.map(cl => h('tr', null, h('td', null, cl.name || '—'), h('td', null, cl.email || '—'), h('td', null, cl.orders.join(', '))))))
+            : h('p', null, 'No clients on this day.'),
+          h('p', { class: 'u-fs-12 u-mt-8' }, 'This page holds customer names and email addresses. Keep it in the business folder.'))]);
+      bkSay('Opened the day pack for ' + c.day + ' for printing: ' + t.orders + (t.orders === 1 ? ' order, ' : ' orders, ') + t.clients + (t.clients === 1 ? ' client.' : ' clients.'));
+    }
     const BK_DOWN = [
       'Orders keep arriving in Shopify while the dashboard is down. Nothing is lost.',
       'Orders: work from Shopify admin (Orders). Shipping labels print from Shopify as usual.',
@@ -3995,6 +4056,12 @@
         h('h3', null, 'Daily recaps'),
         h('p', { class: 'hint u-mt-n2' }, 'The nightly summary of each day: orders, revenue, new customer questions and AI cost. Print a month for the folder, and save the spreadsheet to your computer and one more place (for example iCloud Drive).'),
         recaps,
+        dpMod() ? h('div', { 'data-bkdaypack': '1' },
+          h('h3', null, 'Day pack'),
+          h('p', { class: 'hint u-mt-n2' }, 'One day on paper: every order of the day with its items, the clients of the day, the totals and the saved recap. It is read from the database when you press Print; nothing is changed. The pages hold customer names and emails, so keep them in the business folder.'),
+          h('div', { class: 'u-d-flex u-gap-8 u-fwr-wrap u-ai-flex-end u-mt-8' },
+            h('div', { class: 'heField' }, h('label', { for: 'bkDay' }, 'Day'), h('input', { id: 'bkDay', type: 'date', value: bkDay || localDateString() })),
+            h('button', { type: 'button', class: 'small', 'data-bk': 'print-daypack' }, 'Print the day pack'))) : null,
         h('h3', null, 'Manuals to print'),
         h('ul', null,
           manual('down', 'If the dashboard is down', 'What to do by hand, with a paper log for stock changes.'),
@@ -4043,6 +4110,7 @@
         return;
       }
       const t = e.target.closest('#backupsPanel [data-bk]'); if (!t) return;
+      if (t.getAttribute('data-bk') === 'print-daypack') { printDayPack(); return; }
       if (t.getAttribute('data-bk') === 'print-latest') {
         const r = bkLatest(); if (!r) return;
         const day = String(r.report_date).slice(0, 10);
