@@ -46,9 +46,10 @@ Database changes are drafts the owner runs after approving them.
 | #52 | **Money per channel** on Accounting: choose the money report of Etsy, Amazon or TikTok Shop; real sales, refunds, fees, postage and payouts, the real fee rate next to the estimate, payouts checked against the bank (Etsy layout confirmed; Amazon and TikTok wait for a first real export) | channel money + related passed |
 | #53 | **Feature switches shared by every device**, with an audience (work features: everyone; money, revenue, sensitive documents: owner and administrators). Audience table approved by the owner Nov 23. Needs draft 50 installed | shared switches + related passed |
 | #54 | **Real fee and postage per order** (draft 52, review item 11): Real profit uses the real numbers where saved, estimates elsewhere, and says which | DB 35/35; related browser tests passed |
-| #55 | **Incidents: record what was done and close** (owner and administrators; switch `he_incident_close`; no database step). Also two fixes from the owner's screenshots of Nov 24 in a narrow computer window (about 790 wide): the slide-over menu was see-through, and tables scrolled sideways. Contains #46–#54 | 157 + 131 + 77 related passed |
+| ~~#55~~ **MERGED Nov 23 (evening, owner's time)** | **Incidents: record what was done and close** (owner and administrators; switch `he_incident_close`; no database step). Also two fixes from the owner's screenshots of Nov 24 in a narrow computer window (about 790 wide): the slide-over menu was see-through, and tables scrolled sideways. Contains #46–#54 | 157 + 131 + 77 related passed |
 | #56 | **Drop-off database step (draft 48) adapted to production**: its own tables (`order_parcels`), the Shipping agent's `shipments` table only read and never changed; review item 9 no longer blocked. Contains #46–#55 | DB 64/64, whole DB suite 0 failed; 284 related browser tests passed |
 | #57 | **Batch stickers** on Inventory: the batch in words and as a barcode (Code 128), for a small label roll (2.25 × 1.25 in) or a 4 × 6 label cut into 8 strips; preview switch `he_batch_labels`; reads only. Contains #46–#56 | 178 related passed, 54 skipped; barcode identical to an established library on 304 texts |
+| #58 | **Batch on each order** (draft 54, review item 12; switch `he_order_batches`): scan the batch sticker onto the order when packing, void a wrong scan with a reason, and "Who got a batch". Also lists the incident save in the write-path list (the one red check on #55) and steadies the request-baseline test. Contains #56–#57 | DB 48/48, whole DB suite 0 failed; 171 related passed |
 
 **How to merge (every PR above):** GitHub shows these PRs as opened by the owner's
 own account, so **Approve is not offered**. On the PR's **Conversation** tab, at the
@@ -132,7 +133,7 @@ adapted to that table.
 
 Decided Nov 23 (evening): **feature switches are shared by every device**; work features are for every employee; money, revenue and sensitive documents are for the owner and administrators only. NEXT: switches with an audience, stored in shared settings (draft 50).
 
-1. Merge **one** PR: the highest green one contains all earlier ones (#48 green Nov 24; #57 contains everything once its checks are green).
+1. Merge **one** PR: the highest green one contains all earlier ones (#55 merged Nov 23 evening, which also brought in #46–#54; #58 contains the rest once its checks are green).
 2. Business address (virtual mailbox) before the seller accounts; then Etsy, TikTok Shop, Amazon.
 3. Business email addresses (planned for tomorrow).
 4. The database steps in `docs/ops/sql-review/START_HERE_GUIDED_RUNS.md`, then review item 9 (draft 48).
@@ -142,5 +143,5 @@ Decided Nov 23 (evening): **feature switches are shared by every device**; work 
 8. **Database step for shared settings** (review item 10, draft 50), after #50 is merged: then the Real profit numbers are the same on every device.
 9. ~~Feature switches shared?~~ DECIDED Nov 23 (yes, with audiences; #53).
 11. ~~Read-only Query I~~ RUN Nov 23 (evening, owner's time): 45 saved daily reports, every one with 0 orders, and 0 orders in the table for those days. Verdict **NOT ENOUGH DATA**: nothing is wrong, but with no orders yet the report's day cutoff cannot be told. Run it again after the first week with real orders (at least one placed in the evening).
-12. Try **One attention feed** (Feature Flags → Turn on → Home) and say what you think.
+12. ~~Try One attention feed~~ DONE: the owner turned it on and sent pictures on Nov 23; no change was asked for. Not to be asked again.
 10. Packaging cost per box type (to replace the single packaging estimate).
