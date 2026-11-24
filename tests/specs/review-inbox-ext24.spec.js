@@ -522,6 +522,29 @@ test.describe('reviews on every device: moving what the browser held', () => {
     expect(pageErrors).toEqual([]);
   });
 
+  test('a review added while the move itself is still on its way waits for it, and is saved in the database instead of being overwritten', async ({ page, backend, pageErrors }) => {
+    install(backend); await flags(page, kept(1));
+    // the move's own save is held back until this test lets it go, so the review below is typed in the middle of the move
+    let release, arrived, first = true;
+    const held = new Promise(r => { release = r; }), started = new Promise(r => { arrived = r; });
+    await page.route('**/rest/v1/rpc/add_customer_reviews*', async route => { if (first) { first = false; arrived(); await held; } await route.fallback(); });
+    await login(page); await gotoPage(page, 'reviewsPanel');
+    const P = page.locator('#reviewsPanel');
+    await started;
+    await P.locator('#riStarsIn').selectOption('1'); await P.locator('#riTextIn').fill('SYNTHETIC typed in the middle of the move');
+    await P.locator('[data-ri="add-one"]').click();
+    release();
+    await expect(P.locator('[data-rimessage]')).toHaveText('Review added.', { timeout: 15000 });
+    await expect(P.locator('[data-rikept]')).toHaveAttribute('data-rikept', 'database');
+    await P.locator('[data-rifilter="all"]').click();
+    await expect(P.locator('[data-rireview]')).toHaveCount(2);
+    expect(backend.tables.customer_reviews.map(r => r.review_text).sort()).toEqual(['SYNTHETIC kept review number 0', 'SYNTHETIC typed in the middle of the move']);
+    await page.reload(); await expect(page.locator('#dash')).toBeVisible(); await gotoPage(page, 'reviewsPanel');
+    await P.locator('[data-rifilter="all"]').click();
+    await expect(P.locator('[data-rireview]')).toHaveCount(2);
+    expect(pageErrors).toEqual([]);
+  });
+
   test('an "answered" mark made in this browser is not lost when saving it fails: nothing is switched over, and the next visit carries it', async ({ page, backend, pageErrors }) => {
     install(backend);
     backend.rpc.set_customer_review_status = (b) => { const x = backend.tables.customer_reviews.find(r => r.id === b.p_id); if (x) x.status = b.p_status; return { ok: !!x, id: b.p_id, status: b.p_status }; };
