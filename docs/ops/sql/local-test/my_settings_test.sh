@@ -67,6 +67,28 @@ ok  "  replacing one of the 40 still works" "$(as $E "select (set_my_setting('fe
 ok  "    and really replaced it" "$(q "select value->'items' ? 'task:1' from my_settings where user_id = '$E' and key = 'feed_snooze'")" "t"
 has "  a direct insert past the limit is refused too" "$(as $E "insert into my_settings (key, value) values ('direct_extra', '{}')")" "At most 40"
 
+echo " 4b. two of one person's devices saving the same list at the same moment (owner queue of Nov 25, task 7)"
+ok  "the owner's phone starts a list" "$(as $O "select (set_my_setting('feed_race', '{\"items\": [\"a\"]}', null, true))->>'ok'")" "true"
+has "  starting it again as new is a conflict, nothing changes" "$(as $O "select set_my_setting('feed_race', '{\"items\": []}', null, true)")" '"conflict": true'
+T0=$(q "select updated_at from my_settings where user_id = '$O' and key = 'feed_race'")
+# the phone and the Mac both read version T0; each adds its own item; both save at the same instant
+RACE=$(mktemp)
+( as $O "select set_my_setting('feed_race', '{\"items\": [\"a\", \"b\"]}', '$T0', false)" >>"$RACE" ) &
+( as $O "select set_my_setting('feed_race', '{\"items\": [\"a\", \"c\"]}', '$T0', false)" >>"$RACE" ) &
+wait
+ok  "  two saves of the same version at once: exactly one goes through, the other is told 'conflict'" "$(grep -c '"ok": true' "$RACE")/$(grep -c '"conflict": true' "$RACE")" "1/1"
+rm -f "$RACE"
+T1=$(q "select updated_at from my_settings where user_id = '$O' and key = 'feed_race'")
+JOINED=$(q "select jsonb_build_object('items', (value->'items') || to_jsonb(case when value::text like '%\"b\"%' then 'c' else 'b' end))::text from my_settings where user_id = '$O' and key = 'feed_race'")
+ok  "  the other device reads again and saves the joined list" "$(as $O "select (set_my_setting('feed_race', '$JOINED', '$T1', false))->>'ok'")" "true"
+ok  "  nothing was erased: a, b and c are all there" "$(q "select string_agg(e, ',' order by e) from my_settings, jsonb_array_elements_text(value->'items') e where user_id = '$O' and key = 'feed_race'")" "a,b,c"
+has "a save with an old version is refused, nothing changes" "$(as $O "select set_my_setting('feed_race', '{\"items\": []}', '$T0', false)")" '"conflict": true'
+ok  "  (still a, b and c)" "$(q "select jsonb_array_length(value->'items') from my_settings where user_id = '$O' and key = 'feed_race'")" "3"
+has "another person's version check never reaches the owner's row (their own row is new to them)" "$(as $F "select set_my_setting('feed_race', '{\"items\": [\"x\"]}', '$T1', false)")" '"conflict": true'
+ok  "  (the owner's list is untouched, and the other person has no such row)" "$(q "select (select jsonb_array_length(value->'items') from my_settings where user_id = '$O' and key = 'feed_race') || '|' || (select count(*) from my_settings where user_id = '$F' and key = 'feed_race')")" "3|0"
+has "the version check does not let a visitor in" "$(as anon "select set_my_setting('feed_race', '{}', '$T1', false)")" "permission denied\|Only a signed-in"
+ok  "a save without a version still replaces" "$(as $O "select (set_my_setting('feed_race', '{\"items\": []}'))->>'ok'")|$(q "select jsonb_array_length(value->'items') from my_settings where user_id = '$O' and key = 'feed_race'")" "true|0"
+
 echo " 5. not audited on purpose (view preferences, not business records)"
 ok  "nothing about my_settings is in audit_log" "$(q "select count(*) from audit_log where table_name = 'my_settings'")" "0"
 

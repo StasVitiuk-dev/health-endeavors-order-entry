@@ -82,6 +82,34 @@
     return best;
   }
 
+  // A list two devices may add to at once: read, join this device's change to the newest
+  // value, save that version only; if someone saved in between, read and join again
+  // (at most `tries` times). join(currentValue) returns the value to save, or null when
+  // there is nothing to add. Answers { ok, value, conflict, message }. Used by both stores.
+  async function mergeLoop(get, save, key, join, tries) {
+    const max = Math.max(1, Math.min(5, Number(tries) || 3));
+    let last = { ok: false, message: 'Not saved.' };
+    for (let i = 0; i < max; i++) {
+      const now = await get(key);
+      if (now.state !== 'installed') return { ok: false, notInstalled: now.state === 'not_installed', message: now.message || 'Not saved.' };
+      let next = null;
+      try { next = join(now.value); } catch (e) { return { ok: false, message: 'Not saved: the change could not be joined.' }; }
+      if (next == null) return { ok: true, value: now.value, unchanged: true, message: '' };
+      last = await save(next, now.updatedAt ? { expectedUpdatedAt: now.updatedAt } : { expectNew: true });
+      if (last.ok) return { ok: true, value: next, updatedAt: last.updatedAt, message: '' };
+      if (!last.conflict) return last;
+    }
+    return { ok: false, conflict: true, message: 'Not saved: others kept saving at the same moment. Try again in a minute.' };
+  }
+  // The version arguments both save functions take (drafts/50 and drafts/58).
+  function versionArgs(args, opts) {
+    const o = isObj(opts) ? opts : {};
+    if (o.expectNew === true) { args.p_expect_new = true; }
+    else if (o.expectedUpdatedAt) { args.p_expected_updated_at = String(o.expectedUpdatedAt); }
+    return args;
+  }
+  const CONFLICT_MSG = 'Someone saved this on another device at the same moment.';
+
   function createStore(deps) {
     const d = deps || {};
     const client = d.client;
@@ -107,37 +135,19 @@
       if (!usable || typeof client.rpc !== 'function') return { ok: false, message: 'The database is not available here.' };
       const c = checkValue(key, value);
       if (!c.ok) return { ok: false, message: c.reason };
-      const o = isObj(opts) ? opts : {};
-      const args = { p_key: key, p_value: c.value, p_audience: audience === 'staff' ? 'staff' : 'owner_admin' };
-      if (o.expectNew === true) { args.p_expect_new = true; }
-      else if (o.expectedUpdatedAt) { args.p_expected_updated_at = String(o.expectedUpdatedAt); }
+      const args = versionArgs({ p_key: key, p_value: c.value, p_audience: audience === 'staff' ? 'staff' : 'owner_admin' }, opts);
       try {
         const res = await client.rpc(RPC, args);
         if (res && res.error) return { ok: false, message: friendlyError(res.error), notInstalled: notInstalled(res.error) || String(res.error.code || '') === 'PGRST202' };
         const out = res && isObj(res.data) ? res.data : {};
-        if (out.ok === false && out.conflict === true) return { ok: false, conflict: true, message: 'Someone saved this on another device at the same moment.', updatedAt: out.updated_at || null };
+        if (out.ok === false && out.conflict === true) return { ok: false, conflict: true, message: CONFLICT_MSG, updatedAt: out.updated_at || null };
         return { ok: true, message: '', updatedAt: out.updated_at || null };
       } catch (e) { return { ok: false, message: friendlyError(e) }; }
     }
 
-    // A list two devices may add to at once: read, join this device's change to the newest
-    // value, save that version only; if someone saved in between, read and join again
-    // (at most `tries` times). join(currentValue) returns the value to save, or null when
-    // there is nothing to add. Answers { ok, value, conflict, message }.
-    async function mergeSave(key, join, audience, tries) {
-      const max = Math.max(1, Math.min(5, Number(tries) || 3));
-      let last = { ok: false, message: 'Not saved.' };
-      for (let i = 0; i < max; i++) {
-        const now = await get(key);
-        if (now.state !== 'installed') return { ok: false, notInstalled: now.state === 'not_installed', message: now.message || 'Not saved.' };
-        let next = null;
-        try { next = join(now.value); } catch (e) { return { ok: false, message: 'Not saved: the change could not be joined.' }; }
-        if (next == null) return { ok: true, value: now.value, unchanged: true, message: '' };
-        last = await set(key, next, audience, now.updatedAt ? { expectedUpdatedAt: now.updatedAt } : { expectNew: true });
-        if (last.ok) return { ok: true, value: next, updatedAt: last.updatedAt, message: '' };
-        if (!last.conflict) return last;
-      }
-      return { ok: false, conflict: true, message: 'Not saved: others kept saving at the same moment. Try again in a minute.' };
+    // See mergeLoop: a list two devices may add to at once.
+    function mergeSave(key, join, audience, tries) {
+      return mergeLoop(get, (v, o) => set(key, v, audience, o), key, join, tries);
     }
 
     return { get: get, set: set, mergeSave: mergeSave };
@@ -167,19 +177,25 @@
       } catch (e) { return none('unknown', mine(e)); }
     }
 
-    async function set(key, value) {
+    // opts as for the shared store: with the version this page read, the database saves
+    // only if none of this person's other devices saved in between (drafts/58).
+    async function set(key, value, opts) {
       if (!usable || typeof client.rpc !== 'function') return { ok: false, message: 'The database is not available here.' };
       const c = checkValue(key, value);
       if (!c.ok) return { ok: false, message: c.reason };
       try {
-        const res = await client.rpc(MY_RPC, { p_key: key, p_value: c.value });
+        const res = await client.rpc(MY_RPC, versionArgs({ p_key: key, p_value: c.value }, opts));
         if (res && res.error) return { ok: false, message: mine(res.error), notInstalled: notInstalled(res.error) || String(res.error.code || '') === 'PGRST202' };
         const out = res && isObj(res.data) ? res.data : {};
+        if (out.ok === false && out.conflict === true) return { ok: false, conflict: true, message: CONFLICT_MSG, updatedAt: out.updated_at || null };
         return { ok: true, message: '', updatedAt: out.updated_at || null };
       } catch (e) { return { ok: false, message: mine(e) }; }
     }
+    function mergeSave(key, join, tries) {
+      return mergeLoop(get, (v, o) => set(key, v, o), key, join, tries);
+    }
 
-    return { get: get, set: set };
+    return { get: get, set: set, mergeSave: mergeSave };
   }
 
   return { TABLE, RPC, KEYS, MY_TABLE, MY_RPC, MY_KEYS, MAX_CHARS, checkValue, friendlyError, latestDay, createStore, createPersonalStore };

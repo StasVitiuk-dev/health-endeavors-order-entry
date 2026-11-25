@@ -7,6 +7,7 @@
 // again. The made-up database here applies the same version rule as drafts/50.
 const { test, expect } = require('@playwright/test');
 const SS = require('../../assets/views/he-shared-settings.js');
+const SW = require('../../assets/views/he-shared-switches.js');
 
 test.beforeEach(({}, ti) => { test.skip(ti.project.name !== 'desktop', 'Node-only; run once'); });
 
@@ -31,7 +32,7 @@ function fakeDb() {
           return q;
         },
         async rpc(name, a) {
-          if (name !== 'set_shared_setting') return { data: null, error: { message: 'unknown' } };
+          if (name !== 'set_shared_setting' && name !== 'set_my_setting') return { data: null, error: { message: 'unknown' } };   // the same version rule in drafts/50 and drafts/58
           const row = rows.get(a.p_key);
           const stamp = () => '2026-11-25T10:00:00.' + String(++clock).padStart(6, '0') + '+00:00';
           if (a.p_expect_new) {
@@ -106,4 +107,48 @@ test('nothing new to add: no save at all; a failed save says so instead of prete
   const off = await SS.createStore({ client: db.client(), enabled: false }).mergeSave('k1', addItem('q'), 'owner_admin');
   expect(off.ok).toBe(false);
   expect(off.notInstalled).toBe(true);
+});
+
+// Nov 25, later: the same check for the other saves that join a value (drafts/58 for one
+// person's own settings; the preview switches, the "recap printed" day and the weekly
+// report mark). Each fails without the check, as the "old way" test above shows.
+test('one person, two devices: things set aside on Home at the same moment are both kept (drafts/58)', async () => {
+  const db = fakeDb();
+  db.rows.set('feed_snooze', { value: { items: { 'task:1': { until: 9 } } }, updated_at: '2026-11-25T09:00:00.000000+00:00' });
+  db.holdReadsUntil(2);
+  const add = (id) => (cur) => { const items = Object.assign({}, cur && cur.items); if (items[id]) return null; items[id] = { until: 9 }; return { items }; };
+  const phone = SS.createPersonalStore({ client: db.client(), enabled: true }), mac = SS.createPersonalStore({ client: db.client(), enabled: true });
+  const r = await Promise.all([phone.mergeSave('feed_snooze', add('task:2')), mac.mergeSave('feed_snooze', add('task:3'))]);
+  expect(r.every(x => x.ok)).toBe(true);
+  expect(db.conflicts).toBe(1);
+  expect(Object.keys(db.rows.get('feed_snooze').value.items).sort()).toEqual(['task:1', 'task:2', 'task:3']);
+});
+
+test('preview switches: two devices switch different features at once, both changes stay (each switch: last choice wins)', async () => {
+  const LIST = [{ key: 'he_one' }, { key: 'he_two' }, { key: 'he_three' }];
+  const start = { on: { he_one: true } };
+  // the old way: each device builds the whole list from what it read, then replaces
+  const old = fakeDb(); old.rows.set(SW.KEY, { value: start, updated_at: 't0' });
+  const a0 = SS.createStore({ client: old.client(), enabled: true }), b0 = SS.createStore({ client: old.client(), enabled: true });
+  const av = (await a0.get(SW.KEY)).value, bv = (await b0.get(SW.KEY)).value;
+  await a0.set(SW.KEY, SW.nextValue(av, LIST, 'he_two', true), 'staff');
+  await b0.set(SW.KEY, SW.nextValue(bv, LIST, 'he_one', false), 'staff');
+  expect(old.rows.get(SW.KEY).value).toEqual({ on: {} });                       // he_two was switched back off by the other device
+  // the new way: the one switch is applied to the newest list
+  const db = fakeDb(); db.rows.set(SW.KEY, { value: start, updated_at: 't0' });
+  db.holdReadsUntil(2);
+  const a = SS.createStore({ client: db.client(), enabled: true }), b = SS.createStore({ client: db.client(), enabled: true });
+  const r = await Promise.all([a.mergeSave(SW.KEY, (cur) => SW.nextValue(cur, LIST, 'he_two', true), 'staff'),
+    b.mergeSave(SW.KEY, (cur) => SW.nextValue(cur, LIST, 'he_one', false), 'staff')]);
+  expect(r.every(x => x.ok)).toBe(true);
+  expect(db.rows.get(SW.KEY).value).toEqual({ on: { he_two: true } });          // he_one off, he_two on: both choices kept
+});
+
+test('"recap printed": an earlier day saved at the same moment never replaces a later one', async () => {
+  const db = fakeDb(); db.rows.set('recap_printed', { value: { day: '2026-11-20' }, updated_at: 't0' });
+  db.holdReadsUntil(2);
+  const upTo = (day) => (cur) => { const best = SS.latestDay(day, cur && cur.day); return cur && cur.day === best ? null : { day: best }; };
+  const a = SS.createStore({ client: db.client(), enabled: true }), b = SS.createStore({ client: db.client(), enabled: true });
+  await Promise.all([a.mergeSave('recap_printed', upTo('2026-11-25'), 'owner_admin'), b.mergeSave('recap_printed', upTo('2026-11-24'), 'owner_admin')]);
+  expect(db.rows.get('recap_printed').value.day).toBe('2026-11-25');
 });

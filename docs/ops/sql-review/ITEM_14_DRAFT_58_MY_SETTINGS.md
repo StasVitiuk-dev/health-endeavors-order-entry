@@ -11,8 +11,8 @@ choices that belong to **one person**. First use: what you set aside until tomor
 
 | File | Lines | Fingerprint (SHA-256, first 16) |
 |---|---|---|
-| `docs/ops/sql/drafts/58_DRAFT_my_settings.sql` (install) | 145 | `095d7c4be43d7d52` |
-| `docs/ops/sql/drafts/59_DRAFT_rollback_my_settings.sql` (undo) | 45 | `d0ef5efbde58a5be` |
+| `docs/ops/sql/drafts/58_DRAFT_my_settings.sql` (install) | 176 | `35ce08fdd4e4caea` |
+| `docs/ops/sql/drafts/59_DRAFT_rollback_my_settings.sql` (undo) | 46 | `b7898a4634ad9f92` |
 
 ## Target environment
 
@@ -41,17 +41,33 @@ Never the text of a question, never a customer.
   missing, it stops and changes nothing.
 - Depends on no other draft. Safe to run twice.
 - Supabase shows its usual warning about a "destructive operation": the file lists only
-  `drop policy if exists …` and `drop trigger if exists …` on its own new table.
+  `drop policy if exists …` and `drop trigger if exists …` on its own new table, and
+  `drop function if exists public.set_my_setting(text, jsonb)`, the earlier shape of its own save
+  function (it only exists if an earlier version of this draft was ever run).
+
+## Changed before install (Nov 25): your two devices never erase each other's additions
+
+The same check draft 50 got (review item 10, task 7 of your Nov 25 queue): when your phone and
+your Mac each set something aside at the same moment, the second save used to replace the first
+one's list. The save now carries **the version the page read**; the database saves only if nothing
+was saved in between, otherwise it changes nothing and answers "conflict", and the page reads the
+newer list, adds its own change and saves again (at most three times, then it says so). The check
+is inside the database, in one statement. The undo file (59) removes this new shape of the
+function and the earlier one.
 
 ## Local test (throwaway database, made-up data)
 
-`docs/ops/sql/local-test/my_settings_test.sh`: **37 of 37 passed** (Nov 24). It acts as the owner,
+`docs/ops/sql/local-test/my_settings_test.sh`: **48 of 48 passed, three runs in a row** (Nov 25,
+with section 4b: two connections for the same person save at the same instant, exactly one goes
+through, the other is told "conflict", and after it reads again the list holds both additions; an
+old version is refused; another person's version never reaches your row; 37 of 37 on Nov 24). It acts as the owner,
 an administrator, two staff members, a deactivated account and a visitor, and covers: install twice;
 each person saves and reads only their own (the owner cannot read a staff member's); a row typed for
 someone else is stored under the signed-in person; replacing; the limits (40 per person, the size, a
 bad name); nothing can be deleted or renamed; the rollback; a foreign table of the same name is left
 untouched.
-Dashboard tests: `tests/specs/attention-feed-ext24.spec.js` ("set aside on every device").
+Dashboard tests: `tests/specs/attention-feed-ext24.spec.js` ("set aside on every device"),
+`tests/specs/shared-settings-race-ext25.spec.js` (two devices set aside at once: both kept).
 
 ## After running: check (read-only, paste into the SQL editor)
 

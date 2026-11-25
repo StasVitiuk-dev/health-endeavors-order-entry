@@ -3479,15 +3479,20 @@
     function feedSnoozePush() {
       const M = feedMod(), S = rpSettings(), st = fsStore(); if (!M || !S || !st || !mySettingsOn()) return;
       clearTimeout(fsTimer);
-      // Read first, join, then save: what another of this person's devices saved a moment ago
-      // is kept (and taken in here) instead of being overwritten by this browser's list.
+      // Read first, join, then save that version only: what another of this person's devices
+      // saved a moment ago is kept (and taken in here) instead of being overwritten by this
+      // browser's list; if one saves in between, the database refuses and the join is redone.
       fsTimer = setTimeout(async () => {
-        const now = await st.get(S.MY_KEYS.feedSnooze);
-        if (now.state !== 'installed') { fsShared = false; return; }
-        const mine = M.pack(feedStore()), joined = M.merge(mine, now.value, Date.now());
-        if (JSON.stringify(joined) !== JSON.stringify(mine)) { M.unpack(feedStore(), joined); paintAttentionFeed(); }
-        if (JSON.stringify(joined) === JSON.stringify(M.merge(now.value, null, Date.now()))) { fsShared = true; return; }   // the database already has all of it
-        const r = await st.set(S.MY_KEYS.feedSnooze, joined); fsShared = !!r.ok;
+        const mine = M.pack(feedStore());
+        const r = await st.mergeSave(S.MY_KEYS.feedSnooze, (cur) => {
+          const joined = M.merge(mine, cur, Date.now());
+          return JSON.stringify(joined) === JSON.stringify(M.merge(cur, null, Date.now())) ? null : joined;   // null: the database already has all of it
+        });
+        if (r.notInstalled) { fsShared = false; return; }
+        fsShared = !!r.ok;
+        if (!r.ok) return;
+        const here = M.merge(M.pack(feedStore()), r.value, Date.now());
+        if (JSON.stringify(here) !== JSON.stringify(M.pack(feedStore()))) { M.unpack(feedStore(), here); paintAttentionFeed(); }
       }, 700);
     }
     async function feedSnoozePull() {
@@ -5639,11 +5644,10 @@
     async function wrSeenSave(key) {
       try { if (wrSeenHere() < key) localStorage.setItem(WR_SEEN_KEY, key); } catch (e) { /* the reminder simply stays in this browser */ }
       const S = rpSettings(), st = fsStore(); if (!S || !st || !mySettingsOn()) return;
-      const now = await st.get(S.MY_KEYS.weekSeen);
-      if (now.state !== 'installed') return;
-      const best = S.latestDay(key, now.value && typeof now.value.week === 'string' ? now.value.week : null);
-      if (now.value && now.value.week === best) return;                     // already there (a later week stays)
-      await st.set(S.MY_KEYS.weekSeen, { week: best });
+      await st.mergeSave(S.MY_KEYS.weekSeen, (cur) => {
+        const best = S.latestDay(key, cur && typeof cur.week === 'string' ? cur.week : null);
+        return cur && cur.week === best ? null : { week: best };            // already there (a later week stays)
+      });
     }
     // the reviews of the report: left out when the Reviews inbox is off; from the database when they are kept there
     async function wrReviews() {
@@ -5780,11 +5784,11 @@
     }
     async function recapPrintedSave(day) {
       const S = rpSettings(), store = rpStore(); if (!S || !store || !sharedSettingsOn()) return false;
-      const now = await store.get(S.KEYS.recapPrinted);
-      if (now.state !== 'installed') return false;
-      const best = S.latestDay(day, now.value && typeof now.value.day === 'string' ? now.value.day : null);
-      if (now.value && now.value.day === best) return true;                 // already there (a later day stays)
-      const saved = await store.set(S.KEYS.recapPrinted, { day: best }, 'owner_admin');
+      // the later day counts; saved only on the version read, so another device's later day is never replaced
+      const saved = await store.mergeSave(S.KEYS.recapPrinted, (cur) => {
+        const best = S.latestDay(day, cur && typeof cur.day === 'string' ? cur.day : null);
+        return cur && cur.day === best ? null : { day: best };              // already there (a later day stays)
+      }, 'owner_admin');
       return !!saved.ok;
     }
     function bkLatest() { return (bkReports || []).filter(r => /^\d{4}-\d{2}-\d{2}/.test(String(r.report_date || ''))).sort((a, b) => String(b.report_date).localeCompare(String(a.report_date)))[0] || null; }
@@ -6256,12 +6260,14 @@
         const sw = act === 'toggle' ? PREVIEW_SWITCHES.find(x => x.key === t.getAttribute('data-key')) : null;
         if (act === 'toggle' && !sw) return;
         const turnOn = sw ? !previewSwitchIsOn(sw.key) : false;
-        const base = ssShared.value || W.fromStorage(PREVIEW_SWITCHES, localStorage);
-        const next = sw ? W.nextValue(base, PREVIEW_SWITCHES, sw.key, turnOn) : W.allOff();
+        // Only this switch changes: it is applied to the newest list in the database, so a switch
+        // another device changed a moment ago is kept (each switch: the last choice wins).
+        const join = (cur) => sw ? W.nextValue(cur || ssShared.value || W.fromStorage(PREVIEW_SWITCHES, localStorage), PREVIEW_SWITCHES, sw.key, turnOn) : W.allOff();
         const store = rpStore();
-        const r = store ? await store.set(W.KEY, next, 'staff') : { ok: false, message: 'The shared settings could not be reached.' };
+        const r = store ? await store.mergeSave(W.KEY, join, 'staff') : { ok: false, message: 'The shared settings could not be reached.' };
         if (!r.ok) { previewSwitchMessage = r.message + ' Nothing was changed.'; }
         else {
+          const next = r.value;
           ssShared = { state: 'installed', value: next };
           W.apply(W.effective(next, PREVIEW_SWITCHES, currentUserRole, SWITCH_EVERYONE), localStorage);
           previewSwitchMessage = sw ? sw.name + (turnOn ? ' is on for every device (' + W.AUDIENCE_WORD[W.audienceOf(sw.key, SWITCH_EVERYONE)].toLowerCase() + '). Reload the page, then open ' + sw.where + '.' : ' is off on every device. Reload the page to finish.')

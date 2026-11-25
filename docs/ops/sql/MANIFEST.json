@@ -701,7 +701,7 @@
       "risk": "LOW",
       "rollback": "59",
       "precheck": "stops, changing nothing, if a my_settings table exists that this file did not create (it checks its own mark); stops if auth.uid(), is_active_staff() or is_owner_or_admin() is missing",
-      "effect": "1 new table my_settings (one row per person and setting: the person, a short key, a small JSON value, when it was saved); set_my_setting() saves or replaces the signed-in person's own setting; each active person reads and writes only their own rows, the owner included; never deleted, keys never renamed; at most 40 settings per person; not audited on purpose (view preferences, not business records); no existing table changes",
+      "effect": "1 new table my_settings (one row per person and setting: the person, a short key, a small JSON value, when it was saved); set_my_setting() saves or replaces the signed-in person's own setting, and refuses with a conflict when the page passes the version it read and another of this person's devices saved in between (two devices never erase each other's additions); each active person reads and writes only their own rows, the owner included; never deleted, keys never renamed; at most 40 settings per person; not audited on purpose (view preferences, not business records); no existing table changes",
       "postcheck": "the table present and empty; anon cannot read it; local-test/my_settings_test.sh passes on a throwaway copy",
       "lock": "NONE (new table only)"
     },
@@ -713,7 +713,7 @@
       "dependsOn": [],
       "risk": "LOW",
       "precheck": "stops, removing nothing, while any setting is saved, unless deleting them was authorized in the session; stops if the table was not created by drafts/58",
-      "effect": "drops the function, the table and its guard",
+      "effect": "drops the function (both its shapes), the table and its guard",
       "postcheck": "to_regclass('public.my_settings') is null",
       "dynamicSql": "format() with fixed names (%I) to lock and count the my_settings table only where it exists"
     },

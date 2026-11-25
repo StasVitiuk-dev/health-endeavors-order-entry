@@ -58,7 +58,10 @@ saved in between; otherwise it changes nothing and answers "conflict", and the p
 newer list, adds its own change to it and saves again (at most three times, then it says "not
 saved" instead of pretending). The check is inside the database, in one statement, so it holds
 even when two saves arrive at the same instant. A single switch (on or off) is still saved
-without a version on purpose: there, the last choice wins. The undo file (51) now removes this
+without a version on purpose: there, the last choice wins. The preview switches are kept as one list, so (also Nov 25) turning one
+switch on or off is applied to the newest list with the version check: two devices switching
+different features at the same moment both keep their choice (each switch: the last choice wins).
+The undo file (51) now removes this
 new shape of the function (and the earlier one, if it was ever installed).
 
 Proven twice: the local database test (section 4b) saves from **two real connections at the same
@@ -118,8 +121,8 @@ shared settings at all (a failed request at every sign-in), so it asks only wher
 | Kept per browser today | Effect on a second device | Proposed |
 |---|---|---|
 | Preview switches (Feature Flags) | a feature turned on here is off there | **BUILT (PR #53), owner decision of Nov 23:** shared by every device; work features for every employee; money, revenue and sensitive documents for the owner and administrators |
-| "Daily recap printed" mark | the Home reminder shows on the other device | move |
-| Snoozed items in the attention feed | a snoozed item still shows on the other device | move |
+| "Daily recap printed" mark | the Home reminder shows on the other device | **BUILT (Nov 24):** kept here (`recap_printed`); the later day counts. Nov 25: saved with the version read, so an earlier day saved at the same moment never replaces a later one |
+| Snoozed items in the attention feed | a snoozed item still shows on the other device | **BUILT (Nov 24):** each person's own, in draft 58 (review item 14). Nov 25: saved with the version read (both devices' items kept) |
 | Chosen look (Aurora / previous) | each device keeps its own look | keep per device (a look is a personal choice), unless you say otherwise |
 | Sales outreach workbench (practice data) | practice data only | keep per device |
 

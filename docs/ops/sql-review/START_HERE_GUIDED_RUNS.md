@@ -35,7 +35,7 @@ Today every row is **Prepared** only: nothing is reviewed by you, approved, inst
 | 10 | Packaging and shipping cost per order (real profit) | nothing | `52_DRAFT_order_costs.sql` | 190 | `2be65c5c4b234315` | `53_…` | — | Item 11, "After running" |
 | 11 | Batch (lot) on each order line, for recalls | nothing | `54_DRAFT_order_batches.sql` | 299 | `a19bbc8a6e156aee` | `55_…` | Item 12, "Open question" | Item 12, "After running" |
 | 12 | Saved email campaigns approved by you or an administrator (**still sends nothing**; real sending is a separate decision) | nothing | `56_DRAFT_email_sending.sql` | 565 | `bce831127168a975` | `57_…` | — | Item 13, "After running" |
-| 13 | "My settings" kept per person on every device | nothing | `58_DRAFT_my_settings.sql` | 145 | `095d7c4be43d7d52` | `59_…` | — | Item 14, "After running" |
+| 13 | "My settings" kept per person on every device | nothing | `58_DRAFT_my_settings.sql` | 176 | `35ce08fdd4e4caea` | `59_…` | — | Item 14, "After running" |
 | 14 | Customer reviews stored | nothing | `60_DRAFT_customer_reviews.sql` | 262 | `096167f3c7cf7581` | `61_…` | — | Item 15, "After running" |
 | 15a | The word "manager" | nothing | `62_DRAFT_manager_role.sql` | 48 | `c78870424a9e247f` | `63_…` | Item 16, "Before you run it" | Item 16 |
 | 15b | Four levels; each looks after the levels below (owner accounts untouchable) | **15a** | `64_DRAFT_people_levels.sql` | 389 | `275cdc3123fd520e` | `65_…` | (same look) | Item 16 |

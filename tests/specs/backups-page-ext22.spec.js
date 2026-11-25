@@ -164,7 +164,7 @@ test.describe('the printed-recap note on every device (shared settings in use)',
     await host.locator('[data-bk="print-latest"]').click();
     await expect(host.locator('[data-bkmessage]')).toHaveText('Opened the recap for 2026-11-22 for printing. The Home reminder is cleared for this day on every device.');
     const saves = () => backend.requests.filter(r => r.rpc === 'set_shared_setting').map(r => r.body);
-    expect(saves()).toEqual([{ p_key: 'recap_printed', p_value: { day: '2026-11-22' }, p_audience: 'owner_admin' }]);
+    expect(saves()).toEqual([{ p_key: 'recap_printed', p_value: { day: '2026-11-22' }, p_audience: 'owner_admin', p_expect_new: true }]);   // nothing saved yet: "expect new", so another device's save in between is never replaced
     await host.locator('[data-bk="print-latest"]').click();                      // printing the same day again saves nothing new
     await expect(host.locator('[data-bkmessage]')).toContainText('on every device');
     expect(saves()).toHaveLength(1);
