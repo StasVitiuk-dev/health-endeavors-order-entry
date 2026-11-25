@@ -287,9 +287,9 @@ for (const f of ALL) {
       'drop policy if exists tax_rates_read on public.tax_rates;',
       'create policy tax_rates_read on public.tax_rates for select to authenticated using (public.is_active_staff() or public.is_owner_or_admin());',
       'drop policy if exists tax_rates_owner_add on public.tax_rates;',
-      "create policy tax_rates_owner_add on public.tax_rates for insert to authenticated with check (coalesce(public.current_role(), '') = 'owner');",
+      "create policy tax_rates_owner_add on public.tax_rates for insert to authenticated with check (coalesce(public.current_role(), '') in ('owner', 'administrator'));",
       'drop policy if exists tax_rates_owner_change on public.tax_rates;',
-      "create policy tax_rates_owner_change on public.tax_rates for update to authenticated\n  using (coalesce(public.current_role(), '') = 'owner') with check (coalesce(public.current_role(), '') = 'owner');"];
+      "create policy tax_rates_owner_change on public.tax_rates for update to authenticated\n  using (coalesce(public.current_role(), '') in ('owner', 'administrator')) with check (coalesce(public.current_role(), '') in ('owner', 'administrator'));"];
     // The seventh allowed set (Nov 22, drafts/42): row rules on that draft's OWN
     // new tables (Shopify payout copy, money differences); owner/admin only.
     const MONEY_RULES = [

@@ -2791,7 +2791,7 @@
       const seq = ++trSeq;
       const L = await store.list();
       if (seq !== trSeq) return;
-      const owner = currentUserRole === 'owner';
+      const owner = currentUserRole === 'owner' || currentUserRole === 'administrator';   // confirms and re-checks (owner decision, Nov 24)
       const today = trToday();
       const head = [h('h3', { class: 'u-fs-13 u-c-navy u-m-18-0-6' }, 'Sales tax rates you confirmed'),
         h('p', { class: 'hint u-mt-n2 hintLead' }, 'Invoices use only these rates, from the day each one starts. Look the rate up in the Illinois Department of Revenue\'s Tax Rate Finder (tax.illinois.gov). Rates can change on January 1 and July 1, so each rate asks to be re-checked after those days.')];
@@ -2815,7 +2815,7 @@
         h('div', { class: 'heField' }, h('label', { for: 'trFrom' }, 'Starts on'), h('input', { id: 'trFrom', name: 'from', type: 'date' })),
         h('div', { class: 'heField' }, h('label', { for: 'trSource' }, 'Where it comes from'), h('input', { id: 'trSource', name: 'source', type: 'text', maxlength: '200', value: 'IDOR Tax Rate Finder' })),
         h('div', { class: 'heField heWide' }, h('label', { for: 'trNote' }, 'Note ', h('span', { class: 'heOpt' }, '(optional)')), h('input', { id: 'trNote', name: 'note', type: 'text', maxlength: '300' })),
-        h('div', { class: 'heActions' }, h('button', { type: 'submit', class: 'small' }, 'Confirm rate'))) : h('p', { class: 'hint u-fs-12' }, 'Only the owner confirms or re-checks a rate.');
+        h('div', { class: 'heActions' }, h('button', { type: 'submit', class: 'small' }, 'Confirm rate'))) : h('p', { class: 'hint u-fs-12' }, 'Only the owner or an administrator confirms or re-checks a rate.');
       host.replaceChildren(...head,
         due.length ? h('p', { class: 'error', role: 'status', 'data-trdue': String(due.length) }, due.length + ' rate' + (due.length === 1 ? ' needs' : 's need') + ' a re-check: new invoices with ' + (due.length === 1 ? 'it' : 'them') + ' stay TAX PENDING until then.') : null,
         table,
@@ -2828,7 +2828,7 @@
     async function loadTaxRateAlert() {
       const host = document.getElementById('taxRateAlertHost'); if (!host) return;
       const store = trStore(); const mod = trMod();
-      if (!store || !mod || currentUserRole !== 'owner') { host.replaceChildren(); return; }
+      if (!store || !mod || !(currentUserRole === 'owner' || currentUserRole === 'administrator')) { host.replaceChildren(); return; }   // the people who confirm rates
       let taxMod = null; try { taxMod = (window.HE && window.HE.invoice && window.HE.invoice['he-tax']) || null; } catch (e) { taxMod = null; }
       const L = await store.list();
       if (!L.ok) { host.replaceChildren(); return; }

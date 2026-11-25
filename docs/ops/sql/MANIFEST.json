@@ -544,7 +544,7 @@
       "risk": "LOW",
       "rollback": "47",
       "precheck": "stops if auth.uid(), current_role(), is_active_staff(), is_owner_or_admin(), the tasks or audit_log table, or the audit trigger on tasks is missing",
-      "effect": "1 new table tax_rates (one row per confirmed rate per place: rate, start day, end day, source, who confirmed it and when, last re-check); set_tax_rate() ends the rate in force the day before the new one starts; recheck_tax_rate(); rates never deleted or edited; only the owner writes; active staff read; production's audit trigger attached; no existing table changes",
+      "effect": "1 new table tax_rates (one row per confirmed rate per place: rate, start day, end day, source, who confirmed it and when, last re-check); set_tax_rate() ends the rate in force the day before the new one starts; recheck_tax_rate(); rates never deleted or edited; the owner and administrators write (owner decision of Nov 24); active staff read; production's audit trigger attached; no existing table changes",
       "postcheck": "the table present and empty; anon cannot read it; local-test/tax_rates_test.sh passes on a throwaway copy",
       "lock": "NONE (new table only)",
       "dynamicSql": "format() with fixed names (%I) to attach production's audit trigger, whose function name is read from the tasks table at install time (as drafts/32)"

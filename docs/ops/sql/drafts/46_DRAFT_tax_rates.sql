@@ -5,7 +5,7 @@
 -- @depends-on:  none
 -- @risk:        LOW
 -- @precheck:    stops if auth.uid(), current_role(), is_active_staff(), is_owner_or_admin(), the tasks or audit_log table, or the audit trigger on tasks is missing
--- @effect:      1 new table tax_rates (one row per confirmed rate per place: rate, start day, end day, source, who confirmed it and when, last re-check); set_tax_rate() ends the rate in force the day before the new one starts; recheck_tax_rate(); rates never deleted or edited; only the owner writes; active staff read; production's audit trigger attached; no existing table changes
+-- @effect:      1 new table tax_rates (one row per confirmed rate per place: rate, start day, end day, source, who confirmed it and when, last re-check); set_tax_rate() ends the rate in force the day before the new one starts; recheck_tax_rate(); rates never deleted or edited; the owner and administrators write (owner decision of Nov 24); active staff read; production's audit trigger attached; no existing table changes
 -- @postcheck:   the table present and empty; anon cannot read it; local-test/tax_rates_test.sh passes on a throwaway copy
 -- @rollback:    drafts/47
 -- @@ end metadata @@
@@ -22,15 +22,17 @@
 --     who confirmed it and when, when it was last re-checked and by whom.
 --     `place` is a short NAME for the place ("Ships from: Illinois"), never a
 --     street address (the owner's address stays private).
---   * set_tax_rate(place, rate, from, source, note)   the owner confirms a rate;
+--   * set_tax_rate(place, rate, from, source, note)   the owner or an administrator confirms a rate;
 --     a rate still in force for the same place ends the day before the new one
 --     starts, in the same transaction; a rate never overlaps another for the same
 --     place; the same confirmation twice is one row.
---   * recheck_tax_rate(id)   the owner says "re-checked today, still correct".
+--   * recheck_tax_rate(id)   the owner or an administrator says "re-checked today, still correct".
 --   * A rate is never deleted and never edited: a change is a new rate. Only its
 --     end day (once) and its re-check date move.
 --
--- Who can see and do what: the owner confirms, ends and re-checks rates; every
+-- Who can see and do what: the owner and administrators confirm, end and re-check
+-- rates (owner decision of Nov 24: an administrator is "almost like owner"; changed
+-- before this draft was installed; who confirmed stays on each rate); every
 -- active staff member, administrators included, can read them (they are printed
 -- on invoices); visitors nothing. SECURITY INVOKER throughout (project rule).
 -- Production's own audit trigger (the one on `tasks`) is attached, so every
@@ -87,7 +89,7 @@ create table if not exists public.tax_rates (
 create index if not exists tax_rates_by_place on public.tax_rates (lower(btrim(place)), effective_from);
 
 -- Rows are confirmations: never deleted, never edited. Only the end day (once)
--- and the re-check date move, and only the owner moves them.
+-- and the re-check date move, and only the owner or an administrator moves them.
 create or replace function public.tax_rates_guard() returns trigger
 language plpgsql
 security invoker
@@ -98,8 +100,8 @@ begin
   if tg_op = 'DELETE' then
     raise exception 'A confirmed tax rate stays on the record; end it instead.' using errcode = '42501';
   end if;
-  if coalesce(public.current_role(), '') <> 'owner' then
-    raise exception 'Only the owner can confirm, end or re-check a tax rate.' using errcode = '42501';
+  if coalesce(public.current_role(), '') not in ('owner', 'administrator') then
+    raise exception 'Only the owner or an administrator can confirm, end or re-check a tax rate.' using errcode = '42501';
   end if;
   if tg_op = 'INSERT' then
     new.place := btrim(new.place); new.source := btrim(new.source);
@@ -142,7 +144,7 @@ drop trigger if exists tax_rates_guard on public.tax_rates;
 create trigger tax_rates_guard before insert or update or delete on public.tax_rates
   for each row execute function public.tax_rates_guard();
 
--- ---------------------------------------------------------------- the owner confirms a rate
+-- ---------------------------------------------------------------- the owner or an administrator confirms a rate
 -- A rate still in force for the same place, started earlier, ends the day before
 -- the new one starts (same transaction). The same confirmation twice is one row.
 create or replace function public.set_tax_rate(p_place text, p_rate numeric, p_from date, p_source text, p_note text default null) returns jsonb
@@ -155,8 +157,8 @@ declare
   v_old public.tax_rates%rowtype;
   v_new public.tax_rates%rowtype;
 begin
-  if coalesce(public.current_role(), '') <> 'owner' then
-    raise exception 'Only the owner can confirm a tax rate.' using errcode = '42501';
+  if coalesce(public.current_role(), '') not in ('owner', 'administrator') then
+    raise exception 'Only the owner or an administrator can confirm a tax rate.' using errcode = '42501';
   end if;
   if p_from is null then raise exception 'Say from which day the rate applies.' using errcode = '22023'; end if;
   perform pg_advisory_xact_lock(hashtext('health_endeavors_tax_rate:' || lower(v_place)));
@@ -187,8 +189,8 @@ set search_path = public, pg_temp
 as $fn$
 declare v public.tax_rates%rowtype;
 begin
-  if coalesce(public.current_role(), '') <> 'owner' then
-    raise exception 'Only the owner can re-check a tax rate.' using errcode = '42501';
+  if coalesce(public.current_role(), '') not in ('owner', 'administrator') then
+    raise exception 'Only the owner or an administrator can re-check a tax rate.' using errcode = '42501';
   end if;
   select * into v from public.tax_rates where id = p_id;
   if not found then raise exception 'No such tax rate.' using errcode = 'P0002'; end if;
@@ -222,10 +224,10 @@ grant select, insert, update on public.tax_rates to authenticated;
 drop policy if exists tax_rates_read on public.tax_rates;
 create policy tax_rates_read on public.tax_rates for select to authenticated using (public.is_active_staff() or public.is_owner_or_admin());
 drop policy if exists tax_rates_owner_add on public.tax_rates;
-create policy tax_rates_owner_add on public.tax_rates for insert to authenticated with check (coalesce(public.current_role(), '') = 'owner');
+create policy tax_rates_owner_add on public.tax_rates for insert to authenticated with check (coalesce(public.current_role(), '') in ('owner', 'administrator'));
 drop policy if exists tax_rates_owner_change on public.tax_rates;
 create policy tax_rates_owner_change on public.tax_rates for update to authenticated
-  using (coalesce(public.current_role(), '') = 'owner') with check (coalesce(public.current_role(), '') = 'owner');
+  using (coalesce(public.current_role(), '') in ('owner', 'administrator')) with check (coalesce(public.current_role(), '') in ('owner', 'administrator'));
 
 revoke all on function public.set_tax_rate(text, numeric, date, text, text) from public, anon;
 revoke all on function public.recheck_tax_rate(uuid) from public, anon;
