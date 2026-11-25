@@ -61,28 +61,28 @@ and its Print button opens the print window. Reminder: in the shorter menu,
 ## 4. Built, waiting for the owner's merge (open PRs)
 
 Merge in this order. Each one was tested; only "Screenshots (informational)" is red.
+(Order updated Nov 25 at about 5:40 UTC: #95 added before the documents.)
 
 | Order | PR | What it is | After merging |
 |---|---|---|---|
 | 1 | #89 | **Ready to launch** page (Overview): 14 lines, "X of 14 ready"; 6 checked from the records, 8 ticked by a person | Feature Flags → turn on "Ready to launch" |
-| 2 | #90 | **New Employee page, part 1**: rules file + database drafts 62–65 (Manager level; each level changes only accounts below it; never deletes). Nothing shown on a page yet | Nothing to switch on; database step later (review item 13) |
+| 2 | #90 | **New Employee page, part 1**: rules file + database drafts 62–65 (Manager level; each level changes only accounts below it; never deletes). Nothing shown on a page yet | Nothing to switch on; database step later (review item 16; was mislabelled 13) |
 | 3 | #91 | **Ask the dashboard (voice)**: search box answers questions with exact figures, "Talk" button, reads answers aloud unless Quiet; owner only. Contains #89 | Feature Flags → turn on "Ask the dashboard" |
 | 4 | #94 | **Bug fix**: the number on a coloured Home tile (e.g. red "Overdue tasks") was invisible in the Aurora look. Only that is changed | Cmd+Shift+R; red tile shows its number |
-| 5 | #93 | Documents only (backup plan, next-session checklist, tracker, the two owner decisions, this hand-off) | Nothing |
+| 5 | #95 | **New Employee page, part 2a**: the helper program draft that creates sign-ins (not deployed), its local test, review item 17. Contains #90 | Nothing on the live site |
+| 6 | #93 | Documents only (backup plan, next-session checklist, tracker, the two owner decisions, this hand-off) | Nothing |
 
 ## 5. Database drafts waiting for the owner (nothing installed)
 
 Run in this order, each only after reading its review guide in `docs/ops/sql-review/`:
 draft **50** first (shared settings and switches for every device), then 52, 54, 56,
-58, 60, then 62 and 64 (people levels; item 13 starts with one read-only look).
+58, 60, then 62 and 64 (people levels; review item 16 starts with one read-only look). After 62/64: the helper program that creates sign-ins (review item 17, its own read-only look, then a deploy walked through screen by screen).
 Next free draft number: **66**.
 
 ## 6. Still to build (the list), in planned order
 
-1. **New Employee page, part 2**: a draft of the helper program that creates a sign-in,
-   sets the first password and signs a person out, which asks the database rules from
-   draft 64 first; the page under Admin behind a real-records switch; Home tells the
-   owner what an administrator did.
+1. **New Employee page, part 2b**: the page under Admin behind a real-records switch
+   (the helper program draft is done: #95); Home tells the owner what an administrator did.
 2. **Administrator near-owner, the remaining pieces**: draft 50 changed so
    administrators can save shared switches; approvals without the owner's pre-approval;
    Employee Activity widened for administrators; owner's history and owner accounts
@@ -100,7 +100,7 @@ Next free draft number: **66**.
 - Merge the open PRs in the order of section 4, and turn on the two switches.
 - Backups, in the agreed short form only: "nightly: green/red, date; restore test:
   green/red, date; minutes: OK/out". Never paste logs, file names or contents.
-- When ready: the read-only look for review item 13 (Claude gives the query in chat).
+- When ready: the read-only looks for review items 16 and 17 (Claude gives the queries in chat).
 - Later: database sittings (draft 50 first), the business email decision, printers
   arriving, the stock-count decision.
 
@@ -108,7 +108,7 @@ Next free draft number: **66**.
 
 - Live dashboard: https://stasvitiuk-dev.github.io/health-endeavors-order-entry/owner-login.html
 - `main` before these merges: `2bc7aba` (merge of #88).
-- Branches: `claude/launch-page` (#89), `claude/new-employee-rules` (#90),
+- Branches: `claude/launch-page` (#89), `claude/new-employee-rules` (#90), `claude/new-employee-helper` (#95, contains #90),
   `claude/ask-box` (#91, contains #89), `claude/tile-figure-fix` (#94),
   `claude/sweet-hamilton-5ty3zp` (#93, documents).
 - Progress percentages: `docs/health-endeavors-progress.md` (planning estimates).
