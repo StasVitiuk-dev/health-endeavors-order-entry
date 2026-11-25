@@ -61,7 +61,7 @@ and its Print button opens the print window. Reminder: in the shorter menu,
 ## 4. Built, waiting for the owner's merge (open PRs)
 
 Merge in this order. Each one was tested; only "Screenshots (informational)" is red.
-(Order updated Nov 25 at about 5:40 UTC: #95 added before the documents.)
+(Order updated Nov 25: #95 and #96 added before the documents.)
 
 | Order | PR | What it is | After merging |
 |---|---|---|---|
@@ -70,7 +70,8 @@ Merge in this order. Each one was tested; only "Screenshots (informational)" is 
 | 3 | #91 | **Ask the dashboard (voice)**: search box answers questions with exact figures, "Talk" button, reads answers aloud unless Quiet; owner only. Contains #89 | Feature Flags → turn on "Ask the dashboard" |
 | 4 | #94 | **Bug fix**: the number on a coloured Home tile (e.g. red "Overdue tasks") was invisible in the Aurora look. Only that is changed | Cmd+Shift+R; red tile shows its number |
 | 5 | #95 | **New Employee page, part 2a**: the helper program draft that creates sign-ins (not deployed), its local test, review item 17. Contains #90 | Nothing on the live site |
-| 6 | #93 | Documents only (backup plan, next-session checklist, tracker, the two owner decisions, this hand-off) | Nothing |
+| 6 | #96 | **New Employee page, part 2b**: the People page under Admin (switch "People (New Employee page)", off; can only be turned on once drafts 62/64 are installed). Contains #90 and #95 | Feature Flags: the row says "Not installed yet" (expected) |
+| 7 | #93 | Documents only (backup plan, next-session checklist, tracker, the two owner decisions, this hand-off) | Nothing |
 
 ## 5. Database drafts waiting for the owner (nothing installed)
 
@@ -81,8 +82,8 @@ Next free draft number: **66**.
 
 ## 6. Still to build (the list), in planned order
 
-1. **New Employee page, part 2b**: the page under Admin behind a real-records switch
-   (the helper program draft is done: #95); Home tells the owner what an administrator did.
+1. **Home tells the owner what an administrator changed** (the New Employee page itself is
+   built: #90 rules + drafts, #95 helper program draft, #96 the page).
 2. **Administrator near-owner, the remaining pieces**: draft 50 changed so
    administrators can save shared switches; approvals without the owner's pre-approval;
    Employee Activity widened for administrators; owner's history and owner accounts
@@ -108,7 +109,7 @@ Next free draft number: **66**.
 
 - Live dashboard: https://stasvitiuk-dev.github.io/health-endeavors-order-entry/owner-login.html
 - `main` before these merges: `2bc7aba` (merge of #88).
-- Branches: `claude/launch-page` (#89), `claude/new-employee-rules` (#90), `claude/new-employee-helper` (#95, contains #90),
+- Branches: `claude/launch-page` (#89), `claude/new-employee-rules` (#90), `claude/new-employee-helper` (#95, contains #90), `claude/new-employee-page` (#96, contains #95),
   `claude/ask-box` (#91, contains #89), `claude/tile-figure-fix` (#94),
   `claude/sweet-hamilton-5ty3zp` (#93, documents).
 - Progress percentages: `docs/health-endeavors-progress.md` (planning estimates).
