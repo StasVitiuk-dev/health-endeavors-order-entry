@@ -255,17 +255,23 @@
       signature: [r.level, fp(r.title), fp(r.detail)].join('|') }));
   }
 
+  // src.customersFirst (owner, Nov 24: "customer is priority, so I always need to be able to
+  // see their messages"): a customer's message comes before everything else of the same
+  // urgency, and it is marked `keep`: it cannot be set aside with "Later".
   function buildFeed(src, now) {
     const s = src || {};
     const t = time(now) != null ? time(now) : Date.now();
+    const first = s.customersFirst === true;
     const items = [].concat(
       fromQuestions(s.questions, t), fromAttention(s.attention, t, s.labels),
       fromChecks(s.checks, { questions: Array.isArray(s.questions), attention: Array.isArray(s.attention) }),
       fromNightly(s.nightly), fromMoney(s.money), fromTax(s.tax), fromDelivery(s.delivery), fromAgents(s.agents, t, { handled: s.handled, raiseAfterHours: s.raiseAfterHours }), fromReviews(s.reviews), fromRecap(s.recap));
     const seen = new Set();
     const unique = items.filter(i => (seen.has(i.id) ? false : (seen.add(i.id), true)));
-    // most urgent first; within a level, overdue / oldest first, then undated
+    if (first) unique.forEach(i => { if (i.kind === 'message') i.keep = true; });
+    // most urgent first; within a level, (customers first, then) overdue / oldest first, then undated
     unique.sort((a, b) => (RANK[a.level] - RANK[b.level])
+      || (first ? (b.kind === 'message') - (a.kind === 'message') : 0)
       || ((a.when == null) - (b.when == null))
       || ((a.when || 0) - (b.when || 0))
       || (a.title < b.title ? -1 : a.title > b.title ? 1 : 0));
@@ -291,7 +297,7 @@
   }
   function writeSnoozes(store, v) { try { if (store) store.setItem(SNOOZE_KEY, JSON.stringify(v)); return true; } catch (e) { return false; } }
   function snooze(store, item, now) {
-    if (!item || !item.id) return false;
+    if (!item || !item.id || item.keep === true) return false;      // a kept item (a customer's message) is never set aside
     const v = readSnoozes(store); const t = time(now) != null ? time(now) : Date.now();
     v[item.id] = { until: startOfNextDay(t), sig: String(item.signature || ''), at: t };
     // forget snoozes that ended more than a week ago, so the list stays small
@@ -350,7 +356,7 @@
     const snoozes = o.snoozes || {};
     const all = asList(items);
     const visible = [], snoozed = [];
-    all.forEach(i => (isSnoozed(snoozes, i, now) ? snoozed : visible).push(i));
+    all.forEach(i => (i.keep !== true && isSnoozed(snoozes, i, now) ? snoozed : visible).push(i));   // a kept item shows even if it was set aside earlier
     const counts = { urgent: 0, today: 0, info: 0 };
     visible.forEach(i => { counts[i.level] = (counts[i.level] || 0) + 1; });
     const filter = FILTERS.some(f => f.key === o.filter) ? o.filter : 'all';

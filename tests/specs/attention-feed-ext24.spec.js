@@ -134,6 +134,41 @@ test.describe('the feed builder (no browser)', () => {
   });
 });
 
+// Customers first (owner, Nov 24: "customer is priority, so I always need to be able to see
+// their messages"), behind he_customers_first (OFF until the owner turns it on).
+test.describe('customers first: the rules (no browser)', () => {
+  test('a customer message comes before the rest of its urgency, is kept, and cannot be set aside; urgency still comes first', ({}, ti) => {
+    node(ti);
+    const plain = F.buildFeed(SRC(), NOW), first = F.buildFeed(Object.assign(SRC(), { customersFirst: true }), NOW);
+    expect(plain.some(i => i.keep)).toBe(false);                                        // without the switch nothing changes
+    expect(first.map(i => i.id).sort()).toEqual(plain.map(i => i.id).sort());           // the same items, only their order and the mark
+    expect(first.filter(i => i.keep).map(i => i.id).sort()).toEqual(['q:q1', 'q:q2']);
+    for (const level of ['urgent', 'today', 'info']) {
+      const kinds = first.filter(i => i.level === level).map(i => i.kind);
+      const lastMessage = kinds.lastIndexOf('message'), firstOther = kinds.findIndex(k => k !== 'message');
+      if (lastMessage >= 0 && firstOther >= 0) expect(lastMessage, level).toBeLessThan(firstOther);
+    }
+    expect(first[0].id).toBe('q:q1');                                                    // the sensitive question is urgent: the very first line
+    const bo = first.findIndex(i => i.id === 'q:q2');                                    // an hour old: "today"
+    expect(first.slice(0, bo).every(i => i.level === 'urgent')).toBe(true);              // every urgent thing is still above it
+    expect(first.slice(bo + 1).some(i => i.level === 'urgent')).toBe(false);
+    // it cannot be set aside
+    const store = memStore();
+    expect(F.snooze(store, first[bo], NOW)).toBe(false);
+    expect(F.readSnoozes(store)).toEqual({});
+    // one set aside earlier, before the switch was turned on, shows all the same
+    const old = memStore(); F.snooze(old, plain.find(i => i.id === 'q:q2'), NOW);
+    expect(F.view(plain, { now: NOW, snoozes: F.readSnoozes(old) }).snoozed).toBe(1);
+    const v = F.view(first, { now: NOW, snoozes: F.readSnoozes(old) });
+    expect(v.snoozed).toBe(0);
+    expect(v.all.some(i => i.id === 'q:q2')).toBe(true);
+    // something that is not a customer's message can still be set aside
+    const task = first.find(i => i.kind !== 'message' && i.level !== 'info');
+    expect(F.snooze(store, task, NOW)).toBe(true);
+    for (const junk of [null, undefined, 7, 'x', []]) expect(() => F.buildFeed({ customersFirst: junk, questions: junk }, NOW)).not.toThrow();
+  });
+});
+
 // ---------- the Home section ----------
 function seed(backend) {
   backend.tables.needs_attention = [
@@ -200,6 +235,33 @@ test.describe('the Home section', () => {
     await f.locator('[data-feedunsnooze]').click();
     await expect(f.locator('[data-feeditem="q:00000000-0000-4000-8000-00000000f102"]')).toBeVisible();
     expect(writes(backend)).toEqual([]);
+  });
+
+  test('Customers first, switched on: customer messages lead their urgency, have no Later and say why; one set aside earlier is back; nothing is written', async ({ page, backend, pageErrors }, ti) => {
+    test.skip(ti.project.name !== 'desktop', 'run once');
+    seed(backend); await on(page);
+    await login(page); await gotoPage(page, 'attentionPanel');
+    const f = feed(page), BO = 'q:00000000-0000-4000-8000-00000000f102', ANA = 'q:00000000-0000-4000-8000-00000000f101';
+    // before the switch: Bo's question can be set aside, and it is
+    await f.locator(`[data-feeditem="${BO}"] [data-feedsnooze]`).click();
+    await expect(f.locator(`[data-feeditem="${BO}"]`)).toHaveCount(0);
+    // the owner turns "Customers first" on
+    await page.evaluate(() => localStorage.setItem('he_customers_first', 'on'));
+    await page.reload(); await expect(page.locator('#dash')).toBeVisible(); await gotoPage(page, 'attentionPanel');
+    const bo = f.locator(`[data-feeditem="${BO}"]`), ana = f.locator(`[data-feeditem="${ANA}"]`);
+    await expect(bo).toBeVisible();                                                     // back, although it was set aside
+    await expect(f.locator('.feedSnoozed')).toHaveCount(0);
+    for (const row of [bo, ana]) {
+      await expect(row.locator('[data-feedsnooze]')).toHaveCount(0);
+      await expect(row.locator('[data-feedkept]')).toHaveText('Stays here until answered');
+    }
+    const order = await f.locator('[data-feeditem]').evaluateAll(els => els.map(e => e.getAttribute('data-feeditem')));
+    expect(order[0]).toBe(ANA);                                                         // the urgent customer question is the first line of Home
+    const others = order.filter(id => !id.startsWith('q:'));
+    expect(others.length).toBeGreaterThan(0);
+    await expect(f.locator(`[data-feeditem="${others[0]}"] [data-feedsnooze], [data-feeditem="${others[1] || others[0]}"] [data-feedsnooze]`).first()).toBeVisible();   // other things keep their Later
+    expect(writes(backend)).toEqual([]);
+    expect(pageErrors).toEqual([]);
   });
 
   test('Copy reply copies the draft (nothing is sent); Dismiss uses the reminder\'s own Dismiss', async ({ page, backend }) => {
