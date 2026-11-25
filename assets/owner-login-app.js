@@ -3799,9 +3799,9 @@
     // ---------- Deliveries with partial receiving (drafts/40, Nov 22; behind receivingStoreOn)
     // The owner's rules of Nov 22 on real records: staff record what arrived on
     // a purchase order line by line (good, damaged that we keep, rejected with a
-    // reason, surplus beyond what was ordered); it waits for the owner, who
-    // approves (stock changes now, and only now) or rejects; surplus waits for
-    // the owner's keep-or-return. One request key per form, so a second press or a
+    // reason, surplus beyond what was ordered); it waits for the owner or an
+    // administrator (owner decision, Nov 24), who approves (stock changes now,
+    // and only now) or rejects; surplus waits for their keep-or-return. One request key per form, so a second press or a
     // retry after a lost reply records once. Does nothing until drafts/40 is
     // installed; staff see purchase orders only with drafts/44.
     let dlvSeq = 0, dlvLast = null, dlvMessage = '', dlvPo = '', dlvRejectOpen = null;
@@ -3829,20 +3829,20 @@
       if (!L.ok) { host.replaceChildren(wrap('unavailable', h('p', { class: 'hint', 'data-dlvnote': '1' }, L.message))); return; }
       const myId = await currentUserId().catch(() => null); if (seq !== dlvSeq) return;
       dlvLast = { store, data: L, myId };
-      const isOwner = currentUserRole === 'owner';
+      const approves = currentUserRole === 'owner' || currentUserRole === 'administrator';   // approves: owner or administrator (owner decision, Nov 24)
       const items = {}; L.orders.forEach(o => o.lines.forEach(l => { items[l.id] = Object.assign({ po: o.number }, l); }));
       const poNum = id => { const o = L.orders.find(x => x.id === id); return o ? o.number : 'a purchase order'; };
-      const waitingRows = L.waiting.filter(r => isOwner || r.submitted_by === myId).map(r => h('li', { 'data-dlvrecord': r.id, class: 'u-mt-6' },
+      const waitingRows = L.waiting.filter(r => approves || r.submitted_by === myId).map(r => h('li', { 'data-dlvrecord': r.id, class: 'u-mt-6' },
         h('div', { class: 'taskTitle' }, poNum(r.purchase_order_id) + ' — recorded by ' + dlvWho(r.submitted_by) + ' on ' + String(r.submitted_at || '').slice(0, 10)),
         h('div', { class: 'u-fs-12' }, r.lines.map(l => dlvLineText(l, items)).join('; ') + (r.note ? ' — ' + r.note : '')),
         h('div', { class: 'u-mt-4' },
-          isOwner ? h('button', { type: 'button', class: 'small approve', 'data-dlvact': 'approve', 'data-id': r.id }, 'Approve') : null, ' ',
-          isOwner ? h('button', { type: 'button', class: 'small secondary', 'data-dlvact': 'reject-open', 'data-id': r.id }, 'Reject') : null, ' ',
-          (r.submitted_by === myId || isOwner) ? h('button', { type: 'button', class: 'small secondary', 'data-dlvact': 'cancel', 'data-id': r.id }, 'Cancel') : null),
+          approves ? h('button', { type: 'button', class: 'small approve', 'data-dlvact': 'approve', 'data-id': r.id }, 'Approve') : null, ' ',
+          approves ? h('button', { type: 'button', class: 'small secondary', 'data-dlvact': 'reject-open', 'data-id': r.id }, 'Reject') : null, ' ',
+          (r.submitted_by === myId || approves) ? h('button', { type: 'button', class: 'small secondary', 'data-dlvact': 'cancel', 'data-id': r.id }, 'Cancel') : null),
         dlvRejectOpen === r.id ? h('form', { 'data-dlvrejectform': r.id, class: 'heForm u-mt-4', novalidate: '' },
           h('div', { class: 'heField' }, h('label', { for: 'dlvWhy-' + r.id }, 'Why reject it? (required)'), h('input', { id: 'dlvWhy-' + r.id, name: 'reason', type: 'text', maxlength: '500', autocomplete: 'off' })),
           h('button', { type: 'submit', class: 'small deny u-mt-4' }, 'Reject delivery record')) : null));
-      const surplusRows = isOwner ? L.surplusWaiting.map(l => h('li', { 'data-dlvsurplus': l.id, class: 'u-mt-6' },
+      const surplusRows = approves ? L.surplusWaiting.map(l => h('li', { 'data-dlvsurplus': l.id, class: 'u-mt-6' },
         h('span', null, (items[l.po_item_id] ? items[l.po_item_id].po + ' · ' + (items[l.po_item_id].sku || 'item') : 'A line') + ': ' + l.surplus + ' unit(s) more than ordered '),
         h('button', { type: 'button', class: 'small', 'data-dlvact': 'keep', 'data-id': l.id }, 'Keep (into stock)'), ' ',
         h('button', { type: 'button', class: 'small secondary', 'data-dlvact': 'return', 'data-id': l.id }, 'Send back'))) : [];
@@ -3862,9 +3862,9 @@
         chosen ? h('div', { class: 'heField' }, h('label', { for: 'dlvNote' }, 'Note (optional)'), h('input', { id: 'dlvNote', type: 'text', maxlength: '500', autocomplete: 'off' })) : null,
         chosen ? h('button', { type: 'submit', class: 'u-mt-8' }, 'Record delivery') : null);
       host.replaceChildren(wrap('stored',
-        h('p', { class: 'hint u-mt-n2' }, 'Record what arrived, line by line. Stock changes only when the owner approves. Rejected units stay to come; units beyond the order wait for the owner.'),
+        h('p', { class: 'hint u-mt-n2' }, 'Record what arrived, line by line. Stock changes only when the owner or an administrator approves. Rejected units stay to come; units beyond the order wait for one of them.'),
         h('p', { class: 'u-fs-12 u-mt-4', role: 'status', 'data-dlvmessage': '1' }, dlvMessage),
-        h('h4', null, isOwner ? 'Waiting for your approval (' + L.waiting.length + ')' : 'Your deliveries waiting for the owner'),
+        h('h4', null, approves ? 'Waiting for your approval (' + L.waiting.length + ')' : 'Your deliveries waiting for the owner or an administrator'),
         waitingRows.length ? h('ul', { 'data-dlvwaiting': String(waitingRows.length) }, waitingRows) : h('p', { class: 'empty', 'data-dlvwaiting': '0' }, 'Nothing waiting.'),
         surplusRows.length ? h('div', null, h('h4', { class: 'u-mt-8' }, 'More than ordered: keep or send back?'), h('ul', null, surplusRows)) : null,
         form));
@@ -3921,10 +3921,12 @@
     // ---------- Returns and corrections (drafts/40, Nov 23; behind receivingStoreOn)
     // The rest of the owner's Nov 22 rules on real records. Customer returns:
     // staff record what came back; it waits "awaiting inspection" (not for sale)
-    // until the owner inspects it; opened or used skincare is never restocked.
-    // Returns to a supplier: staff record them, the owner approves (stock goes
-    // down then); "replacement expected" puts the units back on the order.
-    // Corrections: the owner reverses a wrong stock movement with a reason, as a
+    // until the owner or an administrator inspects it (owner decision, Nov 24);
+    // opened or used skincare is never restocked.
+    // Returns to a supplier: staff record them, the owner or an administrator
+    // approves (stock goes down then); "replacement expected" puts the units back
+    // on the order. Corrections: the owner or an administrator reverses a wrong
+    // stock movement with a reason, as a
     // new linked movement; nothing is edited or deleted. One request key per form.
     let rtnSeq = 0, rtnLast = null, rtnMessage = '', rtnOpen = null;
     async function loadStockReturns() {
@@ -3936,7 +3938,7 @@
       if (!L.ok) { host.replaceChildren(wrap('unavailable', h('p', { class: 'hint', 'data-rtnnote': '1' }, L.message))); return; }
       const myId = await currentUserId().catch(() => null); if (seq !== rtnSeq) return;
       rtnLast = { store, data: L, myId };
-      const isOwner = currentUserRole === 'owner', seesMoves = isOwner || currentUserRole === 'administrator';
+      const approves = currentUserRole === 'owner' || currentUserRole === 'administrator', seesMoves = approves;   // approves: owner or administrator (owner decision, Nov 24)
       const who = id => !id ? 'someone' : (myId && id === myId) ? 'you' : 'a team member';
       const day = v => String(v || '').slice(0, 10);
       const oLine = {}; L.orderLines.forEach(l => { oLine[l.id] = l; });
@@ -3952,10 +3954,10 @@
         return h('li', { 'data-rtncr': c.id, class: 'u-mt-6' },
           h('div', { class: 'taskTitle' }, (l ? l.order + ' · ' + (l.sku || l.name || 'item') : 'An order line') + ': ' + c.quantity + ' unit(s) awaiting inspection'),
           h('div', { class: 'u-fs-12' }, 'Recorded by ' + who(c.received_by) + ' on ' + day(c.received_at) + '. Not for sale until inspected.'),
-          (isOwner || c.received_by === myId) ? h('div', { class: 'u-mt-4' },
-            isOwner ? h('button', { type: 'button', class: 'small', 'data-rtnact': 'inspect-open', 'data-id': c.id, 'aria-expanded': String(rtnOpen === 'inspect:' + c.id) }, 'Inspect') : null, ' ',
+          (approves || c.received_by === myId) ? h('div', { class: 'u-mt-4' },
+            approves ? h('button', { type: 'button', class: 'small', 'data-rtnact': 'inspect-open', 'data-id': c.id, 'aria-expanded': String(rtnOpen === 'inspect:' + c.id) }, 'Inspect') : null, ' ',
             h('button', { type: 'button', class: 'small secondary', 'data-rtnact': 'cr-cancel', 'data-id': c.id }, 'Cancel (recorded by mistake)')) : null,
-          isOwner && rtnOpen === 'inspect:' + c.id ? h('form', { 'data-rtnform': 'inspect', 'data-id': c.id, class: 'heForm u-mt-4', novalidate: '' },
+          approves && rtnOpen === 'inspect:' + c.id ? h('form', { 'data-rtnform': 'inspect', 'data-id': c.id, class: 'heForm u-mt-4', novalidate: '' },
             yesNo('rtnOpened-' + c.id, 'Was it opened?'), yesNo('rtnUsed-' + c.id, 'Was it used?'),
             num('rtnRestock-' + c.id, 'Back on the shelf (sealed only)'), num('rtnDamaged-' + c.id, 'Damaged'), num('rtnUnsuitable-' + c.id, 'Unsuitable (opened or used, never resold)'),
             text('rtnInspNote-' + c.id, 'Note (optional)', 500),
@@ -3971,15 +3973,15 @@
         h('div', { class: 'heActions' }, h('button', { type: 'submit', class: 'small' }, 'Record (awaiting inspection)')));
 
       // returns to a supplier
-      const srRows = L.supplierWaiting.filter(x => isOwner || x.submitted_by === myId).map(x => {
+      const srRows = L.supplierWaiting.filter(x => approves || x.submitted_by === myId).map(x => {
         const l = pLine[x.po_item_id];
         return h('li', { 'data-rtnsr': x.id, class: 'u-mt-6' },
           h('div', { class: 'taskTitle' }, (l ? l.po + ' · ' + (l.sku || l.description || 'item') : 'A purchase-order line') + ': ' + x.quantity + ' unit(s) from ' + (x.from_bucket === 'damaged' ? 'Damaged' : 'Available')),
           h('div', { class: 'u-fs-12' }, x.reason + (x.replacement_expected ? ' · replacement expected' : '') + ' · recorded by ' + who(x.submitted_by) + ' on ' + day(x.submitted_at)),
           h('div', { class: 'u-mt-4' },
-            isOwner ? h('button', { type: 'button', class: 'small approve', 'data-rtnact': 'sr-approve', 'data-id': x.id }, 'Approve') : null, ' ',
-            isOwner ? h('button', { type: 'button', class: 'small secondary', 'data-rtnact': 'sr-reject', 'data-id': x.id }, 'Reject') : null, ' ',
-            (isOwner || x.submitted_by === myId) ? h('button', { type: 'button', class: 'small secondary', 'data-rtnact': 'sr-cancel', 'data-id': x.id }, 'Cancel (recorded by mistake)') : null));
+            approves ? h('button', { type: 'button', class: 'small approve', 'data-rtnact': 'sr-approve', 'data-id': x.id }, 'Approve') : null, ' ',
+            approves ? h('button', { type: 'button', class: 'small secondary', 'data-rtnact': 'sr-reject', 'data-id': x.id }, 'Reject') : null, ' ',
+            (approves || x.submitted_by === myId) ? h('button', { type: 'button', class: 'small secondary', 'data-rtnact': 'sr-cancel', 'data-id': x.id }, 'Cancel (recorded by mistake)') : null));
       });
       const srForm = h('form', { 'data-rtnform': 'sr', class: 'heForm u-mt-8', novalidate: '' },
         h('div', { class: 'heField heWide' }, h('label', { for: 'rtnSrLine' }, 'Purchase-order line'),
@@ -3997,19 +3999,19 @@
         h('div', null, h('span', { class: 'u-ws-nowrap' }, day(m.at)), ' · ', m.product + ' · ' + (m.bucket === 'damaged' ? 'Damaged' : 'Available') + ' ',
           h('b', null, (m.change > 0 ? '+' : '') + m.change), ' · ' + m.reason,
           m.corrected ? h('span', { class: 'badge u-ml-6' }, 'corrected') : null),
-        isOwner && !m.corrected && !m.isCorrection ? h('button', { type: 'button', class: 'small secondary u-mt-4', 'data-rtnact': 'fix-open', 'data-id': String(m.id), 'aria-expanded': String(rtnOpen === 'fix:' + m.id) }, 'Correct') : null,
-        isOwner && rtnOpen === 'fix:' + m.id ? h('form', { 'data-rtnform': 'fix', 'data-id': String(m.id), class: 'heForm u-mt-4', novalidate: '' },
+        approves && !m.corrected && !m.isCorrection ? h('button', { type: 'button', class: 'small secondary u-mt-4', 'data-rtnact': 'fix-open', 'data-id': String(m.id), 'aria-expanded': String(rtnOpen === 'fix:' + m.id) }, 'Correct') : null,
+        approves && rtnOpen === 'fix:' + m.id ? h('form', { 'data-rtnform': 'fix', 'data-id': String(m.id), class: 'heForm u-mt-4', novalidate: '' },
           h('div', { class: 'heField heWide' }, h('label', { for: 'rtnFixWhy-' + m.id }, 'Why is it wrong? (required)'), h('input', { id: 'rtnFixWhy-' + m.id, name: 'reason', type: 'text', maxlength: '300', autocomplete: 'off' })),
           h('p', { class: 'heField heWide hint' }, 'A new movement of ' + (-m.change > 0 ? '+' : '') + (-m.change) + ' is added and linked to this one. Nothing is deleted.'),
           h('div', { class: 'heActions' }, h('button', { type: 'submit', class: 'small deny' }, 'Correct this movement'))) : null)) : [];
 
       host.replaceChildren(wrap('stored',
-        h('p', { class: 'hint u-mt-n2' }, 'Returned skincare waits for inspection before anything goes back on the shelf. Units sent back to a supplier and corrections change stock only when the owner approves.'),
+        h('p', { class: 'hint u-mt-n2' }, 'Returned skincare waits for inspection before anything goes back on the shelf. Units sent back to a supplier and corrections change stock only when the owner or an administrator approves.'),
         h('p', { class: 'u-fs-12 u-mt-4', role: 'status', 'data-rtnmessage': '1' }, rtnMessage),
         h('h4', null, 'Customer returns awaiting inspection (' + L.customerWaiting.length + ')'),
         crRows.length ? h('ul', { 'data-rtncrwaiting': String(crRows.length) }, crRows) : h('p', { class: 'empty', 'data-rtncrwaiting': '0' }, 'Nothing awaiting inspection.'),
         h('h4', { class: 'u-mt-12' }, 'Record a customer return'), crForm,
-        h('h4', { class: 'u-mt-12' }, isOwner ? 'Returns to suppliers waiting for your approval (' + L.supplierWaiting.length + ')' : 'Your returns to suppliers waiting for the owner'),
+        h('h4', { class: 'u-mt-12' }, approves ? 'Returns to suppliers waiting for your approval (' + L.supplierWaiting.length + ')' : 'Your returns to suppliers waiting for the owner or an administrator'),
         srRows.length ? h('ul', { 'data-rtnsrwaiting': String(srRows.length) }, srRows) : h('p', { class: 'empty', 'data-rtnsrwaiting': '0' }, 'Nothing waiting.'),
         h('h4', { class: 'u-mt-12' }, 'Send units back to a supplier'), srForm,
         seesMoves ? h('h4', { class: 'u-mt-12' }, 'Latest stock movements') : null,

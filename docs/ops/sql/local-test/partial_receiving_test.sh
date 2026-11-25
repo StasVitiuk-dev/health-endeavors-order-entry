@@ -22,16 +22,17 @@ as()   { local who="$1" sql="$2" pre
          if [ "$who" = anon ]; then pre="set local role anon;"; else pre="set local role authenticated; set local request.jwt.claim.sub = '$who';"; fi
          psql "${CONN[@]}" -d "$DB" -qtAX -c "begin; $pre $sql; commit;" 2>&1 | grep -v '^\(BEGIN\|COMMIT\|SET\|ROLLBACK\)$'; }
 OUTF=$(mktemp)
-O=00000000-0000-4000-8000-0000000009a1; A=00000000-0000-4000-8000-0000000009a2; E=00000000-0000-4000-8000-0000000009a3
+O=00000000-0000-4000-8000-0000000009a1; A=00000000-0000-4000-8000-0000000009a2; E=00000000-0000-4000-8000-0000000009a3; X=00000000-0000-4000-8000-0000000009a4
 P=00000000-0000-4000-8000-0000000009b1; SUP=00000000-0000-4000-8000-0000000009c1
 PO=00000000-0000-4000-8000-0000000009d1; IT=00000000-0000-4000-8000-0000000009d2
 PO2=00000000-0000-4000-8000-0000000009d3; IT2=00000000-0000-4000-8000-0000000009d4
 ORDR=00000000-0000-4000-8000-0000000009e1; OI=00000000-0000-4000-8000-0000000009e2
 K() { printf '00000000-0000-4000-8000-%012d' "$1"; }
 seed() {
-  q "delete from profiles where id in ('$O','$A','$E');
+  q "delete from profiles where id in ('$O','$A','$E','$X');
      insert into profiles (id, email, role, is_active, account_number) values ('$O','owner@example.test','owner',true,'900000001'),
-       ('$A','admin@example.test','administrator',true,'900000002'), ('$E','staff@example.test','employee',true,'900000003');
+       ('$A','admin@example.test','administrator',true,'900000002'), ('$E','staff@example.test','employee',true,'900000003'),
+       ('$X','gone@example.test','administrator',false,'900000004');
      insert into products (id, name, sku) values ('$P','SYNTHETIC Honey Milk 8 oz','SYN-RCV-A');
      insert into inventory (product_id, available, damaged) values ('$P', 5, 0);
      insert into suppliers (id, name, supplier_type, is_active) values ('$SUP','SYN Lotion Lab','lab',true);
@@ -63,9 +64,9 @@ ok  "  nothing changes in stock before the owner approves" "$(stock) $(line $IT)
 has "  submitted again (double click, lost reply): nothing more is recorded" "$(submit 1 $PO "[{\"po_item_id\":\"$IT\",\"good\":8}]")" '"duplicate": true'
 ok  "  one record, one line" "$(q "select count(*) from receiving_records")/$(q "select count(*) from receiving_record_lines")" "1/1"
 R1=$(rid 1)
-has "staff cannot approve" "$(as $E "select public.approve_receiving_record('$R1')")" "Only the owner"
-has "an administrator cannot approve either" "$(as $A "select public.approve_receiving_record('$R1')")" "Only the owner"
-has "  nor by changing the record directly" "$(as $A "update receiving_records set status = 'approved' where id = '$R1'")" "Only the owner\|row-level security\|^$"
+has "staff cannot approve" "$(as $E "select public.approve_receiving_record('$R1')")" "Only the owner or an administrator"
+has "a switched-off administrator cannot approve" "$(as $X "select public.approve_receiving_record('$R1')")" "Only the owner or an administrator"
+has "  nor staff by changing the record directly" "$(as $E "update receiving_records set status = 'approved' where id = '$R1'")" "Only the owner or an administrator\|row-level security\|^$"
 ok  "  still submitted, stock unchanged" "$(q "select status from receiving_records where id = '$R1'") $(stock)" "submitted 5/0"
 has "the owner approves" "$(as $O "select public.approve_receiving_record('$R1')")" '"already_decided": false'
 ok  "  8 received, 12 outstanding; Available 5 -> 13" "$(stock) $(line $IT)" "13/0 20/8/12"
@@ -97,7 +98,7 @@ submit 7 $PO "[{\"po_item_id\":\"$IT\",\"good\":2,\"surplus\":3}]" >/dev/null
 as $O "select public.approve_receiving_record('$(rid 7)')" >/dev/null
 ok  "  the last 2 complete the order; it is now Received; the 3 surplus wait" "$(stock) $(line $IT) $(q "select status from purchase_orders where id = '$PO'") $(q "select surplus||'/'||surplus_status from receiving_record_lines where record_id = '$(rid 7)'")" "24/1 20/20/0 received 3/waiting"
 L7=$(q "select id from receiving_record_lines where record_id = '$(rid 7)'")
-has "staff cannot decide about a surplus" "$(as $E "select public.decide_receiving_surplus('$L7', 'kept')")" "Only the owner"
+has "staff cannot decide about a surplus" "$(as $E "select public.decide_receiving_surplus('$L7', 'kept')")" "Only the owner or an administrator"
 has "the owner keeps it" "$(as $O "select public.decide_receiving_surplus('$L7', 'kept', 'Lab sent 3 extra at no charge')")" '"surplus_status": "kept"'
 ok  "  3 more Available; the order line still shows 20 of 20" "$(stock) $(line $IT)" "27/1 20/20/0"
 has "  deciding again changes nothing" "$(as $O "select public.decide_receiving_surplus('$L7', 'returned')")" '"already_decided": true'
@@ -119,8 +120,8 @@ BEFORE6=$(stock)
 echo " 7. returns to the supplier"
 has "staff submit 3 back (wrong scent), no replacement" "$(as $E "select public.submit_supplier_return('$(K 20)', '$IT', 3, 'available', 'Wrong scent on the labels', false)")" '"status": "submitted"'
 ok  "  stock unchanged until the owner approves" "$(stock)" "$BEFORE6"
-has "an administrator cannot approve it" "$(as $A "select public.decide_supplier_return((select id from supplier_returns where request_key = '$(K 20)'), 'approved')")" "Only the owner"
-as $O "select public.decide_supplier_return((select id from supplier_returns where request_key = '$(K 20)'), 'approved')" >/dev/null
+has "an administrator approves it, with no approval from the owner (owner decision, Nov 24)" "$(as $A "select public.decide_supplier_return((select id from supplier_returns where request_key = '$(K 20)'), 'approved')")" '"status": "approved"\|"ok": true'
+ok  "  the stock movement names the administrator as the one who approved" "$(q "select (approved_by = '$A')::text from stock_movements order by id desc limit 1")" "true"
 ok  "  approved: Available -3; the order line still 20 received (no replacement expected)" "$(stock) $(line $IT)" "34/1 20/20/0"
 as $E "select public.submit_supplier_return('$(K 21)', '$IT', 18, 'available', 'Testing the limit', false)" >/dev/null
 has "sending back more than was received and kept is refused" "$(as $O "select public.decide_supplier_return((select id from supplier_returns where request_key = '$(K 21)'), 'approved')")" "Only 17 unit(s) received on that line can still go back"
@@ -136,7 +137,7 @@ ok  "  awaiting inspection: not in stock, not sellable" "$(stock)" "32/1"
 has "  recorded again with the same key: nothing more" "$(as $E "select public.record_customer_return('$(K 30)', '$OI', 3)")" '"duplicate": true'
 has "more back than sold and not yet returned is refused" "$(as $E "select public.record_customer_return('$(K 31)', '$OI', 3)")" "Only 2 unit(s) of that order line"
 C1=$(q "select id from customer_return_inspections where request_key = '$(K 30)'")
-has "staff cannot decide" "$(as $E "select public.decide_customer_return('$C1', 3, 0, 0, false, false)")" "Only the owner"
+has "staff cannot decide" "$(as $E "select public.decide_customer_return('$C1', 3, 0, 0, false, false)")" "Only the owner or an administrator"
 has "an opened product cannot be restocked" "$(as $O "select public.decide_customer_return('$C1', 1, 0, 2, true, false)")" "cannot be restocked"
 has "every returned unit needs an outcome" "$(as $O "select public.decide_customer_return('$C1', 1, 1, 0, false, false)")" "3 unit(s) came back"
 has "the owner decides: 2 sellable, 1 damaged" "$(as $O "select public.decide_customer_return('$C1', 2, 1, 0, false, false, 'Unopened; one jar cracked')")" '"already_decided": false'
@@ -148,7 +149,7 @@ has "a decided return cannot be decided again" "$(as $O "update customer_return_
 
 echo " 9. corrections: linked movements with a reason and the approver"
 M1=$(q "select id from stock_movements where source_id = '$R1'")
-has "staff cannot correct" "$(as $E "select public.correct_stock_movement('$(K 40)', $M1, 'Counted twice')")" "Only the owner"
+has "staff cannot correct" "$(as $E "select public.correct_stock_movement('$(K 40)', $M1, 'Counted twice')")" "Only the owner or an administrator"
 has "a correction needs a reason" "$(as $O "select public.correct_stock_movement('$(K 40)', $M1, 'no')")" "Say why"
 has "the owner corrects the first delivery (it was 8 counted twice)" "$(as $O "select public.correct_stock_movement('$(K 40)', $M1, 'Delivery entered twice by mistake')")" '"duplicate": false'
 ok  "  a reversing movement, linked to the original, with reason and approver; the original stays" "$(q "select change||'/'||(corrects = $M1)::text||'/'||(approved_by = '$O')::text||'/'||(reason like '%entered twice%')::text from stock_movements where corrects = $M1")/$(q "select count(*) from stock_movements where id = $M1")" "-8/true/true/true/1"

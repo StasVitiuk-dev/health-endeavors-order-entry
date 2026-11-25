@@ -3,11 +3,23 @@
 Status: OWNER DECISION REQUIRED · PROPOSED 2026-11-22 · production run PENDING your separate approval
 Nothing here has been run in production. I never run it myself: you run it, after approving it.
 
+## Changed before install: administrators approve too (owner decision, Nov 24)
+
+Your decision of Nov 24 (administrator "almost like owner") applies here: **the owner or an
+administrator** approves, rejects and decides (deliveries, surplus, returns to the supplier,
+customer-return inspections, corrections). One line does it: the check `stock_is_owner()` now
+answers yes for an active administrator too (its name is kept, so the undo file still matches).
+A switched-off administrator is refused like anyone else. The database's messages now say
+"Only the owner or an administrator …". Staff still only record; stock still changes only on an
+approval. The dashboard's Deliveries and Returns screens show Approve, Reject, Inspect and Correct
+to administrators as well (changed 2026-11-25). An administrator can approve a delivery they
+recorded themselves, the way you can.
+
 ## The exact SQL
 
 | File | Lines | Fingerprint (SHA-256, first 16) |
 |---|---|---|
-| `docs/ops/sql/drafts/40_DRAFT_partial_receiving_returns.sql` (install) | 999 | `80d3cb0848c7bd0c` |
+| `docs/ops/sql/drafts/40_DRAFT_partial_receiving_returns.sql` (install) | 1002 | `24106ab0720b2e90` |
 | `docs/ops/sql/drafts/41_DRAFT_rollback_partial_receiving_returns.sql` (undo) | 77 | `b18e96ee20ccbd41` |
 
 Before running, the file you paste must show the same fingerprint
@@ -26,7 +38,7 @@ you. Tested only on throwaway local copies with made-up data.
 | Record rejected deliveries separately; leave their quantity outstanding | Each line has a **rejected** count with a required reason. Rejected units are never received, so they stay "still to come" on the purchase order. | 3 |
 | Damaged goods we keep go into a damaged status | Damaged units we keep go into the **Damaged** bucket when you approve, and count as received. | 4 |
 | Reopen outstanding quantities for supplier returns only when a replacement is expected | A return to the supplier says whether a **replacement is expected**. Only then does the quantity become "still to come" again, and a completed order goes back to Ordered. Without one, the order stays as it is. | 7 |
-| Staff submit receiving records for permitted purchase orders; owner approval before stock changes | Staff (and administrators) submit for purchase orders their row rules let them see. **Stock never changes on a submission**, only when you approve. Only you approve, reject or decide. The submitter, or you, can cancel a request that is still waiting. | 1, 6 |
+| Staff submit receiving records for permitted purchase orders; owner approval before stock changes | Staff (and administrators) submit for purchase orders their row rules let them see. **Stock never changes on a submission**, only on an approval. Only you or an administrator approve, reject or decide. The submitter, or you, can cancel a request that is still waiting. | 1, 6 |
 | Customer returns into "Awaiting inspection"; opened or used skincare stays unavailable | A customer return is recorded as **awaiting inspection**, with no stock change, so it is not for sale. You inspect and give every unit an outcome: restock, damaged or unsuitable, and say whether it was opened and whether it was used. **Opened or used units can never be restocked**: the database refuses it, and a table rule refuses it too. Unsuitable units go to Damaged (there is no separate stock bucket for them); the inspection keeps "unsuitable" as its own outcome. | 8 |
 | Corrections as linked stock movements with a reason and approver | You correct a movement with a reason. The database writes a new, reversing movement that points to the original and records you as the approver. The original is never edited. Each movement can be corrected once; a correction is not corrected again. A corrected delivery is "still to come" again. Stock can never go below zero. | 9 |
 
@@ -51,7 +63,7 @@ Draft 40 adds six new tables and changes the shape of no existing table. Only wh
 | Receiving records and their lines | their own | all |
 | Returns to the supplier | their own | all |
 | Customer returns waiting for, or after, inspection | all (they receive returns) | all |
-| Stock movements and corrections | none | all |
+| Stock movements and corrections | none | all (owner and administrators also approve and correct) |
 
 **Important, to confirm before production:** today's purchase-order rules let only you and
 administrators see purchase orders. Staff can submit only for purchase orders they can see,
@@ -74,12 +86,12 @@ a test-only rule letting staff see two made-up purchase orders.
 
 | Test | Result |
 |---|---|
-| `local-test/partial_receiving_test.sh`: first delivery (staff submit, you approve); over-receiving; rejected units stay outstanding; damaged kept go to Damaged; surplus logged and decided; simultaneous approvals (two approvals of 7 on 10 outstanding: one goes through, one is refused; the same record approved 10 times: one movement); returns to the supplier with and without a replacement, and over the limit; customer returns inspected, opened ones refused for restock; corrections; the history cannot be written or changed by hand; stock reconciles; rollback | **74 of 74** |
+| `local-test/partial_receiving_test.sh`: first delivery (staff submit, you approve); over-receiving; rejected units stay outstanding; damaged kept go to Damaged; surplus logged and decided; simultaneous approvals (two approvals of 7 on 10 outstanding: one goes through, one is refused; the same record approved 10 times: one movement); returns to the supplier with and without a replacement, and over the limit; customer returns inspected, opened ones refused for restock; corrections; the history cannot be written or changed by hand; stock reconciles; rollback; an administrator approves a supplier return (recorded as approver); a switched-off administrator and staff are refused | **75 of 75** |
 | SQL drafts static checks (no security definer, fixed search path, pinned row rules, functions not granted to visitors, rollback removes only its own tables) and the SQL package checks | 108 of 108 |
 | Dashboard prototype of the same rules (`assets/inventory/he-receiving.js`): unit tests | 12 of 12 |
 | The worked example on the Inventory page, computer and phone size | 5 of 5 (one phone-only check skipped on the computer) |
 | Malformed-input probe, assets, module and SQL checks, both sizes | 231 passed |
-| Nov 22–23: the real screens on these functions, against a real throwaway database with this draft installed (behind a switch not on the Feature Flags page): **Deliveries** on Purchase Orders (record, approve, reject, surplus keep or send back; a lost reply; staff refused by the database) and **Returns to check and send back** on Returns (customer return awaiting inspection, inspection with opened skincare never restocked and every unit given an outcome, return to a supplier with a replacement expected, a correction as a linked movement; a lost reply; staff can record but not approve, inspect or see stock movements, and the database refuses when the page is fooled) | 9 + 9 passed, computer and phone size |
+| Nov 22–23: the real screens on these functions, against a real throwaway database with this draft installed (behind a switch not on the Feature Flags page): **Deliveries** on Purchase Orders (record, approve, reject, surplus keep or send back; a lost reply; staff refused by the database) and **Returns to check and send back** on Returns (customer return awaiting inspection, inspection with opened skincare never restocked and every unit given an outcome, return to a supplier with a replacement expected, a correction as a linked movement; a lost reply; staff can record but not approve, inspect or see stock movements, and the database refuses when the page is fooled; Nov 25: an administrator approves a delivery and the database records them as approver) | all passed, computer and phone size (Nov 25: 292 passed together with the safety and SQL checks) |
 
 ## After running: checks (read-only, paste into the SQL editor)
 

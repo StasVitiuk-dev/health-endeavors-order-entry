@@ -108,7 +108,7 @@ test.describe('against a real database with drafts/40 installed', () => {
       await expect(msg(page)).toContainText('Say why they go back');
       await page.locator('#rtnSrReason').fill('Wrong scent batch');
       await host.locator('form[data-rtnform="sr"] button[type="submit"]').click();
-      await expect(msg(page)).toContainText('Return to the supplier recorded. It waits for the owner.');
+      await expect(msg(page)).toContainText('Return to the supplier recorded. It waits for the owner or an administrator.');
       await expect(host.locator('[data-rtnsr]')).toContainText('SYN-PO-060 · SYN-RTN-A: 3 unit(s) from Available');
       await expect(host.locator('[data-rtnsr]')).toContainText('Wrong scent batch · replacement expected');
       await settled('6/1 10');
@@ -186,8 +186,8 @@ test.describe('against a real database with drafts/40 installed', () => {
       await customerReturn(page, 1);
       await expect(msg(page)).toContainText('Recorded: awaiting inspection');
       await supplierReturn(page, { qty: 2, from: 'damaged', reason: 'Cracked jars' });
-      await expect(msg(page)).toContainText('It waits for the owner.');
-      await expect(host).toContainText('Your returns to suppliers waiting for the owner');
+      await expect(msg(page)).toContainText('It waits for the owner or an administrator.');
+      await expect(host).toContainText('Your returns to suppliers waiting for the owner or an administrator');
       await expect(host.locator('[data-rtnact="sr-approve"]')).toHaveCount(0);
       await expect(host.locator('[data-rtnact="inspect-open"]')).toHaveCount(0);
       await expect(host.locator('[data-rtnmoves]')).toHaveCount(0);
@@ -201,7 +201,7 @@ test.describe('against a real database with drafts/40 installed', () => {
       backend.tables.profiles.find(p => p.role === 'employee').role = 'owner';
       await page.reload(); await expect(page.locator('#dash')).toBeVisible(); await open(page);
       await host.locator('[data-rtnact="sr-approve"]').click();
-      await expect(msg(page)).toContainText('Only the owner can approve or reject a return to the supplier.');
+      await expect(msg(page)).toContainText('Only the owner or an administrator can approve or reject a return to the supplier.');
       expect(await db.query('select status from supplier_returns')).toBe('submitted');
       expect(await db.query("select available||'/'||damaged from inventory where product_id = '" + P + "'")).toBe('5/0');
     } finally { await db.close(); }

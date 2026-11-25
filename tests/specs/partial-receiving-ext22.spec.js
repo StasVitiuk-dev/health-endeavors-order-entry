@@ -63,7 +63,7 @@ test('the worked example: every step, the remaining quantity and the stock movem
   const s = w.steps;
   expect(s[1].movements).toEqual([]);                                   // staff submission: no stock change
   expect(s[2].duplicate).toBe(true);
-  expect(s[3].reason).toMatch(/only the owner approves stock changes/);
+  expect(s[3].reason).toMatch(/only the owner or an administrator approves stock changes/);
   expect(s[4].movements).toEqual([{ bucket: 'available', change: 8, before: 5, after: 13 }]);
   expect(s[6].movements).toEqual([{ bucket: 'available', change: 9, before: 13, after: 22 }, { bucket: 'damaged', change: 1, before: 0, after: 1 }]);
   expect(s[7].reason).toMatch(/only 2 of SYN-HONEY-8OZ are still to come .* enter the rest as surplus/);
@@ -95,11 +95,11 @@ test('rule 5: staff submit for purchase orders they may see; stock changes only 
   expect(R.waiting(L).receiving).toHaveLength(1);
   // a purchase order staff may not see: refused, with the hand-off
   expect(R.submitReceiving(L, { requestKey: K(2), poId: 'po-private', lines: [{ sku: SKU, good: 1 }], ...staff }).reason).toMatch(/only for purchase orders you are allowed to see; hand it to the owner/);
-  // an administrator may submit, but neither staff nor an administrator approves
+  // an administrator may submit; staff never approve; the owner or an administrator does (owner decision, Nov 24)
   const adm = R.submitReceiving(L, { requestKey: K(3), poId: 'po-private', lines: [{ sku: SKU, good: 1 }], ...admin });
   expect(adm.ok).toBe(true);
-  for (const who of [staff, admin, { by: 'v', role: 'viewer' }, { by: 'x' }]) {
-    expect(R.approveReceiving(L, { recordId: sub.id, ...who }).reason).toMatch(/only the owner approves/);
+  for (const who of [staff, { by: 'v', role: 'viewer' }, { by: 'x' }]) {
+    expect(R.approveReceiving(L, { recordId: sub.id, ...who }).reason).toMatch(/only the owner or an administrator approves/);
   }
   expect(R.submitReceiving(L, { requestKey: K(4), poId: 'po', lines: [{ sku: SKU, good: 1 }], by: 'v', role: 'viewer' }).reason).toMatch(/only staff, an administrator or the owner/);
   expect(R.stock(L, SKU).available).toBe(5);
@@ -142,7 +142,7 @@ test('rules 1 and 2: surplus is logged for the owner, and rejected units stay ou
   expect(R.stock(L, SKU).available).toBe(25);
   const w = R.waiting(L);
   expect(w.surplus).toHaveLength(1); expect(w.surplus[0]).toMatchObject({ sku: SKU, quantity: 2, status: 'waiting' });
-  expect(R.decideSurplus(L, { surplusId: w.surplus[0].id, decision: 'kept', ...staff }).reason).toMatch(/only the owner decides on surplus/);
+  expect(R.decideSurplus(L, { surplusId: w.surplus[0].id, decision: 'kept', ...staff }).reason).toMatch(/only the owner or an administrator decides on surplus/);
   expect(R.decideSurplus(L, { surplusId: w.surplus[0].id, decision: 'maybe', ...owner }).reason).toMatch(/kept or returned/);
   // returned: no stock change; kept: Available
   expect(R.decideSurplus(L, { surplusId: w.surplus[0].id, decision: 'returned', ...owner }).movements).toEqual([]);
@@ -182,11 +182,15 @@ test('rule 4: a supplier return reopens the outstanding quantity only when a rep
   // the replacements can now be received against the same order
   expect(receive(L, K(6), [{ sku: SKU, good: 2 }]).ok).toBe(true);
   expect(R.poStatus(L, 'po').lines[0]).toMatchObject({ received: 20, toCome: 0 });
-  // submissions need a reason and a bucket; only the owner decides
+  // submissions need a reason and a bucket; only the owner or an administrator decides
   expect(R.submitSupplierReturn(L, { requestKey: K(7), poId: 'po', sku: SKU, quantity: 1, from: 'shelf', reason: 'Wrong scent', ...staff }).reason).toMatch(/Available or Damaged/);
   expect(R.submitSupplierReturn(L, { requestKey: K(8), poId: 'po', sku: SKU, quantity: 1, reason: 'no', ...staff }).reason).toMatch(/say why/);
   const s = R.submitSupplierReturn(L, { requestKey: K(9), poId: 'po', sku: SKU, quantity: 1, reason: 'Wrong scent', ...staff });
-  expect(R.decideSupplierReturn(L, { returnId: s.id, decision: 'approved', ...admin }).reason).toMatch(/only the owner/);
+  expect(R.decideSupplierReturn(L, { returnId: s.id, decision: 'approved', ...staff }).reason).toMatch(/only the owner or an administrator/);
+  // an administrator approves it: stock goes down, and who approved is kept
+  const sa = R.decideSupplierReturn(L, { returnId: s.id, decision: 'approved', ...admin });
+  expect(sa.ok).toBe(true);
+  expect(sa.movements.map(m => [m.bucket, m.change, m.approvedBy])).toEqual([['available', -1, 'ari']]);
   expect(R.reconcile(L, START).ok).toBe(true);
 });
 
@@ -197,7 +201,7 @@ test('rule 6: customer returns wait for inspection; opened or used skincare is n
   expect(R.stock(L, SKU).available).toBe(5);                            // not available for resale
   expect(R.saleStatus(L, 'so').lines[0]).toMatchObject({ awaitingInspection: 3, stillReturnable: 2 });
   const d = (x) => R.decideCustomerReturn(L, { inspectionId: rec.id, ...owner, ...x });
-  expect(d({ restock: 3, ...staff }).reason).toMatch(/only the owner decides/);
+  expect(d({ restock: 3, ...staff }).reason).toMatch(/only the owner or an administrator decides/);
   expect(d({ restock: 3 }).reason).toMatch(/whether the product was opened/);
   expect(d({ restock: 1, unsuitable: 2, opened: true, used: false }).reason).toMatch(/opened or used skincare cannot be restocked/);
   expect(d({ restock: 1, unsuitable: 0, opened: false, used: true }).reason).toMatch(/cannot be restocked/);
@@ -220,7 +224,7 @@ test('rule 7: a correction is a linked reversing movement with a reason and appr
   const L = fresh();
   receive(L, K(1), [{ sku: SKU, good: 8 }]);
   const m = L.movements[0];
-  expect(R.correctMovement(L, { requestKey: K(2), movementN: m.n, reason: 'Counted twice', ...admin }).reason).toMatch(/only the owner can correct/);
+  expect(R.correctMovement(L, { requestKey: K(2), movementN: m.n, reason: 'Counted twice', ...staff }).reason).toMatch(/only the owner or an administrator can correct/);
   expect(R.correctMovement(L, { requestKey: K(3), movementN: m.n, reason: 'no', ...owner }).reason).toMatch(/say why/);
   expect(R.correctMovement(L, { requestKey: K(4), movementN: 99, reason: 'Counted twice', ...owner }).reason).toMatch(/no such stock movement/);
   const c = R.correctMovement(L, { requestKey: K(5), movementN: m.n, reason: 'Counted twice', at: '2026-11-22T10:00:00Z', ...owner });
@@ -261,7 +265,7 @@ test('the history: who, when, what; movements keep who asked and who approved', 
   const s = R.submitReceiving(L, { requestKey: K(1), poId: 'po', lines: [{ sku: SKU, good: 7, damaged: 1 }], by: 'sam', role: 'employee', at: '2026-11-22T10:00:00Z', note: 'first pallet' });
   R.approveReceiving(L, { recordId: s.id, by: 'owner', role: 'owner', at: '2026-11-22T11:00:00Z' });
   expect(L.history[0]).toMatchObject({ n: 1, kind: 'submitReceiving', by: 'sam', at: '2026-11-22T10:00:00Z', note: 'first pallet' });
-  expect(L.history[0].what).toMatch(/SYN-HONEY-8OZ: 7 good, 1 damaged, kept \(waiting for the owner; no stock changed\)/);
+  expect(L.history[0].what).toMatch(/SYN-HONEY-8OZ: 7 good, 1 damaged, kept \(waiting for the owner or an administrator; no stock changed\)/);
   expect(L.history[1]).toMatchObject({ n: 2, kind: 'approveReceiving', by: 'owner', at: '2026-11-22T11:00:00Z' });
   expect(L.movements.map(m => [m.bucket, m.before, m.change, m.after, m.requestedBy, m.approvedBy, m.source.poId, m.source.kind]))
     .toEqual([['available', 5, 7, 12, 'sam', 'owner', 'po', 'receipt'], ['damaged', 0, 1, 1, 'sam', 'owner', 'po', 'receipt']]);

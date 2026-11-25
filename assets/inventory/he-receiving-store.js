@@ -5,7 +5,7 @@
 // also need drafts/44 to see purchase orders). Supplier returns, customer-return
 // inspections and corrections are available here for the next screens.
 //
-// Staff submit; only the owner approves, rejects or decides; stock changes only
+// Staff submit; only the owner or an administrator approves, rejects or decides; stock changes only
 // on the owner's approval. The database enforces every rule again on its own;
 // this file gives plain-English messages earlier and maps the shapes. Each
 // submission carries a request key from the page, so a retry records once.
@@ -57,7 +57,7 @@
     const client = o.client || null, enabled = o.enabled === true, role = o.role == null ? null : String(o.role);
     const inFlight = new Set();
     const refuse = (message, extra) => Object.assign({ ok: false, message }, extra || {});
-    const isOwner = () => role === 'owner';
+    const isApprover = () => role === 'owner' || role === 'administrator';   // owner decision, Nov 24
     function ready() {
       if (!enabled) return refuse('Partial receiving is off.', { off: true });
       if (!client || typeof client.from !== 'function' || typeof client.rpc !== 'function') return refuse('No database connection was given.');
@@ -90,7 +90,7 @@
     }
 
     // Purchase orders the person can see that can still receive, with their lines
-    // and what is still to come; plus every request waiting for the owner.
+    // and what is still to come; plus every request waiting for the owner or an administrator.
     async function load() {
       const r = ready(); if (r) return r;
       return once('load', async function () {
@@ -165,7 +165,7 @@
         if (!isUuid(x.po_item_id)) return refuse('A line is not on this purchase order.');
         if (x.rejected && x.rejected_reason.length < 5) return refuse('Say why units were rejected (at least 5 characters).');
         const toCome = isObj(q.toCome) && Number.isInteger(q.toCome[x.po_item_id]) ? q.toCome[x.po_item_id] : null;
-        if (toCome != null && x.good + x.damaged > toCome) return refuse('Only ' + toCome + ' unit(s) are still to come on a line; enter the rest as surplus for the owner to review.');
+        if (toCome != null && x.good + x.damaged > toCome) return refuse('Only ' + toCome + ' unit(s) are still to come on a line; enter the rest as surplus for the owner or an administrator to review.');
         if (toCome != null && x.surplus && x.good + x.damaged < toCome) return refuse('Surplus is what arrived beyond the ' + toCome + ' unit(s) still to come.');
         if (!x.rejected) delete x.rejected_reason;
         lines.push(x);
@@ -173,9 +173,9 @@
       if (!lines.length) return refuse('Enter at least one unit that arrived.');
       const note = String(q.note || '').trim().slice(0, 500);
       return call('submit:' + q.requestKey, RPC.submit, { p_request_key: q.requestKey, p_purchase_order_id: q.poId, p_lines: lines, p_note: note || null },
-        'Delivery recorded. It waits for the owner; stock changes only when the owner approves.');
+        'Delivery recorded. It waits for the owner or an administrator; stock changes only when one of them approves.');
     }
-    const ownerOnly = () => (role != null && !isOwner()) ? refuse('Only the owner approves, rejects or decides.') : null;
+    const ownerOnly = () => (role != null && !isApprover()) ? refuse('Only the owner or an administrator approves, rejects or decides.') : null;
     async function approve(id, note) {
       const r = ready() || ownerOnly(); if (r) return r;
       if (!isUuid(id)) return refuse('That is not a receiving record.');
@@ -209,7 +209,7 @@
       if (q.fromBucket !== 'available' && q.fromBucket !== 'damaged') return refuse('Say whether they come from Available or Damaged stock.');
       if (String(q.reason || '').trim().length < 5) return refuse('Say why they go back (at least 5 characters).');
       return call('sr:' + q.requestKey, RPC.supplierReturn, { p_request_key: q.requestKey, p_po_item_id: q.poItemId, p_quantity: n, p_from_bucket: q.fromBucket,
-        p_reason: String(q.reason).trim().slice(0, 300), p_replacement_expected: q.replacementExpected === true }, 'Return to the supplier recorded. It waits for the owner.');
+        p_reason: String(q.reason).trim().slice(0, 300), p_replacement_expected: q.replacementExpected === true }, 'Return to the supplier recorded. It waits for the owner or an administrator.');
     }
     async function decideSupplierReturn(id, decision, note) {
       const r = ready() || ownerOnly(); if (r) return r;

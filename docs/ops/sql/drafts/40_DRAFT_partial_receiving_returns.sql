@@ -5,7 +5,7 @@
 -- @depends-on:  none
 -- @risk:        MEDIUM
 -- @precheck:    stops if auth.uid(), current_role(), is_active_staff(), is_owner_or_admin() or the purchase_orders, purchase_order_items, inventory, inventory_adjustments, returns, order_items or products table is missing
--- @effect:      6 new tables (receiving records and lines, supplier returns, customer return inspections, stock movements, stock corrections); staff submit, the owner approves before any stock changes; surplus logged for the owner; rejected units stay outstanding; damaged kept go to Damaged; supplier returns reopen the outstanding quantity only when a replacement is expected; customer returns wait for inspection, opened or used never restocked; corrections are linked reversing movements with reason and approver; request keys and row locks against retries and simultaneous approvals; on approval only: inventory buckets, purchase_order_items.quantity_received, purchase_orders.status, inventory_adjustments
+-- @effect:      6 new tables (receiving records and lines, supplier returns, customer return inspections, stock movements, stock corrections); staff submit, the owner or an administrator approves before any stock changes (owner decision of Nov 24); surplus logged for the owner; rejected units stay outstanding; damaged kept go to Damaged; supplier returns reopen the outstanding quantity only when a replacement is expected; customer returns wait for inspection, opened or used never restocked; corrections are linked reversing movements with reason and approver; request keys and row locks against retries and simultaneous approvals; on approval only: inventory buckets, purchase_order_items.quantity_received, purchase_orders.status, inventory_adjustments
 -- @postcheck:   the six tables present and empty; anon cannot read them; local-test/partial_receiving_test.sh passes on a throwaway copy
 -- @rollback:    drafts/41
 -- @@ end metadata @@
@@ -180,13 +180,16 @@ create table if not exists public.stock_corrections (
 );
 
 -- ---------------------------------------------------------------- helpers
+-- The person who decides (the name is kept for the rollback): the owner, or an administrator
+-- (owner decision of Nov 24: an administrator is "almost like owner" and needs no approval from
+-- the owner; changed before this draft was installed; who decided stays on every record).
 create or replace function public.stock_is_owner() returns boolean
 language sql
 stable
 security invoker
 set search_path = public, pg_temp
 as $fn$
-  select coalesce(public.current_role() = 'owner', false)
+  select coalesce(public.current_role() in ('owner', 'administrator'), false)
 $fn$;
 
 -- What is still to come on a purchase-order line (ordered - received).
@@ -215,7 +218,7 @@ begin
     raise exception 'A stock movement cannot be changed or deleted. Record a correction instead.' using errcode = '42501';
   end if;
   if pg_trigger_depth() < 2 then
-    raise exception 'Stock movements are written by the database only, when the owner approves.' using errcode = '42501';
+    raise exception 'Stock movements are written by the database only, when the owner or an administrator approves.' using errcode = '42501';
   end if;
   new.approved_by := auth.uid();
   new.at := now();
@@ -252,7 +255,7 @@ begin
   end if;
   if tg_op = 'INSERT' then
     if new.status <> 'submitted' then
-      raise exception 'A receiving record starts as submitted; the owner approves it.' using errcode = '22023';
+      raise exception 'A receiving record starts as submitted; the owner or an administrator approves it.' using errcode = '22023';
     end if;
     new.submitted_by := auth.uid(); new.submitted_at := now();
     new.decided_by := null; new.decided_at := null; new.decision_note := null;
@@ -273,7 +276,7 @@ begin
   end if;
   if new.status in ('approved', 'rejected') then
     if not public.stock_is_owner() then
-      raise exception 'Only the owner can approve or reject a delivery.' using errcode = '42501';
+      raise exception 'Only the owner or an administrator can approve or reject a delivery.' using errcode = '42501';
     end if;
     if new.status = 'rejected' and (new.decision_note is null or length(btrim(new.decision_note)) < 5) then
       raise exception 'Say why the delivery record is rejected.' using errcode = '22023';
@@ -314,7 +317,7 @@ begin
     end if;
     if new.surplus_status is distinct from old.surplus_status then
       if not public.stock_is_owner() then
-        raise exception 'Only the owner decides about a surplus.' using errcode = '42501';
+        raise exception 'Only the owner or an administrator decides about a surplus.' using errcode = '42501';
       end if;
       if old.surplus_status <> 'waiting' or new.surplus_status not in ('kept', 'returned') then
         raise exception 'The surplus was already decided (%).', old.surplus_status using errcode = '22023';
@@ -342,7 +345,7 @@ begin
   end if;
   v_out := public.po_item_outstanding(new.po_item_id);
   if new.good + new.damaged > v_out then
-    raise exception 'Only % unit(s) are still to come on that line; enter the rest as surplus for the owner to review.', v_out using errcode = '22023';
+    raise exception 'Only % unit(s) are still to come on that line; enter the rest as surplus for the owner or an administrator to review.', v_out using errcode = '22023';
   end if;
   if new.surplus > 0 and new.good + new.damaged < v_out then
     raise exception 'Surplus is what arrived beyond the % unit(s) still to come.', v_out using errcode = '22023';
@@ -450,7 +453,7 @@ begin
   end if;
   if tg_op = 'INSERT' then
     if new.status <> 'submitted' then
-      raise exception 'A supplier return starts as submitted; the owner approves it.' using errcode = '22023';
+      raise exception 'A supplier return starts as submitted; the owner or an administrator approves it.' using errcode = '22023';
     end if;
     new.submitted_by := auth.uid(); new.submitted_at := now();
     new.decided_by := null; new.decided_at := null; new.decision_note := null;
@@ -466,7 +469,7 @@ begin
     raise exception 'This supplier return was already %.', old.status using errcode = '22023';
   end if;
   if new.status in ('approved', 'rejected') and not public.stock_is_owner() then
-    raise exception 'Only the owner can approve or reject a return to the supplier.' using errcode = '42501';
+    raise exception 'Only the owner or an administrator can approve or reject a return to the supplier.' using errcode = '42501';
   end if;
   if new.status = 'cancelled' and not (old.submitted_by = auth.uid() or public.stock_is_owner()) then
     raise exception 'Only the person who submitted it, or the owner, can cancel it.' using errcode = '42501';
@@ -553,14 +556,14 @@ begin
   end if;
   if new.status = 'decided' then
     if not public.stock_is_owner() then
-      raise exception 'Only the owner decides what happens to returned units.' using errcode = '42501';
+      raise exception 'Only the owner or an administrator decides what happens to returned units.' using errcode = '42501';
     end if;
   elsif new.status = 'cancelled' then
     if not (old.received_by = auth.uid() or public.stock_is_owner()) then
       raise exception 'Only the person who recorded it, or the owner, can cancel it.' using errcode = '42501';
     end if;
   else
-    raise exception 'A customer return waits for inspection until the owner decides.' using errcode = '22023';
+    raise exception 'A customer return waits for inspection until the owner or an administrator decides.' using errcode = '22023';
   end if;
   new.decided_by := auth.uid(); new.decided_at := now();
   return new;
@@ -617,7 +620,7 @@ begin
     raise exception 'A correction stays on the record.' using errcode = '42501';
   end if;
   if not public.stock_is_owner() then
-    raise exception 'Only the owner can correct a stock movement.' using errcode = '42501';
+    raise exception 'Only the owner or an administrator can correct a stock movement.' using errcode = '42501';
   end if;
   if exists (select 1 from public.stock_movements where id = new.movement_id and source_kind = 'correction') then
     raise exception 'A correction is not corrected again; correct the original movement only once, then submit the right figure.' using errcode = '22023';
@@ -701,7 +704,7 @@ declare
   v public.receiving_records%rowtype;
 begin
   if not public.stock_is_owner() then
-    raise exception 'Only the owner can approve or reject a delivery.' using errcode = '42501';
+    raise exception 'Only the owner or an administrator can approve or reject a delivery.' using errcode = '42501';
   end if;
   select * into v from public.receiving_records where id = p_id for update;
   if not found then raise exception 'No such receiving record.' using errcode = 'P0002'; end if;
@@ -722,7 +725,7 @@ declare
   v public.receiving_records%rowtype;
 begin
   if not public.stock_is_owner() then
-    raise exception 'Only the owner can approve or reject a delivery.' using errcode = '42501';
+    raise exception 'Only the owner or an administrator can approve or reject a delivery.' using errcode = '42501';
   end if;
   select * into v from public.receiving_records where id = p_id for update;
   if not found then raise exception 'No such receiving record.' using errcode = 'P0002'; end if;
@@ -761,7 +764,7 @@ declare
   v public.receiving_record_lines%rowtype;
 begin
   if not public.stock_is_owner() then
-    raise exception 'Only the owner decides about a surplus.' using errcode = '42501';
+    raise exception 'Only the owner or an administrator decides about a surplus.' using errcode = '42501';
   end if;
   if p_decision not in ('kept', 'returned') then
     raise exception 'A surplus is either kept or returned.' using errcode = '22023';
@@ -809,7 +812,7 @@ declare
   v public.supplier_returns%rowtype;
 begin
   if not public.stock_is_owner() then
-    raise exception 'Only the owner can approve or reject a return to the supplier.' using errcode = '42501';
+    raise exception 'Only the owner or an administrator can approve or reject a return to the supplier.' using errcode = '42501';
   end if;
   if p_decision not in ('approved', 'rejected') then
     raise exception 'A return to the supplier is approved or rejected.' using errcode = '22023';
@@ -858,7 +861,7 @@ declare
   v public.customer_return_inspections%rowtype;
 begin
   if not public.stock_is_owner() then
-    raise exception 'Only the owner decides what happens to returned units.' using errcode = '42501';
+    raise exception 'Only the owner or an administrator decides what happens to returned units.' using errcode = '42501';
   end if;
   if p_opened is null or p_used is null then
     raise exception 'Say whether the product was opened and whether it was used.' using errcode = '22023';
@@ -892,7 +895,7 @@ declare
   v_new bigint;
 begin
   if not public.stock_is_owner() then
-    raise exception 'Only the owner can correct a stock movement.' using errcode = '42501';
+    raise exception 'Only the owner or an administrator can correct a stock movement.' using errcode = '42501';
   end if;
   if p_request_key is null then
     raise exception 'A request key is required, so that a retry cannot correct twice.' using errcode = '22023';
