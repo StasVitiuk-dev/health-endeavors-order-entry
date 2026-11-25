@@ -27,10 +27,9 @@ and off.
 - **Nov 23:** "money, revenue and sensitive documents are for the owner and administrators only".
   Still true; this decision widens what administrators may *do*, not who sees money.
 - **Decision 5 (stock-count adjustments): owner-only approval, enforced in the database
-  (drafts/34).** The new decision supersedes it for administrators: OWNER DECISION REQUIRED only on
-  whether a person may approve *their own* proposal (today the owner approves what others propose).
-  Until answered, the safer rule is kept in the plan: nobody approves their own proposal, except
-  the owner.
+  (drafts/34).** The new decision supersedes it for administrators. ANSWERED the same evening: an
+  administrator needs no approval from the owner, also for their own proposals; the owner is told
+  about it instead. An employee's proposal is still approved by the owner or an administrator.
 - **Drafts/50 (shared settings): "only the owner saves".** To become "the owner and administrators
   save", before the draft is installed.
 - **Drafts/56 (saved email campaigns): "only the owner can save, pause or stop a campaign".** To
@@ -75,20 +74,39 @@ provider's own console. So point 3 of the decision is a database rule to confirm
 4. Employee Activity: the owner's entries hidden from administrators (a database draft and the page).
 5. A database draft that makes sure an administrator cannot change an owner's account, if the check
    in step 2 shows it is possible today.
+6. A page (and its database draft) where the owner and administrators add and approve people and
+   set roles below Owner.
+7. The owner's Home and daily summary say what an administrator did.
 
-## What else to keep for the owner only (PROPOSED by Claude when the owner asked; OWNER DECISION REQUIRED)
+## What else to keep for the owner only: ANSWERED by the owner (Nov 24, evening)
 
-Asked "what else would you recommend to close from her account", Claude recommended keeping these
-for the owner only, on top of the three points above. The owner has not answered yet.
+Asked "what else would you recommend to close from her account", Claude proposed six things to keep
+for the owner only. The owner answered each one. The partner is a co-owner (named on the business's
+tax documents as a partner), will not be online much, and the account is there to stay informed and
+for emergencies.
 
-1. Adding or removing accounts and changing anyone's role.
-2. Approving one's own requests: an administrator approves what others propose; their own stock
-   corrections and returns to suppliers go to the owner.
-3. Releasing a legal hold (placing one stays open to administrators).
-4. Backups and restoring from a backup.
-5. The monthly AI spending limit, and the final approval to start sending real emails.
-6. The sign-ins behind the dashboard (the database provider, the code host, the store's owner
-   login): a habit, not something the dashboard can enforce.
+| # | Claude's proposal (keep for the owner only) | The owner's answer |
+|---|---|---|
+| 1 | Adding or removing accounts, changing anyone's role | **Not kept.** An administrator must be able to create accounts and approve people. (Still true from the first decision: nothing may be done to the owner's own accounts. Claude's reading, told to the owner: making someone an Owner also stays with the owner.) |
+| 2 | Approving one's own requests | **Not kept.** No approval by the owner is needed for what the partner does. Instead the owner wants to **be told about everything the partner does**: "I do want to be able to see everything". Employee Activity already records it; more is to be added so the owner is told without looking (see the plan). |
+| 3 | Releasing a legal hold | **Not kept.** An administrator may release one too. |
+| 4 | Backups and restoring from a backup | **Not kept.** Mostly the owner does it, but in an emergency the partner must be able to as well. |
+| 5 | The monthly AI spending limit; the final approval to start sending real emails | **Not kept.** An administrator may do both. |
+| 6 | The sign-ins behind the dashboard (the database provider, the code host, the store's owner login) | **Kept.** Only the owner, and the owner's emergency account. "This part is totally my job." |
+
+**So, for the owner only, in total:** the System mode switch; reading the owner's own history;
+anything done to the owner's accounts (including making someone an Owner); and the sign-ins behind
+the dashboard. Everything else an administrator may do.
+
+**New work that follows from the answers** (added to the plan):
+
+- **Accounts from the dashboard.** Today no page creates or approves an account; that is done in the
+  database provider's console, which stays with the owner (point 6). For an administrator to create
+  accounts and approve people, a page and a database draft are needed: add a person, approve them,
+  set or change a role below Owner, deactivate. Never an owner's account.
+- **The owner is told what an administrator did.** Each significant action by an administrator
+  (an approval, a switch, a new account, a released hold, a restore, a campaign saved) shows on the
+  owner's Home, and in the daily summary, without the owner having to search Employee Activity.
 
 ## Known limitation, told to the owner
 
