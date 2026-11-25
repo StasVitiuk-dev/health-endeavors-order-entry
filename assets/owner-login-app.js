@@ -84,7 +84,7 @@
       nightlyOverall,
     } = window.HE.helpers;
     // @@ EXT15 modules: created in dependency order (assets/app/*.js; see docs/ops/APPLICATION_MODULE_MAP_EXT15.md)
-    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, agentDiaryOn, realProfitOn, channelMoneyOn, SWITCH_EVERYONE, sharedSettingsOn, orderCostsOn, incidentCloseOn, batchLabelsOn, orderBatchesOn, orderChannelsOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn, storeCampaignsOn, receiptReaderOn, contentHelperOn, customerEmailsOn, emailSendingOn, mySettingsOn, handoffHandledOn, reviewInboxOn, reviewStoreOn, customersFirstOn, peoplePageOn } = HE.modules.create('he-config', {  });
+    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, agentDiaryOn, realProfitOn, channelMoneyOn, SWITCH_EVERYONE, sharedSettingsOn, orderCostsOn, incidentCloseOn, batchLabelsOn, orderBatchesOn, orderChannelsOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn, storeCampaignsOn, receiptReaderOn, contentHelperOn, customerEmailsOn, emailSendingOn, mySettingsOn, handoffHandledOn, reviewInboxOn, reviewStoreOn, customersFirstOn, launchPageOn, askBoxOn, peoplePageOn } = HE.modules.create('he-config', {  });
     const { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, focusDialog, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, h, pageIconNode } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
     const { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
     const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, h, supabase });
@@ -3427,7 +3427,7 @@
     // notices) and the customer questions still waiting. It never writes: "Answer"
     // opens Customer Questions, "Dismiss" uses the reminder's own Dismiss button
     // below, "Later" hides an item until tomorrow in this browser only.
-    let feedFilter = 'all', feedQuestions = null, feedSeq = 0, feedLast = new Map(), feedParcels = null, feedAgentSteps = null, feedRecap = null, feedSummary = '';
+    let feedFilter = 'all', feedQuestions = null, feedSeq = 0, feedLast = new Map(), feedParcels = null, feedAgentSteps = null, feedRecap = null, feedWeek = null, feedSummary = '';
     const FEED_LIMIT = 100;
     function feedMod() { try { return (window.HE && window.HE.views && window.HE.views['he-attention-feed']) || null; } catch (e) { return null; } }
     function feedStore() { try { return window.localStorage; } catch (e) { return null; } }
@@ -3545,6 +3545,15 @@
         if (seq !== feedSeq) return;
         feedRecap = d ? { date: d, printedUpTo: upto } : null;
       } catch (e) { if (seq !== feedSeq) return; feedRecap = null; }
+      // the weekly report of the week that just ended, until this person opened it (owner and administrators)
+      try {
+        const WM = wrMod();
+        const on = !!WM && wrAllowed() && typeof backupsPageOn === 'function' && backupsPageOn();
+        const seen = on ? await wrSeenUpTo() : '';
+        if (seq !== feedSeq) return;
+        const d = on ? WM.due(Date.now(), seen) : null;
+        feedWeek = d && d.due ? { key: d.week.key, label: d.week.label } : null;
+      } catch (e) { if (seq !== feedSeq) return; feedWeek = null; }
       paintAttentionFeed();
     }
     // the nightly check, as Home shows it below (its own cards keep their detail)
@@ -3572,7 +3581,7 @@
       const now = Date.now();
       const items = M.buildFeed({
         attention: Array.isArray(SEARCH_INDEX.attention) ? SEARCH_INDEX.attention : null, labels: ITEM_TYPE_LABELS,
-        checks: findings, questions: feedQuestions, nightly: feedNightly(), delivery: feedParcels, agents: feedAgentSteps, recap: feedRecap,
+        checks: findings, questions: feedQuestions, nightly: feedNightly(), delivery: feedParcels, agents: feedAgentSteps, recap: feedRecap, week: feedWeek,
         handled: handoffHandledOn() && typeof M.readHandled === 'function' ? M.readHandled(feedStore(), now) : null,
         customersFirst: customersFirstOn(),
         reviews: riFeedRows(),
@@ -5188,6 +5197,288 @@
       const target = document.querySelector(r.ok ? '#peoplePanel [data-pp-msg]' : '#peoplePanel [data-pp-problems]'); if (target) { target.setAttribute('tabindex', '-1'); target.focus(); }
     });
 
+    // ---------- Ask the dashboard (owner, Nov 24: "something like a Siri of my app"; behind askBoxOn; the owner's account only)
+    // The search box also answers questions: typed, or spoken through the browser's own dictation.
+    // The rules and the wording are in assets/views/he-ask.js; here the records are read and the
+    // answer is shown and, unless Quiet is on, read out loud. It only reads. "Remind me to ..."
+    // opens the existing "New reminder" box with the words filled in; the person presses Add.
+    const ASK_QUIET_KEY = 'he_ask_quiet';
+    let askLast = null, askSeq = 0, askHearing = null, askShown = null, askNote = '';
+    const askMod = () => (window.HE && window.HE.views && window.HE.views['he-ask']) || null;
+    const askAllowed = () => currentUserRole === 'owner' && typeof askBoxOn === 'function' && askBoxOn() && !!askMod() && !!wrMod();
+    const askQuiet = () => { try { return localStorage.getItem(ASK_QUIET_KEY) === 'on'; } catch (e) { return false; } };
+    const askCanHear = () => !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+    const askCanSpeak = () => !!(window.speechSynthesis && typeof window.SpeechSynthesisUtterance === 'function');
+    function askHush() {
+      try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch (e) { /* nothing was being said */ }
+      try { if (askHearing) askHearing.abort(); } catch (e) { /* it was not listening */ }
+      askHearing = null;
+    }
+    function askSpeak(text) {
+      if (askQuiet() || !askCanSpeak() || !text) return false;
+      try { window.speechSynthesis.cancel(); const u = new window.SpeechSynthesisUtterance(String(text).slice(0, 1200)); u.lang = 'en-US'; window.speechSynthesis.speak(u); return true; } catch (e) { return false; }
+    }
+    function askClear() { if (!askShown && !askNote) return; askSeq += 1; askShown = null; askNote = ''; askPaint(); }
+    // the microphone, the Quiet switch and the place for the answer, added to the search box for the owner
+    function askDress() {
+      const card = paletteOverlay.querySelector('.paletteCard'), input = document.getElementById('paletteInput'); if (!card || !input) return;
+      const old = card.querySelector('[data-askbar]'), box = card.querySelector('[data-askanswer]');
+      card.classList.remove('askAnswering');
+      if (!askAllowed()) { if (old) old.remove(); if (box) box.remove(); input.placeholder = 'Jump to a page or record, or ask how something works…'; return; }
+      input.placeholder = 'Search, or ask: how many orders this week?';
+      askShown = null; askNote = '';
+      const bar = h('div', { class: 'askBar', 'data-askbar': '1' },
+        askCanHear() ? h('button', { type: 'button', class: 'small', 'data-ask': 'listen', 'aria-pressed': 'false' }, 'Talk') : h('span', { class: 'u-fs-12 u-c-muted', 'data-asknomic': '1' }, 'To talk, use the microphone key on your keyboard.'),
+        h('button', { type: 'button', class: 'small secondary', 'data-ask': 'brief' }, 'Brief me'),
+        h('button', { type: 'button', class: 'small secondary', 'data-ask': 'quiet', 'aria-pressed': askQuiet() ? 'true' : 'false' }, askQuiet() ? 'Quiet: on' : 'Quiet: off'),
+        h('button', { type: 'button', class: 'small secondary', 'data-ask': 'help' }, 'What can I ask?'));
+      if (old) old.replaceWith(bar); else input.after(bar);
+      if (!box) bar.after(h('div', { class: 'askAnswer', 'data-askanswer': '1', role: 'status', 'aria-live': 'polite' }));
+      askPaint();
+    }
+    function askPaint() {
+      const box = paletteOverlay.querySelector('[data-askanswer]'); if (!box) return;
+      const a = askShown;
+      box.replaceChildren(...[
+        askNote ? h('p', { class: 'u-fs-12p5', 'data-asknote': '1' }, askNote) : null,
+        a ? h('div', { class: 'askCard', 'data-askintent': a.intent },
+          h('div', { class: 'taskTitle', 'data-asktitle': '1' }, a.title),
+          a.say ? h('p', { class: 'u-fs-12p5 u-mt-4', 'data-asksay': '1' }, a.say) : null,
+          a.lines.length ? h('table', { class: 'wrTable u-mt-6' }, h('tbody', null, a.lines.map(l => h('tr', null, h('th', { scope: 'row' }, l.label), h('td', null, l.value))))) : null,
+          h('div', { class: 'scanToggleRow u-mt-6' },
+            a.page ? h('button', { type: 'button', class: 'small', 'data-ask': 'open', 'data-askpage': a.page }, 'Open ' + a.pageName) : null,
+            a.say && askCanSpeak() ? h('button', { type: 'button', class: 'small secondary', 'data-ask': 'again' }, 'Say it again') : null)) : null].filter(Boolean));
+      const card = paletteOverlay.querySelector('.paletteCard'); if (card) card.classList.toggle('askAnswering', !!a);   // an answer has the room; typing again brings the results back
+      const mic = paletteOverlay.querySelector('[data-ask="listen"]');
+      if (mic) { mic.setAttribute('aria-pressed', askHearing ? 'true' : 'false'); mic.textContent = askHearing ? 'Listening… (tap to stop)' : 'Talk'; }
+    }
+    // the records an answer needs, each read on its own (one that fails says so in the answer)
+    async function askData(asked) {
+      const A = askMod(), W = wrMod(), need = A.needs(asked), data = {};
+      const settle = (p) => Promise.resolve(p).then(v => v, () => null);
+      const b = A.periodBounds(asked.intent === 'brief' ? 'today' : asked.period, Date.now());
+      data.bounds = b;
+      const jobs = [];
+      if (need.includes('orders')) jobs.push((async () => {
+        const [now, before] = await Promise.all([
+          settle(fetchAllRows('orders', 'id, customer_name, customer_email, status, currency, total, placed_at, deleted_at', q => q.is('deleted_at', null).gte('placed_at', b.from).lt('placed_at', b.to))),
+          settle(fetchAllRows('orders', 'id, status, currency, total, placed_at, deleted_at', q => q.is('deleted_at', null).gte('placed_at', b.prevFrom).lt('placed_at', b.from)))]);
+        data.sales = W.build({ now: Date.now(), orders: now, prevOrders: before, items: [] }).sales;
+      })());
+      if (need.includes('questions')) jobs.push((async () => {
+        const open = await settle(fetchAllRows('customer_inquiries', 'id, status, created_at', q => q.in('status', ['needs_review', 'new'])));
+        data.questions = W.build({ now: Date.now(), waiting: open }).questions;
+      })());
+      if (need.includes('stock')) jobs.push((async () => {
+        const [stock, products] = await Promise.all([settle(fetchAllRows('inventory', 'id, product_id, available, low_stock_threshold', q => q)), settle(fetchAllRows('products', 'id, sku, name', q => q))]);
+        data.stock = W.build({ now: Date.now(), stock: stock, products: products || [] }).stock;
+      })());
+      if (need.includes('launch') && lpMod()) jobs.push((async () => {
+        const input = await settle(lpGather());
+        data.launch = input ? lpMod().build(Object.assign({}, input, { ticks: lpTicks })) : null;
+        data.launchPage = typeof launchPageOn === 'function' && launchPageOn();
+      })());
+      if (need.includes('week')) jobs.push((async () => {
+        const week = W.weekOf(Date.now(), 0), report = await settle(wrGather(week));
+        data.week = report ? { label: week.label, lines: W.lines(report) } : null;
+      })());
+      if (need.includes('activity')) jobs.push((async () => {
+        const act = await settle(fetchAllActivity({ p_search: null, p_person: null, p_area: null, p_from: b.from, p_to: b.to }, 20000));
+        data.people = W.build({ now: Date.now(), activity: act && Array.isArray(act.rows) ? act.rows : null, activityCapped: !!(act && act.capped) }).people;
+      })());
+      await Promise.all(jobs);
+      if (asked.intent === 'brief') data.feedSummary = typeof attentionFeedOn === 'function' && attentionFeedOn() ? feedSummary : '';
+      return data;
+    }
+    async function askRun(asked) {
+      const A = askMod(); if (!A || !askAllowed() || !asked || asked.intent === 'none') return;
+      if (asked.intent === 'remind') {                       // the existing "New reminder" box, filled in; nothing is added until Add is pressed
+        askHush(); closePalette(false); openQuickAdd();
+        const box = document.getElementById('quickAddInput'); if (box) box.value = String(asked.title || '').slice(0, 200);
+        return;
+      }
+      const seq = ++askSeq;
+      askHush();
+      askShown = null; askNote = 'Reading the records…'; askPaint();
+      let answer = null;
+      try { answer = A.compose(asked, await askData(asked)); } catch (e) { answer = null; }
+      if (seq !== askSeq) return;
+      if (!answer) { askNote = 'That could not be answered just now. Try again.'; askPaint(); return; }
+      askLast = { intent: asked.intent, period: asked.period, person: asked.person };
+      askShown = Object.assign({ intent: asked.intent }, answer);
+      askNote = askQuiet() ? 'Quiet is on: shown, not spoken.' : '';
+      askPaint();
+      askSpeak(answer.say);
+    }
+    function askListen() {
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition; if (!SR) return;
+      if (askHearing) { askHush(); askPaint(); return; }
+      try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch (e) { /* nothing was being said */ }
+      let r;
+      try { r = new SR(); } catch (e) { askNote = 'The microphone could not be started in this browser. Type your question instead.'; askPaint(); return; }
+      r.lang = 'en-US'; r.interimResults = false; r.maxAlternatives = 1;
+      r.onresult = (e) => {
+        const said = e && e.results && e.results[0] && e.results[0][0] ? String(e.results[0][0].transcript || '').slice(0, 300) : '';
+        const input = document.getElementById('paletteInput'); if (!input || !said) return;
+        input.value = said; askShown = null; askNote = '';
+        PAL_ITEMS = paletteItems(said); PAL_SEL = 0; renderPalette();
+        const u = askMod().understand(said, { last: askLast });
+        if (u.intent !== 'none') askRun(u); else { askNote = 'I heard: “' + said + '”. That is not a question I know yet; the search results are below.'; askPaint(); }
+      };
+      r.onerror = (e) => { askNote = e && (e.error === 'not-allowed' || e.error === 'service-not-allowed') ? 'The microphone is not allowed for this page. Allow it in the browser, or type your question.' : 'I did not catch that. Try again, or type it.'; };
+      r.onend = () => { askHearing = null; askPaint(); };
+      askHearing = r; askNote = ''; askPaint();
+      try { r.start(); } catch (e) { askHearing = null; askNote = 'The microphone could not be started. Type your question instead.'; askPaint(); }
+    }
+    paletteOverlay.addEventListener('click', (e) => {
+      const t = e.target.closest('[data-ask]'); if (!t || !askAllowed()) return;
+      const what = t.getAttribute('data-ask'), input = document.getElementById('paletteInput');
+      if (what === 'listen') { askListen(); return; }
+      if (what === 'brief') { if (input) input.value = 'Brief me'; askRun({ intent: 'brief', period: '', person: '', title: '' }); return; }
+      if (what === 'help') { askRun({ intent: 'help', period: '', person: '', title: '' }); return; }
+      if (what === 'again') { if (askShown) { const was = askQuiet(); if (was) { askNote = 'Quiet is on: shown, not spoken.'; askPaint(); } else askSpeak(askShown.say); } return; }
+      if (what === 'open') { askHush(); closePalette(false); showPage(t.getAttribute('data-askpage')); return; }
+      if (what === 'quiet') {
+        const on = !askQuiet();
+        try { localStorage.setItem(ASK_QUIET_KEY, on ? 'on' : 'off'); } catch (err) { /* it stays as it was */ }
+        if (on) askHush();
+        t.setAttribute('aria-pressed', askQuiet() ? 'true' : 'false'); t.textContent = askQuiet() ? 'Quiet: on' : 'Quiet: off';
+        askNote = askQuiet() ? 'Quiet is on: answers are shown, not spoken.' : 'Quiet is off: answers are also read out loud.'; askPaint();
+        const bar = document.querySelector('#askBarHost [data-askhome="quiet"]'); if (bar) bar.textContent = askQuiet() ? 'Quiet: on' : 'Quiet: off';
+      }
+    });
+    // on Home: the same box, one tap away
+    function loadAskBar() {
+      let host = document.getElementById('askBarHost');
+      if (!askAllowed()) { if (host) host.remove(); return; }
+      if (!host) { const panel = document.getElementById('attentionPanel'); if (!panel) return; host = h('div', { id: 'askBarHost', class: 'askHome' }); panel.prepend(host); }
+      host.replaceChildren(
+        h('span', { class: 'taskTitle' }, 'Ask the dashboard'),
+        h('button', { type: 'button', class: 'small', 'data-askhome': 'ask' }, askCanHear() ? 'Ask or talk' : 'Ask'),
+        h('button', { type: 'button', class: 'small secondary', 'data-askhome': 'brief' }, 'Brief me'),
+        h('span', { class: 'u-fs-12 u-c-muted', 'data-askhome': 'quiet' }, askQuiet() ? 'Quiet: on' : 'Quiet: off'));
+    }
+    document.addEventListener('click', (e) => {
+      const t = e.target.closest('#askBarHost button[data-askhome]'); if (!t || !askAllowed()) return;
+      openPalette();
+      if (t.getAttribute('data-askhome') === 'brief') { const input = document.getElementById('paletteInput'); if (input) input.value = 'Brief me'; askRun({ intent: 'brief', period: '', person: '', title: '' }); }
+    });
+
+    // ---------- Ready to launch (owner, Nov 24: "Ready to launch page: yes"; behind launchPageOn)
+    // One list of what must be ready before the first real day (rules: assets/views/he-launch.js).
+    // The dashboard checks what it can read; the owner or an administrator marks the rest done.
+    // The marks are kept in this browser, and for every device once the shared settings are in use.
+    const LP_KEY = 'he_launch_ticks';
+    let lpTicks = null, lpInput = null, lpSeq = 0, lpMessage = '', lpShared = false;
+    const lpMod = () => (window.HE && window.HE.views && window.HE.views['he-launch']) || null;
+    const lpAllowed = () => currentUserRole === 'owner' || currentUserRole === 'administrator';
+    function lpRead() { const M = lpMod(); try { return M.clean(JSON.parse(localStorage.getItem(LP_KEY) || 'null')); } catch (e) { return {}; } }
+    function lpKeep() { try { localStorage.setItem(LP_KEY, JSON.stringify({ ticks: lpTicks })); return true; } catch (e) { return false; } }
+    // read what every device shares, join it with this browser's marks, and (after a change here) save
+    async function lpSync(save) {
+      const M = lpMod(), S = rpSettings(), store = rpStore();
+      if (!M || !S || !store || !sharedSettingsOn()) { lpShared = false; return false; }
+      const now = await store.get(S.KEYS.launchList);
+      if (now.state !== 'installed') { lpShared = false; return false; }
+      const theirs = M.clean(now.value), joined = M.merge(lpTicks, theirs);
+      if (JSON.stringify(joined) !== JSON.stringify(lpTicks)) { lpTicks = joined; lpKeep(); }
+      lpShared = true;
+      if (save && JSON.stringify(joined) !== JSON.stringify(theirs)) { const r = await store.set(S.KEYS.launchList, { ticks: joined }, 'owner_admin'); lpShared = !!r.ok; }
+      return lpShared;
+    }
+    async function loadLaunchPage() {
+      const host = document.getElementById('launchPanel'); if (!host) return;
+      const M = lpMod();
+      if (!(typeof launchPageOn === 'function' && launchPageOn()) || !M) { host.replaceChildren(); return; }
+      if (!lpAllowed()) { host.replaceChildren(h('h2', null, 'Ready to launch'), h('p', { class: 'empty' }, 'This page is for the owner and administrators.')); return; }
+      const seq = ++lpSeq;
+      if (!lpTicks) lpTicks = lpRead();
+      if (!lpInput) renderLaunchPage();
+      const input = await lpGather();
+      if (seq !== lpSeq) return;
+      lpInput = input;
+      renderLaunchPage();
+    }
+    // what the checked lines need, read from the records (also used by "Ask the dashboard")
+    async function lpGather() {
+      if (!lpTicks) lpTicks = lpRead();
+      // each line is read on its own: one that fails says "Could not check", the others still show
+      const settle = (p) => Promise.resolve(p).then(v => v, () => null);
+      const RS = rsMod(), since = new Date(Date.now() - 30 * 86400000).toISOString();
+      const [steps, products, stock, flag, recent, questions] = await Promise.all([
+        RS ? settle(Promise.all(RS.RECORD_SWITCHES.map(async sw => ({ key: sw.key, name: sw.name, needsStep: !/^No database step/.test(sw.draft), state: await RS.probe(supabase, sw) })))) : Promise.resolve(null),
+        settle(fetchAllRows('products', 'id, sku, name, is_active, status, retail_price', q => q)),
+        settle(fetchAllRows('inventory', 'id, product_id, available, low_stock_threshold', q => q)),
+        settle(supabase.from('feature_flags').select('flag_key, enabled').eq('flag_key', 'shopify_order_sync')),
+        settle(fetchAllRows('orders', 'id, channel, source, placed_at, deleted_at', q => q.is('deleted_at', null).gte('placed_at', since))),
+        settle(fetchAllRows('customer_inquiries', 'id, status, created_at', q => q.in('status', ['needs_review', 'new']))),
+        settle(lpSync(false)),
+      ]);
+      // the tax rate: its step, its switch, and then the rates in force today
+      const taxStep = Array.isArray(steps) ? (steps.find(x => x.key === 'he_tax_rates') || {}).state : null;
+      let tax = null;
+      if (taxStep === 'not_installed') tax = { state: 'not_installed' };
+      else if (taxStep === 'installed') {
+        const st = trStore(), T = trMod();
+        let taxMod = null; try { taxMod = (window.HE && window.HE.invoice && window.HE.invoice['he-tax']) || null; } catch (e) { taxMod = null; }
+        if (!st || !T) tax = { state: 'off' };
+        else { const r = await settle(st.list()); tax = r && r.ok && Array.isArray(r.rates) ? { state: 'installed', inForce: r.rates.filter(x => { const k = T.standing(x, trToday(), taxMod).state; return k === 'IN_FORCE' || k === 'RECHECK_DUE'; }).length } : null; }
+      }
+      const P = rpMod();
+      const fromShopify = (o) => (P ? P.channelOf(o) === 'shopify' : /shopify/i.test(String((o && (o.channel || o.source)) || '')));
+      const flagRow = flag && !flag.error && Array.isArray(flag.data) ? flag.data[0] : undefined;
+      return { steps: steps, products: products, stock: stock, questions: questions, tax: tax,
+        shopify: flag && !flag.error && Array.isArray(flag.data) && Array.isArray(recent) ? { switchOn: flagRow ? flagRow.enabled === true : 'missing', orders: recent.filter(fromShopify).length } : null };
+    }
+    const LP_WORD = { ready: 'Ready', todo: 'To do', unknown: 'Could not check' };
+    function renderLaunchPage() {
+      const host = document.getElementById('launchPanel'); const M = lpMod(); if (!host || !M) return;
+      if (!lpInput) { host.replaceChildren(h('h2', null, 'Ready to launch'), h('p', { class: 'empty' }, 'Checking…')); return; }
+      const r = M.build(Object.assign({}, lpInput, { ticks: lpTicks }));
+      const when = (ms) => { const d = new Date(ms); return isNaN(d) ? '' : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); };
+      const row = (l) => h('li', { class: 'lpLine', 'data-lpline': l.key, 'data-lpstate': l.state },
+        h('div', { class: 'lpHead' },
+          h('span', { class: 'badge ' + (l.state === 'ready' ? 'sev-low' : l.state === 'unknown' ? 'sev-medium' : 'lpTodo'), 'data-lpbadge': '1' }, LP_WORD[l.state]),
+          h('span', { class: 'taskTitle' }, l.title),
+          l.last ? h('span', { class: 'u-fs-12 u-c-muted' }, '(the last step)') : null),
+        h('div', { class: 'u-fs-12 u-c-muted' }, l.why),
+        l.detail ? h('div', { class: 'u-fs-12p5 u-mt-4', 'data-lpdetail': '1' }, l.detail) : null,
+        l.tick && l.tick.on ? h('div', { class: 'u-fs-12 u-mt-4', 'data-lpdone': '1' }, 'Marked done' + (when(l.tick.at) ? ' on ' + when(l.tick.at) : '') + (l.tick.by ? ' by ' + l.tick.by : '') + '.') : null,
+        h('div', { class: 'scanToggleRow u-mt-6' },
+          l.kind === 'yours' ? h('button', { type: 'button', class: 'small' + (l.state === 'ready' ? ' secondary' : ''), 'data-lptick': l.key, 'data-lpon': l.state === 'ready' ? 'no' : 'yes' }, l.state === 'ready' ? 'Not done after all' : 'Mark as done') : null,
+          l.page ? h('button', { type: 'button', class: 'small secondary', 'data-lpgoto': l.page, 'aria-label': 'Open ' + l.pageName + ' (' + l.title + ')' }, 'Open ' + l.pageName) : null));
+      const auto = r.lines.filter(l => l.kind === 'auto'), yours = r.lines.filter(l => l.kind === 'yours');
+      host.replaceChildren(
+        h('h2', null, 'Ready to launch'),
+        h('p', { class: 'hint' }, 'What must be ready before the first real day. The dashboard checks what it can read in the records; you mark the rest done yourself. Nothing here changes the business records.'),
+        h('p', { class: 'lpTotal', 'data-lptotal': r.ready + '/' + r.total }, h('b', null, r.ready + ' of ' + r.total + ' ready'),
+          r.left ? ' · ' + r.left + ' to go' + (r.unknown ? ' (' + r.unknown + ' could not be checked)' : '') : ' · everything is ready'),
+        h('progress', { max: String(r.total), value: String(r.ready), 'aria-label': r.ready + ' of ' + r.total + ' lines ready' }),
+        h('p', { class: 'u-fs-12', role: 'status', 'data-lpmessage': '1' }, lpMessage),
+        h('h3', null, 'Checked by the dashboard'),
+        h('ul', { class: 'lpList' }, auto.map(row)),
+        h('div', { class: 'u-mt-8' }, h('button', { type: 'button', class: 'small secondary', 'data-lpagain': '1' }, 'Check again')),
+        h('h3', null, 'Confirmed by you'),
+        h('p', { class: 'hint u-mt-n2' }, lpShared ? 'Your marks are the same on every device, for you and the administrators.' : 'Your marks are kept in this browser. They will be the same on every device once "Settings shared by every device" is installed and on.'),
+        h('ul', { class: 'lpList' }, yours.map(row)));
+    }
+    document.addEventListener('click', (e) => {
+      const g = e.target.closest('#launchPanel [data-lpgoto]');
+      if (g) { showPage(g.getAttribute('data-lpgoto')); return; }
+      if (e.target.closest('#launchPanel [data-lpagain]')) { lpMessage = 'Checked again just now.'; loadLaunchPage().then(() => { announce(lpMessage); const b = document.querySelector('#launchPanel [data-lpagain]'); if (b) b.focus(); }); return; }
+      const t = e.target.closest('#launchPanel [data-lptick]'); if (!t) return;
+      const M = lpMod(); if (!M || !lpAllowed() || !lpInput) return;
+      const key = t.getAttribute('data-lptick'), on = t.getAttribute('data-lpon') === 'yes';
+      const line = M.LINES.find(l => l.key === key); if (!line || line.kind !== 'yours') return;
+      const who = String((document.getElementById('whoAmI') || {}).textContent || '').split(' — role')[0].trim();   // the name, without the role
+      lpTicks = M.tick(lpTicks, key, on, who, Date.now());
+      const kept = lpKeep();
+      lpMessage = (on ? 'Marked done: ' : 'Marked not done: ') + line.title + '.' + (kept ? '' : ' This browser could not keep it; it will be gone after a reload.');
+      renderLaunchPage(); announce(lpMessage);
+      const again = document.querySelector('#launchPanel [data-lptick="' + key + '"]'); if (again) again.focus();
+      lpSync(true).then((shared) => { if (!shared) return; renderLaunchPage(); const b = document.querySelector('#launchPanel [data-lptick="' + key + '"]'); if (b) b.focus(); }, () => { /* this browser's mark stands */ });
+    });
+
     // ---------- Backups & Printouts (owner request, Nov 23; behind backupsPageOn)
     // One place for the paper and file copies the owner keeps: the daily recaps
     // (print a month on Letter, or save it as a spreadsheet file), the manuals
@@ -5281,6 +5572,136 @@
       const last = document.querySelector('#backupsPanel [data-bkautolast]');
       if (last) { last.setAttribute('data-bkautolast', d.day); last.textContent = 'Last printed this way in this browser: the day pack for ' + d.day + '.'; }
     }
+    // ---- Weekly owner report (owner, Nov 24; the arithmetic: assets/reports/he-week-report.js) ----
+    // One finished week on one page, for the owner and administrators. Read when "Show the
+    // report" is pressed; nothing is changed. Opening the newest week clears the Home reminder:
+    // noted in this browser, and in the person's own settings on every device when those are in use.
+    const WR_SEEN_KEY = 'he_week_report_seen';
+    let wrBack = 0, wrReport = null, wrBusy = false, wrNote = '', wrSeq = 0;
+    const wrMod = () => (window.HE && window.HE.reports && window.HE.reports['he-week-report']) || null;
+    const wrAllowed = () => currentUserRole === 'owner' || currentUserRole === 'administrator';
+    function wrSeenHere() { try { const v = localStorage.getItem(WR_SEEN_KEY) || ''; return /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : ''; } catch (e) { return ''; } }
+    async function wrSeenUpTo() {
+      const here = wrSeenHere();
+      const S = rpSettings(), st = fsStore(); if (!S || !st || !mySettingsOn()) return here;
+      const r = await st.get(S.MY_KEYS.weekSeen);
+      return S.latestDay(here, r && r.value && typeof r.value.week === 'string' ? r.value.week : null) || '';
+    }
+    async function wrSeenSave(key) {
+      try { if (wrSeenHere() < key) localStorage.setItem(WR_SEEN_KEY, key); } catch (e) { /* the reminder simply stays in this browser */ }
+      const S = rpSettings(), st = fsStore(); if (!S || !st || !mySettingsOn()) return;
+      const now = await st.get(S.MY_KEYS.weekSeen);
+      if (now.state !== 'installed') return;
+      const best = S.latestDay(key, now.value && typeof now.value.week === 'string' ? now.value.week : null);
+      if (now.value && now.value.week === best) return;                     // already there (a later week stays)
+      await st.set(S.MY_KEYS.weekSeen, { week: best });
+    }
+    // the reviews of the report: left out when the Reviews inbox is off; from the database when they are kept there
+    async function wrReviews() {
+      if (!(typeof reviewInboxOn === 'function' && reviewInboxOn()) || !riMod()) return undefined;
+      const st = riStore();
+      if (!st) return riRead();
+      const r = await st.list();
+      if (!r.ok) throw new Error(r.message || 'not read');
+      return r.rows;
+    }
+    // the records of one week, read and added up (also used by "Ask the dashboard")
+    async function wrGather(week) {
+      const M = wrMod();
+      // each part is read on its own: one that fails says "could not be read", the rest still shows
+      const settle = (p) => Promise.resolve(p).then(v => v, () => null);
+      const inWeek = (col) => q => q.gte(col, week.from).lt(col, week.to);
+      const RET = 'id, status, refund_amount, refunded_at, created_at';
+      const [orders, prevOrders, asked, waiting, opened, refunded, stockRows, products, tasks, incidents, activity, reviews] = await Promise.all([
+        settle(fetchAllRows('orders', 'id, customer_name, customer_email, status, currency, total, placed_at, deleted_at', q => q.is('deleted_at', null).gte('placed_at', week.from).lt('placed_at', week.to))),
+        settle(fetchAllRows('orders', 'id, status, currency, total, placed_at, deleted_at', q => q.is('deleted_at', null).gte('placed_at', week.prevFrom).lt('placed_at', week.from))),
+        settle(fetchAllRows('customer_inquiries', 'id, created_at', inWeek('created_at'))),
+        settle(fetchAllRows('customer_inquiries', 'id, status, created_at', q => q.in('status', ['needs_review', 'new']))),
+        settle(fetchAllRows('returns', RET, inWeek('created_at'))),
+        settle(fetchAllRows('returns', RET, inWeek('refunded_at'))),
+        settle(fetchAllRows('inventory', 'id, product_id, available, low_stock_threshold', q => q)),
+        settle(fetchAllRows('products', 'id, sku, name', q => q)),
+        settle(fetchAllRows('tasks', 'id, created_at', inWeek('created_at'))),
+        settle(fetchAllRows('incidents', 'id, created_at', inWeek('created_at'))),
+        settle(fetchAllActivity({ p_search: null, p_person: null, p_area: null, p_from: week.from, p_to: week.to }, 20000)),
+        wrReviews().then(v => v, () => null),
+      ]);
+      const ids = Array.isArray(orders) ? orders.map(o => o.id) : [];
+      const items = !Array.isArray(orders) ? null : ids.length ? await settle(fetchAllRowsIn('order_items', 'id, order_id, sku, product_name, quantity', 'order_id', ids)) : [];
+      const returned = Array.isArray(opened) && Array.isArray(refunded) ? [...new Map(opened.concat(refunded).map(r => [r.id, r])).values()] : null;
+      return M.build({ now: Date.now(), week: week, orders: orders, prevOrders: prevOrders, items: items, questions: asked, waiting: waiting, returns: returned,
+        stock: stockRows, products: products || [], tasks: tasks, incidents: incidents, reviews: reviews,
+        activity: activity && Array.isArray(activity.rows) ? activity.rows : null, activityCapped: !!(activity && activity.capped) });
+    }
+    async function loadWeekReport() {
+      const M = wrMod(); if (!M || !wrAllowed() || wrBusy) return;
+      const week = M.weekOf(Date.now(), wrBack), seq = ++wrSeq;
+      wrBusy = true; wrReport = null; wrNote = 'Reading the week of ' + week.label + '…'; renderWeekReport(); announce(wrNote);
+      const report = await wrGather(week);
+      if (seq !== wrSeq) return;
+      wrReport = report;
+      wrBusy = false;
+      const missing = M.lines(wrReport).filter(l => l.value === 'could not be read').length;
+      wrNote = 'The week of ' + week.label + '.' + (missing ? ' ' + missing + (missing === 1 ? ' part' : ' parts') + ' could not be read; press "Show the report" to try again.' : ' Every figure is exact.');
+      renderWeekReport(); announce(wrNote);
+      const table = document.querySelector('#wrHost [data-wrtable]'); if (table) table.focus();
+      if (wrBack === 0) {                                  // the newest week was opened: the Home reminder goes
+        feedWeek = null;
+        try { await wrSeenSave(week.key); } catch (e) { /* this browser's note stands */ }
+        if (typeof paintAttentionFeed === 'function') paintAttentionFeed();
+      }
+    }
+    function wrTable(report, forPrint) {
+      const M = wrMod(); let section = null; const rows = [];
+      M.lines(report).forEach(l => {
+        if (l.section !== section) { section = l.section; rows.push(h('tr', { 'data-wrsection': l.section }, h('th', { colspan: '2', scope: 'colgroup', class: 'printLabel' }, l.section))); }
+        rows.push(h('tr', { 'data-wrline': l.section }, h('th', { scope: 'row' }, l.label || ' '),
+          h('td', null, h('span', Object.assign({ 'data-wrvalue': '1' }, l.value === 'could not be read' ? { class: 'u-c-danger' } : {}), l.value), l.note ? (forPrint ? h('span', { class: 'u-fs-12' }, '  (' + l.note + ')') : h('div', { class: 'u-fs-12 u-c-muted' }, l.note)) : null)));   // on paper the note sits on the same line, to keep the week on one page
+      });
+      return h('table', Object.assign({ 'data-wrtable': report.week.key, class: 'wrTable' }, forPrint ? {} : { tabindex: '-1', 'aria-label': 'Weekly report, ' + report.week.label }), h('tbody', null, rows));
+    }
+    function renderWeekReport() {
+      const host = document.getElementById('wrHost'); const M = wrMod(); if (!host || !M) return;
+      const list = M.weeks(Date.now(), 8);
+      host.replaceChildren(...[
+        h('h3', null, 'Weekly report'),
+        h('p', { class: 'hint u-mt-n2' }, 'One finished week, Monday to Sunday, on one page: sales, customers, returns, stock, tasks and what each person did. It is read from the records when you press the button; nothing is changed. Every figure is exact, and a part that cannot be read says so. No customer names are on it.'),
+        h('div', { class: 'u-d-flex u-gap-8 u-fwr-wrap u-ai-flex-end u-mt-8' },
+          h('div', { class: 'heField' }, h('label', { for: 'wrWeek' }, 'Week'),
+            h('select', { id: 'wrWeek' }, list.map((w, n) => h('option', Object.assign({ value: String(n) }, n === wrBack ? { selected: 'selected' } : {}), w.label + (n === 0 ? ' (last week)' : ''))))),
+          h('button', Object.assign({ type: 'button', class: 'small', 'data-wr': 'show' }, wrBusy ? { disabled: '' } : {}), 'Show the report'),
+          wrReport ? h('button', { type: 'button', class: 'small secondary', 'data-wr': 'print' }, 'Print') : null,
+          wrReport ? h('button', { type: 'button', class: 'small secondary', 'data-wr': 'copy' }, 'Copy as text') : null),
+        h('p', { class: 'u-fs-12', role: 'status', 'data-wrnote': '1' }, wrNote),
+        wrReport ? h('div', { class: 'u-mt-8' }, wrTable(wrReport, false)) : null].filter(Boolean));
+    }
+    function wrSay(msg) { wrNote = msg; announce(msg); const n = document.querySelector('#wrHost [data-wrnote]'); if (n) n.textContent = msg; }
+    document.addEventListener('change', (e) => {
+      const s = e.target.closest('#wrHost select#wrWeek'); if (!s) return;
+      const n = Number(s.value); wrBack = Number.isInteger(n) && n >= 0 && n < 8 ? n : 0;
+      wrSeq += 1; wrBusy = false; wrReport = null; wrNote = ''; renderWeekReport();
+      const back = document.getElementById('wrWeek'); if (back) back.focus();
+    });
+    document.addEventListener('click', (e) => {
+      const t = e.target.closest('#wrHost [data-wr]'); if (!t) return;
+      const what = t.getAttribute('data-wr'), M = wrMod(); if (!M) return;
+      if (what === 'show') { loadWeekReport(); return; }
+      if (!wrReport) return;
+      if (what === 'print') {
+        bkPrintDoc([h('div', { class: 'printPage', 'data-printweek': wrReport.week.key },
+          printBrand('Weekly report, ' + wrReport.week.label), h('div', { class: 'printHdr' }, h('div', null, bkPrinted())),
+          wrTable(wrReport, true),
+          h('p', { class: 'u-fs-12 u-mt-8' }, 'Exact figures from the records. Nothing is estimated. Stock is as it was when this page was printed.'))]);
+        wrSay('Opened the weekly report for ' + wrReport.week.label + ' for printing.');
+        return;
+      }
+      if (what === 'copy') {
+        const text = M.toText(wrReport);
+        const failed = () => wrSay('Could not copy in this browser. Use Print instead.');
+        try { navigator.clipboard.writeText(text).then(() => { wrSay('The weekly report was copied. Paste it into a note or a message.'); toast('Copied'); }, failed); } catch (err) { failed(); }
+      }
+    });
+
     const BK_DOWN = [
       'Orders keep arriving in Shopify while the dashboard is down. Nothing is lost.',
       'Orders: work from Shopify admin (Orders). Shipping labels print from Shopify as usual.',
@@ -5366,6 +5787,7 @@
         h('h2', null, 'Backups & Printouts'),
         h('p', { class: 'hint' }, 'Paper and file copies to keep in your business folder: the daily recaps and the manuals. Everything here only reads; nothing is changed. Printouts are black only, on US Letter.'),
         h('p', { class: 'u-fs-12', role: 'status', 'data-bkmessage': '1' }, bkMessage),
+        ...(wrMod() && wrAllowed() ? [h('div', { id: 'wrHost', 'data-bkweek': '1' })] : []),   // (a null here would be printed as text)
         h('h3', null, 'Daily recaps'),
         h('p', { class: 'hint u-mt-n2' }, 'The nightly summary of each day: orders, revenue, new customer questions and AI cost. Print a month for the folder, and save the spreadsheet to your computer and one more place (for example iCloud Drive).'),
         recaps,
@@ -5401,6 +5823,7 @@
         h('h3', null, 'Database backups'),
         h('p', { class: 'hint' }, 'The database backups run outside the dashboard, so this page cannot see whether the last one worked. It says UNKNOWN, as on Business Continuity, instead of a tick it cannot prove. Check the backups as in your owner checklist.'),
         h('button', { type: 'button', class: 'small secondary', 'data-bkgoto': 'continuityPanel' }, 'Open Business Continuity'));
+      renderWeekReport();
     }
     function bkPrintDoc(pages) {
       const host = document.getElementById('invoicePrintHost'); if (!host) return;
@@ -7267,7 +7690,7 @@
       loadOpsWatch();
     }
     const PANEL_LOADERS = {
-      attentionPanel: [loadAttention, loadBusinessHealth, loadAttentionChecks, loadNightlyCheck, paintScanEntry, loadMoneyAlert, loadTaxRateAlert, loadAttentionFeed],
+      attentionPanel: [loadAttention, loadBusinessHealth, loadAttentionChecks, loadNightlyCheck, paintScanEntry, loadMoneyAlert, loadTaxRateAlert, loadAttentionFeed, loadAskBar],
       calendarPanel: [loadCalendarMonth],
       dailySummaryPanel: [loadDailySummary],
       reportHistoryPanel: [loadReportHistoryThenExport, loadRecoveryDrill, loadInvoicePreview, loadReportVersions],
@@ -7301,6 +7724,7 @@
       customerEmailsPanel: [loadCustomerEmails],
       reviewsPanel: [loadReviewInbox],
       peoplePanel: [loadPeoplePage],
+      launchPanel: [loadLaunchPage],
       featureRequestsPanel: [loadFeatureRequests, loadDeletedFeatureRequests],
       legalHoldsPanel: [loadLegalHolds, loadReleasedLegalHolds],
       salesCommandPanel:   [() => loadSales('salesCommandPanel')],
@@ -7433,6 +7857,8 @@
         }));
       }
       if (!query) items.push.apply(items, pages);
+      // "Ask the dashboard": a question it knows comes first, above pages and records
+      if (query && askAllowed()) { const u = askMod().understand(q, { last: askLast }); if (u.intent !== 'none') items.unshift({ kind: u.intent === 'remind' ? 'Reminder' : 'Answer', label: askMod().label(u), pageId: 'attentionPanel', ask: u }); }
       return items.slice(0, 40);
     }
     function renderPalette(){
@@ -7468,6 +7894,7 @@
     }
     function openPalette(){
       PAL_SEL = 0;
+      askDress();
       PAL_ITEMS = paletteItems('');
       rememberFocus('palette');
       paletteOverlay.classList.add('open');
@@ -7483,6 +7910,7 @@
     function runPalette(i){
       const it = PAL_ITEMS[i];
       if (!it) return;
+      if (it.ask) { askRun(it.ask); return; }               // the answer is shown inside the box, which stays open
       closePalette(false);
       if (it.help) { openHelp(it.help); return; }
       showPage(it.pageId);
@@ -7492,15 +7920,16 @@
       }
     }
     document.getElementById('paletteInput').addEventListener('input', (e) => {
+      askClear();
       PAL_ITEMS = paletteItems(e.target.value); PAL_SEL = 0; renderPalette();
     });
     document.getElementById('paletteInput').addEventListener('keydown', (e) => {
       if (e.key === 'ArrowDown') { e.preventDefault(); PAL_SEL = Math.min(PAL_SEL + 1, PAL_ITEMS.length - 1); renderPalette(); }
       else if (e.key === 'ArrowUp') { e.preventDefault(); PAL_SEL = Math.max(PAL_SEL - 1, 0); renderPalette(); }
       else if (e.key === 'Enter') { e.preventDefault(); runPalette(PAL_SEL); }
-      else if (e.key === 'Escape') { e.preventDefault(); closePalette(); }
+      else if (e.key === 'Escape') { e.preventDefault(); askHush(); closePalette(); }
     });
-    paletteOverlay.addEventListener('click', (e) => { if (e.target === paletteOverlay) closePalette(); });
+    paletteOverlay.addEventListener('click', (e) => { if (e.target === paletteOverlay) { askHush(); closePalette(); } });
     shortcutOverlay.id = 'shortcutOverlay';
     // Announced as a dialog by screen readers (EXT3).
     shortcutOverlay.setAttribute('role', 'dialog'); shortcutOverlay.setAttribute('aria-modal', 'true'); shortcutOverlay.setAttribute('aria-label', 'Keyboard shortcuts');

@@ -32,7 +32,7 @@
   const RPC = 'set_shared_setting';
   const KEYS = Object.freeze({ profitEstimates: 'profit_estimates', recapPrinted: 'recap_printed', menuLayout: 'menu_layout',
     storeCampaign: 'store_campaign', customerEmails: 'customer_emails', contentHelper: 'content_helper',
-    handoffsHandled: 'handoffs_handled' });
+    handoffsHandled: 'handoffs_handled', launchList: 'launch_list' });   // launchList: the launch lines a person marked done (owner and administrators)
   const KEY_OK = /^[a-z][a-z0-9_]{1,59}$/;
   const MAX_CHARS = 8000;
   const SECRET_NAME = /pass(word|code)?|secret|token|api[_-]?key|private[_-]?key|credential|recovery/i;
@@ -119,7 +119,7 @@
   // One person's own settings (drafts/58): the same on every device that person signs in to.
   // Each person reads and saves only their own; nobody else sees them, the owner included.
   const MY_TABLE = 'my_settings', MY_RPC = 'set_my_setting';
-  const MY_KEYS = Object.freeze({ feedSnooze: 'feed_snooze' });
+  const MY_KEYS = Object.freeze({ feedSnooze: 'feed_snooze', weekSeen: 'week_report_seen' });   // weekSeen: the newest weekly report this person opened
   function createPersonalStore(deps) {
     const d = deps || {};
     const client = d.client;
