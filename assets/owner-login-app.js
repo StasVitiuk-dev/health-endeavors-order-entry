@@ -3427,7 +3427,7 @@
     // notices) and the customer questions still waiting. It never writes: "Answer"
     // opens Customer Questions, "Dismiss" uses the reminder's own Dismiss button
     // below, "Later" hides an item until tomorrow in this browser only.
-    let feedFilter = 'all', feedQuestions = null, feedSeq = 0, feedLast = new Map(), feedParcels = null, feedAgentSteps = null, feedRecap = null, feedSummary = '';
+    let feedFilter = 'all', feedQuestions = null, feedSeq = 0, feedLast = new Map(), feedParcels = null, feedAgentSteps = null, feedRecap = null, feedWeek = null, feedSummary = '';
     const FEED_LIMIT = 100;
     function feedMod() { try { return (window.HE && window.HE.views && window.HE.views['he-attention-feed']) || null; } catch (e) { return null; } }
     function feedStore() { try { return window.localStorage; } catch (e) { return null; } }
@@ -3545,6 +3545,15 @@
         if (seq !== feedSeq) return;
         feedRecap = d ? { date: d, printedUpTo: upto } : null;
       } catch (e) { if (seq !== feedSeq) return; feedRecap = null; }
+      // the weekly report of the week that just ended, until this person opened it (owner and administrators)
+      try {
+        const WM = wrMod();
+        const on = !!WM && wrAllowed() && typeof backupsPageOn === 'function' && backupsPageOn();
+        const seen = on ? await wrSeenUpTo() : '';
+        if (seq !== feedSeq) return;
+        const d = on ? WM.due(Date.now(), seen) : null;
+        feedWeek = d && d.due ? { key: d.week.key, label: d.week.label } : null;
+      } catch (e) { if (seq !== feedSeq) return; feedWeek = null; }
       paintAttentionFeed();
     }
     // the nightly check, as Home shows it below (its own cards keep their detail)
@@ -3572,7 +3581,7 @@
       const now = Date.now();
       const items = M.buildFeed({
         attention: Array.isArray(SEARCH_INDEX.attention) ? SEARCH_INDEX.attention : null, labels: ITEM_TYPE_LABELS,
-        checks: findings, questions: feedQuestions, nightly: feedNightly(), delivery: feedParcels, agents: feedAgentSteps, recap: feedRecap,
+        checks: findings, questions: feedQuestions, nightly: feedNightly(), delivery: feedParcels, agents: feedAgentSteps, recap: feedRecap, week: feedWeek,
         handled: handoffHandledOn() && typeof M.readHandled === 'function' ? M.readHandled(feedStore(), now) : null,
         customersFirst: customersFirstOn(),
         reviews: riFeedRows(),
@@ -5104,6 +5113,130 @@
       const last = document.querySelector('#backupsPanel [data-bkautolast]');
       if (last) { last.setAttribute('data-bkautolast', d.day); last.textContent = 'Last printed this way in this browser: the day pack for ' + d.day + '.'; }
     }
+    // ---- Weekly owner report (owner, Nov 24; the arithmetic: assets/reports/he-week-report.js) ----
+    // One finished week on one page, for the owner and administrators. Read when "Show the
+    // report" is pressed; nothing is changed. Opening the newest week clears the Home reminder:
+    // noted in this browser, and in the person's own settings on every device when those are in use.
+    const WR_SEEN_KEY = 'he_week_report_seen';
+    let wrBack = 0, wrReport = null, wrBusy = false, wrNote = '', wrSeq = 0;
+    const wrMod = () => (window.HE && window.HE.reports && window.HE.reports['he-week-report']) || null;
+    const wrAllowed = () => currentUserRole === 'owner' || currentUserRole === 'administrator';
+    function wrSeenHere() { try { const v = localStorage.getItem(WR_SEEN_KEY) || ''; return /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : ''; } catch (e) { return ''; } }
+    async function wrSeenUpTo() {
+      const here = wrSeenHere();
+      const S = rpSettings(), st = fsStore(); if (!S || !st || !mySettingsOn()) return here;
+      const r = await st.get(S.MY_KEYS.weekSeen);
+      return S.latestDay(here, r && r.value && typeof r.value.week === 'string' ? r.value.week : null) || '';
+    }
+    async function wrSeenSave(key) {
+      try { if (wrSeenHere() < key) localStorage.setItem(WR_SEEN_KEY, key); } catch (e) { /* the reminder simply stays in this browser */ }
+      const S = rpSettings(), st = fsStore(); if (!S || !st || !mySettingsOn()) return;
+      const now = await st.get(S.MY_KEYS.weekSeen);
+      if (now.state !== 'installed') return;
+      const best = S.latestDay(key, now.value && typeof now.value.week === 'string' ? now.value.week : null);
+      if (now.value && now.value.week === best) return;                     // already there (a later week stays)
+      await st.set(S.MY_KEYS.weekSeen, { week: best });
+    }
+    // the reviews of the report: left out when the Reviews inbox is off; from the database when they are kept there
+    async function wrReviews() {
+      if (!(typeof reviewInboxOn === 'function' && reviewInboxOn()) || !riMod()) return undefined;
+      const st = riStore();
+      if (!st) return riRead();
+      const r = await st.list();
+      if (!r.ok) throw new Error(r.message || 'not read');
+      return r.rows;
+    }
+    async function loadWeekReport() {
+      const M = wrMod(); if (!M || !wrAllowed() || wrBusy) return;
+      const week = M.weekOf(Date.now(), wrBack), seq = ++wrSeq;
+      wrBusy = true; wrReport = null; wrNote = 'Reading the week of ' + week.label + '…'; renderWeekReport(); announce(wrNote);
+      // each part is read on its own: one that fails says "could not be read", the rest still shows
+      const settle = (p) => Promise.resolve(p).then(v => v, () => null);
+      const inWeek = (col) => q => q.gte(col, week.from).lt(col, week.to);
+      const RET = 'id, status, refund_amount, refunded_at, created_at';
+      const [orders, prevOrders, asked, waiting, opened, refunded, stockRows, products, tasks, incidents, activity, reviews] = await Promise.all([
+        settle(fetchAllRows('orders', 'id, customer_name, customer_email, status, currency, total, placed_at, deleted_at', q => q.is('deleted_at', null).gte('placed_at', week.from).lt('placed_at', week.to))),
+        settle(fetchAllRows('orders', 'id, status, currency, total, placed_at, deleted_at', q => q.is('deleted_at', null).gte('placed_at', week.prevFrom).lt('placed_at', week.from))),
+        settle(fetchAllRows('customer_inquiries', 'id, created_at', inWeek('created_at'))),
+        settle(fetchAllRows('customer_inquiries', 'id, status, created_at', q => q.in('status', ['needs_review', 'new']))),
+        settle(fetchAllRows('returns', RET, inWeek('created_at'))),
+        settle(fetchAllRows('returns', RET, inWeek('refunded_at'))),
+        settle(fetchAllRows('inventory', 'id, product_id, available, low_stock_threshold', q => q)),
+        settle(fetchAllRows('products', 'id, sku, name', q => q)),
+        settle(fetchAllRows('tasks', 'id, created_at', inWeek('created_at'))),
+        settle(fetchAllRows('incidents', 'id, created_at', inWeek('created_at'))),
+        settle(fetchAllActivity({ p_search: null, p_person: null, p_area: null, p_from: week.from, p_to: week.to }, 20000)),
+        wrReviews().then(v => v, () => null),
+      ]);
+      const ids = Array.isArray(orders) ? orders.map(o => o.id) : [];
+      const items = !Array.isArray(orders) ? null : ids.length ? await settle(fetchAllRowsIn('order_items', 'id, order_id, sku, product_name, quantity', 'order_id', ids)) : [];
+      if (seq !== wrSeq) return;
+      const returned = Array.isArray(opened) && Array.isArray(refunded) ? [...new Map(opened.concat(refunded).map(r => [r.id, r])).values()] : null;
+      wrReport = M.build({ now: Date.now(), week: week, orders: orders, prevOrders: prevOrders, items: items, questions: asked, waiting: waiting, returns: returned,
+        stock: stockRows, products: products || [], tasks: tasks, incidents: incidents, reviews: reviews,
+        activity: activity && Array.isArray(activity.rows) ? activity.rows : null, activityCapped: !!(activity && activity.capped) });
+      wrBusy = false;
+      const missing = M.lines(wrReport).filter(l => l.value === 'could not be read').length;
+      wrNote = 'The week of ' + week.label + '.' + (missing ? ' ' + missing + (missing === 1 ? ' part' : ' parts') + ' could not be read; press "Show the report" to try again.' : ' Every figure is exact.');
+      renderWeekReport(); announce(wrNote);
+      const table = document.querySelector('#wrHost [data-wrtable]'); if (table) table.focus();
+      if (wrBack === 0) {                                  // the newest week was opened: the Home reminder goes
+        feedWeek = null;
+        try { await wrSeenSave(week.key); } catch (e) { /* this browser's note stands */ }
+        if (typeof paintAttentionFeed === 'function') paintAttentionFeed();
+      }
+    }
+    function wrTable(report, forPrint) {
+      const M = wrMod(); let section = null; const rows = [];
+      M.lines(report).forEach(l => {
+        if (l.section !== section) { section = l.section; rows.push(h('tr', { 'data-wrsection': l.section }, h('th', { colspan: '2', scope: 'colgroup', class: 'printLabel' }, l.section))); }
+        rows.push(h('tr', { 'data-wrline': l.section }, h('th', { scope: 'row' }, l.label || ' '),
+          h('td', null, h('span', Object.assign({ 'data-wrvalue': '1' }, l.value === 'could not be read' ? { class: 'u-c-danger' } : {}), l.value), l.note ? (forPrint ? h('span', { class: 'u-fs-12' }, '  (' + l.note + ')') : h('div', { class: 'u-fs-12 u-c-muted' }, l.note)) : null)));   // on paper the note sits on the same line, to keep the week on one page
+      });
+      return h('table', Object.assign({ 'data-wrtable': report.week.key, class: 'wrTable' }, forPrint ? {} : { tabindex: '-1', 'aria-label': 'Weekly report, ' + report.week.label }), h('tbody', null, rows));
+    }
+    function renderWeekReport() {
+      const host = document.getElementById('wrHost'); const M = wrMod(); if (!host || !M) return;
+      const list = M.weeks(Date.now(), 8);
+      host.replaceChildren(...[
+        h('h3', null, 'Weekly report'),
+        h('p', { class: 'hint u-mt-n2' }, 'One finished week, Monday to Sunday, on one page: sales, customers, returns, stock, tasks and what each person did. It is read from the records when you press the button; nothing is changed. Every figure is exact, and a part that cannot be read says so. No customer names are on it.'),
+        h('div', { class: 'u-d-flex u-gap-8 u-fwr-wrap u-ai-flex-end u-mt-8' },
+          h('div', { class: 'heField' }, h('label', { for: 'wrWeek' }, 'Week'),
+            h('select', { id: 'wrWeek' }, list.map((w, n) => h('option', Object.assign({ value: String(n) }, n === wrBack ? { selected: 'selected' } : {}), w.label + (n === 0 ? ' (last week)' : ''))))),
+          h('button', Object.assign({ type: 'button', class: 'small', 'data-wr': 'show' }, wrBusy ? { disabled: '' } : {}), 'Show the report'),
+          wrReport ? h('button', { type: 'button', class: 'small secondary', 'data-wr': 'print' }, 'Print') : null,
+          wrReport ? h('button', { type: 'button', class: 'small secondary', 'data-wr': 'copy' }, 'Copy as text') : null),
+        h('p', { class: 'u-fs-12', role: 'status', 'data-wrnote': '1' }, wrNote),
+        wrReport ? h('div', { class: 'u-mt-8' }, wrTable(wrReport, false)) : null].filter(Boolean));
+    }
+    function wrSay(msg) { wrNote = msg; announce(msg); const n = document.querySelector('#wrHost [data-wrnote]'); if (n) n.textContent = msg; }
+    document.addEventListener('change', (e) => {
+      const s = e.target.closest('#wrHost select#wrWeek'); if (!s) return;
+      const n = Number(s.value); wrBack = Number.isInteger(n) && n >= 0 && n < 8 ? n : 0;
+      wrSeq += 1; wrBusy = false; wrReport = null; wrNote = ''; renderWeekReport();
+      const back = document.getElementById('wrWeek'); if (back) back.focus();
+    });
+    document.addEventListener('click', (e) => {
+      const t = e.target.closest('#wrHost [data-wr]'); if (!t) return;
+      const what = t.getAttribute('data-wr'), M = wrMod(); if (!M) return;
+      if (what === 'show') { loadWeekReport(); return; }
+      if (!wrReport) return;
+      if (what === 'print') {
+        bkPrintDoc([h('div', { class: 'printPage', 'data-printweek': wrReport.week.key },
+          printBrand('Weekly report, ' + wrReport.week.label), h('div', { class: 'printHdr' }, h('div', null, bkPrinted())),
+          wrTable(wrReport, true),
+          h('p', { class: 'u-fs-12 u-mt-8' }, 'Exact figures from the records. Nothing is estimated. Stock is as it was when this page was printed.'))]);
+        wrSay('Opened the weekly report for ' + wrReport.week.label + ' for printing.');
+        return;
+      }
+      if (what === 'copy') {
+        const text = M.toText(wrReport);
+        const failed = () => wrSay('Could not copy in this browser. Use Print instead.');
+        try { navigator.clipboard.writeText(text).then(() => { wrSay('The weekly report was copied. Paste it into a note or a message.'); toast('Copied'); }, failed); } catch (err) { failed(); }
+      }
+    });
+
     const BK_DOWN = [
       'Orders keep arriving in Shopify while the dashboard is down. Nothing is lost.',
       'Orders: work from Shopify admin (Orders). Shipping labels print from Shopify as usual.',
@@ -5189,6 +5322,7 @@
         h('h2', null, 'Backups & Printouts'),
         h('p', { class: 'hint' }, 'Paper and file copies to keep in your business folder: the daily recaps and the manuals. Everything here only reads; nothing is changed. Printouts are black only, on US Letter.'),
         h('p', { class: 'u-fs-12', role: 'status', 'data-bkmessage': '1' }, bkMessage),
+        ...(wrMod() && wrAllowed() ? [h('div', { id: 'wrHost', 'data-bkweek': '1' })] : []),   // (a null here would be printed as text)
         h('h3', null, 'Daily recaps'),
         h('p', { class: 'hint u-mt-n2' }, 'The nightly summary of each day: orders, revenue, new customer questions and AI cost. Print a month for the folder, and save the spreadsheet to your computer and one more place (for example iCloud Drive).'),
         recaps,
@@ -5224,6 +5358,7 @@
         h('h3', null, 'Database backups'),
         h('p', { class: 'hint' }, 'The database backups run outside the dashboard, so this page cannot see whether the last one worked. It says UNKNOWN, as on Business Continuity, instead of a tick it cannot prove. Check the backups as in your owner checklist.'),
         h('button', { type: 'button', class: 'small secondary', 'data-bkgoto': 'continuityPanel' }, 'Open Business Continuity'));
+      renderWeekReport();
     }
     function bkPrintDoc(pages) {
       const host = document.getElementById('invoicePrintHost'); if (!host) return;

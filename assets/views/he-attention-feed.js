@@ -168,6 +168,17 @@
       when: null, page: 'backupsPanel', actions: [{ kind: 'open', label: 'Open Backups & Printouts', page: 'backupsPanel' }], signature: d }];
   }
 
+  // the weekly report of the week that just ended, until this person opened it
+  // (owner, Nov 24: "Weekly owner report"; rules in assets/reports/he-week-report.js)
+  function fromWeek(w) {
+    if (!w || typeof w !== 'object' || !/^\d{4}-\d{2}-\d{2}$/.test(String(w.key || ''))) return [];
+    const label = text(w.label, 60) || String(w.key);
+    return [{ id: 'week:' + w.key, kind: 'reminder', badge: 'Report', level: 'today',
+      title: 'Your weekly report for ' + label + ' is ready',
+      detail: 'Sales, customers, returns, stock and what each person did, on one page. Opens Backups & Printouts: tap "Show the report".',
+      when: null, page: 'backupsPanel', actions: [{ kind: 'open', label: 'Open the weekly report', page: 'backupsPanel' }], signature: String(w.key) }];
+  }
+
   // steps an agent passed to a person (he-agent-diary.js needsPerson)
   // With `opts.handled` given (the "Handled" switch is on): a hand-off someone marked
   // handled leaves the list, each one gets a "Handled" button, and one that has waited
@@ -265,7 +276,7 @@
     const items = [].concat(
       fromQuestions(s.questions, t), fromAttention(s.attention, t, s.labels),
       fromChecks(s.checks, { questions: Array.isArray(s.questions), attention: Array.isArray(s.attention) }),
-      fromNightly(s.nightly), fromMoney(s.money), fromTax(s.tax), fromDelivery(s.delivery), fromAgents(s.agents, t, { handled: s.handled, raiseAfterHours: s.raiseAfterHours }), fromReviews(s.reviews), fromRecap(s.recap));
+      fromNightly(s.nightly), fromMoney(s.money), fromTax(s.tax), fromDelivery(s.delivery), fromAgents(s.agents, t, { handled: s.handled, raiseAfterHours: s.raiseAfterHours }), fromReviews(s.reviews), fromRecap(s.recap), fromWeek(s.week));
     const seen = new Set();
     const unique = items.filter(i => (seen.has(i.id) ? false : (seen.add(i.id), true)));
     if (first) unique.forEach(i => { if (i.kind === 'message') i.keep = true; });
