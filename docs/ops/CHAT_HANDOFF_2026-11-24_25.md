@@ -60,7 +60,7 @@ and its Print button opens the print window. Reminder: in the shorter menu,
 
 ## 4. Built, waiting for the owner's merge (open PRs)
 
-**Merge ONE pull request: #97** (or #96 if #97 is not green yet). #96 contains every open
+**Merge ONE pull request: #98** (or #97, or #96: whichever is the newest that is green; each contains the ones before it). #96 contains every open
 feature PR (#89, #90, #91, #94, #95); they changed the same few lines, so they were joined
 and the clash resolved (Nov 25, about 6 UTC). #97 contains #96 plus the Home note about
 administrators' changes. Merging it brings all of them in, and GitHub then shows the others
@@ -75,6 +75,7 @@ as merged by themselves. Then merge #93 (documents).
 | #95 (in #96) | **New Employee, part 2a**: the helper program draft that creates sign-ins (review item 17; not deployed) | Nothing |
 | #96 | **New Employee, part 2b**: the People page under Admin (record switch, off; turns on only once drafts 62/64 are installed) | Feature Flags: the row says "Not installed yet" (expected) |
 | #97 | **Home: what administrators changed** (preview switch "What administrators changed", off; owner only; reads only). Contains #96 | Feature Flags → turn on "What administrators changed" |
+| #98 | **Administrators save settings for every device too**: drafts/50 changed before install (owner and administrators save). Contains #97 | Nothing until drafts/50 is installed |
 | #93 | Documents only | Nothing |
 
 ## 5. Database drafts waiting for the owner (nothing installed)
@@ -89,7 +90,7 @@ Next free draft number: **66**.
 1. ~~Home tells the owner what an administrator changed~~ BUILT (#97). The New Employee
    work is complete as drafts and pages (#90, #95, #96, #97); what is left is the owner's
    database steps (items 16, 17).
-2. **Administrator near-owner, the remaining pieces**: draft 50 changed so
+2. **Administrator near-owner, the remaining pieces** (the draft 50 change is DONE, #98): draft 50 changed so
    administrators can save shared switches; approvals without the owner's pre-approval;
    Employee Activity widened for administrators; owner's history and owner accounts
    protected; a small wording fix in the "Other switches" hint.
