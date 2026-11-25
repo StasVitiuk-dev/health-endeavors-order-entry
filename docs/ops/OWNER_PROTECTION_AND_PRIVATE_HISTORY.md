@@ -162,13 +162,29 @@ draft is needed. Three small points, recorded for completeness (none is a leak t
 1. An entry made by an account whose row was removed from the accounts table entirely would show
    as "System / automatic". Accounts are never hard-deleted here (they are switched off and
    marked removed), so this does not happen.
-2. The emergency account is hidden only if its role is owner. To confirm when convenient: the
-   emergency account's role (read-only; part of the people-levels sittings).
+2. The emergency account is hidden only if its role is owner. To confirm when convenient, this
+   read-only look (it shows only roles and counts, no names or emails):
+
+   ```sql
+   -- READ ONLY. Changes nothing. Which role does the emergency account have?
+   select role::text as role, is_active, count(*) as accounts
+   from public.profiles
+   where is_break_glass
+   group by 1, 2
+   order by 1, 2;
+   ```
+
+   Expected: one row, `owner | true | 1` (or `owner | false | 1` if it is switched off). Any
+   other role means its history entries are visible to administrators; tell Claude.
+   (If the column `is_break_glass` does not exist, the emergency account is marked differently;
+   send the error and nothing else.)
 3. Hardening, low priority: the two functions run with raised rights and name only `public` in
    their search path. Postgres recommends also listing `pg_temp` last, so a temporary table could
    never stand in for `profiles`. Signed-in people cannot create temporary tables through the
-   dashboard's connection, so this is not exploitable today; it can be folded into the next
-   sitting that touches these functions.
+   dashboard's connection, so this is not exploitable today. **Prepared (Nov 26): drafts 68/69**
+   (`68_DRAFT_history_functions_search_path.sql` and its undo): they change only that setting
+   on the three functions, never their text; local test `history_search_path_test.sh` shows the
+   gap before and that it is closed after, and that the undo restores the exact earlier setting.
 
 ### B4. What I prepared now, and what waits
 
