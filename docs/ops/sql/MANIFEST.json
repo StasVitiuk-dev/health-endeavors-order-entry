@@ -837,6 +837,10 @@
     {
       "file": "local-test/draft-tests/16_DRAFT_tests_hardening_and_failures.sql",
       "class": "LOCAL-TEST"
+    },
+    {
+      "file": "local-test/people_levels_stand_in.sql",
+      "class": "LOCAL-TEST"
     }
   ]
 }

@@ -1,4 +1,4 @@
-# Review item 13 — SQL drafts 62 and 64: four levels of account
+# Review item 16 — SQL drafts 62 and 64: four levels of account
 
 Status: **READY FOR YOUR REVIEW — not run in production** · written 2026-11-25 ·
 OWNER DECISION REQUIRED (approve the run, or not yet)
@@ -68,7 +68,8 @@ rules and the guard decide; nothing has more power than the person using it.
 
 - It creates no sign-in and sets no password. Only the provider's own key can do that, and that
   key never comes near the dashboard. A small helper program at the provider does that part, in a
-  later step that you approve separately.
+  later step that you approve separately (review item 17,
+  `docs/ops/sql-review/ITEM_17_PEOPLE_ACCOUNTS_HELPER.md`).
 - It adds no second history. Who changed which account is in the audit log that already exists
   (the Employee Activity page).
 - It changes no existing account when it is installed.
@@ -141,7 +142,7 @@ cases where it must stop instead of guessing.
 - The stand-in guard in the test was written from the description of the real one. The real text
   is saved by draft 64 before it is replaced, and draft 65 restores it; but the new guard was
   written without copying the old one, so the read-only look above matters.
-- Last sign-in times are not readable by these functions; the page will show them through the
-  helper program.
+- Last sign-in times are not readable by these functions, and the helper program (review item 17)
+  does not read them either in its first version.
 - Work emails only (no personal addresses) is checked by the page and the helper program, not by
   the database, because the business address does not exist yet.
