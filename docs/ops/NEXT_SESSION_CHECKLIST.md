@@ -11,7 +11,8 @@ In short:
 - [x] Merge PR #85 (it contained #56–#84): done by the owner on Nov 24, about 6:03 PM Central, merge commit `1f86df0`.
 - [x] Live check after that merge: done by the owner on Nov 24 at about 6:10 PM Central (screenshots): the shorter menu (16 lines) is live, same-topic pages sit inside one another, and the owner-only section "features that save real records" lists the new switches, all Off and "Not installed yet" (drafts 48, 56, 58, 60 seen).
 - [x] Merge PR #51 (documents): done by the owner on Nov 24, about 6:33 PM Central, merge commit `6648336`.
-- [ ] PR #86 (administrators see the switches that save real records): merge when its checks are green.
+- [x] PR #86 (administrators see the switches that save real records): merged by the owner on Nov 24, about 7:03 PM Central.
+- [ ] Live check of #86 with the administrator account: Admin → Feature Flags shows "Features that save real records (owner and administrators)", every line Off.
 - [ ] Read-only check of how accounts are set up (SQL in `docs/ops/OWNER_DECISION_2026-11-24_ADMINISTRATOR_NEAR_OWNER.md`), then the People page.
 - [x] Owner answered Nov 24: add a fourth role, Manager. The page is called "New Employee"; the new person types their own password on the owner's computer.
 - [ ] Owner decision of Nov 24 (evening): administrators get almost everything the owner has. Plan and open points: `docs/ops/OWNER_DECISION_2026-11-24_ADMINISTRATOR_NEAR_OWNER.md`.

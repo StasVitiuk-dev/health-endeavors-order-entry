@@ -1,6 +1,6 @@
 # Owner decision, Nov 24, 2026 (evening): administrators get almost everything the owner has
 
-**Status:** DECIDED by the owner in chat. Building it: IN PROGRESS. Piece 1 of the plan below is PR #86 (not merged). Nothing in
+**Status:** DECIDED by the owner in chat. Building it: IN PROGRESS. Piece 1 of the plan below is PR #86 (merged Nov 24, about 7:03 PM Central; live check with the administrator account still to come). Nothing in
 production was changed. No account name or email is written here.
 
 ## The decision, in the owner's words (shortened)
