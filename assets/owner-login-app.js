@@ -2008,7 +2008,7 @@
       const shipmentId = 'SYN-ship-' + (order ? order.id : 'x');
       let plan = eng.planAttach({
         shipmentId: shipmentId, orderId: order && order.id, tracking: scanState.extracted.tracking,
-        carrier: scanState.extracted.carrier, channel: order && order.channel, actor: currentUserRole || 'owner',
+        carrier: scanState.extracted.carrier, channel: order && order.channel, orderSource: order && order.source, actor: currentUserRole || 'owner',
         now: new Date().toISOString(), existingKeys: scanState.attachedKeys,
         // cross-order guard: refuse a label already attached to a DIFFERENT shipment
         assignedTo: scanState.assignedTracking,

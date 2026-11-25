@@ -205,8 +205,21 @@
   // Build the record for attaching a tracking number to a shipment. Pure: it
   // returns the intended write + the queued side effects; it performs none of
   // them. `existingKeys` lets the caller enforce "attach once / queue once".
+  // Where the customer's "your order shipped" notice comes from (owner queue of Nov 25,
+  // task 8: one notice path, never two). Orders from a selling platform (Shopify is the
+  // hub for Amazon, Etsy and TikTok) get the platform's own shipping confirmation once the
+  // tracking number is added there, so the dashboard queues none for them. Orders entered
+  // by hand or wholesale get the dashboard's one notice. An unknown source keeps the
+  // dashboard's notice (nothing is ever sent without the owner's approval anyway).
+  const PLATFORM_NOTICE = ['shopify', 'amazon', 'etsy', 'tiktok'];
+  function noticePath(source) {
+    const s = norm(source);
+    return PLATFORM_NOTICE.indexOf(s) !== -1 ? s : 'dashboard';
+  }
+
   function planAttach(opts) {
     const o = opts || {};
+    const noticeBy = noticePath(o.orderSource);
     const tracking = normalizeTracking(o.tracking);
     const carrier = o.carrier || detectCarrier(tracking);
     const v = validateTracking(tracking, carrier);
@@ -239,9 +252,10 @@
       // the tracking check and the ONE shipping notification are queued, not run
       queued: blocked ? [] : [
         { kind: 'tracking_check', dedup_key: trkKey, state: 'queued', synthetic: true },
-      ].concat(duplicateNotif ? [] : [
+      ].concat(duplicateNotif || noticeBy !== 'dashboard' ? [] : [
         { kind: 'notification', channel: o.channel || 'unknown', dedup_key: notifKey, state: 'queued', synthetic: true },
       ]),
+      noticeBy: noticeBy,   // 'dashboard', or the platform that sends its own shipping confirmation
       reason: crossAssigned ? ('tracking already assigned to a different shipment: ' + priorShipment) : (duplicateAttach ? 'already attached to this shipment' : null),
       note: 'SIMULATED — a scan does not prove carrier acceptance and sends nothing.',
     };
@@ -255,6 +269,6 @@
     shipmentTrackingKey: shipmentTrackingKey, notificationKey: notificationKey,
     NOTIF_STATES: NOTIF_STATES, canNotifTransition: canNotifTransition,
     TRACK_STATES: TRACK_STATES, canTrackTransition: canTrackTransition,
-    planAttach: planAttach,
+    planAttach: planAttach, PLATFORM_NOTICE: PLATFORM_NOTICE, noticePath: noticePath,
   };
 }));
