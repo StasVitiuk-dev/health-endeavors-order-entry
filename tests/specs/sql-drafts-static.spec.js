@@ -219,13 +219,13 @@ for (const f of ALL) {
       'drop policy if exists email_campaigns_read on public.email_campaigns;',
       'create policy email_campaigns_read on public.email_campaigns for select to authenticated using (public.is_owner_or_admin());',
       'drop policy if exists email_campaigns_owner_add on public.email_campaigns;',
-      "create policy email_campaigns_owner_add on public.email_campaigns for insert to authenticated with check (coalesce(public.current_role(), '') = 'owner');",
+      "create policy email_campaigns_owner_add on public.email_campaigns for insert to authenticated with check (coalesce(public.current_role(), '') in ('owner', 'administrator'));",
       'drop policy if exists email_campaigns_owner_change on public.email_campaigns;',
-      "create policy email_campaigns_owner_change on public.email_campaigns for update to authenticated\n  using (coalesce(public.current_role(), '') = 'owner') with check (coalesce(public.current_role(), '') = 'owner');",
+      "create policy email_campaigns_owner_change on public.email_campaigns for update to authenticated\n  using (coalesce(public.current_role(), '') in ('owner', 'administrator')) with check (coalesce(public.current_role(), '') in ('owner', 'administrator'));",
       'drop policy if exists email_outbox_read on public.email_outbox;',
       'create policy email_outbox_read on public.email_outbox for select to authenticated using (public.is_owner_or_admin());',
       'drop policy if exists email_outbox_owner_add on public.email_outbox;',
-      "create policy email_outbox_owner_add on public.email_outbox for insert to authenticated with check (coalesce(public.current_role(), '') = 'owner');",
+      "create policy email_outbox_owner_add on public.email_outbox for insert to authenticated with check (coalesce(public.current_role(), '') in ('owner', 'administrator'));",
       'drop policy if exists email_outbox_skip on public.email_outbox;',
       'create policy email_outbox_skip on public.email_outbox for update to authenticated\n  using (public.is_owner_or_admin()) with check (public.is_owner_or_admin());'];
     // The fourteenth allowed set (Nov 24, drafts/58): row rules on that draft's OWN new table

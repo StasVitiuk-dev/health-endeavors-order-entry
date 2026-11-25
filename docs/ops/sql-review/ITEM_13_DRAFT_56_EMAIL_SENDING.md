@@ -13,7 +13,7 @@ actual sending of each one"), and your question about staying out of spam.
 
 | File | Lines | Fingerprint (SHA-256, first 16) |
 |---|---|---|
-| `docs/ops/sql/drafts/56_DRAFT_email_sending.sql` (install) | 563 | `8e7680686639323b` |
+| `docs/ops/sql/drafts/56_DRAFT_email_sending.sql` (install) | 565 | `bce831127168a975` |
 | `docs/ops/sql/drafts/57_DRAFT_rollback_email_sending.sql` (undo) | 63 | `118416d2a4452354` |
 
 ## Target environment
@@ -43,8 +43,10 @@ The rules the database enforces by itself:
 - a campaign stops by itself after 2 spam complaints, or when more than 5% of at least 20 sent
   emails came back.
 
-Who may do what: **only you** approve a campaign, choose who it goes to, and pause or stop it. You
-and administrators can read everything and add an address to the do-not-email list. Staff and
+Who may do what: **you and administrators** approve a campaign, choose who it goes to, and pause or
+stop it (changed Nov 25, before anything was installed, for your decision of Nov 24: an
+administrator is "almost like owner"; until then it was you only; each campaign keeps who
+approved it, and a stop says who stopped it). You and administrators can read everything and add an address to the do-not-email list. Staff and
 visitors see nothing. Only a sending program (which does not exist yet) could be handed emails to
 send; a person signed in to the dashboard cannot.
 
@@ -63,7 +65,7 @@ send; a person signed in to the dashboard cannot.
 
 ## Local test (throwaway database, made-up data)
 
-`docs/ops/sql/local-test/email_sending_test.sh`: **96 of 96 passed** (Nov 24). It acts as the
+`docs/ops/sql/local-test/email_sending_test.sh`: **102 of 102 passed** (Nov 25, with administrators approving, queuing, pausing and stopping; 96 of 96 on Nov 24). It acts as the
 owner, an administrator, a staff member, a visitor and the sending program, and covers: install
 twice; only the owner approves; a health claim refused; the wording cannot be changed afterwards;
 who is left out and why; the daily limits and weekends; the 90 days between emails to one store;

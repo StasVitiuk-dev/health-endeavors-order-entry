@@ -4096,7 +4096,8 @@
     }
     function esNode(page) {
       const M = esMod(); if (!M || !emailSendingOn()) return null;
-      const es = esOf(page), owner = currentUserRole === 'owner', ready = esReady(page), who = page === 'store' ? 'stores' : 'customers';
+      const es = esOf(page), owner = currentUserRole === 'owner' || currentUserRole === 'administrator', ready = esReady(page),   // owner decision, Nov 24
+      who = page === 'store' ? 'stores' : 'customers';
       const n = ready ? ready.recipients.length : 0;
       const head = [h('h3', null, 'Save this campaign (nothing is sent)'),
         h('p', { class: 'hint u-mt-0' }, 'Saving puts the approved wording and the list of ' + who + ' into the database, with the sending guard: the slow start, the do-not-email list and the automatic stop. It sends nothing; the sending program is not connected. A saved wording cannot be changed afterwards.')];
@@ -4109,7 +4110,7 @@
       const r = es.result;
       return h('div', { 'data-emailsave': page, 'data-esstate': 'installed', class: 'u-mt-12' }, ...head,
         h('p', { class: 'u-fs-12p5', role: 'status', 'data-esmessage': '1' }, es.message),
-        !owner ? h('p', { class: 'hint' }, 'Only the owner can save a campaign.')
+        !owner ? h('p', { class: 'hint' }, 'Only the owner or an administrator can save a campaign.')
           : !ready ? h('p', { class: 'hint', 'data-esnotready': '1' }, 'Approve the wording and press "Show who would get it" first. What is shown there is what would be saved.')
             : h('div', { 'data-esform': String(n) },
               h('div', { class: 'heField scField' }, h('label', { for: 'esName-' + page }, 'A name for this campaign'),
