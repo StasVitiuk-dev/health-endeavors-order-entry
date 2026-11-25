@@ -24,8 +24,15 @@ In short:
   - Two-step sign-in on the dashboard: NOT NOW (no employees yet). Claude recommended it separately
     for the sign-ins behind the dashboard (code host, database provider); not answered yet.
   - A professional's check of the cosmetics rules: NOT NOW.
-  - Not answered yet: which of the proposed additions (batch expiry watch, recall drill,
-    unanswered-customer watch, weekly owner report, first-day checklist) are wanted.
+  - Proposed additions, ANSWERED Nov 24 (about 7:13 PM Central): WANTED are the
+    **unanswered-customer watch** ("customer is priority, so I always need to be able to see their
+    messages") and the **weekly owner report**. NOT for now: batch expiry watch, recall drill,
+    first-day checklist ("only those that I tell you for now").
+    CORRECTION by Claude, found in the code the same evening: the one-day rule for customer
+    questions already exists and is live (a question waiting a day or more is urgent on Home and
+    says "Waiting more than a day."). What is missing for "always see their messages": a customer
+    message can still be set aside with "Later", and it is not placed above other items of the same
+    level. To build: customer messages are never set aside and come first.
 - [ ] Live check of #86 with the administrator account: Admin → Feature Flags shows "Features that save real records (owner and administrators)", every line Off.
 - [ ] Read-only check of how accounts are set up (SQL in `docs/ops/OWNER_DECISION_2026-11-24_ADMINISTRATOR_NEAR_OWNER.md`), then the People page.
 - [x] Owner answered Nov 24: add a fourth role, Manager. The page is called "New Employee"; the new person types their own password on the owner's computer.
