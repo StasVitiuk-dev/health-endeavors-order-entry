@@ -10,7 +10,8 @@
 // rule again on its own (drafts/36); this file gives plain-English messages
 // earlier and maps the shapes onto the checklist engine (he-supplier-docs.js):
 //   * staff, administrators and the owner may record that a document arrived
-//   * ONLY the owner approves, rejects, corrects, withdraws an approved document
+//   * ONLY the owner or an administrator (owner decision, Nov 24) approves,
+//     rejects, corrects, withdraws an approved document
 //     or changes the checklist
 //   * every recording carries a request key; the page keeps the same key until
 //     the save succeeds, so a retry after a lost reply never records twice
@@ -179,7 +180,7 @@
     const enabled = o.enabled === true;
     const role = o.role == null ? null : String(o.role);
     const inFlight = new Set();
-    const isOwner = role === 'owner';
+    const isOwner = role === 'owner' || role === 'administrator';   // reviews: owner or administrator (owner decision, Nov 24)
 
     function off() { return { ok: false, off: true, message: OFF_MESSAGE }; }
     function refuse(message, extra) { return Object.assign({ ok: false, message: message }, extra || {}); }
@@ -269,14 +270,14 @@
         if (res.error) return refuse(res.error);
         const d = res.data;
         return { ok: true, id: d.id, duplicate: d.duplicate === true, status: d.status,
-          message: d.duplicate === true ? 'Already recorded. Nothing was added twice.' : 'Recorded. It now waits for the owner\'s review.' };
+          message: d.duplicate === true ? 'Already recorded. Nothing was added twice.' : 'Recorded. It now waits for the review of the owner or an administrator.' };
       });
     }
 
     async function review(id, decision, note) {
       const r = ready(); if (r) return r;
       if (!isUuid(id)) return refuse('Not reviewed: that is not a stored document.');
-      if (role != null && !isOwner) return refuse('Only the owner can approve or reject a supplier document.');
+      if (role != null && !isOwner) return refuse('Only the owner or an administrator can approve or reject a supplier document.');
       if (decision !== 'approved' && decision !== 'rejected') return refuse('A review is either approved or rejected.');
       if (decision === 'rejected' && text(note).length < 5) return refuse('Say why the document is rejected.');
       return once('review:' + id, async function () {
@@ -303,7 +304,7 @@
 
     async function setTypeProfiles(supplierType, profiles) {
       const r = ready(); if (r) return r;
-      if (role != null && !isOwner) return refuse('Only the owner can change the supplier document checklist.');
+      if (role != null && !isOwner) return refuse('Only the owner or an administrator can change the supplier document checklist.');
       return once('typeProfiles:' + supplierType, async function () {
         const res = await call(RPC.typeProfiles, [text(supplierType), Array.isArray(profiles) ? profiles.map(text) : []]);
         if (res.error) return refuse(res.error);
@@ -313,7 +314,7 @@
 
     async function setTypeActive(key, active) {
       const r = ready(); if (r) return r;
-      if (role != null && !isOwner) return refuse('Only the owner can change the supplier document checklist.');
+      if (role != null && !isOwner) return refuse('Only the owner or an administrator can change the supplier document checklist.');
       return once('typeActive:' + key, async function () {
         const res = await call(RPC.typeActive, [text(key), active !== false]);
         if (res.error) return refuse(res.error);
@@ -339,7 +340,7 @@
     }
     async function resolveHandoff(id, poId) {
       const r = ready(); if (r) return r;
-      if (role != null && !isOwner) return refuse('Only the owner can link a handed-off document.');
+      if (role != null && !isOwner) return refuse('Only the owner or an administrator can link a handed-off document.');
       if (!isUuid(id) || !isUuid(poId)) return refuse('Choose the purchase order this document belongs to.');
       return once('resolve:' + id, async function () {
         const res = await call(RPC.resolveHandoff, [id, poId]);
@@ -351,7 +352,7 @@
     }
     async function dismissHandoff(id, note) {
       const r = ready(); if (r) return r;
-      if (role != null && !isOwner) return refuse('Only the owner can dismiss a handed-off document.');
+      if (role != null && !isOwner) return refuse('Only the owner or an administrator can dismiss a handed-off document.');
       if (text(note).length < 5) return refuse('Say why the hand-off is dismissed.');
       return once('dismiss:' + id, async function () {
         const res = await call(RPC.dismissHandoff, [id, text(note)]);
@@ -360,7 +361,7 @@
       });
     }
     // Upload the one file of a document, then attach it. The storage rules let
-    // only its recorder (or the owner) upload, and only while it waits for review.
+    // only its recorder (or the owner or an administrator) upload, and only while it waits for review.
     //   file: { name, type, size, sha256, body }  (sha256: lowercase hex, computed by the page)
     async function attachFile(id, file) {
       const r = ready(); if (r) return r;
@@ -387,16 +388,16 @@
         }
         const res = await call(RPC.attachFile, [id, path, f.sha256, Number(f.size), f.type]);
         if (res.error) return refuse(res.error);
-        return { ok: true, path: path, alreadyAttached: res.data.already_attached === true, message: res.data.already_attached === true ? 'That file is already attached.' : 'File attached. Only the owner can open it.' };
+        return { ok: true, path: path, alreadyAttached: res.data.already_attached === true, message: res.data.already_attached === true ? 'That file is already attached.' : 'File attached. Only the owner or an administrator can open it.' };
       });
     }
-    // A link to the file that works for 60 seconds. Only the owner gets one:
+    // A link to the file that works for 60 seconds. Only the owner or an administrator gets one:
     // for anyone else the storage service finds no such file.
     async function openFile(doc) {
       const r = ready(); if (r) return r;
       const d = doc || {};
       if (!d.filePath) return refuse('This document has no file.');
-      if (role != null && !isOwner) return refuse('Only the owner can open supplier document files.');
+      if (role != null && !isOwner) return refuse('Only the owner or an administrator can open supplier document files.');
       if (!client.storage || typeof client.storage.from !== 'function') return refuse('File storage is not available.');
       return once('open:' + d.filePath, async function () {
         const res = await client.storage.from(BUCKET).createSignedUrl(d.filePath, LINK_SECONDS);

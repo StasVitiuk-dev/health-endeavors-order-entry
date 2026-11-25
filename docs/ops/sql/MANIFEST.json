@@ -417,7 +417,7 @@
       "risk": "LOW",
       "rollback": "37",
       "precheck": "stops if auth.uid(), current_role(), is_active_staff(), is_owner_or_admin() or the suppliers / purchase_orders / profiles tables are missing",
-      "effect": "7 new tables (the checklist, its profiles by supplier type and per supplier, subjects, documents with one file each, review history, hand-offs to the owner); guards (owner-only review, correction, hand-off resolution and checklist changes; purchase documents only for orders the person can already see; a file attached once; no deletes; history written by the database only); record / review / withdraw / correct / attach-file / hand-off functions and owner-only checklist functions (security invoker); the starting checklist of Nov 16",
+      "effect": "7 new tables (the checklist, its profiles by supplier type and per supplier, subjects, documents with one file each, review history, hand-offs to the owner); guards (review, correction, hand-off resolution and checklist changes by the owner or an administrator only (owner decision of Nov 24); purchase documents only for orders the person can already see; a file attached once; no deletes; history written by the database only); record / review / withdraw / correct / attach-file / hand-off functions and checklist functions for the owner or an administrator (security invoker); the starting checklist of Nov 16",
       "postcheck": "9 document types, no documents; anon cannot read them or run the functions; an administrator cannot approve; local-test/supplier_documents_test.sh passes on a throwaway copy",
       "lock": "NONE on existing tables: only new tables are created"
     },
@@ -444,7 +444,7 @@
       "risk": "LOW",
       "rollback": "39",
       "precheck": "stops if storage.objects, storage.buckets, supplier_documents or supplier_documents_is_owner() is missing",
-      "effect": "a private storage bucket supplier-documents (PDF/JPEG/PNG, 10 MB); two rules on storage.objects for that bucket only: the owner reads (opens, downloads, signs links); the person who recorded a waiting document (or the owner) uploads into its folder; no replace or delete rule",
+      "effect": "a private storage bucket supplier-documents (PDF/JPEG/PNG, 10 MB); two rules on storage.objects for that bucket only: the owner or an administrator reads (opens, downloads, signs links) (owner decision of Nov 24); the person who recorded a waiting document (or the owner or an administrator) uploads into its folder; no replace or delete rule",
       "postcheck": "bucket public = false; two new storage rules; local-test/supplier_document_files_test.sh passes on a throwaway copy",
       "lock": "NONE on business tables: adds two rules on storage.objects"
     },

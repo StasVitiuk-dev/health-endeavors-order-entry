@@ -6408,7 +6408,7 @@
       supplierDocsLast = { mode, data, store: mode === 'stored' ? store : null, myId, names };
       const ov = eng.overview(data.suppliers, data.context, data.documents, { asOf, checklist: data.checklist });
       if (!ov.ok) { host.replaceChildren(h('p', { class: 'empty' }, 'Supplier documents: ' + ov.reason + '.')); return; }
-      const isOwner = currentUserRole === 'owner';
+      const isOwner = currentUserRole === 'owner' || currentUserRole === 'administrator';   // reviews: owner or administrator (owner decision, Nov 24)
       const detail = r => r.status === 'APPROVED' ? 'Reviewed by ' + (mode === 'stored' ? sdPerson(r.reviewedBy) : r.reviewedBy) + ' on ' + String(r.reviewedAt).slice(0, 10) + (r.expiresOn ? ' · valid until ' + r.expiresOn : '')
         : r.status === 'AWAITING_REVIEW' ? 'Received ' + (r.receivedAt ? String(r.receivedAt).slice(0, 10) : '(date not recorded)') + (mode === 'stored' && r.recordedBy ? ', recorded by ' + sdPerson(r.recordedBy) : '') + ' — nobody has reviewed it yet'
         : r.status === 'REJECTED' ? 'Rejected' + (r.note ? ': ' + r.note : '')
@@ -6434,7 +6434,7 @@
           return isOwner ? h('div', { class: 'scanToggleRow u-mt-6', 'data-sdfilerow': id },
             h('button', { type: 'button', class: 'small secondary', 'data-sdopen': id }, 'Open file'),
             h('span', { class: 'u-fs-12', 'data-sdfilelink': id }))
-            : h('div', { class: 'u-fs-12 u-c-muted u-mt-6', 'data-sdfilerow': id }, 'File attached. Only the owner can open it.');
+            : h('div', { class: 'u-fs-12 u-c-muted u-mt-6', 'data-sdfilerow': id }, 'File attached. Only the owner or an administrator can open it.');
         }
         const mine = r.recordedBy && r.recordedBy === myId;
         if (r.status !== 'AWAITING_REVIEW' || (!isOwner && !mine)) return null;
@@ -6476,7 +6476,7 @@
           h('div', { class: 'scanCardRow', 'data-checklist': 'purchase' }, h('span', { class: 'u-c-muted' }, 'Every purchase, where it applies: '), listOf(c.purchase)),
           Object.keys(c.profiles).map(k => h('div', { class: 'scanCardRow', 'data-checklist': k }, h('span', { class: 'u-c-muted' }, c.profiles[k].label + ': '), listOf(c.profiles[k].documents)))),
         h('p', { class: 'hint u-mt-8' }, mode === 'stored'
-          ? 'A document counts only once the owner has reviewed and approved it. Only the owner can approve, reject or change the checklist, and only the owner can open an attached file (through a link that works for 60 seconds); the database and the file storage enforce this. A stored file cannot be replaced or deleted.'
+          ? 'A document counts only once the owner or an administrator has reviewed and approved it. Only they can approve, reject or change the checklist, and only they can open an attached file (through a link that works for 60 seconds); the database and the file storage enforce this. A stored file cannot be replaced or deleted.'
           : 'A document counts only once someone has reviewed and approved it. The checklist can be changed per kind of supplier. These records are not stored in the database yet — that needs its own approved change.')));
     }
     // Record that a document arrived (stored mode).

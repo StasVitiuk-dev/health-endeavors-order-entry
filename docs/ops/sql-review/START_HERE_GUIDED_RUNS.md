@@ -73,9 +73,9 @@ the query anyway. If it mentions anything else (for example `drop table` on a ta
 |---|---|---|---|---|---|---|
 | 2 | `34_DRAFT_stock_count_adjustments.sql` | 432 | `d055eba3ba163b33` | Item 2, "After running" | `true \| 0 \| 0 \| false` | `35_…` |
 | 3 | `44_DRAFT_staff_read_purchase_orders.sql` | 55 | `c87c37c54901a648` | Item 7, "After running" | two rows, both `SELECT` | `45_…` |
-| 4 | `40_DRAFT_partial_receiving_returns.sql` | 999 | `80d3cb0848c7bd0c` | Item 5, "After running" | `true \| true \| 0 \| 0 \| false` | `41_…` |
-| 5a | `36_DRAFT_supplier_documents.sql` | 1009 | `9d3d6ca4e6bcf5dd` | Item 4, "After draft 36" | `9 \| 0 \| 0 \| false` | `37_…` |
-| 5b | `38_DRAFT_supplier_document_files.sql` (only after 5a) | 88 | `4e463799712f61c8` | Item 4, "After draft 38" | `false \| 10485760 \| {application/pdf,image/jpeg,image/png} \| 2` | `39_…` |
+| 4 | `40_DRAFT_partial_receiving_returns.sql` | 1002 | `24106ab0720b2e90` | Item 5, "After running" | `true \| true \| 0 \| 0 \| false` | `41_…` |
+| 5a | `36_DRAFT_supplier_documents.sql` | 1012 | `4b78c14b9fc7ee8f` | Item 4, "After draft 36" | `9 \| 0 \| 0 \| false` | `37_…` |
+| 5b | `38_DRAFT_supplier_document_files.sql` (only after 5a) | 95 | `b65979513ca32f5e` | Item 4, "After draft 38" | `false \| 10485760 \| {application/pdf,image/jpeg,image/png} \| 2` | `39_…` |
 | 6 | `32_DRAFT_invoices.sql` | 950 | `7569c1ca765cc175` | Item 1, "After running" | `true \| true \| true \| 0 \| 1 \| false` | `33_…` |
 | 7 | `42_DRAFT_shopify_payouts_money_issues.sql` (the daily Shopify program is a separate step after it) | 242 | `dfbcaa89a6112c17` | Item 6, "After running file 42" | `true \| true \| 0 \| false` | `43_…` |
 | 8 | `46_DRAFT_tax_rates.sql` (after PR #42 is merged) | 236 | `536e2c569fdfd262` | Item 8, "After running" | `true \| 0 \| 1 \| false` | `47_…` |

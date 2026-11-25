@@ -5,7 +5,7 @@
 -- @depends-on:  none
 -- @risk:        LOW
 -- @precheck:    stops if auth.uid(), current_role(), is_active_staff(), is_owner_or_admin() or the suppliers / purchase_orders / profiles tables are missing
--- @effect:      7 new tables (the checklist, its profiles by supplier type and per supplier, subjects, documents with one file each, review history, hand-offs to the owner); guards (owner-only review, correction, hand-off resolution and checklist changes; purchase documents only for orders the person can already see; a file attached once; no deletes; history written by the database only); record / review / withdraw / correct / attach-file / hand-off functions and owner-only checklist functions (security invoker); the starting checklist of Nov 16
+-- @effect:      7 new tables (the checklist, its profiles by supplier type and per supplier, subjects, documents with one file each, review history, hand-offs to the owner); guards (review, correction, hand-off resolution and checklist changes by the owner or an administrator only (owner decision of Nov 24); purchase documents only for orders the person can already see; a file attached once; no deletes; history written by the database only); record / review / withdraw / correct / attach-file / hand-off functions and checklist functions for the owner or an administrator (security invoker); the starting checklist of Nov 16
 -- @postcheck:   9 document types, no documents; anon cannot read them or run the functions; an administrator cannot approve; local-test/supplier_documents_test.sh passes on a throwaway copy
 -- @rollback:    drafts/37
 -- @@ end metadata @@
@@ -39,7 +39,7 @@
 --     the right order, which records it.
 --   * Files (owner decision of Nov 21): a document may carry one file, attached
 --     once by the person who recorded it or by the owner, while it waits for
---     review. Only the owner can open files (drafts/38 holds the storage rules);
+--     review. Only the owner or an administrator can open files (drafts/38 holds the storage rules);
 --     approving records the fingerprint of the exact file that was approved.
 --   * ONLY THE OWNER may approve, reject or correct a document, withdraw an
 --     approved one, or change the checklist. An administrator may not.
@@ -209,7 +209,10 @@ stable
 security invoker
 set search_path = public, pg_temp
 as $fn$
-  select coalesce(public.current_role() = 'owner', false)
+  -- The owner or an administrator (owner decision of Nov 24: an administrator is
+  -- "almost like owner"; supplier documents are approved, opened and set up by
+  -- both). The name is kept so the undo file (drafts/37) still matches.
+  select coalesce(public.current_role() in ('owner', 'administrator'), false)
 $fn$;
 
 -- Every profile named must be a profile of the checklist (not "purchase").
@@ -263,7 +266,7 @@ begin
 
   if tg_op = 'INSERT' then
     if new.status <> 'received' then
-      raise exception 'A supplier document is recorded as received; only the owner can then approve it.' using errcode = '42501';
+      raise exception 'A supplier document is recorded as received; only the owner or an administrator can then approve it.' using errcode = '42501';
     end if;
     select * into v_type from public.supplier_document_types where key = new.kind;
     if not found then
@@ -318,7 +321,7 @@ begin
      or new.received_on is distinct from old.received_on or new.document_date is distinct from old.document_date
      or new.expires_on is distinct from old.expires_on or new.record_note is distinct from old.record_note then
     if not v_owner then
-      raise exception 'Only the owner can correct a supplier document.' using errcode = '42501';
+      raise exception 'Only the owner or an administrator can correct a supplier document.' using errcode = '42501';
     end if;
     if old.status <> 'received' or new.status <> 'received' then
       raise exception 'Only a document waiting for review can be corrected.' using errcode = '42501';
@@ -332,7 +335,7 @@ begin
       raise exception 'A file can be attached only while the document waits for review.' using errcode = '42501';
     end if;
     if not (v_owner or old.recorded_by = auth.uid()) then
-      raise exception 'Only the person who recorded the document, or the owner, can attach its file.' using errcode = '42501';
+      raise exception 'Only the person who recorded the document, the owner or an administrator can attach its file.' using errcode = '42501';
     end if;
     new.file_attached_by := auth.uid(); new.file_attached_at := now();
   elsif new.file_path is distinct from old.file_path or new.file_sha256 is distinct from old.file_sha256
@@ -351,7 +354,7 @@ begin
 
   if old.status = 'received' and new.status in ('approved', 'rejected') then
     if not v_owner then
-      raise exception 'Only the owner can approve or reject a supplier document.' using errcode = '42501';
+      raise exception 'Only the owner or an administrator can approve or reject a supplier document.' using errcode = '42501';
     end if;
     new.reviewed_by := auth.uid(); new.reviewed_at := now();
     new.withdrawn_by := null; new.withdrawn_at := null; new.withdraw_note := null;
@@ -362,10 +365,10 @@ begin
 
   if new.status = 'withdrawn' then
     if old.status = 'approved' and not v_owner then
-      raise exception 'Only the owner can withdraw an approved supplier document.' using errcode = '42501';
+      raise exception 'Only the owner or an administrator can withdraw an approved supplier document.' using errcode = '42501';
     end if;
     if old.status = 'received' and not (v_owner or old.recorded_by = auth.uid()) then
-      raise exception 'Only the person who recorded it, or the owner, can withdraw a document waiting for review.' using errcode = '42501';
+      raise exception 'Only the person who recorded it, the owner or an administrator can withdraw a document waiting for review.' using errcode = '42501';
     end if;
     new.reviewed_by := old.reviewed_by; new.reviewed_at := old.reviewed_at; new.review_note := old.review_note;
     new.approved_file_sha256 := old.approved_file_sha256;
@@ -478,7 +481,7 @@ begin
     return new;
   end if;
   if not public.supplier_documents_is_owner() then
-    raise exception 'Only the owner can link or dismiss a handed-off document.' using errcode = '42501';
+    raise exception 'Only the owner or an administrator can link or dismiss a handed-off document.' using errcode = '42501';
   end if;
   if old.status <> 'waiting' then
     raise exception 'This hand-off was already %.', old.status using errcode = '42501';
@@ -655,7 +658,7 @@ declare
   v public.supplier_documents%rowtype;
 begin
   if not public.supplier_documents_is_owner() then
-    raise exception 'Only the owner can approve or reject a supplier document.' using errcode = '42501';
+    raise exception 'Only the owner or an administrator can approve or reject a supplier document.' using errcode = '42501';
   end if;
   if p_decision is null or p_decision not in ('approved', 'rejected') then
     raise exception 'A review is either approved or rejected.' using errcode = '22023';
@@ -715,7 +718,7 @@ declare
   v public.supplier_documents%rowtype;
 begin
   if not public.supplier_documents_is_owner() then
-    raise exception 'Only the owner can correct a supplier document.' using errcode = '42501';
+    raise exception 'Only the owner or an administrator can correct a supplier document.' using errcode = '42501';
   end if;
   update public.supplier_documents
      set reference = nullif(btrim(p_reference), ''), received_on = coalesce(p_received_on, received_on),
@@ -802,7 +805,7 @@ declare
   r jsonb;
 begin
   if not public.supplier_documents_is_owner() then
-    raise exception 'Only the owner can link a handed-off document.' using errcode = '42501';
+    raise exception 'Only the owner or an administrator can link a handed-off document.' using errcode = '42501';
   end if;
   select * into h from public.supplier_document_handoffs where id = p_id for update;
   if not found then
@@ -827,7 +830,7 @@ declare
   h public.supplier_document_handoffs%rowtype;
 begin
   if not public.supplier_documents_is_owner() then
-    raise exception 'Only the owner can dismiss a handed-off document.' using errcode = '42501';
+    raise exception 'Only the owner or an administrator can dismiss a handed-off document.' using errcode = '42501';
   end if;
   if p_note is null or length(btrim(p_note)) < 5 then
     raise exception 'Say why the hand-off is dismissed.' using errcode = '22023';
@@ -852,7 +855,7 @@ set search_path = public, pg_temp
 as $fn$
 begin
   if not public.supplier_documents_is_owner() then
-    raise exception 'Only the owner can change the supplier document checklist.' using errcode = '42501';
+    raise exception 'Only the owner or an administrator can change the supplier document checklist.' using errcode = '42501';
   end if;
   insert into public.supplier_type_document_profiles (supplier_type, profiles) values (p_supplier_type, coalesce(p_profiles, '{}'))
     on conflict (supplier_type) do update set profiles = excluded.profiles;
@@ -867,7 +870,7 @@ set search_path = public, pg_temp
 as $fn$
 begin
   if not public.supplier_documents_is_owner() then
-    raise exception 'Only the owner can change the supplier document checklist.' using errcode = '42501';
+    raise exception 'Only the owner or an administrator can change the supplier document checklist.' using errcode = '42501';
   end if;
   if p_profiles is null then
     -- back to the supplier type's list
@@ -887,7 +890,7 @@ set search_path = public, pg_temp
 as $fn$
 begin
   if not public.supplier_documents_is_owner() then
-    raise exception 'Only the owner can change the supplier document checklist.' using errcode = '42501';
+    raise exception 'Only the owner or an administrator can change the supplier document checklist.' using errcode = '42501';
   end if;
   update public.supplier_document_types set is_active = coalesce(p_active, true) where key = p_key;
   if not found then
@@ -918,21 +921,21 @@ grant select, insert, update on public.supplier_document_handoffs to authenticat
 drop policy if exists supplier_document_types_staff_read on public.supplier_document_types;
 create policy supplier_document_types_staff_read on public.supplier_document_types for select to authenticated using (public.is_active_staff());
 drop policy if exists supplier_document_types_owner_write on public.supplier_document_types;
-create policy supplier_document_types_owner_write on public.supplier_document_types for all to authenticated using (public.current_role() = 'owner') with check (public.current_role() = 'owner');
+create policy supplier_document_types_owner_write on public.supplier_document_types for all to authenticated using (public.current_role() in ('owner', 'administrator')) with check (public.current_role() in ('owner', 'administrator'));
 drop policy if exists supplier_type_document_profiles_staff_read on public.supplier_type_document_profiles;
 create policy supplier_type_document_profiles_staff_read on public.supplier_type_document_profiles for select to authenticated using (public.is_active_staff());
 drop policy if exists supplier_type_document_profiles_owner_write on public.supplier_type_document_profiles;
-create policy supplier_type_document_profiles_owner_write on public.supplier_type_document_profiles for all to authenticated using (public.current_role() = 'owner') with check (public.current_role() = 'owner');
+create policy supplier_type_document_profiles_owner_write on public.supplier_type_document_profiles for all to authenticated using (public.current_role() in ('owner', 'administrator')) with check (public.current_role() in ('owner', 'administrator'));
 drop policy if exists supplier_document_supplier_profiles_staff_read on public.supplier_document_supplier_profiles;
 create policy supplier_document_supplier_profiles_staff_read on public.supplier_document_supplier_profiles for select to authenticated using (public.is_active_staff());
 drop policy if exists supplier_document_supplier_profiles_owner_write on public.supplier_document_supplier_profiles;
-create policy supplier_document_supplier_profiles_owner_write on public.supplier_document_supplier_profiles for all to authenticated using (public.current_role() = 'owner') with check (public.current_role() = 'owner');
+create policy supplier_document_supplier_profiles_owner_write on public.supplier_document_supplier_profiles for all to authenticated using (public.current_role() in ('owner', 'administrator')) with check (public.current_role() in ('owner', 'administrator'));
 drop policy if exists supplier_document_subjects_staff_read on public.supplier_document_subjects;
 create policy supplier_document_subjects_staff_read on public.supplier_document_subjects for select to authenticated using (public.is_active_staff());
 drop policy if exists supplier_document_subjects_staff_add on public.supplier_document_subjects;
 create policy supplier_document_subjects_staff_add on public.supplier_document_subjects for insert to authenticated with check (public.is_active_staff() and is_active);
 drop policy if exists supplier_document_subjects_owner_update on public.supplier_document_subjects;
-create policy supplier_document_subjects_owner_update on public.supplier_document_subjects for update to authenticated using (public.current_role() = 'owner') with check (public.current_role() = 'owner');
+create policy supplier_document_subjects_owner_update on public.supplier_document_subjects for update to authenticated using (public.current_role() in ('owner', 'administrator')) with check (public.current_role() in ('owner', 'administrator'));
 drop policy if exists supplier_documents_staff_read on public.supplier_documents;
 create policy supplier_documents_staff_read on public.supplier_documents for select to authenticated using (public.is_active_staff());
 drop policy if exists supplier_documents_staff_record on public.supplier_documents;
@@ -943,13 +946,13 @@ create policy supplier_documents_staff_update on public.supplier_documents for u
 drop policy if exists supplier_document_events_staff_read on public.supplier_document_events;
 create policy supplier_document_events_staff_read on public.supplier_document_events for select to authenticated using (public.is_active_staff());
 -- hand-offs: the person who handed it off, the owner and administrators see it;
--- any active staff may hand one off; only the owner resolves (the guard says so too)
+-- any active staff may hand one off; only the owner or an administrator resolves (the guard says so too)
 drop policy if exists supplier_document_handoffs_read on public.supplier_document_handoffs;
 create policy supplier_document_handoffs_read on public.supplier_document_handoffs for select to authenticated using (handed_by = auth.uid() or public.is_owner_or_admin());
 drop policy if exists supplier_document_handoffs_staff_add on public.supplier_document_handoffs;
 create policy supplier_document_handoffs_staff_add on public.supplier_document_handoffs for insert to authenticated with check (public.is_active_staff() and status = 'waiting');
 drop policy if exists supplier_document_handoffs_owner_resolve on public.supplier_document_handoffs;
-create policy supplier_document_handoffs_owner_resolve on public.supplier_document_handoffs for update to authenticated using (public.current_role() = 'owner') with check (public.current_role() = 'owner');
+create policy supplier_document_handoffs_owner_resolve on public.supplier_document_handoffs for update to authenticated using (public.current_role() in ('owner', 'administrator')) with check (public.current_role() in ('owner', 'administrator'));
 -- inserts come only from this feature's triggers (the history guard refuses any other)
 drop policy if exists supplier_document_events_trigger_insert on public.supplier_document_events;
 create policy supplier_document_events_trigger_insert on public.supplier_document_events for insert to authenticated with check (public.is_active_staff());

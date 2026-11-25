@@ -6,8 +6,9 @@
 // local database, through a tiny stand-in for the supabase-js client that turns
 // exactly the calls the adapter makes into SQL, run as a given person. Proves:
 // records survive a page refresh (a fresh store reads them back), a retried save
-// never records twice, and an administrator or staff member cannot approve or
-// change the checklist even when the page's own check is bypassed.
+// never records twice, and a staff member cannot approve or
+// change the checklist even when the page's own check is bypassed, while an
+// administrator can (owner decision of Nov 24).
 // All rows are synthetic.
 // Usage: node supplier_docs_store_adapter_test.js -h /var/tmp/hepg -p 5499 -U postgres   (source db: he_real)
 'use strict';
@@ -172,15 +173,14 @@ const count = (sql) => psql(DB, sql);
   const inv = await store(A, 'administrator').record({ requestKey: K(5), supplierId: LAB, kind: 'supplier_invoice', subjectKind: 'purchase', subjectRef: POL, reference: 'INV-951' });
   ok('an administrator records the supplier invoice for the lab\'s order', inv.ok + '/' + inv.duplicate, 'true/false');
 
-  console.log(' only the owner reviews or changes the checklist');
+  console.log(' only the owner or an administrator reviews or changes the checklist (owner decision of Nov 24)');
   const id = doc.id;
-  has('the page refuses an administrator\'s approval', (await store(A, 'administrator').review(id, 'approved')).message, /Only the owner/);
+  has('the page refuses a staff member\'s approval', (await store(E, 'employee').review(id, 'approved')).message, /Only the owner or an administrator/);
   const before = rpcCalls;
-  await store(A, 'administrator').review(id, 'approved');
+  await store(E, 'employee').review(id, 'approved');
   ok('  without asking the database', rpcCalls, before);
-  has('with the page\'s check bypassed, the database refuses an administrator', (await store(A, null).review(id, 'approved')).message, /Only the owner can approve or reject/);
-  has('  and staff', (await store(E, null).review(id, 'approved')).message, /Only the owner can approve or reject/);
-  has('  and an administrator changing the checklist', (await store(A, null).setTypeProfiles('other', ['labels_printing'])).message, /Only the owner can change/);
+  has('with the page\'s check bypassed, the database refuses staff', (await store(E, null).review(id, 'approved')).message, /Only the owner or an administrator can approve or reject/);
+  has('  and staff changing the checklist', (await store(E, null).setTypeProfiles('other', ['labels_printing'])).message, /Only the owner or an administrator can change/);
   ok('  the document is still waiting', count("select status from supplier_documents where id = '" + id + "'"), 'received');
   has('a rejection needs a reason', (await store(O, 'owner').review(id, 'rejected', 'no')).message, /Say why/);
   const ap = await store(O, 'owner').review(id, 'approved');
@@ -195,6 +195,9 @@ const count = (sql) => psql(DB, sql);
     .suppliers.find(s => s.supplier.id === LAB).rows.find(r => r.key === 'certificate_of_analysis').status, 'EXPIRED');
   ok('the history holds the recording and the approval, in order', L.history.filter(h => h.document_id === id).map(h => h.event).reverse().join(','), 'recorded,approved');
   ok('  the approval is the owner\'s', L.history.find(h => h.document_id === id && h.event === 'approved').by_user, O);
+  const apA = await store(A, 'administrator').review(inv.id, 'approved');
+  ok('an administrator approves the supplier invoice', apA.ok + '/' + apA.status, 'true/approved');
+  ok('  credited to the administrator in the history', count("select (by_user = '" + A + "')::text from supplier_document_events where document_id = '" + inv.id + "' and event = 'approved'"), 'true');
 
   ok('the owner gives the "other" type the labels checklist', (await store(O, 'owner').setTypeProfiles('other', ['labels_printing'])).ok, true);
   psql(DB, "insert into supplier_document_subjects (supplier_id, subject_kind, subject_ref, label) values ('" + LBL + "','artwork','ART-9','Honey Milk label v9')");
@@ -209,7 +212,10 @@ const count = (sql) => psql(DB, sql);
   console.log(' withdrawing');
   const r9 = await staff.record({ requestKey: K(9), supplierId: LAB, kind: 'batch_record', subjectKind: 'batch', subjectRef: 'LOT-501', reference: 'BR-WRONG' });
   ok('staff record a batch record', r9.ok, true);
-  has('an administrator cannot withdraw what staff recorded', (await store(A, 'administrator').withdraw(r9.id, 'Recorded by mistake')).message, /Only the person who recorded it/);
+  const r10 = await staff.record({ requestKey: K(10), supplierId: LAB, kind: 'batch_record', subjectKind: 'batch', subjectRef: 'LOT-502', reference: 'BR-DUP' });
+  ok('staff record another batch record', r10.ok + ' ' + (r10.message || ''), 'true Recorded. It now waits for the review of the owner or an administrator.');
+  const w10 = await store(A, 'administrator').withdraw(r10.id, 'Recorded twice by mistake');
+  ok('an administrator withdraws what staff recorded by mistake (owner decision of Nov 24)', w10.ok + ' ' + (w10.message || ''), 'true Withdrawn. It stays in the history.');
   ok('the person who recorded it withdraws it', (await staff.withdraw(r9.id, 'Wrong invoice attached')).ok, true);
   L = await store(E, 'employee').load();
   ok('  after a refresh it is no longer counted, but stays in the history', (L.documents.some(d => d.id === r9.id)) + '/' + L.history.filter(h => h.document_id === r9.id).map(h => h.event).reverse().join(','), 'false/recorded,withdrawn');
@@ -220,8 +226,8 @@ const count = (sql) => psql(DB, sql);
   const h1 = await staff.handOff(ho);
   ok('staff hand a packing slip to the owner', h1.ok + '/' + h1.duplicate, 'true/false');
   ok('  sending it again adds nothing', (await store(E, 'employee').handOff(ho)).duplicate, true);
-  has('the page refuses an administrator linking it', (await store(A, 'administrator').resolveHandoff(h1.id, POL)).message, /Only the owner/);
-  has('  with the page check bypassed, the database refuses too', (await store(A, null).resolveHandoff(h1.id, POL)).message, /Only the owner can link/);
+  has('the page refuses staff linking it', (await store(E, 'employee').resolveHandoff(h1.id, POL)).message, /Only the owner or an administrator/);
+  has('  with the page check bypassed, the database refuses too', (await store(E, null).resolveHandoff(h1.id, POL)).message, /Only the owner or an administrator can link/);
   L = await store(O, 'owner').load();
   ok('after a refresh the owner sees the waiting hand-off', L.handoffs.filter(h => h.status === 'waiting').map(h => h.po_text).join(','), 'SYN-PO-951 (as printed)');
   const rs = await store(O, 'owner').resolveHandoff(h1.id, POL);
@@ -230,11 +236,13 @@ const count = (sql) => psql(DB, sql);
   L = await store(O, 'owner').load();
   ok('  after a refresh the packing slip waits for review on that order', L.documents.filter(d => d.kind === 'packing_slip' && d.subjectId === POL).map(d => d.status).join(','), 'received');
 
-  console.log(' files: owner-only opening');
+  console.log(' files: opened by the owner or an administrator only');
   const sha = 'd'.repeat(64);
   const docF = (await store(E, 'employee').record({ requestKey: K(80), supplierId: LAB, kind: 'certificate_of_analysis', subjectKind: 'batch', subjectRef: 'LOT-800' })).id;
   has('a file of another type is refused before anything is sent', (await staff.attachFile(docF, { type: 'application/zip', size: 10, sha256: sha })).message, /PDF, JPEG or PNG/);
-  has('an administrator cannot attach a file to what staff recorded', (await store(A, 'administrator').attachFile(docF, { type: 'application/pdf', size: 2048, sha256: sha, body: 'x' })).message, /not stored|Only the person/);
+  const docG = (await store(E, 'employee').record({ requestKey: K(81), supplierId: LAB, kind: 'certificate_of_analysis', subjectKind: 'batch', subjectRef: 'LOT-801' })).id;
+  const atA = await store(A, 'administrator').attachFile(docG, { type: 'application/pdf', size: 2048, sha256: 'f'.repeat(64), body: 'y' });
+  ok('an administrator attaches the file of a document staff recorded', atA.ok + '/' + atA.alreadyAttached, 'true/false');
   const at = await staff.attachFile(docF, { type: 'application/pdf', size: 2048, sha256: sha, body: 'x' });
   ok('the person who recorded it uploads and attaches the file', at.ok + '/' + at.alreadyAttached, 'true/false');
   L = await store(O, 'owner').load();
@@ -244,7 +252,8 @@ const count = (sql) => psql(DB, sql);
   ok('the owner gets a link that works for 60 seconds', own.ok + '/' + own.expiresInSeconds, 'true/60');
   has('the page refuses to open it for staff', (await staff.openFile(fdoc)).message, /Only the owner/);
   has('with the page check bypassed, the storage service finds no file for staff', (await store(E, null).openFile(fdoc)).message, /Object not found/);
-  has('  nor for an ordinary administrator', (await store(A, null).openFile(fdoc)).message, /Object not found/);
+  const adm = await store(A, 'administrator').openFile(fdoc);
+  ok('an administrator gets a link too (owner decision of Nov 24)', adm.ok + '/' + adm.expiresInSeconds, 'true/60');
   const apF = await store(O, 'owner').review(docF, 'approved');
   ok('the owner approves', apF.status, 'approved');
   L = await store(O, 'owner').load();

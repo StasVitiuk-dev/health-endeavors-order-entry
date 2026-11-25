@@ -11,6 +11,7 @@
 const path = require('path');
 const { test, expect, login, gotoPage } = require('../helpers/dashboard');
 const { pgBridge, pgAvailable } = require('../helpers/pg-bridge');
+const { OWNER_USER } = require('../fixtures/synthetic-data');
 const { unnamedControls } = require('../helpers/a11y-audit');
 
 const INSTALL = path.resolve(__dirname, '..', '..', 'docs', 'ops', 'sql', 'drafts', '36_DRAFT_supplier_documents.sql');
@@ -158,15 +159,15 @@ test.describe('against a real database with drafts/36 installed', () => {
     } finally { await db.close(); }
   });
 
-  test('an administrator cannot approve, even if the page offered the button: the database refuses', async ({ page, backend }) => {
-    // The page believes this is the owner (so it shows Approve); the database knows it is an administrator.
-    const db = await pgBridge(page, { install: INSTALL, tables: TABLES, rpcs: RPCS, role: 'administrator', setupSql: SEED });
+  test('staff cannot approve, even if the page offered the button: the database refuses', async ({ page, backend }) => {
+    // The page believes this is the owner (so it shows Approve); the database knows it is a staff member.
+    const db = await pgBridge(page, { install: INSTALL, tables: TABLES, rpcs: RPCS, role: 'employee', setupSql: SEED });
     try {
       await switchOn(page, true);
       await login(page); await open(page);
       const row = page.locator('#supplierDocsHost tr[data-dockey="certificate_of_analysis"][data-subject="LOT-700"]');
       await row.locator('[data-sdact="approved"]').click();
-      await expect(page.locator('.toast', { hasText: 'Only the owner can approve or reject a supplier document.' })).toHaveCount(1);
+      await expect(page.locator('.toast', { hasText: 'Only the owner or an administrator can approve or reject a supplier document.' })).toHaveCount(1);
       await expect(page.locator('#supplierDocsHost tr[data-dockey="certificate_of_analysis"][data-subject="LOT-700"]')).toContainText('Awaiting review');
       expect(await db.query("select status from supplier_documents where reference = 'COA-700'")).toBe('received');
       // nor change the checklist (after the section has redrawn from the database)
@@ -174,7 +175,7 @@ test.describe('against a real database with drafts/36 installed', () => {
       await openChecklistSettings(page, 'other');
       await page.locator('[data-sdtype="other"] input[value="labels_printing"]').check();
       await page.locator('[data-sdtypesave="other"]').click();
-      await expect(page.locator('.toast', { hasText: 'Only the owner can change the supplier document checklist.' })).toHaveCount(1);
+      await expect(page.locator('.toast', { hasText: 'Only the owner or an administrator can change the supplier document checklist.' })).toHaveCount(1);
       expect(await db.query("select count(*) from supplier_type_document_profiles where supplier_type = 'other'")).toBe('0');
     } finally { await db.close(); }
   });
@@ -285,24 +286,30 @@ test.describe('against a real database with drafts/36 installed', () => {
     } finally { await db.close(); }
   });
 
-  test('an administrator cannot link a hand-off, even if the page offered it: the database refuses', async ({ page }) => {
-    const HO = "begin; set local role authenticated; set local request.jwt.claim.sub = '" + STAFF + "';" +
+  test('staff cannot link a hand-off, even if the page offered it: the database refuses', async ({ page }) => {
+    // the staff member handed it off themselves, so they can see it
+    const HO = "begin; set local role authenticated; set local request.jwt.claim.sub = '" + OWNER_USER.id + "';" +
       "select public.hand_off_supplier_document('00000000-0000-4000-8000-000000000913','" + LAB + "','packing_slip','971','PS-971','2026-11-20',null); commit;";
-    // the page believes this is the owner; the database knows it is an administrator
-    const db = await pgBridge(page, { install: INSTALL, tables: TABLES, rpcs: RPCS, role: 'administrator', setupSql: SEED + HO });
+    // the page believes this is the owner; the database knows it is a staff member
+    const db = await pgBridge(page, { install: INSTALL, tables: TABLES, rpcs: RPCS, role: 'employee', setupSql: SEED + HO });
     try {
       await switchOn(page, true);
       await login(page); await open(page);
+      // staff cannot see the purchase orders to link it to; dismissing is refused by the database too
       const a = page.locator('[data-sdhandoff-id]');
-      await a.locator('[data-sdpo]').selectOption(POL);
-      await a.locator('[data-sdresolve]').click();
-      await expect(page.locator('.toast', { hasText: 'Only the owner can link' })).toHaveCount(1);
+      await a.locator('[data-sdhonote]').fill('Trying to close it myself');
+      await a.locator('[data-sddismiss]').click();
+      await expect(page.locator('.toast', { hasText: 'Only the owner or an administrator can dismiss' })).toHaveCount(1);
+      // and linking straight through the database, bypassing the page, is refused as well
+      const direct = await db.query("begin; set local role authenticated; set local request.jwt.claim.sub = '" + OWNER_USER.id + "'; select public.resolve_supplier_document_handoff((select id from supplier_document_handoffs limit 1), '" + POL + "'); commit;")
+        .then(out => 'NOT REFUSED: ' + out, e => String(e.stderr || e.message || e));
+      expect(direct).toContain('Only the owner or an administrator can link a handed-off document.');
       expect(await db.query("select status from supplier_document_handoffs")).toBe('waiting');
       expect(await db.query("select count(*) from supplier_documents where kind = 'packing_slip'")).toBe('0');
     } finally { await db.close(); }
   });
 
-  test.describe('files (drafts/38): only the owner opens one', () => {
+  test.describe('files (drafts/38): only the owner or an administrator opens one (owner decision of Nov 24)', () => {
     const pdf = { name: 'coa-700.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4\n% synthetic test file, not a real certificate\n%%EOF\n') };
 
     test('staff attach the file to their own document; the file then cannot be opened by staff, even through the storage service directly', async ({ page, backend }) => {
@@ -323,7 +330,7 @@ test.describe('against a real database with drafts/36 installed', () => {
         await expect(page.locator('#supplierDocsHost tr[data-dockey="certificate_of_analysis"][data-subject="LOT-700"] [data-sdfile]')).toHaveCount(0);
         await row.locator('[data-sdfile]').setInputFiles(pdf);
         await row.locator('[data-sdattach]').click();
-        await expect(row.locator('[data-sdfilerow]')).toContainText('File attached. Only the owner can open it.');
+        await expect(row.locator('[data-sdfilerow]')).toContainText('File attached. Only the owner or an administrator can open it.');
         await expect(row.locator('[data-sdopen]')).toHaveCount(0);
         const sha = require('crypto').createHash('sha256').update(pdf.buffer).digest('hex');
         expect(await db.query("select file_sha256||'/'||file_bytes||'/'||file_type from supplier_documents where kind = 'batch_record'")).toBe(sha + '/' + pdf.buffer.length + '/application/pdf');
@@ -355,7 +362,7 @@ test.describe('against a real database with drafts/36 installed', () => {
         await expect(page.locator('.toast', { hasText: /Could not reach the database|try again/ })).toHaveCount(1);
         expect(await db.query("select (file_path is not null)::text from supplier_documents where kind = 'batch_record'")).toBe('true');
         // after the redraw the document already has its file: no second upload is offered
-        await expect(row.locator('[data-sdfilerow]')).toContainText('File attached. Only the owner can open it.');
+        await expect(row.locator('[data-sdfilerow]')).toContainText('File attached. Only the owner or an administrator can open it.');
         expect(await db.query("select count(*) from storage.objects where bucket_id = 'supplier-documents'")).toBe('1');
         expect(await db.query("select count(*) from supplier_document_events where event = 'file_attached'")).toBe('1');
         expect(db.calls).toContain('reply lost attach_supplier_document_file');
@@ -388,8 +395,8 @@ test.describe('against a real database with drafts/36 installed', () => {
       } finally { await db.close(); }
     });
 
-    test('the owner gets a link that works for 60 seconds, and approval records the exact file approved', async ({ page }) => {
-      const db = await pgBridge(page, { install: INSTALL, tables: WITH_PROFILES, rpcs: RPCS, role: 'owner', setupSql: SEED, storage: true, storageInstall: FILES });
+    for (const who of ['owner', 'administrator']) test('the ' + who + ' gets a link that works for 60 seconds, and approval records the exact file approved', async ({ page }) => {
+      const db = await pgBridge(page, { install: INSTALL, tables: WITH_PROFILES, rpcs: RPCS, role: who, setupSql: SEED, storage: true, storageInstall: FILES });
       try {
         // the staff member's certificate already has its file (uploaded by them)
         const DOC = await db.query("select id from supplier_documents where reference = 'COA-700'");
@@ -412,8 +419,8 @@ test.describe('against a real database with drafts/36 installed', () => {
       } finally { await db.close(); }
     });
 
-    test('an ordinary administrator: the page offers Open file (it thinks this is the owner) but the storage service finds no file', async ({ page }) => {
-      const db = await pgBridge(page, { install: INSTALL, tables: TABLES, rpcs: RPCS, role: 'administrator', setupSql: SEED, storage: true, storageInstall: FILES });
+    test('staff: the page offers Open file (it thinks this is the owner) but the storage service finds no file', async ({ page }) => {
+      const db = await pgBridge(page, { install: INSTALL, tables: TABLES, rpcs: RPCS, role: 'employee', setupSql: SEED, storage: true, storageInstall: FILES });
       try {
         const DOC = await db.query("select id from supplier_documents where reference = 'COA-700'");
         await db.query("begin; set local role authenticated; set local request.jwt.claim.sub = '" + STAFF + "'; insert into storage.objects (bucket_id, name) values ('supplier-documents', '" + DOC + "/coa.pdf');" +
@@ -426,7 +433,7 @@ test.describe('against a real database with drafts/36 installed', () => {
         await expect(row.locator('[data-sdfileurl]')).toHaveCount(0);
         // nor approve through the backend
         await row.locator('[data-sdact="approved"]').click();
-        await expect(page.locator('.toast', { hasText: 'Only the owner can approve' })).toHaveCount(1);
+        await expect(page.locator('.toast', { hasText: 'Only the owner or an administrator can approve' })).toHaveCount(1);
         expect(await db.query("select status||'/'||coalesce(approved_file_sha256,'none') from supplier_documents where id = '" + DOC + "'")).toBe('received/none');
       } finally { await db.close(); }
     });
