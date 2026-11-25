@@ -146,7 +146,40 @@ What that needs, told to the owner in chat (PROPOSED, nothing built):
 Also proposed for the page: reset a forgotten password, deactivate someone who left (signed out
 everywhere, history kept), change a role, and a list showing role, active or not, and last sign-in.
 
-**OWNER DECISION REQUIRED (asked in chat, not answered yet):** since this evening Administrator
+**DECIDED by the owner (Nov 24, about 6:42 PM Central), in answer to the above:**
+
+- The page is called **"New Employee"**.
+- **A fourth role, Manager, is added** (the question just below is answered: yes).
+- **First password: the new person types it themselves, on the owner's computer, when the account
+  is created.** The owner hands the computer over; the password is typed hidden, twice, and nobody
+  else ever knows it. No temporary password is needed in that case. (Claude keeps the temporary
+  password as the second way, for someone who is not in the room.)
+- The owner does not want to know anyone's password, but wants to **control every employee account:
+  see what it did, reset it, suspend it, take it off.**
+- All the additions Claude proposed are wanted: reset password, deactivate, change role, the list
+  of everyone with role, active or not and last sign-in, a short line under each role, protection of
+  the owner's accounts, and the notice to the owner.
+- The owner also wants, from this page, **every record of every employee** (the history) and
+  **how much work each employee did**.
+
+What exists for the last point (checked in the code and the project record on Nov 24): Employee
+Activity is live and records every change (who, when, what, before and after), with search, filters
+and a spreadsheet export, and a line "Today: N changes by N people". It already works one way: an
+administrator cannot see the owner's entries (so point 2 of the owner's decision is in place for
+that page; to be confirmed against the database rules by the read-only check). NOT built: a count
+per person (today, this week), and sending it to the owner. PROPOSED: each person's row on the New
+Employee page links to their history and shows their counts, and the owner's morning summary lists
+what each person did the day before. Told to the owner: it records changes and sign-ins, not every
+page someone only looked at.
+
+Asked by the owner the same evening: what happens when the owner's computer is replaced or lost.
+Answered in chat: nothing of the dashboard lives on the computer. The dashboard is a web page, the
+records and the helper function live at the database provider, the code at the code host. A new
+computer needs only the owner's sign-ins. What must be kept safe is therefore those sign-ins and
+their recovery codes (never in this repository, never in chat). Tied to one computer today: the
+8:00 AM printing set-up, and the switches kept in a browser until drafts/50 is installed.
+
+**ANSWERED (yes, add Manager; see above). The question as asked:** since this evening Administrator
 means "almost an Owner". A future manager made an Administrator would get all of it. Claude
 recommends a fourth role, **Manager**: approves new employees and runs the daily work, without the
 co-owner powers.

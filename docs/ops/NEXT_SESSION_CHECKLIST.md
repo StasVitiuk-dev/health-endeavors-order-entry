@@ -13,7 +13,7 @@ In short:
 - [x] Merge PR #51 (documents): done by the owner on Nov 24, about 6:33 PM Central, merge commit `6648336`.
 - [ ] PR #86 (administrators see the switches that save real records): merge when its checks are green.
 - [ ] Read-only check of how accounts are set up (SQL in `docs/ops/OWNER_DECISION_2026-11-24_ADMINISTRATOR_NEAR_OWNER.md`), then the People page.
-- [ ] Owner to answer: a fourth role "Manager" for future managers, or managers as Administrators?
+- [x] Owner answered Nov 24: add a fourth role, Manager. The page is called "New Employee"; the new person types their own password on the owner's computer.
 - [ ] Owner decision of Nov 24 (evening): administrators get almost everything the owner has. Plan and open points: `docs/ops/OWNER_DECISION_2026-11-24_ADMINISTRATOR_NEAR_OWNER.md`.
 - [ ] One stock count: your decision, after the read-only shape check
       (`docs/ops/ONE_STOCK_COUNT_DECISION_2026-11-24.md`).
