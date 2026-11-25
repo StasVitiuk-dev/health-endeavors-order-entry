@@ -60,18 +60,20 @@ and its Print button opens the print window. Reminder: in the shorter menu,
 
 ## 4. Built, waiting for the owner's merge (open PRs)
 
-Merge in this order. Each one was tested; only "Screenshots (informational)" is red.
-(Order updated Nov 25: #95 and #96 added before the documents.)
+**Merge ONE pull request: #96.** It contains every open feature PR (#89, #90, #91, #94,
+#95); they changed the same few lines, so they were joined in #96 and the clash resolved
+(Nov 25, about 6 UTC). Merging #96 brings all of them in, and GitHub then shows the
+others as merged by themselves. Then merge #93 (documents).
 
-| Order | PR | What it is | After merging |
-|---|---|---|---|
-| 1 | #89 | **Ready to launch** page (Overview): 14 lines, "X of 14 ready"; 6 checked from the records, 8 ticked by a person | Feature Flags → turn on "Ready to launch" |
-| 2 | #90 | **New Employee page, part 1**: rules file + database drafts 62–65 (Manager level; each level changes only accounts below it; never deletes). Nothing shown on a page yet | Nothing to switch on; database step later (review item 16; was mislabelled 13) |
-| 3 | #91 | **Ask the dashboard (voice)**: search box answers questions with exact figures, "Talk" button, reads answers aloud unless Quiet; owner only. Contains #89 | Feature Flags → turn on "Ask the dashboard" |
-| 4 | #94 | **Bug fix**: the number on a coloured Home tile (e.g. red "Overdue tasks") was invisible in the Aurora look. Only that is changed | Cmd+Shift+R; red tile shows its number |
-| 5 | #95 | **New Employee page, part 2a**: the helper program draft that creates sign-ins (not deployed), its local test, review item 17. Contains #90 | Nothing on the live site |
-| 6 | #96 | **New Employee page, part 2b**: the People page under Admin (switch "People (New Employee page)", off; can only be turned on once drafts 62/64 are installed). Contains #90 and #95 | Feature Flags: the row says "Not installed yet" (expected) |
-| 7 | #93 | Documents only (backup plan, next-session checklist, tracker, the two owner decisions, this hand-off) | Nothing |
+| PR | What it is | After merging |
+|---|---|---|
+| #89 (in #96) | **Ready to launch** page (Overview): 14 lines, "X of 14 ready" | Feature Flags → turn on "Ready to launch" |
+| #90 (in #96) | **New Employee, part 1**: rules + database drafts 62–65 (review item 16) | Nothing to switch on |
+| #91 (in #96) | **Ask the dashboard (voice)**, owner only | Feature Flags → turn on "Ask the dashboard" |
+| #94 (in #96) | **Bug fix**: invisible number on a coloured Home tile (Aurora) | Cmd+Shift+R; red tile shows its number |
+| #95 (in #96) | **New Employee, part 2a**: the helper program draft that creates sign-ins (review item 17; not deployed) | Nothing |
+| #96 | **New Employee, part 2b**: the People page under Admin (record switch, off; turns on only once drafts 62/64 are installed) | Feature Flags: the row says "Not installed yet" (expected) |
+| #93 | Documents only | Nothing |
 
 ## 5. Database drafts waiting for the owner (nothing installed)
 
