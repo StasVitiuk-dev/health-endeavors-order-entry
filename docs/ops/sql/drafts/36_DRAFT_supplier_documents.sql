@@ -5,7 +5,7 @@
 -- @depends-on:  none
 -- @risk:        LOW
 -- @precheck:    stops if auth.uid(), current_role(), is_active_staff(), is_owner_or_admin() or the suppliers / purchase_orders / profiles tables are missing
--- @effect:      7 new tables (the checklist, its profiles by supplier type and per supplier, subjects, documents with one file each, review history, hand-offs to the owner); guards (review, correction, hand-off resolution and checklist changes by the owner or an administrator only (owner decision of Nov 24); purchase documents only for orders the person can already see; a file attached once; no deletes; history written by the database only); record / review / withdraw / correct / attach-file / hand-off functions and checklist functions for the owner or an administrator (security invoker); the starting checklist of Nov 16
+-- @effect:      7 new tables (the checklist, its profiles by supplier type and per supplier, subjects, documents with one file each, review history, hand-offs to the owner); guards (review by the owner, an administrator, or a manager for a document someone else recorded (owner decisions of Nov 24 and 25); correction, hand-off resolution and checklist changes by the owner or an administrator only; purchase documents only for orders the person can already see; a file attached once; no deletes; history written by the database only); record / review / withdraw / correct / attach-file / hand-off functions and checklist functions for the owner or an administrator (security invoker); the starting checklist of Nov 16
 -- @postcheck:   9 document types, no documents; anon cannot read them or run the functions; an administrator cannot approve; local-test/supplier_documents_test.sh passes on a throwaway copy
 -- @rollback:    drafts/37
 -- @@ end metadata @@
@@ -39,10 +39,12 @@
 --     the right order, which records it.
 --   * Files (owner decision of Nov 21): a document may carry one file, attached
 --     once by the person who recorded it or by the owner, while it waits for
---     review. Only the owner or an administrator can open files (drafts/38 holds the storage rules);
---     approving records the fingerprint of the exact file that was approved.
---   * ONLY THE OWNER may approve, reject or correct a document, withdraw an
---     approved one, or change the checklist. An administrator may not.
+--     review. The owner, an administrator or a manager can open files (drafts/38 holds the
+--     storage rules); approving records the fingerprint of the exact file that was approved.
+--   * The owner or an administrator (Nov 24) may approve or reject any document; a
+--     manager (Nov 25) may approve or reject a document someone else recorded.
+--   * Only the owner or an administrator may correct a document, withdraw an approved
+--     one, resolve a hand-off, or change the checklist.
 --   * The person who recorded a document may withdraw it while it still waits
 --     for review (a mistake), with a reason.
 --   * Nothing is ever deleted. An approved, rejected or withdrawn document can
@@ -215,6 +217,22 @@ as $fn$
   select coalesce(public.current_role() in ('owner', 'administrator'), false)
 $fn$;
 
+-- Who may approve or reject a document waiting for review (owner decision of Nov 25:
+-- a manager approves supplier documents too). The owner and an administrator review
+-- any document; a manager reviews a document someone ELSE recorded, so a second person
+-- always looks at it. Everything else about supplier documents stays with the owner
+-- and administrators (withdrawing an approved document, corrections, hand-offs, the
+-- checklist). p_recorded_by is the person who recorded the document.
+create or replace function public.supplier_documents_can_review(p_recorded_by uuid) returns boolean
+language sql
+stable
+security invoker
+set search_path = public, pg_temp
+as $fn$
+  select coalesce(public.current_role() in ('owner', 'administrator')
+               or (public.current_role() = 'manager' and p_recorded_by is distinct from auth.uid()), false)
+$fn$;
+
 -- Every profile named must be a profile of the checklist (not "purchase").
 create or replace function public.supplier_document_profiles_known(p_profiles text[]) returns boolean
 language sql
@@ -353,8 +371,8 @@ begin
   end if;
 
   if old.status = 'received' and new.status in ('approved', 'rejected') then
-    if not v_owner then
-      raise exception 'Only the owner or an administrator can approve or reject a supplier document.' using errcode = '42501';
+    if not public.supplier_documents_can_review(old.recorded_by) then
+      raise exception 'Only the owner, an administrator or a manager (not for a document they recorded) can approve or reject a supplier document.' using errcode = '42501';
     end if;
     new.reviewed_by := auth.uid(); new.reviewed_at := now();
     new.withdrawn_by := null; new.withdrawn_at := null; new.withdraw_note := null;
@@ -648,7 +666,8 @@ begin
 end
 $fn$;
 
--- Approve or reject. Owner only. Decides once.
+-- Approve or reject: the owner, an administrator, or a manager for a document someone
+-- else recorded (owner decision of Nov 25). Decides once.
 create or replace function public.review_supplier_document(p_id uuid, p_decision text, p_note text) returns jsonb
 language plpgsql
 security invoker
@@ -657,8 +676,8 @@ as $fn$
 declare
   v public.supplier_documents%rowtype;
 begin
-  if not public.supplier_documents_is_owner() then
-    raise exception 'Only the owner or an administrator can approve or reject a supplier document.' using errcode = '42501';
+  if not coalesce(public.supplier_documents_is_owner() or public.current_role() = 'manager', false) then
+    raise exception 'Only the owner, an administrator or a manager can approve or reject a supplier document.' using errcode = '42501';
   end if;
   if p_decision is null or p_decision not in ('approved', 'rejected') then
     raise exception 'A review is either approved or rejected.' using errcode = '22023';
@@ -958,6 +977,7 @@ drop policy if exists supplier_document_events_trigger_insert on public.supplier
 create policy supplier_document_events_trigger_insert on public.supplier_document_events for insert to authenticated with check (public.is_active_staff());
 
 revoke all on function public.supplier_documents_is_owner() from public, anon;
+revoke all on function public.supplier_documents_can_review(uuid) from public, anon;
 revoke all on function public.supplier_document_profiles_known(text[]) from public, anon;
 revoke all on function public.supplier_document_events_guard() from public, anon;
 revoke all on function public.supplier_documents_guard() from public, anon;
@@ -978,6 +998,7 @@ revoke all on function public.hand_off_supplier_document(uuid, uuid, text, text,
 revoke all on function public.resolve_supplier_document_handoff(uuid, uuid) from public, anon;
 revoke all on function public.dismiss_supplier_document_handoff(uuid, text) from public, anon;
 grant execute on function public.supplier_documents_is_owner() to authenticated;
+grant execute on function public.supplier_documents_can_review(uuid) to authenticated;
 grant execute on function public.supplier_document_profiles_known(text[]) to authenticated;
 grant execute on function public.record_supplier_document(uuid, uuid, text, text, text, text, text, date, date, date, text) to authenticated;
 grant execute on function public.review_supplier_document(uuid, text, text) to authenticated;

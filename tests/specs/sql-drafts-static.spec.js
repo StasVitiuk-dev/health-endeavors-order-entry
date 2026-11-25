@@ -148,7 +148,8 @@ for (const f of ALL) {
     // the recorder uploads into a waiting document's folder), and their removal.
     const SUPPLIER_FILE_RULES = [
       'drop policy if exists supplier_document_files_owner_read on storage.objects;',
-      "create policy supplier_document_files_owner_read on storage.objects for select to authenticated using (bucket_id = 'supplier-documents' and public.supplier_documents_is_owner());",
+      // owner decision of Nov 25: a manager opens files too (to approve them); nothing else changed
+      "create policy supplier_document_files_owner_read on storage.objects for select to authenticated using (bucket_id = 'supplier-documents' and coalesce(public.supplier_documents_is_owner() or public.current_role() = 'manager', false));",
       'drop policy if exists supplier_document_files_upload on storage.objects;',
       "create policy supplier_document_files_upload on storage.objects for insert to authenticated with check (bucket_id = 'supplier-documents' and public.supplier_document_file_upload_allowed(name));"];
     // The sixth allowed set (Nov 22, drafts/40): row rules on that draft's OWN new

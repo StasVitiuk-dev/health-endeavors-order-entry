@@ -7,7 +7,8 @@
 # staff and administrators may record that a document arrived; ONLY the owner or an
 # administrator (owner decision of Nov 24; a switched-off administrator is refused)
 # approves, rejects, corrects, withdraws an approved document or changes the
-# checklist; a retried save never records twice; every change is in the history,
+# checklist; a manager (owner decision of Nov 25) approves or rejects a document
+# someone else recorded, and nothing more; a retried save never records twice; every change is in the history,
 # which nobody can edit. All rows are synthetic.
 # Usage: supplier_documents_test.sh -h /var/tmp/hepg -p 5499 -U postgres   (source db: he_real)
 set -u
@@ -26,17 +27,19 @@ as()   { local who="$1" sql="$2" pre
 OUTF=$(mktemp)
 O=00000000-0000-4000-8000-0000000000e1; A=00000000-0000-4000-8000-0000000000e2; A2=00000000-0000-4000-8000-0000000000e3
 E=00000000-0000-4000-8000-0000000000e4; I=00000000-0000-4000-8000-0000000000e5
+M=00000000-0000-4000-8000-0000000000e6; M2=00000000-0000-4000-8000-0000000000e7   # a manager, a switched-off manager
 LAB=00000000-0000-4000-8000-0000000000f1; BOT=00000000-0000-4000-8000-0000000000f2; LBL=00000000-0000-4000-8000-0000000000f3; OLD=00000000-0000-4000-8000-0000000000f4
 POL=00000000-0000-4000-8000-0000000000f5; POB=00000000-0000-4000-8000-0000000000f6
 K() { printf '00000000-0000-4000-8000-%012d' "$1"; }   # request keys
 setup() {
   psql "${CONN[@]}" -d postgres -qX -c "drop database if exists $DB" >/dev/null 2>&1
   psql "${CONN[@]}" -d postgres -qX -v ON_ERROR_STOP=1 -c "create database $DB template $SRC" >/dev/null || { echo "cannot copy $SRC"; exit 2; }
-  q "delete from profiles where id in ('$O','$A','$A2','$E','$I');
+  q "delete from profiles where id in ('$O','$A','$A2','$E','$I','$M','$M2');
      insert into profiles (id, email, role, is_active, account_number) values
      ('$O','owner@example.test','owner',true,'300000001'), ('$A','admin@example.test','administrator',true,'300000002'),
      ('$A2','admin2@example.test','administrator',true,'300000003'), ('$E','staff@example.test','employee',true,'300000004'),
-     ('$I','gone@example.test','administrator',false,'300000005');
+     ('$I','gone@example.test','administrator',false,'300000005'), ('$M','manager@example.test','manager',true,'300000006'),
+     ('$M2','gone-manager@example.test','manager',false,'300000007');
      insert into suppliers (id, name, supplier_type, is_active) values ('$LAB','SYN Lotion Lab','lab',true), ('$BOT','SYN Bottles & Pumps','packaging',true),
        ('$LBL','SYN Label Printer','other',true), ('$OLD','SYN Former Supplier','supplier',false);
      insert into purchase_orders (id, po_number, supplier_id, status) values ('$POL','SYN-PO-901','$LAB','received'), ('$POB','SYN-PO-902','$BOT','shipped');" >/dev/null
@@ -93,8 +96,8 @@ has "staff record a component specification valid for a year" "$R" '"status": "r
 DOC12=$(q "select id from supplier_documents where request_key = '$(K 12)'")
 
 echo " only the owner or an administrator approves, rejects or corrects (owner decision of Nov 24)"
-has "a switched-off administrator cannot approve (function)" "$(as $I "select public.review_supplier_document('$DOC1','approved',null)")" "Only the owner or an administrator can approve or reject"
-has "staff cannot approve (direct edit)" "$(as $E "update supplier_documents set status = 'approved' where id = '$DOC1'")" "Only the owner or an administrator can approve or reject"
+has "a switched-off administrator cannot approve (function)" "$(as $I "select public.review_supplier_document('$DOC1','approved',null)")" "Only the owner, an administrator or a manager can approve or reject"
+has "staff cannot approve (direct edit)" "$(as $E "update supplier_documents set status = 'approved' where id = '$DOC1'")" "Only the owner, an administrator or a manager (not for a document they recorded) can approve or reject"
 has "staff cannot approve" "$(as $E "select public.review_supplier_document('$DOC1','approved',null)")" "Only the owner"
 has "staff cannot reject" "$(as $E "select public.review_supplier_document('$DOC1','rejected','Looks wrong to me')")" "Only the owner"
 has "staff cannot correct the reference" "$(as $E "update supplier_documents set reference = 'COA-EDITED' where id = '$DOC1'")" "Only the owner or an administrator can correct"
@@ -172,7 +175,7 @@ echo " staff and purchase orders they can see (owner decision of Nov 21)"
 q "create policy test_only_staff_reads_pob on purchase_orders for select to authenticated using (id = '$POB')" >/dev/null
 R=$(rec $E 40 $BOT packing_slip purchase $POB)
 has "staff record the packing slip of an order they can see" "$R" '"status": "received"'
-has "  but still not for one they cannot see" "$(rec $E 41 $LAB packing_slip purchase $POL)" "Hand the document to the owner instead"
+has "  but still not for one they cannot see" "$(rec $E 91 $LAB packing_slip purchase $POL)" "Hand the document to the owner instead"
 q "drop policy test_only_staff_reads_pob on purchase_orders" >/dev/null
 ok  "  (the test-only rule is gone again)" "$(as $E "select count(*) from purchase_orders")" "0"
 
@@ -218,11 +221,33 @@ has "  nor can it be removed by direct edit" "$(as $O "update supplier_documents
 as $E "update supplier_documents set approved_file_sha256 = '$SHA2' where id = '$D60'" >/dev/null
 ok  "nobody can type an approved fingerprint: the database puts it back" "$(q "select (approved_file_sha256 is null)::text from supplier_documents where id = '$D60'")" "true"
 has "staff cannot approve it" "$(as $E "select public.review_supplier_document('$D60','approved',null)")" "Only the owner"
-has "a switched-off administrator cannot approve it" "$(as $I "select public.review_supplier_document('$D60','approved',null)")" "Only the owner or an administrator"
+has "a switched-off administrator cannot approve it" "$(as $I "select public.review_supplier_document('$D60','approved',null)")" "Only the owner, an administrator or a manager can approve or reject"
 has "an administrator approves it" "$(as $A "select public.review_supplier_document('$D60','approved',null)")" '"status": "approved"'
 ok  "  the approval records the fingerprint of the exact file approved" "$(q "select (approved_file_sha256 = '$SHA1')::text from supplier_documents where id = '$D60'")" "true"
 has "  a file cannot be attached once a document is approved" "$(as $O "select public.attach_supplier_document_file('$DOC1','$DOC1/coa.pdf','$SHA2',100,'application/pdf')")" "only while the document waits for review"
 ok  "the file attachment is in the history" "$(q "select count(*) from supplier_document_events where document_id = '$D60' and event = 'file_attached' and detail->>'file_sha256' = '$SHA1'")" "1"
+
+echo " a manager approves or rejects a document someone else recorded, and nothing more (owner decision of Nov 25)"
+R=$(rec $M 95 $LAB batch_record batch LOT-500)
+has "a manager records a document like staff" "$R" '"status": "received"'
+DOCM=$(q "select id from supplier_documents where request_key = '$(K 95)'")
+has "a manager cannot approve a document they recorded themselves (function)" "$(as $M "select public.review_supplier_document('$DOCM','approved',null)")" "not for a document they recorded"
+has "  nor by a direct edit" "$(as $M "update supplier_documents set status = 'approved' where id = '$DOCM'")" "not for a document they recorded"
+ok  "  it still waits for review, unreviewed" "$(q "select status||'/'||(reviewed_by is null)::text from supplier_documents where id = '$DOCM'")" "received/true"
+R=$(rec $E 96 $LAB certificate_of_analysis batch LOT-501)
+DOCE=$(q "select id from supplier_documents where request_key = '$(K 96)'")
+has "a switched-off manager cannot approve" "$(as $M2 "select public.review_supplier_document('$DOCE','approved',null)")" "Only the owner, an administrator or a manager can approve or reject"
+R=$(as $M "select public.review_supplier_document('$DOCE','approved',null)")
+has "a manager approves a document staff recorded" "$R" '"status": "approved"'
+ok  "  the record names the manager as reviewer, with the time" "$(q "select (reviewed_by = '$M')::text||'/'||(reviewed_at is not null)::text from supplier_documents where id = '$DOCE'")" "true/true"
+ok  "  one 'approved' entry in the history" "$(q "select count(*) from supplier_document_events where document_id = '$DOCE' and event = 'approved'")" "1"
+R=$(rec $E 97 $LAB batch_record batch LOT-502)
+DOCR=$(q "select id from supplier_documents where request_key = '$(K 97)'")
+has "a manager rejects a document staff recorded, with a reason" "$(as $M "select public.review_supplier_document('$DOCR','rejected','Lot number does not match the label')")" '"status": "rejected"'
+has "a manager cannot withdraw an approved document" "$(as $M "select public.withdraw_supplier_document('$DOCE','Changed my mind')")" "Only the owner or an administrator can withdraw an approved"
+has "a manager cannot correct a document" "$(as $M "select public.correct_supplier_document('$DOCM','REF-EDITED',null,null,null)")" "Only the owner or an administrator can correct"
+has "a manager cannot change the checklist" "$(as $M "select public.set_supplier_document_type_active('batch_record', false)")" "Only the owner or an administrator can change the supplier document checklist"
+has "the owner approves the manager's own document (the second person)" "$(as $O "select public.review_supplier_document('$DOCM','approved',null)")" '"status": "approved"'
 
 echo " after everything"
 ok  "no existing table gained or lost a row" "$(q "$SNAP")" "$before"
@@ -231,7 +256,7 @@ ok  "every approved or rejected document names its reviewer" "$(q "select count(
 echo " rollback"
 ok  "rollback refuses while approved or rejected documents exist" "$(run "$ROLLBACK")" "3"
 has "  and says why" "$(cat "$OUTF")" "approved or rejected supplier document(s) exist"
-ok  "  nothing was removed" "$(q "select count(*) from supplier_documents")" "8"
+ok  "  nothing was removed" "$(q "select count(*) from supplier_documents")" "11"
 setup
 before=$(q "$SNAP")
 ok  "fresh copy: install" "$(run "$INSTALL")" "0"

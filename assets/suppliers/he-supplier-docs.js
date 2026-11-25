@@ -36,7 +36,7 @@
   'use strict';
 
   const STATUSES = ['MISSING', 'REJECTED', 'EXPIRED', 'AWAITING_REVIEW', 'APPROVED'];
-  const ROLES_MAY_REVIEW = ['owner', 'administrator'];
+  const ROLES_MAY_REVIEW = ['owner', 'administrator', 'manager'];   // a manager since Nov 25 (owner decision), never for their own document
 
   // per: what one copy of the document belongs to.
   // stages (purchase documents only): the purchase-order stages at which the
@@ -232,7 +232,8 @@
   function reviewDocument(doc, decision, who) {
     const w = who || {}; const d = doc;
     if (!d || typeof d !== 'object') return { ok: false, reason: 'no document', document: d || null };
-    if (ROLES_MAY_REVIEW.indexOf(w.role) < 0) return { ok: false, reason: 'only the owner or an administrator may review a supplier document', document: d };
+    if (ROLES_MAY_REVIEW.indexOf(w.role) < 0) return { ok: false, reason: 'only the owner, an administrator or a manager may review a supplier document', document: d };
+    if (w.role === 'manager' && text(d.recordedBy) && text(d.recordedBy) === text(w.by)) return { ok: false, reason: 'a manager does not review a document they recorded themselves', document: d };
     if (decision !== 'approved' && decision !== 'rejected') return { ok: false, reason: 'a review is either approved or rejected', document: d };
     if (!text(w.by) || !text(w.at)) return { ok: false, reason: 'a review records who reviewed it and when', document: d };
     const note = text(w.note).slice(0, 500);

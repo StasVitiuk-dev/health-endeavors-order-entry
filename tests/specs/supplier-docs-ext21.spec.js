@@ -99,10 +99,10 @@ test('a document counts only when someone reviewed and approved it', () => {
   expect(line(D.supplierChecklist(sup('SUP-BOT'), FX.context, two, { asOf: FX.asOf }), 'component_specification', 'C-PUMP-24').status).toBe('APPROVED');
 });
 
-test('reviewing a document: owner or administrator, with a name and a time; a rejection says why; once only', () => {
+test('reviewing a document: owner, administrator or manager, with a name and a time; a rejection says why; once only', () => {
   const doc = FX.documents.find(d => d.kind === 'certificate_of_analysis' && d.subjectId === 'B-205');
   const who = { role: 'owner', by: 'owner-stas', at: '2026-11-16T15:00:00Z' };
-  expect(D.reviewDocument(doc, 'approved', { role: 'employee', by: 'x', at: 'y' }).reason).toMatch(/owner or an administrator/);
+  expect(D.reviewDocument(doc, 'approved', { role: 'employee', by: 'x', at: 'y' }).reason).toMatch(/owner, an administrator or a manager/);
   expect(D.reviewDocument(doc, 'approved', { role: 'owner' }).reason).toMatch(/who reviewed it and when/);
   expect(D.reviewDocument(doc, 'maybe', who).reason).toMatch(/approved or rejected/);
   expect(D.reviewDocument(doc, 'rejected', who).reason).toMatch(/say why/);

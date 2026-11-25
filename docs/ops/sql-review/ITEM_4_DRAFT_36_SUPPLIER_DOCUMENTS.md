@@ -8,9 +8,9 @@ This is **two decisions**: draft 36 first; draft 38 only later, and only if you 
 
 | File | Lines | Fingerprint (SHA-256, first 16) | Last changed in |
 |---|---|---|---|
-| `docs/ops/sql/drafts/36_DRAFT_supplier_documents.sql` (install, step 1) | 1012 | `4b78c14b9fc7ee8f` | changed 2026-11-25 |
-| `docs/ops/sql/drafts/37_DRAFT_rollback_supplier_documents.sql` (undo of 36) | 72 | `117c4297c360be26` | `be6a4c2` |
-| `docs/ops/sql/drafts/38_DRAFT_supplier_document_files.sql` (install, step 2, optional) | 95 | `b65979513ca32f5e` | changed 2026-11-25 |
+| `docs/ops/sql/drafts/36_DRAFT_supplier_documents.sql` (install, step 1) | 1033 | `1e9bd730e671c867` | changed 2026-11-25 |
+| `docs/ops/sql/drafts/37_DRAFT_rollback_supplier_documents.sql` (undo of 36) | 73 | `c8cc042183a7d466` | changed 2026-11-25 |
+| `docs/ops/sql/drafts/38_DRAFT_supplier_document_files.sql` (install, step 2, optional) | 97 | `97b7a419b8a78b2a` | changed 2026-11-25 |
 | `docs/ops/sql/drafts/39_DRAFT_rollback_supplier_document_files.sql` (undo of 38) | 38 | `4fb319ef4d3128e4` | `be6a4c2` |
 
 The full text is in the review package (`5-sql/item-4-drafts-36-38/`). Before running, check the
@@ -33,21 +33,43 @@ reject, private files, settings → owner and administrators") is applied to bot
 - every refusal now reads "Only the owner or an administrator …";
 - draft 38's own rules did not change (they ask the same check); only its notes changed.
 
-Still refused: staff, managers (once drafts 62/64 add them; they are not administrators), a
+Still refused (as of Nov 24; managers changed on Nov 25, see below): staff, managers, a
 switched-off administrator, and visitors, also through direct database calls and direct file links.
 Each approval still names the person and the exact file (its fingerprint); the file cannot be
 replaced; a rejection needs a reason. An administrator can approve a document they recorded
 themselves, as you can. Which documents are required stays **your checklist of Nov 16**; nothing was
 added to it.
 
+## Changed before install: managers approve too (owner decision, Nov 25)
+
+Your answer of Nov 25 ("yes, manager should be able to approve it") is applied before install:
+- a new check `supplier_documents_can_review()` says yes for the owner, an active administrator,
+  and an active **manager for a document someone else recorded**. A manager never approves their
+  own document, so a second person always looks at it (Claude's safety default; tell me if a
+  manager should be able to approve their own too);
+- draft 38: a manager can **open files** too, because approving means looking at the file;
+- everything else stays with you and administrators: correcting a document, withdrawing an
+  approved one, resolving or dismissing a hand-off, and the checklist;
+- still refused: employees, a switched-off manager or administrator, and visitors, also through
+  direct database calls and direct file links;
+- the refusal now reads "Only the owner, an administrator or a manager (not for a document they
+  recorded) can approve or reject a supplier document."
+
+Tests: the local database test of draft 36 now has 140 checks (a manager records; cannot approve
+their own document by the function or by a direct edit; a switched-off manager is refused; a
+manager approves and rejects a document staff recorded and is named as the reviewer; cannot
+withdraw an approved one, correct one or change the checklist; you then approve the manager's
+own). Removing the "not their own" rule makes three of them fail. Draft 38's test: a manager opens
+a file, a switched-off manager cannot (39 checks).
+
 ## Purpose
 
 Your decisions of Nov 16 and Nov 21 on supplier documents:
 - a checklist per kind of supplier (purchases; lotion lab; bottles and pumps; labels);
-- staff record that a document arrived; **only you or an administrator approve, reject or change the checklist** (Nov 24);
+- staff record that a document arrived; **you or an administrator approve or reject (a manager too, for a document someone else recorded, Nov 25); only you or an administrator change the checklist** (Nov 24);
 - a purchase document is recorded only against an order the person can already see;
   otherwise it is **handed to you**, and purchase-order access is not widened;
-- (draft 38) **only you or an administrator open a stored file** (Nov 24; on Nov 21 this was you only).
+- (draft 38) **only you, an administrator or a manager open a stored file** (Nov 25; Nov 24 you or an administrator; on Nov 21 you only).
 
 ## What each step changes
 

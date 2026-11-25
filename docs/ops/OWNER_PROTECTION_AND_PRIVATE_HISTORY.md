@@ -66,9 +66,9 @@ change whatever rule let it through, but I would tell you before you install).
 | Exports (Employee Activity CSV) | built from the same answer as the screen, so they follow automatically |
 | The owner's Home note "what administrators changed" (#97) | already owner-only and already counts administrators' entries only |
 
-**OWNER DECISION REQUIRED (one question):** should an administrator see that *something* changed
-on a record (for example "changed by the owner" without the details), or nothing at all? The
-proposal above is **nothing at all**. Until you answer, the draft follows the proposal.
+**DECIDED (owner, Nov 25): nothing at all.** An administrator sees no trace of an owner entry: no
+"changed by the owner" line and no "N hidden" count. (The question was: should an administrator see
+that *something* changed on a record, or nothing at all?)
 
 The underlying history is **never deleted, rewritten or moved**. Only what an administrator is
 shown changes.
@@ -119,12 +119,33 @@ What each answer means:
   people's entries without the owner's (the decision's "everything else").
 - A missing function: the page part using it does not work in production today; I note it.
 
+### B3 result (owner's read-only look, Nov 25, about 2:50 pm Central)
+
+| Function | Runs with raised rights | Inputs | Text length |
+|---|---|---|---|
+| `employee_activity` | **yes** | search, person, area, from, to, limit, offset | 3,467 |
+| `employee_activity_people` | **yes** | none | 816 |
+| `global_search` | no | search term | 957 |
+| `list_my_sessions` | **yes** | none | 602 |
+
+What it means:
+- `employee_activity` and `employee_activity_people` decide on their own who sees which history
+  entries (B2 was right to put the filter inside them). The draft keeps each function exactly as it
+  is and adds one condition: leave out entries made by an owner account (and, in the people list,
+  the owner accounts themselves) unless the person asking is an owner.
+- `global_search` runs with the asker's own rights, so it can never show more history than the
+  history table's own rule allows (owner only). Nothing to change there.
+- `list_my_sessions` runs with raised rights; by its name and the earlier screen ("your own
+  sessions") it answers for the asker only. Its text is read in the second look to confirm.
+- **Next: the second read-only look** (the functions' current text), so the draft changes one
+  condition and nothing else.
+
 ### B4. What I prepared now, and what waits
 
 | Item | State |
 |---|---|
 | The boundary (B1) | PROPOSED, one owner question |
 | The list of paths (B2) | done |
-| The read-only look (B3) | ready for the owner |
-| The draft that filters inside `employee_activity` | **waits for B3** (writing it without the function's text would mean replacing code nobody has read, which the project rules forbid) |
+| The read-only look (B3) | **done** (Nov 25, result above); second look (the text) sent to the owner |
+| The draft that filters inside `employee_activity` and `employee_activity_people` | **waits for the second look** (writing it without the functions' text would mean replacing code nobody has read, which the project rules forbid) |
 | Tests | planned with the draft: owner sees all; administrator sees no owner entry on mixed records, in pages 1 and 2, in counts, in the CSV, through a direct call; an employee sees nothing more than today |
