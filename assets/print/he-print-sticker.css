@@ -1,0 +1,5 @@
+/* Small label roll for batch stickers, 2.25 x 1.25 inch thermal labels (Nov 24).
+   Switched on only while batch stickers for the small roll are being printed (the
+   dashboard sets this sheet's media to "print" just before, and back to "not all"
+   right after), so invoices, reports and 4 x 6 slips keep their own paper. */
+@page{ size:2.25in 1.25in; margin:0.06in 0.1in; }

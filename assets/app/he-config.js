@@ -235,6 +235,37 @@ window.HE.modules.define('he-config', { api: 1, needs: [] }, function (ctx) {
       try { return typeof localStorage !== 'undefined' && localStorage.getItem('he_channel_money') === 'on'; }
       catch (e) { return false; }
     }
+    // The sales channel on every order (Nov 24): Orders shows a channel badge on each
+    // order (Website, Amazon, Etsy, TikTok, Wholesale, By hand) and a row of buttons
+    // to see one channel. Reads only. OFF by default; on Feature Flags.
+    function orderChannelsOn() {
+      try { return typeof localStorage !== 'undefined' && localStorage.getItem('he_order_channels') === 'on'; }
+      catch (e) { return false; }
+    }
+    // Batch on each order (drafts/54): on Orders, the batch sticker is scanned onto
+    // the order when packing, and "who got this batch" lists the orders. Reads and
+    // writes real records once drafts/54 is installed: OFF, and not a preview (the
+    // owner turns it on under "features that save real records").
+    function orderBatchesOn() {
+      try { return typeof localStorage !== 'undefined' && localStorage.getItem('he_order_batches') === 'on'; }
+      catch (e) { return false; }
+    }
+    // Batch stickers (Nov 24): Inventory prints a small sticker per bottle with the
+    // batch number in words and as a barcode (the bottle's own barcode says only
+    // which product it is). Reads the batches; prints; changes nothing. OFF by
+    // default; on Feature Flags.
+    function batchLabelsOn() {
+      try { return typeof localStorage !== 'undefined' && localStorage.getItem('he_batch_labels') === 'on'; }
+      catch (e) { return false; }
+    }
+    // Fill an expense in from a receipt's text (Nov 24, owner: receipt inbox, free
+    // reading first). On Expenses: paste the text of a receipt, or let the browser
+    // read the chosen photo where it can; amount, date and shop are FILLED IN for
+    // the owner to check. It never saves by itself. OFF by default; on Feature Flags.
+    function receiptReaderOn() {
+      try { return typeof localStorage !== 'undefined' && localStorage.getItem('he_receipt_reader') === 'on'; }
+      catch (e) { return false; }
+    }
     // Close an incident with a note (Nov 24): on Incidents, the owner and
     // administrators can record what was done on an incident and close it. Changes
     // real records (columns the incidents table already has; no database step):
@@ -248,7 +279,7 @@ window.HE.modules.define('he-config', { api: 1, needs: [] }, function (ctx) {
     // device (owner decision, Nov 23): work features. Every other switch (money,
     // revenue, sensitive documents, reports, agents) is for the owner and
     // administrators only.
-    const SWITCH_EVERYONE = Object.freeze(['he_scan_shipment', 'he_saved_views', 'he_cycle_count', 'he_partial_receiving', 'he_order_slips', 'he_attention_feed']);
+    const SWITCH_EVERYONE = Object.freeze(['he_scan_shipment', 'he_saved_views', 'he_cycle_count', 'he_partial_receiving', 'he_order_slips', 'he_attention_feed', 'he_order_channels', 'he_batch_labels']);
     // Settings shared by every device (drafts/50). The dashboard asks the database
     // for them only when this says so, so nothing is requested (and nothing fails)
     // before the owner has installed that step:
@@ -271,12 +302,50 @@ window.HE.modules.define('he-config', { api: 1, needs: [] }, function (ctx) {
       try { return typeof localStorage !== 'undefined' && localStorage.getItem('he_order_costs') === 'on'; }
       catch (e) { return false; }
     }
+    // Saved email campaigns (drafts/56): Store Campaigns and Customer Emails can save an
+    // approved campaign and the list of who it goes to in the database, with the sending
+    // guard. IT STILL SENDS NOTHING. Reads and writes real records once drafts/56 is
+    // installed: OFF, and not a preview (the owner turns it on under "features that save
+    // real records").
+    function emailSendingOn() {
+      try { return typeof localStorage !== 'undefined' && localStorage.getItem('he_email_sending') === 'on'; }
+      catch (e) { return false; }
+    }
+    // Your own settings on every device (drafts/58): what you set aside until tomorrow on
+    // Home follows you to every phone and computer you sign in to. Reads and writes real
+    // records once drafts/58 is installed: OFF, and not a preview.
+    function mySettingsOn() {
+      try { return typeof localStorage !== 'undefined' && localStorage.getItem('he_my_settings') === 'on'; }
+      catch (e) { return false; }
+    }
+    // Reviews on every device (drafts/60): the reviews typed in on the Reviews page are
+    // kept in the database, the same for the owner and the administrators on every
+    // device. Reads and writes real records once drafts/60 is installed: OFF, and not
+    // a preview.
+    function reviewStoreOn() {
+      try { return typeof localStorage !== 'undefined' && localStorage.getItem('he_review_store') === 'on'; }
+      catch (e) { return false; }
+    }
     function agentDiaryOn() {
       try { return typeof localStorage !== 'undefined' && localStorage.getItem('he_agent_diary') === 'on'; }
       catch (e) { return false; }
     }
     function attentionFeedOn() {
       try { return typeof localStorage !== 'undefined' && localStorage.getItem('he_attention_feed') === 'on'; }
+      catch (e) { return false; }
+    }
+    // Agent hand-offs on Home (Nov 24, the supervisor rule of the plan): a "Handled"
+    // button on each step an agent passed to a person, and one that has waited more
+    // than a day is raised to urgent. OFF until the owner turns it on.
+    function handoffHandledOn() {
+      try { return typeof localStorage !== 'undefined' && localStorage.getItem('he_handoff_handled') === 'on'; }
+      catch (e) { return false; }
+    }
+    // Reviews page (Nov 24, plan item 8): the owner pastes or types reviews in; the
+    // worst come first with ready replies; the ones that need the owner show on
+    // Home. Nothing is posted. OFF until the owner turns it on.
+    function reviewInboxOn() {
+      try { return typeof localStorage !== 'undefined' && localStorage.getItem('he_review_inbox') === 'on'; }
       catch (e) { return false; }
     }
     function productImportOn() {
@@ -311,6 +380,28 @@ window.HE.modules.define('he-config', { api: 1, needs: [] }, function (ctx) {
     // (not) see. Reads only. OFF by default; with it off the page is not in the menu.
     function backupsPageOn() {
       try { return typeof localStorage !== 'undefined' && localStorage.getItem('he_backups_page') === 'on'; }
+      catch (e) { return false; }
+    }
+    // Store Campaigns page (Nov 24, owner's decision: approve the wording once, then
+    // choose how many stores and which first). Drafts only: NOTHING IS SENT. OFF by
+    // default; with it off the page is not in the menu.
+    function storeCampaignsOn() {
+      try { return typeof localStorage !== 'undefined' && localStorage.getItem('he_store_campaigns') === 'on'; }
+      catch (e) { return false; }
+    }
+    // Customer Emails page (Nov 24, owner: email campaigns for people who ordered, not
+    // only stores). Choose the email (welcome, time to reorder, something new, we miss
+    // you), approve the wording once, see exactly who would get it. Drafts only:
+    // NOTHING IS SENT. OFF by default; with it off the page is not in the menu.
+    function customerEmailsOn() {
+      try { return typeof localStorage !== 'undefined' && localStorage.getItem('he_customer_emails') === 'on'; }
+      catch (e) { return false; }
+    }
+    // Content Helper page (Nov 24, owner: several ready options for a post, an ad, an
+    // email paragraph, a short video and a week's plan, "and be able to make a new one
+    // any time"). Drafts only: NOTHING IS POSTED, SENT OR SPENT. OFF by default.
+    function contentHelperOn() {
+      try { return typeof localStorage !== 'undefined' && localStorage.getItem('he_content_helper') === 'on'; }
       catch (e) { return false; }
     }
     // The look (owner decision, Nov 23): Aurora is everyone's look. On Feature Flags
@@ -379,12 +470,20 @@ window.HE.modules.define('he-config', { api: 1, needs: [] }, function (ctx) {
       { key: 'he_supplier_scorecard', name: 'Supplier scorecard', where: 'Suppliers', what: 'On-time deliveries and required documents for one example supplier. Read-only.' },
       { key: 'he_supplier_documents', name: 'Supplier documents', where: 'Suppliers', what: 'The document checklist for each kind of supplier, with what is missing or awaiting review. Example data; read-only.' },
       { key: 'he_backups_page', name: 'Backups & Printouts', where: 'Operations (a new page in the menu)', what: 'Daily recaps to print or save as a spreadsheet, manuals to print (if the dashboard is down, how it works, your procedures, printer setup), and what the dashboard can see of the backups. Reads only.' },
+      { key: 'he_customer_emails', name: 'Customer Emails', where: 'Sales (a new page in the menu)', what: 'Email campaigns for people who ordered from you directly: a welcome, time to reorder, something new, a hello after a long time, or "how was it?". Marketplace buyers are never used. Start from a ready text, have the wording checked, approve it once, and see exactly who would get it and on which day. Reads your orders; nothing is sent: sending is not connected. The wording is kept in this browser; the customer list is not kept anywhere.' },
+      { key: 'he_review_inbox', name: 'Reviews', where: 'Sales (a new page in the menu), and Home', what: 'Paste or type your reviews in (from Amazon, Etsy, TikTok Shop, your website, Google). The ones that need you come first, each with ready replies to copy; they also show on Home when "One attention feed" is on. Nothing is posted. Kept in this browser for now.' },
+      { key: 'he_content_helper', name: 'Content Helper', where: 'Sales (a new page in the menu)', what: 'Type a product and your own story; get several ready drafts for a post, an ad, an email paragraph, a short video and a week\'s plan, in three tones, with more on request and six ready looks. Every draft passes the health-claim check. Nothing is posted, sent or spent. Kept in this browser.' },
+      { key: 'he_store_campaigns', name: 'Store Campaigns', where: 'Sales (a new page in the menu)', what: 'Write one email for stores, have its wording checked, approve it once, then choose how many stores and which first (nearest or best match) and see who would get it on which day. Nothing is sent: sending is not connected. Kept in this browser.' },
       { key: 'he_order_slips', name: 'Packing slips', where: 'Orders', what: 'A print button on each order: a 4×6 slip for the Rollo label printer or a Letter slip for the Brother, and a test page for each printer. Printing only; nothing is changed.' },
       { key: 'he_real_profit', name: 'Real profit', where: 'Accounting (top)', what: 'Profit per order, per product and per sales channel after product cost, platform fees, postage and packaging. Orders missing a cost are counted, never guessed. Reads only; your fee and postage estimates are kept in this browser.' },
       { key: 'he_channel_money', name: 'Money per channel', where: 'Accounting (after money matching)', what: 'Choose the money report of Etsy, Amazon or TikTok Shop: sales, refunds, real fees, postage labels and payouts for the period, the real fee rate next to your estimate, and each payout checked against your bank export. The file is read in this browser; nothing is uploaded or saved.' },
+      { key: 'he_handoff_handled', name: 'Agent hand-offs: Handled button', where: 'Home (Needs your attention)', what: 'Each step an agent passed to you gets a "Handled" button; a handled one leaves the list. One that has waited more than a day is raised to urgent. Needs "One attention feed" to be on. The marks are kept in this browser, and on every device once the shared settings are in use.' },
       { key: 'he_agent_diary', name: 'Agent diary', where: 'AI Agents', what: 'Everything your agents recorded, in plain words and grouped by day, with a filter per agent; steps an agent passed to a person are marked. Reads only.' },
       { key: 'he_attention_feed', name: 'One attention feed', where: 'Home (Needs your attention)', what: 'Everything that needs you in one list at the top of Home, most urgent first: customer questions, tasks, approvals, reminders, checks, money and tax. Reads only; "Later" hides an item until tomorrow in this browser.' },
       { key: 'he_product_import', name: 'Product list import', where: 'Inventory', what: 'Checks your product list (a CSV saved from Numbers, Excel or Google Sheets) for missing SKUs, wrong prices and duplicates, and adds the new products only when every line is right and you press Add. Owner and administrators.' },
+      { key: 'he_batch_labels', name: 'Batch stickers', where: 'Inventory', what: 'Prints a small sticker for each bottle of a batch: the batch number in words and as a barcode a phone camera or a scanner reads (the barcode printed on the bottle only says which product it is). For a small label roll or a 4×6 label to cut. Printing only; nothing is changed.' },
+      { key: 'he_receipt_reader', name: 'Fill in from a receipt', where: 'Expenses (under the receipt)', what: 'Paste the text of a receipt (on an iPhone: press on the photo, Copy All), or let the browser read the chosen photo where it can. The amount, the date and the shop are filled in on the expense form for you to check. Nothing is saved until you press Add expense.' },
+      { key: 'he_order_channels', name: 'Sales channel on every order', where: 'Orders', what: 'Each order shows where it was sold (Website, Amazon, Etsy, TikTok, Wholesale, By hand), and a row of buttons shows the orders of one channel with how many each has. Reads only.' },
       { key: 'he_money_match', name: 'Money matching', where: 'Accounting', what: 'Checks a Chase or Wells Fargo export against Shopify payouts, wholesale payments and recorded expenses, and lists every difference. The file stays in this browser; nothing is saved.' },
       { key: 'he_reconcile', name: 'Payment reconciliation', where: 'Accounting', what: 'Invoices that should have been paid against payments recorded. Example data; no money is moved.' },
       { key: 'he_ops_watch', name: 'Operations watch', where: 'Report History', what: 'Flags unusual daily figures, stock and orders for a person to look at. Changes nothing.' },
@@ -452,6 +551,10 @@ window.HE.modules.define('he-config', { api: 1, needs: [] }, function (ctx) {
     ]};
     if (salesGrowthOn()) SIDEBAR_GROUPS.push(SALES_GROWTH_GROUP);
     if (backupsPageOn()) { const ops = SIDEBAR_GROUPS.find(g => g.label === 'Operations'); if (ops) ops.pages.push({ id: 'backupsPanel', label: 'Backups & Printouts' }); }
+    if (storeCampaignsOn()) { const sales = SIDEBAR_GROUPS.find(g => g.label === 'Sales'); if (sales) sales.pages.push({ id: 'storeCampaignsPanel', label: 'Store Campaigns' }); }
+    if (customerEmailsOn()) { const sales = SIDEBAR_GROUPS.find(g => g.label === 'Sales'); if (sales) sales.pages.push({ id: 'customerEmailsPanel', label: 'Customer Emails' }); }
+    if (contentHelperOn()) { const sales = SIDEBAR_GROUPS.find(g => g.label === 'Sales'); if (sales) sales.pages.push({ id: 'contentHelperPanel', label: 'Content Helper' }); }
+    if (reviewInboxOn()) { const sales = SIDEBAR_GROUPS.find(g => g.label === 'Sales'); if (sales) sales.pages.push({ id: 'reviewsPanel', label: 'Reviews' }); }
     const ICON_PATHS = {
       attentionPanel:      '<path d="M8 2.2a3.2 3.2 0 0 0-3.2 3.2c0 3.1-1.2 4-1.2 4h8.8s-1.2-.9-1.2-4A3.2 3.2 0 0 0 8 2.2Z"/><path d="M6.6 11.6a1.6 1.6 0 0 0 2.8 0"/>',
       dailySummaryPanel:   '<circle cx="8" cy="8" r="2.6"/><path d="M8 1.6v1.1M8 13.3v1.1M1.6 8h1.1M13.3 8h1.1M3.6 3.6l.8.8M11.6 11.6l.8.8M12.4 3.6l-.8.8M4.4 11.6l-.8.8"/>',
@@ -467,6 +570,10 @@ window.HE.modules.define('he-config', { api: 1, needs: [] }, function (ctx) {
       incidentsPanel:      '<path d="M8 2.6 14 13H2Z"/><path d="M8 6.6v3M8 11.4h.01"/>',
       evidenceLockerPanel: '<rect x="2" y="3" width="12" height="3" rx="1"/><path d="M3.2 6v6a1.6 1.6 0 0 0 1.6 1.6h6.4A1.6 1.6 0 0 0 12.8 12V6"/><path d="M6.6 8.8h2.8"/>',
       backupsPanel:        '<rect x="2.2" y="2.6" width="11.6" height="3.4" rx="0.8"/><path d="M3.2 6v6.6a1 1 0 0 0 1 1h7.6a1 1 0 0 0 1-1V6"/><path d="M6.4 9.2h3.2"/>',
+      storeCampaignsPanel: '<rect x="2" y="3.6" width="12" height="8.8" rx="1.6"/><path d="m2.6 4.6 5.4 4 5.4-4"/>',
+      customerEmailsPanel: '<circle cx="6" cy="5.4" r="2.4"/><path d="M1.8 13c.4-2.4 2-3.7 4.2-3.7 1 0 1.9.3 2.6.8"/><rect x="9" y="8.6" width="5.6" height="4.4" rx="1"/><path d="m9.3 9.2 2.5 1.9 2.5-1.9"/>',
+      contentHelperPanel: '<path d="M3 13l.6-2.8L10.9 2.9a1.2 1.2 0 0 1 1.7 0l.5.5a1.2 1.2 0 0 1 0 1.7L5.8 12.4 3 13z"/><path d="M9.8 4l2.2 2.2"/>',
+      reviewsPanel: '<path d="M8 2.2l1.7 3.5 3.8.5-2.8 2.7.7 3.8L8 10.9l-3.4 1.8.7-3.8L2.5 6.2l3.8-.5L8 2.2z"/>',
       documentsPanel:      '<path d="M4.4 2h5l2.2 2.2v9.4a1 1 0 0 1-1 1H4.4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1Z"/><path d="M9.4 2v2.6H12"/><path d="M5.6 8.4h4.8M5.6 10.8h4.8"/>',
       adverseEventsPanel:  '<circle cx="8" cy="8" r="5.8"/><path d="M8 5.4v5.2M5.4 8h5.2"/>',
       inquiriesPanel:      '<path d="M13.4 8.4c0 2.5-2.4 4.5-5.4 4.5-.7 0-1.4-.1-2-.3l-3 1.2 1-2.5C3.1 10.5 2.6 9.5 2.6 8.4 2.6 5.9 5 3.9 8 3.9s5.4 2 5.4 4.5Z"/>',
@@ -954,5 +1061,5 @@ window.HE.modules.define('he-config', { api: 1, needs: [] }, function (ctx) {
   // (a status, a category, a table name). Without a prototype, a value such as
   // "constructor" or "__proto__" finds nothing instead of a built-in function.
   [STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_FACE, THEME_NAME, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, GO_TO, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, ITEM_TYPE_LABELS, NIGHTLY_PAGES, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, INQ_STATUS_LABELS, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_CATEGORY_LABELS].forEach(o => Object.setPrototypeOf(o, null));
-  return { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, agentDiaryOn, realProfitOn, channelMoneyOn, SWITCH_EVERYONE, sharedSettingsOn, orderCostsOn, incidentCloseOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, newLookOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn };
+  return { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, agentDiaryOn, realProfitOn, channelMoneyOn, SWITCH_EVERYONE, sharedSettingsOn, orderCostsOn, incidentCloseOn, batchLabelsOn, orderBatchesOn, orderChannelsOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, newLookOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn, storeCampaignsOn, receiptReaderOn, contentHelperOn, customerEmailsOn, emailSendingOn, mySettingsOn, handoffHandledOn, reviewInboxOn, reviewStoreOn };
 });

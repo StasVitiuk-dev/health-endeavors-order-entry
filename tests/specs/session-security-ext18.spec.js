@@ -55,9 +55,10 @@ test('signed out elsewhere while a save is still on its way: the note says it ma
   await expect.poll(() => backend.requests.some(r => r.table === 'tasks' && r.method === 'PATCH')).toBe(true);
   await other.click('#signout');
   await expect(page.locator('#loginScreen')).toBeVisible(RELOAD);
-  const note = await page.locator('#loginMsg').innerText();
-  expect(note).toContain('may or may not have been saved');
-  expect(note).not.toContain('was not sent');
+  // The login screen shows at once, the note only after the page has reloaded itself:
+  // wait for the note (as the five-tabs test does) instead of reading it in that gap.
+  await expect(page.locator('#loginMsg')).toContainText('may or may not have been saved', RELOAD);
+  await expect(page.locator('#loginMsg')).not.toContainText('was not sent');
 });
 
 test('signed out elsewhere with nothing on its way: the note still says nothing unsaved was sent', async ({ page }) => {

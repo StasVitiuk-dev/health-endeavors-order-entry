@@ -13,6 +13,11 @@ const { test, expect, login } = require('../helpers/dashboard');
 
 test.describe.configure({ mode: 'serial' });
 test.describe('signed-in session reuse leaks nothing between tests', () => {
+  // Nov 24: the shared set-up normally chooses the full menu before each test by keeping
+  // one value in the browser (tests/helpers/dashboard.js). This file checks exactly what
+  // is in the browser's storage after a restore, so it runs with the menu as shipped:
+  // then the only thing kept is what the session reuse itself put there.
+  test.use({ shippedMenu: true });
   let before;
   test.beforeAll(() => { before = process.env.HE_FAST_LOGIN; process.env.HE_FAST_LOGIN = '1'; });
   test.afterAll(() => { if (before === undefined) delete process.env.HE_FAST_LOGIN; else process.env.HE_FAST_LOGIN = before; });

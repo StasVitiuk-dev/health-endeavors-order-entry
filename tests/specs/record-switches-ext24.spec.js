@@ -13,7 +13,7 @@ test.describe('the list and the rules (no browser)', () => {
   test('every switch that saves records is listed once, with its database step and a probe', ({}, ti) => {
     node(ti);
     const keys = R.RECORD_SWITCHES.map(s => s.key);
-    expect(keys.sort()).toEqual(['he_dropoff', 'he_incident_close', 'he_invoice_payments', 'he_money_issues', 'he_order_costs', 'he_receiving_store', 'he_shared_settings', 'he_supplier_documents_store', 'he_tax_rates']);
+    expect(keys.sort()).toEqual(['he_dropoff', 'he_email_sending', 'he_incident_close', 'he_invoice_payments', 'he_money_issues', 'he_my_settings', 'he_order_batches', 'he_order_costs', 'he_receiving_store', 'he_review_store', 'he_shared_settings', 'he_supplier_documents_store', 'he_tax_rates']);
     expect(R.RECORD_SWITCHES.every(s => s.name && s.where && s.draft && s.what && /^[a-z_]+$/.test(s.probe))).toBe(true);
     // the same keys the preview-switch test keeps OFF the preview list
     const fs = require('fs'), path = require('path');
@@ -42,13 +42,13 @@ test.describe('the list and the rules (no browser)', () => {
 test.describe('on Feature Flags', () => {
   test('the owner sees live install states; on needs a confirmation; off always works; reads only', async ({ page, backend }, ti) => {
     test.skip(ti.project.name !== 'desktop', 'run once');
-    for (const t of ['invoice_payments', 'money_match_issues', 'receiving_records', 'supplier_documents', 'shipment_events']) {
+    for (const t of ['invoice_payments', 'money_match_issues', 'receiving_records', 'supplier_documents', 'order_parcels']) {
       await page.route(`**/rest/v1/${t}?*`, route => route.fulfill(NOT_INSTALLED));
     }
     await login(page); await gotoPage(page, 'flagsPanel');
     const host = page.locator('#recordSwitchesHost');
     await expect(host.locator('h3')).toHaveText('Features that save real records (owner only)');
-    await expect(host.locator('tr[data-record-key]')).toHaveCount(9);
+    await expect(host.locator('tr[data-record-key]')).toHaveCount(13);
     const tax = host.locator('tr[data-record-key="he_tax_rates"]');
     await expect(tax.locator('[data-record-status]')).toHaveText('Installed');
     const drop = host.locator('tr[data-record-key="he_dropoff"]');

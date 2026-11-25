@@ -88,3 +88,13 @@ When only a few specs are run locally instead of the whole suite, always include
 - `specs/modules-ext15.spec.js`: new names and listeners in the program file must be registered there.
 
 Do not regenerate the request baseline in a run that may be cut short or that runs beside other tests: on Nov 24 that dropped six unrelated entries. Change the one line by hand when only one request changed.
+
+## Which menu the tests see
+
+The dashboard ships with a shorter menu (owner's decision, Nov 24: same-topic pages sit inside one
+another; "1. A little shorter"). Most tests are about what is on a page, and several count the menu
+lines of the full menu, so the shared set-up (`tests/helpers/dashboard.js`) chooses "Today's menu"
+(every page on its own line) before each test, the way a person chooses it on Feature Flags.
+`tests/specs/menu-layouts-ext24.spec.js` tests the menu as shipped (`test.use({ shippedMenu: true })`).
+`HE_SHIPPED_MENU=1 npm test` runs everything with the shipped menu; the tests that count menu lines
+then fail on purpose.

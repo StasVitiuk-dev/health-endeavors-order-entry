@@ -25,13 +25,17 @@
   const RANK = { urgent: 0, today: 1, info: 2 };
   const KINDS = Object.freeze({
     message: 'Message', task: 'Task', approval: 'Approval', reminder: 'Reminder', check: 'Check',
-    nightly: 'Nightly check', money: 'Money', tax: 'Tax', stock: 'Stock', incident: 'Incident', delivery: 'Delivery', agent: 'Agent', other: 'Item' });
+    nightly: 'Nightly check', money: 'Money', tax: 'Tax', stock: 'Stock', incident: 'Incident', delivery: 'Delivery', agent: 'Agent', review: 'Review', other: 'Item' });
   const FILTERS = Object.freeze([
     { key: 'all', label: 'All' }, { key: 'urgent', label: 'Urgent' }, { key: 'message', label: 'Messages' },
     { key: 'work', label: 'Tasks and approvals' }, { key: 'delivery', label: 'Deliveries' }, { key: 'checks', label: 'Checks' }, { key: 'money', label: 'Money and tax' }]);
   const MAX_TEXT = 600;
   const SNOOZE_KEY = 'he_feed_snooze';
+  const CLEARED_KEY = 'he_feed_snooze_cleared';      // when "Show them again" was last pressed
   const DAY = 86400000;
+  const HANDLED_KEY = 'he_handoffs_handled';         // agent hand-offs marked handled
+  const HANDLED_MAX = 100, HANDLED_KEEP_DAYS = 30;
+  const RAISE_HOURS = 24;                            // supervisor rule: waiting a day = urgent
 
   const text = (v, max) => { const s = (v == null ? '' : String(v)).replace(/\s+/g, ' ').trim(); return s.length > (max || MAX_TEXT) ? s.slice(0, (max || MAX_TEXT) - 1) + '…' : s; };
   // a message keeps its line breaks (greeting, paragraphs, signature); only spaces
@@ -165,12 +169,90 @@
   }
 
   // steps an agent passed to a person (he-agent-diary.js needsPerson)
-  function fromAgents(rows) {
-    return asList(rows).filter(e => e.id && e.passedToPerson).map(e => ({
-      id: 'agent:' + text(e.id, 80), kind: 'agent', badge: 'Agent', level: 'today',
-      title: text(e.agent, 80) + ' passed this to you', detail: text(e.what, 300),
-      when: time(e.at), page: 'aiPanel', actions: [{ kind: 'open', label: 'Open AI Agents', page: 'aiPanel' }],
-      signature: text(e.what, 80) }));
+  // With `opts.handled` given (the "Handled" switch is on): a hand-off someone marked
+  // handled leaves the list, each one gets a "Handled" button, and one that has waited
+  // `opts.raiseAfterHours` (the supervisor rule: a day) is raised to urgent. Without
+  // it the list is exactly as before.
+  function fromAgents(rows, now, opts) {
+    const o = opts || {};
+    const handled = o.handled && typeof o.handled === 'object' ? o.handled : null;
+    const after = Number(o.raiseAfterHours) > 0 ? Number(o.raiseAfterHours) : RAISE_HOURS;
+    return asList(rows).filter(e => e.id && e.passedToPerson && !(handled && Object.prototype.hasOwnProperty.call(handled, text(e.id, 80)))).map(e => {
+      const id = text(e.id, 80), at = time(e.at);
+      const raised = !!handled && at != null && time(now) != null && (time(now) - at) / 3600000 >= after;
+      const actions = [{ kind: 'open', label: 'Open AI Agents', page: 'aiPanel' }];
+      if (handled) actions.push({ kind: 'handled', label: 'Handled', id: id });
+      return { id: 'agent:' + id, kind: 'agent', badge: 'Agent', level: raised ? 'urgent' : 'today', raised: raised,
+        title: text(e.agent, 80) + ' passed this to you', detail: text(e.what, 300) + (raised ? ' Waiting more than a day.' : ''),
+        when: at, page: 'aiPanel', actions: actions,
+        signature: text(e.what, 80) };
+    });
+  }
+
+  // Hand-offs marked handled: { id: when (ms) }. A mark that was taken back is kept
+  // as a negative time (when it was taken back), so that the later action wins when
+  // two devices are joined. Kept small on purpose: a hand-off is in the feed for
+  // 7 days, so entries older than 30 days are dropped and at most the 100 newest
+  // are kept (which always fits one shared setting).
+  function cleanHandled(v, now) {
+    const out = {};
+    const src = v && typeof v === 'object' && !Array.isArray(v) ? v : {};
+    const t = time(now) != null ? time(now) : Date.now();
+    Object.keys(src).forEach(k => {
+      const raw = Number(src[k]), at = Math.abs(raw);
+      if (typeof k === 'string' && k && k.length <= 80 && isFinite(raw) && at > 0 && at <= t + DAY && t - at <= HANDLED_KEEP_DAYS * DAY) out[k] = raw < 0 ? -Math.floor(at) : Math.floor(at);
+    });
+    const keys = Object.keys(out).sort((x, y) => Math.abs(out[y]) - Math.abs(out[x]) || (x < y ? -1 : 1)).slice(0, HANDLED_MAX);
+    const kept = {}; keys.sort().forEach(k => { kept[k] = out[k]; });
+    return kept;
+  }
+  // everything remembered, marks taken back included (for saving and joining)
+  function readMarks(store, now) {
+    try { return cleanHandled(JSON.parse((store && store.getItem(HANDLED_KEY)) || '{}'), now); } catch (e) { return {}; }
+  }
+  // only what counts as handled now: { id: when }
+  function readHandled(store, now) {
+    const all = readMarks(store, now), out = {};
+    Object.keys(all).forEach(k => { if (all[k] > 0) out[k] = all[k]; });
+    return out;
+  }
+  function writeHandled(store, v) { try { if (store) store.setItem(HANDLED_KEY, JSON.stringify(v)); return !!store; } catch (e) { return false; } }
+  function markHandled(store, id, now) {
+    const key = text(id, 80); if (!key) return false;
+    const t = time(now) != null ? time(now) : Date.now();
+    const all = readMarks(store, t);
+    if (!(all[key] > 0)) all[key] = t;
+    return writeHandled(store, cleanHandled(all, t));
+  }
+  // "Undo": the hand-off counts as not handled again (on every device once joined)
+  function unmarkHandled(store, id, now) {
+    const key = text(id, 80); if (!key) return false;
+    const t = time(now) != null ? time(now) : Date.now();
+    const all = readMarks(store, t);
+    if (!(all[key] > 0)) return false;
+    all[key] = -Math.max(t, all[key] + 1);
+    return writeHandled(store, cleanHandled(all, t));
+  }
+  // two devices joined. Handled on both: the earlier time is kept (when it was first
+  // handled). Handled on one and taken back on the other: the later action wins.
+  function mergeHandled(a, b, now) {
+    const x = cleanHandled(a, now), y = cleanHandled(b, now), out = {};
+    Object.keys(x).concat(Object.keys(y)).forEach(k => {
+      const p = x[k], q = y[k];
+      if (p == null || q == null) out[k] = p == null ? q : p;
+      else if (p > 0 && q > 0) out[k] = Math.min(p, q);
+      else out[k] = Math.abs(p) >= Math.abs(q) ? p : q;
+    });
+    return cleanHandled(out, now);
+  }
+
+  // reviews that need the owner (he-review-inbox.js toFeed): pasted in by the owner, kept in this browser
+  function fromReviews(rows) {
+    return asList(rows).filter(r => r.id && (r.level === 'urgent' || r.level === 'today')).map(r => ({
+      id: 'review:' + text(r.id, 80), kind: 'review', badge: 'Review', level: r.level,
+      title: text(r.title, 200) || 'A review needs you', detail: text(r.detail, 200),
+      when: time(r.since), page: 'reviewsPanel', actions: [{ kind: 'open', label: 'Open Reviews', page: 'reviewsPanel' }],
+      signature: [r.level, fp(r.title), fp(r.detail)].join('|') }));
   }
 
   function buildFeed(src, now) {
@@ -179,7 +261,7 @@
     const items = [].concat(
       fromQuestions(s.questions, t), fromAttention(s.attention, t, s.labels),
       fromChecks(s.checks, { questions: Array.isArray(s.questions), attention: Array.isArray(s.attention) }),
-      fromNightly(s.nightly), fromMoney(s.money), fromTax(s.tax), fromDelivery(s.delivery), fromAgents(s.agents), fromRecap(s.recap));
+      fromNightly(s.nightly), fromMoney(s.money), fromTax(s.tax), fromDelivery(s.delivery), fromAgents(s.agents, t, { handled: s.handled, raiseAfterHours: s.raiseAfterHours }), fromReviews(s.reviews), fromRecap(s.recap));
     const seen = new Set();
     const unique = items.filter(i => (seen.has(i.id) ? false : (seen.add(i.id), true)));
     // most urgent first; within a level, overdue / oldest first, then undated
@@ -193,7 +275,7 @@
   function matchesFilter(item, key) {
     switch (key) {
       case 'urgent': return item.level === 'urgent';
-      case 'message': return item.kind === 'message';
+      case 'message': return item.kind === 'message' || item.kind === 'review';
       case 'work': return ['task', 'approval', 'reminder', 'incident', 'agent'].includes(item.kind);
       case 'checks': return ['check', 'nightly', 'stock'].includes(item.kind) || item.id.indexOf('check:') === 0;
       case 'money': return item.kind === 'money' || item.kind === 'tax';
@@ -211,12 +293,52 @@
   function snooze(store, item, now) {
     if (!item || !item.id) return false;
     const v = readSnoozes(store); const t = time(now) != null ? time(now) : Date.now();
-    v[item.id] = { until: startOfNextDay(t), sig: String(item.signature || '') };
+    v[item.id] = { until: startOfNextDay(t), sig: String(item.signature || ''), at: t };
     // forget snoozes that ended more than a week ago, so the list stays small
     Object.keys(v).forEach(k => { if (!v[k] || !(Number(v[k].until) > t - 7 * DAY)) delete v[k]; });
     return writeSnoozes(store, v);
   }
-  function unsnoozeAll(store) { return writeSnoozes(store, {}); }
+  // "Show them again": everything set aside before this moment is back, on every device of this person
+  function unsnoozeAll(store, now) {
+    const t = time(now) != null ? time(now) : Date.now();
+    try { if (store) store.setItem(CLEARED_KEY, String(t)); } catch (e) { /* this browser only then */ }
+    return writeSnoozes(store, {});
+  }
+  // ---- the same set-aside list on every device of one person (drafts/58) ----
+  //   pack(store)              -> { items, clearedAt }   what this browser holds
+  //   merge(a, b, now)         -> { items, clearedAt }   both lists joined: the later of two entries wins,
+  //                               and "show them again" on one device clears what was set aside before it
+  //   unpack(store, packed)    -> writes it into this browser
+  const MAX_SHARED = 60;        // with the longest ids this stays well under the 8,000 characters one setting may hold
+  const cleanEntry = (e) => (e && typeof e === 'object' && isFinite(Number(e.until)) ? { until: Number(e.until), sig: String(e.sig == null ? '' : e.sig).slice(0, 80), at: isFinite(Number(e.at)) ? Number(e.at) : 0 } : null);
+  function pack(store) {
+    let cleared = 0;
+    try { const raw = store && store.getItem(CLEARED_KEY); cleared = raw && isFinite(Number(raw)) ? Number(raw) : 0; } catch (e) { cleared = 0; }
+    return merge({ items: readSnoozes(store), clearedAt: cleared }, null, null);
+  }
+  function merge(a, b, now) {
+    const A = a && typeof a === 'object' && !Array.isArray(a) ? a : {}, B = b && typeof b === 'object' && !Array.isArray(b) ? b : {};
+    const num = (v) => (isFinite(Number(v)) && Number(v) > 0 ? Number(v) : 0);
+    const clearedAt = Math.max(num(A.clearedAt), num(B.clearedAt));
+    const t = time(now), out = Object.create(null);
+    [A.items, B.items].forEach(list => {
+      if (!list || typeof list !== 'object' || Array.isArray(list)) return;
+      Object.keys(list).slice(0, 2000).forEach(id => {
+        const e = cleanEntry(list[id]); if (!e || id.length > 200) return;
+        if (e.at <= clearedAt && clearedAt > 0) return;                       // set aside before "show them again"
+        if (t != null && !(e.until > t - 7 * DAY)) return;                    // ended more than a week ago
+        if (!out[id] || e.at > out[id].at || (e.at === out[id].at && e.until > out[id].until)) out[id] = e;
+      });
+    });
+    const ids = Object.keys(out).sort((x, y) => out[y].at - out[x].at || (x < y ? -1 : 1)).slice(0, MAX_SHARED);
+    const items = {}; ids.sort().forEach(id => { items[id] = out[id]; });
+    return { items: items, clearedAt: clearedAt };
+  }
+  function unpack(store, packed) {
+    const p = merge(packed, null, null);
+    try { if (store) store.setItem(CLEARED_KEY, String(p.clearedAt)); } catch (e) { return false; }
+    return writeSnoozes(store, p.items);
+  }
   function isSnoozed(snoozes, item, now) {
     const s = snoozes && item && snoozes[item.id];
     return !!(s && Number(s.until) > now && String(s.sig) === String(item.signature || ''));
@@ -232,10 +354,38 @@
     const counts = { urgent: 0, today: 0, info: 0 };
     visible.forEach(i => { counts[i.level] = (counts[i.level] || 0) + 1; });
     const filter = FILTERS.some(f => f.key === o.filter) ? o.filter : 'all';
-    return { items: visible.filter(i => matchesFilter(i, filter)), filter: filter, counts: counts,
+    return { items: visible.filter(i => matchesFilter(i, filter)), all: visible, filter: filter, counts: counts,
       needYou: counts.urgent + counts.today, snoozed: snoozed.length, caughtUp: counts.urgent + counts.today === 0 };
   }
 
-  return { LEVELS, KINDS, FILTERS, SNOOZE_KEY, buildFeed, matchesFilter, view, readSnoozes, snooze, unsnoozeAll, isSnoozed,
-    _from: { fromAttention, fromChecks, fromNightly, fromQuestions, fromMoney, fromTax, fromDelivery, fromAgents, fromRecap } };
+  // The morning summary (owner, Nov 24: "one message each morning: what needs you
+  // today"). The feed as a short text: how many things need the owner, the most
+  // urgent ones by name, and how many more. Today it is copied with one press;
+  // sending it each morning needs a server-side step that is not built.
+  //   summaryText(viewed, { dayLabel, max }) -> text      viewed = what view() returned
+  const SUMMARY_MAX = 8;
+  const LEVEL_WORD = { urgent: 'Urgent', today: 'Today', info: 'To know' };
+  function summaryText(viewed, opts) {
+    const v = viewed !== null && typeof viewed === 'object' ? viewed : {}, o = opts !== null && typeof opts === 'object' ? opts : {};
+    const max = Number.isInteger(o.max) && o.max >= 1 && o.max <= 50 ? o.max : SUMMARY_MAX;
+    const counts = v.counts !== null && typeof v.counts === 'object' ? v.counts : {};
+    const n = (k) => (Number.isInteger(counts[k]) && counts[k] > 0 ? counts[k] : 0);
+    const need = n('urgent') + n('today');
+    const lines = ['Health Endeavors' + (text(o.dayLabel, 60) ? ', ' + text(o.dayLabel, 60) : '')];
+    if (!need) { lines.push('All caught up. Nothing needs you right now.'); }
+    else {
+      lines.push(need + (need === 1 ? ' thing needs you: ' : ' things need you: ') + n('urgent') + ' urgent, ' + n('today') + ' today' + (n('info') ? ', ' + n('info') + ' to know' : '') + '.');
+      // the whole list, most urgent first, whatever filter the page is showing
+      const items = asList(v.all || v.items).filter(i => i && (i.level === 'urgent' || i.level === 'today'))
+        .slice().sort((a, b) => (RANK[a.level] - RANK[b.level]));
+      items.slice(0, max).forEach(i => lines.push('- [' + LEVEL_WORD[i.level] + '] ' + text(i.title, 140)));
+      if (items.length > max) lines.push('...and ' + (items.length - max) + ' more on the dashboard.');
+    }
+    if (Number.isInteger(v.snoozed) && v.snoozed > 0) lines.push(v.snoozed + ' set aside until tomorrow.');
+    return lines.join('\n');
+  }
+
+  return { LEVELS, KINDS, FILTERS, SNOOZE_KEY, SUMMARY_MAX, summaryText, buildFeed, matchesFilter, view, readSnoozes, snooze, unsnoozeAll, isSnoozed, CLEARED_KEY, pack, merge, unpack,
+    HANDLED_KEY, HANDLED_MAX, RAISE_HOURS, readMarks, readHandled, markHandled, unmarkHandled, mergeHandled,
+    _from: { fromAttention, fromChecks, fromNightly, fromQuestions, fromMoney, fromTax, fromDelivery, fromAgents, fromReviews, fromRecap } };
 }));

@@ -78,6 +78,61 @@ test.describe('the arithmetic (no browser)', () => {
     expect(bad.problems).toEqual(['Amazon: the percent must be between 0 and 50.', 'Etsy: the amount per order must be between $0 and $50.',
       'The postage estimate must be between $0 and $100 per order.', 'The packaging estimate must be between $0 and $100 per order.']);
   });
+
+  // Packaging per box type (owner's list, Nov 24): the smallest box that holds the order.
+  const BOXES = [{ name: 'Large', upTo: 12, cost: 2.1 }, { name: 'Small', upTo: 2, cost: 0.85 }, { name: 'Medium', upTo: 6, cost: 1.4 }];
+  test('boxes: the smallest box that holds the bottles; a bigger order fills the largest box first', ({}, ti) => {
+    node(ti);
+    const B = P.cleanBoxes(BOXES);
+    expect(B.map(b => [b.name, b.upTo, b.costC])).toEqual([['Small', 2, 85], ['Medium', 6, 140], ['Large', 12, 210]]);
+    const of = (u) => { const r = P.boxesFor(u, B); return r && [r.cents, r.count, r.label]; };
+    expect([1, 2, 3, 6, 7, 12].map(of)).toEqual([[85, 1, 'Small'], [85, 1, 'Small'], [140, 1, 'Medium'], [140, 1, 'Medium'], [210, 1, 'Large'], [210, 1, 'Large']]);
+    expect([13, 18, 19, 24, 25].map(of)).toEqual([[295, 2, '1 × Large + Small'], [350, 2, '1 × Large + Medium'], [420, 2, '2 × Large'], [420, 2, '2 × Large'], [505, 3, '2 × Large + Small']]);
+    expect(of(2.5)).toEqual([140, 1, 'Medium']);                              // part of a bottle still needs the room
+    for (const junk of [0, -1, NaN, null, undefined, 'x', Infinity, 1e9]) expect(P.boxesFor(junk, B)).toBeNull();
+    expect(P.boxesFor(3, [])).toBeNull(); expect(P.boxesFor(3, null)).toBeNull();
+    // rows that are not a box are dropped, never guessed
+    expect(P.cleanBoxes([null, 'x', {}, { name: '', upTo: 2, cost: 1 }, { name: 'A', upTo: 0, cost: 1 }, { name: 'A', upTo: 2.5, cost: 1 }, { name: 'A', upTo: 501, cost: 1 },
+      { name: 'A', upTo: 3, cost: -1 }, { name: 'A', upTo: 3, cost: 'abc' }, { name: 'Ok', upTo: 4, cost: 0 }, { name: 'Same size', upTo: 4, cost: 9 }])).toEqual([{ name: 'Ok', upTo: 4, costC: 0 }]);
+    expect(P.cleanBoxes(null)).toEqual([]); expect(P.cleanBoxes('x')).toEqual([]);
+    expect(P.cleanBoxes(Array.from({ length: 9 }, (x, n) => ({ name: 'B' + n, upTo: n + 1, cost: 1 })))).toHaveLength(P.MAX_BOXES);
+  });
+
+  test('boxes in the profit: each order gets its box; without boxes the one amount per order is used as before', ({}, ti) => {
+    node(ti);
+    const base = { products: PRODUCTS, poLines: PO_LINES, orders: ORDERS, items: ITEMS, postagePerOrder: 4 };
+    const r = P.compute(Object.assign({ packagingPerOrder: 1, boxes: BOXES }, base));
+    // HE-1001 has 2 bottles: Small box 0.85 instead of the 1.00 per order -> 15 cents more profit
+    expect(r.orders.find(o => o.order === 'HE-1001')).toMatchObject({ packaging: 85, box: 'Small', profit: 2183 });
+    expect(r.orders.find(o => o.order === 'AMZ-1')).toMatchObject({ packaging: 85, box: 'Small', profit: 865 });
+    expect(r.totals).toMatchObject({ complete: 2, packaging: 170, profit: 3048, boxed: 2 });
+    // boxes alone are enough: no "missing a packaging estimate"
+    const only = P.compute(Object.assign({ boxes: BOXES }, base));
+    expect(only.totals).toMatchObject({ complete: 2, profit: 3048, boxed: 2 });
+    expect(only.missingWhy).toEqual({ 'product cost': 1 });
+    // an order with no items has no box: it falls back to the one amount, or is missing when there is none
+    const noItems = P.compute(Object.assign({ boxes: BOXES }, base, { items: ITEMS.filter(i => i.order_id !== id(12)) }));
+    expect(noItems.orders.find(o => o.order === 'AMZ-1')).toMatchObject({ packaging: null, box: null, profit: null });
+    expect(noItems.orders.find(o => o.order === 'AMZ-1').missing).toEqual(['items', 'packaging estimate']);
+    // no boxes: exactly as before
+    const flat = P.compute(Object.assign({ packagingPerOrder: 1 }, base));
+    expect(flat.totals).toMatchObject({ profit: 3018, boxed: 0 });
+    expect(flat.orders.every(o => o.box === null)).toBe(true);
+    for (const junk of [null, 'x', 7, {}, [null, 'x', {}]]) expect(P.compute(Object.assign({ packagingPerOrder: 1, boxes: junk }, base)).totals.profit).toBe(3018);
+  });
+
+  test('boxes on the estimates form: a row is empty or complete; sizes differ; sorted smallest first', ({}, ti) => {
+    node(ti);
+    const ok = P.checkEstimates({ postage: '4', box1_name: ' Large ', box1_upto: '12', box1_cost: '2.10', box3_name: 'Small', box3_upto: '2', box3_cost: '0.85' });
+    expect(ok.ok).toBe(true);
+    expect(ok.boxes).toEqual([{ name: 'Small', upTo: 2, cost: 0.85 }, { name: 'Large', upTo: 12, cost: 2.1 }]);
+    expect(P.checkEstimates({ postage: '4' }).boxes).toEqual([]);
+    const bad = P.checkEstimates({ box1_name: 'A', box2_name: 'B', box2_upto: '2.5', box2_cost: '1', box3_name: 'C', box3_upto: '3', box3_cost: '101', box4_name: 'x'.repeat(41), box4_upto: '4', box4_cost: '1' });
+    expect(bad.ok).toBe(false);
+    expect(bad.problems).toEqual(['Box 1: fill in the name, how many bottles fit and what one costs, or clear the whole row.',
+      'Box 2: how many bottles fit must be a whole number from 1 to 500.', 'Box 3: the cost must be between $0 and $100.', 'Box 4: the name is too long (40 characters at most).']);
+    expect(P.checkEstimates({ box1_name: 'A', box1_upto: '2', box1_cost: '1', box2_name: 'B', box2_upto: '2', box2_cost: '2' }).problems).toEqual(['Box 2: another box already holds up to 2. Give each box a different size.']);
+  });
 });
 
 // the shared settings database step (drafts/50) is not installed in these tests:
@@ -138,6 +193,50 @@ test.describe('on Accounting', () => {
     await expect(host.locator('[data-rpprofit]')).toHaveText('$28.18');   // one dollar more postage on each of the 2 counted orders
     expect(JSON.parse(await page.evaluate(() => localStorage.getItem('he_profit_estimates'))).postage).toBe(5);
     expect(backend.requests.filter(r => r.method && r.method !== 'GET' && r.method !== 'HEAD' && !r.rpc && String(r.path || '').startsWith('/rest/v1/')).map(r => r.method + ' ' + r.path)).toEqual([]);
+  });
+
+  test('box sizes: filled in on the estimates form, packaging then follows the number of bottles, and it says it is an estimate', async ({ page, backend }, ti) => {
+    test.skip(ti.project.name !== 'desktop', 'run once');
+    await seed(page, backend);
+    await page.addInitScript(() => { try { localStorage.setItem('he_real_profit', 'on'); if (!localStorage.getItem('he_profit_estimates')) localStorage.setItem('he_profit_estimates', JSON.stringify({ postage: 4, packaging: 1 })); } catch (e) {} });
+    await login(page); await gotoPage(page, 'accountingPanel');
+    const host = page.locator('#realProfitHost');
+    await expect(host.locator('[data-rpprofit]')).toHaveText('$30.18');
+    await expect(host.locator('[data-rpboxed]')).toHaveCount(0);                 // no boxes yet: nothing new is shown
+    await host.getByRole('button', { name: 'Fee and postage estimates' }).click();
+    await expect(host.locator('.rpBoxes tbody tr')).toHaveCount(4);
+    // half a row is refused and nothing is saved
+    await host.getByLabel('Box 1: name').fill('Small box');
+    await host.getByRole('button', { name: 'Save estimates' }).click();
+    await expect(host.locator('[data-rpmessage]')).toHaveText('Box 1: fill in the name, how many bottles fit and what one costs, or clear the whole row.');
+    expect(JSON.parse(await page.evaluate(() => localStorage.getItem('he_profit_estimates'))).boxes).toBeUndefined();
+    await host.getByLabel('Box 1: name').fill('Large box');
+    await host.getByLabel('Box 1: how many bottles fit').fill('12');
+    await host.getByLabel('Box 1: cost of one in dollars').fill('2.10');
+    await host.getByLabel('Box 2: name').fill('Small box');
+    await host.getByLabel('Box 2: how many bottles fit').fill('2');
+    await host.getByLabel('Box 2: cost of one in dollars').fill('0.85');
+    await host.getByRole('button', { name: 'Save estimates' }).click();
+    await expect(host.locator('[data-rpmessage]')).toContainText('Estimates saved in this browser.');
+    // 2 counted orders, each in a Small box at 0.85 instead of 1.00
+    await expect(host.locator('[data-rpprofit]')).toHaveText('$30.48');
+    await expect(host.locator('[data-rpboxed]')).toHaveText('Packaging: 2 of the 2 counted orders use your box sizes (an estimate from the number of bottles; the box really used is not recorded).');
+    expect(JSON.parse(await page.evaluate(() => localStorage.getItem('he_profit_estimates'))).boxes).toEqual([{ name: 'Small box', upTo: 2, cost: 0.85 }, { name: 'Large box', upTo: 12, cost: 2.1 }]);
+    // kept after a reload, shown smallest first; clearing the rows goes back to the one amount per order
+    await page.reload(); await gotoPage(page, 'accountingPanel');
+    await expect(host.locator('[data-rpprofit]')).toHaveText('$30.48', { timeout: 20000 });
+    await host.getByRole('button', { name: 'Fee and postage estimates' }).click();
+    await expect(host.getByLabel('Box 1: name')).toHaveValue('Small box');
+    await expect(host.getByLabel('Box 2: how many bottles fit')).toHaveValue('12');
+    await expect(host.getByLabel('Box 2: cost of one in dollars')).toHaveValue('2.1');
+    for (const n of [1, 2]) for (const what of ['name', 'how many bottles fit', 'cost of one in dollars']) await host.getByLabel('Box ' + n + ': ' + what).fill('');
+    await host.getByRole('button', { name: 'Save estimates' }).click();
+    await expect(host.locator('[data-rpprofit]')).toHaveText('$30.18');
+    await expect(host.locator('[data-rpboxed]')).toHaveCount(0);
+    expect(JSON.parse(await page.evaluate(() => localStorage.getItem('he_profit_estimates'))).boxes).toBeUndefined();
+    // nothing is written to the database: no table write and no shared-setting save (not installed here)
+    expect(backend.requests.filter(r => r.method && r.method !== 'GET' && r.method !== 'HEAD' && !r.rpc && String(r.path || '').startsWith('/rest/v1/')).map(r => r.method + ' ' + r.path)).toEqual([]);
+    expect(backend.requests.filter(r => r.rpc === 'set_shared_setting')).toEqual([]);
   });
 
   test('a read that fails says so instead of showing $0', async ({ page, backend }, ti) => {
