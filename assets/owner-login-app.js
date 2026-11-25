@@ -84,7 +84,7 @@
       nightlyOverall,
     } = window.HE.helpers;
     // @@ EXT15 modules: created in dependency order (assets/app/*.js; see docs/ops/APPLICATION_MODULE_MAP_EXT15.md)
-    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, agentDiaryOn, realProfitOn, channelMoneyOn, SWITCH_EVERYONE, sharedSettingsOn, orderCostsOn, incidentCloseOn, batchLabelsOn, orderBatchesOn, orderChannelsOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn, storeCampaignsOn, receiptReaderOn, contentHelperOn, customerEmailsOn, emailSendingOn, mySettingsOn, handoffHandledOn, reviewInboxOn, reviewStoreOn, customersFirstOn, launchPageOn, askBoxOn, peoplePageOn } = HE.modules.create('he-config', {  });
+    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, agentDiaryOn, realProfitOn, channelMoneyOn, SWITCH_EVERYONE, sharedSettingsOn, orderCostsOn, incidentCloseOn, batchLabelsOn, orderBatchesOn, orderChannelsOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn, storeCampaignsOn, receiptReaderOn, contentHelperOn, customerEmailsOn, emailSendingOn, mySettingsOn, handoffHandledOn, reviewInboxOn, reviewStoreOn, customersFirstOn, launchPageOn, askBoxOn, peoplePageOn, adminChangesOn } = HE.modules.create('he-config', {  });
     const { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, focusDialog, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, h, pageIconNode } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
     const { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
     const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, h, supabase });
@@ -2900,6 +2900,46 @@
         h('span', { class: 'taskTitle' }, n + (L.truncated ? '+' : '') + ' money difference' + (n === 1 ? '' : 's') + ' to look at'),
         ' ', h('button', { type: 'button', class: 'small', 'data-goto': 'accountingPanel', 'data-moneyalertopen': '1' }, 'Review on Accounting')));
     }
+    // ---------- What administrators changed (owner, Nov 24; behind adminChangesOn; the owner only)
+    // A short note on Home from the change history (assets/views/he-admin-changes.js). Reads only;
+    // "Seen" is kept in this browser. Looks back at most 7 days.
+    const AC_SEEN_KEY = 'he_admin_changes_seen';
+    let acSeq = 0, acLast = null;
+    const acMod = () => (window.HE && window.HE.views && window.HE.views['he-admin-changes']) || null;
+    function acSeenUpTo() { try { const v = Number(localStorage.getItem(AC_SEEN_KEY)); return isFinite(v) && v > 0 ? v : 0; } catch (e) { return 0; } }
+    async function loadAdminChanges() {
+      const host = document.getElementById('adminChangesHost'); const M = acMod(); if (!host) return;
+      if (!M || currentUserRole !== 'owner' || !(typeof adminChangesOn === 'function' && adminChangesOn())) { host.replaceChildren(); return; }
+      const seq = ++acSeq, seen = acSeenUpTo();
+      const from = new Date(Math.max(seen, Date.now() - 7 * 86400000)).toISOString();
+      let res; try { res = await supabase.rpc('employee_activity', { p_from: from, p_limit: 500, p_offset: 0 }); } catch (e) { res = { error: e }; }
+      if (seq !== acSeq) return;
+      if (!res || res.error || !Array.isArray(res.data)) {
+        host.replaceChildren(h('div', { class: 'attnRow u-mt-12', 'data-adminchanges': 'unknown', role: 'status' },
+          h('span', { class: 'badge sev-medium' }, 'Administrators'), h('span', { class: 'u-fs-12p5' }, 'Could not read what administrators changed just now. Employee Activity has the full list.')));
+        return;
+      }
+      const s = M.summarize(res.data, seen); acLast = s;
+      if (!s.total) { host.replaceChildren(); return; }
+      host.replaceChildren(h('div', { class: 'attnRow u-mt-12', 'data-adminchanges': String(s.total), role: 'status' },
+        h('span', { class: 'badge ' + (s.deletes || s.accounts ? 'sev-high' : 'sev-medium') }, 'Administrators'),
+        h('div', null,
+          h('div', { class: 'taskTitle' }, M.sentence(s, res.data.length >= 500)),
+          h('ul', { class: 'u-fs-12p5 u-mt-4' }, s.people.map(p => h('li', null, M.personLine(p))),
+            s.morePeople ? h('li', null, 'and ' + s.morePeople + ' more') : null),
+          h('div', { class: 'scanToggleRow u-mt-6' },
+            h('button', { type: 'button', class: 'small', 'data-acgo': '1' }, 'Open Employee Activity'),
+            h('button', { type: 'button', class: 'small secondary', 'data-acseen': '1', 'aria-label': 'Mark what administrators changed as seen' }, 'Seen')))));
+    }
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('#adminChangesHost [data-acgo]')) { showPage('activityPanel'); return; }
+      if (!e.target.closest('#adminChangesHost [data-acseen]') || currentUserRole !== 'owner' || !acLast || !acLast.newest) return;
+      try { localStorage.setItem(AC_SEEN_KEY, String(acLast.newest)); } catch (err) { /* stays until next time */ }
+      const host = document.getElementById('adminChangesHost'); if (host) host.replaceChildren();
+      announce('Marked as seen. New changes by administrators will show here again.');
+      const next = document.getElementById('attentionPanel'); if (next) { if (!next.hasAttribute('tabindex')) next.setAttribute('tabindex', '-1'); next.focus(); }
+    });
+
     // ---------- Drop-off receipt (Nov 24; behind dropoffOn, drafts/48) ----------
     // One carrier receipt marks every parcel on it "dropped off" (owner: "100 parcels
     // at UPS, scan the receipt and every order updates"). The numbers come from a
@@ -7690,7 +7730,7 @@
       loadOpsWatch();
     }
     const PANEL_LOADERS = {
-      attentionPanel: [loadAttention, loadBusinessHealth, loadAttentionChecks, loadNightlyCheck, paintScanEntry, loadMoneyAlert, loadTaxRateAlert, loadAttentionFeed, loadAskBar],
+      attentionPanel: [loadAttention, loadBusinessHealth, loadAttentionChecks, loadNightlyCheck, paintScanEntry, loadMoneyAlert, loadTaxRateAlert, loadAdminChanges, loadAttentionFeed, loadAskBar],
       calendarPanel: [loadCalendarMonth],
       dailySummaryPanel: [loadDailySummary],
       reportHistoryPanel: [loadReportHistoryThenExport, loadRecoveryDrill, loadInvoicePreview, loadReportVersions],
