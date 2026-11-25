@@ -1,7 +1,8 @@
 // Switches that save real records (owner rule, Nov 24: "everything I can turn on,
 // off or pause on the dashboard"). Unlike the previews, each of these reads and
 // writes real records once its database step is installed. They appear on Feature
-// Flags for the OWNER only, with the database step each needs and whether it is
+// Flags for the owner and administrators (owner's decision, Nov 24 evening; owner only
+// before), with the database step each needs and whether it is
 // installed (checked live, read only). Turning one on is possible only when its
 // step is installed, and asks for a second tap; turning off always works.
 // A switch is a note in this browser only (like the previews).

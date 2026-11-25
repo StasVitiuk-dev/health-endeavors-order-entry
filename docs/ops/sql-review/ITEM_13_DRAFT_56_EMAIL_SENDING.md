@@ -88,7 +88,7 @@ throwaway local database.
 
 Then on the dashboard:
 
-1. **Admin → Feature Flags → Features that save real records (owner only) → Saved email campaigns
+1. **Admin → Feature Flags → Features that save real records (owner and administrators) → Saved email campaigns
    → Turn on.** It shows "Installed" once this step has run.
 2. Turn on the preview switch **Store Campaigns** (or **Customer Emails**) and open that page.
 3. Approve a wording and show who would get it. Under **Save this campaign (nothing is sent)**,
