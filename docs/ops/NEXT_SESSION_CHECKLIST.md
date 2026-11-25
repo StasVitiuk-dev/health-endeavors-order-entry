@@ -3,6 +3,11 @@
 Status: CURRENT · written Nov 23, updated Nov 24 (section 0 added) · for Stas. One step at a time; I explain each one before you
 click. Nothing here goes live until you approve it.
 
+## New chat? Read this first (Nov 25)
+
+Everything finished, open and added to the list on Nov 24 and Nov 25 is in one page for a new chat:
+`docs/ops/CHAT_HANDOFF_2026-11-24_25.md`.
+
 ## 0. Added Nov 24 (CURRENT): do these first
 
 The full list of what waits on you, in order, is in `docs/health-endeavors-current-state.md`, section 8.
@@ -10,7 +15,32 @@ In short:
 
 - [x] Merge PR #85 (it contained #56–#84): done by the owner on Nov 24, about 6:03 PM Central, merge commit `1f86df0`.
 - [x] Live check after that merge: done by the owner on Nov 24 at about 6:10 PM Central (screenshots): the shorter menu (16 lines) is live, same-topic pages sit inside one another, and the owner-only section "features that save real records" lists the new switches, all Off and "Not installed yet" (drafts 48, 56, 58, 60 seen).
-- [ ] Merge PR #51 (documents).
+- [x] Merge PR #51 (documents): done by the owner on Nov 24, about 6:33 PM Central, merge commit `6648336`.
+- [x] PR #86 (administrators see the switches that save real records): merged by the owner on Nov 24, about 7:03 PM Central.
+- [ ] **Owner's answers on "what to add before launch" (Nov 24, about 7:07 PM Central):**
+  - Dress rehearsal with one real test order: WANTED. Remind the owner when the printers arrive.
+  - A "Ready to launch" page (green or red per item): WANTED. To build.
+  - Backups "at the best level, also against a virus or a break-in": WANTED. Backup health is still
+    UNKNOWN here (`docs/ops/RECOVERY_AND_BACKUP_READINESS.md`); the first step is the owner's
+    read-only look (nightly backup: green or red and its date; restore test: green or red and its
+    date; Actions minutes; the database provider's own Backups page). Then: a third copy outside
+    both the code host and the database provider that cannot be overwritten, a notice on Home when
+    the newest backup is too old, and one restore drill.
+  - Two-step sign-in on the dashboard: NOT NOW (no employees yet). Claude recommended it separately
+    for the sign-ins behind the dashboard (code host, database provider); not answered yet.
+  - A professional's check of the cosmetics rules: NOT NOW.
+  - Proposed additions, ANSWERED Nov 24 (about 7:13 PM Central): WANTED are the
+    **unanswered-customer watch** ("customer is priority, so I always need to be able to see their
+    messages") and the **weekly owner report**. NOT for now: batch expiry watch, recall drill,
+    first-day checklist ("only those that I tell you for now").
+    CORRECTION by Claude, found in the code the same evening: the one-day rule for customer
+    questions already exists and is live (a question waiting a day or more is urgent on Home and
+    says "Waiting more than a day."). What is missing for "always see their messages": a customer
+    message can still be set aside with "Later", and it is not placed above other items of the same
+    level. To build: customer messages are never set aside and come first.
+- [ ] Live check of #86 with the administrator account: Admin → Feature Flags shows "Features that save real records (owner and administrators)", every line Off.
+- [ ] Read-only check of how accounts are set up (SQL in `docs/ops/OWNER_DECISION_2026-11-24_ADMINISTRATOR_NEAR_OWNER.md`), then the People page.
+- [x] Owner answered Nov 24: add a fourth role, Manager. The page is called "New Employee"; the new person types their own password on the owner's computer.
 - [ ] Owner decision of Nov 24 (evening): administrators get almost everything the owner has. Plan and open points: `docs/ops/OWNER_DECISION_2026-11-24_ADMINISTRATOR_NEAR_OWNER.md`.
 - [ ] One stock count: your decision, after the read-only shape check
       (`docs/ops/ONE_STOCK_COUNT_DECISION_2026-11-24.md`).
@@ -109,3 +139,20 @@ no outside bank-connection service.
 ## Attention feed and smart scan (owner request, Nov 23 late)
 
 Plan: `docs/ops/ATTENTION_FEED_AND_SMART_SCAN_PLAN.md`. DECIDED: customer updates are approved by the owner first, automatic later. Open for the owner: where postage is bought (Shopify Shipping or the counter), and the AI reading service (about $1–5 a month). Next: step A (one feed inside the dashboard), behind a switch.
+
+## Backups and the launch list (owner, Nov 24 late)
+
+- **Backups looked at by the owner (Nov 24):** nightly backup green on Nov 24; the platform lists daily backups for Nov 18–24. Still owed by the owner: the newest monthly restore test, as "green/red, date" only. Detail and the plan for "the best level" (a third copy that cannot be deleted, one restore drill, files in Storage, a Home warning): `RECOVERY_AND_BACKUP_READINESS.md` §1 and §7.
+- **The owner's idea of a third copy in the partner's Administrator account:** answered in §7 of that page (a dashboard account holds no files; recommended instead: a business-owned storage account with an emergency sign-in for the partner). OWNER DECISION REQUIRED.
+- **Two-step sign-in: later.** The owner wants easy sign-in while there are no employees. **Remind the owner before launching; it is one of the last lines of the "Ready to launch" page.** Do not raise it before then.
+- **Reminder owed:** the dress rehearsal with a real test order, when the printers arrive.
+- **#87 "Customers first": merged by the owner on Nov 24, about 9:31 PM Central.** Still to do on the live site: turn the switch on (Admin → Feature Flags → Preview features) and look at Home.
+- **Live check done by the owner (Nov 24, about 10:40 PM Central):** after turning on "Backups & Printouts" on Feature Flags, the weekly report is the first section of that page on the live site (it sits inside "Documents" in the shorter menu), and the client list opens the print window. The owner first saw nothing new because every new feature arrives switched off and the switches are per browser; this ends with database step 50. Lesson for every hand-over: name the switch to turn on FIRST, and say where the page sits in the shorter menu.
+- **Open pull requests, in the order to merge:** #89 (Ready to launch; checks green), #90 (New Employee part 1), #91 (Ask the dashboard; contains #89), #93 (documents). **#92 (three styles) was closed without merging: the owner decided the design stays as it is. Do not raise buttons, font or shapes again.**
+- **Open pull request:** #90, New Employee part 1 (rules + database drafts 62–65; nothing installed). The database sitting for it is review item 16 (first written as 13 by mistake) and starts with a read-only look (the query is in the guide and goes to the owner in chat as a code block).
+- **New owner requests (Nov 24 late):** a voice assistant on the owner account and three styles for buttons, windows and font: `OWNER_REQUESTS_2026-11-24_VOICE_AND_LOOKS.md`. Order agreed: the voice box, then the three styles.
+- **Open pull request:** #89, the "Ready to launch" page (preview switch, off by default; contains #88). Its fourteen lines are the launch list from now on: `assets/views/he-launch.js` is the one place they are written. The dress rehearsal (line 11) is to be done when the printers arrive; two-step sign-in is line 14, the last.
+- **Open pull request:** #88, the weekly owner report (part of the "Backups & Printouts" switch; no database step). Later additions noted there: profit as its own line once the owner's costs are entered; sending it by email once the business email exists.
+- **Backups, the agreed order (told to the owner Nov 24 late):** 1) the newest monthly restore test, "green/red, date"; 2) one restore drill before launch; 3) a business-owned storage account for the third copy, after the business email exists; 4) the change in the private backups repository (the owner pastes prepared steps, or approves a session for that one task).
+- **Seen in the owner's screenshot, not checked:** a job named like a customer notification agent is enabled in the private repository. Claude cannot see what it does. Ask the owner whether its recent runs sent anything to real customers.
+

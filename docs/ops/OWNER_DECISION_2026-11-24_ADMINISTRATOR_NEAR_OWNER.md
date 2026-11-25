@@ -1,6 +1,6 @@
 # Owner decision, Nov 24, 2026 (evening): administrators get almost everything the owner has
 
-**Status:** DECIDED by the owner in chat. Building it: IN PROGRESS. Piece 1 of the plan below is PR #86 (not merged). Nothing in
+**Status:** DECIDED by the owner in chat. Building it: IN PROGRESS. Piece 1 of the plan below is PR #86 (merged Nov 24, about 7:03 PM Central; live check with the administrator account still to come). Nothing in
 production was changed. No account name or email is written here.
 
 ## The decision, in the owner's words (shortened)
@@ -107,6 +107,220 @@ the dashboard. Everything else an administrator may do.
 - **The owner is told what an administrator did.** Each significant action by an administrator
   (an approval, a switch, a new account, a released hold, a restore, a campaign saved) shows on the
   owner's Home, and in the daily summary, without the owner having to search Employee Activity.
+
+## The People page (PROPOSED by Claude on Nov 24, evening; the owner asked for it)
+
+The owner asked for a page where the owner, the partner and other administrators ("future
+managers") can create a new employee account. Claude's proposal, given in chat:
+
+1. The new person **asks for an account themselves** on the sign-in page: name, email, and a
+   password only they know. Nobody else handles a password.
+2. The account **waits for approval**: until then the person sees only that it is waiting.
+3. On a **People page under Admin**, the owner or an administrator sees who is waiting, approves
+   with a role, changes a role later, or deactivates someone who left.
+4. Nobody can touch an owner's account from this page, and nobody can make someone an Owner.
+5. Every approval, role change and deactivation is shown to the owner on Home, with who did it.
+
+Why not "create the login from the dashboard": that needs the database's master key inside the
+page, where anyone could read it. That key must never be in the browser or in this repository.
+
+**The owner's answer to this proposal (same evening): not "ask, then approve".** The owner wants
+a button with which the owner and administrators **create the account themselves**. Employees will
+be given a **work email address**; personal addresses are not to be used, so nobody sends a request
+on their own. This DEPRECATES steps 1 and 2 above; steps 3 to 5 stand.
+
+What that needs, told to the owner in chat (PROPOSED, nothing built):
+
+- Creating a login needs the database's master key, which must stay on the server. So one small
+  server-side function is needed at the database provider: the dashboard asks it, it checks that the
+  person asking is the owner or an administrator, and only then creates the login. The function gets
+  the key from the provider by itself: the owner never copies or pastes a key, and no key enters
+  this repository. Installing it is a deployment the owner does once, guided, after approving it.
+- Sign-ups by strangers stay switched off. Only the function creates accounts.
+- First password: a temporary one shown once to whoever created the account, and the new person
+  must choose their own at the first sign-in. (An emailed invitation is the alternative; it depends
+  on the work mailbox existing first.)
+- Work addresses need the business's own email domain, which is already on the owner's list
+  (`docs/ops/BUSINESS_EMAIL_PLAN.md`).
+
+Also proposed for the page: reset a forgotten password, deactivate someone who left (signed out
+everywhere, history kept), change a role, and a list showing role, active or not, and last sign-in.
+
+**DECIDED by the owner (Nov 24, about 6:42 PM Central), in answer to the above:**
+
+- The page is called **"New Employee"**.
+- **A fourth role, Manager, is added** (the question just below is answered: yes).
+- **First password: the new person types it themselves, on the owner's computer, when the account
+  is created.** The owner hands the computer over; the password is typed hidden, twice, and nobody
+  else ever knows it. No temporary password is needed in that case. (Claude keeps the temporary
+  password as the second way, for someone who is not in the room.)
+- The owner does not want to know anyone's password, but wants to **control every employee account:
+  see what it did, reset it, suspend it, take it off.**
+- All the additions Claude proposed are wanted: reset password, deactivate, change role, the list
+  of everyone with role, active or not and last sign-in, a short line under each role, protection of
+  the owner's accounts, and the notice to the owner.
+- The owner also wants, from this page, **every record of every employee** (the history) and
+  **how much work each employee did**.
+
+What exists for the last point (checked in the code and the project record on Nov 24): Employee
+Activity is live and records every change (who, when, what, before and after), with search, filters
+and a spreadsheet export, and a line "Today: N changes by N people". It already works one way: an
+administrator cannot see the owner's entries (so point 2 of the owner's decision is in place for
+that page; to be confirmed against the database rules by the read-only check). NOT built: a count
+per person (today, this week), and sending it to the owner. PROPOSED: each person's row on the New
+Employee page links to their history and shows their counts, and the owner's morning summary lists
+what each person did the day before. Told to the owner: it records changes and sign-ins, not every
+page someone only looked at.
+
+Asked by the owner the same evening: what happens when the owner's computer is replaced or lost.
+Answered in chat: nothing of the dashboard lives on the computer. The dashboard is a web page, the
+records and the helper function live at the database provider, the code at the code host. A new
+computer needs only the owner's sign-ins. What must be kept safe is therefore those sign-ins and
+their recovery codes (never in this repository, never in chat). Tied to one computer today: the
+8:00 AM printing set-up, and the switches kept in a browser until drafts/50 is installed.
+
+**ANSWERED (yes, add Manager; see above). The question as asked:** since this evening Administrator
+means "almost an Owner". A future manager made an Administrator would get all of it. Claude
+recommends a fourth role, **Manager**: approves new employees and runs the daily work, without the
+co-owner powers.
+
+**Not known yet (needs the read-only check below and one look at the sign-in settings):** whether a
+new sign-up already gets a row in the accounts table by itself, whether sign-ups are allowed at
+all, and what the present rules on the accounts table let an administrator do.
+
+### Read-only check of how accounts are set up (given to the owner in chat on Nov 24)
+
+It reads only the shape: the accounts table's columns, how many accounts each role has (counts, no
+names or emails), the rules on four tables, the triggers, and the helper functions the rules use.
+It changes nothing. Tried on a throwaway local database first.
+
+First try by the owner (Nov 24, 6:37 PM Central): it stopped with an error and read nothing,
+because the role is not free text in production but a fixed list (a type named `app_role`), and
+Claude's query compared it with a piece of text. Corrected below (the role is read as text, and the
+roles on that fixed list are shown too). FOUND by this: adding a role such as Manager means adding
+a value to that list, which is a database step.
+
+```sql
+with t(tbl) as (values ('profiles'), ('feature_flags'), ('system_mode'), ('audit_log'))
+select '1 column' as section, 'profiles' as item,
+       lpad(c.ordinal_position::text, 2, '0') || ' ' || c.column_name || ' ' || c.data_type ||
+       case when c.is_nullable = 'NO' then ' NOT NULL' else '' end ||
+       case when c.column_default is not null then ' default ' || left(c.column_default, 40) else '' end as detail
+  from information_schema.columns c
+ where c.table_schema = 'public' and c.table_name = 'profiles'
+union all
+select '2 roles in use', coalesce(p.role::text, '(none)'), 'active: ' || p.is_active::text || ', accounts: ' || count(*)::text
+  from public.profiles p group by p.role::text, p.is_active
+union all
+select '2 roles that exist', ty.typname::text, lpad(e.enumsortorder::text, 2, '0') || ' ' || e.enumlabel
+  from pg_enum e
+  join pg_type ty on ty.oid = e.enumtypid
+  join pg_namespace n on n.oid = ty.typnamespace and n.nspname = 'public'
+ where ty.typname = 'app_role'
+union all
+select '3 rule', pol.tablename::text, pol.policyname || ' | ' || pol.cmd || ' | for: ' || array_to_string(pol.roles, ',') ||
+       ' | when: ' || coalesce(left(pol.qual, 200), '-') || ' | check: ' || coalesce(left(pol.with_check, 200), '-')
+  from pg_policies pol join t on t.tbl = pol.tablename::text
+ where pol.schemaname = 'public'
+union all
+select '4 row level security', cl.relname::text, case when cl.relrowsecurity then 'ON' else 'OFF' end
+  from pg_class cl
+  join pg_namespace n on n.oid = cl.relnamespace and n.nspname = 'public'
+  join t on t.tbl = cl.relname::text
+ where cl.relkind in ('r', 'p')
+union all
+select '5 trigger', n.nspname || '.' || cl.relname, tg.tgname || ' -> ' || p.proname
+  from pg_trigger tg
+  join pg_class cl on cl.oid = tg.tgrelid
+  join pg_namespace n on n.oid = cl.relnamespace
+  join pg_proc p on p.oid = tg.tgfoid
+ where not tg.tgisinternal
+   and ((n.nspname = 'public' and cl.relname::text in (select tbl from t)) or (n.nspname = 'auth' and cl.relname = 'users'))
+union all
+select '6 helper function', p.proname::text,
+       case when p.prosecdef then 'runs with its owner''s rights' else 'runs with the caller''s rights' end ||
+       ' | ' || left(regexp_replace(p.prosrc, '\s+', ' ', 'g'), 300)
+  from pg_proc p
+  join pg_namespace n on n.oid = p.pronamespace
+ where n.nspname = 'public'
+   and (p.proname in ('is_owner', 'is_owner_or_admin', 'current_role', 'is_active_staff', 'is_admin')
+        or p.oid in (select tg.tgfoid from pg_trigger tg
+                       join pg_class cl on cl.oid = tg.tgrelid
+                       join pg_namespace n2 on n2.oid = cl.relnamespace
+                      where n2.nspname = 'auth' and cl.relname = 'users' and not tg.tgisinternal))
+order by 1, 2, 3;
+```
+
+## The levels, in the owner's words (Nov 24, about 6:57 PM Central)
+
+"She is like an owner but a little lower than me", and still "the highest account" above a regular
+manager. The partner (an administrator) must be able to **see everyone else's history** and
+**suspend, remove or otherwise manage every account except the owner's**.
+
+How that is built (rules in `assets/views/he-people.js`, branch `claude/new-employee-rules`):
+owner, then administrator, then manager, then employee; a person manages only accounts **below**
+their own level. So an administrator manages every manager and employee, and never an owner.
+One point where Claude chose the safer reading and told the owner: an administrator does not
+create or change **another administrator** (a second co-owner); that stays with the owner.
+"Remove" never deletes: the account is switched off and marked as removed, and its history stays.
+History: the owner sees everyone; an administrator sees everyone except the owner (already how
+Employee Activity works); a manager sees the list of people, not the history.
+
+## What the read-only check showed (run by the owner on Nov 24, 6:45 PM Central; 42 rows)
+
+Written in plain words on purpose; the raw rules are not copied here. No account name or email was
+in the result (counts only).
+
+**Accounts table.** Eleven details per account: the id, the email, the display name, the role, the
+department, active or not, a "removed on" date, created and updated dates, an emergency-account
+mark, and an account number that is given automatically and locked afterwards.
+
+**Roles.** The role is a fixed list with four entries: owner, employee, AI agent, administrator.
+In use today: 2 owner accounts and 1 administrator account, all active; no employee yet.
+So **a Manager role does not exist** and adding it is a database step.
+
+**What the database already enforces today (so these need no new rule):**
+
+| The owner's point | In the database today |
+|---|---|
+| Only the owner switches the whole system off | True: only an active owner can change the system mode; everyone active can read it. |
+| An administrator does not read the owner's history | The change history table can be read **by the owner only**; nobody can change or delete an entry. (Employee Activity shows it through its own function, whose rule was not part of this check.) |
+| An administrator does nothing to the owner's accounts | True, and wider: only the owner can add an account row, and only the owner can see or change **another person's** account. An administrator sees and changes only their own, and a guard protects the privileged details (role, active) on every change. |
+
+**What the database already allows an administrator, although the page does not:** changing the
+feature switches ("Other switches" on Feature Flags). The page says "only the Owner role"; the
+database rule is "owner or administrator". So opening that part needs a page change only.
+
+**New accounts.** When a login is created, an account row is made by itself, as an **employee**
+and **not active**. That fits the New Employee page: create the login, then set the name, the role
+and "active" in one checked step.
+
+**To look at before building:** a rule ties changing a role to a sign-in with a second step
+(two-factor); and the guard on privileged details may refuse a change made by the helper function.
+Their exact wording needs one more read-only look (the text of four functions).
+
+**Second read-only look (Nov 24, 7:00 PM Central): the text of six functions.** No email address
+or name was in it. In plain words:
+
+- **The guard on an account's privileged details.** A change of role or of the emergency mark is
+  allowed to the owner only. Switching an account on or off, or marking it removed, is allowed to
+  the owner, or to an administrator for someone else. A change that arrives with no signed-in person
+  (the helper function using the provider's own key) passes the guard untouched.
+  CONSEQUENCE: for an administrator to give a role below their own, and for a manager to switch an
+  employee on or off, **this guard has to be replaced by one that knows the four levels**. That is a
+  change to a production function and goes in a database draft with its rollback (the old text).
+- **Employee Activity.** Only the owner and administrators get anything. An administrator sees no
+  entry made by an owner, and only the areas an administrator is allowed to manage; the list of
+  people it shows an administrator leaves the owners out. CONSEQUENCE: "she sees everyone else's
+  history" is true today only for those areas. Widening it to every area is part of the plan.
+- **Account numbers** are nine random digits, given once and never changed (one number is reserved).
+- NOTED for the owner to decide later: a rule is named "role change requires a second sign-in
+  step", but as the rules are combined today an owner can change a role without that step.
+
+**What follows for the New Employee page:** because today only the owner can see or change other
+accounts, the page needs database functions that let the owner, an administrator and (once it
+exists) a manager list people and create, activate, change and deactivate accounts **below their
+own level**, never an owner's account, with every action in the change history.
 
 ## Known limitation, told to the owner
 
