@@ -129,16 +129,18 @@ Next free draft number: **66**.
 The owner gave a ten-task queue ("HEALTH ENDEAVORS DASHBOARD — CONTINUE THE COMPLETION QUEUE").
 The live status table is `docs/PROJECT_RECORD.md` §3b; read it first.
 
-**Merged:** #101 (safety tests: the one People-page exception).
+**Merged:** #101 (safety tests: the one People-page exception), and **#110 (Nov 25, about 2:14 pm
+Central, merge commit `f173b97`), which brought in #102–#109.** #104 and #105 were closed as
+already contained (merging either leaves `main` unchanged). The chain below is history.
 
-**Open, chained (merge the newest green one; each contains the ones before):**
+**Was open, chained (all now on `main`):**
 #102 administrators approve deliveries and returns (draft 40) → #103 administrators review supplier
 documents (drafts 36/38) → #104 managers can do what employees can + worked example → #105
 owner-protection map, private-history plan, complete install index, fingerprint test → #106 two
 devices never erase each other's additions (draft 50) → the documents PR after it (this section).
 
 **Waiting on the owner:**
-1. Merge the newest green PR of the chain.
+1. ~~Merge the newest green PR of the chain.~~ Done (#110).
 2. The read-only look in `docs/ops/OWNER_PROTECTION_AND_PRIVATE_HISTORY.md` §B3 (four functions,
    changes nothing). It decides the private-history draft.
 3. Two answers (no rush): may a **manager** approve deliveries or supplier documents? When an
