@@ -6738,14 +6738,14 @@
         h('td', { class: 'num-cell' }, String(d.systemQty)),
         h('td', { class: 'num-cell' }, String(d.countedQty)),
         h('td', { class: 'num-cell' }, (d.delta > 0 ? '+' : '') + d.delta + ' ' + d.direction)));
-      // Try a staff and an ordinary-administrator approval first, to show the
-      // permission boundary refuses both (owner decision of Nov 16).
+      // Try a staff approval first, to show the permission boundary refuses it.
+      // (Not an administrator's: since the owner's decision of Nov 24 an administrator
+      // approves, so trying one here would approve the count.)
       const staffTry = eng.approveAdjustment(c, { role: 'staff' });
-      const adminTry = eng.approveAdjustment(c, { role: 'administrator' });
       const when = t => t ? String(t).slice(0, 16).replace('T', ' ') + ' UTC' : 'time not recorded';
       let approvedBlock = null;
       if (cycleCountApproved) {
-        // The signed-in person's real role decides: only the owner may approve.
+        // The signed-in person's real role decides: the owner or an administrator approves.
         const ap = eng.approveAdjustment(c, { role: currentUserRole, by: String(currentUserRole || 'unknown'), at: '2026-11-14T10:00:00Z' });
         approvedBlock = !ap.ok ? h('div', { class: 'scanCard u-mt-10', 'data-cyclecount-refused': '1' }, 'Not approved: ' + ap.reason + '.') : h('div', { class: 'scanCard u-mt-10' },
           h('div', { class: 'scanCardHead' }, 'Approved adjustment (advisory — NOT written to stock)'),
@@ -6758,9 +6758,9 @@
       }
       host.replaceChildren(h('div', { class: 'cycleCount u-mb-16' },
         h('div', { class: 'scanHead' }, h('h3', null, 'Cycle count & adjustment review'), h('span', { class: 'scanBadge' }, 'SIMULATED — advisory, no stock is written')),
-        h('p', { class: 'hint u-mt-6' }, 'Staff and administrators may propose an adjustment with a reason. Only the owner approves it.'),
+        h('p', { class: 'hint u-mt-6' }, 'Staff and administrators may propose an adjustment with a reason. The owner or an administrator approves it (an administrator also their own); staff never do.'),
         h('p', { class: 'hint u-mt-6', 'data-cyclecount-status': c.status }, 'Status: ' + c.status + ' · proposed by ' + (c.submittedBy || '—') + ' · reason: ' + (c.reason || '—')),
-        h('p', { class: 'hint u-mt-6', 'data-cyclecount-boundary': '1' }, 'Staff approval attempt: ' + staffTry.reason + '. Administrator approval attempt: ' + adminTry.reason + '.'),
+        h('p', { class: 'hint u-mt-6', 'data-cyclecount-boundary': '1' }, 'Staff approval attempt: ' + staffTry.reason + '. An administrator approves without the owner (owner decision of Nov 24); the owner is told through the change history.'),
         h('table', { class: 'phoneCards u-mt-8' },
           h('thead', null, h('tr', null, h('th', null, 'SKU'), h('th', { class: 'num-cell' }, 'System'), h('th', { class: 'num-cell' }, 'Counted'), h('th', { class: 'num-cell' }, 'Discrepancy'))),
           h('tbody', null, discRows)),

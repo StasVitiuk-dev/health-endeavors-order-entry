@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 # LOCAL TEST ONLY (2026-11-16). Never point this at Supabase.
-# Tests drafts/34 (stock-count adjustments: propose, owner-only approval, the
+# Tests drafts/34 (stock-count adjustments: propose, approval by the owner or an
+# administrator (owner decision of Nov 24), the
 # per-account grant) and drafts/35 (rollback) on a throwaway copy, acting as the
 # owner, two administrators, an employee, a deactivated account and a visitor.
 # Covers the owner's decision of Nov 16: staff and ordinary administrators may
-# propose with a reason; ONLY the owner approves; the record keeps the original
+# propose with a reason; the owner or an active administrator approves (Nov 24),
+# an administrator also their own proposal; the record keeps the original
 # count, the requested count, the reason, who submitted, who approved and when;
-# an ordinary administrator cannot approve; approval can be granted to one named
-# administrator account by the owner only. No stock figure is changed.
+# staff never approve; the earlier per-account grant is still owner-only to give,
+# though no longer needed by an administrator. No stock figure is changed.
 # All rows are synthetic.
 # Usage: stock_count_adjustments_test.sh -h /var/tmp/hepg -p 5499 -U postgres   (source db: he_real)
 set -u
@@ -39,7 +41,7 @@ setup() {
      insert into inventory (product_id, available, damaged) values ('$P1', 40, 2), ('$P2', 25, 0), ('$P3', 12, 0);" >/dev/null
 }
 setup
-echo "Stock-count adjustments: propose, owner-only approval, per-account grant (throwaway database $DB)"
+echo "Stock-count adjustments: propose; the owner or an administrator approves (Nov 24); grants kept (throwaway database $DB)"
 SNAP="select (select count(*) from orders)||'/'||(select count(*) from tasks)||'/'||(select count(*) from products)||'/'||(select count(*) from inventory_adjustments)"
 STOCK="select string_agg(available||':'||damaged, ',' order by product_id) from inventory where product_id in ('$P1','$P2','$P3')"
 before=$(q "$SNAP"); stock0=$(q "$STOCK")
@@ -75,18 +77,15 @@ has "a proposal cannot be edited (cancel and propose again)" "$(as $E "update st
 has "  nor its original count" "$(as $O "update stock_count_adjustments set original_count = 1 where id = '$ADJ2'")" "cannot be edited"
 has "  nor who submitted it" "$(as $O "update stock_count_adjustments set submitted_by = '$O' where id = '$ADJ1'")" "cannot be edited"
 
-echo " ONLY the owner approves"
-has "staff cannot approve" "$(as $E "select public.approve_stock_count_adjustment('$ADJ1')")" "Only the owner can approve"
-has "an ORDINARY ADMINISTRATOR cannot approve" "$(as $A "select public.approve_stock_count_adjustment('$ADJ1')")" "Only the owner can approve"
-has "  not even their own proposal" "$(as $A "select public.approve_stock_count_adjustment('$ADJ2')")" "Only the owner can approve"
-has "  nor by editing the row directly" "$(as $A "update stock_count_adjustments set status = 'approved' where id = '$ADJ1'")" "Only the owner can approve or reject"
-has "  nor by filling in the decision fields" "$(as $A "update stock_count_adjustments set status = 'approved', decided_by = '$O', decided_at = now() where id = '$ADJ1'")" "Only the owner can approve or reject"
-has "  nor reject" "$(as $A "select public.reject_stock_count_adjustment('$ADJ1', 'Not convinced')")" "Only the owner can reject"
-has "a second administrator cannot approve either" "$(as $A2 "select public.approve_stock_count_adjustment('$ADJ1')")" "Only the owner can approve"
-has "a deactivated administrator cannot approve" "$(as $I "select public.approve_stock_count_adjustment('$ADJ1')")" "Only the owner can approve"
+echo " the owner or an administrator approves (owner decision of Nov 24); staff never"
+has "staff cannot approve" "$(as $E "select public.approve_stock_count_adjustment('$ADJ1')")" "Only the owner or an administrator can approve"
+has "  nor by editing the row directly" "$(as $E "update stock_count_adjustments set status = 'approved' where id = '$ADJ1'")" "Only the owner or an administrator can approve or reject\|^$"
+has "  nor by filling in the decision fields" "$(as $E "update stock_count_adjustments set status = 'approved', decided_by = '$O', decided_at = now() where id = '$ADJ1'")" "Only the owner or an administrator can approve or reject\|^$"
+has "  nor reject" "$(as $E "select public.reject_stock_count_adjustment('$ADJ1', 'Not convinced')")" "Only the owner or an administrator can reject"
+has "a deactivated administrator cannot approve" "$(as $I "select public.approve_stock_count_adjustment('$ADJ1')")" "Only the owner or an administrator can approve"
 has "a visitor cannot approve" "$(as anon "select public.approve_stock_count_adjustment('$ADJ1')")" "permission denied"
 ok  "  after all of that, both proposals are still open" "$(q "select count(*) from stock_count_adjustments where status = 'proposed' and decided_by is null")" "2"
-ok  "  can_approve_stock_count: owner yes, administrator no, staff no" "$(as $O "select public.can_approve_stock_count()")/$(as $A "select public.can_approve_stock_count()")/$(as $E "select public.can_approve_stock_count()")" "t/f/f"
+ok  "  can_approve_stock_count: owner yes, administrator yes (no grant needed), staff no, deactivated no" "$(as $O "select public.can_approve_stock_count()")/$(as $A "select public.can_approve_stock_count()")/$(as $E "select public.can_approve_stock_count()")/$(as $I "select coalesce(public.can_approve_stock_count(), false)")" "t/t/f/f"
 R=$(as $O "select public.approve_stock_count_adjustment('$ADJ1')")
 has "the owner approves" "$R" "\"status\": \"approved\""
 has "  and is told that no stock figure was changed" "$R" "\"applied\": false"
@@ -100,6 +99,10 @@ has "a decided adjustment cannot be edited, even by the owner" "$(as $O "update 
 has "  nor un-approved" "$(as $O "update stock_count_adjustments set status = 'proposed' where id = '$ADJ1'")" "already approved and cannot be changed"
 has "  nor deleted" "$(as $O "delete from stock_count_adjustments where id = '$ADJ1'")" "permission denied"
 has "  not by the database owner's delete either: the guard refuses" "$(q "delete from stock_count_adjustments where id = '$ADJ1'")" "stays on the record"
+as $A "select public.propose_stock_count_adjustment('$P1','reserved',2,'Two jars set aside for a pickup')" >/dev/null
+ADJA=$(q "select id from stock_count_adjustments where product_id = '$P1' and bucket = 'reserved'")
+has "an administrator approves their own proposal: no approval from the owner is needed (Nov 24)" "$(as $A "select public.approve_stock_count_adjustment('$ADJA')")" "\"status\": \"approved\""
+ok  "  recorded under the administrator, and in the change history the owner reads" "$(q "select (decided_by = '$A')::text from stock_count_adjustments where id = '$ADJA'")/$(q "select count(*) > 0 from audit_log where table_name = 'stock_count_adjustments'")" "true/t"
 
 echo " rejecting, cancelling, and a count that has gone stale"
 has "rejecting needs a written reason" "$(as $O "select public.reject_stock_count_adjustment('$ADJ2', ' no ')")" "written reason is required"
@@ -108,7 +111,7 @@ ok  "  the rejection is on the record with who and why" "$(q "select status||'/'
 has "  approving a rejected one changes nothing" "$(as $O "select public.approve_stock_count_adjustment('$ADJ2')")" "\"ok\": false"
 as $E "select public.propose_stock_count_adjustment('$P3','available',10,'Two jars damaged in the box')" >/dev/null
 ADJ3=$(q "select id from stock_count_adjustments where product_id = '$P3' and status = 'proposed'")
-has "someone else cannot cancel a proposal that is not theirs" "$(as $A "select public.cancel_stock_count_adjustment('$ADJ3')")" "Only the person who proposed it"
+has "a deactivated account cannot cancel a proposal that is not theirs" "$(as $I "select public.cancel_stock_count_adjustment('$ADJ3')")" "Only the person who proposed it\|Only active\|No such"
 has "the person who proposed it can cancel it" "$(as $E "select public.cancel_stock_count_adjustment('$ADJ3')")" "\"status\": \"cancelled\""
 has "  a cancelled proposal cannot be approved" "$(as $O "select public.approve_stock_count_adjustment('$ADJ3')")" "\"ok\": false"
 as $E "select public.propose_stock_count_adjustment('$P3','available',10,'Two jars damaged in the box')" >/dev/null
@@ -124,7 +127,7 @@ has "approval is refused when the stock changed after the figure was recorded" "
 q "update inventory set reserved = 0 where product_id = '$P2'" >/dev/null
 has "  the owner rejects that one; the figure it was judged against is kept" "$(as $O "select public.reject_stock_count_adjustment('$ADJS', 'Stock moved, count again')")" "\"status\": \"rejected\""
 
-echo " granting approval to ONE named administrator account (owner only)"
+echo " the earlier per-account grant: still owner-only to give, no longer needed to approve (Nov 24)"
 has "an administrator cannot grant it to themselves" "$(as $A2 "select public.grant_stock_count_approval('$A2', 'I need this to work faster')")" "Only the owner can grant"
 has "  nor by adding the row directly" "$(as $A2 "insert into stock_count_approvers (user_id, note) values ('$A2', 'I need this to work faster')")" "row-level security"
 has "  nor can another administrator grant it" "$(as $A "select public.grant_stock_count_approval('$A2', 'Helping a colleague')")" "Only the owner can grant"
@@ -133,14 +136,13 @@ has "it cannot be granted to a staff account" "$(as $O "select public.grant_stoc
 has "  nor to a deactivated account" "$(as $O "select public.grant_stock_count_approval('$I', 'Old administrator account')")" "No active account"
 has "the owner grants it to one named administrator" "$(as $O "select public.grant_stock_count_approval('$A2', 'Owner personal administrator account')")" "\"granted\": true"
 ok  "  the grant records who, when and why" "$(q "select (granted_by = '$O')::text||'/'||(granted_at is not null)::text||'/'||note from stock_count_approvers where user_id = '$A2'")" "true/true/Owner personal administrator account"
-ok  "  that account can now approve; the other administrator still cannot" "$(as $A2 "select public.can_approve_stock_count()")/$(as $A "select public.can_approve_stock_count()")" "t/f"
-has "  the other administrator is still refused" "$(as $A "select public.approve_stock_count_adjustment('$ADJ4')")" "Only the owner can approve"
+ok  "  every active administrator approves, with or without a grant" "$(as $A2 "select public.can_approve_stock_count()")/$(as $A "select public.can_approve_stock_count()")" "t/t"
 has "the granted account approves a proposal made by someone else" "$(as $A2 "select public.approve_stock_count_adjustment('$ADJ4')")" "\"status\": \"approved\""
 ok  "  recorded under that account" "$(q "select (decided_by = '$A2')::text from stock_count_adjustments where id = '$ADJ4'")" "true"
 as $A2 "select public.propose_stock_count_adjustment('$P2','damaged',1,'One jar cracked on the shelf')" >/dev/null
 ADJ5=$(q "select id from stock_count_adjustments where product_id = '$P2' and bucket = 'damaged'")
-has "the granted account cannot approve its OWN proposal" "$(as $A2 "select public.approve_stock_count_adjustment('$ADJ5')")" "cannot decide your own proposal"
-has "  the owner can approve it" "$(as $O "select public.approve_stock_count_adjustment('$ADJ5')")" "\"status\": \"approved\""
+has "an administrator approves its OWN proposal (Nov 24)" "$(as $A2 "select public.approve_stock_count_adjustment('$ADJ5')")" "\"status\": \"approved\""
+has "  the owner asking afterwards is told it is already decided" "$(as $O "select public.approve_stock_count_adjustment('$ADJ5')")" "\"already_decided\": true"
 as $O "select public.propose_stock_count_adjustment('$P1','damaged',3,'Owner counted the damaged bin')" >/dev/null
 ADJ6=$(q "select id from stock_count_adjustments where product_id = '$P1' and bucket = 'damaged'")
 has "the owner may approve the owner's own proposal" "$(as $O "select public.approve_stock_count_adjustment('$ADJ6')")" "\"status\": \"approved\""
@@ -152,7 +154,7 @@ ok  "  nor one that is no longer an administrator" "$(as $A2 "select public.can_
 q "update profiles set role = 'administrator' where id = '$A2'" >/dev/null
 has "only the owner can revoke" "$(as $A2 "select public.revoke_stock_count_approval('$A2')")" "Only the owner can revoke"
 has "the owner revokes the grant" "$(as $O "select public.revoke_stock_count_approval('$A2')")" "\"revoked\": true"
-ok  "  that account can no longer approve" "$(as $A2 "select public.can_approve_stock_count()")" "f"
+ok  "  revoking changes nothing since Nov 24: an active administrator still approves" "$(as $A2 "select public.can_approve_stock_count()")" "t"
 
 echo " the same proposal approved 10 times at the same moment (a double click, two tabs, a retry)"
 as $E "select public.propose_stock_count_adjustment('$P3','damaged',2,'Two jars dented in the delivery')" >/dev/null
@@ -169,7 +171,7 @@ ok  "  every decided row names who decided and when" "$(q "select count(*) from 
 echo " rollback"
 ok  "rollback refuses while approved or rejected adjustments exist" "$(run "$ROLLBACK")" "3"
 has "  and says why" "$(cat "$OUTF")" "approved or rejected stock-count adjustment(s) exist"
-ok  "  nothing was removed" "$(q "select count(*) from stock_count_adjustments where status in ('approved','rejected')")" "7"
+ok  "  nothing was removed" "$(q "select count(*) from stock_count_adjustments where status in ('approved','rejected')")" "8"
 setup
 before=$(q "$SNAP")
 ok  "fresh copy: install" "$(run "$INSTALL")" "0"

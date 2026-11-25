@@ -115,7 +115,7 @@ has "an issued invoice still cannot be edited" "$(as $DST $O "update invoices se
 R=$(as $DST $O "select public.issue_invoice('$D2')")
 has "the next invoice gets the NEXT number (the counter carried over; no number reused)" "$R" '0002"'
 has "staff still cannot issue" "$(as $DST $E "select public.issue_invoice('$D1')")" "Only the owner or an administrator can issue"
-has "an administrator still cannot approve a stock count" "$(as $DST $A "select public.approve_stock_count_adjustment('$ADJ')")" "Only the owner can approve"
+has "staff still cannot approve a stock count (the owner or an administrator does, Nov 24)" "$(as $DST $E "select public.approve_stock_count_adjustment('$ADJ')")" "Only the owner or an administrator can approve"
 ok  "  and stock is unchanged" "$(q $DST "select available from inventory where product_id = '$P1'")" "40"
 has "staff still cannot approve a supplier document (the owner or an administrator does, owner decision of Nov 24)" "$(as $DST $E "select public.review_supplier_document('$DOC2','approved',null)")" "Only the owner or an administrator"
 ok  "  the approval of the first one still names the exact file approved" "$(q $DST "select status||'/'||left(approved_file_sha256, 8) from supplier_documents where id = '$DOC'")" "approved/aaaaaaaa"

@@ -8,7 +8,7 @@ run each item yourself, after approving it, with Claude guiding you step by step
 | Step | Item | What it does, in one line | Risk | When |
 |---|---|---|---|---|
 | 1 | [Item 3](ITEM_3_QUERY_I_REPORT_DAY_CUTOFF.md) · Query I | **Only reads.** Checks that the nightly report counts the day in Central time, as you decided. | none: changes nothing | first: the easiest way to learn the steps (10 minutes) |
-| 2 | [Item 2](ITEM_2_DRAFT_34_STOCK_COUNT_APPROVAL.md) · draft 34 | Stock-count corrections need your approval, enforced by the database. | low (adds new pieces, removes nothing; has an undo file) | any time |
+| 2 | [Item 2](ITEM_2_DRAFT_34_STOCK_COUNT_APPROVAL.md) · draft 34 | Stock-count corrections need your or an administrator's approval (Nov 24), enforced by the database. | low (adds new pieces, removes nothing; has an undo file) | any time |
 | 3 | [Item 7](ITEM_7_DRAFT_44_STAFF_SEE_PURCHASE_ORDERS.md) · draft 44 | Staff can see purchase orders (your decision of Nov 22). | low | before the first lab delivery |
 | 4 | [Item 5](ITEM_5_DRAFT_40_PARTIAL_RECEIVING.md) · draft 40 | Receive part of a delivery; returns checked before restocking. | low | before the first lab delivery (with step 3) |
 | 5 | [Item 4](ITEM_4_DRAFT_36_SUPPLIER_DOCUMENTS.md) · drafts 36 + 38 | Supplier documents (certificates, invoices) stored privately. | low | when you start collecting supplier paperwork |
@@ -112,7 +112,7 @@ the query anyway. If it mentions anything else (for example `drop table` on a ta
 
 | Step | File to paste (all in `docs/ops/sql/drafts/`) | Lines | Fingerprint | Check afterwards (read-only, in the item's page) | Expected | Undo file |
 |---|---|---|---|---|---|---|
-| 2 | `34_DRAFT_stock_count_adjustments.sql` | 432 | `d055eba3ba163b33` | Item 2, "After running" | `true \| 0 \| 0 \| false` | `35_…` |
+| 2 | `34_DRAFT_stock_count_adjustments.sql` | 455 | `ad1b9fff06fccdfa` | Item 2, "After running" | `true \| 0 \| 0 \| false` | `35_…` |
 | 3 | `44_DRAFT_staff_read_purchase_orders.sql` | 55 | `c87c37c54901a648` | Item 7, "After running" | two rows, both `SELECT` | `45_…` |
 | 4 | `40_DRAFT_partial_receiving_returns.sql` | 1002 | `24106ab0720b2e90` | Item 5, "After running" | `true \| true \| 0 \| 0 \| false` | `41_…` |
 | 5a | `36_DRAFT_supplier_documents.sql` | 1012 | `4b78c14b9fc7ee8f` | Item 4, "After draft 36" | `9 \| 0 \| 0 \| false` | `37_…` |

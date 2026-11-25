@@ -97,19 +97,15 @@ test('a proposal needs a written reason, and keeps who proposed it and when', ()
   expect(c).toMatchObject({ status: 'PENDING_APPROVAL', reason: 'Counted the main shelf', submittedBy: 'staff-anna', submittedAt: '2026-11-16T09:00:00Z' });
 });
 
-test('only the owner approves: staff and an ORDINARY ADMINISTRATOR are refused, and may still propose', () => {
+test('the owner or an administrator approves (owner decision of Nov 24); staff and anyone else are refused, and may still propose', () => {
   const c = counted();
-  expect(I.submitForApproval(c, 'admin-1', '2026-11-16T09:00:00Z', 'Counted the main shelf').ok).toBe(true);   // an administrator may propose
-  for (const role of ['staff', 'employee', 'administrator', 'viewer', '', null, undefined, 'OWNER']) {
+  expect(I.submitForApproval(c, 'staff-anna', '2026-11-16T09:00:00Z', 'Counted the main shelf').ok).toBe(true);
+  for (const role of ['staff', 'employee', 'manager', 'viewer', '', null, undefined, 'OWNER', 'Administrator']) {
     const r = I.approveAdjustment(c, { role, by: 'someone', at: '2026-11-16T10:00:00Z' });
     expect(r.ok, String(role)).toBe(false);
-    expect(r.reason).toMatch(/only the owner may approve/);
+    expect(r.reason).toMatch(/only the owner or an administrator may approve/);
   }
-  expect(I.approveAdjustment(c, { role: 'administrator' }).reason).toMatch(/an administrator may propose one/);
-  // A truthy value that is not exactly `true` is not a grant.
-  for (const g of ['true', 1, 'yes', {}]) expect(I.approveAdjustment(c, { role: 'administrator', grantedApprover: g }).ok).toBe(false);
-  // A grant does nothing for an account that is not an administrator.
-  expect(I.approveAdjustment(c, { role: 'staff', grantedApprover: true }).ok).toBe(false);
+  expect(I.approveAdjustment(c, { role: 'staff' }).reason).toMatch(/staff may propose one/);
   expect(c.status).toBe('PENDING_APPROVAL');
   expect(c.adjustments).toBeUndefined();
 });
@@ -125,18 +121,18 @@ test('the approved record keeps original count, requested count, reason, submitt
   expect(c).toMatchObject({ approvedBy: 'owner-stas', approvedAt: '2026-11-16T10:30:00Z' });
 });
 
-test('an administrator the owner granted approval to may approve — but never their own proposal', () => {
+test('an administrator approves without the owner, also their own proposal (owner decision of Nov 24)', () => {
   const own = counted();
   I.submitForApproval(own, 'admin-2', '2026-11-16T09:00:00Z', 'Counted the main shelf');
-  const self = I.approveAdjustment(own, { role: 'administrator', grantedApprover: true, by: 'admin-2', at: '2026-11-16T10:00:00Z' });
-  expect(self.ok).toBe(false);
-  expect(self.reason).toMatch(/cannot approve your own proposal/);
-  expect(I.approveAdjustment(own, { role: 'owner', by: 'owner' }).ok).toBe(true);        // the owner can
+  const self = I.approveAdjustment(own, { role: 'administrator', by: 'admin-2', at: '2026-11-16T10:00:00Z' });
+  expect(self.ok).toBe(true);
+  expect(self.adjustments[0].approvedBy).toBe('admin-2');
   const other = counted();
   I.submitForApproval(other, 'staff-anna', '2026-11-16T09:00:00Z', 'Counted the main shelf');
-  const ap = I.approveAdjustment(other, { role: 'administrator', grantedApprover: true, by: 'admin-2', at: '2026-11-16T10:00:00Z' });
+  const ap = I.approveAdjustment(other, { role: 'administrator', by: 'admin-2', at: '2026-11-16T10:00:00Z' });
   expect(ap.ok).toBe(true);
   expect(ap.adjustments[0].approvedBy).toBe('admin-2');
+  expect(I.approveAdjustment(other, { role: 'owner', by: 'owner' }).duplicate).toBe(true);   // decided once
   // The owner may approve the owner's own proposal.
   const mine = counted();
   I.submitForApproval(mine, 'owner', '2026-11-16T09:00:00Z', 'Counted the main shelf');
@@ -146,7 +142,7 @@ test('an administrator the owner granted approval to may approve — but never t
 test('the database draft enforces the same rule (names checked against drafts/34)', () => {
   const sql = require('fs').readFileSync(require('path').join(__dirname, '../../docs/ops/sql/drafts/34_DRAFT_stock_count_adjustments.sql'), 'utf8');
   for (const col of ['original_count', 'requested_count', 'reason', 'submitted_by', 'submitted_at', 'decided_by', 'decided_at']) expect(sql, col).toContain(col);
-  expect(sql).toContain("Only the owner can approve a stock-count adjustment.");
-  expect(sql).toContain("public.current_role() = 'owner'");
+  expect(sql).toContain("Only the owner or an administrator can approve a stock-count adjustment.");
+  expect(sql).toContain("public.current_role() in ('owner', 'administrator')");
   expect(sql).not.toMatch(/security\s+definer/i);
 });

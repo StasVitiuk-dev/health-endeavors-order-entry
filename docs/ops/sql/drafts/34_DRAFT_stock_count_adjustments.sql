@@ -5,28 +5,33 @@
 -- @depends-on:  none
 -- @risk:        LOW
 -- @precheck:    stops if auth.uid(), current_role(), is_owner_or_admin(), is_active_staff() or the products / inventory / profiles tables are missing
--- @effect:      2 new empty tables (stock_count_adjustments, stock_count_approvers), a guard trigger (owner-only decisions, decided rows unchangeable, no deletes), propose / approve / reject / cancel and grant / revoke functions (security invoker); changes no stock figure
+-- @effect:      2 new empty tables (stock_count_adjustments, stock_count_approvers), a guard trigger (decisions by the owner or an administrator, an administrator also on their own proposal, owner decision of Nov 24; decided rows unchangeable, no deletes), production's audit trigger attached, propose / approve / reject / cancel and grant / revoke functions (security invoker); changes no stock figure
 -- @postcheck:   both tables present and empty; anon cannot read them or run the functions; an administrator cannot approve; local-test/stock_count_adjustments_test.sh passes on a throwaway copy
 -- @rollback:    drafts/35
 -- @@ end metadata @@
 -- written approval. DO NOT RUN until then. Rollback: 35_DRAFT_rollback_stock_count_adjustments.sql.
 -- Tested only on the local throwaway database (local-test/stock_count_adjustments_test.sh).
 --
--- Why: the owner's decision of Nov 16 on stock-count adjustments.
---   * Staff and ordinary administrators may PROPOSE an adjustment, with a reason.
---   * Only the OWNER may approve one. An ordinary administrator may not.
+-- Why: the owner's decision of Nov 16 on stock-count adjustments, changed by the
+-- owner's decision of Nov 24 (administrator "almost like owner"):
+--   * Staff and administrators may PROPOSE an adjustment, with a reason.
+--   * The OWNER or an active ADMINISTRATOR approves one, an administrator also
+--     their own proposal (no approval from the owner is needed); the owner is told
+--     through the change history (production's audit trigger, attached below,
+--     which the owner's Home note "what administrators changed" reads).
+--     An employee's proposal is still approved by the owner or an administrator.
 --   * The record keeps the original count, the requested count, the reason, who
 --     submitted it, who decided it, and when.
 --   * The rule is enforced here, in the database, not only by the page.
---   * If one named administrator account should have the same authority, the
---     owner grants it to THAT account only (grant_stock_count_approval), as a
---     separate, recorded step. Nobody can grant it to themselves.
+--   * The earlier per-account grant (grant_stock_count_approval) is kept so the
+--     undo file still matches, but since Nov 24 every active administrator
+--     approves without one.
 --
 -- What it adds
 --   * table stock_count_adjustments   one row per proposal and its decision
 --   * table stock_count_approvers     accounts the owner has granted approval to (empty at install)
 --   * a guard on stock_count_adjustments: who may decide, and nothing decided can change
---   * can_approve_stock_count()                      true for the owner, or a granted, active administrator
+--   * can_approve_stock_count()                      true for the owner or an active administrator
 --   * propose_stock_count_adjustment(product, bucket, counted, reason)
 --   * approve_stock_count_adjustment(id) / reject_stock_count_adjustment(id, note) / cancel_stock_count_adjustment(id)
 --   * grant_stock_count_approval(user, note) / revoke_stock_count_approval(user)   owner only
@@ -47,7 +52,7 @@
 --     moment of the decision instead. Either way a decided row always has it.
 --   * Approval is refused if the stock has changed since the figure was read
 --     ("count again"), or if the count now simply matches the system.
---   * A granted administrator cannot approve their own proposal; the owner can.
+--   * The owner and administrators may approve their own proposal (Nov 24); staff never approve.
 --   * Asking twice (a double click, a retry) decides once; the second answer says
 --     it was already decided and changes nothing.
 --   * A decided row can never be edited or deleted, by anyone.
@@ -56,9 +61,10 @@
 --   * SECURITY INVOKER throughout (project rule: every new function runs with
 --     the caller's own rights). The owner
 --     check uses the existing public.current_role() helper.
---   * No audit trigger is attached: the name of production's audit trigger
---     function is not in this repository. The table is its own record (who,
---     what, when; no edits, no deletes).
+--   * Production's own audit trigger is attached (its function's name is read
+--     from production at install time, as drafts/50 does), so every proposal and
+--     decision is also in the change history. The table is its own record too
+--     (who, what, when; no edits, no deletes).
 --   * Locking: creates two new, empty tables. Nothing existing is locked.
 -- Safe to run twice: a second run changes nothing (IF NOT EXISTS / OR REPLACE).
 begin;
@@ -122,15 +128,14 @@ create table if not exists public.stock_count_adjustments (
 create unique index if not exists stock_count_adjustments_one_open on public.stock_count_adjustments (product_id, bucket) where status = 'proposed';
 create index if not exists stock_count_adjustments_by_status on public.stock_count_adjustments (status, submitted_at desc);
 
--- Who may approve: the owner, or an active administrator the owner has granted it to.
+-- Who may approve: the owner or an active administrator (owner decision of Nov 24).
 create or replace function public.can_approve_stock_count() returns boolean
 language sql
 stable
 security invoker
 set search_path = public, pg_temp
 as $fn$
-  select coalesce(public.current_role() = 'owner', false)
-      or (public.is_owner_or_admin() and exists (select 1 from public.stock_count_approvers a where a.user_id = auth.uid()))
+  select coalesce(public.current_role() in ('owner', 'administrator'), false)
 $fn$;
 
 -- The guard: runs for every insert, update and delete, whoever makes it.
@@ -179,10 +184,10 @@ begin
 
   if new.status in ('approved', 'rejected') then
     if not public.can_approve_stock_count() then
-      raise exception 'Only the owner can approve or reject a stock-count adjustment.' using errcode = '42501';
+      raise exception 'Only the owner or an administrator can approve or reject a stock-count adjustment.' using errcode = '42501';
     end if;
-    if old.submitted_by = auth.uid() and coalesce(public.current_role() <> 'owner', true) then
-      raise exception 'You cannot decide your own proposal. The owner or another approver must.' using errcode = '42501';
+    if old.submitted_by = auth.uid() and coalesce(public.current_role() not in ('owner', 'administrator'), true) then
+      raise exception 'You cannot decide your own proposal. The owner or an administrator must.' using errcode = '42501';
     end if;
   elsif new.status = 'cancelled' then
     if not (old.submitted_by = auth.uid() or public.can_approve_stock_count()) then
@@ -256,7 +261,7 @@ begin
 end
 $fn$;
 
--- Approve: the owner (or an account the owner granted). Decides once.
+-- Approve: the owner or an administrator. Decides once.
 create or replace function public.approve_stock_count_adjustment(p_id uuid) returns jsonb
 language plpgsql
 security invoker
@@ -267,7 +272,7 @@ declare
   v_now integer;
 begin
   if not public.can_approve_stock_count() then
-    raise exception 'Only the owner can approve a stock-count adjustment.' using errcode = '42501';
+    raise exception 'Only the owner or an administrator can approve a stock-count adjustment.' using errcode = '42501';
   end if;
   select * into v from public.stock_count_adjustments where id = p_id for update;
   if not found then
@@ -304,7 +309,7 @@ declare
   v public.stock_count_adjustments%rowtype;
 begin
   if not public.can_approve_stock_count() then
-    raise exception 'Only the owner can reject a stock-count adjustment.' using errcode = '42501';
+    raise exception 'Only the owner or an administrator can reject a stock-count adjustment.' using errcode = '42501';
   end if;
   if p_note is null or length(btrim(p_note)) < 5 then
     raise exception 'A written reason is required to reject a stock-count adjustment.' using errcode = '22023';
@@ -390,6 +395,24 @@ $fn$;
 -- Permissions. Visitors (anon) get nothing. Signed-in people go through the
 -- row rules below; the guard above applies to everyone on top of them.
 alter table public.stock_count_adjustments enable row level security;
+-- ---------------------------------------------------------------- audit: production's own audit trigger
+-- Dynamic only because the function's name is read from production at install time (as drafts/50).
+do $audit$
+declare
+  v_nsp text;
+  v_fn  text;
+begin
+  select n.nspname, p.proname into v_nsp, v_fn
+    from pg_trigger t join pg_proc p on p.oid = t.tgfoid join pg_namespace n on n.oid = p.pronamespace
+   where t.tgrelid = 'public.tasks'::regclass and not t.tgisinternal and lower(t.tgname) like '%audit%' limit 1;
+  if v_fn is null then
+    raise exception 'Not installed: the audit trigger on public.tasks was not found, so the change history could not be attached.';
+  end if;
+  execute format('drop trigger if exists %I on public.%I', 'stock_count_adjustments_audit', 'stock_count_adjustments');
+  execute format('create trigger %I after insert or update or delete on public.%I for each row execute function %I.%I()',
+                 'stock_count_adjustments_audit', 'stock_count_adjustments', v_nsp, v_fn);
+end $audit$;
+
 alter table public.stock_count_approvers enable row level security;
 revoke all on public.stock_count_adjustments from public, anon;
 revoke all on public.stock_count_approvers from public, anon;
