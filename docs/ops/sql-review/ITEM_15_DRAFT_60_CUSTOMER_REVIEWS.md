@@ -79,7 +79,7 @@ check was tried on the throwaway local database.
 Then on the dashboard:
 
 1. **Admin → Feature Flags**: turn on the preview switch **Reviews**, then, under **Features that
-   save real records (owner only)**, **Reviews on every device → Turn on**. It shows "Installed"
+   save real records (owner and administrators)**, **Reviews on every device → Turn on**. It shows "Installed"
    once this step has run. Reload the page.
 2. **Sales → Reviews**. The line under the title reads "Kept in the database: the same on every
    phone and computer, for you and the administrators." Reviews you had already added in this

@@ -5486,7 +5486,8 @@
     }
     async function loadRecordSwitches() {
       const M = rsMod();
-      const host = rsHost(currentUserRole === 'owner' && !!M); if (!host) return;
+      // the owner and administrators (owner's decision, Nov 24: an administrator may see and change these)
+      const host = rsHost((currentUserRole === 'owner' || currentUserRole === 'administrator') && !!M); if (!host) return;
       const seq = ++rsSeq;
       rsStates = null; renderRecordSwitches();
       const states = {};
@@ -5517,7 +5518,7 @@
             act.note ? h('div', { class: 'u-fs-11 u-c-muted u-mt-4' }, act.note) : null));
       });
       host.replaceChildren(h('div', { class: 'previewSwitches u-mt-18', 'data-record-switches': '1' },
-        h('h3', { class: 'u-m-18-0-6 u-fs-15' }, 'Features that save real records (owner only)'),
+        h('h3', { class: 'u-m-18-0-6 u-fs-15' }, 'Features that save real records (owner and administrators)'),
         h('p', { class: 'hint u-mt-0' }, 'Unlike the previews above, these read and write your real records once their database step is installed. Each can be turned on only when its step is installed (checked live here), and asks you to confirm. Turning off always works. A switch applies to this browser on this device only.'),
         rsMessage ? h('p', { class: 'hint u-mt-6', role: 'status', 'data-record-msg': '1' }, rsMessage, ' ', h('button', { type: 'button', class: 'small secondary', 'data-previewswitch': 'reload' }, 'Reload now')) : null,
         h('table', { class: 'phoneCards u-mt-8' },
@@ -5527,7 +5528,7 @@
     }
     document.addEventListener('click', (e) => {
       const t = e.target.closest('#recordSwitchesHost [data-recordswitch]'); if (!t) return;
-      if (currentUserRole !== 'owner') return;
+      if (currentUserRole !== 'owner' && currentUserRole !== 'administrator') return;
       const M = rsMod(); if (!M) return;
       const sw = M.RECORD_SWITCHES.find(x => x.key === t.getAttribute('data-key')); if (!sw) return;   // only listed keys are ever written
       const act = t.getAttribute('data-recordswitch');
