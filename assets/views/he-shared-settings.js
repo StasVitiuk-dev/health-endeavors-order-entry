@@ -119,7 +119,7 @@
   // One person's own settings (drafts/58): the same on every device that person signs in to.
   // Each person reads and saves only their own; nobody else sees them, the owner included.
   const MY_TABLE = 'my_settings', MY_RPC = 'set_my_setting';
-  const MY_KEYS = Object.freeze({ feedSnooze: 'feed_snooze' });
+  const MY_KEYS = Object.freeze({ feedSnooze: 'feed_snooze', weekSeen: 'week_report_seen' });   // weekSeen: the newest weekly report this person opened
   function createPersonalStore(deps) {
     const d = deps || {};
     const client = d.client;
