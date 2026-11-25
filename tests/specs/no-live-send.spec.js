@@ -34,6 +34,17 @@ base.test.describe('page source cannot send anything by itself', () => {
         base.expect(html, 'the wrapper is only used by the database client').toContain("createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { global: { fetch: capAwareFetch } })");
         base.expect(html.split('capAwareFetch').length - 1, 'and nowhere else').toBe(2);
         html = html.replace(wrapper, '');
+        // OWNER DECISION, Nov 25 (answer "A" in chat): the People page asks ONE program at the
+        // database provider, the New Employee helper 'people-accounts' (review item 17). It creates
+        // a sign-in, sets a password or blocks a sign-in, after the database said yes; it sends no
+        // message of any kind (hard-walls.spec.js checks its own source). Pinned exactly: its
+        // address once, and one fetch to that address only. Anything else still fails below.
+        const ppAddress = "const PP_FN = SUPABASE_URL + '/functions/v1/people-accounts';";
+        const ppCall = "r = await fetch(PP_FN, { method: 'POST',";
+        base.expect(html.split(ppAddress).length - 1, 'the People helper address exists exactly once').toBe(1);
+        base.expect(html.split(ppCall).length - 1, 'and is fetched exactly once').toBe(1);
+        base.expect(html.split('PP_FN').length - 1, 'and the address is used nowhere else').toBe(2);
+        html = html.replace(ppAddress, '').replace(ppCall, '');
       }
       base.expect(html).not.toMatch(/\bfetch\s*\(/);
       base.expect(html).not.toMatch(/XMLHttpRequest|sendBeacon|new\s+WebSocket/);

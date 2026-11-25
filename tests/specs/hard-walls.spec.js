@@ -20,20 +20,32 @@ const HTML = ['owner-login.html', 'index.html', 'manual-order-entry.html', 'dash
 test.beforeEach(({}, ti) => { test.skip(ti.project.name !== 'desktop', 'static check; run once'); });
 
 const SEND = [
-  /functions\.invoke\(/, /\/functions\/v1\//, /sendgrid/i, /mailgun/i, /postmarkapp/i, /api\.resend\.com/i, /twilio/i,
+  /functions\.invoke\(/, /sendgrid/i, /mailgun/i, /postmarkapp/i, /api\.resend\.com/i, /twilio/i,
   /hooks\.slack\.com/i, /api\.telegram\.org/i, /graph\.facebook\.com/i, /gmail\.googleapis\.com/i, /send_?(email|sms|message)/i,
 ];
 const MONEY_PROVIDERS = [/stripe\.com/i, /paypal\.com/i, /squareup\.com/i, /api\.shopify\.com|myshopify\.com\/admin/i, /plaid\.com/i];
 const FORBIDDEN_TABLES = ['invoices', 'payments', 'payouts', 'refunds', 'transactions', 'journal_entries', 'ledger', 'tax_records',
   'tax_filings', 'customer_messages', 'outbound_messages', 'email_queue', 'sms_queue', 'notifications_outbox', 'shopify_orders'];
+// Programs at the database provider (Edge Functions) a page may call. OWNER DECISION, Nov 25
+// (answer "A" in chat, after the risks were explained): exactly one, 'people-accounts', the New
+// Employee helper: it creates a sign-in, sets a password, blocks or unblocks a sign-in, after the
+// database said yes for the person asking; it sends no message of any kind and touches no money
+// or customer data. Every other program stays refused, and its own source must pass the same
+// no-send checks (below).
+const ALLOWED_FUNCTIONS = { 'people-accounts': 'docs/ops/edge-drafts/people-accounts' };
 // Every function the pages may call; anything new must be added here deliberately.
 const ALLOWED_RPCS = ['employee_activity', 'employee_activity_people', 'employee_activity_areas', 'list_my_sessions', 'revoke_my_session',
-  'log_customer_data_access', 'get_agent_cron_status', 'global_search' /* search.html, read-only */, 'receive_purchase_order', 'adjust_inventory', 'quarantine_recall', 'receive_return', 'delete_unused_product'];
+  'log_customer_data_access', 'get_agent_cron_status', 'global_search' /* search.html, read-only */, 'receive_purchase_order', 'adjust_inventory', 'quarantine_recall', 'receive_return', 'delete_unused_product',
+  // OWNER DECISION, Nov 25 (same answer): the People page (drafts/64). Accounts only; no money, no messages.
+  'people_actor_role', 'people_set_role', 'people_set_status', 'people_set_details'];
 
 for (const f of HTML) {
   test(`${f}: no code path can send a message or move money`, () => {
     const src = require('../helpers/page-source').pageSource(f); // EXT14: HTML + its moved scripts (was HTML only)
     for (const re of SEND.concat(MONEY_PROVIDERS)) expect(src, String(re)).not.toMatch(re);
+    // an Edge Function only when it is on the reviewed list, by its exact name
+    const fns = [...src.matchAll(/\/functions\/v1\/([A-Za-z0-9_-]*)/g)].map(m => m[1]);
+    for (const name of fns) expect(Object.keys(ALLOWED_FUNCTIONS), 'Edge Function "' + name + '"').toContain(name);
   });
   test(`${f}: every database function it calls is on the reviewed list`, () => {
     const src = require('../helpers/page-source').pageSource(f); // EXT14: HTML + its moved scripts (was HTML only)
@@ -55,4 +67,22 @@ test('the customer-service draft is never sent by the page: it can only be saved
   const inquiryWrites = extract('owner-login.html').filter(r => r.table === 'customer_inquiries');
   expect(inquiryWrites.length).toBeGreaterThan(0);
   expect(src).not.toMatch(/sent_at\s*:\s*new Date/);
+});
+
+test('every Edge Function a page may call sends nothing and moves no money (its own source)', () => {
+  for (const [name, dir] of Object.entries(ALLOWED_FUNCTIONS)) {
+    const files = fs.readdirSync(path.join(ROOT, dir)).filter(f => /\.(m?js|ts)$/.test(f));
+    expect(files.length, name).toBeGreaterThan(0);
+    for (const f of files) {
+      const src = fs.readFileSync(path.join(ROOT, dir, f), 'utf8');
+      for (const re of SEND.concat(MONEY_PROVIDERS)) expect(src, name + '/' + f + ' ' + String(re)).not.toMatch(re);
+    }
+  }
+});
+
+test('the reviewed Edge Function list is not a loophole: any other name is refused', () => {
+  const src = "fetch(SUPABASE_URL + '/functions/v1/send-email')";
+  const fns = [...src.matchAll(/\/functions\/v1\/([A-Za-z0-9_-]*)/g)].map(m => m[1]);
+  expect(fns).toEqual(['send-email']);
+  expect(Object.keys(ALLOWED_FUNCTIONS)).toEqual(['people-accounts']);
 });

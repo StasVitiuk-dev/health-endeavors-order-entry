@@ -8,6 +8,17 @@ This is the second part of the **New Employee** page (your decision of Nov 24). 
 the part the database cannot do: create the sign-in itself, set a password, and block or unblock a
 sign-in. Nothing here has been deployed. I never deploy it myself: you do, after approving it.
 
+## Owner decision, Nov 25 (DECIDED)
+
+The dashboard's two safety tests (`tests/specs/hard-walls.spec.js` and
+`tests/specs/no-live-send.spec.js`) refused any call to a program at the database provider. After
+the risks were explained in chat (it creates, re-passwords and blocks sign-ins only; it never sends
+a message or touches money or customer data; the master key never leaves the program), the owner
+answered **"A": allow the People page only.** The tests now allow exactly one program by name,
+`people-accounts`, called from exactly one pinned place; its own source must pass the same no-send
+checks; every other program is still refused (checked with a planted `send-email` call, which
+both tests catch). The four account functions of drafts/64 were added to the reviewed list.
+
 ## Why a separate program
 
 A sign-in (email and password) lives with the sign-in provider (Supabase Auth), not in our
