@@ -16,7 +16,8 @@
 }(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
 
-  // probe: a table only that database step creates (read with limit 0: no rows read)
+  // probe: a table only that database step creates (read with limit 0: no rows read),
+  // or rpc: a function only that step creates, that changes nothing (asked with no values)
   const RECORD_SWITCHES = Object.freeze([
     { key: 'he_tax_rates', name: 'Confirmed tax rates', where: 'Tax Records (and a Home notice)', draft: 'drafts/46 (review item 8)', probe: 'tax_rates',
       what: 'You confirm your sales tax rate with its start day and source; invoices use only a rate you confirmed.' },
@@ -42,18 +43,22 @@
       what: 'What you set aside until tomorrow on Home follows you to every phone and computer you sign in to. Each person has their own; nobody else sees them.' },
     { key: 'he_review_store', name: 'Reviews on every device', where: 'Sales → Reviews, and Home', draft: 'drafts/60', probe: 'customer_reviews',
       what: 'The reviews you paste or type in are kept in the database, so every phone and computer of yours and of the administrators shows the same reviews and the same "answered". Needs the preview switch "Reviews". Nothing is posted.' },
+    { key: 'he_people_page', name: 'People (New Employee page)', where: 'Admin → People', draft: 'drafts/62 and 64 (review item 16), and the helper program (review item 17)', rpc: 'people_actor_role',
+      what: 'Add a person with their work email (they type their own password), change a level, suspend, remove or bring back an account, set a new password. Each level looks after the levels below it only. Nothing is ever deleted.' },
     { key: 'he_dropoff', name: 'Drop-off receipts', where: 'Orders', draft: 'drafts/48 (review item 9)', probe: 'order_parcels',
       what: 'One carrier receipt marks every parcel on it dropped off.' },
   ]);
 
   // -> 'installed' | 'not_installed' | 'unknown'
   async function probe(client, sw) {
-    if (!client || typeof client.from !== 'function' || !sw || !sw.probe) return 'unknown';
+    if (!client || !sw) return 'unknown';
+    if (sw.rpc) { if (typeof client.rpc !== 'function') return 'unknown'; }
+    else if (typeof client.from !== 'function' || !sw.probe) return 'unknown';
     try {
-      const res = await client.from(sw.probe).select('*').limit(0);
+      const res = sw.rpc ? await client.rpc(sw.rpc) : await client.from(sw.probe).select('*').limit(0);
       if (!res || !res.error) return 'installed';
       const code = String(res.error.code || ''), msg = String(res.error.message || '');
-      if (code === '42P01' || code === 'PGRST205' || /does not exist|could not find the table/i.test(msg)) return 'not_installed';
+      if (code === '42P01' || code === 'PGRST205' || code === 'PGRST202' || code === '42883' || /does not exist|could not find the (table|function)/i.test(msg)) return 'not_installed';
       return 'unknown';
     } catch (e) { return 'unknown'; }
   }

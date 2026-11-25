@@ -322,6 +322,11 @@ window.HE.modules.define('he-config', { api: 1, needs: [] }, function (ctx) {
     // kept in the database, the same for the owner and the administrators on every
     // device. Reads and writes real records once drafts/60 is installed: OFF, and not
     // a preview.
+    // the New Employee page (owner, Nov 24): a switch that saves real records (accounts), under Admin
+    function peoplePageOn() {
+      try { return typeof localStorage !== 'undefined' && localStorage.getItem('he_people_page') === 'on'; }
+      catch (e) { return false; }
+    }
     function reviewStoreOn() {
       try { return typeof localStorage !== 'undefined' && localStorage.getItem('he_review_store') === 'on'; }
       catch (e) { return false; }
@@ -563,6 +568,7 @@ window.HE.modules.define('he-config', { api: 1, needs: [] }, function (ctx) {
     if (customerEmailsOn()) { const sales = SIDEBAR_GROUPS.find(g => g.label === 'Sales'); if (sales) sales.pages.push({ id: 'customerEmailsPanel', label: 'Customer Emails' }); }
     if (contentHelperOn()) { const sales = SIDEBAR_GROUPS.find(g => g.label === 'Sales'); if (sales) sales.pages.push({ id: 'contentHelperPanel', label: 'Content Helper' }); }
     if (reviewInboxOn()) { const sales = SIDEBAR_GROUPS.find(g => g.label === 'Sales'); if (sales) sales.pages.push({ id: 'reviewsPanel', label: 'Reviews' }); }
+    if (peoplePageOn()) { const admin = SIDEBAR_GROUPS.find(g => g.label === 'Admin'); if (admin) admin.pages.push({ id: 'peoplePanel', label: 'People' }); }
     const ICON_PATHS = {
       attentionPanel:      '<path d="M8 2.2a3.2 3.2 0 0 0-3.2 3.2c0 3.1-1.2 4-1.2 4h8.8s-1.2-.9-1.2-4A3.2 3.2 0 0 0 8 2.2Z"/><path d="M6.6 11.6a1.6 1.6 0 0 0 2.8 0"/>',
       dailySummaryPanel:   '<circle cx="8" cy="8" r="2.6"/><path d="M8 1.6v1.1M8 13.3v1.1M1.6 8h1.1M13.3 8h1.1M3.6 3.6l.8.8M11.6 11.6l.8.8M12.4 3.6l-.8.8M4.4 11.6l-.8.8"/>',
@@ -581,6 +587,7 @@ window.HE.modules.define('he-config', { api: 1, needs: [] }, function (ctx) {
       storeCampaignsPanel: '<rect x="2" y="3.6" width="12" height="8.8" rx="1.6"/><path d="m2.6 4.6 5.4 4 5.4-4"/>',
       customerEmailsPanel: '<circle cx="6" cy="5.4" r="2.4"/><path d="M1.8 13c.4-2.4 2-3.7 4.2-3.7 1 0 1.9.3 2.6.8"/><rect x="9" y="8.6" width="5.6" height="4.4" rx="1"/><path d="m9.3 9.2 2.5 1.9 2.5-1.9"/>',
       contentHelperPanel: '<path d="M3 13l.6-2.8L10.9 2.9a1.2 1.2 0 0 1 1.7 0l.5.5a1.2 1.2 0 0 1 0 1.7L5.8 12.4 3 13z"/><path d="M9.8 4l2.2 2.2"/>',
+      peoplePanel: '<circle cx="6" cy="5.2" r="2.4"/><path d="M1.8 13c.4-2.5 2-3.8 4.2-3.8s3.8 1.3 4.2 3.8"/><path d="M12 6.2v4M10 8.2h4"/>',
       reviewsPanel: '<path d="M8 2.2l1.7 3.5 3.8.5-2.8 2.7.7 3.8L8 10.9l-3.4 1.8.7-3.8L2.5 6.2l3.8-.5L8 2.2z"/>',
       documentsPanel:      '<path d="M4.4 2h5l2.2 2.2v9.4a1 1 0 0 1-1 1H4.4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1Z"/><path d="M9.4 2v2.6H12"/><path d="M5.6 8.4h4.8M5.6 10.8h4.8"/>',
       adverseEventsPanel:  '<circle cx="8" cy="8" r="5.8"/><path d="M8 5.4v5.2M5.4 8h5.2"/>',
@@ -808,6 +815,7 @@ window.HE.modules.define('he-config', { api: 1, needs: [] }, function (ctx) {
     const ROLE_LABELS = {
       owner: 'Owner',
       administrator: 'Administrator',
+      manager: 'Manager',
       employee: 'Employee',
       ai_agent: 'AI Agent',
     };
@@ -1069,5 +1077,5 @@ window.HE.modules.define('he-config', { api: 1, needs: [] }, function (ctx) {
   // (a status, a category, a table name). Without a prototype, a value such as
   // "constructor" or "__proto__" finds nothing instead of a built-in function.
   [STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_FACE, THEME_NAME, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, GO_TO, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, ITEM_TYPE_LABELS, NIGHTLY_PAGES, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, INQ_STATUS_LABELS, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_CATEGORY_LABELS].forEach(o => Object.setPrototypeOf(o, null));
-  return { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, agentDiaryOn, realProfitOn, channelMoneyOn, SWITCH_EVERYONE, sharedSettingsOn, orderCostsOn, incidentCloseOn, batchLabelsOn, orderBatchesOn, orderChannelsOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, newLookOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn, storeCampaignsOn, receiptReaderOn, contentHelperOn, customerEmailsOn, emailSendingOn, mySettingsOn, handoffHandledOn, reviewInboxOn, reviewStoreOn, customersFirstOn };
+  return { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, agentDiaryOn, realProfitOn, channelMoneyOn, SWITCH_EVERYONE, sharedSettingsOn, orderCostsOn, incidentCloseOn, batchLabelsOn, orderBatchesOn, orderChannelsOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, newLookOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn, storeCampaignsOn, receiptReaderOn, contentHelperOn, customerEmailsOn, emailSendingOn, mySettingsOn, handoffHandledOn, reviewInboxOn, reviewStoreOn, customersFirstOn, peoplePageOn };
 });

@@ -84,7 +84,7 @@
       nightlyOverall,
     } = window.HE.helpers;
     // @@ EXT15 modules: created in dependency order (assets/app/*.js; see docs/ops/APPLICATION_MODULE_MAP_EXT15.md)
-    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, agentDiaryOn, realProfitOn, channelMoneyOn, SWITCH_EVERYONE, sharedSettingsOn, orderCostsOn, incidentCloseOn, batchLabelsOn, orderBatchesOn, orderChannelsOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn, storeCampaignsOn, receiptReaderOn, contentHelperOn, customerEmailsOn, emailSendingOn, mySettingsOn, handoffHandledOn, reviewInboxOn, reviewStoreOn, customersFirstOn } = HE.modules.create('he-config', {  });
+    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, agentDiaryOn, realProfitOn, channelMoneyOn, SWITCH_EVERYONE, sharedSettingsOn, orderCostsOn, incidentCloseOn, batchLabelsOn, orderBatchesOn, orderChannelsOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn, storeCampaignsOn, receiptReaderOn, contentHelperOn, customerEmailsOn, emailSendingOn, mySettingsOn, handoffHandledOn, reviewInboxOn, reviewStoreOn, customersFirstOn, peoplePageOn } = HE.modules.create('he-config', {  });
     const { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, focusDialog, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, h, pageIconNode } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
     const { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
     const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, h, supabase });
@@ -5011,6 +5011,183 @@
       }
     });
 
+    // ---------- People: the New Employee page (owner, Nov 24; behind the real-records switch he_people_page)
+    // Rules: assets/views/he-people.js. The database (drafts/62, 64) decides who may change which
+    // account; the helper program (review item 17) creates sign-ins, sets passwords and blocks a
+    // sign-in, each after asking the database for the signed-in person. Nothing is ever deleted.
+    const PP_FN = SUPABASE_URL + '/functions/v1/people-accounts';
+    let ppRows = null, ppErr = '', ppStep = null, ppSeq = 0, ppMsg = '', ppMsgBad = false, ppOpen = '', ppProblems = [], ppBusy = false, ppMe = null;
+    const ppMod = () => (window.HE && window.HE.views && window.HE.views['he-people']) || null;
+    const ppOn = () => typeof peoplePageOn === 'function' && peoplePageOn();
+    const ppSay = (text, bad) => { ppMsg = text; ppMsgBad = !!bad; };
+    // the helper program, asked with this person's own sign-in; the answer is always one plain sentence
+    async function ppHelper(body) {
+      let token = '';
+      try { const { data } = await supabase.auth.getSession(); token = data && data.session ? data.session.access_token : ''; } catch (e) { token = ''; }
+      if (!token) return { ok: false, message: 'Your sign-in has ended. Sign in again; nothing was changed.' };
+      let r;
+      try { r = await fetch(PP_FN, { method: 'POST', headers: { 'content-type': 'application/json', apikey: SUPABASE_ANON_KEY, authorization: 'Bearer ' + token }, body: JSON.stringify(body) }); }
+      catch (e) { return { ok: false, message: 'Could not reach the helper program that creates sign-ins. Nothing was changed; try again.' }; }
+      if (r.status === 404) return { ok: false, message: 'The helper program that creates sign-ins is not set up yet (review item 17). Nothing was changed.' };
+      let j = null; try { j = await r.json(); } catch (e) { j = null; }
+      const said = j && typeof j.message === 'string' ? j.message.slice(0, 400) : '';
+      return { ok: r.ok && !!j && j.ok === true, message: said || ('The helper program refused the request (' + r.status + '). Nothing was changed.'), id: j && typeof j.id === 'string' ? j.id : '' };
+    }
+    async function loadPeoplePage() {
+      const host = document.getElementById('peoplePanel'); const M = ppMod(); if (!host) return;
+      if (!ppOn() || !M) { host.replaceChildren(); return; }
+      if (!M.canOpen(currentUserRole)) { host.replaceChildren(h('h2', null, 'People'), h('p', { class: 'empty' }, 'This page is for the owner, administrators and managers.')); return; }
+      const seq = ++ppSeq;
+      if (!ppRows && !ppErr) renderPeoplePage();
+      const RS = rsMod(), sw = RS ? RS.RECORD_SWITCHES.find(x => x.key === 'he_people_page') : null;
+      const [step, me, list] = await Promise.all([
+        sw ? RS.probe(supabase, sw) : Promise.resolve('unknown'),
+        currentUserId().catch(() => null),
+        Promise.resolve(supabase.from('profiles').select('id, email, display_name, role, is_active, deleted_at, department, account_number, is_break_glass').order('created_at', { ascending: true }).limit(500)).then(v => v, e => ({ error: e })),
+      ]);
+      if (seq !== ppSeq) return;
+      ppStep = step; ppMe = me;
+      ppErr = list && list.error ? M.friendlyError(list.error) : '';
+      ppRows = list && !list.error && Array.isArray(list.data) ? list.data : null;
+      renderPeoplePage();
+    }
+    const PP_STATE = (p) => (p.deleted_at ? 'Removed' : p.is_active ? 'Active' : 'Suspended');
+    function renderPeoplePage() {
+      const host = document.getElementById('peoplePanel'); const M = ppMod(); if (!host || !M) return;
+      const head = [h('h2', null, 'People'),
+        h('p', { class: 'hint' }, 'Add a person and look after the accounts below your level: Owner, then Administrator, then Manager, then Employee. The new person types their own password; nobody else ever knows it. Nothing is ever deleted: "Remove" switches an account off and keeps its whole history.')];
+      if (!ppRows && !ppErr) { host.replaceChildren(...head, h('p', { class: 'empty' }, 'Loading…')); return; }
+      const ready = ppStep === 'installed';
+      const notice = ppStep === 'not_installed' ? h('p', { class: 'hint u-c-warn', role: 'alert', 'data-pp-notinstalled': '1' }, 'The database step for this page is not installed yet (review item 16). The list below is what you can see today; nothing can be changed here until it is installed.')
+        : ppStep !== 'installed' ? h('p', { class: 'hint u-c-warn', role: 'alert' }, 'Could not check the database step just now. Nothing can be changed until it answers; try again later.') : null;
+      const actor = { id: ppMe, role: currentUserRole };
+      const raw = Array.isArray(ppRows) ? ppRows : [];
+      const byId = new Map(raw.map(p => [p.id, p]));
+      const view = M.listView(raw.filter(p => p.role !== 'ai_agent').map(p => ({ id: p.id, name: p.display_name, email: p.email, role: String(p.role || ''), active: p.is_active === true && !p.deleted_at, accountNumber: p.account_number, emergency: p.is_break_glass === true })), actor, {});
+      const levels = M.assignable(currentUserRole);
+      const msg = h('p', { class: 'u-fs-12p5' + (ppMsgBad ? ' u-c-danger' : ''), role: 'status', 'data-pp-msg': '1' }, ppMsg);
+      const addForm = ppOpen === 'add' ? h('form', { class: 'scanCard u-mt-8', 'data-pp-form': 'add', novalidate: true },
+        h('h3', { class: 'u-mt-0' }, 'Add a person'),
+        h('div', { class: 'heField' }, h('label', { for: 'ppName' }, 'Their name'), h('input', { type: 'text', id: 'ppName', maxlength: '80', autocomplete: 'off' })),
+        h('div', { class: 'heField' }, h('label', { for: 'ppEmail' }, 'Their work email'), h('input', { type: 'email', id: 'ppEmail', maxlength: '254', autocomplete: 'off' })),
+        h('div', { class: 'heField' }, h('label', { for: 'ppRole' }, 'Level'), h('select', { id: 'ppRole' }, levels.map(r => h('option', { value: r }, M.ROLE_WORD[r])))),
+        h('ul', { class: 'u-fs-12 u-c-muted u-mt-4' }, levels.map(r => h('li', null, h('b', null, M.ROLE_WORD[r] + ': '), M.ROLE_LINE[r]))),
+        h('div', { class: 'heField' }, h('label', { for: 'ppDept' }, 'Department ', h('span', { class: 'heOpt' }, '(optional)')), h('input', { type: 'text', id: 'ppDept', maxlength: '60', autocomplete: 'off' })),
+        h('p', { class: 'hint u-mt-8' }, h('b', null, 'Now hand the keyboard to the new person.'), ' They type their own password twice (at least ' + M.PW_MIN + ' characters). It is not shown, kept or sent anywhere except to the sign-in provider.'),
+        h('div', { class: 'heField' }, h('label', { for: 'ppPw' }, 'Password'), h('input', { type: 'password', id: 'ppPw', autocomplete: 'new-password', maxlength: String(M.PW_MAX + 1) })),
+        h('div', { class: 'heField' }, h('label', { for: 'ppPw2' }, 'The same password again'), h('input', { type: 'password', id: 'ppPw2', autocomplete: 'new-password', maxlength: String(M.PW_MAX + 1) })),
+        ppProblems.length ? h('ul', { class: 'u-c-danger u-fs-12p5', role: 'alert', 'data-pp-problems': '1' }, ppProblems.map(p => h('li', null, p))) : null,
+        h('div', { class: 'scanToggleRow u-mt-8' },
+          h('button', { type: 'submit', class: 'small', disabled: ppBusy || null }, ppBusy ? 'Creating…' : 'Create the account'),
+          h('button', { type: 'button', class: 'small secondary', 'data-pp': 'close' }, 'Cancel'))) : null;
+      const pwForm = (p) => h('form', { class: 'u-mt-6', 'data-pp-form': 'password', 'data-pp-id': p.id, novalidate: true },
+        h('p', { class: 'hint u-mt-0' }, 'Hand the keyboard to ' + p.name + '. They type their new password twice.'),
+        h('div', { class: 'heField' }, h('label', { for: 'ppNew_' + p.id }, 'New password'), h('input', { type: 'password', id: 'ppNew_' + p.id, autocomplete: 'new-password', maxlength: String(M.PW_MAX + 1) })),
+        h('div', { class: 'heField' }, h('label', { for: 'ppNew2_' + p.id }, 'The same password again'), h('input', { type: 'password', id: 'ppNew2_' + p.id, autocomplete: 'new-password', maxlength: String(M.PW_MAX + 1) })),
+        ppProblems.length ? h('ul', { class: 'u-c-danger u-fs-12p5', role: 'alert', 'data-pp-problems': '1' }, ppProblems.map(x => h('li', null, x))) : null,
+        h('div', { class: 'scanToggleRow u-mt-6' },
+          h('button', { type: 'submit', class: 'small', disabled: ppBusy || null }, 'Set the new password'),
+          h('button', { type: 'button', class: 'small secondary', 'data-pp': 'close' }, 'Cancel')));
+      const actions = (p) => {
+        const r = byId.get(p.id) || {}, state = PP_STATE(r);
+        if (!p.canManage) return h('span', { class: 'u-fs-12 u-c-muted' }, p.why);
+        if (!ready) return h('span', { class: 'u-fs-12 u-c-muted' }, 'Waits for the database step.');
+        const confirmRemove = ppOpen === 'remove:' + p.id;
+        return h('div', null,
+          h('div', { class: 'scanToggleRow' },
+            p.roles.length ? h('select', { 'data-pp-level': p.id, 'aria-label': 'New level for ' + p.name }, h('option', { value: '' }, 'Change level…'), p.roles.map(x => h('option', { value: x }, M.ROLE_WORD[x]))) : null,
+            state === 'Active' ? h('button', { type: 'button', class: 'small secondary', 'data-pp': 'suspend', 'data-pp-id': p.id, disabled: ppBusy || null, 'aria-label': 'Suspend ' + p.name }, 'Suspend')
+              : h('button', { type: 'button', class: 'small secondary', 'data-pp': 'back', 'data-pp-id': p.id, disabled: ppBusy || null, 'aria-label': 'Bring back ' + p.name }, 'Bring back'),
+            state !== 'Removed' ? h('button', { type: 'button', class: 'small secondary', 'data-pp': 'ask-remove', 'data-pp-id': p.id, disabled: ppBusy || null, 'aria-label': 'Remove ' + p.name }, 'Remove') : null,
+            state === 'Active' ? h('button', { type: 'button', class: 'small secondary', 'data-pp': 'open-password', 'data-pp-id': p.id, 'aria-label': 'New password for ' + p.name }, 'New password') : null),
+          confirmRemove ? h('div', { class: 'scanToggleRow u-mt-6', role: 'group', 'aria-label': 'Confirm removing ' + p.name },
+            h('span', { class: 'u-fs-12p5' }, 'Remove ' + p.name + '? They can no longer sign in. Their history stays, and the account can be brought back.'),
+            h('button', { type: 'button', class: 'small', 'data-pp': 'remove', 'data-pp-id': p.id }, 'Yes, remove'),
+            h('button', { type: 'button', class: 'small secondary', 'data-pp': 'close' }, 'Cancel')) : null,
+          ppOpen === 'password:' + p.id ? pwForm(p) : null);
+      };
+      const table = ppErr ? h('p', { class: 'hint u-c-warn', role: 'alert' }, ppErr)
+        : h('table', { class: 'phoneCards u-mt-8', 'data-pp-list': '1' },
+          h('thead', null, h('tr', null, h('th', null, 'Person'), h('th', null, 'Level'), h('th', null, 'Status'), h('th', null, 'What you can do'))),
+          h('tbody', null, view.map(p => h('tr', { 'data-pp-row': p.id, 'data-pp-state': PP_STATE(byId.get(p.id) || {}) },
+            h('td', null, h('div', { class: 'taskTitle' }, p.name), h('div', { class: 'u-fs-12 u-c-muted' }, p.email + (p.accountNumber ? ' · #' + p.accountNumber : '')), p.emergency ? h('div', { class: 'u-fs-11 u-c-muted' }, 'Emergency account') : null),
+            h('td', null, p.roleWord),
+            h('td', null, PP_STATE(byId.get(p.id) || {})),
+            h('td', null, actions(p))))));
+      host.replaceChildren(...[...head, notice, msg,
+        ready && levels.length && ppOpen !== 'add' ? h('button', { type: 'button', class: 'small', 'data-pp': 'open-add' }, 'Add a person') : null,
+        addForm, table].filter(Boolean));
+      labelPhoneCards(host);
+    }
+    // a database step for one account, then (when it changes who can sign in) the helper program
+    async function ppAct(kind, id, level) {
+      const M = ppMod(); const p = (ppRows || []).find(x => x.id === id); if (!M || !p || ppBusy) return;
+      const name = p.display_name || p.email || 'This person';
+      ppBusy = true; renderPeoplePage();
+      try {
+        if (kind === 'level') {
+          const r = await supabase.rpc('people_set_role', { p_person: id, p_role: level });
+          ppSay(r.error ? M.friendlyError(r.error) : name + ' is now ' + M.ROLE_WORD[level] + '.', !!r.error);
+        } else {
+          const status = kind === 'back' ? 'active' : kind === 'remove' ? 'removed' : 'suspended';
+          const r = await supabase.rpc('people_set_status', { p_person: id, p_status: status });
+          if (r.error) ppSay(M.friendlyError(r.error), true);
+          else {
+            const done = { active: name + ' is back and can sign in again.', removed: name + ' is removed. Their history stays.', suspended: name + ' is suspended.' }[status];
+            const s = await ppHelper({ action: status === 'active' ? 'unblock' : 'block', person: id });
+            ppSay(s.ok ? done : done + ' But the sign-in itself could not be ' + (status === 'active' ? 'unblocked' : 'blocked') + ': ' + s.message, !s.ok);
+          }
+        }
+      } finally { ppBusy = false; ppOpen = ''; }
+      await loadPeoplePage(); announce(ppMsg);
+      const m = document.querySelector('#peoplePanel [data-pp-msg]'); if (m) { m.setAttribute('tabindex', '-1'); m.focus(); }
+    }
+    document.addEventListener('click', (e) => {
+      const t = e.target.closest('#peoplePanel [data-pp]'); if (!t) return;
+      const M = ppMod(); if (!M || !M.canOpen(currentUserRole)) return;
+      const act = t.getAttribute('data-pp'), id = t.getAttribute('data-pp-id') || '';
+      if (act === 'open-add') { ppOpen = 'add'; ppProblems = []; ppSay(''); renderPeoplePage(); const f = document.getElementById('ppName'); if (f) f.focus(); return; }
+      if (act === 'close') { ppOpen = ''; ppProblems = []; renderPeoplePage(); const b = document.querySelector('#peoplePanel [data-pp="open-add"]'); if (b) b.focus(); return; }
+      if (act === 'open-password') { ppOpen = 'password:' + id; ppProblems = []; renderPeoplePage(); const f = document.getElementById('ppNew_' + id); if (f) f.focus(); return; }
+      if (act === 'ask-remove') { ppOpen = 'remove:' + id; renderPeoplePage(); const y = document.querySelector('#peoplePanel [data-pp="remove"]'); if (y) y.focus(); return; }
+      if (act === 'suspend' || act === 'back' || act === 'remove') ppAct(act, id);
+    });
+    document.addEventListener('change', (e) => {
+      const s = e.target.closest('#peoplePanel [data-pp-level]'); if (!s || !s.value) return;
+      ppAct('level', s.getAttribute('data-pp-level'), s.value);
+    });
+    document.addEventListener('submit', async (e) => {
+      const f = e.target.closest('#peoplePanel [data-pp-form]'); if (!f) return;
+      e.preventDefault();
+      const M = ppMod(); if (!M || ppBusy || !M.canOpen(currentUserRole)) return;
+      const val = (id) => { const el = document.getElementById(id); return el ? el.value : ''; };
+      const wipe = () => f.querySelectorAll('input[type=password]').forEach(i => { i.value = ''; });
+      if (f.getAttribute('data-pp-form') === 'add') {
+        const form = { name: val('ppName'), email: val('ppEmail'), role: val('ppRole'), department: val('ppDept') };
+        const a = M.checkNew(form, currentUserRole, {}), b = M.checkPassword(val('ppPw'), val('ppPw2'), { email: form.email });
+        ppProblems = a.problems.concat(b.problems);
+        if (ppProblems.length) { const keep = form; renderPeoplePage(); ['ppName', 'ppEmail', 'ppRole', 'ppDept'].forEach((k, i) => { const el = document.getElementById(k); if (el) el.value = [keep.name, keep.email, keep.role, keep.department][i]; }); const l = document.querySelector('#peoplePanel [data-pp-problems]'); if (l) { l.setAttribute('tabindex', '-1'); l.focus(); } return; }
+        ppBusy = true; const pw = val('ppPw'); wipe();
+        const r = await ppHelper({ action: 'create', name: a.value.name, email: a.value.email, role: a.value.role, department: a.value.department, password: pw });
+        ppBusy = false;
+        if (r.ok) { ppOpen = ''; ppProblems = []; ppSay(r.message); }
+        else { ppProblems = [r.message]; }
+        await loadPeoplePage();
+        if (!r.ok) { ['ppName', 'ppEmail', 'ppRole', 'ppDept'].forEach((k, i) => { const el = document.getElementById(k); if (el) el.value = [a.value.name, a.value.email, a.value.role, a.value.department][i]; }); const l = document.querySelector('#peoplePanel [data-pp-problems]'); if (l) { l.setAttribute('tabindex', '-1'); l.focus(); } announce(r.message); return; }
+        announce(ppMsg); const m = document.querySelector('#peoplePanel [data-pp-msg]'); if (m) { m.setAttribute('tabindex', '-1'); m.focus(); }
+        return;
+      }
+      const id = f.getAttribute('data-pp-id'); const p = (ppRows || []).find(x => x.id === id); if (!p) return;
+      const c = M.checkPassword(val('ppNew_' + id), val('ppNew2_' + id), { email: p.email });
+      if (!c.ok) { ppProblems = c.problems; wipe(); renderPeoplePage(); const l = document.querySelector('#peoplePanel [data-pp-problems]'); if (l) { l.setAttribute('tabindex', '-1'); l.focus(); } return; }
+      ppBusy = true; const pw = val('ppNew_' + id); wipe();
+      const r = await ppHelper({ action: 'password', person: id, email: p.email, password: pw });
+      ppBusy = false;
+      if (r.ok) { ppOpen = ''; ppProblems = []; ppSay(r.message); } else { ppProblems = [r.message]; }
+      renderPeoplePage(); announce(r.message);
+      const target = document.querySelector(r.ok ? '#peoplePanel [data-pp-msg]' : '#peoplePanel [data-pp-problems]'); if (target) { target.setAttribute('tabindex', '-1'); target.focus(); }
+    });
+
     // ---------- Backups & Printouts (owner request, Nov 23; behind backupsPageOn)
     // One place for the paper and file copies the owner keeps: the daily recaps
     // (print a month on Letter, or save it as a spreadsheet file), the manuals
@@ -7123,6 +7300,7 @@
       contentHelperPanel: [loadContentHelper],
       customerEmailsPanel: [loadCustomerEmails],
       reviewsPanel: [loadReviewInbox],
+      peoplePanel: [loadPeoplePage],
       featureRequestsPanel: [loadFeatureRequests, loadDeletedFeatureRequests],
       legalHoldsPanel: [loadLegalHolds, loadReleasedLegalHolds],
       salesCommandPanel:   [() => loadSales('salesCommandPanel')],
