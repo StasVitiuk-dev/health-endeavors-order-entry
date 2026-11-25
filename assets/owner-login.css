@@ -1370,6 +1370,9 @@ table.sysStatus td{ overflow-wrap:anywhere; }
   .printView .printLabel{ font-weight:700; }
   .printView .printMark{ border:2px solid #000; padding:6px 10px; margin-bottom:10px; font-weight:700; text-align:center; letter-spacing:0.04em; }
   .printView .printRemit{ margin-top:12px; padding:0 8px; }
+  .printView .wrTable{ max-width:none; }
+  .printView .wrTable th, .printView .wrTable td{ padding:2px 8px; }
+  .printView .wrTable [data-wrsection] th{ padding-top:8px; }
 }
 
 /* One attention feed (Nov 23; behind he_attention_feed): one list, most urgent
@@ -1399,7 +1402,13 @@ table.sysStatus td{ overflow-wrap:anywhere; }
 .feedWho{ display:block; font-size:11px; font-weight:700; color:var(--muted); margin-bottom:2px; }
 .feedActions{ display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
 .feedActions button{ min-height:32px; }
-.feedActions [data-feedkept]{ align-self:center; }   /* the note on a customer's message lines up with its buttons */
+.feedActions [data-feedkept]{ align-self:center; }
+/* Weekly report: a narrow two-column table that keeps its labels readable on a phone */
+.wrTable{ width:100%; max-width:640px; table-layout:fixed; }
+.wrTable th, .wrTable td{ white-space:normal; }
+.wrTable th[scope="row"]{ width:56%; font-weight:400; text-align:left; overflow-wrap:anywhere; }
+.wrTable td{ text-align:right; overflow-wrap:anywhere; }
+.wrTable [data-wrsection] th{ text-align:left; padding-top:10px; }   /* the note on a customer's message lines up with its buttons */
 .feedSnoozed{ margin-top:10px; }
 @media (max-width:640px){
   .feedItem{ padding:10px 12px; }
