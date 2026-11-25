@@ -6420,7 +6420,10 @@
       supplierDocsLast = { mode, data, store: mode === 'stored' ? store : null, myId, names };
       const ov = eng.overview(data.suppliers, data.context, data.documents, { asOf, checklist: data.checklist });
       if (!ov.ok) { host.replaceChildren(h('p', { class: 'empty' }, 'Supplier documents: ' + ov.reason + '.')); return; }
-      const isOwner = currentUserRole === 'owner' || currentUserRole === 'administrator';   // reviews: owner or administrator (owner decision, Nov 24)
+      const isOwner = currentUserRole === 'owner' || currentUserRole === 'administrator';   // owner or administrator (owner decision, Nov 24)
+      // A manager approves or rejects a document someone ELSE recorded, and opens files to do it
+      // (owner decision of Nov 25); everything else here stays with the owner and administrators.
+      const isManager = currentUserRole === 'manager';
       const detail = r => r.status === 'APPROVED' ? 'Reviewed by ' + (mode === 'stored' ? sdPerson(r.reviewedBy) : r.reviewedBy) + ' on ' + String(r.reviewedAt).slice(0, 10) + (r.expiresOn ? ' · valid until ' + r.expiresOn : '')
         : r.status === 'AWAITING_REVIEW' ? 'Received ' + (r.receivedAt ? String(r.receivedAt).slice(0, 10) : '(date not recorded)') + (mode === 'stored' && r.recordedBy ? ', recorded by ' + sdPerson(r.recordedBy) : '') + ' — nobody has reviewed it yet'
         : r.status === 'REJECTED' ? 'Rejected' + (r.note ? ': ' + r.note : '')
@@ -6428,25 +6431,27 @@
       const actions = r => {
         if (mode !== 'stored' || r.status !== 'AWAITING_REVIEW' || !r.documentId) return null;
         const mine = r.recordedBy && r.recordedBy === myId;
-        if (!isOwner && !mine) return null;
+        const review = isOwner || (isManager && !mine);   // a manager never reviews their own document
+        const withdraw = isOwner || mine;
+        if (!review && !withdraw) return null;
         const id = r.documentId;
         return h('div', { class: 'scanToggleRow u-mt-6', 'data-sdrow': id },
-          h('input', { type: 'text', class: 'u-flex-1', maxlength: '500', placeholder: isOwner ? 'Reason (needed to reject or withdraw)' : 'Reason (needed to withdraw)', 'aria-label': 'Reason for ' + r.label + ', ' + r.subjectLabel, 'data-sdreason': id }),
-          isOwner ? h('button', { type: 'button', class: 'small', 'data-sdact': 'approved', 'data-docid': id }, 'Approve') : null,
-          isOwner ? h('button', { type: 'button', class: 'small secondary', 'data-sdact': 'rejected', 'data-docid': id }, 'Reject') : null,
-          h('button', { type: 'button', class: 'small secondary', 'data-sdact': 'withdraw', 'data-docid': id }, 'Withdraw'));
+          h('input', { type: 'text', class: 'u-flex-1', maxlength: '500', placeholder: review && withdraw ? 'Reason (needed to reject or withdraw)' : review ? 'Reason (needed to reject)' : 'Reason (needed to withdraw)', 'aria-label': 'Reason for ' + r.label + ', ' + r.subjectLabel, 'data-sdreason': id }),
+          review ? h('button', { type: 'button', class: 'small', 'data-sdact': 'approved', 'data-docid': id }, 'Approve') : null,
+          review ? h('button', { type: 'button', class: 'small secondary', 'data-sdact': 'rejected', 'data-docid': id }, 'Reject') : null,
+          withdraw ? h('button', { type: 'button', class: 'small secondary', 'data-sdact': 'withdraw', 'data-docid': id }, 'Withdraw') : null);
       };
-      // Files (drafts/38): only the owner opens one; the person who recorded a
-      // waiting document (or the owner) attaches its one file.
+      // Files (drafts/38): the owner, an administrator or a manager opens one; the person who
+      // recorded a waiting document (or the owner) attaches its one file.
       const docById = {}; (data.documents || []).forEach(d => { docById[d.id] = d; });
       const fileCtl = r => {
         if (mode !== 'stored' || !r.documentId) return null;
         const d = docById[r.documentId] || {}, id = r.documentId;
         if (d.filePath) {
-          return isOwner ? h('div', { class: 'scanToggleRow u-mt-6', 'data-sdfilerow': id },
+          return isOwner || isManager ? h('div', { class: 'scanToggleRow u-mt-6', 'data-sdfilerow': id },
             h('button', { type: 'button', class: 'small secondary', 'data-sdopen': id }, 'Open file'),
             h('span', { class: 'u-fs-12', 'data-sdfilelink': id }))
-            : h('div', { class: 'u-fs-12 u-c-muted u-mt-6', 'data-sdfilerow': id }, 'File attached. Only the owner or an administrator can open it.');
+            : h('div', { class: 'u-fs-12 u-c-muted u-mt-6', 'data-sdfilerow': id }, 'File attached. Only the owner, an administrator or a manager can open it.');
         }
         const mine = r.recordedBy && r.recordedBy === myId;
         if (r.status !== 'AWAITING_REVIEW' || (!isOwner && !mine)) return null;

@@ -67,6 +67,7 @@ drop function if exists public.supplier_document_events_guard();
 drop function if exists public.supplier_document_checklist_guard();
 drop function if exists public.supplier_document_checklist_history();
 drop function if exists public.supplier_document_profiles_known(text[]);
+drop function if exists public.supplier_documents_can_review(uuid);
 drop function if exists public.supplier_documents_is_owner();
 
 commit;

@@ -10,9 +10,10 @@
 // rule again on its own (drafts/36); this file gives plain-English messages
 // earlier and maps the shapes onto the checklist engine (he-supplier-docs.js):
 //   * staff, administrators and the owner may record that a document arrived
-//   * ONLY the owner or an administrator (owner decision, Nov 24) approves,
-//     rejects, corrects, withdraws an approved document
-//     or changes the checklist
+//   * the owner or an administrator (owner decision, Nov 24) approves or rejects;
+//     a manager does too, for a document someone else recorded (Nov 25)
+//   * ONLY the owner or an administrator corrects, withdraws an approved
+//     document or changes the checklist
 //   * every recording carries a request key; the page keeps the same key until
 //     the save succeeds, so a retry after a lost reply never records twice
 (function (root, factory) {
@@ -180,7 +181,10 @@
     const enabled = o.enabled === true;
     const role = o.role == null ? null : String(o.role);
     const inFlight = new Set();
-    const isOwner = role === 'owner' || role === 'administrator';   // reviews: owner or administrator (owner decision, Nov 24)
+    const isOwner = role === 'owner' || role === 'administrator';   // owner or administrator (owner decision, Nov 24)
+    // A manager approves or rejects (not their own document: the database refuses that) and
+    // opens files to do it (owner decision of Nov 25). Everything else stays owner/administrator.
+    const mayReview = isOwner || role === 'manager';
 
     function off() { return { ok: false, off: true, message: OFF_MESSAGE }; }
     function refuse(message, extra) { return Object.assign({ ok: false, message: message }, extra || {}); }
@@ -277,7 +281,7 @@
     async function review(id, decision, note) {
       const r = ready(); if (r) return r;
       if (!isUuid(id)) return refuse('Not reviewed: that is not a stored document.');
-      if (role != null && !isOwner) return refuse('Only the owner or an administrator can approve or reject a supplier document.');
+      if (role != null && !mayReview) return refuse('Only the owner, an administrator or a manager can approve or reject a supplier document.');
       if (decision !== 'approved' && decision !== 'rejected') return refuse('A review is either approved or rejected.');
       if (decision === 'rejected' && text(note).length < 5) return refuse('Say why the document is rejected.');
       return once('review:' + id, async function () {
@@ -397,7 +401,7 @@
       const r = ready(); if (r) return r;
       const d = doc || {};
       if (!d.filePath) return refuse('This document has no file.');
-      if (role != null && !isOwner) return refuse('Only the owner or an administrator can open supplier document files.');
+      if (role != null && !mayReview) return refuse('Only the owner, an administrator or a manager can open supplier document files.');
       if (!client.storage || typeof client.storage.from !== 'function') return refuse('File storage is not available.');
       return once('open:' + d.filePath, async function () {
         const res = await client.storage.from(BUCKET).createSignedUrl(d.filePath, LINK_SECONDS);

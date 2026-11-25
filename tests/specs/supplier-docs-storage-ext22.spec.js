@@ -167,7 +167,7 @@ test.describe('against a real database with drafts/36 installed', () => {
       await login(page); await open(page);
       const row = page.locator('#supplierDocsHost tr[data-dockey="certificate_of_analysis"][data-subject="LOT-700"]');
       await row.locator('[data-sdact="approved"]').click();
-      await expect(page.locator('.toast', { hasText: 'Only the owner or an administrator can approve or reject a supplier document.' })).toHaveCount(1);
+      await expect(page.locator('.toast', { hasText: 'Only the owner, an administrator or a manager can approve or reject a supplier document.' })).toHaveCount(1);
       await expect(page.locator('#supplierDocsHost tr[data-dockey="certificate_of_analysis"][data-subject="LOT-700"]')).toContainText('Awaiting review');
       expect(await db.query("select status from supplier_documents where reference = 'COA-700'")).toBe('received');
       // nor change the checklist (after the section has redrawn from the database)
@@ -330,7 +330,7 @@ test.describe('against a real database with drafts/36 installed', () => {
         await expect(page.locator('#supplierDocsHost tr[data-dockey="certificate_of_analysis"][data-subject="LOT-700"] [data-sdfile]')).toHaveCount(0);
         await row.locator('[data-sdfile]').setInputFiles(pdf);
         await row.locator('[data-sdattach]').click();
-        await expect(row.locator('[data-sdfilerow]')).toContainText('File attached. Only the owner or an administrator can open it.');
+        await expect(row.locator('[data-sdfilerow]')).toContainText('File attached. Only the owner, an administrator or a manager can open it.');
         await expect(row.locator('[data-sdopen]')).toHaveCount(0);
         const sha = require('crypto').createHash('sha256').update(pdf.buffer).digest('hex');
         expect(await db.query("select file_sha256||'/'||file_bytes||'/'||file_type from supplier_documents where kind = 'batch_record'")).toBe(sha + '/' + pdf.buffer.length + '/application/pdf');
@@ -362,7 +362,7 @@ test.describe('against a real database with drafts/36 installed', () => {
         await expect(page.locator('.toast', { hasText: /Could not reach the database|try again/ })).toHaveCount(1);
         expect(await db.query("select (file_path is not null)::text from supplier_documents where kind = 'batch_record'")).toBe('true');
         // after the redraw the document already has its file: no second upload is offered
-        await expect(row.locator('[data-sdfilerow]')).toContainText('File attached. Only the owner or an administrator can open it.');
+        await expect(row.locator('[data-sdfilerow]')).toContainText('File attached. Only the owner, an administrator or a manager can open it.');
         expect(await db.query("select count(*) from storage.objects where bucket_id = 'supplier-documents'")).toBe('1');
         expect(await db.query("select count(*) from supplier_document_events where event = 'file_attached'")).toBe('1');
         expect(db.calls).toContain('reply lost attach_supplier_document_file');
@@ -433,7 +433,7 @@ test.describe('against a real database with drafts/36 installed', () => {
         await expect(row.locator('[data-sdfileurl]')).toHaveCount(0);
         // nor approve through the backend
         await row.locator('[data-sdact="approved"]').click();
-        await expect(page.locator('.toast', { hasText: 'Only the owner or an administrator can approve' })).toHaveCount(1);
+        await expect(page.locator('.toast', { hasText: 'Only the owner, an administrator or a manager can approve' })).toHaveCount(1);
         expect(await db.query("select status||'/'||coalesce(approved_file_sha256,'none') from supplier_documents where id = '" + DOC + "'")).toBe('received/none');
       } finally { await db.close(); }
     });

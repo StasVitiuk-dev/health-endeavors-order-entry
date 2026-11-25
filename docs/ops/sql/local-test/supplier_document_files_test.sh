@@ -8,7 +8,8 @@
 # every download, signed link and upload; here the test runs those checks
 # directly (a read of the object row = "may open / may get a link").
 # Owner decision of Nov 21: only the owner opens files; changed by the owner's
-# decision of Nov 24: the owner OR an active administrator opens and approves.
+# decision of Nov 24: the owner OR an active administrator opens and approves;
+# and of Nov 25: an active manager opens files too (a manager approves documents).
 # Staff and a switched-off administrator cannot open a file through a direct
 # link or approve through the backend. All rows synthetic.
 # Usage: supplier_document_files_test.sh -h /var/tmp/hepg -p 5499 -U postgres   (source db: he_real)
@@ -25,14 +26,16 @@ as()   { local who="$1" sql="$2" pre
          psql "${CONN[@]}" -d "$DB" -qtAX -c "begin; $pre $sql; commit;" 2>&1 | grep -v '^\(BEGIN\|COMMIT\|SET\|ROLLBACK\)$'; }
 OUTF=$(mktemp)
 O=00000000-0000-4000-8000-0000000004e1; A=00000000-0000-4000-8000-0000000004e2; E=00000000-0000-4000-8000-0000000004e4; E2=00000000-0000-4000-8000-0000000004e5; X=00000000-0000-4000-8000-0000000004e3
+M=00000000-0000-4000-8000-0000000004e6; M2=00000000-0000-4000-8000-0000000004e7   # a manager, a switched-off manager
 LAB=00000000-0000-4000-8000-0000000004f1
 K() { printf '00000000-0000-4000-8000-%012d' "$1"; }
 psql "${CONN[@]}" -d postgres -qX -c "drop database if exists $DB" >/dev/null 2>&1
 psql "${CONN[@]}" -d postgres -qX -v ON_ERROR_STOP=1 -c "create database $DB template $SRC" >/dev/null || { echo "cannot copy $SRC"; exit 2; }
-q "delete from profiles where id in ('$O','$A','$E','$E2','$X');
+q "delete from profiles where id in ('$O','$A','$E','$E2','$X','$M','$M2');
    insert into profiles (id, email, role, is_active, account_number) values ('$O','owner@example.test','owner',true,'700000001'),
      ('$A','admin@example.test','administrator',true,'700000002'), ('$E','staff@example.test','employee',true,'700000004'), ('$E2','staff2@example.test','employee',true,'700000005'),
-     ('$X','gone-admin@example.test','administrator',false,'700000003');
+     ('$X','gone-admin@example.test','administrator',false,'700000003'), ('$M','manager@example.test','manager',true,'700000006'),
+     ('$M2','gone-manager@example.test','manager',false,'700000007');
    insert into suppliers (id, name, supplier_type, is_active) values ('$LAB','SYN Lotion Lab','lab',true);
    -- STAND-IN for Supabase's storage schema (the shape its rules run against)
    create schema storage;
@@ -74,6 +77,8 @@ ok  "the staff member who uploaded it cannot open it" "$(see $E "$D1/coa.pdf")" 
 ok  "another staff member cannot" "$(see $E2 "$D1/coa.pdf")" "0"
 ok  "an administrator can open it (owner decision of Nov 24)" "$(see $A "$D1/coa.pdf")" "1"
 ok  "a switched-off administrator cannot" "$(see $X "$D1/coa.pdf")" "0"
+ok  "a manager can open it, to approve it (owner decision of Nov 25)" "$(see $M "$D1/coa.pdf")" "1"
+ok  "a switched-off manager cannot" "$(see $M2 "$D1/coa.pdf")" "0"
 has "a visitor cannot" "$(see anon "$D1/coa.pdf")" "permission denied\|^0$"
 ok  "  nor list the bucket" "$(as $X "select count(*) from storage.objects where bucket_id = 'supplier-documents'")" "0"
 ok  "staff cannot list the bucket either" "$(as $E2 "select count(*) from storage.objects where bucket_id = 'supplier-documents'")" "0"
@@ -88,7 +93,7 @@ ok  "nobody can delete a file (owner and administrators included)" "$(q "select 
 
 echo " approving"
 has "staff cannot approve" "$(as $E "select public.review_supplier_document('$D1','approved',null)")" "Only the owner"
-has "a switched-off administrator cannot approve" "$(as $X "select public.review_supplier_document('$D1','approved',null)")" "Only the owner or an administrator\|No such supplier document"
+has "a switched-off administrator cannot approve" "$(as $X "select public.review_supplier_document('$D1','approved',null)")" "Only the owner, an administrator or a manager can approve or reject\|No such supplier document"
 has "an administrator approves the second document" "$(as $A "select public.review_supplier_document('$D2','approved',null)")" '"status": "approved"'
 ok  "  approved by the administrator, for the exact file" "$(q "select (reviewed_by = '$A')::text||'/'||(approved_file_sha256 = file_sha256)::text from supplier_documents where id = '$D2'")" "true/true"
 has "the owner approves" "$(as $O "select public.review_supplier_document('$D1','approved',null)")" '"status": "approved"'

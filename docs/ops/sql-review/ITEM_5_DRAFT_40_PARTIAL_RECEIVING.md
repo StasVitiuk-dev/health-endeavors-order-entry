@@ -42,9 +42,29 @@ can never go back to Available: the database refuses it.
 ### Managers (drafts/62 and 64, not installed)
 
 A manager is treated like an employee here: they record deliveries and returns for
-the purchase orders they can see, and **cannot approve**. Whether managers should
-approve deliveries or returns is **OWNER DECISION REQUIRED**; until you decide, they
-cannot. (The dashboard was corrected on Nov 25 so that a manager can at least do what
+the purchase orders they can see, and **cannot approve yet**.
+
+**Owner decision of Nov 25: yes, a manager should approve deliveries and returns.** It is
+not applied to this draft yet, because of one thing that needs your choice (OWNER DECISION
+REQUIRED, see "How a manager may change stock" below). Supplier documents (item 4) were
+simpler and are already changed.
+
+#### How a manager may change stock (the open choice)
+
+Approving a delivery changes stock: it adds to Available, raises "received" on the order line
+and writes the stock history. In production, those stock tables can be changed **only by the
+owner or an administrator** (the existing rules, Query A), and every function in this draft runs
+with the rights of the person who clicks. So letting a manager press Approve is not enough:
+their approval would be refused when it tries to change stock. Two ways:
+
+- **A (recommended): one narrow "approval only" function with raised rights.** A manager can
+  change stock **only** by approving a delivery or return someone else recorded; they still
+  cannot edit stock numbers directly. It is the project's first such function in a new draft,
+  so it is written and tested on its own, with a test that it changes nothing else.
+- **B: give managers the same stock-table rights as administrators.** Simpler, but a manager
+  could then also change stock numbers directly through the database, not only by approving.
+
+Until you choose, managers record but do not approve deliveries and returns. (The dashboard was corrected on Nov 25 so that a manager can at least do what
 an employee can; before that, the page would have refused a manager outright.)
 
 ## The exact SQL

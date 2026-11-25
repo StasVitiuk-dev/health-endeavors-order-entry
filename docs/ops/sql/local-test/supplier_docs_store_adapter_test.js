@@ -175,11 +175,11 @@ const count = (sql) => psql(DB, sql);
 
   console.log(' only the owner or an administrator reviews or changes the checklist (owner decision of Nov 24)');
   const id = doc.id;
-  has('the page refuses a staff member\'s approval', (await store(E, 'employee').review(id, 'approved')).message, /Only the owner or an administrator/);
+  has('the page refuses a staff member\'s approval', (await store(E, 'employee').review(id, 'approved')).message, /Only the owner, an administrator or a manager can approve or reject/);
   const before = rpcCalls;
   await store(E, 'employee').review(id, 'approved');
   ok('  without asking the database', rpcCalls, before);
-  has('with the page\'s check bypassed, the database refuses staff', (await store(E, null).review(id, 'approved')).message, /Only the owner or an administrator can approve or reject/);
+  has('with the page\'s check bypassed, the database refuses staff', (await store(E, null).review(id, 'approved')).message, /Only the owner, an administrator or a manager can approve or reject/);
   has('  and staff changing the checklist', (await store(E, null).setTypeProfiles('other', ['labels_printing'])).message, /Only the owner or an administrator can change/);
   ok('  the document is still waiting', count("select status from supplier_documents where id = '" + id + "'"), 'received');
   has('a rejection needs a reason', (await store(O, 'owner').review(id, 'rejected', 'no')).message, /Say why/);

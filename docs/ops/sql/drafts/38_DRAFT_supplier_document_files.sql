@@ -5,7 +5,7 @@
 -- @depends-on:  36
 -- @risk:        LOW
 -- @precheck:    stops if storage.objects, storage.buckets, supplier_documents or supplier_documents_is_owner() is missing
--- @effect:      a private storage bucket supplier-documents (PDF/JPEG/PNG, 10 MB); two rules on storage.objects for that bucket only: the owner or an administrator reads (opens, downloads, signs links) (owner decision of Nov 24); the person who recorded a waiting document (or the owner or an administrator) uploads into its folder; no replace or delete rule
+-- @effect:      a private storage bucket supplier-documents (PDF/JPEG/PNG, 10 MB); two rules on storage.objects for that bucket only: the owner, an administrator or a manager reads (opens, downloads, signs links) (owner decisions of Nov 24 and 25); the person who recorded a waiting document (or the owner or an administrator) uploads into its folder; no replace or delete rule
 -- @postcheck:   bucket public = false; two new storage rules; local-test/supplier_document_files_test.sh passes on a throwaway copy
 -- @rollback:    drafts/39
 -- @@ end metadata @@
@@ -21,15 +21,17 @@
 -- Changed Nov 24 (owner decision, administrator "almost like owner"): files are
 -- opened by the owner OR an administrator. Nothing in this file changed for it:
 -- the rules below ask supplier_documents_is_owner() (drafts/36), which now
--- answers yes for an active administrator too. Staff and managers still cannot
--- open a file, even with a direct link.
+-- answers yes for an active administrator too.
+-- Changed Nov 25 (owner decision: a manager approves supplier documents too): a
+-- manager may open files as well, because approving means looking at the file.
+-- Employees still cannot open a file, even with a direct link.
 --
 -- What it adds
 --   * a PRIVATE storage bucket `supplier-documents` (no public links), PDF,
 --     JPEG or PNG only, at most 10 MB a file
 --   * three rules on storage.objects for that bucket only:
 --       read (which is what opening, downloading and signing a link need):
---         the OWNER or an ADMINISTRATOR only
+--         the OWNER, an ADMINISTRATOR or a MANAGER only
 --       upload: the person who recorded the document, the owner or an
 --         administrator, into that
 --         document's own folder, while it waits for review and has no file yet
@@ -88,7 +90,7 @@ revoke all on function public.supplier_document_file_upload_allowed(text) from p
 grant execute on function public.supplier_document_file_upload_allowed(text) to authenticated;
 
 drop policy if exists supplier_document_files_owner_read on storage.objects;
-create policy supplier_document_files_owner_read on storage.objects for select to authenticated using (bucket_id = 'supplier-documents' and public.supplier_documents_is_owner());
+create policy supplier_document_files_owner_read on storage.objects for select to authenticated using (bucket_id = 'supplier-documents' and coalesce(public.supplier_documents_is_owner() or public.current_role() = 'manager', false));
 drop policy if exists supplier_document_files_upload on storage.objects;
 create policy supplier_document_files_upload on storage.objects for insert to authenticated with check (bucket_id = 'supplier-documents' and public.supplier_document_file_upload_allowed(name));
 

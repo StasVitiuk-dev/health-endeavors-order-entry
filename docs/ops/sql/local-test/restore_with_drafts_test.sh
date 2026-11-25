@@ -117,7 +117,7 @@ has "the next invoice gets the NEXT number (the counter carried over; no number 
 has "staff still cannot issue" "$(as $DST $E "select public.issue_invoice('$D1')")" "Only the owner or an administrator can issue"
 has "staff still cannot approve a stock count (the owner or an administrator does, Nov 24)" "$(as $DST $E "select public.approve_stock_count_adjustment('$ADJ')")" "Only the owner or an administrator can approve"
 ok  "  and stock is unchanged" "$(q $DST "select available from inventory where product_id = '$P1'")" "40"
-has "staff still cannot approve a supplier document (the owner or an administrator does, owner decision of Nov 24)" "$(as $DST $E "select public.review_supplier_document('$DOC2','approved',null)")" "Only the owner or an administrator"
+has "staff still cannot approve a supplier document (the owner, an administrator or a manager does; owner decisions of Nov 24 and 25)" "$(as $DST $E "select public.review_supplier_document('$DOC2','approved',null)")" "Only the owner, an administrator or a manager can approve"
 ok  "  the approval of the first one still names the exact file approved" "$(q $DST "select status||'/'||left(approved_file_sha256, 8) from supplier_documents where id = '$DOC'")" "approved/aaaaaaaa"
 ok  "staff still cannot open the stored file" "$(as $DST $E "select count(*) from storage.objects where bucket_id = 'supplier-documents'")" "0"
 ok  "  an administrator can (owner decision of Nov 24)" "$(as $DST $A "select count(*) from storage.objects where bucket_id = 'supplier-documents'")" "1"
