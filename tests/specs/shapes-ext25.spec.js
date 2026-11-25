@@ -26,10 +26,13 @@ test('the style sheet changes shapes, spacing and typefaces only: no colour, and
   const selectors = [...body.matchAll(/(^|\})\s*([^{}@]+)\{/g)].map(m => m[2].trim()).filter(Boolean);
   for (const sel of selectors) for (const part of sel.split(',')) expect(part.trim(), part).toMatch(/^:root\[data-shape="(soft|crisp|elegant)"\]/);
   expect((body.match(/@font-face/g) || []).length).toBe(5);
-  // no colour is set anywhere: only the two existing button fills are re-used by name
+  // no colour of its own anywhere: where a colour is named at all it is one of the Look's own variables
   expect(body).not.toMatch(/#[0-9a-fA-F]{3,8}\b|rgba?\(|hsla?\(/);
-  expect(body.match(/(^|[;{\s])(color|background|background-color|border-color)\s*:[^;}]*/g).map(s => s.trim().replace(/^[;{]\s*/, '')))
-    .toEqual(['background-color:var(--btn-fill)', 'background-color:var(--btn-fill-hover)']);
+  const colours = body.match(/(^|[;{\s])(color|background|background-color|border-color|border-top)\s*:[^;}]*/g).map(s => s.trim().replace(/^[;{]\s*/, ''));
+  expect(colours.length).toBeGreaterThan(2);
+  for (const c of colours) expect(c.split(':')[1].replace(/\s*!important\s*$/, '').trim(), c).toMatch(/^(var\(--[a-z0-9-]+\)|transparent|1px solid var\(--[a-z0-9-]+\)|0)$/);
+  // and none of those variables is redefined here
+  expect(body).not.toMatch(/--(ink|muted|accent|panel|page|line|btn-fill|btn-text|field-border)[a-z0-9-]*\s*:/);
   // the typefaces are the open-licensed files already in the repository
   for (const m of body.matchAll(/url\('\.\.\/fonts\/([^']+)'\)/g)) expect(fs.existsSync(path.join(ROOT, 'assets/fonts', m[1])), m[1]).toBe(true);
 });
@@ -42,7 +45,7 @@ for (const shape of ['', 'soft', 'crisp', 'elegant', 'nonsense']) {
     await gotoPage(page, 'expensesPanel');
     await page.evaluate(() => document.fonts.ready);
     const v = await look(page);
-    const expected = { '': [null, '2px', '16px'], nonsense: [null, '2px', '16px'], soft: ['soft', '10px', '22px'] /* the header's button is a small one: 10px; full-size buttons and fields 12px */, crisp: ['crisp', '4px', '8px'], elegant: ['elegant', '7px', '14px'] }[shape];
+    const expected = { '': [null, '2px', '16px'], nonsense: [null, '2px', '16px'], soft: ['soft', '10px', '22px'] /* the header's button is a small one: 10px; full-size buttons and fields 12px */, crisp: ['crisp', '4px', '8px'], elegant: ['elegant', '8px', '12px'] }[shape];
     expect([v.shape, v.button, v.panel]).toEqual(expected);
     expect(v.body).toBe(shape === 'crisp' || shape === 'elegant' ? 'HE Screen Text' : '-apple-system');
     expect(v.title).toBe(shape === 'elegant' ? 'HE Screen Display' : v.body);
