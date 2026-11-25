@@ -33,7 +33,7 @@ module.exports = defineConfig({
   projects: [
     {
       name: 'desktop',
-      use: { ...devices['Desktop Chrome'], viewport: { width: 1100, height: 800 }, launchOptions: { executablePath: '/opt/pw-browsers/chromium' } },
+      use: { ...devices['Desktop Chrome'], viewport: { width: 1100, height: 800 } },
     },
     {
       name: 'iphone',
@@ -43,7 +43,7 @@ module.exports = defineConfig({
         // Same engine as desktop (Chromium) with an iPhone-sized screen,
         // touch and user agent. Real Safari is not tested here.
         browserName: 'chromium',
-        viewport: { width: 390, height: 844 }, launchOptions: { executablePath: '/opt/pw-browsers/chromium' },
+        viewport: { width: 390, height: 844 },
       },
     },
   ],
