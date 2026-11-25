@@ -299,6 +299,24 @@ and "active" in one checked step.
 (two-factor); and the guard on privileged details may refuse a change made by the helper function.
 Their exact wording needs one more read-only look (the text of four functions).
 
+**Second read-only look (Nov 24, 7:00 PM Central): the text of six functions.** No email address
+or name was in it. In plain words:
+
+- **The guard on an account's privileged details.** A change of role or of the emergency mark is
+  allowed to the owner only. Switching an account on or off, or marking it removed, is allowed to
+  the owner, or to an administrator for someone else. A change that arrives with no signed-in person
+  (the helper function using the provider's own key) passes the guard untouched.
+  CONSEQUENCE: for an administrator to give a role below their own, and for a manager to switch an
+  employee on or off, **this guard has to be replaced by one that knows the four levels**. That is a
+  change to a production function and goes in a database draft with its rollback (the old text).
+- **Employee Activity.** Only the owner and administrators get anything. An administrator sees no
+  entry made by an owner, and only the areas an administrator is allowed to manage; the list of
+  people it shows an administrator leaves the owners out. CONSEQUENCE: "she sees everyone else's
+  history" is true today only for those areas. Widening it to every area is part of the plan.
+- **Account numbers** are nine random digits, given once and never changed (one number is reserved).
+- NOTED for the owner to decide later: a rule is named "role change requires a second sign-in
+  step", but as the rules are combined today an owner can change a role without that step.
+
 **What follows for the New Employee page:** because today only the owner can see or change other
 accounts, the page needs database functions that let the owner, an administrator and (once it
 exists) a manager list people and create, activate, change and deactivate accounts **below their
