@@ -1,4 +1,4 @@
-# Owner requests, Nov 24 late: a voice assistant, and the shapes and font of the pages
+# Owner requests, Nov 24 late: a voice assistant; the shapes and font of the pages (dropped)
 
 Status: CURRENT. What the owner asked for, what was agreed, and what is still open. The build
 status of each piece is in `BUILD_TRACKER_2_WEEKS.md`.
@@ -33,25 +33,26 @@ sent to that service to be answered.
 sentence; the voice is turned into text by the device's own dictation (the browser's), not by the
 dashboard; it reads and tells, and apart from the confirmed reminder it changes nothing.
 
-## 2. Shapes and font ("business casual but elegant")
+## 2. Shapes and font — DECIDED: no change
 
 **The owner's words (Nov 24):** "I don't like some of the forms of windows, buttons, form of it,
-shape, also the font; maybe something more business casual but elegant" (Claude's reading of the
-last words; told to the owner and not contradicted), and later: "don't forget about buttons design
-update, maybe a shape a little more [distinct] but still stable, change the font, improve some
-parts".
+shape, also the font; maybe something more business casual but elegant", and later "don't forget
+about buttons design update".
 
-**Agreed:** three styles the owner can switch between on the real pages and compare, the way the
-colours were chosen:
+**What was tried:** three styles to compare on the real pages (Soft, Crisp, Elegant), then a fuller
+second pass of Elegant after the owner picked it as the closest and named the buttons, the font, the
+boxes and windows, and the spacing. It was a proposal only (pull request #92).
 
-- Soft: rounder buttons and windows, more air.
-- Crisp: small corners, thin lines, tighter.
-- Elegant: a classic font for headings with a clean one for text, calm buttons.
+**DECIDED by the owner the same evening:** "never mind, let's leave the design like it was ... I
+don't see those changes going a better way, so let's not change buttons, font, design and these
+parts." Pull request #92 was closed without merging; nothing reached the live dashboard; the branch
+`claude/shape-styles` stays as a record and is not to be merged.
 
-OWNER DECISION REQUIRED after the three exist: which one becomes everyone's look. Asked of the
-owner, not blocking: a screenshot of the page or window liked least, with what bothers circled.
+**For every later session:** do not propose changes to buttons, the typeface, shapes or the look
+again unless the owner asks. A real fault in how something is shown (a figure that cannot be read,
+text cut off) is a bug, not a design change, and is still fixed.
 
 ## 3. Order of work agreed that evening
 
-The database part of the New Employee page (done: pull request #90), then the voice box, then the
-three styles.
+The database part of the New Employee page (done: pull request #90), then the voice box (done:
+pull request #91). The three styles were tried and dropped (section 2).
