@@ -741,6 +741,58 @@
       "effect": "drops the two functions, the table, its guard and the key function",
       "postcheck": "to_regclass('public.customer_reviews') is null",
       "dynamicSql": "format() with fixed names (%I) to lock and count the customer_reviews table only where it exists"
+    },
+    {
+      "file": "drafts/62_DRAFT_manager_role.sql",
+      "id": "62",
+      "class": "PRODUCTION-CHANGE-DRAFT",
+      "step": "optional (owner's decision of Nov 24: four levels of account, with a new level Manager between Administrator and Employee). Run before drafts/64",
+      "dependsOn": [],
+      "risk": "LOW",
+      "rollback": "63",
+      "precheck": "stops, changing nothing, if the list of roles public.app_role is missing or does not hold owner, administrator and employee",
+      "effect": "adds the one word manager to the list of roles; gives nobody the role; changes no account, no rule and no permission",
+      "postcheck": "the list of roles holds manager; no account has it; local-test/people_levels_test.sh passes on a throwaway copy",
+      "lock": "brief lock on the role list only (adding a word); no table is rewritten"
+    },
+    {
+      "file": "drafts/63_DRAFT_rollback_manager_role.sql",
+      "id": "63",
+      "class": "ROLLBACK",
+      "rollbackOf": "62",
+      "dependsOn": [],
+      "risk": "LOW",
+      "precheck": "stops with a message while any account still has the role manager",
+      "effect": "removes nothing (the database cannot take a word out of the list of roles; an unused word does nothing); it only checks that no account is a manager",
+      "postcheck": "it says that no account is a manager",
+      "dynamicSql": "format() with fixed names (%I) and a fixed value (%L) to count the accounts with that role only where the accounts table exists"
+    },
+    {
+      "file": "drafts/64_DRAFT_people_levels.sql",
+      "id": "64",
+      "class": "PRODUCTION-CHANGE-DRAFT",
+      "step": "optional (owner's decision of Nov 24: the owner, administrators and managers look after the accounts below their own level; the database part of the New Employee page). Creates no sign-in",
+      "dependsOn": [
+        "62"
+      ],
+      "risk": "MEDIUM",
+      "rollback": "65",
+      "precheck": "stops, changing nothing, if the role word manager is missing (drafts/62 first), if auth.uid(), current_role(), is_active_staff(), is_owner_or_admin(), the accounts table with its expected columns, the guard function or its trigger is missing, if signed-in people cannot read and change the accounts table at all, if the guard is already this file's but its earlier text is not saved, or if a people_levels_backup table exists that this file did not create",
+      "effect": "saves the text of today's guard on the accounts table in 1 new small table (people_levels_backup, readable by no signed-in person), then replaces that guard, under the same name and trigger, with one that knows four levels; adds 2 row rules on the accounts table (an administrator or a manager reads and changes the accounts of a level below their own); adds people_set_status(), people_set_role(), people_set_details(), people_register() and the question people_allow(), plus three small helpers; an owner account, the emergency account and a person's own level are never changed by them; nobody is made an owner; nothing is deleted; no account is changed by installing",
+      "postcheck": "the guard carries this file's mark on the same trigger; the saved text is present once; anon can run none of the functions; local-test/people_levels_test.sh passes on a throwaway copy",
+      "lock": "brief lock on the accounts table while the two row rules are added; no table is rewritten"
+    },
+    {
+      "file": "drafts/65_DRAFT_rollback_people_levels.sql",
+      "id": "65",
+      "class": "ROLLBACK",
+      "rollbackOf": "64",
+      "dependsOn": [],
+      "risk": "MEDIUM",
+      "precheck": "stops, changing nothing, if the guard is the one from drafts/64 but its earlier text is not saved, if the saved text does not look like the earlier guard, or if the backup table was not created by drafts/64",
+      "effect": "puts the guard back to the exact text saved by drafts/64, with its earlier note; drops the 2 row rules, the functions and the backup table; changes no account",
+      "postcheck": "the guard's text is word for word what it was before drafts/64; no people_ function and no profiles_levels rule is left",
+      "dynamicSql": "format() with fixed names (%I, %L) to read the saved text and restore the note; and ONE statement that runs the saved text as it is (what the database itself wrote down with pg_get_functiondef at install, kept where no signed-in person can read or write, checked before it is run)"
     }
   ],
   "local": [
