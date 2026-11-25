@@ -12,6 +12,20 @@ In short:
 - [x] Live check after that merge: done by the owner on Nov 24 at about 6:10 PM Central (screenshots): the shorter menu (16 lines) is live, same-topic pages sit inside one another, and the owner-only section "features that save real records" lists the new switches, all Off and "Not installed yet" (drafts 48, 56, 58, 60 seen).
 - [x] Merge PR #51 (documents): done by the owner on Nov 24, about 6:33 PM Central, merge commit `6648336`.
 - [x] PR #86 (administrators see the switches that save real records): merged by the owner on Nov 24, about 7:03 PM Central.
+- [ ] **Owner's answers on "what to add before launch" (Nov 24, about 7:07 PM Central):**
+  - Dress rehearsal with one real test order: WANTED. Remind the owner when the printers arrive.
+  - A "Ready to launch" page (green or red per item): WANTED. To build.
+  - Backups "at the best level, also against a virus or a break-in": WANTED. Backup health is still
+    UNKNOWN here (`docs/ops/RECOVERY_AND_BACKUP_READINESS.md`); the first step is the owner's
+    read-only look (nightly backup: green or red and its date; restore test: green or red and its
+    date; Actions minutes; the database provider's own Backups page). Then: a third copy outside
+    both the code host and the database provider that cannot be overwritten, a notice on Home when
+    the newest backup is too old, and one restore drill.
+  - Two-step sign-in on the dashboard: NOT NOW (no employees yet). Claude recommended it separately
+    for the sign-ins behind the dashboard (code host, database provider); not answered yet.
+  - A professional's check of the cosmetics rules: NOT NOW.
+  - Not answered yet: which of the proposed additions (batch expiry watch, recall drill,
+    unanswered-customer watch, weekly owner report, first-day checklist) are wanted.
 - [ ] Live check of #86 with the administrator account: Admin → Feature Flags shows "Features that save real records (owner and administrators)", every line Off.
 - [ ] Read-only check of how accounts are set up (SQL in `docs/ops/OWNER_DECISION_2026-11-24_ADMINISTRATOR_NEAR_OWNER.md`), then the People page.
 - [x] Owner answered Nov 24: add a fourth role, Manager. The page is called "New Employee"; the new person types their own password on the owner's computer.
