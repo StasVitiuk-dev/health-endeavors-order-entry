@@ -180,7 +180,7 @@ const ADDED = ['focusDialog', 'inspectLabel', 'keyLink', 'setReportHistoryView',
   'DO', 'doMod', 'doEng', 'doStore', 'doHost', 'DO_CARRIER', 'doFind', 'loadDropoff', 'renderDropoff', 'doOrdersFor', 'doMark', 'dropoffOn', 'feedAgentSteps',
   // Nov 24: agent diary (behind he_agent_diary)
   'diaryAgent', 'diaryList', 'diarySeq', 'diaryError', 'diaryMod', 'diaryHost', 'loadAgentDiary', 'renderAgentDiary', 'agentDiaryOn',
-  // Nov 24: switches that save real records (Feature Flags, owner only)
+  // Nov 24: switches that save real records (Feature Flags; owner and administrators since the evening of Nov 24)
   'rsStates', 'rsSeq', 'rsConfirm', 'rsMessage', 'rsMod', 'rsHost', 'loadRecordSwitches', 'renderRecordSwitches',
   // Nov 24: daily recap reminder (Backups & Printouts + feed)
   'storeCampaignsOn', 'SC_KEY', 'scState', 'scResult', 'scMessage', 'scMod', 'scDeps', 'scOwner', 'scRead', 'scKeep', 'scText', 'scStores', 'loadStoreCampaigns', 'scPaint', 'renderStoreCampaigns', 'scShow',

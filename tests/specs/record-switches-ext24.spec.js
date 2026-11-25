@@ -47,7 +47,7 @@ test.describe('on Feature Flags', () => {
     }
     await login(page); await gotoPage(page, 'flagsPanel');
     const host = page.locator('#recordSwitchesHost');
-    await expect(host.locator('h3')).toHaveText('Features that save real records (owner only)');
+    await expect(host.locator('h3')).toHaveText('Features that save real records (owner and administrators)');
     await expect(host.locator('tr[data-record-key]')).toHaveCount(13);
     const tax = host.locator('tr[data-record-key="he_tax_rates"]');
     await expect(tax.locator('[data-record-status]')).toHaveText('Installed');
@@ -73,12 +73,32 @@ test.describe('on Feature Flags', () => {
     expect(backend.requests.filter(r => r.method && r.method !== 'GET' && r.method !== 'HEAD' && !r.rpc && String(r.path || '').startsWith('/rest/v1/')).map(r => r.method + ' ' + r.path)).toEqual([]);
   });
 
-  test('an administrator does not see it (owner only)', async ({ page, backend }, ti) => {
+  test('an administrator sees it and can turn a switch on and off, like the owner (owner\'s decision, Nov 24)', async ({ page, backend }, ti) => {
     test.skip(ti.project.name !== 'desktop', 'run once');
     backend.tables.profiles[0].role = 'administrator';
     await login(page); await gotoPage(page, 'flagsPanel');
-    await expect(page.locator('#previewSwitchesHost tbody tr').first()).toBeVisible();   // the previews still show
+    const host = page.locator('#recordSwitchesHost');
+    await expect(host.locator('h3')).toHaveText('Features that save real records (owner and administrators)');
+    const row = host.locator('[data-record-key="he_incident_close"]');
+    await expect(row.locator('[data-record-status]')).not.toHaveText('Checking…');
+    await row.getByRole('button', { name: 'Turn on Close an incident with a note' }).click();
+    await row.getByRole('button', { name: 'Yes, turn on Close an incident with a note' }).click();
+    await expect(row).toHaveAttribute('data-record-on', 'yes');
+    expect(await page.evaluate(() => localStorage.getItem('he_incident_close'))).toBe('on');
+    await row.getByRole('button', { name: 'Turn off Close an incident with a note' }).click();
+    await expect(row).toHaveAttribute('data-record-on', 'no');
+    expect(await page.evaluate(() => localStorage.getItem('he_incident_close'))).toBeNull();
+    expect(backend.requests.filter(r => r.method && r.method !== 'GET' && r.method !== 'HEAD' && String(r.path || '').startsWith('/rest/v1/') && !r.rpc)).toEqual([]);   // a switch writes no table
+  });
+
+  test('an employee does not see it, and a forged button does nothing', async ({ page, backend }, ti) => {
+    test.skip(ti.project.name !== 'desktop', 'run once');
+    backend.tables.profiles[0].role = 'employee';
+    await login(page);
+    await expect(page.locator('#dash')).toBeVisible();
     await expect(page.locator('#recordSwitchesHost')).toHaveCount(0);
+    await page.evaluate(() => { const b = document.createElement('button'); b.setAttribute('data-recordswitch', 'off'); b.setAttribute('data-key', 'he_incident_close'); const hst = document.createElement('div'); hst.id = 'recordSwitchesHost'; hst.appendChild(b); document.body.appendChild(hst); localStorage.setItem('he_incident_close', 'on'); b.click(); });
+    expect(await page.evaluate(() => localStorage.getItem('he_incident_close'))).toBe('on');           // the click changed nothing for an employee
   });
 
   test('readable in light and dark; named controls; fits a phone', async ({ page }, ti) => {

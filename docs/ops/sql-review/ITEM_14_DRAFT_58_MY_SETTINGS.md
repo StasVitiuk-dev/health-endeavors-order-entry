@@ -66,7 +66,7 @@ tried on the throwaway local database.
 
 Then on the dashboard:
 
-1. **Admin → Feature Flags → Features that save real records (owner only) → Your own settings on
+1. **Admin → Feature Flags → Features that save real records (owner and administrators) → Your own settings on
    every device → Turn on.** It shows "Installed" once this step has run. Reload the page.
 2. On Home ("Needs you now"), press **Later** on an item. The line below the list reads
    "1 set aside until tomorrow (on every device you sign in to)."
