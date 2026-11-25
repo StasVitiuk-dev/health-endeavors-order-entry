@@ -51,7 +51,7 @@
   const FILE_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
   const MAX_FILE_BYTES = 10485760;        // 10 MB, as the bucket allows
   const LINK_SECONDS = 60;
-  const ROLES_MAY_RECORD = new Set(['owner', 'administrator', 'employee']);
+  const ROLES_MAY_RECORD = new Set(['owner', 'administrator', 'manager', 'employee']);   // a manager can do what an employee can (drafts/62, Nov 24)
   const MAX_DOCS = 1000, MAX_EVENTS = 300;
   const OFF_MESSAGE = 'Supplier document storage is off. Nothing was saved. (It needs the owner-approved database step drafts/36 and a reviewed switch.)';
   const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

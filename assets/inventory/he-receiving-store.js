@@ -33,7 +33,7 @@
   const CR_COLUMNS = ['id', 'request_key', 'return_id', 'order_item_id', 'quantity', 'status', 'received_by', 'received_at', 'opened', 'used', 'restock', 'damaged', 'unsuitable', 'decided_by', 'decided_at', 'decision_note'];
   const MOVE_COLUMNS = ['id', 'product_id', 'bucket', 'change', 'reason', 'source_kind', 'corrects', 'at'];
   const MAX_MOVES = 50;
-  const STAFF = new Set(['owner', 'administrator', 'employee']);
+  const STAFF = new Set(['owner', 'administrator', 'manager', 'employee']);   // a manager can do what an employee can (drafts/62, Nov 24)
   const MAX_UNITS = 1000000, MAX_LIST = 200;
   const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   const isUuid = (v) => typeof v === 'string' && UUID.test(v);

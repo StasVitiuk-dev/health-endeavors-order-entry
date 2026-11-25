@@ -15,6 +15,38 @@ approval. The dashboard's Deliveries and Returns screens show Approve, Reject, I
 to administrators as well (changed 2026-11-25). An administrator can approve a delivery they
 recorded themselves, the way you can.
 
+### Worked example (your request of Nov 25): order 20, receive 8, then 12, return 3
+
+Made-up lotion, nothing in stock at the start. Computed by the rules prototype
+(`assets/inventory/he-receiving.js`), which follows the same rules as this draft; the
+database test checks the same steps against the draft itself.
+
+| Step | Who | Stock movement | Purchase order after it | Stock after it |
+|---|---|---|---|---|
+| 0. Order of 20 placed | — | none | Open · received 0 · to come 20 | Available 0 · Damaged 0 |
+| 1. 8 arrive, recorded | staff | **none** (waits for approval) | Open · received 0 · to come 20 | Available 0 |
+| 2. Approved | administrator | Available +8 | Partly received · 8 · to come 12 | Available 8 |
+| 3. The other 12 recorded and approved | staff, administrator | Available +12 | **Received** · 20 · to come 0 | Available 20 |
+| 4. 3 leaking jars to go back to the supplier, replacement expected | staff | **none** (waits) | Received · 20 · to come 0 | Available 20 |
+| 5. That return approved | administrator | Available −3 | Partly received · 17 · **to come 3** | Available 17 |
+| 6. Someone tries to record 5 more on the 3 to come | staff | refused: "only 3 … are still to come; enter the rest as surplus" | unchanged | unchanged |
+| 7. A customer returns 3 jars | staff | **none**: they are "awaiting inspection", not for sale | unchanged | Available 17 · 3 awaiting inspection |
+| 8. Inspected: 1 sellable, 1 damaged, 1 unsuitable (not opened, not used) | administrator | Available +1 · Damaged +2 | unchanged | Available 18 · Damaged 2 |
+| 9. The same return approved again (double click or retry) | administrator | none: "already approved; nothing changed" | unchanged | unchanged |
+
+About customer returns: "awaiting inspection" is the quarantine (no stock bucket, not
+for sale). Unsuitable units go to Damaged, because there is no separate stock bucket
+for them; the inspection keeps "unsuitable" as its own outcome. Opened or used lotion
+can never go back to Available: the database refuses it.
+
+### Managers (drafts/62 and 64, not installed)
+
+A manager is treated like an employee here: they record deliveries and returns for
+the purchase orders they can see, and **cannot approve**. Whether managers should
+approve deliveries or returns is **OWNER DECISION REQUIRED**; until you decide, they
+cannot. (The dashboard was corrected on Nov 25 so that a manager can at least do what
+an employee can; before that, the page would have refused a manager outright.)
+
 ## The exact SQL
 
 | File | Lines | Fingerprint (SHA-256, first 16) |

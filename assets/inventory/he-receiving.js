@@ -51,7 +51,7 @@
   'use strict';
 
   const BUCKETS = ['available', 'damaged'];
-  const SUBMIT_ROLES = ['owner', 'administrator', 'employee'];
+  const SUBMIT_ROLES = ['owner', 'administrator', 'manager', 'employee'];   // a manager can do what an employee can (drafts/62, Nov 24)
   const DECIDE_ROLES = ['owner', 'administrator'];   // owner decision, Nov 24: administrators approve too
   const LIVE_PATH = 'drafts/40 (partial receiving and returns, owner approval before stock changes) once the owner approves it; until then drafts/10 behind the stock_fn_* switches';
   const MAX_UNITS = 1000000;
@@ -148,7 +148,7 @@
       if (l.good + l.damaged + l.rejected + l.surplus < 1) return refuse(L, 'submitReceiving', r, 'enter at least one unit of ' + l.sku);
       if (l.rejected && l.rejectReason.length < 3) return refuse(L, 'submitReceiving', r, 'say why the ' + plural(l.rejected, 'unit') + ' of ' + l.sku + ' were rejected');
       const toCome = outstanding(line);
-      if (l.good + l.damaged > toCome) return refuse(L, 'submitReceiving', r, 'only ' + toCome + ' of ' + l.sku + ' are still to come on ' + po.number + '; enter the rest as surplus for the owner to review');
+      if (l.good + l.damaged > toCome) return refuse(L, 'submitReceiving', r, 'only ' + toCome + ' of ' + l.sku + ' are still to come on ' + po.number + '; enter the rest as surplus for the owner or an administrator to review');
       if (l.surplus && l.good + l.damaged < toCome) return refuse(L, 'submitReceiving', r, 'surplus is what arrived beyond the ' + toCome + ' still to come; receive those first');
     }
     const rec = { id: 'rr-' + (L.records.length + 1), poId: po.id, status: 'submitted', lines: lines, submittedBy: text(r.by) || null, submittedAt: r.at || null, note: text(r.note) || null, decidedBy: null, decidedAt: null, decisionNote: null };
@@ -196,7 +196,7 @@
     rec.status = 'approved'; rec.decidedBy = text(r.by) || null; rec.decidedAt = r.at || null; rec.decisionNote = text(r.note) || null;
     const rej = rec.lines.filter(l => l.rejected), sur = rec.lines.filter(l => l.surplus);
     log(L, { kind: 'approveReceiving', id: rec.id, by: rec.decidedBy, at: rec.decidedAt, note: rec.decisionNote,
-      what: 'receiving record for ' + po.number + ' approved' + (rej.length ? '; rejected, still to come: ' + rej.map(l => l.rejected + ' ' + l.sku).join(', ') : '') + (sur.length ? '; surplus waiting for the owner: ' + sur.map(l => l.surplus + ' ' + l.sku).join(', ') : '') });
+      what: 'receiving record for ' + po.number + ' approved' + (rej.length ? '; rejected, still to come: ' + rej.map(l => l.rejected + ' ' + l.sku).join(', ') : '') + (sur.length ? '; surplus waiting for the owner or an administrator: ' + sur.map(l => l.surplus + ' ' + l.sku).join(', ') : '') });
     return { ok: true, duplicate: false, id: rec.id, movements: moved, status: poStatus(L, po.id) };
   }
   function closeRecord(L, req, to) {
@@ -253,7 +253,7 @@
     L.supplierReturns.push(sr);
     remember(L, g.key, fp, sr.id);
     log(L, { kind: 'submitSupplierReturn', id: sr.id, by: sr.submittedBy, at: r.at || null, note: sr.reason,
-      what: plural(qty, 'unit') + ' of ' + line.sku + ' to go back to the supplier of ' + po.number + ' from ' + BUCKET_NAME[from] + (repl ? ', replacement expected' : ', no replacement') + ' (waiting for the owner)' });
+      what: plural(qty, 'unit') + ' of ' + line.sku + ' to go back to the supplier of ' + po.number + ' from ' + BUCKET_NAME[from] + (repl ? ', replacement expected' : ', no replacement') + ' (waiting for the owner or an administrator)' });
     return { ok: true, duplicate: false, id: sr.id, movements: [] };
   }
   // req: { returnId, decision: 'approved'|'rejected', by, role, at, note }
