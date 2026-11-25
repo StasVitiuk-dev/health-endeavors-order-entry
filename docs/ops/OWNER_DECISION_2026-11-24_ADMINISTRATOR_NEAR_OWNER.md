@@ -1,6 +1,6 @@
 # Owner decision, Nov 24, 2026 (evening): administrators get almost everything the owner has
 
-**Status:** DECIDED by the owner in chat. Building it: NOT STARTED (plan below). Nothing in
+**Status:** DECIDED by the owner in chat. Building it: IN PROGRESS. Piece 1 of the plan below is PR #86 (not merged). Nothing in
 production was changed. No account name or email is written here.
 
 ## The decision, in the owner's words (shortened)
@@ -75,6 +75,20 @@ provider's own console. So point 3 of the decision is a database rule to confirm
 4. Employee Activity: the owner's entries hidden from administrators (a database draft and the page).
 5. A database draft that makes sure an administrator cannot change an owner's account, if the check
    in step 2 shows it is possible today.
+
+## What else to keep for the owner only (PROPOSED by Claude when the owner asked; OWNER DECISION REQUIRED)
+
+Asked "what else would you recommend to close from her account", Claude recommended keeping these
+for the owner only, on top of the three points above. The owner has not answered yet.
+
+1. Adding or removing accounts and changing anyone's role.
+2. Approving one's own requests: an administrator approves what others propose; their own stock
+   corrections and returns to suppliers go to the owner.
+3. Releasing a legal hold (placing one stays open to administrators).
+4. Backups and restoring from a backup.
+5. The monthly AI spending limit, and the final approval to start sending real emails.
+6. The sign-ins behind the dashboard (the database provider, the code host, the store's owner
+   login): a habit, not something the dashboard can enforce.
 
 ## Known limitation, told to the owner
 
