@@ -251,6 +251,44 @@ select '6 helper function', p.proname::text,
 order by 1, 2, 3;
 ```
 
+## What the read-only check showed (run by the owner on Nov 24, 6:45 PM Central; 42 rows)
+
+Written in plain words on purpose; the raw rules are not copied here. No account name or email was
+in the result (counts only).
+
+**Accounts table.** Eleven details per account: the id, the email, the display name, the role, the
+department, active or not, a "removed on" date, created and updated dates, an emergency-account
+mark, and an account number that is given automatically and locked afterwards.
+
+**Roles.** The role is a fixed list with four entries: owner, employee, AI agent, administrator.
+In use today: 2 owner accounts and 1 administrator account, all active; no employee yet.
+So **a Manager role does not exist** and adding it is a database step.
+
+**What the database already enforces today (so these need no new rule):**
+
+| The owner's point | In the database today |
+|---|---|
+| Only the owner switches the whole system off | True: only an active owner can change the system mode; everyone active can read it. |
+| An administrator does not read the owner's history | The change history table can be read **by the owner only**; nobody can change or delete an entry. (Employee Activity shows it through its own function, whose rule was not part of this check.) |
+| An administrator does nothing to the owner's accounts | True, and wider: only the owner can add an account row, and only the owner can see or change **another person's** account. An administrator sees and changes only their own, and a guard protects the privileged details (role, active) on every change. |
+
+**What the database already allows an administrator, although the page does not:** changing the
+feature switches ("Other switches" on Feature Flags). The page says "only the Owner role"; the
+database rule is "owner or administrator". So opening that part needs a page change only.
+
+**New accounts.** When a login is created, an account row is made by itself, as an **employee**
+and **not active**. That fits the New Employee page: create the login, then set the name, the role
+and "active" in one checked step.
+
+**To look at before building:** a rule ties changing a role to a sign-in with a second step
+(two-factor); and the guard on privileged details may refuse a change made by the helper function.
+Their exact wording needs one more read-only look (the text of four functions).
+
+**What follows for the New Employee page:** because today only the owner can see or change other
+accounts, the page needs database functions that let the owner, an administrator and (once it
+exists) a manager list people and create, activate, change and deactivate accounts **below their
+own level**, never an owner's account, with every action in the change history.
+
 ## Known limitation, told to the owner
 
 The rule is by role: **every** Administrator account gets this, also one created later. Other
