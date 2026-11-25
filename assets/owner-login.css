@@ -1403,6 +1403,12 @@ table.sysStatus td{ overflow-wrap:anywhere; }
 .feedActions{ display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
 .feedActions button{ min-height:32px; }
 .feedActions [data-feedkept]{ align-self:center; }
+/* Ready to launch: one card per line, the state first */
+.lpList{ list-style:none; margin:8px 0 0; padding:0; display:grid; gap:8px; max-width:760px; }
+.lpLine{ border:1px solid var(--line, #d7dee8); border-radius:10px; padding:10px 12px; overflow-wrap:anywhere; }
+.lpHead{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:2px; }
+.lpTotal{ margin:8px 0 4px; }
+#launchPanel progress{ width:100%; max-width:760px; height:10px; }
 /* Weekly report: a narrow two-column table that keeps its labels readable on a phone */
 .wrTable{ width:100%; max-width:640px; table-layout:fixed; }
 .wrTable th, .wrTable td{ white-space:normal; }

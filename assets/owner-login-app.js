@@ -84,7 +84,7 @@
       nightlyOverall,
     } = window.HE.helpers;
     // @@ EXT15 modules: created in dependency order (assets/app/*.js; see docs/ops/APPLICATION_MODULE_MAP_EXT15.md)
-    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, agentDiaryOn, realProfitOn, channelMoneyOn, SWITCH_EVERYONE, sharedSettingsOn, orderCostsOn, incidentCloseOn, batchLabelsOn, orderBatchesOn, orderChannelsOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn, storeCampaignsOn, receiptReaderOn, contentHelperOn, customerEmailsOn, emailSendingOn, mySettingsOn, handoffHandledOn, reviewInboxOn, reviewStoreOn, customersFirstOn } = HE.modules.create('he-config', {  });
+    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, agentDiaryOn, realProfitOn, channelMoneyOn, SWITCH_EVERYONE, sharedSettingsOn, orderCostsOn, incidentCloseOn, batchLabelsOn, orderBatchesOn, orderChannelsOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn, storeCampaignsOn, receiptReaderOn, contentHelperOn, customerEmailsOn, emailSendingOn, mySettingsOn, handoffHandledOn, reviewInboxOn, reviewStoreOn, customersFirstOn, launchPageOn } = HE.modules.create('he-config', {  });
     const { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, focusDialog, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, h, pageIconNode } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
     const { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
     const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, h, supabase });
@@ -5020,6 +5020,115 @@
       }
     });
 
+    // ---------- Ready to launch (owner, Nov 24: "Ready to launch page: yes"; behind launchPageOn)
+    // One list of what must be ready before the first real day (rules: assets/views/he-launch.js).
+    // The dashboard checks what it can read; the owner or an administrator marks the rest done.
+    // The marks are kept in this browser, and for every device once the shared settings are in use.
+    const LP_KEY = 'he_launch_ticks';
+    let lpTicks = null, lpInput = null, lpSeq = 0, lpMessage = '', lpShared = false;
+    const lpMod = () => (window.HE && window.HE.views && window.HE.views['he-launch']) || null;
+    const lpAllowed = () => currentUserRole === 'owner' || currentUserRole === 'administrator';
+    function lpRead() { const M = lpMod(); try { return M.clean(JSON.parse(localStorage.getItem(LP_KEY) || 'null')); } catch (e) { return {}; } }
+    function lpKeep() { try { localStorage.setItem(LP_KEY, JSON.stringify({ ticks: lpTicks })); return true; } catch (e) { return false; } }
+    // read what every device shares, join it with this browser's marks, and (after a change here) save
+    async function lpSync(save) {
+      const M = lpMod(), S = rpSettings(), store = rpStore();
+      if (!M || !S || !store || !sharedSettingsOn()) { lpShared = false; return false; }
+      const now = await store.get(S.KEYS.launchList);
+      if (now.state !== 'installed') { lpShared = false; return false; }
+      const theirs = M.clean(now.value), joined = M.merge(lpTicks, theirs);
+      if (JSON.stringify(joined) !== JSON.stringify(lpTicks)) { lpTicks = joined; lpKeep(); }
+      lpShared = true;
+      if (save && JSON.stringify(joined) !== JSON.stringify(theirs)) { const r = await store.set(S.KEYS.launchList, { ticks: joined }, 'owner_admin'); lpShared = !!r.ok; }
+      return lpShared;
+    }
+    async function loadLaunchPage() {
+      const host = document.getElementById('launchPanel'); if (!host) return;
+      const M = lpMod();
+      if (!(typeof launchPageOn === 'function' && launchPageOn()) || !M) { host.replaceChildren(); return; }
+      if (!lpAllowed()) { host.replaceChildren(h('h2', null, 'Ready to launch'), h('p', { class: 'empty' }, 'This page is for the owner and administrators.')); return; }
+      const seq = ++lpSeq;
+      if (!lpTicks) lpTicks = lpRead();
+      if (!lpInput) renderLaunchPage();
+      // each line is read on its own: one that fails says "Could not check", the others still show
+      const settle = (p) => Promise.resolve(p).then(v => v, () => null);
+      const RS = rsMod(), since = new Date(Date.now() - 30 * 86400000).toISOString();
+      const [steps, products, stock, flag, recent, questions] = await Promise.all([
+        RS ? settle(Promise.all(RS.RECORD_SWITCHES.map(async sw => ({ key: sw.key, name: sw.name, needsStep: !/^No database step/.test(sw.draft), state: await RS.probe(supabase, sw) })))) : Promise.resolve(null),
+        settle(fetchAllRows('products', 'id, sku, name, is_active, status, retail_price', q => q)),
+        settle(fetchAllRows('inventory', 'id, product_id, available, low_stock_threshold', q => q)),
+        settle(supabase.from('feature_flags').select('flag_key, enabled').eq('flag_key', 'shopify_order_sync')),
+        settle(fetchAllRows('orders', 'id, channel, source, placed_at, deleted_at', q => q.is('deleted_at', null).gte('placed_at', since))),
+        settle(fetchAllRows('customer_inquiries', 'id, status, created_at', q => q.in('status', ['needs_review', 'new']))),
+        settle(lpSync(false)),
+      ]);
+      // the tax rate: its step, its switch, and then the rates in force today
+      const taxStep = Array.isArray(steps) ? (steps.find(x => x.key === 'he_tax_rates') || {}).state : null;
+      let tax = null;
+      if (taxStep === 'not_installed') tax = { state: 'not_installed' };
+      else if (taxStep === 'installed') {
+        const st = trStore(), T = trMod();
+        let taxMod = null; try { taxMod = (window.HE && window.HE.invoice && window.HE.invoice['he-tax']) || null; } catch (e) { taxMod = null; }
+        if (!st || !T) tax = { state: 'off' };
+        else { const r = await settle(st.list()); tax = r && r.ok && Array.isArray(r.rates) ? { state: 'installed', inForce: r.rates.filter(x => { const k = T.standing(x, trToday(), taxMod).state; return k === 'IN_FORCE' || k === 'RECHECK_DUE'; }).length } : null; }
+      }
+      if (seq !== lpSeq) return;
+      const P = rpMod();
+      const fromShopify = (o) => (P ? P.channelOf(o) === 'shopify' : /shopify/i.test(String((o && (o.channel || o.source)) || '')));
+      const flagRow = flag && !flag.error && Array.isArray(flag.data) ? flag.data[0] : undefined;
+      lpInput = { steps: steps, products: products, stock: stock, questions: questions, tax: tax,
+        shopify: flag && !flag.error && Array.isArray(flag.data) && Array.isArray(recent) ? { switchOn: flagRow ? flagRow.enabled === true : 'missing', orders: recent.filter(fromShopify).length } : null };
+      renderLaunchPage();
+    }
+    const LP_WORD = { ready: 'Ready', todo: 'To do', unknown: 'Could not check' };
+    function renderLaunchPage() {
+      const host = document.getElementById('launchPanel'); const M = lpMod(); if (!host || !M) return;
+      if (!lpInput) { host.replaceChildren(h('h2', null, 'Ready to launch'), h('p', { class: 'empty' }, 'Checking…')); return; }
+      const r = M.build(Object.assign({}, lpInput, { ticks: lpTicks }));
+      const when = (ms) => { const d = new Date(ms); return isNaN(d) ? '' : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); };
+      const row = (l) => h('li', { class: 'lpLine', 'data-lpline': l.key, 'data-lpstate': l.state },
+        h('div', { class: 'lpHead' },
+          h('span', { class: 'badge ' + (l.state === 'ready' ? 'sev-low' : l.state === 'unknown' ? 'sev-medium' : 'lpTodo'), 'data-lpbadge': '1' }, LP_WORD[l.state]),
+          h('span', { class: 'taskTitle' }, l.title),
+          l.last ? h('span', { class: 'u-fs-12 u-c-muted' }, '(the last step)') : null),
+        h('div', { class: 'u-fs-12 u-c-muted' }, l.why),
+        l.detail ? h('div', { class: 'u-fs-12p5 u-mt-4', 'data-lpdetail': '1' }, l.detail) : null,
+        l.tick && l.tick.on ? h('div', { class: 'u-fs-12 u-mt-4', 'data-lpdone': '1' }, 'Marked done' + (when(l.tick.at) ? ' on ' + when(l.tick.at) : '') + (l.tick.by ? ' by ' + l.tick.by : '') + '.') : null,
+        h('div', { class: 'scanToggleRow u-mt-6' },
+          l.kind === 'yours' ? h('button', { type: 'button', class: 'small' + (l.state === 'ready' ? ' secondary' : ''), 'data-lptick': l.key, 'data-lpon': l.state === 'ready' ? 'no' : 'yes' }, l.state === 'ready' ? 'Not done after all' : 'Mark as done') : null,
+          l.page ? h('button', { type: 'button', class: 'small secondary', 'data-lpgoto': l.page, 'aria-label': 'Open ' + l.pageName + ' (' + l.title + ')' }, 'Open ' + l.pageName) : null));
+      const auto = r.lines.filter(l => l.kind === 'auto'), yours = r.lines.filter(l => l.kind === 'yours');
+      host.replaceChildren(
+        h('h2', null, 'Ready to launch'),
+        h('p', { class: 'hint' }, 'What must be ready before the first real day. The dashboard checks what it can read in the records; you mark the rest done yourself. Nothing here changes the business records.'),
+        h('p', { class: 'lpTotal', 'data-lptotal': r.ready + '/' + r.total }, h('b', null, r.ready + ' of ' + r.total + ' ready'),
+          r.left ? ' · ' + r.left + ' to go' + (r.unknown ? ' (' + r.unknown + ' could not be checked)' : '') : ' · everything is ready'),
+        h('progress', { max: String(r.total), value: String(r.ready), 'aria-label': r.ready + ' of ' + r.total + ' lines ready' }),
+        h('p', { class: 'u-fs-12', role: 'status', 'data-lpmessage': '1' }, lpMessage),
+        h('h3', null, 'Checked by the dashboard'),
+        h('ul', { class: 'lpList' }, auto.map(row)),
+        h('div', { class: 'u-mt-8' }, h('button', { type: 'button', class: 'small secondary', 'data-lpagain': '1' }, 'Check again')),
+        h('h3', null, 'Confirmed by you'),
+        h('p', { class: 'hint u-mt-n2' }, lpShared ? 'Your marks are the same on every device, for you and the administrators.' : 'Your marks are kept in this browser. They will be the same on every device once "Settings shared by every device" is installed and on.'),
+        h('ul', { class: 'lpList' }, yours.map(row)));
+    }
+    document.addEventListener('click', (e) => {
+      const g = e.target.closest('#launchPanel [data-lpgoto]');
+      if (g) { showPage(g.getAttribute('data-lpgoto')); return; }
+      if (e.target.closest('#launchPanel [data-lpagain]')) { lpMessage = 'Checked again just now.'; loadLaunchPage().then(() => { announce(lpMessage); const b = document.querySelector('#launchPanel [data-lpagain]'); if (b) b.focus(); }); return; }
+      const t = e.target.closest('#launchPanel [data-lptick]'); if (!t) return;
+      const M = lpMod(); if (!M || !lpAllowed() || !lpInput) return;
+      const key = t.getAttribute('data-lptick'), on = t.getAttribute('data-lpon') === 'yes';
+      const line = M.LINES.find(l => l.key === key); if (!line || line.kind !== 'yours') return;
+      const who = String((document.getElementById('whoAmI') || {}).textContent || '').split(' — role')[0].trim();   // the name, without the role
+      lpTicks = M.tick(lpTicks, key, on, who, Date.now());
+      const kept = lpKeep();
+      lpMessage = (on ? 'Marked done: ' : 'Marked not done: ') + line.title + '.' + (kept ? '' : ' This browser could not keep it; it will be gone after a reload.');
+      renderLaunchPage(); announce(lpMessage);
+      const again = document.querySelector('#launchPanel [data-lptick="' + key + '"]'); if (again) again.focus();
+      lpSync(true).then((shared) => { if (!shared) return; renderLaunchPage(); const b = document.querySelector('#launchPanel [data-lptick="' + key + '"]'); if (b) b.focus(); }, () => { /* this browser's mark stands */ });
+    });
+
     // ---------- Backups & Printouts (owner request, Nov 23; behind backupsPageOn)
     // One place for the paper and file copies the owner keeps: the daily recaps
     // (print a month on Letter, or save it as a spreadsheet file), the manuals
@@ -7258,6 +7367,7 @@
       contentHelperPanel: [loadContentHelper],
       customerEmailsPanel: [loadCustomerEmails],
       reviewsPanel: [loadReviewInbox],
+      launchPanel: [loadLaunchPage],
       featureRequestsPanel: [loadFeatureRequests, loadDeletedFeatureRequests],
       legalHoldsPanel: [loadLegalHolds, loadReleasedLegalHolds],
       salesCommandPanel:   [() => loadSales('salesCommandPanel')],
