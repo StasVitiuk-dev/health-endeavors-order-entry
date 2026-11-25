@@ -219,7 +219,8 @@ No merging or deploying by Claude · no production Supabase, SQL, cron, RLS or p
 
 **Updated Nov 24, 2026 (CURRENT).** Platform list in full: `docs/ops/NEXT_SESSION_CHECKLIST.md`.
 
-1. ~~Merge PR #85~~ DONE Nov 24 evening (it contained #56–#84). Next: the live check with a hard refresh, then PR #51 (documents).
+1. ~~Merge PR #85~~ DONE Nov 24 evening (it contained #56–#84). ~~Live check~~ DONE the same evening by the owner (the shorter menu and the new switches, all Off, seen on the live site). Next: PR #51 (documents).
+   NEW the same evening: the owner decided that administrators get almost everything the owner has (`docs/ops/OWNER_DECISION_2026-11-24_ADMINISTRATOR_NEAR_OWNER.md`); building it has not started.
 2. **One stock count for all channels:** `docs/ops/ONE_STOCK_COUNT_DECISION_2026-11-24.md` (orders do
    not lower the dashboard's stock today; Shopify keeps its own count). A read-only shape check comes first.
 3. **Business email on the business's own domain** (`docs/ops/BUSINESS_EMAIL_PLAN.md`) and **which
