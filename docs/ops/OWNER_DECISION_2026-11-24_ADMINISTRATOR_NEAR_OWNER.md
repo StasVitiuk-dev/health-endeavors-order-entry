@@ -161,6 +161,12 @@ It reads only the shape: the accounts table's columns, how many accounts each ro
 names or emails), the rules on four tables, the triggers, and the helper functions the rules use.
 It changes nothing. Tried on a throwaway local database first.
 
+First try by the owner (Nov 24, 6:37 PM Central): it stopped with an error and read nothing,
+because the role is not free text in production but a fixed list (a type named `app_role`), and
+Claude's query compared it with a piece of text. Corrected below (the role is read as text, and the
+roles on that fixed list are shown too). FOUND by this: adding a role such as Manager means adding
+a value to that list, which is a database step.
+
 ```sql
 with t(tbl) as (values ('profiles'), ('feature_flags'), ('system_mode'), ('audit_log'))
 select '1 column' as section, 'profiles' as item,
@@ -170,8 +176,14 @@ select '1 column' as section, 'profiles' as item,
   from information_schema.columns c
  where c.table_schema = 'public' and c.table_name = 'profiles'
 union all
-select '2 roles in use', coalesce(p.role, '(none)'), 'active: ' || p.is_active::text || ', accounts: ' || count(*)::text
-  from public.profiles p group by p.role, p.is_active
+select '2 roles in use', coalesce(p.role::text, '(none)'), 'active: ' || p.is_active::text || ', accounts: ' || count(*)::text
+  from public.profiles p group by p.role::text, p.is_active
+union all
+select '2 roles that exist', ty.typname::text, lpad(e.enumsortorder::text, 2, '0') || ' ' || e.enumlabel
+  from pg_enum e
+  join pg_type ty on ty.oid = e.enumtypid
+  join pg_namespace n on n.oid = ty.typnamespace and n.nspname = 'public'
+ where ty.typname = 'app_role'
 union all
 select '3 rule', pol.tablename::text, pol.policyname || ' | ' || pol.cmd || ' | for: ' || array_to_string(pol.roles, ',') ||
        ' | when: ' || coalesce(left(pol.qual, 200), '-') || ' | check: ' || coalesce(left(pol.with_check, 200), '-')
