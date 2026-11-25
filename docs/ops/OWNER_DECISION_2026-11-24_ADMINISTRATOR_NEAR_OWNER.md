@@ -251,6 +251,21 @@ select '6 helper function', p.proname::text,
 order by 1, 2, 3;
 ```
 
+## The levels, in the owner's words (Nov 24, about 6:57 PM Central)
+
+"She is like an owner but a little lower than me", and still "the highest account" above a regular
+manager. The partner (an administrator) must be able to **see everyone else's history** and
+**suspend, remove or otherwise manage every account except the owner's**.
+
+How that is built (rules in `assets/views/he-people.js`, branch `claude/new-employee-rules`):
+owner, then administrator, then manager, then employee; a person manages only accounts **below**
+their own level. So an administrator manages every manager and employee, and never an owner.
+One point where Claude chose the safer reading and told the owner: an administrator does not
+create or change **another administrator** (a second co-owner); that stays with the owner.
+"Remove" never deletes: the account is switched off and marked as removed, and its history stays.
+History: the owner sees everyone; an administrator sees everyone except the owner (already how
+Employee Activity works); a manager sees the list of people, not the history.
+
 ## What the read-only check showed (run by the owner on Nov 24, 6:45 PM Central; 42 rows)
 
 Written in plain words on purpose; the raw rules are not copied here. No account name or email was
