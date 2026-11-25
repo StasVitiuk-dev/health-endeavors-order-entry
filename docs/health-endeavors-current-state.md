@@ -1,6 +1,6 @@
 # Health Endeavors — current state (cross-project summary)
 
-**Last updated:** November 24, 2026 (§1, §4, §5, §8, §9: PR #85 merged in the evening with #56–#84 inside it; live check by the owner still to come; the owner's open decisions). Before that: November 23, 2026, evening (§1, §4, §5: PR #36 merged and checked live). Earlier Nov 23: §5, §8, §9 (PR #36 carries everything; Nov 23 decisions). Before that: November 15, 2026 (Nov 7 build). Internal-platform entry point: `docs/ops/START_HERE_EXT14.md`. **Keep this short.** Details live in the linked documents; update this file whenever the verified state changes materially.
+**Last updated:** November 25, 2026 (§1, §4, §5, §8: #110 merged in the afternoon with #102–#109 inside it; nothing installed). Before that: November 24, 2026 (§1, §4, §5, §8, §9: PR #85 merged in the evening with #56–#84 inside it; live check by the owner still to come; the owner's open decisions). Before that: November 23, 2026, evening (§1, §4, §5: PR #36 merged and checked live). Earlier Nov 23: §5, §8, §9 (PR #36 carries everything; Nov 23 decisions). Before that: November 15, 2026 (Nov 7 build). Internal-platform entry point: `docs/ops/START_HERE_EXT14.md`. **Keep this short.** Details live in the linked documents; update this file whenever the verified state changes materially.
 
 Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (from the owner's earlier chats, not re-checked) · **PROPOSED** · **OWNER DECISION REQUIRED** · **DEPRECATED**.
 
@@ -13,7 +13,16 @@ Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (fro
 
 ## 1. Internal platform (the dashboard)
 
-- **CURRENT (Nov 24, 2026), read this first:** `main` is at `e08ec8c` and is the live dashboard. The
+- **CURRENT (Nov 25, 2026), read this first:** `main` is at `f173b97` and is the live dashboard. On
+  Nov 24 evening and Nov 25 the owner merged #51, #86, #87, #88, #100 (administrators run email
+  campaigns too), #93, #101 (the one People-page safety exception) and, at about 2:14 pm Central,
+  **#110, which brought in #102–#109**: administrators approve deliveries and returns, supplier
+  documents and stock-count corrections; managers do what employees can; the owner-protection map
+  and the complete install index; one shipping email per order and the end-to-end rehearsal; two
+  devices never erase each other's settings. Two full local test runs on the combined code found no
+  real failures. **Every database draft is still not installed**, so the live dashboard behaves as
+  before until each draft's sitting. Status of the owner's Nov 25 queue: `PROJECT_RECORD.md` §3b.
+- **Nov 24, 2026 (kept for history):** `main` was at `e08ec8c` and is the live dashboard. The
   owner merged PR #36, then #37, #45 (which contains #38–#44) and #55 (which contains #46–#54), all on
   Nov 23, and checked the live site after the last one. Everything built since was **merged by the owner on Nov 24 at about 6:03 PM Central (merge commit `1f86df0`)**, live check by the owner still to come: PR #85 contained #56–#84 (the owner's requests of Nov 24: shorter menu, printing, agents
   at a glance, Store Campaigns, Customer Emails, Content Helper, store finder, drafts on every device,
@@ -151,7 +160,9 @@ Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (fro
 
 ## 4. Important merged work (on `main`)
 
-- **CURRENT (Nov 24, 2026):** latest `main` commit `e08ec8c`. Merged by the owner on Nov 23, in this
+- **CURRENT (Nov 25, 2026):** latest `main` commit `f173b97` (#110, containing #102–#109). Earlier on
+  Nov 25: #101, #93, #100; on Nov 24 evening: #51, #86, #87, #88. Detail: `PROJECT_RECORD.md` §3b and §9.
+- **Nov 24, 2026:** latest `main` commit was `e08ec8c`. Merged by the owner on Nov 23, in this
   order: PR #36, PR #37 (documents), PR #45 (contains #38–#44: fonts, previous look, tax-rate dates,
   product import, confirmed tax rates, attention feed, smart scan, delivery watch), PR #55 (contains
   #46–#54, among them the agent diary, real profit, the Feature Flags section for switches that save
@@ -162,7 +173,10 @@ Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (fro
 
 ## 5. Active development (open PRs)
 
-**CURRENT (Nov 24, 2026, evening):** **PR #85** was merged by the owner on Nov 24 at about 6:03 PM Central (merge commit `1f86df0`); it contained #56–#84, and GitHub
+**CURRENT (Nov 25, 2026, afternoon):** no open PRs for the owner. #110 was merged with #102–#109
+inside it; #104 and #105 were closed as already contained (merging either leaves `main` unchanged).
+
+**Nov 24, 2026, evening:** **PR #85** was merged by the owner on Nov 24 at about 6:03 PM Central (merge commit `1f86df0`); it contained #56–#84, and GitHub
 marked those merged with it. Still open for the owner: **PR #51** (documents only). Merging runs no
 SQL. "Screenshots (informational)" shows red on these PRs and never blocks: its reference pictures
 come from another machine. What each PR holds: `docs/ops/BUILD_TRACKER_2_WEEKS.md`.
@@ -217,7 +231,14 @@ No merging or deploying by Claude · no production Supabase, SQL, cron, RLS or p
 
 ## 8. Pending owner decisions (most important first)
 
-**Updated Nov 24, 2026 (CURRENT).** Platform list in full: `docs/ops/NEXT_SESSION_CHECKLIST.md`.
+**Updated Nov 24, 2026 (CURRENT, with the Nov 25 additions at the top).** Platform list in full: `docs/ops/NEXT_SESSION_CHECKLIST.md`.
+
+0. **Nov 25 (CURRENT):** (a) the read-only look in `docs/ops/OWNER_PROTECTION_AND_PRIVATE_HISTORY.md`
+   §B3, which decides the private-history draft; (b) may a **manager** approve deliveries or supplier
+   documents? (c) when an administrator looks at history, show "changed by the owner" or nothing
+   (proposed: nothing)? (d) confirm the platform's own shipping email is the one customers get for
+   platform orders (proposed: yes); (e) backups in the short form; (f) database sittings in the
+   order of `docs/ops/sql-review/START_HERE_GUIDED_RUNS.md`.
 
 1. ~~Merge PR #85~~ DONE Nov 24 evening (it contained #56–#84). ~~Live check~~ DONE the same evening by the owner (the shorter menu and the new switches, all Off, seen on the live site). Next: PR #51 (documents).
    NEW the same evening: the owner decided that administrators get almost everything the owner has (`docs/ops/OWNER_DECISION_2026-11-24_ADMINISTRATOR_NEAR_OWNER.md`); building it has not started.

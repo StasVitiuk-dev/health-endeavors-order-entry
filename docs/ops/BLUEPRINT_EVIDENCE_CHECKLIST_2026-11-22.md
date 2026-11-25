@@ -117,11 +117,11 @@ data. Nothing in this section is Running unless it says so.
 | Money | Real profit; money per channel; real fee and postage; packaging cost per box | #49, #52, #54, #62 | `real-profit-ext24` | drafts 50, 52 | Merged; drafts not installed | costs entered by the owner; sittings A, 10 |
 | Printing and records | Daily recap; day pack; client list; weekly owner report; automatic daily printing (page side) | #48, #63, #66, #88, #74 | `backups-page-ext22`, `auto-print-ext24` | printers | Merged | real printers (pending) |
 | Orders and shipping | Sales channel on every order; drop-off parcels; batch stickers and batch on each order; delivery watch | #59, #56, #57, #58 | `order-slips-ext22`, `batch-labels-ext24` | drafts 48, 54 | Merged; drafts not installed | sittings 9, 11 |
-| Shared settings | Same numbers and switches on every device; drafts on every device; "My settings"; two devices never erase each other | #50, #53, #73, #78, #106 | `shared-switches-ext24`, `shared-settings-race-ext25` | drafts 50, 58 | Merged except #106 (open) | sittings A, 13 |
+| Shared settings | Same numbers and switches on every device; drafts on every device; "My settings"; two devices never erase each other | #50, #53, #73, #78, #106 | `shared-switches-ext24`, `shared-settings-race-ext25` | drafts 50, 58 | Merged (#106 via #110) | sittings A, 13 |
 | Growth (approved agents' pages) | Store Campaigns + store finder; Customer Emails; Content Helper; Reviews page; receipt text on Expenses; morning summary to copy | #65, #72, #71, #70, #82, #67, #68 | `store-campaign-ext24`, `customer-emails-ext24`, `review-inbox-ext24` | drafts 56, 60; a business email for any real sending | Merged; nothing sends | real sending is a separate owner approval |
 | Home and owner tools | Customers first; Ready to launch page; Ask the dashboard (voice, stage 1); what administrators changed | #87, #89, #91, #97 | `launch-page-ext25`, `admin-changes-ext25` | — | Merged | turn switches on |
-| People and roles | New Employee: four levels, People page, sign-in helper; administrators near-owner (settings, tax, campaigns, deliveries, returns, supplier documents); managers; owner protection | #90, #95, #96, #98–#100, #102–#105 | `people-page-ext25`, people and helper database tests | drafts 50, 46, 56, 40, 36/38, 62/64; helper deploy | #90–#101 merged; #102–#105 open; nothing installed | sittings; private-history read-only look |
-| Fixes | Invisible number on a coloured Home tile; two saves on "Later"; saved campaigns count every email; one shipping email per order | #94, #85, #84, #108 | `tile-figure-ext25`, `staging-rehearsal-ext25` | — | Merged except #108 (open) | — |
+| People and roles | New Employee: four levels, People page, sign-in helper; administrators near-owner (settings, tax, campaigns, deliveries, returns, supplier documents); managers; owner protection | #90, #95, #96, #98–#100, #102–#105 | `people-page-ext25`, people and helper database tests | drafts 50, 46, 56, 40, 36/38, 62/64; helper deploy | merged (#90–#101; #102–#105 via #110); nothing installed | sittings; private-history read-only look |
+| Fixes | Invisible number on a coloured Home tile; two saves on "Later"; saved campaigns count every email; one shipping email per order | #94, #85, #84, #108 | `tile-figure-ext25`, `staging-rehearsal-ext25` | — | Merged (#108 via #110) | — |
 
 ### 7b. The AI agents (none runs by itself unless stated)
 
@@ -152,4 +152,4 @@ data. Nothing in this section is Running unless it says so.
 ### 7d. Suggestions recorded, not built (for the owner to choose later)
 
 - A Home warning when the newest backup is older than a day (§8 of `RECOVERY_AND_BACKUP_READINESS.md`, E7; waits on D5).
-- Let managers approve deliveries or supplier documents (owner question, PR #104).
+- Let managers approve deliveries or supplier documents (owner question; worked example merged via #110).
