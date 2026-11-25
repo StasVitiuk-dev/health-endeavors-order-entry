@@ -124,6 +124,28 @@ managers") can create a new employee account. Claude's proposal, given in chat:
 Why not "create the login from the dashboard": that needs the database's master key inside the
 page, where anyone could read it. That key must never be in the browser or in this repository.
 
+**The owner's answer to this proposal (same evening): not "ask, then approve".** The owner wants
+a button with which the owner and administrators **create the account themselves**. Employees will
+be given a **work email address**; personal addresses are not to be used, so nobody sends a request
+on their own. This DEPRECATES steps 1 and 2 above; steps 3 to 5 stand.
+
+What that needs, told to the owner in chat (PROPOSED, nothing built):
+
+- Creating a login needs the database's master key, which must stay on the server. So one small
+  server-side function is needed at the database provider: the dashboard asks it, it checks that the
+  person asking is the owner or an administrator, and only then creates the login. The function gets
+  the key from the provider by itself: the owner never copies or pastes a key, and no key enters
+  this repository. Installing it is a deployment the owner does once, guided, after approving it.
+- Sign-ups by strangers stay switched off. Only the function creates accounts.
+- First password: a temporary one shown once to whoever created the account, and the new person
+  must choose their own at the first sign-in. (An emailed invitation is the alternative; it depends
+  on the work mailbox existing first.)
+- Work addresses need the business's own email domain, which is already on the owner's list
+  (`docs/ops/BUSINESS_EMAIL_PLAN.md`).
+
+Also proposed for the page: reset a forgotten password, deactivate someone who left (signed out
+everywhere, history kept), change a role, and a list showing role, active or not, and last sign-in.
+
 **OWNER DECISION REQUIRED (asked in chat, not answered yet):** since this evening Administrator
 means "almost an Owner". A future manager made an Administrator would get all of it. Claude
 recommends a fourth role, **Manager**: approves new employees and runs the daily work, without the
