@@ -15,8 +15,18 @@ const DESKTOP_ONLY_RE = /^(?:base\.)?test\.beforeEach\(\(\{\}, (testInfo|ti)\) =
 const desktopOnlyFiles = fs.readdirSync(path.join(__dirname, 'specs'))
   .filter(f => f.endsWith('.spec.js') && DESKTOP_ONLY_RE.test(fs.readFileSync(path.join(__dirname, 'specs', f), 'utf8')));
 
+// Screenshot references: fonts render slightly differently on GitHub's test
+// machine than on Claude's work computer, so each keeps its own set. The
+// GitHub screenshot job sets HE_SCREENSHOT_SET=github and compares against
+// `visual.spec.js-snapshots-github/`; everywhere else the usual folder is used.
+// Both sets show the same approved design; neither tolerance is loosened.
+const githubShots = process.env.HE_SCREENSHOT_SET === 'github'
+  ? { snapshotPathTemplate: '{testDir}/{testFilePath}-snapshots-github/{arg}{-projectName}{-snapshotSuffix}{ext}' }
+  : {};
+
 module.exports = defineConfig({
   metadata: { desktopOnlyFiles },
+  ...githubShots,
   testDir: './specs',
   outputDir: '../test-results',
   fullyParallel: true,

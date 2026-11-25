@@ -168,4 +168,18 @@ jobs:
           cache: npm
       - run: npm ci --ignore-scripts
       - run: npx playwright install --with-deps chromium
-      - run: npx playwright test --config tests/playwright.config.js tests/specs/visual.spec.js --reporter=list,github
+      - name: Compare with GitHub's own reference pictures
+        # Fonts render slightly differently here than on Claude's work computer, so this job
+        # compares against its own set (tests/specs/visual.spec.js-snapshots-github/).
+        env:
+          HE_SCREENSHOT_SET: github
+        run: npx playwright test --config tests/playwright.config.js tests/specs/visual.spec.js --reporter=list,github
+      # Synthetic data only: pictures of the mocked dashboard, so a difference can be looked at. Small, 7 days.
+      - name: Keep the pictures of a failed comparison (7 days)
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2 (v4 tag on 2026-10-12; verified with git ls-remote)
+        with:
+          name: screenshots-actual
+          path: test-results/
+          retention-days: 7
+          if-no-files-found: ignore
