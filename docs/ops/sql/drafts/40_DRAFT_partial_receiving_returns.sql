@@ -192,6 +192,31 @@ as $fn$
   select coalesce(public.current_role() in ('owner', 'administrator'), false)
 $fn$;
 
+-- Who may approve or reject a delivery or a return to the supplier, and decide a customer
+-- return. Today exactly the same as stock_is_owner(): the owner or an administrator. They are
+-- separate on purpose (Nov 25): the owner decided a manager approves deliveries and returns
+-- too, and the optional later step drafts/66 widens ONLY these two, so corrections, surplus
+-- decisions and the stock history stay with the owner and administrators.
+--   stock_may_decide()            may this person decide at all (checked first, in the functions)
+--   stock_can_decide(submitted)   may this person decide THIS record (checked by the guards)
+create or replace function public.stock_may_decide() returns boolean
+language sql
+stable
+security invoker
+set search_path = public, pg_temp
+as $fn$
+  select public.stock_is_owner()
+$fn$;
+
+create or replace function public.stock_can_decide(p_submitted_by uuid) returns boolean
+language sql
+stable
+security invoker
+set search_path = public, pg_temp
+as $fn$
+  select public.stock_is_owner()
+$fn$;
+
 -- What is still to come on a purchase-order line (ordered - received).
 create or replace function public.po_item_outstanding(p_item uuid) returns integer
 language sql
@@ -275,7 +300,7 @@ begin
     raise exception 'This receiving record was already %.', old.status using errcode = '22023';
   end if;
   if new.status in ('approved', 'rejected') then
-    if not public.stock_is_owner() then
+    if not public.stock_can_decide(old.submitted_by) then
       raise exception 'Only the owner or an administrator can approve or reject a delivery.' using errcode = '42501';
     end if;
     if new.status = 'rejected' and (new.decision_note is null or length(btrim(new.decision_note)) < 5) then
@@ -468,7 +493,7 @@ begin
   if old.status <> 'submitted' then
     raise exception 'This supplier return was already %.', old.status using errcode = '22023';
   end if;
-  if new.status in ('approved', 'rejected') and not public.stock_is_owner() then
+  if new.status in ('approved', 'rejected') and not public.stock_can_decide(old.submitted_by) then
     raise exception 'Only the owner or an administrator can approve or reject a return to the supplier.' using errcode = '42501';
   end if;
   if new.status = 'cancelled' and not (old.submitted_by = auth.uid() or public.stock_is_owner()) then
@@ -555,7 +580,7 @@ begin
     raise exception 'This customer return was already %.', old.status using errcode = '22023';
   end if;
   if new.status = 'decided' then
-    if not public.stock_is_owner() then
+    if not public.stock_can_decide(old.received_by) then
       raise exception 'Only the owner or an administrator decides what happens to returned units.' using errcode = '42501';
     end if;
   elsif new.status = 'cancelled' then
@@ -703,7 +728,7 @@ as $fn$
 declare
   v public.receiving_records%rowtype;
 begin
-  if not public.stock_is_owner() then
+  if not public.stock_may_decide() then
     raise exception 'Only the owner or an administrator can approve or reject a delivery.' using errcode = '42501';
   end if;
   select * into v from public.receiving_records where id = p_id for update;
@@ -724,7 +749,7 @@ as $fn$
 declare
   v public.receiving_records%rowtype;
 begin
-  if not public.stock_is_owner() then
+  if not public.stock_may_decide() then
     raise exception 'Only the owner or an administrator can approve or reject a delivery.' using errcode = '42501';
   end if;
   select * into v from public.receiving_records where id = p_id for update;
@@ -811,7 +836,7 @@ as $fn$
 declare
   v public.supplier_returns%rowtype;
 begin
-  if not public.stock_is_owner() then
+  if not public.stock_may_decide() then
     raise exception 'Only the owner or an administrator can approve or reject a return to the supplier.' using errcode = '42501';
   end if;
   if p_decision not in ('approved', 'rejected') then
@@ -860,7 +885,7 @@ as $fn$
 declare
   v public.customer_return_inspections%rowtype;
 begin
-  if not public.stock_is_owner() then
+  if not public.stock_may_decide() then
     raise exception 'Only the owner or an administrator decides what happens to returned units.' using errcode = '42501';
   end if;
   if p_opened is null or p_used is null then
@@ -964,6 +989,8 @@ drop policy if exists stock_corrections_owner on public.stock_corrections;
 create policy stock_corrections_owner on public.stock_corrections for insert to authenticated with check (public.stock_is_owner());
 
 revoke all on function public.stock_is_owner() from public, anon;
+revoke all on function public.stock_may_decide() from public, anon;
+revoke all on function public.stock_can_decide(uuid) from public, anon;
 revoke all on function public.po_item_outstanding(uuid) from public, anon;
 revoke all on function public.stock_movements_guard() from public, anon;
 revoke all on function public.receiving_records_guard() from public, anon;
@@ -987,6 +1014,8 @@ revoke all on function public.record_customer_return(uuid, uuid, integer, uuid) 
 revoke all on function public.decide_customer_return(uuid, integer, integer, integer, boolean, boolean, text) from public, anon;
 revoke all on function public.correct_stock_movement(uuid, bigint, text) from public, anon;
 grant execute on function public.stock_is_owner() to authenticated;
+grant execute on function public.stock_may_decide() to authenticated;
+grant execute on function public.stock_can_decide(uuid) to authenticated;
 grant execute on function public.po_item_outstanding(uuid) to authenticated;
 grant execute on function public.submit_receiving_record(uuid, uuid, jsonb, text) to authenticated;
 grant execute on function public.approve_receiving_record(uuid, text) to authenticated;

@@ -99,7 +99,19 @@ function lint(m = loadManifest(), files = listSql(), dir = SQL) {
       if (!writes.length) P(f, 'change draft contains no write statement (a read-only query stored in drafts/?)');
       if (!/^\s*begin\b/im.test(strip(text))) P(f, 'missing BEGIN (must run as one transaction)');
       if (!/^\s*commit\b/im.test(strip(text))) P(f, 'missing COMMIT');
-      if (/security\s+definer/i.test(strip(text))) P(f, 'SECURITY DEFINER is not allowed');
+      // The one pinned exception (Nov 25, owner decision on managers, option A): drafts/66 lets
+      // exactly these four decision actions run with raised rights, and nothing else. Any other
+      // mention of raised rights, in 66 or in any other draft, is still refused.
+      const DEFINER_66 = [
+        'alter function public.approve_receiving_record(uuid, text) security definer;',
+        'alter function public.reject_receiving_record(uuid, text) security definer;',
+        'alter function public.decide_supplier_return(uuid, text, text) security definer;',
+        'alter function public.decide_customer_return(uuid, integer, integer, integer, boolean, boolean, text) security definer;'];
+      let definerText = strip(text);
+      if (path.basename(f) === '66_DRAFT_managers_approve_stock.sql') {
+        for (const d of DEFINER_66) { if (definerText.split(d).length - 1 !== 1) P(f, 'the pinned raised-rights line is not there exactly once: ' + d); definerText = definerText.split(d).join(''); }
+      }
+      if (/security\s+definer/i.test(definerText)) P(f, 'SECURITY DEFINER is not allowed');
       const fnHeads = strip(text).split(/create\s+(?:or\s+replace\s+)?function/i).slice(1);
       for (const h of fnHeads) { const decl = h.split(/\bas\s+\$/i)[0]; if (!/set\s+search_path/i.test(decl)) P(f, 'a function without SET search_path'); }
       for (const s of stmts) {

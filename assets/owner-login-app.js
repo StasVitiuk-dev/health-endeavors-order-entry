@@ -3836,14 +3836,18 @@
       const myId = await currentUserId().catch(() => null); if (seq !== dlvSeq) return;
       dlvLast = { store, data: L, myId };
       const approves = currentUserRole === 'owner' || currentUserRole === 'administrator';   // approves: owner or administrator (owner decision, Nov 24)
+      // A manager approves or rejects a delivery someone ELSE recorded (owner decision of Nov 25; the
+      // database step drafts/66 or the option-B rights make it work). Surplus stays owner/administrator.
+      const decides = approves || currentUserRole === 'manager';
+      const mayDecide = r => approves || (decides && !!myId && r.submitted_by !== myId);
       const items = {}; L.orders.forEach(o => o.lines.forEach(l => { items[l.id] = Object.assign({ po: o.number }, l); }));
       const poNum = id => { const o = L.orders.find(x => x.id === id); return o ? o.number : 'a purchase order'; };
-      const waitingRows = L.waiting.filter(r => approves || r.submitted_by === myId).map(r => h('li', { 'data-dlvrecord': r.id, class: 'u-mt-6' },
+      const waitingRows = L.waiting.filter(r => decides || r.submitted_by === myId).map(r => h('li', { 'data-dlvrecord': r.id, class: 'u-mt-6' },
         h('div', { class: 'taskTitle' }, poNum(r.purchase_order_id) + ' — recorded by ' + dlvWho(r.submitted_by) + ' on ' + String(r.submitted_at || '').slice(0, 10)),
         h('div', { class: 'u-fs-12' }, r.lines.map(l => dlvLineText(l, items)).join('; ') + (r.note ? ' — ' + r.note : '')),
         h('div', { class: 'u-mt-4' },
-          approves ? h('button', { type: 'button', class: 'small approve', 'data-dlvact': 'approve', 'data-id': r.id }, 'Approve') : null, ' ',
-          approves ? h('button', { type: 'button', class: 'small secondary', 'data-dlvact': 'reject-open', 'data-id': r.id }, 'Reject') : null, ' ',
+          mayDecide(r) ? h('button', { type: 'button', class: 'small approve', 'data-dlvact': 'approve', 'data-id': r.id }, 'Approve') : null, ' ',
+          mayDecide(r) ? h('button', { type: 'button', class: 'small secondary', 'data-dlvact': 'reject-open', 'data-id': r.id }, 'Reject') : null, ' ',
           (r.submitted_by === myId || approves) ? h('button', { type: 'button', class: 'small secondary', 'data-dlvact': 'cancel', 'data-id': r.id }, 'Cancel') : null),
         dlvRejectOpen === r.id ? h('form', { 'data-dlvrejectform': r.id, class: 'heForm u-mt-4', novalidate: '' },
           h('div', { class: 'heField' }, h('label', { for: 'dlvWhy-' + r.id }, 'Why reject it? (required)'), h('input', { id: 'dlvWhy-' + r.id, name: 'reason', type: 'text', maxlength: '500', autocomplete: 'off' })),
@@ -3870,7 +3874,7 @@
       host.replaceChildren(wrap('stored',
         h('p', { class: 'hint u-mt-n2' }, 'Record what arrived, line by line. Stock changes only when the owner or an administrator approves. Rejected units stay to come; units beyond the order wait for one of them.'),
         h('p', { class: 'u-fs-12 u-mt-4', role: 'status', 'data-dlvmessage': '1' }, dlvMessage),
-        h('h4', null, approves ? 'Waiting for your approval (' + L.waiting.length + ')' : 'Your deliveries waiting for the owner or an administrator'),
+        h('h4', null, decides ? 'Waiting for your approval (' + L.waiting.length + ')' : 'Your deliveries waiting for the owner or an administrator'),
         waitingRows.length ? h('ul', { 'data-dlvwaiting': String(waitingRows.length) }, waitingRows) : h('p', { class: 'empty', 'data-dlvwaiting': '0' }, 'Nothing waiting.'),
         surplusRows.length ? h('div', null, h('h4', { class: 'u-mt-8' }, 'More than ordered: keep or send back?'), h('ul', null, surplusRows)) : null,
         form));
@@ -3945,6 +3949,9 @@
       const myId = await currentUserId().catch(() => null); if (seq !== rtnSeq) return;
       rtnLast = { store, data: L, myId };
       const approves = currentUserRole === 'owner' || currentUserRole === 'administrator', seesMoves = approves;   // approves: owner or administrator (owner decision, Nov 24)
+      // A manager decides a return someone ELSE recorded (owner decision of Nov 25); corrections stay owner/administrator.
+      const decides = approves || currentUserRole === 'manager';
+      const mayDecide = by => approves || (decides && !!myId && by !== myId);
       const who = id => !id ? 'someone' : (myId && id === myId) ? 'you' : 'a team member';
       const day = v => String(v || '').slice(0, 10);
       const oLine = {}; L.orderLines.forEach(l => { oLine[l.id] = l; });
@@ -3960,10 +3967,10 @@
         return h('li', { 'data-rtncr': c.id, class: 'u-mt-6' },
           h('div', { class: 'taskTitle' }, (l ? l.order + ' · ' + (l.sku || l.name || 'item') : 'An order line') + ': ' + c.quantity + ' unit(s) awaiting inspection'),
           h('div', { class: 'u-fs-12' }, 'Recorded by ' + who(c.received_by) + ' on ' + day(c.received_at) + '. Not for sale until inspected.'),
-          (approves || c.received_by === myId) ? h('div', { class: 'u-mt-4' },
-            approves ? h('button', { type: 'button', class: 'small', 'data-rtnact': 'inspect-open', 'data-id': c.id, 'aria-expanded': String(rtnOpen === 'inspect:' + c.id) }, 'Inspect') : null, ' ',
+          (decides || c.received_by === myId) ? h('div', { class: 'u-mt-4' },
+            mayDecide(c.received_by) ? h('button', { type: 'button', class: 'small', 'data-rtnact': 'inspect-open', 'data-id': c.id, 'aria-expanded': String(rtnOpen === 'inspect:' + c.id) }, 'Inspect') : null, ' ',
             h('button', { type: 'button', class: 'small secondary', 'data-rtnact': 'cr-cancel', 'data-id': c.id }, 'Cancel (recorded by mistake)')) : null,
-          approves && rtnOpen === 'inspect:' + c.id ? h('form', { 'data-rtnform': 'inspect', 'data-id': c.id, class: 'heForm u-mt-4', novalidate: '' },
+          mayDecide(c.received_by) && rtnOpen === 'inspect:' + c.id ? h('form', { 'data-rtnform': 'inspect', 'data-id': c.id, class: 'heForm u-mt-4', novalidate: '' },
             yesNo('rtnOpened-' + c.id, 'Was it opened?'), yesNo('rtnUsed-' + c.id, 'Was it used?'),
             num('rtnRestock-' + c.id, 'Back on the shelf (sealed only)'), num('rtnDamaged-' + c.id, 'Damaged'), num('rtnUnsuitable-' + c.id, 'Unsuitable (opened or used, never resold)'),
             text('rtnInspNote-' + c.id, 'Note (optional)', 500),
@@ -3979,14 +3986,14 @@
         h('div', { class: 'heActions' }, h('button', { type: 'submit', class: 'small' }, 'Record (awaiting inspection)')));
 
       // returns to a supplier
-      const srRows = L.supplierWaiting.filter(x => approves || x.submitted_by === myId).map(x => {
+      const srRows = L.supplierWaiting.filter(x => decides || x.submitted_by === myId).map(x => {
         const l = pLine[x.po_item_id];
         return h('li', { 'data-rtnsr': x.id, class: 'u-mt-6' },
           h('div', { class: 'taskTitle' }, (l ? l.po + ' · ' + (l.sku || l.description || 'item') : 'A purchase-order line') + ': ' + x.quantity + ' unit(s) from ' + (x.from_bucket === 'damaged' ? 'Damaged' : 'Available')),
           h('div', { class: 'u-fs-12' }, x.reason + (x.replacement_expected ? ' · replacement expected' : '') + ' · recorded by ' + who(x.submitted_by) + ' on ' + day(x.submitted_at)),
           h('div', { class: 'u-mt-4' },
-            approves ? h('button', { type: 'button', class: 'small approve', 'data-rtnact': 'sr-approve', 'data-id': x.id }, 'Approve') : null, ' ',
-            approves ? h('button', { type: 'button', class: 'small secondary', 'data-rtnact': 'sr-reject', 'data-id': x.id }, 'Reject') : null, ' ',
+            mayDecide(x.submitted_by) ? h('button', { type: 'button', class: 'small approve', 'data-rtnact': 'sr-approve', 'data-id': x.id }, 'Approve') : null, ' ',
+            mayDecide(x.submitted_by) ? h('button', { type: 'button', class: 'small secondary', 'data-rtnact': 'sr-reject', 'data-id': x.id }, 'Reject') : null, ' ',
             (approves || x.submitted_by === myId) ? h('button', { type: 'button', class: 'small secondary', 'data-rtnact': 'sr-cancel', 'data-id': x.id }, 'Cancel (recorded by mistake)') : null));
       });
       const srForm = h('form', { 'data-rtnform': 'sr', class: 'heForm u-mt-8', novalidate: '' },
@@ -4017,7 +4024,7 @@
         h('h4', null, 'Customer returns awaiting inspection (' + L.customerWaiting.length + ')'),
         crRows.length ? h('ul', { 'data-rtncrwaiting': String(crRows.length) }, crRows) : h('p', { class: 'empty', 'data-rtncrwaiting': '0' }, 'Nothing awaiting inspection.'),
         h('h4', { class: 'u-mt-12' }, 'Record a customer return'), crForm,
-        h('h4', { class: 'u-mt-12' }, approves ? 'Returns to suppliers waiting for your approval (' + L.supplierWaiting.length + ')' : 'Your returns to suppliers waiting for the owner or an administrator'),
+        h('h4', { class: 'u-mt-12' }, decides ? 'Returns to suppliers waiting for your approval (' + L.supplierWaiting.length + ')' : 'Your returns to suppliers waiting for the owner or an administrator'),
         srRows.length ? h('ul', { 'data-rtnsrwaiting': String(srRows.length) }, srRows) : h('p', { class: 'empty', 'data-rtnsrwaiting': '0' }, 'Nothing waiting.'),
         h('h4', { class: 'u-mt-12' }, 'Send units back to a supplier'), srForm,
         seesMoves ? h('h4', { class: 'u-mt-12' }, 'Latest stock movements') : null,

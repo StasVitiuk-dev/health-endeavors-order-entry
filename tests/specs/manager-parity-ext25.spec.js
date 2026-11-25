@@ -25,27 +25,42 @@ function client(calls) {
     storage: { from() { return {}; } } };
 }
 
-test('the rules prototype: a manager submits like an employee, and cannot approve', () => {
+test('the rules prototype: a manager submits like an employee, and decides a record someone ELSE submitted (Nov 25)', () => {
   const L = R.createLedger({ products: [{ sku: 'SYN-A', available: 5, damaged: 0 }],
     purchaseOrders: [{ id: 'po', number: 'SYN-PO-1', lines: [{ sku: 'SYN-A', ordered: 20 }] }], sales: [] });
   const sub = R.submitReceiving(L, { requestKey: '00000000-0000-4000-8000-000000000001', poId: 'po', lines: [{ sku: 'SYN-A', good: 8 }], by: 'mia', role: 'manager' });
   expect(sub.ok).toBe(true);
-  expect(R.approveReceiving(L, { recordId: sub.id, by: 'mia', role: 'manager' }).reason).toMatch(/only the owner or an administrator approves/);
-  expect(R.approveReceiving(L, { recordId: sub.id, by: 'ari', role: 'administrator' }).ok).toBe(true);
+  // never their own record: a second person decides it
+  expect(R.approveReceiving(L, { recordId: sub.id, by: 'mia', role: 'manager' }).reason).toMatch(/not for a record they submitted/);
+  // another manager may
+  expect(R.approveReceiving(L, { recordId: sub.id, by: 'max', role: 'manager' }).ok).toBe(true);
+  // an employee still may not decide; surplus and corrections stay with the owner or an administrator
+  const sub2 = R.submitReceiving(L, { requestKey: '00000000-0000-4000-8000-000000000002', poId: 'po', lines: [{ sku: 'SYN-A', good: 2 }], by: 'eve', role: 'employee' });
+  expect(R.approveReceiving(L, { recordId: sub2.id, by: 'sam', role: 'employee' }).ok).toBe(false);
   expect(R.SUBMIT_ROLES).toContain('manager');
   expect(R.DECIDE_ROLES).toEqual(['owner', 'administrator']);
 });
 
-test('deliveries store: a manager is let through to record, and refused before the database to approve', async () => {
+test('deliveries store: a manager is let through to approve, reject and decide returns (the database checks "not their own"); surplus and corrections are refused before the database', async () => {
   const calls = [];
   const s = RS.createStore({ client: client(calls), enabled: true, role: 'manager' });
-  const ap = await s.approve(ID);
-  expect(ap.ok).toBe(false);
-  expect(ap.message).toBe('Only the owner or an administrator approves, rejects or decides.');
-  expect(calls).toEqual([]);
+  await s.approve(ID);
+  expect(calls).toContain('approve_receiving_record');
+  await s.reject(ID, 'Counted the wrong box');
+  expect(calls).toContain('reject_receiving_record');
+  await s.decideSupplierReturn(ID, 'approved');
+  expect(calls).toContain('decide_supplier_return');
+  const before = calls.length;
+  expect((await s.decideSurplus(ID, 'kept')).message).toBe('Only the owner or an administrator approves, rejects or decides.');
+  expect(calls.length).toBe(before);
+  // an employee is still refused before the database
+  const ecalls = [];
+  const e = RS.createStore({ client: client(ecalls), enabled: true, role: 'employee' });
+  expect((await e.approve(ID)).message).toBe('Only the owner, an administrator or a manager approves, rejects or decides.');
+  expect(ecalls).toEqual([]);
   // someone with no known level is still refused outright
   const v = RS.createStore({ client: client([]), enabled: true, role: 'viewer' });
-  expect((await v.approve(ID)).message).toMatch(/Only staff, an administrator or the owner/);
+  expect((await v.approve(ID)).message).toMatch(/Only staff, an administrator or the owner|Only the owner, an administrator or a manager/);
 });
 
 test('supplier documents store: a manager records like an employee, and is let through to approve (Nov 25)', async () => {

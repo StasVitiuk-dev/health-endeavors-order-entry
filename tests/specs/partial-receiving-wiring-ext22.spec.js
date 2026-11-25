@@ -35,7 +35,7 @@ test('switch ON: the owner\'s example step by step — remaining quantity and st
   await expect(step(1)).toContainText('Recorded, waiting for your decision');
   await expect(step(1)).toContainText('Stock: no change');
   await expect(step(2)).toContainText('Already recorded: nothing changed');
-  await expect(step(3)).toContainText('Refused: only the owner or an administrator approves stock changes');
+  await expect(step(3)).toContainText('Refused: only the owner, an administrator or a manager (not for a record they submitted) approves stock changes');
   await expect(step(4)).toContainText('You: You approve the first delivery');
   await expect(step(4)).toContainText('Available +8 (5 → 13)');
   await expect(step(6)).toContainText('Available +9 (13 → 22); Damaged +1 (0 → 1)');

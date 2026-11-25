@@ -63,7 +63,7 @@ test('the worked example: every step, the remaining quantity and the stock movem
   const s = w.steps;
   expect(s[1].movements).toEqual([]);                                   // staff submission: no stock change
   expect(s[2].duplicate).toBe(true);
-  expect(s[3].reason).toMatch(/only the owner or an administrator approves stock changes/);
+  expect(s[3].reason).toMatch(/only the owner, an administrator or a manager \(not for a record they submitted\) approves stock changes/);
   expect(s[4].movements).toEqual([{ bucket: 'available', change: 8, before: 5, after: 13 }]);
   expect(s[6].movements).toEqual([{ bucket: 'available', change: 9, before: 13, after: 22 }, { bucket: 'damaged', change: 1, before: 0, after: 1 }]);
   expect(s[7].reason).toMatch(/only 2 of SYN-HONEY-8OZ are still to come .* enter the rest as surplus/);
@@ -99,7 +99,7 @@ test('rule 5: staff submit for purchase orders they may see; stock changes only 
   const adm = R.submitReceiving(L, { requestKey: K(3), poId: 'po-private', lines: [{ sku: SKU, good: 1 }], ...admin });
   expect(adm.ok).toBe(true);
   for (const who of [staff, { by: 'v', role: 'viewer' }, { by: 'x' }]) {
-    expect(R.approveReceiving(L, { recordId: sub.id, ...who }).reason).toMatch(/only the owner or an administrator approves/);
+    expect(R.approveReceiving(L, { recordId: sub.id, ...who }).reason).toMatch(/only the owner, an administrator or a manager .*approves/);
   }
   expect(R.submitReceiving(L, { requestKey: K(4), poId: 'po', lines: [{ sku: SKU, good: 1 }], by: 'v', role: 'viewer' }).reason).toMatch(/only staff, an administrator or the owner/);
   expect(R.stock(L, SKU).available).toBe(5);
@@ -186,7 +186,7 @@ test('rule 4: a supplier return reopens the outstanding quantity only when a rep
   expect(R.submitSupplierReturn(L, { requestKey: K(7), poId: 'po', sku: SKU, quantity: 1, from: 'shelf', reason: 'Wrong scent', ...staff }).reason).toMatch(/Available or Damaged/);
   expect(R.submitSupplierReturn(L, { requestKey: K(8), poId: 'po', sku: SKU, quantity: 1, reason: 'no', ...staff }).reason).toMatch(/say why/);
   const s = R.submitSupplierReturn(L, { requestKey: K(9), poId: 'po', sku: SKU, quantity: 1, reason: 'Wrong scent', ...staff });
-  expect(R.decideSupplierReturn(L, { returnId: s.id, decision: 'approved', ...staff }).reason).toMatch(/only the owner or an administrator/);
+  expect(R.decideSupplierReturn(L, { returnId: s.id, decision: 'approved', ...staff }).reason).toMatch(/only the owner, an administrator or a manager/);
   // an administrator approves it: stock goes down, and who approved is kept
   const sa = R.decideSupplierReturn(L, { returnId: s.id, decision: 'approved', ...admin });
   expect(sa.ok).toBe(true);
@@ -201,7 +201,7 @@ test('rule 6: customer returns wait for inspection; opened or used skincare is n
   expect(R.stock(L, SKU).available).toBe(5);                            // not available for resale
   expect(R.saleStatus(L, 'so').lines[0]).toMatchObject({ awaitingInspection: 3, stillReturnable: 2 });
   const d = (x) => R.decideCustomerReturn(L, { inspectionId: rec.id, ...owner, ...x });
-  expect(d({ restock: 3, ...staff }).reason).toMatch(/only the owner or an administrator decides/);
+  expect(d({ restock: 3, ...staff }).reason).toMatch(/only the owner, an administrator or a manager .*decides/);
   expect(d({ restock: 3 }).reason).toMatch(/whether the product was opened/);
   expect(d({ restock: 1, unsuitable: 2, opened: true, used: false }).reason).toMatch(/opened or used skincare cannot be restocked/);
   expect(d({ restock: 1, unsuitable: 0, opened: false, used: true }).reason).toMatch(/cannot be restocked/);

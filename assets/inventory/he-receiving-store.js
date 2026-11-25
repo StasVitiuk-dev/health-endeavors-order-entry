@@ -176,13 +176,16 @@
         'Delivery recorded. It waits for the owner or an administrator; stock changes only when one of them approves.');
     }
     const ownerOnly = () => (role != null && !isApprover()) ? refuse('Only the owner or an administrator approves, rejects or decides.') : null;
+    // Owner decision of Nov 25: a manager approves, rejects and decides deliveries and returns too
+    // (never one they recorded: the database refuses that). Surplus and corrections stay ownerOnly().
+    const deciderOnly = () => (role != null && !isApprover() && role !== 'manager') ? refuse('Only the owner, an administrator or a manager approves, rejects or decides.') : null;
     async function approve(id, note) {
-      const r = ready() || ownerOnly(); if (r) return r;
+      const r = ready() || deciderOnly(); if (r) return r;
       if (!isUuid(id)) return refuse('That is not a receiving record.');
       return call('decide:' + id, RPC.approve, { p_id: id, p_note: note ? String(note).trim().slice(0, 500) : null }, 'Approved. Stock and the purchase order are updated.');
     }
     async function reject(id, reason) {
-      const r = ready() || ownerOnly(); if (r) return r;
+      const r = ready() || deciderOnly(); if (r) return r;
       if (!isUuid(id)) return refuse('That is not a receiving record.');
       const why = String(reason || '').trim();
       if (why.length < 5) return refuse('Say why the delivery record is rejected (at least 5 characters).');
@@ -212,7 +215,7 @@
         p_reason: String(q.reason).trim().slice(0, 300), p_replacement_expected: q.replacementExpected === true }, 'Return to the supplier recorded. It waits for the owner or an administrator.');
     }
     async function decideSupplierReturn(id, decision, note) {
-      const r = ready() || ownerOnly(); if (r) return r;
+      const r = ready() || deciderOnly(); if (r) return r;
       if (!isUuid(id) || (decision !== 'approved' && decision !== 'rejected')) return refuse('Choose approve or reject.');
       return call('srd:' + id, RPC.decideSupplierReturn, { p_id: id, p_decision: decision, p_note: note ? String(note).trim().slice(0, 500) : null }, decision === 'approved' ? 'Approved: stock is reduced.' : 'Rejected. No stock changed.');
     }
@@ -224,7 +227,7 @@
       return call('cr:' + q.requestKey, RPC.customerReturn, { p_request_key: q.requestKey, p_order_item_id: q.orderItemId, p_quantity: n, p_return_id: isUuid(q.returnId) ? q.returnId : null }, 'Recorded: awaiting inspection, not for sale.');
     }
     async function decideCustomerReturn(id, d) {
-      const r = ready() || ownerOnly(); if (r) return r;
+      const r = ready() || deciderOnly(); if (r) return r;
       const q = isObj(d) ? d : {};
       if (!isUuid(id)) return refuse('That is not a customer return.');
       if (typeof q.opened !== 'boolean' || typeof q.used !== 'boolean') return refuse('Say whether the product was opened and whether it was used.');

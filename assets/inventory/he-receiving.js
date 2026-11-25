@@ -101,6 +101,11 @@
     return null;
   }
   const canDecide = (req) => DECIDE_ROLES.indexOf(text(req.role)) >= 0;
+  // Owner decision of Nov 25: a manager decides deliveries and returns too, but never one they
+  // recorded themselves (a second person always decides). Surplus and corrections stay
+  // owner/administrator (canDecide). Needs drafts/66 (option A) or the option B rights in the database.
+  const canDecideRecord = (req, recordedBy) => canDecide(req)
+    || (text(req.role) === 'manager' && !!text(req.by) && text(req.by) !== text(recordedBy));
   // A new submission: role, request key, retry recognition.
   function keyed(L, kind, req, fingerprint) {
     if (!isLedger(L)) return { stop: NOT_A_LEDGER };
@@ -177,7 +182,7 @@
   function approveReceiving(L, req) {
     const f = findRecord(L, req, 'approveReceiving'); if (f.stop) return f.stop;
     const r = f.r, rec = f.rec, po = L.purchaseOrders[rec.poId];
-    if (!canDecide(r)) return refuse(L, 'approveReceiving', r, 'only the owner or an administrator approves stock changes');
+    if (!canDecideRecord(r, rec.submittedBy)) return refuse(L, 'approveReceiving', r, 'only the owner, an administrator or a manager (not for a record they submitted) approves stock changes');
     if (rec.status === 'approved') return { ok: true, duplicate: true, reason: 'already approved; nothing changed', id: rec.id, movements: [] };
     if (rec.status !== 'submitted') return refuse(L, 'approveReceiving', r, 'this receiving record was already ' + rec.status);
     // re-checked at approval: another record may have been approved in between (R2, R3)
@@ -203,7 +208,7 @@
     const kind = to === 'rejected' ? 'rejectReceiving' : 'cancelReceiving';
     const f = findRecord(L, req, kind); if (f.stop) return f.stop;
     const r = f.r, rec = f.rec;
-    if (to === 'rejected' && !canDecide(r)) return refuse(L, kind, r, 'only the owner or an administrator rejects a receiving record');
+    if (to === 'rejected' && !canDecideRecord(r, rec.submittedBy)) return refuse(L, kind, r, 'only the owner, an administrator or a manager (not for a record they submitted) rejects a receiving record');
     if (to === 'cancelled' && !(canDecide(r) || (text(r.by) && text(r.by) === rec.submittedBy))) return refuse(L, kind, r, 'only the person who submitted it, or the owner, can cancel it');
     if (rec.status === to) return { ok: true, duplicate: true, reason: 'already ' + to + '; nothing changed', id: rec.id, movements: [] };
     if (rec.status !== 'submitted') return refuse(L, kind, r, 'this receiving record was already ' + rec.status);
@@ -262,7 +267,7 @@
     if (!isLedger(L)) return NOT_A_LEDGER;
     const sr = L.supplierReturns.find(x => x.id === text(r.returnId));
     if (!sr) return refuse(L, 'decideSupplierReturn', r, 'no such return to the supplier');
-    if (!canDecide(r)) return refuse(L, 'decideSupplierReturn', r, 'only the owner or an administrator approves or rejects a return to the supplier');
+    if (!canDecideRecord(r, sr.submittedBy)) return refuse(L, 'decideSupplierReturn', r, 'only the owner, an administrator or a manager (not for a return they submitted) approves or rejects a return to the supplier');
     const d = text(r.decision);
     if (d !== 'approved' && d !== 'rejected') return refuse(L, 'decideSupplierReturn', r, 'say whether the return is approved or rejected');
     if (sr.status === d) return { ok: true, duplicate: true, reason: 'already ' + d + '; nothing changed', movements: [] };
@@ -316,7 +321,7 @@
     if (!isLedger(L)) return NOT_A_LEDGER;
     const ins = L.inspections.find(x => x.id === text(r.inspectionId));
     if (!ins) return refuse(L, 'decideCustomerReturn', r, 'no such customer return');
-    if (!canDecide(r)) return refuse(L, 'decideCustomerReturn', r, 'only the owner or an administrator decides what happens to returned units');
+    if (!canDecideRecord(r, ins.recordedBy)) return refuse(L, 'decideCustomerReturn', r, 'only the owner, an administrator or a manager (not for a return they recorded) decides what happens to returned units');
     if (ins.status === 'decided') return { ok: true, duplicate: true, reason: 'already decided; nothing changed', movements: [] };
     if (ins.status !== 'awaiting_inspection') return refuse(L, 'decideCustomerReturn', r, 'this return was already ' + ins.status);
     if (typeof r.opened !== 'boolean' || typeof r.used !== 'boolean') return refuse(L, 'decideCustomerReturn', r, 'say whether the product was opened and whether it was used');
