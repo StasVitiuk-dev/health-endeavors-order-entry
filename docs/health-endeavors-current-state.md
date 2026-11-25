@@ -1,6 +1,6 @@
 # Health Endeavors — current state (cross-project summary)
 
-**Last updated:** November 23, 2026, evening (§1, §4, §5: PR #36 merged and checked live). Earlier Nov 23: §5, §8, §9 (PR #36 carries everything; Nov 23 decisions). Before that: November 15, 2026 (Nov 7 build). Internal-platform entry point: `docs/ops/START_HERE_EXT14.md`. **Keep this short.** Details live in the linked documents; update this file whenever the verified state changes materially.
+**Last updated:** November 24, 2026 (§1, §4, §5, §8, §9: PR #85 merged in the evening with #56–#84 inside it; live check by the owner still to come; the owner's open decisions). Before that: November 23, 2026, evening (§1, §4, §5: PR #36 merged and checked live). Earlier Nov 23: §5, §8, §9 (PR #36 carries everything; Nov 23 decisions). Before that: November 15, 2026 (Nov 7 build). Internal-platform entry point: `docs/ops/START_HERE_EXT14.md`. **Keep this short.** Details live in the linked documents; update this file whenever the verified state changes materially.
 
 Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (from the owner's earlier chats, not re-checked) · **PROPOSED** · **OWNER DECISION REQUIRED** · **DEPRECATED**.
 
@@ -13,7 +13,14 @@ Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (fro
 
 ## 1. Internal platform (the dashboard)
 
-- **CURRENT (Nov 23, 2026, evening), read this first:** **PR #36 is merged into `main`** (merge
+- **CURRENT (Nov 24, 2026), read this first:** `main` is at `e08ec8c` and is the live dashboard. The
+  owner merged PR #36, then #37, #45 (which contains #38–#44) and #55 (which contains #46–#54), all on
+  Nov 23, and checked the live site after the last one. Everything built since was **merged by the owner on Nov 24 at about 6:03 PM Central (merge commit `1f86df0`)**, live check by the owner still to come: PR #85 contained #56–#84 (the owner's requests of Nov 24: shorter menu, printing, agents
+  at a glance, Store Campaigns, Customer Emails, Content Helper, store finder, drafts on every device,
+  the email sending records as a database draft, personal settings on every device, a "Handled" button for agent hand-offs, copying an approved customer email, a Reviews page and its database draft). Every new page
+  is behind a switch that is off. **No SQL was run: every database draft is still not installed**, and
+  **nothing sends an email or a text.** Item by item: `docs/ops/BUILD_TRACKER_2_WEEKS.md`.
+- **Nov 23, 2026, evening (kept for history):** **PR #36 is merged into `main`** (merge
   commit `b4ebb4b`) and **live**: the owner checked it on the computer (light and dark) and the
   iPhone (light, dark, menu). It contains every piece of branch work listed in this section, from the
   October extensions to the November build, and every earlier PR (#5–#35, now closed, not deleted).
@@ -144,13 +151,23 @@ Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (fro
 
 ## 4. Important merged work (on `main`)
 
-- **CURRENT (Nov 23, 2026):** PR #36 ("Dashboard Nov 2026", everything from #5–#35 plus the November build), merged by the owner; latest `main` commit `b4ebb4b`. Live check by the owner passed (see §1). GitHub's test workflow (`.github/workflows/ci.yml`: tests only, mocked network, no secrets, touches no production system) came in with it.
+- **CURRENT (Nov 24, 2026):** latest `main` commit `e08ec8c`. Merged by the owner on Nov 23, in this
+  order: PR #36, PR #37 (documents), PR #45 (contains #38–#44: fonts, previous look, tax-rate dates,
+  product import, confirmed tax rates, attention feed, smart scan, delivery watch), PR #55 (contains
+  #46–#54, among them the agent diary, real profit, the Feature Flags section for switches that save
+  real records, and closing an incident with a note). The owner's live check after #55 passed.
+- **Nov 23, 2026:** PR #36 ("Dashboard Nov 2026", everything from #5–#35 plus the November build), merged by the owner; latest `main` commit `b4ebb4b`. Live check by the owner passed (see §1). GitHub's test workflow (`.github/workflows/ci.yml`: tests only, mocked network, no secrets, touches no production system) came in with it.
 - Earlier: PR #1 (access verification record), PR #3 (CODEOWNERS: owner reviews everything), PR #4 (automated dashboard test suite + code-quality review); `main` was `d3db7bc` (Sept 29).
 - Earlier features were added before branch protection existed (REPORTED as live; task buttons v2 is the most recent).
 
 ## 5. Active development (open PRs)
 
-**CURRENT (Nov 23, 2026, night):** open for the owner: #37 (documents only) and #42, which contains
+**CURRENT (Nov 24, 2026, evening):** **PR #85** was merged by the owner on Nov 24 at about 6:03 PM Central (merge commit `1f86df0`); it contained #56–#84, and GitHub
+marked those merged with it. Still open for the owner: **PR #51** (documents only). Merging runs no
+SQL. "Screenshots (informational)" shows red on these PRs and never blocks: its reference pictures
+come from another machine. What each PR holds: `docs/ops/BUILD_TRACKER_2_WEEKS.md`.
+
+**Earlier (Nov 23, 2026, night; these were merged the same evening):** open for the owner: #37 (documents only) and #42, which contains
 every code change since the merge (#38 fonts, #39 previous look, #40 tax-rate dates, #41 product import,
 #42 confirmed tax rates; all new features behind switches, off). Merging #37 and #42 merges everything;
 GitHub then marks #38–#41 merged. No SQL is run by merging (draft 46 is review item 8).
@@ -200,7 +217,29 @@ No merging or deploying by Claude · no production Supabase, SQL, cron, RLS or p
 
 ## 8. Pending owner decisions (most important first)
 
-**Updated Nov 23, 2026 (CURRENT).** Platform list in full: `docs/ops/NEXT_SESSION_CHECKLIST.md`.
+**Updated Nov 24, 2026 (CURRENT).** Platform list in full: `docs/ops/NEXT_SESSION_CHECKLIST.md`.
+
+1. ~~Merge PR #85~~ DONE Nov 24 evening (it contained #56–#84). ~~Live check~~ DONE the same evening by the owner (the shorter menu and the new switches, all Off, seen on the live site). Next: PR #51 (documents).
+   NEW the same evening: the owner decided that administrators get almost everything the owner has (`docs/ops/OWNER_DECISION_2026-11-24_ADMINISTRATOR_NEAR_OWNER.md`); building it has not started.
+2. **One stock count for all channels:** `docs/ops/ONE_STOCK_COUNT_DECISION_2026-11-24.md` (orders do
+   not lower the dashboard's stock today; Shopify keeps its own count). A read-only shape check comes first.
+3. **Business email on the business's own domain** (`docs/ops/BUSINESS_EMAIL_PLAN.md`) and **which
+   email service** (the comparison of Nov 24 arrives with PR #78). Nothing is sent before the owner
+   approves a specific first send.
+4. **Guided database sittings**, one draft at a time: draft 50 (shared settings) first; later 56
+   (email sending records, review item 13), 58 (personal settings, review item 14) and 60 (reviews, review item 15); the earlier review items stay open.
+5. ~~Shopify notifications~~ DONE Nov 24 (evening): the owner's screenshots show Shopify sends the
+   order confirmation and shipping confirmation itself, so the dashboard builds no order-update
+   emails. They also show the store's sender email is not on the business's own domain (customers
+   see a shopifyemail.com sender): the business email in point 3 fixes that. Detail:
+   `docs/ops/OWNER_REQUESTS_2026-11-24_AGENTS_PHONE_PRINTING.md`, "Order-update emails".
+6. **Printing at 8:00 AM:** a set-up sitting on the owner's Mac (the dashboard part is built; the
+   steps are in `docs/ops/AUTO_PRINT_MAC_SETUP_2026-11-24.md`).
+7. Seller accounts and the business postal address (never the home address); box sizes and costs; a
+   test print of a batch sticker.
+8. Still open from before: tax answers, payment service names, the product list, the website repository.
+
+**Before Nov 24 (kept for history; item 1 is done):**
 
 1. **Merge PR #36** once its final full test run is green (guided, one click at a time); then check
    the live site in a Private Window. Then close #5–#35 (all contained in #36).
@@ -220,7 +259,18 @@ Full website list: `docs/website/decisions-needed.md` (website workspace).
 
 ## 9. Next recommended work
 
-**Updated Nov 23, 2026 (CURRENT).**
+**Updated Nov 24, 2026 (CURRENT).**
+
+1. ~~Owner merges PR #85~~ DONE Nov 24 evening → live check with a hard refresh → PR #51.
+2. Database draft 50 in a guided sitting; then a one-line PR that makes the shared switches and
+   drafts the same on every device.
+3. One stock count, after the owner's decision and the read-only shape check.
+4. Real email sending only after: business email, the service choice, the sender settings, draft 56,
+   the sending program (not written yet) and the owner's approval of the first send.
+5. Not built yet, needing a data source or an account: reading reviews from the sites by itself (pasting them in is built, #82), business email in the feed, real
+   stores from a listing service, agents running on a schedule.
+
+**Before Nov 24 (kept for history):**
 
 1. Final full test run of PR #36 green → owner merges → live check (hard refresh or Private Window).
 2. SQL items 1–7, guided, one at a time; each followed by the matching switch being turned on only

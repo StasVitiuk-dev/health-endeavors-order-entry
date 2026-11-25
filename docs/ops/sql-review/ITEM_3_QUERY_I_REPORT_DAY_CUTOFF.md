@@ -1,6 +1,10 @@
 # Review item 3 of 4 — read-only Query I: which day cutoff does the nightly report use?
 
-Status: OWNER DECISION REQUIRED · production run PENDING your separate approval · 2026-11-16
+Status: RUN IN PRODUCTION by the owner on 2026-11-23 (evening) · result **NOT ENOUGH DATA** · run again after the first week with real orders
+
+Result of the first production run (owner, pasted in the session): 46 rows. 45 saved daily reports (2026-10-10 to 2026-11-23), every one with `reported = 0`, `central_day = 0`, `utc_day = 0`, verdict SAME EITHER WAY. Row I00: NOT ENOUGH DATA. Meaning: the nightly report is running every day, there are no orders in the table for that period, and so the day cutoff cannot be told yet. Nothing was changed and nothing needs changing now.
+
+Earlier status: OWNER DECISION REQUIRED · production run PENDING your separate approval · 2026-11-16
 It changes nothing, but it reads production data, so it waits for your approval too.
 
 ## The exact SQL

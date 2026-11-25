@@ -4,6 +4,8 @@ Status: **PROPOSED** (owner request: addresses ending in the business domain for
 orders, marketing, stores and outreach; the owner will connect them later).
 Related: `docs/ops/OPERATIONS_CHAIN_ALL_CHANNELS.md` (gap 3: outside messages in
 the feed). No passwords or keys ever go in chat or in this repository.
+Which sending service, its published price and what is still not confirmed: the
+email service comparison of Nov 24 (it arrives with PR #78, next to the email sending plan).
 
 ## Principle: few paid mailboxes, many free addresses
 
