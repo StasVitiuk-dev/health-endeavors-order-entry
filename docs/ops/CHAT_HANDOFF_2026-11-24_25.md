@@ -197,3 +197,24 @@ notes in `docs/ops/OWNER_PROTECTION_AND_PRIVATE_HISTORY.md`).
 **Parked:** the screenshot-reference fix (branch `claude/screenshot-refs`, no PR): GitHub's
 artifact storage is not reachable from the work computer, so GitHub's own pictures cannot be
 downloaded here. The informational check stays red; nothing is broken.
+
+## 11. Night of Nov 25–26 (CHECKPOINT; supersedes the open-PR list in §10)
+
+**Merged by the owner:** #112 (Nov 25, 22:14 UTC).
+
+**Open PRs (chained; #114 contains #113):**
+- #113: managers decide deliveries and returns someone else recorded (option A, drafts 66/67,
+  not installed). Review fixes added overnight: a manager no longer sees **Cancel** on a customer
+  return someone else recorded; "Waiting for your approval (N)" counts only what this person may
+  decide; hints and messages say a manager (not the recorder) may approve.
+- #114: drafts 68/69 name `pg_temp` last in the search path of `employee_activity`,
+  `employee_activity_people` and `list_my_sessions` (the three history functions that run with
+  raised rights), so a temporary table can never stand in for a real one. Nothing else changes.
+  Local test `local-test/history_search_path_test.sh`: 17/17 (its rights check now compares with
+  the rights saved before install).
+- Merge order: #113 first, then #114 (or #114 alone, which brings #113 with it).
+
+**Waiting on the owner:** the emergency-account read-only check
+(`docs/ops/OWNER_PROTECTION_AND_PRIVATE_HISTORY.md`, expected `owner | true | 1`); backups in
+the short form (reminder Nov 26, 10 am Central); database sittings in the order of
+`docs/ops/sql-review/START_HERE_GUIDED_RUNS.md` (rows 17 and 18 are drafts 66 and 68).
