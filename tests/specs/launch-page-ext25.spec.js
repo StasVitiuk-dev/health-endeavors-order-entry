@@ -135,7 +135,7 @@ test('the page shows what is ready and what is not, in words, and where to go; n
   await expect(line(page, 'questions').locator('[data-lpbadge]')).toHaveText('To do');
   // the database steps: two of the thirteen are not installed here, and they are named
   await expect(line(page, 'steps')).toHaveAttribute('data-lpstate', 'todo');
-  await expect(line(page, 'steps').locator('[data-lpdetail]')).toHaveText('10 of 13 installed. Still to install: Confirmed tax rates; Real fees and postage per order.');
+  await expect(line(page, 'steps').locator('[data-lpdetail]')).toHaveText('11 of 13 installed. Still to install: Confirmed tax rates; Real fees and postage per order.');
   await expect(line(page, 'tax').locator('[data-lpdetail]')).toHaveText('Its database step is not installed yet (Feature Flags shows which).');
   await expect(host.locator('[data-lptotal]')).toHaveAttribute('data-lptotal', '0/14');
   await expect(host.locator('progress')).toHaveAttribute('value', '0');
