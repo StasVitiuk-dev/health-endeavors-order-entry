@@ -98,3 +98,58 @@ None of these needs the counts settled, production access or a push:
 
 Waiting on you, not on engineering: the push (then #24 in CI and new reference
 pictures), the palette choices C1–C7, the tax answers, and the SQL approvals.
+
+## 7. Reconciliation of everything approved after Nov 22 (owner queue of Nov 25, task 10) — CURRENT
+
+The 90-item list itself is private and not in this repository (§1), so its counts stay
+**PREVIOUSLY REPORTED, AWAITING RECONCILIATION**. What this section does instead: every
+approved addition since Nov 22, counted **once** by area (several cumulative PRs carry the
+same work; the PR named is the one that first holds it), with the evidence. Labels:
+**Merged** = on `main` (live code, usually behind a switch that is off) · **Open** = in a PR
+not merged · **Draft** = a database step not installed · **Running** = actually working on real
+data. Nothing in this section is Running unless it says so.
+
+### 7a. Features and fixes
+
+| Area | What | First PR | Tests (examples) | Needs (database / provider) | State | Remaining / owner action |
+|---|---|---|---|---|---|---|
+| Agents and the feed | Agent diary; agents at a glance; agent hand-offs "Handled" | #46, #64, #79 | `agent-diary-ext24`, `attention-feed-ext24` | draft 50 for "Handled" on every device | Merged (#85 chain) | turn switches on |
+| Money | Real profit; money per channel; real fee and postage; packaging cost per box | #49, #52, #54, #62 | `real-profit-ext24` | drafts 50, 52 | Merged; drafts not installed | costs entered by the owner; sittings A, 10 |
+| Printing and records | Daily recap; day pack; client list; weekly owner report; automatic daily printing (page side) | #48, #63, #66, #88, #74 | `backups-page-ext22`, `auto-print-ext24` | printers | Merged | real printers (pending) |
+| Orders and shipping | Sales channel on every order; drop-off parcels; batch stickers and batch on each order; delivery watch | #59, #56, #57, #58 | `order-slips-ext22`, `batch-labels-ext24` | drafts 48, 54 | Merged; drafts not installed | sittings 9, 11 |
+| Shared settings | Same numbers and switches on every device; drafts on every device; "My settings"; two devices never erase each other | #50, #53, #73, #78, #106 | `shared-switches-ext24`, `shared-settings-race-ext25` | drafts 50, 58 | Merged except #106 (open) | sittings A, 13 |
+| Growth (approved agents' pages) | Store Campaigns + store finder; Customer Emails; Content Helper; Reviews page; receipt text on Expenses; morning summary to copy | #65, #72, #71, #70, #82, #67, #68 | `store-campaign-ext24`, `customer-emails-ext24`, `review-inbox-ext24` | drafts 56, 60; a business email for any real sending | Merged; nothing sends | real sending is a separate owner approval |
+| Home and owner tools | Customers first; Ready to launch page; Ask the dashboard (voice, stage 1); what administrators changed | #87, #89, #91, #97 | `launch-page-ext25`, `admin-changes-ext25` | — | Merged | turn switches on |
+| People and roles | New Employee: four levels, People page, sign-in helper; administrators near-owner (settings, tax, campaigns, deliveries, returns, supplier documents); managers; owner protection | #90, #95, #96, #98–#100, #102–#105 | `people-page-ext25`, people and helper database tests | drafts 50, 46, 56, 40, 36/38, 62/64; helper deploy | #90–#101 merged; #102–#105 open; nothing installed | sittings; private-history read-only look |
+| Fixes | Invisible number on a coloured Home tile; two saves on "Later"; saved campaigns count every email; one shipping email per order | #94, #85, #84, #108 | `tile-figure-ext25`, `staging-rehearsal-ext25` | — | Merged except #108 (open) | — |
+
+### 7b. The AI agents (none runs by itself unless stated)
+
+| Agent | What exists in this repository | State | Remaining | Owner action |
+|---|---|---|---|---|
+| #1 Invoice | invoice engine, desk, storage draft 32, payments | built, tested; draft not installed | sitting 6 | tax answers, sitting |
+| #2 Order Intake | order checks, channel import from files | built for files; automatic intake not built | Shopify feed (draft 42 + daily program) | sitting 7 |
+| #3 Order Monitoring | attention feed rules for unpaid/unpacked orders | built (page side) | runs when the feed is on | switch on |
+| #4 Retail/Wholesale | Store Campaigns, store finder, outreach drafts | built; sends nothing | real sending | business email, approval |
+| #5 Shipping/Tracking | delivery watch, parcels (draft 48) | page side built; "live in Supabase" is **REPORTED** for an earlier version, not re-verified here | sitting 9 | — |
+| #6 Customer Notification | notice drafts; one shipping email per order (#108) | built; sends nothing; "live" **REPORTED** for an earlier version | real sending | decision D1 stays "approve first" |
+| #7 Customer Service | inquiry replies to copy; Reviews page | built; sends nothing | sitting 14 | — |
+| #8 Supervisor | agent diary, agents at a glance, 24-hour raise to urgent | built (page side) | runs with the feed | switch on |
+| #9 Accounting | money matching, payouts, money per channel | built; needs draft 42 for stored differences | sitting 7 | — |
+| #10 Tax Record | tax records page, confirmed rates (draft 46) | built; draft not installed | sitting 8 | tax answers |
+| Growth helpers | store finder, outreach, customer email, review request, receipt inbox, morning summary, sending guard | each "not running by itself" (agents overview says exactly what is built) | listings service account; email reading; scheduled sending | each its own decision |
+
+### 7c. Declined or deferred (kept apart; not counted as remaining work)
+
+| Item | Decision |
+|---|---|
+| Automatic "low stock → purchase order draft" | **Declined** (do not ask again) |
+| New buttons, fonts or shapes (PR #92) | **Declined**: design stays as it is; display faults are still fixed |
+| Voice assistant stage 2 (paid AI) | **Deferred**: owner decision after launch |
+| One stock count for all channels | **Waits on owner** (decision + read-only look) |
+| Two-step sign-in | **Deferred** to the last launch lines |
+
+### 7d. Suggestions recorded, not built (for the owner to choose later)
+
+- A Home warning when the newest backup is older than a day (§8 of `RECOVERY_AND_BACKUP_READINESS.md`, E7; waits on D5).
+- Let managers approve deliveries or supplier documents (owner question, PR #104).
