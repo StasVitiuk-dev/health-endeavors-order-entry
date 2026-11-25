@@ -51,13 +51,15 @@ echo "Search path of three existing raised-rights functions (drafts/68, drafts/6
 ok  "today's settings, as the owner's read-only look showed them" "$(paths)" "employee_activity=search_path=public employee_activity_people=search_path=public list_my_sessions=search_path=auth, public"
 ok  "today: a temporary table called profiles stands in for the real one (the gap)" "$(shadow)" "owner,owner"
 B0=$(bodies)
+grants() { q "select string_agg(p.proname || '=' || has_function_privilege('anon', p.oid, 'execute')::text || '/' || has_function_privilege('authenticated', p.oid, 'execute')::text, ' ' order by p.proname) from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname in ('employee_activity', 'employee_activity_people', 'list_my_sessions')"; }
+G0="$(grants)"
 ok  "drafts/68 installs" "$(run "$INSTALL")" "0"
 ok  "  pg_temp is named last in all three" "$(paths)" "employee_activity=search_path=public, pg_temp employee_activity_people=search_path=public, pg_temp list_my_sessions=search_path=auth, public, pg_temp"
 ok  "  their text, raised rights and kind are unchanged" "$(bodies)" "$B0"
 ok  "  the temporary table no longer stands in: the real accounts table answers" "$(shadow)" "employee,employee"
 ok  "  a second install changes nothing" "$(run "$INSTALL")" "0"
 ok  "  still the same" "$(paths)|$(bodies)" "employee_activity=search_path=public, pg_temp employee_activity_people=search_path=public, pg_temp list_my_sessions=search_path=auth, public, pg_temp|$B0"
-ok  "  a visitor still cannot run them (unchanged rights)" "$(q "select has_function_privilege('anon', 'public.employee_activity_people()', 'execute')::text")" "$(q "select has_function_privilege('anon', 'public.employee_activity_people()', 'execute')::text")"
+ok  "  a visitor's rights to all three are unchanged" "$(grants)" "$G0"
 
 echo " rollback (drafts/69)"
 ok  "rollback succeeds" "$(run "$ROLLBACK")" "0"
