@@ -110,3 +110,108 @@ test.describe('on AI Agents and in the feed', () => {
     if (ti.project.name === 'iphone') expect(await page.evaluate(() => document.scrollingElement.scrollWidth - document.scrollingElement.clientWidth)).toBeLessThanOrEqual(1);
   });
 });
+
+// Nov 24: with the "Handled" switch (he_handoff_handled) a step passed to a person
+// can be marked handled here too. It is the same mark as on Home: handled in one
+// place, handled in the other. The agents' own log is never changed.
+test.describe('the diary and "Handled"', () => {
+  test.beforeEach(async ({ page }) => { await page.clock.setFixedTime(new Date(NOW)); });
+  const HANDOFF = '00000000-0000-4000-8000-00000000a102';
+  const flags = (page, list) => page.addInitScript((keys) => { try { keys.forEach(k => localStorage.setItem(k, 'on')); } catch (e) {} }, list);
+
+  test('switch off (as shipped): the diary has no Handled button and no Handled mark', async ({ page, backend }) => {
+    backend.tables.ai_decision_log = ROWS;
+    await flags(page, ['he_agent_diary']);
+    await login(page); await gotoPage(page, 'aiPanel');
+    await expect(page.locator(`#agentDiaryHost [data-diaryentry="${HANDOFF}"]`)).toContainText('Passed to a person');
+    await expect(page.locator('#agentDiaryHost [data-diaryhandled]')).toHaveCount(0);
+    await expect(page.locator('#agentDiaryHost [data-diaryhandledon]')).toHaveCount(0);
+  });
+
+  test('switched on: only the step passed to a person has the button; pressing it marks it here and takes it off Home; nothing is written to the database', async ({ page, backend, pageErrors }) => {
+    backend.tables.ai_decision_log = ROWS;
+    await flags(page, ['he_agent_diary', 'he_attention_feed', 'he_handoff_handled']);
+    await login(page); await gotoPage(page, 'aiPanel');
+    const d = page.locator('#agentDiaryHost'), entry = d.locator(`[data-diaryentry="${HANDOFF}"]`);
+    await expect(d.locator('[data-diaryhandled]')).toHaveCount(1);
+    const btn = entry.locator('[data-diaryhandled]');
+    await expect(btn).toHaveAccessibleName(/^Handled: #7 Customer Service Agent, /);
+    await btn.click();
+    await expect(entry.locator('[data-diaryhandledon]')).toHaveText('Handled Nov 24');
+    await expect(d.locator('[data-diaryhandled]')).toHaveCount(0);
+    expect(await page.evaluate(() => document.activeElement && document.activeElement.getAttribute('data-diaryentry'))).toBe(HANDOFF);
+    expect(Object.keys(JSON.parse(await page.evaluate(() => localStorage.getItem('he_handoffs_handled'))))).toEqual([HANDOFF]);
+    // Home agrees: the hand-off is no longer in the list
+    await gotoPage(page, 'attentionPanel');
+    await expect(page.locator('#attentionFeedHost')).toBeVisible();
+    await expect(page.locator(`#attentionFeedHost [data-feeditem="agent:${HANDOFF}"]`)).toHaveCount(0);
+    // and it stays marked after a reload
+    await page.reload(); await expect(page.locator('#dash')).toBeVisible(); await gotoPage(page, 'aiPanel');
+    await expect(entry.locator('[data-diaryhandledon]')).toHaveText('Handled Nov 24');
+    expect(backend.requests.filter(r => r.method && r.method !== 'GET' && r.method !== 'HEAD' && String(r.path || '').startsWith('/rest/v1/') && !r.rpc)).toEqual([]);   // no table was written; nothing was saved by a function either
+    expect(backend.requests.filter(r => r.rpc === 'set_shared_setting')).toEqual([]);
+    expect(pageErrors).toEqual([]);
+  });
+
+  test('handled on Home shows as handled in the diary; readable in light and dark, every control named', async ({ page, backend }, ti) => {
+    backend.tables.ai_decision_log = ROWS.concat([{ id: '00000000-0000-4000-8000-00000000a104', agent_key: 'customer_service_agent', output_summary: 'SYNTHETIC a second hand-off', confidence: 0.5, escalated_to_human: true, created_at: '2026-11-24T10:00:00Z' }]);
+    await flags(page, ['he_agent_diary', 'he_attention_feed', 'he_handoff_handled']);
+    await login(page); await gotoPage(page, 'attentionPanel');
+    await page.locator(`#attentionFeedHost [data-feeditem="agent:${HANDOFF}"] [data-feedhandled]`).click();
+    const check = (loc) => loc.evaluate((root, src) => (new Function('return ' + src)())(root), contrastFailures.toString());
+    for (const scheme of ti.project.name === 'desktop' ? ['light', 'dark'] : ['light']) {
+      await page.emulateMedia({ colorScheme: scheme, reducedMotion: 'reduce' });
+      await gotoPage(page, 'aiPanel');
+      const d = page.locator('#agentDiaryHost');
+      await expect(d.locator(`[data-diaryentry="${HANDOFF}"] [data-diaryhandledon]`)).toHaveText('Handled Nov 24');
+      await expect(d.locator('[data-diaryhandled]')).toHaveCount(1);          // the other hand-off still waits
+      await page.evaluate(() => Promise.all(document.getAnimations().map(a => a.finished.catch(() => {}))));
+      expect(await check(d), scheme).toEqual([]);
+      expect(await d.evaluate(unnamedControls), scheme).toEqual([]);
+    }
+    if (ti.project.name === 'iphone') {
+      expect(await page.evaluate(() => document.scrollingElement.scrollWidth - document.scrollingElement.clientWidth)).toBeLessThanOrEqual(1);
+      const box = await page.locator('#agentDiaryHost [data-diaryhandled]').boundingBox();
+      expect(box.height).toBeGreaterThanOrEqual(40);                        // easy to tap
+    }
+  });
+});
+
+test.describe('the diary: Undo for a Handled mark', () => {
+  test.beforeEach(async ({ page }, ti) => { test.skip(ti.project.name !== 'desktop', 'run once'); await page.clock.setFixedTime(new Date(NOW)); });
+  const HANDOFF = '00000000-0000-4000-8000-00000000a102';
+
+  test('Undo takes the mark back here and puts the hand-off back on Home; with the shared settings in use the other device follows', async ({ page, backend, pageErrors }) => {
+    backend.tables.ai_decision_log = ROWS;
+    backend.tables.shared_settings = [];
+    backend.rpc.set_shared_setting = (b) => { backend.tables.shared_settings = backend.tables.shared_settings.filter(r => r.key !== b.p_key).concat([{ key: b.p_key, value: b.p_value, audience: 'owner_admin', updated_at: '2026-11-24T16:00:05Z' }]); return { ok: true, updated_at: '2026-11-24T16:00:05Z' }; };
+    const saves = () => backend.requests.filter(r => r.rpc === 'set_shared_setting').map(r => r.body);
+    await page.addInitScript(() => { try { ['he_agent_diary', 'he_attention_feed', 'he_handoff_handled', 'he_shared_settings'].forEach(k => localStorage.setItem(k, 'on')); } catch (e) {} });
+    await login(page); await gotoPage(page, 'aiPanel');
+    const d = page.locator('#agentDiaryHost'), entry = d.locator(`[data-diaryentry="${HANDOFF}"]`);
+    await entry.locator('[data-diaryhandled]').click();
+    await expect(entry.locator('[data-diaryhandledon]')).toHaveText('Handled Nov 24');
+    await expect.poll(() => saves().length).toBe(1);
+    expect(saves()[0].p_value.items[HANDOFF]).toBeGreaterThan(0);
+    const undo = entry.locator('[data-diaryunhandled]');
+    await expect(undo).toHaveText('Undo');
+    await expect(undo).toHaveAccessibleName(/^Undo handled: #7 Customer Service Agent, /);
+    await page.clock.setFixedTime(new Date(NOW + 60000));
+    await undo.click();
+    await expect(entry.locator('[data-diaryhandledon]')).toHaveCount(0);
+    await expect(entry.locator('[data-diaryhandled]')).toHaveText('Handled');
+    expect(await page.evaluate(() => document.activeElement && document.activeElement.getAttribute('data-diaryentry'))).toBe(HANDOFF);
+    await expect.poll(() => saves().length).toBe(2);
+    expect(saves()[1].p_value.items[HANDOFF]).toBeLessThan(0);              // saved as "taken back", so the other device follows
+    // Home shows it again
+    await gotoPage(page, 'attentionPanel');
+    await expect(page.locator(`#attentionFeedHost [data-feeditem="agent:${HANDOFF}"]`)).toBeVisible();
+    // "the other device": it still believes the hand-off is handled; after loading it follows the later action
+    await page.evaluate(([k, id, at]) => localStorage.setItem(k, JSON.stringify({ [id]: at })), ['he_handoffs_handled', HANDOFF, NOW - 3600000]);
+    await page.reload(); await expect(page.locator('#dash')).toBeVisible(); await gotoPage(page, 'attentionPanel');
+    await expect(page.locator(`#attentionFeedHost [data-feeditem="agent:${HANDOFF}"]`)).toBeVisible();
+    await page.waitForTimeout(900);
+    expect(saves().length).toBe(2);                                         // nothing new to say: nothing saved again
+    expect(pageErrors).toEqual([]);
+  });
+});

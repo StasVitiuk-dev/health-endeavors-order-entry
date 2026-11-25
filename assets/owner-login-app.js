@@ -84,7 +84,7 @@
       nightlyOverall,
     } = window.HE.helpers;
     // @@ EXT15 modules: created in dependency order (assets/app/*.js; see docs/ops/APPLICATION_MODULE_MAP_EXT15.md)
-    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, agentDiaryOn, realProfitOn, channelMoneyOn, SWITCH_EVERYONE, sharedSettingsOn, orderCostsOn, incidentCloseOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn } = HE.modules.create('he-config', {  });
+    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, agentDiaryOn, realProfitOn, channelMoneyOn, SWITCH_EVERYONE, sharedSettingsOn, orderCostsOn, incidentCloseOn, batchLabelsOn, orderBatchesOn, orderChannelsOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn, storeCampaignsOn, receiptReaderOn, contentHelperOn, customerEmailsOn, emailSendingOn, mySettingsOn, handoffHandledOn, reviewInboxOn, reviewStoreOn } = HE.modules.create('he-config', {  });
     const { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, focusDialog, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, h, pageIconNode } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
     const { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
     const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, h, supabase });
@@ -99,7 +99,7 @@
     const { loadSuppliers } = HE.modules.create('he-suppliers', { SEARCH_INDEX, SUPPLIER_TYPE_LABELS, boolGuard, fetchAllRows, h, showDashError, staleMessage, updateIfUnchanged });
     const { setReportHistoryView, renderReportHistoryView, loadReportHistory, reportHistoryRows } = HE.modules.create('he-reports', { fmtDateOnly, fmtMoney, h, localDateString, missingToNaN, monthGroupLabel, reportCount, rollupReports, showDashError, startOfWeekMonday, supabase, weekGroupLabel });
     const { inquiriesList, loadInquiries, renderInquiries } = HE.modules.create('he-inquiries', { INQ_ANSWERED_CAP, INQ_STATUS_LABELS, fetchAllRows, fetchAllRowsIn, fmtDate, h, inqStatusBadgeClass, noRowsChanged, showDashError, staleMessage, supabase, updateIfUnchanged });
-    const { agentControls, agentTruth, loadAgentControls } = HE.modules.create('he-agents', { AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, currentUserId, fmtDate, h, maskSensitive, requireReauth, showDashError, staleMessage, supabase, toast, updateIfUnchanged });
+    const { agentControls, agentTruth, loadAgentControls, refreshAgentGlanceLinks } = HE.modules.create('he-agents', { AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, currentUserId, fmtDate, getPageBadgeCount, h, maskSensitive, requireReauth, showDashError, showPage, staleMessage, supabase, toast, updateIfUnchanged });
     const { createOpTracker } = HE.modules.create('he-ops', {});
     const { loadSessions, loadSops, loadFeatureRequests, loadDeletedFeatureRequests } = HE.modules.create('he-admin', { FR_NEXT_LABEL, FR_NEXT_STATUS, FR_STATUS_LABELS, SEARCH_INDEX, advanceFeatureRequest, appendMore, boolGuard, deleteFeatureRequest, deviceLabel, fmtDate, h, listLimit, noRowsChanged, requireReauth, showDashError, showPageWarning, staleMessage, supabase, updateIfUnchanged });
     const { loadAdverseEvents, loadLegalHolds, loadReleasedLegalHolds, loadDocuments, loadEvidenceLocker } = HE.modules.create('he-compliance', { CLOSED_IN, DOCUMENT_CATEGORY_LABELS, SEARCH_INDEX, appendMore, confirmSecondPress, docExpiryBadge, fetchAllRows, fetchAllRowsIn, fmtDate, fmtDateOnly, h, isSafeLink, listLimit, newLoadToken, noRowsChanged, requireReauth, showDashError, showPageWarning, staleMessage, supabase, updateIfUnchanged });
@@ -173,9 +173,11 @@
       whoAmI.textContent = `${whoName.length > 80 ? whoName.slice(0, 79) + '\u2026' : whoName} — role: ${profile.role}`;
       whoAmI.title = whoAmI.textContent;
       if (await syncSharedSwitches()) return;                // this browser was brought in line: the page reloads once
+      await syncMenuLayout();                                // the menu chosen for every device, when settings are shared
       renderSidebar('');
       showPage(getLastPage());
       loadDashboard();
+      autoPrintCheck(false);                                 // opened by the daily print link: yesterday's day pack, once
       const expDateInput = document.getElementById('expDate');
       if (expDateInput && !expDateInput.value) expDateInput.value = localDateString();
     }
@@ -626,10 +628,67 @@
         if (a && a.getAttribute('role') === 'link' && a.classList.contains('sidebarLink')) a.blur();
       });
     }
+    // ---------- A shorter menu (owner, Nov 24) ----------
+    // The same menu, with same-topic pages inside one another
+    // (assets/views/he-menu-layouts.js). Owner's decision, Nov 24: everyone starts with
+    // "1. A little shorter"; '' is the full menu. A different choice is kept in this
+    // browser and, once the shared settings are in use, for every device.
+    const MENU_LAYOUT_KEY = 'he_menu_layout';
+    const mlMod = () => (window.HE && window.HE.views && window.HE.views['he-menu-layouts']) || null;
+    let mlKey = '';
+    try { const M0 = mlMod(); mlKey = M0 ? M0.fromStored(localStorage.getItem(MENU_LAYOUT_KEY)) : ''; } catch (e) { const M1 = mlMod(); mlKey = M1 ? M1.DEFAULT_KEY : ''; }
+    function mlLayout() { const M = mlMod(); return M && mlKey ? M.build(mlKey, SIDEBAR_GROUPS) : null; }
+    function mlRemember(key) {
+      const M = mlMod(); mlKey = key;
+      try { if (M) localStorage.setItem(MENU_LAYOUT_KEY, M.toStored(key)); } catch (e) { /* still applied on this page */ }
+    }
+    // At sign-in, with the shared settings in use: the menu the owner chose for every device.
+    async function syncMenuLayout() {
+      const M = mlMod(), S = rpSettings(), store = rpStore();
+      if (!M || !S || !store || !sharedSettingsOn()) return;
+      const r = await store.get(S.KEYS.menuLayout);
+      const want = r.state === 'installed' ? M.fromShared(r.value) : null;   // null: the owner has not chosen for everyone
+      if (want !== null && want !== mlKey) mlRemember(want);
+    }
+    // Saves the choice for every device. true = saved for everyone; false = this browser only.
+    async function menuLayoutShare(key) {
+      const S = rpSettings(), store = rpStore();
+      if (!S || !store || !sharedSettingsOn() || currentUserRole !== 'owner') return false;
+      const saved = await store.set(S.KEYS.menuLayout, { layout: key }, 'staff');
+      return !!saved.ok;
+    }
+    // The row of buttons at the top of a page that has other pages inside it.
+    let mlTabsSig = '';
+    function renderMenuTabs(){
+      const main = document.querySelector('main.contentArea');
+      let host = document.getElementById('menuTabs');
+      const M = mlMod(), layout = mlLayout();
+      const entry = layout ? M.find(layout, currentPageId) : null;
+      if (!main || !entry || entry.tabs.length < 2) { if (host) host.remove(); mlTabsSig = ''; return; }
+      const sig = layout.key + '|' + currentPageId + '|' + entry.tabs.map(t => t.id + ':' + (getPageBadgeCount(t.id) || 0)).join(',');
+      if (host && sig === mlTabsSig) return;                 // nothing changed: keyboard focus stays where it is
+      const hadFocus = !!(host && host.contains(document.activeElement));
+      if (!host) { host = h('nav', { id: 'menuTabs', class: 'menuTabs' }); main.insertBefore(host, main.querySelector('section.panel')); }
+      host.setAttribute('aria-label', 'Pages inside ' + entry.label);
+      host.replaceChildren(...entry.tabs.map(t => {
+        const n = getPageBadgeCount(t.id) || 0, here = t.id === currentPageId;
+        return h('button', { type: 'button', class: 'small menuTab' + (here ? '' : ' secondary'), 'data-menutab': t.id, 'aria-current': here ? 'page' : null },
+          h('span', { class: 'menuTabName' }, t.label), n > 0 ? h('span', { class: 'sidebarBadge' }, n) : null);
+      }));
+      mlTabsSig = sig;
+      if (hadFocus) { const a = host.querySelector('[aria-current="page"]'); if (a) a.focus(); }
+    }
+    document.addEventListener('click', (e) => {
+      const t = e.target.closest('[data-menutab]'); if (!t) return;
+      showPage(t.getAttribute('data-menutab'));
+    });
     function pageLinkNode(p, pinnedSet){
-      const badge = getPageBadgeCount(p.id);
+      // an entry with other pages inside it: lit while any of them is open, and it carries all their counts
+      const inside = Array.isArray(p.tabs) && p.tabs.length > 1 ? p.tabs : null;
+      const badge = inside ? inside.reduce((n, t) => n + (getPageBadgeCount(t.id) || 0), 0) : getPageBadgeCount(p.id);
       const isPinned = pinnedSet.has(p.id);
-      return h('a', { class: 'sidebarLink' + (p.id === currentPageId ? ' active' : ''), 'data-page': p.id },
+      const here = inside ? inside.some(t => t.id === currentPageId) : p.id === currentPageId;
+      return h('a', { class: 'sidebarLink' + (here ? ' active' : ''), 'data-page': p.id, 'data-inside': inside ? String(inside.length) : null },
         h('span', { class: 'linkLabelRow' },
           h('button', { type: 'button', class: 'pinBtn' + (isPinned ? ' pinned' : ''), 'data-pin-page': p.id, title: isPinned ? 'Unpin' : 'Pin to top', 'aria-label': isPinned ? 'Unpin ' + p.label : 'Pin ' + p.label + ' to top' }, isPinned ? '★' : '☆'),
           h('span', { class: 'pageIcon' }, pageIconNode(p.id)),
@@ -675,7 +734,9 @@
           results));
       }
 
-      SIDEBAR_GROUPS.forEach(group => {
+      // A shorter menu, when one is chosen. A search always looks through every single page.
+      const shorter = q ? null : mlLayout();
+      (shorter ? shorter.groups : SIDEBAR_GROUPS).forEach(group => {
         const pages = group.pages.filter(p => !q || p.label.toLowerCase().includes(q));
         if (!pages.length) return;
         // EXT15: no inline style (strict style policy): the colour travels as data and is
@@ -694,7 +755,7 @@
             open ? pages.map(p => pageLinkNode(p, pinnedSet)) : null));
           return;
         }
-        out.push(h('div', { class: 'sidebarGroup', 'data-group-color': color }, h('div', { class: 'groupLabel' }, group.label),
+        out.push(h('div', { class: 'sidebarGroup', 'data-group-color': color }, group.label ? h('div', { class: 'groupLabel' }, group.label) : null,
           pages.map(p => pageLinkNode(p, pinnedSet))));
       });
 
@@ -754,6 +815,8 @@
           loadActivity(true);
         });
       });
+      renderMenuTabs();
+      refreshAgentGlanceLinks();                             // the approvals count on the agents overview follows the menu's
     }
     // EXT8: the browser's Back / Forward move between dashboard pages
     // instead of leaving the dashboard.
@@ -3019,11 +3082,11 @@
       return el;
     }
     function rpEstimates() {
-      const M = rpMod(); const base = { fees: M ? M.DEFAULT_FEES : {}, postage: null, packaging: null };
+      const M = rpMod(); const base = { fees: M ? M.DEFAULT_FEES : {}, postage: null, packaging: null, boxes: [] };
       try {
         // the copy every device shares wins; this browser's copy is the fallback
         const v = rpShared.state === 'installed' && rpShared.value ? rpShared.value : JSON.parse(localStorage.getItem(RP_KEY) || 'null');
-        if (v && typeof v === 'object') return { fees: Object.assign({}, base.fees, v.fees || {}), postage: v.postage == null ? null : v.postage, packaging: v.packaging == null ? null : v.packaging };
+        if (v && typeof v === 'object') return { fees: Object.assign({}, base.fees, v.fees || {}), postage: v.postage == null ? null : v.postage, packaging: v.packaging == null ? null : v.packaging, boxes: Array.isArray(v.boxes) ? v.boxes : [] };
       } catch (e) { /* defaults */ }
       return base;
     }
@@ -3057,7 +3120,7 @@
         rpCostsNote = costs.state === 'error' ? 'The real order costs could not be read (' + costs.message + '), so every order uses the estimates.' : '';
         rpShared = shared || { state: 'unknown', value: null, updatedAt: null };
         const est = rpEstimates();
-        rpResult = M.compute({ orders: orders, items: items, products: products, poLines: poLines, fees: est.fees, postagePerOrder: est.postage, packagingPerOrder: est.packaging, orderCosts: costs.rows });
+        rpResult = M.compute({ orders: orders, items: items, products: products, poLines: poLines, fees: est.fees, postagePerOrder: est.postage, packagingPerOrder: est.packaging, boxes: est.boxes, orderCosts: costs.rows });
       } catch (e) {
         if (seq !== rpSeq) return;
         rpError = 'Profit could not be worked out just now: ' + explainDbError(e && e.message ? e.message : String(e));
@@ -3092,6 +3155,17 @@
         h('div', { class: 'u-d-flex u-gap-8 u-fwr-wrap u-mt-8' },
           h('div', { class: 'heField' }, h('label', { for: 'rpPostage' }, 'Postage per order ($)'), h('input', { id: 'rpPostage', type: 'text', inputmode: 'decimal', name: 'postage', value: est.postage == null ? '' : String(est.postage) })),
           h('div', { class: 'heField' }, h('label', { for: 'rpPackaging' }, 'Packaging per order ($)'), h('input', { id: 'rpPackaging', type: 'text', inputmode: 'decimal', name: 'packaging', value: est.packaging == null ? '' : String(est.packaging) }))),
+        // packaging by box size (optional): the smallest box that holds the order's bottles
+        h('h4', { class: 'u-mt-12' }, 'Boxes (optional)'),
+        h('p', { class: 'hint u-mt-0' }, 'If you fill these in, packaging is worked out from the number of bottles in each order: the smallest box that holds them (a bigger order uses the largest box more than once). Leave them empty to use the one "Packaging per order" amount. This is an estimate: which box was really used is not recorded.'),
+        h('table', { class: 'rpFees rpBoxes' }, h('thead', null, h('tr', null, h('th', null, 'Box'), h('th', null, 'Holds up to (bottles)'), h('th', null, 'Cost of one ($)'))),
+          h('tbody', null, ...Array.from({ length: M.MAX_BOXES }, (x, n) => {
+            const b = (M.cleanBoxes(est.boxes)[n]) || null, no = n + 1;
+            return h('tr', null,
+              h('td', null, h('input', { type: 'text', name: 'box' + no + '_name', maxlength: '40', value: b ? b.name : '', placeholder: no === 1 ? 'for example Small box' : '', 'aria-label': 'Box ' + no + ': name' })),
+              h('td', null, h('input', { type: 'text', inputmode: 'numeric', name: 'box' + no + '_upto', value: b ? String(b.upTo) : '', 'aria-label': 'Box ' + no + ': how many bottles fit' })),
+              h('td', null, h('input', { type: 'text', inputmode: 'decimal', name: 'box' + no + '_cost', value: b ? String(b.costC / 100) : '', 'aria-label': 'Box ' + no + ': cost of one in dollars' })));
+          }))),
         h('button', { type: 'submit', class: 'small u-mt-8' }, 'Save estimates')) : null;
       const msg = rpMessage ? h('p', { class: 'u-fs-12', role: 'status', 'data-rpmessage': '1' }, rpMessage) : null;
       if (rpError) { put(head, form, msg, h('p', { class: 'hint', role: 'status' }, rpError)); return; }
@@ -3109,6 +3183,7 @@
           h('div', { class: 'stat' }, h('div', { class: 'num' }, t.complete ? rpMoney(t.productCost) : '—'), h('div', { class: 'lbl' }, 'Product cost')),
           h('div', { class: 'stat' }, h('div', { class: 'num' }, t.complete ? rpMoney(t.fees + t.postage + t.packaging) : '—'), h('div', { class: 'lbl' }, 'Fees, postage, packaging'))),
         missingLine,
+        t.boxed ? h('p', { class: 'hint', 'data-rpboxed': String(t.boxed) }, 'Packaging: ' + t.boxed + ' of the ' + t.complete + ' counted ' + (t.complete === 1 ? 'order uses' : 'orders use') + ' your box sizes (an estimate from the number of bottles; the box really used is not recorded).') : null,
         orderCostsOn() ? h('p', { class: 'hint', 'data-rpexact': t.exactFees + '/' + t.exactPostage },
           rpCostsNote || ('Real figures: the fee of ' + t.exactFees + ' and the postage of ' + t.exactPostage + ' of the ' + t.complete + ' counted ' + (t.complete === 1 ? 'order' : 'orders') + '. The rest use your estimates.')) : null,
         r.channels.length ? h('div', null, h('h4', { class: 'u-mt-12' }, 'By sales channel'),
@@ -3135,6 +3210,7 @@
       const refuse = (msg) => { rpMessage = msg; renderRealProfit(); announce(rpMessage); const first = document.querySelector('#realProfitHost form input'); if (first) first.focus(); };
       if (!c.ok) { refuse(c.problems.join(' ')); return; }
       const value = { fees: c.fees, postage: c.postage, packaging: c.packaging };
+      if (c.boxes.length) value.boxes = c.boxes;             // box sizes, when any are filled in
       const keepHere = () => { try { localStorage.setItem(RP_KEY, JSON.stringify(value)); return true; } catch (err) { return false; } };
       if (rpShared.state === 'installed') {
         // every device: saved in the database (owner only; the database checks again)
@@ -3276,6 +3352,7 @@
     async function loadAgentDiary() {
       const AD = diaryMod();
       const host = diaryHost(agentDiaryOn() && !!AD); if (!host) return;
+      hhPull();
       const seq = ++diarySeq;
       try {
         const r = await supabase.from('ai_decision_log').select('id, agent_key, output_summary, confidence, escalated_to_human, created_at')
@@ -3295,6 +3372,18 @@
         h('p', { class: 'hint u-mt-0' }, 'Everything your agents wrote in their own log, in plain words, newest first. A step an agent passed to a person is marked, and also appears in your Home feed.')];
       if (!diaryList) { host.replaceChildren(...head, h('p', { class: 'hint', role: 'status' }, diaryError || 'Loading…')); return; }
       const v = AD.view(diaryList, diaryAgent);
+      // with the "Handled" switch on: a step passed to a person shows whether it was
+      // handled (the same marks as the Home list), or a button to say so
+      const FM = feedMod();
+      const marks = handoffHandledOn() && FM && typeof FM.readHandled === 'function' ? FM.readHandled(feedStore(), Date.now()) : null;
+      const handledBit = (e) => {
+        if (!marks || !e.passedToPerson) return null;
+        const at = marks[e.id];
+        return at ? h('span', { class: 'diaryHandled' },
+            h('span', { class: 'badge sev-low', 'data-diaryhandledon': e.id }, 'Handled ' + new Date(at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })),
+            h('button', { type: 'button', class: 'small secondary', 'data-diaryunhandled': e.id, 'aria-label': 'Undo handled: ' + e.agent + ', ' + e.time }, 'Undo'))
+          : h('button', { type: 'button', class: 'small secondary', 'data-diaryhandled': e.id, 'aria-label': 'Handled: ' + e.agent + ', ' + e.time }, 'Handled');
+      };
       const sel = h('select', { id: 'agentDiaryFilter', 'data-diaryfilter': '1' },
         h('option', { value: '' }, 'All agents (' + diaryList.length + ')'),
         ...v.agents.map(a => h('option', { value: a.key }, a.name + ' (' + a.count + ')')));
@@ -3309,9 +3398,21 @@
             h('span', { class: 'diaryWho' }, e.agent),
             h('span', { class: 'diaryWhat' }, e.what),
             e.passedToPerson ? h('span', { class: 'badge sev-medium' }, 'Passed to a person') : null,
+            handledBit(e),
             e.confidence != null ? h('span', { class: 'u-fs-12 u-c-muted' }, e.confidence + '% sure') : null))))))
           : h('p', { class: 'empty' }, 'No steps recorded in the last 7 days. Agents that are switched off write nothing.'));
     }
+    document.addEventListener('click', (e) => {
+      const b = e.target.closest('#agentDiaryHost [data-diaryhandled], #agentDiaryHost [data-diaryunhandled]'); if (!b) return;
+      const undo = b.hasAttribute('data-diaryunhandled');
+      const FM = feedMod(), id = b.getAttribute(undo ? 'data-diaryunhandled' : 'data-diaryhandled');
+      const ok = FM && (undo ? FM.unmarkHandled(feedStore(), id, Date.now()) : FM.markHandled(feedStore(), id, Date.now()));
+      if (!ok) { showDashError('This browser could not remember that. Nothing was changed.'); return; }
+      hhPush();
+      renderAgentDiary(); paintAttentionFeed(); announce(undo ? 'Not handled any more. It is back in the Home list.' : 'Marked as handled. It also left the Home list.');
+      const li = [...document.querySelectorAll('#agentDiaryHost [data-diaryentry]')].find(x => x.getAttribute('data-diaryentry') === id);
+      if (li) { li.setAttribute('tabindex', '-1'); li.focus(); }
+    });
     document.addEventListener('change', (e) => {
       const s = e.target.closest('#agentDiaryHost select[data-diaryfilter]'); if (!s) return;
       diaryAgent = s.value; renderAgentDiary();
@@ -3326,10 +3427,68 @@
     // notices) and the customer questions still waiting. It never writes: "Answer"
     // opens Customer Questions, "Dismiss" uses the reminder's own Dismiss button
     // below, "Later" hides an item until tomorrow in this browser only.
-    let feedFilter = 'all', feedQuestions = null, feedSeq = 0, feedLast = new Map(), feedParcels = null, feedAgentSteps = null, feedRecap = null;
+    let feedFilter = 'all', feedQuestions = null, feedSeq = 0, feedLast = new Map(), feedParcels = null, feedAgentSteps = null, feedRecap = null, feedSummary = '';
     const FEED_LIMIT = 100;
     function feedMod() { try { return (window.HE && window.HE.views && window.HE.views['he-attention-feed']) || null; } catch (e) { return null; } }
     function feedStore() { try { return window.localStorage; } catch (e) { return null; } }
+    // What a person set aside follows that person to every device (drafts/58, behind mySettingsOn).
+    // Pulled once when the feed first loads and joined with this browser's list; pushed a moment
+    // after each change. Until the switch is on, nothing is asked of the database.
+    let fsPulled = false, fsTimer = null, fsShared = false;
+    function fsStore() { const S = rpSettings(); return S && S.createPersonalStore ? S.createPersonalStore({ client: supabase, enabled: mySettingsOn() }) : null; }
+    function feedSnoozePush() {
+      const M = feedMod(), S = rpSettings(), st = fsStore(); if (!M || !S || !st || !mySettingsOn()) return;
+      clearTimeout(fsTimer);
+      // Read first, join, then save: what another of this person's devices saved a moment ago
+      // is kept (and taken in here) instead of being overwritten by this browser's list.
+      fsTimer = setTimeout(async () => {
+        const now = await st.get(S.MY_KEYS.feedSnooze);
+        if (now.state !== 'installed') { fsShared = false; return; }
+        const mine = M.pack(feedStore()), joined = M.merge(mine, now.value, Date.now());
+        if (JSON.stringify(joined) !== JSON.stringify(mine)) { M.unpack(feedStore(), joined); paintAttentionFeed(); }
+        if (JSON.stringify(joined) === JSON.stringify(M.merge(now.value, null, Date.now()))) { fsShared = true; return; }   // the database already has all of it
+        const r = await st.set(S.MY_KEYS.feedSnooze, joined); fsShared = !!r.ok;
+      }, 700);
+    }
+    async function feedSnoozePull() {
+      const M = feedMod(), S = rpSettings(), st = fsStore(); if (!M || !S || !st || !mySettingsOn() || fsPulled) return;
+      fsPulled = true;
+      const r = await st.get(S.MY_KEYS.feedSnooze);
+      if (r.state !== 'installed') return;
+      fsShared = true;
+      const mine = M.pack(feedStore()), joined = M.merge(mine, r.value, Date.now());
+      if (JSON.stringify(joined) !== JSON.stringify(mine)) { M.unpack(feedStore(), joined); paintAttentionFeed(); }
+      if (JSON.stringify(joined) !== JSON.stringify(M.merge(r.value, null, Date.now()))) feedSnoozePush();   // this browser knew something the database did not
+    }
+    // Agent hand-offs marked "Handled" (behind handoffHandledOn). The marks live in this
+    // browser; with the shared settings in use (drafts/50) they are also kept in the
+    // database, so a hand-off handled on one device is gone on every device. Saving
+    // there is the owner's: for anyone else the mark stays in their own browser.
+    let hhPulled = false, hhTimer = null, hhShared = false;
+    function hhPush() {
+      const M = feedMod(), S = rpSettings(), store = rpStore(); if (!M || !S || !store || !handoffHandledOn() || !sharedSettingsOn()) return;
+      clearTimeout(hhTimer);
+      hhTimer = setTimeout(async () => {
+        const now = await store.get(S.KEYS.handoffsHandled);
+        if (now.state !== 'installed') { hhShared = false; return; }
+        const mine = M.readMarks(feedStore(), Date.now());
+        const joined = M.mergeHandled(mine, now.value && now.value.items, Date.now());
+        if (JSON.stringify(joined) === JSON.stringify(M.mergeHandled(now.value && now.value.items, null, Date.now()))) { hhShared = true; return; }
+        const r = await store.set(S.KEYS.handoffsHandled, { items: joined }, 'owner_admin');
+        hhShared = !!r.ok;
+      }, 700);
+    }
+    async function hhPull() {
+      const M = feedMod(), S = rpSettings(), store = rpStore(); if (!M || !S || !store || !handoffHandledOn() || !sharedSettingsOn() || hhPulled) return;
+      hhPulled = true;
+      const r = await store.get(S.KEYS.handoffsHandled);
+      if (r.state !== 'installed') return;
+      hhShared = true;
+      const mine = M.readMarks(feedStore(), Date.now());
+      const joined = M.mergeHandled(mine, r.value && r.value.items, Date.now());
+      if (JSON.stringify(joined) !== JSON.stringify(mine)) { try { feedStore().setItem(M.HANDLED_KEY, JSON.stringify(joined)); } catch (e) { /* this browser keeps its own list */ } paintAttentionFeed(); renderAgentDiary(); }
+      if (JSON.stringify(joined) !== JSON.stringify(M.mergeHandled(r.value && r.value.items, null, Date.now()))) hhPush();   // this browser knew something the database did not
+    }
     // The feed's box exists only while the feed is on, so with the switch off Home
     // is exactly as before (same elements, same spacing).
     function feedHost(on) {
@@ -3340,6 +3499,9 @@
     }
     async function loadAttentionFeed() {
       if (!feedHost(attentionFeedOn() && !!feedMod())) return;
+      feedSnoozePull();
+      hhPull();
+      if (riStore()) riPull().then((got) => { if (got) paintAttentionFeed(); });
       const seq = ++feedSeq;
       try {
         const rows = await fetchAllRows('customer_inquiries', 'id, customer_name, channel, question_text, status, ai_draft_reply, sensitive, severity, created_at',
@@ -3379,7 +3541,8 @@
           ? await supabase.from('daily_reports').select('report_date').order('report_date', { ascending: false }).limit(1) : null;
         if (seq !== feedSeq) return;
         const d = r && !r.error && r.data && r.data[0] ? String(r.data[0].report_date).slice(0, 10) : null;
-        let upto = null; try { upto = localStorage.getItem(RECAP_PRINTED_KEY); } catch (e) { upto = null; }
+        const upto = d ? await recapPrintedUpTo() : null;
+        if (seq !== feedSeq) return;
         feedRecap = d ? { date: d, printedUpTo: upto } : null;
       } catch (e) { if (seq !== feedSeq) return; feedRecap = null; }
       paintAttentionFeed();
@@ -3410,10 +3573,14 @@
       const items = M.buildFeed({
         attention: Array.isArray(SEARCH_INDEX.attention) ? SEARCH_INDEX.attention : null, labels: ITEM_TYPE_LABELS,
         checks: findings, questions: feedQuestions, nightly: feedNightly(), delivery: feedParcels, agents: feedAgentSteps, recap: feedRecap,
+        handled: handoffHandledOn() && typeof M.readHandled === 'function' ? M.readHandled(feedStore(), now) : null,
+        reviews: riFeedRows(),
         money: moneyEl ? { open: Number(moneyEl.getAttribute('data-moneyalert')) } : null,
         tax: taxEl ? { count: Number(taxEl.getAttribute('data-taxratealert')) } : null }, now);
       const v = M.view(items, { now: now, snoozes: M.readSnoozes(feedStore()), filter: feedFilter });
       feedLast = new Map(items.map(i => [i.id, i]));
+      // the morning summary: the same list as a short text, copied with one press
+      feedSummary = typeof M.summaryText === 'function' ? M.summaryText(v, { dayLabel: new Date(now).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }) }) : '';
       const summary = v.caughtUp
         ? h('p', { class: 'feedSummary feedCaughtUp', 'data-feedcaughtup': '1' }, 'All caught up. Nothing needs you right now.')
         : h('p', { class: 'feedSummary', 'data-feedneedyou': String(v.needYou) },
@@ -3425,7 +3592,8 @@
       const card = (i) => {
         const acts = i.actions.map(a => a.kind === 'open' ? h('button', { type: 'button', class: 'small', 'data-feedopen': a.page }, a.label)
           : a.kind === 'copy' ? h('button', { type: 'button', class: 'small secondary', 'data-feedcopy': i.id }, a.label)
-          : a.kind === 'dismiss' ? h('button', { type: 'button', class: 'small secondary', 'data-feeddismiss': a.id }, a.label) : null).filter(Boolean);
+          : a.kind === 'dismiss' ? h('button', { type: 'button', class: 'small secondary', 'data-feeddismiss': a.id }, a.label)
+          : a.kind === 'handled' ? h('button', { type: 'button', class: 'small secondary', 'data-feedhandled': a.id, title: 'Done: it leaves the list (' + (sharedSettingsOn() && hhShared ? 'on every device' : 'in this browser') + ')' }, a.label) : null).filter(Boolean);
         if (i.level !== 'info' || i.kind === 'message') acts.push(h('button', { type: 'button', class: 'small secondary', 'data-feedsnooze': i.id, title: 'Hidden in this browser until tomorrow, or until it changes' }, 'Later'));
         const chat = i.message ? [h('div', { class: 'feedChat' },
           h('p', { class: 'feedBubble feedThem' }, h('span', { class: 'feedWho' }, i.message.from + ' wrote'), i.message.text || '(no text)'),
@@ -3445,12 +3613,14 @@
         ? h('ul', { class: 'feedList', 'aria-label': 'Things that need you' }, ...shown.map(card))
         : (v.caughtUp && v.filter === 'all' ? null : h('p', { class: 'empty' }, 'Nothing here in this filter.'));
       const more = v.items.length > shown.length ? h('p', { class: 'hint' }, 'Showing the first ' + shown.length + ' of ' + v.items.length + '. Use a filter to see the rest.') : null;
-      const snoozed = v.snoozed ? h('p', { class: 'hint feedSnoozed' }, v.snoozed + ' set aside until tomorrow (this browser). ',
+      const snoozed = v.snoozed ? h('p', { class: 'hint feedSnoozed' }, v.snoozed + ' set aside until tomorrow (' + (mySettingsOn() && fsShared ? 'on every device you sign in to' : 'this browser') + '). ',
         h('button', { type: 'button', class: 'small secondary', 'data-feedunsnooze': '1' }, 'Show them again')) : null;
       const qNote = feedQuestions === null ? h('p', { class: 'hint' }, 'Customer questions could not be read just now; the check "Customer questions waiting" stands in for them.') : null;
+      const copy = feedSummary ? h('p', { class: 'feedCopySummary' }, h('button', { type: 'button', class: 'small secondary', 'data-feedsummary': '1' }, 'Copy this as a morning summary'),
+        h('span', { class: 'u-fs-12 u-c-muted' }, ' A short text of what needs you today, to paste into a note or a message.')) : null;
       host.replaceChildren(h('section', { class: 'feed', 'data-feed': '1', 'aria-labelledby': 'feedHeading' },
         h('h2', { id: 'feedHeading' }, 'Needs you now'),
-        summary, chips, ...[list, more, snoozed, qNote].filter(Boolean)));
+        summary, chips, ...[list, more, snoozed, qNote, copy].filter(Boolean)));
     }
     document.addEventListener('click', async (e) => {
       const host = e.target.closest('#attentionFeedHost'); if (!host) return;
@@ -3459,6 +3629,11 @@
       if (f) { feedFilter = f.getAttribute('data-feedfilter'); paintAttentionFeed(); const again = host.querySelector('[data-feedfilter="' + feedFilter + '"]'); if (again) again.focus(); return; }
       const o = e.target.closest('[data-feedopen]');
       if (o) { showPage(o.getAttribute('data-feedopen')); return; }
+      if (e.target.closest('[data-feedsummary]')) {
+        try { await navigator.clipboard.writeText(feedSummary); announce('Morning summary copied. Paste it into a note or a message.'); toast('Copied'); }
+        catch (err) { showDashError('Could not copy to the clipboard in this browser.'); }
+        return;
+      }
       const c = e.target.closest('[data-feedcopy]');
       if (c) {
         const item = feedLast.get(c.getAttribute('data-feedcopy'));
@@ -3475,19 +3650,32 @@
         if (!own) { showDashError('That reminder is no longer in the list.'); return; }
         d.disabled = true; own.click(); return;
       }
+      const hd = e.target.closest('[data-feedhandled]');
+      if (hd) {
+        const li = hd.closest('[data-feeditem]'); const next = li && (li.nextElementSibling || li.previousElementSibling);
+        const nextId = next && next.getAttribute('data-feeditem');
+        if (!M.markHandled(feedStore(), hd.getAttribute('data-feedhandled'), Date.now())) { showDashError('This browser could not remember that. Nothing was changed.'); return; }
+        hhPush();
+        paintAttentionFeed(); renderAgentDiary(); announce('Marked as handled. It left the list.');   // the diary, if it is drawn, shows the mark too
+        const back = nextId ? [...host.querySelectorAll('[data-feeditem]')].find(x => x.getAttribute('data-feeditem') === nextId) : null;
+        const target = back ? back.querySelector('button') : host.querySelector('#feedHeading');
+        if (target) { if (target.id === 'feedHeading') target.setAttribute('tabindex', '-1'); target.focus(); }
+        return;
+      }
       const z = e.target.closest('[data-feedsnooze]');
       if (z) {
         const li = z.closest('[data-feeditem]'); const next = li && (li.nextElementSibling || li.previousElementSibling);
         const nextId = next && next.getAttribute('data-feeditem');
         const ok = M.snooze(feedStore(), feedLast.get(z.getAttribute('data-feedsnooze')), Date.now());
         if (!ok) { showDashError('This browser could not remember that. Nothing was changed.'); return; }
+        feedSnoozePush();
         paintAttentionFeed(); announce('Set aside until tomorrow.');
         const back = nextId ? [...host.querySelectorAll('[data-feeditem]')].find(x => x.getAttribute('data-feeditem') === nextId) : null;
         const target = back ? back.querySelector('button') : host.querySelector('#feedHeading');
         if (target) { if (target.id === 'feedHeading') target.setAttribute('tabindex', '-1'); target.focus(); }
         return;
       }
-      if (e.target.closest('[data-feedunsnooze]')) { M.unsnoozeAll(feedStore()); paintAttentionFeed(); announce('Everything set aside is back in the list.'); }
+      if (e.target.closest('[data-feedunsnooze]')) { M.unsnoozeAll(feedStore(), Date.now()); feedSnoozePush(); paintAttentionFeed(); announce('Everything set aside is back in the list.'); }
     });
     // Redraw when anything the feed reads from is redrawn on Home.
     (function watchFeedSources() {
@@ -3824,6 +4012,1003 @@
       await rtnAfter(res);
     });
 
+    // ---------- Saved email campaigns (behind emailSendingOn; database drafts/56) ----------
+    // On Store Campaigns and Customer Emails: save the approved wording and the list of who
+    // it goes to in the database, with the sending guard; see the saved campaigns; pause,
+    // resume or stop one; put an address on the do-not-email list. NOTHING IS SENT: the
+    // database keeps the records, the sending program is separate and not connected.
+    // Adapter: assets/sales/he-email-store.js.
+    const esUi = {};
+    const esMod = () => (window.HE && window.HE.sales && window.HE.sales['he-email-store']) || null;
+    function esStore() { const M = esMod(); return M ? M.createStore({ client: supabase, enabled: emailSendingOn() }) : null; }
+    function esOf(page) { return esUi[page] || (esUi[page] = { name: '', confirm: false, busy: false, message: '', result: null, rows: null, state: '', stopId: '', email: '', seq: 0 }); }
+    const esRedraw = (page) => { if (page === 'store') renderStoreCampaigns(); else renderCustomerEmails(); };
+    const esSay = (page, msg, focusSel) => { esOf(page).message = msg; esRedraw(page); announce(msg); const n = document.querySelector('[data-emailsave="' + page + '"] ' + (focusSel || '[data-esmessage]')); if (n) { if (!focusSel) n.setAttribute('tabindex', '-1'); n.focus(); } };
+    // what would be saved, from what the page is showing right now; null when nothing is shown or the wording is no longer the approved one
+    function esReady(page) {
+      const M = esMod(); if (!M) return null;
+      if (page === 'store') {
+        const SC = scMod(); if (!SC || !scState || !scResult || !scShown || !scState.approval || !SC.stillApproved(scState.approval, scText(), scDeps()).valid) return null;
+        return { kind: 'store', recipients: M.recipients('store', scShown), text: scText(), address: scState.address, startDay: scState.startDay };
+      }
+      const CE = ceMod(); if (!CE || !ceState || !ceResult || !ceShown || ceShown.kind !== ceState.kind) return null;
+      const t = ceState.texts[ceState.kind]; if (!t.approval || !CE.stillApproved(t.approval, ceText(), scDeps()).valid) return null;
+      return { kind: 'customer', recipients: M.recipients('customer', ceShown.rows, { firstName: CE.firstName }), text: ceText(), address: ceState.address, startDay: ceState.startDay };
+    }
+    async function esLoad(page) {
+      const store = esStore(), es = esOf(page); if (!store || !emailSendingOn()) return;
+      const seq = ++es.seq;
+      const st = await store.state(); if (seq !== es.seq) return;
+      es.state = st;
+      if (st === 'installed') { const r = await store.campaigns(page === 'store' ? 'store' : 'customer'); if (seq !== es.seq) return; es.rows = r.ok ? r.rows : []; if (!r.ok) es.message = r.message; }
+      esRedraw(page);
+    }
+    function esNode(page) {
+      const M = esMod(); if (!M || !emailSendingOn()) return null;
+      const es = esOf(page), owner = currentUserRole === 'owner', ready = esReady(page), who = page === 'store' ? 'stores' : 'customers';
+      const n = ready ? ready.recipients.length : 0;
+      const head = [h('h3', null, 'Save this campaign (nothing is sent)'),
+        h('p', { class: 'hint u-mt-0' }, 'Saving puts the approved wording and the list of ' + who + ' into the database, with the sending guard: the slow start, the do-not-email list and the automatic stop. It sends nothing; the sending program is not connected. A saved wording cannot be changed afterwards.')];
+      if (es.state !== 'installed') {
+        return h('div', { 'data-emailsave': page, 'data-esstate': es.state || 'checking', class: 'u-mt-12' }, ...head,
+          h('p', { class: 'u-fs-12p5', role: 'status', 'data-esmessage': '1' }, es.state === 'not_installed' ? 'Saving campaigns is switched on, but its database step (drafts/56) is not installed yet. Nothing can be saved.'
+            : es.state === 'unknown' ? 'Could not check whether saving campaigns is installed. Refresh the page to try again.' : 'Checking the database…'));
+      }
+      const day = (iso) => { const d = iso ? new Date(iso) : null; return d && !isNaN(d) ? localDateString(d) : '—'; };
+      const r = es.result;
+      return h('div', { 'data-emailsave': page, 'data-esstate': 'installed', class: 'u-mt-12' }, ...head,
+        h('p', { class: 'u-fs-12p5', role: 'status', 'data-esmessage': '1' }, es.message),
+        !owner ? h('p', { class: 'hint' }, 'Only the owner can save a campaign.')
+          : !ready ? h('p', { class: 'hint', 'data-esnotready': '1' }, 'Approve the wording and press "Show who would get it" first. What is shown there is what would be saved.')
+            : h('div', { 'data-esform': String(n) },
+              h('div', { class: 'heField scField' }, h('label', { for: 'esName-' + page }, 'A name for this campaign'),
+                h('input', { id: 'esName-' + page, type: 'text', maxlength: '120', value: es.name || M.campaignName(ready.kind, ready.text.subject, ready.startDay), 'data-esfield': 'name', 'data-espage': page, autocomplete: 'off' })),
+              h('button', Object.assign({ type: 'button', class: 'small u-mt-8', 'data-es': 'save', 'data-espage': page }, es.busy || !n ? { disabled: 'disabled' } : {}),
+                es.busy ? 'Saving…' : es.confirm ? 'Tap again to save: ' + n + (n === 1 ? ' email' : ' emails') + ' will be queued, none sent' : 'Save the campaign and queue ' + n + (n === 1 ? ' email' : ' emails'))),
+        r ? h('div', { class: 'u-mt-8', 'data-esresult': String(r.queued), tabindex: '-1' },
+          h('p', { class: 'u-fs-12p5' }, 'Saved. ' + r.queued + (r.queued === 1 ? ' email is' : ' emails are') + ' queued' + (r.firstDay ? (r.firstDay === r.lastDay ? ' for ' + r.firstDay : ' from ' + r.firstDay + ' to ' + r.lastDay) : '') + '. Nothing was sent.'),
+          r.skipped.length ? h('details', { 'data-esskipped': String(r.skipped.length) }, h('summary', null, r.skipped.length + ' left out by the database, with the reason'),
+            h('ul', { class: 'u-fs-12p5' }, r.skipped.slice(0, 200).map(x => h('li', null, x.email + ': ' + x.why)))) : null) : null,
+        h('h3', null, 'Saved campaigns'),
+        es.rows === null ? h('p', { class: 'empty' }, 'Loading…')
+          : !es.rows.length ? h('p', { class: 'empty', 'data-eslist': '0' }, 'No campaign is saved yet.')
+            : h('table', { class: 'phoneCards', 'data-eslist': String(es.rows.length) },
+              h('thead', null, h('tr', null, ['Campaign', 'State', 'Approved', 'Queued', 'Sent', 'Left out', 'Came back', ''].map((x, i) => h('th', i > 2 && i < 7 ? { class: 'num-cell' } : null, x)))),
+              h('tbody', null, es.rows.map(c => h('tr', { 'data-escampaign': c.id, 'data-esstatus': c.status },
+                h('td', null, c.name), h('td', null, (M.STATUS_WORDS[c.status] || c.status) + (c.stopReason ? '. ' + c.stopReason : '')), h('td', null, day(c.approvedAt)),
+                h('td', { class: 'num-cell' }, String(c.counts.queued)), h('td', { class: 'num-cell' }, String(c.counts.sent)), h('td', { class: 'num-cell' }, String(c.counts.skipped)), h('td', { class: 'num-cell' }, String(c.counts.back)),
+                h('td', null, owner && (c.status === 'approved' || c.status === 'paused') ? h('div', { class: 'chRow' },
+                  h('button', { type: 'button', class: 'small secondary', 'data-es': c.status === 'paused' ? 'resume' : 'pause', 'data-espage': page, 'data-esid': c.id, 'aria-label': (c.status === 'paused' ? 'Resume ' : 'Pause ') + c.name }, c.status === 'paused' ? 'Resume' : 'Pause'),
+                  h('button', { type: 'button', class: 'small secondary', 'data-es': 'stop', 'data-espage': page, 'data-esid': c.id, 'aria-label': 'Stop ' + c.name }, es.stopId === c.id ? 'Tap again to stop for good' : 'Stop')) : null))))),
+        es.rows && es.rows.some(c => c.counts.partial) ? h('p', { class: 'error u-fs-12p5', role: 'status', 'data-escountspartial': '1' }, 'Not every email of these campaigns could be read, so the numbers above are too low. Reload the page to try again.') : null,
+        h('h3', null, 'Someone asked not to be emailed'),
+        h('p', { class: 'hint u-mt-0' }, 'The address goes on the do-not-email list for good, for every campaign, and its queued emails are skipped. It cannot be taken off again from the dashboard.'),
+        h('div', { class: 'u-d-flex u-gap-8 u-fwr-wrap u-ai-flex-end' },
+          h('div', { class: 'heField scField' }, h('label', { for: 'esEmail-' + page }, 'Email address'),
+            h('input', { id: 'esEmail-' + page, type: 'email', maxlength: '254', value: es.email, 'data-esfield': 'email', 'data-espage': page, autocomplete: 'off' })),
+          h('button', { type: 'button', class: 'small secondary', 'data-es': 'suppress', 'data-espage': page }, 'Never email this address')));
+    }
+    document.addEventListener('input', (e) => {
+      const f = e.target.closest('[data-emailsave] [data-esfield]'); if (!f) return;
+      const es = esOf(f.getAttribute('data-espage'));
+      es[f.getAttribute('data-esfield')] = String(f.value).slice(0, 254); es.confirm = false;
+    });
+    document.addEventListener('click', async (e) => {
+      const t = e.target.closest('[data-emailsave] [data-es]'); if (!t || !emailSendingOn()) return;
+      const page = t.getAttribute('data-espage') === 'store' ? 'store' : 'customer', es = esOf(page), store = esStore(), M = esMod(); if (!store || !M || es.busy) return;
+      const act = t.getAttribute('data-es'), id = t.getAttribute('data-esid') || '';
+      if (act === 'save') {
+        const ready = esReady(page);
+        if (!ready) { es.confirm = false; esSay(page, 'The wording or the list changed. Approve the wording and press "Show who would get it" again.'); return; }
+        if (!es.confirm) { es.confirm = true; es.stopId = ''; esRedraw(page); const b = document.querySelector('[data-emailsave="' + page + '"] [data-es="save"]'); if (b) b.focus(); announce('Tap again to save. Nothing will be sent.'); return; }
+        es.confirm = false; es.busy = true; es.result = null; es.message = 'Saving…'; esRedraw(page);
+        const name = (es.name || M.campaignName(ready.kind, ready.text.subject, ready.startDay)).trim();
+        const r = await store.saveAndQueue({ kind: ready.kind, name: name, subject: ready.text.subject, body: ready.text.body, postalAddress: ready.address, startDay: ready.startDay }, ready.recipients);
+        es.busy = false;
+        if (r.ok) { es.result = r; es.name = ''; }
+        const list = await store.campaigns(ready.kind); if (list.ok) es.rows = list.rows;
+        esSay(page, r.ok ? 'Campaign saved. Nothing was sent.' : r.message, r.ok ? '[data-esresult]' : '');
+        return;
+      }
+      if (act === 'pause' || act === 'resume' || act === 'stop') {
+        if (act === 'stop' && es.stopId !== id) { es.stopId = id; es.confirm = false; esRedraw(page); const b = document.querySelector('[data-emailsave="' + page + '"] [data-es="stop"][data-esid="' + CSS.escape(id) + '"]'); if (b) b.focus(); announce('Tap again to stop this campaign for good.'); return; }
+        es.stopId = ''; es.busy = true;
+        const r = await store.setStatus(id, act === 'pause' ? 'paused' : act === 'resume' ? 'approved' : 'stopped', act === 'stop' ? 'stopped on the dashboard' : '');
+        es.busy = false;
+        const list = await store.campaigns(page === 'store' ? 'store' : 'customer'); if (list.ok) es.rows = list.rows;
+        esSay(page, !r.ok ? r.message : act === 'pause' ? 'Paused. Nothing of it will be handed out for sending until you resume it.' : act === 'resume' ? 'Resumed.' : 'Stopped for good. ' + r.skipped + (r.skipped === 1 ? ' queued email was' : ' queued emails were') + ' skipped.');
+        return;
+      }
+      if (act === 'suppress') {
+        if (!(currentUserRole === 'owner' || currentUserRole === 'administrator')) return;
+        es.busy = true;
+        const r = await store.suppress(es.email, 'added on the dashboard');
+        es.busy = false;
+        if (r.ok) { es.email = ''; const list = await store.campaigns(page === 'store' ? 'store' : 'customer'); if (list.ok) es.rows = list.rows; }
+        esSay(page, !r.ok ? r.message : (r.added ? r.email + ' is on the do-not-email list now.' : r.email + ' was already on the do-not-email list.') + ' ' + r.skipped + (r.skipped === 1 ? ' queued email was' : ' queued emails were') + ' skipped.');
+      }
+    });
+
+    // ---------- Drafts that follow every device (owner's rule 3; shared settings, drafts/50) ----------
+    // The owner's wording on Store Campaigns, Customer Emails and the Content Helper is saved as
+    // a shared setting, so it is the same on every phone and computer. The newer of the browser's
+    // copy and the shared copy wins. Lists of stores and customers are never part of it. Until the
+    // shared settings are in use, everything stays in the browser and nothing is requested.
+    const dsShare = {};
+    function dsOf(page) { return dsShare[page] || (dsShare[page] = { state: 'idle', message: '', timer: null, seq: 0 }); }
+    function dsLine(page, extra) {
+      const d = dsOf(page);
+      const t = !sharedSettingsOn() ? 'Kept in this browser on this device for now. Once the shared settings database step (drafts/50) is installed, it follows you to every phone and computer.'
+        : d.state === 'failed' ? 'Could not save for every device (' + d.message + ') Kept in this browser.'
+          : currentUserRole !== 'owner' ? 'Only the owner\'s changes are saved for every device. Yours are kept in this browser.'
+            : d.state === 'saving' ? 'Saving for every phone and computer…'
+              : d.state === 'saved' ? 'Saved for every phone and computer.' : 'Saved for every phone and computer as you type.';
+      return t + (extra ? ' ' + extra : '');
+    }
+    function dsState(page) { return !sharedSettingsOn() ? 'off' : dsOf(page).state; }
+    function dsNode(page, extra) { return h('p', { class: 'hint u-mt-0', role: 'status', 'data-draftshare': page, 'data-draftstate': dsState(page), 'data-draftextra': extra || '' }, dsLine(page, extra)); }
+    function dsPaint(page) { const n = document.querySelector('[data-draftshare="' + page + '"]'); if (n) { n.setAttribute('data-draftstate', dsState(page)); n.textContent = dsLine(page, n.getAttribute('data-draftextra') || ''); } }
+    function dsPushSoon(page, keyName, value) {
+      if (!sharedSettingsOn() || currentUserRole !== 'owner') return;
+      const d = dsOf(page); clearTimeout(d.timer); d.state = 'saving'; dsPaint(page);
+      d.timer = setTimeout(async () => {
+        const S = rpSettings(), store = rpStore(); if (!S || !store) return;
+        const seq = d.seq += 1;
+        const r = await store.set(S.KEYS[keyName], value(), 'owner_admin');
+        if (seq !== d.seq) return;                       // a newer save is on its way
+        d.state = r.ok ? 'saved' : 'failed'; d.message = r.ok ? '' : r.message; dsPaint(page);
+      }, 900);
+    }
+    // fields: the part of a page's state that is shared; from: makes any value safe; redraw: after the shared copy was taken over
+    function dsMake(page, keyName, fields, getState, from, redraw) {
+      const part = () => { const st = getState(), o = {}; fields.forEach(f => { o[f] = st[f]; }); return o; };
+      let last = null;
+      return {
+        seen() { last = JSON.stringify(part()); },
+        // after every change by the person: stamps the time, and saves for every device a moment later
+        touch() {
+          const snap = JSON.stringify(part()); if (snap === last) return;
+          last = snap; getState().savedAt = new Date().toISOString();
+          dsPushSoon(page, keyName, () => Object.assign(part(), { savedAt: getState().savedAt }));
+        },
+        // when the page opens: take the shared copy if it is newer; send this one up if it is newer
+        async pull() {
+          const S = rpSettings(), store = rpStore(); if (!S || !store || !sharedSettingsOn() || !getState()) return;
+          const before = getState().savedAt, d = dsOf(page);
+          const r = await store.get(S.KEYS[keyName]);
+          const st = getState(); if (!st || st.savedAt !== before) return;        // the person typed meanwhile: theirs stands
+          if (r.state !== 'installed') { d.state = 'failed'; d.message = r.message || 'the shared settings could not be read.'; dsPaint(page); return; }
+          const theirs = r.value && typeof r.value.savedAt === 'string' ? r.value.savedAt.slice(0, 40) : '';
+          if (theirs && theirs > (before || '')) {
+            const clean = from(r.value); fields.forEach(f => { st[f] = clean[f]; }); st.savedAt = theirs;
+            last = JSON.stringify(part()); d.state = 'saved'; redraw(); return;
+          }
+          if (before && before > theirs) { dsPushSoon(page, keyName, () => Object.assign(part(), { savedAt: getState().savedAt })); return; }
+          d.state = theirs ? 'saved' : 'idle'; dsPaint(page);
+        } };
+    }
+
+    // ---------- Store Campaigns (owner's decision, Nov 24; behind storeCampaignsOn) ----------
+    // One email for stores: its wording is checked, the owner approves it once, then
+    // chooses how many stores and which first. NOTHING IS SENT: the page shows who
+    // would get it on which day. Rules: assets/sales/he-store-campaign.js. Kept in
+    // this browser until its database step exists.
+    const SC_KEY = 'he_store_campaign_v1';
+    let scState = null, scResult = null, scMessage = '', scShown = null;   // scShown: the stores of the result on screen
+    // Store finder (inside this page): scores a pasted list so "best match" means something. Rules: assets/sales/he-store-finder.js.
+    let sfFound = null;
+    const sfMod = () => (window.HE && window.HE.sales && window.HE.sales['he-store-finder']) || null;
+    function sfNode() {
+      const F = sfMod(); if (!F) return null;
+      const r = sfFound;
+      return h('div', { 'data-sfinder': r ? (r.ok ? 'scored' : 'problems') : 'empty' },
+        h('h3', null, 'Store finder (optional): score a list first'),
+        h('p', { class: 'hint u-mt-0' }, 'Paste a list of stores with what you know about them. Each store gets a score from 0 to 100 and the reasons, so "the best match" in step 3 means something you can read. Nothing is looked up: finding stores automatically from Google\'s listings is not connected (it needs your own Google account, and its cost has not been checked). Until then the list is yours: a spreadsheet, a maps export, or typed.'),
+        h('div', { class: 'heField scField' }, h('label', { for: 'sfText' }, 'Your list of stores'),
+          h('textarea', { id: 'sfText', rows: '5', 'data-scfield': 'finderText', placeholder: 'name, email, city, type, rating, reviews, distance, website' }, scState.finderText),
+          h('div', { class: 'u-fs-12 u-c-muted' }, 'The first line names the columns. Needed: name. Useful: email, city, type (the kind of shop), rating, reviews, distance (miles), website.')),
+        h('div', { class: 'scanToggleRow u-mt-6' },
+          h('button', { type: 'button', class: 'small', 'data-sc': 'sf-score' }, 'Score this list'),
+          h('button', { type: 'button', class: 'small secondary', 'data-sc': 'sf-example' }, 'Put in example stores')),
+        r && !r.ok ? h('ul', { class: 'u-fs-12p5 u-mt-6', 'data-sfproblems': String(r.problems.length) }, r.problems.map(p => h('li', null, p))) : null,
+        r && r.ok ? h('div', { class: 'u-mt-8', 'data-sfresult': '1' },
+          h('p', { class: 'u-fs-12p5', 'data-sfsummary': String(r.read), tabindex: '-1' }, r.read + (r.read === 1 ? ' store' : ' stores') + ' scored' + (r.unread ? ', ' + r.unread + (r.unread === 1 ? ' line' : ' lines') + ' without a name left out' : '') + '. '
+            + r.withEmail + (r.withEmail === 1 ? ' has' : ' have') + ' an email address' + (r.withoutEmail ? '; ' + r.withoutEmail + (r.withoutEmail === 1 ? ' does' : ' do') + ' not and cannot be written to until you find one.' : '.')),
+          h('table', { class: 'phoneCards', 'data-sfstores': String(r.stores.length) },
+            h('thead', null, h('tr', null, h('th', { class: 'num-cell' }, 'Score'), h('th', null, 'Store and why'), h('th', null, 'Town'), h('th', { class: 'num-cell' }, 'Miles'), h('th', null, 'Email'))),
+            h('tbody', null, r.stores.slice(0, 200).map(st => h('tr', { 'data-sfband': st.scoring.band },
+              h('td', { class: 'num-cell sfScore' }, String(st.scoring.score)),
+              h('td', null, h('div', null, st.name), h('ul', { class: 'sfWhy' }, st.scoring.reasons.map(x => h('li', null, x)))),
+              h('td', null, st.city || '—'), h('td', { class: 'num-cell' }, st.distanceMiles == null ? '—' : String(st.distanceMiles)),
+              h('td', null, st.email || (st.emailGiven ? 'not a usable address' : 'none')))))),
+          r.stores.length > 200 ? h('p', { class: 'hint' }, 'The first 200 are shown; all ' + r.stores.length + ' are scored.') : null,
+          h('button', Object.assign({ type: 'button', class: 'small u-mt-8', 'data-sc': 'sf-use' }, r.withEmail ? {} : { disabled: 'disabled' }), 'Use the ' + r.withEmail + (r.withEmail === 1 ? ' store' : ' stores') + ' with an email in step 2')) : null);
+    }
+    const scMod = () => (window.HE && window.HE.sales && window.HE.sales['he-store-campaign']) || null;
+    const scDeps = () => ({ claims: (window.HE && window.HE.sales && window.HE.sales['he-sales-claims']) || null, approval: (window.HE && window.HE.sales && window.HE.sales['he-sales-approval']) || null });
+    const scOwner = () => currentUserRole === 'owner' || currentUserRole === 'administrator';
+    function scFrom(v) {
+      const base = { subject: '', body: '', approval: null, storesText: '', finderText: '', example: false, count: '20', order: 'nearest', startDay: localDateString(), address: '', savedAt: '' };
+      if (v && typeof v === 'object' && !Array.isArray(v)) Object.keys(base).forEach(k => { if (typeof v[k] === typeof base[k] || (k === 'approval' && v[k] && typeof v[k] === 'object' && !Array.isArray(v[k]))) base[k] = typeof v[k] === 'string' ? v[k].slice(0, k === 'storesText' || k === 'finderText' ? 600000 : 4000) : v[k]; });
+      return base;
+    }
+    function scRead() { let v = null; try { v = JSON.parse(localStorage.getItem(SC_KEY) || 'null'); } catch (e) { /* start empty */ } return scFrom(v); }
+    // what follows the owner to every device: the wording, its approval and the choices; never the lists of stores
+    const SC_SHARED = ['subject', 'body', 'approval', 'count', 'order', 'startDay', 'address'];
+    const scShare = dsMake('store', 'storeCampaign', SC_SHARED, () => scState, scFrom, () => { scResult = null; scKeep(); renderStoreCampaigns(); });
+    function scKeep() { scShare.touch(); try { localStorage.setItem(SC_KEY, JSON.stringify(scState)); return true; } catch (e) { return false; } }
+    const scText = () => ({ subject: scState.subject, body: scState.body });
+    function scStores() { const M = scMod(); if (!M) return { rows: [], read: 0, unread: 0, problems: [] }; if (scState.example) { const rows = M.exampleStores(); return { rows: rows, read: rows.length, unread: 0, problems: [] }; } return M.parseStores(scState.storesText); }
+    function loadStoreCampaigns() {
+      const host = document.getElementById('storeCampaignsPanel'); if (!host) return;
+      if (!(typeof storeCampaignsOn === 'function' && storeCampaignsOn())) { host.replaceChildren(); return; }
+      if (!scState) { scState = scRead(); scShare.seen(); }
+      renderStoreCampaigns();
+      scShare.pull();
+      esLoad('store');
+    }
+    // the parts that change while typing, repainted without touching the boxes being typed in
+    function scPaint() {
+      const host = document.getElementById('storeCampaignsPanel'), M = scMod(); if (!host || !M || !scState) return;
+      const check = M.checkWording(scText(), scDeps());
+      const still = scState.approval ? M.stillApproved(scState.approval, scText(), scDeps()) : { valid: false, reason: '' };
+      const state = still.valid ? 'approved' : scState.approval ? 'changed' : 'none';
+      const w = host.querySelector('[data-scwording]');
+      if (w) { w.setAttribute('data-scwording', check.ok ? 'ok' : 'problems'); w.replaceChildren(...(check.ok ? [h('p', { class: 'hint u-mt-6' }, 'This wording passes the check.')] : [h('ul', { class: 'u-fs-12p5 u-mt-6' }, check.problems.map(p => h('li', null, p)))])); }
+      const a = host.querySelector('[data-scapproval]');
+      if (a) { a.setAttribute('data-scapproval', state);
+        a.textContent = state === 'approved' ? 'Approved' + (scState.approval.approvedBy ? ' by ' + scState.approval.approvedBy : '') + (scState.approval.approvedAt ? ' on ' + fmtDate(scState.approval.approvedAt) : '') + '. The approval covers exactly this wording, for as many stores as you choose. Approved does not mean sent.'
+          : state === 'changed' ? 'The wording changed after it was approved. Read it again and approve the new wording.' : 'Not approved yet.'; }
+      const b = host.querySelector('[data-sc="approve"]');
+      if (b) b.disabled = !check.ok || state === 'approved' || !scOwner();
+      const st = scStores(), sEl = host.querySelector('[data-scstores]');
+      if (sEl) { sEl.setAttribute('data-scstores', String(st.read)); sEl.textContent = st.problems.length ? st.problems.join(' ') : scState.example ? st.read + ' example stores (made up; none of them exists).' : st.read ? st.read + (st.read === 1 ? ' store read' : ' stores read') + (st.unread ? ', ' + st.unread + (st.unread === 1 ? ' line' : ' lines') + ' without a name or an email left out.' : '.') : 'No stores yet.'; }
+    }
+    function renderStoreCampaigns() {
+      const host = document.getElementById('storeCampaignsPanel'), M = scMod(); if (!host) return;
+      if (!M) { host.replaceChildren(h('h2', null, 'Store Campaigns'), h('p', { class: 'empty' }, 'The store campaign tools could not load. Refresh the page.')); return; }
+      if (!scOwner()) { host.replaceChildren(h('h2', null, 'Store Campaigns'), h('p', { class: 'hint' }, 'Only the owner and administrators can prepare store campaigns.')); return; }
+      const field = (id, label, node, hint) => h('div', { class: 'heField scField' }, h('label', { for: id }, label), node, hint ? h('div', { class: 'u-fs-12 u-c-muted' }, hint) : null);
+      host.replaceChildren(
+        h('h2', null, 'Store Campaigns'),
+        h('p', { class: 'hint hintLead', 'data-scnosend': '1' }, h('b', null, 'Nothing is sent from this page.'), ' Sending is not connected yet. You write one email, approve its wording once, choose how many stores, and see exactly who would get it on which day.'),
+        dsNode('store', 'Your lists of stores always stay in this browser.'),
+        h('p', { class: 'u-fs-12', role: 'status', 'data-scmessage': '1' }, scMessage),
+        h('h3', null, '1. The wording'),
+        field('scSubject', 'Subject', h('input', { id: 'scSubject', type: 'text', maxlength: '200', value: scState.subject, 'data-scfield': 'subject' })),
+        field('scBody', 'Email', h('textarea', { id: 'scBody', rows: '8', maxlength: '4000', 'data-scfield': 'body' }, scState.body), 'Write {store} where the store\'s name goes and {city} for its town. A "no thanks" line and your business address are added at the bottom of every email.'),
+        h('div', { 'data-scwording': 'problems' }),
+        h('p', { class: 'u-fs-12p5 u-mt-6', 'data-scapproval': 'none' }),
+        h('button', { type: 'button', class: 'small', 'data-sc': 'approve' }, 'Approve this wording'),
+        sfNode(),
+        h('h3', null, '2. The stores'),
+        field('scStores', 'Paste your list of stores', h('textarea', { id: 'scStores', rows: '5', 'data-scfield': 'storesText', placeholder: 'name, email, city, distance, score' }, scState.example ? '' : scState.storesText),
+          'The first line names the columns. Needed: name, email. Optional: city, distance (miles), score, last contacted, unsubscribed, bounced.'),
+        h('div', { class: 'scanToggleRow u-mt-6' }, h('button', { type: 'button', class: 'small secondary', 'data-sc': 'example', 'aria-pressed': String(scState.example) }, scState.example ? 'Stop using example stores' : 'Use example stores')),
+        h('p', { class: 'u-fs-12p5 u-mt-6', 'data-scstores': '0' }),
+        h('h3', null, '3. How many, and which first'),
+        h('div', { class: 'u-d-flex u-gap-8 u-fwr-wrap u-ai-flex-end' },
+          field('scCount', 'How many stores', h('input', { id: 'scCount', type: 'number', min: '1', max: '500', step: '1', value: scState.count, 'data-scfield': 'count' })),
+          field('scOrder', 'Which first', h('select', { id: 'scOrder', 'data-scfield': 'order' },
+            h('option', Object.assign({ value: 'nearest' }, scState.order === 'nearest' ? { selected: 'selected' } : {}), 'The nearest'),
+            h('option', Object.assign({ value: 'best' }, scState.order === 'best' ? { selected: 'selected' } : {}), 'The best match'))),
+          field('scStart', 'First day', h('input', { id: 'scStart', type: 'date', value: scState.startDay, 'data-scfield': 'startDay' }))),
+        field('scAddress', 'Business postal address', h('input', { id: 'scAddress', type: 'text', maxlength: '300', value: scState.address, 'data-scfield': 'address', autocomplete: 'off' }), 'Goes at the bottom of every email (the law asks for it).'),
+        h('button', { type: 'button', class: 'small u-mt-8', 'data-sc': 'show' }, 'Show who would get it'),
+        h('div', { 'data-scresult': scResult ? '1' : '0', class: 'u-mt-12' }, scResult || null),
+        esNode('store'));
+      scPaint();
+      labelPhoneCards(host);
+    }
+    function scShow() {
+      const M = scMod(); if (!M) return;
+      const say = (msg) => { scMessage = msg; scResult = null; renderStoreCampaigns(); announce(msg); const m = document.querySelector('#storeCampaignsPanel [data-scmessage]'); if (m) { m.setAttribute('tabindex', '-1'); m.focus(); } };
+      const still = scState.approval ? M.stillApproved(scState.approval, scText(), scDeps()) : { valid: false };
+      if (!still.valid) { say(scState.approval ? 'The wording changed after it was approved. Approve the new wording first.' : 'Approve the wording first (step 1).'); return; }
+      const st = scStores();
+      if (!st.read) { say(st.problems.join(' ') || 'Add your stores first (step 2), or use the example stores.'); return; }
+      const picked = M.pick(st.rows, { count: scState.count, order: scState.order, nowMs: Date.now() });
+      if (!picked.ok) { say(picked.reason); return; }
+      const days = M.plan(picked.chosen.length, { startDay: scState.startDay });
+      if (picked.chosen.length && !days.length) { say('Choose the first day.'); return; }
+      const sample = picked.chosen.length ? M.render(scText(), picked.chosen[0], { postalAddress: scState.address }) : null;
+      scShown = picked.chosen;
+      scMessage = picked.chosen.length + (picked.chosen.length === 1 ? ' store' : ' stores') + ' would get this email over ' + days.length + (days.length === 1 ? ' working day.' : ' working days.') + ' Nothing was sent.';
+      scResult = h('div', null,
+        h('h3', null, 'Who would get it'),
+        picked.short ? h('p', { class: 'hint', 'data-scshort': String(picked.short) }, 'You asked for ' + scState.count + ', but only ' + picked.chosen.length + ' can be written to.') : null,
+        picked.unknownOrder && picked.chosen.length ? h('p', { class: 'hint' }, picked.unknownOrder + (picked.unknownOrder === 1 ? ' store has' : ' stores have') + ' no ' + (picked.order === 'best' ? 'score' : 'distance') + ', so ' + (picked.unknownOrder === 1 ? 'it comes' : 'they come') + ' last.') : null,
+        picked.chosen.length ? h('table', { class: 'phoneCards', 'data-scchosen': String(picked.chosen.length) },
+          h('thead', null, h('tr', null, h('th', null, '#'), h('th', null, 'Store'), h('th', null, 'Town'), h('th', { class: 'num-cell' }, picked.order === 'best' ? 'Score' : 'Miles'))),
+          h('tbody', null, picked.chosen.map((s, i) => h('tr', null, h('td', null, String(i + 1)), h('td', null, s.name), h('td', null, s.city || '—'),
+            h('td', { class: 'num-cell' }, (picked.order === 'best' ? s.score : s.distanceMiles) == null ? '—' : String(picked.order === 'best' ? s.score : s.distanceMiles)))))) : h('p', { class: 'empty' }, 'No store on the list can be written to.'),
+        picked.skipped.length ? h('details', { class: 'u-mt-8', 'data-scskipped': String(picked.skipped.length) }, h('summary', null, picked.skipped.length + ' left out, with the reason'),
+          h('ul', { class: 'u-fs-12p5' }, picked.skipped.slice(0, 200).map(s => h('li', null, s.name + ': ' + s.why)))) : null,
+        days.length ? h('div', null, h('h3', null, 'On which days'),
+          h('p', { class: 'hint u-mt-0' }, 'A slow start keeps a new email address out of spam: 20 a day in the first working week, then 40, 60, 80 and 100. Never on a weekend. If too many emails come back or people mark it as spam, a campaign stops by itself.'),
+          h('table', { class: 'phoneCards', 'data-scdays': String(days.length) }, h('thead', null, h('tr', null, h('th', null, 'Day'), h('th', { class: 'num-cell' }, 'Emails'))),
+            h('tbody', null, days.map(d => h('tr', null, h('td', null, d.day), h('td', { class: 'num-cell' }, String(d.count))))))) : null,
+        sample ? h('div', null, h('h3', null, 'What the first store would read'),
+          sample.problems.length ? h('ul', { class: 'u-fs-12p5', 'data-scsampleproblems': String(sample.problems.length) }, sample.problems.map(p => h('li', null, p))) : null,
+          h('div', { class: 'scSample', 'data-scsample': '1' }, h('div', { class: 'taskTitle' }, sample.subject), h('div', { class: 'scSampleBody' }, sample.body))) : null);
+      renderStoreCampaigns(); labelPhoneCards(document.getElementById('storeCampaignsPanel')); announce(scMessage);
+      const r = document.querySelector('#storeCampaignsPanel [data-scresult]'); if (r) { r.setAttribute('tabindex', '-1'); r.focus({ preventScroll: true }); }
+    }
+    document.addEventListener('input', (e) => {
+      const f = e.target.closest('#storeCampaignsPanel [data-scfield]'); if (!f || !scState) return;
+      const k = f.getAttribute('data-scfield');
+      scState[k] = String(f.value).slice(0, k === 'storesText' || k === 'finderText' ? 600000 : 4000);
+      if (k === 'finderText') {   // scored only when asked; an old result is not left standing next to a changed list
+        if (sfFound) { sfFound = null; const box = document.querySelector('#storeCampaignsPanel [data-sfinder]'), old = box && box.querySelector('[data-sfresult], [data-sfproblems]');
+          if (box) box.setAttribute('data-sfinder', 'empty'); if (old) old.replaceWith(h('p', { class: 'hint', 'data-sfstale': '1' }, 'The list changed. Press "Score this list" to score it again.')); }
+        scKeep(); return;
+      }
+      if (k === 'storesText' && scState.example) scState.example = false;
+      scKeep(); scPaint();
+    });
+    document.addEventListener('click', (e) => {
+      const t = e.target.closest('#storeCampaignsPanel [data-sc]'); if (!t || !scState) return;
+      const M = scMod(); if (!M) return;
+      const act = t.getAttribute('data-sc');
+      if (act === 'approve') {
+        if (!scOwner()) return;
+        const who = String((document.getElementById('whoAmI') || {}).textContent || '').split(' — role')[0].trim();   // the name, without the role
+        const r = M.approveWording(scText(), who, new Date().toISOString(), scDeps());
+        if (r.status !== 'APPROVED') { scMessage = 'Not approved: ' + r.reason; }
+        else { scState.approval = r; scMessage = scKeep() ? 'Wording approved. Nothing was sent.' : 'Wording approved for now, but this browser would not keep it (private window or storage blocked).'; }
+        scResult = null; renderStoreCampaigns(); announce(scMessage);
+        const a = document.querySelector('#storeCampaignsPanel [data-scapproval]'); if (a) { a.setAttribute('tabindex', '-1'); a.focus(); }
+        return;
+      }
+      if (act === 'sf-example' || act === 'sf-score' || act === 'sf-use') {
+        const F = sfMod(); if (!F) return;
+        const focus = (sel) => { const n = document.querySelector('#storeCampaignsPanel ' + sel); if (n) n.focus(); };
+        if (act === 'sf-example') { scState.finderText = F.exampleText(); sfFound = null; scMessage = ''; scKeep(); renderStoreCampaigns(); focus('[data-sc="sf-example"]'); announce('Example stores put in. None of them exists.'); return; }
+        if (act === 'sf-score') {
+          sfFound = F.find(scState.finderText); scMessage = '';
+          renderStoreCampaigns(); labelPhoneCards(document.getElementById('storeCampaignsPanel'));
+          if (sfFound.ok) { focus('[data-sfsummary]'); announce(sfFound.read + (sfFound.read === 1 ? ' store scored.' : ' stores scored.')); } else { focus('#sfText'); announce(sfFound.problems.join(' ')); }
+          return;
+        }
+        if (!sfFound || !sfFound.ok) return;
+        const out = F.toCampaign(sfFound.stores); if (!out.count) return;
+        scState.storesText = out.text; scState.example = false; scResult = null;
+        scMessage = out.count + (out.count === 1 ? ' store' : ' stores') + ' put into step 2 with ' + (out.count === 1 ? 'its score' : 'their scores') + '. In step 3 choose "The best match" to start with the best.';
+        scKeep(); renderStoreCampaigns(); labelPhoneCards(document.getElementById('storeCampaignsPanel')); focus('#scStores'); announce(scMessage);
+        return;
+      }
+      if (act === 'example') { scState.example = !scState.example; scResult = null; scMessage = ''; scKeep(); renderStoreCampaigns(); const b = document.querySelector('#storeCampaignsPanel [data-sc="example"]'); if (b) b.focus(); return; }
+      if (act === 'show') scShow();
+    });
+
+    // ---------- Content Helper (owner, Nov 24; behind contentHelperOn) ----------
+    // A product and the owner's own story in; several ready drafts out (post, ad
+    // headline, ad text, email paragraph, short video, a week's plan), in three
+    // tones, with others on request, the owner's own version, and six ready looks.
+    // NOTHING IS POSTED, SENT OR SPENT. Every draft passes the claim firewall; a
+    // blocked draft is shown as blocked and cannot be copied. Rules:
+    // assets/sales/he-content-helper.js. Kept in this browser for now.
+    const CH_KEY = 'he_content_helper_v1';
+    const CH_KINDS = [['post', 'Post'], ['adHeadline', 'Ad headline'], ['adText', 'Ad text'], ['email', 'Email paragraph'], ['video', 'Short video'], ['week', 'A week\'s plan']];
+    let chState = null, chShown = {};
+    const chMod = () => (window.HE && window.HE.sales && window.HE.sales['he-content-helper']) || null;
+    const chDeps = () => ({ claims: (window.HE && window.HE.sales && window.HE.sales['he-sales-claims']) || null });
+    function chFrom(v) {
+      const base = { product: '', story: '', kind: 'post', tone: 'plain', round: 0, look: 'clean', own: '', savedAt: '' };
+      if (v && typeof v === 'object' && !Array.isArray(v)) Object.keys(base).forEach(k => { if (typeof v[k] === typeof base[k]) base[k] = typeof v[k] === 'string' ? v[k].slice(0, 4000) : v[k]; });
+      const M = chMod();
+      if (!CH_KINDS.some(k => k[0] === base.kind)) base.kind = 'post';
+      if (!M || !Object.prototype.hasOwnProperty.call(M.TONES, base.tone)) base.tone = 'plain';
+      if (!M || !M.LOOKS.some(l => l.key === base.look)) base.look = 'clean';
+      if (!Number.isInteger(base.round) || base.round < 0 || base.round > 50) base.round = 0;
+      return base;
+    }
+    function chRead() { let v = null; try { v = JSON.parse(localStorage.getItem(CH_KEY) || 'null'); } catch (e) { /* start empty */ } return chFrom(v); }
+    const CH_SHARED = ['product', 'story', 'kind', 'tone', 'look', 'own'];
+    const chShare = dsMake('content', 'contentHelper', CH_SHARED, () => chState, chFrom, () => { chState.round = 0; chKeep(); renderContentHelper(); });
+    function chKeep() { chShare.touch(); try { localStorage.setItem(CH_KEY, JSON.stringify(chState)); return true; } catch (e) { return false; } }
+    function loadContentHelper() {
+      const host = document.getElementById('contentHelperPanel'); if (!host) return;
+      if (!(typeof contentHelperOn === 'function' && contentHelperOn())) { host.replaceChildren(); return; }
+      if (!chState) { chState = chRead(); chShare.seen(); }
+      renderContentHelper();
+      chShare.pull();
+    }
+    const chBlockedLine = (findings) => {
+      const f = Array.isArray(findings) ? findings : [];
+      return h('p', { class: 'chBlocked', 'data-chblocked': '1' }, f.some(x => x.family === 'unavailable')
+        ? 'Blocked: the wording check could not load, so no draft is offered. Refresh the page.'
+        : 'Blocked: this wording makes a health or medical claim (' + [...new Set(f.map(x => '“' + x.match + '”'))].join(', ') + '). Change your story; this product may not say it.');
+    };
+    // everything that changes (the drafts, the checks, the look), repainted without touching the boxes being typed in
+    function chPaint() {
+      const host = document.getElementById('contentHelperPanel'), M = chMod(); if (!host || !M || !chState) return;
+      const press = (attr, value) => host.querySelectorAll('[' + attr + ']').forEach(b => { const on = b.getAttribute(attr) === value; b.setAttribute('aria-pressed', String(on)); b.classList.toggle('secondary', !on); });
+      press('data-chkind', chState.kind); press('data-chtone', chState.tone); press('data-chlook', chState.look);
+      const inp = { product: chState.product, story: chState.story, tone: chState.tone, round: chState.round };
+      const res = host.querySelector('[data-chresult]'); chShown = {};
+      let nodes = [], first = '', state = 'ready';
+      const moreRow = (r, word) => h('div', { class: 'u-mt-8' },
+        h('button', { type: 'button', class: 'small', 'data-ch': 'more' }, word),
+        h('span', { class: 'u-fs-12 u-c-muted', 'data-chset': (r.round + 1) + '/' + r.rounds }, ' Set ' + (r.round + 1) + ' of ' + r.rounds + (r.last ? '. That was the last one; the next press starts again from the first.' : '.')));
+      const check = M.checkInput(inp);
+      if (!check.ok) {
+        state = 'waiting';
+        nodes = !chState.product.trim() && !chState.story.trim() ? [h('p', { class: 'hint' }, 'Type the product\'s name and your story above. The drafts appear here as you type.')]
+          : [h('ul', { class: 'u-fs-12p5', 'data-chproblems': String(check.problems.length) }, check.problems.map(p => h('li', null, p)))];
+      } else if (chState.kind === 'video') {
+        const r = M.video(inp, chDeps()); chState.round = r.round;
+        const text = 'SAY\n' + r.script.map((l, i) => (i + 1) + '. ' + l).join('\n') + '\n\nFILM\n' + r.shots.map((l, i) => (i + 1) + '. ' + l).join('\n');
+        if (!r.blocked) { chShown.video = text; first = r.script.join(' '); }
+        nodes = [h('div', { class: 'chOption', 'data-choption': 'video', 'data-chstate': r.blocked ? 'blocked' : 'ok' },
+          h('div', { class: 'taskTitle' }, 'What to say (about 15 to 30 seconds)'), h('ol', { 'data-chscript': String(r.script.length) }, r.script.map(l => h('li', null, l))),
+          h('div', { class: 'taskTitle' }, 'What to film'), h('ol', { 'data-chshots': String(r.shots.length) }, r.shots.map(l => h('li', null, l))),
+          r.blocked ? chBlockedLine(r.findings) : h('button', { type: 'button', class: 'small secondary', 'data-ch': 'copy', 'data-chid': 'video' }, 'Copy')),
+          moreRow(r, 'Show me another')];
+      } else if (chState.kind === 'week') {
+        const r = M.week(inp, chDeps()); chState.round = r.round;
+        const ok = r.days.filter(d => !d.blocked);
+        if (!r.blocked) { chShown.week = r.days.map(d => d.day + ' — ' + d.kindName + '\n' + d.text + (d.shots ? '\nFilm: ' + d.shots.join(' ') : '')).join('\n\n'); }
+        first = ok.length ? ok[0].text : '';
+        nodes = [h('p', { class: 'hint u-mt-0' }, 'A suggestion for one week. Nothing is scheduled or posted; you copy what you want to use.'),
+          h('table', { class: 'phoneCards', 'data-chweek': String(r.days.length) }, h('thead', null, h('tr', null, h('th', null, 'Day'), h('th', null, 'What'), h('th', null, 'Draft'))),
+            h('tbody', null, r.days.map(d => h('tr', { 'data-chstate': d.blocked ? 'blocked' : 'ok' }, h('td', null, d.day), h('td', null, d.kindName),
+              h('td', null, h('div', { class: 'chOptionText' }, d.text), d.shots ? h('div', { class: 'u-fs-12 u-c-muted' }, 'Film: ' + d.shots.join(' ')) : null, d.blocked ? chBlockedLine(d.findings) : null))))),
+          r.blocked ? null : h('button', { type: 'button', class: 'small secondary u-mt-8', 'data-ch': 'copy', 'data-chid': 'week' }, 'Copy the whole week'),
+          moreRow(r, 'Show me another week')];
+      } else {
+        const r = M.options(Object.assign({ kind: chState.kind, count: 3 }, inp), chDeps()); chState.round = r.round;
+        r.options.forEach(o => { if (!o.blocked) { chShown[o.id] = o.text; if (!first) first = o.text; } });
+        nodes = r.options.length ? r.options.map(o => h('div', { class: 'chOption', 'data-choption': o.id, 'data-chstate': o.blocked ? 'blocked' : 'ok' },
+          h('div', { class: 'u-fs-12 u-c-muted' }, o.angleName + ' · ' + o.chars + ' of ' + o.limit + ' characters'),
+          h('div', { class: 'chOptionText' }, o.text),
+          o.blocked ? chBlockedLine(o.findings) : h('div', { class: 'chRow' },
+            h('button', { type: 'button', class: 'small secondary', 'data-ch': 'copy', 'data-chid': o.id }, 'Copy'),
+            h('button', { type: 'button', class: 'small secondary', 'data-ch': 'use', 'data-chid': o.id }, 'Use this one'))))
+          : [h('p', { class: 'empty' }, 'Nothing fits here: the product\'s name is too long for this kind of draft.')];
+        if (r.options.length) nodes.push(moreRow(r, 'Show me others'));
+      }
+      if (res) { res.setAttribute('data-chresult', state); res.replaceChildren(...nodes.filter(Boolean)); labelPhoneCards(res); }
+      // the owner's own version: the same check, live
+      const kind = Object.prototype.hasOwnProperty.call(M.KINDS, chState.kind) ? chState.kind : '';
+      const oc = M.checkOwn(chState.own, kind, chDeps()), ownEl = host.querySelector('[data-chown]');
+      const ownState = oc.empty ? 'empty' : oc.blocked ? 'blocked' : oc.tooLong ? 'long' : 'ok';
+      if (ownEl) { ownEl.setAttribute('data-chown', ownState);
+        ownEl.replaceChildren(ownState === 'blocked' ? chBlockedLine(oc.findings) : h('p', { class: 'u-fs-12p5 u-mt-6' },
+          ownState === 'empty' ? 'Press "Use this one" on a draft, or write your own here. It is checked as you type.'
+            : ownState === 'long' ? oc.chars + ' characters: too long for ' + (kind ? 'this kind of draft' : 'one draft') + ' (' + oc.limit + ' at most).'
+              : oc.chars + ' of ' + oc.limit + ' characters. This wording passes the check.')); }
+      const copyOwn = host.querySelector('[data-ch="copy-own"]'); if (copyOwn) copyOwn.disabled = ownState !== 'ok';
+      // the look: lettering and colours on a text card (no picture file is made)
+      const card = host.querySelector('[data-chcard]');
+      if (card) { const words = ownState === 'ok' ? chState.own.trim() : ownState === 'empty' ? first : '';
+        card.className = 'chCard chLook-' + chState.look; card.setAttribute('data-chcard', chState.look);
+        card.replaceChildren(h('div', { class: 'chCardName' }, chState.product.trim() || 'Your product'), h('div', { class: 'chCardText' }, words || (ownState === 'blocked' || ownState === 'long' ? 'Your own version does not pass the check yet.' : 'Your words appear here.'))); }
+      const lookNote = host.querySelector('[data-chlooknote]'); if (lookNote) { const l = M.LOOKS.find(x => x.key === chState.look); lookNote.textContent = l ? l.name + ': ' + l.what : ''; }
+    }
+    function renderContentHelper() {
+      const host = document.getElementById('contentHelperPanel'), M = chMod(); if (!host) return;
+      if (!M) { host.replaceChildren(h('h2', null, 'Content Helper'), h('p', { class: 'empty' }, 'The content helper could not load. Refresh the page.')); return; }
+      const field = (id, label, node, hint) => h('div', { class: 'heField chField' }, h('label', { for: id }, label), node, hint ? h('div', { class: 'u-fs-12 u-c-muted' }, hint) : null);
+      const pick = (attr, list, label) => h('div', { class: 'chRow', role: 'group', 'aria-label': label }, list.map(([key, name]) => h('button', { type: 'button', class: 'small secondary', [attr]: key, 'aria-pressed': 'false' }, name)));
+      host.replaceChildren(
+        h('h2', null, 'Content Helper'),
+        h('p', { class: 'hint hintLead', 'data-chnosend': '1' }, h('b', null, 'Nothing is posted, sent or spent from this page.'), ' It prepares drafts for you to copy. You decide what is used and where.'),
+        h('p', { class: 'hint u-mt-0' }, 'The drafts are built from ready wording around your own story, not written by an AI model. That way every fact in them is yours. An AI writer, pictures and video would need a paid service, which is your decision.'),
+        dsNode('content', ''),
+        h('h3', null, '1. Your product and your story'),
+        field('chProduct', 'Product name', h('input', { id: 'chProduct', type: 'text', maxlength: '80', value: chState.product, 'data-chfield': 'product', autocomplete: 'off' })),
+        field('chStory', 'Your story, in a sentence or two', h('textarea', { id: 'chStory', rows: '3', maxlength: '600', 'data-chfield': 'story' }, chState.story),
+          'What it is, who it is for, or what a customer said. Use only what is true. No health or medical promises: a draft that makes one is blocked.'),
+        h('h3', null, '2. What to make, and how it should sound'),
+        pick('data-chkind', CH_KINDS, 'What to make'),
+        pick('data-chtone', Object.keys(M.TONES).map(k => [k, M.TONES[k]]), 'How it should sound'),
+        h('h3', null, '3. The drafts'),
+        h('div', { 'data-chresult': 'waiting', role: 'region', 'aria-label': 'The drafts', 'aria-live': 'polite' }),
+        h('h3', null, '4. Your own version'),
+        field('chOwn', 'Change a draft, or write your own', h('textarea', { id: 'chOwn', rows: '4', maxlength: '4000', 'data-chfield': 'own' }, chState.own)),
+        h('div', { 'data-chown': 'empty' }),
+        h('button', { type: 'button', class: 'small secondary', 'data-ch': 'copy-own' }, 'Copy my version'),
+        h('h3', null, '5. How it could look'),
+        h('p', { class: 'hint u-mt-0' }, 'Six ready looks for a text card: lettering and colours. A preview only; no picture file is made.'),
+        pick('data-chlook', M.LOOKS.map(l => [l.key, l.name]), 'The look'),
+        h('p', { class: 'u-fs-12 u-c-muted u-mt-6', 'data-chlooknote': '1' }),
+        h('div', { class: 'chCard chLook-clean', 'data-chcard': 'clean' }));
+      chPaint();
+    }
+    document.addEventListener('input', (e) => {
+      const f = e.target.closest('#contentHelperPanel [data-chfield]'); if (!f || !chState) return;
+      const k = f.getAttribute('data-chfield');
+      chState[k] = String(f.value).slice(0, 4000);
+      if (k !== 'own') chState.round = 0;
+      chKeep(); chPaint();
+    });
+    document.addEventListener('click', async (e) => {
+      const t = e.target.closest('#contentHelperPanel button'); if (!t || !chState || !chMod()) return;
+      const set = (key, value) => { chState[key] = value; if (key !== 'look') chState.round = 0; chKeep(); chPaint(); };
+      if (t.hasAttribute('data-chkind')) { set('kind', t.getAttribute('data-chkind')); announce(t.textContent + ' drafts shown.'); return; }
+      if (t.hasAttribute('data-chtone')) { set('tone', t.getAttribute('data-chtone')); announce(t.textContent + ' tone.'); return; }
+      if (t.hasAttribute('data-chlook')) { set('look', t.getAttribute('data-chlook')); announce(t.textContent + ' look.'); return; }
+      const act = t.getAttribute('data-ch');
+      if (act === 'more') {
+        chState.round += 1; chKeep(); chPaint();
+        const s = document.querySelector('#contentHelperPanel [data-chset]'), b = document.querySelector('#contentHelperPanel [data-ch="more"]');
+        announce(s ? s.textContent.trim() : 'Other drafts shown.'); if (b) b.focus();
+        return;
+      }
+      if (act === 'use') {
+        const text = chShown[t.getAttribute('data-chid')]; if (!text) return;
+        chState.own = text; chKeep();
+        const box = document.getElementById('chOwn'); if (box) { box.value = text; box.focus(); }
+        chPaint(); announce('Put into your own version. Change it as you like.');
+        return;
+      }
+      if (act === 'copy' || act === 'copy-own') {
+        const text = act === 'copy-own' ? chState.own.trim() : chShown[t.getAttribute('data-chid')];
+        if (!text || (act === 'copy-own' && !chMod().checkOwn(text, Object.prototype.hasOwnProperty.call(chMod().KINDS, chState.kind) ? chState.kind : '', chDeps()).ok)) return;
+        try { await navigator.clipboard.writeText(text); announce('Copied. Paste it where you want to use it. Nothing was posted or sent.'); toast('Copied'); }
+        catch (err) { showDashError('Could not copy to the clipboard in this browser. Select the text and copy it by hand.'); }
+      }
+    });
+
+    // ---------- Customer Emails (owner, Nov 24; behind customerEmailsOn) ----------
+    // Email campaigns for people who ordered: choose the email, start from a ready
+    // text, approve the wording once, and see exactly who would get it. NOTHING IS
+    // SENT. Rules: assets/sales/he-customer-campaign.js. The wording is kept in this
+    // browser; the customer list is read from the orders when asked and kept nowhere.
+    const CE_KEY = 'he_customer_emails_v1';
+    let ceState = null, ceResult = null, ceMessage = '', ceBusy = false, ceSeq = 0, ceShown = null;   // ceShown: the customers of the result on screen
+    const ceMod = () => (window.HE && window.HE.sales && window.HE.sales['he-customer-campaign']) || null;
+    const ceOwner = () => currentUserRole === 'owner' || currentUserRole === 'administrator';
+    function ceFrom(v) {
+      const M = ceMod(), kinds = M ? Object.keys(M.KINDS) : [];
+      const base = { kind: 'welcome', texts: {}, days: {}, startDay: localDateString(), address: '', savedAt: '' };
+      kinds.forEach(k => { base.texts[k] = { subject: '', body: '', approval: null }; base.days[k] = M.KINDS[k].days == null ? '' : String(M.KINDS[k].days); });
+      if (v && typeof v === 'object' && !Array.isArray(v)) {
+        if (kinds.includes(v.kind)) base.kind = v.kind;
+        if (typeof v.startDay === 'string') base.startDay = v.startDay.slice(0, 20);
+        if (typeof v.address === 'string') base.address = v.address.slice(0, 300);
+        if (typeof v.savedAt === 'string') base.savedAt = v.savedAt.slice(0, 40);
+        kinds.forEach(k => {
+          const t = v.texts && typeof v.texts === 'object' ? v.texts[k] : null;
+          if (t && typeof t === 'object') { if (typeof t.subject === 'string') base.texts[k].subject = t.subject.slice(0, 4000); if (typeof t.body === 'string') base.texts[k].body = t.body.slice(0, 4000); if (t.approval && typeof t.approval === 'object' && !Array.isArray(t.approval)) base.texts[k].approval = t.approval; }
+          if (v.days && typeof v.days === 'object' && typeof v.days[k] === 'string') base.days[k] = v.days[k].slice(0, 6);
+        });
+      }
+      return base;
+    }
+    function ceRead() {
+      let v = null; try { v = JSON.parse(localStorage.getItem(CE_KEY) || 'null'); } catch (e) { /* start empty */ }
+      const base = ceFrom(v);
+      if (!base.address) { try { base.address = scRead().address; } catch (e) { /* none yet */ } }   // the address already typed for store campaigns
+      return base;
+    }
+    // what follows the owner to every device: the wording, the approvals and the choices; never a customer
+    const CE_SHARED = ['kind', 'texts', 'days', 'startDay', 'address'];
+    const ceShare = dsMake('customer', 'customerEmails', CE_SHARED, () => ceState, ceFrom, () => { ceResult = null; ceKeep(); renderCustomerEmails(); });
+    function ceKeep() { ceShare.touch(); try { localStorage.setItem(CE_KEY, JSON.stringify(ceState)); return true; } catch (e) { return false; } }
+    const ceText = () => { const t = ceState.texts[ceState.kind]; return { subject: t.subject, body: t.body }; };
+    function loadCustomerEmails() {
+      const host = document.getElementById('customerEmailsPanel'); if (!host) return;
+      if (!(typeof customerEmailsOn === 'function' && customerEmailsOn())) { host.replaceChildren(); return; }
+      if (!ceState && ceMod()) { ceState = ceRead(); ceShare.seen(); }
+      renderCustomerEmails();
+      if (ceState) ceShare.pull();
+      if (ceState) esLoad('customer');
+    }
+    // the parts that change while typing, repainted without touching the boxes being typed in
+    function cePaint() {
+      const host = document.getElementById('customerEmailsPanel'), M = ceMod(); if (!host || !M || !ceState) return;
+      const t = ceState.texts[ceState.kind], check = M.checkWording(ceText(), scDeps());
+      const still = t.approval ? M.stillApproved(t.approval, ceText(), scDeps()) : { valid: false, reason: '' };
+      const state = still.valid ? 'approved' : t.approval ? 'changed' : 'none';
+      const w = host.querySelector('[data-cewording]');
+      if (w) { w.setAttribute('data-cewording', check.ok ? 'ok' : 'problems'); w.replaceChildren(...(check.ok ? [h('p', { class: 'hint u-mt-6' }, 'This wording passes the check.')] : [h('ul', { class: 'u-fs-12p5 u-mt-6' }, check.problems.map(p => h('li', null, p)))])); }
+      const a = host.querySelector('[data-ceapproval]');
+      if (a) { a.setAttribute('data-ceapproval', state);
+        a.textContent = state === 'approved' ? 'Approved' + (t.approval.approvedBy ? ' by ' + t.approval.approvedBy : '') + (t.approval.approvedAt ? ' on ' + fmtDate(t.approval.approvedAt) : '') + '. The approval covers exactly this wording, for everyone this email goes to. Approved does not mean sent.'
+          : state === 'changed' ? 'The wording changed after it was approved. Read it again and approve the new wording.' : 'Not approved yet.'; }
+      const b = host.querySelector('[data-ce="approve"]');
+      if (b) b.disabled = !check.ok || state === 'approved';
+      const c = host.querySelector('[data-cecopy]');
+      if (c) { c.setAttribute('data-cecopy', state === 'approved' ? 'ready' : 'none'); c.querySelectorAll('button').forEach(x => { x.disabled = state !== 'approved'; }); }
+    }
+    function renderCustomerEmails() {
+      const host = document.getElementById('customerEmailsPanel'), M = ceMod(); if (!host) return;
+      if (!M || !ceState) { host.replaceChildren(h('h2', null, 'Customer Emails'), h('p', { class: 'empty' }, 'The customer email tools could not load. Refresh the page.')); return; }
+      if (!ceOwner()) { host.replaceChildren(h('h2', null, 'Customer Emails'), h('p', { class: 'hint' }, 'Only the owner and administrators can prepare customer emails.')); return; }
+      const K = M.KINDS[ceState.kind], t = ceState.texts[ceState.kind];
+      const field = (id, label, node, hint) => h('div', { class: 'heField scField' }, h('label', { for: id }, label), node, hint ? h('div', { class: 'u-fs-12 u-c-muted' }, hint) : null);
+      host.replaceChildren(
+        h('h2', null, 'Customer Emails'),
+        h('p', { class: 'hint hintLead', 'data-cenosend': '1' }, h('b', null, 'Nothing is sent from this page.'), ' Sending is not connected yet. You choose the email, approve its wording once, and see exactly who would get it on which day.'),
+        h('p', { class: 'hint u-mt-0' }, 'Only people who ordered from you directly (your website, wholesale, or an order you typed in) are ever chosen. People who bought through Amazon, Etsy or TikTok Shop are never emailed: those sites do not let sellers email their buyers.'),
+        dsNode('customer', 'The customer list is read from your orders when you ask and is not kept anywhere.'),
+        h('p', { class: 'u-fs-12', role: 'status', 'data-cemessage': '1' }, ceMessage),
+        h('h3', null, '1. Which email'),
+        h('div', { class: 'chRow', role: 'group', 'aria-label': 'Which email' }, Object.keys(M.KINDS).map(k => h('button', { type: 'button', class: 'small' + (k === ceState.kind ? '' : ' secondary'), 'data-cekind': k, 'aria-pressed': String(k === ceState.kind) }, M.KINDS[k].name))),
+        h('p', { class: 'u-fs-12p5 u-mt-6', 'data-cewho': ceState.kind }, 'Goes to: ' + M.whoText(ceState.kind, ceState.days[ceState.kind])),
+        K.days == null ? null : field('ceDays', 'How many days', h('input', { id: 'ceDays', type: 'number', min: '1', max: '730', step: '1', value: ceState.days[ceState.kind], 'data-cefield': 'days' }), 'From ' + K.min + ' to ' + K.max + '.'),
+        h('h3', null, '2. The wording'),
+        h('p', { class: 'hint u-mt-0' }, 'Start from a ready text and change it, or write your own. Pressing a ready text replaces what is in the boxes.'),
+        h('div', { class: 'chRow', role: 'group', 'aria-label': 'Ready texts' }, M.templates(ceState.kind).map(x => h('button', { type: 'button', class: 'small secondary', 'data-cetemplate': x.key }, x.name))),
+        field('ceSubject', 'Subject', h('input', { id: 'ceSubject', type: 'text', maxlength: '200', value: t.subject, 'data-cefield': 'subject' })),
+        field('ceBody', 'Email', h('textarea', { id: 'ceBody', rows: '9', maxlength: '4000', 'data-cefield': 'body' }, t.body), 'Write {name} where the customer\'s first name goes. A line on how to stop these emails and your business address are added at the bottom of every email.'),
+        h('div', { 'data-cewording': 'problems' }),
+        h('p', { class: 'u-fs-12p5 u-mt-6', 'data-ceapproval': 'none' }),
+        h('button', { type: 'button', class: 'small', 'data-ce': 'approve' }, 'Approve this wording'),
+        h('div', { class: 'chRow u-mt-12', role: 'group', 'aria-label': 'Copy the approved wording', 'data-cecopy': 'none' },
+          h('button', { type: 'button', class: 'small secondary', 'data-ce': 'copy-subject' }, 'Copy the subject'),
+          h('button', { type: 'button', class: 'small secondary', 'data-ce': 'copy-body' }, 'Copy the email')),
+        h('p', { class: 'hint u-mt-6', 'data-cecopyhint': '1' }, 'For sending it yourself from your store\'s own email tool, which writes only to people who agreed to get emails. Only an approved wording can be copied. Where the copied text says [first name], put the name in with that tool\'s own "personalize" button. Make sure the email there carries a way to stop the emails and your business address.'),
+        h('h3', null, '3. Who would get it'),
+        h('div', { class: 'u-d-flex u-gap-8 u-fwr-wrap u-ai-flex-end' },
+          field('ceStart', 'First day', h('input', { id: 'ceStart', type: 'date', value: ceState.startDay, 'data-cefield': 'startDay' }))),
+        field('ceAddress', 'Business postal address', h('input', { id: 'ceAddress', type: 'text', maxlength: '300', value: ceState.address, 'data-cefield': 'address', autocomplete: 'off' }), 'Goes at the bottom of every email (the law asks for it).'),
+        h('button', Object.assign({ type: 'button', class: 'small u-mt-8', 'data-ce': 'show' }, ceBusy ? { disabled: 'disabled' } : {}), ceBusy ? 'Reading your orders…' : 'Show who would get it'),
+        h('div', { 'data-ceresult': ceResult ? '1' : '0', class: 'u-mt-12' }, ceResult || null),
+        esNode('customer'));
+      cePaint();
+      labelPhoneCards(host);
+    }
+    async function ceShow() {
+      const M = ceMod(), dp = dpMod(), SC = scMod(); if (!M || ceBusy) return;
+      const say = (msg) => { ceMessage = msg; ceResult = null; renderCustomerEmails(); announce(msg); const m = document.querySelector('#customerEmailsPanel [data-cemessage]'); if (m) { m.setAttribute('tabindex', '-1'); m.focus(); } };
+      const kind = ceState.kind, t = ceState.texts[kind];
+      const still = t.approval ? M.stillApproved(t.approval, ceText(), scDeps()) : { valid: false };
+      if (!still.valid) { say(t.approval ? 'The wording changed after it was approved. Approve the new wording first.' : 'Approve the wording first (step 2).'); return; }
+      if (!dp || !SC) { say('The order tools could not load. Refresh the page.'); return; }
+      const pre = M.audience(kind, [], { days: ceState.days[kind] });
+      if (!pre.ok) { say(pre.reason); return; }
+      const seq = ++ceSeq; ceBusy = true; ceMessage = 'Reading your orders…'; ceResult = null; renderCustomerEmails();
+      let orders;
+      try { orders = await fetchAllRows('orders', 'id, customer_name, customer_email, channel, source, status, currency, total, placed_at, deleted_at', q => q.is('deleted_at', null)); }
+      catch (e) { if (seq !== ceSeq) return; ceBusy = false; say('Your orders could not be read (' + explainDbError(e && e.message ? e.message : String(e)) + '). Nothing was sent.'); return; }
+      if (seq !== ceSeq || ceState.kind !== kind) { ceBusy = false; return; }
+      ceBusy = false;
+      const CH = (window.HE && window.HE.views && window.HE.views['he-order-channels']) || null;
+      const split = M.ownOrders(orders, CH && CH.channelOf);
+      if (!split.ok) { say('The order tools could not load, so nobody was chosen. Refresh the page.'); return; }
+      const list = dp.clientList(split.own), who = M.audience(kind, list.clients, { nowMs: Date.now(), days: ceState.days[kind] });
+      if (!who.ok) { say(who.reason); return; }
+      const n = who.chosen.length;
+      ceShown = { kind: kind, rows: who.chosen };
+      const days = n ? SC.plan(Math.min(n, 500), { startDay: ceState.startDay }) : [];
+      if (n && !days.length) { say('Choose the first day.'); return; }
+      const sample = n ? M.render(ceText(), who.chosen[0], { postalAddress: ceState.address }) : null;
+      const day = (iso) => { const d = iso ? new Date(iso) : null; return d && !isNaN(d) ? localDateString(d) : '—'; };
+      ceMessage = n + (n === 1 ? ' customer' : ' customers') + ' would get this email' + (n ? ' over ' + days.length + (days.length === 1 ? ' working day.' : ' working days.') : '.') + ' Nothing was sent.';
+      ceResult = h('div', null,
+        h('h3', null, 'Who would get it'),
+        h('p', { class: 'hint u-mt-0', 'data-cecount': String(n) }, who.rule + ' Exact, from ' + list.totals.orders + (list.totals.orders === 1 ? ' order' : ' orders') + ' of ' + list.totals.clients + (list.totals.clients === 1 ? ' customer' : ' customers') + '; ' + who.notFit + ' do not fit this email.'),
+        split.marketplace || split.unknown ? h('p', { class: 'hint u-mt-0', 'data-cenotused': String(split.marketplace + split.unknown) },
+          (split.marketplace ? split.marketplace + (split.marketplace === 1 ? ' order' : ' orders') + ' from Amazon, Etsy or TikTok Shop ' + (split.marketplace === 1 ? 'is' : 'are') + ' not used: those sites do not let sellers email their buyers. ' : '')
+          + (split.unknown ? split.unknown + (split.unknown === 1 ? ' order' : ' orders') + ' with an unknown sales channel ' + (split.unknown === 1 ? 'is' : 'are') + ' not used.' : '')) : null,
+        n > 500 ? h('p', { class: 'hint' }, 'The day plan below covers the first 500; the rest would follow at 100 a day.') : null,
+        n ? h('table', { class: 'phoneCards', 'data-cechosen': String(n) },
+          h('thead', null, h('tr', null, h('th', null, 'Customer'), h('th', null, 'Email'), h('th', { class: 'num-cell' }, 'Orders'), h('th', null, 'Last order'), h('th', { class: 'num-cell' }, 'Days ago'))),
+          h('tbody', null, who.chosen.slice(0, 200).map(c => h('tr', null, h('td', null, c.name || '—'), h('td', null, c.email), h('td', { class: 'num-cell' }, String(c.orders)), h('td', null, day(c.last)), h('td', { class: 'num-cell' }, String(c.daysSince))))))
+          : h('p', { class: 'empty' }, 'Nobody fits this email right now.'),
+        n > 200 ? h('p', { class: 'hint' }, 'The first 200 are shown; ' + (n - 200) + ' more would get it too.') : null,
+        who.skipped.length ? h('details', { class: 'u-mt-8', 'data-ceskipped': String(who.skipped.length) }, h('summary', null, who.skipped.length + ' left out, with the reason'),
+          h('ul', { class: 'u-fs-12p5' }, who.skipped.slice(0, 200).map(x => h('li', null, x.name + ': ' + x.why)))) : null,
+        days.length ? h('div', null, h('h3', null, 'On which days'),
+          h('p', { class: 'hint u-mt-0' }, 'A slow start keeps a new email address out of spam: 20 a day in the first working week, then 40, 60, 80 and 100. Never on a weekend. If too many emails come back or people mark it as spam, a campaign stops by itself.'),
+          h('table', { class: 'phoneCards', 'data-cedays': String(days.length) }, h('thead', null, h('tr', null, h('th', null, 'Day'), h('th', { class: 'num-cell' }, 'Emails'))),
+            h('tbody', null, days.map(d => h('tr', null, h('td', null, d.day), h('td', { class: 'num-cell' }, String(d.count))))))) : null,
+        sample ? h('div', null, h('h3', null, 'What the first customer would read'),
+          sample.problems.length ? h('ul', { class: 'u-fs-12p5', 'data-cesampleproblems': String(sample.problems.length) }, sample.problems.map(p => h('li', null, p))) : null,
+          h('div', { class: 'scSample', 'data-cesample': '1' }, h('div', { class: 'taskTitle' }, sample.subject), h('div', { class: 'scSampleBody' }, sample.body))) : null);
+      renderCustomerEmails(); labelPhoneCards(document.getElementById('customerEmailsPanel')); announce(ceMessage);
+      const r = document.querySelector('#customerEmailsPanel [data-ceresult]'); if (r) { r.setAttribute('tabindex', '-1'); r.focus({ preventScroll: true }); }
+    }
+    document.addEventListener('input', (e) => {
+      const f = e.target.closest('#customerEmailsPanel [data-cefield]'); if (!f || !ceState) return;
+      const k = f.getAttribute('data-cefield'), v = String(f.value).slice(0, 4000);
+      if (k === 'subject' || k === 'body') ceState.texts[ceState.kind][k] = v;
+      else if (k === 'days') { ceState.days[ceState.kind] = v.slice(0, 6); const M = ceMod(), w = document.querySelector('#customerEmailsPanel [data-cewho]'); if (M && w) w.textContent = 'Goes to: ' + M.whoText(ceState.kind, v.slice(0, 6) || '…'); }
+      else ceState[k] = v.slice(0, 300);
+      ceKeep(); cePaint();
+    });
+    document.addEventListener('click', (e) => {
+      const t = e.target.closest('#customerEmailsPanel button'); if (!t || !ceState) return;
+      const M = ceMod(); if (!M || !ceOwner()) return;
+      const refocus = (sel) => { const b = document.querySelector('#customerEmailsPanel ' + sel); if (b) b.focus(); };
+      if (t.hasAttribute('data-cekind')) {
+        const k = t.getAttribute('data-cekind'); if (!M.KINDS[k] || ceBusy) return;
+        ceState.kind = k; ceResult = null; ceMessage = ''; ceSeq += 1; ceKeep(); renderCustomerEmails(); refocus('[data-cekind="' + k + '"]'); announce(M.KINDS[k].name + ' email.');
+        return;
+      }
+      if (t.hasAttribute('data-cetemplate')) {
+        const x = M.templates(ceState.kind).find(y => y.key === t.getAttribute('data-cetemplate')); if (!x) return;
+        const cur = ceState.texts[ceState.kind]; cur.subject = x.subject; cur.body = x.body;
+        ceResult = null; ceMessage = 'Ready text put in. Change it as you like, then approve it.'; ceKeep(); renderCustomerEmails(); refocus('[data-cetemplate="' + x.key + '"]'); announce(ceMessage);
+        return;
+      }
+      const act = t.getAttribute('data-ce');
+      if (act === 'approve') {
+        const who = String((document.getElementById('whoAmI') || {}).textContent || '').split(' — role')[0].trim();   // the name, without the role
+        const r = M.approveWording(ceText(), who, new Date().toISOString(), scDeps());
+        if (r.status !== 'APPROVED') { ceMessage = 'Not approved: ' + r.reason; }
+        else { ceState.texts[ceState.kind].approval = r; ceMessage = ceKeep() ? 'Wording approved. Nothing was sent.' : 'Wording approved for now, but this browser would not keep it (private window or storage blocked).'; }
+        ceResult = null; renderCustomerEmails(); announce(ceMessage);
+        const a = document.querySelector('#customerEmailsPanel [data-ceapproval]'); if (a) { a.setAttribute('tabindex', '-1'); a.focus(); }
+        return;
+      }
+      if (act === 'copy-subject' || act === 'copy-body') {
+        const cur = ceState.texts[ceState.kind];
+        if (!cur.approval || !M.stillApproved(cur.approval, ceText(), scDeps()).valid) { ceMessage = 'Approve the wording first. Only an approved wording can be copied.'; renderCustomerEmails(); announce(ceMessage); refocus('[data-ce="approve"]'); return; }
+        const out = M.forOwnTool(ceText()), what = act === 'copy-subject' ? 'subject' : 'email';
+        navigator.clipboard.writeText(act === 'copy-subject' ? out.subject : out.body).then(() => {
+          ceMessage = 'The ' + what + ' is copied. Nothing was sent.' + (out.hasName ? ' Where it says [first name], use the "personalize" button of your email tool.' : '');
+          const m = document.querySelector('#customerEmailsPanel [data-cemessage]'); if (m) m.textContent = ceMessage;
+          announce(ceMessage); toast('Copied');
+        }).catch(() => { showDashError('Could not copy to the clipboard. Select the text in the box and copy it by hand.'); });
+        return;
+      }
+      if (act === 'show') ceShow();
+    });
+
+    // ---------- Reviews (owner plan item 8, Nov 24; behind reviewInboxOn) ----------
+    // The owner pastes or types reviews in; the worst come first, each with ready
+    // replies to copy. A review that needs the owner also shows on Home ("Needs you
+    // now"). NOTHING IS POSTED OR SENT: a reply is pasted by the owner on the site
+    // where the review was written. Rules: assets/sales/he-review-inbox.js. Kept in
+    // this browser for now; a database step will put them on every device.
+    const RI_KEY = 'he_review_inbox_v1';
+    let riList = null, riMessage = '', riFilter = 'waiting', riOpen = '', riRemoveId = '';
+    const riDraft = { riStarsIn: '', riChannelIn: '', riDateIn: '', riTextIn: '', riPasteIn: '', open: false, cleared: [] };   // what is being typed, kept across redraws
+    const riMod = () => (window.HE && window.HE.sales && window.HE.sales['he-review-inbox']) || null;
+    const riDeps = () => { const S = (window.HE && window.HE.sales) || {}; return { reviews: S['he-sales-reviews'] || null, feedback: S['he-sales-feedback'] || null, claims: S['he-sales-claims'] || null }; };
+    const riOwner = () => currentUserRole === 'owner' || currentUserRole === 'administrator';
+    function riRead() {
+      const M = riMod(); if (!M) return [];
+      let v = null; try { v = JSON.parse(localStorage.getItem(RI_KEY) || 'null'); } catch (e) { v = null; }
+      return M.add(v && Array.isArray(v.reviews) ? v.reviews : [], [], Date.now()).list;      // checked again on the way in
+    }
+    // `from: 'database'` says this browser's copy was read from the database and not changed here since
+    function riKeep() { try { localStorage.setItem(RI_KEY, JSON.stringify(riShared ? { reviews: riList, from: 'database' } : { reviews: riList })); return true; } catch (e) { return false; } }
+    function riFromDatabase() { try { const v = JSON.parse(localStorage.getItem(RI_KEY) || 'null'); return !!v && v.from === 'database'; } catch (e) { return false; } }
+    // With the real-records switch "Reviews on every device" on and drafts/60 installed, the
+    // database is where the reviews live: riShared is true, riIds maps a review to its row,
+    // and this browser only keeps a copy so Home can draw at once. Reviews that were kept in
+    // this browser before are moved to the database once. Until then nothing is asked of it.
+    let riShared = false, riStoreState = 'off', riIds = Object.create(null), riPulling = null, riMoved = false;
+    function riStore() { const M = riMod(); return M && M.createStore && reviewInboxOn() && reviewStoreOn() && riOwner() ? M.createStore({ client: supabase, enabled: true }) : null; }
+    function riPull() {
+      if (riPulling) return riPulling;
+      riPulling = (async () => {
+        const M = riMod(), st = riStore();
+        if (!M || !st) { riShared = false; riStoreState = 'off'; return false; }
+        riStoreState = await st.state();
+        if (riStoreState !== 'installed') { riShared = false; return false; }
+        let r = await st.list();
+        if (!r.ok) { riShared = false; riStoreState = 'unknown'; return false; }
+        // once per visit: what this browser held and the database never saw goes to the database
+        // (a review that was removed there is known, so it is not brought back by an old copy here),
+        // and so does an "answered" or "no reply needed" mark made in this browser. If any of it
+        // cannot be saved, nothing is switched over: the reviews stay in this browser, untouched,
+        // and the move is tried again on the next visit. Nothing is ever lost by it.
+        if (!riMoved) {
+          const stay = () => { riShared = false; riStoreState = 'unknown'; return false; };
+          const local = riList || riRead(), known = new Set(r.known), mine = local.filter(x => !known.has(x.id));
+          if (mine.length) {
+            let taken = 0;
+            for (let i = 0; i < mine.length; i += M.MAX_LINES) {                 // the database takes 200 at a time
+              const a = await st.add(mine.slice(i, i + M.MAX_LINES));
+              if (!a.ok || a.refused) return stay();
+              taken += a.added + a.duplicates;
+            }
+            if (taken < mine.length) return stay();                             // the database did not say it has every one of them
+            r = await st.list();
+            if (!r.ok) return stay();
+          }
+          if (!riFromDatabase()) {
+            let marked = false;
+            for (const x of local.filter(y => y.status === 'answered' || y.status === 'noreply')) {
+              const row = r.rows.find(z => z.id === x.id);
+              if (row && row.status === 'new') { const m = await st.mark(row.dbId, x.status); if (!m.ok) return stay(); marked = true; }
+            }
+            if (marked) { r = await st.list(); if (!r.ok) return stay(); }
+          }
+          riMoved = true;
+        }
+        riIds = Object.create(null); r.rows.forEach(x => { riIds[x.id] = x.dbId; });
+        riList = M.add(r.rows, [], Date.now()).list;
+        riShared = true; riKeep();
+        return true;
+      })().finally(() => { riPulling = null; });
+      return riPulling;
+    }
+    // one change, in the database when the reviews live there, otherwise in this browser
+    // A change made while the reviews are still being read from the database waits for that
+    // read first: otherwise it would land in this browser's list and be overwritten a moment later.
+    const riSettled = async () => { if (riPulling) { try { await riPulling; } catch (e) { /* the read's own failure is shown on the page */ } } };
+    async function riAddRows(rows) {
+      const M = riMod();
+      await riSettled();
+      if (riShared) {
+        const st = riStore(); if (!st) return { ok: false, message: 'Keeping reviews in the database was switched off. Reload the page.' };
+        const a = await st.add(rows); if (!a.ok) return a;
+        await riSettled(); await riPull();
+        return a;
+      }
+      const r = M.add(riList, rows, Date.now()); riList = r.list;
+      return { ok: true, message: '', added: r.added, duplicates: r.duplicates };
+    }
+    async function riMark(id, status) {
+      const M = riMod();
+      await riSettled();
+      if (riShared) {
+        const st = riStore(); if (!st) return { ok: false, message: 'Keeping reviews in the database was switched off. Reload the page.' };
+        const a = await st.mark(riIds[id], status); if (!a.ok) return a;
+        await riSettled(); await riPull();
+        return a;
+      }
+      if (status === 'removed') { riList = riList.filter(x => x.id !== id); return { ok: true, message: '' }; }
+      const r = M.setStatus(riList, id, status, Date.now()); if (!r.ok) return { ok: false, message: 'That review is no longer on the list.' };
+      riList = r.list;
+      return { ok: true, message: '' };
+    }
+    // what Home shows: only for the people who can see the Reviews page
+    function riFeedRows() {
+      const M = riMod(); if (!M || !reviewInboxOn() || !riOwner()) return null;
+      if (!riList) riList = riRead();
+      return M.toFeed(riList, riDeps());
+    }
+    function loadReviewInbox() {
+      const host = document.getElementById('reviewsPanel'); if (!host) return;
+      if (!(typeof reviewInboxOn === 'function' && reviewInboxOn())) { host.replaceChildren(); return; }
+      if (!riList) riList = riRead();
+      renderReviewInbox();
+      if (riStore()) riPull().then(() => { renderReviewInbox(); paintAttentionFeed(); });
+    }
+    const RI_LEVEL_WORD = { urgent: 'Urgent', today: 'Today', info: 'Good news' };
+    const riStars = (n) => '★'.repeat(n) + '☆'.repeat(5 - n);
+    function renderReviewInbox() {
+      const host = document.getElementById('reviewsPanel'), M = riMod(); if (!host) return;
+      if (!M) { host.replaceChildren(h('h2', null, 'Reviews'), h('p', { class: 'empty' }, 'The review tools could not load. Refresh the page.')); return; }
+      if (!riOwner()) { host.replaceChildren(h('h2', null, 'Reviews'), h('p', { class: 'hint' }, 'Only the owner and administrators can see reviews here.')); return; }
+      const deps = riDeps(), ranked = M.rank(riList, deps), sum = M.summary(riList, deps);
+      // what is being typed survives a redraw (a handler empties riDraft's fields itself after adding)
+      const typed = (id) => { const el = document.getElementById(id); return el ? String(el.value || '') : null; };
+      ['riStarsIn', 'riChannelIn', 'riDateIn', 'riTextIn', 'riPasteIn'].forEach(id => { const v = typed(id); if (v !== null && !riDraft.cleared.includes(id)) riDraft[id] = v; else if (riDraft.cleared.includes(id)) riDraft[id] = ''; });
+      const box = host.querySelector('[data-ripastebox]'); if (box) riDraft.open = box.open;
+      riDraft.cleared = [];
+      const redact = deps.feedback && typeof deps.feedback.redactPII === 'function' ? deps.feedback.redactPII : null;
+      const field = (id, label, node, hint) => h('div', { class: 'heField scField' }, h('label', { for: id }, label), node, hint ? h('div', { class: 'u-fs-12 u-c-muted' }, hint) : null);
+      const shown = ranked.filter(r => riFilter === 'all' || (r.status === 'new' && r.level !== 'info'));
+      const card = (r) => {
+        const text = redact ? redact(r.text) : r.text, hidden = text !== r.text;
+        const rep = riOpen === r.id ? M.replies(r, deps) : null;
+        const waiting = r.status === 'new';
+        return h('li', { class: 'feedItem' + (waiting && r.level !== 'info' ? ' feed-' + r.level : ''), 'data-rireview': r.id, 'data-rilevel': r.level, 'data-ristatus': r.status },
+          h('div', { class: 'feedHead' },
+            h('span', { class: 'feedLevel' }, waiting ? RI_LEVEL_WORD[r.level] : M.STATUSES[r.status]),
+            h('span', { class: 'badge' }, M.CHANNELS[r.channel]),
+            r.product ? h('span', null, r.product) : null,
+            h('span', { class: 'feedWhen' }, r.date ? new Date(r.date + 'T12:00:00Z').toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric' }) : 'no date given')),
+          h('p', { class: 'feedTitle' }, h('span', { 'aria-hidden': 'true' }, riStars(r.stars) + ' '), r.stars + ' of 5 stars' + (r.reasons.filter(x => !/ stars?$/.test(x)).length ? ' · ' + r.reasons.filter(x => !/ stars?$/.test(x)).join(', ') : '')),
+          h('p', { class: 'feedDetail riText' }, text),
+          hidden ? h('p', { class: 'hint u-mt-4' }, 'Private details in this review (a phone number, an email or an address) are hidden here.') : null,
+          r.safety ? h('p', { class: 'u-fs-12p5 u-mt-6', 'data-risafety': '1' }, h('b', null, 'This may be a reaction to the product.'), ' Answer it yourself, today. If a customer was harmed, also record it under Adverse Event Reports: that record has its own deadline. ',
+            h('button', { type: 'button', class: 'small secondary', 'data-ri': 'adverse' }, 'Open Adverse Event Reports')) : null,
+          rep ? h('div', { class: 'feedChat', 'data-rireplies': rep.bucket },
+            h('p', { class: 'hint u-mt-0' }, rep.rule + ' Copy one, change it as you like, and paste it where the review was written.'),
+            ...rep.options.map(o => o.blocked
+              ? h('p', { class: 'chBlocked', 'data-riblocked': o.key }, 'This ready reply is not offered: the wording check could not confirm it. Refresh the page.')
+              : h('div', { class: 'riReply' }, h('p', { class: 'feedBubble feedDraft' }, h('span', { class: 'feedWho' }, 'Ready reply (not posted)'), o.text),
+                  h('button', { type: 'button', class: 'small secondary', 'data-ricopy': o.key, 'data-riid': r.id }, 'Copy this reply')))) : null,
+          h('div', { class: 'feedActions' },
+            h('button', { type: 'button', class: 'small', 'data-ri': 'replies', 'data-riid': r.id, 'aria-expanded': String(riOpen === r.id) }, riOpen === r.id ? 'Hide the replies' : 'Ready replies'),
+            waiting ? h('button', { type: 'button', class: 'small secondary', 'data-ri': 'answered', 'data-riid': r.id }, 'I answered it') : null,
+            waiting ? h('button', { type: 'button', class: 'small secondary', 'data-ri': 'noreply', 'data-riid': r.id }, 'No reply needed') : null,
+            waiting ? null : h('button', { type: 'button', class: 'small secondary', 'data-ri': 'new', 'data-riid': r.id }, 'Put it back'),
+            h('button', { type: 'button', class: 'small secondary', 'data-ri': 'remove', 'data-riid': r.id }, riRemoveId === r.id ? 'Tap again to remove' : 'Remove')));
+      };
+      host.replaceChildren(
+        h('h2', null, 'Reviews'),
+        h('p', { class: 'hint hintLead', 'data-rinosend': '1' }, h('b', null, 'Nothing is posted from this page.'), ' You paste or type your reviews in. The ones that need you come first, each with ready replies. You copy a reply and paste it on the site where the review was written.'),
+        h('p', { class: 'hint u-mt-0', 'data-rikept': riShared ? 'database' : 'browser' }, riShared
+          ? 'Kept in the database: the same on every phone and computer, for you and the administrators.'
+          : reviewStoreOn() && riStoreState === 'not_installed' ? 'Kept in this browser only: the database step for reviews (draft 60) is not installed yet.'
+          : reviewStoreOn() && riStoreState === 'unknown' ? 'Kept in this browser only for now: the database could not be reached for reviews, or would not take them. Nothing was lost. Reload to try again.'
+          : 'Kept in this browser only for now. To have them on every phone and computer, the database step for reviews (draft 60) has to be installed, then "Reviews on every device" turned on under Feature Flags.'),
+        h('p', { class: 'u-fs-12', role: 'status', 'data-rimessage': '1' }, riMessage),
+        h('h3', null, '1. Add reviews'),
+        h('div', { class: 'u-d-flex u-gap-8 u-fwr-wrap u-ai-flex-end' },
+          field('riStarsIn', 'Stars', h('select', { id: 'riStarsIn' }, [5, 4, 3, 2, 1].map(n => h('option', { value: String(n) }, n + (n === 1 ? ' star' : ' stars'))))),
+          field('riChannelIn', 'Where it was written', h('select', { id: 'riChannelIn' }, Object.keys(M.CHANNELS).map(k => h('option', { value: k }, M.CHANNELS[k])))),
+          field('riDateIn', 'Date (if you know it)', h('input', { id: 'riDateIn', type: 'date' }))),
+        field('riTextIn', 'What the review says', h('textarea', { id: 'riTextIn', rows: '3', maxlength: String(M.MAX_TEXT) })),
+        h('button', { type: 'button', class: 'small u-mt-8', 'data-ri': 'add-one' }, 'Add this review'),
+        h('details', { class: 'u-mt-12', 'data-ripastebox': '1' }, h('summary', null, 'Or paste a list of reviews'),
+          field('riPasteIn', 'The list', h('textarea', { id: 'riPasteIn', rows: '6', maxlength: '200000', placeholder: M.EXAMPLE }),
+            'The first line names the columns: at least "stars" and "text". Useful: "channel" (Amazon, Etsy, TikTok, website, Google), "date", "product". Up to ' + M.MAX_LINES + ' reviews at a time. A review already here is not added twice.'),
+          h('button', { type: 'button', class: 'small u-mt-8', 'data-ri': 'paste' }, 'Read the list')),
+        h('h3', null, '2. Your reviews'),
+        h('p', { class: 'feedSummary', 'data-risummary': String(sum.total), 'data-riwaiting': String(sum.waiting) }, sum.total
+          ? [h('b', null, sum.waiting + (sum.waiting === 1 ? ' review needs you' : ' reviews need you')), ' · ' + sum.urgent + ' urgent, ' + sum.today + ' today · ' + sum.total + (sum.total === 1 ? ' review' : ' reviews') + ' here, average ' + sum.average + ' of 5 (exact, of the reviews here only)']
+          : 'No reviews here yet.'),
+        sum.total ? h('div', { class: 'feedFilters', role: 'group', 'aria-label': 'Show' },
+          h('button', { type: 'button', class: 'small' + (riFilter === 'waiting' ? '' : ' secondary'), 'data-rifilter': 'waiting', 'aria-pressed': String(riFilter === 'waiting') }, 'Need you (' + sum.waiting + ')'),
+          h('button', { type: 'button', class: 'small' + (riFilter === 'all' ? '' : ' secondary'), 'data-rifilter': 'all', 'aria-pressed': String(riFilter === 'all') }, 'All (' + sum.total + ')')) : null,
+        shown.length ? h('ul', { class: 'feedList', 'aria-label': 'Reviews, the ones that need you first' }, shown.map(card))
+          : (sum.total ? h('p', { class: 'feedCaughtUp', 'data-ricaughtup': '1' }, 'No review needs you right now.') : null));
+      ['riStarsIn', 'riChannelIn', 'riDateIn', 'riTextIn', 'riPasteIn'].forEach(id => { const el = document.getElementById(id); if (el && riDraft[id]) el.value = riDraft[id]; });
+      const again = host.querySelector('[data-ripastebox]'); if (again && riDraft.open) again.open = true;
+    }
+    function riChanged(message, focusSel) {
+      riMessage = riKeep() ? message : message + ' This browser would not keep it (private window or storage blocked).';
+      renderReviewInbox(); paintAttentionFeed(); announce(riMessage);
+      const el = focusSel ? document.querySelector('#reviewsPanel ' + focusSel) : null;
+      const target = el || document.querySelector('#reviewsPanel [data-rimessage]');
+      if (target) { if (!el) target.setAttribute('tabindex', '-1'); target.focus(); }
+    }
+    let riBusy = false;
+    document.addEventListener('click', async (e) => {
+      const t = e.target.closest('#reviewsPanel button'); if (!t || !riList) return;
+      const M = riMod(); if (!M || !riOwner()) return;
+      if (t.hasAttribute('data-rifilter')) { riFilter = t.getAttribute('data-rifilter') === 'all' ? 'all' : 'waiting'; renderReviewInbox(); const b = document.querySelector('#reviewsPanel [data-rifilter="' + riFilter + '"]'); if (b) b.focus(); return; }
+      if (t.hasAttribute('data-ricopy')) {
+        const r = M.rank(riList, riDeps()).find(x => x.id === t.getAttribute('data-riid'));
+        const o = r ? M.replies(r, riDeps()).options.find(x => x.key === t.getAttribute('data-ricopy') && !x.blocked) : null;
+        if (!o) { showDashError('That reply is no longer offered. Open the replies again.'); return; }
+        navigator.clipboard.writeText(o.text).then(() => {
+          riMessage = 'Reply copied. Nothing was posted. Paste it where the review was written, then press "I answered it".';
+          const m = document.querySelector('#reviewsPanel [data-rimessage]'); if (m) m.textContent = riMessage;
+          announce(riMessage); toast('Copied');
+        }).catch(() => { showDashError('Could not copy to the clipboard. Select the reply and copy it by hand.'); });
+        return;
+      }
+      const act = t.getAttribute('data-ri'), id = t.getAttribute('data-riid') || '';
+      if (act !== 'remove') riRemoveId = '';
+      if (act === 'adverse') { showPage('adverseEventsPanel'); return; }
+      if (act === 'add-one') {
+        const v = (x) => (document.getElementById(x) || {}).value || '';
+        const c = M.clean({ stars: v('riStarsIn'), channel: v('riChannelIn'), date: v('riDateIn'), text: v('riTextIn') });
+        if (!c.ok) { riMessage = 'Not added: ' + c.problems.join(' '); renderReviewInbox(); announce(riMessage); const f = document.getElementById('riTextIn'); if (f) f.focus(); return; }
+        if (riBusy) return; riBusy = true;
+        const r = await riAddRows([c.review]).finally(() => { riBusy = false; });
+        if (!r.ok) { riMessage = 'Not added: ' + r.message; renderReviewInbox(); announce(riMessage); return; }
+        if (r.refused && !r.added && !r.duplicates) { riMessage = 'Not added: the database would not take that review (the stars, the text or the date). Nothing was saved.'; renderReviewInbox(); announce(riMessage); return; }
+        riDraft.cleared = ['riTextIn', 'riDateIn'];
+        riChanged(r.added ? 'Review added.' : 'That review is already here; it was not added twice.', '#riTextIn');
+        return;
+      }
+      if (act === 'paste') {
+        const p = M.parse((document.getElementById('riPasteIn') || {}).value || '');
+        if (p.problems.length || !p.read) {
+          riMessage = p.problems.length ? p.problems.join(' ') : (p.unread ? 'No line could be read as a review (stars from 1 to 5, and the text).' : 'Paste your list of reviews first.');
+          const m = document.querySelector('#reviewsPanel [data-rimessage]'); if (m) m.textContent = riMessage; announce(riMessage); return;
+        }
+        if (riBusy) return; riBusy = true;
+        const r = await riAddRows(p.rows).finally(() => { riBusy = false; });
+        if (!r.ok) { riMessage = 'Not added: ' + r.message; renderReviewInbox(); announce(riMessage); return; }
+        riDraft.cleared = ['riPasteIn'];
+        riChanged(r.added + (r.added === 1 ? ' review added' : ' reviews added') + (r.duplicates ? ', ' + r.duplicates + ' already here' : '') + (r.refused ? ', ' + r.refused + ' not taken by the database' : '') + (p.unread ? ', ' + p.unread + (p.unread === 1 ? ' line' : ' lines') + ' could not be read' : '') + '.', '[data-rifilter="waiting"]');
+        return;
+      }
+      if (act === 'replies') { riOpen = riOpen === id ? '' : id; renderReviewInbox(); const b = [...document.querySelectorAll('#reviewsPanel [data-ri="replies"]')].find(x => x.getAttribute('data-riid') === id); if (b) b.focus(); return; }
+      if (act === 'answered' || act === 'noreply' || act === 'new') {
+        if (riBusy) return; riBusy = true;
+        const r = await riMark(id, act).finally(() => { riBusy = false; });
+        if (!r.ok) { riMessage = 'Not changed: ' + r.message; renderReviewInbox(); announce(riMessage); return; }
+        if (riOpen === id) riOpen = '';
+        riChanged(act === 'answered' ? 'Marked as answered.' : act === 'noreply' ? 'Marked: no reply needed.' : 'Put back among the ones that need you.');
+        return;
+      }
+      if (act === 'remove') {
+        if (riRemoveId !== id) { riRemoveId = id; renderReviewInbox(); const b = [...document.querySelectorAll('#reviewsPanel [data-ri="remove"]')].find(x => x.getAttribute('data-riid') === id); if (b) b.focus(); announce(riShared ? 'Tap again to remove this review from the list.' : 'Tap again to remove this review from this browser.'); return; }
+        riRemoveId = '';
+        if (riBusy) return; riBusy = true;
+        const wasShared = riShared;
+        const r = await riMark(id, 'removed').finally(() => { riBusy = false; });
+        if (!r.ok) { riMessage = 'Not removed: ' + r.message; renderReviewInbox(); announce(riMessage); return; }
+        riChanged(wasShared ? 'Review removed from the list. It stays on the record, marked as removed.' : 'Review removed from this browser.');
+      }
+    });
+
     // ---------- Backups & Printouts (owner request, Nov 23; behind backupsPageOn)
     // One place for the paper and file copies the owner keeps: the daily recaps
     // (print a month on Letter, or save it as a spreadsheet file), the manuals
@@ -3832,6 +5017,91 @@
     // backups, which run outside the dashboard and which it cannot see. Reads
     // only; every printout is black on white.
     let bkReports = null, bkSops = null, bkMonth = '', bkMessage = '', bkSeq = 0;
+    // Day pack (owner, Nov 24): one day on paper, read when Print is pressed (assets/reports/he-day-pack.js)
+    let bkDay = '', bkDayBusy = false, bkPeriod = '90';
+    const dpMod = () => (window.HE && window.HE.reports && window.HE.reports['he-day-pack']) || null;
+    const bkSay = (msg) => { bkMessage = msg; announce(msg); const m = document.querySelector('#backupsPanel [data-bkmessage]'); if (m) m.textContent = msg; };
+    // true once the pages were handed to the printer; false when nothing was printed
+    async function printDayPack(day) {
+      const M = dpMod(); if (!M || bkDayBusy) return false;
+      const field = document.getElementById('bkDay');
+      const c = M.checkDay(typeof day === 'string' ? day : (field ? field.value : bkDay));
+      if (!c.ok) { bkSay(c.reason); if (field) field.focus(); return false; }
+      if (typeof day === 'string' && field) field.value = c.day;
+      bkDay = c.day;
+      const range = M.bounds(c.day);
+      bkDayBusy = true; bkSay('Reading the orders of ' + c.day + '…');
+      let pack = null;
+      try {
+        const orders = await fetchAllRows('orders', 'id, order_number, customer_name, customer_email, status, currency, total, placed_at, deleted_at',
+          q => q.is('deleted_at', null).gte('placed_at', range[0]).lt('placed_at', range[1]));
+        const ids = orders.map(o => o.id);
+        const items = ids.length ? await fetchAllRowsIn('order_items', 'id, order_id, sku, product_name, quantity', 'order_id', ids) : [];
+        pack = M.build({ day: c.day, orders: orders, items: items });
+      } catch (e) {
+        bkDayBusy = false;
+        bkSay('The orders of ' + c.day + ' could not be read (' + explainDbError(e && e.message ? e.message : String(e)) + '). Nothing was printed.');
+        return false;
+      }
+      bkDayBusy = false;
+      const t = pack.totals;
+      const recap = (bkReports || []).find(r => String(r.report_date || '').slice(0, 10) === c.day) || null;
+      const line = (label, value) => h('tr', null, h('th', null, label), h('td', { class: 'num-cell' }, value));
+      const sales = t.byCurrency.length ? t.byCurrency.map(m => fmtMoney(m.cents / 100, m.currency)).join(' + ') : (t.counted ? '—' : fmtMoney(0, 'USD'));
+      const time = (iso) => { const d = iso ? new Date(iso) : null; return d && !isNaN(d) ? d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '—'; };
+      const head = (title) => [printBrand(title), h('div', { class: 'printHdr' }, h('div', null, bkPrinted()))];
+      bkPrintDoc([
+        h('div', { class: 'printPage', 'data-printdaypack': c.day }, ...head('Day pack, ' + c.day),
+          h('table', null, h('tbody', null,
+            line('Orders placed this day', String(t.orders)),
+            line('Order totals (tax and shipping included)', sales),
+            line('Bottles and other items sold', String(t.units)),
+            line('Clients', String(t.clients)),
+            t.notCounted ? line('Cancelled or refunded (listed, not in the totals)', String(t.notCounted)) : null,
+            t.noAmount ? line('Orders with no amount saved (not in the totals)', String(t.noAmount)) : null)),
+          h('p', { class: 'u-fs-12' }, 'Exact figures, added up from the orders listed in this pack. Nothing is estimated.'),
+          recap ? h('div', null, h('div', { class: 'printLabel u-mt-8' }, 'The saved nightly recap of this day'),
+            h('table', null, h('tbody', null, line('Orders', bkNum(recap.orders_count)), line('Revenue', recap.revenue == null ? '—' : fmtMoney(recap.revenue, recap.currency || 'USD')),
+              line('New customer questions', bkNum(recap.new_inquiries_count)), line('Tasks opened', bkNum(recap.tasks_opened_count)), line('Incidents opened', bkNum(recap.incidents_opened_count)))))
+            : h('p', { class: 'u-fs-12' }, 'No nightly recap is saved for this day yet (it is written the next morning).'),
+          h('div', { class: 'printLabel u-mt-8' }, 'Notes'), h('div', { class: 'printNotes' }, ' ')),
+        h('div', { class: 'printPage', 'data-printdayorders': String(t.orders) }, ...head('Orders of ' + c.day),
+          t.orders ? h('table', null,
+            h('thead', null, h('tr', null, ['Time', 'Order', 'Client', 'Items', 'Total', 'Status'].map(x => h('th', null, x)))),
+            h('tbody', null, pack.orders.map(o => h('tr', null, h('td', null, time(o.placedAt)), h('td', null, o.number), h('td', null, o.customer || o.email || '—'),
+              h('td', null, o.lines.length ? o.lines.map(l => l.qty + ' × ' + l.name).join('; ') : 'no items saved'),
+              h('td', { class: 'num-cell' }, o.totalCents == null ? '—' : fmtMoney(o.totalCents / 100, o.currency)), h('td', null, o.status.replace(/_/g, ' '))))))
+            : h('p', null, 'No orders were placed on this day.')),
+        h('div', { class: 'printPage', 'data-printdayclients': String(t.clients) }, ...head('Clients of ' + c.day),
+          t.clients ? h('table', null,
+            h('thead', null, h('tr', null, ['Client', 'Email', 'Orders'].map(x => h('th', null, x)))),
+            h('tbody', null, pack.clients.map(cl => h('tr', null, h('td', null, cl.name || '—'), h('td', null, cl.email || '—'), h('td', null, cl.orders.join(', '))))))
+            : h('p', null, 'No clients on this day.'),
+          h('p', { class: 'u-fs-12 u-mt-8' }, 'This page holds customer names and email addresses. Keep it in the business folder.'))]);
+      bkSay('Opened the day pack for ' + c.day + ' for printing: ' + t.orders + (t.orders === 1 ? ' order, ' : ' orders, ') + t.clients + (t.clients === 1 ? ' client.' : ' clients.'));
+      return true;
+    }
+    // ---- Automatic daily printing: the dashboard's part (rules: assets/reports/he-auto-print.js) ----
+    // Something on the Mac next to the printer opens the dashboard with the daily link each
+    // morning; the dashboard prints yesterday's day pack, once a day per browser. force = the
+    // "Try it now" button. Reads only; the day it last printed is noted in this browser.
+    const AP_KEY = 'he_auto_print_day';
+    const apMod = () => (window.HE && window.HE.reports && window.HE.reports['he-auto-print']) || null;
+    function apLast() { try { const v = localStorage.getItem(AP_KEY) || ''; return /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : ''; } catch (e) { return ''; } }
+    async function autoPrintCheck(force) {
+      const A = apMod(); if (!A) return;
+      if (!force && !A.wants(location.search)) return;
+      if (!(typeof backupsPageOn === 'function' && backupsPageOn()) || !dpMod()) { showDashError('The daily print link needs the "Backups & Printouts" switch turned on (Admin → Feature Flags). Nothing was printed.'); return; }
+      const d = A.due(apLast(), Date.now());
+      showPage('backupsPanel');
+      await loadBackupsPage();                             // the saved recap of the day belongs in the pack
+      if (!force && !d.due) { bkSay('The day pack for ' + d.day + ' was already printed from this link in this browser. Nothing was printed again.'); return; }
+      const ok = await printDayPack(d.day);
+      if (!ok) return;
+      try { localStorage.setItem(AP_KEY, d.day); } catch (e) { /* it would print again at the next opening */ }
+      const last = document.querySelector('#backupsPanel [data-bkautolast]');
+      if (last) { last.setAttribute('data-bkautolast', d.day); last.textContent = 'Last printed this way in this browser: the day pack for ' + d.day + '.'; }
+    }
     const BK_DOWN = [
       'Orders keep arriving in Shopify while the dashboard is down. Nothing is lost.',
       'Orders: work from Shopify admin (Orders). Shipping labels print from Shopify as usual.',
@@ -3849,6 +5119,25 @@
     const bkMonthOf = r => String(r.report_date || '').slice(0, 7);
     // the newest recap printed in this browser (the Home feed reminds until it is)
     const RECAP_PRINTED_KEY = 'he_recap_printed_upto';
+    // Nov 24 (owner rule: nothing kept in only one browser): with the shared settings
+    // in use, the printed-up-to day is also kept in the database, so printing the
+    // recap on one device clears the Home reminder on every device. The later of the
+    // two days counts; without the shared settings it is this browser's note as before.
+    async function recapPrintedUpTo() {
+      let here = null; try { here = localStorage.getItem(RECAP_PRINTED_KEY); } catch (e) { here = null; }
+      const S = rpSettings(), store = rpStore(); if (!S || !store) return here;
+      const r = await store.get(S.KEYS.recapPrinted);
+      return S.latestDay(here, r && r.value && typeof r.value.day === 'string' ? r.value.day : null);
+    }
+    async function recapPrintedSave(day) {
+      const S = rpSettings(), store = rpStore(); if (!S || !store || !sharedSettingsOn()) return false;
+      const now = await store.get(S.KEYS.recapPrinted);
+      if (now.state !== 'installed') return false;
+      const best = S.latestDay(day, now.value && typeof now.value.day === 'string' ? now.value.day : null);
+      if (now.value && now.value.day === best) return true;                 // already there (a later day stays)
+      const saved = await store.set(S.KEYS.recapPrinted, { day: best }, 'owner_admin');
+      return !!saved.ok;
+    }
     function bkLatest() { return (bkReports || []).filter(r => /^\d{4}-\d{2}-\d{2}/.test(String(r.report_date || ''))).sort((a, b) => String(b.report_date).localeCompare(String(a.report_date)))[0] || null; }
     const bkMonthName = m => { const d = new Date(m + '-01T12:00:00'); return isNaN(d) ? m : d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }); };
     const bkNum = v => (v == null || v === '' || !isFinite(Number(v))) ? '—' : String(Number(v));
@@ -3901,6 +5190,28 @@
         h('h3', null, 'Daily recaps'),
         h('p', { class: 'hint u-mt-n2' }, 'The nightly summary of each day: orders, revenue, new customer questions and AI cost. Print a month for the folder, and save the spreadsheet to your computer and one more place (for example iCloud Drive).'),
         recaps,
+        dpMod() ? h('div', { 'data-bkdaypack': '1' },
+          h('h3', null, 'Day pack'),
+          h('p', { class: 'hint u-mt-n2' }, 'One day on paper: every order of the day with its items, the clients of the day, the totals and the saved recap. It is read from the database when you press Print; nothing is changed. The pages hold customer names and emails, so keep them in the business folder.'),
+          h('div', { class: 'u-d-flex u-gap-8 u-fwr-wrap u-ai-flex-end u-mt-8' },
+            h('div', { class: 'heField' }, h('label', { for: 'bkDay' }, 'Day'), h('input', { id: 'bkDay', type: 'date', value: bkDay || localDateString() })),
+            h('button', { type: 'button', class: 'small', 'data-bk': 'print-daypack' }, 'Print the day pack')),
+          h('h3', null, 'Client list'),
+          h('p', { class: 'hint u-mt-n2' }, 'Every client who ordered in the period, once: how many orders, what they add up to, and the first and the last order. Worked out from the orders when you press Print, so the figures are exact; nothing is changed. The pages hold customer names and emails.'),
+          h('div', { class: 'u-d-flex u-gap-8 u-fwr-wrap u-ai-flex-end u-mt-8' },
+            h('div', { class: 'heField' }, h('label', { for: 'bkPeriod' }, 'Period'),
+              h('select', { id: 'bkPeriod' }, dpMod().PERIODS.map(p => h('option', Object.assign({ value: p.key }, p.key === bkPeriod ? { selected: 'selected' } : {}), p.name)))),
+            h('button', { type: 'button', class: 'small', 'data-bk': 'print-clients' }, 'Print the client list'))) : null,
+        dpMod() && apMod() ? h('div', { 'data-bkauto': '1' },
+          h('h3', null, 'Automatic daily printing'),
+          h('p', { class: 'hint u-mt-n2' }, 'Every morning the Mac next to the printer can open the dashboard with the link below. The dashboard then prints yesterday\'s day pack by itself, once a day. A web page cannot wake up on its own: something on the Mac has to open the link at 8:00 AM (a repeating reminder), and the Mac must be on and signed in to the dashboard. That part is set up on the Mac once, together.'),
+          h('div', { class: 'heField' }, h('label', { for: 'bkAutoLink' }, 'The daily link'),
+            h('input', { id: 'bkAutoLink', type: 'text', readonly: 'readonly', value: apMod().link(location.href) })),
+          h('div', { class: 'scanToggleRow u-mt-6' },
+            h('button', { type: 'button', class: 'small secondary', 'data-bk': 'auto-copy' }, 'Copy the link'),
+            h('button', { type: 'button', class: 'small', 'data-bk': 'auto-try' }, 'Try it now')),
+          h('p', { class: 'u-fs-12p5 u-mt-6', 'data-bkautolast': apLast() }, apLast() ? 'Last printed this way in this browser: the day pack for ' + apLast() + '.' : 'Not printed this way in this browser yet.'),
+          h('p', { class: 'hint' }, 'The print window asks for one click on Print. Printing with no click at all needs the browser on that Mac started in its automatic printing mode; that is part of the same set-up. The pages hold customer names and emails, so use this only on a computer in your own office.')) : null,
         h('h3', null, 'Manuals to print'),
         h('ul', null,
           manual('down', 'If the dashboard is down', 'What to do by hand, with a paper log for stock changes.'),
@@ -3933,7 +5244,39 @@
       if (key === 'printing') return page('Printer setup', h('ul', null, BK_PRINTING.map(t => h('li', null, t))));
       return null;
     }
+    async function printClientList() {
+      const M = dpMod(); if (!M || bkDayBusy) return;
+      const sel = document.getElementById('bkPeriod');
+      const period = M.periodBounds(sel ? sel.value : bkPeriod, Date.now());
+      bkPeriod = period.key;
+      bkDayBusy = true; bkSay('Reading the orders (' + period.name.toLowerCase() + ')…');
+      let list = null;
+      try {
+        const orders = await fetchAllRows('orders', 'id, order_number, customer_name, customer_email, status, currency, total, placed_at, deleted_at',
+          q => { let x = q.is('deleted_at', null).lt('placed_at', period.to); if (period.from) x = x.gte('placed_at', period.from); return x; });
+        list = M.clientList(orders);
+      } catch (e) {
+        bkDayBusy = false;
+        bkSay('The orders could not be read (' + explainDbError(e && e.message ? e.message : String(e)) + '). Nothing was printed.');
+        return;
+      }
+      bkDayBusy = false;
+      const t = list.totals;
+      const money = (c) => c.byCurrency.length ? c.byCurrency.map(m => fmtMoney(m.cents / 100, m.currency)).join(' + ') : '—';
+      const day = (iso) => { const d = iso ? new Date(iso) : null; return d && !isNaN(d) ? localDateString(d) : '—'; };   // the day on the viewer's own calendar
+      bkPrintDoc([h('div', { class: 'printPage', 'data-printclients': String(t.clients) },
+        printBrand('Client list, ' + period.name.toLowerCase()), h('div', { class: 'printHdr' }, h('div', null, bkPrinted())),
+        h('p', { class: 'u-fs-12' }, t.clients + (t.clients === 1 ? ' client' : ' clients') + ' · ' + t.counted + ' counted ' + (t.counted === 1 ? 'order' : 'orders') + ' · ' + t.repeat + ' ordered more than once. Exact figures from the orders; cancelled and refunded orders are not counted.'),
+        t.clients ? h('table', null,
+          h('thead', null, h('tr', null, ['Client', 'Email', 'Orders', 'Total', 'First order', 'Last order'].map(x => h('th', null, x)))),
+          h('tbody', null, list.clients.map(c => h('tr', null, h('td', null, c.name || '—'), h('td', null, c.email || '—'),
+            h('td', { class: 'num-cell' }, String(c.orders) + (c.notCounted ? ' (+' + c.notCounted + ' cancelled)' : '')), h('td', { class: 'num-cell' }, money(c)), h('td', null, day(c.first)), h('td', null, day(c.last))))))
+          : h('p', null, 'No orders in this period.'),
+        h('p', { class: 'u-fs-12 u-mt-8' }, 'This page holds customer names and email addresses. Keep it in the business folder.'))]);
+      bkSay('Opened the client list for printing: ' + t.clients + (t.clients === 1 ? ' client' : ' clients') + ' from ' + t.orders + (t.orders === 1 ? ' order.' : ' orders.'));
+    }
     document.addEventListener('change', (e) => {
+      const p = e.target.closest('#backupsPanel select#bkPeriod'); if (p) { bkPeriod = p.value; return; }
       const s = e.target.closest('#backupsPanel select#bkMonth'); if (!s) return;
       bkMonth = s.value; bkMessage = ''; renderBackupsPage();
       const back = document.getElementById('bkMonth'); if (back) back.focus();
@@ -3949,6 +5292,16 @@
         return;
       }
       const t = e.target.closest('#backupsPanel [data-bk]'); if (!t) return;
+      if (t.getAttribute('data-bk') === 'print-daypack') { printDayPack(); return; }
+      if (t.getAttribute('data-bk') === 'auto-try') { autoPrintCheck(true); return; }
+      if (t.getAttribute('data-bk') === 'auto-copy') {
+        const box = document.getElementById('bkAutoLink'), text = box ? box.value : '';
+        if (!text) return;
+        navigator.clipboard.writeText(text).then(() => { bkSay('Link copied. It goes into the repeating reminder on the Mac next to the printer.'); toast('Copied'); },
+          () => { if (box) { box.focus(); box.select(); } bkSay('Could not copy in this browser. The link is selected: copy it by hand.'); });
+        return;
+      }
+      if (t.getAttribute('data-bk') === 'print-clients') { printClientList(); return; }
       if (t.getAttribute('data-bk') === 'print-latest') {
         const r = bkLatest(); if (!r) return;
         const day = String(r.report_date).slice(0, 10);
@@ -3965,6 +5318,12 @@
         bkMessage = 'Opened the recap for ' + day + ' for printing. The Home reminder is cleared for this day.';
         announce(bkMessage);
         const msg = document.querySelector('#backupsPanel [data-bkmessage]'); if (msg) msg.textContent = bkMessage;
+        // after the print window opened: tell every device (only when the shared settings are in use)
+        recapPrintedSave(day).then(function (everywhere) {
+          if (!everywhere) return;
+          bkMessage = 'Opened the recap for ' + day + ' for printing. The Home reminder is cleared for this day on every device.';
+          const m2 = document.querySelector('#backupsPanel [data-bkmessage]'); if (m2) m2.textContent = bkMessage;
+        }, function () { /* this browser's note stands */ });
         return;
       }
       const rows = bkMonthRows();
@@ -4109,7 +5468,8 @@
           h('thead', null, h('tr', null, h('th', null, 'Preview'), h('th', null, 'Where it appears'), h('th', null, 'Who gets it when shared'), h('th', null, 'Now'), h('th', null, 'Change'))),
           h('tbody', null, rows)),
         h('div', { class: 'scanToggleRow u-mt-8' }, h('button', { type: 'button', class: 'small secondary', 'data-previewswitch': 'alloff', disabled: shared && !ownerHere }, 'Turn all off')),
-        lookPicker()));
+        lookPicker(),
+        menuLayoutPicker()));
     }
     // ---------- Switches that save real records (Feature Flags; OWNER only) ----------
     // Owner rule (Nov 24): everything can be switched on the dashboard. Each of these
@@ -4196,6 +5556,36 @@
           LOOK_CHOICES.map(c => h('button', { type: 'button', class: 'small' + (c.key === cur ? '' : ' secondary'), 'data-lookpick': c.key, 'aria-pressed': String(c.key === cur) }, c.name))),
         h('p', { class: 'hint u-mt-6' }, (LOOK_CHOICES.find(c => c.key === cur) || LOOK_CHOICES[0]).what));
     }
+    // The menu: today's, or one of three shorter ones with same-topic pages inside one another.
+    let mlMessage = '';
+    function menuLayoutPicker() {
+      const M = mlMod(); if (!M) return null;
+      const list = M.choices(), cur = list.find(c => c.key === mlKey) || list[0];
+      const layout = mlLayout();
+      const lines = layout ? M.count(layout) : SIDEBAR_GROUPS.reduce((n, g) => n + g.pages.length, 0);
+      return h('div', { class: 'u-mt-12', 'data-menulayoutpicker': cur.key || 'today' },
+        h('h4', null, 'Menu'),
+        h('p', { class: 'hint u-mt-0' }, 'The same menu, shorter: pages about the same topic sit inside one another and appear as a row of buttons at the top of the page. Nothing is removed, search still finds every page, and "Today\'s menu" puts every page back on its own line. Everyone starts with "1. A little shorter".'),
+        h('div', { class: 'scanToggleRow', role: 'group', 'aria-label': 'Menu' },
+          list.map(c => h('button', { type: 'button', class: 'small' + (c.key === cur.key ? '' : ' secondary'), 'data-menulayout': c.key || 'today', 'aria-pressed': String(c.key === cur.key) }, c.name))),
+        h('p', { class: 'hint u-mt-6', 'data-menulayout-lines': String(lines) }, cur.what + ' The menu now has ' + lines + ' lines.'),
+        mlMessage ? h('p', { class: 'hint u-mt-6', 'data-menulayout-msg': '1' }, mlMessage) : null);
+    }
+    document.addEventListener('click', async (e) => {
+      const t = e.target.closest('[data-menulayout]'); if (!t) return;
+      const M = mlMod(); if (!M) return;
+      const want = t.getAttribute('data-menulayout') === 'today' ? '' : M.keyOf(t.getAttribute('data-menulayout'));
+      const c = M.choices().find(x => x.key === want); if (!c) return;
+      mlRemember(c.key);
+      mlMessage = sharedSettingsOn() ? 'Saving for every device…' : 'Kept in this browser. Once the shared settings database step (drafts/50) is installed, the owner\'s choice applies to every phone and computer.';
+      renderSidebar(document.getElementById('sidebarSearch').value);
+      loadPreviewSwitches(); announce('Menu: ' + c.name + '. ' + c.what); refocusLike(t);
+      if (!sharedSettingsOn()) return;
+      const everywhere = await menuLayoutShare(c.key);
+      mlMessage = everywhere ? 'Saved: every phone and computer shows this menu the next time it opens the dashboard.'
+        : (currentUserRole === 'owner' ? 'Could not save it for every device; it is kept in this browser.' : 'Kept in this browser. Only the owner can choose the menu for every device.');
+      loadPreviewSwitches(); announce(mlMessage);
+    });
     document.addEventListener('click', (e) => {
       const t = e.target.closest('[data-lookpick]'); if (!t) return;
       const c = (LOOK_CHOICES || []).find(x => x.key === t.getAttribute('data-lookpick')); if (!c) return;
@@ -5209,7 +6599,12 @@
       const l = document.getElementById('labelPrintCss'); if (!l) return;
       l.media = on ? 'print' : 'not all';
     }
-    window.addEventListener('afterprint', function () { setLabelSheet(false); });
+    // Nov 24: the small sticker roll (assets/print/he-print-sticker.css), the same way
+    function setStickerSheet(on) {
+      const l = document.getElementById('stickerPrintCss'); if (!l) return;
+      l.media = on ? 'print' : 'not all';
+    }
+    window.addEventListener('afterprint', function () { setLabelSheet(false); setStickerSheet(false); });
     document.addEventListener('click', function (e) {
       const t = e.target.closest('[data-print]'); if (!t) return;
       const what = t.getAttribute('data-print');
@@ -5249,6 +6644,285 @@
       host.replaceChildren(h('div', { class: 'printDoc' }, pages));
       try { window.print(); } catch (e) {}
     }
+
+    // ---------- Batch on each order (Nov 24; behind orderBatchesOn, drafts/54) ----------
+    // When packing, the batch sticker (see Batch stickers below) is scanned onto the
+    // order; "Who got a batch" lists every order that received one. The rules are in
+    // the database (drafts/54) and assets/scan/he-order-batches.js; a wrong scan is
+    // voided with a reason, never deleted.
+    const obState = { order: null, rows: null, recall: null, message: '', voiding: '' };
+    const obMod = () => (window.HE && window.HE.scan && window.HE.scan['he-order-batches']) || null;
+    function obStore() { const M = obMod(); return M && orderBatchesOn() ? M.createStore({ client: supabase, enabled: true }) : null; }
+    function obHost(on) {
+      let el = document.getElementById('orderBatchesHost');
+      if (!on) { if (el) el.remove(); return null; }
+      if (!el) { const after = document.getElementById('orderSlipsHost'); if (!after || !after.parentNode) return null; el = h('div', { id: 'orderBatchesHost' }); after.after(el); }
+      return el;
+    }
+    function loadOrderBatches() { if (obHost(orderBatchesOn() && !!obMod())) renderOrderBatches(); }
+    function obSay(text) { obState.message = text; renderOrderBatches(); announce(text); }
+    function renderOrderBatches() {
+      const host = document.getElementById('orderBatchesHost'); if (!host) return;
+      const mayVoid = currentUserRole === 'owner' || currentUserRole === 'administrator';
+      const o = obState.order;
+      const day = (t) => (t ? String(t).slice(0, 10) : '—');
+      const rowsTable = o && obState.rows && obState.rows.length ? h('table', { class: 'phoneCards u-mt-8', 'data-obrows': String(obState.rows.length) },
+        h('thead', null, h('tr', null, h('th', null, 'Batch'), h('th', { class: 'num-cell' }, 'Bottles'), h('th', null, 'Recorded'), h('th', null, 'Change'))),
+        h('tbody', null, obState.rows.map(r => h('tr', { 'data-obrow': String(r.id), class: r.voided_at ? 'obVoid' : '' },
+          h('td', null, r.lot_number),
+          h('td', { class: 'num-cell', 'data-label': 'Bottles' }, String(r.quantity)),
+          h('td', { 'data-label': 'Recorded' }, day(r.recorded_at)),
+          h('td', { 'data-label': 'Change' }, r.voided_at ? 'Void: ' + (r.void_reason || 'no reason kept')
+            : !mayVoid ? '—'
+            : obState.voiding === String(r.id) ? h('form', { class: 'obVoidForm', 'data-obform': 'void', 'data-id': String(r.id) },
+                h('label', null, 'Why is this line wrong?', h('input', { type: 'text', name: 'reason', maxlength: '300', required: true, autocomplete: 'off' })),
+                h('button', { type: 'submit', class: 'small' }, 'Void this line'), h('button', { type: 'button', class: 'small secondary', 'data-obvoid': '' }, 'Cancel'))
+            : h('button', { type: 'button', class: 'small secondary', 'data-obvoid': String(r.id), 'aria-label': 'Void batch ' + r.lot_number + ' on this order' }, 'Void')))))) : null;
+      const rc = obState.recall;
+      host.replaceChildren(h('div', { class: 'scanCard u-mb-10', 'data-obcard': '1' },
+        h('div', { class: 'scanCardHead' }, 'Batch on each order'),
+        h('p', { class: 'hint u-m-0' }, 'When you pack an order, scan the batch sticker of each bottle (a scanner types it for you) or type the batch number. If a batch ever has a problem, "Who got a batch" lists every order that received it.'),
+        h('form', { class: 'obForm u-mt-8', 'data-obform': 'find' },
+          h('label', null, 'Order number', h('input', { type: 'text', id: 'obOrder', maxlength: '60', autocomplete: 'off', value: o ? o.order_number : '' })),
+          h('button', { type: 'submit', class: 'small secondary' }, 'Find the order')),
+        o ? h('div', { 'data-oborder': String(o.id) },
+          h('p', { class: 'u-fs-13 u-mt-8' }, 'Order ' + o.order_number + [o.customer_name ? ' · ' + o.customer_name : '', o.placed_at ? ' · ordered ' + day(o.placed_at) : ''].join('')),
+          h('form', { class: 'obForm', 'data-obform': 'record' },
+            h('label', null, 'Batch (scan the sticker or type the number)', h('input', { type: 'text', id: 'obLot', maxlength: '40', autocomplete: 'off', autocapitalize: 'characters' })),
+            h('label', { class: 'obQty' }, 'Bottles', h('input', { type: 'number', id: 'obQty', min: '1', max: '10000', step: '1', inputmode: 'numeric', value: '1' })),
+            h('button', { type: 'submit', class: 'small' }, 'Save the batch')),
+          h('div', { class: 'obPhoto' },
+            h('label', { for: 'obPhoto' }, 'Or a photo of the batch sticker (phone camera)'),
+            h('input', { type: 'file', id: 'obPhoto', accept: 'image/*', capture: 'environment', 'data-obphoto': '1' })),
+          obState.rows && !obState.rows.length ? h('p', { class: 'hint' }, 'No batch is recorded on this order yet.') : rowsTable) : null,
+        h('p', { class: 'u-fs-12 u-mt-4', role: 'status', 'data-obmessage': '1' }, obState.message),
+        h('form', { class: 'obForm u-mt-8', 'data-obform': 'recall' },
+          h('label', null, 'Who got a batch? Type or scan its number', h('input', { type: 'text', id: 'obRecall', maxlength: '40', autocomplete: 'off', value: rc ? rc.lot : '' })),
+          h('button', { type: 'submit', class: 'small secondary' }, 'Show the orders')),
+        rc ? h('div', { 'data-obrecall': rc.lot },
+          h('p', { class: 'u-fs-13 u-mt-8', 'data-obrecalltotal': rc.orders + '/' + rc.bottles },
+            rc.orders ? 'Batch ' + rc.lot + ': ' + rc.orders + (rc.orders === 1 ? ' order, ' : ' orders, ') + rc.bottles + (rc.bottles === 1 ? ' bottle.' : ' bottles.') + (rc.truncated ? ' Only the latest 1,000 lines are shown.' : '')
+              : 'No order has batch ' + rc.lot + ' recorded.'),
+          rc.orders ? h('table', { class: 'phoneCards' },
+            h('thead', null, h('tr', null, h('th', null, 'Order'), h('th', null, 'Customer'), h('th', null, 'Ordered'), h('th', { class: 'num-cell' }, 'Bottles'), h('th', null, 'Scanned'))),
+            h('tbody', null, rc.lines.map(l => h('tr', { 'data-obrecallrow': String(l.order_id) },
+              h('td', null, l.order_number), h('td', { 'data-label': 'Customer' }, l.customer_name || '—'), h('td', { 'data-label': 'Ordered' }, day(l.placed_at)),
+              h('td', { class: 'num-cell', 'data-label': 'Bottles' }, String(l.quantity)), h('td', { 'data-label': 'Scanned' }, day(l.recorded_at)))))) : null) : null));
+    }
+    async function obLoadRows() {
+      const store = obStore(), o = obState.order; if (!store || !o) return;
+      const r = await store.forOrder(o.id);
+      if (!obState.order || obState.order.id !== o.id) return;
+      obState.rows = r.ok ? r.rows : null;
+      if (!r.ok && !r.busy) obState.message = r.message;
+    }
+    document.addEventListener('submit', async function (e) {
+      const form = e.target instanceof Element ? e.target.closest('#orderBatchesHost form[data-obform]') : null; if (!form) return;
+      e.preventDefault();
+      const M = obMod(), store = obStore(); if (!M || !store) return;
+      const what = form.getAttribute('data-obform');
+      if (what === 'find') {
+        const numbers = M.orderNumbers(document.getElementById('obOrder').value);
+        if (!numbers.length) { obSay('Type the order number first.'); return; }
+        try {
+          const { data, error } = await supabase.from('orders').select('id, order_number, customer_name, placed_at, status').in('order_number', numbers).is('deleted_at', null).limit(5);
+          if (error) throw error;
+          if (!data || !data.length) { obState.order = null; obState.rows = null; obSay('No order has that number.'); return; }
+          if (data.length > 1) { obState.order = null; obState.rows = null; obSay('More than one order has that number. Type it exactly as the order shows it.'); return; }
+          obState.order = data[0]; obState.rows = null; obState.voiding = ''; obState.message = '';
+          await obLoadRows();
+          renderOrderBatches();
+          const lot = document.getElementById('obLot'); if (lot) lot.focus();
+        } catch (err) { obSay('Could not look the order up: ' + explainDbError(err && err.message ? err.message : String(err))); }
+      } else if (what === 'record') {
+        if (!obState.order) return;
+        const lotBox = document.getElementById('obLot'), qtyBox = document.getElementById('obQty');
+        const typed = lotBox.value;
+        const r = await store.record(obState.order.id, typed, qtyBox.value, /^B-/.test(typed.trim()) ? 'scan' : 'typed');
+        if (r.busy) return;
+        if (!r.ok) { obSay(r.message); const back = document.getElementById('obLot'); if (back) { back.value = typed; back.focus(); } return; }
+        await obLoadRows();
+        obSay('Batch ' + r.lot + ': ' + r.quantity + (r.quantity === 1 ? ' bottle' : ' bottles') + ' on order ' + obState.order.order_number + '. ' + r.message);
+        const next = document.getElementById('obLot'); if (next) next.focus();
+      } else if (what === 'void') {
+        const r = await store.voidRow(form.getAttribute('data-id'), form.elements.reason.value);
+        if (r.busy) return;
+        if (!r.ok) { const box = form.elements.reason, kept = box.value; obSay(r.message); const again = document.querySelector('#orderBatchesHost form[data-obform="void"] input[name="reason"]'); if (again) { again.value = kept; again.focus(); } return; }
+        obState.voiding = '';
+        await obLoadRows();
+        obSay(r.already ? 'That line was already void.' : 'The line is void. It stays on the record; scan the right batch as a new line.');
+      } else if (what === 'recall') {
+        const r = await store.forBatch(document.getElementById('obRecall').value);
+        if (r.busy) return;
+        if (!r.ok) { obState.recall = null; obSay(r.message); return; }
+        obState.recall = r;
+        obSay(r.orders ? 'Batch ' + r.lot + ': ' + r.orders + (r.orders === 1 ? ' order.' : ' orders.') : 'No order has batch ' + r.lot + ' recorded.');
+      }
+    });
+    // Nov 24: a photo of the sticker(s), read by the phone itself where it can. Each
+    // batch sticker found is saved as one bottle; anything else in the photo is ignored.
+    document.addEventListener('change', async function (e) {
+      const ph = e.target instanceof Element ? e.target.closest('#orderBatchesHost input[data-obphoto]') : null;
+      if (!ph || !ph.files || !ph.files[0]) return;
+      const M = obMod(), store = obStore(); if (!M || !store || !obState.order) return;
+      let values = null;
+      try {
+        if (typeof window.BarcodeDetector === 'function') {
+          const bitmap = await createImageBitmap(ph.files[0]);
+          const codes = await new window.BarcodeDetector().detect(bitmap);
+          values = (codes || []).map(c => c.rawValue || '').filter(Boolean);
+        }
+      } catch (err) { values = null; }
+      if (values === null) { obSay('This browser cannot read a barcode from a photo. Type the batch number printed under the barcode.'); return; }
+      const lots = M.lotsFromBarcodes(values);
+      if (!lots.length) { obSay('No batch sticker was found in the photo. Try again closer, or type the batch number printed under the barcode.'); return; }
+      const saved = [], failed = [];
+      for (const lot of lots) {
+        const r = await store.record(obState.order.id, M.PREFIX + lot, 1, 'scan');
+        if (r.ok) saved.push(r.lot + ' (' + r.quantity + ')'); else failed.push(lot + ': ' + r.message);
+      }
+      await obLoadRows();
+      obSay((saved.length ? 'From the photo, on order ' + obState.order.order_number + ': ' + saved.join(', ') + '. ' : '') + (failed.length ? 'Not saved: ' + failed.join(' ') : ''));
+    });
+    document.addEventListener('click', function (e) {
+      const t = e.target instanceof Element ? e.target.closest('#orderBatchesHost [data-obvoid]') : null; if (!t) return;
+      obState.voiding = t.getAttribute('data-obvoid') || ''; obState.message = '';
+      renderOrderBatches();
+      const box = document.querySelector('#orderBatchesHost form[data-obform="void"] input[name="reason"]'); if (box) box.focus();
+    });
+
+    // ---------- Batch stickers (Nov 24; behind batchLabelsOn) ----------
+    // The barcode printed on a bottle says which product it is, not which batch
+    // (owner's photos, Nov 24). Inventory prints a sticker per bottle: the batch in
+    // words and as a Code 128 barcode (assets/scan/he-batch-labels.js). The batches
+    // are read when the page loads, so Print opens the print window at once.
+    // Reads inventory_lots and products; writes nothing.
+    let blLots = null, blError = '', blSeq = 0, blMessage = '';
+    const blState = { lotId: '', count: '', layout: 'roll' };
+    const blMod = () => (window.HE && window.HE.scan && window.HE.scan['he-batch-labels']) || null;
+    function blHost(on) {
+      let host = document.getElementById('batchLabelsHost');
+      if (!on) { if (host) host.remove(); return null; }
+      if (!host) {
+        const after = document.getElementById('productImportHost'); if (!after || !after.parentNode) return null;
+        host = h('div', { id: 'batchLabelsHost' });
+        after.parentNode.insertBefore(host, after.nextSibling);
+      }
+      return host;
+    }
+    // the barcode as an SVG picture: black bars only, sized in inches so it prints true
+    function blBarcode(M, text, moduleInch, heightInch) {
+      const b = M.bars(text);
+      const NS = 'http://www.w3.org/2000/svg';
+      const svg = document.createElementNS(NS, 'svg');
+      [['viewBox', '0 0 ' + b.width + ' 10'], ['preserveAspectRatio', 'none'], ['width', (Math.round(b.width * moduleInch * 1000) / 1000) + 'in'], ['height', heightInch + 'in'],
+        ['class', 'blBars'], ['role', 'img'], ['aria-label', 'Barcode ' + text], ['shape-rendering', 'crispEdges']].forEach(([k, v]) => svg.setAttribute(k, v));
+      b.bars.forEach(r => {
+        const el = document.createElementNS(NS, 'rect');
+        [['x', r.x], ['y', 0], ['width', r.w], ['height', 10], ['fill', '#000']].forEach(([k, v]) => el.setAttribute(k, String(v)));
+        svg.appendChild(el);
+      });
+      return svg;
+    }
+    function blSticker(M, lot, p) {
+      return h('div', { class: 'blSticker', 'data-blsticker': p.text },
+        h('div', { class: 'blProduct' }, String(lot.product || 'Product').slice(0, 60)),
+        blBarcode(M, p.text, p.moduleInch, p.layout === 'roll' ? 0.42 : 0.3),
+        h('div', { class: 'blLot' }, 'Batch ' + lot.lot_number));
+    }
+    const blChosen = () => (blLots || []).find(l => String(l.id) === blState.lotId) || null;
+    async function loadBatchLabels() {
+      const M = blMod();
+      const host = blHost(batchLabelsOn() && !!M); if (!host) return;
+      const seq = ++blSeq;
+      preloadPrintFonts();
+      if (!blLots) host.replaceChildren(h('div', { class: 'scanCard u-mt-14' }, h('h3', null, 'Batch stickers'), h('p', { class: 'empty' }, 'Loading the batches…')));
+      try {
+        const [lots, products] = await Promise.all([
+          fetchAllRows('inventory_lots', 'id, lot_number, product_id, received_at, quantity_received', q => q),
+          fetchAllRows('products', 'id, name, sku', q => q),
+        ]);
+        if (seq !== blSeq) return;
+        const names = Object.create(null);
+        products.forEach(p => { if (p && p.id != null) names[p.id] = p.name || p.sku || ''; });
+        blLots = lots.filter(l => l && l.id != null && typeof l.lot_number === 'string' && l.lot_number.trim())
+          .map(l => ({ id: l.id, lot_number: l.lot_number.trim(), product: names[l.product_id] || '', received_at: l.received_at || '', quantity: Number(l.quantity_received) || 0 }))
+          .sort((a, b) => String(b.received_at).localeCompare(String(a.received_at))).slice(0, 200);
+        blError = '';
+      } catch (err) {
+        if (seq !== blSeq) return;
+        blLots = null; blError = 'The batches could not be read. Refresh the page and try again.';
+      }
+      if (blLots && !blChosen()) {
+        blState.lotId = blLots.length ? String(blLots[0].id) : '';
+        blState.count = blLots.length ? String(Math.min(M.MAX_COUNT, Math.max(1, blLots[0].quantity))) : '';
+      }
+      renderBatchLabels();
+    }
+    function renderBatchLabels() {
+      const M = blMod(), host = document.getElementById('batchLabelsHost'); if (!M || !host) return;
+      const head = [h('h3', null, 'Batch stickers'),
+        h('p', { class: 'hint' }, 'The barcode printed on a bottle says which product it is, not which batch. These stickers add the batch: its number in words and as a barcode a phone camera or a scanner reads. Printing only; nothing is changed.')];
+      if (blError) { host.replaceChildren(h('div', { class: 'scanCard u-mt-14' }, head, h('p', { class: 'hint u-c-warn', role: 'alert' }, blError))); return; }
+      if (!blLots || !blLots.length) {
+        host.replaceChildren(h('div', { class: 'scanCard u-mt-14' }, head, h('p', { class: 'empty' }, 'No batch has been received yet. A batch appears here once a delivery is received with a lot number.')));
+        return;
+      }
+      const lot = blChosen();
+      const p = M.plan({ lot: lot ? lot.lot_number : '', count: blState.count, layout: blState.layout });
+      const one = lot ? M.plan({ lot: lot.lot_number, count: 1, layout: blState.layout }) : { ok: false };
+      host.replaceChildren(h('div', { class: 'scanCard u-mt-14', 'data-blcard': '1' }, head,
+        h('div', { class: 'blForm' },
+          h('label', null, 'Batch', h('select', { id: 'blLot' }, blLots.map(l => h('option', { value: String(l.id), selected: String(l.id) === blState.lotId },
+            (l.product || 'Product') + ' — ' + l.lot_number + (l.received_at ? ' (received ' + String(l.received_at).slice(0, 10) + ')' : ''))))),
+          h('label', null, 'How many stickers', h('input', { id: 'blCount', type: 'number', min: '1', max: '500', step: '1', inputmode: 'numeric', value: blState.count })),
+          h('label', null, 'Printed on', h('select', { id: 'blLayout' }, Object.keys(M.LAYOUTS).map(k => h('option', { value: k, selected: k === blState.layout }, M.LAYOUTS[k].name))))),
+        one.ok ? h('div', { class: 'blPreview', 'data-blpreview': one.text }, h('div', { class: 'u-fs-12 u-c-muted' }, 'One sticker (the size on screen is not the printed size):'), blSticker(M, lot, one)) : null,
+        h('div', { class: 'u-mt-8 u-d-flex u-gap-8 u-fwr-wrap' },
+          h('button', { type: 'button', class: 'small', 'data-blprint': '1', disabled: !p.ok }, p.ok ? 'Print ' + p.count + (p.count === 1 ? ' sticker' : ' stickers') + (p.pages > 1 || p.perPage > 1 ? ' (' + p.pages + (p.pages === 1 ? ' label)' : ' labels)') : '') : 'Print stickers')),
+        h('p', { class: 'u-fs-12 u-mt-4', role: 'status', 'data-blmessage': p.ok ? 'ok' : 'no' },
+          blMessage || (p.ok ? 'In the print window choose the label printer and the paper size ' + (p.layout === 'roll' ? '2.25 × 1.25 inch' : '4 × 6 inch') + ', scale 100%.' : p.reason))));
+    }
+    document.addEventListener('change', function (e) {
+      const t = e.target instanceof Element ? e.target.closest('#batchLabelsHost select, #batchLabelsHost input') : null; if (!t) return;
+      const M = blMod(); if (!M) return;
+      blMessage = '';
+      if (t.id === 'blLot') {
+        blState.lotId = t.value;
+        const lot = blChosen();
+        blState.count = lot ? String(Math.min(M.MAX_COUNT, Math.max(1, lot.quantity))) : '';
+      } else if (t.id === 'blCount') blState.count = t.value;
+      else if (t.id === 'blLayout') blState.layout = M.LAYOUTS[t.value] ? t.value : 'roll';
+      renderBatchLabels();
+      const back = document.getElementById(t.id); if (back) back.focus();
+    });
+    document.addEventListener('click', function (e) {
+      const t = e.target instanceof Element ? e.target.closest('#batchLabelsHost [data-blprint]') : null; if (!t) return;
+      const M = blMod(), host = document.getElementById('invoicePrintHost'), lot = blChosen(); if (!M || !host || !lot) return;
+      const typed = document.getElementById('blCount'); if (typed) blState.count = typed.value;
+      const p = M.plan({ lot: lot.lot_number, count: blState.count, layout: blState.layout });
+      if (!p.ok) { blMessage = ''; renderBatchLabels(); return; }
+      const pages = [];
+      for (let i = 0; i < p.count; i += p.perPage) {
+        const n = Math.min(p.perPage, p.count - i);
+        pages.push(h('div', { class: 'printPage blPage blPage-' + p.layout, 'data-printsize': p.layout === 'roll' ? 'sticker' : '4x6' }, Array.from({ length: n }, () => blSticker(M, lot, p))));
+      }
+      host.replaceChildren(h('div', { class: 'printDoc blDoc', 'data-bldoc': String(p.count) }, pages));
+      setLabelSheet(p.layout === 'sheet'); setStickerSheet(p.layout === 'roll');
+      blMessage = p.count + (p.count === 1 ? ' sticker' : ' stickers') + ' for batch ' + lot.lot_number + ' sent to the print window.';
+      renderBatchLabels(); announce(blMessage);
+      try { window.print(); } catch (err) {}
+    });
+
+    document.addEventListener('click', function (e) {
+      const t = e.target instanceof Element ? e.target.closest('#ordersTableWrap [data-ochannel]') : null; if (!t) return;
+      ochFilter = t.getAttribute('data-ochannel') || 'all';
+      loadOrders().then(function () {
+        const back = Array.from(document.querySelectorAll('#ordersTableWrap [data-ochannel]')).find(b => b.getAttribute('data-ochannel') === ochFilter);
+        if (back) back.focus();
+        const CH = ochMod(); announce(ochFilter === 'all' || !CH ? 'All orders shown.' : CH.NAMES[ochFilter] + ' orders shown.');
+      });
+    });
 
     // Packing slips for real orders (Nov 23; behind orderSlipsOn). The order's own
     // lines are read when the Orders page loads, so pressing Print opens the print
@@ -5417,14 +7091,14 @@
       calendarPanel: [loadCalendarMonth],
       dailySummaryPanel: [loadDailySummary],
       reportHistoryPanel: [loadReportHistoryThenExport, loadRecoveryDrill, loadInvoicePreview, loadReportVersions],
-      ordersPanel: [loadOrders, paintScanEntry, loadSavedViews, loadOrderSlipsHost, loadDropoff],
-      inventoryPanel: [loadInventory, loadInventoryAdjustments, loadReorderPlanning, loadSavedViews, loadCycleCount, loadPartialReceiving, loadProductImport],
+      ordersPanel: [loadOrders, paintScanEntry, loadSavedViews, loadOrderSlipsHost, loadDropoff, loadOrderBatches],
+      inventoryPanel: [loadInventory, loadInventoryAdjustments, loadReorderPlanning, loadSavedViews, loadCycleCount, loadPartialReceiving, loadProductImport, loadBatchLabels],
       returnsPanel: [loadReturns, loadStockReturns],
       suppliersPanel: [loadSuppliers, loadSupplierScorecard, loadSupplierDocs],
       purchaseOrdersPanel: [loadPurchaseOrders, loadDeliveries],
       qualityControlPanel: [loadQualityChecks],
       recallsPanel: [loadRecalls],
-      expensesPanel: [loadExpenses, loadDeletedExpenses],
+      expensesPanel: [loadExpenses, loadDeletedExpenses, loadReceiptReader],
       accountingPanel: [loadAccounting, loadRealProfit, loadReconcile, loadInvoicePayments, loadMoneyMatch, loadChannelMoney, loadMoneyIssues],
       taxRecordsPanel: [loadTaxRecords, loadTaxRates],
       tasksPanel: [loadTasks],
@@ -5442,6 +7116,10 @@
       activityPanel: [loadActivityPeople, loadActivityAreas, loadActivityDigest, () => loadActivity(true)],
       sopsPanel: [loadSops],
       backupsPanel: [loadBackupsPage],
+      storeCampaignsPanel: [loadStoreCampaigns],
+      contentHelperPanel: [loadContentHelper],
+      customerEmailsPanel: [loadCustomerEmails],
+      reviewsPanel: [loadReviewInbox],
       featureRequestsPanel: [loadFeatureRequests, loadDeletedFeatureRequests],
       legalHoldsPanel: [loadLegalHolds, loadReleasedLegalHolds],
       salesCommandPanel:   [() => loadSales('salesCommandPanel')],
@@ -8466,11 +10144,16 @@
       document.body.dataset.loaded = 'all';
     }
 
+    // Nov 24: the sales channel on every order (behind orderChannelsOn): a badge per
+    // order and a row of buttons to see one channel (assets/views/he-order-channels.js).
+    let ochFilter = 'all';
+    const ochMod = () => (orderChannelsOn() && window.HE && window.HE.views && window.HE.views['he-order-channels']) || null;
     async function loadOrders(){
       try {
+        const CH = ochMod();
         const { data: orders, error, count } = await supabase
           .from('orders')
-          .select('id, order_number, customer_name, customer_email, status, currency, total, placed_at, deleted_at', { count: 'exact' })
+          .select('id, order_number, customer_name, customer_email, status, currency, total, placed_at, deleted_at' + (CH ? ', channel' : ''), { count: 'exact' })
           .is('deleted_at', null)
           .order('placed_at', { ascending: false })
           .limit(300);
@@ -8503,21 +10186,32 @@
         const ordersMixed = mixedCurrencyNote(orders, 'Orders', currency);
         showPageWarning('ordersPanel', ordersMixed); // X8-19
 
-        const recent = orders.slice(0, 15);
+        const channelTally = CH ? CH.tally(orders) : [];
+        if (CH && ochFilter !== 'all' && !channelTally.some(t => t.key === ochFilter)) ochFilter = 'all';
+        const ofChannel = CH ? CH.pick(orders, ochFilter) : orders;
+        const recent = ofChannel.slice(0, 15);
+        // the row of channel buttons: only when there is more than one thing to choose
+        const channelBar = CH && orders.length ? h('div', { class: 'ochBar', role: 'group', 'aria-label': 'Show the orders of one sales channel', 'data-ochbar': ochFilter },
+          [{ key: 'all', name: 'All', count: orders.length }].concat(channelTally).map(t =>
+            h('button', { type: 'button', class: 'small' + (t.key === ochFilter ? '' : ' secondary'), 'data-ochannel': t.key, 'aria-pressed': t.key === ochFilter ? 'true' : 'false' }, t.name + ' ' + t.count))) : null;
         if (!recent.length) {
           document.getElementById('ordersTableWrap').replaceChildren(h('p', { class: 'empty' }, 'No orders yet.'));
         } else {
-          const showingNoteNode = totalOrders > recent.length
+          const showingNoteNode = CH && ochFilter !== 'all'
+            ? h('p', { class: 'hint u-m-0-0-8', 'data-ochnote': ochFilter }, `Showing the ${recent.length} most recent ${CH.NAMES[ochFilter]} orders` + (ofChannel.length > recent.length ? ` of ${ofChannel.length}` : '') + (totalOrders > orders.length ? ` among the newest ${orders.length} orders.` : '.'))
+            : totalOrders > recent.length
             ? h('p', { class: 'hint u-m-0-0-8' }, `Showing the ${recent.length} most recent of ${totalOrders} orders total.`) : null;
           document.getElementById('ordersTableWrap').replaceChildren(...[
+            channelBar,
             showingNoteNode,
             h('table', { class: 'phoneCards' },
               h('thead', null, h('tr', null,
-                h('th', null, 'Order #'), h('th', null, 'Customer'), h('th', null, 'Status'), h('th', { class: 'num-cell' }, 'Total'), h('th', null, 'Placed'), h('th'))),
+                h('th', null, 'Order #'), h('th', null, 'Customer'), CH ? h('th', null, 'Sold on') : null, h('th', null, 'Status'), h('th', { class: 'num-cell' }, 'Total'), h('th', null, 'Placed'), h('th'))),
               h('tbody', null, recent.map(o =>
                 h('tr', { 'data-id': o.id },
                   h('td', null, o.order_number || o.id),
                   h('td', null, o.customer_name || '—'),
+                  CH ? h('td', { 'data-label': 'Sold on' }, h('span', { class: 'badge ochBadge och-' + CH.channelOf(o), 'data-ochbadge': CH.channelOf(o) }, CH.NAMES[CH.channelOf(o)])) : null,
                   h('td', null, h('span', { class: 'badge' }, o.status ? String(o.status).replace(/_/g, ' ') : '—')),
                   h('td', { class: 'num-cell' }, fmtMoney(o.total, o.currency)),
                   h('td', null, fmtDate(o.placed_at)),
@@ -10694,6 +12388,59 @@
       out.setAttribute('data-receipt', 'ok');
     }
     document.getElementById('expReceipt').addEventListener('change', showReceiptStatus);
+    // ---------- Fill an expense in from a receipt's text (Nov 24; behind receiptReaderOn) ----------
+    // Paste the text of a receipt, or let the browser read the chosen photo where it
+    // can. The amount, date and shop are filled in on the form above for the owner to
+    // check; nothing is saved here. assets/scan/he-receipt-text.js.
+    const rrMod = () => (window.HE && window.HE.scan && window.HE.scan['he-receipt-text']) || null;
+    const rrCanRead = () => typeof window.TextDetector === 'function' && typeof window.createImageBitmap === 'function';
+    function rrSay(msg) { const el = document.querySelector('#receiptReaderHost [data-rrstatus]'); if (el) el.textContent = msg; announce(msg); }
+    function loadReceiptReader() {
+      const status = document.getElementById('expReceiptStatus');
+      let host = document.getElementById('receiptReaderHost');
+      if (!(typeof receiptReaderOn === 'function' && receiptReaderOn()) || !rrMod() || !status || !status.parentNode) { if (host) host.remove(); return; }
+      if (host) return;                                       // already there: what was typed stays
+      host = h('div', { id: 'receiptReaderHost', class: 'heField heWide receiptReader' },
+        h('h4', { class: 'u-m-0' }, 'Fill in from a receipt'),
+        h('p', { class: 'hint u-mt-6' }, 'On an iPhone: open the photo of the receipt, press and hold on its text, choose Select All, then Copy, and paste it here. The amount, the date and the shop are filled in above for you to check. Nothing is saved until you press Add expense.'),
+        h('label', { for: 'rrText' }, 'The text of the receipt'),
+        h('textarea', { id: 'rrText', rows: '4', maxlength: '20000', class: 'u-w-100pct' }),
+        h('div', { class: 'scanToggleRow u-mt-6' },
+          h('button', { type: 'button', class: 'small secondary', 'data-rr': 'fill' }, 'Fill in from this text'),
+          rrCanRead() ? h('button', { type: 'button', class: 'small secondary', 'data-rr': 'read' }, 'Read the chosen photo') : null),
+        h('p', { class: 'hint u-mt-6', role: 'status', 'data-rrstatus': '1' }));
+      status.parentNode.after(host);
+    }
+    function rrFill(text) {
+      const M = rrMod(); if (!M) return;
+      const r = M.parse(text, Date.now());
+      const amount = document.getElementById('expAmount'), date = document.getElementById('expDate'), vendor = document.getElementById('expVendor');
+      const did = [];
+      if (r.total != null && amount) { amount.value = r.total.toFixed(2); did.push('amount ' + fmtMoney(r.total, 'USD') + (r.totalHow === 'largest amount' ? ' (a guess: the largest amount)' : ' (from the total line)')); }
+      if (r.date && date) { date.value = r.date; did.push('date ' + r.date); }
+      if (r.vendor && vendor) { vendor.value = r.vendor; did.push('vendor ' + r.vendor); }
+      const host = document.getElementById('receiptReaderHost'); if (host) host.setAttribute('data-rrfound', String(r.found));
+      rrSay((did.length ? 'Filled in: ' + did.join('; ') + '. Check each one before saving.' : 'Nothing could be filled in.') + (r.notes.length ? ' ' + r.notes.join(' ') : ''));
+    }
+    document.addEventListener('click', async (e) => {
+      const b = e.target.closest('#receiptReaderHost [data-rr]'); if (!b) return;
+      const box = document.getElementById('rrText');
+      if (b.getAttribute('data-rr') === 'fill') { rrFill(box ? box.value : ''); return; }
+      // read the chosen photo, where this browser can
+      const input = document.getElementById('expReceipt'), file = input && input.files && input.files[0];
+      if (!file) { rrSay('Choose the photo of the receipt first (the Receipt box above).'); return; }
+      if (!/^image\//.test(file.type || '')) { rrSay('Only a photo can be read. For a PDF, copy its text and paste it here.'); return; }
+      b.disabled = true; rrSay('Reading the photo…');
+      try {
+        const bitmap = await window.createImageBitmap(file);
+        const found = await new window.TextDetector().detect(bitmap);
+        const text = (Array.isArray(found) ? found : []).map(t => String((t && t.rawValue) || '')).filter(Boolean).join('\n').slice(0, 20000);
+        if (!text.trim()) { rrSay('No text was found in the photo. Paste the text instead.'); return; }
+        if (box) box.value = text;
+        rrFill(text);
+      } catch (err) { rrSay('This browser could not read the photo. Paste the text instead.'); }
+      finally { b.disabled = false; }
+    });
     document.getElementById('addExpenseForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const categoryInput = document.getElementById('expCategory');

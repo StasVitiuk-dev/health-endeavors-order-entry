@@ -59,10 +59,13 @@ Rules: primary key `id`; unique (`order_id`, `external_fulfillment_id`); foreign
 Access: "owner can delete shipments" (DELETE), "staff can insert shipments", "staff can update
 shipments", "staff can view shipments". Trigger: `shipments_audit`. **Rows: 0.**
 
-What follows for drafts/48 (drop-off receipts), which is BLOCKED because it wanted to create its own
-`shipments` table:
-- Adapt it to this table: no `dropped_off_at` column, no parcel diary, no uniqueness of a tracking
-  number per carrier, and the status column is called `shipment_status` with no fixed list of values.
-- The adapted draft should only ADD to this table (new nullable columns such as `dropped_off_at`,
-  and its own diary table), keep every existing column and rule, and work with the agent's rows
-  (`external_fulfillment_id`). The table is empty today, so nothing has to be converted.
+What followed for drafts/48 (drop-off receipts), which was BLOCKED because it wanted to create its
+own `shipments` table:
+- DEPRECATED (first idea, Nov 23): add columns such as `dropped_off_at` to this table.
+- CURRENT (Nov 24): the draft was rewritten to **never change this table**. It keeps its records in
+  two tables of its own (`order_parcels`, `order_parcel_events`) and only reads `order_id`,
+  `carrier` and `tracking_number` here, to find the order of a label the agent already knows. Why
+  this instead of adding columns: the agent's code is not in this repository and the table has no
+  rows yet, so nobody can say how the agent writes it; a guard or a required column added here could
+  stop the agent's hourly run, and a link to its rows could stop it deleting them. Reading only
+  cannot. Review page: `docs/ops/sql-review/ITEM_9_DRAFT_48_ORDER_PARCELS.md`.

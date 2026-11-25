@@ -63,6 +63,33 @@
     return out;
   }
 
+  // Packaging by box size (owner's list, Nov 24: "packaging cost per box type").
+  // The owner says which boxes exist: a name, how many bottles fit, what one costs.
+  // An order goes out in the smallest box that holds it; a larger order fills the
+  // biggest box as often as needed and the rest goes in the smallest box that fits.
+  // An ESTIMATE from the number of bottles: which box was really used is not recorded.
+  const MAX_BOXES = 4, MAX_BOX_UNITS = 500;
+  function cleanBoxes(list) {
+    const out = [], seen = {};
+    (Array.isArray(list) ? list : []).slice(0, 20).forEach(b => {
+      if (!b || typeof b !== 'object') return;
+      const upTo = Number(b.upTo), costC = cents(b.cost);
+      const name = String(b.name == null ? '' : b.name).trim().slice(0, 40);
+      if (!name || !Number.isInteger(upTo) || upTo < 1 || upTo > MAX_BOX_UNITS || costC == null || costC < 0 || seen[upTo]) return;
+      seen[upTo] = true; out.push({ name: name, upTo: upTo, costC: costC });
+    });
+    return out.sort((a, b) => a.upTo - b.upTo).slice(0, MAX_BOXES);
+  }
+  function boxesFor(units, boxes) {
+    const n = Math.ceil(Number(units));
+    if (!Array.isArray(boxes) || !boxes.length || !(n >= 1) || n > 1000000) return null;
+    const big = boxes[boxes.length - 1];
+    const full = Math.floor((n - 1) / big.upTo), rest = n - full * big.upTo;      // rest is 1..big.upTo
+    const last = boxes.find(b => b.upTo >= rest);
+    const label = full === 0 ? last.name : last === big ? (full + 1) + ' × ' + big.name : full + ' × ' + big.name + ' + ' + last.name;
+    return { cents: full * big.costC + last.costC, count: full + 1, label: label };
+  }
+
   function feeFor(channel, revenueC, fees) {
     const f = (fees && fees[channel]) || null;
     if (!f) return null;
@@ -78,6 +105,7 @@
     const costs = unitCosts(i.products, i.poLines);
     const fees = Object.assign({}, DEFAULT_FEES, i.fees || {});
     const postC = cents(i.postagePerOrder), packC = cents(i.packagingPerOrder);
+    const boxes = cleanBoxes(i.boxes);                      // box sizes, when the owner filled them in
     // the real fee and postage of an order, where they were saved (docs/ops/sql/drafts/52):
     // an exact figure replaces the estimate for that part of that order
     const exact = {};
@@ -114,13 +142,16 @@
       const postage = postageExact ? real.postage : postC;
       if (fee == null) missing.push('fee estimate');
       if (postage == null) missing.push('postage estimate');
-      if (packC == null) missing.push('packaging estimate');
+      // packaging: by box size from the number of bottles; else the one amount per order
+      const boxed = boxesFor(lines.reduce((s, l) => s + l.qty, 0), boxes);
+      const pack = boxed ? boxed.cents : packC;
+      if (pack == null) missing.push('packaging estimate');
       const productCost = lines.length && lines.every(l => l.costKnown) ? lines.reduce((s, l) => s + l.cost, 0) : null;
-      const complete = revenue != null && productCost != null && fee != null && postage != null && packC != null;
+      const complete = revenue != null && productCost != null && fee != null && postage != null && pack != null;
       orders.push({ id: o.id, order: String(o.order_number || ''), channel: channel, placedAt: o.placed_at || null,
-        revenue: revenue, productCost: productCost, fee: fee, postage: postage, packaging: packC,
+        revenue: revenue, productCost: productCost, fee: fee, postage: postage, packaging: pack, box: boxed ? boxed.label : null,
         feeExact: feeExact, postageExact: postageExact,
-        profit: complete ? revenue - productCost - fee - postage - packC : null, missing: missing,
+        profit: complete ? revenue - productCost - fee - postage - pack : null, missing: missing,
         check: status === 'partially_refunded' ? 'partly refunded: check the refund' : null, lines: lines });
     });
     // by channel and by product (only complete orders count toward profit)
@@ -149,6 +180,7 @@
     // how many of the counted orders use a real figure instead of an estimate
     totals.exactFees = complete.filter(o => o.feeExact).length;
     totals.exactPostage = complete.filter(o => o.postageExact).length;
+    totals.boxed = complete.filter(o => o.box != null).length;                 // packaging worked out from a box size
     const channels = Object.values(byChannel).map(c => Object.assign(c, { margin: pct(c.profit, c.revenue) })).sort((a, b) => b.revenue - a.revenue);
     const products = Object.values(byProduct).map(p => Object.assign(p, { margin: pct(p.profit, p.revenue) })).sort((a, b) => b.profit - a.profit);
     const missingWhy = {};
@@ -172,9 +204,25 @@
       if (n != null && !(isFinite(n) && n >= 0 && n <= 100)) out.problems.push('The ' + k + ' estimate must be between $0 and $100 per order.');
       out[k] = n != null && isFinite(n) ? n : null;
     });
+    // box sizes: a row is either empty or complete
+    out.boxes = [];
+    const sizes = {};
+    for (let n = 1; n <= MAX_BOXES; n += 1) {
+      const get = (k) => String(f['box' + n + '_' + k] == null ? '' : f['box' + n + '_' + k]).trim();
+      const name = get('name').slice(0, 200), upto = get('upto'), cost = get('cost');
+      if (!name && !upto && !cost) continue;
+      const u = Number(upto), c = Number(cost);
+      if (!name || !upto || !cost) { out.problems.push('Box ' + n + ': fill in the name, how many bottles fit and what one costs, or clear the whole row.'); continue; }
+      if (name.length > 40) { out.problems.push('Box ' + n + ': the name is too long (40 characters at most).'); continue; }
+      if (!(Number.isInteger(u) && u >= 1 && u <= MAX_BOX_UNITS)) { out.problems.push('Box ' + n + ': how many bottles fit must be a whole number from 1 to ' + MAX_BOX_UNITS + '.'); continue; }
+      if (!(isFinite(c) && c >= 0 && c <= 100)) { out.problems.push('Box ' + n + ': the cost must be between $0 and $100.'); continue; }
+      if (sizes[u]) { out.problems.push('Box ' + n + ': another box already holds up to ' + u + '. Give each box a different size.'); continue; }
+      sizes[u] = true; out.boxes.push({ name: name, upTo: u, cost: c });
+    }
+    out.boxes.sort((a, b) => a.upTo - b.upTo);
     out.ok = out.problems.length === 0;
     return out;
   }
 
-  return { DEFAULT_FEES, CHANNEL_NAMES, channelOf, unitCosts, feeFor, compute, checkEstimates };
+  return { DEFAULT_FEES, CHANNEL_NAMES, MAX_BOXES, MAX_BOX_UNITS, channelOf, unitCosts, feeFor, cleanBoxes, boxesFor, compute, checkEstimates };
 }));

@@ -3,6 +3,12 @@
 // bunch of phones and the computer at the same time"). A setting the owner types
 // once is read from the database by every phone and computer, instead of living
 // in one browser. First use: the Real profit estimates (key "profit_estimates").
+// Nov 24: also the day up to which the daily recap was printed (key "recap_printed"),
+// so the Home reminder clears on every device, not only where Print was pressed;
+// and the shorter menu the owner chose (key "menu_layout", readable by every employee).
+// Also the owner's drafts: the wording on Store Campaigns, Customer Emails and the Content
+// Helper (keys "store_campaign", "customer_emails", "content_helper"; owner and administrators).
+// Lists of stores and customers are never part of a setting.
 //
 //   get(key)          -> { state: 'installed' | 'not_installed' | 'unknown',
 //                          value: object | null, updatedAt, updatedBy }
@@ -24,7 +30,9 @@
 
   const TABLE = 'shared_settings';
   const RPC = 'set_shared_setting';
-  const KEYS = Object.freeze({ profitEstimates: 'profit_estimates' });
+  const KEYS = Object.freeze({ profitEstimates: 'profit_estimates', recapPrinted: 'recap_printed', menuLayout: 'menu_layout',
+    storeCampaign: 'store_campaign', customerEmails: 'customer_emails', contentHelper: 'content_helper',
+    handoffsHandled: 'handoffs_handled' });
   const KEY_OK = /^[a-z][a-z0-9_]{1,59}$/;
   const MAX_CHARS = 8000;
   const SECRET_NAME = /pass(word|code)?|secret|token|api[_-]?key|private[_-]?key|credential|recovery/i;
@@ -64,6 +72,16 @@
     return { ok: true, value: JSON.parse(text) };
   }
 
+  // the latest of several days written YYYY-MM-DD (anything else is ignored); null when none
+  function latestDay() {
+    let best = null;
+    for (let i = 0; i < arguments.length; i += 1) {
+      const d = typeof arguments[i] === 'string' ? arguments[i].slice(0, 10) : '';
+      if (/^\d{4}-\d{2}-\d{2}$/.test(d) && (best === null || d > best)) best = d;
+    }
+    return best;
+  }
+
   function createStore(deps) {
     const d = deps || {};
     const client = d.client;
@@ -98,5 +116,44 @@
     return { get: get, set: set };
   }
 
-  return { TABLE, RPC, KEYS, MAX_CHARS, checkValue, friendlyError, createStore };
+  // One person's own settings (drafts/58): the same on every device that person signs in to.
+  // Each person reads and saves only their own; nobody else sees them, the owner included.
+  const MY_TABLE = 'my_settings', MY_RPC = 'set_my_setting';
+  const MY_KEYS = Object.freeze({ feedSnooze: 'feed_snooze' });
+  function createPersonalStore(deps) {
+    const d = deps || {};
+    const client = d.client;
+    const usable = !!(client && typeof client.from === 'function' && d.enabled !== false);
+    const mine = (err) => { const t = friendlyError(err); return t.replace('Settings for every device are not installed in the database yet (drafts/50 needs the owner\'s approval).', 'Your own settings on every device are not installed in the database yet (drafts/58 needs the owner\'s approval).'); };
+
+    async function get(key) {
+      const none = (state, message) => ({ state: state, value: null, updatedAt: null, message: message || '' });
+      if (d.enabled === false) return none('not_installed', 'Your own settings on every device are not in use yet.');   // nothing is requested
+      if (!usable) return none('unknown', 'The database is not available here.');
+      if (!KEY_OK.test(String(key == null ? '' : key))) return none('unknown', 'This setting has no valid name.');
+      try {
+        const res = await client.from(MY_TABLE).select('key, value, updated_at').eq('key', key).limit(1);
+        if (res && res.error) return notInstalled(res.error) ? none('not_installed', mine(res.error)) : none('unknown', mine(res.error));
+        const row = res && Array.isArray(res.data) ? res.data[0] : null;
+        if (!row || !isObj(row.value)) return none('installed');
+        return { state: 'installed', value: row.value, updatedAt: row.updated_at || null, message: '' };
+      } catch (e) { return none('unknown', mine(e)); }
+    }
+
+    async function set(key, value) {
+      if (!usable || typeof client.rpc !== 'function') return { ok: false, message: 'The database is not available here.' };
+      const c = checkValue(key, value);
+      if (!c.ok) return { ok: false, message: c.reason };
+      try {
+        const res = await client.rpc(MY_RPC, { p_key: key, p_value: c.value });
+        if (res && res.error) return { ok: false, message: mine(res.error), notInstalled: notInstalled(res.error) || String(res.error.code || '') === 'PGRST202' };
+        const out = res && isObj(res.data) ? res.data : {};
+        return { ok: true, message: '', updatedAt: out.updated_at || null };
+      } catch (e) { return { ok: false, message: mine(e) }; }
+    }
+
+    return { get: get, set: set };
+  }
+
+  return { TABLE, RPC, KEYS, MY_TABLE, MY_RPC, MY_KEYS, MAX_CHARS, checkValue, friendlyError, latestDay, createStore, createPersonalStore };
 }));

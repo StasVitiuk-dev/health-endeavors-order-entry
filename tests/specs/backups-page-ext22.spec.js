@@ -134,3 +134,67 @@ test('print the latest day; the Home reminder shows until it is printed, then cl
   await page.reload(); await expect(page.locator('#dash')).toBeVisible(); await gotoPage(page, 'attentionPanel');
   await expect(page.locator('#attentionFeedHost [data-feeditem="recap:2026-11-23"]')).toBeVisible();
 });
+
+// Nov 24 (owner rule: nothing kept in only one browser): with the shared settings
+// in use, the day up to which the recap was printed is kept in the database too,
+// so printing on one device clears the Home reminder on every device.
+test.describe('the printed-recap note on every device (shared settings in use)', () => {
+  const shared = (page) => page.addInitScript(() => { try { localStorage.setItem('he_attention_feed', 'on'); localStorage.setItem('he_shared_settings', 'on'); } catch (e) {} });
+  const row = (day) => ({ id: 'recap_printed', key: 'recap_printed', value: { day }, audience: 'owner_admin', updated_at: '2026-11-23T02:00:00Z', updated_by: null });
+
+  test('printed on another device: this browser shows no reminder; an older shared day still reminds', async ({ page, backend }) => {
+    backend.tables.shared_settings = [row('2026-11-22')];
+    await shared(page);
+    await open(page, backend);
+    await gotoPage(page, 'attentionPanel');
+    await expect(page.locator('#attentionFeedHost [data-feeditem]').first()).toBeVisible();
+    await expect(page.locator('#attentionFeedHost [data-feeditem^="recap:"]')).toHaveCount(0);
+    expect(await page.evaluate(() => localStorage.getItem('he_recap_printed_upto'))).toBeNull();   // never printed here
+    backend.tables.shared_settings = [row('2026-11-21')];
+    await page.reload(); await expect(page.locator('#dash')).toBeVisible(); await gotoPage(page, 'attentionPanel');
+    await expect(page.locator('#attentionFeedHost [data-feeditem="recap:2026-11-22"]')).toBeVisible();
+  });
+
+  test('printing here saves the day for every device, once, and says so; a later saved day is never moved back', async ({ page, backend }) => {
+    backend.tables.shared_settings = [];
+    backend.rpc.set_shared_setting = (body) => { backend.tables.shared_settings = [Object.assign(row(body.p_value.day), { audience: body.p_audience })]; return { ok: true, updated_at: '2026-11-24T16:00:00Z' }; };
+    await shared(page);
+    await open(page, backend);
+    const host = page.locator('#backupsPanel');
+    await host.locator('[data-bk="print-latest"]').click();
+    await expect(host.locator('[data-bkmessage]')).toHaveText('Opened the recap for 2026-11-22 for printing. The Home reminder is cleared for this day on every device.');
+    const saves = () => backend.requests.filter(r => r.rpc === 'set_shared_setting').map(r => r.body);
+    expect(saves()).toEqual([{ p_key: 'recap_printed', p_value: { day: '2026-11-22' }, p_audience: 'owner_admin' }]);
+    await host.locator('[data-bk="print-latest"]').click();                      // printing the same day again saves nothing new
+    await expect(host.locator('[data-bkmessage]')).toContainText('on every device');
+    expect(saves()).toHaveLength(1);
+    backend.tables.shared_settings = [row('2026-12-31')];                        // another device is already further
+    await host.locator('[data-bk="print-latest"]').click();
+    await expect(host.locator('[data-bkmessage]')).toContainText('on every device');
+    expect(saves()).toHaveLength(1);
+    expect(backend.tables.shared_settings[0].value.day).toBe('2026-12-31');
+  });
+
+  test('not the owner (the database refuses), or the shared settings not installed: the note stays in this browser, said as before', async ({ page, backend }) => {
+    backend.tables.shared_settings = [];
+    backend.rpc.set_shared_setting = () => ({ __error: { status: 403, code: '42501', message: 'Only the owner can change a shared setting.' } });
+    await shared(page);
+    await open(page, backend);
+    const host = page.locator('#backupsPanel');
+    await host.locator('[data-bk="print-latest"]').click();
+    await expect(host.locator('[data-bkmessage]')).toHaveText('Opened the recap for 2026-11-22 for printing. The Home reminder is cleared for this day.');
+    await expect.poll(() => backend.requests.filter(r => r.rpc === 'set_shared_setting').length).toBe(1);
+    await expect(host.locator('[data-bkmessage]')).toHaveText('Opened the recap for 2026-11-22 for printing. The Home reminder is cleared for this day.');
+    expect(await page.evaluate(() => localStorage.getItem('he_recap_printed_upto'))).toBe('2026-11-22');
+    await expect(page.locator('#dashError')).toBeHidden();
+  });
+});
+
+test('shared settings off (as shipped): printing the recap asks the database nothing about shared settings', async ({ page, backend }) => {
+  await open(page, backend);
+  await page.locator('#backupsPanel [data-bk="print-latest"]').click();
+  await expect(page.locator('#backupsPanel [data-bkmessage]')).toContainText('The Home reminder is cleared for this day.');
+  await page.waitForLoadState('networkidle');
+  expect(backend.requests.filter(r => r.rpc === 'set_shared_setting')).toEqual([]);
+  expect(backend.requests.filter(r => r.table === 'shared_settings' && !r.params.some(([k, v]) => k === 'limit' && v === '0'))).toEqual([]);
+});

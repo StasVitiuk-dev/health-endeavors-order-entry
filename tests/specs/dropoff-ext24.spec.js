@@ -2,7 +2,7 @@
 // and every order updates"). The reader (assets/scan/he-dropoff.js) and the Orders
 // section behind the he_dropoff switch (OFF, not on Feature Flags: it writes real
 // records once drafts/48 is installed; the database side is tested by
-// docs/ops/sql/local-test/shipments_test.sh). Every value is made up.
+// docs/ops/sql/local-test/order_parcels_test.sh). Every value is made up.
 const E = require('../../assets/scan/he-scan.js');
 const D = require('../../assets/scan/he-dropoff.js');
 const { test, expect, login, gotoPage } = require('../helpers/dashboard');
@@ -80,10 +80,10 @@ test.describe('the receipt reader (no browser)', () => {
     expect((await st.markDroppedOff([UPS])).busy).toBe(true);           // a double click sends once
     release();
     expect(await first).toEqual({ ok: true, results: [{ tracking: UPS, result: 'marked' }] });
-    expect(calls).toEqual([['mark_dropped_off', { p_trackings: [UPS] }]]);
+    expect(calls).toEqual([['mark_parcels_dropped_off', { p_trackings: [UPS] }]]);
     expect((await st.attach('not-a-uuid', 'ups', UPS)).message).toMatch(/Choose the order/);
     expect((await st.attach('00000000-0000-4000-8000-000000000001', 'pigeon', UPS)).message).toMatch(/carrier/);
-    const nf = D.createStore({ client: { rpc: async () => ({ error: { code: 'PGRST202', message: 'Could not find the function public.mark_dropped_off' } }) }, enabled: true });
+    const nf = D.createStore({ client: { rpc: async () => ({ error: { code: 'PGRST202', message: 'Could not find the function public.mark_parcels_dropped_off' } }) }, enabled: true });
     expect((await nf.markDroppedOff([UPS])).message).toMatch(/not installed in the database yet/);
     expect(D.friendlyError({ code: '23505', message: 'Tracking number X is already on another order. One label belongs to one parcel.' })).toMatch(/already on another order/);
     expect(D.friendlyError({ message: 'Failed to fetch' })).toMatch(/Could not reach the database/);
@@ -109,12 +109,12 @@ test.describe('the Orders section', () => {
       { id: '00000000-0000-4000-8000-00000000e002', channel: 'shopify', source: 'shopify', order_number: '1043', customer_name: 'SYNTHETIC Bo', status: 'paid', currency: 'USD', total: 18, placed_at: '2026-11-23T16:00:00Z', created_at: '2026-11-23T16:00:00Z', deleted_at: null }];
     const order = backend.tables.orders[0];
     const state = { added: {} };
-    backend.rpc.mark_dropped_off = (b) => ({ ok: true, results: (b.p_trackings || []).map(t => (
+    backend.rpc.mark_parcels_dropped_off = (b) => ({ ok: true, results: (b.p_trackings || []).map(t => (
       t === UPS ? { tracking: t, result: 'marked', order_id: order.id, status: 'dropped_off' }
       : t === USPS ? { tracking: t, result: 'already', order_id: order.id, status: 'in_transit' }
       : state.added[t] ? { tracking: t, result: 'marked', order_id: state.added[t], status: 'dropped_off' }
       : { tracking: t, result: 'not_found' })) });
-    backend.rpc.add_shipment = (b) => { state.added[b.p_tracking] = b.p_order_id; return { ok: true, duplicate: false, id: '00000000-0000-4000-8000-00000000d001' }; };
+    backend.rpc.add_order_parcel = (b) => { state.added[b.p_tracking] = b.p_order_id; return { ok: true, duplicate: false, id: '00000000-0000-4000-8000-00000000d001' }; };
     await login(page); await gotoPage(page, 'ordersPanel');
     const s = sec(page);
     await expect(s.locator('h3')).toContainText('Drop-off receipt');
@@ -129,15 +129,15 @@ test.describe('the Orders section', () => {
     await s.locator(`[data-dopick="${FDX}"]`).uncheck();
     await s.locator('[data-do="mark"]').dblclick();
     await expect(s.locator('[data-doresults] .doSentence')).toHaveText('1 parcel marked dropped off, 1 already done, 1 not on any order yet.');
-    expect(rpcCalls(backend, 'mark_dropped_off').length).toBe(1);                // a double click sent it once
-    expect(rpcCalls(backend, 'mark_dropped_off')[0].body.p_trackings.sort()).toEqual([INTL, UPS, USPS].sort());
+    expect(rpcCalls(backend, 'mark_parcels_dropped_off').length).toBe(1);                // a double click sent it once
+    expect(rpcCalls(backend, 'mark_parcels_dropped_off')[0].body.p_trackings.sort()).toEqual([INTL, UPS, USPS].sort());
     await expect(s.locator('tr[data-doresult="marked"]')).toContainText('#' + order.order_number);
     // the number on no order: choose its order, add and mark
     const row = s.locator('tr[data-doresult="not_found"]');
     await row.locator('select').selectOption(order.id);
     await row.locator('[data-doattach]').click();
     await expect(s.locator('[data-doresults] .doSentence')).toHaveText('2 parcels marked dropped off, 1 already done.');
-    expect(rpcCalls(backend, 'add_shipment').map(r => r.body)).toEqual([{ p_order_id: order.id, p_carrier: 'usps', p_tracking: INTL, p_source: 'typed' }]);
+    expect(rpcCalls(backend, 'add_order_parcel').map(r => r.body)).toEqual([{ p_order_id: order.id, p_carrier: 'usps', p_tracking: INTL, p_source: 'typed' }]);
     // start again
     await s.locator('[data-do="clear"]').click();
     await expect(s.locator('[data-dopick]')).toHaveCount(0);
@@ -146,7 +146,7 @@ test.describe('the Orders section', () => {
 
   test('not installed yet: says so plainly and changes nothing', async ({ page, backend }) => {
     await on(page);
-    backend.rpc.mark_dropped_off = () => ({ __error: { status: 404, code: 'PGRST202', message: 'Could not find the function public.mark_dropped_off(p_trackings) in the schema cache' } });
+    backend.rpc.mark_parcels_dropped_off = () => ({ __error: { status: 404, code: 'PGRST202', message: 'Could not find the function public.mark_parcels_dropped_off(p_trackings) in the schema cache' } });
     await login(page); await gotoPage(page, 'ordersPanel');
     const s = sec(page);
     await s.locator('#doText').fill(UPS);
@@ -168,7 +168,7 @@ test.describe('the Orders section', () => {
   test('readable in light and dark; every control named', async ({ page, backend }, ti) => {
     test.skip(ti.project.name !== 'desktop', 'colours are the same at phone size');
     await on(page);
-    backend.rpc.mark_dropped_off = (b) => ({ ok: true, results: (b.p_trackings || []).map(t => ({ tracking: t, result: t === UPS ? 'marked' : 'not_found' })) });
+    backend.rpc.mark_parcels_dropped_off = (b) => ({ ok: true, results: (b.p_trackings || []).map(t => ({ tracking: t, result: t === UPS ? 'marked' : 'not_found' })) });
     await login(page);
     const check = (loc) => loc.evaluate((root, src) => (new Function('return ' + src)())(root), contrastFailures.toString());
     for (const scheme of ['light', 'dark']) {
@@ -188,7 +188,7 @@ test.describe('the Orders section', () => {
   test('at phone size it fits and the buttons are easy to tap', async ({ page, backend }, ti) => {
     test.skip(ti.project.name !== 'iphone', 'phone only');
     await on(page);
-    backend.rpc.mark_dropped_off = (b) => ({ ok: true, results: (b.p_trackings || []).map(t => ({ tracking: t, result: 'not_found' })) });
+    backend.rpc.mark_parcels_dropped_off = (b) => ({ ok: true, results: (b.p_trackings || []).map(t => ({ tracking: t, result: 'not_found' })) });
     await login(page); await gotoPage(page, 'ordersPanel');
     await sec(page).locator('#doText').fill(RECEIPT);
     await sec(page).locator('[data-do="find"]').click();

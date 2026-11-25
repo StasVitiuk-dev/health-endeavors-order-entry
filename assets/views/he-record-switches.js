@@ -31,9 +31,17 @@
       what: 'Your switches and your Real profit numbers are kept in the database, the same on every phone and computer. Turn it on here to start in this browser; it becomes the rule for every device with a small update after the step is installed.' },
     { key: 'he_order_costs', name: 'Real fees and postage per order', where: 'Accounting', draft: 'drafts/52 (review item 11)', probe: 'order_costs',
       what: 'Real profit uses each order\'s real fee and postage where they are saved, instead of your estimates; Money per channel can save the real fees from a channel\'s report.' },
+    { key: 'he_order_batches', name: 'Batch on each order', where: 'Orders', draft: 'drafts/54 (review item 12)', probe: 'order_batches',
+      what: 'When packing, scan the batch sticker onto the order. "Who got a batch" then lists every order that received it. A wrong scan is voided with a reason, never deleted.' },
     { key: 'he_incident_close', name: 'Close an incident with a note', where: 'Incidents', draft: 'No database step needed', probe: 'incidents',
       what: 'The owner and administrators get a "Record what was done" button on each open incident: write what was done, then keep it open or close it. Nothing is deleted; closed incidents stay listed with their note.' },
-    { key: 'he_dropoff', name: 'Drop-off receipts', where: 'Orders', draft: 'drafts/48 (review item 9, BLOCKED until adapted)', probe: 'shipment_events',
+    { key: 'he_email_sending', name: 'Saved email campaigns', where: 'Store Campaigns and Customer Emails', draft: 'drafts/56', probe: 'email_campaigns',
+      what: 'Saves a campaign you approved and the list of who it goes to in the database, with the sending guard (slow start, do-not-email list, automatic stop). It still sends nothing: the sending program is separate and not connected.' },
+    { key: 'he_my_settings', name: 'Your own settings on every device', where: 'Home (Needs you now)', draft: 'drafts/58', probe: 'my_settings',
+      what: 'What you set aside until tomorrow on Home follows you to every phone and computer you sign in to. Each person has their own; nobody else sees them.' },
+    { key: 'he_review_store', name: 'Reviews on every device', where: 'Sales → Reviews, and Home', draft: 'drafts/60', probe: 'customer_reviews',
+      what: 'The reviews you paste or type in are kept in the database, so every phone and computer of yours and of the administrators shows the same reviews and the same "answered". Needs the preview switch "Reviews". Nothing is posted.' },
+    { key: 'he_dropoff', name: 'Drop-off receipts', where: 'Orders', draft: 'drafts/48 (review item 9)', probe: 'order_parcels',
       what: 'One carrier receipt marks every parcel on it dropped off.' },
   ]);
 

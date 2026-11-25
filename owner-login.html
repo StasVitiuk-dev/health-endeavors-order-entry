@@ -32,16 +32,17 @@
 <meta http-equiv="Expires" content="0">
 <title>Health Endeavors — Owner Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous"></script>
-<link rel="stylesheet" href="assets/owner-login.css?v=b9c5cf8f91">
+<link rel="stylesheet" href="assets/owner-login.css?v=dd4c5d5f3c">
 <link rel="stylesheet" href="assets/looks/he-looks.css?v=af2215edbe">
 <script src="assets/looks/he-look-boot.js?v=6cc916837d"></script>
 <link rel="stylesheet" href="assets/print/he-print-fonts.css?v=274ef3d170">
 <link rel="stylesheet" href="assets/print/he-print.css?v=127a21c3aa" media="print">
 <link rel="stylesheet" id="labelPrintCss" href="assets/print/he-print-label.css?v=099ed5f187" media="not all">
+<link rel="stylesheet" id="stickerPrintCss" href="assets/print/he-print-sticker.css?v=421a90e66e" media="not all">
 <script src="assets/owner-login-helpers.js?v=76dc8fc4a9"></script>
 <script src="assets/owner-login-modules.js?v=0d97adc58c"></script>
 <!-- @@ EXT15 module files (assets/app/*.js), added by tests/tools/extract-module.js @@ -->
-<script src="assets/app/he-config.js?v=af7db57d48"></script>
+<script src="assets/app/he-config.js?v=2eb6700dc3"></script>
 <script src="assets/app/he-ui.js?v=72a33e864d"></script>
 <script src="assets/app/he-data.js?v=c83d91bc56"></script>
 <script src="assets/app/he-audit.js?v=583f427717"></script>
@@ -56,7 +57,7 @@
 <script src="assets/app/he-suppliers.js?v=6a14bce2c2"></script>
 <script src="assets/app/he-reports.js?v=4b959f8c93"></script>
 <script src="assets/app/he-inquiries.js?v=fa826cb071"></script>
-<script src="assets/app/he-agents.js?v=1fa7c41c89"></script>
+<script src="assets/app/he-agents.js?v=cbbd7145d8"></script>
 <script src="assets/app/he-ops.js?v=5337f2c6ec"></script>
 <script src="assets/app/he-admin.js?v=38bde4f2a4"></script>
 <script src="assets/app/he-compliance.js?v=6a33640157"></script>
@@ -113,20 +114,32 @@
 <script src="assets/sales/he-sales-ai.js?v=e04a0e3e7c"></script>
 <script src="assets/sales/he-sales-outreach.js?v=b582584679"></script>
 <script src="assets/sales/he-sales-workbench.js?v=d01ef8e855"></script>
+<script src="assets/sales/he-store-campaign.js?v=498d704475"></script>
+<script src="assets/sales/he-store-finder.js?v=10af718e0a"></script>
+<script src="assets/sales/he-content-helper.js?v=0b36bc2ba1"></script>
+<script src="assets/sales/he-customer-campaign.js?v=c6aed1181d"></script>
+<script src="assets/sales/he-review-inbox.js?v=7ba6d9600c"></script>
+<script src="assets/sales/he-email-store.js?v=c318a7c59c"></script>
 <script src="assets/sales/he-sales-audit.js?v=fe4994e5a3"></script>
 <script src="assets/scan/he-scan.js?v=9f23c9b498"></script>
 <script src="assets/scan/he-scan-fixtures.js?v=1e32d7b6ec"></script>
 <script src="assets/scan/he-scan-ui.js?v=26b2ea15be"></script>
-<script src="assets/scan/he-dropoff.js?v=045912adbc"></script>
-<script src="assets/scan/he-delivery-watch.js?v=536e42a060"></script>
+<script src="assets/scan/he-batch-labels.js?v=516da805da"></script>
+<script src="assets/scan/he-receipt-text.js?v=dadcaa92a4"></script>
+<script src="assets/scan/he-order-batches.js?v=7ed18a39d6"></script>
+<script src="assets/scan/he-dropoff.js?v=cab7d4fadb"></script>
+<script src="assets/scan/he-delivery-watch.js?v=7dc3c6c899"></script>
 <script src="assets/inventory/he-reorder.js?v=650bff07e1"></script>
 <script src="assets/views/he-saved-views.js?v=3575602f5e"></script>
-<script src="assets/views/he-attention-feed.js?v=7c1e9a36ac"></script>
+<script src="assets/views/he-attention-feed.js?v=ccc70fbe73"></script>
 <script src="assets/views/he-agent-diary.js?v=c73b73e770"></script>
-<script src="assets/views/he-record-switches.js?v=4da6231885"></script>
+<script src="assets/views/he-record-switches.js?v=8d7ea2d929"></script>
+<script src="assets/views/he-order-channels.js?v=7729927626"></script>
 <script src="assets/views/he-incident-close.js?v=a07842dbe0"></script>
+<script src="assets/views/he-menu-layouts.js?v=2b8b00c226"></script>
+<script src="assets/views/he-agents-glance.js?v=ad22880ea5"></script>
 <script src="assets/views/he-shared-switches.js?v=f85a199cb2"></script>
-<script src="assets/views/he-shared-settings.js?v=23e92dbe6a"></script>
+<script src="assets/views/he-shared-settings.js?v=679c79f9f7"></script>
 <script src="assets/inventory/he-inventory-count.js?v=c879983a8c"></script>
 <script src="assets/inventory/he-receiving.js?v=f7f6965422"></script>
 <script src="assets/inventory/he-receiving-store.js?v=5b3a5b2dbb"></script>
@@ -147,7 +160,9 @@
 <script src="assets/reports/he-money-issues-store.js?v=0845c56469"></script>
 <script src="assets/reports/he-order-costs-store.js?v=a6405451f2"></script>
 <script src="assets/reports/he-channel-money.js?v=3562d3b265"></script>
-<script src="assets/reports/he-profit.js?v=af2e2a5ba4"></script>
+<script src="assets/reports/he-profit.js?v=bf3ce9f83b"></script>
+<script src="assets/reports/he-day-pack.js?v=8ea17c3f7b"></script>
+<script src="assets/reports/he-auto-print.js?v=6a604e209b"></script>
 <script src="assets/reports/he-ops-anomaly.js?v=77a09d76c6"></script>
 <script src="assets/owner-login-theme.js?v=05a115a149"></script>
 </head>
@@ -1046,6 +1061,10 @@
       <!-- Backups & Printouts (Nov 23): reachable only when its preview switch is on;
            filled by loadBackupsPage() with the safe DOM builder. -->
       <section class="panel" id="backupsPanel"></section>
+      <section class="panel" id="storeCampaignsPanel"></section>
+      <section class="panel" id="customerEmailsPanel"></section>
+      <section class="panel" id="contentHelperPanel"></section>
+      <section class="panel" id="reviewsPanel"></section>
       <section class="panel" id="salesCommandPanel"></section>
       <section class="panel" id="salesLeadsPanel"></section>
       <section class="panel" id="salesPipelinePanel"></section>
@@ -1146,6 +1165,6 @@
 <!-- One permanent place for screen readers to hear the result of a button in a
      section that redraws itself (Nov 15). Invisible on screen. -->
 <div id="srAnnounce" class="srOnly" role="status" aria-live="polite" aria-atomic="true"></div>
-<script src="assets/owner-login-app.js?v=b96a9041a5"></script>
+<script src="assets/owner-login-app.js?v=28c83a1e4c"></script>
 </body>
 </html>

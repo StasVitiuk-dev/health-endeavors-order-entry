@@ -2,8 +2,8 @@
 // EXT15: moved unchanged out of assets/owner-login-app.js (initApp). Its inputs
 // arrive explicitly in ctx; it returns only what other code still uses. Map:
 // docs/ops/APPLICATION_MODULE_MAP_EXT15.md. Created once, by the app, in order.
-window.HE.modules.define('he-agents', { api: 1, needs: ['AGENT_REGISTRY','AGENT_STALE_AFTER_HOURS','currentUserId','fmtDate','h','maskSensitive','requireReauth','showDashError','staleMessage','supabase','toast','updateIfUnchanged'] }, function (ctx) {
-    const { AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, currentUserId, fmtDate, h, maskSensitive, requireReauth, showDashError, staleMessage, supabase, toast, updateIfUnchanged } = ctx;
+window.HE.modules.define('he-agents', { api: 1, needs: ['AGENT_REGISTRY','AGENT_STALE_AFTER_HOURS','currentUserId','fmtDate','getPageBadgeCount','h','maskSensitive','requireReauth','showDashError','showPage','staleMessage','supabase','toast','updateIfUnchanged'] }, function (ctx) {
+    const { AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, currentUserId, fmtDate, getPageBadgeCount, h, maskSensitive, requireReauth, showDashError, showPage, staleMessage, supabase, toast, updateIfUnchanged } = ctx;
     let agentControlsByNum = Object.create(null);
     // EXT15: read access for Home, System status and Business Health. Read at the
     // moment of use (never copied before an await): loadAgentControls() may update them.
@@ -100,7 +100,84 @@ window.HE.modules.define('he-agents', { api: 1, needs: ['AGENT_REGISTRY','AGENT_
         ...body);
     }
 
+    // Agents at a glance (owner, Nov 24): every agent on one line at the top of the
+    // page, from what the page already read. assets/views/he-agents-glance.js.
+    // What is waiting for the owner, and where each agent's steps are written down.
+    // The approvals arrive separately from the agent switches, so this one line is
+    // refreshed whenever the menu's counts are (refreshAgentGlanceLinks): it must never
+    // say "nothing is waiting" while the menu shows a number.
+    function glanceLinksNode(){
+      const waiting = Number(getPageBadgeCount('approvalsPanel')) || 0, diary = document.getElementById('agentDiaryHost');
+      return h('p', { class: 'hint u-mt-0 agentGlanceLinks', 'data-glanceapprovals': String(waiting), 'data-glancesig': waiting + '|' + (diary ? 'd' : 'n') },
+        waiting ? h('b', null, waiting + (waiting === 1 ? ' request is' : ' requests are') + ' waiting for your approval. ') : 'Nothing is waiting for your approval. ',
+        h('button', { type: 'button', class: 'small secondary', 'data-glancego': 'approvalsPanel' }, 'Open Approval Queue'), ' ',
+        diary ? h('button', { type: 'button', class: 'small secondary', 'data-glancediary': '1' }, 'See what each agent did')
+          : h('span', { 'data-glancenodiary': '1' }, 'The step-by-step record of what each agent did is the Agent diary; turn it on under Feature Flags.'));
+    }
+    function refreshAgentGlanceLinks(){
+      const old = document.querySelector('#agentGlanceHost .agentGlanceLinks'); if (!old) return;
+      const waiting = Number(getPageBadgeCount('approvalsPanel')) || 0, diary = document.getElementById('agentDiaryHost');
+      if (old.getAttribute('data-glancesig') === waiting + '|' + (diary ? 'd' : 'n')) return;     // nothing changed: leave it (and any keyboard focus) alone
+      const held = old.contains(document.activeElement) ? (document.activeElement.getAttribute('data-glancego') ? '[data-glancego]' : '[data-glancediary]') : null;
+      const fresh = glanceLinksNode();
+      old.replaceWith(fresh);
+      if (held) { const again = fresh.querySelector(held) || fresh.querySelector('[data-glancego]'); if (again) again.focus({ preventScroll: true }); }
+    }
+    function renderAgentGlance(){
+      const G = (window.HE && window.HE.views && window.HE.views['he-agents-glance']) || null;
+      const panel = document.getElementById('aiPanel');
+      if (!G || !panel) return;
+      let host = document.getElementById('agentGlanceHost');
+      if (!host) { const lead = panel.querySelector('p.hint'); if (!lead) return; host = h('div', { id: 'agentGlanceHost', class: 'agentGlance' }); lead.after(host); }
+      const rows = AGENT_REGISTRY.map(a => {
+        const ctrl = agentControlsByNum[a.num];
+        const truth = agentTruth(a, ctrl);
+        return { num: a.num, name: a.name, truthKey: truth.key, label: truth.label, cls: truth.cls,
+          ran: a.dashboardOnly ? 'each time this page opens' : G.lastRan(ctrl && ctrl.last_run_at) };
+      });
+      const sum = G.summarise(rows);
+      host.replaceChildren(
+        h('h3', { class: 'u-m-18-0-6 u-fs-15' }, 'Agents at a glance'),
+        h('p', { class: 'hint u-mt-0', 'data-glancesum': [sum.on, sum.paused, sum.off, sum.look].join('/') }, sum.line + '. To pause or restart one, press "Its switch": it takes you to that agent below.'),
+        glanceLinksNode(),
+        h('ul', { class: 'agentGlanceList' }, rows.map(r => h('li', { class: 'agentGlanceRow', 'data-glance': r.num, 'data-glancestate': G.bucketOf(r.truthKey) },
+          h('span', { class: 'agentGlanceName' }, '#' + r.num + ' ' + r.name),
+          h('span', { class: 'badge ' + r.cls }, r.label),
+          h('span', { class: 'agentGlanceRan' }, 'Last ran: ' + r.ran),
+          h('button', { type: 'button', class: 'small secondary', 'data-agentjump': r.num, 'aria-label': 'Go to the switch of ' + r.name }, 'Its switch')))),
+        // approved, not running yet: kept apart so they are never counted as working
+        h('details', { class: 'agentPlanned u-mt-8', 'data-planned': String(G.PLANNED.length) },
+          h('summary', null, G.PLANNED.length + ' more agents approved, not running yet'),
+          h('p', { class: 'hint u-mt-6' }, 'You approved these on November 24. None of them runs or sends anything yet; each line says what exists today. An agent moves to the list above only when it really runs.'),
+          h('ul', { class: 'agentGlanceList' }, G.PLANNED.map(a => h('li', { class: 'agentPlannedRow', 'data-plannedagent': a.key },
+            h('div', { class: 'agentGlanceName' }, a.name),
+            h('div', null, a.what),
+            h('div', { class: 'agentGlanceRan' }, 'Sends: ' + a.sends),
+            h('div', { class: 'agentGlanceRan' }, 'Now: ' + a.now),
+            // where it lives: a button when its page is shown, otherwise which switch shows it
+            !a.page ? null : plannedShown(a)
+              ? h('button', { type: 'button', class: 'small secondary u-mt-6', 'data-glancego': a.page, 'data-plannedgo': a.key, 'aria-label': 'Open the page of ' + a.name }, 'Open its page')
+              : h('div', { class: 'agentGlanceRan', 'data-plannedswitch': a.switchKey }, 'To see it: turn on "' + a.switchName + '" under Admin → Feature Flags.'))))));
+    }
+    // a planned agent's page is shown when its switch is on in this browser (the switches follow every device once shared)
+    function plannedShown(a) { try { return !!a.switchKey && localStorage.getItem(a.switchKey) === 'on'; } catch (e) { return false; } }
+    document.addEventListener('click', (e) => {
+      const go = e.target.closest('#agentGlanceHost [data-glancego]');
+      if (go) { showPage(go.getAttribute('data-glancego')); return; }
+      if (e.target.closest('#agentGlanceHost [data-glancediary]')) {
+        const d = document.getElementById('agentDiaryHost'); if (!d) return;
+        d.scrollIntoView({ block: 'start' }); d.setAttribute('tabindex', '-1'); d.focus({ preventScroll: true });
+        return;
+      }
+      const b = e.target.closest('#agentGlanceHost [data-agentjump]'); if (!b) return;
+      const card = document.querySelector('#agentRegistryWrap [data-agent="' + CSS.escape(b.getAttribute('data-agentjump')) + '"]'); if (!card) return;
+      card.scrollIntoView({ block: 'center' });
+      const sw = card.querySelector('input.agentToggle');
+      if (sw && !sw.disabled) sw.focus({ preventScroll: true });
+      else { card.setAttribute('tabindex', '-1'); card.focus({ preventScroll: true }); }
+    });
     function renderAgentRegistry(){
+      renderAgentGlance();
       // EXT20G: built as DOM nodes (h() text-ifies) instead of an HTML string;
       // same classes, data-* and switch wiring, safe under Trusted Types.
       document.getElementById('agentRegistryWrap').replaceChildren(...AGENT_REGISTRY.map(a => {
@@ -253,5 +330,5 @@ window.HE.modules.define('he-agents', { api: 1, needs: ['AGENT_REGISTRY','AGENT_
       }
     }
 
-  return { agentControls, agentTruth, loadAgentControls };
+  return { agentControls, agentTruth, loadAgentControls, refreshAgentGlanceLinks };
 });

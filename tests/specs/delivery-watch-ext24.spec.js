@@ -71,7 +71,7 @@ test.describe('in the feed on Home', () => {
   test('a returned parcel and a label not handed over appear, with the message to copy', async ({ page, backend }) => {
     await page.clock.setFixedTime(new Date(NOW));
     backend.tables.orders = [{ id: '00000000-0000-4000-8000-00000000e001', channel: 'shopify', source: 'shopify', order_number: '1042', customer_name: 'SYNTHETIC Ana', status: 'paid', currency: 'USD', total: 24, placed_at: at(5 * D), created_at: at(5 * D), deleted_at: null }];
-    backend.tables.shipments = [
+    backend.tables.order_parcels = [
       { id: '00000000-0000-4000-8000-00000000d001', order_id: '00000000-0000-4000-8000-00000000e001', carrier: 'usps', tracking_number: 'EA123456785US', status: 'returned', status_at: at(2 * H), created_at: at(4 * D) },
       { id: '00000000-0000-4000-8000-00000000d002', order_id: '00000000-0000-4000-8000-00000000e001', carrier: 'ups', tracking_number: '1Z999AA10123456784', status: 'label_created', status_at: at(30 * H), created_at: at(30 * H) },
       { id: '00000000-0000-4000-8000-00000000d003', order_id: '00000000-0000-4000-8000-00000000e001', carrier: 'ups', tracking_number: '1Z999AA10123456785', status: 'label_created', status_at: at(2 * H), created_at: at(2 * H) }];

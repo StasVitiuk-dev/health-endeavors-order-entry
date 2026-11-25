@@ -6,6 +6,8 @@
 // stay per browser (preview-switches-ext21). Every value is made up.
 const W = require('../../assets/views/he-shared-switches.js');
 const { test, expect, login, gotoPage } = require('../helpers/dashboard');
+// Nov 24: reads of the browser's storage inside expect.poll catch a page reload in progress
+// (the one reload after the shared switches arrive) and simply try again.
 
 const node = (ti) => test.skip(ti.project.name !== 'desktop', 'Node-only; run once');
 const SW = [{ key: 'he_order_slips' }, { key: 'he_real_profit' }, { key: 'he_attention_feed' }];
@@ -53,7 +55,7 @@ test.describe('on the dashboard, with the shared settings installed', () => {
     backend.rpc.set_shared_setting = (body) => { backend.tables.shared_settings = [{ id: body.p_key, key: body.p_key, value: body.p_value, audience: body.p_audience, updated_at: '2026-11-24T16:05:00Z', updated_by: 'x' }]; return { ok: true, key: body.p_key, updated_at: '2026-11-24T16:05:00Z' }; };
     await login(page);
     await expect(page.locator('#dash')).toBeVisible();
-    await expect.poll(() => page.evaluate(() => localStorage.getItem('he_order_slips'))).toBe('on');   // brought in line at sign-in
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('he_order_slips')).catch(() => null)).toBe('on');   // brought in line at sign-in
     await gotoPage(page, 'flagsPanel');
     const host = page.locator('#previewSwitchesHost');
     await expect(host.locator('[data-preview-shared]')).toHaveAttribute('data-preview-shared', 'installed');
@@ -79,7 +81,7 @@ test.describe('on the dashboard, with the shared settings installed', () => {
     backend.tables.shared_settings = shared({ he_real_profit: true });
     backend.tables.profiles[0].role = 'administrator';
     await login(page);
-    await expect.poll(() => page.evaluate(() => localStorage.getItem('he_real_profit'))).toBe('on');
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('he_real_profit')).catch(() => null)).toBe('on');
     await gotoPage(page, 'flagsPanel');
     const host = page.locator('#previewSwitchesHost');
     await expect(host.getByRole('button', { name: 'Turn off Real profit' })).toBeDisabled();
@@ -94,7 +96,7 @@ test.describe('on the dashboard, with the shared settings installed', () => {
     await page.addInitScript(() => { try { if (!sessionStorage.getItem('seeded')) { localStorage.setItem('he_money_match', 'on'); sessionStorage.setItem('seeded', '1'); } } catch (e) {} });
     await login(page);
     await expect(page.locator('#dash')).toBeVisible();
-    await expect.poll(() => page.evaluate(() => localStorage.getItem('he_order_slips'))).toBe('on');
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('he_order_slips')).catch(() => null)).toBe('on');
     expect(await page.evaluate(() => [localStorage.getItem('he_real_profit'), localStorage.getItem('he_money_match')])).toEqual([null, null]);   // money switches: never for an employee, even if this browser had one on
   });
 });
