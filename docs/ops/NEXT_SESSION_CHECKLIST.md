@@ -141,5 +141,8 @@ Plan: `docs/ops/ATTENTION_FEED_AND_SMART_SCAN_PLAN.md`. DECIDED: customer update
 - **The owner's idea of a third copy in the partner's Administrator account:** answered in §7 of that page (a dashboard account holds no files; recommended instead: a business-owned storage account with an emergency sign-in for the partner). OWNER DECISION REQUIRED.
 - **Two-step sign-in: later.** The owner wants easy sign-in while there are no employees. **Remind the owner before launching; it is one of the last lines of the "Ready to launch" page.** Do not raise it before then.
 - **Reminder owed:** the dress rehearsal with a real test order, when the printers arrive.
-- **Open pull request:** #87 "Customers first" (preview switch, off by default).
+- **#87 "Customers first": merged by the owner on Nov 24, about 9:31 PM Central.** Still to do on the live site: turn the switch on (Admin → Feature Flags → Preview features) and look at Home.
+- **Open pull request:** #88, the weekly owner report (part of the "Backups & Printouts" switch; no database step). Later additions noted there: profit as its own line once the owner's costs are entered; sending it by email once the business email exists.
+- **Backups, the agreed order (told to the owner Nov 24 late):** 1) the newest monthly restore test, "green/red, date"; 2) one restore drill before launch; 3) a business-owned storage account for the third copy, after the business email exists; 4) the change in the private backups repository (the owner pastes prepared steps, or approves a session for that one task).
+- **Seen in the owner's screenshot, not checked:** a job named like a customer notification agent is enabled in the private repository. Claude cannot see what it does. Ask the owner whether its recent runs sent anything to real customers.
 
