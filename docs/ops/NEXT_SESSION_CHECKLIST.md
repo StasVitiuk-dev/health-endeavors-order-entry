@@ -3,6 +3,11 @@
 Status: CURRENT · written Nov 23, updated Nov 24 (section 0 added) · for Stas. One step at a time; I explain each one before you
 click. Nothing here goes live until you approve it.
 
+## New chat? Read this first (Nov 25)
+
+Everything finished, open and added to the list on Nov 24 and Nov 25 is in one page for a new chat:
+`docs/ops/CHAT_HANDOFF_2026-11-24_25.md`.
+
 ## 0. Added Nov 24 (CURRENT): do these first
 
 The full list of what waits on you, in order, is in `docs/health-endeavors-current-state.md`, section 8.
