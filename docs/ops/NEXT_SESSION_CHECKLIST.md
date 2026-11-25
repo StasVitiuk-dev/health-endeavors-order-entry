@@ -134,3 +134,12 @@ no outside bank-connection service.
 ## Attention feed and smart scan (owner request, Nov 23 late)
 
 Plan: `docs/ops/ATTENTION_FEED_AND_SMART_SCAN_PLAN.md`. DECIDED: customer updates are approved by the owner first, automatic later. Open for the owner: where postage is bought (Shopify Shipping or the counter), and the AI reading service (about $1–5 a month). Next: step A (one feed inside the dashboard), behind a switch.
+
+## Backups and the launch list (owner, Nov 24 late)
+
+- **Backups looked at by the owner (Nov 24):** nightly backup green on Nov 24; the platform lists daily backups for Nov 18–24. Still owed by the owner: the newest monthly restore test, as "green/red, date" only. Detail and the plan for "the best level" (a third copy that cannot be deleted, one restore drill, files in Storage, a Home warning): `RECOVERY_AND_BACKUP_READINESS.md` §1 and §7.
+- **The owner's idea of a third copy in the partner's Administrator account:** answered in §7 of that page (a dashboard account holds no files; recommended instead: a business-owned storage account with an emergency sign-in for the partner). OWNER DECISION REQUIRED.
+- **Two-step sign-in: later.** The owner wants easy sign-in while there are no employees. **Remind the owner before launching; it is one of the last lines of the "Ready to launch" page.** Do not raise it before then.
+- **Reminder owed:** the dress rehearsal with a real test order, when the printers arrive.
+- **Open pull request:** #87 "Customers first" (preview switch, off by default).
+
