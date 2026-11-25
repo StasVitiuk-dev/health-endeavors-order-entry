@@ -165,7 +165,7 @@ test.describe('drafts on every device', () => {
     expect(saves(backend).length).toBe(before);
   });
 
-  test('an administrator sees the owner\'s saved draft; an administrator\'s own changes stay in the browser', async ({ page, backend }) => {
+  test('an administrator sees the owner\'s saved draft, and an administrator\'s changes are saved for every device too (owner decision, Nov 24)', async ({ page, backend }) => {
     await on(page, true); store(backend);
     backend.tables.profiles[0].role = 'administrator';
     backend.tables.shared_settings = [row('store_campaign', { subject: 'The owner wrote this', body: TEXT.body, approval: null, count: '20', order: 'nearest', startDay: '2026-12-01', address: '', savedAt: '2026-11-24T15:00:00.000Z' })];
@@ -173,9 +173,8 @@ test.describe('drafts on every device', () => {
     await gotoPage(page, 'storeCampaignsPanel');
     await expect(page.locator('#scSubject')).toHaveValue('The owner wrote this');
     await page.fill('#scSubject', 'An administrator changed it');
-    await expect(page.locator('[data-draftshare="store"]')).toContainText('Only the owner\'s changes are saved for every device. Yours are kept in this browser.');
-    await page.waitForTimeout(1300);
-    expect(saves(backend)).toEqual([]);
+    await expect(page.locator('[data-draftshare="store"]')).toHaveAttribute('data-draftstate', 'saved');
+    expect(saves(backend).map(s => [s.p_key, s.p_value.subject])).toEqual([['store_campaign', 'An administrator changed it']]);
   });
 
   test('the shared settings switched on but not installed in the database: said plainly, the draft stays in the browser', async ({ page, backend }) => {

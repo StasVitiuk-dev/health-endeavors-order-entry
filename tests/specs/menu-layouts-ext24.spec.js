@@ -347,7 +347,7 @@ test.describe('the same menu on every device (shared settings in use)', () => {
   test('the database refuses or holds something odd: the choice stays in this browser and the menu still works', async ({ page, backend }) => {
     await shared(page);
     backend.tables.shared_settings = [row('zzz'), { key: 'menu_layout', value: 'x' }];
-    backend.rpc.set_shared_setting = () => ({ __error: { status: 403, code: '42501', message: 'Only the owner can change a shared setting.' } });
+    backend.rpc.set_shared_setting = () => ({ __error: { status: 403, code: '42501', message: 'Only the owner or an administrator can change a shared setting.' } });
     await login(page);
     await openMenuIfMobile(page);
     expect(await page.locator('#sidebarGroups .sidebarLink[data-inside]').count()).toBe(0);     // an unknown name is no choice: this browser keeps its own

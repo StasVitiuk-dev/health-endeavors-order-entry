@@ -278,9 +278,9 @@ for (const f of ALL) {
       'drop policy if exists shared_settings_read on public.shared_settings;',
       "create policy shared_settings_read on public.shared_settings for select to authenticated\n  using (public.is_owner_or_admin() or (audience = 'staff' and public.is_active_staff()));",
       'drop policy if exists shared_settings_owner_add on public.shared_settings;',
-      "create policy shared_settings_owner_add on public.shared_settings for insert to authenticated with check (coalesce(public.current_role(), '') = 'owner');",
+      "create policy shared_settings_owner_add on public.shared_settings for insert to authenticated with check (coalesce(public.current_role(), '') in ('owner', 'administrator'));",
       'drop policy if exists shared_settings_owner_change on public.shared_settings;',
-      "create policy shared_settings_owner_change on public.shared_settings for update to authenticated\n  using (coalesce(public.current_role(), '') = 'owner') with check (coalesce(public.current_role(), '') = 'owner');"];
+      "create policy shared_settings_owner_change on public.shared_settings for update to authenticated\n  using (coalesce(public.current_role(), '') in ('owner', 'administrator')) with check (coalesce(public.current_role(), '') in ('owner', 'administrator'));"];   // owner and administrators (owner decision, Nov 24)
     // The eighth allowed set (Nov 23, drafts/46): row rules on that draft's OWN new
     // table (confirmed tax rates): active staff read; only the owner adds or changes.
     const TAX_RATE_RULES = [

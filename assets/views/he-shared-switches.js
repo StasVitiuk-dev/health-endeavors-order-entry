@@ -1,7 +1,8 @@
 // Feature switches shared by every device (owner decision, Nov 23 evening):
 // turning a feature on once turns it on on every phone and computer. Work
 // features are for every employee; money, revenue and sensitive documents are
-// for the owner and administrators only. Only the owner flips a switch.
+// for the owner and administrators only. The owner or an administrator flips a switch
+// (owner decision of Nov 24: an administrator is "almost like owner").
 //
 // The shared state is one setting, "feature_switches" (docs/ops/sql/drafts/50,
 // readable by staff): { on: { he_order_slips: true, ... } }. At sign-in the

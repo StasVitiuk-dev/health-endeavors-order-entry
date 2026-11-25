@@ -12,7 +12,7 @@
 //
 //   get(key)          -> { state: 'installed' | 'not_installed' | 'unknown',
 //                          value: object | null, updatedAt, updatedBy }
-//   set(key, value)   -> { ok, message, updatedAt }   (set_shared_setting; owner only,
+//   set(key, value)   -> { ok, message, updatedAt }   (set_shared_setting; the owner and administrators,
 //                          the database checks again on its own)
 //
 // Until drafts/50 is installed, get() says 'not_installed' and the page keeps the

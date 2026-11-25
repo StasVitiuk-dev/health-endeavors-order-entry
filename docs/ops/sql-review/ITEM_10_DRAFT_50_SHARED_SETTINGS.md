@@ -11,7 +11,7 @@ numbers live in the one browser where you typed them.
 
 | File | Lines | Fingerprint (SHA-256, first 16) |
 |---|---|---|
-| `docs/ops/sql/drafts/50_DRAFT_shared_settings.sql` (install) | 159 | `4c7eec3e23d9374a` |
+| `docs/ops/sql/drafts/50_DRAFT_shared_settings.sql` (install) | 161 | `ba3ffc6017bc1458` |
 | `docs/ops/sql/drafts/51_DRAFT_rollback_shared_settings.sql` (undo) | 46 | `c5f3ce502a6feeaa` |
 
 ## Target environment
@@ -24,8 +24,10 @@ on a throwaway local copy with made-up data.
 A small new list, **shared_settings**: one line per setting, with a short name
 (`profit_estimates`), its value, who saved it last and when.
 
-- **Only you** (the owner) can save or change a setting. Administrators can read them. Staff can read
-  only settings marked for staff (none yet). Visitors see nothing.
+- **You and administrators** can save or change a setting (changed Nov 25, before anything was
+  installed, for your decision of Nov 24: an administrator is "almost like owner"; until then it
+  was you only). Staff can read only settings marked for staff. Visitors see nothing. Who saved
+  what stays in the audit log, and with "What administrators changed" on Home you are told.
 - A setting is **replaced, never deleted**. Each change is also written to the audit log (the same
   one tasks use), so the previous value and who changed it stay on record.
 - It **refuses to install** if a table with this name already exists that this file did not create
@@ -49,8 +51,9 @@ the same profit. Another device picks up a change when it next opens or refreshe
 
 ## Local test (throwaway database, made-up data)
 
-`docs/ops/sql/local-test/shared_settings_test.sh`: **40 of 40 passed** (Nov 24): install twice; only
-the owner saves (administrator, staff, visitor refused, direct inserts and updates too); saving
+`docs/ops/sql/local-test/shared_settings_test.sh`: **42 of 42 passed** (Nov 25; 40 of 40 on Nov 24 when
+only the owner saved): install twice; the owner and an administrator save, recorded under who
+saved (staff, a switched-off account and a visitor refused, direct inserts and updates too); saving
 again replaces the value; who can read (owner and administrator all; staff only settings marked for
 staff; a deactivated account and a visitor nothing); refusals (a bad name, a value that is not a
 list of named values, no value, a very large value, an unknown audience, renaming, deleting); a

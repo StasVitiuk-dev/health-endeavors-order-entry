@@ -653,7 +653,7 @@
     // Saves the choice for every device. true = saved for everyone; false = this browser only.
     async function menuLayoutShare(key) {
       const S = rpSettings(), store = rpStore();
-      if (!S || !store || !sharedSettingsOn() || currentUserRole !== 'owner') return false;
+      if (!S || !store || !sharedSettingsOn() || !(currentUserRole === 'owner' || currentUserRole === 'administrator')) return false;
       const saved = await store.set(S.KEYS.menuLayout, { layout: key }, 'staff');
       return !!saved.ok;
     }
@@ -3181,7 +3181,7 @@
       const form = rpEditing ? h('form', { class: 'heForm rpForm u-mt-8', 'data-rpform': '1', novalidate: '' },
         h('p', { class: 'hint u-mt-0' }, 'Starting estimates: check each against the platform’s own fee page and correct them. A blank box means unknown (orders from that channel then show "missing a fee estimate").'),
         h('p', { class: 'hint u-mt-0', 'data-rpshared': rpShared.state }, rpShared.state === 'installed'
-          ? (rpShared.value ? 'These numbers are the same on every phone and computer' + (rpShared.updatedAt ? ' (last saved ' + fmtDate(rpShared.updatedAt) + ')' : '') + '. Only the owner can change them.'
+          ? (rpShared.value ? 'These numbers are the same on every phone and computer' + (rpShared.updatedAt ? ' (last saved ' + fmtDate(rpShared.updatedAt) + ')' : '') + '. Only the owner and administrators can change them.'
             : 'Not shared yet: press Save estimates and every phone and computer will use them.')
           : rpShared.state === 'not_installed' ? 'Kept in this browser only for now. They become the same on every device once the shared settings database step (drafts/50) is installed.'
             : 'Could not check the shared settings just now, so these are this browser\u2019s numbers.'),
@@ -3253,7 +3253,7 @@
       if (c.boxes.length) value.boxes = c.boxes;             // box sizes, when any are filled in
       const keepHere = () => { try { localStorage.setItem(RP_KEY, JSON.stringify(value)); return true; } catch (err) { return false; } };
       if (rpShared.state === 'installed') {
-        // every device: saved in the database (owner only; the database checks again)
+        // every device: saved in the database (the owner or an administrator; the database checks again)
         const store = rpStore(), S = rpSettings();
         const btn = f.querySelector('button[type="submit"]'); if (btn) btn.disabled = true;
         const r = store ? await store.set(S.KEYS.profitEstimates, value) : { ok: false, message: 'The shared settings could not be reached.' };
@@ -4191,7 +4191,7 @@
       const d = dsOf(page);
       const t = !sharedSettingsOn() ? 'Kept in this browser on this device for now. Once the shared settings database step (drafts/50) is installed, it follows you to every phone and computer.'
         : d.state === 'failed' ? 'Could not save for every device (' + d.message + ') Kept in this browser.'
-          : currentUserRole !== 'owner' ? 'Only the owner\'s changes are saved for every device. Yours are kept in this browser.'
+          : !(currentUserRole === 'owner' || currentUserRole === 'administrator') ? 'Only the owner\'s and administrators\' changes are saved for every device. Yours are kept in this browser.'
             : d.state === 'saving' ? 'Saving for every phone and computer…'
               : d.state === 'saved' ? 'Saved for every phone and computer.' : 'Saved for every phone and computer as you type.';
       return t + (extra ? ' ' + extra : '');
@@ -4200,7 +4200,7 @@
     function dsNode(page, extra) { return h('p', { class: 'hint u-mt-0', role: 'status', 'data-draftshare': page, 'data-draftstate': dsState(page), 'data-draftextra': extra || '' }, dsLine(page, extra)); }
     function dsPaint(page) { const n = document.querySelector('[data-draftshare="' + page + '"]'); if (n) { n.setAttribute('data-draftstate', dsState(page)); n.textContent = dsLine(page, n.getAttribute('data-draftextra') || ''); } }
     function dsPushSoon(page, keyName, value) {
-      if (!sharedSettingsOn() || currentUserRole !== 'owner') return;
+      if (!sharedSettingsOn() || !(currentUserRole === 'owner' || currentUserRole === 'administrator')) return;
       const d = dsOf(page); clearTimeout(d.timer); d.state = 'saving'; dsPaint(page);
       d.timer = setTimeout(async () => {
         const S = rpSettings(), store = rpStore(); if (!S || !store) return;
@@ -6087,7 +6087,7 @@
       const host = document.getElementById('previewSwitchesHost'); if (!host) return;
       if (!(currentUserRole === 'owner' || currentUserRole === 'administrator') || !Array.isArray(PREVIEW_SWITCHES)) { host.replaceChildren(); return; }
       const onCount = PREVIEW_SWITCHES.filter(sw => previewSwitchIsOn(sw.key)).length;
-      const W = ssMod(), shared = ssShared.state === 'installed', ownerHere = currentUserRole === 'owner';
+      const W = ssMod(), shared = ssShared.state === 'installed', ownerHere = currentUserRole === 'owner' || currentUserRole === 'administrator';   // the owner or an administrator may change a shared switch (owner, Nov 24)
       const rows = PREVIEW_SWITCHES.map(sw => {
         const on = previewSwitchIsOn(sw.key);
         return h('tr', { 'data-preview-key': sw.key, 'data-preview-on': on ? 'yes' : 'no' },
@@ -6101,7 +6101,7 @@
         h('h3', { class: 'u-m-18-0-6 u-fs-15' }, 'Preview features'),
         h('p', { class: 'hint u-mt-0' }, 'For looking at features that are built but not switched on. A switch here applies to this browser on this device only — it is not saved to the database and nobody else sees a change. Every preview uses example data or is read-only: nothing is sent, issued, charged or written to stock. All are off unless you turn them on.'),
         h('p', { class: 'hint u-mt-6', 'data-preview-shared': ssShared.state }, shared
-          ? 'Switches are shared: turning one on here turns it on on every phone and computer' + (ssShared.value ? '' : ' (nothing is shared yet: the first change shares this browser\u2019s switches)') + '. "Every employee" switches are on for everyone; the others only for the owner and administrators. Only the owner can change a switch.'
+          ? 'Switches are shared: turning one on here turns it on on every phone and computer' + (ssShared.value ? '' : ' (nothing is shared yet: the first change shares this browser\u2019s switches)') + '. "Every employee" switches are on for everyone; the others only for the owner and administrators. The owner and administrators can change a switch.'
           : ssShared.state === 'not_installed' ? 'Until the shared settings database step (drafts/50) is installed, a switch applies to this browser only.' : ''),
         h('p', { class: 'hint u-mt-6', 'data-preview-count': String(onCount) }, onCount + ' of ' + PREVIEW_SWITCHES.length + ' on in this browser.'),
         previewSwitchMessage ? h('p', { class: 'hint u-mt-6', 'data-preview-msg': '1' }, previewSwitchMessage,
@@ -6220,13 +6220,13 @@
       const want = t.getAttribute('data-menulayout') === 'today' ? '' : M.keyOf(t.getAttribute('data-menulayout'));
       const c = M.choices().find(x => x.key === want); if (!c) return;
       mlRemember(c.key);
-      mlMessage = sharedSettingsOn() ? 'Saving for every device…' : 'Kept in this browser. Once the shared settings database step (drafts/50) is installed, the owner\'s choice applies to every phone and computer.';
+      mlMessage = sharedSettingsOn() ? 'Saving for every device…' : 'Kept in this browser. Once the shared settings database step (drafts/50) is installed, the choice of the owner or an administrator applies to every phone and computer.';
       renderSidebar(document.getElementById('sidebarSearch').value);
       loadPreviewSwitches(); announce('Menu: ' + c.name + '. ' + c.what); refocusLike(t);
       if (!sharedSettingsOn()) return;
       const everywhere = await menuLayoutShare(c.key);
       mlMessage = everywhere ? 'Saved: every phone and computer shows this menu the next time it opens the dashboard.'
-        : (currentUserRole === 'owner' ? 'Could not save it for every device; it is kept in this browser.' : 'Kept in this browser. Only the owner can choose the menu for every device.');
+        : (currentUserRole === 'owner' || currentUserRole === 'administrator' ? 'Could not save it for every device; it is kept in this browser.' : 'Kept in this browser. Only the owner and administrators can choose the menu for every device.');
       loadPreviewSwitches(); announce(mlMessage);
     });
     document.addEventListener('click', (e) => {
@@ -6243,7 +6243,7 @@
       if (act === 'reload') { window.location.reload(); return; }
       const W = ssMod();
       if (W && ssShared.state === 'installed' && (act === 'alloff' || act === 'toggle')) {
-        // shared by every device: saved in the database (owner only; the database checks again)
+        // shared by every device: saved in the database (the owner or an administrator; the database checks again)
         const sw = act === 'toggle' ? PREVIEW_SWITCHES.find(x => x.key === t.getAttribute('data-key')) : null;
         if (act === 'toggle' && !sw) return;
         const turnOn = sw ? !previewSwitchIsOn(sw.key) : false;
