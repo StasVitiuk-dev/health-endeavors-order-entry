@@ -12,7 +12,7 @@
 //
 //   get(key)          -> { state: 'installed' | 'not_installed' | 'unknown',
 //                          value: object | null, updatedAt, updatedBy }
-//   set(key, value)   -> { ok, message, updatedAt }   (set_shared_setting; owner only,
+//   set(key, value)   -> { ok, message, updatedAt }   (set_shared_setting; the owner and administrators,
 //                          the database checks again on its own)
 //
 // Until drafts/50 is installed, get() says 'not_installed' and the page keeps the
@@ -32,7 +32,7 @@
   const RPC = 'set_shared_setting';
   const KEYS = Object.freeze({ profitEstimates: 'profit_estimates', recapPrinted: 'recap_printed', menuLayout: 'menu_layout',
     storeCampaign: 'store_campaign', customerEmails: 'customer_emails', contentHelper: 'content_helper',
-    handoffsHandled: 'handoffs_handled' });
+    handoffsHandled: 'handoffs_handled', launchList: 'launch_list' });   // launchList: the launch lines a person marked done (owner and administrators)
   const KEY_OK = /^[a-z][a-z0-9_]{1,59}$/;
   const MAX_CHARS = 8000;
   const SECRET_NAME = /pass(word|code)?|secret|token|api[_-]?key|private[_-]?key|credential|recovery/i;

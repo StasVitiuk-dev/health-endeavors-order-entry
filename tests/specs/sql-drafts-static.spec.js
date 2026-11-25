@@ -8,7 +8,7 @@ const path = require('path');
 const { test, expect } = require('@playwright/test');
 
 const DIR = path.resolve(__dirname, '..', '..', 'docs', 'ops', 'sql', 'drafts');
-const INSTALLS = ['10_DRAFT_stock_functions.sql', '13_DRAFT_report_totals.sql', '17_DRAFT_po_line_delete_guard.sql', '19_DRAFT_request_keys.sql', '21_DRAFT_stock_function_switches.sql', '23_DRAFT_integrity_constraints.sql', '25_DRAFT_integrity_check_schedule.sql', '27_DRAFT_request_keys_switch.sql', '29_DRAFT_integrity_results_on_home.sql', '32_DRAFT_invoices.sql', '34_DRAFT_stock_count_adjustments.sql', '36_DRAFT_supplier_documents.sql', '38_DRAFT_supplier_document_files.sql', '40_DRAFT_partial_receiving_returns.sql', '42_DRAFT_shopify_payouts_money_issues.sql', '44_DRAFT_staff_read_purchase_orders.sql', '46_DRAFT_tax_rates.sql', '48_DRAFT_order_parcels.sql', '50_DRAFT_shared_settings.sql', '52_DRAFT_order_costs.sql', '54_DRAFT_order_batches.sql', '56_DRAFT_email_sending.sql', '58_DRAFT_my_settings.sql', '60_DRAFT_customer_reviews.sql'];
+const INSTALLS = ['10_DRAFT_stock_functions.sql', '13_DRAFT_report_totals.sql', '17_DRAFT_po_line_delete_guard.sql', '19_DRAFT_request_keys.sql', '21_DRAFT_stock_function_switches.sql', '23_DRAFT_integrity_constraints.sql', '25_DRAFT_integrity_check_schedule.sql', '27_DRAFT_request_keys_switch.sql', '29_DRAFT_integrity_results_on_home.sql', '32_DRAFT_invoices.sql', '34_DRAFT_stock_count_adjustments.sql', '36_DRAFT_supplier_documents.sql', '38_DRAFT_supplier_document_files.sql', '40_DRAFT_partial_receiving_returns.sql', '42_DRAFT_shopify_payouts_money_issues.sql', '44_DRAFT_staff_read_purchase_orders.sql', '46_DRAFT_tax_rates.sql', '48_DRAFT_order_parcels.sql', '50_DRAFT_shared_settings.sql', '52_DRAFT_order_costs.sql', '54_DRAFT_order_batches.sql', '56_DRAFT_email_sending.sql', '58_DRAFT_my_settings.sql', '60_DRAFT_customer_reviews.sql', '62_DRAFT_manager_role.sql', '64_DRAFT_people_levels.sql'];
 const ROLLBACKS = { '10_DRAFT_stock_functions.sql': '11_DRAFT_rollback_stock_functions.sql',
   '17_DRAFT_po_line_delete_guard.sql': '18_DRAFT_rollback_po_line_delete_guard.sql',
   '19_DRAFT_request_keys.sql': '20_DRAFT_rollback_request_keys.sql',
@@ -32,7 +32,9 @@ const ROLLBACKS = { '10_DRAFT_stock_functions.sql': '11_DRAFT_rollback_stock_fun
   '54_DRAFT_order_batches.sql': '55_DRAFT_rollback_order_batches.sql',
   '56_DRAFT_email_sending.sql': '57_DRAFT_rollback_email_sending.sql',
   '58_DRAFT_my_settings.sql': '59_DRAFT_rollback_my_settings.sql',
-  '60_DRAFT_customer_reviews.sql': '61_DRAFT_rollback_customer_reviews.sql' };   // Nov 24: reviews the owner typed in   // Nov 24: one person's settings on every device   // Nov 24: email sending records (nothing in it sends)   // Nov 24: which batch went into which order     // Nov 24: the real fee and postage of each order   // Nov 24: settings shared by every device   // Nov 24: parcels and drop-off receipts   // Nov 22: owner decision, staff read purchase orders   // Nov 22: Shopify payout copy and money differences   // Nov 22: partial receiving and returns (D-ops-5), owner approves stock changes   // Nov 21: private files, owner-only reading   // Nov 16, later: supplier document storage, owner-only review
+  '60_DRAFT_customer_reviews.sql': '61_DRAFT_rollback_customer_reviews.sql',
+  '62_DRAFT_manager_role.sql': '63_DRAFT_rollback_manager_role.sql',       // Nov 25: the Manager role word
+  '64_DRAFT_people_levels.sql': '65_DRAFT_rollback_people_levels.sql' };   // Nov 25: four levels of account   // Nov 24: reviews the owner typed in   // Nov 24: one person's settings on every device   // Nov 24: email sending records (nothing in it sends)   // Nov 24: which batch went into which order     // Nov 24: the real fee and postage of each order   // Nov 24: settings shared by every device   // Nov 24: parcels and drop-off receipts   // Nov 22: owner decision, staff read purchase orders   // Nov 22: Shopify payout copy and money differences   // Nov 22: partial receiving and returns (D-ops-5), owner approves stock changes   // Nov 21: private files, owner-only reading   // Nov 16, later: supplier document storage, owner-only review
 const ALL = fs.readdirSync(DIR).filter(f => /^\d\d_DRAFT_.*\.sql$/.test(f) && !/_tests?_/.test(f));
 
 // Remove comments and quoted text so words inside them are not mistaken for SQL.
@@ -217,13 +219,13 @@ for (const f of ALL) {
       'drop policy if exists email_campaigns_read on public.email_campaigns;',
       'create policy email_campaigns_read on public.email_campaigns for select to authenticated using (public.is_owner_or_admin());',
       'drop policy if exists email_campaigns_owner_add on public.email_campaigns;',
-      "create policy email_campaigns_owner_add on public.email_campaigns for insert to authenticated with check (coalesce(public.current_role(), '') = 'owner');",
+      "create policy email_campaigns_owner_add on public.email_campaigns for insert to authenticated with check (coalesce(public.current_role(), '') in ('owner', 'administrator'));",
       'drop policy if exists email_campaigns_owner_change on public.email_campaigns;',
-      "create policy email_campaigns_owner_change on public.email_campaigns for update to authenticated\n  using (coalesce(public.current_role(), '') = 'owner') with check (coalesce(public.current_role(), '') = 'owner');",
+      "create policy email_campaigns_owner_change on public.email_campaigns for update to authenticated\n  using (coalesce(public.current_role(), '') in ('owner', 'administrator')) with check (coalesce(public.current_role(), '') in ('owner', 'administrator'));",
       'drop policy if exists email_outbox_read on public.email_outbox;',
       'create policy email_outbox_read on public.email_outbox for select to authenticated using (public.is_owner_or_admin());',
       'drop policy if exists email_outbox_owner_add on public.email_outbox;',
-      "create policy email_outbox_owner_add on public.email_outbox for insert to authenticated with check (coalesce(public.current_role(), '') = 'owner');",
+      "create policy email_outbox_owner_add on public.email_outbox for insert to authenticated with check (coalesce(public.current_role(), '') in ('owner', 'administrator'));",
       'drop policy if exists email_outbox_skip on public.email_outbox;',
       'create policy email_outbox_skip on public.email_outbox for update to authenticated\n  using (public.is_owner_or_admin()) with check (public.is_owner_or_admin());'];
     // The fourteenth allowed set (Nov 24, drafts/58): row rules on that draft's OWN new table
@@ -245,6 +247,16 @@ for (const f of ALL) {
       'create policy customer_reviews_add on public.customer_reviews for insert to authenticated\n  with check (public.is_owner_or_admin());',
       'drop policy if exists customer_reviews_change on public.customer_reviews;',
       'create policy customer_reviews_change on public.customer_reviews for update to authenticated\n  using (public.is_owner_or_admin())\n  with check (public.is_owner_or_admin());'];
+    // The sixteenth allowed set (Nov 25, drafts/64): two row rules on the EXISTING accounts table,
+    // the owner's decision of Nov 24 (each level looks after the levels below it). They only ADD
+    // "an account of a level below yours" for reading and changing; the rules that exist today are
+    // not named, changed or dropped. No rule for adding or deleting an account.
+    const LEVELS = 'public.people_can_manage(public.people_actor_role(), role::text, id = auth.uid(), ';
+    const PEOPLE_RULES = [
+      'drop policy if exists profiles_levels_read on public.profiles;',
+      'create policy profiles_levels_read on public.profiles for select to authenticated\n  using (' + LEVELS + 'false));',
+      'drop policy if exists profiles_levels_change on public.profiles;',
+      'create policy profiles_levels_change on public.profiles for update to authenticated\n  using (' + LEVELS + 'is_break_glass))\n  with check (' + LEVELS + 'is_break_glass));'];
     const ORDER_BATCH_RULES = [
       'drop policy if exists order_batches_read on public.order_batches;',
       'create policy order_batches_read on public.order_batches for select to authenticated using (public.is_active_staff() or public.is_owner_or_admin());',
@@ -266,18 +278,18 @@ for (const f of ALL) {
       'drop policy if exists shared_settings_read on public.shared_settings;',
       "create policy shared_settings_read on public.shared_settings for select to authenticated\n  using (public.is_owner_or_admin() or (audience = 'staff' and public.is_active_staff()));",
       'drop policy if exists shared_settings_owner_add on public.shared_settings;',
-      "create policy shared_settings_owner_add on public.shared_settings for insert to authenticated with check (coalesce(public.current_role(), '') = 'owner');",
+      "create policy shared_settings_owner_add on public.shared_settings for insert to authenticated with check (coalesce(public.current_role(), '') in ('owner', 'administrator'));",
       'drop policy if exists shared_settings_owner_change on public.shared_settings;',
-      "create policy shared_settings_owner_change on public.shared_settings for update to authenticated\n  using (coalesce(public.current_role(), '') = 'owner') with check (coalesce(public.current_role(), '') = 'owner');"];
+      "create policy shared_settings_owner_change on public.shared_settings for update to authenticated\n  using (coalesce(public.current_role(), '') in ('owner', 'administrator')) with check (coalesce(public.current_role(), '') in ('owner', 'administrator'));"];   // owner and administrators (owner decision, Nov 24)
     // The eighth allowed set (Nov 23, drafts/46): row rules on that draft's OWN new
     // table (confirmed tax rates): active staff read; only the owner adds or changes.
     const TAX_RATE_RULES = [
       'drop policy if exists tax_rates_read on public.tax_rates;',
       'create policy tax_rates_read on public.tax_rates for select to authenticated using (public.is_active_staff() or public.is_owner_or_admin());',
       'drop policy if exists tax_rates_owner_add on public.tax_rates;',
-      "create policy tax_rates_owner_add on public.tax_rates for insert to authenticated with check (coalesce(public.current_role(), '') = 'owner');",
+      "create policy tax_rates_owner_add on public.tax_rates for insert to authenticated with check (coalesce(public.current_role(), '') in ('owner', 'administrator'));",
       'drop policy if exists tax_rates_owner_change on public.tax_rates;',
-      "create policy tax_rates_owner_change on public.tax_rates for update to authenticated\n  using (coalesce(public.current_role(), '') = 'owner') with check (coalesce(public.current_role(), '') = 'owner');"];
+      "create policy tax_rates_owner_change on public.tax_rates for update to authenticated\n  using (coalesce(public.current_role(), '') in ('owner', 'administrator')) with check (coalesce(public.current_role(), '') in ('owner', 'administrator'));"];
     // The seventh allowed set (Nov 22, drafts/42): row rules on that draft's OWN
     // new tables (Shopify payout copy, money differences); owner/admin only.
     const MONEY_RULES = [
@@ -342,7 +354,26 @@ for (const f of ALL) {
                 : f === '54_DRAFT_order_batches.sql' ? ORDER_BATCH_RULES.reduce((t, r) => t.split(r).join(''), sql)
                 : f === '56_DRAFT_email_sending.sql' ? EMAIL_RULES.reduce((t, r) => t.split(r).join(''), sql)
                 : f === '58_DRAFT_my_settings.sql' ? MY_SETTINGS_RULES.reduce((t, r) => t.split(r).join(''), sql)
-                : f === '60_DRAFT_customer_reviews.sql' ? REVIEW_RULES.reduce((t, r) => t.split(r).join(''), sql) : sql;
+                : f === '60_DRAFT_customer_reviews.sql' ? REVIEW_RULES.reduce((t, r) => t.split(r).join(''), sql)
+                : f === '64_DRAFT_people_levels.sql' ? PEOPLE_RULES.reduce((t, r) => t.split(r).join(''), sql)
+                : f === '65_DRAFT_rollback_people_levels.sql' ? PEOPLE_RULES.filter(r => r.startsWith('drop policy')).reduce((t, r) => t.split(r).join(''), sql) : sql;
+    if (f === '64_DRAFT_people_levels.sql') {
+      for (const r of PEOPLE_RULES) expect(sql.split(r).length - 1, 'pinned rule present exactly once: ' + r.slice(0, 60)).toBe(1);
+      // only reading and changing: never a rule for adding or deleting an account, and none for "all"
+      expect(sql).not.toMatch(/for (insert|delete|all) to/);
+      // nothing new is granted on the accounts table, and nothing at all on the saved text
+      expect(sql).not.toMatch(/grant [^;]* on (table )?public\.profiles/);
+      expect(sql).toContain('revoke all on public.people_levels_backup from public, anon, authenticated;');
+      expect(sql).not.toMatch(/grant [^;]*people_levels_backup/);
+      const whole = fs.readFileSync(path.join(DIR, f), 'utf8');
+      // today's guard is saved before it is replaced, once, and never overwritten by this file's own guard
+      expect(whole.indexOf('insert into public.people_levels_backup')).toBeGreaterThan(0);
+      expect(whole.indexOf('insert into public.people_levels_backup')).toBeLessThan(whole.indexOf('create or replace function public.guard_profile_privileged_columns()'));
+      expect(whole).toContain('on conflict (what) do nothing;');
+      expect(whole).toContain("obj_description(to_regclass('public.people_levels_backup'), 'pg_class')");
+      // no account is changed by installing: the only UPDATEs are inside the functions a person calls
+      expect(sql).not.toMatch(/^\s*update\s+public\.profiles/m);
+    }
     if (f === '60_DRAFT_customer_reviews.sql') {
       for (const r of REVIEW_RULES) expect(sql.split(r).length - 1, 'pinned rule present exactly once: ' + r.slice(0, 60)).toBe(1);
       // every row rule is "the owner and administrators": staff and visitors never read a review
@@ -488,6 +519,8 @@ for (const f of ALL) {
             : f === '59_DRAFT_rollback_my_settings.sql' ? sql.replace('drop table if exists public.my_settings;', '')
             // Nov 24: the reviews rollback removes its own table (and refuses while any review is saved, unless authorized).
             : f === '61_DRAFT_rollback_customer_reviews.sql' ? sql.replace('drop table if exists public.customer_reviews;', '')
+            // Nov 25: the four-levels rollback removes its own small table (the saved text of the earlier guard), and only after that text was put back.
+            : f === '65_DRAFT_rollback_people_levels.sql' ? sql.replace('drop table if exists public.people_levels_backup;', '')
             // Nov 24: the email sending rollback removes its own three tables (and refuses while any email record is saved, unless authorized).
             : f === '57_DRAFT_rollback_email_sending.sql' ? ['email_outbox', 'email_campaigns', 'email_suppressions'].reduce((t, n) => t.replace('drop table if exists public.' + n + ';', ''), sql)
             : f === '53_DRAFT_rollback_order_costs.sql' ? sql.replace('drop table if exists public.order_costs;', '')
@@ -524,7 +557,17 @@ for (const f of ALL) {
   });
 
   test(`${f}: dynamic SQL only through format() with safe placeholders`, () => {
-    const sql = code(fs.readFileSync(path.join(DIR, f), 'utf8'));
+    let sql = code(fs.readFileSync(path.join(DIR, f), 'utf8'));
+    if (f === '65_DRAFT_rollback_people_levels.sql') {
+      // The one pinned exception (Nov 25): the rollback of drafts/64 runs the guard's earlier text exactly as
+      // drafts/64 saved it (the database's own pg_get_functiondef output, kept where no signed-in person can
+      // read or write). It appears once, and only after the saved text was checked to be that function.
+      expect(sql.split('execute v_def;').length - 1, 'the saved guard is run exactly once').toBe(1);
+      const check = sql.indexOf("if v_def !~* '^\\s*create or replace function public\\.guard_profile_privileged_columns\\(\\)\\s' or v_def ~* 'drafts/64' then");
+      expect(check, 'the saved text is checked').toBeGreaterThan(0);
+      expect(check, 'and checked before it is run').toBeLessThan(sql.indexOf('execute v_def;'));
+      sql = sql.replace('execute v_def;', '');
+    }
     const executes = (sql.match(/\bexecute\s+(?!function\b|procedure\b|on\b)[^;]*/gi) || []);
     for (const e of executes) {
       expect(e, 'built with format()').toMatch(/^execute\s+format\s*\(/i);

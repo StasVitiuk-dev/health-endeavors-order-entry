@@ -78,6 +78,8 @@ step "which batch went into which order (drafts/54)" bash "$LT/order_batches_tes
 step "email sending records: campaigns, outbox, do-not-email list (drafts/56)" bash "$LT/email_sending_test.sh" $C
 step "one person's settings on every device (drafts/58)" bash "$LT/my_settings_test.sh" $C
 step "reviews the owner typed in (drafts/60)" bash "$LT/customer_reviews_test.sh" $C
+step "four levels of account: who may see and change which account (drafts/62, 64)" bash "$LT/people_levels_test.sh" $C
+step "the New Employee helper program: create, password, block (drafts/64 + edge draft)" node "$LT/people_accounts_core_test.mjs" $C
 step "report day cutoff (Query I)" bash "$LT/report_day_cutoff_test.sh" $C
 step "restore with the November drafts" bash "$LT/restore_with_drafts_test.sh" $C
 step "stress (5 runs)" bash "$LT/stress_test.sh" 5 $C -d he_real

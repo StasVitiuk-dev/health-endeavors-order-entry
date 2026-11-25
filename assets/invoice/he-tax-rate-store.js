@@ -5,7 +5,8 @@
 // rules (he-tax.js) use, so an invoice can only ever use a rate the owner
 // confirmed, from its start day, and stays TAX PENDING once a re-check is due.
 // Behind the he_tax_rates switch (OFF, not on Feature Flags: it writes real
-// records once drafts/46 is installed). The owner writes; everyone may read; the
+// records once drafts/46 is installed). The owner and administrators write (owner
+// decision, Nov 24); everyone may read; the
 // database checks again on its own.
 //
 // Privacy: `place` is a short name ("Ships from: Illinois"), never a street
@@ -117,7 +118,7 @@
     function ready(write) {
       if (!enabled) return refuse('Saved tax rates are off.', { off: true });
       if (!client || typeof client.from !== 'function' || typeof client.rpc !== 'function') return refuse('No database connection was given.');
-      if (write && role !== 'owner') return refuse('Only the owner can confirm or re-check a tax rate.', { forbidden: true });
+      if (write && role !== 'owner' && role !== 'administrator') return refuse('Only the owner or an administrator can confirm or re-check a tax rate.', { forbidden: true });
       return null;
     }
     async function once(key, fn) {

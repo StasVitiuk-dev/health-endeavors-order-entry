@@ -84,7 +84,7 @@
       nightlyOverall,
     } = window.HE.helpers;
     // @@ EXT15 modules: created in dependency order (assets/app/*.js; see docs/ops/APPLICATION_MODULE_MAP_EXT15.md)
-    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, agentDiaryOn, realProfitOn, channelMoneyOn, SWITCH_EVERYONE, sharedSettingsOn, orderCostsOn, incidentCloseOn, batchLabelsOn, orderBatchesOn, orderChannelsOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn, storeCampaignsOn, receiptReaderOn, contentHelperOn, customerEmailsOn, emailSendingOn, mySettingsOn, handoffHandledOn, reviewInboxOn, reviewStoreOn, customersFirstOn } = HE.modules.create('he-config', {  });
+    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, agentDiaryOn, realProfitOn, channelMoneyOn, SWITCH_EVERYONE, sharedSettingsOn, orderCostsOn, incidentCloseOn, batchLabelsOn, orderBatchesOn, orderChannelsOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn, storeCampaignsOn, receiptReaderOn, contentHelperOn, customerEmailsOn, emailSendingOn, mySettingsOn, handoffHandledOn, reviewInboxOn, reviewStoreOn, customersFirstOn, launchPageOn, askBoxOn, peoplePageOn, adminChangesOn } = HE.modules.create('he-config', {  });
     const { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, focusDialog, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, h, pageIconNode } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
     const { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
     const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, h, supabase });
@@ -653,7 +653,7 @@
     // Saves the choice for every device. true = saved for everyone; false = this browser only.
     async function menuLayoutShare(key) {
       const S = rpSettings(), store = rpStore();
-      if (!S || !store || !sharedSettingsOn() || currentUserRole !== 'owner') return false;
+      if (!S || !store || !sharedSettingsOn() || !(currentUserRole === 'owner' || currentUserRole === 'administrator')) return false;
       const saved = await store.set(S.KEYS.menuLayout, { layout: key }, 'staff');
       return !!saved.ok;
     }
@@ -2791,7 +2791,7 @@
       const seq = ++trSeq;
       const L = await store.list();
       if (seq !== trSeq) return;
-      const owner = currentUserRole === 'owner';
+      const owner = currentUserRole === 'owner' || currentUserRole === 'administrator';   // confirms and re-checks (owner decision, Nov 24)
       const today = trToday();
       const head = [h('h3', { class: 'u-fs-13 u-c-navy u-m-18-0-6' }, 'Sales tax rates you confirmed'),
         h('p', { class: 'hint u-mt-n2 hintLead' }, 'Invoices use only these rates, from the day each one starts. Look the rate up in the Illinois Department of Revenue\'s Tax Rate Finder (tax.illinois.gov). Rates can change on January 1 and July 1, so each rate asks to be re-checked after those days.')];
@@ -2815,7 +2815,7 @@
         h('div', { class: 'heField' }, h('label', { for: 'trFrom' }, 'Starts on'), h('input', { id: 'trFrom', name: 'from', type: 'date' })),
         h('div', { class: 'heField' }, h('label', { for: 'trSource' }, 'Where it comes from'), h('input', { id: 'trSource', name: 'source', type: 'text', maxlength: '200', value: 'IDOR Tax Rate Finder' })),
         h('div', { class: 'heField heWide' }, h('label', { for: 'trNote' }, 'Note ', h('span', { class: 'heOpt' }, '(optional)')), h('input', { id: 'trNote', name: 'note', type: 'text', maxlength: '300' })),
-        h('div', { class: 'heActions' }, h('button', { type: 'submit', class: 'small' }, 'Confirm rate'))) : h('p', { class: 'hint u-fs-12' }, 'Only the owner confirms or re-checks a rate.');
+        h('div', { class: 'heActions' }, h('button', { type: 'submit', class: 'small' }, 'Confirm rate'))) : h('p', { class: 'hint u-fs-12' }, 'Only the owner or an administrator confirms or re-checks a rate.');
       host.replaceChildren(...head,
         due.length ? h('p', { class: 'error', role: 'status', 'data-trdue': String(due.length) }, due.length + ' rate' + (due.length === 1 ? ' needs' : 's need') + ' a re-check: new invoices with ' + (due.length === 1 ? 'it' : 'them') + ' stay TAX PENDING until then.') : null,
         table,
@@ -2828,7 +2828,7 @@
     async function loadTaxRateAlert() {
       const host = document.getElementById('taxRateAlertHost'); if (!host) return;
       const store = trStore(); const mod = trMod();
-      if (!store || !mod || currentUserRole !== 'owner') { host.replaceChildren(); return; }
+      if (!store || !mod || !(currentUserRole === 'owner' || currentUserRole === 'administrator')) { host.replaceChildren(); return; }   // the people who confirm rates
       let taxMod = null; try { taxMod = (window.HE && window.HE.invoice && window.HE.invoice['he-tax']) || null; } catch (e) { taxMod = null; }
       const L = await store.list();
       if (!L.ok) { host.replaceChildren(); return; }
@@ -2900,6 +2900,46 @@
         h('span', { class: 'taskTitle' }, n + (L.truncated ? '+' : '') + ' money difference' + (n === 1 ? '' : 's') + ' to look at'),
         ' ', h('button', { type: 'button', class: 'small', 'data-goto': 'accountingPanel', 'data-moneyalertopen': '1' }, 'Review on Accounting')));
     }
+    // ---------- What administrators changed (owner, Nov 24; behind adminChangesOn; the owner only)
+    // A short note on Home from the change history (assets/views/he-admin-changes.js). Reads only;
+    // "Seen" is kept in this browser. Looks back at most 7 days.
+    const AC_SEEN_KEY = 'he_admin_changes_seen';
+    let acSeq = 0, acLast = null;
+    const acMod = () => (window.HE && window.HE.views && window.HE.views['he-admin-changes']) || null;
+    function acSeenUpTo() { try { const v = Number(localStorage.getItem(AC_SEEN_KEY)); return isFinite(v) && v > 0 ? v : 0; } catch (e) { return 0; } }
+    async function loadAdminChanges() {
+      const host = document.getElementById('adminChangesHost'); const M = acMod(); if (!host) return;
+      if (!M || currentUserRole !== 'owner' || !(typeof adminChangesOn === 'function' && adminChangesOn())) { host.replaceChildren(); return; }
+      const seq = ++acSeq, seen = acSeenUpTo();
+      const from = new Date(Math.max(seen, Date.now() - 7 * 86400000)).toISOString();
+      let res; try { res = await supabase.rpc('employee_activity', { p_from: from, p_limit: 500, p_offset: 0 }); } catch (e) { res = { error: e }; }
+      if (seq !== acSeq) return;
+      if (!res || res.error || !Array.isArray(res.data)) {
+        host.replaceChildren(h('div', { class: 'attnRow u-mt-12', 'data-adminchanges': 'unknown', role: 'status' },
+          h('span', { class: 'badge sev-medium' }, 'Administrators'), h('span', { class: 'u-fs-12p5' }, 'Could not read what administrators changed just now. Employee Activity has the full list.')));
+        return;
+      }
+      const s = M.summarize(res.data, seen); acLast = s;
+      if (!s.total) { host.replaceChildren(); return; }
+      host.replaceChildren(h('div', { class: 'attnRow u-mt-12', 'data-adminchanges': String(s.total), role: 'status' },
+        h('span', { class: 'badge ' + (s.deletes || s.accounts ? 'sev-high' : 'sev-medium') }, 'Administrators'),
+        h('div', null,
+          h('div', { class: 'taskTitle' }, M.sentence(s, res.data.length >= 500)),
+          h('ul', { class: 'u-fs-12p5 u-mt-4' }, s.people.map(p => h('li', null, M.personLine(p))),
+            s.morePeople ? h('li', null, 'and ' + s.morePeople + ' more') : null),
+          h('div', { class: 'scanToggleRow u-mt-6' },
+            h('button', { type: 'button', class: 'small', 'data-acgo': '1' }, 'Open Employee Activity'),
+            h('button', { type: 'button', class: 'small secondary', 'data-acseen': '1', 'aria-label': 'Mark what administrators changed as seen' }, 'Seen')))));
+    }
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('#adminChangesHost [data-acgo]')) { showPage('activityPanel'); return; }
+      if (!e.target.closest('#adminChangesHost [data-acseen]') || currentUserRole !== 'owner' || !acLast || !acLast.newest) return;
+      try { localStorage.setItem(AC_SEEN_KEY, String(acLast.newest)); } catch (err) { /* stays until next time */ }
+      const host = document.getElementById('adminChangesHost'); if (host) host.replaceChildren();
+      announce('Marked as seen. New changes by administrators will show here again.');
+      const next = document.getElementById('attentionPanel'); if (next) { if (!next.hasAttribute('tabindex')) next.setAttribute('tabindex', '-1'); next.focus(); }
+    });
+
     // ---------- Drop-off receipt (Nov 24; behind dropoffOn, drafts/48) ----------
     // One carrier receipt marks every parcel on it "dropped off" (owner: "100 parcels
     // at UPS, scan the receipt and every order updates"). The numbers come from a
@@ -3141,7 +3181,7 @@
       const form = rpEditing ? h('form', { class: 'heForm rpForm u-mt-8', 'data-rpform': '1', novalidate: '' },
         h('p', { class: 'hint u-mt-0' }, 'Starting estimates: check each against the platform’s own fee page and correct them. A blank box means unknown (orders from that channel then show "missing a fee estimate").'),
         h('p', { class: 'hint u-mt-0', 'data-rpshared': rpShared.state }, rpShared.state === 'installed'
-          ? (rpShared.value ? 'These numbers are the same on every phone and computer' + (rpShared.updatedAt ? ' (last saved ' + fmtDate(rpShared.updatedAt) + ')' : '') + '. Only the owner can change them.'
+          ? (rpShared.value ? 'These numbers are the same on every phone and computer' + (rpShared.updatedAt ? ' (last saved ' + fmtDate(rpShared.updatedAt) + ')' : '') + '. Only the owner and administrators can change them.'
             : 'Not shared yet: press Save estimates and every phone and computer will use them.')
           : rpShared.state === 'not_installed' ? 'Kept in this browser only for now. They become the same on every device once the shared settings database step (drafts/50) is installed.'
             : 'Could not check the shared settings just now, so these are this browser\u2019s numbers.'),
@@ -3213,7 +3253,7 @@
       if (c.boxes.length) value.boxes = c.boxes;             // box sizes, when any are filled in
       const keepHere = () => { try { localStorage.setItem(RP_KEY, JSON.stringify(value)); return true; } catch (err) { return false; } };
       if (rpShared.state === 'installed') {
-        // every device: saved in the database (owner only; the database checks again)
+        // every device: saved in the database (the owner or an administrator; the database checks again)
         const store = rpStore(), S = rpSettings();
         const btn = f.querySelector('button[type="submit"]'); if (btn) btn.disabled = true;
         const r = store ? await store.set(S.KEYS.profitEstimates, value) : { ok: false, message: 'The shared settings could not be reached.' };
@@ -4056,7 +4096,8 @@
     }
     function esNode(page) {
       const M = esMod(); if (!M || !emailSendingOn()) return null;
-      const es = esOf(page), owner = currentUserRole === 'owner', ready = esReady(page), who = page === 'store' ? 'stores' : 'customers';
+      const es = esOf(page), owner = currentUserRole === 'owner' || currentUserRole === 'administrator', ready = esReady(page),   // owner decision, Nov 24
+      who = page === 'store' ? 'stores' : 'customers';
       const n = ready ? ready.recipients.length : 0;
       const head = [h('h3', null, 'Save this campaign (nothing is sent)'),
         h('p', { class: 'hint u-mt-0' }, 'Saving puts the approved wording and the list of ' + who + ' into the database, with the sending guard: the slow start, the do-not-email list and the automatic stop. It sends nothing; the sending program is not connected. A saved wording cannot be changed afterwards.')];
@@ -4069,7 +4110,7 @@
       const r = es.result;
       return h('div', { 'data-emailsave': page, 'data-esstate': 'installed', class: 'u-mt-12' }, ...head,
         h('p', { class: 'u-fs-12p5', role: 'status', 'data-esmessage': '1' }, es.message),
-        !owner ? h('p', { class: 'hint' }, 'Only the owner can save a campaign.')
+        !owner ? h('p', { class: 'hint' }, 'Only the owner or an administrator can save a campaign.')
           : !ready ? h('p', { class: 'hint', 'data-esnotready': '1' }, 'Approve the wording and press "Show who would get it" first. What is shown there is what would be saved.')
             : h('div', { 'data-esform': String(n) },
               h('div', { class: 'heField scField' }, h('label', { for: 'esName-' + page }, 'A name for this campaign'),
@@ -4151,7 +4192,7 @@
       const d = dsOf(page);
       const t = !sharedSettingsOn() ? 'Kept in this browser on this device for now. Once the shared settings database step (drafts/50) is installed, it follows you to every phone and computer.'
         : d.state === 'failed' ? 'Could not save for every device (' + d.message + ') Kept in this browser.'
-          : currentUserRole !== 'owner' ? 'Only the owner\'s changes are saved for every device. Yours are kept in this browser.'
+          : !(currentUserRole === 'owner' || currentUserRole === 'administrator') ? 'Only the owner\'s and administrators\' changes are saved for every device. Yours are kept in this browser.'
             : d.state === 'saving' ? 'Saving for every phone and computer…'
               : d.state === 'saved' ? 'Saved for every phone and computer.' : 'Saved for every phone and computer as you type.';
       return t + (extra ? ' ' + extra : '');
@@ -4160,7 +4201,7 @@
     function dsNode(page, extra) { return h('p', { class: 'hint u-mt-0', role: 'status', 'data-draftshare': page, 'data-draftstate': dsState(page), 'data-draftextra': extra || '' }, dsLine(page, extra)); }
     function dsPaint(page) { const n = document.querySelector('[data-draftshare="' + page + '"]'); if (n) { n.setAttribute('data-draftstate', dsState(page)); n.textContent = dsLine(page, n.getAttribute('data-draftextra') || ''); } }
     function dsPushSoon(page, keyName, value) {
-      if (!sharedSettingsOn() || currentUserRole !== 'owner') return;
+      if (!sharedSettingsOn() || !(currentUserRole === 'owner' || currentUserRole === 'administrator')) return;
       const d = dsOf(page); clearTimeout(d.timer); d.state = 'saving'; dsPaint(page);
       d.timer = setTimeout(async () => {
         const S = rpSettings(), store = rpStore(); if (!S || !store) return;
@@ -5020,6 +5061,465 @@
       }
     });
 
+    // ---------- People: the New Employee page (owner, Nov 24; behind the real-records switch he_people_page)
+    // Rules: assets/views/he-people.js. The database (drafts/62, 64) decides who may change which
+    // account; the helper program (review item 17) creates sign-ins, sets passwords and blocks a
+    // sign-in, each after asking the database for the signed-in person. Nothing is ever deleted.
+    const PP_FN = SUPABASE_URL + '/functions/v1/people-accounts';
+    let ppRows = null, ppErr = '', ppStep = null, ppSeq = 0, ppMsg = '', ppMsgBad = false, ppOpen = '', ppProblems = [], ppBusy = false, ppMe = null;
+    const ppMod = () => (window.HE && window.HE.views && window.HE.views['he-people']) || null;
+    const ppOn = () => typeof peoplePageOn === 'function' && peoplePageOn();
+    const ppSay = (text, bad) => { ppMsg = text; ppMsgBad = !!bad; };
+    // the helper program, asked with this person's own sign-in; the answer is always one plain sentence
+    async function ppHelper(body) {
+      let token = '';
+      try { const { data } = await supabase.auth.getSession(); token = data && data.session ? data.session.access_token : ''; } catch (e) { token = ''; }
+      if (!token) return { ok: false, message: 'Your sign-in has ended. Sign in again; nothing was changed.' };
+      let r;
+      try { r = await fetch(PP_FN, { method: 'POST', headers: { 'content-type': 'application/json', apikey: SUPABASE_ANON_KEY, authorization: 'Bearer ' + token }, body: JSON.stringify(body) }); }
+      catch (e) { return { ok: false, message: 'Could not reach the helper program that creates sign-ins. Nothing was changed; try again.' }; }
+      if (r.status === 404) return { ok: false, message: 'The helper program that creates sign-ins is not set up yet (review item 17). Nothing was changed.' };
+      let j = null; try { j = await r.json(); } catch (e) { j = null; }
+      const said = j && typeof j.message === 'string' ? j.message.slice(0, 400) : '';
+      return { ok: r.ok && !!j && j.ok === true, message: said || ('The helper program refused the request (' + r.status + '). Nothing was changed.'), id: j && typeof j.id === 'string' ? j.id : '' };
+    }
+    async function loadPeoplePage() {
+      const host = document.getElementById('peoplePanel'); const M = ppMod(); if (!host) return;
+      if (!ppOn() || !M) { host.replaceChildren(); return; }
+      if (!M.canOpen(currentUserRole)) { host.replaceChildren(h('h2', null, 'People'), h('p', { class: 'empty' }, 'This page is for the owner, administrators and managers.')); return; }
+      const seq = ++ppSeq;
+      if (!ppRows && !ppErr) renderPeoplePage();
+      const RS = rsMod(), sw = RS ? RS.RECORD_SWITCHES.find(x => x.key === 'he_people_page') : null;
+      const [step, me, list] = await Promise.all([
+        sw ? RS.probe(supabase, sw) : Promise.resolve('unknown'),
+        currentUserId().catch(() => null),
+        Promise.resolve(supabase.from('profiles').select('id, email, display_name, role, is_active, deleted_at, department, account_number, is_break_glass').order('created_at', { ascending: true }).limit(500)).then(v => v, e => ({ error: e })),
+      ]);
+      if (seq !== ppSeq) return;
+      ppStep = step; ppMe = me;
+      ppErr = list && list.error ? M.friendlyError(list.error) : '';
+      ppRows = list && !list.error && Array.isArray(list.data) ? list.data : null;
+      renderPeoplePage();
+    }
+    const PP_STATE = (p) => (p.deleted_at ? 'Removed' : p.is_active ? 'Active' : 'Suspended');
+    function renderPeoplePage() {
+      const host = document.getElementById('peoplePanel'); const M = ppMod(); if (!host || !M) return;
+      const head = [h('h2', null, 'People'),
+        h('p', { class: 'hint' }, 'Add a person and look after the accounts below your level: Owner, then Administrator, then Manager, then Employee. The new person types their own password; nobody else ever knows it. Nothing is ever deleted: "Remove" switches an account off and keeps its whole history.')];
+      if (!ppRows && !ppErr) { host.replaceChildren(...head, h('p', { class: 'empty' }, 'Loading…')); return; }
+      const ready = ppStep === 'installed';
+      const notice = ppStep === 'not_installed' ? h('p', { class: 'hint u-c-warn', role: 'alert', 'data-pp-notinstalled': '1' }, 'The database step for this page is not installed yet (review item 16). The list below is what you can see today; nothing can be changed here until it is installed.')
+        : ppStep !== 'installed' ? h('p', { class: 'hint u-c-warn', role: 'alert' }, 'Could not check the database step just now. Nothing can be changed until it answers; try again later.') : null;
+      const actor = { id: ppMe, role: currentUserRole };
+      const raw = Array.isArray(ppRows) ? ppRows : [];
+      const byId = new Map(raw.map(p => [p.id, p]));
+      const view = M.listView(raw.filter(p => p.role !== 'ai_agent').map(p => ({ id: p.id, name: p.display_name, email: p.email, role: String(p.role || ''), active: p.is_active === true && !p.deleted_at, accountNumber: p.account_number, emergency: p.is_break_glass === true })), actor, {});
+      const levels = M.assignable(currentUserRole);
+      const msg = h('p', { class: 'u-fs-12p5' + (ppMsgBad ? ' u-c-danger' : ''), role: 'status', 'data-pp-msg': '1' }, ppMsg);
+      const addForm = ppOpen === 'add' ? h('form', { class: 'scanCard u-mt-8', 'data-pp-form': 'add', novalidate: true },
+        h('h3', { class: 'u-mt-0' }, 'Add a person'),
+        h('div', { class: 'heField' }, h('label', { for: 'ppName' }, 'Their name'), h('input', { type: 'text', id: 'ppName', maxlength: '80', autocomplete: 'off' })),
+        h('div', { class: 'heField' }, h('label', { for: 'ppEmail' }, 'Their work email'), h('input', { type: 'email', id: 'ppEmail', maxlength: '254', autocomplete: 'off' })),
+        h('div', { class: 'heField' }, h('label', { for: 'ppRole' }, 'Level'), h('select', { id: 'ppRole' }, levels.map(r => h('option', { value: r }, M.ROLE_WORD[r])))),
+        h('ul', { class: 'u-fs-12 u-c-muted u-mt-4' }, levels.map(r => h('li', null, h('b', null, M.ROLE_WORD[r] + ': '), M.ROLE_LINE[r]))),
+        h('div', { class: 'heField' }, h('label', { for: 'ppDept' }, 'Department ', h('span', { class: 'heOpt' }, '(optional)')), h('input', { type: 'text', id: 'ppDept', maxlength: '60', autocomplete: 'off' })),
+        h('p', { class: 'hint u-mt-8' }, h('b', null, 'Now hand the keyboard to the new person.'), ' They type their own password twice (at least ' + M.PW_MIN + ' characters). It is not shown, kept or sent anywhere except to the sign-in provider.'),
+        h('div', { class: 'heField' }, h('label', { for: 'ppPw' }, 'Password'), h('input', { type: 'password', id: 'ppPw', autocomplete: 'new-password', maxlength: String(M.PW_MAX + 1) })),
+        h('div', { class: 'heField' }, h('label', { for: 'ppPw2' }, 'The same password again'), h('input', { type: 'password', id: 'ppPw2', autocomplete: 'new-password', maxlength: String(M.PW_MAX + 1) })),
+        ppProblems.length ? h('ul', { class: 'u-c-danger u-fs-12p5', role: 'alert', 'data-pp-problems': '1' }, ppProblems.map(p => h('li', null, p))) : null,
+        h('div', { class: 'scanToggleRow u-mt-8' },
+          h('button', { type: 'submit', class: 'small', disabled: ppBusy || null }, ppBusy ? 'Creating…' : 'Create the account'),
+          h('button', { type: 'button', class: 'small secondary', 'data-pp': 'close' }, 'Cancel'))) : null;
+      const pwForm = (p) => h('form', { class: 'u-mt-6', 'data-pp-form': 'password', 'data-pp-id': p.id, novalidate: true },
+        h('p', { class: 'hint u-mt-0' }, 'Hand the keyboard to ' + p.name + '. They type their new password twice.'),
+        h('div', { class: 'heField' }, h('label', { for: 'ppNew_' + p.id }, 'New password'), h('input', { type: 'password', id: 'ppNew_' + p.id, autocomplete: 'new-password', maxlength: String(M.PW_MAX + 1) })),
+        h('div', { class: 'heField' }, h('label', { for: 'ppNew2_' + p.id }, 'The same password again'), h('input', { type: 'password', id: 'ppNew2_' + p.id, autocomplete: 'new-password', maxlength: String(M.PW_MAX + 1) })),
+        ppProblems.length ? h('ul', { class: 'u-c-danger u-fs-12p5', role: 'alert', 'data-pp-problems': '1' }, ppProblems.map(x => h('li', null, x))) : null,
+        h('div', { class: 'scanToggleRow u-mt-6' },
+          h('button', { type: 'submit', class: 'small', disabled: ppBusy || null }, 'Set the new password'),
+          h('button', { type: 'button', class: 'small secondary', 'data-pp': 'close' }, 'Cancel')));
+      const actions = (p) => {
+        const r = byId.get(p.id) || {}, state = PP_STATE(r);
+        if (!p.canManage) return h('span', { class: 'u-fs-12 u-c-muted' }, p.why);
+        if (!ready) return h('span', { class: 'u-fs-12 u-c-muted' }, 'Waits for the database step.');
+        const confirmRemove = ppOpen === 'remove:' + p.id;
+        return h('div', null,
+          h('div', { class: 'scanToggleRow' },
+            p.roles.length ? h('select', { 'data-pp-level': p.id, 'aria-label': 'New level for ' + p.name }, h('option', { value: '' }, 'Change level…'), p.roles.map(x => h('option', { value: x }, M.ROLE_WORD[x]))) : null,
+            state === 'Active' ? h('button', { type: 'button', class: 'small secondary', 'data-pp': 'suspend', 'data-pp-id': p.id, disabled: ppBusy || null, 'aria-label': 'Suspend ' + p.name }, 'Suspend')
+              : h('button', { type: 'button', class: 'small secondary', 'data-pp': 'back', 'data-pp-id': p.id, disabled: ppBusy || null, 'aria-label': 'Bring back ' + p.name }, 'Bring back'),
+            state !== 'Removed' ? h('button', { type: 'button', class: 'small secondary', 'data-pp': 'ask-remove', 'data-pp-id': p.id, disabled: ppBusy || null, 'aria-label': 'Remove ' + p.name }, 'Remove') : null,
+            state === 'Active' ? h('button', { type: 'button', class: 'small secondary', 'data-pp': 'open-password', 'data-pp-id': p.id, 'aria-label': 'New password for ' + p.name }, 'New password') : null),
+          confirmRemove ? h('div', { class: 'scanToggleRow u-mt-6', role: 'group', 'aria-label': 'Confirm removing ' + p.name },
+            h('span', { class: 'u-fs-12p5' }, 'Remove ' + p.name + '? They can no longer sign in. Their history stays, and the account can be brought back.'),
+            h('button', { type: 'button', class: 'small', 'data-pp': 'remove', 'data-pp-id': p.id }, 'Yes, remove'),
+            h('button', { type: 'button', class: 'small secondary', 'data-pp': 'close' }, 'Cancel')) : null,
+          ppOpen === 'password:' + p.id ? pwForm(p) : null);
+      };
+      const table = ppErr ? h('p', { class: 'hint u-c-warn', role: 'alert' }, ppErr)
+        : h('table', { class: 'phoneCards u-mt-8', 'data-pp-list': '1' },
+          h('thead', null, h('tr', null, h('th', null, 'Person'), h('th', null, 'Level'), h('th', null, 'Status'), h('th', null, 'What you can do'))),
+          h('tbody', null, view.map(p => h('tr', { 'data-pp-row': p.id, 'data-pp-state': PP_STATE(byId.get(p.id) || {}) },
+            h('td', null, h('div', { class: 'taskTitle' }, p.name), h('div', { class: 'u-fs-12 u-c-muted' }, p.email + (p.accountNumber ? ' · #' + p.accountNumber : '')), p.emergency ? h('div', { class: 'u-fs-11 u-c-muted' }, 'Emergency account') : null),
+            h('td', null, p.roleWord),
+            h('td', null, PP_STATE(byId.get(p.id) || {})),
+            h('td', null, actions(p))))));
+      host.replaceChildren(...[...head, notice, msg,
+        ready && levels.length && ppOpen !== 'add' ? h('button', { type: 'button', class: 'small', 'data-pp': 'open-add' }, 'Add a person') : null,
+        addForm, table].filter(Boolean));
+      labelPhoneCards(host);
+    }
+    // a database step for one account, then (when it changes who can sign in) the helper program
+    async function ppAct(kind, id, level) {
+      const M = ppMod(); const p = (ppRows || []).find(x => x.id === id); if (!M || !p || ppBusy) return;
+      const name = p.display_name || p.email || 'This person';
+      ppBusy = true; renderPeoplePage();
+      try {
+        if (kind === 'level') {
+          const r = await supabase.rpc('people_set_role', { p_person: id, p_role: level });
+          ppSay(r.error ? M.friendlyError(r.error) : name + ' is now ' + M.ROLE_WORD[level] + '.', !!r.error);
+        } else {
+          const status = kind === 'back' ? 'active' : kind === 'remove' ? 'removed' : 'suspended';
+          const r = await supabase.rpc('people_set_status', { p_person: id, p_status: status });
+          if (r.error) ppSay(M.friendlyError(r.error), true);
+          else {
+            const done = { active: name + ' is back and can sign in again.', removed: name + ' is removed. Their history stays.', suspended: name + ' is suspended.' }[status];
+            const s = await ppHelper({ action: status === 'active' ? 'unblock' : 'block', person: id });
+            ppSay(s.ok ? done : done + ' But the sign-in itself could not be ' + (status === 'active' ? 'unblocked' : 'blocked') + ': ' + s.message, !s.ok);
+          }
+        }
+      } finally { ppBusy = false; ppOpen = ''; }
+      await loadPeoplePage(); announce(ppMsg);
+      const m = document.querySelector('#peoplePanel [data-pp-msg]'); if (m) { m.setAttribute('tabindex', '-1'); m.focus(); }
+    }
+    document.addEventListener('click', (e) => {
+      const t = e.target.closest('#peoplePanel [data-pp]'); if (!t) return;
+      const M = ppMod(); if (!M || !M.canOpen(currentUserRole)) return;
+      const act = t.getAttribute('data-pp'), id = t.getAttribute('data-pp-id') || '';
+      if (act === 'open-add') { ppOpen = 'add'; ppProblems = []; ppSay(''); renderPeoplePage(); const f = document.getElementById('ppName'); if (f) f.focus(); return; }
+      if (act === 'close') { ppOpen = ''; ppProblems = []; renderPeoplePage(); const b = document.querySelector('#peoplePanel [data-pp="open-add"]'); if (b) b.focus(); return; }
+      if (act === 'open-password') { ppOpen = 'password:' + id; ppProblems = []; renderPeoplePage(); const f = document.getElementById('ppNew_' + id); if (f) f.focus(); return; }
+      if (act === 'ask-remove') { ppOpen = 'remove:' + id; renderPeoplePage(); const y = document.querySelector('#peoplePanel [data-pp="remove"]'); if (y) y.focus(); return; }
+      if (act === 'suspend' || act === 'back' || act === 'remove') ppAct(act, id);
+    });
+    document.addEventListener('change', (e) => {
+      const s = e.target.closest('#peoplePanel [data-pp-level]'); if (!s || !s.value) return;
+      ppAct('level', s.getAttribute('data-pp-level'), s.value);
+    });
+    document.addEventListener('submit', async (e) => {
+      const f = e.target.closest('#peoplePanel [data-pp-form]'); if (!f) return;
+      e.preventDefault();
+      const M = ppMod(); if (!M || ppBusy || !M.canOpen(currentUserRole)) return;
+      const val = (id) => { const el = document.getElementById(id); return el ? el.value : ''; };
+      const wipe = () => f.querySelectorAll('input[type=password]').forEach(i => { i.value = ''; });
+      if (f.getAttribute('data-pp-form') === 'add') {
+        const form = { name: val('ppName'), email: val('ppEmail'), role: val('ppRole'), department: val('ppDept') };
+        const a = M.checkNew(form, currentUserRole, {}), b = M.checkPassword(val('ppPw'), val('ppPw2'), { email: form.email });
+        ppProblems = a.problems.concat(b.problems);
+        if (ppProblems.length) { const keep = form; renderPeoplePage(); ['ppName', 'ppEmail', 'ppRole', 'ppDept'].forEach((k, i) => { const el = document.getElementById(k); if (el) el.value = [keep.name, keep.email, keep.role, keep.department][i]; }); const l = document.querySelector('#peoplePanel [data-pp-problems]'); if (l) { l.setAttribute('tabindex', '-1'); l.focus(); } return; }
+        ppBusy = true; const pw = val('ppPw'); wipe();
+        const r = await ppHelper({ action: 'create', name: a.value.name, email: a.value.email, role: a.value.role, department: a.value.department, password: pw });
+        ppBusy = false;
+        if (r.ok) { ppOpen = ''; ppProblems = []; ppSay(r.message); }
+        else { ppProblems = [r.message]; }
+        await loadPeoplePage();
+        if (!r.ok) { ['ppName', 'ppEmail', 'ppRole', 'ppDept'].forEach((k, i) => { const el = document.getElementById(k); if (el) el.value = [a.value.name, a.value.email, a.value.role, a.value.department][i]; }); const l = document.querySelector('#peoplePanel [data-pp-problems]'); if (l) { l.setAttribute('tabindex', '-1'); l.focus(); } announce(r.message); return; }
+        announce(ppMsg); const m = document.querySelector('#peoplePanel [data-pp-msg]'); if (m) { m.setAttribute('tabindex', '-1'); m.focus(); }
+        return;
+      }
+      const id = f.getAttribute('data-pp-id'); const p = (ppRows || []).find(x => x.id === id); if (!p) return;
+      const c = M.checkPassword(val('ppNew_' + id), val('ppNew2_' + id), { email: p.email });
+      if (!c.ok) { ppProblems = c.problems; wipe(); renderPeoplePage(); const l = document.querySelector('#peoplePanel [data-pp-problems]'); if (l) { l.setAttribute('tabindex', '-1'); l.focus(); } return; }
+      ppBusy = true; const pw = val('ppNew_' + id); wipe();
+      const r = await ppHelper({ action: 'password', person: id, email: p.email, password: pw });
+      ppBusy = false;
+      if (r.ok) { ppOpen = ''; ppProblems = []; ppSay(r.message); } else { ppProblems = [r.message]; }
+      renderPeoplePage(); announce(r.message);
+      const target = document.querySelector(r.ok ? '#peoplePanel [data-pp-msg]' : '#peoplePanel [data-pp-problems]'); if (target) { target.setAttribute('tabindex', '-1'); target.focus(); }
+    });
+
+    // ---------- Ask the dashboard (owner, Nov 24: "something like a Siri of my app"; behind askBoxOn; the owner's account only)
+    // The search box also answers questions: typed, or spoken through the browser's own dictation.
+    // The rules and the wording are in assets/views/he-ask.js; here the records are read and the
+    // answer is shown and, unless Quiet is on, read out loud. It only reads. "Remind me to ..."
+    // opens the existing "New reminder" box with the words filled in; the person presses Add.
+    const ASK_QUIET_KEY = 'he_ask_quiet';
+    let askLast = null, askSeq = 0, askHearing = null, askShown = null, askNote = '';
+    const askMod = () => (window.HE && window.HE.views && window.HE.views['he-ask']) || null;
+    const askAllowed = () => currentUserRole === 'owner' && typeof askBoxOn === 'function' && askBoxOn() && !!askMod() && !!wrMod();
+    const askQuiet = () => { try { return localStorage.getItem(ASK_QUIET_KEY) === 'on'; } catch (e) { return false; } };
+    const askCanHear = () => !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+    const askCanSpeak = () => !!(window.speechSynthesis && typeof window.SpeechSynthesisUtterance === 'function');
+    function askHush() {
+      try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch (e) { /* nothing was being said */ }
+      try { if (askHearing) askHearing.abort(); } catch (e) { /* it was not listening */ }
+      askHearing = null;
+    }
+    function askSpeak(text) {
+      if (askQuiet() || !askCanSpeak() || !text) return false;
+      try { window.speechSynthesis.cancel(); const u = new window.SpeechSynthesisUtterance(String(text).slice(0, 1200)); u.lang = 'en-US'; window.speechSynthesis.speak(u); return true; } catch (e) { return false; }
+    }
+    function askClear() { if (!askShown && !askNote) return; askSeq += 1; askShown = null; askNote = ''; askPaint(); }
+    // the microphone, the Quiet switch and the place for the answer, added to the search box for the owner
+    function askDress() {
+      const card = paletteOverlay.querySelector('.paletteCard'), input = document.getElementById('paletteInput'); if (!card || !input) return;
+      const old = card.querySelector('[data-askbar]'), box = card.querySelector('[data-askanswer]');
+      card.classList.remove('askAnswering');
+      if (!askAllowed()) { if (old) old.remove(); if (box) box.remove(); input.placeholder = 'Jump to a page or record, or ask how something works…'; return; }
+      input.placeholder = 'Search, or ask: how many orders this week?';
+      askShown = null; askNote = '';
+      const bar = h('div', { class: 'askBar', 'data-askbar': '1' },
+        askCanHear() ? h('button', { type: 'button', class: 'small', 'data-ask': 'listen', 'aria-pressed': 'false' }, 'Talk') : h('span', { class: 'u-fs-12 u-c-muted', 'data-asknomic': '1' }, 'To talk, use the microphone key on your keyboard.'),
+        h('button', { type: 'button', class: 'small secondary', 'data-ask': 'brief' }, 'Brief me'),
+        h('button', { type: 'button', class: 'small secondary', 'data-ask': 'quiet', 'aria-pressed': askQuiet() ? 'true' : 'false' }, askQuiet() ? 'Quiet: on' : 'Quiet: off'),
+        h('button', { type: 'button', class: 'small secondary', 'data-ask': 'help' }, 'What can I ask?'));
+      if (old) old.replaceWith(bar); else input.after(bar);
+      if (!box) bar.after(h('div', { class: 'askAnswer', 'data-askanswer': '1', role: 'status', 'aria-live': 'polite' }));
+      askPaint();
+    }
+    function askPaint() {
+      const box = paletteOverlay.querySelector('[data-askanswer]'); if (!box) return;
+      const a = askShown;
+      box.replaceChildren(...[
+        askNote ? h('p', { class: 'u-fs-12p5', 'data-asknote': '1' }, askNote) : null,
+        a ? h('div', { class: 'askCard', 'data-askintent': a.intent },
+          h('div', { class: 'taskTitle', 'data-asktitle': '1' }, a.title),
+          a.say ? h('p', { class: 'u-fs-12p5 u-mt-4', 'data-asksay': '1' }, a.say) : null,
+          a.lines.length ? h('table', { class: 'wrTable u-mt-6' }, h('tbody', null, a.lines.map(l => h('tr', null, h('th', { scope: 'row' }, l.label), h('td', null, l.value))))) : null,
+          h('div', { class: 'scanToggleRow u-mt-6' },
+            a.page ? h('button', { type: 'button', class: 'small', 'data-ask': 'open', 'data-askpage': a.page }, 'Open ' + a.pageName) : null,
+            a.say && askCanSpeak() ? h('button', { type: 'button', class: 'small secondary', 'data-ask': 'again' }, 'Say it again') : null)) : null].filter(Boolean));
+      const card = paletteOverlay.querySelector('.paletteCard'); if (card) card.classList.toggle('askAnswering', !!a);   // an answer has the room; typing again brings the results back
+      const mic = paletteOverlay.querySelector('[data-ask="listen"]');
+      if (mic) { mic.setAttribute('aria-pressed', askHearing ? 'true' : 'false'); mic.textContent = askHearing ? 'Listening… (tap to stop)' : 'Talk'; }
+    }
+    // the records an answer needs, each read on its own (one that fails says so in the answer)
+    async function askData(asked) {
+      const A = askMod(), W = wrMod(), need = A.needs(asked), data = {};
+      const settle = (p) => Promise.resolve(p).then(v => v, () => null);
+      const b = A.periodBounds(asked.intent === 'brief' ? 'today' : asked.period, Date.now());
+      data.bounds = b;
+      const jobs = [];
+      if (need.includes('orders')) jobs.push((async () => {
+        const [now, before] = await Promise.all([
+          settle(fetchAllRows('orders', 'id, customer_name, customer_email, status, currency, total, placed_at, deleted_at', q => q.is('deleted_at', null).gte('placed_at', b.from).lt('placed_at', b.to))),
+          settle(fetchAllRows('orders', 'id, status, currency, total, placed_at, deleted_at', q => q.is('deleted_at', null).gte('placed_at', b.prevFrom).lt('placed_at', b.from)))]);
+        data.sales = W.build({ now: Date.now(), orders: now, prevOrders: before, items: [] }).sales;
+      })());
+      if (need.includes('questions')) jobs.push((async () => {
+        const open = await settle(fetchAllRows('customer_inquiries', 'id, status, created_at', q => q.in('status', ['needs_review', 'new'])));
+        data.questions = W.build({ now: Date.now(), waiting: open }).questions;
+      })());
+      if (need.includes('stock')) jobs.push((async () => {
+        const [stock, products] = await Promise.all([settle(fetchAllRows('inventory', 'id, product_id, available, low_stock_threshold', q => q)), settle(fetchAllRows('products', 'id, sku, name', q => q))]);
+        data.stock = W.build({ now: Date.now(), stock: stock, products: products || [] }).stock;
+      })());
+      if (need.includes('launch') && lpMod()) jobs.push((async () => {
+        const input = await settle(lpGather());
+        data.launch = input ? lpMod().build(Object.assign({}, input, { ticks: lpTicks })) : null;
+        data.launchPage = typeof launchPageOn === 'function' && launchPageOn();
+      })());
+      if (need.includes('week')) jobs.push((async () => {
+        const week = W.weekOf(Date.now(), 0), report = await settle(wrGather(week));
+        data.week = report ? { label: week.label, lines: W.lines(report) } : null;
+      })());
+      if (need.includes('activity')) jobs.push((async () => {
+        const act = await settle(fetchAllActivity({ p_search: null, p_person: null, p_area: null, p_from: b.from, p_to: b.to }, 20000));
+        data.people = W.build({ now: Date.now(), activity: act && Array.isArray(act.rows) ? act.rows : null, activityCapped: !!(act && act.capped) }).people;
+      })());
+      await Promise.all(jobs);
+      if (asked.intent === 'brief') data.feedSummary = typeof attentionFeedOn === 'function' && attentionFeedOn() ? feedSummary : '';
+      return data;
+    }
+    async function askRun(asked) {
+      const A = askMod(); if (!A || !askAllowed() || !asked || asked.intent === 'none') return;
+      if (asked.intent === 'remind') {                       // the existing "New reminder" box, filled in; nothing is added until Add is pressed
+        askHush(); closePalette(false); openQuickAdd();
+        const box = document.getElementById('quickAddInput'); if (box) box.value = String(asked.title || '').slice(0, 200);
+        return;
+      }
+      const seq = ++askSeq;
+      askHush();
+      askShown = null; askNote = 'Reading the records…'; askPaint();
+      let answer = null;
+      try { answer = A.compose(asked, await askData(asked)); } catch (e) { answer = null; }
+      if (seq !== askSeq) return;
+      if (!answer) { askNote = 'That could not be answered just now. Try again.'; askPaint(); return; }
+      askLast = { intent: asked.intent, period: asked.period, person: asked.person };
+      askShown = Object.assign({ intent: asked.intent }, answer);
+      askNote = askQuiet() ? 'Quiet is on: shown, not spoken.' : '';
+      askPaint();
+      askSpeak(answer.say);
+    }
+    function askListen() {
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition; if (!SR) return;
+      if (askHearing) { askHush(); askPaint(); return; }
+      try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch (e) { /* nothing was being said */ }
+      let r;
+      try { r = new SR(); } catch (e) { askNote = 'The microphone could not be started in this browser. Type your question instead.'; askPaint(); return; }
+      r.lang = 'en-US'; r.interimResults = false; r.maxAlternatives = 1;
+      r.onresult = (e) => {
+        const said = e && e.results && e.results[0] && e.results[0][0] ? String(e.results[0][0].transcript || '').slice(0, 300) : '';
+        const input = document.getElementById('paletteInput'); if (!input || !said) return;
+        input.value = said; askShown = null; askNote = '';
+        PAL_ITEMS = paletteItems(said); PAL_SEL = 0; renderPalette();
+        const u = askMod().understand(said, { last: askLast });
+        if (u.intent !== 'none') askRun(u); else { askNote = 'I heard: “' + said + '”. That is not a question I know yet; the search results are below.'; askPaint(); }
+      };
+      r.onerror = (e) => { askNote = e && (e.error === 'not-allowed' || e.error === 'service-not-allowed') ? 'The microphone is not allowed for this page. Allow it in the browser, or type your question.' : 'I did not catch that. Try again, or type it.'; };
+      r.onend = () => { askHearing = null; askPaint(); };
+      askHearing = r; askNote = ''; askPaint();
+      try { r.start(); } catch (e) { askHearing = null; askNote = 'The microphone could not be started. Type your question instead.'; askPaint(); }
+    }
+    paletteOverlay.addEventListener('click', (e) => {
+      const t = e.target.closest('[data-ask]'); if (!t || !askAllowed()) return;
+      const what = t.getAttribute('data-ask'), input = document.getElementById('paletteInput');
+      if (what === 'listen') { askListen(); return; }
+      if (what === 'brief') { if (input) input.value = 'Brief me'; askRun({ intent: 'brief', period: '', person: '', title: '' }); return; }
+      if (what === 'help') { askRun({ intent: 'help', period: '', person: '', title: '' }); return; }
+      if (what === 'again') { if (askShown) { const was = askQuiet(); if (was) { askNote = 'Quiet is on: shown, not spoken.'; askPaint(); } else askSpeak(askShown.say); } return; }
+      if (what === 'open') { askHush(); closePalette(false); showPage(t.getAttribute('data-askpage')); return; }
+      if (what === 'quiet') {
+        const on = !askQuiet();
+        try { localStorage.setItem(ASK_QUIET_KEY, on ? 'on' : 'off'); } catch (err) { /* it stays as it was */ }
+        if (on) askHush();
+        t.setAttribute('aria-pressed', askQuiet() ? 'true' : 'false'); t.textContent = askQuiet() ? 'Quiet: on' : 'Quiet: off';
+        askNote = askQuiet() ? 'Quiet is on: answers are shown, not spoken.' : 'Quiet is off: answers are also read out loud.'; askPaint();
+        const bar = document.querySelector('#askBarHost [data-askhome="quiet"]'); if (bar) bar.textContent = askQuiet() ? 'Quiet: on' : 'Quiet: off';
+      }
+    });
+    // on Home: the same box, one tap away
+    function loadAskBar() {
+      let host = document.getElementById('askBarHost');
+      if (!askAllowed()) { if (host) host.remove(); return; }
+      if (!host) { const panel = document.getElementById('attentionPanel'); if (!panel) return; host = h('div', { id: 'askBarHost', class: 'askHome' }); panel.prepend(host); }
+      host.replaceChildren(
+        h('span', { class: 'taskTitle' }, 'Ask the dashboard'),
+        h('button', { type: 'button', class: 'small', 'data-askhome': 'ask' }, askCanHear() ? 'Ask or talk' : 'Ask'),
+        h('button', { type: 'button', class: 'small secondary', 'data-askhome': 'brief' }, 'Brief me'),
+        h('span', { class: 'u-fs-12 u-c-muted', 'data-askhome': 'quiet' }, askQuiet() ? 'Quiet: on' : 'Quiet: off'));
+    }
+    document.addEventListener('click', (e) => {
+      const t = e.target.closest('#askBarHost button[data-askhome]'); if (!t || !askAllowed()) return;
+      openPalette();
+      if (t.getAttribute('data-askhome') === 'brief') { const input = document.getElementById('paletteInput'); if (input) input.value = 'Brief me'; askRun({ intent: 'brief', period: '', person: '', title: '' }); }
+    });
+
+    // ---------- Ready to launch (owner, Nov 24: "Ready to launch page: yes"; behind launchPageOn)
+    // One list of what must be ready before the first real day (rules: assets/views/he-launch.js).
+    // The dashboard checks what it can read; the owner or an administrator marks the rest done.
+    // The marks are kept in this browser, and for every device once the shared settings are in use.
+    const LP_KEY = 'he_launch_ticks';
+    let lpTicks = null, lpInput = null, lpSeq = 0, lpMessage = '', lpShared = false;
+    const lpMod = () => (window.HE && window.HE.views && window.HE.views['he-launch']) || null;
+    const lpAllowed = () => currentUserRole === 'owner' || currentUserRole === 'administrator';
+    function lpRead() { const M = lpMod(); try { return M.clean(JSON.parse(localStorage.getItem(LP_KEY) || 'null')); } catch (e) { return {}; } }
+    function lpKeep() { try { localStorage.setItem(LP_KEY, JSON.stringify({ ticks: lpTicks })); return true; } catch (e) { return false; } }
+    // read what every device shares, join it with this browser's marks, and (after a change here) save
+    async function lpSync(save) {
+      const M = lpMod(), S = rpSettings(), store = rpStore();
+      if (!M || !S || !store || !sharedSettingsOn()) { lpShared = false; return false; }
+      const now = await store.get(S.KEYS.launchList);
+      if (now.state !== 'installed') { lpShared = false; return false; }
+      const theirs = M.clean(now.value), joined = M.merge(lpTicks, theirs);
+      if (JSON.stringify(joined) !== JSON.stringify(lpTicks)) { lpTicks = joined; lpKeep(); }
+      lpShared = true;
+      if (save && JSON.stringify(joined) !== JSON.stringify(theirs)) { const r = await store.set(S.KEYS.launchList, { ticks: joined }, 'owner_admin'); lpShared = !!r.ok; }
+      return lpShared;
+    }
+    async function loadLaunchPage() {
+      const host = document.getElementById('launchPanel'); if (!host) return;
+      const M = lpMod();
+      if (!(typeof launchPageOn === 'function' && launchPageOn()) || !M) { host.replaceChildren(); return; }
+      if (!lpAllowed()) { host.replaceChildren(h('h2', null, 'Ready to launch'), h('p', { class: 'empty' }, 'This page is for the owner and administrators.')); return; }
+      const seq = ++lpSeq;
+      if (!lpTicks) lpTicks = lpRead();
+      if (!lpInput) renderLaunchPage();
+      const input = await lpGather();
+      if (seq !== lpSeq) return;
+      lpInput = input;
+      renderLaunchPage();
+    }
+    // what the checked lines need, read from the records (also used by "Ask the dashboard")
+    async function lpGather() {
+      if (!lpTicks) lpTicks = lpRead();
+      // each line is read on its own: one that fails says "Could not check", the others still show
+      const settle = (p) => Promise.resolve(p).then(v => v, () => null);
+      const RS = rsMod(), since = new Date(Date.now() - 30 * 86400000).toISOString();
+      const [steps, products, stock, flag, recent, questions] = await Promise.all([
+        RS ? settle(Promise.all(RS.RECORD_SWITCHES.map(async sw => ({ key: sw.key, name: sw.name, needsStep: !/^No database step/.test(sw.draft), state: await RS.probe(supabase, sw) })))) : Promise.resolve(null),
+        settle(fetchAllRows('products', 'id, sku, name, is_active, status, retail_price', q => q)),
+        settle(fetchAllRows('inventory', 'id, product_id, available, low_stock_threshold', q => q)),
+        settle(supabase.from('feature_flags').select('flag_key, enabled').eq('flag_key', 'shopify_order_sync')),
+        settle(fetchAllRows('orders', 'id, channel, source, placed_at, deleted_at', q => q.is('deleted_at', null).gte('placed_at', since))),
+        settle(fetchAllRows('customer_inquiries', 'id, status, created_at', q => q.in('status', ['needs_review', 'new']))),
+        settle(lpSync(false)),
+      ]);
+      // the tax rate: its step, its switch, and then the rates in force today
+      const taxStep = Array.isArray(steps) ? (steps.find(x => x.key === 'he_tax_rates') || {}).state : null;
+      let tax = null;
+      if (taxStep === 'not_installed') tax = { state: 'not_installed' };
+      else if (taxStep === 'installed') {
+        const st = trStore(), T = trMod();
+        let taxMod = null; try { taxMod = (window.HE && window.HE.invoice && window.HE.invoice['he-tax']) || null; } catch (e) { taxMod = null; }
+        if (!st || !T) tax = { state: 'off' };
+        else { const r = await settle(st.list()); tax = r && r.ok && Array.isArray(r.rates) ? { state: 'installed', inForce: r.rates.filter(x => { const k = T.standing(x, trToday(), taxMod).state; return k === 'IN_FORCE' || k === 'RECHECK_DUE'; }).length } : null; }
+      }
+      const P = rpMod();
+      const fromShopify = (o) => (P ? P.channelOf(o) === 'shopify' : /shopify/i.test(String((o && (o.channel || o.source)) || '')));
+      const flagRow = flag && !flag.error && Array.isArray(flag.data) ? flag.data[0] : undefined;
+      return { steps: steps, products: products, stock: stock, questions: questions, tax: tax,
+        shopify: flag && !flag.error && Array.isArray(flag.data) && Array.isArray(recent) ? { switchOn: flagRow ? flagRow.enabled === true : 'missing', orders: recent.filter(fromShopify).length } : null };
+    }
+    const LP_WORD = { ready: 'Ready', todo: 'To do', unknown: 'Could not check' };
+    function renderLaunchPage() {
+      const host = document.getElementById('launchPanel'); const M = lpMod(); if (!host || !M) return;
+      if (!lpInput) { host.replaceChildren(h('h2', null, 'Ready to launch'), h('p', { class: 'empty' }, 'Checking…')); return; }
+      const r = M.build(Object.assign({}, lpInput, { ticks: lpTicks }));
+      const when = (ms) => { const d = new Date(ms); return isNaN(d) ? '' : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); };
+      const row = (l) => h('li', { class: 'lpLine', 'data-lpline': l.key, 'data-lpstate': l.state },
+        h('div', { class: 'lpHead' },
+          h('span', { class: 'badge ' + (l.state === 'ready' ? 'sev-low' : l.state === 'unknown' ? 'sev-medium' : 'lpTodo'), 'data-lpbadge': '1' }, LP_WORD[l.state]),
+          h('span', { class: 'taskTitle' }, l.title),
+          l.last ? h('span', { class: 'u-fs-12 u-c-muted' }, '(the last step)') : null),
+        h('div', { class: 'u-fs-12 u-c-muted' }, l.why),
+        l.detail ? h('div', { class: 'u-fs-12p5 u-mt-4', 'data-lpdetail': '1' }, l.detail) : null,
+        l.tick && l.tick.on ? h('div', { class: 'u-fs-12 u-mt-4', 'data-lpdone': '1' }, 'Marked done' + (when(l.tick.at) ? ' on ' + when(l.tick.at) : '') + (l.tick.by ? ' by ' + l.tick.by : '') + '.') : null,
+        h('div', { class: 'scanToggleRow u-mt-6' },
+          l.kind === 'yours' ? h('button', { type: 'button', class: 'small' + (l.state === 'ready' ? ' secondary' : ''), 'data-lptick': l.key, 'data-lpon': l.state === 'ready' ? 'no' : 'yes' }, l.state === 'ready' ? 'Not done after all' : 'Mark as done') : null,
+          l.page ? h('button', { type: 'button', class: 'small secondary', 'data-lpgoto': l.page, 'aria-label': 'Open ' + l.pageName + ' (' + l.title + ')' }, 'Open ' + l.pageName) : null));
+      const auto = r.lines.filter(l => l.kind === 'auto'), yours = r.lines.filter(l => l.kind === 'yours');
+      host.replaceChildren(
+        h('h2', null, 'Ready to launch'),
+        h('p', { class: 'hint' }, 'What must be ready before the first real day. The dashboard checks what it can read in the records; you mark the rest done yourself. Nothing here changes the business records.'),
+        h('p', { class: 'lpTotal', 'data-lptotal': r.ready + '/' + r.total }, h('b', null, r.ready + ' of ' + r.total + ' ready'),
+          r.left ? ' · ' + r.left + ' to go' + (r.unknown ? ' (' + r.unknown + ' could not be checked)' : '') : ' · everything is ready'),
+        h('progress', { max: String(r.total), value: String(r.ready), 'aria-label': r.ready + ' of ' + r.total + ' lines ready' }),
+        h('p', { class: 'u-fs-12', role: 'status', 'data-lpmessage': '1' }, lpMessage),
+        h('h3', null, 'Checked by the dashboard'),
+        h('ul', { class: 'lpList' }, auto.map(row)),
+        h('div', { class: 'u-mt-8' }, h('button', { type: 'button', class: 'small secondary', 'data-lpagain': '1' }, 'Check again')),
+        h('h3', null, 'Confirmed by you'),
+        h('p', { class: 'hint u-mt-n2' }, lpShared ? 'Your marks are the same on every device, for you and the administrators.' : 'Your marks are kept in this browser. They will be the same on every device once "Settings shared by every device" is installed and on.'),
+        h('ul', { class: 'lpList' }, yours.map(row)));
+    }
+    document.addEventListener('click', (e) => {
+      const g = e.target.closest('#launchPanel [data-lpgoto]');
+      if (g) { showPage(g.getAttribute('data-lpgoto')); return; }
+      if (e.target.closest('#launchPanel [data-lpagain]')) { lpMessage = 'Checked again just now.'; loadLaunchPage().then(() => { announce(lpMessage); const b = document.querySelector('#launchPanel [data-lpagain]'); if (b) b.focus(); }); return; }
+      const t = e.target.closest('#launchPanel [data-lptick]'); if (!t) return;
+      const M = lpMod(); if (!M || !lpAllowed() || !lpInput) return;
+      const key = t.getAttribute('data-lptick'), on = t.getAttribute('data-lpon') === 'yes';
+      const line = M.LINES.find(l => l.key === key); if (!line || line.kind !== 'yours') return;
+      const who = String((document.getElementById('whoAmI') || {}).textContent || '').split(' — role')[0].trim();   // the name, without the role
+      lpTicks = M.tick(lpTicks, key, on, who, Date.now());
+      const kept = lpKeep();
+      lpMessage = (on ? 'Marked done: ' : 'Marked not done: ') + line.title + '.' + (kept ? '' : ' This browser could not keep it; it will be gone after a reload.');
+      renderLaunchPage(); announce(lpMessage);
+      const again = document.querySelector('#launchPanel [data-lptick="' + key + '"]'); if (again) again.focus();
+      lpSync(true).then((shared) => { if (!shared) return; renderLaunchPage(); const b = document.querySelector('#launchPanel [data-lptick="' + key + '"]'); if (b) b.focus(); }, () => { /* this browser's mark stands */ });
+    });
+
     // ---------- Backups & Printouts (owner request, Nov 23; behind backupsPageOn)
     // One place for the paper and file copies the owner keeps: the daily recaps
     // (print a month on Letter, or save it as a spreadsheet file), the manuals
@@ -5146,10 +5646,9 @@
       if (!r.ok) throw new Error(r.message || 'not read');
       return r.rows;
     }
-    async function loadWeekReport() {
-      const M = wrMod(); if (!M || !wrAllowed() || wrBusy) return;
-      const week = M.weekOf(Date.now(), wrBack), seq = ++wrSeq;
-      wrBusy = true; wrReport = null; wrNote = 'Reading the week of ' + week.label + '…'; renderWeekReport(); announce(wrNote);
+    // the records of one week, read and added up (also used by "Ask the dashboard")
+    async function wrGather(week) {
+      const M = wrMod();
       // each part is read on its own: one that fails says "could not be read", the rest still shows
       const settle = (p) => Promise.resolve(p).then(v => v, () => null);
       const inWeek = (col) => q => q.gte(col, week.from).lt(col, week.to);
@@ -5170,11 +5669,18 @@
       ]);
       const ids = Array.isArray(orders) ? orders.map(o => o.id) : [];
       const items = !Array.isArray(orders) ? null : ids.length ? await settle(fetchAllRowsIn('order_items', 'id, order_id, sku, product_name, quantity', 'order_id', ids)) : [];
-      if (seq !== wrSeq) return;
       const returned = Array.isArray(opened) && Array.isArray(refunded) ? [...new Map(opened.concat(refunded).map(r => [r.id, r])).values()] : null;
-      wrReport = M.build({ now: Date.now(), week: week, orders: orders, prevOrders: prevOrders, items: items, questions: asked, waiting: waiting, returns: returned,
+      return M.build({ now: Date.now(), week: week, orders: orders, prevOrders: prevOrders, items: items, questions: asked, waiting: waiting, returns: returned,
         stock: stockRows, products: products || [], tasks: tasks, incidents: incidents, reviews: reviews,
         activity: activity && Array.isArray(activity.rows) ? activity.rows : null, activityCapped: !!(activity && activity.capped) });
+    }
+    async function loadWeekReport() {
+      const M = wrMod(); if (!M || !wrAllowed() || wrBusy) return;
+      const week = M.weekOf(Date.now(), wrBack), seq = ++wrSeq;
+      wrBusy = true; wrReport = null; wrNote = 'Reading the week of ' + week.label + '…'; renderWeekReport(); announce(wrNote);
+      const report = await wrGather(week);
+      if (seq !== wrSeq) return;
+      wrReport = report;
       wrBusy = false;
       const missing = M.lines(wrReport).filter(l => l.value === 'could not be read').length;
       wrNote = 'The week of ' + week.label + '.' + (missing ? ' ' + missing + (missing === 1 ? ' part' : ' parts') + ' could not be read; press "Show the report" to try again.' : ' Every figure is exact.');
@@ -5582,7 +6088,7 @@
       const host = document.getElementById('previewSwitchesHost'); if (!host) return;
       if (!(currentUserRole === 'owner' || currentUserRole === 'administrator') || !Array.isArray(PREVIEW_SWITCHES)) { host.replaceChildren(); return; }
       const onCount = PREVIEW_SWITCHES.filter(sw => previewSwitchIsOn(sw.key)).length;
-      const W = ssMod(), shared = ssShared.state === 'installed', ownerHere = currentUserRole === 'owner';
+      const W = ssMod(), shared = ssShared.state === 'installed', ownerHere = currentUserRole === 'owner' || currentUserRole === 'administrator';   // the owner or an administrator may change a shared switch (owner, Nov 24)
       const rows = PREVIEW_SWITCHES.map(sw => {
         const on = previewSwitchIsOn(sw.key);
         return h('tr', { 'data-preview-key': sw.key, 'data-preview-on': on ? 'yes' : 'no' },
@@ -5596,7 +6102,7 @@
         h('h3', { class: 'u-m-18-0-6 u-fs-15' }, 'Preview features'),
         h('p', { class: 'hint u-mt-0' }, 'For looking at features that are built but not switched on. A switch here applies to this browser on this device only — it is not saved to the database and nobody else sees a change. Every preview uses example data or is read-only: nothing is sent, issued, charged or written to stock. All are off unless you turn them on.'),
         h('p', { class: 'hint u-mt-6', 'data-preview-shared': ssShared.state }, shared
-          ? 'Switches are shared: turning one on here turns it on on every phone and computer' + (ssShared.value ? '' : ' (nothing is shared yet: the first change shares this browser\u2019s switches)') + '. "Every employee" switches are on for everyone; the others only for the owner and administrators. Only the owner can change a switch.'
+          ? 'Switches are shared: turning one on here turns it on on every phone and computer' + (ssShared.value ? '' : ' (nothing is shared yet: the first change shares this browser\u2019s switches)') + '. "Every employee" switches are on for everyone; the others only for the owner and administrators. The owner and administrators can change a switch.'
           : ssShared.state === 'not_installed' ? 'Until the shared settings database step (drafts/50) is installed, a switch applies to this browser only.' : ''),
         h('p', { class: 'hint u-mt-6', 'data-preview-count': String(onCount) }, onCount + ' of ' + PREVIEW_SWITCHES.length + ' on in this browser.'),
         previewSwitchMessage ? h('p', { class: 'hint u-mt-6', 'data-preview-msg': '1' }, previewSwitchMessage,
@@ -5715,13 +6221,13 @@
       const want = t.getAttribute('data-menulayout') === 'today' ? '' : M.keyOf(t.getAttribute('data-menulayout'));
       const c = M.choices().find(x => x.key === want); if (!c) return;
       mlRemember(c.key);
-      mlMessage = sharedSettingsOn() ? 'Saving for every device…' : 'Kept in this browser. Once the shared settings database step (drafts/50) is installed, the owner\'s choice applies to every phone and computer.';
+      mlMessage = sharedSettingsOn() ? 'Saving for every device…' : 'Kept in this browser. Once the shared settings database step (drafts/50) is installed, the choice of the owner or an administrator applies to every phone and computer.';
       renderSidebar(document.getElementById('sidebarSearch').value);
       loadPreviewSwitches(); announce('Menu: ' + c.name + '. ' + c.what); refocusLike(t);
       if (!sharedSettingsOn()) return;
       const everywhere = await menuLayoutShare(c.key);
       mlMessage = everywhere ? 'Saved: every phone and computer shows this menu the next time it opens the dashboard.'
-        : (currentUserRole === 'owner' ? 'Could not save it for every device; it is kept in this browser.' : 'Kept in this browser. Only the owner can choose the menu for every device.');
+        : (currentUserRole === 'owner' || currentUserRole === 'administrator' ? 'Could not save it for every device; it is kept in this browser.' : 'Kept in this browser. Only the owner and administrators can choose the menu for every device.');
       loadPreviewSwitches(); announce(mlMessage);
     });
     document.addEventListener('click', (e) => {
@@ -5738,7 +6244,7 @@
       if (act === 'reload') { window.location.reload(); return; }
       const W = ssMod();
       if (W && ssShared.state === 'installed' && (act === 'alloff' || act === 'toggle')) {
-        // shared by every device: saved in the database (owner only; the database checks again)
+        // shared by every device: saved in the database (the owner or an administrator; the database checks again)
         const sw = act === 'toggle' ? PREVIEW_SWITCHES.find(x => x.key === t.getAttribute('data-key')) : null;
         if (act === 'toggle' && !sw) return;
         const turnOn = sw ? !previewSwitchIsOn(sw.key) : false;
@@ -7225,7 +7731,7 @@
       loadOpsWatch();
     }
     const PANEL_LOADERS = {
-      attentionPanel: [loadAttention, loadBusinessHealth, loadAttentionChecks, loadNightlyCheck, paintScanEntry, loadMoneyAlert, loadTaxRateAlert, loadAttentionFeed],
+      attentionPanel: [loadAttention, loadBusinessHealth, loadAttentionChecks, loadNightlyCheck, paintScanEntry, loadMoneyAlert, loadTaxRateAlert, loadAdminChanges, loadAttentionFeed, loadAskBar],
       calendarPanel: [loadCalendarMonth],
       dailySummaryPanel: [loadDailySummary],
       reportHistoryPanel: [loadReportHistoryThenExport, loadRecoveryDrill, loadInvoicePreview, loadReportVersions],
@@ -7258,6 +7764,8 @@
       contentHelperPanel: [loadContentHelper],
       customerEmailsPanel: [loadCustomerEmails],
       reviewsPanel: [loadReviewInbox],
+      peoplePanel: [loadPeoplePage],
+      launchPanel: [loadLaunchPage],
       featureRequestsPanel: [loadFeatureRequests, loadDeletedFeatureRequests],
       legalHoldsPanel: [loadLegalHolds, loadReleasedLegalHolds],
       salesCommandPanel:   [() => loadSales('salesCommandPanel')],
@@ -7390,6 +7898,8 @@
         }));
       }
       if (!query) items.push.apply(items, pages);
+      // "Ask the dashboard": a question it knows comes first, above pages and records
+      if (query && askAllowed()) { const u = askMod().understand(q, { last: askLast }); if (u.intent !== 'none') items.unshift({ kind: u.intent === 'remind' ? 'Reminder' : 'Answer', label: askMod().label(u), pageId: 'attentionPanel', ask: u }); }
       return items.slice(0, 40);
     }
     function renderPalette(){
@@ -7425,6 +7935,7 @@
     }
     function openPalette(){
       PAL_SEL = 0;
+      askDress();
       PAL_ITEMS = paletteItems('');
       rememberFocus('palette');
       paletteOverlay.classList.add('open');
@@ -7440,6 +7951,7 @@
     function runPalette(i){
       const it = PAL_ITEMS[i];
       if (!it) return;
+      if (it.ask) { askRun(it.ask); return; }               // the answer is shown inside the box, which stays open
       closePalette(false);
       if (it.help) { openHelp(it.help); return; }
       showPage(it.pageId);
@@ -7449,15 +7961,16 @@
       }
     }
     document.getElementById('paletteInput').addEventListener('input', (e) => {
+      askClear();
       PAL_ITEMS = paletteItems(e.target.value); PAL_SEL = 0; renderPalette();
     });
     document.getElementById('paletteInput').addEventListener('keydown', (e) => {
       if (e.key === 'ArrowDown') { e.preventDefault(); PAL_SEL = Math.min(PAL_SEL + 1, PAL_ITEMS.length - 1); renderPalette(); }
       else if (e.key === 'ArrowUp') { e.preventDefault(); PAL_SEL = Math.max(PAL_SEL - 1, 0); renderPalette(); }
       else if (e.key === 'Enter') { e.preventDefault(); runPalette(PAL_SEL); }
-      else if (e.key === 'Escape') { e.preventDefault(); closePalette(); }
+      else if (e.key === 'Escape') { e.preventDefault(); askHush(); closePalette(); }
     });
-    paletteOverlay.addEventListener('click', (e) => { if (e.target === paletteOverlay) closePalette(); });
+    paletteOverlay.addEventListener('click', (e) => { if (e.target === paletteOverlay) { askHush(); closePalette(); } });
     shortcutOverlay.id = 'shortcutOverlay';
     // Announced as a dialog by screen readers (EXT3).
     shortcutOverlay.setAttribute('role', 'dialog'); shortcutOverlay.setAttribute('aria-modal', 'true'); shortcutOverlay.setAttribute('aria-label', 'Keyboard shortcuts');

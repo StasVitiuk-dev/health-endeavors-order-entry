@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # LOCAL TEST ONLY (2026-11-23). Never point this at Supabase.
-# Tests drafts/46 (confirmed sales tax rates: owner-only, never deleted or
+# Tests drafts/46 (confirmed sales tax rates: the owner and administrators, never deleted or
 # edited, no overlaps, a new rate ends the old one, re-check, audit) and
 # drafts/47 (rollback) on a throwaway copy, as the owner, an administrator,
 # active staff, a deactivated account and a visitor. All rows are made up.
@@ -32,12 +32,13 @@ ok  "install" "$(run "$INSTALL")" "0"
 ok  "  safe to run twice" "$(run "$INSTALL")" "0"
 ok  "  the table is empty and audited" "$(q "select count(*) from tax_rates")/$(q "select count(*) from pg_trigger where tgname = 'tax_rates_audit'")" "0/1"
 
-echo " 2. only the owner confirms a rate"
+echo " 2. the owner and administrators confirm a rate (owner decision of Nov 24); nobody else"
 ok  "the owner confirms 8.75% from 2026-07-01" "$(as $O "select (set_tax_rate('$PL', 0.0875, '2026-07-01', 'IDOR Tax Rate Finder'))->>'ok'")" "true"
 ok  "  stored with who and when" "$(q "select rate||'|'||effective_from||'|'||coalesce(effective_until::text,'-')||'|'||(confirmed_by = '$O')||'|'||(confirmed_at > now() - interval '1 minute') from tax_rates")" "0.08750|2026-07-01|-|true|true"
 ok  "  the same confirmation again is one row" "$(as $O "select (set_tax_rate('$PL', 0.0875, '2026-07-01', 'IDOR Tax Rate Finder'))->>'duplicate'")|$(q "select count(*) from tax_rates")" "true|1"
-has "an administrator cannot" "$(as $A "select set_tax_rate('$PL', 0.09, '2027-01-01', 'IDOR Tax Rate Finder')")" "Only the owner"
-has "staff cannot" "$(as $E "select set_tax_rate('$PL', 0.09, '2027-01-01', 'IDOR Tax Rate Finder')")" "Only the owner"
+ok  "an administrator confirms too (the same confirmation: still one row)" "$(as $A "select (set_tax_rate('$PL', 0.0875, '2026-07-01', 'IDOR Tax Rate Finder'))->>'duplicate'")|$(q "select count(*) from tax_rates")" "true|1"
+has "staff cannot" "$(as $E "select set_tax_rate('$PL', 0.09, '2027-01-01', 'IDOR Tax Rate Finder')")" "Only the owner or an administrator"
+has "a switched-off account cannot" "$(as $X "select set_tax_rate('$PL', 0.09, '2027-01-01', 'IDOR Tax Rate Finder')")" "Only the owner or an administrator"
 has "staff cannot insert directly either" "$(as $E "insert into tax_rates (place, rate, effective_from, source) values ('x place', 0.01, '2027-01-01', 'abc')")" "Only the owner\|row-level security"
 has "a visitor cannot run it" "$(as anon "select set_tax_rate('$PL', 0.09, '2027-01-01', 'abc')")" "permission denied"
 ok  "  (still one rate)" "$(q "select count(*) from tax_rates")" "1"
@@ -74,7 +75,8 @@ ID=$(q "select id from tax_rates where effective_until is null and rate = 0.09")
 ok  "the owner re-checks the rate in force" "$(as $O "select (recheck_tax_rate('$ID'))->>'ok'")" "true"
 ok  "  today's date (Central) and who" "$(q "select (rechecked_at = (now() at time zone 'America/Chicago')::date)||'|'||(rechecked_by = '$O') from tax_rates where id = '$ID'")" "true|true"
 has "  a typed date is replaced by today" "$(as $O "update tax_rates set rechecked_at = '2030-01-01' where id = '$ID' returning rechecked_at = (now() at time zone 'America/Chicago')::date")" "t"
-has "staff cannot re-check" "$(as $E "select recheck_tax_rate('$ID')")" "Only the owner"
+has "staff cannot re-check" "$(as $E "select recheck_tax_rate('$ID')")" "Only the owner or an administrator"
+ok  "an administrator re-checks, recorded under the administrator" "$(as $A "select (recheck_tax_rate('$ID'))->>'ok'")|$(q "select rechecked_by = '$A' from tax_rates where id = '$ID'")" "true|t"
 ok  "a rate still in force until Dec 31 can be re-checked today" "$(as $O "select (recheck_tax_rate('$(q "select id from tax_rates where rate = 0.0875")'))->>'ok'")" "true"
 as $O "select set_tax_rate('Ships from: SYNTHETIC third place', 0.07, '2026-01-01', 'IDOR Tax Rate Finder')" >/dev/null
 as $O "select set_tax_rate('Ships from: SYNTHETIC third place', 0.075, '2026-07-01', 'IDOR Tax Rate Finder')" >/dev/null

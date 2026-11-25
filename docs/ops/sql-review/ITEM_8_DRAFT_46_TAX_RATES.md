@@ -7,7 +7,7 @@ Nothing here has been run in production. I never run it myself: you run it, afte
 
 | File | Lines | Fingerprint (SHA-256, first 16) |
 |---|---|---|
-| `docs/ops/sql/drafts/46_DRAFT_tax_rates.sql` (install) | 236 | `536e2c569fdfd262` |
+| `docs/ops/sql/drafts/46_DRAFT_tax_rates.sql` (install) | 238 | `1db9b4d27ba4704b` |
 | `docs/ops/sql/drafts/47_DRAFT_rollback_tax_rates.sql` (undo) | 43 | `d51c92bd167fae34` |
 
 ## Target environment
@@ -21,8 +21,10 @@ A small new list, **tax_rates**, where the rate you confirm is kept: the place (
 "Ships from: Illinois", **never your address**), the rate, the day it starts, where it comes from
 (for example "IDOR Tax Rate Finder"), who confirmed it and when, and when it was last re-checked.
 
-- **Only you** can confirm a rate, end it or re-check it. Administrators and staff can only read it
-  (it appears on invoices). Visitors see nothing.
+- **You and administrators** can confirm a rate, end it or re-check it (changed Nov 25, before
+  anything was installed, for your decision of Nov 24: an administrator is "almost like owner";
+  until then it was you only). Each rate keeps who confirmed it. Staff can only read it (it
+  appears on invoices). Visitors see nothing.
 - A rate is **never deleted and never edited**: if the rate changes, you confirm a new one from its
   start day and the old one automatically ends the day before.
 - Two rates for the same place can never overlap. Confirming the same rate twice records it once.
@@ -44,8 +46,9 @@ correct"** button, and a short form to confirm a rate. After every January 1 and
 
 ## Local test (throwaway database, made-up data)
 
-`docs/ops/sql/local-test/tax_rates_test.sh`: **47 of 47 passed** (Nov 23): install twice; only the
-owner confirms (administrator, staff, visitor refused); who can read; refusals (rate above 25% or
+`docs/ops/sql/local-test/tax_rates_test.sh`: **49 of 49 passed** (Nov 25; 47 of 47 on Nov 23 when
+only the owner confirmed): install twice; the owner and an administrator confirm and re-check,
+recorded under who did it (staff, a switched-off account and a visitor refused); who can read; refusals (rate above 25% or
 negative, no start day, no source, a place that is too short or too long, a rate that starts before
 the one in force, an overlapping insert, editing the rate or start day, deleting); a January change
 ending the old rate on December 31; a second place; re-check (today's date in Central time, typed

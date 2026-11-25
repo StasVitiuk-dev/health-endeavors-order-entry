@@ -32,8 +32,8 @@
 <meta http-equiv="Expires" content="0">
 <title>Health Endeavors — Owner Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous"></script>
-<link rel="stylesheet" href="assets/owner-login.css?v=e1ba3eed7c">
-<link rel="stylesheet" href="assets/looks/he-looks.css?v=af2215edbe">
+<link rel="stylesheet" href="assets/owner-login.css?v=2c3089d1ad">
+<link rel="stylesheet" href="assets/looks/he-looks.css?v=b66b70e60c">
 <script src="assets/looks/he-look-boot.js?v=6cc916837d"></script>
 <link rel="stylesheet" href="assets/print/he-print-fonts.css?v=274ef3d170">
 <link rel="stylesheet" href="assets/print/he-print.css?v=127a21c3aa" media="print">
@@ -42,7 +42,7 @@
 <script src="assets/owner-login-helpers.js?v=76dc8fc4a9"></script>
 <script src="assets/owner-login-modules.js?v=0d97adc58c"></script>
 <!-- @@ EXT15 module files (assets/app/*.js), added by tests/tools/extract-module.js @@ -->
-<script src="assets/app/he-config.js?v=34880c910f"></script>
+<script src="assets/app/he-config.js?v=49f2754b98"></script>
 <script src="assets/app/he-ui.js?v=72a33e864d"></script>
 <script src="assets/app/he-data.js?v=c83d91bc56"></script>
 <script src="assets/app/he-audit.js?v=583f427717"></script>
@@ -133,13 +133,17 @@
 <script src="assets/views/he-saved-views.js?v=3575602f5e"></script>
 <script src="assets/views/he-attention-feed.js?v=3f25cca5bf"></script>
 <script src="assets/views/he-agent-diary.js?v=c73b73e770"></script>
-<script src="assets/views/he-record-switches.js?v=f0abcd3b2a"></script>
+<script src="assets/views/he-record-switches.js?v=0ad2542111"></script>
+<script src="assets/views/he-admin-changes.js?v=afac9b3b15"></script>
+<script src="assets/views/he-people.js?v=a8e587f530"></script>
 <script src="assets/views/he-order-channels.js?v=7729927626"></script>
 <script src="assets/views/he-incident-close.js?v=a07842dbe0"></script>
 <script src="assets/views/he-menu-layouts.js?v=2b8b00c226"></script>
 <script src="assets/views/he-agents-glance.js?v=ad22880ea5"></script>
-<script src="assets/views/he-shared-switches.js?v=f85a199cb2"></script>
-<script src="assets/views/he-shared-settings.js?v=366ae7159c"></script>
+<script src="assets/views/he-shared-switches.js?v=e5f929bf77"></script>
+<script src="assets/views/he-shared-settings.js?v=8e94a212b2"></script>
+<script src="assets/views/he-launch.js?v=52bf9092cc"></script>
+<script src="assets/views/he-ask.js?v=dcd3420137"></script>
 <script src="assets/inventory/he-inventory-count.js?v=c879983a8c"></script>
 <script src="assets/inventory/he-receiving.js?v=f7f6965422"></script>
 <script src="assets/inventory/he-receiving-store.js?v=5b3a5b2dbb"></script>
@@ -150,7 +154,7 @@
 <script src="assets/inventory/he-reorder-fixtures.js?v=885819be55"></script>
 <script src="assets/invoice/he-invoice.js?v=10275fcded"></script>
 <script src="assets/invoice/he-tax.js?v=e6e97a6d13"></script>
-<script src="assets/invoice/he-tax-rate-store.js?v=fb962f7428"></script>
+<script src="assets/invoice/he-tax-rate-store.js?v=02e802afae"></script>
 <script src="assets/invoice/he-invoice-store.js?v=c750e3a4b7"></script>
 <script src="assets/reports/he-report-export.js?v=b10f9ebc0c"></script>
 <script src="assets/reports/he-report-schedule.js?v=fe145bfc31"></script>
@@ -237,6 +241,7 @@
         <div class="statRow" id="businessHealthStats"></div>
         <div id="moneyAlertHost"></div>
         <div id="taxRateAlertHost"></div>
+        <div id="adminChangesHost"></div>
 
         <h2 class="u-mt-22">Checks: what needs a look</h2>
         <p class="hint">Fixed checks on your data, run each time this page loads. Red: data that cannot be right. Amber: something to do. Grey: worth knowing (including things switched off on purpose). "Could not check" is not the same as "fine".</p>
@@ -1066,6 +1071,8 @@
       <section class="panel" id="customerEmailsPanel"></section>
       <section class="panel" id="contentHelperPanel"></section>
       <section class="panel" id="reviewsPanel"></section>
+      <section class="panel" id="peoplePanel"></section>
+      <section class="panel" id="launchPanel"></section>
       <section class="panel" id="salesCommandPanel"></section>
       <section class="panel" id="salesLeadsPanel"></section>
       <section class="panel" id="salesPipelinePanel"></section>
@@ -1166,6 +1173,6 @@
 <!-- One permanent place for screen readers to hear the result of a button in a
      section that redraws itself (Nov 15). Invisible on screen. -->
 <div id="srAnnounce" class="srOnly" role="status" aria-live="polite" aria-atomic="true"></div>
-<script src="assets/owner-login-app.js?v=a15c95008b"></script>
+<script src="assets/owner-login-app.js?v=34b48e4eef"></script>
 </body>
 </html>

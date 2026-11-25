@@ -331,7 +331,7 @@ test.describe('saving a campaign on Store Campaigns', () => {
     await expect(S.locator('[data-es="stop"]')).toHaveCount(1);
   });
 
-  test('an administrator sees the saved campaigns and can add to the do-not-email list, but cannot save, pause or stop', async ({ page, backend }) => {
+  test('an administrator sees the saved campaigns, can pause and stop them, and add to the do-not-email list (owner decision, Nov 24)', async ({ page, backend }) => {
     install(backend);
     backend.tables.profiles[0].role = 'administrator';
     await on(page, true);
@@ -339,8 +339,10 @@ test.describe('saving a campaign on Store Campaigns', () => {
     await gotoPage(page, 'storeCampaignsPanel');
     const S = page.locator('[data-emailsave="store"]');
     await expect(S.locator('[data-eslist]')).toHaveAttribute('data-eslist', '1');
-    await expect(S).toContainText('Only the owner can save a campaign.');
-    await expect(S.locator('[data-es="save"], [data-es="pause"], [data-es="stop"]')).toHaveCount(0);
+    await expect(S).not.toContainText('Only the owner or an administrator can save a campaign.');
+    await expect(S.locator('[data-esnotready]')).toHaveCount(1);          // the same next step the owner sees
+    await expect(S.locator('[data-es="pause"]')).toHaveCount(1);
+    await expect(S.locator('[data-es="stop"]')).toHaveCount(1);
     await page.fill('#esEmail-store', 'asked@example.test');
     await S.locator('[data-es="suppress"]').click();
     await expect(S.locator('[data-esmessage]')).toContainText('asked@example.test is on the do-not-email list now.');

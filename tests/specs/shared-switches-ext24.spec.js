@@ -1,7 +1,7 @@
 // Feature switches shared by every device (owner decision, Nov 23 evening): a
 // switch turned on once is on on every phone and computer; work features for
 // every employee, money and sensitive documents for the owner and administrators;
-// only the owner flips a switch. assets/views/he-shared-switches.js, on top of the
+// the owner or an administrator flips a switch (owner decision of Nov 24). assets/views/he-shared-switches.js, on top of the
 // shared settings (docs/ops/sql/drafts/50). Until that step is installed, switches
 // stay per browser (preview-switches-ext21). Every value is made up.
 const W = require('../../assets/views/he-shared-switches.js');
@@ -76,17 +76,35 @@ test.describe('on the dashboard, with the shared settings installed', () => {
     expect(await page.evaluate(() => [localStorage.getItem('he_order_slips'), localStorage.getItem('he_real_profit')])).toEqual([null, null]);
   });
 
-  test('an administrator gets the switches but cannot change them; a refusal changes nothing', async ({ page, backend }, ti) => {
+  test('an administrator changes a switch for every device too (owner decision, Nov 24)', async ({ page, backend }, ti) => {
     test.skip(ti.project.name !== 'desktop', 'run once');
     backend.tables.shared_settings = shared({ he_real_profit: true });
     backend.tables.profiles[0].role = 'administrator';
+    backend.rpc.set_shared_setting = (body) => { backend.tables.shared_settings = [{ id: body.p_key, key: body.p_key, value: body.p_value, audience: body.p_audience, updated_at: '2026-11-24T16:05:00Z', updated_by: 'x' }]; return { ok: true, key: body.p_key, updated_at: '2026-11-24T16:05:00Z' }; };
     await login(page);
     await expect.poll(() => page.evaluate(() => localStorage.getItem('he_real_profit')).catch(() => null)).toBe('on');
     await gotoPage(page, 'flagsPanel');
     const host = page.locator('#previewSwitchesHost');
-    await expect(host.getByRole('button', { name: 'Turn off Real profit' })).toBeDisabled();
-    await expect(host.getByRole('button', { name: 'Turn all off' })).toBeDisabled();
-    expect(backend.requests.filter(r => r.rpc === 'set_shared_setting')).toEqual([]);
+    await expect(host.locator('[data-preview-shared]')).toContainText('The owner and administrators can change a switch.');
+    await host.getByRole('button', { name: 'Turn off Real profit' }).click();
+    await expect(host.locator('[data-preview-msg]')).toContainText('Real profit is off on every device.');
+    const saves = backend.requests.filter(r => r.rpc === 'set_shared_setting');
+    expect(saves).toHaveLength(1);
+    expect(saves[0].body).toMatchObject({ p_key: 'feature_switches', p_audience: 'staff', p_value: { on: {} } });
+  });
+
+  test('a refusal by the database changes nothing', async ({ page, backend }, ti) => {
+    test.skip(ti.project.name !== 'desktop', 'run once');
+    backend.tables.shared_settings = shared({ he_real_profit: true });
+    backend.tables.profiles[0].role = 'administrator';
+    backend.rpc.set_shared_setting = () => ({ __error: { status: 403, code: '42501', message: 'Only the owner or an administrator can change a shared setting.' } });
+    await login(page);
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('he_real_profit')).catch(() => null)).toBe('on');
+    await gotoPage(page, 'flagsPanel');
+    const host = page.locator('#previewSwitchesHost');
+    await host.getByRole('button', { name: 'Turn off Real profit' }).click();
+    await expect(host.locator('[data-preview-msg]')).toContainText('Nothing was changed.');
+    expect(await page.evaluate(() => localStorage.getItem('he_real_profit'))).toBe('on');
   });
 
   test('an employee gets the work switches only', async ({ page, backend }, ti) => {

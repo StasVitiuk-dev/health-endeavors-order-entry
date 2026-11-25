@@ -107,6 +107,7 @@
   "RPC get_agent_cron_status()",
   "RPC list_my_sessions()",
   "RPC log_customer_data_access(p_customer_email,p_reason)",
+  "RPC people_actor_role()",
   "RPC quarantine_recall(p_recall_id)",
   "RPC receive_purchase_order(p_lots,p_po_id)",
   "RPC receive_return(p_disposition,p_return_id)"

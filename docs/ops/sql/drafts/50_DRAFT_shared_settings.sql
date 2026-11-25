@@ -5,7 +5,7 @@
 -- @depends-on:  none
 -- @risk:        LOW
 -- @precheck:    stops, changing nothing, if a shared_settings table exists that this file did not create (it checks its own mark); stops if auth.uid(), current_role(), is_active_staff(), is_owner_or_admin(), the tasks or audit_log table, or the audit trigger on tasks is missing
--- @effect:      1 new table shared_settings (one row per setting: key, a small JSON value, who may read it, who saved it last and when); set_shared_setting() saves or replaces a setting; settings never deleted, keys never renamed; only the owner writes; the owner and administrators read all, active staff only settings marked for staff; production's audit trigger attached; no existing table changes
+-- @effect:      1 new table shared_settings (one row per setting: key, a small JSON value, who may read it, who saved it last and when); set_shared_setting() saves or replaces a setting; settings never deleted, keys never renamed; the owner and administrators write (owner decision of Nov 24); the owner and administrators read all, active staff only settings marked for staff; production's audit trigger attached; no existing table changes
 -- @postcheck:   the table present and empty; anon cannot read it; local-test/shared_settings_test.sh passes on a throwaway copy
 -- @rollback:    drafts/51
 -- @@ end metadata @@
@@ -19,7 +19,7 @@
 --   * shared_settings   one row per setting: a short key ("profit_estimates"),
 --     its value (a small JSON object), who may read it ("owner_admin" or
 --     "staff"), who saved it last and when.
---   * set_shared_setting(key, value, audience)   the owner saves a setting; saving
+--   * set_shared_setting(key, value, audience)   the owner or an administrator saves a setting; saving
 --     the same key again replaces its value (the previous value stays in
 --     audit_log with who and when).
 --   * A setting is never deleted from the dashboard; a value is replaced.
@@ -28,7 +28,8 @@
 -- Holds settings only: never passwords, keys, tokens or customer details
 -- (values are limited to a small JSON object; the dashboard decides what it saves).
 --
--- Who can see and do what: only the owner saves; the owner and administrators
+-- Who can see and do what: the owner and administrators save (owner decision of
+-- Nov 24, evening, made before this draft was installed); the owner and administrators
 -- read every setting; active staff read only settings marked for staff; visitors
 -- nothing. SECURITY INVOKER throughout (project rule). Production's own audit
 -- trigger (the one on `tasks`) is attached, so every change lands in audit_log.
@@ -79,7 +80,8 @@ create table if not exists public.shared_settings (
 );
 comment on table public.shared_settings is 'Health Endeavors drafts/50: settings shared by every device';
 
--- Only the owner saves. A setting is replaced, never deleted; its key never changes.
+-- The owner and administrators save (owner decision of Nov 24: an administrator is "almost
+-- like owner"). A setting is replaced, never deleted; its key never changes.
 create or replace function public.shared_settings_guard() returns trigger
 language plpgsql
 security invoker
@@ -89,8 +91,8 @@ begin
   if tg_op = 'DELETE' then
     raise exception 'A shared setting stays on the record; save a new value instead.' using errcode = '42501';
   end if;
-  if coalesce(public.current_role(), '') <> 'owner' then
-    raise exception 'Only the owner can change a shared setting.' using errcode = '42501';
+  if coalesce(public.current_role(), '') not in ('owner', 'administrator') then
+    raise exception 'Only the owner or an administrator can change a shared setting.' using errcode = '42501';
   end if;
   if tg_op = 'UPDATE' and new.key is distinct from old.key then
     raise exception 'The name of a setting cannot change; save it under the new name instead.' using errcode = '42501';
@@ -104,7 +106,7 @@ drop trigger if exists shared_settings_guard on public.shared_settings;
 create trigger shared_settings_guard before insert or update or delete on public.shared_settings
   for each row execute function public.shared_settings_guard();
 
--- ---------------------------------------------------------------- the owner saves a setting
+-- ---------------------------------------------------------------- the owner or an administrator saves a setting
 create or replace function public.set_shared_setting(p_key text, p_value jsonb, p_audience text default 'owner_admin') returns jsonb
 language plpgsql
 security invoker
@@ -112,8 +114,8 @@ set search_path = public, pg_temp
 as $fn$
 declare v public.shared_settings%rowtype;
 begin
-  if coalesce(public.current_role(), '') <> 'owner' then
-    raise exception 'Only the owner can change a shared setting.' using errcode = '42501';
+  if coalesce(public.current_role(), '') not in ('owner', 'administrator') then
+    raise exception 'Only the owner or an administrator can change a shared setting.' using errcode = '42501';
   end if;
   if p_value is null then raise exception 'A setting needs a value.' using errcode = '22023'; end if;
   insert into public.shared_settings (key, value, audience)
@@ -147,10 +149,10 @@ drop policy if exists shared_settings_read on public.shared_settings;
 create policy shared_settings_read on public.shared_settings for select to authenticated
   using (public.is_owner_or_admin() or (audience = 'staff' and public.is_active_staff()));
 drop policy if exists shared_settings_owner_add on public.shared_settings;
-create policy shared_settings_owner_add on public.shared_settings for insert to authenticated with check (coalesce(public.current_role(), '') = 'owner');
+create policy shared_settings_owner_add on public.shared_settings for insert to authenticated with check (coalesce(public.current_role(), '') in ('owner', 'administrator'));
 drop policy if exists shared_settings_owner_change on public.shared_settings;
 create policy shared_settings_owner_change on public.shared_settings for update to authenticated
-  using (coalesce(public.current_role(), '') = 'owner') with check (coalesce(public.current_role(), '') = 'owner');
+  using (coalesce(public.current_role(), '') in ('owner', 'administrator')) with check (coalesce(public.current_role(), '') in ('owner', 'administrator'));
 
 revoke all on function public.set_shared_setting(text, jsonb, text) from public, anon;
 revoke all on function public.shared_settings_guard() from public, anon;

@@ -5,7 +5,7 @@
 -- @depends-on:  none
 -- @risk:        MEDIUM
 -- @precheck:    stops, changing nothing, if an email_campaigns, email_outbox or email_suppressions table exists that this file did not create (it checks its own marks); stops if auth.uid(), current_role(), is_owner_or_admin(), gen_random_uuid(), the tasks or audit_log table, or the audit trigger on tasks is missing
--- @effect:      3 new tables: email_campaigns (one row per approved wording; the wording never changes), email_outbox (one row per email to go out and what happened to it; never deleted), email_suppressions (the do-not-email list; only grows). approve_email_campaign() (owner only; refuses a health claim), queue_campaign_emails() (owner only; at most 500 at a time; leaves out unusable, suppressed and repeated addresses and stores written to in the last 90 days; gives each email the first working day with room), email_daily_cap() (20 a day in the first working week, then 40, 60, 80, 100; 0 on a weekend), set_email_campaign_status() (owner pauses, resumes, stops), add_email_suppression() (owner and administrators), next_emails_to_send() and record_email_result() (the sending program only, never a signed-in person). A bounce or spam complaint adds the address to the do-not-email list by itself; a campaign stops by itself after 2 complaints or when more than 5% of at least 20 sent emails came back. Production's audit trigger attached. No existing table changes. Holds customer and store email addresses
+-- @effect:      3 new tables: email_campaigns (one row per approved wording; the wording never changes), email_outbox (one row per email to go out and what happened to it; never deleted), email_suppressions (the do-not-email list; only grows). approve_email_campaign() (the owner or an administrator; refuses a health claim), queue_campaign_emails() (the owner or an administrator; at most 500 at a time; leaves out unusable, suppressed and repeated addresses and stores written to in the last 90 days; gives each email the first working day with room), email_daily_cap() (20 a day in the first working week, then 40, 60, 80, 100; 0 on a weekend), set_email_campaign_status() (the owner or an administrator pauses, resumes, stops), add_email_suppression() (owner and administrators), next_emails_to_send() and record_email_result() (the sending program only, never a signed-in person). A bounce or spam complaint adds the address to the do-not-email list by itself; a campaign stops by itself after 2 complaints or when more than 5% of at least 20 sent emails came back. Production's audit trigger attached. No existing table changes. Holds customer and store email addresses
 -- @postcheck:   the three tables present and empty; anon cannot read them; authenticated cannot execute next_emails_to_send or record_email_result; local-test/email_sending_test.sh passes on a throwaway copy
 -- @rollback:    drafts/57
 -- @@ end metadata @@
@@ -41,8 +41,10 @@
 --   * a wording with a health or medical claim (cure, treat, heal, prevent,
 --     diagnose) is refused here too, as a backstop to the dashboard's check.
 --
--- Who can see and do what: only the owner approves a campaign, queues its
--- emails, and pauses or stops it. The owner and administrators read everything
+-- Who can see and do what: the owner and administrators approve a campaign,
+-- queue its emails, and pause or stop it (owner decision of Nov 24: an
+-- administrator is "almost like owner"; changed before this draft was installed;
+-- who approved stays on each campaign). The owner and administrators read everything
 -- and may add an address to the do-not-email list. Staff and visitors: nothing.
 -- Only the sending program (which signs in as no person) may be handed emails
 -- and may record what happened to them. SECURITY INVOKER throughout (project
@@ -173,8 +175,8 @@ begin
     raise exception 'A campaign stays on the record; stop it instead.' using errcode = '42501';
   end if;
   if tg_op = 'INSERT' then
-    if coalesce(public.current_role(), '') <> 'owner' then
-      raise exception 'Only the owner approves an email campaign.' using errcode = '42501';
+    if coalesce(public.current_role(), '') not in ('owner', 'administrator') then
+      raise exception 'Only the owner or an administrator approves an email campaign.' using errcode = '42501';
     end if;
     if (new.subject || ' ' || new.body) ~* '\m(cures?|cured|curing|treats?|treated|treating|treatment|heals?|healed|healing|prevents?|prevented|diagnos[a-z]*)\M' then
       raise exception 'This wording makes a health or medical claim. A body-care product may not; change the wording.' using errcode = '23514';
@@ -193,12 +195,12 @@ begin
     if old.status in ('stopped', 'done') then
       raise exception 'This campaign is %; it cannot be started again.', old.status using errcode = '42501';
     end if;
-    -- a person may pause, resume or stop; only the owner. The sending program (no person) may stop or finish it.
-    if auth.uid() is not null and coalesce(public.current_role(), '') <> 'owner' then
-      raise exception 'Only the owner can pause or stop a campaign.' using errcode = '42501';
+    -- a person may pause, resume or stop: the owner or an administrator. The sending program (no person) may stop or finish it.
+    if auth.uid() is not null and coalesce(public.current_role(), '') not in ('owner', 'administrator') then
+      raise exception 'Only the owner or an administrator can pause or stop a campaign.' using errcode = '42501';
     end if;
     if auth.uid() is null and new.status not in ('stopped', 'done') then
-      raise exception 'Only the owner can pause or resume a campaign.' using errcode = '42501';
+      raise exception 'Only the owner or an administrator can pause or resume a campaign.' using errcode = '42501';
     end if;
   end if;
   new.updated_at := now();
@@ -221,8 +223,8 @@ begin
     raise exception 'An email stays on the record; skip it instead.' using errcode = '42501';
   end if;
   if tg_op = 'INSERT' then
-    if coalesce(public.current_role(), '') <> 'owner' then
-      raise exception 'Only the owner queues the emails of a campaign.' using errcode = '42501';
+    if coalesce(public.current_role(), '') not in ('owner', 'administrator') then
+      raise exception 'Only the owner or an administrator queues the emails of a campaign.' using errcode = '42501';
     end if;
     new.status := 'queued'; new.skip_reason := null; new.provider_id := null; new.error := null; new.sent_at := null;
     new.queued_by := auth.uid(); new.queued_at := now(); new.updated_at := now();
@@ -315,7 +317,7 @@ begin
 end
 $fn$;
 
--- ---------------------------------------------------------------- the owner approves a wording
+-- ---------------------------------------------------------------- the owner or an administrator approves a wording
 create or replace function public.approve_email_campaign(p_kind text, p_name text, p_subject text, p_body text, p_postal_address text) returns jsonb
 language plpgsql
 security invoker
@@ -323,8 +325,8 @@ set search_path = public, pg_temp
 as $fn$
 declare v public.email_campaigns%rowtype;
 begin
-  if coalesce(public.current_role(), '') <> 'owner' then
-    raise exception 'Only the owner approves an email campaign.' using errcode = '42501';
+  if coalesce(public.current_role(), '') not in ('owner', 'administrator') then
+    raise exception 'Only the owner or an administrator approves an email campaign.' using errcode = '42501';
   end if;
   insert into public.email_campaigns (kind, name, subject, body, postal_address)
     values (coalesce(p_kind, ''), btrim(coalesce(p_name, '')), btrim(coalesce(p_subject, '')), btrim(coalesce(p_body, '')), btrim(coalesce(p_postal_address, '')))
@@ -333,7 +335,7 @@ begin
 end
 $fn$;
 
--- ---------------------------------------------------------------- the owner chooses who it goes to
+-- ---------------------------------------------------------------- the owner or an administrator chooses who it goes to
 -- p_recipients: [{ "email": "...", "name": "...", "fields": { ... } }], at most 500 at a time.
 -- Each address is checked against the guard, and given the first working day that still has room.
 create or replace function public.queue_campaign_emails(p_campaign uuid, p_recipients jsonb, p_start date default current_date) returns jsonb
@@ -346,8 +348,8 @@ declare
   v_r jsonb; v_email text; v_day date; v_used integer; v_tries integer;
   v_queued integer := 0; v_skipped jsonb := '[]'::jsonb; v_first date; v_last date;
 begin
-  if coalesce(public.current_role(), '') <> 'owner' then
-    raise exception 'Only the owner queues the emails of a campaign.' using errcode = '42501';
+  if coalesce(public.current_role(), '') not in ('owner', 'administrator') then
+    raise exception 'Only the owner or an administrator queues the emails of a campaign.' using errcode = '42501';
   end if;
   perform pg_advisory_xact_lock(hashtext('health_endeavors_email_queue'));   -- two queues at once would both count the same room
   select * into v_c from public.email_campaigns where id = p_campaign for update;
@@ -405,14 +407,14 @@ set search_path = public, pg_temp
 as $fn$
 declare v public.email_campaigns%rowtype; v_skipped bigint := 0;
 begin
-  if coalesce(public.current_role(), '') <> 'owner' then
-    raise exception 'Only the owner can pause or stop a campaign.' using errcode = '42501';
+  if coalesce(public.current_role(), '') not in ('owner', 'administrator') then
+    raise exception 'Only the owner or an administrator can pause or stop a campaign.' using errcode = '42501';
   end if;
   if p_status is null or p_status not in ('approved', 'paused', 'stopped') then
     raise exception 'A campaign can be paused, resumed or stopped.' using errcode = '22023';
   end if;
   update public.email_campaigns set status = p_status,
-         stop_reason = case when p_status = 'stopped' then 'Stopped by the owner' || coalesce(': ' || nullif(left(btrim(p_reason), 400), ''), '.') else null end
+         stop_reason = case when p_status = 'stopped' then 'Stopped by ' || case when coalesce(public.current_role(), '') = 'owner' then 'the owner' else 'an administrator' end || coalesce(': ' || nullif(left(btrim(p_reason), 400), ''), '.') else null end
    where id = p_campaign returning * into v;
   if not found then raise exception 'This campaign was not found.' using errcode = 'P0002'; end if;
   if p_status = 'stopped' then
@@ -530,15 +532,15 @@ create policy email_suppressions_add on public.email_suppressions for insert to 
 drop policy if exists email_campaigns_read on public.email_campaigns;
 create policy email_campaigns_read on public.email_campaigns for select to authenticated using (public.is_owner_or_admin());
 drop policy if exists email_campaigns_owner_add on public.email_campaigns;
-create policy email_campaigns_owner_add on public.email_campaigns for insert to authenticated with check (coalesce(public.current_role(), '') = 'owner');
+create policy email_campaigns_owner_add on public.email_campaigns for insert to authenticated with check (coalesce(public.current_role(), '') in ('owner', 'administrator'));
 drop policy if exists email_campaigns_owner_change on public.email_campaigns;
 create policy email_campaigns_owner_change on public.email_campaigns for update to authenticated
-  using (coalesce(public.current_role(), '') = 'owner') with check (coalesce(public.current_role(), '') = 'owner');
+  using (coalesce(public.current_role(), '') in ('owner', 'administrator')) with check (coalesce(public.current_role(), '') in ('owner', 'administrator'));
 
 drop policy if exists email_outbox_read on public.email_outbox;
 create policy email_outbox_read on public.email_outbox for select to authenticated using (public.is_owner_or_admin());
 drop policy if exists email_outbox_owner_add on public.email_outbox;
-create policy email_outbox_owner_add on public.email_outbox for insert to authenticated with check (coalesce(public.current_role(), '') = 'owner');
+create policy email_outbox_owner_add on public.email_outbox for insert to authenticated with check (coalesce(public.current_role(), '') in ('owner', 'administrator'));
 drop policy if exists email_outbox_skip on public.email_outbox;
 create policy email_outbox_skip on public.email_outbox for update to authenticated
   using (public.is_owner_or_admin()) with check (public.is_owner_or_admin());

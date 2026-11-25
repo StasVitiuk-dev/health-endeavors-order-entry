@@ -62,7 +62,7 @@ test.describe('the store (no database)', () => {
       rpc: (name, args) => { calls.push([name, args]); return new Promise(r => { release = () => r({ data: { ok: true, duplicate: false, id: 'n', ended: null }, error: null }); }); } };
     const form = { place: 'SYN place', ratePercent: '8.75', from: '2027-01-01', source: 'IDOR Tax Rate Finder' };
     expect((await S.createStore({ client, enabled: false, role: 'owner' }).confirm(form)).off).toBe(true);
-    expect((await S.createStore({ client, enabled: true, role: 'administrator' }).confirm(form)).message).toMatch(/Only the owner/);
+    expect((await S.createStore({ client, enabled: true, role: 'employee' }).confirm(form)).message).toMatch(/Only the owner or an administrator/);
     expect((await S.createStore({ client, enabled: true, role: 'employee' }).recheck('00000000-0000-4000-8000-000000000001')).forbidden).toBe(true);
     expect((await S.createStore({ client, enabled: true, role: 'employee' }).list()).ok).toBe(true);   // everyone may read
     const st = S.createStore({ client, enabled: true, role: 'owner' });
@@ -95,6 +95,16 @@ test.describe('Tax Records', () => {
     await expect(page.locator('#taxRatesHost form')).toHaveCount(0);
   });
 
+  test('an administrator confirms and re-checks too (owner decision, Nov 24)', async ({ page, backend }) => {
+    backend.tables.profiles.find(p => p.role === 'owner').role = 'administrator';
+    backend.tables.tax_rates = [{ id: '00000000-0000-4000-8000-00000000a001', place: 'Ships from: SYNTHETIC', rate: '0.08750', effective_from: '2026-07-01', effective_until: null, source: 'IDOR Tax Rate Finder', note: null, confirmed_by: 'u', confirmed_at: '2026-11-24T15:00:00Z', rechecked_at: null, rechecked_by: null }];
+    await on(page); await login(page); await gotoPage(page, 'taxRecordsPanel');
+    const host = page.locator('#taxRatesHost');
+    await expect(host.locator('form[data-trform]')).toHaveCount(1);
+    await expect(host.locator('[data-trrecheck]')).toHaveCount(1);
+    await expect(host).not.toContainText('Only the owner or an administrator confirms');
+  });
+
   test('staff see the rates but no form and no buttons', async ({ page, backend }) => {
     backend.tables.profiles.find(p => p.role === 'owner').role = 'employee';
     backend.tables.tax_rates = [{ id: '00000000-0000-4000-8000-00000000a001', place: 'Ships from: SYNTHETIC', rate: '0.08750', effective_from: '2026-07-01', effective_until: null, source: 'IDOR Tax Rate Finder', note: null, confirmed_by: 'u', confirmed_at: '2026-11-24T15:00:00Z', rechecked_at: null, rechecked_by: null }];
@@ -103,7 +113,7 @@ test.describe('Tax Records', () => {
     await expect(host.locator('tr[data-trrow]')).toContainText('8.75%');
     await expect(host.locator('form')).toHaveCount(0);
     await expect(host.locator('[data-trrecheck]')).toHaveCount(0);
-    await expect(host).toContainText('Only the owner confirms or re-checks a rate.');
+    await expect(host).toContainText('Only the owner or an administrator confirms or re-checks a rate.');
   });
 
   test.describe('against a real database with drafts/46 installed', () => {
@@ -157,8 +167,8 @@ test.describe('Tax Records', () => {
 
     test('the database refuses an administrator even when the page is fooled', async ({ page, backend }, ti) => {
       test.skip(ti.project.name !== 'desktop', 'run once');
-      // the page believes the person is the owner; the database knows they are an administrator
-      const db = await pgBridge(page, { install: INSTALL, tables: TABLES, rpcs: RPCS, role: 'administrator' });
+      // the page believes the person is the owner; the database knows they are an employee
+      const db = await pgBridge(page, { install: INSTALL, tables: TABLES, rpcs: RPCS, role: 'employee' });
       try {
         await on(page); await login(page); await gotoPage(page, 'taxRecordsPanel');
         const host = page.locator('#taxRatesHost');
@@ -166,7 +176,7 @@ test.describe('Tax Records', () => {
         await host.locator('#trRate').fill('8.75');
         await host.locator('#trFrom').fill('2026-07-01');
         await host.locator('form[data-trform] button[type="submit"]').click();
-        await expect(host.locator('[data-trmessage]')).toContainText('Only the owner can confirm a tax rate.');
+        await expect(host.locator('[data-trmessage]')).toContainText('Only the owner or an administrator can confirm a tax rate.');
         expect(await db.query('select count(*) from tax_rates')).toBe('0');
       } finally { await db.close(); }
     });

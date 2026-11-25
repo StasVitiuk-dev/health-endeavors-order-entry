@@ -1403,6 +1403,20 @@ table.sysStatus td{ overflow-wrap:anywhere; }
 .feedActions{ display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
 .feedActions button{ min-height:32px; }
 .feedActions [data-feedkept]{ align-self:center; }
+/* Ask the dashboard: the bar and the answer inside the search box, and the bar on Home */
+.askBar{ display:flex; flex-wrap:wrap; gap:6px; align-items:center; padding:8px 12px 0; }
+.askAnswer{ padding:0 12px; max-height:62vh; overflow-y:auto; }
+.paletteCard.askAnswering #paletteResults, .paletteCard.askAnswering .paletteFoot{ display:none; }
+.askAnswer:empty{ display:none; }
+.askCard{ border:1px solid var(--line, #d7dee8); border-radius:10px; padding:10px 12px; margin:8px 0; overflow-wrap:anywhere; }
+.askCard .wrTable{ max-width:none; }
+.askHome{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:12px; }
+/* Ready to launch: one card per line, the state first */
+.lpList{ list-style:none; margin:8px 0 0; padding:0; display:grid; gap:8px; max-width:760px; }
+.lpLine{ border:1px solid var(--line, #d7dee8); border-radius:10px; padding:10px 12px; overflow-wrap:anywhere; }
+.lpHead{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:2px; }
+.lpTotal{ margin:8px 0 4px; }
+#launchPanel progress{ width:100%; max-width:760px; height:10px; }
 /* Weekly report: a narrow two-column table that keeps its labels readable on a phone */
 .wrTable{ width:100%; max-width:640px; table-layout:fixed; }
 .wrTable th, .wrTable td{ white-space:normal; }

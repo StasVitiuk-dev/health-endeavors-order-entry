@@ -20,7 +20,7 @@ as()   { local who="$1" sql="$2" pre
          if [ "$who" = anon ]; then pre="set local role anon;"; else pre="set local role authenticated; set local request.jwt.claim.sub = '$who';"; fi
          psql "${CONN[@]}" -d "$DB" -qtAX -c "begin; $pre $sql; commit;" 2>&1 | grep -v '^\(BEGIN\|COMMIT\|SET\|ROLLBACK\)$'; }
 OUTF=$(mktemp)
-O=00000000-0000-4000-8000-0000000009a1; A=00000000-0000-4000-8000-0000000009a2; E=00000000-0000-4000-8000-0000000009a3
+O=00000000-0000-4000-8000-0000000009a1; A=00000000-0000-4000-8000-0000000009a2; E=00000000-0000-4000-8000-0000000009a3; X=00000000-0000-4000-8000-0000000009a4
 SUBJ='A body-care line for your shop'
 BODY='Hello, we make small-batch body lotion and would love to send a sample to your shop. Reply any time.'
 ADDR='1 SYNTHETIC Street, Testville, TS 00000'
@@ -28,9 +28,10 @@ ADDR='1 SYNTHETIC Street, Testville, TS 00000'
 list() { q "select jsonb_agg(jsonb_build_object('email', '$1' || i || '@example.test', 'name', 'SYNTHETIC ' || i)) from generate_series($2, $3) i"; }
 psql "${CONN[@]}" -d postgres -qX -c "drop database if exists $DB with (force)" >/dev/null 2>&1
 psql "${CONN[@]}" -d postgres -qX -v ON_ERROR_STOP=1 -c "create database $DB template $SRC" >/dev/null || { echo "cannot copy $SRC"; exit 2; }
-q "delete from profiles where id in ('$O','$A','$E');
+q "delete from profiles where id in ('$O','$A','$E','$X');
    insert into profiles (id, email, role, is_active, account_number) values ('$O','owner@example.test','owner',true,'900000001'),
-     ('$A','admin@example.test','administrator',true,'900000002'), ('$E','staff@example.test','employee',true,'900000003');" >/dev/null
+     ('$A','admin@example.test','administrator',true,'900000002'), ('$E','staff@example.test','employee',true,'900000003'),
+     ('$X','gone@example.test','administrator',false,'900000004');" >/dev/null
 echo "Email sending records (throwaway database $DB). Nothing is sent."
 
 echo " 1. install"
@@ -39,12 +40,12 @@ ok  "  safe to run twice" "$(run "$INSTALL")" "0"
 ok  "  three empty tables, each marked" "$(q "select (select count(*) from email_campaigns) + (select count(*) from email_outbox) + (select count(*) from email_suppressions)")/$(q "select count(*) from pg_class where relname in ('email_campaigns','email_outbox','email_suppressions') and obj_description(oid, 'pg_class') like 'Health Endeavors drafts/56:%'")" "0/3"
 ok  "  before anything is queued: 20 on a working day, none on a weekend" "$(q "select email_daily_cap(date '2026-11-23') || '|' || email_daily_cap(date '2026-11-28') || '|' || email_daily_cap(date '2026-11-29') || '|' || coalesce(email_daily_cap(null)::text, 'null')")" "20|0|0|0"
 
-echo " 2. only the owner approves a wording"
+echo " 2. the owner (and administrators, section 10b) approve a wording; nobody else"
 C1=$(as $O "select (approve_email_campaign('store', 'First stores', '$SUBJ', '$BODY', '$ADDR'))->>'id'")
 has "the owner approves a campaign for stores" "$C1" "^[0-9a-f-]\{36\}$"
 ok  "  approved, by the owner, not sent" "$(q "select status || '|' || (approved_by = '$O') || '|' || kind from email_campaigns where id = '$C1'")" "approved|true|store"
-has "an administrator cannot" "$(as $A "select approve_email_campaign('store', 'Sneaky', '$SUBJ', '$BODY', '$ADDR')")" "Only the owner"
-has "staff cannot" "$(as $E "select approve_email_campaign('store', 'Sneaky', '$SUBJ', '$BODY', '$ADDR')")" "Only the owner"
+has "a switched-off administrator cannot" "$(as $X "select approve_email_campaign('store', 'Sneaky', '$SUBJ', '$BODY', '$ADDR')")" "Only the owner or an administrator"
+has "staff cannot" "$(as $E "select approve_email_campaign('store', 'Sneaky', '$SUBJ', '$BODY', '$ADDR')")" "Only the owner or an administrator"
 has "staff cannot insert directly either" "$(as $E "insert into email_campaigns (kind, name, subject, body, postal_address) values ('store', 'Sneaky', '$SUBJ', '$BODY', '$ADDR')")" "Only the owner\|row-level security"
 has "a visitor cannot" "$(as anon "select approve_email_campaign('store', 'Sneaky', '$SUBJ', '$BODY', '$ADDR')")" "permission denied"
 has "the database owner without a signed-in person cannot either" "$(q "insert into email_campaigns (kind, name, subject, body, postal_address) values ('store', 'Nobody', '$SUBJ', '$BODY', '$ADDR')")" "Only the owner"
@@ -69,7 +70,7 @@ ok  "  stored in lower case, queued, on a working day from today on, with the fi
 D1=$(q "select min(send_on) from email_outbox")
 ok  "25 more: the first day takes 20 in all, the rest go to the next working day" "$(as $O "select (queue_campaign_emails('$C1', '$(list store 1 25)'))->>'queued'")/$(q "select string_agg(n::text, ',' order by d) from (select send_on d, count(*) n from email_outbox group by send_on) t")" "25/20,7"
 ok  "  the second day is the next working day" "$(q "select (max(send_on) - min(send_on)) in (1, 3) and extract(isodow from max(send_on)) < 6 from email_outbox")" "t"
-has "an administrator cannot queue" "$(as $A "select queue_campaign_emails('$C1', '$(list other 1 1)')")" "Only the owner"
+has "a switched-off administrator cannot queue" "$(as $X "select queue_campaign_emails('$C1', '$(list other 1 1)')")" "Only the owner or an administrator"
 has "staff cannot queue" "$(as $E "select queue_campaign_emails('$C1', '$(list other 1 1)')")" "Only the owner"
 has "more than 500 at a time is refused" "$(as $O "select queue_campaign_emails('$C1', '$(list big 1 501)')")" "At most 500"
 has "something that is not a list is refused" "$(as $O "select queue_campaign_emails('$C1', '{\"email\": \"x@example.test\"}')")" "must be a list"
@@ -146,13 +147,22 @@ ok  "  with the wording and the postal address, and only addresses that are due"
 ok  "the owner pauses the campaign" "$(as $O "select (set_email_campaign_status('$C3', 'paused'))->>'status'")" "paused"
 ok  "  nothing of a paused campaign is handed out" "$(q "select count(*) from next_emails_to_send(50)")" "0"
 has "  and nothing can be queued for it" "$(as $O "select queue_campaign_emails('$C3', '$(list late 1 1)')")" "is paused"
-has "an administrator cannot resume it" "$(as $A "select set_email_campaign_status('$C3', 'approved')")" "Only the owner"
-has "the sending program cannot resume it either" "$(q "update email_campaigns set status = 'approved' where id = '$C3'")" "Only the owner can pause or resume"
+has "staff cannot resume it" "$(as $E "select set_email_campaign_status('$C3', 'approved')")" "Only the owner or an administrator\|not found\|row-level"
+has "the sending program cannot resume it either" "$(q "update email_campaigns set status = 'approved' where id = '$C3'")" "Only the owner or an administrator can pause or resume"
 ok  "the owner resumes it" "$(as $O "select (set_email_campaign_status('$C3', 'approved'))->>'status'")" "approved"
 q "select add_email_suppression('due1@example.test', 'owner')" >/dev/null
 ok  "  an address put on the do-not-email list is not handed out" "$(q "select count(*) from next_emails_to_send(50) where to_email = 'due1@example.test'")" "0"
 ok  "the owner stops it, with a reason; what was queued is skipped" "$(as $O "select (j->>'status') || '|' || ((j->>'skipped')::int >= 5) from (select set_email_campaign_status('$C3', 'stopped', 'changed my mind') j) t")/$(q "select stop_reason from email_campaigns where id = '$C3'")" "stopped|true/Stopped by the owner: changed my mind"
 ok  "  nothing is handed out any more" "$(q "select count(*) from next_emails_to_send(50)")" "0"
+
+echo "10b. administrators approve, queue, pause, resume and stop too (owner decision of Nov 24)"
+C4=$(as $A "select (approve_email_campaign('store', 'Approved by the administrator', '$SUBJ', '$BODY', '$ADDR'))->>'id'")
+has "an administrator approves a campaign" "$C4" "^[0-9a-f-]\{36\}$"
+ok  "  recorded under the administrator" "$(q "select status || '|' || (approved_by = '$A') from email_campaigns where id = '$C4'")" "approved|true"
+ok  "an administrator queues its emails" "$(as $A "select (queue_campaign_emails('$C4', '$(list adm 1 2)'))->>'queued'")" "2"
+ok  "an administrator pauses and resumes it" "$(as $A "select (set_email_campaign_status('$C4', 'paused'))->>'status'")/$(as $A "select (set_email_campaign_status('$C4', 'approved'))->>'status'")" "paused/approved"
+ok  "an administrator stops it; the reason says who" "$(as $A "select (set_email_campaign_status('$C4', 'stopped', 'wrong list'))->>'status'")/$(q "select stop_reason from email_campaigns where id = '$C4'")" "stopped/Stopped by an administrator: wrong list"
+has "staff still cannot approve" "$(as $E "select approve_email_campaign('store', 'Sneaky', '$SUBJ', '$BODY', '$ADDR')")" "Only the owner or an administrator"
 
 echo "11. the slow start, week by week, counted from the first day an email was to go"
 F=$(q "select min(send_on) from email_outbox where status in ('queued', 'sent', 'bounced', 'complaint')")
