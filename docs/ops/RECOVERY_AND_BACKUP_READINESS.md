@@ -74,3 +74,42 @@ The owner asked for the strongest protection, "even if a virus or a break-in". W
 - What gives the same result safely: the third copy lives in a storage account that belongs to the business, and the partner gets her own emergency sign-in to that account, so she can reach the backups if the owner cannot. This matches the owner's rule that the sign-ins behind the dashboard stay with the owner and the emergency account, with the partner able to print and recover in an emergency.
 
 Who can build it: points 1 and 3 are changes inside the private backups repository, which a Claude session may not open (`CLAUDE.md`). Claude can write the plan and the exact steps in this repository; the owner (or a session the owner approves for that one task) makes the change there. Points 2 and 4 follow §4 and §3.
+
+## 8. Evidence still needed (owner queue of Nov 25, task 9) — CURRENT
+
+A green scheduled job is not proof that a restore works. Each line is "proven" only when its
+evidence exists. Claude cannot open the backups repository (`CLAUDE.md`), so every line marked
+**owner** is a look or a step only the owner can do, reported in the short form only ("green/red,
+date"; never logs, file names or contents).
+
+| # | What must be true | Evidence that proves it | Status (Nov 25) | Who |
+|---|---|---|---|---|
+| E1 | The newest nightly backup succeeded | its date and green/red | **REPORTED** green, Nov 24 | owner |
+| E2 | The newest monthly restore test succeeded | its date and green/red | **missing** (exists, result not seen) | owner |
+| E3 | GitHub Actions minutes are not running out | "minutes: OK/out" | **missing** | owner |
+| E4 | A production backup really restores, and how long it takes | one drill into a throwaway project (§4): start and end time, row counts of five main tables match | **missing** (proven only locally on synthetic data, §1) | owner, guided |
+| E5 | Uploaded files are covered, not only database rows | a list of the storage buckets in the nightly job; one file restored from it | **missing**: the platform's backups exclude files (its own page says so); no file feature is installed yet, so nothing is lost today | owner (backups repository) |
+| E6 | One copy is independent: another provider, owned by the business, cannot be deleted for a set time | the provider's retention setting and one test restore from it | **missing** (§7 point 1, PROPOSED) | owner |
+| E7 | A stale or failed backup is noticed within a day | a warning on Home when the newest backup is older than a day, tested with a deliberately old date | **missing** (§3 design; build after the owner approves D5) | Claude builds, owner approves |
+| E8 | A replacement Mac can take over | the steps below, walked once on a second computer: sign in to GitHub, Supabase, Shopify, the backup copy; open the live dashboard; no secret was stored only on the old Mac | **missing** | owner, guided |
+
+**Replacement Mac, in short (to walk once, with Claude):** (1) a new Mac signs in to the
+password manager first (that is where every sign-in lives, never in files or chat); (2) GitHub:
+the dashboard code is all on GitHub, nothing to copy; (3) Supabase and Shopify: sign in, check
+two-step sign-in; (4) the backup copy (E6): sign in and list the newest backup; (5) open the live
+dashboard, sign in, check Home. Anything that only existed on the old Mac (a local file, a
+printer setting) is written down here when found.
+
+### Printouts are not backups
+
+A printout (the weekly owner report, packing slips, labels, invoices) is a **paper record for
+people**: it cannot be loaded back into the database. A backup is the copy the system can be
+**restored from**. Both are kept; neither replaces the other.
+
+| Printout | Checked by tests (made-up data, simulated screen) | Real printer |
+|---|---|---|
+| Invoice (Letter) | `invoice-print-ext21`, `invoice-print-view-ext21`: headings, totals, long tables across pages | **pending** (Brother) |
+| Packing slip and 4×6 label | `slip-print-view-ext21`, `order-slips-ext22`, `batch-labels-ext24`, `printers-ext22` | **pending** (Rollo, Brother) |
+| Reports and the weekly owner report | `report-print-view-ext21`, `backups-page-ext22` | **pending**; the Print button opening the print window was seen live by the owner on Nov 24 |
+| Automatic printing on the Mac | `auto-print-ext24` (the page side only) | **pending**, and unattended printing stays off until tested and approved |
+

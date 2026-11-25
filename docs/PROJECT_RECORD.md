@@ -166,7 +166,7 @@ owner) · **Verified** (in real use). A row is only "done" when all five say so.
 | T6 Full verification of the combined revision | partly: group runs per PR (above) | per PR; **no full-suite run on the combined head yet** | — | — | — | full run on the head of the newest open PR once it is green on GitHub |
 | T7 Two devices never erase each other's additions (draft 50) | yes | `56abdc7`: 51/51 ×3 (two real connections at once); 4/4; group 469 passed | PR #106 open | no | no | draft 50 sitting; then one check on two real devices |
 | T8 End-to-end staging rehearsal | not started in this queue (earlier synthetic journeys exist, see §9 Nov 15) | — | — | — | — | next |
-| T9 Backup and print readiness | plan exists (`docs/ops/RECOVERY_AND_BACKUP_READINESS.md` §7) | — | — | — | — | owner's backup status (short form); evidence list |
+| T9 Backup and print readiness | evidence list E1–E8, replacement-Mac steps, printouts vs backups (`docs/ops/RECOVERY_AND_BACKUP_READINESS.md` §8) | print layouts: existing tests (simulated) | PR #107 | — | E1 only (reported) | owner: E2 restore test result, E3 minutes, E4 drill, E5 files, E6 independent copy, E8 replacement Mac; Claude: E7 Home warning once D5 is approved; real printers |
 | T10 Blueprint reconciliation | this table started | — | — | — | — | continue |
 
 Real-device checks (Mac Safari, iPhone, VoiceOver, physical printers) are **pending** for every row:
