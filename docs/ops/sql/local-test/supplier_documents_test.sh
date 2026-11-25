@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # LOCAL TEST ONLY (2026-11-16). Never point this at Supabase.
-# Tests drafts/36 (supplier document storage: record, owner-only review and
+# Tests drafts/36 (supplier document storage: record, review by the owner or an administrator and
 # changes, review history, configurable checklist) and drafts/37 (rollback) on
 # a throwaway copy, acting as the owner, two administrators, an employee, a
 # deactivated account and a visitor. Covers the owner's decisions of Nov 16-17:
-# staff and administrators may record that a document arrived; ONLY the owner
+# staff and administrators may record that a document arrived; ONLY the owner or an
+# administrator (owner decision of Nov 24; a switched-off administrator is refused)
 # approves, rejects, corrects, withdraws an approved document or changes the
 # checklist; a retried save never records twice; every change is in the history,
 # which nobody can edit. All rows are synthetic.
@@ -43,7 +44,7 @@ setup() {
 rec() { # rec <who> <key-n> <supplier> <kind> <subject_kind> <subject_ref> [received_on] [expires_on]
   as "$1" "select public.record_supplier_document('$(K $2)','$3','$4','$5','$6','$6 label','REF-$2',${7:-current_date},null,${8:-null},null)"; }
 setup
-echo "Supplier documents: record, owner-only review and changes, history, checklist (throwaway database $DB)"
+echo "Supplier documents: record, review and changes by the owner or an administrator, history, checklist (throwaway database $DB)"
 SNAP="select (select count(*) from orders)||'/'||(select count(*) from suppliers)||'/'||(select count(*) from purchase_orders)||'/'||(select count(*) from documents)||'/'||(select count(*) from products)"
 before=$(q "$SNAP")
 
@@ -85,19 +86,19 @@ has "an unknown document type is refused" "$(rec $E 6 $LAB passport batch LOT-30
 has "a document type must match what it belongs to" "$(rec $E 7 $LAB certificate_of_analysis formula F-1)" "belongs to a batch"
 has "a document for an inactive supplier is refused" "$(rec $E 8 $OLD component_specification component C-1)" "No active supplier"
 has "a received date in the future is refused" "$(rec $E 9 $BOT component_specification component C-8OZ "current_date + 10")" "cannot be in the future"
-has "staff cannot type a document in as already approved" "$(as $E "insert into supplier_documents (request_key, supplier_id, kind, subject_kind, subject_ref, received_on, status, reviewed_by, reviewed_at) values ('$(K 10)','$LAB','batch_record','batch','LOT-301',current_date,'approved','$E',now())")" "only the owner can then approve"
+has "staff cannot type a document in as already approved" "$(as $E "insert into supplier_documents (request_key, supplier_id, kind, subject_kind, subject_ref, received_on, status, reviewed_by, reviewed_at) values ('$(K 10)','$LAB','batch_record','batch','LOT-301',current_date,'approved','$E',now())")" "only the owner or an administrator can then approve"
 has "the expiry cannot be before the document date" "$(as $E "select public.record_supplier_document('$(K 11)','$BOT','component_specification','component','C-8OZ','8 oz bottle','SPEC-8',current_date,'2026-11-01','2026-10-01',null)")" "expiry_after_date"
 R=$(as $E "select public.record_supplier_document('$(K 12)','$BOT','component_specification','component','C-8OZ','8 oz bottle','SPEC-8',current_date,'2026-11-01','2027-11-01',null)")
 has "staff record a component specification valid for a year" "$R" '"status": "received"'
 DOC12=$(q "select id from supplier_documents where request_key = '$(K 12)'")
 
-echo " only the owner approves, rejects or corrects"
-has "an ordinary administrator cannot approve (function)" "$(as $A "select public.review_supplier_document('$DOC1','approved',null)")" "Only the owner can approve or reject"
-has "an ordinary administrator cannot approve (direct edit)" "$(as $A "update supplier_documents set status = 'approved' where id = '$DOC1'")" "Only the owner can approve or reject"
+echo " only the owner or an administrator approves, rejects or corrects (owner decision of Nov 24)"
+has "a switched-off administrator cannot approve (function)" "$(as $I "select public.review_supplier_document('$DOC1','approved',null)")" "Only the owner or an administrator can approve or reject"
+has "staff cannot approve (direct edit)" "$(as $E "update supplier_documents set status = 'approved' where id = '$DOC1'")" "Only the owner or an administrator can approve or reject"
 has "staff cannot approve" "$(as $E "select public.review_supplier_document('$DOC1','approved',null)")" "Only the owner"
-has "an administrator cannot reject" "$(as $A2 "select public.review_supplier_document('$DOC1','rejected','Looks wrong to me')")" "Only the owner"
-has "an administrator cannot correct the reference" "$(as $A "update supplier_documents set reference = 'COA-EDITED' where id = '$DOC1'")" "Only the owner can correct"
-has "  nor through the correction function" "$(as $A "select public.correct_supplier_document('$DOC1','COA-EDITED',null,null,null)")" "Only the owner can correct"
+has "staff cannot reject" "$(as $E "select public.review_supplier_document('$DOC1','rejected','Looks wrong to me')")" "Only the owner"
+has "staff cannot correct the reference" "$(as $E "update supplier_documents set reference = 'COA-EDITED' where id = '$DOC1'")" "Only the owner or an administrator can correct"
+has "  nor through the correction function" "$(as $E "select public.correct_supplier_document('$DOC1','COA-EDITED',null,null,null)")" "Only the owner or an administrator can correct"
 has "nobody can change what a document is (owner included)" "$(as $O "update supplier_documents set kind = 'batch_record' where id = '$DOC1'")" "cannot change"
 as $A "update supplier_documents set reviewed_by = '$A', reviewed_at = now() where id = '$DOC1'" >/dev/null
 ok  "nobody can fill in the reviewer by hand: the database puts it back" "$(q "select (reviewed_by is null)::text from supplier_documents where id = '$DOC1'")" "true"
@@ -111,9 +112,9 @@ ok  "  the record names the owner as reviewer, with the time" "$(q "select (revi
 R=$(as $O "select public.review_supplier_document('$DOC1','approved',null)")
 has "approving twice decides once" "$R" '"already_decided": true'
 SAME=$(mktemp)
-for n in $(seq 1 10); do ( as $O "select public.review_supplier_document('$DOC5','approved',null)" >>"$SAME" ) & done
+for n in $(seq 1 10); do W=$O; [ $((n % 3)) = 1 ] && W=$A; [ $((n % 3)) = 2 ] && W=$A2; ( as $W "select public.review_supplier_document('$DOC5','approved',null)" >>"$SAME" ) & done
 wait
-ok  "10 simultaneous approvals: one decided, nine were told it was already decided" "$(grep -c '"already_decided": false' "$SAME")/$(grep -c '"already_decided": true' "$SAME")" "1/9"
+ok  "10 simultaneous approvals by the owner and two administrators: one decided, nine were told it was already decided" "$(grep -c '"already_decided": false' "$SAME")/$(grep -c '"already_decided": true' "$SAME")" "1/9"
 ok  "  one 'approved' entry in the history" "$(q "select count(*) from supplier_document_events where document_id = '$DOC5' and event = 'approved'")" "1"
 rm -f "$SAME"
 has "an approved document cannot be corrected, even by the owner" "$(as $O "select public.correct_supplier_document('$DOC1','COA-LATE',null,null,null)")" "Only a document waiting for review"
@@ -125,12 +126,12 @@ has "a corrected copy can be recorded after a rejection" "$R" '"status": "receiv
 
 echo " withdrawing"
 DOCB=$(q "select id from supplier_documents where request_key = '$(K 2)'")
-has "an administrator cannot withdraw a document someone else recorded" "$(as $A2 "select public.withdraw_supplier_document('$(q "select id from supplier_documents where request_key = '$(K 13)'")','Recorded by mistake')")" "Only the person who recorded it"
+has "a switched-off administrator cannot withdraw a document someone else recorded" "$(as $I "select public.withdraw_supplier_document('$(q "select id from supplier_documents where request_key = '$(K 13)'")','Recorded by mistake')")" "Only the person who recorded it\|No such supplier document"
 has "a withdrawal must say why" "$(as $E "select public.withdraw_supplier_document('$(q "select id from supplier_documents where request_key = '$(K 13)'")','x')")" "Say why"
 has "the person who recorded it may withdraw it while it waits" "$(as $E "select public.withdraw_supplier_document('$(q "select id from supplier_documents where request_key = '$(K 13)'")','Recorded against the wrong bottle')")" '"status": "withdrawn"'
-has "an administrator cannot withdraw an approved document" "$(as $A "select public.withdraw_supplier_document('$DOC1','Supplier sent a new one')")" "Only the owner can withdraw an approved"
+has "staff cannot withdraw an approved document" "$(as $E "select public.withdraw_supplier_document('$DOC1','Supplier sent a new one')")" "Only the owner or an administrator can withdraw an approved"
 has "the owner can withdraw an approved document, with a reason" "$(as $O "select public.withdraw_supplier_document('$DOC5','Supplier reissued the invoice')")" '"status": "withdrawn"'
-ok  "  it keeps who approved it and adds who withdrew it" "$(q "select (reviewed_by = '$O')::text||'/'||(withdrawn_by = '$O')::text||'/'||withdraw_note from supplier_documents where id = '$DOC5'")" "true/true/Supplier reissued the invoice"
+ok  "  it keeps who approved it and adds who withdrew it" "$(q "select (reviewed_by in ('$O','$A','$A2'))::text||'/'||(withdrawn_by = '$O')::text||'/'||withdraw_note from supplier_documents where id = '$DOC5'")" "true/true/Supplier reissued the invoice"
 has "a withdrawn document can no longer change" "$(as $O "update supplier_documents set status = 'approved' where id = '$DOC5'")" "can no longer change"
 has "nobody can delete a document (owner included)" "$(as $O "delete from supplier_documents where id = '$DOCB'")" "cannot be deleted\|permission denied"
 
@@ -143,21 +144,23 @@ has "nobody can edit the history" "$(as $O "update supplier_document_events set 
 has "nobody can delete the history" "$(as $O "delete from supplier_document_events where document_id = '$DOC1'")" "cannot be changed\|permission denied"
 ok  "staff can read the history" "$(as $E "select count(*) > 0 from supplier_document_events where document_id = '$DOC1'")" "t"
 
-echo " the checklist, configurable by supplier type, owner only"
-has "an administrator cannot change a supplier type's checklist (function)" "$(as $A "select public.set_supplier_type_document_profiles('other', array['labels_printing'])")" "Only the owner can change"
-as $A "update supplier_type_document_profiles set profiles = '{}' where supplier_type = 'lab'" >/dev/null
+echo " the checklist, configurable by supplier type, by the owner or an administrator"
+has "staff cannot change a supplier type's checklist (function)" "$(as $E "select public.set_supplier_type_document_profiles('other', array['labels_printing'])")" "Only the owner or an administrator can change"
+as $E "update supplier_type_document_profiles set profiles = '{}' where supplier_type = 'lab'" >/dev/null
 ok  "  nor by direct edit (nothing changes)" "$(q "select array_to_string(profiles,'+') from supplier_type_document_profiles where supplier_type = 'lab'")" "lotion_lab"
 has "staff cannot switch a document type off" "$(as $E "select public.set_supplier_document_type_active('printer_proof', false)")" "Only the owner"
 has "an unknown profile is refused" "$(as $O "select public.set_supplier_type_document_profiles('other', array['jewellery'])")" "Unknown checklist profile"
 has "the owner gives the 'other' type the labels and printing checklist" "$(as $O "select public.set_supplier_type_document_profiles('other', array['labels_printing'])")" '"ok": true'
 has "the owner gives one supplier its own list" "$(as $O "select public.set_supplier_document_profiles('$BOT', array['bottles_pumps','labels_printing'])")" '"ok": true'
-has "an administrator cannot change one supplier's list" "$(as $A "select public.set_supplier_document_profiles('$BOT', null)")" "Only the owner"
+has "staff cannot change one supplier's list" "$(as $E "select public.set_supplier_document_profiles('$BOT', null)")" "Only the owner or an administrator"
+has "an administrator puts one supplier's list back to its type" "$(as $A "select public.set_supplier_document_profiles('$BOT', null)")" '"ok": true'
+ok  "  credited to the administrator in the history" "$(q "select count(*) from supplier_document_events where area = 'checklist' and by_user = '$A'")" "1"
 ok  "the checklist changes are in the history" "$(q "select count(*) from supplier_document_events where area = 'checklist' and by_user = '$O'")" "2"
 has "the owner switches a document type off" "$(as $O "select public.set_supplier_document_type_active('printer_proof', false)")" '"is_active": false'
 has "  then it cannot be recorded" "$(as $E "select public.record_supplier_document('$(K 20)','$LBL','printer_proof','artwork','ART-1','Label v1',null,current_date,null,null,null)")" "no longer on the checklist"
 has "a document type is never deleted" "$(as $O "delete from supplier_document_types where key = 'printer_proof'")" "never deleted\|permission denied"
-as $A "update supplier_document_subjects set is_active = false where subject_ref = 'LOT-301'" >/dev/null
-ok  "an administrator cannot switch off a batch (nothing changes)" "$(q "select is_active from supplier_document_subjects where subject_ref = 'LOT-301'")" "t"
+as $E "update supplier_document_subjects set is_active = false where subject_ref = 'LOT-301'" >/dev/null
+ok  "staff cannot switch off a batch (nothing changes)" "$(q "select is_active from supplier_document_subjects where subject_ref = 'LOT-301'")" "t"
 as $O "update supplier_document_subjects set label = 'Lot 301 (Honey Milk)' where subject_ref = 'LOT-301'" >/dev/null
 ok  "the owner can relabel it" "$(q "select label from supplier_document_subjects where subject_ref = 'LOT-301'")" "Lot 301 (Honey Milk)"
 
@@ -173,7 +176,7 @@ has "  but still not for one they cannot see" "$(rec $E 41 $LAB packing_slip pur
 q "drop policy test_only_staff_reads_pob on purchase_orders" >/dev/null
 ok  "  (the test-only rule is gone again)" "$(as $E "select count(*) from purchase_orders")" "0"
 
-echo " hand-off to the owner"
+echo " hand-off to the owner (resolved by the owner or an administrator)"
 HO="select public.hand_off_supplier_document('$(K 50)','$LAB','supplier_invoice','SYN-PO-901 (printed)','INV-901','2026-11-20','Came in the box')"
 R=$(as $E "$HO")
 has "staff hand an invoice to the owner, with the order number as printed" "$R" '"status": "waiting"'
@@ -185,13 +188,13 @@ ok  "staff see their own hand-off" "$(as $E "select count(*) from supplier_docum
 ok  "an administrator sees it too" "$(as $A "select count(*) from supplier_document_handoffs")" "1"
 ok  "another staff member does not" "$(as $A2 "select count(*) from supplier_document_handoffs where handed_by <> '$A2'")" "1"
 has "staff cannot link it" "$(as $E "select public.resolve_supplier_document_handoff('$H1','$POL')")" "Only the owner"
-has "an administrator cannot link it" "$(as $A "select public.resolve_supplier_document_handoff('$H1','$POL')")" "Only the owner"
-as $A "update supplier_document_handoffs set status = 'dismissed', resolve_note = 'not needed here' where id = '$H1'" >/dev/null
+has "a switched-off administrator cannot link it" "$(as $I "select public.resolve_supplier_document_handoff('$H1','$POL')")" "Only the owner or an administrator\|No such hand-off"
+as $E "update supplier_document_handoffs set status = 'dismissed', resolve_note = 'not needed here' where id = '$H1'" >/dev/null
 ok  "  nor mark it resolved by direct edit (nothing changes)" "$(q "select status from supplier_document_handoffs where id = '$H1'")" "waiting"
-R=$(as $O "select public.resolve_supplier_document_handoff('$H1','$POL')")
-has "the owner links it to the right order: the document is recorded" "$R" '"status": "recorded"'
+R=$(as $A "select public.resolve_supplier_document_handoff('$H1','$POL')")
+has "an administrator links it to the right order: the document is recorded" "$R" '"status": "recorded"'
 D50=$(q "select document_id from supplier_document_handoffs where id = '$H1'")
-ok  "  the recorded document: the lab's order, the reference, waiting for review" "$(q "select (subject_ref = '$POL')::text||'/'||reference||'/'||status||'/'||(recorded_by = '$O')::text from supplier_documents where id = '$D50'")" "true/INV-901/received/true"
+ok  "  the recorded document: the lab's order, the reference, waiting for review" "$(q "select (subject_ref = '$POL')::text||'/'||reference||'/'||status||'/'||(recorded_by = '$A')::text from supplier_documents where id = '$D50'")" "true/INV-901/received/true"
 has "linking again changes nothing" "$(as $O "select public.resolve_supplier_document_handoff('$H1','$POL')")" '"already_resolved": true'
 ok  "  still one document from that hand-off" "$(q "select count(*) from supplier_documents where request_key = '$(K 50)'")" "1"
 as $E "select public.hand_off_supplier_document('$(K 52)','$LAB','packing_slip','unreadable',null,current_date,null)" >/dev/null
@@ -206,7 +209,7 @@ SHA1=$(printf 'a%.0s' $(seq 1 64)); SHA2=$(printf 'b%.0s' $(seq 1 64))
 R=$(rec $E 60 $LAB certificate_of_analysis batch LOT-600)
 D60=$(q "select id from supplier_documents where request_key = '$(K 60)'")
 has "a file path must belong to this document" "$(as $E "select public.attach_supplier_document_file('$D60','$D50/coa.pdf','$SHA1',2048,'application/pdf')")" "file_is_this_document"
-has "an administrator cannot attach a file to a document staff recorded" "$(as $A "select public.attach_supplier_document_file('$D60','$D60/coa.pdf','$SHA1',2048,'application/pdf')")" "Only the person who recorded"
+has "a switched-off administrator cannot attach a file to a document staff recorded" "$(as $I "select public.attach_supplier_document_file('$D60','$D60/coa.pdf','$SHA1',2048,'application/pdf')")" "Only the person who recorded\|No such supplier document"
 has "only PDF, JPEG or PNG" "$(as $E "select public.attach_supplier_document_file('$D60','$D60/coa.exe','$SHA1',2048,'application/x-msdownload')")" "file_type_check"
 has "the person who recorded it attaches the file" "$(as $E "select public.attach_supplier_document_file('$D60','$D60/coa.pdf','$SHA1',2048,'application/pdf')")" '"already_attached": false'
 has "  attaching the same file again changes nothing" "$(as $E "select public.attach_supplier_document_file('$D60','$D60/coa.pdf','$SHA1',2048,'application/pdf')")" '"already_attached": true'
@@ -215,8 +218,8 @@ has "  nor can it be removed by direct edit" "$(as $O "update supplier_documents
 as $E "update supplier_documents set approved_file_sha256 = '$SHA2' where id = '$D60'" >/dev/null
 ok  "nobody can type an approved fingerprint: the database puts it back" "$(q "select (approved_file_sha256 is null)::text from supplier_documents where id = '$D60'")" "true"
 has "staff cannot approve it" "$(as $E "select public.review_supplier_document('$D60','approved',null)")" "Only the owner"
-has "an administrator cannot approve it" "$(as $A "select public.review_supplier_document('$D60','approved',null)")" "Only the owner"
-has "the owner approves it" "$(as $O "select public.review_supplier_document('$D60','approved',null)")" '"status": "approved"'
+has "a switched-off administrator cannot approve it" "$(as $I "select public.review_supplier_document('$D60','approved',null)")" "Only the owner or an administrator"
+has "an administrator approves it" "$(as $A "select public.review_supplier_document('$D60','approved',null)")" '"status": "approved"'
 ok  "  the approval records the fingerprint of the exact file approved" "$(q "select (approved_file_sha256 = '$SHA1')::text from supplier_documents where id = '$D60'")" "true"
 has "  a file cannot be attached once a document is approved" "$(as $O "select public.attach_supplier_document_file('$DOC1','$DOC1/coa.pdf','$SHA2',100,'application/pdf')")" "only while the document waits for review"
 ok  "the file attachment is in the history" "$(q "select count(*) from supplier_document_events where document_id = '$D60' and event = 'file_attached' and detail->>'file_sha256' = '$SHA1'")" "1"

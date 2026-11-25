@@ -51,7 +51,7 @@
   };
   const TERMS = ['DUE_ON_RECEIPT', 'NET_14'];
   const ROLES_MAY_ISSUE = new Set(['owner', 'administrator']);
-  const ROLES_MAY_DRAFT = new Set(['owner', 'administrator', 'employee']);
+  const ROLES_MAY_DRAFT = new Set(['owner', 'administrator', 'manager', 'employee']);   // a manager can do what an employee can (drafts/62, Nov 24)
   const MAX_LINES = 500;
   const MAX_ADDRESS_BYTES = 4000;     // matches the database check
   const MAX_LIST = 200;

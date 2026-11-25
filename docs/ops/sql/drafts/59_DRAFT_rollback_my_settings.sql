@@ -5,7 +5,7 @@
 -- @depends-on:  none
 -- @risk:        LOW
 -- @precheck:    stops, removing nothing, while any setting is saved, unless deleting them was authorized in the session; stops if the table was not created by drafts/58
--- @effect:      drops the function, the table and its guard
+-- @effect:      drops the function (both its shapes), the table and its guard
 -- @postcheck:   to_regclass('public.my_settings') is null
 -- @rollback:    (this file is the rollback of drafts/58)
 -- @@ end metadata @@
@@ -38,7 +38,8 @@ end
 $guard$;
 
 -- the guard refuses deletes row by row; dropping the table removes the rows without it
-drop function if exists public.set_my_setting(text, jsonb);
+drop function if exists public.set_my_setting(text, jsonb, timestamptz, boolean);
+drop function if exists public.set_my_setting(text, jsonb);   -- the earlier shape of this draft, if it was ever installed
 drop table if exists public.my_settings;
 drop function if exists public.my_settings_guard();
 

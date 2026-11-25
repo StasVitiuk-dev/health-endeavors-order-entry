@@ -27,12 +27,12 @@ test('flag ON: discrepancies, owner-only approval, advisory adjustment and audit
   await expect(host).toContainText('HE-HONEY-8OZ');
   await expect(host).toContainText('SHORT');
   await expect(host).toContainText('OVER');
-  // The rule (owner decision of Nov 16) is stated, and the boundary is visible:
-  // a staff attempt AND an ordinary administrator's attempt are both refused.
-  await expect(host).toContainText('Staff and administrators may propose an adjustment with a reason. Only the owner approves it.');
+  // The rule (owner decisions of Nov 16 and Nov 24) is stated, and the boundary is
+  // visible: a staff attempt is refused; an administrator approves without the owner.
+  await expect(host).toContainText('Staff and administrators may propose an adjustment with a reason. The owner or an administrator approves it (an administrator also their own); staff never do.');
   const boundary = host.locator('[data-cyclecount-boundary]');
-  await expect(boundary).toContainText('Staff approval attempt: only the owner may approve a stock adjustment');
-  await expect(boundary).toContainText('Administrator approval attempt: only the owner may approve a stock adjustment (an administrator may propose one)');
+  await expect(boundary).toContainText('Staff approval attempt: only the owner or an administrator may approve a stock adjustment (staff may propose one)');
+  await expect(boundary).toContainText('An administrator approves without the owner (owner decision of Nov 24)');
   // The proposal carries who proposed it and the reason.
   await expect(host.locator('[data-cyclecount-status]')).toHaveAttribute('data-cyclecount-status', 'PENDING_APPROVAL');
   await expect(host.locator('[data-cyclecount-status]')).toContainText('proposed by staff · reason: Monthly shelf count');
@@ -54,7 +54,7 @@ test('flag ON: discrepancies, owner-only approval, advisory adjustment and audit
   expect(errors.join('\n')).not.toMatch(/Trusted Type|Refused to|cyclecount/i);
 });
 
-test('flag ON, signed in as an administrator: the approval is refused and says why', async ({ page, backend }, testInfo) => {
+test('flag ON, signed in as an administrator: the administrator approves (owner decision of Nov 24), recorded under the administrator', async ({ page, backend }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop', 'run once');
   await enable(page);
   await login(page);
@@ -66,6 +66,23 @@ test('flag ON, signed in as an administrator: the approval is refused and says w
   const host = page.locator('#cycleCountHost');
   await expect(host.locator('.cycleCount')).toHaveCount(1);
   await host.locator('[data-cyclecount="approve"]').click();
-  await expect(host.locator('[data-cyclecount-refused]')).toContainText('only the owner may approve a stock adjustment');
+  await expect(host.locator('[data-cyclecount-refused]')).toHaveCount(0);
+  await expect(host.locator('[data-cyclecount-record]')).toHaveCount(2);
+  await expect(host.locator('[data-cyclecount-record="HE-HONEY-8OZ"]')).toContainText('approved by administrator');
+  await expect(host).toContainText('NOT written to stock');
+});
+
+test('flag ON, signed in as staff: the approval is refused and says why', async ({ page, backend }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'run once');
+  await enable(page);
+  await login(page);
+  backend.tables.profiles[0].role = 'employee';
+  await page.reload();
+  await expect(page.locator('#dash')).toBeVisible();
+  await gotoPage(page, 'inventoryPanel');
+  const host = page.locator('#cycleCountHost');
+  await expect(host.locator('.cycleCount')).toHaveCount(1);
+  await host.locator('[data-cyclecount="approve"]').click();
+  await expect(host.locator('[data-cyclecount-refused]')).toContainText('only the owner or an administrator may approve a stock adjustment');
   await expect(host.locator('[data-cyclecount-record]')).toHaveCount(0);
 });

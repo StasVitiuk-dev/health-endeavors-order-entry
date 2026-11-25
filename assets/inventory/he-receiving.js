@@ -32,7 +32,8 @@
 //       waits for inspection; every unit gets an outcome (restock, damaged,
 //       unsuitable); opened or used units are never restocked
 //   R8  staff (and administrators) submit for purchase orders they may see; only
-//       the owner approves, rejects or decides; the submitter or the owner cancels
+//       the owner or an administrator approves, rejects or decides (owner decision,
+//       Nov 24); the submitter or the owner cancels
 //   R9  each submission carries a request key: sent again, nothing changes; the
 //       same key with different contents is refused; a second approval of the
 //       same record changes nothing
@@ -50,8 +51,8 @@
   'use strict';
 
   const BUCKETS = ['available', 'damaged'];
-  const SUBMIT_ROLES = ['owner', 'administrator', 'employee'];
-  const DECIDE_ROLES = ['owner'];
+  const SUBMIT_ROLES = ['owner', 'administrator', 'manager', 'employee'];   // a manager can do what an employee can (drafts/62, Nov 24)
+  const DECIDE_ROLES = ['owner', 'administrator'];   // owner decision, Nov 24: administrators approve too
   const LIVE_PATH = 'drafts/40 (partial receiving and returns, owner approval before stock changes) once the owner approves it; until then drafts/10 behind the stock_fn_* switches';
   const MAX_UNITS = 1000000;
 
@@ -147,14 +148,14 @@
       if (l.good + l.damaged + l.rejected + l.surplus < 1) return refuse(L, 'submitReceiving', r, 'enter at least one unit of ' + l.sku);
       if (l.rejected && l.rejectReason.length < 3) return refuse(L, 'submitReceiving', r, 'say why the ' + plural(l.rejected, 'unit') + ' of ' + l.sku + ' were rejected');
       const toCome = outstanding(line);
-      if (l.good + l.damaged > toCome) return refuse(L, 'submitReceiving', r, 'only ' + toCome + ' of ' + l.sku + ' are still to come on ' + po.number + '; enter the rest as surplus for the owner to review');
+      if (l.good + l.damaged > toCome) return refuse(L, 'submitReceiving', r, 'only ' + toCome + ' of ' + l.sku + ' are still to come on ' + po.number + '; enter the rest as surplus for the owner or an administrator to review');
       if (l.surplus && l.good + l.damaged < toCome) return refuse(L, 'submitReceiving', r, 'surplus is what arrived beyond the ' + toCome + ' still to come; receive those first');
     }
     const rec = { id: 'rr-' + (L.records.length + 1), poId: po.id, status: 'submitted', lines: lines, submittedBy: text(r.by) || null, submittedAt: r.at || null, note: text(r.note) || null, decidedBy: null, decidedAt: null, decisionNote: null };
     L.records.push(rec);
     remember(L, g.key, fp, rec.id);
     log(L, { kind: 'submitReceiving', id: rec.id, by: rec.submittedBy, at: rec.submittedAt, note: rec.note,
-      what: 'receiving record for ' + po.number + ' submitted: ' + lines.map(describeLine).join('; ') + ' (waiting for the owner; no stock changed)' });
+      what: 'receiving record for ' + po.number + ' submitted: ' + lines.map(describeLine).join('; ') + ' (waiting for the owner or an administrator; no stock changed)' });
     return { ok: true, duplicate: false, id: rec.id, movements: [], status: poStatus(L, po.id) };
   }
   function describeLine(l) {
@@ -176,7 +177,7 @@
   function approveReceiving(L, req) {
     const f = findRecord(L, req, 'approveReceiving'); if (f.stop) return f.stop;
     const r = f.r, rec = f.rec, po = L.purchaseOrders[rec.poId];
-    if (!canDecide(r)) return refuse(L, 'approveReceiving', r, 'only the owner approves stock changes');
+    if (!canDecide(r)) return refuse(L, 'approveReceiving', r, 'only the owner or an administrator approves stock changes');
     if (rec.status === 'approved') return { ok: true, duplicate: true, reason: 'already approved; nothing changed', id: rec.id, movements: [] };
     if (rec.status !== 'submitted') return refuse(L, 'approveReceiving', r, 'this receiving record was already ' + rec.status);
     // re-checked at approval: another record may have been approved in between (R2, R3)
@@ -195,14 +196,14 @@
     rec.status = 'approved'; rec.decidedBy = text(r.by) || null; rec.decidedAt = r.at || null; rec.decisionNote = text(r.note) || null;
     const rej = rec.lines.filter(l => l.rejected), sur = rec.lines.filter(l => l.surplus);
     log(L, { kind: 'approveReceiving', id: rec.id, by: rec.decidedBy, at: rec.decidedAt, note: rec.decisionNote,
-      what: 'receiving record for ' + po.number + ' approved' + (rej.length ? '; rejected, still to come: ' + rej.map(l => l.rejected + ' ' + l.sku).join(', ') : '') + (sur.length ? '; surplus waiting for the owner: ' + sur.map(l => l.surplus + ' ' + l.sku).join(', ') : '') });
+      what: 'receiving record for ' + po.number + ' approved' + (rej.length ? '; rejected, still to come: ' + rej.map(l => l.rejected + ' ' + l.sku).join(', ') : '') + (sur.length ? '; surplus waiting for the owner or an administrator: ' + sur.map(l => l.surplus + ' ' + l.sku).join(', ') : '') });
     return { ok: true, duplicate: false, id: rec.id, movements: moved, status: poStatus(L, po.id) };
   }
   function closeRecord(L, req, to) {
     const kind = to === 'rejected' ? 'rejectReceiving' : 'cancelReceiving';
     const f = findRecord(L, req, kind); if (f.stop) return f.stop;
     const r = f.r, rec = f.rec;
-    if (to === 'rejected' && !canDecide(r)) return refuse(L, kind, r, 'only the owner rejects a receiving record');
+    if (to === 'rejected' && !canDecide(r)) return refuse(L, kind, r, 'only the owner or an administrator rejects a receiving record');
     if (to === 'cancelled' && !(canDecide(r) || (text(r.by) && text(r.by) === rec.submittedBy))) return refuse(L, kind, r, 'only the person who submitted it, or the owner, can cancel it');
     if (rec.status === to) return { ok: true, duplicate: true, reason: 'already ' + to + '; nothing changed', id: rec.id, movements: [] };
     if (rec.status !== 'submitted') return refuse(L, kind, r, 'this receiving record was already ' + rec.status);
@@ -220,7 +221,7 @@
     if (!isLedger(L)) return NOT_A_LEDGER;
     const sp = L.surplus.find(x => x.id === text(r.surplusId));
     if (!sp) return refuse(L, 'decideSurplus', r, 'no such surplus');
-    if (!canDecide(r)) return refuse(L, 'decideSurplus', r, 'only the owner decides on surplus');
+    if (!canDecide(r)) return refuse(L, 'decideSurplus', r, 'only the owner or an administrator decides on surplus');
     const d = text(r.decision);
     if (d !== 'kept' && d !== 'returned') return refuse(L, 'decideSurplus', r, 'say whether the surplus is kept or returned');
     if (sp.status === d) return { ok: true, duplicate: true, reason: 'already ' + d + '; nothing changed', movements: [] };
@@ -252,7 +253,7 @@
     L.supplierReturns.push(sr);
     remember(L, g.key, fp, sr.id);
     log(L, { kind: 'submitSupplierReturn', id: sr.id, by: sr.submittedBy, at: r.at || null, note: sr.reason,
-      what: plural(qty, 'unit') + ' of ' + line.sku + ' to go back to the supplier of ' + po.number + ' from ' + BUCKET_NAME[from] + (repl ? ', replacement expected' : ', no replacement') + ' (waiting for the owner)' });
+      what: plural(qty, 'unit') + ' of ' + line.sku + ' to go back to the supplier of ' + po.number + ' from ' + BUCKET_NAME[from] + (repl ? ', replacement expected' : ', no replacement') + ' (waiting for the owner or an administrator)' });
     return { ok: true, duplicate: false, id: sr.id, movements: [] };
   }
   // req: { returnId, decision: 'approved'|'rejected', by, role, at, note }
@@ -261,7 +262,7 @@
     if (!isLedger(L)) return NOT_A_LEDGER;
     const sr = L.supplierReturns.find(x => x.id === text(r.returnId));
     if (!sr) return refuse(L, 'decideSupplierReturn', r, 'no such return to the supplier');
-    if (!canDecide(r)) return refuse(L, 'decideSupplierReturn', r, 'only the owner approves or rejects a return to the supplier');
+    if (!canDecide(r)) return refuse(L, 'decideSupplierReturn', r, 'only the owner or an administrator approves or rejects a return to the supplier');
     const d = text(r.decision);
     if (d !== 'approved' && d !== 'rejected') return refuse(L, 'decideSupplierReturn', r, 'say whether the return is approved or rejected');
     if (sr.status === d) return { ok: true, duplicate: true, reason: 'already ' + d + '; nothing changed', movements: [] };
@@ -315,7 +316,7 @@
     if (!isLedger(L)) return NOT_A_LEDGER;
     const ins = L.inspections.find(x => x.id === text(r.inspectionId));
     if (!ins) return refuse(L, 'decideCustomerReturn', r, 'no such customer return');
-    if (!canDecide(r)) return refuse(L, 'decideCustomerReturn', r, 'only the owner decides what happens to returned units');
+    if (!canDecide(r)) return refuse(L, 'decideCustomerReturn', r, 'only the owner or an administrator decides what happens to returned units');
     if (ins.status === 'decided') return { ok: true, duplicate: true, reason: 'already decided; nothing changed', movements: [] };
     if (ins.status !== 'awaiting_inspection') return refuse(L, 'decideCustomerReturn', r, 'this return was already ' + ins.status);
     if (typeof r.opened !== 'boolean' || typeof r.used !== 'boolean') return refuse(L, 'decideCustomerReturn', r, 'say whether the product was opened and whether it was used');
@@ -339,7 +340,7 @@
     const r = isObj(req) ? req : {};
     const fp = JSON.stringify(['correct', r.movementN]);
     const g = keyed(L, 'correctMovement', r, fp); if (g.stop) return g.stop;
-    if (!canDecide(r)) return refuse(L, 'correctMovement', r, 'only the owner can correct a stock movement');
+    if (!canDecide(r)) return refuse(L, 'correctMovement', r, 'only the owner or an administrator can correct a stock movement');
     const m = L.movements.find(x => x.n === r.movementN);
     if (!m) return refuse(L, 'correctMovement', r, 'no such stock movement');
     if (m.corrects) return refuse(L, 'correctMovement', r, 'a correction is not corrected again; submit the right figure instead');

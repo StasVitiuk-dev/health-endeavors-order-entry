@@ -39,7 +39,8 @@ end
 $guard$;
 
 -- the guard refuses deletes row by row; dropping the table removes the rows without it
-drop function if exists public.set_shared_setting(text, jsonb, text);
+drop function if exists public.set_shared_setting(text, jsonb, text, timestamptz, boolean);
+drop function if exists public.set_shared_setting(text, jsonb, text);   -- the earlier shape of this draft, if it was ever installed
 drop table if exists public.shared_settings;
 drop function if exists public.shared_settings_guard();
 

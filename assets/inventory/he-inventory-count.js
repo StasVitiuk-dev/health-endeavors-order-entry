@@ -84,14 +84,14 @@
     return { ok: true, count: count };
   }
 
-  // Owner-gated approval -> produces advisory adjustment entries (never a real
-  // stock write; the safe write is NAMED). Idempotent and refuses a canceled count.
+  // Approval by the owner or an administrator (owner decision of Nov 24: no approval
+  // from the owner is needed, also for an administrator's own proposal; the owner is
+  // told through the change history) -> produces advisory adjustment entries (never a
+  // real stock write; the safe write is NAMED). Idempotent and refuses a canceled count.
   function approveAdjustment(count, req) {
     const r = req || {};
     if (!count) return { ok: false, reason: 'no count' };
-    const granted = r.role === 'administrator' && r.grantedApprover === true;
-    if (r.role !== 'owner' && !granted) return { ok: false, reason: 'only the owner may approve a stock adjustment' + (r.role === 'administrator' ? ' (an administrator may propose one)' : ''), count: count };
-    if (granted && r.by != null && count.submittedBy != null && String(r.by) === String(count.submittedBy)) return { ok: false, reason: 'you cannot approve your own proposal — the owner or another approver must', count: count };
+    if (r.role !== 'owner' && r.role !== 'administrator') return { ok: false, reason: 'only the owner or an administrator may approve a stock adjustment' + (r.role ? ' (staff may propose one)' : ''), count: count };
     if (count.status === 'APPROVED') return { ok: false, reason: 'already approved (no double-apply)', duplicate: true, count: count };
     if (count.status === 'CANCELED') return { ok: false, reason: 'cannot approve a canceled count', count: count };
     if (count.status !== 'PENDING_APPROVAL') return { ok: false, reason: 'must be submitted for approval first', count: count };

@@ -60,7 +60,7 @@ test.describe('against a real database with drafts/40 installed', () => {
       const host = page.locator('#deliveriesHost');
       await expect(host.locator('.deliveries')).toHaveAttribute('data-dlvmode', 'stored');
       await record(page, { Good: 8 });
-      await expect(host.locator('[data-dlvmessage]')).toContainText('Delivery recorded. It waits for the owner');
+      await expect(host.locator('[data-dlvmessage]')).toContainText('Delivery recorded. It waits for the owner or an administrator');
       await expect(host.locator('[data-dlvwaiting]')).toHaveAttribute('data-dlvwaiting', '1');
       expect(await stock()).toBe('5/0 0');                                  // nothing moved yet
       await host.locator('[data-dlvact="approve"]').click();
@@ -107,6 +107,24 @@ test.describe('against a real database with drafts/40 installed', () => {
     } finally { await db.close(); }
   });
 
+  test('administrator (owner decision, Nov 24): sees Approve, approves, and the database moves stock with them as approver', async ({ page, backend }, ti) => {
+    test.skip(ti.project.name !== 'desktop', 'run once');
+    const db = await pgBridge(page, { install: INSTALL, tables: TABLES, rpcs: RPCS, role: 'administrator', setupSql: SEED });
+    try {
+      backend.tables.profiles.find(p => p.role === 'owner').role = 'administrator';
+      await on(page); await login(page); await open(page);
+      const host = page.locator('#deliveriesHost');
+      await record(page, { Good: 6 });
+      await expect(host.locator('[data-dlvmessage]')).toContainText('It waits for the owner or an administrator');
+      await expect(host).toContainText('Waiting for your approval (1)');
+      expect(await db.query("select available from inventory where product_id = '" + P + "'")).toBe('5');
+      await host.locator('[data-dlvact="approve"]').click();
+      await expect(host.locator('[data-dlvmessage]')).toContainText('Approved. Stock and the purchase order are updated.');
+      await expect.poll(() => db.query("select available from inventory where product_id = '" + P + "'"), { timeout: 5000 }).toBe('11');
+      expect(await db.query("select status||'/'||(decided_by = submitted_by) from receiving_records")).toBe('approved/true');
+    } finally { await db.close(); }
+  });
+
   test('staff (with drafts/44): record a delivery; the owner approves; staff cannot approve even when the page is fooled', async ({ page, backend }, ti) => {
     test.skip(ti.project.name !== 'desktop', 'run once');
     const db = await pgBridge(page, { install: INSTALL, tables: TABLES, rpcs: RPCS, role: 'employee', setupSql: SEED + STAFF_PO });
@@ -116,7 +134,7 @@ test.describe('against a real database with drafts/40 installed', () => {
       const host = page.locator('#deliveriesHost');
       await record(page, { Good: 6 });
       await expect(host.locator('[data-dlvmessage]')).toContainText('It waits for the owner');
-      await expect(host).toContainText('Your deliveries waiting for the owner');
+      await expect(host).toContainText('Your deliveries waiting for the owner or an administrator');
       await expect(host.locator('[data-dlvact="approve"]')).toHaveCount(0);
       await expect(host.locator('[data-dlvact="cancel"]')).toHaveCount(1);
       expect(await db.query("select available from inventory where product_id = '" + P + "'")).toBe('5');
@@ -124,7 +142,7 @@ test.describe('against a real database with drafts/40 installed', () => {
       backend.tables.profiles.find(p => p.role === 'employee').role = 'owner';
       await page.reload(); await expect(page.locator('#dash')).toBeVisible(); await open(page);
       await host.locator('[data-dlvact="approve"]').click();
-      await expect(host.locator('[data-dlvmessage]')).toContainText('Only the owner can approve or reject a delivery.');
+      await expect(host.locator('[data-dlvmessage]')).toContainText('Only the owner or an administrator can approve or reject a delivery.');
       expect(await db.query("select status from receiving_records")).toBe('submitted');
       expect(await db.query("select available from inventory where product_id = '" + P + "'")).toBe('5');
     } finally { await db.close(); }

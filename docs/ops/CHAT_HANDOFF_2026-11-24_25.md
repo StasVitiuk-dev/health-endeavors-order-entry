@@ -121,3 +121,41 @@ Next free draft number: **66**.
   `claude/ask-box` (#91, contains #89), `claude/tile-figure-fix` (#94),
   `claude/sweet-hamilton-5ty3zp` (#93, documents).
 - Progress percentages: `docs/health-endeavors-progress.md` (planning estimates).
+
+---
+
+## 9. Later on Nov 25: the owner's completion queue (CHECKPOINT for the next chat)
+
+The owner gave a ten-task queue ("HEALTH ENDEAVORS DASHBOARD — CONTINUE THE COMPLETION QUEUE").
+The live status table is `docs/PROJECT_RECORD.md` §3b; read it first.
+
+**Merged:** #101 (safety tests: the one People-page exception).
+
+**Open, chained (merge the newest green one; each contains the ones before):**
+#102 administrators approve deliveries and returns (draft 40) → #103 administrators review supplier
+documents (drafts 36/38) → #104 managers can do what employees can + worked example → #105
+owner-protection map, private-history plan, complete install index, fingerprint test → #106 two
+devices never erase each other's additions (draft 50) → the documents PR after it (this section).
+
+**Waiting on the owner:**
+1. Merge the newest green PR of the chain.
+2. The read-only look in `docs/ops/OWNER_PROTECTION_AND_PRIVATE_HISTORY.md` §B3 (four functions,
+   changes nothing). It decides the private-history draft.
+3. Two answers (no rush): may a **manager** approve deliveries or supplier documents? When an
+   administrator looks at history, show "changed by the owner" or nothing at all (proposed: nothing)?
+4. Backups in the short form; database sittings in the order of `START_HERE_GUIDED_RUNS.md`.
+
+**Next for Claude (in this order):**
+1. When the chain is green: one full test run on the head of the newest PR (task 6), and record
+   revision, counts, skips and what mocks cannot prove.
+2. Task 8: the end-to-end rehearsal with made-up records (order → invoice → payment status →
+   stock → shipment → tracking → simulated notice → partial return), with its failure cases.
+3. Task 9: the evidence list for backups (nightly, restore test, files coverage, independent
+   copy, alerts, replacement Mac) and the print checks.
+4. Task 10: finish the blueprint reconciliation in §3b; then the unfinished approved agents as
+   complete flows (no new placeholder screens).
+5. After the owner's §B3 look: the private-history draft and its tests.
+
+**Session notes:** the local test database is at `/var/tmp/hepg`, port 5499 (start it with
+`pg_ctl` if a restart stopped it). Before a browser run, the scratchpad's `diag-on.sh` points the
+tests at the installed browser; restore `tests/playwright.config.js` before committing.

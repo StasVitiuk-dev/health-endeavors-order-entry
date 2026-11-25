@@ -5,7 +5,7 @@
 -- @depends-on:  36
 -- @risk:        LOW
 -- @precheck:    stops if storage.objects, storage.buckets, supplier_documents or supplier_documents_is_owner() is missing
--- @effect:      a private storage bucket supplier-documents (PDF/JPEG/PNG, 10 MB); two rules on storage.objects for that bucket only: the owner reads (opens, downloads, signs links); the person who recorded a waiting document (or the owner) uploads into its folder; no replace or delete rule
+-- @effect:      a private storage bucket supplier-documents (PDF/JPEG/PNG, 10 MB); two rules on storage.objects for that bucket only: the owner or an administrator reads (opens, downloads, signs links) (owner decision of Nov 24); the person who recorded a waiting document (or the owner or an administrator) uploads into its folder; no replace or delete rule
 -- @postcheck:   bucket public = false; two new storage rules; local-test/supplier_document_files_test.sh passes on a throwaway copy
 -- @rollback:    drafts/39
 -- @@ end metadata @@
@@ -18,26 +18,33 @@
 -- owner-only file viewing and approval; keep administrator approval off; a
 -- staff member or ordinary administrator must not be able to open files through
 -- a direct link".
+-- Changed Nov 24 (owner decision, administrator "almost like owner"): files are
+-- opened by the owner OR an administrator. Nothing in this file changed for it:
+-- the rules below ask supplier_documents_is_owner() (drafts/36), which now
+-- answers yes for an active administrator too. Staff and managers still cannot
+-- open a file, even with a direct link.
 --
 -- What it adds
 --   * a PRIVATE storage bucket `supplier-documents` (no public links), PDF,
 --     JPEG or PNG only, at most 10 MB a file
 --   * three rules on storage.objects for that bucket only:
 --       read (which is what opening, downloading and signing a link need):
---         the OWNER only
---       upload: the person who recorded the document, or the owner, into that
+--         the OWNER or an ADMINISTRATOR only
+--       upload: the person who recorded the document, the owner or an
+--         administrator, into that
 --         document's own folder, while it waits for review and has no file yet
 --       replace or delete: nobody (no rule = refused)
 --   * supplier_document_file_upload_allowed(name): the upload check
 --
 -- How a file is opened: the page asks the storage service for a link that works
 -- for 60 seconds; the storage service creates one only if the signed-in person
--- may read the file under the rule above. For anyone but the owner the file
+-- may read the file under the rule above. For anyone but the owner or an
+-- administrator the file
 -- does not exist as far as the storage service is concerned. (Supabase storage
 -- applies these database rules to every download, link and upload.)
 --
 -- Honest limits
---   * A 60-second link, once the owner has it, works for whoever holds it until
+--   * A 60-second link, once the owner or an administrator has it, works for whoever holds it until
 --     it expires. Do not forward it.
 --   * Files are not in the database backups; backing up the bucket is a
 --     separate decision.

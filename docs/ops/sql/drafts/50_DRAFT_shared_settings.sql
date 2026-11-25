@@ -5,7 +5,7 @@
 -- @depends-on:  none
 -- @risk:        LOW
 -- @precheck:    stops, changing nothing, if a shared_settings table exists that this file did not create (it checks its own mark); stops if auth.uid(), current_role(), is_active_staff(), is_owner_or_admin(), the tasks or audit_log table, or the audit trigger on tasks is missing
--- @effect:      1 new table shared_settings (one row per setting: key, a small JSON value, who may read it, who saved it last and when); set_shared_setting() saves or replaces a setting; settings never deleted, keys never renamed; the owner and administrators write (owner decision of Nov 24); the owner and administrators read all, active staff only settings marked for staff; production's audit trigger attached; no existing table changes
+-- @effect:      1 new table shared_settings (one row per setting: key, a small JSON value, who may read it, who saved it last and when); set_shared_setting() saves or replaces a setting, and refuses with a conflict when the page passes the version it read and someone saved in between (two devices never erase each other's additions); settings never deleted, keys never renamed; the owner and administrators write (owner decision of Nov 24); the owner and administrators read all, active staff only settings marked for staff; production's audit trigger attached; no existing table changes
 -- @postcheck:   the table present and empty; anon cannot read it; local-test/shared_settings_test.sh passes on a throwaway copy
 -- @rollback:    drafts/51
 -- @@ end metadata @@
@@ -21,7 +21,9 @@
 --     "staff"), who saved it last and when.
 --   * set_shared_setting(key, value, audience)   the owner or an administrator saves a setting; saving
 --     the same key again replaces its value (the previous value stays in
---     audit_log with who and when).
+--     audit_log with who and when). A page that passes the version it read
+--     saves only if nobody saved in between ("conflict" otherwise), so two
+--     devices adding to the same list never erase each other's additions.
 --   * A setting is never deleted from the dashboard; a value is replaced.
 --
 -- First use: the fee, postage and packaging estimates of "Real profit".
@@ -107,21 +109,50 @@ create trigger shared_settings_guard before insert or update or delete on public
   for each row execute function public.shared_settings_guard();
 
 -- ---------------------------------------------------------------- the owner or an administrator saves a setting
-create or replace function public.set_shared_setting(p_key text, p_value jsonb, p_audience text default 'owner_admin') returns jsonb
+-- Two devices saving the same setting at the same moment (owner queue of Nov 25, task 7):
+-- a page that read the setting first passes the time of the version it read
+-- (p_expected_updated_at), or p_expect_new when there was none. The save then happens only
+-- if nobody saved in between; otherwise nothing changes and the answer says "conflict", so
+-- the page reads again, joins its change to the newer value and saves again. Without
+-- either, the save replaces the value as before (a single switch, where the last choice
+-- wins on purpose). The check is in the database, inside one statement, so it holds even
+-- when two saves arrive at the same instant.
+drop function if exists public.set_shared_setting(text, jsonb, text);
+create or replace function public.set_shared_setting(p_key text, p_value jsonb, p_audience text default 'owner_admin',
+  p_expected_updated_at timestamptz default null, p_expect_new boolean default false) returns jsonb
 language plpgsql
 security invoker
 set search_path = public, pg_temp
 as $fn$
-declare v public.shared_settings%rowtype;
+declare v public.shared_settings%rowtype; k text := btrim(coalesce(p_key, ''));
 begin
   if coalesce(public.current_role(), '') not in ('owner', 'administrator') then
     raise exception 'Only the owner or an administrator can change a shared setting.' using errcode = '42501';
   end if;
   if p_value is null then raise exception 'A setting needs a value.' using errcode = '22023'; end if;
-  insert into public.shared_settings (key, value, audience)
-    values (btrim(coalesce(p_key, '')), p_value, coalesce(p_audience, 'owner_admin'))
-    on conflict (key) do update set value = excluded.value, audience = excluded.audience
-    returning * into v;
+  if coalesce(p_expect_new, false) then
+    insert into public.shared_settings (key, value, audience)
+      values (k, p_value, coalesce(p_audience, 'owner_admin'))
+      on conflict (key) do nothing
+      returning * into v;
+    if not found then
+      return jsonb_build_object('ok', false, 'conflict', true, 'key', k,
+        'updated_at', (select s.updated_at from public.shared_settings s where s.key = k));
+    end if;
+  elsif p_expected_updated_at is not null then
+    update public.shared_settings set value = p_value, audience = coalesce(p_audience, 'owner_admin')
+      where key = k and updated_at = p_expected_updated_at
+      returning * into v;
+    if not found then
+      return jsonb_build_object('ok', false, 'conflict', true, 'key', k,
+        'updated_at', (select s.updated_at from public.shared_settings s where s.key = k));
+    end if;
+  else
+    insert into public.shared_settings (key, value, audience)
+      values (k, p_value, coalesce(p_audience, 'owner_admin'))
+      on conflict (key) do update set value = excluded.value, audience = excluded.audience
+      returning * into v;
+  end if;
   return jsonb_build_object('ok', true, 'key', v.key, 'updated_at', v.updated_at);
 end
 $fn$;
@@ -154,8 +185,8 @@ drop policy if exists shared_settings_owner_change on public.shared_settings;
 create policy shared_settings_owner_change on public.shared_settings for update to authenticated
   using (coalesce(public.current_role(), '') in ('owner', 'administrator')) with check (coalesce(public.current_role(), '') in ('owner', 'administrator'));
 
-revoke all on function public.set_shared_setting(text, jsonb, text) from public, anon;
+revoke all on function public.set_shared_setting(text, jsonb, text, timestamptz, boolean) from public, anon;
 revoke all on function public.shared_settings_guard() from public, anon;
-grant execute on function public.set_shared_setting(text, jsonb, text) to authenticated;
+grant execute on function public.set_shared_setting(text, jsonb, text, timestamptz, boolean) to authenticated;
 
 commit;

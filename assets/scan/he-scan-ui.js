@@ -110,7 +110,10 @@
       step: 'result', state: 'OK',
       attached: { carrier: p.attach.carrier, tracking: p.attach.tracking_number, trackingState: p.attach.tracking_state, confirmedBy: p.attach.confirmed_by, confirmedAt: p.attach.confirmed_at },
       queued: (p.queued || []).map(function (q) { return { kind: q.kind, channel: q.channel || null, state: q.state, retryable: q.state === 'failed' || q.state === 'held', label: 'SIMULATED' }; }),
-      note: p.note || 'SIMULATED — queued a tracking check and one shipping notification. A scan does not prove carrier acceptance.',
+      noticeBy: p.noticeBy || 'dashboard',
+      note: (p.noticeBy && p.noticeBy !== 'dashboard')
+        ? 'SIMULATED — queued a tracking check. The shipping email for this order comes from ' + p.noticeBy.charAt(0).toUpperCase() + p.noticeBy.slice(1) + ' once the tracking number is added there; the dashboard sends none, so the customer gets one, not two. A scan does not prove carrier acceptance.'
+        : (p.note || 'SIMULATED — queued a tracking check and one shipping notification. A scan does not prove carrier acceptance.'),
     };
   }
 

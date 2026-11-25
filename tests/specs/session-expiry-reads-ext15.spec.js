@@ -23,9 +23,14 @@ test('Home refresh after expiry: figures become "?" or an error, never a fresh-l
   // the Refresh button re-reads everything, which is when expiry must show.
   await page.locator('#refreshBtn').click();
   await page.waitForLoadState('networkidle');
-  const tiles = await page.locator('#businessHealthStats .stat').allTextContents();
-  expect(tiles.length).toBeGreaterThan(0);
-  for (const t of tiles) expect(t, t).not.toMatch(/^\s*\$?0(\.00)?\s/);
+  // Until the refresh's reads come back, Home still shows the figures read while signed in
+  // (a busy computer can reach "network idle" before the tiles are redrawn), so wait up to
+  // 10 s for the redraw. A tile that stays a fresh-looking zero still fails here.
+  const zeroLooking = async () => {
+    const tiles = await page.locator('#businessHealthStats .stat').allTextContents();
+    return tiles.length === 0 ? ['(no tiles)'] : tiles.filter(t => /^\s*\$?0(\.00)?\s/.test(t));
+  };
+  await expect.poll(zeroLooking, { timeout: 10000 }).toEqual([]);
   await expect(page.locator('#dashError')).toContainText(/expired|sign in|could not be read/i);
 });
 

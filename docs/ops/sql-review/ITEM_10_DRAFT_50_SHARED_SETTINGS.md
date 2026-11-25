@@ -11,8 +11,8 @@ numbers live in the one browser where you typed them.
 
 | File | Lines | Fingerprint (SHA-256, first 16) |
 |---|---|---|
-| `docs/ops/sql/drafts/50_DRAFT_shared_settings.sql` (install) | 161 | `ba3ffc6017bc1458` |
-| `docs/ops/sql/drafts/51_DRAFT_rollback_shared_settings.sql` (undo) | 46 | `c5f3ce502a6feeaa` |
+| `docs/ops/sql/drafts/50_DRAFT_shared_settings.sql` (install) | 192 | `f01c9760706592e1` |
+| `docs/ops/sql/drafts/51_DRAFT_rollback_shared_settings.sql` (undo) | 47 | `7c666cde0eb7cee1` |
 
 ## Target environment
 
@@ -49,9 +49,31 @@ the same profit. Another device picks up a change when it next opens or refreshe
 - Supabase shows its usual warning about a "destructive operation" for this file: it lists only
   `drop policy if exists …` and `drop trigger if exists …` on this file's own new table.
 
+## Changed before install (Nov 25): two devices never erase each other's additions
+
+Your queue of Nov 25 (task 7) asked that one device must not silently erase what another device
+added to a shared list (for example the hand-offs marked "Handled", or the ticks on the launch
+list). The save now carries **the version the page read**. The database saves only if nobody
+saved in between; otherwise it changes nothing and answers "conflict", and the page reads the
+newer list, adds its own change to it and saves again (at most three times, then it says "not
+saved" instead of pretending). The check is inside the database, in one statement, so it holds
+even when two saves arrive at the same instant. A single switch (on or off) is still saved
+without a version on purpose: there, the last choice wins. The preview switches are kept as one list, so (also Nov 25) turning one
+switch on or off is applied to the newest list with the version check: two devices switching
+different features at the same moment both keep their choice (each switch: the last choice wins).
+The undo file (51) now removes this
+new shape of the function (and the earlier one, if it was ever installed).
+
+Proven twice: the local database test (section 4b) saves from **two real connections at the same
+instant**: exactly one goes through, the other is told "conflict", and after it reads again the
+list holds both additions. The dashboard test `tests/specs/shared-settings-race-ext25.spec.js`
+runs two simulated devices at once and shows that without the check one addition is lost, and
+with it both are kept.
+
 ## Local test (throwaway database, made-up data)
 
-`docs/ops/sql/local-test/shared_settings_test.sh`: **42 of 42 passed** (Nov 25; 40 of 40 on Nov 24 when
+`docs/ops/sql/local-test/shared_settings_test.sh`: **51 of 51 passed, three runs in a row** (Nov 25, with the
+two-device check below; 42 of 42 earlier on Nov 25; 40 of 40 on Nov 24 when
 only the owner saved): install twice; the owner and an administrator save, recorded under who
 saved (staff, a switched-off account and a visitor refused, direct inserts and updates too); saving
 again replaces the value; who can read (owner and administrator all; staff only settings marked for
@@ -99,8 +121,8 @@ shared settings at all (a failed request at every sign-in), so it asks only wher
 | Kept per browser today | Effect on a second device | Proposed |
 |---|---|---|
 | Preview switches (Feature Flags) | a feature turned on here is off there | **BUILT (PR #53), owner decision of Nov 23:** shared by every device; work features for every employee; money, revenue and sensitive documents for the owner and administrators |
-| "Daily recap printed" mark | the Home reminder shows on the other device | move |
-| Snoozed items in the attention feed | a snoozed item still shows on the other device | move |
+| "Daily recap printed" mark | the Home reminder shows on the other device | **BUILT (Nov 24):** kept here (`recap_printed`); the later day counts. Nov 25: saved with the version read, so an earlier day saved at the same moment never replaces a later one |
+| Snoozed items in the attention feed | a snoozed item still shows on the other device | **BUILT (Nov 24):** each person's own, in draft 58 (review item 14). Nov 25: saved with the version read (both devices' items kept) |
 | Chosen look (Aurora / previous) | each device keeps its own look | keep per device (a look is a personal choice), unless you say otherwise |
 | Sales outreach workbench (practice data) | practice data only | keep per device |
 

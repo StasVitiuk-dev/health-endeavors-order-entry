@@ -7,9 +7,10 @@
 # Supabase storage service checks these same rules, as the signed-in person, for
 # every download, signed link and upload; here the test runs those checks
 # directly (a read of the object row = "may open / may get a link").
-# Owner decision of Nov 21: only the owner opens files; staff and ordinary
-# administrators cannot open one through a direct link or approve through the
-# backend. All rows synthetic.
+# Owner decision of Nov 21: only the owner opens files; changed by the owner's
+# decision of Nov 24: the owner OR an active administrator opens and approves.
+# Staff and a switched-off administrator cannot open a file through a direct
+# link or approve through the backend. All rows synthetic.
 # Usage: supplier_document_files_test.sh -h /var/tmp/hepg -p 5499 -U postgres   (source db: he_real)
 set -u
 CONN=("$@"); SRC=he_real; DB=he_supplier_document_files_test
@@ -23,14 +24,15 @@ as()   { local who="$1" sql="$2" pre
          if [ "$who" = anon ]; then pre="set local role anon;"; else pre="set local role authenticated; set local request.jwt.claim.sub = '$who';"; fi
          psql "${CONN[@]}" -d "$DB" -qtAX -c "begin; $pre $sql; commit;" 2>&1 | grep -v '^\(BEGIN\|COMMIT\|SET\|ROLLBACK\)$'; }
 OUTF=$(mktemp)
-O=00000000-0000-4000-8000-0000000004e1; A=00000000-0000-4000-8000-0000000004e2; E=00000000-0000-4000-8000-0000000004e4; E2=00000000-0000-4000-8000-0000000004e5
+O=00000000-0000-4000-8000-0000000004e1; A=00000000-0000-4000-8000-0000000004e2; E=00000000-0000-4000-8000-0000000004e4; E2=00000000-0000-4000-8000-0000000004e5; X=00000000-0000-4000-8000-0000000004e3
 LAB=00000000-0000-4000-8000-0000000004f1
 K() { printf '00000000-0000-4000-8000-%012d' "$1"; }
 psql "${CONN[@]}" -d postgres -qX -c "drop database if exists $DB" >/dev/null 2>&1
 psql "${CONN[@]}" -d postgres -qX -v ON_ERROR_STOP=1 -c "create database $DB template $SRC" >/dev/null || { echo "cannot copy $SRC"; exit 2; }
-q "delete from profiles where id in ('$O','$A','$E','$E2');
+q "delete from profiles where id in ('$O','$A','$E','$E2','$X');
    insert into profiles (id, email, role, is_active, account_number) values ('$O','owner@example.test','owner',true,'700000001'),
-     ('$A','admin@example.test','administrator',true,'700000002'), ('$E','staff@example.test','employee',true,'700000004'), ('$E2','staff2@example.test','employee',true,'700000005');
+     ('$A','admin@example.test','administrator',true,'700000002'), ('$E','staff@example.test','employee',true,'700000004'), ('$E2','staff2@example.test','employee',true,'700000005'),
+     ('$X','gone-admin@example.test','administrator',false,'700000003');
    insert into suppliers (id, name, supplier_type, is_active) values ('$LAB','SYN Lotion Lab','lab',true);
    -- STAND-IN for Supabase's storage schema (the shape its rules run against)
    create schema storage;
@@ -58,29 +60,37 @@ see() { as "$1" "select count(*) from storage.objects where bucket_id = 'supplie
 echo " uploading"
 has "a visitor cannot upload" "$(put anon "$D1/coa.pdf")" "permission denied\|row-level security"
 has "staff cannot upload into a document someone else recorded" "$(put $E2 "$D1/coa.pdf")" "row-level security"
-has "an administrator cannot upload into a document staff recorded" "$(put $A "$D1/coa.pdf")" "row-level security"
+has "a switched-off administrator cannot upload into a document staff recorded" "$(put $X "$D1/coa.pdf")" "row-level security"
 has "a file name outside a document's folder is refused" "$(put $E "loose-file.pdf")" "row-level security"
 ok  "the person who recorded it uploads its file" "$(put $E "$D1/coa.pdf")" ""
 as $E "select public.attach_supplier_document_file('$D1','$D1/coa.pdf','$(printf 'c%.0s' $(seq 1 64))',4096,'application/pdf')" >/dev/null
 has "  once the file is attached, a second upload is refused" "$(put $E "$D1/coa-2.pdf")" "row-level security"
+ok  "an administrator uploads the file of a document another staff member recorded" "$(put $A "$D2/coa.pdf")" ""
+has "  and attaches it" "$(as $A "select public.attach_supplier_document_file('$D2','$D2/coa.pdf','$(printf 'd%.0s' $(seq 1 64))',2048,'application/pdf')")" '"already_attached": false'
 
 echo " opening a file (a direct link needs the read rule)"
 ok  "the owner can open it" "$(see $O "$D1/coa.pdf")" "1"
 ok  "the staff member who uploaded it cannot open it" "$(see $E "$D1/coa.pdf")" "0"
 ok  "another staff member cannot" "$(see $E2 "$D1/coa.pdf")" "0"
-ok  "an ordinary administrator cannot" "$(see $A "$D1/coa.pdf")" "0"
+ok  "an administrator can open it (owner decision of Nov 24)" "$(see $A "$D1/coa.pdf")" "1"
+ok  "a switched-off administrator cannot" "$(see $X "$D1/coa.pdf")" "0"
 has "a visitor cannot" "$(see anon "$D1/coa.pdf")" "permission denied\|^0$"
-ok  "  nor list the bucket" "$(as $A "select count(*) from storage.objects where bucket_id = 'supplier-documents'")" "0"
+ok  "  nor list the bucket" "$(as $X "select count(*) from storage.objects where bucket_id = 'supplier-documents'")" "0"
+ok  "staff cannot list the bucket either" "$(as $E2 "select count(*) from storage.objects where bucket_id = 'supplier-documents'")" "0"
+ok  "the owner and an administrator see both files" "$(as $O "select count(*) from storage.objects where bucket_id = 'supplier-documents'")/$(as $A "select count(*) from storage.objects where bucket_id = 'supplier-documents'")" "2/2"
 
 echo " replacing or deleting"
 as $O "update storage.objects set name = '$D1/swapped.pdf' where name = '$D1/coa.pdf'" >/dev/null
-ok  "nobody can replace a file (owner included): nothing changes" "$(q "select name from storage.objects where bucket_id = 'supplier-documents'")" "$D1/coa.pdf"
+ok  "nobody can replace a file (owner included): nothing changes" "$(q "select name from storage.objects where bucket_id = 'supplier-documents' and name like '$D1/%'")" "$D1/coa.pdf"
 as $O "delete from storage.objects where name = '$D1/coa.pdf'" >/dev/null
-ok  "nobody can delete a file (owner included)" "$(q "select count(*) from storage.objects where bucket_id = 'supplier-documents'")" "1"
+as $A "delete from storage.objects where name = '$D2/coa.pdf'" >/dev/null
+ok  "nobody can delete a file (owner and administrators included)" "$(q "select count(*) from storage.objects where bucket_id = 'supplier-documents'")" "2"
 
 echo " approving"
 has "staff cannot approve" "$(as $E "select public.review_supplier_document('$D1','approved',null)")" "Only the owner"
-has "an ordinary administrator cannot approve" "$(as $A "select public.review_supplier_document('$D1','approved',null)")" "Only the owner"
+has "a switched-off administrator cannot approve" "$(as $X "select public.review_supplier_document('$D1','approved',null)")" "Only the owner or an administrator\|No such supplier document"
+has "an administrator approves the second document" "$(as $A "select public.review_supplier_document('$D2','approved',null)")" '"status": "approved"'
+ok  "  approved by the administrator, for the exact file" "$(q "select (reviewed_by = '$A')::text||'/'||(approved_file_sha256 = file_sha256)::text from supplier_documents where id = '$D2'")" "true/true"
 has "the owner approves" "$(as $O "select public.review_supplier_document('$D1','approved',null)")" '"status": "approved"'
 has "  after approval, no further upload into that document" "$(put $O "$D1/later.pdf")" "row-level security"
 ok  "other buckets are untouched (no new rule names them)" "$(q "select count(*) from pg_policies where schemaname = 'storage' and (qual like '%expense-receipts%' or with_check like '%expense-receipts%')")" "0"

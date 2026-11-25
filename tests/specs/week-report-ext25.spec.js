@@ -272,7 +272,7 @@ test('with the person\'s own settings in use, the opened week is saved once for 
   await host.locator('[data-wr="show"]').click();
   await expect(host.locator('[data-wrtable]')).toHaveAttribute('data-wrtable', '2026-11-16');
   const saves = () => backend.requests.filter(r => r.rpc === 'set_my_setting' && r.body.p_key === 'week_report_seen').map(r => r.body);
-  await expect.poll(saves).toEqual([{ p_key: 'week_report_seen', p_value: { week: '2026-11-16' } }]);
+  await expect.poll(saves).toEqual([{ p_key: 'week_report_seen', p_value: { week: '2026-11-16' }, p_expect_new: true }]);   // nothing saved yet: "expect new" (drafts/58 version check)
   await host.locator('[data-wr="show"]').click();                                             // shown again: already saved, not saved twice
   await expect(host.locator('[data-wrnote]')).toHaveText('The week of Nov 16 – Nov 22, 2026. Every figure is exact.');
   await page.waitForTimeout(300);
