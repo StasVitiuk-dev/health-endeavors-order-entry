@@ -140,6 +140,36 @@ What it means:
 - **Next: the second read-only look** (the functions' current text), so the draft changes one
   condition and nothing else.
 
+### Second look (owner, Nov 25, about 4:14 pm Central): the functions' own text
+
+The owner sent the current text of the three functions (read-only; summarised here, not copied,
+because this repository is public). What it shows:
+
+- **`employee_activity` already hides owner entries from administrators.** It answers only an
+  active owner or administrator (anyone else, managers included, gets nothing). For an
+  administrator it leaves out every entry whose author's account has the role owner, and it shows
+  only the history areas an administrator manages (the tables with an "Administrator can manage"
+  rule). Search, filters, paging and the CSV all come from that same filtered answer, so they
+  follow. No "N hidden" line exists anywhere.
+- **`employee_activity_people` already leaves owner accounts out of the people list** for an
+  administrator.
+- **`list_my_sessions` shows each person only their own sign-ins** (it reads the asker's own rows).
+- `global_search` runs with the asker's own rights (first look), so it cannot show more history
+  than the history table's own rule allows (owner only).
+
+**Result: T4 is already met in production, as the owner decided ("nothing at all").** No new
+draft is needed. Three small points, recorded for completeness (none is a leak today):
+1. An entry made by an account whose row was removed from the accounts table entirely would show
+   as "System / automatic". Accounts are never hard-deleted here (they are switched off and
+   marked removed), so this does not happen.
+2. The emergency account is hidden only if its role is owner. To confirm when convenient: the
+   emergency account's role (read-only; part of the people-levels sittings).
+3. Hardening, low priority: the two functions run with raised rights and name only `public` in
+   their search path. Postgres recommends also listing `pg_temp` last, so a temporary table could
+   never stand in for `profiles`. Signed-in people cannot create temporary tables through the
+   dashboard's connection, so this is not exploitable today; it can be folded into the next
+   sitting that touches these functions.
+
 ### B4. What I prepared now, and what waits
 
 | Item | State |
@@ -147,5 +177,5 @@ What it means:
 | The boundary (B1) | PROPOSED, one owner question |
 | The list of paths (B2) | done |
 | The read-only look (B3) | **done** (Nov 25, result above); second look (the text) sent to the owner |
-| The draft that filters inside `employee_activity` and `employee_activity_people` | **waits for the second look** (writing it without the functions' text would mean replacing code nobody has read, which the project rules forbid) |
+| The draft that filters inside `employee_activity` and `employee_activity_people` | **not needed**: the second look (Nov 25) shows both functions already leave out owner entries and owner accounts for administrators |
 | Tests | planned with the draft: owner sees all; administrator sees no owner entry on mixed records, in pages 1 and 2, in counts, in the CSV, through a direct call; an employee sees nothing more than today |

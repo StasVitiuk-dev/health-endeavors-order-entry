@@ -799,7 +799,7 @@
       "file": "drafts/66_DRAFT_managers_approve_stock.sql",
       "id": "66",
       "class": "PRODUCTION-CHANGE-DRAFT",
-      "step": "optional, ONLY if the owner chooses A (owner decision of Nov 25: a manager approves deliveries and returns too; A = a manager changes stock only by deciding). After drafts/40 and drafts/62",
+      "step": "optional (owner decisions of Nov 25: a manager approves deliveries and returns too, and the owner chose A: a manager changes stock only by deciding). After drafts/40 and drafts/62",
       "dependsOn": [
         "40",
         "62"

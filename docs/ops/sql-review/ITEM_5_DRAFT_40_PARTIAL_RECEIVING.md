@@ -66,11 +66,13 @@ their approval would be refused when it tries to change stock. Two ways:
 
 Until you choose, managers record but do not approve deliveries and returns.
 
-**Prepared for A (Nov 25, not installed, used only if you choose A):**
+**DECIDED (owner, Nov 25, about 4:20 pm Central): A.** Drafts 66/67 below are the way; they are not installed yet.
+
+**Prepared for A (Nov 25, not installed):**
 
 | File | Lines | Fingerprint (SHA-256, first 16) |
 |---|---|---|
-| `docs/ops/sql/drafts/66_DRAFT_managers_approve_stock.sql` (install, after 40 and 62) | 119 | `473d2cf80603bfd6` |
+| `docs/ops/sql/drafts/66_DRAFT_managers_approve_stock.sql` (install, after 40 and 62) | 118 | `db24e1757c2a6d63` |
 | `docs/ops/sql/drafts/67_DRAFT_rollback_managers_approve_stock.sql` (undo) | 66 | `052b34380ab7e7c8` |
 
 What 66 does, in short: a manager decides a delivery or a return **someone else** recorded. The

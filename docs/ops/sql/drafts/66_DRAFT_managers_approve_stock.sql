@@ -1,6 +1,6 @@
 -- DRAFT (2026-11-25). NOT INSTALLED. PRODUCTION CHANGE: needs the owner's
 -- @@ metadata (generated from docs/ops/sql/MANIFEST.json by `npm run sql:headers`; do not edit by hand) @@
--- @migration:   66   (PRODUCTION-CHANGE-DRAFT, step optional, ONLY if the owner chooses A (owner decision of Nov 25: a manager approves deliveries and returns too; A = a manager changes stock only by deciding). After drafts/40 and drafts/62)
+-- @migration:   66   (PRODUCTION-CHANGE-DRAFT, step optional (owner decisions of Nov 25: a manager approves deliveries and returns too, and the owner chose A: a manager changes stock only by deciding). After drafts/40 and drafts/62)
 -- @environment: production only after the owner's written approval; tested on the local throwaway database
 -- @depends-on:  40, 62
 -- @risk:        MEDIUM
@@ -9,7 +9,7 @@
 -- @postcheck:   exactly the four decision actions run with raised rights; local-test/managers_approve_stock_test.sh passes on a throwaway copy
 -- @rollback:    drafts/67
 -- @@ end metadata @@
--- written approval AND the owner's choice "A" (see below). DO NOT RUN until then.
+-- written approval. DO NOT RUN until then. (The owner chose "A" on Nov 25.)
 -- Rollback: 67_DRAFT_rollback_managers_approve_stock.sql.
 -- Tested only on the local throwaway database (local-test/managers_approve_stock_test.sh).
 --
@@ -17,8 +17,7 @@
 -- deliveries and returns too. This file is OPTION A of the two ways to do it
 -- (docs/ops/sql-review/ITEM_5_DRAFT_40_PARTIAL_RECEIVING.md, "How a manager may change
 -- stock"): a manager changes stock ONLY by deciding a delivery or a return that someone
--- else recorded, and never by editing stock directly. Prepared before the owner chose,
--- so it is ready if the answer is A; if the answer is B, this file is not used.
+-- else recorded, and never by editing stock directly. The owner chose A on Nov 25.
 --
 -- What it changes (needs drafts/40 as of Nov 25, and the Manager role word, drafts/62)
 --   1. stock_may_decide() and stock_can_decide(submitted_by): today "owner or administrator".

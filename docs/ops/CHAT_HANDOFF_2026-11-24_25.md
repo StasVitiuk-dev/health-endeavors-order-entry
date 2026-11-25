@@ -178,21 +178,21 @@ wholesale orders); the B3 read-only look is done (`employee_activity` and
 - #112: managers approve or reject supplier documents someone else recorded, and open files
   (drafts 36/38 changed before install). All real checks green.
 - #113: managers decide deliveries and returns someone else recorded. **Option A is prepared**
-  (drafts 66/67, not installed); the dashboard part is the same for A and B. Waits for the owner's
-  "A" or "B" (if B: replace 66/67 with the stock-rights version before merging).
+  (drafts 66/67, not installed); the dashboard part is the same for A and B. **The owner chose A**
+  (Nov 25): ready to merge once its checks are green.
 
 **Waiting on the owner:**
-1. The second read-only look (the text of `employee_activity`, `employee_activity_people`,
+1. ~~The second read-only look~~ Done (T4 already met). It was: (the text of `employee_activity`, `employee_activity_people`,
    `list_my_sessions`; the query is in the chat of Nov 25 and repeated here):
    `select p.proname, pg_get_functiondef(p.oid) from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname in ('employee_activity','employee_activity_people','list_my_sessions') order by 1;`
-2. "A" or "B" for managers and stock.
+2. ~~"A" or "B" for managers and stock.~~ Answered: A.
 3. Backups in the short form (reminder set for Nov 26, 10 am Central).
 4. Database sittings in the order of `docs/ops/sql-review/START_HERE_GUIDED_RUNS.md`.
 
-**Next for Claude:** the private-history draft from the second look (keep each function exactly as
-it is plus one condition: leave out entries made by an owner account, and owner accounts in the
-people list, unless the asker is an owner; with tests: owner sees all, administrator sees no owner
-entry on mixed records, in page 2, in counts and through a direct call; employees unchanged).
+**Private history (T4): already met in production.** The owner's second read-only look (Nov 25)
+shows `employee_activity` leaves out owner entries for administrators and
+`employee_activity_people` leaves out owner accounts; no draft is needed (details and three small
+notes in `docs/ops/OWNER_PROTECTION_AND_PRIVATE_HISTORY.md`).
 
 **Parked:** the screenshot-reference fix (branch `claude/screenshot-refs`, no PR): GitHub's
 artifact storage is not reachable from the work computer, so GitHub's own pictures cannot be
