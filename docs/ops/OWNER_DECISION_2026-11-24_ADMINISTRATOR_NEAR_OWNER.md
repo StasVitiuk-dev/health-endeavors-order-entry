@@ -108,6 +108,82 @@ the dashboard. Everything else an administrator may do.
   (an approval, a switch, a new account, a released hold, a restore, a campaign saved) shows on the
   owner's Home, and in the daily summary, without the owner having to search Employee Activity.
 
+## The People page (PROPOSED by Claude on Nov 24, evening; the owner asked for it)
+
+The owner asked for a page where the owner, the partner and other administrators ("future
+managers") can create a new employee account. Claude's proposal, given in chat:
+
+1. The new person **asks for an account themselves** on the sign-in page: name, email, and a
+   password only they know. Nobody else handles a password.
+2. The account **waits for approval**: until then the person sees only that it is waiting.
+3. On a **People page under Admin**, the owner or an administrator sees who is waiting, approves
+   with a role, changes a role later, or deactivates someone who left.
+4. Nobody can touch an owner's account from this page, and nobody can make someone an Owner.
+5. Every approval, role change and deactivation is shown to the owner on Home, with who did it.
+
+Why not "create the login from the dashboard": that needs the database's master key inside the
+page, where anyone could read it. That key must never be in the browser or in this repository.
+
+**OWNER DECISION REQUIRED (asked in chat, not answered yet):** since this evening Administrator
+means "almost an Owner". A future manager made an Administrator would get all of it. Claude
+recommends a fourth role, **Manager**: approves new employees and runs the daily work, without the
+co-owner powers.
+
+**Not known yet (needs the read-only check below and one look at the sign-in settings):** whether a
+new sign-up already gets a row in the accounts table by itself, whether sign-ups are allowed at
+all, and what the present rules on the accounts table let an administrator do.
+
+### Read-only check of how accounts are set up (given to the owner in chat on Nov 24)
+
+It reads only the shape: the accounts table's columns, how many accounts each role has (counts, no
+names or emails), the rules on four tables, the triggers, and the helper functions the rules use.
+It changes nothing. Tried on a throwaway local database first.
+
+```sql
+with t(tbl) as (values ('profiles'), ('feature_flags'), ('system_mode'), ('audit_log'))
+select '1 column' as section, 'profiles' as item,
+       lpad(c.ordinal_position::text, 2, '0') || ' ' || c.column_name || ' ' || c.data_type ||
+       case when c.is_nullable = 'NO' then ' NOT NULL' else '' end ||
+       case when c.column_default is not null then ' default ' || left(c.column_default, 40) else '' end as detail
+  from information_schema.columns c
+ where c.table_schema = 'public' and c.table_name = 'profiles'
+union all
+select '2 roles in use', coalesce(p.role, '(none)'), 'active: ' || p.is_active::text || ', accounts: ' || count(*)::text
+  from public.profiles p group by p.role, p.is_active
+union all
+select '3 rule', pol.tablename::text, pol.policyname || ' | ' || pol.cmd || ' | for: ' || array_to_string(pol.roles, ',') ||
+       ' | when: ' || coalesce(left(pol.qual, 200), '-') || ' | check: ' || coalesce(left(pol.with_check, 200), '-')
+  from pg_policies pol join t on t.tbl = pol.tablename::text
+ where pol.schemaname = 'public'
+union all
+select '4 row level security', cl.relname::text, case when cl.relrowsecurity then 'ON' else 'OFF' end
+  from pg_class cl
+  join pg_namespace n on n.oid = cl.relnamespace and n.nspname = 'public'
+  join t on t.tbl = cl.relname::text
+ where cl.relkind in ('r', 'p')
+union all
+select '5 trigger', n.nspname || '.' || cl.relname, tg.tgname || ' -> ' || p.proname
+  from pg_trigger tg
+  join pg_class cl on cl.oid = tg.tgrelid
+  join pg_namespace n on n.oid = cl.relnamespace
+  join pg_proc p on p.oid = tg.tgfoid
+ where not tg.tgisinternal
+   and ((n.nspname = 'public' and cl.relname::text in (select tbl from t)) or (n.nspname = 'auth' and cl.relname = 'users'))
+union all
+select '6 helper function', p.proname::text,
+       case when p.prosecdef then 'runs with its owner''s rights' else 'runs with the caller''s rights' end ||
+       ' | ' || left(regexp_replace(p.prosrc, '\s+', ' ', 'g'), 300)
+  from pg_proc p
+  join pg_namespace n on n.oid = p.pronamespace
+ where n.nspname = 'public'
+   and (p.proname in ('is_owner', 'is_owner_or_admin', 'current_role', 'is_active_staff', 'is_admin')
+        or p.oid in (select tg.tgfoid from pg_trigger tg
+                       join pg_class cl on cl.oid = tg.tgrelid
+                       join pg_namespace n2 on n2.oid = cl.relnamespace
+                      where n2.nspname = 'auth' and cl.relname = 'users' and not tg.tgisinternal))
+order by 1, 2, 3;
+```
+
 ## Known limitation, told to the owner
 
 The rule is by role: **every** Administrator account gets this, also one created later. Other

@@ -10,7 +10,10 @@ In short:
 
 - [x] Merge PR #85 (it contained #56–#84): done by the owner on Nov 24, about 6:03 PM Central, merge commit `1f86df0`.
 - [x] Live check after that merge: done by the owner on Nov 24 at about 6:10 PM Central (screenshots): the shorter menu (16 lines) is live, same-topic pages sit inside one another, and the owner-only section "features that save real records" lists the new switches, all Off and "Not installed yet" (drafts 48, 56, 58, 60 seen).
-- [ ] Merge PR #51 (documents).
+- [x] Merge PR #51 (documents): done by the owner on Nov 24, about 6:33 PM Central, merge commit `6648336`.
+- [ ] PR #86 (administrators see the switches that save real records): merge when its checks are green.
+- [ ] Read-only check of how accounts are set up (SQL in `docs/ops/OWNER_DECISION_2026-11-24_ADMINISTRATOR_NEAR_OWNER.md`), then the People page.
+- [ ] Owner to answer: a fourth role "Manager" for future managers, or managers as Administrators?
 - [ ] Owner decision of Nov 24 (evening): administrators get almost everything the owner has. Plan and open points: `docs/ops/OWNER_DECISION_2026-11-24_ADMINISTRATOR_NEAR_OWNER.md`.
 - [ ] One stock count: your decision, after the read-only shape check
       (`docs/ops/ONE_STOCK_COUNT_DECISION_2026-11-24.md`).
