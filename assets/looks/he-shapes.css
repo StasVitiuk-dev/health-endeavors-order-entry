@@ -1,0 +1,64 @@
+/* Shapes and font — three styles for the owner to choose from (owner request of
+   Nov 24: "I don't like some of the forms of windows, buttons, the shape, also the
+   font; something more business casual but elegant"). A second choice next to the
+   Look (colours): the Look decides colours and light, this decides the shape of
+   buttons, fields and windows, how much air there is, and the typeface.
+   assets/looks/he-look-boot.js sets <html data-shape="..."> before the page is
+   drawn when this browser chose one on Feature Flags; with no choice nothing here
+   applies and the dashboard is exactly as it was.
+
+     soft     rounder buttons, fields and windows; a little more air
+     crisp    small corners, thin lines, tighter; a clean business typeface
+     elegant  a classic typeface for titles with a clean one for text; calm buttons
+
+   Shapes, spacing and typefaces only: no colour is changed, so readability
+   (4.5:1 or better, checked by tests/specs/looks-ext22) is untouched.
+   The typefaces are the two open-licensed ones already used on the printouts
+   (SIL OFL 1.1; licences in assets/fonts/). A typeface file is fetched only when a
+   style that uses it is chosen. */
+@font-face{ font-family:'HE Screen Display'; src:url('../fonts/eb-garamond-latin-500-normal.woff2') format('woff2'); font-weight:500; font-style:normal; font-display:swap; }
+@font-face{ font-family:'HE Screen Display'; src:url('../fonts/eb-garamond-latin-600-normal.woff2') format('woff2'); font-weight:600; font-style:normal; font-display:swap; }
+@font-face{ font-family:'HE Screen Text'; src:url('../fonts/source-sans-3-latin-300-normal.woff2') format('woff2'); font-weight:300; font-style:normal; font-display:swap; }
+@font-face{ font-family:'HE Screen Text'; src:url('../fonts/source-sans-3-latin-400-normal.woff2') format('woff2'); font-weight:400 500; font-style:normal; font-display:swap; }
+@font-face{ font-family:'HE Screen Text'; src:url('../fonts/source-sans-3-latin-600-normal.woff2') format('woff2'); font-weight:600 700; font-style:normal; font-display:swap; }
+
+/* ============================== SOFT ============================== */
+:root[data-shape="soft"]{ --ctl-radius:12px; --radius:22px; --radius-sm:16px; }
+:root[data-shape="soft"] button:not(.small):not(.pinBtn):not(.sidebarLink):not(.groupToggle):not(.stat):not(.dismissBtn):not(.personChip){ padding:11px 20px; }
+:root[data-shape="soft"] button.small{ padding:7px 14px; border-radius:10px; }
+:root[data-shape="soft"] .badge{ border-radius:999px; }
+:root[data-shape="soft"] section.panel{ padding:30px 32px; }
+:root[data-shape="soft"] .paletteCard, :root[data-shape="soft"] .helpCard, :root[data-shape="soft"] .quickAddCard, :root[data-shape="soft"] .shortcutCard{ border-radius:24px; }
+:root[data-shape="soft"] .stat{ border-radius:18px; }
+:root[data-shape="soft"] .sidebarLink{ border-radius:12px; }
+:root[data-shape="soft"] .lpLine, :root[data-shape="soft"] .askCard{ border-radius:16px; }
+
+/* ============================== CRISP ============================== */
+:root[data-shape="crisp"]{ --ctl-radius:4px; --radius:8px; --radius-sm:6px; }
+:root[data-shape="crisp"] body{ font-family:'HE Screen Text', -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+:root[data-shape="crisp"] button{ font-weight:600; letter-spacing:0; }
+:root[data-shape="crisp"] button:not(.small):not(.pinBtn):not(.sidebarLink):not(.groupToggle):not(.stat):not(.dismissBtn):not(.personChip){ padding:9px 14px; }
+:root[data-shape="crisp"] h1, :root[data-shape="crisp"] h2, :root[data-shape="crisp"] h3{ letter-spacing:-0.005em; }
+:root[data-shape="crisp"] section.panel{ padding:22px 24px; margin-bottom:16px; }
+:root[data-shape="crisp"] .paletteCard, :root[data-shape="crisp"] .helpCard, :root[data-shape="crisp"] .quickAddCard, :root[data-shape="crisp"] .shortcutCard{ border-radius:8px; }
+:root[data-shape="crisp"] .stat{ border-radius:6px; }
+:root[data-shape="crisp"] .badge{ border-radius:3px; }
+:root[data-shape="crisp"] .sidebarLink{ border-radius:4px; }
+:root[data-shape="crisp"] .lpLine, :root[data-shape="crisp"] .askCard{ border-radius:6px; }
+
+/* ============================== ELEGANT ============================== */
+:root[data-shape="elegant"]{ --ctl-radius:7px; --radius:14px; --radius-sm:10px; }
+:root[data-shape="elegant"] body{ font-family:'HE Screen Text', -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+:root[data-shape="elegant"] h1, :root[data-shape="elegant"] h2, :root[data-shape="elegant"] section.panel h2, :root[data-shape="elegant"] .card h1, :root[data-shape="elegant"] .helpCard h3{
+  font-family:'HE Screen Display', Georgia, "Times New Roman", serif; font-weight:600; letter-spacing:0;
+}
+:root[data-shape="elegant"] section.panel h2{ font-size:26px; }
+:root[data-shape="elegant"] h3, :root[data-shape="elegant"] section.panel h3{ font-size:15px; letter-spacing:0.01em; }
+:root[data-shape="elegant"] .stat .num{ font-family:'HE Screen Display', Georgia, "Times New Roman", serif; font-weight:600; }
+/* calm buttons: one solid colour, no glow, a touch of letter spacing */
+:root[data-shape="elegant"] button{ font-weight:600; letter-spacing:0.015em; }
+:root[data-shape="elegant"] button:not(.secondary):not(.dismissBtn):not(.groupToggle):not(.stat):not(.pinBtn):not(.sidebarLink):not(.personChip):not(.approve):not(.deny){ background-image:none; background-color:var(--btn-fill); }
+:root[data-shape="elegant"] button:not(.secondary):not(.dismissBtn):not(.groupToggle):not(.stat):not(.pinBtn):not(.sidebarLink):not(.personChip):hover:not(:disabled){ box-shadow:none; background-color:var(--btn-fill-hover); }
+:root[data-shape="elegant"] button:not(.small):not(.pinBtn):not(.sidebarLink):not(.groupToggle):not(.stat):not(.dismissBtn):not(.personChip){ padding:10px 20px; }
+:root[data-shape="elegant"] .paletteCard, :root[data-shape="elegant"] .helpCard, :root[data-shape="elegant"] .quickAddCard, :root[data-shape="elegant"] .shortcutCard{ border-radius:14px; }
+:root[data-shape="elegant"] .badge{ border-radius:5px; }

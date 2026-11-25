@@ -13,3 +13,15 @@
   } catch (e) { /* storage blocked: Aurora */ }
   document.documentElement.setAttribute('data-look', look);
 }());
+// The shape of buttons, fields and windows, and the typeface (owner request, Nov 24):
+// one of three styles when this browser chose one on Feature Flags (he_shape); with no
+// choice, or anything else stored, nothing is applied and the dashboard is as it was.
+// On its own, so it also applies with the previous look.
+(function () {
+  'use strict';
+  var SHAPES = ['soft', 'crisp', 'elegant'];
+  try {
+    var chosen = localStorage.getItem('he_shape');
+    if (SHAPES.indexOf(chosen) >= 0) document.documentElement.setAttribute('data-shape', chosen);
+  } catch (e) { /* storage blocked: as it was */ }
+}());
