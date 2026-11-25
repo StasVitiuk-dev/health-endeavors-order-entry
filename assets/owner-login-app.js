@@ -84,7 +84,7 @@
       nightlyOverall,
     } = window.HE.helpers;
     // @@ EXT15 modules: created in dependency order (assets/app/*.js; see docs/ops/APPLICATION_MODULE_MAP_EXT15.md)
-    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, agentDiaryOn, realProfitOn, channelMoneyOn, SWITCH_EVERYONE, sharedSettingsOn, orderCostsOn, incidentCloseOn, batchLabelsOn, orderBatchesOn, orderChannelsOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn, storeCampaignsOn, receiptReaderOn, contentHelperOn, customerEmailsOn, emailSendingOn, mySettingsOn, handoffHandledOn, reviewInboxOn, reviewStoreOn, customersFirstOn, launchPageOn } = HE.modules.create('he-config', {  });
+    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, agentDiaryOn, realProfitOn, channelMoneyOn, SWITCH_EVERYONE, sharedSettingsOn, orderCostsOn, incidentCloseOn, batchLabelsOn, orderBatchesOn, orderChannelsOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn, storeCampaignsOn, receiptReaderOn, contentHelperOn, customerEmailsOn, emailSendingOn, mySettingsOn, handoffHandledOn, reviewInboxOn, reviewStoreOn, customersFirstOn, launchPageOn, askBoxOn } = HE.modules.create('he-config', {  });
     const { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, focusDialog, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, h, pageIconNode } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
     const { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
     const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, h, supabase });
@@ -5020,6 +5020,173 @@
       }
     });
 
+    // ---------- Ask the dashboard (owner, Nov 24: "something like a Siri of my app"; behind askBoxOn; the owner's account only)
+    // The search box also answers questions: typed, or spoken through the browser's own dictation.
+    // The rules and the wording are in assets/views/he-ask.js; here the records are read and the
+    // answer is shown and, unless Quiet is on, read out loud. It only reads. "Remind me to ..."
+    // opens the existing "New reminder" box with the words filled in; the person presses Add.
+    const ASK_QUIET_KEY = 'he_ask_quiet';
+    let askLast = null, askSeq = 0, askHearing = null, askShown = null, askNote = '';
+    const askMod = () => (window.HE && window.HE.views && window.HE.views['he-ask']) || null;
+    const askAllowed = () => currentUserRole === 'owner' && typeof askBoxOn === 'function' && askBoxOn() && !!askMod() && !!wrMod();
+    const askQuiet = () => { try { return localStorage.getItem(ASK_QUIET_KEY) === 'on'; } catch (e) { return false; } };
+    const askCanHear = () => !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+    const askCanSpeak = () => !!(window.speechSynthesis && typeof window.SpeechSynthesisUtterance === 'function');
+    function askHush() {
+      try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch (e) { /* nothing was being said */ }
+      try { if (askHearing) askHearing.abort(); } catch (e) { /* it was not listening */ }
+      askHearing = null;
+    }
+    function askSpeak(text) {
+      if (askQuiet() || !askCanSpeak() || !text) return false;
+      try { window.speechSynthesis.cancel(); const u = new window.SpeechSynthesisUtterance(String(text).slice(0, 1200)); u.lang = 'en-US'; window.speechSynthesis.speak(u); return true; } catch (e) { return false; }
+    }
+    function askClear() { if (!askShown && !askNote) return; askSeq += 1; askShown = null; askNote = ''; askPaint(); }
+    // the microphone, the Quiet switch and the place for the answer, added to the search box for the owner
+    function askDress() {
+      const card = paletteOverlay.querySelector('.paletteCard'), input = document.getElementById('paletteInput'); if (!card || !input) return;
+      const old = card.querySelector('[data-askbar]'), box = card.querySelector('[data-askanswer]');
+      card.classList.remove('askAnswering');
+      if (!askAllowed()) { if (old) old.remove(); if (box) box.remove(); input.placeholder = 'Jump to a page or record, or ask how something works…'; return; }
+      input.placeholder = 'Search, or ask: how many orders this week?';
+      askShown = null; askNote = '';
+      const bar = h('div', { class: 'askBar', 'data-askbar': '1' },
+        askCanHear() ? h('button', { type: 'button', class: 'small', 'data-ask': 'listen', 'aria-pressed': 'false' }, 'Talk') : h('span', { class: 'u-fs-12 u-c-muted', 'data-asknomic': '1' }, 'To talk, use the microphone key on your keyboard.'),
+        h('button', { type: 'button', class: 'small secondary', 'data-ask': 'brief' }, 'Brief me'),
+        h('button', { type: 'button', class: 'small secondary', 'data-ask': 'quiet', 'aria-pressed': askQuiet() ? 'true' : 'false' }, askQuiet() ? 'Quiet: on' : 'Quiet: off'),
+        h('button', { type: 'button', class: 'small secondary', 'data-ask': 'help' }, 'What can I ask?'));
+      if (old) old.replaceWith(bar); else input.after(bar);
+      if (!box) bar.after(h('div', { class: 'askAnswer', 'data-askanswer': '1', role: 'status', 'aria-live': 'polite' }));
+      askPaint();
+    }
+    function askPaint() {
+      const box = paletteOverlay.querySelector('[data-askanswer]'); if (!box) return;
+      const a = askShown;
+      box.replaceChildren(...[
+        askNote ? h('p', { class: 'u-fs-12p5', 'data-asknote': '1' }, askNote) : null,
+        a ? h('div', { class: 'askCard', 'data-askintent': a.intent },
+          h('div', { class: 'taskTitle', 'data-asktitle': '1' }, a.title),
+          a.say ? h('p', { class: 'u-fs-12p5 u-mt-4', 'data-asksay': '1' }, a.say) : null,
+          a.lines.length ? h('table', { class: 'wrTable u-mt-6' }, h('tbody', null, a.lines.map(l => h('tr', null, h('th', { scope: 'row' }, l.label), h('td', null, l.value))))) : null,
+          h('div', { class: 'scanToggleRow u-mt-6' },
+            a.page ? h('button', { type: 'button', class: 'small', 'data-ask': 'open', 'data-askpage': a.page }, 'Open ' + a.pageName) : null,
+            a.say && askCanSpeak() ? h('button', { type: 'button', class: 'small secondary', 'data-ask': 'again' }, 'Say it again') : null)) : null].filter(Boolean));
+      const card = paletteOverlay.querySelector('.paletteCard'); if (card) card.classList.toggle('askAnswering', !!a);   // an answer has the room; typing again brings the results back
+      const mic = paletteOverlay.querySelector('[data-ask="listen"]');
+      if (mic) { mic.setAttribute('aria-pressed', askHearing ? 'true' : 'false'); mic.textContent = askHearing ? 'Listening… (tap to stop)' : 'Talk'; }
+    }
+    // the records an answer needs, each read on its own (one that fails says so in the answer)
+    async function askData(asked) {
+      const A = askMod(), W = wrMod(), need = A.needs(asked), data = {};
+      const settle = (p) => Promise.resolve(p).then(v => v, () => null);
+      const b = A.periodBounds(asked.intent === 'brief' ? 'today' : asked.period, Date.now());
+      data.bounds = b;
+      const jobs = [];
+      if (need.includes('orders')) jobs.push((async () => {
+        const [now, before] = await Promise.all([
+          settle(fetchAllRows('orders', 'id, customer_name, customer_email, status, currency, total, placed_at, deleted_at', q => q.is('deleted_at', null).gte('placed_at', b.from).lt('placed_at', b.to))),
+          settle(fetchAllRows('orders', 'id, status, currency, total, placed_at, deleted_at', q => q.is('deleted_at', null).gte('placed_at', b.prevFrom).lt('placed_at', b.from)))]);
+        data.sales = W.build({ now: Date.now(), orders: now, prevOrders: before, items: [] }).sales;
+      })());
+      if (need.includes('questions')) jobs.push((async () => {
+        const open = await settle(fetchAllRows('customer_inquiries', 'id, status, created_at', q => q.in('status', ['needs_review', 'new'])));
+        data.questions = W.build({ now: Date.now(), waiting: open }).questions;
+      })());
+      if (need.includes('stock')) jobs.push((async () => {
+        const [stock, products] = await Promise.all([settle(fetchAllRows('inventory', 'id, product_id, available, low_stock_threshold', q => q)), settle(fetchAllRows('products', 'id, sku, name', q => q))]);
+        data.stock = W.build({ now: Date.now(), stock: stock, products: products || [] }).stock;
+      })());
+      if (need.includes('launch') && lpMod()) jobs.push((async () => {
+        const input = await settle(lpGather());
+        data.launch = input ? lpMod().build(Object.assign({}, input, { ticks: lpTicks })) : null;
+        data.launchPage = typeof launchPageOn === 'function' && launchPageOn();
+      })());
+      if (need.includes('week')) jobs.push((async () => {
+        const week = W.weekOf(Date.now(), 0), report = await settle(wrGather(week));
+        data.week = report ? { label: week.label, lines: W.lines(report) } : null;
+      })());
+      if (need.includes('activity')) jobs.push((async () => {
+        const act = await settle(fetchAllActivity({ p_search: null, p_person: null, p_area: null, p_from: b.from, p_to: b.to }, 20000));
+        data.people = W.build({ now: Date.now(), activity: act && Array.isArray(act.rows) ? act.rows : null, activityCapped: !!(act && act.capped) }).people;
+      })());
+      await Promise.all(jobs);
+      if (asked.intent === 'brief') data.feedSummary = typeof attentionFeedOn === 'function' && attentionFeedOn() ? feedSummary : '';
+      return data;
+    }
+    async function askRun(asked) {
+      const A = askMod(); if (!A || !askAllowed() || !asked || asked.intent === 'none') return;
+      if (asked.intent === 'remind') {                       // the existing "New reminder" box, filled in; nothing is added until Add is pressed
+        askHush(); closePalette(false); openQuickAdd();
+        const box = document.getElementById('quickAddInput'); if (box) box.value = String(asked.title || '').slice(0, 200);
+        return;
+      }
+      const seq = ++askSeq;
+      askHush();
+      askShown = null; askNote = 'Reading the records…'; askPaint();
+      let answer = null;
+      try { answer = A.compose(asked, await askData(asked)); } catch (e) { answer = null; }
+      if (seq !== askSeq) return;
+      if (!answer) { askNote = 'That could not be answered just now. Try again.'; askPaint(); return; }
+      askLast = { intent: asked.intent, period: asked.period, person: asked.person };
+      askShown = Object.assign({ intent: asked.intent }, answer);
+      askNote = askQuiet() ? 'Quiet is on: shown, not spoken.' : '';
+      askPaint();
+      askSpeak(answer.say);
+    }
+    function askListen() {
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition; if (!SR) return;
+      if (askHearing) { askHush(); askPaint(); return; }
+      try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch (e) { /* nothing was being said */ }
+      let r;
+      try { r = new SR(); } catch (e) { askNote = 'The microphone could not be started in this browser. Type your question instead.'; askPaint(); return; }
+      r.lang = 'en-US'; r.interimResults = false; r.maxAlternatives = 1;
+      r.onresult = (e) => {
+        const said = e && e.results && e.results[0] && e.results[0][0] ? String(e.results[0][0].transcript || '').slice(0, 300) : '';
+        const input = document.getElementById('paletteInput'); if (!input || !said) return;
+        input.value = said; askShown = null; askNote = '';
+        PAL_ITEMS = paletteItems(said); PAL_SEL = 0; renderPalette();
+        const u = askMod().understand(said, { last: askLast });
+        if (u.intent !== 'none') askRun(u); else { askNote = 'I heard: “' + said + '”. That is not a question I know yet; the search results are below.'; askPaint(); }
+      };
+      r.onerror = (e) => { askNote = e && (e.error === 'not-allowed' || e.error === 'service-not-allowed') ? 'The microphone is not allowed for this page. Allow it in the browser, or type your question.' : 'I did not catch that. Try again, or type it.'; };
+      r.onend = () => { askHearing = null; askPaint(); };
+      askHearing = r; askNote = ''; askPaint();
+      try { r.start(); } catch (e) { askHearing = null; askNote = 'The microphone could not be started. Type your question instead.'; askPaint(); }
+    }
+    paletteOverlay.addEventListener('click', (e) => {
+      const t = e.target.closest('[data-ask]'); if (!t || !askAllowed()) return;
+      const what = t.getAttribute('data-ask'), input = document.getElementById('paletteInput');
+      if (what === 'listen') { askListen(); return; }
+      if (what === 'brief') { if (input) input.value = 'Brief me'; askRun({ intent: 'brief', period: '', person: '', title: '' }); return; }
+      if (what === 'help') { askRun({ intent: 'help', period: '', person: '', title: '' }); return; }
+      if (what === 'again') { if (askShown) { const was = askQuiet(); if (was) { askNote = 'Quiet is on: shown, not spoken.'; askPaint(); } else askSpeak(askShown.say); } return; }
+      if (what === 'open') { askHush(); closePalette(false); showPage(t.getAttribute('data-askpage')); return; }
+      if (what === 'quiet') {
+        const on = !askQuiet();
+        try { localStorage.setItem(ASK_QUIET_KEY, on ? 'on' : 'off'); } catch (err) { /* it stays as it was */ }
+        if (on) askHush();
+        t.setAttribute('aria-pressed', askQuiet() ? 'true' : 'false'); t.textContent = askQuiet() ? 'Quiet: on' : 'Quiet: off';
+        askNote = askQuiet() ? 'Quiet is on: answers are shown, not spoken.' : 'Quiet is off: answers are also read out loud.'; askPaint();
+        const bar = document.querySelector('#askBarHost [data-askhome="quiet"]'); if (bar) bar.textContent = askQuiet() ? 'Quiet: on' : 'Quiet: off';
+      }
+    });
+    // on Home: the same box, one tap away
+    function loadAskBar() {
+      let host = document.getElementById('askBarHost');
+      if (!askAllowed()) { if (host) host.remove(); return; }
+      if (!host) { const panel = document.getElementById('attentionPanel'); if (!panel) return; host = h('div', { id: 'askBarHost', class: 'askHome' }); panel.prepend(host); }
+      host.replaceChildren(
+        h('span', { class: 'taskTitle' }, 'Ask the dashboard'),
+        h('button', { type: 'button', class: 'small', 'data-askhome': 'ask' }, askCanHear() ? 'Ask or talk' : 'Ask'),
+        h('button', { type: 'button', class: 'small secondary', 'data-askhome': 'brief' }, 'Brief me'),
+        h('span', { class: 'u-fs-12 u-c-muted', 'data-askhome': 'quiet' }, askQuiet() ? 'Quiet: on' : 'Quiet: off'));
+    }
+    document.addEventListener('click', (e) => {
+      const t = e.target.closest('#askBarHost button[data-askhome]'); if (!t || !askAllowed()) return;
+      openPalette();
+      if (t.getAttribute('data-askhome') === 'brief') { const input = document.getElementById('paletteInput'); if (input) input.value = 'Brief me'; askRun({ intent: 'brief', period: '', person: '', title: '' }); }
+    });
+
     // ---------- Ready to launch (owner, Nov 24: "Ready to launch page: yes"; behind launchPageOn)
     // One list of what must be ready before the first real day (rules: assets/views/he-launch.js).
     // The dashboard checks what it can read; the owner or an administrator marks the rest done.
@@ -5050,6 +5217,14 @@
       const seq = ++lpSeq;
       if (!lpTicks) lpTicks = lpRead();
       if (!lpInput) renderLaunchPage();
+      const input = await lpGather();
+      if (seq !== lpSeq) return;
+      lpInput = input;
+      renderLaunchPage();
+    }
+    // what the checked lines need, read from the records (also used by "Ask the dashboard")
+    async function lpGather() {
+      if (!lpTicks) lpTicks = lpRead();
       // each line is read on its own: one that fails says "Could not check", the others still show
       const settle = (p) => Promise.resolve(p).then(v => v, () => null);
       const RS = rsMod(), since = new Date(Date.now() - 30 * 86400000).toISOString();
@@ -5072,13 +5247,11 @@
         if (!st || !T) tax = { state: 'off' };
         else { const r = await settle(st.list()); tax = r && r.ok && Array.isArray(r.rates) ? { state: 'installed', inForce: r.rates.filter(x => { const k = T.standing(x, trToday(), taxMod).state; return k === 'IN_FORCE' || k === 'RECHECK_DUE'; }).length } : null; }
       }
-      if (seq !== lpSeq) return;
       const P = rpMod();
       const fromShopify = (o) => (P ? P.channelOf(o) === 'shopify' : /shopify/i.test(String((o && (o.channel || o.source)) || '')));
       const flagRow = flag && !flag.error && Array.isArray(flag.data) ? flag.data[0] : undefined;
-      lpInput = { steps: steps, products: products, stock: stock, questions: questions, tax: tax,
+      return { steps: steps, products: products, stock: stock, questions: questions, tax: tax,
         shopify: flag && !flag.error && Array.isArray(flag.data) && Array.isArray(recent) ? { switchOn: flagRow ? flagRow.enabled === true : 'missing', orders: recent.filter(fromShopify).length } : null };
-      renderLaunchPage();
     }
     const LP_WORD = { ready: 'Ready', todo: 'To do', unknown: 'Could not check' };
     function renderLaunchPage() {
@@ -5255,10 +5428,9 @@
       if (!r.ok) throw new Error(r.message || 'not read');
       return r.rows;
     }
-    async function loadWeekReport() {
-      const M = wrMod(); if (!M || !wrAllowed() || wrBusy) return;
-      const week = M.weekOf(Date.now(), wrBack), seq = ++wrSeq;
-      wrBusy = true; wrReport = null; wrNote = 'Reading the week of ' + week.label + '…'; renderWeekReport(); announce(wrNote);
+    // the records of one week, read and added up (also used by "Ask the dashboard")
+    async function wrGather(week) {
+      const M = wrMod();
       // each part is read on its own: one that fails says "could not be read", the rest still shows
       const settle = (p) => Promise.resolve(p).then(v => v, () => null);
       const inWeek = (col) => q => q.gte(col, week.from).lt(col, week.to);
@@ -5279,11 +5451,18 @@
       ]);
       const ids = Array.isArray(orders) ? orders.map(o => o.id) : [];
       const items = !Array.isArray(orders) ? null : ids.length ? await settle(fetchAllRowsIn('order_items', 'id, order_id, sku, product_name, quantity', 'order_id', ids)) : [];
-      if (seq !== wrSeq) return;
       const returned = Array.isArray(opened) && Array.isArray(refunded) ? [...new Map(opened.concat(refunded).map(r => [r.id, r])).values()] : null;
-      wrReport = M.build({ now: Date.now(), week: week, orders: orders, prevOrders: prevOrders, items: items, questions: asked, waiting: waiting, returns: returned,
+      return M.build({ now: Date.now(), week: week, orders: orders, prevOrders: prevOrders, items: items, questions: asked, waiting: waiting, returns: returned,
         stock: stockRows, products: products || [], tasks: tasks, incidents: incidents, reviews: reviews,
         activity: activity && Array.isArray(activity.rows) ? activity.rows : null, activityCapped: !!(activity && activity.capped) });
+    }
+    async function loadWeekReport() {
+      const M = wrMod(); if (!M || !wrAllowed() || wrBusy) return;
+      const week = M.weekOf(Date.now(), wrBack), seq = ++wrSeq;
+      wrBusy = true; wrReport = null; wrNote = 'Reading the week of ' + week.label + '…'; renderWeekReport(); announce(wrNote);
+      const report = await wrGather(week);
+      if (seq !== wrSeq) return;
+      wrReport = report;
       wrBusy = false;
       const missing = M.lines(wrReport).filter(l => l.value === 'could not be read').length;
       wrNote = 'The week of ' + week.label + '.' + (missing ? ' ' + missing + (missing === 1 ? ' part' : ' parts') + ' could not be read; press "Show the report" to try again.' : ' Every figure is exact.');
@@ -7334,7 +7513,7 @@
       loadOpsWatch();
     }
     const PANEL_LOADERS = {
-      attentionPanel: [loadAttention, loadBusinessHealth, loadAttentionChecks, loadNightlyCheck, paintScanEntry, loadMoneyAlert, loadTaxRateAlert, loadAttentionFeed],
+      attentionPanel: [loadAttention, loadBusinessHealth, loadAttentionChecks, loadNightlyCheck, paintScanEntry, loadMoneyAlert, loadTaxRateAlert, loadAttentionFeed, loadAskBar],
       calendarPanel: [loadCalendarMonth],
       dailySummaryPanel: [loadDailySummary],
       reportHistoryPanel: [loadReportHistoryThenExport, loadRecoveryDrill, loadInvoicePreview, loadReportVersions],
@@ -7500,6 +7679,8 @@
         }));
       }
       if (!query) items.push.apply(items, pages);
+      // "Ask the dashboard": a question it knows comes first, above pages and records
+      if (query && askAllowed()) { const u = askMod().understand(q, { last: askLast }); if (u.intent !== 'none') items.unshift({ kind: u.intent === 'remind' ? 'Reminder' : 'Answer', label: askMod().label(u), pageId: 'attentionPanel', ask: u }); }
       return items.slice(0, 40);
     }
     function renderPalette(){
@@ -7535,6 +7716,7 @@
     }
     function openPalette(){
       PAL_SEL = 0;
+      askDress();
       PAL_ITEMS = paletteItems('');
       rememberFocus('palette');
       paletteOverlay.classList.add('open');
@@ -7550,6 +7732,7 @@
     function runPalette(i){
       const it = PAL_ITEMS[i];
       if (!it) return;
+      if (it.ask) { askRun(it.ask); return; }               // the answer is shown inside the box, which stays open
       closePalette(false);
       if (it.help) { openHelp(it.help); return; }
       showPage(it.pageId);
@@ -7559,15 +7742,16 @@
       }
     }
     document.getElementById('paletteInput').addEventListener('input', (e) => {
+      askClear();
       PAL_ITEMS = paletteItems(e.target.value); PAL_SEL = 0; renderPalette();
     });
     document.getElementById('paletteInput').addEventListener('keydown', (e) => {
       if (e.key === 'ArrowDown') { e.preventDefault(); PAL_SEL = Math.min(PAL_SEL + 1, PAL_ITEMS.length - 1); renderPalette(); }
       else if (e.key === 'ArrowUp') { e.preventDefault(); PAL_SEL = Math.max(PAL_SEL - 1, 0); renderPalette(); }
       else if (e.key === 'Enter') { e.preventDefault(); runPalette(PAL_SEL); }
-      else if (e.key === 'Escape') { e.preventDefault(); closePalette(); }
+      else if (e.key === 'Escape') { e.preventDefault(); askHush(); closePalette(); }
     });
-    paletteOverlay.addEventListener('click', (e) => { if (e.target === paletteOverlay) closePalette(); });
+    paletteOverlay.addEventListener('click', (e) => { if (e.target === paletteOverlay) { askHush(); closePalette(); } });
     shortcutOverlay.id = 'shortcutOverlay';
     // Announced as a dialog by screen readers (EXT3).
     shortcutOverlay.setAttribute('role', 'dialog'); shortcutOverlay.setAttribute('aria-modal', 'true'); shortcutOverlay.setAttribute('aria-label', 'Keyboard shortcuts');
