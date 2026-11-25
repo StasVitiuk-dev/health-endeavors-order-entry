@@ -161,3 +161,39 @@ devices never erase each other's additions (draft 50) → the documents PR after
 **Session notes:** the local test database is at `/var/tmp/hepg`, port 5499 (start it with
 `pg_ctl` if a restart stopped it). Before a browser run, the scratchpad's `diag-on.sh` points the
 tests at the installed browser; restore `tests/playwright.config.js` before committing.
+
+## 10. Evening of Nov 25 (CHECKPOINT for the next chat; supersedes the lists in §9)
+
+**Merged by the owner:** #110 (with #102–#109) and #111 (records). #52, #104 and #105 were closed as
+already contained (merging them would leave `main` unchanged).
+
+**Owner answers of Nov 25:** managers approve supplier documents, deliveries and returns; when an
+administrator looks at history they see **nothing** of the owner's entries; the platform's own
+shipping email stays the one customers get (Shopify's; the dashboard's only for hand-entered and
+wholesale orders); the B3 read-only look is done (`employee_activity` and
+`employee_activity_people` run with raised rights; `global_search` does not; details in
+`docs/ops/OWNER_PROTECTION_AND_PRIVATE_HISTORY.md`).
+
+**Open PRs (chained; #113 contains #112):**
+- #112: managers approve or reject supplier documents someone else recorded, and open files
+  (drafts 36/38 changed before install). All real checks green.
+- #113: managers decide deliveries and returns someone else recorded. **Option A is prepared**
+  (drafts 66/67, not installed); the dashboard part is the same for A and B. Waits for the owner's
+  "A" or "B" (if B: replace 66/67 with the stock-rights version before merging).
+
+**Waiting on the owner:**
+1. The second read-only look (the text of `employee_activity`, `employee_activity_people`,
+   `list_my_sessions`; the query is in the chat of Nov 25 and repeated here):
+   `select p.proname, pg_get_functiondef(p.oid) from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname in ('employee_activity','employee_activity_people','list_my_sessions') order by 1;`
+2. "A" or "B" for managers and stock.
+3. Backups in the short form (reminder set for Nov 26, 10 am Central).
+4. Database sittings in the order of `docs/ops/sql-review/START_HERE_GUIDED_RUNS.md`.
+
+**Next for Claude:** the private-history draft from the second look (keep each function exactly as
+it is plus one condition: leave out entries made by an owner account, and owner accounts in the
+people list, unless the asker is an owner; with tests: owner sees all, administrator sees no owner
+entry on mixed records, in page 2, in counts and through a direct call; employees unchanged).
+
+**Parked:** the screenshot-reference fix (branch `claude/screenshot-refs`, no PR): GitHub's
+artifact storage is not reachable from the work computer, so GitHub's own pictures cannot be
+downloaded here. The informational check stays red; nothing is broken.
