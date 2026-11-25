@@ -69,11 +69,15 @@
 :root[data-look="aurora"] button:not(.secondary):not(.approve):not(.deny):not(.dismissBtn):not(.groupToggle):not(.stat):not(.pinBtn):not(.sidebarLink):hover:not(:disabled),
 :root[data-look="aurora"] #refreshBtn:hover{ background-color:var(--btn-fill-hover); background-image:var(--look-gradient-hover); }
 :root[data-look="aurora"] .stat .num{ background:var(--look-gradient); -webkit-background-clip:text; background-clip:text; color:transparent; }
-:root[data-look="aurora"] .stat.statCritical .num, :root[data-look="aurora"] .stat.statWarn .num, :root[data-look="aurora"] .stat.statGood .num{ background:none; -webkit-background-clip:border-box; background-clip:border-box; }
 @media (prefers-color-scheme: dark){
   :root[data-look="aurora"]:not([data-theme="light"]) .stat .num{ background:linear-gradient(135deg,#c7d2fe,#67e8f9); -webkit-background-clip:text; background-clip:text; }
 }
 :root[data-look="aurora"][data-theme="dark"] .stat .num{ background:linear-gradient(135deg,#c7d2fe,#67e8f9); -webkit-background-clip:text; background-clip:text; }
+/* Coloured tiles (red / amber / green) keep a solid, readable figure in Aurora, light and dark. Placed after the gradient rules and one step more specific so they always win. */
+:root[data-look="aurora"] .stat.statCritical .num.num, :root[data-look="aurora"] .stat.statWarn .num.num, :root[data-look="aurora"] .stat.statGood .num.num{ background:none; -webkit-background-clip:border-box; background-clip:border-box; -webkit-text-fill-color:currentColor; }
+:root[data-look="aurora"] .stat.statCritical .num.num{ color:var(--danger); }
+:root[data-look="aurora"] .stat.statWarn .num.num{ color:var(--warn); }
+:root[data-look="aurora"] .stat.statGood .num.num{ color:var(--good); }
 
 /* ============================== GRAPHITE ============================== */
 :root[data-look="graphite"]{
