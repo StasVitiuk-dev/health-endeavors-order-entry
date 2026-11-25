@@ -173,7 +173,7 @@
       if (!lines.length) return refuse('Enter at least one unit that arrived.');
       const note = String(q.note || '').trim().slice(0, 500);
       return call('submit:' + q.requestKey, RPC.submit, { p_request_key: q.requestKey, p_purchase_order_id: q.poId, p_lines: lines, p_note: note || null },
-        'Delivery recorded. It waits for the owner or an administrator; stock changes only when one of them approves.');
+        'Delivery recorded. It waits for the owner or an administrator (or a manager other than you); stock changes only when one of them approves.');
     }
     const ownerOnly = () => (role != null && !isApprover()) ? refuse('Only the owner or an administrator approves, rejects or decides.') : null;
     // Owner decision of Nov 25: a manager approves, rejects and decides deliveries and returns too
@@ -212,7 +212,7 @@
       if (q.fromBucket !== 'available' && q.fromBucket !== 'damaged') return refuse('Say whether they come from Available or Damaged stock.');
       if (String(q.reason || '').trim().length < 5) return refuse('Say why they go back (at least 5 characters).');
       return call('sr:' + q.requestKey, RPC.supplierReturn, { p_request_key: q.requestKey, p_po_item_id: q.poItemId, p_quantity: n, p_from_bucket: q.fromBucket,
-        p_reason: String(q.reason).trim().slice(0, 300), p_replacement_expected: q.replacementExpected === true }, 'Return to the supplier recorded. It waits for the owner or an administrator.');
+        p_reason: String(q.reason).trim().slice(0, 300), p_replacement_expected: q.replacementExpected === true }, 'Return to the supplier recorded. It waits for the owner or an administrator (or a manager other than you).');
     }
     async function decideSupplierReturn(id, decision, note) {
       const r = ready() || deciderOnly(); if (r) return r;
