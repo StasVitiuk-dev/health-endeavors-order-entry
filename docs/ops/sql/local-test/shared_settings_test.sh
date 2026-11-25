@@ -66,13 +66,36 @@ has "  and the guard refuses it even for the table owner" "$(q "delete from shar
 ok  "a typed 'saved by' is replaced by the real person" "$(as $O "update shared_settings set updated_by = '$A' where key = 'team_notice' returning updated_by = '$O'")" "t"
 ok  "  (two settings, as before)" "$(q "select count(*) from shared_settings")" "2"
 
+echo " 4b. two devices saving the same list at the same moment (owner queue of Nov 25, task 7)"
+L0='{"items": [{"id": "a"}]}'
+ok  "the owner starts a list" "$(as $O "select (set_shared_setting('handoffs_handled', '$L0', 'owner_admin', null, true))->>'ok'")" "true"
+has "  starting it again as new is a conflict, nothing changes" "$(as $A "select set_shared_setting('handoffs_handled', '{\"items\": []}', 'owner_admin', null, true)")" '"conflict": true'
+T0=$(q "select updated_at from shared_settings where key = 'handoffs_handled'")
+# both devices read version T0; each adds its own item; both save at the same instant
+RACE=$(mktemp)
+( as $O "select set_shared_setting('handoffs_handled', '{\"items\": [{\"id\": \"a\"}, {\"id\": \"b\"}]}', 'owner_admin', '$T0', false)" >>"$RACE" ) &
+( as $A "select set_shared_setting('handoffs_handled', '{\"items\": [{\"id\": \"a\"}, {\"id\": \"c\"}]}', 'owner_admin', '$T0', false)" >>"$RACE" ) &
+wait
+ok  "  two saves of the same version at once: exactly one goes through, the other is told 'conflict'" "$(grep -c '"ok": true' "$RACE")/$(grep -c '"conflict": true' "$RACE")" "1/1"
+rm -f "$RACE"
+T1=$(q "select updated_at from shared_settings where key = 'handoffs_handled'")
+NOW=$(q "select value::text from shared_settings where key = 'handoffs_handled'")
+# the device that lost reads again, joins its item to the newer list, saves with the new version
+JOINED=$(q "select jsonb_build_object('items', (value->'items') || jsonb_build_array(jsonb_build_object('id', case when value::text like '%\"b\"%' then 'c' else 'b' end)))::text from shared_settings where key = 'handoffs_handled'")
+ok  "  the other device reads again and saves the joined list" "$(as $A "select (set_shared_setting('handoffs_handled', '$JOINED', 'owner_admin', '$T1', false))->>'ok'")" "true"
+ok  "  nothing was erased: a, b and c are all there" "$(q "select string_agg(e->>'id', ',' order by e->>'id') from shared_settings, jsonb_array_elements(value->'items') e where key = 'handoffs_handled'")" "a,b,c"
+has "a save with an old version is refused, nothing changes" "$(as $O "select set_shared_setting('handoffs_handled', '{\"items\": []}', 'owner_admin', '$T0', false)")" '"conflict": true'
+ok  "  (still a, b and c)" "$(q "select jsonb_array_length(value->'items') from shared_settings where key = 'handoffs_handled'")" "3"
+has "the version check does not let staff in" "$(as $E "select set_shared_setting('handoffs_handled', '{\"items\": []}', 'owner_admin', '$T1', false)")" "Only the owner or an administrator"
+ok  "a save without a version still replaces (a single switch: the last choice wins)" "$(as $O "select (set_shared_setting('one_switch', '{\"on\": true}'))->>'ok'")$(as $A "select (set_shared_setting('one_switch', '{\"on\": false}'))->>'ok'")|$(q "select value->>'on' from shared_settings where key = 'one_switch'")" "truetrue|false"
+
 echo " 5. audit"
 ok  "every change is in audit_log" "$(q "select count(*) >= 3 from audit_log where table_name = 'shared_settings'")" "t"
 
 echo " 6. rollback"
 ok  "the rollback stops while settings are saved" "$(run "$ROLLBACK")" "3"
 has "  and says why" "$(cat "$OUTF")" "shared setting(s) are saved"
-ok  "  (the table is still there)" "$(q "select count(*) from shared_settings")" "2"
+ok  "  (the table is still there)" "$(q "select count(*) from shared_settings")" "4"
 ok  "with written authorization in the session it removes everything" "$(psql "${CONN[@]}" -d "$DB" -qX -v ON_ERROR_STOP=1 -c "set he.rollback_delete_shared_settings = 'yes, delete the shared settings';" -f "$ROLLBACK" >"$OUTF" 2>&1; echo $?)" "0"
 ok  "  gone" "$(q "select to_regclass('public.shared_settings') is null and to_regprocedure('public.set_shared_setting(text,jsonb,text)') is null")" "t"
 ok  "  running it again is harmless" "$(run "$ROLLBACK")" "0"

@@ -29,7 +29,7 @@ Today every row is **Prepared** only: nothing is reviewed by you, approved, inst
 
 | Order | What it enables | Needs first | File (`docs/ops/sql/drafts/`) | Lines | Fingerprint | Undo file | Before (read-only) | After (read-only check) |
 |---|---|---|---|---|---|---|---|---|
-| A | Settings and switches the same on every phone and computer (your standing rule); the owner or an administrator saves them | nothing | `50_DRAFT_shared_settings.sql` | 161 | `ba3ffc6017bc1458` | `51_…` | — | Item 10, "After running" |
+| A | Settings and switches the same on every phone and computer (your standing rule); the owner or an administrator saves them | nothing | `50_DRAFT_shared_settings.sql` | 192 | `f01c9760706592e1` | `51_…` | — | Item 10, "After running" |
 | 1–8 | as in the table above | as above | (see above) | | | | | |
 | 9 | Parcels and tracking per order, delivery problems watch | nothing | `48_DRAFT_order_parcels.sql` | 392 | `ca25da9142afa5b0` | `49_…` | — | Item 9, "After running" |
 | 10 | Packaging and shipping cost per order (real profit) | nothing | `52_DRAFT_order_costs.sql` | 190 | `2be65c5c4b234315` | `53_…` | — | Item 11, "After running" |

@@ -3509,12 +3509,13 @@
       const M = feedMod(), S = rpSettings(), store = rpStore(); if (!M || !S || !store || !handoffHandledOn() || !sharedSettingsOn()) return;
       clearTimeout(hhTimer);
       hhTimer = setTimeout(async () => {
-        const now = await store.get(S.KEYS.handoffsHandled);
-        if (now.state !== 'installed') { hhShared = false; return; }
-        const mine = M.readMarks(feedStore(), Date.now());
-        const joined = M.mergeHandled(mine, now.value && now.value.items, Date.now());
-        if (JSON.stringify(joined) === JSON.stringify(M.mergeHandled(now.value && now.value.items, null, Date.now()))) { hhShared = true; return; }
-        const r = await store.set(S.KEYS.handoffsHandled, { items: joined }, 'owner_admin');
+        // read, join, save only that version; another device saving at the same moment
+        // makes it read and join again, so neither device's marks are lost (drafts/50)
+        const r = await store.mergeSave(S.KEYS.handoffsHandled, (cur) => {
+          const mine = M.readMarks(feedStore(), Date.now());
+          const joined = M.mergeHandled(mine, cur && cur.items, Date.now());
+          return JSON.stringify(joined) === JSON.stringify(M.mergeHandled(cur && cur.items, null, Date.now())) ? null : { items: joined };
+        }, 'owner_admin');
         hhShared = !!r.ok;
       }, 700);
     }
@@ -5426,7 +5427,12 @@
       const theirs = M.clean(now.value), joined = M.merge(lpTicks, theirs);
       if (JSON.stringify(joined) !== JSON.stringify(lpTicks)) { lpTicks = joined; lpKeep(); }
       lpShared = true;
-      if (save && JSON.stringify(joined) !== JSON.stringify(theirs)) { const r = await store.set(S.KEYS.launchList, { ticks: joined }, 'owner_admin'); lpShared = !!r.ok; }
+      if (save && JSON.stringify(joined) !== JSON.stringify(theirs)) {
+        // saved only on top of the version read; a save from another device in between is joined in, not erased (drafts/50)
+        const r = await store.mergeSave(S.KEYS.launchList, (cur) => { const t = M.clean(cur), j = M.merge(lpTicks, t); return JSON.stringify(j) === JSON.stringify(t) ? null : { ticks: j }; }, 'owner_admin');
+        if (r.ok && r.value) { const j = M.merge(lpTicks, M.clean(r.value)); if (JSON.stringify(j) !== JSON.stringify(lpTicks)) { lpTicks = j; lpKeep(); } }
+        lpShared = !!r.ok;
+      }
       return lpShared;
     }
     async function loadLaunchPage() {

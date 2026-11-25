@@ -101,19 +101,46 @@
       } catch (e) { return none('unknown', friendlyError(e)); }
     }
 
-    async function set(key, value, audience) {
+    // opts.expectedUpdatedAt: the version this page read; opts.expectNew: it read none.
+    // With either, the database saves only if nobody saved in between (drafts/50).
+    async function set(key, value, audience, opts) {
       if (!usable || typeof client.rpc !== 'function') return { ok: false, message: 'The database is not available here.' };
       const c = checkValue(key, value);
       if (!c.ok) return { ok: false, message: c.reason };
+      const o = isObj(opts) ? opts : {};
+      const args = { p_key: key, p_value: c.value, p_audience: audience === 'staff' ? 'staff' : 'owner_admin' };
+      if (o.expectNew === true) { args.p_expect_new = true; }
+      else if (o.expectedUpdatedAt) { args.p_expected_updated_at = String(o.expectedUpdatedAt); }
       try {
-        const res = await client.rpc(RPC, { p_key: key, p_value: c.value, p_audience: audience === 'staff' ? 'staff' : 'owner_admin' });
+        const res = await client.rpc(RPC, args);
         if (res && res.error) return { ok: false, message: friendlyError(res.error), notInstalled: notInstalled(res.error) || String(res.error.code || '') === 'PGRST202' };
         const out = res && isObj(res.data) ? res.data : {};
+        if (out.ok === false && out.conflict === true) return { ok: false, conflict: true, message: 'Someone saved this on another device at the same moment.', updatedAt: out.updated_at || null };
         return { ok: true, message: '', updatedAt: out.updated_at || null };
       } catch (e) { return { ok: false, message: friendlyError(e) }; }
     }
 
-    return { get: get, set: set };
+    // A list two devices may add to at once: read, join this device's change to the newest
+    // value, save that version only; if someone saved in between, read and join again
+    // (at most `tries` times). join(currentValue) returns the value to save, or null when
+    // there is nothing to add. Answers { ok, value, conflict, message }.
+    async function mergeSave(key, join, audience, tries) {
+      const max = Math.max(1, Math.min(5, Number(tries) || 3));
+      let last = { ok: false, message: 'Not saved.' };
+      for (let i = 0; i < max; i++) {
+        const now = await get(key);
+        if (now.state !== 'installed') return { ok: false, notInstalled: now.state === 'not_installed', message: now.message || 'Not saved.' };
+        let next = null;
+        try { next = join(now.value); } catch (e) { return { ok: false, message: 'Not saved: the change could not be joined.' }; }
+        if (next == null) return { ok: true, value: now.value, unchanged: true, message: '' };
+        last = await set(key, next, audience, now.updatedAt ? { expectedUpdatedAt: now.updatedAt } : { expectNew: true });
+        if (last.ok) return { ok: true, value: next, updatedAt: last.updatedAt, message: '' };
+        if (!last.conflict) return last;
+      }
+      return { ok: false, conflict: true, message: 'Not saved: others kept saving at the same moment. Try again in a minute.' };
+    }
+
+    return { get: get, set: set, mergeSave: mergeSave };
   }
 
   // One person's own settings (drafts/58): the same on every device that person signs in to.

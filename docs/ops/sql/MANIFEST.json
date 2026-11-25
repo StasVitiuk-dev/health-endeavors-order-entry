@@ -596,7 +596,7 @@
       "risk": "LOW",
       "rollback": "51",
       "precheck": "stops, changing nothing, if a shared_settings table exists that this file did not create (it checks its own mark); stops if auth.uid(), current_role(), is_active_staff(), is_owner_or_admin(), the tasks or audit_log table, or the audit trigger on tasks is missing",
-      "effect": "1 new table shared_settings (one row per setting: key, a small JSON value, who may read it, who saved it last and when); set_shared_setting() saves or replaces a setting; settings never deleted, keys never renamed; the owner and administrators write (owner decision of Nov 24); the owner and administrators read all, active staff only settings marked for staff; production's audit trigger attached; no existing table changes",
+      "effect": "1 new table shared_settings (one row per setting: key, a small JSON value, who may read it, who saved it last and when); set_shared_setting() saves or replaces a setting, and refuses with a conflict when the page passes the version it read and someone saved in between (two devices never erase each other's additions); settings never deleted, keys never renamed; the owner and administrators write (owner decision of Nov 24); the owner and administrators read all, active staff only settings marked for staff; production's audit trigger attached; no existing table changes",
       "postcheck": "the table present and empty; anon cannot read it; local-test/shared_settings_test.sh passes on a throwaway copy",
       "lock": "NONE (new table only)",
       "dynamicSql": "format() with fixed names (%I) to attach production's audit trigger, whose function name is read from the tasks table at install time (as drafts/32)"
