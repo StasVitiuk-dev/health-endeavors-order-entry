@@ -1,6 +1,6 @@
 # Health Endeavors — current state (cross-project summary)
 
-**Last updated:** November 25, 2026 (§1, §4, §5, §8: #110 merged in the afternoon with #102–#109 inside it; nothing installed). Before that: November 24, 2026 (§1, §4, §5, §8, §9: PR #85 merged in the evening with #56–#84 inside it; live check by the owner still to come; the owner's open decisions). Before that: November 23, 2026, evening (§1, §4, §5: PR #36 merged and checked live). Earlier Nov 23: §5, §8, §9 (PR #36 carries everything; Nov 23 decisions). Before that: November 15, 2026 (Nov 7 build). Internal-platform entry point: `docs/ops/START_HERE_EXT14.md`. **Keep this short.** Details live in the linked documents; update this file whenever the verified state changes materially.
+**Last updated:** November 26, 2026 (§1, §4, §5, §8, §9: #112–#115 and #117–#119 merged on the evening of Nov 25 and just after midnight; the owner's Nov 25 answers; nothing installed). Before that: November 25, 2026 (§1, §4, §5, §8: #110 merged in the afternoon with #102–#109 inside it; nothing installed). Before that: November 24, 2026 (§1, §4, §5, §8, §9: PR #85 merged in the evening with #56–#84 inside it; live check by the owner still to come; the owner's open decisions). Before that: November 23, 2026, evening (§1, §4, §5: PR #36 merged and checked live). Earlier Nov 23: §5, §8, §9 (PR #36 carries everything; Nov 23 decisions). Before that: November 15, 2026 (Nov 7 build). Internal-platform entry point: `docs/ops/START_HERE_EXT14.md`. **Keep this short.** Details live in the linked documents; update this file whenever the verified state changes materially.
 
 Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (from the owner's earlier chats, not re-checked) · **PROPOSED** · **OWNER DECISION REQUIRED** · **DEPRECATED**.
 
@@ -13,6 +13,15 @@ Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (fro
 
 ## 1. Internal platform (the dashboard)
 
+- **CURRENT (Nov 26, 2026), read this first:** `main` is at `c60e07e` and is the live dashboard.
+  From the evening of Nov 25 to just after midnight (Central) the owner merged #112 (managers approve
+  supplier documents), #113 (managers decide deliveries and returns someone else recorded, the owner's
+  choice A), #114 (database drafts 68/69: three history and sign-in functions name `pg_temp` last),
+  #115 (the weekly report's profit line), #117 (records), #118 (backup status on Home: drafts 70/71
+  and a Home line behind the preview switch "Backup status on Home") and #119 (guide for database
+  steps 18 and 19). **Every database draft is still not installed**, so the live dashboard behaves as
+  before until each draft's sitting. The owner's emergency-account check is done.
+  History: `PROJECT_RECORD.md` §9.
 - **CURRENT (Nov 25, 2026), read this first:** `main` is at `f173b97` and is the live dashboard. On
   Nov 24 evening and Nov 25 the owner merged #51, #86, #87, #88, #100 (administrators run email
   campaigns too), #93, #101 (the one People-page safety exception) and, at about 2:14 pm Central,
@@ -160,7 +169,9 @@ Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (fro
 
 ## 4. Important merged work (on `main`)
 
-- **CURRENT (Nov 25, 2026):** latest `main` commit `f173b97` (#110, containing #102–#109). Earlier on
+- **CURRENT (Nov 26, 2026):** latest `main` commit `c60e07e` (#119). Since `f173b97`: #111, #112,
+  #113, #115, #114, #117, #118, #119 (see §1).
+- **Nov 25, 2026:** latest `main` commit was `f173b97` (#110, containing #102–#109). Earlier on
   Nov 25: #101, #93, #100; on Nov 24 evening: #51, #86, #87, #88. Detail: `PROJECT_RECORD.md` §3b and §9.
 - **Nov 24, 2026:** latest `main` commit was `e08ec8c`. Merged by the owner on Nov 23, in this
   order: PR #36, PR #37 (documents), PR #45 (contains #38–#44: fonts, previous look, tax-rate dates,
@@ -173,7 +184,10 @@ Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (fro
 
 ## 5. Active development (open PRs)
 
-**CURRENT (Nov 25, 2026, afternoon):** no open PRs for the owner. #110 was merged with #102–#109
+**CURRENT (Nov 26, 2026, early morning):** no open PRs for the owner; #119 was the last one, merged
+just after midnight Central.
+
+**Nov 25, 2026, afternoon:** no open PRs for the owner. #110 was merged with #102–#109
 inside it; #104 and #105 were closed as already contained (merging either leaves `main` unchanged).
 
 **Nov 24, 2026, evening:** **PR #85** was merged by the owner on Nov 24 at about 6:03 PM Central (merge commit `1f86df0`); it contained #56–#84, and GitHub
@@ -233,7 +247,16 @@ No merging or deploying by Claude · no production Supabase, SQL, cron, RLS or p
 
 **Updated Nov 24, 2026 (CURRENT, with the Nov 25 additions at the top).** Platform list in full: `docs/ops/NEXT_SESSION_CHECKLIST.md`.
 
-0. **Nov 25 (CURRENT):** (a) the read-only look in `docs/ops/OWNER_PROTECTION_AND_PRIVATE_HISTORY.md`
+0. **Nov 26 (CURRENT):** the owner answered most of the Nov 25 list on the evening of Nov 25:
+   (a) the §B3 read-only look is done (owner-private history needs no draft); (b) managers approve
+   supplier documents (built, #112) and decide deliveries and returns someone else recorded (choice A,
+   built, #113); (c) administrators see nothing of the owner's history entries; (d) the platform's own
+   shipping email stays as recommended. Still open: (e) **backups** in the short form (reminder set
+   for Nov 26, 10 am Central); (f) the **database sittings** in the order of
+   `docs/ops/sql-review/START_HERE_GUIDED_RUNS.md` (steps 18 and 19 are small and need nothing first);
+   one stock count; the business email; printers.
+
+   **Nov 25 (kept for history):** (a) the read-only look in `docs/ops/OWNER_PROTECTION_AND_PRIVATE_HISTORY.md`
    §B3, which decides the private-history draft; (b) may a **manager** approve deliveries or supplier
    documents? (c) when an administrator looks at history, show "changed by the owner" or nothing
    (proposed: nothing)? (d) confirm the platform's own shipping email is the one customers get for
@@ -280,7 +303,12 @@ Full website list: `docs/website/decisions-needed.md` (website workspace).
 
 ## 9. Next recommended work
 
-**Updated Nov 24, 2026 (CURRENT).**
+**Updated Nov 26, 2026 (CURRENT):** the owner's database sittings, one draft at a time, in the order
+of `docs/ops/sql-review/START_HERE_GUIDED_RUNS.md` (each with a read-only check after it); the
+backups answer in the short form, then step 19 and the one small step in the backups repository
+(`docs/ops/RECOVERY_AND_BACKUP_READINESS.md` §3a). The list below still applies.
+
+**Nov 24, 2026:**
 
 1. ~~Owner merges PR #85~~ DONE Nov 24 evening → live check with a hard refresh → PR #51.
 2. Database draft 50 in a guided sitting; then a one-line PR that makes the shared switches and
