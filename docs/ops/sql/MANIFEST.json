@@ -821,6 +821,30 @@
       "precheck": "stops, changing nothing, if drafts/40 (as of Nov 25) is not installed",
       "effect": "the two helpers answer owner or administrator again; the four decision actions run with the caller's rights again; drafts/40's own 2 reading rules again; decisions already made stay on the record; no stock figure changes",
       "postcheck": "no drafts/40 function runs with raised rights; a manager is refused a decision again"
+    },
+    {
+      "file": "drafts/68_DRAFT_history_functions_search_path.sql",
+      "id": "68",
+      "class": "PRODUCTION-CHANGE-DRAFT",
+      "step": "optional hardening (from the owner's second read-only look of Nov 25); any time",
+      "dependsOn": [],
+      "risk": "LOW",
+      "rollback": "69",
+      "precheck": "stops, changing nothing, if employee_activity(text, uuid, text, timestamptz, timestamptz, integer, integer), employee_activity_people() or list_my_sessions() is missing",
+      "effect": "names pg_temp last in the search path of those three existing functions (public, pg_temp; and auth, public, pg_temp), so a temporary table can never stand in for a real one inside them; their text, rights, raised rights and results are unchanged",
+      "postcheck": "the three search paths end with pg_temp; local-test/history_search_path_test.sh passes on a throwaway copy",
+      "lock": "none worth noting: three function settings change"
+    },
+    {
+      "file": "drafts/69_DRAFT_rollback_history_functions_search_path.sql",
+      "id": "69",
+      "class": "ROLLBACK",
+      "rollbackOf": "68",
+      "dependsOn": [],
+      "risk": "LOW",
+      "precheck": "stops, changing nothing, if one of the three functions is missing",
+      "effect": "puts the three search paths back exactly as the owner's read-only look of Nov 25 showed them (public; public; auth, public); their text is not touched",
+      "postcheck": "the three search paths are as before drafts/68"
     }
   ],
   "local": [
