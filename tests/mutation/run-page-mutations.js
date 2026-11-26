@@ -336,8 +336,8 @@ const MUTATIONS = [
     "const empty = recent.filter(o => !withLines.has(o.id));", "const empty = [];",
     'manual-order-entry -g "without its items"'],
   ['inquiry draft overwrites a draft changed elsewhere', 'assets/owner-login-app.js',
-    "if (rec && (nowRow.ai_draft_reply || '') !== (rec.ai_draft_reply || '')) {", "if (false) {",
-    'guarded-toggles -g "draft edited elsewhere"'],
+    "if ((rec || textarea.hasAttribute('data-base')) && (nowRow.ai_draft_reply || '') !== (base || '')) {", "if (false) {",
+    'guarded-toggles inquiry-drafts-ext26 -g "draft edited elsewhere|changed elsewhere while the edit waited"'],
   ['money totals page by position again (double count when rows arrive)', 'assets/owner-login-app.js',
     // keyset paging AND the repeated-id skip are two independent protections;
     // removing only one is equivalent (a 56/57 run showed it), so remove both.
