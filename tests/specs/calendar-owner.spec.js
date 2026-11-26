@@ -66,8 +66,12 @@ test('a calendar chip hides and shows that calendar\'s events', async ({ page })
 
 test('a note being typed survives the calendar redrawing itself (Refresh, or the sign-in load reaching the calendar); the guard still compares with the note shown', async ({ page, backend }) => {
   backend.tables.calendar_notes = [{ event_uid: 'uid-work', note: 'SYNTHETIC first note' }];
-  await page.locator('#calTodayBtn').click();                                              // a fresh load, so the saved note is shown
-  await page.waitForLoadState('networkidle');
+  // a fresh load, so the saved note is shown. Wait for its notes to arrive: waiting for the
+  // network to go quiet returns at once when it already was (full run on 19a4bc5, Nov 26: the
+  // event was opened before the slow reload had read the note)
+  const notesRead = page.waitForResponse(r => r.url().includes('/rest/v1/calendar_notes') && r.request().method() === 'GET');
+  await page.locator('#calTodayBtn').click();
+  await notesRead;
   // the next reload is held back until the note has been typed, then let through
   let release; const held = new Promise(r => { release = r; });
   let heldOnce = false;
