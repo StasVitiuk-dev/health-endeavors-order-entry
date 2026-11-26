@@ -51,7 +51,7 @@ window.HE.modules.define('he-inquiries', { api: 1, needs: ['INQ_ANSWERED_CAP','I
       const editing = {};
       document.querySelectorAll('#inquiriesWrap .inqDraftText').forEach(ta => {
         const base = ta.getAttribute('data-base');
-        if (base !== null && ta.value !== base) editing[ta.getAttribute('data-id')] = { text: ta.value, base: base,
+        if (base !== null && ta.value !== base && !ta.hasAttribute('data-conflict')) editing[ta.getAttribute('data-id')] = { text: ta.value, base: base,
           focused: document.activeElement === ta, from: ta.selectionStart, to: ta.selectionEnd };
       });
       const counts = { new: 0, drafted: 0, needs_review: 0, answered: 0 };
@@ -180,6 +180,7 @@ window.HE.modules.define('he-inquiries', { api: 1, needs: ['INQ_ANSWERED_CAP','I
         if (nowRow.answered_at) throw new Error('This inquiry was marked answered in the meantime, so the draft was not saved. Your text is still in the box — copy it if you need it.');
         const base = textarea.hasAttribute('data-base') ? textarea.getAttribute('data-base') : (rec ? rec.ai_draft_reply : null);
         if ((rec || textarea.hasAttribute('data-base')) && (nowRow.ai_draft_reply || '') !== (base || '')) {
+          textarea.setAttribute('data-conflict', '1');   // "reload to see theirs": the next redraw shows theirs, not this text again
           throw new Error('Someone else changed this draft since you opened it, so yours was not saved (nothing was overwritten). Your text is still in the box: copy it, reload to see theirs, then combine them.');
         }
         const { data: changed, error } = await supabase.from('customer_inquiries').update({ ai_draft_reply: textarea.value }).eq('id', id).is('answered_at', null).select('id');
