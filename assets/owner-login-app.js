@@ -9351,6 +9351,8 @@
                 h('span', { class: 'badge po-' + po.status }, PO_STATUS_LABELS[po.status] || po.status))),
             h('div', { class: 'poDetail u-d-none', id: 'poDetail_' + po.id }));
         };
+        // the open order's new line, lot numbers, shipping, tax and payment being typed survive the redraw
+        const poPutBack = keepTyped(document.getElementById('poWrap'), '.poItem[data-id]');
         document.getElementById('poWrap').replaceChildren(...(rows.length
           ? rows.map(poNode)
           : [h('p', { class: 'empty' }, 'No purchase orders yet. Add a supplier, then create a draft above.')]));
@@ -9363,6 +9365,7 @@
           });
         });
         renderPoDetails(rows);
+        poPutBack();
       } catch (err) {
         document.getElementById('poWrap').replaceChildren();
         showDashError('Could not load purchase orders: ' + (err && err.message ? err.message : err));
