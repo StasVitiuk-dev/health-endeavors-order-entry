@@ -7,6 +7,9 @@ the feed). No passwords or keys ever go in chat or in this repository.
 Which sending service, its published price and what is still not confirmed: the
 email service comparison of Nov 24 (it arrives with PR #78, next to the email sending plan).
 
+The settings that keep these addresses out of spam (SPF, DKIM, DMARC), step by step:
+`docs/ops/EMAIL_SENDER_SETTINGS_GUIDE.md` (Nov 26).
+
 ## Principle: few paid mailboxes, many free addresses
 
 Most addresses can be **aliases** (extra addresses that land in one mailbox, free),
