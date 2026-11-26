@@ -64,15 +64,51 @@ their approval would be refused when it tries to change stock. Two ways:
 - **B: give managers the same stock-table rights as administrators.** Simpler, but a manager
   could then also change stock numbers directly through the database, not only by approving.
 
-Until you choose, managers record but do not approve deliveries and returns. (The dashboard was corrected on Nov 25 so that a manager can at least do what
+Until you choose, managers record but do not approve deliveries and returns.
+
+**DECIDED (owner, Nov 25, about 4:20 pm Central): A.** Drafts 66/67 below are the way; they are not installed yet.
+
+**Prepared for A (Nov 25, not installed):**
+
+| File | Lines | Fingerprint (SHA-256, first 16) |
+|---|---|---|
+| `docs/ops/sql/drafts/66_DRAFT_managers_approve_stock.sql` (install, after 40 and 62) | 118 | `db24e1757c2a6d63` |
+| `docs/ops/sql/drafts/67_DRAFT_rollback_managers_approve_stock.sql` (undo) | 66 | `052b34380ab7e7c8` |
+
+What 66 does, in short: a manager decides a delivery or a return **someone else** recorded. The
+four decision actions (approve, reject, decide a supplier return, decide a customer return) run
+with raised rights so the stock steps after a decision work; nothing else does. A manager still
+cannot change a stock figure directly, decide a surplus, correct a movement or read the stock
+history. To make this possible, draft 40 itself was changed **without changing what it does**:
+its approval checks now ask two named helpers (`stock_may_decide`, `stock_can_decide`) that answer
+exactly as before (owner or administrator); 66 widens only those two. Draft 40's own test still
+passes 75 of 75.
+
+Tested on the practice database (`local-test/managers_approve_stock_test.sh`, 61 of 61, twice):
+- a manager approves and rejects an employee's delivery, and is named on it and on the stock
+  movement;
+- a manager cannot decide their own delivery, supplier return or customer return;
+- a switched-off manager, an employee and a visitor are refused;
+- a manager cannot change stock, the order line or the stock history directly, cannot approve by
+  editing the record, and cannot correct a movement or decide a surplus;
+- a manager reads the records waiting for a decision;
+- the undo (67) puts everything back and keeps the decisions already made.
+
+Breaking "not their own" makes 9 checks fail; leaving one action without raised rights makes 22
+fail. The project's checks allow raised rights only for these four lines of 66 and refuse any
+other.
+
+The dashboard already shows a manager Approve/Reject (deliveries, returns to the supplier) and
+Inspect (customer returns) on records someone else recorded. Surplus and corrections stay with you
+and administrators. This part is the same for A and B; only the database step differs. (The dashboard was corrected on Nov 25 so that a manager can at least do what
 an employee can; before that, the page would have refused a manager outright.)
 
 ## The exact SQL
 
 | File | Lines | Fingerprint (SHA-256, first 16) |
 |---|---|---|
-| `docs/ops/sql/drafts/40_DRAFT_partial_receiving_returns.sql` (install) | 1002 | `24106ab0720b2e90` |
-| `docs/ops/sql/drafts/41_DRAFT_rollback_partial_receiving_returns.sql` (undo) | 77 | `b18e96ee20ccbd41` |
+| `docs/ops/sql/drafts/40_DRAFT_partial_receiving_returns.sql` (install) | 1031 | `365d5690d36c92d7` |
+| `docs/ops/sql/drafts/41_DRAFT_rollback_partial_receiving_returns.sql` (undo) | 79 | `922a93cc5e6d5f24` |
 
 Before running, the file you paste must show the same fingerprint
 (Terminal: `shasum -a 256 40_DRAFT_partial_receiving_returns.sql`).

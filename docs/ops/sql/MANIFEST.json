@@ -794,6 +794,33 @@
       "effect": "puts the guard back to the exact text saved by drafts/64, with its earlier note; drops the 2 row rules, the functions and the backup table; changes no account",
       "postcheck": "the guard's text is word for word what it was before drafts/64; no people_ function and no profiles_levels rule is left",
       "dynamicSql": "format() with fixed names (%I, %L) to read the saved text and restore the note; and ONE statement that runs the saved text as it is (what the database itself wrote down with pg_get_functiondef at install, kept where no signed-in person can read or write, checked before it is run)"
+    },
+    {
+      "file": "drafts/66_DRAFT_managers_approve_stock.sql",
+      "id": "66",
+      "class": "PRODUCTION-CHANGE-DRAFT",
+      "step": "optional (owner decisions of Nov 25: a manager approves deliveries and returns too, and the owner chose A: a manager changes stock only by deciding). After drafts/40 and drafts/62",
+      "dependsOn": [
+        "40",
+        "62"
+      ],
+      "risk": "MEDIUM",
+      "rollback": "67",
+      "precheck": "stops, changing nothing, if drafts/40 (as of Nov 25, with stock_may_decide() and stock_can_decide()) is not installed, if current_role() or is_owner_or_admin() is missing, or if the role word manager is missing (drafts/62 first)",
+      "effect": "stock_may_decide() and stock_can_decide() also answer yes for an active manager, never for a record they recorded themselves; the four decision actions (approve_receiving_record, reject_receiving_record, decide_supplier_return, decide_customer_return) run with raised rights so the stock steps after a decision work, and nothing else does; a manager reads deliveries and returns to the supplier waiting for a decision (2 reading rules replaced); no table, row or stock figure changes; a manager still cannot change stock directly, decide a surplus, correct a movement or read the stock history",
+      "postcheck": "exactly the four decision actions run with raised rights; local-test/managers_approve_stock_test.sh passes on a throwaway copy",
+      "lock": "brief lock on receiving_records and supplier_returns while 2 reading rules are replaced; no table is rewritten"
+    },
+    {
+      "file": "drafts/67_DRAFT_rollback_managers_approve_stock.sql",
+      "id": "67",
+      "class": "ROLLBACK",
+      "rollbackOf": "66",
+      "dependsOn": [],
+      "risk": "LOW",
+      "precheck": "stops, changing nothing, if drafts/40 (as of Nov 25) is not installed",
+      "effect": "the two helpers answer owner or administrator again; the four decision actions run with the caller's rights again; drafts/40's own 2 reading rules again; decisions already made stay on the record; no stock figure changes",
+      "postcheck": "no drafts/40 function runs with raised rights; a manager is refused a decision again"
     }
   ],
   "local": [

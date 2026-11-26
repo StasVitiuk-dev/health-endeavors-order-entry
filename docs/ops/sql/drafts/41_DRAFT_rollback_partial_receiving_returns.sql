@@ -72,6 +72,8 @@ drop function if exists public.customer_return_inspections_apply();
 drop function if exists public.stock_corrections_guard();
 drop function if exists public.stock_corrections_apply();
 drop function if exists public.po_item_outstanding(uuid);
+drop function if exists public.stock_can_decide(uuid);
+drop function if exists public.stock_may_decide();
 drop function if exists public.stock_is_owner();
 
 commit;

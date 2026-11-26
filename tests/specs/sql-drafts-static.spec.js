@@ -8,7 +8,7 @@ const path = require('path');
 const { test, expect } = require('@playwright/test');
 
 const DIR = path.resolve(__dirname, '..', '..', 'docs', 'ops', 'sql', 'drafts');
-const INSTALLS = ['10_DRAFT_stock_functions.sql', '13_DRAFT_report_totals.sql', '17_DRAFT_po_line_delete_guard.sql', '19_DRAFT_request_keys.sql', '21_DRAFT_stock_function_switches.sql', '23_DRAFT_integrity_constraints.sql', '25_DRAFT_integrity_check_schedule.sql', '27_DRAFT_request_keys_switch.sql', '29_DRAFT_integrity_results_on_home.sql', '32_DRAFT_invoices.sql', '34_DRAFT_stock_count_adjustments.sql', '36_DRAFT_supplier_documents.sql', '38_DRAFT_supplier_document_files.sql', '40_DRAFT_partial_receiving_returns.sql', '42_DRAFT_shopify_payouts_money_issues.sql', '44_DRAFT_staff_read_purchase_orders.sql', '46_DRAFT_tax_rates.sql', '48_DRAFT_order_parcels.sql', '50_DRAFT_shared_settings.sql', '52_DRAFT_order_costs.sql', '54_DRAFT_order_batches.sql', '56_DRAFT_email_sending.sql', '58_DRAFT_my_settings.sql', '60_DRAFT_customer_reviews.sql', '62_DRAFT_manager_role.sql', '64_DRAFT_people_levels.sql'];
+const INSTALLS = ['10_DRAFT_stock_functions.sql', '13_DRAFT_report_totals.sql', '17_DRAFT_po_line_delete_guard.sql', '19_DRAFT_request_keys.sql', '21_DRAFT_stock_function_switches.sql', '23_DRAFT_integrity_constraints.sql', '25_DRAFT_integrity_check_schedule.sql', '27_DRAFT_request_keys_switch.sql', '29_DRAFT_integrity_results_on_home.sql', '32_DRAFT_invoices.sql', '34_DRAFT_stock_count_adjustments.sql', '36_DRAFT_supplier_documents.sql', '38_DRAFT_supplier_document_files.sql', '40_DRAFT_partial_receiving_returns.sql', '42_DRAFT_shopify_payouts_money_issues.sql', '44_DRAFT_staff_read_purchase_orders.sql', '46_DRAFT_tax_rates.sql', '48_DRAFT_order_parcels.sql', '50_DRAFT_shared_settings.sql', '52_DRAFT_order_costs.sql', '54_DRAFT_order_batches.sql', '56_DRAFT_email_sending.sql', '58_DRAFT_my_settings.sql', '60_DRAFT_customer_reviews.sql', '62_DRAFT_manager_role.sql', '64_DRAFT_people_levels.sql', '66_DRAFT_managers_approve_stock.sql'];
 const ROLLBACKS = { '10_DRAFT_stock_functions.sql': '11_DRAFT_rollback_stock_functions.sql',
   '17_DRAFT_po_line_delete_guard.sql': '18_DRAFT_rollback_po_line_delete_guard.sql',
   '19_DRAFT_request_keys.sql': '20_DRAFT_rollback_request_keys.sql',
@@ -34,7 +34,8 @@ const ROLLBACKS = { '10_DRAFT_stock_functions.sql': '11_DRAFT_rollback_stock_fun
   '58_DRAFT_my_settings.sql': '59_DRAFT_rollback_my_settings.sql',
   '60_DRAFT_customer_reviews.sql': '61_DRAFT_rollback_customer_reviews.sql',
   '62_DRAFT_manager_role.sql': '63_DRAFT_rollback_manager_role.sql',       // Nov 25: the Manager role word
-  '64_DRAFT_people_levels.sql': '65_DRAFT_rollback_people_levels.sql' };   // Nov 25: four levels of account   // Nov 24: reviews the owner typed in   // Nov 24: one person's settings on every device   // Nov 24: email sending records (nothing in it sends)   // Nov 24: which batch went into which order     // Nov 24: the real fee and postage of each order   // Nov 24: settings shared by every device   // Nov 24: parcels and drop-off receipts   // Nov 22: owner decision, staff read purchase orders   // Nov 22: Shopify payout copy and money differences   // Nov 22: partial receiving and returns (D-ops-5), owner approves stock changes   // Nov 21: private files, owner-only reading   // Nov 16, later: supplier document storage, owner-only review
+  '64_DRAFT_people_levels.sql': '65_DRAFT_rollback_people_levels.sql',
+  '66_DRAFT_managers_approve_stock.sql': '67_DRAFT_rollback_managers_approve_stock.sql' };   // Nov 25: four levels of account   // Nov 24: reviews the owner typed in   // Nov 24: one person's settings on every device   // Nov 24: email sending records (nothing in it sends)   // Nov 24: which batch went into which order     // Nov 24: the real fee and postage of each order   // Nov 24: settings shared by every device   // Nov 24: parcels and drop-off receipts   // Nov 22: owner decision, staff read purchase orders   // Nov 22: Shopify payout copy and money differences   // Nov 22: partial receiving and returns (D-ops-5), owner approves stock changes   // Nov 21: private files, owner-only reading   // Nov 16, later: supplier document storage, owner-only review
 const ALL = fs.readdirSync(DIR).filter(f => /^\d\d_DRAFT_.*\.sql$/.test(f) && !/_tests?_/.test(f));
 
 // Remove comments and quoted text so words inside them are not mistaken for SQL.
@@ -56,6 +57,24 @@ test.beforeEach(({}, testInfo) => { test.skip(testInfo.project.name !== 'desktop
 
 test('the list of drafts is the one this check knows (a new draft must be added here on purpose)', () => {
   expect(ALL.sort()).toEqual([...INSTALLS, ...Object.values(ROLLBACKS)].sort());
+});
+
+// Nov 25: the project's one deliberate exception to "every function runs with the caller's rights".
+// drafts/66 (option A, owner decision on managers) lets exactly four decision actions run with raised
+// rights. No other draft, and no other line of drafts/66, may mention raised rights.
+test('raised rights appear only in drafts/66, only for the four decision actions', () => {
+  const DEFINER_66 = [
+    'alter function public.approve_receiving_record(uuid, text) security definer;',
+    'alter function public.reject_receiving_record(uuid, text) security definer;',
+    'alter function public.decide_supplier_return(uuid, text, text) security definer;',
+    'alter function public.decide_customer_return(uuid, integer, integer, integer, boolean, boolean, text) security definer;'];
+  for (const f of ALL) {
+    let sql = code(fs.readFileSync(path.join(DIR, f), 'utf8')).toLowerCase();
+    if (f === '66_DRAFT_managers_approve_stock.sql') {
+      for (const d of DEFINER_66) { expect(sql.split(d).length - 1, 'pinned line present exactly once: ' + d).toBe(1); sql = sql.split(d).join(''); }
+    }
+    expect(sql, f + ' uses raised rights').not.toMatch(/security\s+definer/);
+  }
 });
 
 test('EXT14: drafts/ holds only install and rollback files; local tests live in local-test/', () => {
@@ -311,6 +330,20 @@ for (const f of ALL) {
       'create policy staff_read_purchase_orders on public.purchase_orders for select to authenticated using (public.is_active_staff() and deleted_at is null);',
       'drop policy if exists staff_read_purchase_order_items on public.purchase_order_items;',
       'create policy staff_read_purchase_order_items on public.purchase_order_items for select to authenticated using (public.is_active_staff() and exists (select 1 from public.purchase_orders po where po.id = purchase_order_items.purchase_order_id and po.deleted_at is null));'];
+    // Nov 25 (owner decision on managers, option A, drafts/66): a manager reads the deliveries and the
+    // returns to the supplier waiting for a decision; drafts/67 puts drafts/40's own two rules back.
+    const MANAGER_STOCK_RULES = [
+      'drop policy if exists receiving_records_read on public.receiving_records;',
+      "create policy receiving_records_read on public.receiving_records for select to authenticated using (submitted_by = auth.uid() or public.is_owner_or_admin() or public.current_role() = 'manager');",
+      'drop policy if exists supplier_returns_read on public.supplier_returns;',
+      "create policy supplier_returns_read on public.supplier_returns for select to authenticated using (submitted_by = auth.uid() or public.is_owner_or_admin() or public.current_role() = 'manager');"];
+    const MANAGER_STOCK_UNDO = [
+      'drop policy if exists receiving_records_read on public.receiving_records;',
+      'create policy receiving_records_read on public.receiving_records for select to authenticated using (submitted_by = auth.uid() or public.is_owner_or_admin());',
+      'drop policy if exists supplier_returns_read on public.supplier_returns;',
+      'create policy supplier_returns_read on public.supplier_returns for select to authenticated using (submitted_by = auth.uid() or public.is_owner_or_admin());'];
+    if (f === '66_DRAFT_managers_approve_stock.sql') for (const r of MANAGER_STOCK_RULES) expect(sql.split(r).length - 1, 'pinned rule present exactly once: ' + r.slice(0, 60)).toBe(1);
+    if (f === '67_DRAFT_rollback_managers_approve_stock.sql') for (const r of MANAGER_STOCK_UNDO) expect(sql.split(r).length - 1, 'pinned rule present exactly once: ' + r.slice(0, 60)).toBe(1);
     const SUPPLIER_FILE_DROPS = [
       'drop policy if exists supplier_document_files_owner_read on storage.objects;',
       'drop policy if exists supplier_document_files_upload on storage.objects;'];
@@ -357,7 +390,9 @@ for (const f of ALL) {
                 : f === '58_DRAFT_my_settings.sql' ? MY_SETTINGS_RULES.reduce((t, r) => t.split(r).join(''), sql)
                 : f === '60_DRAFT_customer_reviews.sql' ? REVIEW_RULES.reduce((t, r) => t.split(r).join(''), sql)
                 : f === '64_DRAFT_people_levels.sql' ? PEOPLE_RULES.reduce((t, r) => t.split(r).join(''), sql)
-                : f === '65_DRAFT_rollback_people_levels.sql' ? PEOPLE_RULES.filter(r => r.startsWith('drop policy')).reduce((t, r) => t.split(r).join(''), sql) : sql;
+                : f === '65_DRAFT_rollback_people_levels.sql' ? PEOPLE_RULES.filter(r => r.startsWith('drop policy')).reduce((t, r) => t.split(r).join(''), sql)
+                : f === '66_DRAFT_managers_approve_stock.sql' ? MANAGER_STOCK_RULES.reduce((t, r) => t.split(r).join(''), sql)
+                : f === '67_DRAFT_rollback_managers_approve_stock.sql' ? MANAGER_STOCK_UNDO.reduce((t, r) => t.split(r).join(''), sql) : sql;
     if (f === '64_DRAFT_people_levels.sql') {
       for (const r of PEOPLE_RULES) expect(sql.split(r).length - 1, 'pinned rule present exactly once: ' + r.slice(0, 60)).toBe(1);
       // only reading and changing: never a rule for adding or deleting an account, and none for "all"
