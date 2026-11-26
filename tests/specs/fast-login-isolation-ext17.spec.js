@@ -44,7 +44,13 @@ test.describe('signed-in session reuse leaks nothing between tests', () => {
 
   test('3: after signing out, a reload stays signed out (the restore runs once per page)', async ({ page }) => {
     await login(page);
+    // Signing out shows the sign-in screen at once and then reloads the page by itself
+    // (wipeAfterSignOut). Wait for that reload to finish before reloading again: reloading
+    // while the page's own reload is still loading aborts one of them (net::ERR_ABORTED,
+    // seen on CI on Nov 26 and reproduced locally 2 times in 15).
+    const ownReload = page.waitForEvent('load');
     await page.click('#signout');
+    await ownReload;
     await expect(page.locator('#loginBtn')).toBeVisible({ timeout: 15000 });
     await page.reload();
     await expect(page.locator('#loginBtn')).toBeVisible({ timeout: 15000 });
