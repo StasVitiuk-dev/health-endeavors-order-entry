@@ -8,7 +8,10 @@ async function confirmPassword(page) {
   await expect(page.locator('#reauthOverlay')).toBeVisible();
   await page.fill('#reauthPassword', OWNER_USER.password);
   await page.click('#reauthConfirmBtn');
-  await expect(page.locator('#reauthOverlay')).toBeHidden();
+  // The page gives the password check up to 8 seconds before it says it could not check
+  // (requireReauth in assets/owner-login-app.js); wait longer than that, so a slow moment is
+  // never mistaken for a refusal (full run on c5db3ed, Nov 26: failed at the old 5 seconds).
+  await expect(page.locator('#reauthOverlay')).toBeHidden({ timeout: 10000 });
 }
 async function open(page, id) {
   await gotoPage(page, id);

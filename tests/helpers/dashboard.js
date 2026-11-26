@@ -147,6 +147,11 @@ async function gotoPage(page, pageId) {
     }
     await expect(section).toHaveClass(/activePage/, { timeout: 5000 });
   }).toPass({ timeout: 20000 });
+  // Opening a page plays a short slide-in (panelIn, 0.26 s, 6 px; only where the device allows
+  // motion). On a busy machine it can still be running when a test measures where a button is,
+  // so a button looked as if it moved by 4.5 px (full run on c5db3ed, Nov 26). Wait for it; a
+  // cancelled animation (another page opened) or no animation at all simply continues.
+  await section.evaluate(el => Promise.all(el.getAnimations().map(a => a.finished.catch(() => null))));
 }
 
 async function openTasks(page) {
