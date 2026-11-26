@@ -13,8 +13,12 @@ Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (fro
 
 ## 1. Internal platform (the dashboard)
 
-- **CURRENT (Nov 26, 2026, evening), read this first:** `main` is at `19a4bc5` and is the live
-  dashboard. During Nov 26 the owner merged #120 and #121 (tests; rollback practice, email sender and
+- **CURRENT (Nov 26, 2026, late evening), read this first:** `main` is at `a8b2517` and is the
+  live dashboard. Since the evening: #127, #128, #126 (Incidents and the redraw correction) and #129
+  (Business Rules). Open: #130 (four lists keep what is being typed) and #131 (tests: even CI
+  groups); Purchase Orders follow #130. Eighth full run on `19a4bc5`: 3951 passed, only the local guard
+  failed.
+- **Nov 26, 2026, evening:** `main` was at `19a4bc5`. During Nov 26 the owner merged #120 and #121 (tests; rollback practice, email sender and
   legal-page guides), #123, #124 and #125 (typed notes, own events and inquiry replies survive a
   redraw) and #122 (Ready to launch: rollback practice line). Open: #126 (Incidents, plus a correction
   to the redraw fixes) and #127 (tests only). Monthly costs: `docs/ops/MONTHLY_RUNNING_COSTS.md`.
@@ -175,8 +179,10 @@ Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (fro
 
 ## 4. Important merged work (on `main`)
 
-- **CURRENT (Nov 26, 2026, evening):** latest `main` commit `19a4bc5` (#125). Since `c60e07e`:
-  #120, #121, #123, #122, #124, #125 (see §1).
+- **CURRENT (Nov 26, 2026, late evening):** latest `main` commit `a8b2517` (#129). Since `19a4bc5`:
+  #127, #128, #126, #129 (see §1).
+- **Nov 26, 2026, evening:** latest `main` commit was `19a4bc5` (#125). Since `c60e07e`:
+  #120, #121, #123, #122, #124, #125.
 - **Nov 26, 2026 (early morning):** latest `main` commit was `c60e07e` (#119). Since `f173b97`: #111, #112,
   #113, #115, #114, #117, #118, #119.
 - **Nov 25, 2026:** latest `main` commit was `f173b97` (#110, containing #102–#109). Earlier on
@@ -192,9 +198,11 @@ Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (fro
 
 ## 5. Active development (open PRs)
 
-**CURRENT (Nov 26, 2026, evening):** open for the owner: #126 (Incidents: a note being typed survives a
-redraw; after a refused save the other version is shown) and #127 (tests only: three waits a busy
-machine outran), plus this notes PR.
+**CURRENT (Nov 26, 2026, late evening):** open for the owner: #130 (Returns, Recalls, Quality Checks and
+Inventory keep what is being typed) and #131 (tests only: fresh per-file times so GitHub's three test
+groups are even), plus this notes PR. Purchase Orders (same helper) follow #130.
+
+**Nov 26, 2026, evening:** open were #126 and #127, plus a notes PR (all merged that evening).
 
 **Nov 26, 2026, early morning:** no open PRs for the owner; #119 was the last one, merged
 just after midnight Central.
