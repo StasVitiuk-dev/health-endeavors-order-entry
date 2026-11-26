@@ -88,6 +88,12 @@ test('a note being typed survives the calendar redrawing itself (Refresh, or the
   await box.locator('.calNoteSave').click();
   await expect(page.locator('#dashError')).toContainText('changed or added somewhere else');
   expect(backend.tables.calendar_notes[0].note).toBe('SYNTHETIC changed in another tab');
+  // as the message says, the refreshed calendar then shows the other version (not this text
+  // again with the old guard, which refused every later save), and saving from it works
+  await expect(box.locator('.calNoteText')).toHaveValue('SYNTHETIC changed in another tab');
+  await box.locator('.calNoteText').fill('SYNTHETIC changed in another tab, and samples');
+  await box.locator('.calNoteSave').click();
+  await expect.poll(() => backend.tables.calendar_notes[0].note).toBe('SYNTHETIC changed in another tab, and samples');
 });
 
 test('saving a note on an event stores it by the event\'s id (so it survives the sync)', async ({ page, backend }) => {

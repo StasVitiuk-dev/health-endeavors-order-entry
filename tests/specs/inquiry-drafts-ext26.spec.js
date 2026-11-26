@@ -42,6 +42,13 @@ test('the draft changed elsewhere while the edit waited: the save is still refus
   await expect(page.locator('#dashError')).toContainText('Someone else changed this draft');
   expect(backend.tableWrites().filter(r => r.table === 'customer_inquiries')).toEqual([]);
   expect(backend.tables.customer_inquiries[0].ai_draft_reply).toBe('SYNTHETIC new draft from the agent');
+  // "reload to see theirs": Refresh now shows theirs (it used to keep this text with the old
+  // guard, so every later save was refused), and an edit of theirs saves
+  await page.locator('#refreshBtn').click();
+  await expect(ta).toHaveValue('SYNTHETIC new draft from the agent');
+  await ta.fill('SYNTHETIC new draft from the agent, combined');
+  await page.locator('.inqSaveBtn[data-id="iq-1"]').click();
+  await expect.poll(() => backend.tables.customer_inquiries[0].ai_draft_reply).toBe('SYNTHETIC new draft from the agent, combined');
 });
 
 test('nothing edited: Refresh shows the newest draft', async ({ page, backend }) => {
