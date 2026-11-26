@@ -38,7 +38,7 @@ Who may do what: only the owner approves a campaign, chooses who it goes to, and
 |---|---|---|---|
 | 1 | A business email address on the business's own domain (for example hello@ the business's domain), and a second address for outreach so order emails are never affected | Owner | OWNER DECISION REQUIRED |
 | 2 | An account with an email sending service, in the owner's own name. The options, their published prices and what is still not confirmed are in `docs/ops/EMAIL_SERVICE_COMPARISON_2026-11-24.md` | Owner, after reading the comparison | OWNER DECISION REQUIRED |
-| 3 | The domain's sender settings (the records that prove an email really comes from the business), set where the domain is managed | Owner, guided one step at a time | NOT STARTED |
+| 3 | The domain's sender settings (the records that prove an email really comes from the business), set where the domain is managed. Step by step: `docs/ops/EMAIL_SENDER_SETTINGS_GUIDE.md` (Nov 26) | Owner, guided one step at a time | GUIDE READY; not set up |
 | 4 | Install database draft 56 (review item 13: `docs/ops/sql-review/ITEM_13_DRAFT_56_EMAIL_SENDING.md`) | Owner, after approving it, in a guided sitting | NOT STARTED |
 | 5 | The sending program: a small server-side piece that asks the database for today's emails, hands each to the email service, and records what happened. It holds the service's key, which the owner enters in the database's own settings; the key never appears in this repository, in a pull request or in chat | To be written as a draft for the owner's approval | PROPOSED, not written |
 | 6 | A way for the email service to report bounces, complaints and unsubscribes back, so the do-not-email list fills by itself | Part of piece 5 | PROPOSED, not written |

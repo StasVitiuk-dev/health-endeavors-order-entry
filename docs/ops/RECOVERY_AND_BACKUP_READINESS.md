@@ -1,5 +1,7 @@
 # Recovery and backup readiness
 
+Going back to the **previous version** (not the data) on launch day, and its practice run: `docs/ops/LAUNCH_DAY_ROLLBACK_PRACTICE.md` (Nov 26).
+
 **Status:** CURRENT (updated 2026-11-24 with the owner's own look; first written 2026-10-07, extension 8). The authoritative recovery page; `ROLLBACK_AND_BACKUP_REVIEW.md` keeps the per-change rollback table and the history (EXT3–EXT7). **Backup health: PARTLY KNOWN (owner-reported, Nov 24): the nightly backup is green and the platform's daily backups are listed; whether a production backup restores is still UNKNOWN.** Claude never opened the private backups repository, never read a backup, and changed nothing about backups.
 
 ## 1. Proven vs assumed

@@ -255,6 +255,11 @@ No merging or deploying by Claude · no production Supabase, SQL, cron, RLS or p
    for Nov 26, 10 am Central); (f) the **database sittings** in the order of
    `docs/ops/sql-review/START_HERE_GUIDED_RUNS.md` (steps 18 and 19 are small and need nothing first);
    one stock count; the business email; printers.
+   Added by the owner on Nov 26 before launch: a **rollback practice run** (about 20 minutes with
+   Claude, `docs/ops/LAUNCH_DAY_ROLLBACK_PRACTICE.md`); the **email sender settings** on the
+   business's own domain (`docs/ops/EMAIL_SENDER_SETTINGS_GUIDE.md`, after the mailbox provider is
+   chosen); **legal pages** for the website (privacy, terms, returns; drafts for the owner's review,
+   kept with the website, not in this repository).
 
    **Nov 25 (kept for history):** (a) the read-only look in `docs/ops/OWNER_PROTECTION_AND_PRIVATE_HISTORY.md`
    §B3, which decides the private-history draft; (b) may a **manager** approve deliveries or supplier
