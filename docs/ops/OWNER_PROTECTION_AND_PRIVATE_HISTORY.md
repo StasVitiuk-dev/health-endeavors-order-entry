@@ -178,6 +178,10 @@ draft is needed. Three small points, recorded for completeness (none is a leak t
    other role means its history entries are visible to administrators; tell Claude.
    (If the column `is_break_glass` does not exist, the emergency account is marked differently;
    send the error and nothing else.)
+
+   **Done (owner, Nov 25 evening, read-only): one row, `owner | true | 1`.** The emergency account
+   has the owner role and is active, so its history entries are hidden from administrators like
+   every other owner entry. Nothing more to do here.
 3. Hardening, low priority: the two functions run with raised rights and name only `public` in
    their search path. Postgres recommends also listing `pg_temp` last, so a temporary table could
    never stand in for `profiles`. Signed-in people cannot create temporary tables through the

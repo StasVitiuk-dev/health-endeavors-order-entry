@@ -200,7 +200,9 @@ downloaded here. The informational check stays red; nothing is broken.
 
 ## 11. Night of Nov 25–26 (CHECKPOINT; supersedes the open-PR list in §10)
 
-**Merged by the owner:** #112 (Nov 25, 22:14 UTC).
+**Merged by the owner:** #112 (Nov 25, 22:14 UTC) and #113 (Nov 26, 01:23 UTC, `ec71016`).
+
+**Emergency-account check: done** (owner, read-only): `owner | true | 1`, as expected.
 
 **Open PRs (chained; #114 contains #113):**
 - #113: managers decide deliveries and returns someone else recorded (option A, drafts 66/67,
@@ -214,7 +216,6 @@ downloaded here. The informational check stays red; nothing is broken.
   the rights saved before install).
 - Merge order: #113 first, then #114 (or #114 alone, which brings #113 with it).
 
-**Waiting on the owner:** the emergency-account read-only check
-(`docs/ops/OWNER_PROTECTION_AND_PRIVATE_HISTORY.md`, expected `owner | true | 1`); backups in
+**Waiting on the owner:** merging #114; backups in
 the short form (reminder Nov 26, 10 am Central); database sittings in the order of
 `docs/ops/sql-review/START_HERE_GUIDED_RUNS.md` (rows 17 and 18 are drafts 66 and 68).
