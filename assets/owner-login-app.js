@@ -85,7 +85,7 @@
     } = window.HE.helpers;
     // @@ EXT15 modules: created in dependency order (assets/app/*.js; see docs/ops/APPLICATION_MODULE_MAP_EXT15.md)
     const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, agentDiaryOn, realProfitOn, channelMoneyOn, SWITCH_EVERYONE, sharedSettingsOn, orderCostsOn, incidentCloseOn, batchLabelsOn, orderBatchesOn, orderChannelsOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn, storeCampaignsOn, receiptReaderOn, contentHelperOn, customerEmailsOn, emailSendingOn, mySettingsOn, handoffHandledOn, reviewInboxOn, reviewStoreOn, customersFirstOn, launchPageOn, askBoxOn, peoplePageOn, adminChangesOn, backupStatusOn } = HE.modules.create('he-config', {  });
-    const { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, focusDialog, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, h, pageIconNode } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
+    const { keepTyped, toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, focusDialog, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, h, pageIconNode } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
     const { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
     const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, h, supabase });
     const { environmentLabel, assetVersions, isMissingRelation, dbStepsStatus, NIGHTLY_STALE_MS, ATTN_STALE_MS, attnSeenGet, attnSeenSet, attnSignature } = HE.modules.create('he-status', { DB_STEPS, STOCK_FN_PROBES, SUPABASE_URL, stockFunctionInstalled, supabase });
@@ -10000,7 +10000,9 @@
                 h('button', { type: 'button', class: 'small secondary qcResolveBtn' }, 'Mark resolved'),
                 (c.result === 'fail' && !c.incident_id) ? h('button', { type: 'button', class: 'small deny qcEscalateBtn' }, 'Escalate to Incident') : null) : null));
         };
+        const qcPutBack = keepTyped(document.getElementById('qcWrap'), '.deletedRow[data-id]');   // a resolution note being typed survives the redraw
         document.getElementById('qcWrap').replaceChildren(...(rows.length ? rows.map(qcRow) : [h('p', { class: 'empty' }, 'No quality checks logged yet.')]));
+        qcPutBack();
 
         document.querySelectorAll('.qcViewRecallLink').forEach(link => {
           link.addEventListener('click', (e) => { e.preventDefault(); showPage('recallsPanel'); });
@@ -10160,7 +10162,9 @@
                 h('input', { type: 'text', class: 'recallResolutionInput u-flex-1 u-minw-160 u-p-6-9 u-br-6 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-13', placeholder: 'Resolution notes' }),
                 h('button', { type: 'button', class: 'small secondary recallResolveBtn' }, 'Mark resolved')) : null));
         };
+        const recallPutBack = keepTyped(document.getElementById('recallsWrap'), '.deletedRow[data-id]');
         document.getElementById('recallsWrap').replaceChildren(...(rows.length ? rows.map(recallRow) : [h('p', { class: 'empty' }, 'No recalls — hopefully it stays that way.')]));
+        recallPutBack();
 
         document.querySelectorAll('.recallViewQcLink').forEach(link => {
           link.addEventListener('click', (e) => { e.preventDefault(); showPage('qualityControlPanel'); });
@@ -12150,8 +12154,13 @@
         });
 
         const invWrap = document.getElementById('inventoryWrap');
+        // the low-stock number and an open "Edit product" form survive the redraw
+        const invPutBack = keepTyped(invWrap, '[data-product-id]', { open: { sel: '.prodEdit',
+          isOpen: (el) => getComputedStyle(el).display !== 'none',
+          reopen: (row) => { row.querySelector('.prodEdit').style.display = 'block'; const b = row.querySelector('.editProductBtn'); if (b) b.textContent = 'Close'; } } });
         if (products.length) invWrap.replaceChildren(...rowNodes);
         else invWrap.replaceChildren(h('p', { class: 'empty' }, 'No products in your catalog yet.'));
+        invPutBack();
 
         document.getElementById('inventoryStats').replaceChildren(
           h('div', { class: 'stat' }, h('div', { class: 'num' }, products.length), h('div', { class: 'lbl' }, 'Products tracked')),
@@ -12766,10 +12775,12 @@
         });
 
         const returnsWrapEl = document.getElementById('returnsWrap');
+        const returnsPutBack = keepTyped(returnsWrapEl, '[data-return-id]');   // a refund amount or a chosen outcome survives the redraw
         returnsWrapEl.replaceChildren(
           ...(returnsCutNote ? [h('p', { class: 'hint returnsCutNote u-m-0-0-8 u-c-warn' }, returnsCutNote)] : []),
           ...returnRowNodes
         );
+        returnsPutBack();
 
         // Approve or Reject a fresh request.
         document.querySelectorAll('.decideReturnBtn').forEach(btn => {
