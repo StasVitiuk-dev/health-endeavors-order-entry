@@ -66,8 +66,12 @@ test('a calendar chip hides and shows that calendar\'s events', async ({ page })
 
 test('a note being typed survives the calendar redrawing itself (Refresh, or the sign-in load reaching the calendar); the guard still compares with the note shown', async ({ page, backend }) => {
   backend.tables.calendar_notes = [{ event_uid: 'uid-work', note: 'SYNTHETIC first note' }];
-  await page.locator('#calTodayBtn').click();                                              // a fresh load, so the saved note is shown
-  await page.waitForLoadState('networkidle');
+  // a fresh load, so the saved note is shown. Wait for its notes to arrive: waiting for the
+  // network to go quiet returns at once when it already was (full run on 19a4bc5, Nov 26: the
+  // event was opened before the slow reload had read the note)
+  const notesRead = page.waitForResponse(r => r.url().includes('/rest/v1/calendar_notes') && r.request().method() === 'GET');
+  await page.locator('#calTodayBtn').click();
+  await notesRead;
   // the next reload is held back until the note has been typed, then let through
   let release; const held = new Promise(r => { release = r; });
   let heldOnce = false;
@@ -88,6 +92,12 @@ test('a note being typed survives the calendar redrawing itself (Refresh, or the
   await box.locator('.calNoteSave').click();
   await expect(page.locator('#dashError')).toContainText('changed or added somewhere else');
   expect(backend.tables.calendar_notes[0].note).toBe('SYNTHETIC changed in another tab');
+  // as the message says, the refreshed calendar then shows the other version (not this text
+  // again with the old guard, which refused every later save), and saving from it works
+  await expect(box.locator('.calNoteText')).toHaveValue('SYNTHETIC changed in another tab');
+  await box.locator('.calNoteText').fill('SYNTHETIC changed in another tab, and samples');
+  await box.locator('.calNoteSave').click();
+  await expect.poll(() => backend.tables.calendar_notes[0].note).toBe('SYNTHETIC changed in another tab, and samples');
 });
 
 test('saving a note on an event stores it by the event\'s id (so it survives the sync)', async ({ page, backend }) => {
