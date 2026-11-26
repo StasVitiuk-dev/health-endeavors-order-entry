@@ -44,6 +44,7 @@ The weights are a judgement call: the platform is the largest body of work, and 
 
 ## Change log for this tracker
 
+- Nov 26 (night, later): the backup warning on Home prepared (drafts 70/71, step 19; Home line behind "Backup status on Home"; the owner's step in the backups repository written in `RECOVERY_AND_BACKUP_READINESS.md` §3a). Percentages unchanged: nothing installed.
 - Nov 26 (overnight): row 14: #112 merged (managers approve supplier documents). #113 (managers decide deliveries and returns, option A) merged Nov 26 (`ec71016`); #114 (history functions' search path, drafts 68/69) merged Nov 26 (`530bf66`). Emergency-account check done: `owner | true | 1`. Row 1: the weekly report's profit line merged (#115, `8d5e79a`). Percentage unchanged: nothing installed.
 - Nov 25 (afternoon): rows 2, 3, 4, 6, 10 and 11 brought up to date from what is on `main` (they still described Sept 29). Row 2 rises from 10% to ≈30% only for the three launch fixes that are on `main` (R6, R7, R10); R1–R5 stay drafts and count as not done. Row 3 is complete (merged with #36). Row 14 updated: everything merged via #110, nothing installed.
 - Nov 25: row 14 added (roles and approvals, the owner's completion queue). The percentage counts software prepared and tested on throwaway copies only; nothing in this row is installed or verified in use yet, so operational readiness for it is 0%.

@@ -32,6 +32,46 @@
 
 Today: only by the owner looking (§2), or a GitHub e-mail if notifications are on. The dashboard shows **"Backups: not verified here" (UNKNOWN)** on Home on purpose (EXT8). Recommended (design, `AUTOMATION_AND_AGENT_ARCHITECTURE.md` D5): the backup job writes one row (finished_at, ok, size, restore_tested_at) into a table the dashboard can only read; Home then shows HEALTHY / NEEDS REVIEW / UNKNOWN. No backup secret ever reaches the dashboard. Needs owner approval (a table + a change in the private repository's job).
 
+## 3a. Backup status on Home: prepared (Nov 26) — PROPOSED, nothing installed
+
+The design D5 above, prepared so it is ready when the owner approves it:
+
+- **Database step 19** (`docs/ops/sql/drafts/70_DRAFT_backup_reports.sql`, undo `71_…`): one small
+  table, `backup_reports`, with one line per finished backup job run: which job (`nightly_backup` or
+  `restore_test`), when it finished, OK or failed, and the size (optional). **Nothing else can be
+  stored in it:** no file names, paths, errors or logs. The owner and administrators can read it;
+  nobody signed in to the dashboard can add, change or delete a line. Only the backup job writes,
+  with the database's own service key it already uses. Local test
+  `local-test/backup_reports_test.sh`: 40 of 40.
+- **Home** (preview switch "Backup status on Home", off): the backups line then says one of:
+  - **last night's backup succeeded** (with the time; and the last restore test, if one reported);
+  - **the newest backup is older than a day**, or **the last backup failed**: urgent, at the top;
+  - **the last restore test failed**, or **is more than 35 days old**: needs a look;
+  - **no backup has reported yet**, or **not verified here** (step 19 not installed): as today.
+- **One step in the private backups repository (the owner's; Claude may not open it).** In the
+  nightly backup workflow, add this as the LAST step (and the same in the monthly restore test, with
+  `restore_test` instead of `nightly_backup`). It uses the two secrets the job **already** has for
+  the database; put their existing names where the angle brackets are. Never paste a key anywhere.
+  If the report cannot be sent, the backup itself still counts as done.
+
+  ```yaml
+      - name: Tell the dashboard how this run went (one line, no details)
+        if: always()
+        env:
+          DB_URL: ${{ secrets.<the database URL secret this job already uses> }}
+          DB_KEY: ${{ secrets.<the service key secret this job already uses> }}
+          RUN_OK: ${{ job.status == 'success' }}
+        run: |
+          curl -fsS -X POST "$DB_URL/rest/v1/backup_reports" \
+            -H "apikey: $DB_KEY" -H "Authorization: Bearer $DB_KEY" \
+            -H "Content-Type: application/json" -H "Prefer: return=minimal" \
+            -d "{\"kind\":\"nightly_backup\",\"finished_at\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"ok\":$RUN_OK}" \
+            || echo "The report to the dashboard was not sent; the backup result above still stands."
+  ```
+
+  Order: install step 19 first, then add this step, then switch "Backup status on Home" on. To undo:
+  remove this step first, then run `71_…`.
+
 ## 4. Safe restore drill for production (owner, when approved)
 
 1. Create a **separate, throwaway Supabase project** (never the production one).
@@ -90,7 +130,7 @@ date"; never logs, file names or contents).
 | E4 | A production backup really restores, and how long it takes | one drill into a throwaway project (§4): start and end time, row counts of five main tables match | **missing** (proven only locally on synthetic data, §1) | owner, guided |
 | E5 | Uploaded files are covered, not only database rows | a list of the storage buckets in the nightly job; one file restored from it | **missing**: the platform's backups exclude files (its own page says so); no file feature is installed yet, so nothing is lost today | owner (backups repository) |
 | E6 | One copy is independent: another provider, owned by the business, cannot be deleted for a set time | the provider's retention setting and one test restore from it | **missing** (§7 point 1, PROPOSED) | owner |
-| E7 | A stale or failed backup is noticed within a day | a warning on Home when the newest backup is older than a day, tested with a deliberately old date | **missing** (§3 design; build after the owner approves D5) | Claude builds, owner approves |
+| E7 | A stale or failed backup is noticed within a day | a warning on Home when the newest backup is older than a day, tested with a deliberately old date | **PREPARED** (Nov 26, §3a): drafts 70/71, Home line behind a switch, tested locally with old and failed dates; needs step 19 and the repository step | Claude built, owner installs |
 | E8 | A replacement Mac can take over | the steps below, walked once on a second computer: sign in to GitHub, Supabase, Shopify, the backup copy; open the live dashboard; no secret was stored only on the old Mac | **missing** | owner, guided |
 
 **Replacement Mac, in short (to walk once, with Claude):** (1) a new Mac signs in to the

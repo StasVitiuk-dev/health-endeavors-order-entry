@@ -845,6 +845,30 @@
       "precheck": "stops, changing nothing, if one of the three functions is missing",
       "effect": "puts the three search paths back exactly as the owner's read-only look of Nov 25 showed them (public; public; auth, public); their text is not touched",
       "postcheck": "the three search paths are as before drafts/68"
+    },
+    {
+      "file": "drafts/70_DRAFT_backup_reports.sql",
+      "id": "70",
+      "class": "PRODUCTION-CHANGE-DRAFT",
+      "step": "optional (owner, Nov 24: a warning on Home when the newest backup is older than a day; design D5); any time, then one small step in the private backups repository",
+      "dependsOn": [],
+      "risk": "LOW",
+      "rollback": "71",
+      "precheck": "stops, changing nothing, if is_owner_or_admin() or the role service_role is missing",
+      "effect": "adds one empty table, backup_reports (which job, when it finished, ok or not, size): the owner and administrators can read it; nobody signed in can add, change or delete a line; only the backup job writes, with the service key it already has; no existing table, rule or function changes",
+      "postcheck": "the table exists with one reading rule and no writing rule for signed-in people; local-test/backup_reports_test.sh passes on a throwaway copy",
+      "lock": "none worth noting: a new empty table"
+    },
+    {
+      "file": "drafts/71_DRAFT_rollback_backup_reports.sql",
+      "id": "71",
+      "class": "ROLLBACK",
+      "rollbackOf": "70",
+      "dependsOn": [],
+      "risk": "LOW",
+      "precheck": "stops, changing nothing, if backup_reports is not there",
+      "effect": "removes backup_reports again (it only held 'this job finished, ok or not' lines; the backups themselves are not touched); turn the backup job's report step off first",
+      "postcheck": "backup_reports is gone; Home says 'Backups: not verified here' again"
     }
   ],
   "local": [

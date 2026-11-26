@@ -572,10 +572,19 @@
         return { level: 'info', count: f && f.enabled === false ? 1 : 0, oldest: null,
           why: 'Shopify order sync is off on purpose until the launch checks are done. Intentionally disabled, not broken.' };
       });
-      // Backups cannot be seen from the dashboard at all: always say so.
-      out.push({ key: 'backups', level: 'info', title: ATTN_TITLES.backups, count: null, oldest: null, page: null,
-        why: 'The dashboard cannot see the backup jobs. Status: UNKNOWN until you check them (2 minutes, read-only; see the owner backup checklist).',
-        action: 'Owner: do the 2-minute backup look (docs/ops/PRODUCTION_READONLY_VERIFICATION_EXT10.md, V1).' });
+      // Backups: what the backup jobs reported (drafts/70, behind "Backup status on Home"),
+      // else the dashboard cannot see them at all: always say so.
+      const bl = inp.backupLine;
+      if (bl && typeof bl === 'object' && typeof bl.title === 'string') {
+        const lv = ['critical', 'unknown', 'action', 'info'].includes(bl.level) ? bl.level : 'unknown';
+        // an old or failed backup is urgent, not a "data problem": its own badge word
+        out.push(Object.assign({ key: 'backups', level: lv, title: bl.title,
+          count: null, oldest: null, page: null, why: String(bl.why || ''), action: String(bl.action || '') }, lv === 'critical' ? { badge: 'Urgent' } : {}));
+      } else {
+        out.push({ key: 'backups', level: 'info', title: ATTN_TITLES.backups, count: null, oldest: null, page: null,
+          why: 'The dashboard cannot see the backup jobs. Status: UNKNOWN until you check them (2 minutes, read-only; see the owner backup checklist).',
+          action: 'Owner: do the 2-minute backup look (docs/ops/PRODUCTION_READONLY_VERIFICATION_EXT10.md, V1).' });
+      }
       const rank = { critical: 0, unknown: 1, action: 2, info: 3 };
       return out.sort((a, b) => rank[a.level] - rank[b.level]);
     }
