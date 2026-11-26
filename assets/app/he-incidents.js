@@ -44,7 +44,11 @@ window.HE.modules.define('he-incidents', { api: 1, needs: ['CLOSED_IN','SEARCH_I
     let icResult = '';    // what the last save did, shown once above the list
     function icForm(i){
       const IC = icMod();
-      return h('form', { class: 'icForm', 'data-incform': String(i.id), 'aria-label': 'Record what was done for ' + icName(i) },
+      // data-base: the incident as it was when this form was opened, so a redraw
+      // (Refresh) that keeps the typed note never lets it overwrite a change
+      // made elsewhere meanwhile
+      const base = JSON.stringify({ status: i.status == null ? null : i.status, updated_at: i.updated_at == null ? null : i.updated_at });
+      return h('form', { class: 'icForm', 'data-incform': String(i.id), 'data-base': base, 'aria-label': 'Record what was done for ' + icName(i) },
         h('h3', null, icName(i)),
         i.description ? h('p', { class: 'hint icAbout' }, String(i.description).slice(0, 2000)) : null,
         h('label', null, 'What was done', h('textarea', { name: 'done', rows: '4', maxlength: String(IC.MAX_CHARS), required: true }, i.actions_taken || '')),
@@ -63,6 +67,37 @@ window.HE.modules.define('he-incidents', { api: 1, needs: ['CLOSED_IN','SEARCH_I
       host.replaceChildren(icForm(i));
       const box = host.querySelector('textarea[name="done"]'); if (box) box.focus();
     }
+    function icBase(form, row){
+      try {
+        const b = JSON.parse(form.getAttribute('data-base') || '');
+        if (b && typeof b === 'object' && 'status' in b && 'updated_at' in b) return { status: b.status, updated_at: b.updated_at };
+      } catch (e) { /* fall back to the row on screen */ }
+      return { status: row.status == null ? null : row.status, updated_at: row.updated_at == null ? null : row.updated_at };
+    }
+    function icDropForm(id){
+      const host = document.querySelector('#incidentsTableWrap [data-inchost]'), f = host && host.querySelector('form[data-incform]');
+      if (f && f.getAttribute('data-incform') === id) host.replaceChildren();
+    }
+    // the open note form, read just before the list is drawn again (Refresh,
+    // pull to refresh, an escalation from another page), so typing is not lost
+    function icKeep(){
+      const f = document.querySelector('#incidentsTableWrap [data-inchost] form[data-incform]');
+      if (!f) return null;
+      const a = document.activeElement, focus = a && f.contains(a) && (a.name === 'done' || a.name === 'ended') ? a.name : '';
+      return { id: f.getAttribute('data-incform'), base: f.getAttribute('data-base'), done: f.elements.done.value, ended: f.elements.ended.value,
+        focus, start: focus ? a.selectionStart : null, end: focus ? a.selectionEnd : null };
+    }
+    function icRestore(keep){
+      if (!keep || !icOn()) return;
+      const host = document.querySelector('#incidentsTableWrap [data-inchost]'), i = icRows.find(r => String(r.id) === keep.id);
+      if (!host || !i) return;   // closed elsewhere meanwhile: it is now under "Closed incidents"
+      const f = icForm(i);
+      if (keep.base != null) f.setAttribute('data-base', keep.base);
+      f.elements.done.value = keep.done;
+      f.elements.ended.value = keep.ended;
+      host.replaceChildren(f);
+      if (keep.focus) { const box = f.elements[keep.focus]; box.focus(); try { box.setSelectionRange(keep.start, keep.end); } catch (e) { /* not a text box */ } }
+    }
     async function icSave(form, mode){
       const IC = icMod(); if (!IC) return;
       const say = (t) => { const p = form.querySelector('[data-incmessage]'); if (p) p.textContent = t; };
@@ -76,12 +111,12 @@ window.HE.modules.define('he-incidents', { api: 1, needs: ['CLOSED_IN','SEARCH_I
       say('Saving…');
       try {
         // only while nobody changed the incident since this list was read
-        const saved = await updateIfUnchanged('incidents', row.id, IC.patch(mode, c, new Date().toISOString()),
-          { status: row.status == null ? null : row.status, updated_at: row.updated_at == null ? null : row.updated_at });
+        const saved = await updateIfUnchanged('incidents', row.id, IC.patch(mode, c, new Date().toISOString()), icBase(form, row));
         icResult = !saved ? staleMessage('That incident')
           : mode === 'close' ? icName(row) + ' is closed. Your note is saved with it under "Closed incidents".'
           : 'Your note is saved on ' + icName(row) + '. It stays open.';
         announce(icResult);
+        icDropForm(form.getAttribute('data-incform'));   // saved or refused as changed: the form closes, the list is read again
         await loadIncidents();
         const done = document.querySelector('#incidentsTableWrap [data-incresult]'); if (done) done.focus();
       } catch (err) {
@@ -159,6 +194,7 @@ window.HE.modules.define('he-incidents', { api: 1, needs: ['CLOSED_IN','SEARCH_I
         const resultNode = closing && icResult ? h('p', { class: 'hint icResult', role: 'status', tabindex: '-1', 'data-incresult': '1' }, icResult) : null;
         icResult = '';
         const closedNode = closing ? await icClosedList() : null;
+        const keep = closing ? icKeep() : null;
         if (!open.length) {
           document.getElementById('incidentsTableWrap').replaceChildren(...[resultNode, cutoffNoteNode, h('p', { class: 'empty' }, 'No open incidents.'), closedNode].filter(Boolean));
         } else {
@@ -176,6 +212,7 @@ window.HE.modules.define('he-incidents', { api: 1, needs: ['CLOSED_IN','SEARCH_I
             closing ? h('div', { class: 'icHost', 'data-inchost': '1' }) : null,
             closedNode
           ].filter(Boolean));
+          icRestore(keep);
         }
       } catch (err) {
         showDashError('Could not load incidents: ' + (err && err.message ? err.message : err));
