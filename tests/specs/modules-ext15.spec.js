@@ -196,6 +196,7 @@ const ADDED = ['focusDialog', 'inspectLabel', 'keyLink', 'setReportHistoryView',
   // Nov 24: agent hand-offs marked handled, and raised after a day (behind he_handoff_handled)
   'handoffHandledOn', 'customersFirstOn', 'hhPulled', 'hhTimer', 'hhShared', 'hhPush', 'hhPull',
   // Nov 24: Reviews page (behind he_review_inbox)
+  'saveInquiryDraft', // Nov 26: an edited customer reply survives a redraw; the save checks against the draft it was based on
   'wireCalEvents', // Nov 26: the editor of your own event keeps its edits across a redraw
   'adminChangesOn', 'backupStatusOn', 'AC_SEEN_KEY', 'acSeq', 'acLast', 'acMod', 'acSeenUpTo', 'loadAdminChanges',
   'peoplePageOn', 'PP_FN', 'ppRows', 'ppErr', 'ppStep', 'ppSeq', 'ppMsg', 'ppMsgBad', 'ppOpen', 'ppProblems', 'ppBusy', 'ppMe', 'ppMod', 'ppOn', 'ppSay', 'ppHelper', 'loadPeoplePage', 'PP_STATE', 'renderPeoplePage', 'ppAct', 'ROLE_LABELS',
