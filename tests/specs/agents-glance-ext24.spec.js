@@ -148,7 +148,10 @@ test.describe('on the AI Agents page', () => {
     await expect(host.locator('[data-glance]')).toHaveCount(10);
     // the count is the same one the menu shows for the Approval Queue
     const menu = page.locator('#sidebarGroups .sidebarLink[data-page="approvalsPanel"] .sidebarBadge');
-    const shown = (await menu.count()) ? Number(await menu.innerText()) : 0;
+    // the approvals arrive separately from the agent switches: wait for the menu's count (GitHub,
+    // Nov 26: read once, too early, it was still 0)
+    await expect(menu).toHaveText(/^[1-9]\d*$/);
+    const shown = Number(await menu.innerText());
     expect(shown).toBeGreaterThan(0);                                          // the made-up requests really are waiting
     await expect(host.locator('[data-glanceapprovals]')).toHaveAttribute('data-glanceapprovals', String(shown));
     await expect(host.locator('[data-glanceapprovals]')).toContainText(shown ? 'waiting for your approval' : 'Nothing is waiting for your approval.');

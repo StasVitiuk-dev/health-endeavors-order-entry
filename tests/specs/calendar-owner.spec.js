@@ -24,6 +24,9 @@ test.beforeEach(async ({ page, backend }) => {
   await gotoPage(page, 'calendarPanel');
   await page.locator('#calViewToggle button[data-calview="day"]').click();
   await expect(page.locator('#calBody')).toContainText('SYNTHETIC standup');
+  // the events shown can still be the week's while the Day view's own reload is on its way (GitHub,
+  // Nov 26: a test typed into the box just before that reload redrew it); wait for it to land
+  await page.waitForLoadState('networkidle');
 });
 
 test('Day view lists today\'s events with their calendar; later days are not shown', async ({ page }) => {
@@ -59,6 +62,32 @@ test('a calendar chip hides and shows that calendar\'s events', async ({ page })
   await expect(page.locator('#calBody')).toContainText('SYNTHETIC standup');
   await chip.click();
   await expect(page.locator('#calBody')).toContainText('SYNTHETIC dinner');
+});
+
+test('a note being typed survives the calendar redrawing itself (Refresh, or the sign-in load reaching the calendar); the guard still compares with the note shown', async ({ page, backend }) => {
+  backend.tables.calendar_notes = [{ event_uid: 'uid-work', note: 'SYNTHETIC first note' }];
+  await page.locator('#calTodayBtn').click();                                              // a fresh load, so the saved note is shown
+  await page.waitForLoadState('networkidle');
+  // the next reload is held back until the note has been typed, then let through
+  let release; const held = new Promise(r => { release = r; });
+  let heldOnce = false;
+  await page.route('**/rest/v1/calendar_events?*', async route => { if (!heldOnce) { heldOnce = true; await held; } await route.fallback(); });
+  await page.locator('#calBody .calEvent[data-uid="uid-work"] .eTitle').click();
+  const box = page.locator('.calNoteBox[data-noteuid="uid-work"]');
+  await expect(box.locator('.calNoteText')).toHaveValue('SYNTHETIC first note');
+  await page.locator('#refreshBtn').click();                                               // Refresh: the calendar reloads, the event stays open
+  await expect.poll(() => heldOnce).toBe(true);
+  await box.locator('.calNoteText').fill('SYNTHETIC first note, and bring the samples');
+  await box.evaluate(el => el.setAttribute('data-test-old', '1'));
+  release();
+  await expect(page.locator('.calNoteBox[data-noteuid="uid-work"]:not([data-test-old])')).toHaveCount(1);   // the box was drawn again
+  await expect(box.locator('.calNoteText')).toHaveValue('SYNTHETIC first note, and bring the samples');
+  await expect(box.locator('.calNoteText')).toBeFocused();
+  // the note was changed elsewhere meanwhile: the save is still refused, nothing is overwritten
+  backend.tables.calendar_notes = [{ event_uid: 'uid-work', note: 'SYNTHETIC changed in another tab' }];
+  await box.locator('.calNoteSave').click();
+  await expect(page.locator('#dashError')).toContainText('changed or added somewhere else');
+  expect(backend.tables.calendar_notes[0].note).toBe('SYNTHETIC changed in another tab');
 });
 
 test('saving a note on an event stores it by the event\'s id (so it survives the sync)', async ({ page, backend }) => {
