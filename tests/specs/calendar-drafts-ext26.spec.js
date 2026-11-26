@@ -51,6 +51,11 @@ test('an event of your own being edited survives a redraw; the save still checks
   await box.locator('.personalEditSave').click();
   await expect(page.locator('#dashError')).toBeVisible();
   expect(backend.tables.personal_calendar_events[0].title).toBe('SYNTHETIC changed in another tab');
+  // then the editor shows the other version, and saving from it works
+  await expect(box.locator('.personalEditTitle')).toHaveValue('SYNTHETIC changed in another tab');
+  await box.locator('.personalEditTitle').fill('SYNTHETIC changed in another tab, card');
+  await box.locator('.personalEditSave').click();
+  await expect.poll(() => backend.tables.personal_calendar_events[0].title).toBe('SYNTHETIC changed in another tab, card');
 });
 
 test('nothing changed in the editor: a redraw shows the event as it is now', async ({ page, backend }) => {

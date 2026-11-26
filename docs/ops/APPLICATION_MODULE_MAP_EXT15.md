@@ -31,17 +31,17 @@ Why it matters: a smaller file is easier to review, a mistake in one area is les
 | 8 | `he-nav` | navigation state: page ids, deep links, last page, sidebar groups open and pinned, back/forward stacks, unsaved-typing guard | 131 | he-config: 1 | 18 |
 | 9 | `he-tasks` | Tasks page: list, recently done, status changes (guarded: only if still in the expected state) | 124 | he-format: 1, he-config: 4, helpers / program: 4, he-ui: 2, he-data: 1 | 1 |
 | 10 | `he-approvals` | Approval Queue: list and decisions (password re-check before a decision) | 72 | he-format: 1, he-config: 1, he-ui: 2, helpers / program: 4, he-data: 2 | 1 |
-| 11 | `he-incidents` | Incidents: list, turning a failed quality check into one incident only once, | 187 | he-format: 1, he-config: 2, helpers / program: 7, he-ui: 2, he-data: 5 | 2 |
+| 11 | `he-incidents` | Incidents: list, turning a failed quality check into one incident only once, | 224 | he-format: 1, he-config: 2, helpers / program: 7, he-ui: 2, he-data: 5 | 2 |
 | 12 | `he-expenses` | Expenses: list, receipts, delete to the recycle bin and restore list | 168 | he-config: 2, he-data: 6, helpers / program: 6, he-ui: 2 | 2 |
 | 13 | `he-suppliers` | Suppliers: list | 69 | he-config: 2, helpers / program: 3, he-data: 2, he-ui: 1 | 1 |
 | 14 | `he-reports` | Report history: daily / weekly / monthly views (missing values stay '?', never zero) | 87 | helpers / program: 6, he-ui: 1, he-format: 2, he-time: 2, he-data: 1 | 4 |
-| 15 | `he-inquiries` | Customer questions: list, severity, saved drafts, copy reply, mark answered (never sends anything) | 230 | he-config: 2, he-data: 4, he-ui: 2, he-format: 1, helpers / program: 3 | 3 |
+| 15 | `he-inquiries` | Customer questions: list, severity, saved drafts, copy reply, mark answered (never sends anything) | 231 | he-config: 2, he-data: 4, he-ui: 2, he-format: 1, helpers / program: 3 | 3 |
 | 16 | `he-agents` | AI agents: switch states, scheduled-job health, honest status (unknown is never 'running'), paused banner | 335 | he-config: 2, he-data: 3, he-ui: 3, helpers / program: 6 | 4 |
 | 17 | `he-ops` | high-risk operation states: one explicit state per record for | 83 | — | 4 |
 | 18 | `he-admin` | Admin pages: signed-in sessions, SOPs, feature requests and their recycle bin (reads plus simple non-stock, non-money saves) | 209 | he-config: 4, helpers / program: 9, he-data: 4, he-ui: 2 | 4 |
 | 19 | `he-compliance` | Compliance pages: adverse events, legal holds (and released holds), documents, evidence locker (reads plus guarded record saves; no stock or money) | 393 | he-format: 2, he-config: 2, he-data: 7, helpers / program: 7, he-ui: 3 | 5 |
 
-Program file after extraction: `assets/owner-login-app.js` 13,607 lines, 999,781 bytes; 354 top-level functions; 195 mutable top-level variables (195 shared).
+Program file after extraction: `assets/owner-login-app.js` 13,610 lines, 1,000,157 bytes; 354 top-level functions; 195 mutable top-level variables (195 shared).
 
 Dependency graph (module ← modules it takes inputs from; the program creates them top to bottom):
 

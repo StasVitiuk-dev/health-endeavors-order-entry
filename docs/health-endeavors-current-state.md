@@ -13,7 +13,13 @@ Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (fro
 
 ## 1. Internal platform (the dashboard)
 
-- **CURRENT (Nov 26, 2026), read this first:** `main` is at `c60e07e` and is the live dashboard.
+- **CURRENT (Nov 26, 2026, evening), read this first:** `main` is at `19a4bc5` and is the live
+  dashboard. During Nov 26 the owner merged #120 and #121 (tests; rollback practice, email sender and
+  legal-page guides), #123, #124 and #125 (typed notes, own events and inquiry replies survive a
+  redraw) and #122 (Ready to launch: rollback practice line). Open: #126 (Incidents, plus a correction
+  to the redraw fixes) and #127 (tests only). Monthly costs: `docs/ops/MONTHLY_RUNNING_COSTS.md`.
+  Backups: nightly green Nov 26, minutes OK; restore test not yet reported.
+- **Nov 26, 2026 (early morning):** `main` was at `c60e07e`.
   From the evening of Nov 25 to just after midnight (Central) the owner merged #112 (managers approve
   supplier documents), #113 (managers decide deliveries and returns someone else recorded, the owner's
   choice A), #114 (database drafts 68/69: three history and sign-in functions name `pg_temp` last),
@@ -169,8 +175,10 @@ Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (fro
 
 ## 4. Important merged work (on `main`)
 
-- **CURRENT (Nov 26, 2026):** latest `main` commit `c60e07e` (#119). Since `f173b97`: #111, #112,
-  #113, #115, #114, #117, #118, #119 (see §1).
+- **CURRENT (Nov 26, 2026, evening):** latest `main` commit `19a4bc5` (#125). Since `c60e07e`:
+  #120, #121, #123, #122, #124, #125 (see §1).
+- **Nov 26, 2026 (early morning):** latest `main` commit was `c60e07e` (#119). Since `f173b97`: #111, #112,
+  #113, #115, #114, #117, #118, #119.
 - **Nov 25, 2026:** latest `main` commit was `f173b97` (#110, containing #102–#109). Earlier on
   Nov 25: #101, #93, #100; on Nov 24 evening: #51, #86, #87, #88. Detail: `PROJECT_RECORD.md` §3b and §9.
 - **Nov 24, 2026:** latest `main` commit was `e08ec8c`. Merged by the owner on Nov 23, in this
@@ -184,7 +192,11 @@ Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (fro
 
 ## 5. Active development (open PRs)
 
-**CURRENT (Nov 26, 2026, early morning):** no open PRs for the owner; #119 was the last one, merged
+**CURRENT (Nov 26, 2026, evening):** open for the owner: #126 (Incidents: a note being typed survives a
+redraw; after a refused save the other version is shown) and #127 (tests only: three waits a busy
+machine outran), plus this notes PR.
+
+**Nov 26, 2026, early morning:** no open PRs for the owner; #119 was the last one, merged
 just after midnight Central.
 
 **Nov 25, 2026, afternoon:** no open PRs for the owner. #110 was merged with #102–#109

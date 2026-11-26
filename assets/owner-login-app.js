@@ -10514,14 +10514,16 @@
       // Day, redrew the open event with an empty box and the half-typed note was lost). Kept
       // only when it differs from the note that box showed, together with what that box
       // showed, so the "changed somewhere else" guard still compares with the right note.
-      const typing = body.querySelector('.calNoteBox[data-noteuid] .calNoteText');
+      // Not after a save was refused as changed elsewhere (data-conflict): the message says
+      // the calendar was refreshed to show the other version, so that one is shown.
+      const typing = body.querySelector('.calNoteBox[data-noteuid]:not([data-conflict]) .calNoteText');
       const draft = typing && typing.value !== (typing.closest('.calNoteBox').getAttribute('data-shown') || '')
         ? { uid: typing.closest('.calNoteBox').getAttribute('data-noteuid'), text: typing.value,
             had: typing.closest('.calNoteBox').getAttribute('data-had'), shown: typing.closest('.calNoteBox').getAttribute('data-shown'),
             from: typing.selectionStart, to: typing.selectionEnd, focused: document.activeElement === typing }
         : null;
       // the same for the editor of one of your own events, once anything in it was changed
-      const editing = body.querySelector('.calNoteBox[data-personaluid][data-dirty]');
+      const editing = body.querySelector('.calNoteBox[data-personaluid][data-dirty]:not([data-conflict])');
       const personalDraft = editing ? {
         uid: editing.getAttribute('data-personaluid'), shown: editing.getAttribute('data-shown'),
         values: ['personalEditTitle', 'personalEditStart', 'personalEditEnd'].map(c => { const el = editing.querySelector('.' + c); return el ? el.value : ''; }),
@@ -10635,6 +10637,7 @@
             if (!saved) {
               showDashError('That note was changed or added somewhere else (another tab or person) since you opened it, so yours was not saved and nothing was overwritten. The calendar has been refreshed: open the note again to see the latest text. Your text: “' + text + '”');
               saveBtn.disabled = false;
+              box.setAttribute('data-conflict', '1');   // the refresh shows the other version, not this text again
               loadCalendarMonth();
               return;
             }
@@ -10699,7 +10702,7 @@
               all_day: !!allDayInput.checked,
               updated_at: new Date().toISOString(),
             }, shownEv || {});
-            if (!ok) { showDashError(staleMessage('That event')); saveBtn.disabled = false; loadCalendarMonth(); return; }
+            if (!ok) { showDashError(staleMessage('That event')); saveBtn.disabled = false; box.setAttribute('data-conflict', '1'); loadCalendarMonth(); return; }
             toastOk('Event updated.');
             calOpenUid = null;
             loadCalendarMonth();

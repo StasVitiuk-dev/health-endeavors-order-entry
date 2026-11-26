@@ -194,6 +194,9 @@ test.describe('against a real database with drafts/40 installed', () => {
       // staff can cancel what they recorded by mistake
       await expect(host.locator('[data-rtnact="cr-cancel"]')).toHaveCount(1);
       await customerReturn(page, 1);
+      // wait until the second one is recorded and listed: a Cancel pressed while it was still
+      // being saved was drawn over by that save (full run on 19a4bc5, Nov 26, under heavy load)
+      await expect(host.locator('[data-rtnact="cr-cancel"]')).toHaveCount(2);
       await host.locator('[data-rtnact="cr-cancel"]').first().click();
       await expect(msg(page)).toContainText('Cancelled.');
       expect(await db.query("select count(*) filter (where status = 'cancelled')||'/'||count(*) from customer_return_inspections")).toBe('1/2');

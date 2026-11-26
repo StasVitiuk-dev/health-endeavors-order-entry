@@ -147,6 +147,17 @@ async function gotoPage(page, pageId) {
     }
     await expect(section).toHaveClass(/activePage/, { timeout: 5000 });
   }).toPass({ timeout: 20000 });
+  // A retry above re-opens the phone menu; when the page had opened from the first click
+  // meanwhile and the retry's own click was lost, the menu stayed open over the page and a
+  // button under it could not be pressed (full run on 19a4bc5, Nov 26). Close it the way a
+  // person does: tap the page's line again (that also closes the menu on a phone).
+  if (await page.locator('#menuToggleBtn').isVisible()) {
+    await expect(async () => {
+      if (await page.locator('#sidebarNav').evaluate(el => el.classList.contains('mobileOpen'))) await open(5000);
+      await expect(page.locator('#sidebarNav')).not.toHaveClass(/\bmobileOpen\b/, { timeout: 2000 });
+      await expect(section).toHaveClass(/activePage/, { timeout: 2000 });
+    }).toPass({ timeout: 20000 });
+  }
   // Opening a page plays a short slide-in (panelIn, 0.26 s, 6 px; only where the device allows
   // motion). On a busy machine it can still be running when a test measures where a button is,
   // so a button looked as if it moved by 4.5 px (full run on c5db3ed, Nov 26). Wait for it; a

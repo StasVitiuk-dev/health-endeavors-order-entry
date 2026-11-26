@@ -199,6 +199,7 @@ const ADDED = ['focusDialog', 'inspectLabel', 'keyLink', 'setReportHistoryView',
   'saveInquiryDraft', // Nov 26: an edited customer reply survives a redraw; the save checks against the draft it was based on
   'wireCalEvents', // Nov 26: the editor of your own event keeps its edits across a redraw
   'keepTyped', // Nov 26: what is being typed in Returns, Recalls, Quality Checks and Inventory survives a redraw
+  'icBase', 'icDropForm', 'icKeep', 'icRestore', 'loadIncidents', // Nov 26: an incident note being typed survives a redraw
   'adminChangesOn', 'backupStatusOn', 'AC_SEEN_KEY', 'acSeq', 'acLast', 'acMod', 'acSeenUpTo', 'loadAdminChanges',
   'peoplePageOn', 'PP_FN', 'ppRows', 'ppErr', 'ppStep', 'ppSeq', 'ppMsg', 'ppMsgBad', 'ppOpen', 'ppProblems', 'ppBusy', 'ppMe', 'ppMod', 'ppOn', 'ppSay', 'ppHelper', 'loadPeoplePage', 'PP_STATE', 'renderPeoplePage', 'ppAct', 'ROLE_LABELS',
   'reviewInboxOn', 'RI_KEY', 'riList', 'riMessage', 'riFilter', 'riOpen', 'riRemoveId', 'riDraft', 'riMod', 'riDeps', 'riOwner', 'riRead', 'riKeep', 'riFeedRows', 'loadReviewInbox', 'reviewStoreOn', 'riShared', 'riStoreState', 'riIds', 'riPulling', 'riMoved', 'riStore', 'riPull', 'riAddRows', 'riMark', 'riBusy', 'riSettled', 'riFromDatabase', 'RI_LEVEL_WORD', 'riStars', 'renderReviewInbox', 'riChanged',
