@@ -11576,6 +11576,18 @@
                 h('input', { type: 'checkbox', class: 'ruleActiveToggle', checked: r.is_active ? true : null }),
                 h('span', { class: 'slider' }))));
         };
+        // A changed value not yet saved survives a redraw (Nov 26: Refresh, or the quiet refresh
+        // every 5 minutes once the cursor had left the box, put the old value back and hid Save).
+        // Kept with the settings the row showed (data-config), so the save still refuses a
+        // change made elsewhere meanwhile; not after such a refusal (data-conflict), when the
+        // other version is shown.
+        const unsaved = {};
+        document.querySelectorAll('#businessRulesWrap .flagRow[data-id]:not([data-conflict])').forEach(r => {
+          const box = r.querySelector('.ruleValueInput, .ruleConfigJson'), save = r.querySelector('.ruleSaveBtn');
+          if (!box || !save || save.style.display !== 'inline-block') return;
+          unsaved[r.getAttribute('data-id')] = { kind: box.classList.contains('ruleConfigJson') ? 'json' : 'value', value: box.value,
+            base: r.getAttribute('data-config'), focused: document.activeElement === box };
+        });
         document.getElementById('businessRulesWrap').replaceChildren(...rules.map(ruleRow));
 
         // The Save button only appears once a value has actually changed, so
@@ -11632,7 +11644,7 @@
               const changed = await updateIfUnchanged('business_rules', id,
                 { config: newConfig, updated_by: uid },
                 shown === 'null' ? { config: null } : { config: shown });
-              if (!changed) { showDashError(staleMessage('That rule')); loadBusinessRules(); return; }
+              if (!changed) { showDashError(staleMessage('That rule')); row.setAttribute('data-conflict', '1'); loadBusinessRules(); return; }
               row.setAttribute('data-config', JSON.stringify(newConfig));
               btn.style.display = 'none';
             } catch (err) {
@@ -11666,6 +11678,15 @@
               cb.disabled = false;
             }
           });
+        });
+        Object.keys(unsaved).forEach(id => {
+          const r = Array.from(document.querySelectorAll('#businessRulesWrap .flagRow[data-id]')).find(x => x.getAttribute('data-id') === id), kept = unsaved[id];
+          const box = r && r.querySelector(kept.kind === 'json' ? '.ruleConfigJson' : '.ruleValueInput');
+          if (!box) return;   // the rule is gone, or its settings now have another shape
+          box.value = kept.value;
+          r.setAttribute('data-config', kept.base);
+          r.querySelector('.ruleSaveBtn').style.display = 'inline-block';
+          if (kept.focused) box.focus();
         });
       } catch (err) {
         showDashError('Could not load business rules: ' + (err && err.message ? err.message : err));
