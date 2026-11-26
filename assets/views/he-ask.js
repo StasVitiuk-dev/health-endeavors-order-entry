@@ -166,6 +166,7 @@
       const pick = (name) => { const l = w.lines.find(x => isObj(x) && x.label === name); return l ? clean(l.value) : ''; };
       const bits = [];
       if (pick('Orders placed')) bits.push(pick('Orders placed') + ' orders, totals ' + pick('Order totals (tax and shipping included)'));
+      if (/^-?\$/.test(pick('Profit after costs'))) bits.push('Profit after costs ' + pick('Profit after costs') + ', using your cost estimates');   // only a worked-out amount, never "not worked out yet"
       if (pick('New questions in the week')) bits.push(pick('New questions in the week') + ' new customer questions, ' + pick('Waiting for an answer right now') + ' waiting now');
       if (pick('Returns opened')) bits.push(pick('Returns opened') + ' returns opened');
       if (pick('Products at or under their alert level')) bits.push(pick('Products at or under their alert level') + ' products low on stock');

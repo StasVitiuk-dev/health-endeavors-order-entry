@@ -118,6 +118,45 @@ test.describe('the arithmetic (no browser)', () => {
     expect([capped.value, capped.note]).toEqual(['at least 1', 'the list was too long to read to the end; see Employee Activity']);
   });
 
+  test('profit (Nov 26): after product cost, fees, postage and packaging; never $0 because a cost is missing; says it uses estimates', ({}, ti) => {
+    node(ti);
+    const P = require('../../assets/reports/he-profit.js');
+    const o = (id, sub, extra) => Object.assign({ id: id, order_number: id, channel: 'shopify', status: 'paid', subtotal: sub, shipping_total: 0, tax_total: 0, total: sub }, extra || {});
+    const lines = (input) => W.lines(W.build(Object.assign({ now: NOW }, input))).filter(l => l.section === 'Profit').map(l => [l.label, l.value, l.note]);
+    // switched off: left out; could not be read: says so
+    expect(W.build({ now: NOW }).profit).toEqual({ state: 'off' });
+    expect(lines({})).toEqual([]);
+    for (const bad of [null, false, 'x', 7, [], {}, { totals: null }, { totals: { orders: 2, complete: 3 } }, { totals: { orders: 1, complete: 1, revenue: 'x', profit: 5 } }]) {
+      expect(lines({ profit: bad })).toEqual([['Profit after costs', 'could not be read', '']]);
+    }
+    // two orders, one with a known cost: the profit is that order's, and the other is counted as missing
+    const two = P.compute({ orders: [o('a', 40), o('b', 20)], items: [{ order_id: 'a', sku: 'L', quantity: 2, line_total: 40 }, { order_id: 'b', sku: 'Z', quantity: 1, line_total: 20 }],
+      products: [{ id: 'p1', sku: 'L', name: 'Lotion', cost: 6 }], postagePerOrder: 4, packagingPerOrder: 1 });
+    // 4000 - 1200 product - (116 + 30) fee - 400 postage - 100 packaging = 2154 on 4000: 53.9%
+    expect(lines({ profit: two })).toEqual([
+      ['Profit after costs', '$21.54', '53.9% of $40.00 in sales without sales tax · 1 of 2 orders'],
+      ['Orders not in the profit (a cost is missing)', '1', 'product cost (1 order)'],
+      ['Worked out with', 'product cost, fees, postage and packaging', 'fees, postage and packaging are your estimates']]);
+    expect(W.footNote(W.build({ now: NOW, profit: two }))).toBe('Exact figures from the records. Only the profit uses your fee, postage and packaging estimates.');
+    expect(W.toText(W.build({ now: NOW, profit: two })).split('\n').slice(-1)[0]).toBe('Exact figures from the records. Only the profit uses your fee, postage and packaging estimates.');
+    // a real fee and postage saved for an order are named; a loss is shown as a loss
+    const real = P.compute({ orders: [o('a', 10)], items: [{ order_id: 'a', sku: 'L', quantity: 1, line_total: 10 }], products: [{ id: 'p1', sku: 'L', cost: 9 }],
+      postagePerOrder: 4, packagingPerOrder: 1, orderCosts: [{ order_id: 'a', fee_cents: 50, postage_cents: 600 }] });
+    expect(lines({ profit: real })).toEqual([
+      ['Profit after costs', '-$6.50', '-65.0% of $10.00 in sales without sales tax · 1 of 1 order'],
+      ['Worked out with', 'product cost, fees, postage and packaging', 'fees, postage and packaging are your estimates, except the real fee on 1 order and the real postage on 1 order']]);
+    // no cost known on any order: "not worked out yet", never $0, with what is missing
+    const none = P.compute({ orders: [o('a', 40), o('b', 20)], items: [{ order_id: 'a', sku: 'L', quantity: 1 }, { order_id: 'b', sku: 'L', quantity: 1 }], products: [] });
+    expect(lines({ profit: none })).toEqual([['Profit after costs', 'not worked out yet',
+      'a cost is missing on every order: packaging estimate (2 orders), postage estimate (2 orders), product cost (2 orders); enter it under Accounting, Real profit']]);
+    expect(W.footNote(W.build({ now: NOW, profit: none }))).toBe('Exact figures from the records. Nothing is estimated.');
+    // a week with no orders (or only cancelled ones)
+    expect(lines({ profit: P.compute({ orders: [o('c', 9, { status: 'refunded' })] }) })).toEqual([['Profit after costs', '—', 'no orders to count']]);
+    // the section sits right under Sales
+    const both = W.lines(W.build({ now: NOW, orders: [], items: [], profit: two, tasks: [], incidents: [] }));
+    expect([...new Set(both.map(l => l.section))]).toEqual(['Sales', 'Profit', 'Work']);
+  });
+
   test('the Home reminder: the newest finished week, until that week was opened', ({}, ti) => {
     node(ti);
     expect(W.due(NOW, '')).toMatchObject({ due: true, week: { key: '2026-11-16' } });
@@ -156,8 +195,14 @@ async function open(page, backend, opts) {
   await page.clock.setFixedTime(new Date(FIXED));
   seed(backend);
   if (o.role) backend.tables.profiles[0].role = o.role;
-  await page.addInitScript((feed) => { try { localStorage.setItem('he_backups_page', 'on'); if (feed) localStorage.setItem('he_attention_feed', 'on'); } catch (e) {}
-    window.print = () => { window.__printed = (window.__printed || 0) + 1; }; }, !!o.feed);
+  if (o.profit) {                                                  // Real profit on: the lotion has a cost, the orders a channel
+    backend.tables.products.push({ id: 'p9', sku: 'SYNTHETIC LOTION', name: 'SYNTHETIC Lotion', cost: 2 });
+    backend.tables.orders.forEach(r => { r.channel = 'shopify'; });
+    backend.tables.purchase_order_items = [];
+  }
+  await page.addInitScript((a) => { try { localStorage.setItem('he_backups_page', 'on'); if (a.feed) localStorage.setItem('he_attention_feed', 'on');
+    if (a.profit) { localStorage.setItem('he_real_profit', 'on'); localStorage.setItem('he_profit_estimates', JSON.stringify({ postage: 4, packaging: 1 })); } } catch (e) {}
+    window.print = () => { window.__printed = (window.__printed || 0) + 1; }; }, { feed: !!o.feed, profit: !!o.profit });
   await login(page);
   if (o.stay) return;
   await gotoPage(page, 'backupsPanel');
@@ -197,6 +242,26 @@ test('Show the report: last week\'s exact figures from the records, and nothing 
   // the people were asked for that week only
   const call = peopleCalls(backend)[0].body;
   expect([Date.parse(call.p_to) - Date.parse(call.p_from), call.p_person, call.p_area, call.p_search]).toEqual([7 * 86400000, null, null, null]);
+  expect(writes(backend)).toEqual([]);
+});
+
+test('with Real profit on, the report has the week\'s profit, worked out like Accounting, and says it uses the estimates; nothing is written', async ({ page, backend }) => {
+  await open(page, backend, { profit: true });
+  const host = page.locator('#wrHost');
+  await expect(host.locator('.hint').first()).toContainText('sales, profit, customers');
+  await host.locator('[data-wr="show"]').click();
+  await expect(host.locator('[data-wrsection]')).toHaveText(['Sales', 'Profit', 'Customers', 'Returns', 'Stock right now', 'Work', 'People']);
+  // order 1: $10.00 - 2 x $2 - fee ($0.29 + $0.30) - $4 postage - $1 packaging = $0.41; order 2: $20.00 - $2 - $0.88 - $4 - $1 = $12.12; the cancelled one is left out
+  await expect(value(host, 'Profit after costs')).toHaveText('$12.53');
+  await expect(host.locator('[data-wrtable]')).toContainText('41.8% of $30.00 in sales without sales tax · 2 of 2 orders');
+  await expect(value(host, 'Worked out with')).toHaveText('product cost, fees, postage and packaging');
+  await expect(host.locator('[data-wrnote]')).toHaveText('The week of Nov 16 – Nov 22, 2026. Every figure is exact, except that the profit uses your estimates.');
+  // the same week's orders only: the order of Nov 24 is not in it
+  const asked = backend.requests.filter(r => r.method === 'GET' && r.table === 'orders' && /subtotal/.test(decodeURIComponent(r.query || '')));
+  expect(asked.length).toBeGreaterThan(0);
+  for (const r of asked) expect(r.params.filter(([k]) => k === 'placed_at').map(([, v]) => v.slice(0, 3))).toEqual(['gte', 'lt.']);
+  await host.locator('[data-wr="print"]').click();
+  await expect(page.locator('#invoicePrintHost [data-printweek="2026-11-16"]')).toContainText('Only the profit uses your fee, postage and packaging estimates. Stock is as it was when this page was printed.');
   expect(writes(backend)).toEqual([]);
 });
 

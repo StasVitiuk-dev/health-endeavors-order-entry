@@ -82,6 +82,13 @@ test.describe('the rules (no browser)', () => {
     const lost = A.compose({ intent: 'orders', period: 'today' }, { sales: { state: 'unknown' } });
     expect([lost.lines[0].value, lost.say]).toEqual(['could not be read', 'I could not read the orders just now.']);
     for (const intent of ['orders', 'waiting', 'stock', 'launch', 'weekly', 'did']) expect(A.compose({ intent: intent, period: 'today' }, {}).say).toMatch(/^I could not read /);
+    // the weekly report: the profit is said only when it is an amount, with "using your cost estimates" (Nov 26)
+    const wk = (profit) => A.compose({ intent: 'weekly' }, { week: { label: 'Nov 16 – Nov 22, 2026', lines: [
+      { section: 'Sales', label: 'Orders placed', value: '3' }, { section: 'Sales', label: 'Order totals (tax and shipping included)', value: '$30.00' },
+      { section: 'Profit', label: 'Profit after costs', value: profit }] } }).say;
+    expect(wk('$12.53')).toBe('The week of Nov 16 to Nov 22, 2026: 3 orders, totals $30.00. Profit after costs $12.53, using your cost estimates.');
+    expect(wk('-$6.50')).toContain('Profit after costs -$6.50, using your cost estimates');
+    for (const not of ['not worked out yet', '—', 'could not be read']) expect(wk(not)).not.toMatch(/profit/i);
 
     expect(A.compose({ intent: 'waiting' }, { questions: { state: 'ok', waiting: 2, oldestDays: 5 } }).say).toBe('2 customers are waiting for an answer. The oldest has waited 5 days.');
     expect(A.compose({ intent: 'waiting' }, { questions: { state: 'ok', waiting: 0, oldestDays: null } }).say).toBe('No customer is waiting.');

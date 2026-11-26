@@ -3136,6 +3136,26 @@
       if (rpPeriod === '90') return [new Date(now.getTime() - 90 * 86400000), now];
       return [new Date(now.getFullYear(), now.getMonth(), 1), now];
     }
+    // the profit of the orders placed from..to (also used by the weekly report): reads, never writes
+    async function rpGather(from, to) {
+      const M = rpMod();
+      const store = rpStore(), S = rpSettings();
+      const sharedP = store ? store.get(S.KEYS.profitEstimates) : Promise.resolve({ state: 'unknown', value: null, updatedAt: null });
+      const orders = await fetchAllRows('orders', 'id, order_number, channel, source, status, subtotal, shipping_total, tax_total, total, placed_at, deleted_at',
+        q => q.is('deleted_at', null).gte('placed_at', from.toISOString()).lt('placed_at', to.toISOString()));
+      const ids = orders.map(o => o.id);
+      const [items, products, poLines] = await Promise.all([
+        ids.length ? fetchAllRowsIn('order_items', 'id, order_id, sku, product_name, quantity, unit_price, line_total', 'order_id', ids) : Promise.resolve([]),
+        fetchAllRows('products', 'id, sku, name, cost', q => q),
+        fetchAllRows('purchase_order_items', 'id, product_id, landed_unit_cost, quantity_received, created_at', q => q.not('product_id', 'is', null)),
+      ]);
+      const shared = await sharedP;
+      const oc = ocStore();
+      const costs = oc && ids.length ? await oc.list(ids) : { state: 'off', rows: [], message: '' };
+      rpShared = shared || { state: 'unknown', value: null, updatedAt: null };
+      const est = rpEstimates();
+      return { costs: costs, result: M.compute({ orders: orders, items: items, products: products, poLines: poLines, fees: est.fees, postagePerOrder: est.postage, packagingPerOrder: est.packaging, boxes: est.boxes, orderCosts: costs.rows }) };
+    }
     async function loadRealProfit() {
       const M = rpMod();
       const host = rpHost(realProfitOn() && !!M); if (!host) return;
@@ -3143,24 +3163,10 @@
       rpResult = null; rpError = ''; renderRealProfit();
       try {
         const [from, to] = rpRange();
-        const store = rpStore(), S = rpSettings();
-        const sharedP = store ? store.get(S.KEYS.profitEstimates) : Promise.resolve({ state: 'unknown', value: null, updatedAt: null });
-        const orders = await fetchAllRows('orders', 'id, order_number, channel, source, status, subtotal, shipping_total, tax_total, total, placed_at, deleted_at',
-          q => q.is('deleted_at', null).gte('placed_at', from.toISOString()).lt('placed_at', to.toISOString()));
-        const ids = orders.map(o => o.id);
-        const [items, products, poLines] = await Promise.all([
-          ids.length ? fetchAllRowsIn('order_items', 'id, order_id, sku, product_name, quantity, unit_price, line_total', 'order_id', ids) : Promise.resolve([]),
-          fetchAllRows('products', 'id, sku, name, cost', q => q),
-          fetchAllRows('purchase_order_items', 'id, product_id, landed_unit_cost, quantity_received, created_at', q => q.not('product_id', 'is', null)),
-        ]);
-        const shared = await sharedP;
-        const oc = ocStore();
-        const costs = oc && ids.length ? await oc.list(ids) : { state: 'off', rows: [], message: '' };
+        const got = await rpGather(from, to);
         if (seq !== rpSeq) return;
-        rpCostsNote = costs.state === 'error' ? 'The real order costs could not be read (' + costs.message + '), so every order uses the estimates.' : '';
-        rpShared = shared || { state: 'unknown', value: null, updatedAt: null };
-        const est = rpEstimates();
-        rpResult = M.compute({ orders: orders, items: items, products: products, poLines: poLines, fees: est.fees, postagePerOrder: est.postage, packagingPerOrder: est.packaging, boxes: est.boxes, orderCosts: costs.rows });
+        rpCostsNote = got.costs.state === 'error' ? 'The real order costs could not be read (' + got.costs.message + '), so every order uses the estimates.' : '';
+        rpResult = got.result;
       } catch (e) {
         if (seq !== rpSeq) return;
         rpError = 'Profit could not be worked out just now: ' + explainDbError(e && e.message ? e.message : String(e));
@@ -5686,10 +5692,13 @@
         settle(fetchAllActivity({ p_search: null, p_person: null, p_area: null, p_from: week.from, p_to: week.to }, 20000)),
         wrReviews().then(v => v, () => null),
       ]);
+      // the profit of the week's orders, when Real profit is switched on (the same figures as Accounting)
+      const profit = typeof realProfitOn === 'function' && realProfitOn() && rpMod()
+        ? await rpGather(new Date(week.from), new Date(week.to)).then(g => g.result, () => null) : undefined;
       const ids = Array.isArray(orders) ? orders.map(o => o.id) : [];
       const items = !Array.isArray(orders) ? null : ids.length ? await settle(fetchAllRowsIn('order_items', 'id, order_id, sku, product_name, quantity', 'order_id', ids)) : [];
       const returned = Array.isArray(opened) && Array.isArray(refunded) ? [...new Map(opened.concat(refunded).map(r => [r.id, r])).values()] : null;
-      return M.build({ now: Date.now(), week: week, orders: orders, prevOrders: prevOrders, items: items, questions: asked, waiting: waiting, returns: returned,
+      return M.build({ now: Date.now(), week: week, orders: orders, prevOrders: prevOrders, items: items, profit: profit, questions: asked, waiting: waiting, returns: returned,
         stock: stockRows, products: products || [], tasks: tasks, incidents: incidents, reviews: reviews,
         activity: activity && Array.isArray(activity.rows) ? activity.rows : null, activityCapped: !!(activity && activity.capped) });
     }
@@ -5702,7 +5711,8 @@
       wrReport = report;
       wrBusy = false;
       const missing = M.lines(wrReport).filter(l => l.value === 'could not be read').length;
-      wrNote = 'The week of ' + week.label + '.' + (missing ? ' ' + missing + (missing === 1 ? ' part' : ' parts') + ' could not be read; press "Show the report" to try again.' : ' Every figure is exact.');
+      const estimated = wrReport.profit && wrReport.profit.state === 'ok' && wrReport.profit.complete > 0;
+      wrNote = 'The week of ' + week.label + '.' + (missing ? ' ' + missing + (missing === 1 ? ' part' : ' parts') + ' could not be read; press "Show the report" to try again.' : estimated ? ' Every figure is exact, except that the profit uses your estimates.' : ' Every figure is exact.');
       renderWeekReport(); announce(wrNote);
       const table = document.querySelector('#wrHost [data-wrtable]'); if (table) table.focus();
       if (wrBack === 0) {                                  // the newest week was opened: the Home reminder goes
@@ -5725,7 +5735,7 @@
       const list = M.weeks(Date.now(), 8);
       host.replaceChildren(...[
         h('h3', null, 'Weekly report'),
-        h('p', { class: 'hint u-mt-n2' }, 'One finished week, Monday to Sunday, on one page: sales, customers, returns, stock, tasks and what each person did. It is read from the records when you press the button; nothing is changed. Every figure is exact, and a part that cannot be read says so. No customer names are on it.'),
+        h('p', { class: 'hint u-mt-n2' }, 'One finished week, Monday to Sunday, on one page: sales' + (realProfitOn() && rpMod() ? ', profit' : '') + ', customers, returns, stock, tasks and what each person did. It is read from the records when you press the button; nothing is changed. Every figure is exact' + (realProfitOn() && rpMod() ? ' (the profit uses your fee, postage and packaging estimates where no real figure is saved)' : '') + ', and a part that cannot be read says so. No customer names are on it.'),
         h('div', { class: 'u-d-flex u-gap-8 u-fwr-wrap u-ai-flex-end u-mt-8' },
           h('div', { class: 'heField' }, h('label', { for: 'wrWeek' }, 'Week'),
             h('select', { id: 'wrWeek' }, list.map((w, n) => h('option', Object.assign({ value: String(n) }, n === wrBack ? { selected: 'selected' } : {}), w.label + (n === 0 ? ' (last week)' : ''))))),
@@ -5751,7 +5761,7 @@
         bkPrintDoc([h('div', { class: 'printPage', 'data-printweek': wrReport.week.key },
           printBrand('Weekly report, ' + wrReport.week.label), h('div', { class: 'printHdr' }, h('div', null, bkPrinted())),
           wrTable(wrReport, true),
-          h('p', { class: 'u-fs-12 u-mt-8' }, 'Exact figures from the records. Nothing is estimated. Stock is as it was when this page was printed.'))]);
+          h('p', { class: 'u-fs-12 u-mt-8' }, M.footNote(wrReport) + ' Stock is as it was when this page was printed.'))]);
         wrSay('Opened the weekly report for ' + wrReport.week.label + ' for printing.');
         return;
       }

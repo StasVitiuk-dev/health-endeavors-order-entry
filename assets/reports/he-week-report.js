@@ -20,6 +20,13 @@
 //   input.<part> === null/false -> could not be read (state 'unknown')
 // Cancelled and refunded orders are counted as orders placed but not added to the
 // money, the same rule as the day pack. Pure: no page, no database.
+//
+// Profit (Nov 26, the to-build list item 4: "a profit line, once the owner's costs are
+// entered"): input.profit is what assets/reports/he-profit.js compute() gave for the
+// orders of the week. It is the one part that uses estimates (the owner's fee, postage
+// and packaging figures, where no real figure was saved for an order), and it says so.
+// An order whose cost is not known is left out of the profit and counted as such; the
+// profit is never shown as $0 because costs are missing.
 (function (root, factory) {
   'use strict';
   const api = factory();
@@ -178,6 +185,27 @@
       averageTenths: mine.length ? Math.round(sum * 10 / mine.length) : null };
   }
 
+  // profit after product cost, fees, postage and packaging (he-profit.js compute() for the week)
+  function profit(input) {
+    const p = input.profit;
+    if (p === undefined) return { state: 'off' };
+    if (!isObj(p) || !isObj(p.totals)) return { state: 'unknown' };
+    const t = p.totals;
+    const int = (v) => (Number.isInteger(v) ? v : null);
+    const orders = int(t.orders), complete = int(t.complete);
+    if (orders === null || complete === null || orders < 0 || complete < 0 || complete > orders) return { state: 'unknown' };
+    const why = isObj(p.missingWhy) ? Object.keys(p.missingWhy).filter(k => Number.isInteger(p.missingWhy[k]) && p.missingWhy[k] > 0)
+      .map(k => ({ what: text(k, 60), orders: p.missingWhy[k] })).sort((a, b) => b.orders - a.orders || a.what.localeCompare(b.what)) : [];
+    const out = { state: 'ok', orders: orders, complete: complete, missing: orders - complete, why: why,
+      revenueCents: null, profitCents: null, marginTenths: null, exactFees: int(t.exactFees) || 0, exactPostage: int(t.exactPostage) || 0 };
+    if (complete > 0) {
+      if (int(t.revenue) === null || int(t.profit) === null) return { state: 'unknown' };
+      out.revenueCents = t.revenue; out.profitCents = t.profit;
+      out.marginTenths = t.revenue > 0 ? Math.round(t.profit * 1000 / t.revenue) : null;
+    }
+    return out;
+  }
+
   // how much each person did: one line per person, the number of recorded changes
   function people(input) {
     const state = stateOf(input.activity);
@@ -200,7 +228,7 @@
     const now = nowOf(i.now);
     const w = isObj(i.week) && typeof i.week.first === 'string' && typeof i.week.last === 'string' && ms(i.week.from) != null && ms(i.week.to) != null ? i.week : weekOf(now, 0);
     const week = { key: text(w.key, 10) || text(w.first, 10), first: text(w.first, 10), last: text(w.last, 10), from: w.from, to: w.to, label: text(w.label, 60) || text(w.first, 10) + ' – ' + text(w.last, 10) };
-    return { week: week, sales: sales(i), questions: questions(i, now), returns: returns(i, week), stock: stock(i), work: work(i), reviews: reviews(i, week), people: people(i) };
+    return { week: week, sales: sales(i), profit: profit(i), questions: questions(i, now), returns: returns(i, week), stock: stock(i), work: work(i), reviews: reviews(i, week), people: people(i) };
   }
 
   // ----- what the page shows -----
@@ -224,6 +252,24 @@
       if (s.notCounted) add('Sales', 'Cancelled or refunded (not in the totals)', String(s.notCounted));
       if (s.noAmount) add('Sales', 'Orders with no amount saved (not in the totals)', String(s.noAmount));
       s.top.forEach((t, n) => add('Sales', n === 0 ? 'Sold most' : '', t.qty + ' × ' + t.name));
+    }
+    const pf = r.profit || { state: 'off' };
+    if (pf.state === 'unknown') add('Profit', 'Profit after costs', UNKNOWN);
+    if (pf.state === 'ok') {
+      const tenths = (n) => (n < 0 ? '-' : '') + Math.floor(Math.abs(n) / 10) + '.' + (Math.abs(n) % 10);
+      const plural = (n, one, many) => n + ' ' + (n === 1 ? one : many);
+      const reasons = pf.why.map(w => w.what + ' (' + plural(w.orders, 'order', 'orders') + ')').join(', ');
+      if (pf.orders === 0) add('Profit', 'Profit after costs', '—', 'no orders to count');
+      else if (pf.complete === 0) add('Profit', 'Profit after costs', 'not worked out yet', 'a cost is missing on every order' + (reasons ? ': ' + reasons : '') + '; enter it under Accounting, Real profit');
+      else {
+        add('Profit', 'Profit after costs', money(pf.profitCents, 'USD'),
+          (pf.marginTenths == null ? '' : tenths(pf.marginTenths) + '% of ') + money(pf.revenueCents, 'USD') + ' in sales without sales tax · ' + pf.complete + ' of ' + plural(pf.orders, 'order', 'orders'));
+        if (pf.missing) add('Profit', 'Orders not in the profit (a cost is missing)', String(pf.missing), reasons);
+        const real = [];
+        if (pf.exactFees) real.push('the real fee on ' + plural(pf.exactFees, 'order', 'orders'));
+        if (pf.exactPostage) real.push('the real postage on ' + plural(pf.exactPostage, 'order', 'orders'));
+        add('Profit', 'Worked out with', 'product cost, fees, postage and packaging', 'fees, postage and packaging are your estimates' + (real.length ? ', except ' + real.join(' and ') : ''));
+      }
     }
     const q = r.questions || { state: 'off' };
     if (q.state === 'unknown') add('Customers', 'Customer questions', UNKNOWN);
@@ -273,8 +319,16 @@
       if (l.section !== section) { if (section !== null) out.push(''); section = l.section; out.push(l.section.toUpperCase()); }
       out.push((l.label ? l.label + ': ' : '  ') + l.value + (l.note ? ' (' + l.note + ')' : ''));
     });
-    out.push('', 'Exact figures from the records. Nothing is estimated.');
+    out.push('', footNote(r));
     return out.join('\n');
+  }
+
+  // the line under the report: the profit is the one part that can use estimates
+  function footNote(report) {
+    const pf = isObj(report) && isObj(report.profit) ? report.profit : null;
+    return pf && pf.state === 'ok' && pf.complete > 0
+      ? 'Exact figures from the records. Only the profit uses your fee, postage and packaging estimates.'
+      : 'Exact figures from the records. Nothing is estimated.';
   }
 
   // the Home reminder: the newest finished week, until it was opened (on any device, when that is shared)
@@ -284,5 +338,5 @@
     return { due: seen < w.key, week: w };
   }
 
-  return { NOT_COUNTED, MAX_ROWS, MAX_LOW, MAX_PEOPLE, TOP, weekOf, weeks, build, lines, toText, due };
+  return { NOT_COUNTED, MAX_ROWS, MAX_LOW, MAX_PEOPLE, TOP, weekOf, weeks, build, lines, toText, footNote, due };
 }));

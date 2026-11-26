@@ -98,7 +98,8 @@ Next free draft number: **66**.
    protected; a small wording fix in the "Other switches" hint.
 3. **Backups at the best level**: plan steps in `RECOVERY_AND_BACKUP_READINESS.md` §7
    (some need the owner, because the backups repository is off-limits to Claude).
-4. Weekly report: a profit line, once the owner's costs are entered.
+4. ~~Weekly report: a profit line, once the owner's costs are entered.~~ BUILT Nov 26 (branch
+   `claude/week-report-profit`): shown when Real profit is on; costs missing → "not worked out yet", never $0.
 5. Voice Stage 2 (paid AI) — owner decision after launch.
 6. One stock count for all channels — waits on the owner's decision.
 7. Reminders: a dress rehearsal (test order end to end) when the printers arrive;
