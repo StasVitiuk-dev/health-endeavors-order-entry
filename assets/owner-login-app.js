@@ -10506,6 +10506,16 @@
       document.querySelectorAll('#calViewToggle [data-calview]').forEach(b =>
         b.className = 'small' + (b.getAttribute('data-calview') === calView ? '' : ' secondary'));
       const body = document.getElementById('calBody');
+      // A note being typed survives a redraw (Nov 26: a late reload, e.g. after switching to
+      // Day, redrew the open event with an empty box and the half-typed note was lost). Kept
+      // only when it differs from the note that box showed, together with what that box
+      // showed, so the "changed somewhere else" guard still compares with the right note.
+      const typing = body.querySelector('.calNoteBox[data-noteuid] .calNoteText');
+      const draft = typing && typing.value !== (typing.closest('.calNoteBox').getAttribute('data-shown') || '')
+        ? { uid: typing.closest('.calNoteBox').getAttribute('data-noteuid'), text: typing.value,
+            had: typing.closest('.calNoteBox').getAttribute('data-had'), shown: typing.closest('.calNoteBox').getAttribute('data-shown'),
+            from: typing.selectionStart, to: typing.selectionEnd, focused: document.activeElement === typing }
+        : null;
 
       // EXT20J: every view built as DOM nodes (h() text-ifies) instead of HTML
       // strings, so the calendar body is safe under Trusted Types.
@@ -10550,6 +10560,16 @@
         });
       }
       paintCalColors(body); // EXT20J: event bars / month-cell dots get their per-calendar colour
+      // the note being typed, put back into the same event's box (see `draft` above)
+      const again = draft && draft.uid === calOpenUid
+        ? [...body.querySelectorAll('.calNoteBox[data-noteuid]')].find(b => b.getAttribute('data-noteuid') === draft.uid) : null;
+      if (again) {
+        again.setAttribute('data-had', draft.had || '0');
+        again.setAttribute('data-shown', draft.shown || '');
+        const ta = again.querySelector('.calNoteText');
+        ta.value = draft.text;
+        if (draft.focused) { try { ta.focus(); ta.setSelectionRange(draft.from, draft.to); } catch (e) { /* not critical */ } }
+      }
       wireCalEvents();
     }
 
