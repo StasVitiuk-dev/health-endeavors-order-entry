@@ -101,6 +101,53 @@ blur anything that shows a customer's name or address.
   - `NOT ENOUGH DATA` / `NO DATA`: normal while there are few orders; we run it again later.
 - **No warning** is expected from Supabase for this one (it only reads).
 
+## Steps 18 and 19 in detail (each on its own; neither needs another step first)
+
+Same routine as above. Both are small and can be run in any order, on any day.
+
+**Step 18: the history functions' safety setting** (`68_DRAFT_history_functions_search_path.sql`).
+- **What it changes:** only one setting on three existing functions (Employee Activity, its people
+  list, "my sign-ins"): `pg_temp` is named last in where they look for tables. Their text, who may run
+  them and what they show stay the same.
+- **Supabase warning:** none expected (the file only has `alter function … set search_path`). If a
+  warning appears, click **Cancel** and send a screenshot.
+- **Check afterwards (read-only):**
+
+  ```sql
+  select p.proname as function, array_to_string(p.proconfig, '; ') as setting
+  from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+  where n.nspname = 'public' and p.proname in ('employee_activity', 'employee_activity_people', 'list_my_sessions')
+  order by 1;
+  ```
+
+  **Expected:** three rows, each setting ending in `pg_temp`:
+  `employee_activity | search_path=public, pg_temp` ·
+  `employee_activity_people | search_path=public, pg_temp` ·
+  `list_my_sessions | search_path=auth, public, pg_temp`.
+- **Undo:** `69_…` (puts the three settings back exactly as your look of Nov 25 showed them).
+
+**Step 19: backup status on Home** (`70_DRAFT_backup_reports.sql`).
+- **What it adds:** one empty table the backup jobs will write to (which job, when, worked or not,
+  size). You and administrators can read it; nobody signed in can change it.
+- **Supabase warning:** the "destructive operation" one is expected, listing only
+  `drop policy if exists backup_reports_owner_admin_read` and `revoke`. Confirm. Anything else:
+  **Cancel** and send a screenshot.
+- **Check afterwards (read-only):**
+
+  ```sql
+  select (select relrowsecurity from pg_class where oid = 'public.backup_reports'::regclass) as reading_rules_on,
+         (select count(*) from pg_policies where schemaname = 'public' and tablename = 'backup_reports') as rules,
+         (select string_agg(privilege_type, ',' order by privilege_type) from information_schema.role_table_grants
+           where table_schema = 'public' and table_name = 'backup_reports' and grantee = 'authenticated') as signed_in_may,
+         (select count(*) from public.backup_reports) as lines;
+  ```
+
+  **Expected:** one row, `true | 1 | SELECT | 0` (checked on the practice copy, Nov 26).
+- **Then (not SQL):** the one step in the backups repository (`docs/ops/RECOVERY_AND_BACKUP_READINESS.md`
+  §3a), and after the next nightly run, Feature Flags → **Backup status on Home** → On. Home should
+  then say "Backups: last night's backup succeeded".
+- **Undo:** remove the repository step first, then `71_…`.
+
 ## Steps 2–8 in detail (each one the same routine as above)
 
 Before every step Claude re-checks the fingerprint below against the file in the repository and tells
