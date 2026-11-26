@@ -197,6 +197,7 @@ const ADDED = ['focusDialog', 'inspectLabel', 'keyLink', 'setReportHistoryView',
   'handoffHandledOn', 'customersFirstOn', 'hhPulled', 'hhTimer', 'hhShared', 'hhPush', 'hhPull',
   // Nov 24: Reviews page (behind he_review_inbox)
   'saveInquiryDraft', // Nov 26: an edited customer reply survives a redraw; the save checks against the draft it was based on
+  'wireCalEvents', // Nov 26: the editor of your own event keeps its edits across a redraw
   'adminChangesOn', 'backupStatusOn', 'AC_SEEN_KEY', 'acSeq', 'acLast', 'acMod', 'acSeenUpTo', 'loadAdminChanges',
   'peoplePageOn', 'PP_FN', 'ppRows', 'ppErr', 'ppStep', 'ppSeq', 'ppMsg', 'ppMsgBad', 'ppOpen', 'ppProblems', 'ppBusy', 'ppMe', 'ppMod', 'ppOn', 'ppSay', 'ppHelper', 'loadPeoplePage', 'PP_STATE', 'renderPeoplePage', 'ppAct', 'ROLE_LABELS',
   'reviewInboxOn', 'RI_KEY', 'riList', 'riMessage', 'riFilter', 'riOpen', 'riRemoveId', 'riDraft', 'riMod', 'riDeps', 'riOwner', 'riRead', 'riKeep', 'riFeedRows', 'loadReviewInbox', 'reviewStoreOn', 'riShared', 'riStoreState', 'riIds', 'riPulling', 'riMoved', 'riStore', 'riPull', 'riAddRows', 'riMark', 'riBusy', 'riSettled', 'riFromDatabase', 'RI_LEVEL_WORD', 'riStars', 'renderReviewInbox', 'riChanged',
