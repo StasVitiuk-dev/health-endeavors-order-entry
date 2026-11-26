@@ -352,7 +352,7 @@ for (const f of ALL) {
     if (f === '70_DRAFT_backup_reports.sql') {
       for (const r of BACKUP_REPORT_RULES) expect(sql.split(r).length - 1, 'pinned rule present exactly once: ' + r.slice(0, 60)).toBe(1);
       expect(sql, 'signed-in people may only read').toContain('grant select on public.backup_reports to authenticated;');
-      expect(sql, 'the backup job may add and read, nothing more').toContain('grant select, insert on public.backup_reports to service_role;');
+      // what the backup job itself may do (add and read, nothing more) is checked by local-test/backup_reports_test.sh
       expect(sql, 'no update or delete for anyone').not.toMatch(/grant[^;]*\b(update|delete|all)\b[^;]*backup_reports/);
     }
     if (f === '66_DRAFT_managers_approve_stock.sql') for (const r of MANAGER_STOCK_RULES) expect(sql.split(r).length - 1, 'pinned rule present exactly once: ' + r.slice(0, 60)).toBe(1);
