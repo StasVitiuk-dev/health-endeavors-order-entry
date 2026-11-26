@@ -17,23 +17,23 @@ const states = (r) => Object.fromEntries(r.lines.map(l => [l.key, l.state]));
 test.describe('the rules (no browser)', () => {
   test('fourteen lines in a fixed order; six are checked by the dashboard, eight by a person; two-step sign-in is the last', ({}, ti) => {
     node(ti);
-    expect(L.LINES.map(l => l.key)).toEqual(['steps', 'products', 'stock', 'shopify', 'tax', 'questions', 'email', 'people', 'printers', 'backups', 'rehearsal', 'agents', 'policies', 'twostep']);
+    expect(L.LINES.map(l => l.key)).toEqual(['steps', 'products', 'stock', 'shopify', 'tax', 'questions', 'email', 'people', 'printers', 'backups', 'rehearsal', 'rollback', 'agents', 'policies', 'twostep']);
     expect(L.LINES.filter(l => l.kind === 'auto')).toHaveLength(6);
-    expect(L.YOURS).toEqual(['email', 'people', 'printers', 'backups', 'rehearsal', 'agents', 'policies', 'twostep']);
+    expect(L.YOURS).toEqual(['email', 'people', 'printers', 'backups', 'rehearsal', 'rollback', 'agents', 'policies', 'twostep']);
     expect(L.LINES.filter(l => l.last).map(l => l.key)).toEqual(['twostep']);
     expect(L.LINES[L.LINES.length - 1].key).toBe('twostep');
     for (const l of L.LINES) { expect(l.title.length).toBeGreaterThan(10); expect(l.why.length).toBeGreaterThan(20); }
   });
 
-  test('everything in order and every line marked: 14 of 14; with nothing marked the six checked lines are ready and eight are to do', ({}, ti) => {
+  test('everything in order and every line marked: 15 of 15; with nothing marked the six checked lines are ready and nine are to do', ({}, ti) => {
     node(ti);
     const none = L.build(allReady());
-    expect([none.ready, none.total, none.left, none.unknown, none.state]).toEqual([6, 14, 8, 0, 'todo']);
+    expect([none.ready, none.total, none.left, none.unknown, none.state]).toEqual([6, 15, 9, 0, 'todo']);
     let ticks = {};
     L.YOURS.forEach((k, n) => { ticks = L.tick(ticks, k, true, 'SYNTHETIC Owner', NOW + n); });
     const all = L.build(Object.assign(allReady(), { ticks: ticks }));
-    expect([all.ready, all.total, all.left, all.state]).toEqual([14, 14, 0, 'ready']);
-    expect(all.lines.find(l => l.key === 'twostep').tick).toEqual({ on: true, at: NOW + 7, by: 'SYNTHETIC Owner' });
+    expect([all.ready, all.total, all.left, all.state]).toEqual([15, 15, 0, 'ready']);
+    expect(all.lines.find(l => l.key === 'twostep').tick).toEqual({ on: true, at: NOW + 8, by: 'SYNTHETIC Owner' });
     expect(all.lines.find(l => l.key === 'steps').detail).toBe('All 2 are installed.');           // the one that needs no step is not counted
   });
 
@@ -124,7 +124,7 @@ test('the page shows what is ready and what is not, in words, and where to go; n
   await open(page, backend, { missing: ['tax_rates', 'order_costs'] });
   const host = page.locator('#launchPanel');
   await expect(page.locator('#sidebarNav')).toContainText('Ready to launch');
-  await expect(host.locator('[data-lpline]')).toHaveCount(14);
+  await expect(host.locator('[data-lpline]')).toHaveCount(15);
   await expect(host.locator('[data-lpline]').last()).toHaveAttribute('data-lpline', 'twostep');
   await expect(line(page, 'twostep')).toContainText('(the last step)');
   await expect(line(page, 'products')).toHaveAttribute('data-lpstate', 'todo');
@@ -137,7 +137,7 @@ test('the page shows what is ready and what is not, in words, and where to go; n
   await expect(line(page, 'steps')).toHaveAttribute('data-lpstate', 'todo');
   await expect(line(page, 'steps').locator('[data-lpdetail]')).toHaveText('11 of 13 installed. Still to install: Confirmed tax rates; Real fees and postage per order.');
   await expect(line(page, 'tax').locator('[data-lpdetail]')).toHaveText('Its database step is not installed yet (Feature Flags shows which).');
-  await expect(host.locator('[data-lptotal]')).toHaveAttribute('data-lptotal', '0/14');
+  await expect(host.locator('[data-lptotal]')).toHaveAttribute('data-lptotal', '0/15');
   await expect(host.locator('progress')).toHaveAttribute('value', '0');
   // a line takes you to its page
   await line(page, 'questions').locator('[data-lpgoto="inquiriesPanel"]').click();
@@ -153,7 +153,7 @@ test('with the records in order the checked lines are ready', async ({ page, bac
   await expect(line(page, 'tax').locator('[data-lpdetail]')).toHaveText('The step is installed. Turn on "Confirmed tax rates" on Feature Flags, then confirm your rate on Tax Records.');
   await expect(line(page, 'shopify').locator('[data-lpdetail]')).toHaveText('The switch is on; 1 order has come from Shopify in the last 30 days.');
   await expect(line(page, 'products').locator('[data-lpbadge]')).toHaveText('Ready');
-  await expect(page.locator('#launchPanel [data-lptotal]')).toHaveAttribute('data-lptotal', '5/14');
+  await expect(page.locator('#launchPanel [data-lptotal]')).toHaveAttribute('data-lptotal', '5/15');
 });
 
 test('a line the database would not give says "Could not check"; "Check again" reads it afresh', async ({ page, backend }) => {
@@ -183,7 +183,7 @@ test('"Mark as done" is kept with the day and the name, survives a reload, and c
   await expect(printers.locator('[data-lptick]')).toBeFocused();
   await expect(printers.locator('[data-lptick]')).toHaveText('Not done after all');
   await expect(page.locator('#launchPanel [data-lpmessage]')).toHaveText('Marked done: Both printers printed their test page.');
-  await expect(page.locator('#launchPanel [data-lptotal]')).toHaveAttribute('data-lptotal', '1/14');
+  await expect(page.locator('#launchPanel [data-lptotal]')).toHaveAttribute('data-lptotal', '1/15');
   await page.reload(); await expect(page.locator('#dash')).toBeVisible(); await gotoPage(page, 'launchPanel');
   await expect(line(page, 'printers')).toHaveAttribute('data-lpstate', 'ready');
   await line(page, 'printers').locator('[data-lptick]').click();
@@ -221,7 +221,7 @@ test('an administrator has the page; an employee is told it is not for them and 
 test('an administrator sees the lines and can mark one', async ({ page, backend }, ti) => {
   test.skip(ti.project.name !== 'desktop', 'one size is enough');
   await open(page, backend, { role: 'administrator' });
-  await expect(page.locator('#launchPanel [data-lpline]')).toHaveCount(14);
+  await expect(page.locator('#launchPanel [data-lpline]')).toHaveCount(15);
   await line(page, 'agents').locator('[data-lptick]').click();
   await expect(line(page, 'agents')).toHaveAttribute('data-lpstate', 'ready');
 });
@@ -229,7 +229,7 @@ test('an administrator sees the lines and can mark one', async ({ page, backend 
 test('at phone size the page fits without sideways scrolling', async ({ page, backend }, ti) => {
   test.skip(ti.project.name !== 'iphone', 'phone only');
   await open(page, backend);
-  await expect(page.locator('#launchPanel [data-lpline]')).toHaveCount(14);
+  await expect(page.locator('#launchPanel [data-lpline]')).toHaveCount(15);
   const over = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(over).toBeLessThanOrEqual(0);
   const edges = await page.locator('#launchPanel .lpLine').evaluateAll(els => els.map(el => Math.round(el.getBoundingClientRect().right)));

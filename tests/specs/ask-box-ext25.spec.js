@@ -236,7 +236,7 @@ test('"Brief me" from Home: the day in one answer; a part that cannot be read sa
   expect(say).toContain('3 orders today, 30 dollars.');
   expect(say).toContain('1 customer is waiting for an answer.');
   expect(say).toContain('I could not read the stock just now.');                           // never "nothing is low"
-  expect(say).toMatch(/\d+ of 14 launch lines are ready\./);
+  expect(say).toMatch(/\d+ of 15 launch lines are ready\./);
   expect(await said(page)).toEqual([say]);
   expect(writes(backend)).toEqual([]);
 });

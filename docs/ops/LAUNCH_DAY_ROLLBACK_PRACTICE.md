@@ -76,6 +76,9 @@ Not before the website repository and the Shopify development theme are approved
 
 ## Practice log
 
+After the practice, mark **"You practised going back to the previous version once"** on the dashboard's
+"Ready to launch" page (preview switch "Ready to launch").
+
 | Date | Part | Start | Done | Minutes | Notes |
 |---|---|---|---|---|---|
 | (not yet practised) | | | | | |
