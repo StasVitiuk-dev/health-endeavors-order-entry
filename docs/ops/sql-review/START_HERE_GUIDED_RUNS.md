@@ -42,6 +42,7 @@ Today every row is **Prepared** only: nothing is reviewed by you, approved, inst
 | 16 | The sign-in helper for the New Employee page (a deploy at Supabase, not SQL) | **15b** | `docs/ops/edge-drafts/people-accounts/` (2 files) | | Item 17 table | delete the function | Item 17, "Before you deploy" | one made-up employee, Item 17 |
 | 17 | Managers decide deliveries and returns someone else recorded (your choice A, Nov 25) | **4** and **15a** (best after 15b) | `66_DRAFT_managers_approve_stock.sql` | 118 | `db24e1757c2a6d63` | `67_…` | — | Item 5, "Prepared for A" |
 | 18 | Small hardening of three existing history and sign-in functions (pg_temp named last; nothing else changes) | nothing | `68_DRAFT_history_functions_search_path.sql` | 52 | `5a842bd5b4bb92c4` | `69_…` | — | `docs/ops/OWNER_PROTECTION_AND_PRIVATE_HISTORY.md`, "Second look" |
+| 19 | Backup status on Home: a small table the backup job writes after each run, read by you and administrators (then one step in the backups repository) | nothing | `70_DRAFT_backup_reports.sql` | 73 | `fef6f3402edfcbf6` | `71_…` | — | `docs/ops/RECOVERY_AND_BACKUP_READINESS.md` §3a |
 | — | Your private history hidden from administrators | — | **not needed**: already true in production (your second read-only look, Nov 25) | | | | | |
 
 Real dependencies (all others are independent): 38 needs 36 · 64 needs 62 · 66 needs 40 and 62 · the helper needs 64 ·

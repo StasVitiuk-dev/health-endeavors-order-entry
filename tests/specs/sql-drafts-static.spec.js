@@ -8,7 +8,7 @@ const path = require('path');
 const { test, expect } = require('@playwright/test');
 
 const DIR = path.resolve(__dirname, '..', '..', 'docs', 'ops', 'sql', 'drafts');
-const INSTALLS = ['10_DRAFT_stock_functions.sql', '13_DRAFT_report_totals.sql', '17_DRAFT_po_line_delete_guard.sql', '19_DRAFT_request_keys.sql', '21_DRAFT_stock_function_switches.sql', '23_DRAFT_integrity_constraints.sql', '25_DRAFT_integrity_check_schedule.sql', '27_DRAFT_request_keys_switch.sql', '29_DRAFT_integrity_results_on_home.sql', '32_DRAFT_invoices.sql', '34_DRAFT_stock_count_adjustments.sql', '36_DRAFT_supplier_documents.sql', '38_DRAFT_supplier_document_files.sql', '40_DRAFT_partial_receiving_returns.sql', '42_DRAFT_shopify_payouts_money_issues.sql', '44_DRAFT_staff_read_purchase_orders.sql', '46_DRAFT_tax_rates.sql', '48_DRAFT_order_parcels.sql', '50_DRAFT_shared_settings.sql', '52_DRAFT_order_costs.sql', '54_DRAFT_order_batches.sql', '56_DRAFT_email_sending.sql', '58_DRAFT_my_settings.sql', '60_DRAFT_customer_reviews.sql', '62_DRAFT_manager_role.sql', '64_DRAFT_people_levels.sql', '66_DRAFT_managers_approve_stock.sql', '68_DRAFT_history_functions_search_path.sql'];
+const INSTALLS = ['10_DRAFT_stock_functions.sql', '13_DRAFT_report_totals.sql', '17_DRAFT_po_line_delete_guard.sql', '19_DRAFT_request_keys.sql', '21_DRAFT_stock_function_switches.sql', '23_DRAFT_integrity_constraints.sql', '25_DRAFT_integrity_check_schedule.sql', '27_DRAFT_request_keys_switch.sql', '29_DRAFT_integrity_results_on_home.sql', '32_DRAFT_invoices.sql', '34_DRAFT_stock_count_adjustments.sql', '36_DRAFT_supplier_documents.sql', '38_DRAFT_supplier_document_files.sql', '40_DRAFT_partial_receiving_returns.sql', '42_DRAFT_shopify_payouts_money_issues.sql', '44_DRAFT_staff_read_purchase_orders.sql', '46_DRAFT_tax_rates.sql', '48_DRAFT_order_parcels.sql', '50_DRAFT_shared_settings.sql', '52_DRAFT_order_costs.sql', '54_DRAFT_order_batches.sql', '56_DRAFT_email_sending.sql', '58_DRAFT_my_settings.sql', '60_DRAFT_customer_reviews.sql', '62_DRAFT_manager_role.sql', '64_DRAFT_people_levels.sql', '66_DRAFT_managers_approve_stock.sql', '68_DRAFT_history_functions_search_path.sql', '70_DRAFT_backup_reports.sql'];
 const ROLLBACKS = { '10_DRAFT_stock_functions.sql': '11_DRAFT_rollback_stock_functions.sql',
   '17_DRAFT_po_line_delete_guard.sql': '18_DRAFT_rollback_po_line_delete_guard.sql',
   '19_DRAFT_request_keys.sql': '20_DRAFT_rollback_request_keys.sql',
@@ -36,7 +36,8 @@ const ROLLBACKS = { '10_DRAFT_stock_functions.sql': '11_DRAFT_rollback_stock_fun
   '62_DRAFT_manager_role.sql': '63_DRAFT_rollback_manager_role.sql',       // Nov 25: the Manager role word
   '64_DRAFT_people_levels.sql': '65_DRAFT_rollback_people_levels.sql',
   '66_DRAFT_managers_approve_stock.sql': '67_DRAFT_rollback_managers_approve_stock.sql',
-  '68_DRAFT_history_functions_search_path.sql': '69_DRAFT_rollback_history_functions_search_path.sql' };   // Nov 25: four levels of account   // Nov 24: reviews the owner typed in   // Nov 24: one person's settings on every device   // Nov 24: email sending records (nothing in it sends)   // Nov 24: which batch went into which order     // Nov 24: the real fee and postage of each order   // Nov 24: settings shared by every device   // Nov 24: parcels and drop-off receipts   // Nov 22: owner decision, staff read purchase orders   // Nov 22: Shopify payout copy and money differences   // Nov 22: partial receiving and returns (D-ops-5), owner approves stock changes   // Nov 21: private files, owner-only reading   // Nov 16, later: supplier document storage, owner-only review
+  '68_DRAFT_history_functions_search_path.sql': '69_DRAFT_rollback_history_functions_search_path.sql',
+  '70_DRAFT_backup_reports.sql': '71_DRAFT_rollback_backup_reports.sql' };   // Nov 26: backup reports for Home (design D5)   // Nov 25: four levels of account   // Nov 24: reviews the owner typed in   // Nov 24: one person's settings on every device   // Nov 24: email sending records (nothing in it sends)   // Nov 24: which batch went into which order     // Nov 24: the real fee and postage of each order   // Nov 24: settings shared by every device   // Nov 24: parcels and drop-off receipts   // Nov 22: owner decision, staff read purchase orders   // Nov 22: Shopify payout copy and money differences   // Nov 22: partial receiving and returns (D-ops-5), owner approves stock changes   // Nov 21: private files, owner-only reading   // Nov 16, later: supplier document storage, owner-only review
 const ALL = fs.readdirSync(DIR).filter(f => /^\d\d_DRAFT_.*\.sql$/.test(f) && !/_tests?_/.test(f));
 
 // Remove comments and quoted text so words inside them are not mistaken for SQL.
@@ -343,6 +344,17 @@ for (const f of ALL) {
       'create policy receiving_records_read on public.receiving_records for select to authenticated using (submitted_by = auth.uid() or public.is_owner_or_admin());',
       'drop policy if exists supplier_returns_read on public.supplier_returns;',
       'create policy supplier_returns_read on public.supplier_returns for select to authenticated using (submitted_by = auth.uid() or public.is_owner_or_admin());'];
+    // Nov 26 (drafts/70, design D5): the owner and administrators READ the backup jobs' own report table;
+    // no rule lets anyone signed in add, change or delete a line (only the backup job writes, with the service key).
+    const BACKUP_REPORT_RULES = [
+      'drop policy if exists backup_reports_owner_admin_read on public.backup_reports;',
+      'create policy backup_reports_owner_admin_read on public.backup_reports for select to authenticated using (public.is_owner_or_admin());'];
+    if (f === '70_DRAFT_backup_reports.sql') {
+      for (const r of BACKUP_REPORT_RULES) expect(sql.split(r).length - 1, 'pinned rule present exactly once: ' + r.slice(0, 60)).toBe(1);
+      expect(sql, 'signed-in people may only read').toContain('grant select on public.backup_reports to authenticated;');
+      // what the backup job itself may do (add and read, nothing more) is checked by local-test/backup_reports_test.sh
+      expect(sql, 'no update or delete for anyone').not.toMatch(/grant[^;]*\b(update|delete|all)\b[^;]*backup_reports/);
+    }
     if (f === '66_DRAFT_managers_approve_stock.sql') for (const r of MANAGER_STOCK_RULES) expect(sql.split(r).length - 1, 'pinned rule present exactly once: ' + r.slice(0, 60)).toBe(1);
     if (f === '67_DRAFT_rollback_managers_approve_stock.sql') for (const r of MANAGER_STOCK_UNDO) expect(sql.split(r).length - 1, 'pinned rule present exactly once: ' + r.slice(0, 60)).toBe(1);
     const SUPPLIER_FILE_DROPS = [
@@ -393,7 +405,8 @@ for (const f of ALL) {
                 : f === '64_DRAFT_people_levels.sql' ? PEOPLE_RULES.reduce((t, r) => t.split(r).join(''), sql)
                 : f === '65_DRAFT_rollback_people_levels.sql' ? PEOPLE_RULES.filter(r => r.startsWith('drop policy')).reduce((t, r) => t.split(r).join(''), sql)
                 : f === '66_DRAFT_managers_approve_stock.sql' ? MANAGER_STOCK_RULES.reduce((t, r) => t.split(r).join(''), sql)
-                : f === '67_DRAFT_rollback_managers_approve_stock.sql' ? MANAGER_STOCK_UNDO.reduce((t, r) => t.split(r).join(''), sql) : sql;
+                : f === '67_DRAFT_rollback_managers_approve_stock.sql' ? MANAGER_STOCK_UNDO.reduce((t, r) => t.split(r).join(''), sql)
+                : f === '70_DRAFT_backup_reports.sql' ? BACKUP_REPORT_RULES.reduce((t, r) => t.split(r).join(''), sql) : sql;
     if (f === '64_DRAFT_people_levels.sql') {
       for (const r of PEOPLE_RULES) expect(sql.split(r).length - 1, 'pinned rule present exactly once: ' + r.slice(0, 60)).toBe(1);
       // only reading and changing: never a rule for adding or deleting an account, and none for "all"
@@ -556,6 +569,8 @@ for (const f of ALL) {
             : f === '59_DRAFT_rollback_my_settings.sql' ? sql.replace('drop table if exists public.my_settings;', '')
             // Nov 24: the reviews rollback removes its own table (and refuses while any review is saved, unless authorized).
             : f === '61_DRAFT_rollback_customer_reviews.sql' ? sql.replace('drop table if exists public.customer_reviews;', '')
+            // Nov 26: the backup reports rollback removes its own table (it only held "this job finished, ok or not" lines).
+            : f === '71_DRAFT_rollback_backup_reports.sql' ? sql.replace('drop table if exists public.backup_reports;', '')
             // Nov 25: the four-levels rollback removes its own small table (the saved text of the earlier guard), and only after that text was put back.
             : f === '65_DRAFT_rollback_people_levels.sql' ? sql.replace('drop table if exists public.people_levels_backup;', '')
             // Nov 24: the email sending rollback removes its own three tables (and refuses while any email record is saved, unless authorized).

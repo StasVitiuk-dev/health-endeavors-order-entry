@@ -82,7 +82,7 @@
     return asList(findings).filter(f => !(COVERED_BY[f.key] && covered && covered[COVERED_BY[f.key]] && f.level !== 'unknown')).map(f => {
       const key = text(f.key, 80);
       const kind = CHECK_KIND[key] || 'check';
-      return { id: 'check:' + key, kind: kind, badge: CHECK_BADGE[f.level] || 'Check', level: CHECK_LEVEL[f.level] || 'info',
+      return { id: 'check:' + key, kind: kind, badge: (typeof f.badge === 'string' && f.badge) || CHECK_BADGE[f.level] || 'Check', level: CHECK_LEVEL[f.level] || 'info',
         title: text(f.title, 200) + (f.count != null ? ': ' + text(f.count, 20) : ''), detail: text(f.action || f.why),
         when: time(f.oldest), page: f.page || null, actions: f.page ? [{ kind: 'open', label: 'Open', page: f.page }] : [],
         signature: [f.level, f.count, f.oldest].join('|') };

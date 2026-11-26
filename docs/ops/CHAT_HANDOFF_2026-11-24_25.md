@@ -97,7 +97,10 @@ Next free draft number: **66**.
    Employee Activity widened for administrators; owner's history and owner accounts
    protected; a small wording fix in the "Other switches" hint.
 3. **Backups at the best level**: plan steps in `RECOVERY_AND_BACKUP_READINESS.md` §7
-   (some need the owner, because the backups repository is off-limits to Claude).
+   (some need the owner, because the backups repository is off-limits to Claude). The warning on
+   Home (§7 point 4, E7) is PREPARED Nov 26 (branch `claude/backup-status-home`): drafts 70/71
+   (step 19), the Home line behind "Backup status on Home", and the owner's one step in the
+   backups repository (§3a).
 4. ~~Weekly report: a profit line, once the owner's costs are entered.~~ BUILT Nov 26 (branch
    `claude/week-report-profit`): shown when Real profit is on; costs missing → "not worked out yet", never $0.
 5. Voice Stage 2 (paid AI) — owner decision after launch.

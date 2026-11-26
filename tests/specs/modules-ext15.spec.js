@@ -196,7 +196,7 @@ const ADDED = ['focusDialog', 'inspectLabel', 'keyLink', 'setReportHistoryView',
   // Nov 24: agent hand-offs marked handled, and raised after a day (behind he_handoff_handled)
   'handoffHandledOn', 'customersFirstOn', 'hhPulled', 'hhTimer', 'hhShared', 'hhPush', 'hhPull',
   // Nov 24: Reviews page (behind he_review_inbox)
-  'adminChangesOn', 'AC_SEEN_KEY', 'acSeq', 'acLast', 'acMod', 'acSeenUpTo', 'loadAdminChanges',
+  'adminChangesOn', 'backupStatusOn', 'AC_SEEN_KEY', 'acSeq', 'acLast', 'acMod', 'acSeenUpTo', 'loadAdminChanges',
   'peoplePageOn', 'PP_FN', 'ppRows', 'ppErr', 'ppStep', 'ppSeq', 'ppMsg', 'ppMsgBad', 'ppOpen', 'ppProblems', 'ppBusy', 'ppMe', 'ppMod', 'ppOn', 'ppSay', 'ppHelper', 'loadPeoplePage', 'PP_STATE', 'renderPeoplePage', 'ppAct', 'ROLE_LABELS',
   'reviewInboxOn', 'RI_KEY', 'riList', 'riMessage', 'riFilter', 'riOpen', 'riRemoveId', 'riDraft', 'riMod', 'riDeps', 'riOwner', 'riRead', 'riKeep', 'riFeedRows', 'loadReviewInbox', 'reviewStoreOn', 'riShared', 'riStoreState', 'riIds', 'riPulling', 'riMoved', 'riStore', 'riPull', 'riAddRows', 'riMark', 'riBusy', 'riSettled', 'riFromDatabase', 'RI_LEVEL_WORD', 'riStars', 'renderReviewInbox', 'riChanged',
   'sfFound', 'sfMod', 'sfNode',
