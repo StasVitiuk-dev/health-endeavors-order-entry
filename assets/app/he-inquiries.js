@@ -45,6 +45,15 @@ window.HE.modules.define('he-inquiries', { api: 1, needs: ['INQ_ANSWERED_CAP','I
     }
 
     function renderInquiries(){
+      // A reply being edited survives a redraw (Nov 26: Refresh, the sign-in load or the
+      // 5-minute refresh redrew the list and an unsaved edit was lost). Kept with the draft it
+      // was based on (data-base), so "changed by someone else" is still checked against that.
+      const editing = {};
+      document.querySelectorAll('#inquiriesWrap .inqDraftText').forEach(ta => {
+        const base = ta.getAttribute('data-base');
+        if (base !== null && ta.value !== base) editing[ta.getAttribute('data-id')] = { text: ta.value, base: base,
+          focused: document.activeElement === ta, from: ta.selectionStart, to: ta.selectionEnd };
+      });
       const counts = { new: 0, drafted: 0, needs_review: 0, answered: 0 };
       ALL_INQUIRIES.forEach(i => { if (counts[i.status] !== undefined) counts[i.status]++; });
       counts.answered = INQ_ANSWERED_TOTAL; // exact, though only the newest are listed
@@ -107,7 +116,7 @@ window.HE.modules.define('he-inquiries', { api: 1, needs: ['INQ_ANSWERED_CAP','I
             i.ai_draft_reply
               ? h('div', { class: 'u-mt-8' },
                   h('b', { class: 'u-fs-11 u-c-muted u-tt-uppercase' }, 'AI draft reply' + (i.ai_confidence != null ? ' · ' + Math.round(i.ai_confidence * 100) + '% confidence' : '')),
-                  h('textarea', { class: 'inqDraftText u-w-100pct u-mt-4 u-p-9-10 u-br-8 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-13p5 u-rs-vertical', 'data-id': i.id, rows: '4' }, i.ai_draft_reply))
+                  h('textarea', { class: 'inqDraftText u-w-100pct u-mt-4 u-p-9-10 u-br-8 u-b-1-solid-xcfd8d6 u-ff-inherit u-fs-13p5 u-rs-vertical', 'data-id': i.id, 'data-base': i.ai_draft_reply, rows: '4' }, i.ai_draft_reply))
               : h('p', { class: 'empty u-p-6-0' }, 'No draft yet — the agent hasn\'t answered this one.')),
           h('div', { class: 'actions u-fd-column u-ai-stretch' },
             i.ai_draft_reply ? [
@@ -118,6 +127,13 @@ window.HE.modules.define('he-inquiries', { api: 1, needs: ['INQ_ANSWERED_CAP','I
               : h('span', { class: 'badge sev-low' }, 'Answered ' + fmtDate(i.answered_at))));
       };
       document.getElementById('inquiriesWrap').replaceChildren(...[answeredNoteNode, ...list.map(inquiryRow)].filter(Boolean));
+      document.querySelectorAll('#inquiriesWrap .inqDraftText').forEach(ta => {
+        const kept = editing[ta.getAttribute('data-id')];
+        if (!kept) return;
+        ta.value = kept.text;
+        ta.setAttribute('data-base', kept.base);
+        if (kept.focused) { try { ta.focus(); ta.setSelectionRange(kept.from, kept.to); } catch (e) { /* not critical */ } }
+      });
 
       document.querySelectorAll('.inqSaveBtn').forEach(btn => btn.addEventListener('click', () => saveInquiryDraft(btn)));
       document.querySelectorAll('.inqCopyBtn').forEach(btn => btn.addEventListener('click', () => copyInquiryReply(btn)));
@@ -162,13 +178,15 @@ window.HE.modules.define('he-inquiries', { api: 1, needs: ['INQ_ANSWERED_CAP','I
         if (nowErr) throw nowErr;
         if (!nowRow) throw new Error(staleMessage('That inquiry') + ' Your draft was not saved — copy it before reloading.');
         if (nowRow.answered_at) throw new Error('This inquiry was marked answered in the meantime, so the draft was not saved. Your text is still in the box — copy it if you need it.');
-        if (rec && (nowRow.ai_draft_reply || '') !== (rec.ai_draft_reply || '')) {
+        const base = textarea.hasAttribute('data-base') ? textarea.getAttribute('data-base') : (rec ? rec.ai_draft_reply : null);
+        if ((rec || textarea.hasAttribute('data-base')) && (nowRow.ai_draft_reply || '') !== (base || '')) {
           throw new Error('Someone else changed this draft since you opened it, so yours was not saved (nothing was overwritten). Your text is still in the box: copy it, reload to see theirs, then combine them.');
         }
         const { data: changed, error } = await supabase.from('customer_inquiries').update({ ai_draft_reply: textarea.value }).eq('id', id).is('answered_at', null).select('id');
         if (error) throw error;
         if (noRowsChanged(changed)) throw new Error(staleMessage('That inquiry') + ' Your draft was not saved — copy it before reloading.');
         if (rec) rec.ai_draft_reply = textarea.value;
+        textarea.setAttribute('data-base', textarea.value);
         btn.textContent = 'Saved';
         setTimeout(() => { btn.textContent = originalText; btn.disabled = false; }, 1200);
       } catch (err) {
