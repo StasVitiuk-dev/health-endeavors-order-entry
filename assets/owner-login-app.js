@@ -10516,6 +10516,13 @@
             had: typing.closest('.calNoteBox').getAttribute('data-had'), shown: typing.closest('.calNoteBox').getAttribute('data-shown'),
             from: typing.selectionStart, to: typing.selectionEnd, focused: document.activeElement === typing }
         : null;
+      // the same for the editor of one of your own events, once anything in it was changed
+      const editing = body.querySelector('.calNoteBox[data-personaluid][data-dirty]');
+      const personalDraft = editing ? {
+        uid: editing.getAttribute('data-personaluid'), shown: editing.getAttribute('data-shown'),
+        values: ['personalEditTitle', 'personalEditStart', 'personalEditEnd'].map(c => { const el = editing.querySelector('.' + c); return el ? el.value : ''; }),
+        allDay: !!(editing.querySelector('.personalEditAllDay') || {}).checked,
+        focus: ['personalEditTitle', 'personalEditStart', 'personalEditEnd', 'personalEditAllDay'].find(c => document.activeElement && document.activeElement.classList.contains(c)) || '' } : null;
 
       // EXT20J: every view built as DOM nodes (h() text-ifies) instead of HTML
       // strings, so the calendar body is safe under Trusted Types.
@@ -10569,6 +10576,15 @@
         const ta = again.querySelector('.calNoteText');
         ta.value = draft.text;
         if (draft.focused) { try { ta.focus(); ta.setSelectionRange(draft.from, draft.to); } catch (e) { /* not critical */ } }
+      }
+      const againPersonal = personalDraft && personalDraft.uid === calOpenUid
+        ? [...body.querySelectorAll('.calNoteBox[data-personaluid]')].find(b => b.getAttribute('data-personaluid') === personalDraft.uid) : null;
+      if (againPersonal) {
+        againPersonal.setAttribute('data-shown', personalDraft.shown || '');
+        againPersonal.setAttribute('data-dirty', '1');
+        ['personalEditTitle', 'personalEditStart', 'personalEditEnd'].forEach((c, i) => { const el = againPersonal.querySelector('.' + c); if (el) el.value = personalDraft.values[i]; });
+        const ad = againPersonal.querySelector('.personalEditAllDay'); if (ad) ad.checked = personalDraft.allDay;
+        if (personalDraft.focus) againPersonal.setAttribute('data-focus', personalDraft.focus);
       }
       wireCalEvents();
     }
@@ -10657,7 +10673,11 @@
         const allDayInput = box.querySelector('.personalEditAllDay');
         const saveBtn = box.querySelector('.personalEditSave');
         const delBtn = box.querySelector('.personalEditDelete');
-        setTimeout(() => titleInput && titleInput.focus(), 20);
+        // after a redraw, back to the field that was being edited (see personalDraft in renderCalendar)
+        const keep = box.getAttribute('data-focus');
+        setTimeout(() => { const f = (keep && box.querySelector('.' + keep)) || titleInput; if (f) f.focus(); }, 20);
+        box.addEventListener('input', () => box.setAttribute('data-dirty', '1'));
+        box.addEventListener('change', () => box.setAttribute('data-dirty', '1'));
         if (saveBtn) saveBtn.addEventListener('click', async () => {
           const title = (titleInput.value || '').trim();
           if (!title) { toast('Give the event a title first.'); return; }
