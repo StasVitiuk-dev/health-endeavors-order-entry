@@ -220,3 +220,10 @@ downloaded here. The informational check stays red; nothing is broken.
 **Waiting on the owner:** merging #114; backups in
 the short form (reminder Nov 26, 10 am Central); database sittings in the order of
 `docs/ops/sql-review/START_HERE_GUIDED_RUNS.md` (rows 17 and 18 are drafts 66 and 68).
+
+**Update, Nov 26 about 03:45 UTC:** #114 merged (`530bf66`); #115 merged (`8d5e79a`). #115 is the weekly
+report's profit line (shown when Real profit is on; costs missing means "not worked out yet", never $0), and
+it also carries the sign-out test race fix. #116, the same test fix on its own, was closed as already
+contained. **No open PRs.** Waiting on the owner: backups in the short form (reminder Nov 26, 10 am Central),
+database sittings (`docs/ops/sql-review/START_HERE_GUIDED_RUNS.md`, rows 17 and 18 are drafts 66 and 68),
+and the outside items in §6 and §7.
