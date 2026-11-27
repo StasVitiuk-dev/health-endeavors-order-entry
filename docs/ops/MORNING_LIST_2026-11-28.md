@@ -18,8 +18,9 @@ reason fixed in #144; it never blocks.
 | 5 | #143 | One page each for the stock steps, request keys and the nightly check; the 20 → 8 → 12 → 3 example; who may do what (notes and tests) |
 | 6 | #144 | Why the screenshot check is always red, and the fix (test machinery only) |
 
-#142 contains #141; #145 contains both; #146 contains #145. Merge 1–4 in this order. #143 and #144 touch
-other files, so they can go at any point.
+#142 contains #141; #145 contains both; #146 contains #145; #143 contains #141 and an early part of #142.
+Merge 1–4 in this order; #143 any time after #142 (then its page shows only its own files). #144 contains
+nothing else and can go at any point.
 
 ## Sitting 2 — two read-only looks in Supabase (about 15 minutes; they change nothing)
 
