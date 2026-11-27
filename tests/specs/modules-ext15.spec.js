@@ -189,7 +189,7 @@ const ADDED = ['focusDialog', 'inspectLabel', 'keyLink', 'setReportHistoryView',
   'AP_KEY', 'apMod', 'apLast', 'apLastText', 'autoPrintCheck', 'plannedShown',
   'openPalette', 'runPalette',   // Nov 25: the search box also answers questions (Ask the dashboard)
   'askBoxOn', 'ASK_QUIET_KEY', 'askLast', 'askSeq', 'askHearing', 'askShown', 'askNote', 'askMod', 'askAllowed', 'askQuiet', 'askCanHear', 'askCanSpeak', 'askHush', 'askSpeak', 'askClear', 'askDress', 'askPaint', 'askData', 'askRun', 'askListen', 'loadAskBar', 'wrGather', 'lpGather',
-  'launchPageOn', 'LP_KEY', 'lpTicks', 'lpInput', 'lpSeq', 'lpMessage', 'lpShared', 'lpMod', 'lpAllowed', 'lpRead', 'lpKeep', 'lpSync', 'loadLaunchPage', 'LP_WORD', 'renderLaunchPage',
+  'launchPageOn', 'LP_KEY', 'lpTicks', 'lpInput', 'lpSeq', 'lpMessage', 'lpShared', 'lpWhy', 'lpMod', 'lpAllowed', 'lpRead', 'lpKeep', 'lpSync', 'loadLaunchPage', 'LP_WORD', 'renderLaunchPage',
   'WR_SEEN_KEY', 'wrBack', 'wrReport', 'wrBusy', 'wrNote', 'wrSeq', 'wrMod', 'wrAllowed', 'wrSeenHere', 'wrSeenUpTo', 'wrSeenSave', 'wrReviews', 'loadWeekReport', 'wrTable', 'renderWeekReport', 'wrSay', 'feedWeek',
   'emailSendingOn', 'esUi', 'esMod', 'esStore', 'esOf', 'esRedraw', 'esSay', 'esReady', 'esLoad', 'esNode', 'scShown', 'ceShown',
   'mySettingsOn', 'fsPulled', 'fsTimer', 'fsShared', 'fsStore', 'feedSnoozePush', 'feedSnoozePull',

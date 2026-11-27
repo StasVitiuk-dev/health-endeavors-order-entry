@@ -13,11 +13,11 @@ reason fixed in #144; it never blocks.
 |---|---|---|
 | 1 | #141 | Records: step A2 installed (notes only) |
 | 2 | #142 | The two-week launch plan; every waiting draft checked on your database's shape; the frozen readiness yardstick (notes and tests) |
-| 3 | the shared-settings pull request | Settings shared by every device, with no switch to turn on; honest wording when they cannot be read (dashboard change: check the live page after it, steps in the pull request) |
+| 3 | #145 | Settings shared by every device, with no switch to turn on; honest wording when they cannot be read (dashboard change: check the live page after it, steps in the pull request) |
 | 4 | #143 | One page each for the stock steps, request keys and the nightly check (notes only) |
 | 5 | #144 | Why the screenshot check is always red, and the fix (test machinery only) |
 
-Each of 2–4 contains the ones before it, so they merge one after the other without a conflict.
+#142 contains #141, and #145 contains both, so those three merge one after the other without a conflict; #143 and #144 touch other files, so their order does not matter.
 
 ## Sitting 2 — two read-only looks in Supabase (about 15 minutes; they change nothing)
 
