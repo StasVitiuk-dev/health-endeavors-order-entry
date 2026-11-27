@@ -102,7 +102,7 @@ The local copy uses a stand-in (every active staff member sees every order).
 | Test | Result |
 |---|---|
 | `local-test/invoices_test.sh`: install and safe install, permissions, contents (19 refusals), tax, Net 14 on every path, numbering past 9,999, creator protection, payments and reversals (including 10 at once), history and audit, voiding, 20 issued at once, 12 at once on one draft, rollback (including an issue during the rollback) | **161 of 161** (was 87) |
-| `local-test/invoice_store_adapter_test.js`: the dashboard's code against this draft | 34 of 34 |
+| `local-test/invoice_store_adapter_test.js`: the dashboard's code against this draft | 34 of 34 (Nov 27: **55 of 55** on the current draft; no suite ran it until then, now it is a step of the local database suite) |
 | `local-test/restore_with_drafts_test.sh`: a backup restored with this draft keeps every rule, payment and history entry | 34 of 34 |
 | Dashboard tests for invoices, tax and reconciliation (computer and phone size) | 198 passed |
 | Tax rounding: the dashboard compared with exact rounding on random amounts and rates | 12 differences in 2 million before the fix below; 0 in 300,000 after it; the half-cent example is in the database test |
