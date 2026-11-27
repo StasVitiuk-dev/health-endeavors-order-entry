@@ -76,6 +76,20 @@ The design D5 above, prepared so it is ready when the owner approves it:
   Order: install step 19 first, then add this step, then switch "Backup status on Home" on. To undo:
   remove this step first, then run `71_…`.
 
+  **How the owner checks it worked, without showing Claude anything from that repository:**
+  1. After saving the change, the repository's Actions tab shows no "Invalid workflow file" message
+     for the nightly backup (GitHub checks the file's layout by itself).
+  2. The morning after the next nightly run, in Supabase SQL Editor (read-only):
+
+     ```sql
+     select kind, finished_at, ok from public.backup_reports order by finished_at desc limit 3;
+     ```
+
+     One line `nightly_backup | <last night> | true` means the report arrived. The owner sends that
+     result (it holds no secret and no file name). No line: the step did not run or could not
+     reach the database; the backup itself is unaffected.
+  3. Then Feature Flags → "Backup status on Home" → On; Home says "last night's backup succeeded".
+
 ## 4. Safe restore drill for production (owner, when approved)
 
 1. Create a **separate, throwaway Supabase project** (never the production one).
