@@ -78,6 +78,28 @@ function localTyped(text = fs.readFileSync(SCHEMA, 'utf8')) {
 }
 const isArrayType = t => /array$|^array$/.test(t);
 
+// Each export query lists a FIXED set of tables, and names a missing one in a "0 table missing"
+// row. So when a file has some of a query's tables, every one of them must be there (columns, or
+// "missing"); otherwise the file was cut short (a partial copy or a stopped download) and is
+// UNKNOWN, never PASS. The lists are read from the query files themselves. Added Nov 27, 2026:
+// until then an export holding 9 of Query A's 18 tables read PASS.
+function queryTables(file) {
+  const src = fs.readFileSync(path.join(ROOT, 'docs/ops/sql', file), 'utf8');
+  const m = /t\(tbl\) as \(values([\s\S]*?)\n\s*\)/.exec(src);
+  return m ? [...m[1].matchAll(/\('([a-z_]+)'\)/g)].map(x => x[1]) : [];
+}
+const EXPORT_LISTS = { 'Query A': queryTables('00_READONLY_A_schema.sql'), 'Query A2': queryTables('08_READONLY_A2_outside_tables.sql') };
+function cutShort(prod) {
+  const notes = [];
+  for (const [q, list] of Object.entries(EXPORT_LISTS)) {
+    const seen = list.filter(t => prod.exported.has(t));
+    if (!seen.length) continue;                                    // this query's file was not given
+    const absent = list.filter(t => !prod.exported.has(t));
+    if (absent.length) notes.push(q + ' file seems cut short: ' + seen.length + ' of ' + list.length + ' tables, none for ' + absent.join(', '));
+  }
+  return notes;
+}
+
 function diff(exportsText, opts = {}) {
   const prod = { exported: new Set(), missing: new Set(), tables: {} };
   for (const text of [].concat(exportsText)) {
@@ -112,7 +134,10 @@ function diff(exportsText, opts = {}) {
     }
     if (local[t]) for (const c of Object.keys(pc)) if (!lc[c]) add('INFO', 'extra column', t + '.' + c, 'production has it; the local test schema does not');
   }
-  const overall = findings.some(f => f.level === 'FAIL') ? 'FAIL' : findings.some(f => f.level === 'WARN') ? 'WARN' : 'PASS';
+  const short = cutShort(prod);
+  for (const note of short) add('UNKNOWN', 'export cut short', '(whole file)', note + '. Download the whole result again.');
+  // a cut-short export is never PASS or WARN (the missing tables could hold a FAIL); a FAIL it shows stays FAIL
+  const overall = findings.some(f => f.level === 'FAIL') ? 'FAIL' : short.length ? 'UNKNOWN' : findings.some(f => f.level === 'WARN') ? 'WARN' : 'PASS';
   return { overall, findings, exportedTables: prod.exported.size };
 }
 
@@ -121,9 +146,9 @@ if (require.main === module) {
   for (let i = 2; i < a.length; i++) if (a[i] === '--export' && a[i + 1]) files.push(a[++i]);
   if (!files.length) { console.log('usage: node tests/tools/schema-drift.js --export query-a.csv [--export query-a2.csv] [--json]'); process.exit(2); }
   const r = diff(files.map(f => fs.readFileSync(f, 'utf8')));
-  if (a.includes('--json')) { console.log(JSON.stringify(r, null, 1)); process.exit(r.overall === 'FAIL' ? 1 : 0); }
+  if (a.includes('--json')) { console.log(JSON.stringify(r, null, 1)); process.exit(r.overall === 'FAIL' ? 1 : r.overall === 'UNKNOWN' ? 2 : 0); }
   for (const f of r.findings.filter(x => x.kind !== 'not exported' || x.note.startsWith('the page'))) console.log(`${f.level.padEnd(4)} ${f.kind}: ${f.object} — ${f.note}`);
   console.log(`SCHEMA DRIFT: ${r.overall} (${r.exportedTables} tables in the export; ${r.findings.filter(f => f.level === 'FAIL').length} FAIL, ${r.findings.filter(f => f.level === 'WARN').length} WARN)`);
-  process.exit(r.overall === 'FAIL' ? 1 : 0);
+  process.exit(r.overall === 'FAIL' ? 1 : r.overall === 'UNKNOWN' ? 2 : 0);
 }
-module.exports = { diff, parseExport, localTyped, csvRows, normType };
+module.exports = { diff, parseExport, localTyped, csvRows, normType, EXPORT_LISTS };

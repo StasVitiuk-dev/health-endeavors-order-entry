@@ -63,6 +63,31 @@ test('draft columns are never assumed live: absent in production is "draft not i
   expect(r.findings.filter(f => f.level === 'FAIL')).toEqual([]);
 });
 
+test('a cut-short export is UNKNOWN, never PASS (Nov 27, 2026: 9 of 18 tables used to read PASS)', () => {
+  expect(D.EXPORT_LISTS['Query A'].length).toBe(18);                 // read from the query files themselves
+  expect(D.EXPORT_LISTS['Query A2'].sort()).toEqual([...sc.OUTSIDE].sort());
+  const L = local();
+  const whole = exportFrom(L);
+  const keep = Object.keys(L).sort().slice(0, 9);
+  const cut = exportFrom(Object.fromEntries(Object.entries(L).filter(([t]) => keep.includes(t))));   // cut between two tables
+  const r = D.diff(cut);
+  expect(r.overall).toBe('UNKNOWN');
+  expect(r.findings.find(f => f.kind === 'export cut short').note).toMatch(/Query A file seems cut short: 9 of 18 tables, none for /);
+  // one table left out is enough; "0 table missing" still counts as reported
+  const oneOut = whole.replace(/^(1 column|4 rls),tasks,.*\r\n/gm, '');
+  expect(D.diff(oneOut).overall).toBe('UNKNOWN');
+  expect(D.diff(oneOut + '0 table missing,tasks,not found in schema public\r\n').overall).toBe('FAIL');   // reported missing: a real FAIL
+  // a FAIL it can see stays FAIL
+  expect(D.diff(exportFrom(Object.fromEntries(Object.entries(L).filter(([t]) => keep.includes(t))), (t, c, i) => (t === keep[0] && c === Object.keys(L[keep[0]])[0] ? null : i))).overall).toBe('FAIL');
+  // Query A2: some of its 24 tables but not all is cut short too; all of them (even all "missing") is whole
+  const a2 = [...sc.OUTSIDE];
+  const a2all = a2.map(t => '0 table missing,' + t + ',not found in schema public').join('\r\n') + '\r\n';
+  expect(D.diff([whole, a2all]).findings.some(f => f.kind === 'export cut short')).toBe(false);
+  const a2cut = D.diff([whole, a2all.split('\r\n').slice(0, 5).join('\r\n') + '\r\n']);
+  expect(a2cut.findings.find(f => f.kind === 'export cut short').note).toMatch(/Query A2 file seems cut short: 5 of 24 tables/);
+  expect(a2cut.overall).toBe('FAIL');                                // its 5 "missing" tables are read by the page: a real FAIL, shown
+});
+
 test('CSV reading: quoted commas, doubled quotes, CRLF, header row', () => {
   expect(D.csvRows('a,b,c\r\n1 column,t,"1 x text, odd ""q"""\r\n')).toEqual([['a', 'b', 'c'], ['1 column', 't', '1 x text, odd "q"']]);
   const p = D.parseExport('section,item,detail\n1 column,t,"3 total numeric NOT NULL DEFAULT 0"\n0 table missing,u,not found in schema public\n');
