@@ -196,6 +196,20 @@ test('"Mark as done" is kept with the day and the name, survives a reload, and c
   expect(writes(backend)).toEqual([]);
 });
 
+// Nov 27 night: the shared settings could not be read (no connection): the page says why the marks stay here,
+// and no longer points to the old "Settings shared by every device" switch (gone since SHARED_SETTINGS_LIVE)
+test('the shared settings cannot be read: the marks stay in this browser and the page says why', async ({ page, backend }, ti) => {
+  test.skip(ti.project.name !== 'desktop', 'one size is enough');
+  await page.route(u => /\/rest\/v1\/shared_settings\?/.test(String(u)) && /launch_list/.test(String(u)), route => route.abort('failed'));
+  await open(page, backend);
+  // the database library tries a failed read again a few times before giving up (about 8 s here): "Checking…" until then
+  await expect(page.locator('#launchPanel')).toContainText('Your marks are kept in this browser. The settings every device shares could not be read just now; press Check again to try once more.', { timeout: 25000 });
+  await expect(page.locator('#launchPanel')).not.toContainText('"Settings shared by every device"');
+  await line(page, 'backups').locator('[data-lptick]').click();
+  await expect(line(page, 'backups')).toHaveAttribute('data-lpstate', 'ready');            // kept here
+  expect(backend.requests.filter(r => r.rpc === 'set_shared_setting')).toEqual([]);        // and not sent as "for every device"
+});
+
 test('with the shared settings in use a mark is saved for every device, and a mark made on another device shows here', async ({ page, backend }, ti) => {
   test.skip(ti.project.name !== 'desktop', 'one size is enough');
   backend.tables.shared_settings = [{ id: 'ss-launch', key: 'launch_list', value: { ticks: { email: { on: true, at: NOW - 60000, by: 'SYNTHETIC Admin' } } }, updated_at: '2026-11-25T17:59:00Z', updated_by: null }];

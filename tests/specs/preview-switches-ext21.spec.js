@@ -38,7 +38,11 @@ test('the owner sees every switch, all off by default; nothing is stored until o
   const host = page.locator('#previewSwitchesHost');
   await expect(host.locator('tbody tr')).toHaveCount(FLAG_KEYS.length);
   await expect(host.locator('tr[data-preview-on="yes"]')).toHaveCount(0);
-  await expect(host).toContainText('this browser on this device only');
+  // Nov 27 night: the page no longer says "this browser only" for every switch (wrong since the shared settings are in
+  // use); it says where a switch applies just below: shared here (installed, empty), this browser only when they cannot be read
+  await expect(host).toContainText('Where a switch applies (every device, or this browser only) is said just below.');
+  await expect(host.locator('[data-preview-shared]')).toHaveAttribute('data-preview-shared', 'installed');
+  await expect(host).not.toContainText('this browser on this device only');
   await expect(host).toContainText('nothing is sent, issued, charged or written to stock');
   await expect(host.locator('[data-preview-count]')).toHaveAttribute('data-preview-count', '0');
   expect(await page.evaluate(keys => keys.filter(k => localStorage.getItem(k) !== null), FLAG_KEYS)).toEqual([]);
