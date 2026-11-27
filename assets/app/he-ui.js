@@ -273,7 +273,8 @@ window.HE.modules.define('he-ui', { api: 1, needs: ['EMPTY_ICONS','HELP','ICON_P
       const keyOf = (row) => row.getAttribute('data-id') || row.getAttribute('data-product-id') || row.getAttribute('data-return-id') || '';
       const sigOf = (row) => Array.from(row.attributes).filter(a => a.name.indexOf('data-') === 0 && a.name.indexOf('data-test') !== 0)
         .map(a => a.name + '=' + a.value).sort().join('\n');
-      const nameOf = (el) => el.getAttribute('name') || (Array.from(el.classList).find(c => c.indexOf('u-') !== 0) || '');
+      // a field's name: its name, or its first own class, plus its data-line when several share one (a lot number per order line)
+      const nameOf = (el) => { const n = el.getAttribute('name') || (Array.from(el.classList).find(c => c.indexOf('u-') !== 0) || ''); return n && el.hasAttribute('data-line') ? n + '#' + el.getAttribute('data-line') : n; };
       const fieldsOf = (row) => Array.from(row.querySelectorAll('input, textarea, select'))
         .filter(el => !(el.tagName === 'INPUT' && /^(hidden|file|checkbox|radio|button|submit|reset|image)$/i.test(el.type)) && nameOf(el));
       const savedOf = (el) => {
