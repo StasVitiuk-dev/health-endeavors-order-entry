@@ -31,7 +31,7 @@ Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (fro
   recorder writes each row's `id`, which the settings table lacks. "Settings shared by every device" is
   back off, so switches stay per browser. Then (after 4 AM): #139 merged (`6988cdb`), **step A2 installed
   and verified** (drafts/74, `uuid | 0 | 1`), "Settings shared by every device" turned on again, and the
-  first shared save worked (one row `feature_switches`, 2 history rows). Installed so far: steps 0, 18, 19,
+  first shared save worked (one row `feature_switches`, 2 history rows); the Real profit estimates saved "for every phone and computer". Installed so far: steps 0, 18, 19,
   A and A2. Next: the owner's phone (turn the same switch on there), then the small update that makes the
   shared settings the rule for every device.
 - **Nov 26, 2026, late evening:** `main` was at `a8b2517` and is the
