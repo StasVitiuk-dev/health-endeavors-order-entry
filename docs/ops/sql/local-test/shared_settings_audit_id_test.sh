@@ -61,7 +61,8 @@ ok  "  a save with the version read still works" "$(as "$O" "select public.set_s
 ok  "  and a save with an old version is still refused as a conflict" "$(as "$O" "select public.set_shared_setting('profit_estimates', '{\"fees\":4}'::jsonb, 'staff', '$U'::timestamptz)" | grep -c '"conflict": true')" "1"
 has "  an employee still cannot save" "$(save "$E" x_note '{}')" "Only the owner or an administrator"
 ok  "  the employee reads the staff setting" "$(as "$E" "select string_agg(key, ',' order by key) from shared_settings")" "old_note,profit_estimates"
-has "  a setting still cannot be deleted" "$(as "$O" "delete from shared_settings where key = 'old_note'")" "stays on the record"
+has "  a setting still cannot be deleted (signed-in people have no right to delete)" "$(as "$O" "delete from shared_settings where key = 'old_note'")" "permission denied"
+ok  "  (still there)" "$(q "select count(*) from shared_settings where key = 'old_note'")" "1"
 ok  "  a second install changes nothing" "$(run "$INSTALL")|$(q "select id from shared_settings where key = 'profit_estimates'")" "0|$ID1"
 
 echo " rollback (drafts/75)"
