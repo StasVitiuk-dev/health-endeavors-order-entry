@@ -25,7 +25,7 @@ When someone opens a pull request, or pushes to a `claude/...` branch, GitHub ru
 | Job | When | Time limit | What |
 |---|---|---|---|
 | `static` | always | 15 min | secret scan · SQL lint (`npm run sql:lint`) · status manifest (`npm run status:check`) · docs check (`npm run docs:check`) · Node-only specs |
-| `browser` | unless the change is documentation only | 40 min × 3 shards | the full Playwright suite in 3 parts. Screenshot comparisons are excluded (they depend on fonts) |
+| `browser` | unless the change is documentation only | 40 min × 4 shards | the full Playwright suite in 4 parts (3 until Nov 26, 2026, when one part reached 39 of its 40 minutes). Screenshot comparisons are excluded (they depend on fonts) |
 | `database` | when SQL, its runners, the workflow or `package.json` changed | 30 min | `tests/tools/run-db-suite.sh` with `QUICK=1` on a `postgres:16` service |
 | `visual` | as `browser` | 20 min | screenshot comparisons, **informational** (a red result here does not block) |
 
@@ -44,7 +44,7 @@ CI_SKIP_BROWSER=1 npm run ci:local                       # static (+ database) o
 Once the workflow has run green on `main` at least once, Stas may add these to the `protect-main` ruleset as required status checks. This is a settings change, so Claude does not make it:
 
 - `Static, SQL safety, docs, tools`
-- `Browser suite (shard 1/3)`, `(shard 2/3)`, `(shard 3/3)`
+- `Browser suite (shard 1/4)`, `(shard 2/4)`, `(shard 3/4)`, `(shard 4/4)` (named `…/3` until Nov 26, 2026)
 - `Local database suite (throwaway PostgreSQL)`
 
 Do **not** require `Screenshots (informational)`.
@@ -54,6 +54,6 @@ A job skipped by change impact counts as passed for required checks. That is int
 ## 6. Known limitations
 
 - Actions are pinned by tag (`@v4`), not by commit SHA. This session could not read the `actions/*` repositories to look up SHAs (403). Pinning by SHA is a small follow-up PR.
-- The browser suite takes about 40 minutes on a 4-CPU machine with 2 workers. On GitHub's runners the 3 shards should finish in about 15–20 minutes each (estimate, not yet measured on GitHub).
+- The browser suite takes about 40 minutes on a 4-CPU machine with 2 workers. On GitHub's runners the 3 shards took about 13–16 minutes each in October; by Nov 26, 2026 they took 24–39 minutes, so the suite was split in 4 (expected about 20–30 minutes each).
 - The database job uses `QUICK=1`, which skips the slow stress and volume steps. The full run stays local: `npm run db:suite:local`.
 - CI cannot check the live site, real devices, real Safari or production data. Those remain owner checks.
