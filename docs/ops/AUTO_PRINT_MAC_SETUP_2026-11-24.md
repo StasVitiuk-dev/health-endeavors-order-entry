@@ -1,6 +1,26 @@
 # Printing the day pack at 8:00 AM: the set-up on the Mac
 
-Written November 24, 2026. Status: PROPOSED. OWNER ACTION REQUIRED (about 15 minutes, done together, one step at a time with screenshots).
+Written November 24, 2026. **Status (Nov 26, night): DONE and SWITCHED OFF until launch.**
+
+## What was set up on the owner's Mac (Nov 26, 2026, with screenshots)
+
+- **Way A worked** (the Shortcuts app on macOS 26 has "Time of Day" in its action list).
+- Shortcut **"Print day pack"**: trigger **Time of Day, 12:02 AM, Every Day** (the owner's choice:
+  the owner usually works around midnight and sleeps at 8 AM; yesterday is complete at 12:02),
+  action **Open URLs** with the dashboard's daily link (`…/owner-login.html?print=daypack`).
+- **Tested once** with ▶︎: Safari opened the dashboard and the print window showed yesterday's day
+  pack (3 pages: summary, orders, clients); the owner pressed Cancel, so nothing was printed.
+- **Switched off** ("Automation is turned off": the Automation tick in the trigger is empty),
+  because there are no sales yet and the owner does not want to waste paper (owner, Nov 26).
+- **At launch:** Shortcuts → "Print day pack" → tick **Automation** again. This is written on the
+  "Ready to launch" page (the printers line).
+- Print settings on that Mac: the preset **"One-sided"** (Double-sided Off, Print in Colour Off,
+  Safari's headers and footers unticked, US Letter, 100 %), `PRINTING_GUIDE.md`.
+- Known: if the day's recap is not saved yet at 12:02 AM, the pack is printed without it; the
+  orders are always complete. Asked and declined for now: skipping days with no orders (owner
+  chose to switch the timer off instead).
+
+## The original plan (Nov 24, kept for reference)
 
 The owner decided on Nov 24: every day at 8:00 AM, yesterday's day pack, on the Mac next to the printer.
 

@@ -87,6 +87,12 @@ from `owner-login.html`.
 
 - Brother: paper Letter, scale 100 %. Optional: "Black & White" / "Greyscale" in the printer's
   options (the dashboard already prints black only).
+- **Set on the owner's Mac, Nov 26 (Safari, macOS print window), saved as the preset "One-sided":**
+  Double-sided **Off** (it was On, so two pages went on one sheet), Print in Colour **Off** (no colour
+  ink is ever used), Safari's **Print headers and footers** unticked (they added the date, the web
+  address and "Page 1 of 2", and took room from the page), US Letter, 100 %. For long recaps the
+  owner may choose Double-sided On for that print (a second preset, "Two-sided", optional).
+  A web page cannot choose one- or two-sided; the print window decides.
 - Rollo: paper size 4 × 6 (or 100 × 150 mm), margins None, scale 100 %.
 
 ## Checks (local; nothing sent to a printer)
@@ -99,6 +105,17 @@ all three new looks. With the existing print checks: 17 passed, 10 skipped on pu
 The two typefaces really load (not the fallback) and the invoice title, total and label order
 number use them.
 A deliberate break (the black-ink sheet turned off) makes the black-ink test fail, as it should.
+
+## Real printer results
+
+- **Brother, Nov 26 (owner):** added to the Mac (System Settings → Printers & Scanners; "Idle"),
+  default paper US Letter. First test page: printed, black only, but on two sides of one sheet with
+  Safari's headers, and the frame's bottom edge on a second page. Settings fixed as above; the test
+  page's frame made shorter (9.9 in → 8.75 in; the 4 × 6 one 5.7 in → 5.2 in) because Safari's own
+  margins are larger than the 0.5 in the page asks for. Re-print after that change: pending.
+- **Daily print, Nov 26 (owner):** the Shortcuts timer "Print day pack" (12:02 AM, every day)
+  opened the day pack's print window on the Brother (3 pages); cancelled, then the timer was
+  switched off until launch (`AUTO_PRINT_MAC_SETUP_2026-11-24.md`).
 
 ## Still to check on the real printers (when they arrive)
 

@@ -43,7 +43,7 @@
     { key: 'people', kind: 'yours', title: 'Everyone who will work has their own account', page: 'activityPanel', pageName: 'Employee Activity',
       why: 'One account per person, so the history shows who did what. Nobody shares a sign-in.' },
     { key: 'printers', kind: 'yours', title: 'Both printers printed their test page', page: 'ordersPanel', pageName: 'Orders',
-      why: 'The label printer and the paper printer: the frame shows on all four sides and the square measures one inch.' },
+      why: 'The label printer and the paper printer: the frame shows on all four sides and the square measures one inch. And switch the daily print on: Shortcuts app, "Print day pack", tick Automation (set up Nov 26 for 12:02 AM every day, off until launch).' },
     { key: 'backups', kind: 'yours', title: 'A backup was restored once, as a test',
       why: 'A backup that was never restored is a hope, not a backup. One restore into a throwaway copy, then delete it.' },
     { key: 'rehearsal', kind: 'yours', title: 'One real test order went all the way through',
