@@ -34,7 +34,7 @@ Going back to the **previous version** (not the data) on launch day, and its pra
 
 Today: only by the owner looking (§2), or a GitHub e-mail if notifications are on. The dashboard shows **"Backups: not verified here" (UNKNOWN)** on Home on purpose (EXT8). Recommended (design, `AUTOMATION_AND_AGENT_ARCHITECTURE.md` D5): the backup job writes one row (finished_at, ok, size, restore_tested_at) into a table the dashboard can only read; Home then shows HEALTHY / NEEDS REVIEW / UNKNOWN. No backup secret ever reaches the dashboard. Needs owner approval (a table + a change in the private repository's job).
 
-## 3a. Backup status on Home: prepared (Nov 26) — PROPOSED, nothing installed
+## 3a. Backup status on Home: step 19 installed (Nov 26) — CURRENT; the repository step and the switch still to do
 
 The design D5 above, prepared so it is ready when the owner approves it:
 
@@ -44,7 +44,9 @@ The design D5 above, prepared so it is ready when the owner approves it:
   stored in it:** no file names, paths, errors or logs. The owner and administrators can read it;
   nobody signed in to the dashboard can add, change or delete a line. Only the backup job writes,
   with the database's own service key it already uses. Local test
-  `local-test/backup_reports_test.sh`: 40 of 40.
+  `local-test/backup_reports_test.sh`: 40 of 40. **Installed by the owner on Nov 26 (evening, Central)
+  and verified read-only: `true | 1 | SELECT | 0`** (reading rules on, one rule, signed-in people may only
+  read, no lines yet).
 - **Home** (preview switch "Backup status on Home", off): the backups line then says one of:
   - **last night's backup succeeded** (with the time; and the last restore test, if one reported);
   - **the newest backup is older than a day**, or **the last backup failed**: urgent, at the top;

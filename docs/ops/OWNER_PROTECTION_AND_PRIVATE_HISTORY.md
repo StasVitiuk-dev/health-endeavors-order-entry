@@ -189,6 +189,8 @@ draft is needed. Three small points, recorded for completeness (none is a leak t
    (`68_DRAFT_history_functions_search_path.sql` and its undo): they change only that setting
    on the three functions, never their text; local test `history_search_path_test.sh` shows the
    gap before and that it is closed after, and that the undo restores the exact earlier setting.
+   **Installed by the owner on Nov 26 (evening, Central, step 18) and verified read-only: the three
+   search paths now end in `pg_temp`.**
 
 ### B4. What I prepared now, and what waits
 

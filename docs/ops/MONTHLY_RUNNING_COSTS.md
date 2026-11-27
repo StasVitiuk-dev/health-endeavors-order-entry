@@ -22,14 +22,19 @@ Related: email prices in `docs/ops/EMAIL_SERVICE_COMPARISON_2026-11-24.md`; the 
 | Service | What it does | Estimate per month |
 |---|---|---|
 | GitHub | the dashboard, its tests, the backups | **$0** (public repository; backups within the free minutes) |
-| Supabase (database) | orders, stock, accounting | **$0 on Free**, or about **$25 on Pro**. The owner's current plan is not recorded yet (OWNER: Settings → Billing, plan name only) |
+| Supabase (database) | orders, stock, accounting | **Pro, about $25** (owner's screenshot, Nov 26: "Pro Plan", **spend cap enabled**, so nothing beyond the plan price can be charged) |
 | Shopify Basic | the online store | about **$39**, or about **$29 when paid yearly** |
 | Google Workspace (proposed) | business email | about **$7–8.40 per mailbox** (`EMAIL_SERVICE_COMPARISON_2026-11-24.md`) |
 | Domain name | the business's web address | about **$1–2** |
 | Shopify's customer emails | order and shipping emails | **$0** up to 10,000 a month on a paid plan, then about $1 per 1,000 |
 
-**Total: about $40–50 a month at the cheapest (Supabase Free, one mailbox, Shopify yearly), about
-$75–80 with Supabase Pro.**
+**Total: about $75–80 a month** with Supabase Pro (the owner's plan, confirmed Nov 26), one mailbox
+and Shopify paid yearly.
+
+**Spend cap (Supabase, Nov 26):** on. It means no charge beyond the plan, ever; the trade-off is that
+if the business ever used more than Pro includes, the database could slow down or go read-only until
+the next month. At today's size that is very unlikely. Recommendation: keep it on; look again once
+real orders run at volume.
 
 ## Costs that come only with sales
 
@@ -46,8 +51,8 @@ $75–80 with Supabase Pro.**
 2. Start with **one mailbox**; support@, orders@ and dmarc@ as free aliases of it
    (`BUSINESS_EMAIL_PLAN.md`).
 3. Keep the **$0 GitHub budgets** as they are, and keep reporting "minutes: OK/out".
-4. Stay on **Supabase Free until real orders** start; then Pro is recommended (its own daily backups,
-   the database never pauses).
+4. Supabase: the owner is already on **Pro** (its own daily backups, the database never pauses), with
+   the spend cap on.
 5. Use **Shopify's own email** for customer messages instead of a paid sending service.
 6. Avoid **paid Shopify apps** unless one clearly pays for itself; most of what they offer is built
    into the dashboard.
