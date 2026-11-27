@@ -27,18 +27,24 @@ fingerprint on these pages goes out of date). For every row: **Prepared** = writ
 on a throwaway copy; **Reviewed / Approved / Installed / Verified** are yours, one at a time.
 Today every row is **Prepared** only, except steps 18 and 19: **installed and verified by you on Nov 26,
 2026** (evening, Central: each gave one `pg_advisory_xact_lock` row; the read-only checks showed all three
-search paths ending in `pg_temp`, and `true | 1 | SELECT | 0` for the backup reports table). Nothing else
-is reviewed, approved, installed or verified.
+search paths ending in `pg_temp`, and `true | 1 | SELECT | 0` for the backup reports table), and step 0:
+**installed and verified by you on Nov 27, 2026** (about 2:15 AM Central, after #137 merged: one
+`pg_advisory_xact_lock` row; the read-only check showed `active_role | false | false` and
+`is_active_staff | false | false`), and step A: **installed and verified by you on Nov 27, 2026** (about
+2:45 AM Central: one `pg_advisory_xact_lock` row; the read-only check showed `true | 0 | 1 | false`). Step A
+cannot save yet: every save was refused by your history recorder (`record "new" has no field "id"`, nothing
+changed), so step **A2** comes next. Nothing else is reviewed, approved, installed or verified.
 
 | Order | What it enables | Needs first | File (`docs/ops/sql/drafts/`) | Lines | Fingerprint | Undo file | Before (read-only) | After (read-only check) |
 |---|---|---|---|---|---|---|---|---|
-| 0 | **First, before A and the steps that use it:** the "active staff member" and "role of a switched-on account" checks production does not have (found Nov 27 when step A stopped safely) | nothing | `72_DRAFT_active_staff_helper.sql` | 108 | `da6f7ed3ca5eacc8` | `73_…` | — | Item 18 |
-| A | Settings and switches the same on every phone and computer (your standing rule); the owner or an administrator saves them | **0** | `50_DRAFT_shared_settings.sql` | 193 | `0d17fc4e94fbd847` | `51_…` | — | Item 10, "After running" |
+| 0 | **First, before A and the steps that use it:** the "active staff member" and "role of a switched-on account" checks production does not have (found Nov 27 when step A stopped safely). **Done Nov 27: installed and verified** | nothing | `72_DRAFT_active_staff_helper.sql` | 108 | `da6f7ed3ca5eacc8` | `73_…` | — | Item 18 |
+| A | Settings and switches the same on every phone and computer (your standing rule); the owner or an administrator saves them. **Done Nov 27: installed and verified; saving needs A2** | **0** | `50_DRAFT_shared_settings.sql` | 193 | `0d17fc4e94fbd847` | `51_…` | — | Item 10, "After running" |
+| A2 | **Right after A:** the `id` your history recorder writes for every change (without it every save of a shared setting is refused: found Nov 27) | **A** | `74_DRAFT_shared_settings_audit_id.sql` | 57 | `27550a1b2cda75ef` | `75_…` | — | Item 19, "After running" |
 | 1–8 | as in the table above | as above | (see above) | | | | | |
 | 9 | Parcels and tracking per order, delivery problems watch | nothing | `48_DRAFT_order_parcels.sql` | 392 | `ca25da9142afa5b0` | `49_…` | — | Item 9, "After running" |
-| 10 | Packaging and shipping cost per order (real profit) | nothing | `52_DRAFT_order_costs.sql` | 190 | `2be65c5c4b234315` | `53_…` | — | Item 11, "After running" |
+| 10 | Packaging and shipping cost per order (real profit) | nothing | `52_DRAFT_order_costs.sql` | 191 | `10f53b1d7b57a6e1` | `53_…` | — | Item 11, "After running" |
 | 11 | Batch (lot) on each order line, for recalls | nothing | `54_DRAFT_order_batches.sql` | 299 | `a19bbc8a6e156aee` | `55_…` | Item 12, "Open question" | Item 12, "After running" |
-| 12 | Saved email campaigns approved by you or an administrator (**still sends nothing**; real sending is a separate decision) | nothing | `56_DRAFT_email_sending.sql` | 566 | `8d101087cd892784` | `57_…` | — | Item 13, "After running" |
+| 12 | Saved email campaigns approved by you or an administrator (**still sends nothing**; real sending is a separate decision) | nothing | `56_DRAFT_email_sending.sql` | 567 | `fd78ceae4e4f04ed` | `57_…` | — | Item 13, "After running" |
 | 13 | "My settings" kept per person on every device | nothing | `58_DRAFT_my_settings.sql` | 176 | `35ce08fdd4e4caea` | `59_…` | — | Item 14, "After running" |
 | 14 | Customer reviews stored | nothing | `60_DRAFT_customer_reviews.sql` | 262 | `096167f3c7cf7581` | `61_…` | — | Item 15, "After running" |
 | 15a | The word "manager" | nothing | `62_DRAFT_manager_role.sql` | 48 | `c78870424a9e247f` | `63_…` | Item 16, "Before you run it" | Item 16 |
@@ -174,7 +180,7 @@ the query anyway. If it mentions anything else (for example `drop table` on a ta
 | 4 | `40_DRAFT_partial_receiving_returns.sql` | 1032 | `c9f81f40f95a58c1` | Item 5, "After running" | `true \| true \| 0 \| 0 \| false` | `41_…` |
 | 5a | `36_DRAFT_supplier_documents.sql` | 1034 | `54e3c73d8186273c` | Item 4, "After draft 36" | `9 \| 0 \| 0 \| false` | `37_…` |
 | 5b | `38_DRAFT_supplier_document_files.sql` (only after 5a) | 97 | `4f260ac2f075a5df` | Item 4, "After draft 38" | `false \| 10485760 \| {application/pdf,image/jpeg,image/png} \| 2` | `39_…` |
-| 6 | `32_DRAFT_invoices.sql` | 950 | `7569c1ca765cc175` | Item 1, "After running" | `true \| true \| true \| 0 \| 1 \| false` | `33_…` |
+| 6 | `32_DRAFT_invoices.sql` | 951 | `0de2357179e1c90d` | Item 1, "After running" | `true \| true \| true \| 0 \| 1 \| false` | `33_…` |
 | 7 | `42_DRAFT_shopify_payouts_money_issues.sql` (the daily Shopify program is a separate step after it) | 242 | `dfbcaa89a6112c17` | Item 6, "After running file 42" | `true \| true \| 0 \| false` | `43_…` |
 | 8 | `46_DRAFT_tax_rates.sql` (after PR #42 is merged) | 239 | `186cffd0d6dcfdbc` | Item 8, "After running" | `true \| 0 \| 1 \| false` | `47_…` |
 

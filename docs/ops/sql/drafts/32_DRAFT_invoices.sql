@@ -111,7 +111,7 @@ end $pre$;
 -- differs. The list is pinned by local-test/invoices_test.sh against a fresh install.
 create temp table he_invoice_expected (tbl text, col text, typ text, req boolean) on commit drop;
 insert into he_invoice_expected values
-  ('invoice_counters','invoice_year','integer',true), ('invoice_counters','last_seq','integer',true),
+  ('invoice_counters','invoice_year','integer',true), ('invoice_counters','last_seq','integer',true), ('invoice_counters','id','uuid',true),
   ('invoices','id','uuid',true), ('invoices','order_id','uuid',false), ('invoices','account_ref','text',false),
   ('invoices','bill_to','jsonb',false), ('invoices','ship_to','jsonb',false), ('invoices','status','text',true),
   ('invoices','invoice_number','text',false), ('invoices','invoice_year','integer',false), ('invoices','invoice_seq','integer',false),
@@ -169,7 +169,8 @@ end $compat$;
 -- ---------------------------------------------------------------- 3. tables
 create table if not exists public.invoice_counters (
   invoice_year integer primary key check (invoice_year between 2020 and 2999),
-  last_seq     integer not null check (last_seq >= 0)
+  last_seq     integer not null check (last_seq >= 0),
+  id           uuid not null default gen_random_uuid() unique   -- the identifier production's audit trigger records (audit_trigger_function() writes new.id; see drafts/74)
 );
 
 create table if not exists public.invoices (

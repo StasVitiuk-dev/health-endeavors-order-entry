@@ -8,7 +8,7 @@
 set -u
 CONN=("$@"); SRC=he_real; DB=he_shared_settings_test
 DIR="$(cd "$(dirname "$0")/.." && pwd)"
-INSTALL="$DIR/drafts/50_DRAFT_shared_settings.sql"; ROLLBACK="$DIR/drafts/51_DRAFT_rollback_shared_settings.sql"
+INSTALL="$DIR/drafts/50_DRAFT_shared_settings.sql"; A2="$DIR/drafts/74_DRAFT_shared_settings_audit_id.sql"; ROLLBACK="$DIR/drafts/51_DRAFT_rollback_shared_settings.sql"
 pass=0; fail=0
 ok()   { if [ "$2" = "$3" ]; then pass=$((pass+1)); echo "  ok   $1"; else fail=$((fail+1)); echo "  FAIL $1: expected [$3], got [$2]"; fi; }
 has()  { if echo "$2" | grep -q -- "$3"; then pass=$((pass+1)); echo "  ok   $1"; else fail=$((fail+1)); echo "  FAIL $1: expected to find [$3] in [$(echo "$2" | tr '\n' ' ' | cut -c1-240)]"; fi; }
@@ -31,7 +31,9 @@ echo "Shared settings (throwaway database $DB)"
 echo " 1. install"
 ok  "install" "$(run "$INSTALL")" "0"
 ok  "  safe to run twice" "$(run "$INSTALL")" "0"
-ok  "  the table is empty, marked and audited" "$(q "select count(*) from shared_settings")/$(q "select obj_description('public.shared_settings'::regclass, 'pg_class') like 'Health Endeavors drafts/50%'")/$(q "select count(*) from pg_trigger where tgname = 'shared_settings_audit'")" "0/t/1"
+# production's audit trigger records new.id: step A2 (drafts/74) gives the table one, right after step A
+ok  "step A2 (drafts/74) on top" "$(run "$A2")" "0"
+ok  "  the table is empty, marked and audited (with the id the audit records)" "$(q "select count(*) from shared_settings")/$(q "select obj_description('public.shared_settings'::regclass, 'pg_class') like 'Health Endeavors drafts/50%'")/$(q "select count(*) from pg_trigger where tgname = 'shared_settings_audit'")/$(q "select count(*) from pg_attribute where attrelid = 'public.shared_settings'::regclass and attname = 'id'")" "0/t/1/1"
 
 echo " 2. the owner and administrators save (owner decision of Nov 24); nobody else"
 ok  "the owner saves the estimates" "$(as $O "select (set_shared_setting('profit_estimates', '$V1'))->>'ok'")" "true"
@@ -91,6 +93,7 @@ ok  "a save without a version still replaces (a single switch: the last choice w
 
 echo " 5. audit"
 ok  "every change is in audit_log" "$(q "select count(*) >= 3 from audit_log where table_name = 'shared_settings'")" "t"
+ok  "  each under its row's id" "$(q "select count(*) from audit_log a where a.table_name = 'shared_settings' and not exists (select 1 from shared_settings s where s.id::text = a.record_id)")" "0"
 
 echo " 6. rollback"
 ok  "the rollback stops while settings are saved" "$(run "$ROLLBACK")" "3"

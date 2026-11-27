@@ -7,7 +7,7 @@ Nothing here has been run in production. I never run it myself: you run it, afte
 
 | File | Lines | Fingerprint (SHA-256, first 16) |
 |---|---|---|
-| `docs/ops/sql/drafts/32_DRAFT_invoices.sql` (install) | 950 | `7569c1ca765cc175` |
+| `docs/ops/sql/drafts/32_DRAFT_invoices.sql` (install) | 951 | `0de2357179e1c90d` |
 | `docs/ops/sql/drafts/33_DRAFT_rollback_invoices.sql` (undo) | 75 | `5fff855b59dc5064` |
 
 Previous version (Nov 16): `7e819373a4b9479c` / `65862e5a46ddea54`, now replaced.

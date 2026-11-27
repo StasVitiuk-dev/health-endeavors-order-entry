@@ -1,6 +1,6 @@
 # Health Endeavors — current state (cross-project summary)
 
-**Last updated:** November 26, 2026, late night (§1: #130–#134 and #136 merged; steps 18 and 19 installed and verified, the first database steps in production; Supabase Pro with the spend cap on). Before that: November 26, 2026 (§1, §4, §5, §8, §9: #112–#115 and #117–#119 merged on the evening of Nov 25 and just after midnight; the owner's Nov 25 answers; nothing installed). Before that: November 25, 2026 (§1, §4, §5, §8: #110 merged in the afternoon with #102–#109 inside it; nothing installed). Before that: November 24, 2026 (§1, §4, §5, §8, §9: PR #85 merged in the evening with #56–#84 inside it; live check by the owner still to come; the owner's open decisions). Before that: November 23, 2026, evening (§1, §4, §5: PR #36 merged and checked live). Earlier Nov 23: §5, §8, §9 (PR #36 carries everything; Nov 23 decisions). Before that: November 15, 2026 (Nov 7 build). Internal-platform entry point: `docs/ops/START_HERE_EXT14.md`. **Keep this short.** Details live in the linked documents; update this file whenever the verified state changes materially.
+**Last updated:** November 27, 2026, early morning (§1: #137 and #138 merged; steps 0 and A installed and verified; step A cannot save until step A2). Before that: November 26, 2026, late night (§1: #130–#134 and #136 merged; steps 18 and 19 installed and verified, the first database steps in production; Supabase Pro with the spend cap on). Before that: November 26, 2026 (§1, §4, §5, §8, §9: #112–#115 and #117–#119 merged on the evening of Nov 25 and just after midnight; the owner's Nov 25 answers; nothing installed). Before that: November 25, 2026 (§1, §4, §5, §8: #110 merged in the afternoon with #102–#109 inside it; nothing installed). Before that: November 24, 2026 (§1, §4, §5, §8, §9: PR #85 merged in the evening with #56–#84 inside it; live check by the owner still to come; the owner's open decisions). Before that: November 23, 2026, evening (§1, §4, §5: PR #36 merged and checked live). Earlier Nov 23: §5, §8, §9 (PR #36 carries everything; Nov 23 decisions). Before that: November 15, 2026 (Nov 7 build). Internal-platform entry point: `docs/ops/START_HERE_EXT14.md`. **Keep this short.** Details live in the linked documents; update this file whenever the verified state changes materially.
 
 Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (from the owner's earlier chats, not re-checked) · **PROPOSED** · **OWNER DECISION REQUIRED** · **DEPRECATED**.
 
@@ -23,6 +23,14 @@ Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (fro
   Later that night: #136 merged (`af8a012`: the printer test page fits one sheet); the Brother printer
   is set up on the owner's Mac; the 12:02 AM daily print timer is set up and switched off until launch;
   Supabase plan confirmed: Pro, spend cap on.
+- **CURRENT (Nov 27, 2026, early morning, Central):** `main` is at `c0143f6` after #138 (CI fix) and
+  #137 (step 0 and eight waiting drafts adjusted to the real database). **Step 0 installed in production
+  and verified read-only** (drafts/72: `is_active_staff()` and `active_role()`, both with the caller's
+  rights). Later: **step A installed and verified** (drafts/50, `true | 0 | 1 | false`), but the first save
+  was refused by production's history recorder (`record "new" has no field "id"`; nothing changed): the
+  recorder writes each row's `id`, which the settings table lacks. "Settings shared by every device" is
+  back off, so switches stay per browser. Next: **step A2** (drafts/74 adds the `id`), then the switch.
+  Installed so far: steps 0, 18, 19 and A.
 - **Nov 26, 2026, late evening:** `main` was at `a8b2517` and is the
   live dashboard. Since the evening: #127, #128, #126 (Incidents and the redraw correction) and #129
   (Business Rules). Open: #130 (four lists keep what is being typed) and #131 (tests: even CI

@@ -892,6 +892,29 @@
       "precheck": "stops, changing nothing, if a function was not created by drafts/72 or a rule or function still uses them",
       "effect": "removes is_active_staff() and active_role() again; nothing else changes",
       "postcheck": "both functions are gone"
+    },
+    {
+      "file": "drafts/74_DRAFT_shared_settings_audit_id.sql",
+      "id": "74",
+      "class": "PRODUCTION-CHANGE-DRAFT",
+      "step": "A2 (right after step A: production's audit trigger records new.id, which shared_settings lacked; found Nov 27 when every save was refused)",
+      "dependsOn": ["50"],
+      "risk": "LOW",
+      "rollback": "75",
+      "precheck": "stops, changing nothing, if step A's shared_settings table or its audit trigger is missing, or if an id column exists that this file did not add",
+      "effect": "adds one column, shared_settings.id (filled in automatically, unique), so production's audit trigger can record each save; the key, rules, guard and set_shared_setting() are unchanged; no other table changes",
+      "postcheck": "the column exists and is filled; an owner's save is accepted and lands in audit_log; local-test/shared_settings_audit_id_test.sh passes on a throwaway copy"
+    },
+    {
+      "file": "drafts/75_DRAFT_rollback_shared_settings_audit_id.sql",
+      "id": "75",
+      "class": "ROLLBACK",
+      "rollbackOf": "74",
+      "dependsOn": [],
+      "risk": "LOW",
+      "precheck": "stops, changing nothing, if the id column was not added by drafts/74",
+      "effect": "removes shared_settings.id again; saves are refused by the audit trigger again; saved settings stay",
+      "postcheck": "the column is gone"
     }
   ],
   "local": [

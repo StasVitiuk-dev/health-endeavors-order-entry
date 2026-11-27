@@ -102,7 +102,8 @@ create table if not exists public.email_suppressions (
   reason   text not null check (reason in ('unsubscribed', 'bounced', 'complaint', 'owner')),
   note     text check (note is null or length(note) <= 500),
   added_by uuid default auth.uid(),
-  added_at timestamptz not null default now()
+  added_at timestamptz not null default now(),
+  id       uuid not null default gen_random_uuid() unique   -- the identifier production's audit trigger records (audit_trigger_function() writes new.id; see drafts/74)
 );
 comment on table public.email_suppressions is 'Health Endeavors drafts/56: the do-not-email list';
 
