@@ -59,6 +59,7 @@ test('turning a preview on shows it on its page; turning all off hides it again'
   const row = host.locator('tr[data-preview-key="he_reconcile"]');
   await expect(row).toHaveAttribute('data-preview-on', 'yes');
   await expect(host.locator('[data-preview-msg]')).toContainText('Payment reconciliation is on');
+  await expect(host.locator('[data-preview-rownote="ok"]')).toHaveText('On in this browser. Reload to finish.');   // Nov 27: also in the switch's own row
   await expect(host.locator('[data-preview-count]')).toHaveAttribute('data-preview-count', '1');
   expect(await page.evaluate(() => localStorage.getItem('he_reconcile'))).toBe('on');
   // Only that one key was written.

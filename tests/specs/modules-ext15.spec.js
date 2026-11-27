@@ -138,7 +138,7 @@ const ADDED = ['focusDialog', 'inspectLabel', 'keyLink', 'setReportHistoryView',
   // Preview switches on the Feature Flags page (owner / administrator): on/off
   // buttons for the default-OFF preview flags. The delegated
   // [data-previewswitch] listener is waived by text below.
-  'previewSwitchMessage', 'previewSwitchIsOn', 'loadPreviewSwitches', 'PREVIEW_SWITCHES',
+  'previewSwitchMessage', 'previewSwitchRowNote', 'previewSwitchIsOn', 'loadPreviewSwitches', 'PREVIEW_SWITCHES',
   // Invoice review desk (worked example on the invoice preview; flag
   // invoicePreviewOn OFF by default). The delegated [data-invoicedesk] listener
   // is waived by text below.
