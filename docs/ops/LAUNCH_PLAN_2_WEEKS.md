@@ -1,6 +1,6 @@
 # Two-week launch plan (Nov 27 → about Dec 11, 2026)
 
-Status: **PROPOSED** · written Nov 27, 2026 (night) after the owner asked "is there any way we can finish in 2
+Status: **PROPOSED, a target that depends on your inputs (not a promise)** · written Nov 27, 2026 (night) after the owner asked "is there any way we can finish in 2
 weeks?" · owner decision required: launch a **smaller first version** with a simple Shopify theme, the
 custom website and the extras following after launch.
 
@@ -78,6 +78,63 @@ select (select string_agg(column_name || ' ' || data_type || coalesce(' default 
 ```
 Expected: the columns include `id uuid default gen_random_uuid()`, `flag_key text`, `label text`,
 `description text`, `enabled boolean`.
+
+## The database steps, exactly (Nov 27 night; each file's own fingerprint, check and undo)
+
+Run in this order, one sitting at a time; each one stops by itself, changing nothing, if what it needs is
+missing (its precheck). Fingerprint = first 16 characters of SHA-256 of the file as it is now (a test fails
+if a page shows an old one). The pages named give the read-only check to run after.
+
+| # | Step | File (`docs/ops/sql/drafts/`) | Lines | Fingerprint | Stops by itself if | After (read-only) | Undo |
+|---|---|---|---|---|---|---|---|
+| 0 | Query C (reads only) | `../02_READONLY_C_agents.sql` | — | (guide) | — | `QUERY_C_OWNER_RUN_GUIDE.md` | — |
+| 0 | `feature_flags` look (reads only) | in this page, above | — | — | — | — | — |
+| 1 | Stock functions R1–R5 | `10_DRAFT_stock_functions.sql` | 618 | `7fd83dde8009f018` | a table, column, helper or index is missing | item 20 (6 rows; md5 `f6d9c2c8…`) | `11_…` |
+| 2 | The five stock switches, off | `21_DRAFT_stock_function_switches.sql` | 79 | `c0d789cc056b7f27` | no drafts/10, or `feature_flags` cannot fill its own id | 5 rows, all off | `22_…` |
+| 3 | PO line guard (optional) | `17_DRAFT_po_line_delete_guard.sql` | 139 | `a023bf98b4f940e0` | the purchase-order tables are missing | the guard is there | `18_…` |
+| 4 | Request keys | `19_DRAFT_request_keys.sql` | 88 | `dd917fab8111e5b1` | the dashboard could not write the new column (a missing table is skipped and named) | item 21 | `20_…` |
+| 5 | Request-keys switch, off | `27_DRAFT_request_keys_switch.sql` | 51 | `0447f2ae7d10c478` | no drafts/19, or `feature_flags` | 1 row, off | `28_…` |
+| 6 | Stock-count approval | `34_DRAFT_stock_count_adjustments.sql` | 456 | `c94c2174afba71d0` | a helper or the products table is missing | item 2 | `35_…` |
+| 7 | Staff see purchase orders | `44_DRAFT_staff_read_purchase_orders.sql` | 55 | `c87c37c54901a648` | the helper or the tables are missing, or row rules are off | item 7 | `45_…` |
+| 8 | Partial receiving and returns | `40_DRAFT_partial_receiving_returns.sql` | 1032 | `c9f81f40f95a58c1` | a helper or the purchase-order tables are missing | item 5 | `41_…` |
+| 9 | Tax rates | `46_DRAFT_tax_rates.sql` | 239 | `186cffd0d6dcfdbc` | a helper or the tasks / history tables are missing | item 8 | `47_…` |
+| 10 | Invoices (after the tax answers) | `32_DRAFT_invoices.sql` | 951 | `0de2357179e1c90d` | a helper or the orders / tasks / history tables are missing | item 1 | `33_…` |
+| 11 | Shopify payouts and money differences | `42_DRAFT_shopify_payouts_money_issues.sql` | 242 | `dfbcaa89a6112c17` | a helper is missing | item 6 | `43_…` |
+| 12 | Four "impossible number" rules | `23_DRAFT_integrity_constraints.sql` | 60 | `5a2d462e3ede105c` | any existing row already breaks a rule (it says how many) | item 22 | `24_…` |
+| 13 | The nightly check | `25_DRAFT_integrity_check_schedule.sql` | 141 | `f0aeec10b5d50d6a` | (says so and schedules nothing if pg_cron is missing) | item 22 | `26_…` |
+| 14 | The nightly check on Home, off | `29_DRAFT_integrity_results_on_home.sql` | 101 | `7afb423336e8a20b` | no drafts/25, a helper, or `feature_flags` | item 22 | `30_…` |
+
+Already installed and verified: 0 (`72`), A (`50`), A2 (`74`), 18 (`68`), 19 (`70`).
+
+## Your sittings, grouped (each 15–30 minutes; stop after any of them)
+
+| Sitting | What | Needs first |
+|---|---|---|
+| S1 | Merge the open pull requests (morning list) | — |
+| S2 | Query C and the `feature_flags` look (both only read) | — |
+| S3 | Steps 1, 2, 3 (stock) | S2 shows no other stock writer |
+| S4 | Steps 4, 5 (request keys); turn **Receive** on and receive one real delivery | S3 |
+| S5 | Steps 6, 7, 8 (approvals, staff see POs, partial receiving) | — |
+| S6 | Step 9, then 10 (tax, invoices) | your tax answers |
+| S7 | Step 11 (payouts); the daily Shopify program is a separate step | payments decision |
+| S8 | Steps 12, 13, 14 (nightly check) | decision X8-D4 |
+| S9 | Rollback practice (15 min); one test order end to end; one real small order, refunded | the store set up |
+
+Devices only you can check: the iPhone (shared settings, a page or two at phone size), the Brother
+printer (one day pack with the one-sided preset), VoiceOver on the iPhone (`DEVICE_CHECKLIST_2026-11-16.md`).
+
+## Is two weeks realistic? The honest critical path
+
+Two weeks (launch about Dec 10) holds **only if** all of these happen: the product list arrives by Nov 30;
+your tax answers by Dec 1; Query C shows no other stock writer; Shopify accepts payments without delay;
+and you can give 30 minutes most evenings. The longest chain is:
+
+**product list (you) → products in Shopify and the dashboard (R8) → stock steps S3–S4 → payments and
+shipping set up → test order → real small order → go/no-go.**
+
+Every other item can run beside it. If the product list comes one week late, the launch moves one week:
+nothing else can make up for it. If Query C shows another stock writer (an agent or a timer), add about
+two days to deal with it first. This is a **target that depends on those inputs, not a promise**.
 
 ## Risks and how this plan handles them
 
