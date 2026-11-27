@@ -46,7 +46,7 @@ In short:
       (`docs/ops/ONE_STOCK_COUNT_DECISION_2026-11-24.md`).
 - [ ] Business email and which email service (`docs/ops/BUSINESS_EMAIL_PLAN.md`; the comparison arrives with PR #78).
 - [ ] Database draft 50 in a guided sitting (it makes switches and drafts the same on every device).
-- [ ] The 8:00 AM printing set-up on your Mac (`docs/ops/AUTO_PRINT_MAC_SETUP_2026-11-24.md`).
+- [x] The daily printing set-up on your Mac: done Nov 26, at **12:02 AM** (owner's choice), tested, and **switched off until launch** (`docs/ops/AUTO_PRINT_MAC_SETUP_2026-11-24.md`). At launch: Shortcuts → "Print day pack" → tick Automation.
 
 The sections below are from Nov 23 and still apply.
 

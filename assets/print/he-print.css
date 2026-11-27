@@ -58,10 +58,13 @@
   .printView .printMeta > .printParty:last-child > div{ font-family:'HE Text', Arial, sans-serif; font-size:10pt; line-height:1.9; }
   .printView .printMark{ border-width:0.5pt; }
   .printView .printHdr .taskTitle{ font-size:14pt; margin-bottom:2pt; }
-  /* Printer test page (Nov 23): a frame on all four sides and a 1-inch square */
-  .printView .printTest{ border:1.5pt solid #000; padding:0.15in; box-sizing:border-box; }
-  .printView .printTest[data-printsize="letter"]{ height:9.9in; }
-  .printView .printTest[data-printsize="4x6"]{ height:5.7in; font-size:10pt; }
+  /* Printer test page (Nov 23): a frame on all four sides and a 1-inch square.
+     Heights leave room for Safari's own page margins, which are larger than the
+     0.5in asked for: at 9.9in the owner's Brother printout (Nov 26) put the frame's
+     bottom edge on a second sheet. One page each, with room to spare. */
+  .printView .printTest{ border:1.5pt solid #000; padding:0.15in; box-sizing:border-box; break-inside:avoid; }
+  .printView .printTest[data-printsize="letter"]{ height:8.75in; }
+  .printView .printTest[data-printsize="4x6"]{ height:5.2in; font-size:10pt; }
   .printView .printInch{ width:1in; height:1in; border:1pt solid #000; box-sizing:border-box; display:flex; align-items:center; justify-content:center; margin:0.15in 0; }
   .printView .labelFoot{ margin-top:8pt; }
 }

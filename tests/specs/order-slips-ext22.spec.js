@@ -83,6 +83,12 @@ test('the printer test pages print one page each on the right paper, black only'
     // the 1-inch square really is 1 inch (96 CSS pixels)
     const box = await page.locator('#invoicePrintHost .printInch').boundingBox();
     expect(Math.round(box.width)).toBe(96);
+    // the frame leaves room for Safari's own page margins (Nov 26: at 9.9 in the owner's
+    // Brother printout spilled its bottom edge onto a second sheet): at most 8.75 in on
+    // Letter (11 in) and 5.2 in on a 6 in label
+    const frame = await page.locator('#invoicePrintHost .printTest').boundingBox();
+    expect(frame.height, size).toBeLessThanOrEqual((size === 'letter' ? 8.75 : 5.2) * 96 + 1);
+    expect(frame.height, size).toBeGreaterThan((size === 'letter' ? 8 : 4.5) * 96);
     await page.emulateMedia({ media: 'screen', colorScheme: 'dark' });
   }
 });
