@@ -71,6 +71,12 @@ is committed automatically. Steps once that pull request is merged:
 3. Look at every picture (they must show the pages as they are today), then commit the files in
    `tests/specs/visual.spec.js-snapshots/` in a pull request. The next normal run should then be green.
 
+**Evidence that the red is the environment, not the dashboard (Nov 27, night):** on the same commit
+(`01cc66a`), the 20 comparisons pass with the browser the pictures were made with (local run: 20 passed),
+and fail in CI by 3–4% of pixels each. The hand-started run made new pictures in CI (run 45993796919,
+file `screenshots-01cc66a…`, kept until Dec 4). They could not be downloaded from Claude's session (the
+storage host is not allowed there), so **a person downloads and looks at them** (step 2 above).
+
 Not done, on purpose: no larger tolerance, no skipped test, no picture retaken on a developer machine.
 
 A job skipped by change impact counts as passed for required checks. That is intended: documentation-only changes then do not wait for a 40-minute run.
