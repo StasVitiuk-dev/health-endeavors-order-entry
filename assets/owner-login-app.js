@@ -6149,7 +6149,7 @@
           ? 'Switches are shared: turning one on here turns it on on every phone and computer' + (ssShared.value ? '' : ' (nothing is shared yet: the first change shares this browser\u2019s switches)') + '. "Every employee" switches are on for everyone; the others only for the owner and administrators. The owner and administrators can change a switch.'
           : ssShared.state === 'not_installed' ? 'Until the shared settings database step (drafts/50) is installed, a switch applies to this browser only.'
             // Nov 27: could not read them (no connection, signed out, refused): never silent, never "shared"
-            : 'The switches every device shares could not be read just now' + (ssShared.message ? ' (' + String(ssShared.message).replace(/[.\s]+$/, '') + ')' : '') + '. Until they can, a switch applies to this browser on this device only: nothing is saved to the database and nobody else sees a change. Reload the page to try again.'),
+            : 'The switches every device shares could not be read just now' + (ssShared.message ? ' (' + String(ssShared.message).slice(0, 300).replace(/[.\s]+$/, '') + ')' : '') + '. Until they can, a switch applies to this browser on this device only: nothing is saved to the database and nobody else sees a change. Reload the page to try again.'),
         h('p', { class: 'hint u-mt-6', 'data-preview-count': String(onCount) }, onCount + ' of ' + PREVIEW_SWITCHES.length + ' on in this browser.'),
         previewSwitchMessage ? h('p', { class: 'hint u-mt-6', 'data-preview-msg': '1' }, previewSwitchMessage,
           ' ', h('button', { type: 'button', class: 'small secondary', 'data-previewswitch': 'reload' }, 'Reload now')) : null,
