@@ -53,6 +53,8 @@ A job skipped by change impact counts as passed for required checks. That is int
 
 ## 6. Known limitations
 
+- **Nov 27, 2026:** three times (#134, #136, #137) a browser shard stopped before any test, because GitHub's runner image lists Microsoft's package source and that source answered `403 Forbidden` ("is no longer signed") while Playwright installed the browser's system packages. The tests never use that source, so the browser and screenshot jobs now remove it before the install (one `grep … | xargs -r sudo rm -f` line; it does nothing when the source is not there).
+
 - Actions are pinned by tag (`@v4`), not by commit SHA. This session could not read the `actions/*` repositories to look up SHAs (403). Pinning by SHA is a small follow-up PR.
 - The browser suite takes about 40 minutes on a 4-CPU machine with 2 workers. On GitHub's runners the 3 shards took about 13–16 minutes each in October; by Nov 26, 2026 they took 24–39 minutes, so the suite was split in 4 (expected about 20–30 minutes each).
 - The database job uses `QUICK=1`, which skips the slow stress and volume steps. The full run stays local: `npm run db:suite:local`.
