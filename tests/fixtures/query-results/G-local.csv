@@ -1,0 +1,85 @@
+check_id,level,object,detail
+G01 no row-level security,PASS,approval_requests,RLS on
+G01 no row-level security,PASS,audit_log,RLS on
+G01 no row-level security,PASS,documents,RLS on
+G01 no row-level security,PASS,evidence_locker,RLS on
+G01 no row-level security,PASS,expenses,RLS on
+G01 no row-level security,PASS,inventory,RLS on
+G01 no row-level security,PASS,inventory_adjustments,RLS on
+G01 no row-level security,PASS,inventory_lots,RLS on
+G01 no row-level security,PASS,order_items,RLS on
+G01 no row-level security,PASS,orders,RLS on
+G01 no row-level security,PASS,products,RLS on
+G01 no row-level security,PASS,profiles,RLS on
+G01 no row-level security,PASS,purchase_order_items,RLS on
+G01 no row-level security,PASS,purchase_orders,RLS on
+G01 no row-level security,PASS,recalls,RLS on
+G01 no row-level security,PASS,returns,RLS on
+G01 no row-level security,PASS,suppliers,RLS on
+G01 no row-level security,PASS,tasks,RLS on
+G02 policy,INFO,approval_requests · local_staff,ALL for {authenticated} · using: is_active_staff() · check: is_active_staff()
+G02 policy,INFO,audit_log · local_audit_read,SELECT for {authenticated} · using: true
+G02 policy,INFO,documents · local_staff,ALL for {authenticated} · using: is_active_staff() · check: is_active_staff()
+G02 policy,INFO,expenses · local_owner_admin,ALL for {authenticated} · using: is_owner_or_admin() · check: is_owner_or_admin()
+G02 policy,INFO,inventory · local_owner_admin,ALL for {authenticated} · using: is_owner_or_admin() · check: is_owner_or_admin()
+G02 policy,INFO,inventory_adjustments · local_owner_admin,ALL for {authenticated} · using: is_owner_or_admin() · check: is_owner_or_admin()
+G02 policy,INFO,inventory_lots · local_owner_admin,ALL for {authenticated} · using: is_owner_or_admin() · check: is_owner_or_admin()
+G02 policy,INFO,order_items · local_staff,ALL for {authenticated} · using: is_active_staff() · check: is_active_staff()
+G02 policy,INFO,orders · local_staff,ALL for {authenticated} · using: is_active_staff() · check: is_active_staff()
+G02 policy,INFO,products · local_owner_admin,ALL for {authenticated} · using: is_owner_or_admin() · check: is_owner_or_admin()
+G02 policy,INFO,products · local_staff_read,SELECT for {authenticated} · using: is_active_staff()
+G02 policy,INFO,profiles · local_self,SELECT for {authenticated} · using: true
+G02 policy,INFO,purchase_order_items · local_owner_admin,ALL for {authenticated} · using: is_owner_or_admin() · check: is_owner_or_admin()
+G02 policy,INFO,purchase_orders · local_owner_admin,ALL for {authenticated} · using: is_owner_or_admin() · check: is_owner_or_admin()
+G02 policy,INFO,recalls · local_owner_admin,ALL for {authenticated} · using: is_owner_or_admin() · check: is_owner_or_admin()
+G02 policy,INFO,returns · local_staff,ALL for {authenticated} · using: is_active_staff() · check: is_active_staff()
+G02 policy,INFO,suppliers · local_owner_admin,ALL for {authenticated} · using: is_owner_or_admin() · check: is_owner_or_admin()
+G02 policy,INFO,suppliers · local_staff_read,SELECT for {authenticated} · using: is_active_staff()
+G02 policy,INFO,tasks · local_staff,ALL for {authenticated} · using: is_active_staff() · check: is_active_staff()
+G03 open task update,PASS,tasks,no update policy on tasks that allows every signed-in user
+G05 duplicate read policies,WARN,products,"2 permissive SELECT policies (they add up; the widest wins): local_owner_admin, local_staff_read"
+G05 duplicate read policies,WARN,suppliers,"2 permissive SELECT policies (they add up; the widest wins): local_owner_admin, local_staff_read"
+G06 anon can run function,WARN,active_role,not-signed-in users can call this function
+G06 anon can run function,WARN,armor,not-signed-in users can call this function
+G06 anon can run function,WARN,armor,not-signed-in users can call this function
+G06 anon can run function,WARN,crypt,not-signed-in users can call this function
+G06 anon can run function,WARN,current_role,not-signed-in users can call this function
+G06 anon can run function,WARN,dearmor,not-signed-in users can call this function
+G06 anon can run function,WARN,decrypt,not-signed-in users can call this function
+G06 anon can run function,WARN,decrypt_iv,not-signed-in users can call this function
+G06 anon can run function,WARN,digest,not-signed-in users can call this function
+G06 anon can run function,WARN,digest,not-signed-in users can call this function
+G06 anon can run function,WARN,encrypt,not-signed-in users can call this function
+G06 anon can run function,WARN,encrypt_iv,not-signed-in users can call this function
+G06 anon can run function,WARN,gen_random_bytes,not-signed-in users can call this function
+G06 anon can run function,WARN,gen_random_uuid,not-signed-in users can call this function
+G06 anon can run function,WARN,gen_salt,not-signed-in users can call this function
+G06 anon can run function,WARN,gen_salt,not-signed-in users can call this function
+G06 anon can run function,WARN,hmac,not-signed-in users can call this function
+G06 anon can run function,WARN,hmac,not-signed-in users can call this function
+G06 anon can run function,WARN,is_active_staff,not-signed-in users can call this function
+G06 anon can run function,WARN,is_owner_or_admin,not-signed-in users can call this function
+G06 anon can run function,WARN,local_audit,not-signed-in users can call this function
+G06 anon can run function,WARN,pgp_armor_headers,not-signed-in users can call this function
+G06 anon can run function,WARN,pgp_key_id,not-signed-in users can call this function
+G06 anon can run function,WARN,pgp_pub_decrypt,not-signed-in users can call this function
+G06 anon can run function,WARN,pgp_pub_decrypt,not-signed-in users can call this function
+G06 anon can run function,WARN,pgp_pub_decrypt,not-signed-in users can call this function
+G06 anon can run function,WARN,pgp_pub_decrypt_bytea,not-signed-in users can call this function
+G06 anon can run function,WARN,pgp_pub_decrypt_bytea,not-signed-in users can call this function
+G06 anon can run function,WARN,pgp_pub_decrypt_bytea,not-signed-in users can call this function
+G06 anon can run function,WARN,pgp_pub_encrypt,not-signed-in users can call this function
+G06 anon can run function,WARN,pgp_pub_encrypt,not-signed-in users can call this function
+G06 anon can run function,WARN,pgp_pub_encrypt_bytea,not-signed-in users can call this function
+G06 anon can run function,WARN,pgp_pub_encrypt_bytea,not-signed-in users can call this function
+G06 anon can run function,WARN,pgp_sym_decrypt,not-signed-in users can call this function
+G06 anon can run function,WARN,pgp_sym_decrypt,not-signed-in users can call this function
+G06 anon can run function,WARN,pgp_sym_decrypt_bytea,not-signed-in users can call this function
+G06 anon can run function,WARN,pgp_sym_decrypt_bytea,not-signed-in users can call this function
+G06 anon can run function,WARN,pgp_sym_encrypt,not-signed-in users can call this function
+G06 anon can run function,WARN,pgp_sym_encrypt,not-signed-in users can call this function
+G06 anon can run function,WARN,pgp_sym_encrypt_bytea,not-signed-in users can call this function
+G06 anon can run function,WARN,pgp_sym_encrypt_bytea,not-signed-in users can call this function
+"G07 RLS on, no policy",INFO,evidence_locker,nobody but the owner role can use this table (fine if intended)
+G08 audit log direct insert (F1),WARN,audit_log,"no INSERT policy, so a direct insert is refused by RLS today; but signed-in users still hold the INSERT right, so one mistaken policy would allow forged lines (F1 fix: revoke INSERT; the audit trigger keeps writing)"
+G09 audit log readers (F2),WARN,audit_log,1 read policy(ies): local_audit_read for {authenticated} using true (WARN = every signed-in user can read every audit line; OWNER DECISION F2: who may read history)

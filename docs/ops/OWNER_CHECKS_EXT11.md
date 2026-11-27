@@ -18,6 +18,8 @@ The backups repository is private and off-limits to Claude. Only you look. **Loo
 | **DO NOT CLICK** | "Re-run", any log, "Download", any Settings change, anything in the workflow files |
 | **SEND BACK** | one screenshot of the Actions list (the run names, dates and icons; nothing else), **or** one line: `nightly green:2026-10-14, restore green:2026-10-01, minutes ok` |
 
+**Corrected Nov 27, 2026:** the reader now checks that each Query E, F, G and H file is whole (every check the query always prints is there). A file copied only in part reads **UNKNOWN**, never PASS or WARN; until then the first rows alone could read PASS. If it says "cut short", download the whole result again.
+
 **What the answer means** (the session records it with `node tests/tools/interpret-query-results.js session --env production --run-date <today> --backup-nightly green:YYYY-MM-DD --backup-restore green:YYYY-MM-DD --backup-minutes ok`):
 
 | Answer | Status | Valid for |

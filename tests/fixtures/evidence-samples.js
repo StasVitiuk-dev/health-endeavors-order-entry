@@ -115,4 +115,18 @@ const AGENT_SOURCE = {
   withSecret: 'agent: 4\nreads: orders\nwrites: x\nschedule: x\nfailure_recorded_as: x\nsecond_run_duplicates: no\napi_key = ' + 'sk_' + 'live_ABCDEF1234567890\n', // EXT14: split so the repository's own secret check (safety.spec) does not trip on this fake
   partial: 'agent: 1\nreads: orders\n',
 };
-module.exports = { C, D, E, F, G, H, BACKUP, GITHUB, DEVICE, DECISION, AGENT_SOURCE };
+// Since Nov 27, 2026 the reader treats a Query E, G or H file without the rows its query always
+// prints as cut short (UNKNOWN). whole() completes a sample with those rows, all PASS, after the
+// sample's own rows, so each sample still shows exactly the finding it is named after.
+const pad2 = (p, n) => Array.from({ length: n }, (_, i) => p + String(i + 1).padStart(2, '0'));
+function whole(L, csv) {
+  const lines = csv.trim().split('\n').slice(1), add = [];
+  if (L === 'H') { const have = new Set(lines.map(l => l.split(',')[0])); for (const k of pad2('H', 11)) if (!have.has(k)) add.push(k + ',filler,x,x,PASS,Nothing to do.'); }
+  if (L === 'G') { const have = new Set(lines.map(l => l.slice(0, 3))); for (const k of ['G01', 'G03', 'G08', 'G09']) if (!have.has(k)) add.push(k + ' filler,PASS,x,'); }
+  if (L === 'E') { const want = { 1: 3, 2: 5, 3: 7, 4: 2, 5: 2 }; for (const k of Object.keys(want)) { const n = lines.filter(l => l.charAt(0) === k).length; for (let i = n; i < want[k]; i++) add.push(k + ' filler,filler ' + i + ',0'); } }
+  return csv.replace(/\n?$/, '\n') + add.map(l => l + '\n').join('');
+}
+const wholeAll = (L, o, keep) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, keep.includes(k) ? v : whole(L, v)]));
+module.exports = { C, D, E: wholeAll('E', E, ['unknown']), F, G: wholeAll('G', G, ['malformed']), H: wholeAll('H', H, ['partial']), BACKUP, GITHUB, DEVICE, DECISION, AGENT_SOURCE,
+  // the samples as they were (most checks missing): each must now read UNKNOWN, never PASS
+  SHORT: { E, G, H } };
