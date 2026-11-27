@@ -81,7 +81,7 @@ stable
 security invoker
 set search_path = public, pg_temp
 as $fn$
-  select coalesce(public.current_role() in ('owner', 'administrator', 'manager'), false)
+  select coalesce(public.current_role()::text in ('owner', 'administrator', 'manager'), false)
 $fn$;
 
 create or replace function public.stock_can_decide(p_submitted_by uuid) returns boolean
@@ -90,8 +90,8 @@ stable
 security invoker
 set search_path = public, pg_temp
 as $fn$
-  select coalesce(public.current_role() in ('owner', 'administrator')
-               or (public.current_role() = 'manager' and p_submitted_by is distinct from auth.uid()), false)
+  select coalesce(public.current_role()::text in ('owner', 'administrator')
+               or (public.current_role()::text = 'manager' and p_submitted_by is distinct from auth.uid()), false)
 $fn$;
 
 revoke all on function public.stock_may_decide() from public, anon;
@@ -111,8 +111,8 @@ revoke all on function public.decide_customer_return(uuid, integer, integer, int
 
 -- 3. a manager reads what waits for a decision
 drop policy if exists receiving_records_read on public.receiving_records;
-create policy receiving_records_read on public.receiving_records for select to authenticated using (submitted_by = auth.uid() or public.is_owner_or_admin() or public.current_role() = 'manager');
+create policy receiving_records_read on public.receiving_records for select to authenticated using (submitted_by = auth.uid() or public.is_owner_or_admin() or public.current_role()::text = 'manager');
 drop policy if exists supplier_returns_read on public.supplier_returns;
-create policy supplier_returns_read on public.supplier_returns for select to authenticated using (submitted_by = auth.uid() or public.is_owner_or_admin() or public.current_role() = 'manager');
+create policy supplier_returns_read on public.supplier_returns for select to authenticated using (submitted_by = auth.uid() or public.is_owner_or_admin() or public.current_role()::text = 'manager');
 
 commit;

@@ -93,7 +93,7 @@ begin
   if tg_op = 'DELETE' then
     raise exception 'A shared setting stays on the record; save a new value instead.' using errcode = '42501';
   end if;
-  if coalesce(public.current_role(), '') not in ('owner', 'administrator') then
+  if coalesce(public.current_role()::text, '') not in ('owner', 'administrator') then
     raise exception 'Only the owner or an administrator can change a shared setting.' using errcode = '42501';
   end if;
   if tg_op = 'UPDATE' and new.key is distinct from old.key then
@@ -126,7 +126,7 @@ set search_path = public, pg_temp
 as $fn$
 declare v public.shared_settings%rowtype; k text := btrim(coalesce(p_key, ''));
 begin
-  if coalesce(public.current_role(), '') not in ('owner', 'administrator') then
+  if coalesce(public.current_role()::text, '') not in ('owner', 'administrator') then
     raise exception 'Only the owner or an administrator can change a shared setting.' using errcode = '42501';
   end if;
   if p_value is null then raise exception 'A setting needs a value.' using errcode = '22023'; end if;
@@ -180,10 +180,10 @@ drop policy if exists shared_settings_read on public.shared_settings;
 create policy shared_settings_read on public.shared_settings for select to authenticated
   using (public.is_owner_or_admin() or (audience = 'staff' and public.is_active_staff()));
 drop policy if exists shared_settings_owner_add on public.shared_settings;
-create policy shared_settings_owner_add on public.shared_settings for insert to authenticated with check (coalesce(public.current_role(), '') in ('owner', 'administrator'));
+create policy shared_settings_owner_add on public.shared_settings for insert to authenticated with check (coalesce(public.current_role()::text, '') in ('owner', 'administrator'));
 drop policy if exists shared_settings_owner_change on public.shared_settings;
 create policy shared_settings_owner_change on public.shared_settings for update to authenticated
-  using (coalesce(public.current_role(), '') in ('owner', 'administrator')) with check (coalesce(public.current_role(), '') in ('owner', 'administrator'));
+  using (coalesce(public.current_role()::text, '') in ('owner', 'administrator')) with check (coalesce(public.current_role()::text, '') in ('owner', 'administrator'));
 
 revoke all on function public.set_shared_setting(text, jsonb, text, timestamptz, boolean) from public, anon;
 revoke all on function public.shared_settings_guard() from public, anon;

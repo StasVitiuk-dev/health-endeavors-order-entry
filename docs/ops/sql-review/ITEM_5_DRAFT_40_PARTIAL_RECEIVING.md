@@ -72,7 +72,7 @@ Until you choose, managers record but do not approve deliveries and returns.
 
 | File | Lines | Fingerprint (SHA-256, first 16) |
 |---|---|---|
-| `docs/ops/sql/drafts/66_DRAFT_managers_approve_stock.sql` (install, after 40 and 62) | 118 | `db24e1757c2a6d63` |
+| `docs/ops/sql/drafts/66_DRAFT_managers_approve_stock.sql` (install, after 40 and 62) | 118 | `6e2f3803813e99bc` |
 | `docs/ops/sql/drafts/67_DRAFT_rollback_managers_approve_stock.sql` (undo) | 66 | `052b34380ab7e7c8` |
 
 What 66 does, in short: a manager decides a delivery or a return **someone else** recorded. The
@@ -107,7 +107,7 @@ an employee can; before that, the page would have refused a manager outright.)
 
 | File | Lines | Fingerprint (SHA-256, first 16) |
 |---|---|---|
-| `docs/ops/sql/drafts/40_DRAFT_partial_receiving_returns.sql` (install) | 1031 | `365d5690d36c92d7` |
+| `docs/ops/sql/drafts/40_DRAFT_partial_receiving_returns.sql` (install) | 1031 | `0fe905df0b4e72aa` |
 | `docs/ops/sql/drafts/41_DRAFT_rollback_partial_receiving_returns.sql` (undo) | 79 | `922a93cc5e6d5f24` |
 
 Before running, the file you paste must show the same fingerprint

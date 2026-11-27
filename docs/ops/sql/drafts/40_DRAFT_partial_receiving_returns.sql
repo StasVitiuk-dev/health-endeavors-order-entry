@@ -189,7 +189,7 @@ stable
 security invoker
 set search_path = public, pg_temp
 as $fn$
-  select coalesce(public.current_role() in ('owner', 'administrator'), false)
+  select coalesce(public.current_role()::text in ('owner', 'administrator'), false)
 $fn$;
 
 -- Who may approve or reject a delivery or a return to the supplier, and decide a customer

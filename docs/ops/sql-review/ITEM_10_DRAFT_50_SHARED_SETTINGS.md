@@ -11,7 +11,7 @@ numbers live in the one browser where you typed them.
 
 | File | Lines | Fingerprint (SHA-256, first 16) |
 |---|---|---|
-| `docs/ops/sql/drafts/50_DRAFT_shared_settings.sql` (install) | 192 | `f01c9760706592e1` |
+| `docs/ops/sql/drafts/50_DRAFT_shared_settings.sql` (install) | 192 | `dbe89cd664de556b` |
 | `docs/ops/sql/drafts/51_DRAFT_rollback_shared_settings.sql` (undo) | 47 | `7c666cde0eb7cee1` |
 
 ## Target environment
