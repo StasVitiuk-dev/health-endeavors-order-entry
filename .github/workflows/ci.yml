@@ -102,6 +102,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --ignore-scripts
+      - name: Skip the Microsoft package source the tests do not use (it has answered 403 and stopped the browser install)
+        run: grep -l 'packages.microsoft.com' /etc/apt/sources.list.d/* 2>/dev/null | xargs -r sudo rm -f
       - name: Install the test browser (version fixed by package-lock)
         run: npx playwright install --with-deps chromium
       - name: Run shard ${{ matrix.shard }} of 4 (balanced by duration; screenshot comparisons excluded, see the visual job)
@@ -168,5 +170,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --ignore-scripts
+      - name: Skip the Microsoft package source the tests do not use (it has answered 403 and stopped the browser install)
+        run: grep -l 'packages.microsoft.com' /etc/apt/sources.list.d/* 2>/dev/null | xargs -r sudo rm -f
       - run: npx playwright install --with-deps chromium
       - run: npx playwright test --config tests/playwright.config.js tests/specs/visual.spec.js --reporter=list,github
