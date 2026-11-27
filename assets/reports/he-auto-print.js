@@ -8,6 +8,8 @@
 //   yesterday(nowMs)       -> the day before today on the viewer's own calendar, YYYY-MM-DD
 //   due(lastDay, nowMs)    -> { due, day }     once per day: not again for a day already printed
 //   link(href)             -> the link to open every morning, made from the page's own address
+//   missed(lastDay, nowMs)  -> the days the link did not open for, between the last one and yesterday
+//                             (at most 14, oldest first; none when nothing was opened this way yet)
 //
 // Pure: no page, no database, no printing.
 (function (root, factory) {
@@ -41,6 +43,25 @@
     return { due: last < day, day: day, last: last };
   }
 
+  // Nov 27: the Mac can be asleep or off at 12:02 AM, and the timer does not run late. The days in between
+  // are named, so nobody believes a day was printed when the link never opened for it.
+  function missed(lastDay, nowMs, max) {
+    const last = typeof lastDay === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(lastDay) ? lastDay : '';
+    const until = yesterday(nowMs);
+    if (!last || last >= until) return [];
+    const cap = Math.max(1, Math.min(31, Number(max) || 14));
+    const out = [];
+    const d = new Date(Number(last.slice(0, 4)), Number(last.slice(5, 7)) - 1, Number(last.slice(8, 10)));
+    for (;;) {
+      d.setDate(d.getDate() + 1);
+      const day = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+      if (day >= until) break;
+      out.push(day);
+      if (out.length >= cap) break;
+    }
+    return out;
+  }
+
   function link(href) {
     const t = typeof href === 'string' ? href.slice(0, 2000) : '';
     if (!/^https?:\/\/[^\s?#]+/.test(t)) return '';
@@ -48,5 +69,5 @@
     return base + '?' + PARAM + '=' + VALUE;
   }
 
-  return { PARAM, VALUE, wants, yesterday, due, link };
+  return { PARAM, VALUE, wants, yesterday, due, missed, link };
 }));
