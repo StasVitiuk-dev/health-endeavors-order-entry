@@ -153,3 +153,14 @@ data. Nothing in this section is Running unless it says so.
 
 - A Home warning when the newest backup is older than a day (§8 of `RECOVERY_AND_BACKUP_READINESS.md`, E7; waits on D5).
 - Let managers approve deliveries or supplier documents (owner question; worked example merged via #110).
+
+## 8. Nov 27 (night): where the counts are kept now — CURRENT
+
+The 90-item list is still private and not in this repository, so its counts stay **PREVIOUSLY REPORTED,
+AWAITING RECONCILIATION** (§1). The launch fixes R1–R10 are reconciled item by item, with eight separate
+stage columns (built, verified locally, verified in CI, merged, installed in production, switched on,
+exercised end to end, blocked by), in `docs/ops/READINESS_LEDGER.md`, together with the frozen weights
+and the arithmetic of every total. Nothing in §7 moved to "Running" during Nov 27 except the shared
+settings (installed and saving in production; the dashboard change that makes them the rule on every
+device is a pull request, not merged).
+
