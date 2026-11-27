@@ -13,8 +13,8 @@ test.beforeEach(({}, ti) => { test.skip(ti.project.name !== 'desktop', 'Node-onl
 
 // Production claims in the checked-in file: only what the owner's dated evidence shows (Nov 27):
 // the merged dashboard is live (PR #36, Nov 23) and database step 18 is installed and checked
-// (drafts/68, Nov 26). Anything else claimed in production fails here until its evidence is added.
-const CLAIMED = { merge: 'DEPLOYED', history_search_path: 'VERIFIED' };
+// (drafts/68, Nov 26), and so is step 19, the backup reports table (drafts/70, Nov 26). Anything else claimed in production fails here until its evidence is added.
+const CLAIMED = { merge: 'DEPLOYED', history_search_path: 'VERIFIED', backup_reports: 'VERIFIED' };
 test('the checked-in manifest is consistent and claims in production only what has dated owner evidence', () => {
   const m = load();
   expect(validate(m, SQL)).toEqual([]);
