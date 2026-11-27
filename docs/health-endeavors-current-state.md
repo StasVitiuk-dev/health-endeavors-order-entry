@@ -23,7 +23,8 @@ Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (fro
   Later that night: #136 merged (`af8a012`: the printer test page fits one sheet); the Brother printer
   is set up on the owner's Mac; the 12:02 AM daily print timer is set up and switched off until launch;
   Supabase plan confirmed: Pro, spend cap on.
-- **CURRENT (Nov 27, 2026, early morning, Central):** `main` is at `c0143f6` after #138 (CI fix) and
+- **CURRENT (Nov 27, 2026, morning, Central, owner asleep):** nothing new merged or installed. Open for the owner, in merge order: #141, #142, the shared-settings pull request, #143, #144 (owner list: `docs/ops/MORNING_LIST_2026-11-28.md`). Readiness, frozen (`docs/ops/READINESS_LEDGER.md`): business ≈42%, dashboard ≈59%, storefront ≈21% (website REPORTED).
+- **Earlier (Nov 27, 2026, early morning, Central):** `main` is at `c0143f6` after #138 (CI fix) and
   #137 (step 0 and eight waiting drafts adjusted to the real database). **Step 0 installed in production
   and verified read-only** (drafts/72: `is_active_staff()` and `active_role()`, both with the caller's
   rights). Later: **step A installed and verified** (drafts/50, `true | 0 | 1 | false`), but the first save
