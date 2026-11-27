@@ -12,12 +12,14 @@ reason fixed in #144; it never blocks.
 | Order | Pull request | What it is |
 |---|---|---|
 | 1 | #141 | Records: step A2 installed (notes only) |
-| 2 | #142 | The two-week launch plan; every waiting draft checked on your database's shape; the frozen readiness yardstick (notes and tests) |
-| 3 | #145 | Settings shared by every device, with no switch to turn on; honest wording when they cannot be read (dashboard change: check the live page after it, steps in the pull request) |
-| 4 | #143 | One page each for the stock steps, request keys and the nightly check (notes only) |
-| 5 | #144 | Why the screenshot check is always red, and the fix (test machinery only) |
+| 2 | #142 | The launch plan (a target that depends on your inputs, not a promise) with the database steps in exact order; every waiting draft checked on your database's shape; the frozen readiness yardstick; the catch-up since Nov 24 |
+| 3 | #145 | Settings shared by every device, with no switch to turn on; honest wording when they cannot be read (**dashboard change**: check the live page afterwards, steps in the pull request) |
+| 4 | #146 | Daily print says "opened for printing"; daylight-saving tests; the spend-cap note corrected; email/tracking/Shopify readiness (**small dashboard change**) |
+| 5 | #143 | One page each for the stock steps, request keys and the nightly check; the 20 → 8 → 12 → 3 example; who may do what (notes and tests) |
+| 6 | #144 | Why the screenshot check is always red, and the fix (test machinery only) |
 
-#142 contains #141, and #145 contains both, so those three merge one after the other without a conflict; #143 and #144 touch other files, so their order does not matter.
+#142 contains #141; #145 contains both; #146 contains #145. Merge 1–4 in this order. #143 and #144 touch
+other files, so they can go at any point.
 
 ## Sitting 2 — two read-only looks in Supabase (about 15 minutes; they change nothing)
 
