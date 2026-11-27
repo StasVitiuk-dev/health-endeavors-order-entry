@@ -51,6 +51,7 @@ declare
 begin
   if to_regprocedure('auth.uid()') is null then missing := missing || 'function auth.uid()'::text; end if;
   if to_regprocedure('public.current_role()') is null then missing := missing || 'function public.current_role()'::text; end if;
+  if to_regprocedure('public.active_role()') is null then missing := missing || 'function public.active_role() (install step 0, drafts/72, first)'::text; end if;
   if to_regprocedure('public.is_active_staff()') is null then missing := missing || 'function public.is_active_staff()'::text; end if;
   if to_regprocedure('public.is_owner_or_admin()') is null then missing := missing || 'function public.is_owner_or_admin()'::text; end if;
   if to_regclass('public.tasks') is null then missing := missing || 'table public.tasks (its audit trigger is reused)'::text; end if;
@@ -93,7 +94,7 @@ begin
   if tg_op = 'DELETE' then
     raise exception 'A shared setting stays on the record; save a new value instead.' using errcode = '42501';
   end if;
-  if coalesce(public.current_role()::text, '') not in ('owner', 'administrator') then
+  if coalesce(public.active_role(), '') not in ('owner', 'administrator') then
     raise exception 'Only the owner or an administrator can change a shared setting.' using errcode = '42501';
   end if;
   if tg_op = 'UPDATE' and new.key is distinct from old.key then
@@ -126,7 +127,7 @@ set search_path = public, pg_temp
 as $fn$
 declare v public.shared_settings%rowtype; k text := btrim(coalesce(p_key, ''));
 begin
-  if coalesce(public.current_role()::text, '') not in ('owner', 'administrator') then
+  if coalesce(public.active_role(), '') not in ('owner', 'administrator') then
     raise exception 'Only the owner or an administrator can change a shared setting.' using errcode = '42501';
   end if;
   if p_value is null then raise exception 'A setting needs a value.' using errcode = '22023'; end if;
@@ -180,10 +181,10 @@ drop policy if exists shared_settings_read on public.shared_settings;
 create policy shared_settings_read on public.shared_settings for select to authenticated
   using (public.is_owner_or_admin() or (audience = 'staff' and public.is_active_staff()));
 drop policy if exists shared_settings_owner_add on public.shared_settings;
-create policy shared_settings_owner_add on public.shared_settings for insert to authenticated with check (coalesce(public.current_role()::text, '') in ('owner', 'administrator'));
+create policy shared_settings_owner_add on public.shared_settings for insert to authenticated with check (coalesce(public.active_role(), '') in ('owner', 'administrator'));
 drop policy if exists shared_settings_owner_change on public.shared_settings;
 create policy shared_settings_owner_change on public.shared_settings for update to authenticated
-  using (coalesce(public.current_role()::text, '') in ('owner', 'administrator')) with check (coalesce(public.current_role()::text, '') in ('owner', 'administrator'));
+  using (coalesce(public.active_role(), '') in ('owner', 'administrator')) with check (coalesce(public.active_role(), '') in ('owner', 'administrator'));
 
 revoke all on function public.set_shared_setting(text, jsonb, text, timestamptz, boolean) from public, anon;
 revoke all on function public.shared_settings_guard() from public, anon;

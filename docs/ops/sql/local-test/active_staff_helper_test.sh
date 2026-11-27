@@ -33,6 +33,7 @@ fresh() {
   psql "${CONN[@]}" -d postgres -qX -v ON_ERROR_STOP=1 -c "create database $DB template $SRC" >/dev/null || { echo "cannot copy $SRC"; exit 2; }
   # production's shape: no is_active_staff(), role is an enum, the two helpers as production has them
   q "drop function if exists public.is_active_staff() cascade;
+     drop function if exists public.active_role() cascade;
      drop policy if exists local_self on profiles;
      do \$\$ begin create type app_role as enum ('owner', 'employee', 'ai_agent', 'administrator'); exception when duplicate_object then null; end \$\$;
      delete from profiles where id in ('$O','$A','$E','$I','$R','$G');
@@ -57,12 +58,16 @@ echo "is_active_staff() (drafts/72, drafts/73; throwaway database $DB shaped lik
 has "set-up: production's shape is in place" "$(q "select format_type(atttypid, null) from pg_attribute where attrelid = 'profiles'::regclass and attname = 'role'")" "app_role"
 ok  "today: the function is missing, as in production" "$(q "select to_regprocedure('public.is_active_staff()') is null")" "t"
 ok  "today: step A stops on it and changes nothing (as on Nov 27)" "$(run "$STEP_A")" "3"
-has "  with the same message" "$(cat "$OUTF")" "missing function public.is_active_staff()"
+has "  and says to install step 0 first" "$(cat "$OUTF")" "install step 0, drafts/72, first"
+has "  and names is_active_staff() too" "$(cat "$OUTF")" "function public.is_active_staff()"
 ok  "  no shared settings table was left behind" "$(q "select to_regclass('public.shared_settings') is null")" "t"
 
 ok  "drafts/72 installs" "$(run "$INSTALL")" "0"
 ok  "  answers: owner, administrator, employee yes; switched off, removed, AI agent, no account row no" "$(answers)" "tttffff"
 ok  "  a visitor cannot run it" "$(as anon "select public.is_active_staff()" | grep -c 'permission denied')" "1"
+roles() { local out=""; for who in "$O" "$A" "$E" "$I" "$R" "$G" "$N"; do out="$out$(as "$who" "select coalesce(public.active_role(), '-')")/"; done; echo "$out"; }
+ok  "  active_role(): the role only for a switched-on, not removed account" "$(roles)" "owner/administrator/employee/-/-/ai_agent/-/"
+ok  "  a visitor cannot run active_role() either" "$(as anon "select public.active_role()" | grep -c 'permission denied')" "1"
 ok  "  it runs with the caller's rights and names pg_temp last" "$(q "select prosecdef::text || '|' || array_to_string(proconfig, ';') from pg_proc where oid = to_regprocedure('public.is_active_staff()')")" "false|search_path=public, pg_temp"
 ok  "  a second install changes nothing" "$(run "$INSTALL")" "0"
 ok  "  same answers" "$(answers)" "tttffff"
@@ -76,6 +81,11 @@ echo " step A on top"
 ok  "step A (drafts/50) now installs" "$(run "$STEP_A")" "0"
 ok  "  an employee reads a setting marked for staff, not one for the owner" "$(as "$O" "select public.set_shared_setting('staff_note', '{\"a\":1}', 'staff')" >/dev/null; as "$O" "select public.set_shared_setting('owner_note', '{\"b\":2}', 'owner_admin')" >/dev/null; as "$E" "select string_agg(key, ',' order by key) from shared_settings")" "staff_note"
 ok  "  the owner saved both (the role is compared as text, so production's fixed list works)" "$(as "$O" "select count(*) from shared_settings")" "2"
+q "update profiles set is_active = false where id = '$A'" >/dev/null
+ok  "  a switched-off administrator cannot save a setting (current_role() alone would let them)" "$(as "$A" "select public.set_shared_setting('x_note', '{}', 'staff')" | grep -c 'Only the owner or an administrator')" "1"
+ok  "  nor read the owner's settings" "$(as "$A" "select count(*) from shared_settings")" "0"
+q "update profiles set is_active = true where id = '$A'" >/dev/null
+ok  "  switched on again, the administrator reads both" "$(as "$A" "select count(*) from shared_settings")" "2"
 ok  "  an employee cannot save a setting" "$(as "$E" "select public.set_shared_setting('x_note', '{}', 'staff')" | grep -c 'Only the owner or an administrator')" "1"
 ok  "  a switched-off employee reads nothing" "$(as "$I" "select count(*) from shared_settings")" "0"
 ok  "  the owner reads both" "$(as "$O" "select count(*) from shared_settings")" "2"

@@ -16,14 +16,22 @@ existed; it was never checked against production until now (recorded in `docs/PR
 
 | File | Lines | Fingerprint (SHA-256, first 16) |
 |---|---|---|
-| `docs/ops/sql/drafts/72_DRAFT_active_staff_helper.sql` (install) | 82 | `0f4d13ac1f07b0cc` |
-| `docs/ops/sql/drafts/73_DRAFT_rollback_active_staff_helper.sql` (undo) | 41 | `c09df45034d8ca14` |
+| `docs/ops/sql/drafts/72_DRAFT_active_staff_helper.sql` (install) | 108 | `da6f7ed3ca5eacc8` |
+| `docs/ops/sql/drafts/73_DRAFT_rollback_active_staff_helper.sql` (undo) | 51 | `0ddfdb1dbfb2b8fa` |
 
 ## What it does, in plain words
 
-One small function, `is_active_staff()`: "yes" when the signed-in person's account is **active**,
-**not removed**, and their role is **owner, administrator, manager** (once that role exists) or
-**employee**. An **AI agent** account is not staff. A visitor cannot use it at all.
+Two small functions:
+
+- `is_active_staff()`: "yes" when the signed-in person's account is **active**, **not removed**,
+  and their role is **owner, administrator, manager** (once that role exists) or **employee**. An
+  **AI agent** account is not staff.
+- `active_role()`: the person's role, but **only while their account is switched on and not
+  removed** (otherwise nothing). Your `current_role()` also answers for a switched-off account, so
+  a switched-off administrator could otherwise still use the owner-or-administrator parts of the
+  waiting steps. The waiting steps now ask `active_role()` instead.
+
+A visitor cannot use either.
 
 - Built like your existing `is_owner_or_admin()` (same table and columns), but it runs with the
   caller's own rights (project rule): it only reads the person's own account row, which every
@@ -44,7 +52,9 @@ draft 72, the answers are right for owner, administrator, employee, a switched-o
 removed employee, an AI agent and a signed-in person without an account row; visitors refused;
 step A then installs and an employee reads only settings marked for staff; the undo refuses while
 step A's rule uses it, and works after step A's own undo; it refuses a same-named function it did
-not create, and refuses when no own-row reading rule exists. **35 of 35 passed (Nov 27).**
+not create, and refuses when no own-row reading rule exists; `active_role()` answers only for
+switched-on accounts, and a switched-off administrator cannot save or read the owner's settings
+under step A. **41 of 41 passed (Nov 27).**
 
 ## Found at the same time: the role is a fixed list in production
 
@@ -52,19 +62,22 @@ The owner's second look (Nov 27) showed that production's `current_role()` answe
 `app_role`, not text, and that a signed-in person reads their own account row (`profiles_select_own`).
 Several drafts compared the role with `''` or with `'manager'` (a word the list holds only after
 draft 62), which stops an install on that list. Drafts 34, 36, 38, 40, 46, 50, 56 and 66 now compare
-the role **as text**, which works on both shapes; their fingerprints changed (the guides show the new
-ones). A new local test, `production_shape_install_test.sh`, installs every waiting draft (72 first)
+the role through **`active_role()`** (text, and only for a switched-on account), which works on both
+shapes and refuses switched-off accounts; their fingerprints changed (the guides show the new ones). A new local test, `production_shape_install_test.sh`, installs every waiting draft (72 first)
 on a copy shaped like production: **all 20 install**. With the old drafts, 5 stopped (36, 38, 46, 50,
-56). A static check now refuses any draft that compares the role without `::text`.
+56). A static check now refuses any draft that compares `current_role()` (drafts/64 keeps it only behind its own "switched on" check).
 
 ## After running: check (read-only)
 
 ```sql
-select to_regprocedure('public.is_active_staff()') is not null as present,
-       (select prosecdef from pg_proc where oid = to_regprocedure('public.is_active_staff()')) as raised_rights,
-       has_function_privilege('anon', 'public.is_active_staff()', 'execute') as visitors_can_use;
+select p.proname as function, p.prosecdef as raised_rights,
+       has_function_privilege('anon', p.oid, 'execute') as visitors_can_use
+  from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+ where n.nspname = 'public' and p.proname in ('active_role', 'is_active_staff')
+ order by 1;
 ```
-Expected: `true | false | false`. Then step A (draft 50) can be run.
+Expected: two rows, `active_role | false | false` and `is_active_staff | false | false`. Then step A
+(draft 50) can be run.
 
 ## Undo
 

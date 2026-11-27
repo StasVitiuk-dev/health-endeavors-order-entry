@@ -22,6 +22,7 @@ run() { psql "${CONN[@]}" -d "$DB" -qX -v ON_ERROR_STOP=1 -f "$1" >"$OUTF" 2>&1;
 psql "${CONN[@]}" -d postgres -qX -c "drop database if exists $DB with (force)" >/dev/null 2>&1
 psql "${CONN[@]}" -d postgres -qX -v ON_ERROR_STOP=1 -c "create database $DB template $SRC" >/dev/null || { echo "cannot copy $SRC"; exit 2; }
 q "drop function if exists public.is_active_staff() cascade;
+   drop function if exists public.active_role() cascade;
    drop policy if exists local_self on profiles;
    do \$\$ begin create type app_role as enum ('owner', 'employee', 'ai_agent', 'administrator'); exception when duplicate_object then null; end \$\$;
    alter table profiles alter column role drop default;

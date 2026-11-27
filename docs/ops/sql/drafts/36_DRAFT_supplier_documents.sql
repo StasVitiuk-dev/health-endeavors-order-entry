@@ -85,6 +85,7 @@ declare missing text[] := '{}';
 begin
   if to_regprocedure('auth.uid()') is null then missing := missing || 'function auth.uid()'::text; end if;
   if to_regprocedure('public.current_role()') is null then missing := missing || 'function public.current_role()'::text; end if;
+  if to_regprocedure('public.active_role()') is null then missing := missing || 'function public.active_role() (install step 0, drafts/72, first)'::text; end if;
   if to_regprocedure('public.is_active_staff()') is null then missing := missing || 'function public.is_active_staff()'::text; end if;
   if to_regprocedure('public.is_owner_or_admin()') is null then missing := missing || 'function public.is_owner_or_admin()'::text; end if;
   if to_regclass('public.suppliers') is null then missing := missing || 'table public.suppliers'::text; end if;
@@ -214,7 +215,7 @@ as $fn$
   -- The owner or an administrator (owner decision of Nov 24: an administrator is
   -- "almost like owner"; supplier documents are approved, opened and set up by
   -- both). The name is kept so the undo file (drafts/37) still matches.
-  select coalesce(public.current_role()::text in ('owner', 'administrator'), false)
+  select coalesce(public.active_role() in ('owner', 'administrator'), false)
 $fn$;
 
 -- Who may approve or reject a document waiting for review (owner decision of Nov 25:
@@ -229,8 +230,8 @@ stable
 security invoker
 set search_path = public, pg_temp
 as $fn$
-  select coalesce(public.current_role()::text in ('owner', 'administrator')
-               or (public.current_role()::text = 'manager' and p_recorded_by is distinct from auth.uid()), false)
+  select coalesce(public.active_role() in ('owner', 'administrator')
+               or (public.active_role() = 'manager' and p_recorded_by is distinct from auth.uid()), false)
 $fn$;
 
 -- Every profile named must be a profile of the checklist (not "purchase").
@@ -676,7 +677,7 @@ as $fn$
 declare
   v public.supplier_documents%rowtype;
 begin
-  if not coalesce(public.supplier_documents_is_owner() or public.current_role()::text = 'manager', false) then
+  if not coalesce(public.supplier_documents_is_owner() or public.active_role() = 'manager', false) then
     raise exception 'Only the owner, an administrator or a manager can approve or reject a supplier document.' using errcode = '42501';
   end if;
   if p_decision is null or p_decision not in ('approved', 'rejected') then
@@ -940,21 +941,21 @@ grant select, insert, update on public.supplier_document_handoffs to authenticat
 drop policy if exists supplier_document_types_staff_read on public.supplier_document_types;
 create policy supplier_document_types_staff_read on public.supplier_document_types for select to authenticated using (public.is_active_staff());
 drop policy if exists supplier_document_types_owner_write on public.supplier_document_types;
-create policy supplier_document_types_owner_write on public.supplier_document_types for all to authenticated using (public.current_role()::text in ('owner', 'administrator')) with check (public.current_role()::text in ('owner', 'administrator'));
+create policy supplier_document_types_owner_write on public.supplier_document_types for all to authenticated using (public.active_role() in ('owner', 'administrator')) with check (public.active_role() in ('owner', 'administrator'));
 drop policy if exists supplier_type_document_profiles_staff_read on public.supplier_type_document_profiles;
 create policy supplier_type_document_profiles_staff_read on public.supplier_type_document_profiles for select to authenticated using (public.is_active_staff());
 drop policy if exists supplier_type_document_profiles_owner_write on public.supplier_type_document_profiles;
-create policy supplier_type_document_profiles_owner_write on public.supplier_type_document_profiles for all to authenticated using (public.current_role()::text in ('owner', 'administrator')) with check (public.current_role()::text in ('owner', 'administrator'));
+create policy supplier_type_document_profiles_owner_write on public.supplier_type_document_profiles for all to authenticated using (public.active_role() in ('owner', 'administrator')) with check (public.active_role() in ('owner', 'administrator'));
 drop policy if exists supplier_document_supplier_profiles_staff_read on public.supplier_document_supplier_profiles;
 create policy supplier_document_supplier_profiles_staff_read on public.supplier_document_supplier_profiles for select to authenticated using (public.is_active_staff());
 drop policy if exists supplier_document_supplier_profiles_owner_write on public.supplier_document_supplier_profiles;
-create policy supplier_document_supplier_profiles_owner_write on public.supplier_document_supplier_profiles for all to authenticated using (public.current_role()::text in ('owner', 'administrator')) with check (public.current_role()::text in ('owner', 'administrator'));
+create policy supplier_document_supplier_profiles_owner_write on public.supplier_document_supplier_profiles for all to authenticated using (public.active_role() in ('owner', 'administrator')) with check (public.active_role() in ('owner', 'administrator'));
 drop policy if exists supplier_document_subjects_staff_read on public.supplier_document_subjects;
 create policy supplier_document_subjects_staff_read on public.supplier_document_subjects for select to authenticated using (public.is_active_staff());
 drop policy if exists supplier_document_subjects_staff_add on public.supplier_document_subjects;
 create policy supplier_document_subjects_staff_add on public.supplier_document_subjects for insert to authenticated with check (public.is_active_staff() and is_active);
 drop policy if exists supplier_document_subjects_owner_update on public.supplier_document_subjects;
-create policy supplier_document_subjects_owner_update on public.supplier_document_subjects for update to authenticated using (public.current_role()::text in ('owner', 'administrator')) with check (public.current_role()::text in ('owner', 'administrator'));
+create policy supplier_document_subjects_owner_update on public.supplier_document_subjects for update to authenticated using (public.active_role() in ('owner', 'administrator')) with check (public.active_role() in ('owner', 'administrator'));
 drop policy if exists supplier_documents_staff_read on public.supplier_documents;
 create policy supplier_documents_staff_read on public.supplier_documents for select to authenticated using (public.is_active_staff());
 drop policy if exists supplier_documents_staff_record on public.supplier_documents;
@@ -971,7 +972,7 @@ create policy supplier_document_handoffs_read on public.supplier_document_handof
 drop policy if exists supplier_document_handoffs_staff_add on public.supplier_document_handoffs;
 create policy supplier_document_handoffs_staff_add on public.supplier_document_handoffs for insert to authenticated with check (public.is_active_staff() and status = 'waiting');
 drop policy if exists supplier_document_handoffs_owner_resolve on public.supplier_document_handoffs;
-create policy supplier_document_handoffs_owner_resolve on public.supplier_document_handoffs for update to authenticated using (public.current_role()::text in ('owner', 'administrator')) with check (public.current_role()::text in ('owner', 'administrator'));
+create policy supplier_document_handoffs_owner_resolve on public.supplier_document_handoffs for update to authenticated using (public.active_role() in ('owner', 'administrator')) with check (public.active_role() in ('owner', 'administrator'));
 -- inserts come only from this feature's triggers (the history guard refuses any other)
 drop policy if exists supplier_document_events_trigger_insert on public.supplier_document_events;
 create policy supplier_document_events_trigger_insert on public.supplier_document_events for insert to authenticated with check (public.is_active_staff());

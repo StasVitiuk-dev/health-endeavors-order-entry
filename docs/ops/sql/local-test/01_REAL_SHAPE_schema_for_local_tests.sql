@@ -381,6 +381,9 @@ create or replace function public.is_owner_or_admin() returns boolean language s
 $$ select coalesce((select role in ('owner','administrator') from profiles where id = auth.uid() and is_active and deleted_at is null), false) $$;
 create or replace function public.is_active_staff() returns boolean language sql stable security definer set search_path = public as
 $$ select exists (select 1 from profiles where id = auth.uid() and is_active and deleted_at is null) $$;
+-- Nov 27: production has neither of these two; drafts/72 adds them there (see production_shape_install_test.sh)
+create or replace function public.active_role() returns text language sql stable security definer set search_path = public as
+$$ select role::text from profiles where id = auth.uid() and is_active and deleted_at is null $$;
 
 -- every change is recorded with the acting user (production has an audit trigger on all 18 tables)
 create or replace function public.local_audit() returns trigger language plpgsql security definer set search_path = public as $$

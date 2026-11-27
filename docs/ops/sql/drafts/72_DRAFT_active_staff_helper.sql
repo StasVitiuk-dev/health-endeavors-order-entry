@@ -4,9 +4,9 @@
 -- @environment: production only after the owner's written approval; tested on the local throwaway database
 -- @depends-on:  none
 -- @risk:        LOW
--- @precheck:    stops, changing nothing, if auth.uid() or profiles (id, role, is_active, deleted_at) is missing, if no rule lets a signed-in person read their own account row, or if an is_active_staff() exists that this file did not create
--- @effect:      adds one function, is_active_staff(): true when the signed-in person's account is active, not removed, and owner, administrator, manager or employee (an AI agent account is not staff); runs with the caller's rights and reads only their own account row; no table, rule, account or existing function changes
--- @postcheck:   the function exists, runs with the caller's rights, visitors cannot run it; local-test/active_staff_helper_test.sh passes on a throwaway copy
+-- @precheck:    stops, changing nothing, if auth.uid() or profiles (id, role, is_active, deleted_at) is missing, if no rule lets a signed-in person read their own account row, or if an is_active_staff() or active_role() exists that this file did not create
+-- @effect:      adds two functions: is_active_staff() (true when the signed-in person's account is active, not removed, and owner, administrator, manager or employee; an AI agent account is not staff) and active_role() (the role as text only while the account is switched on and not removed; production's current_role() answers for switched-off accounts too); both run with the caller's rights and read only their own account row; no table, rule, account or existing function changes
+-- @postcheck:   both functions exist, run with the caller's rights, visitors cannot run them; local-test/active_staff_helper_test.sh passes on a throwaway copy
 -- @rollback:    drafts/73
 -- @@ end metadata @@
 -- written approval. DO NOT RUN until then.
@@ -19,15 +19,18 @@
 -- is_active_staff() does not. Eleven waiting drafts (32, 34, 36, 40, 44, 46, 48, 50, 54, 58, 64)
 -- use it for "any active staff member", so each of them would stop the same way.
 --
--- What it adds: ONE small function, public.is_active_staff(): true when the signed-in person
+-- What it adds: TWO small functions. public.is_active_staff(): true when the signed-in person
 -- has an account row that is active, not removed, and whose role is owner, administrator,
 -- manager (once that role exists) or employee. An AI agent account is not staff. Built like
 -- production's own is_owner_or_admin() (same table, same columns), but it runs with the
 -- caller's rights (project rule): it reads only the caller's own account row, which every
 -- signed-in person may read. If that row cannot be read, the answer is "no" (fails closed).
+-- And public.active_role(): the person's role as text while their account is switched on and
+-- not removed, otherwise nothing. (Production's current_role() also answers for a switched-off
+-- account; the waiting drafts compare active_role() instead.)
 --
 -- What it does NOT change: any table, rule, account or existing function. Until another draft
--- uses it, nothing calls it.
+-- uses them, nothing calls them.
 -- Safe to run twice.
 
 begin;
@@ -58,6 +61,10 @@ begin
      and coalesce(obj_description(to_regprocedure('public.is_active_staff()'), 'pg_proc'), '') <> 'Health Endeavors drafts/72: an active staff member is signed in' then
     raise exception 'Not installed, nothing was changed: a function public.is_active_staff() already exists and was not created by this file.';
   end if;
+  if to_regprocedure('public.active_role()') is not null
+     and coalesce(obj_description(to_regprocedure('public.active_role()'), 'pg_proc'), '') <> 'Health Endeavors drafts/72: the role of a switched-on account' then
+    raise exception 'Not installed, nothing was changed: a function public.active_role() already exists and was not created by this file.';
+  end if;
 end $pre$;
 
 create or replace function public.is_active_staff() returns boolean
@@ -76,7 +83,26 @@ as $fn$
 $fn$;
 comment on function public.is_active_staff() is 'Health Endeavors drafts/72: an active staff member is signed in';
 
+-- The signed-in person's role as text, but only while their account is switched on and not
+-- removed; otherwise nothing (null). Production's current_role() answers for a switched-off
+-- account too, so waiting drafts compare this one instead: a switched-off administrator is
+-- refused like a visitor.
+create or replace function public.active_role() returns text
+language sql
+stable
+security invoker
+set search_path = public, pg_temp
+as $fn$
+  select p.role::text from public.profiles p
+   where p.id = auth.uid()
+     and p.is_active = true
+     and p.deleted_at is null;
+$fn$;
+comment on function public.active_role() is 'Health Endeavors drafts/72: the role of a switched-on account';
+
 revoke all on function public.is_active_staff() from public, anon;
 grant execute on function public.is_active_staff() to authenticated;
+revoke all on function public.active_role() from public, anon;
+grant execute on function public.active_role() to authenticated;
 
 commit;

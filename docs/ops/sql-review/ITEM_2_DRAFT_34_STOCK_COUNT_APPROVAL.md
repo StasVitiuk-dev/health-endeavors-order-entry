@@ -7,7 +7,7 @@ Nothing here has been run in production. I never run it myself: you run it, afte
 
 | File | Lines | Fingerprint (SHA-256, first 16) | Last changed in |
 |---|---|---|---|
-| `docs/ops/sql/drafts/34_DRAFT_stock_count_adjustments.sql` (install) | 455 | `f483895295f61da2` | changed 2026-11-25 |
+| `docs/ops/sql/drafts/34_DRAFT_stock_count_adjustments.sql` (install) | 456 | `c94c2174afba71d0` | changed 2026-11-25 |
 | `docs/ops/sql/drafts/35_DRAFT_rollback_stock_count_adjustments.sql` (undo) | 60 | `1199be64e8d015ad` | `f547516` |
 
 The full text is in the review package (`5-sql/item-2/`).

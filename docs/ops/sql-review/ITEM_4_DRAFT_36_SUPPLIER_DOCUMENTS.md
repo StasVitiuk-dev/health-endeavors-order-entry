@@ -8,9 +8,9 @@ This is **two decisions**: draft 36 first; draft 38 only later, and only if you 
 
 | File | Lines | Fingerprint (SHA-256, first 16) | Last changed in |
 |---|---|---|---|
-| `docs/ops/sql/drafts/36_DRAFT_supplier_documents.sql` (install, step 1) | 1033 | `bfa54afce08a4038` | changed 2026-11-25 |
+| `docs/ops/sql/drafts/36_DRAFT_supplier_documents.sql` (install, step 1) | 1034 | `54e3c73d8186273c` | changed 2026-11-25 |
 | `docs/ops/sql/drafts/37_DRAFT_rollback_supplier_documents.sql` (undo of 36) | 73 | `c8cc042183a7d466` | changed 2026-11-25 |
-| `docs/ops/sql/drafts/38_DRAFT_supplier_document_files.sql` (install, step 2, optional) | 97 | `a18c86237690aa53` | changed 2026-11-25 |
+| `docs/ops/sql/drafts/38_DRAFT_supplier_document_files.sql` (install, step 2, optional) | 97 | `4f260ac2f075a5df` | changed 2026-11-25 |
 | `docs/ops/sql/drafts/39_DRAFT_rollback_supplier_document_files.sql` (undo of 38) | 38 | `4fb319ef4d3128e4` | `be6a4c2` |
 
 The full text is in the review package (`5-sql/item-4-drafts-36-38/`). Before running, check the
