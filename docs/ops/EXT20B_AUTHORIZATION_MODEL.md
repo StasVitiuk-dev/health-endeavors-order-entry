@@ -77,3 +77,15 @@ Untouched. No SQL run, no grants/RLS/functions/triggers/roles/cron/data changed,
 ## 9. Reusable tooling (EXT20F)
 
 The one-off RLS self-escalation review in section 2 is now a reusable tool: `tests/tools/rls-analyzer.js` (`npm run rls:analyze <queryG.csv>`). It parses a Query G result (proper CSV, handling multi-line policy clauses) and reports: self-row edits on tables with a sensitive column (the profiles.role shape), benign self-row tables, and tables any active staff can update with no role gate. Run against the 2026-10-18 Query G result it reproduces the EXT20B findings exactly: no sensitive self-row table (profiles guarded), `personal_calendar_events` benign, and the 10 active-staff tables including `approval_requests` (the separation-of-duties OWNER DECISION). Exit 2 if any sensitive self-row policy appears, so a future regression is caught.
+
+**Correction (Nov 27, 2026).** The analyzer had no test, and a new one
+(`docs/ops/sql/local-test/rls_analyzer_test.sh`, on the real output of Queries G and A, in the
+local database suite) showed it could not catch that regression: it looked for sensitive
+**words in the policy text** (Query G does not list a table's columns), so a policy that checks
+for the owner was flagged while a self-edit on a table with a `role` column was called benign;
+and only `*_id` columns counted as "own row", so `created_by = auth.uid()` was not seen. It now
+takes the Query A file as a second input and judges each self-row table by its columns; a table
+whose columns are not known is REVIEW, never benign; `personal_calendar_events` stays benign
+with the hand review of section 2 as its source. The Oct 18 conclusions in section 2 were a
+person's reading of the policies, not only the tool's, so they stand; re-running the corrected
+tool on that Query G answer needs a Query A answer from the same day.
