@@ -68,6 +68,7 @@ step "stock-count apply once" bash "$LT/stock_count_apply_once_test.sh" $C
 step "supplier documents (drafts/36)" bash "$LT/supplier_documents_test.sh" $C
 step "supplier document files (drafts/38)" bash "$LT/supplier_document_files_test.sh" $C
 step "partial receiving and returns (drafts/40)" bash "$LT/partial_receiving_test.sh" $C
+step "the worked example 20 -> 8 -> 12 -> 3 (every quantity)" bash "$LT/stock_example_20_8_12_3_test.sh" $C
 step "managers decide deliveries and returns, option A (drafts/66 on drafts/40)" bash "$LT/managers_approve_stock_test.sh" $C
 step "search path of three history functions (drafts/68)" bash "$LT/history_search_path_test.sh" $C
 step "backup reports for Home (drafts/70)" bash "$LT/backup_reports_test.sh" $C
