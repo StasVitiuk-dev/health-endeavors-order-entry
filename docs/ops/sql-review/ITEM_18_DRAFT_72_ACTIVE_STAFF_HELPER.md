@@ -44,7 +44,18 @@ draft 72, the answers are right for owner, administrator, employee, a switched-o
 removed employee, an AI agent and a signed-in person without an account row; visitors refused;
 step A then installs and an employee reads only settings marked for staff; the undo refuses while
 step A's rule uses it, and works after step A's own undo; it refuses a same-named function it did
-not create, and refuses when no own-row reading rule exists. Result: see the pull request.
+not create, and refuses when no own-row reading rule exists. **35 of 35 passed (Nov 27).**
+
+## Found at the same time: the role is a fixed list in production
+
+The owner's second look (Nov 27) showed that production's `current_role()` answers the fixed list
+`app_role`, not text, and that a signed-in person reads their own account row (`profiles_select_own`).
+Several drafts compared the role with `''` or with `'manager'` (a word the list holds only after
+draft 62), which stops an install on that list. Drafts 34, 36, 38, 40, 46, 50, 56 and 66 now compare
+the role **as text**, which works on both shapes; their fingerprints changed (the guides show the new
+ones). A new local test, `production_shape_install_test.sh`, installs every waiting draft (72 first)
+on a copy shaped like production: **all 20 install**. With the old drafts, 5 stopped (36, 38, 46, 50,
+56). A static check now refuses any draft that compares the role without `::text`.
 
 ## After running: check (read-only)
 

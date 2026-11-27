@@ -38,7 +38,8 @@ fresh() {
      delete from profiles where id in ('$O','$A','$E','$I','$R','$G');
      alter table profiles alter column role drop default;
      alter table profiles alter column role type app_role using role::app_role;
-     create or replace function public.current_role() returns app_role language sql stable security definer set search_path = public as
+     drop function if exists public.current_role() cascade;
+     create function public.current_role() returns app_role language sql stable security definer set search_path = public as
        \$f\$ select role from public.profiles where id = auth.uid() and deleted_at is null; \$f\$;
      create or replace function public.is_owner_or_admin() returns boolean language sql stable security definer set search_path = public as
        \$f\$ select exists (select 1 from profiles where profiles.id = auth.uid() and profiles.role in ('owner'::app_role, 'administrator'::app_role) and profiles.is_active = true); \$f\$;
@@ -47,6 +48,7 @@ fresh() {
        ('$O','o@example.test','owner',true,null,'720000001'), ('$A','a@example.test','administrator',true,null,'720000002'),
        ('$E','e@example.test','employee',true,null,'720000003'), ('$I','i@example.test','employee',false,null,'720000004'),
        ('$R','r@example.test','employee',true,now(),'720000005'), ('$G','g@example.test','ai_agent',true,null,'720000006');" >"$OUTF" 2>&1
+  if grep -q ERROR "$OUTF"; then echo "set-up failed:"; cat "$OUTF"; fi
 }
 answers() { local out=""; for who in "$O" "$A" "$E" "$I" "$R" "$G" "$N"; do out="$out$(as "$who" "select public.is_active_staff()")"; done; echo "$out"; }
 
@@ -72,7 +74,9 @@ q "update profiles set is_active = true where id = '$E'" >/dev/null
 
 echo " step A on top"
 ok  "step A (drafts/50) now installs" "$(run "$STEP_A")" "0"
-ok  "  an employee reads a setting marked for staff, not one for the owner" "$(q "insert into shared_settings (key, value, audience, updated_by) values ('staff_note', '{\"a\":1}', 'staff', '$O'), ('owner_note', '{\"b\":2}', 'owner_admin', '$O')" >/dev/null; as "$E" "select string_agg(key, ',' order by key) from shared_settings")" "staff_note"
+ok  "  an employee reads a setting marked for staff, not one for the owner" "$(as "$O" "select public.set_shared_setting('staff_note', '{\"a\":1}', 'staff')" >/dev/null; as "$O" "select public.set_shared_setting('owner_note', '{\"b\":2}', 'owner_admin')" >/dev/null; as "$E" "select string_agg(key, ',' order by key) from shared_settings")" "staff_note"
+ok  "  the owner saved both (the role is compared as text, so production's fixed list works)" "$(as "$O" "select count(*) from shared_settings")" "2"
+ok  "  an employee cannot save a setting" "$(as "$E" "select public.set_shared_setting('x_note', '{}', 'staff')" | grep -c 'Only the owner or an administrator')" "1"
 ok  "  a switched-off employee reads nothing" "$(as "$I" "select count(*) from shared_settings")" "0"
 ok  "  the owner reads both" "$(as "$O" "select count(*) from shared_settings")" "2"
 

@@ -33,6 +33,46 @@ q "drop function if exists public.is_active_staff() cascade;
      \$f\$ select exists (select 1 from profiles where profiles.id = auth.uid() and profiles.role in ('owner'::app_role, 'administrator'::app_role) and profiles.is_active = true); \$f\$;
    create policy profiles_select_own on profiles for select using (id = auth.uid());
    create policy profiles_select on profiles for select using ((id = auth.uid()) or (public.current_role() = 'owner'::app_role));" >"$OUTF" 2>&1
+grep -q ERROR "$OUTF" && { echo "set-up failed:"; cat "$OUTF"; }
+# STAND-INS for what production has and the local copy lacks (shapes from the earlier read-only
+# looks; bodies synthetic): Supabase's storage schema, the Shipping/Tracking agent's table, the
+# guard on account details, and the three history functions step 18 changed.
+q "create schema if not exists storage;
+   create table storage.buckets (id text primary key, name text not null, public boolean not null default false, file_size_limit bigint, allowed_mime_types text[]);
+   create table storage.objects (id uuid primary key default gen_random_uuid(), bucket_id text references storage.buckets(id), name text not null,
+     owner uuid, created_at timestamptz default now(), updated_at timestamptz default now(), metadata jsonb);
+   alter table storage.objects enable row level security;
+   grant usage on schema storage to authenticated, anon;
+   grant select, insert, update, delete on storage.objects to authenticated, anon;
+   grant select on storage.buckets to authenticated, anon;
+   create table public.shipments (
+     id uuid primary key default gen_random_uuid(), order_id uuid not null references public.orders(id),
+     external_fulfillment_id text, carrier text, tracking_number text, tracking_url text,
+     shipment_status text not null default 'pending', shipped_at timestamptz, delivered_at timestamptz, last_status_at timestamptz,
+     created_at timestamptz not null default now(), updated_at timestamptz not null default now(),
+     unique (order_id, external_fulfillment_id));
+   alter table public.shipments enable row level security;
+   create policy shipments_owner_admin on public.shipments for all to authenticated using (public.is_owner_or_admin()) with check (public.is_owner_or_admin());
+   create function public.guard_profile_privileged_columns() returns trigger language plpgsql set search_path = public as \$f\$
+   begin
+     if auth.uid() is null then return new; end if;
+     if (new.role is distinct from old.role or new.is_break_glass is distinct from old.is_break_glass) and coalesce(public.current_role()::text, '') <> 'owner' then
+       raise exception 'STAND-IN: only the owner changes a role.' using errcode = '42501';
+     end if;
+     return new;
+   end \$f\$;
+   create trigger guard_profile_privileged_columns before update on profiles for each row execute function public.guard_profile_privileged_columns();
+   create function public.employee_activity_people() returns table(role text)
+     language plpgsql stable security definer set search_path to 'public' as \$f\$
+   begin return query select p.role::text from profiles p where p.id = auth.uid(); end \$f\$;
+   create function public.employee_activity(p_search text default null, p_person uuid default null, p_area text default null,
+     p_from timestamptz default null, p_to timestamptz default null, p_limit integer default 100, p_offset integer default 0)
+     returns table(id bigint, person_role text)
+     language plpgsql stable security definer set search_path to 'public' as \$f\$
+   begin return query select 1::bigint, p.role::text from profiles p where p.id = auth.uid(); end \$f\$;
+   create function public.list_my_sessions() returns table(n integer)
+     language sql security definer set search_path to 'auth', 'public' as \$f\$ select 1 \$f\$;" >"$OUTF" 2>&1
+grep -q ERROR "$OUTF" && { echo "stand-ins failed:"; cat "$OUTF"; }
 echo "Every waiting draft installs on a copy shaped like production (throwaway database $DB)"
 ok "set-up: the role is app_role and current_role() answers app_role" "$(q "select pg_get_function_result(to_regprocedure('public.current_role()'))")" "app_role"
 ok "set-up: is_active_staff() is missing, as in production" "$(q "select to_regprocedure('public.is_active_staff()') is null")" "t"

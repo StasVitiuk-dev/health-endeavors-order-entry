@@ -143,6 +143,6 @@ test('the database draft enforces the same rule (names checked against drafts/34
   const sql = require('fs').readFileSync(require('path').join(__dirname, '../../docs/ops/sql/drafts/34_DRAFT_stock_count_adjustments.sql'), 'utf8');
   for (const col of ['original_count', 'requested_count', 'reason', 'submitted_by', 'submitted_at', 'decided_by', 'decided_at']) expect(sql, col).toContain(col);
   expect(sql).toContain("Only the owner or an administrator can approve a stock-count adjustment.");
-  expect(sql).toContain("public.current_role() in ('owner', 'administrator')");
+  expect(sql).toContain("public.current_role()::text in ('owner', 'administrator')");
   expect(sql).not.toMatch(/security\s+definer/i);
 });
