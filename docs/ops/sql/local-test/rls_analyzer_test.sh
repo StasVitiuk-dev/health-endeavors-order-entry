@@ -40,6 +40,10 @@ out=$(analyze)
 has "REVIEW, naming the column" "$out" "*** REVIEW *** returns :: zz_self_edit_returns  (sensitive column: approved_by)"
 has "  exit 2" "$out" "exit=2"
 q "drop policy zz_self_edit_returns on public.returns"
+q "create policy zz_self_edit_returns2 on public.returns for update to authenticated using ((select auth.uid()) = created_by)"
+out=$(analyze)
+has "  also when written the recommended way, (select auth.uid())" "$out" "*** REVIEW *** returns :: zz_self_edit_returns2  (sensitive column: approved_by)"
+q "drop policy zz_self_edit_returns2 on public.returns"
 
 echo " 3. the same on a table with NO sensitive column (tasks), written the other way round"
 q "create policy zz_self_edit_tasks on public.tasks for update to authenticated using (auth.uid() = owner_id)"

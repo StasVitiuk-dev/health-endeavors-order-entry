@@ -60,9 +60,11 @@ for (const r of pol) {
   if (!/\b(UPDATE|ALL)\b for/.test(d)) continue;
   // remove the common "profiles role lookup" subquery so we only see row-ownership on THIS table
   const stripped = d.replace(/profiles\.\w+/g, '').replace(/EXISTS \( SELECT 1\s*FROM profiles[^)]*\)/gi, '');
+  // Supabase's recommended form "user_id = (select auth.uid())" is printed "( SELECT auth.uid() AS uid)": the same caller
+  const selfText = stripped.replace(/\(\s*SELECT\s+auth\.uid\(\)(\s+AS\s+\w+)?\s*\)/gi, 'auth.uid()');
   const usingHalf = d.split('check:')[0];
   const activeStaff = /is_active\s*=\s*true/.test(d) && !/role/.test(usingHalf) && /\bUPDATE\b for/.test(d);
-  if (SELFROW.test(stripped)) {
+  if (SELFROW.test(selfText)) {
     const where = `${table} :: ${obj.split(' · ').slice(1).join(' · ')}`;
     if (table === 'profiles') profilesSelf = true;
     else if (cols[table]) {
