@@ -11,7 +11,9 @@
 # did not. Every draft must now install on this shape. All rows synthetic.
 # Usage: production_shape_install_test.sh -h /var/tmp/hepg -p 5499 -U postgres   (source db: he_real)
 set -u
-CONN=("$@"); SRC=he_real; DB=he_production_shape_test
+CONN=("$@"); SRC=he_real; DB=${HE_PS_DB:-he_production_shape_test}
+# HE_PS_ORDER overrides which drafts are installed (empty: the set-up only); HE_PS_KEEP=1 keeps the
+# database afterwards (production_shape_mutation_test.sh uses both to build its starting copy).
 DIR="$(cd "$(dirname "$0")/.." && pwd)"
 pass=0; fail=0
 ok()  { if [ "$2" = "$3" ]; then pass=$((pass+1)); echo "  ok   $1"; else fail=$((fail+1)); echo "  FAIL $1: expected [$3], got [$2]"; fi; }
@@ -94,7 +96,7 @@ grep -q ERROR "$OUTF" && { echo "feature_flags stand-in failed:"; cat "$OUTF"; }
 # The order production will see: first the five already installed there (Nov 26-27: 72, 50, 74, 68, 70),
 # then the launch-critical reliability drafts in their install order (10, 21, 17, 23, 19, 27, 25, 29, 13),
 # then every other waiting draft.
-ORDER="72 50 74 68 70 10 21 17 23 19 27 25 29 13 32 34 36 38 40 44 46 48 52 54 56 58 60 62 64 66"
+ORDER="${HE_PS_ORDER-72 50 74 68 70 10 21 17 23 19 27 25 29 13 32 34 36 38 40 44 46 48 52 54 56 58 60 62 64 66}"
 for id in $ORDER; do
   f=$(ls "$DIR"/drafts/${id}_DRAFT_*.sql 2>/dev/null | grep -v rollback | head -1)
   [ -n "$f" ] || { ok "drafts/$id exists" "missing" "present"; continue; }
@@ -108,7 +110,7 @@ done
 # shared_settings did before step A2. After every waiting draft is installed, no such table may remain.
 ok "every table with production's audit trigger has the id column it records" "$(q "select coalesce(string_agg(distinct c.relname::text, ','), '') from pg_trigger t join pg_class c on c.oid = t.tgrelid join pg_proc p on p.oid = t.tgfoid where not t.tgisinternal and p.oid = (select tgfoid from pg_trigger where tgrelid = 'public.tasks'::regclass and not tgisinternal and lower(tgname) like '%audit%' limit 1) and not exists (select 1 from pg_attribute a where a.attrelid = c.oid and a.attname = 'id' and not a.attisdropped)")" ""
 
-psql "${CONN[@]}" -d postgres -qX -c "drop database if exists $DB with (force)" >/dev/null 2>&1
+[ "${HE_PS_KEEP:-0}" = 1 ] || psql "${CONN[@]}" -d postgres -qX -c "drop database if exists $DB with (force)" >/dev/null 2>&1
 rm -f "$OUTF"
 echo "passed $pass, failed $fail"
 [ "$fail" = 0 ]
