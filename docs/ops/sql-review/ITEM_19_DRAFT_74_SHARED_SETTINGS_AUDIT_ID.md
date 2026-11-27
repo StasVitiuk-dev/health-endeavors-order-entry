@@ -1,7 +1,10 @@
 # Review item 19 — SQL draft 74: step A2, the id your history recorder needs
 
-Status: OWNER DECISION REQUIRED · production run PENDING your separate approval · written 2026-11-27
-Nothing here has been run in production. I never run it myself: you run it, after approving it.
+Status: CURRENT · **installed and verified in production by the owner on Nov 27, 2026** (about 4:07 AM
+Central, after #139 merged as `6988cdb`): one `pg_advisory_xact_lock` row and no error; the read-only check
+below showed exactly `uuid | 0 | 1`. Then "Settings shared by every device" was turned on and the first
+shared save worked: `shared_settings` holds one row `feature_switches | staff` (Real profit and Backups &
+Printouts on) and `audit_log` holds 2 rows for it. Written 2026-11-27. I never run it myself: you ran it.
 
 ## Why
 
