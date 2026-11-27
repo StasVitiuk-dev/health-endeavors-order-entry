@@ -6089,6 +6089,9 @@
     // uses example data or is read-only. Only keys listed in PREVIEW_SWITCHES can
     // be written. Shown to the owner and administrators; empty for everyone else.
     let previewSwitchMessage = '';
+    // Nov 27: the answer to a switch press is also shown in that switch's own row (the owner pressed a
+    // switch far down the list and did not see the refusal shown above the table).
+    let previewSwitchRowNote = null;   // { key, ok, text }
     // Switches shared by every device (assets/views/he-shared-switches.js; drafts/50).
     // ssShared.state: 'installed' (the database keeps the switches), 'not_installed'
     // or 'unknown' (they stay in this browser, as before).
@@ -6125,7 +6128,10 @@
           h('td', null, sw.where),
           h('td', { 'data-preview-audience': W ? W.audienceOf(sw.key, SWITCH_EVERYONE) : '' }, W ? W.AUDIENCE_WORD[W.audienceOf(sw.key, SWITCH_EVERYONE)] : ''),
           h('td', null, on ? 'On' : 'Off'),
-          h('td', null, h('button', { type: 'button', class: 'small' + (on ? ' secondary' : ''), 'data-previewswitch': 'toggle', 'data-key': sw.key, disabled: shared && !ownerHere, 'aria-label': (on ? 'Turn off ' : 'Turn on ') + sw.name }, on ? 'Turn off' : 'Turn on')));
+          h('td', null, h('button', { type: 'button', class: 'small' + (on ? ' secondary' : ''), 'data-previewswitch': 'toggle', 'data-key': sw.key, disabled: shared && !ownerHere, 'aria-label': (on ? 'Turn off ' : 'Turn on ') + sw.name }, on ? 'Turn off' : 'Turn on'),
+            previewSwitchRowNote && previewSwitchRowNote.key === sw.key
+              ? h('div', { class: 'u-fs-11 u-mt-6 ' + (previewSwitchRowNote.ok ? 'u-c-muted' : 'u-c-danger'), 'data-preview-rownote': previewSwitchRowNote.ok ? 'ok' : 'refused' }, previewSwitchRowNote.text)
+              : null));
       });
       host.replaceChildren(h('div', { class: 'previewSwitches u-mt-18' },
         h('h3', { class: 'u-m-18-0-6 u-fs-15' }, 'Preview features'),
@@ -6282,13 +6288,14 @@
         const join = (cur) => sw ? W.nextValue(cur || ssShared.value || W.fromStorage(PREVIEW_SWITCHES, localStorage), PREVIEW_SWITCHES, sw.key, turnOn) : W.allOff();
         const store = rpStore();
         const r = store ? await store.mergeSave(W.KEY, join, 'staff') : { ok: false, message: 'The shared settings could not be reached.' };
-        if (!r.ok) { previewSwitchMessage = r.message + ' Nothing was changed.'; }
+        if (!r.ok) { previewSwitchMessage = r.message + ' Nothing was changed.'; previewSwitchRowNote = sw ? { key: sw.key, ok: false, text: 'Not changed: ' + r.message } : null; }
         else {
           const next = r.value;
           ssShared = { state: 'installed', value: next };
           W.apply(W.effective(next, PREVIEW_SWITCHES, currentUserRole, SWITCH_EVERYONE), localStorage);
           previewSwitchMessage = sw ? sw.name + (turnOn ? ' is on for every device (' + W.AUDIENCE_WORD[W.audienceOf(sw.key, SWITCH_EVERYONE)].toLowerCase() + '). Reload the page, then open ' + sw.where + '.' : ' is off on every device. Reload the page to finish.')
             : 'All previews are off on every device. Reload the page to finish.';
+          previewSwitchRowNote = sw ? { key: sw.key, ok: true, text: (turnOn ? 'On' : 'Off') + ' for every device. Reload to finish.' } : null;
         }
         loadPreviewSwitches(); announce(previewSwitchMessage); refocusLike(t);
         return;
@@ -6296,14 +6303,14 @@
       try {
         if (act === 'alloff') {
           PREVIEW_SWITCHES.forEach(sw => localStorage.removeItem(sw.key));
-          previewSwitchMessage = 'All previews are off. Reload the page to finish.';
+          previewSwitchMessage = 'All previews are off. Reload the page to finish.'; previewSwitchRowNote = null;
         } else if (act === 'toggle') {
           const sw = PREVIEW_SWITCHES.find(x => x.key === t.getAttribute('data-key'));
           if (!sw) return;                                   // only listed keys are ever written
-          if (previewSwitchIsOn(sw.key)) { localStorage.removeItem(sw.key); previewSwitchMessage = sw.name + ' is off. Reload the page to finish.'; }
-          else { localStorage.setItem(sw.key, 'on'); previewSwitchMessage = sw.name + ' is on. Reload the page, then open ' + sw.where + '.'; }
+          if (previewSwitchIsOn(sw.key)) { localStorage.removeItem(sw.key); previewSwitchMessage = sw.name + ' is off. Reload the page to finish.'; previewSwitchRowNote = { key: sw.key, ok: true, text: 'Off in this browser. Reload to finish.' }; }
+          else { localStorage.setItem(sw.key, 'on'); previewSwitchMessage = sw.name + ' is on. Reload the page, then open ' + sw.where + '.'; previewSwitchRowNote = { key: sw.key, ok: true, text: 'On in this browser. Reload to finish.' }; }
         }
-      } catch (err) { previewSwitchMessage = 'This browser would not save the switch (private window or storage blocked).'; }
+      } catch (err) { previewSwitchMessage = 'This browser would not save the switch (private window or storage blocked).'; previewSwitchRowNote = null; }
       loadPreviewSwitches(); announce(previewSwitchMessage); refocusLike(t);
     });
 

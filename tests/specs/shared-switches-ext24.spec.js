@@ -65,6 +65,9 @@ test.describe('on the dashboard, with the shared settings installed', () => {
     await expect(host.locator('tr[data-preview-key="he_real_profit"] [data-preview-audience]')).toHaveText('Owner and administrators');
     await host.getByRole('button', { name: 'Turn on Real profit' }).click();
     await expect(host.locator('[data-preview-msg]')).toContainText('Real profit is on for every device (owner and administrators).');
+    // Nov 27: the answer is also in the switch's own row, where the owner is looking
+    await expect(host.locator('tr[data-preview-key="he_real_profit"] [data-preview-rownote="ok"]')).toHaveText('On for every device. Reload to finish.');
+    await expect(host.locator('[data-preview-rownote]')).toHaveCount(1);
     const saves = backend.requests.filter(r => r.rpc === 'set_shared_setting');
     expect(saves).toHaveLength(1);
     expect(saves[0].body).toMatchObject({ p_key: 'feature_switches', p_audience: 'staff', p_value: { on: { he_order_slips: true, he_real_profit: true } } });
@@ -72,6 +75,7 @@ test.describe('on the dashboard, with the shared settings installed', () => {
     // turn all off: for every device
     await host.getByRole('button', { name: 'Turn all off' }).click();
     await expect(host.locator('[data-preview-msg]')).toContainText('All previews are off on every device.');
+    await expect(host.locator('[data-preview-rownote]')).toHaveCount(0);
     expect(backend.tables.shared_settings[0].value).toEqual({ on: {} });
     expect(await page.evaluate(() => [localStorage.getItem('he_order_slips'), localStorage.getItem('he_real_profit')])).toEqual([null, null]);
   });
@@ -104,6 +108,11 @@ test.describe('on the dashboard, with the shared settings installed', () => {
     const host = page.locator('#previewSwitchesHost');
     await host.getByRole('button', { name: 'Turn off Real profit' }).click();
     await expect(host.locator('[data-preview-msg]')).toContainText('Nothing was changed.');
+    // Nov 27 (the owner pressed a switch far down the list and saw no answer): the refusal shows in that row too
+    const note = host.locator('tr[data-preview-key="he_real_profit"] [data-preview-rownote="refused"]');
+    await expect(note).toHaveText('Not changed: Only the owner or an administrator can change a shared setting.');
+    await expect(note).toHaveClass(/u-c-danger/);
+    await expect(host.locator('tr[data-preview-key="he_real_profit"]')).toHaveAttribute('data-preview-on', 'yes');
     expect(await page.evaluate(() => localStorage.getItem('he_real_profit'))).toBe('on');
   });
 
