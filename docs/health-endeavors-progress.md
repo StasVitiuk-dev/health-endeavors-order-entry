@@ -8,18 +8,18 @@ Statuses: **COMPLETED** · **IN PROGRESS** · **BLOCKED** · **NOT STARTED** · 
 
 ## Overall
 
-**Health Endeavors overall: ≈ 39% toward a launched, operating business (uncertainty ±10 points).**
+**Health Endeavors overall: ≈ 42% toward a launched, operating business (uncertainty ±10 points).**
 
 Basis: weighted average of the areas that must all exist at launch.
 
 | Area | Weight | Estimate | Weighted |
 | --- | --- | --- | --- |
 | Internal platform features (row 1) | 40% | 70% | 28 |
-| Launch-required fixes R1–R10 (row 2) | 15% | 10% | 1.5 |
+| Launch-required fixes R1–R10 (row 2) | 15% | 30% | 4.5 |
 | Store launch readiness (row 7) | 10% | 10% | 1 |
 | Public website (row 8) | 25% | 31% | ≈7.75 |
 | Website–platform integration (row 9) | 10% | 5% | 0.5 |
-| **Total** | | | **≈ 38.75% → ≈ 39%** |
+| **Total** | | | **≈ 41.75% → ≈ 42%** |
 
 The weights are a judgement call: the platform is the largest body of work, and the website is the second largest.
 
@@ -44,6 +44,7 @@ The weights are a judgement call: the platform is the largest body of work, and 
 
 ## Change log for this tracker
 
+- Nov 27 (night): the weighted total used an old 10% for row 2 (launch-required fixes) while the row itself says ≈30% (3 of 10 on `main`, checked Nov 25); corrected, so the total is ≈42% (was ≈39%). Nothing else changed. A two-week launch plan is proposed in `docs/ops/LAUNCH_PLAN_2_WEEKS.md` (owner decision required).
 - Nov 27 (early morning, later): row 14: step A (drafts/50) installed and verified, but not usable yet: production's history recorder needs an `id` the settings table lacks (found by the owner's first save, nothing changed). Step A2 (drafts/74) prepared; drafts 32, 52 and 56 fixed the same way before install. No percentage moves.
 - Nov 27 (early morning): row 14: step 0 (drafts/72, the "active staff member" and "role of a switched-on account" checks the real database lacked) installed by the owner and verified read-only; nothing uses them until step A, so no percentage moves. #137 (step 0, eight waiting drafts fitted to the real database) and #138 (CI fix) merged.
 - Nov 26 (late night): the Brother printer is set up on the owner's Mac and its test page prints correctly on one sheet (after #136); the daily print timer (12:02 AM) is set up and switched off until launch; Supabase plan confirmed Pro with the spend cap on. The Rollo label printer is not bought yet. No percentage moves.
