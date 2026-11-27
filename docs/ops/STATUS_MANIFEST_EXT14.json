@@ -1,8 +1,8 @@
 {
   "about": "EXT14 machine-readable status of every production step and switch. Validated by `npm run status:check` (tests/tools/status-validate.js). Local or staging results NEVER set a production field; only dated owner evidence from production does. Update this file whenever something is merged, installed, switched or verified.",
   "asOf": "2026-11-27",
-  "main": "8701d00",
-  "liveDashboard": "main (8701d00), published by GitHub Pages",
+  "main": "af8a012",
+  "liveDashboard": "main (af8a012), published by GitHub Pages",
   "scores": { "productionReadinessPercent": 15, "basis": "unchanged: the first production evidence (Nov 26: step 18, a small hardening, and step 19, an empty table for backup reports) does not move it" },
   "units": {
     "merge":           { "kind": "code", "branch": "IMPLEMENTED IN BRANCH", "local": "TESTED LOCALLY", "merged": true, "deployed": true, "production": "DEPLOYED", "productionEvidence": { "date": "2026-11-23", "env": "production", "source": "PR #36 merged into main (b4ebb4b); the owner checked the live dashboard on the computer and the iPhone" } },
