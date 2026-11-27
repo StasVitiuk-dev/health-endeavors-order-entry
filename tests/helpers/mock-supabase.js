@@ -311,6 +311,13 @@ class FakeSupabase {
     const { method, table, headers } = entry;
     const params = entry.params;
     const search = new URLSearchParams(entry.query);
+    // Nov 27: the shared settings (drafts/50) are read at every sign-in now. A test that does
+    // not set backend.tables.shared_settings gets the answer of a database without that step
+    // (PGRST205), so each browser keeps its own switches, as before the step was installed.
+    if (table === 'shared_settings' && !Object.prototype.hasOwnProperty.call(this.tables, 'shared_settings')) {
+      return route.fulfill({ status: 404, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' },
+        body: JSON.stringify({ code: 'PGRST205', message: "Could not find the table 'public.shared_settings' in the schema cache" }) });
+    }
     const rows = this.tables[table] || [];
     const prefer = headers['prefer'] || '';
     const wantsObject = (headers['accept'] || '').includes('vnd.pgrst.object');

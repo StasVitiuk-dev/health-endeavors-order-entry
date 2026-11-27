@@ -13,7 +13,7 @@ test.describe('the list and the rules (no browser)', () => {
   test('every switch that saves records is listed once, with its database step and a probe', ({}, ti) => {
     node(ti);
     const keys = R.RECORD_SWITCHES.map(s => s.key);
-    expect(keys.sort()).toEqual(['he_dropoff', 'he_email_sending', 'he_incident_close', 'he_invoice_payments', 'he_money_issues', 'he_my_settings', 'he_order_batches', 'he_order_costs', 'he_people_page', 'he_receiving_store', 'he_review_store', 'he_shared_settings', 'he_supplier_documents_store', 'he_tax_rates']);
+    expect(keys.sort()).toEqual(['he_dropoff', 'he_email_sending', 'he_incident_close', 'he_invoice_payments', 'he_money_issues', 'he_my_settings', 'he_order_batches', 'he_order_costs', 'he_people_page', 'he_receiving_store', 'he_review_store', 'he_supplier_documents_store', 'he_tax_rates']);
     expect(R.RECORD_SWITCHES.every(s => s.name && s.where && s.draft && s.what && /^[a-z_]+$/.test(s.probe || s.rpc))).toBe(true);
     expect(R.RECORD_SWITCHES.filter(s => s.rpc).map(s => s.key)).toEqual(['he_people_page']);   // asks a function that changes nothing
     // the same keys the preview-switch test keeps OFF the preview list

@@ -283,12 +283,14 @@ window.HE.modules.define('he-config', { api: 1, needs: [] }, function (ctx) {
     // Settings shared by every device (drafts/50). The dashboard asks the database
     // for them only when this says so, so nothing is requested (and nothing fails)
     // before the owner has installed that step:
-    //   SHARED_SETTINGS_LIVE  flipped to true in a small PR once drafts/50 is
-    //                         installed: from then on every device uses them;
-    //   he_shared_settings    the owner's own switch (Feature Flags, "features that
-    //                         save real records"), to start using them in one browser
-    //                         right after installing, before that PR.
-    const SHARED_SETTINGS_LIVE = false;
+    //   SHARED_SETTINGS_LIVE  true since Nov 27, 2026: drafts/50 and drafts/74 are
+    //                         installed and the owner's first shared saves worked, so
+    //                         every device uses them (owner rule: everything the same
+    //                         on every phone and computer). If the table ever cannot
+    //                         be read, each browser keeps its own switches as before;
+    //   he_shared_settings    the owner's old one-browser switch, kept only so an old
+    //                         value in a browser is harmless; no longer offered.
+    const SHARED_SETTINGS_LIVE = true;
     function sharedSettingsOn() {
       if (SHARED_SETTINGS_LIVE) return true;
       try { return typeof localStorage !== 'undefined' && localStorage.getItem('he_shared_settings') === 'on'; }
