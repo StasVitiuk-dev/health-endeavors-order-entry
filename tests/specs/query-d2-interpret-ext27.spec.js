@@ -15,7 +15,7 @@ test.beforeEach(({}, ti) => { test.skip(ti.project.name !== 'desktop', 'Node-onl
 const TOOL = path.join(__dirname, '..', 'tools', 'query-d2-interpret.js');
 // the reader's own list of functions (read from the tool, not repeated here)
 const NAMES = JSON.parse(fs.readFileSync(TOOL, 'utf8').match(/const EXPECTED = (\[[\s\S]*?\]);/)[1].replace(/'/g, '"'));
-const SAFE = '{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}';
+const SAFE = '{postgres=X/postgres,authenticated=X/postgres}';
 const rights = (over = {}) => NAMES.map(n => 'D2 rights | public.' + n + '() | ' + (over[n] || SAFE));
 const SUMMARY = 'D2 summary | (all) | 10 functions read';
 
