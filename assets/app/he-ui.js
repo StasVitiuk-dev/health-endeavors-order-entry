@@ -259,6 +259,55 @@ window.HE.modules.define('he-ui', { api: 1, needs: ['EMPTY_ICONS','HELP','ICON_P
     const shortcutOverlay = document.createElement('div');
     function openShortcuts(){ rememberFocus('shortcuts'); shortcutOverlay.classList.add('open'); focusDialog(shortcutOverlay); }
     function closeShortcuts(){ shortcutOverlay.classList.remove('open'); restoreFocus('shortcuts'); }
+    // What is being typed in a list survives the list being drawn again (Nov 26 sweep:
+    // Refresh, pull to refresh and the quiet refresh every 5 minutes, which only waits while
+    // the cursor is in a box, redrew Returns, Recalls, Quality Checks and Inventory and put
+    // back what was saved). Call it just before the list is redrawn; call what it returns
+    // just after. A changed text box, number or choice is put back only when its row (same
+    // id, same data-* values) and that field's saved value are exactly as they were, so a
+    // save afterwards is checked against the same thing as before and can never overwrite a
+    // change made elsewhere. Otherwise the row shows the newest values, as it did before.
+    // opts.open: { sel, isOpen(el), reopen(row) } for a part of a row that was opened.
+    function keepTyped(host, rowSel, opts){
+      opts = opts || {};
+      const keyOf = (row) => row.getAttribute('data-id') || row.getAttribute('data-product-id') || row.getAttribute('data-return-id') || '';
+      const sigOf = (row) => Array.from(row.attributes).filter(a => a.name.indexOf('data-') === 0 && a.name.indexOf('data-test') !== 0)
+        .map(a => a.name + '=' + a.value).sort().join('\n');
+      const nameOf = (el) => el.getAttribute('name') || (Array.from(el.classList).find(c => c.indexOf('u-') !== 0) || '');
+      const fieldsOf = (row) => Array.from(row.querySelectorAll('input, textarea, select'))
+        .filter(el => !(el.tagName === 'INPUT' && /^(hidden|file|checkbox|radio|button|submit|reset|image)$/i.test(el.type)) && nameOf(el));
+      const savedOf = (el) => {
+        if (el.tagName !== 'SELECT') return el.defaultValue;
+        const o = Array.from(el.options).find(x => x.defaultSelected) || el.options[0];
+        return o ? o.value : '';
+      };
+      const kept = [];
+      if (host) host.querySelectorAll(rowSel).forEach(row => {
+        const key = keyOf(row); if (!key) return;
+        const fields = fieldsOf(row).filter(el => el.value !== savedOf(el)).map(el => ({ name: nameOf(el), value: el.value, saved: savedOf(el),
+          focused: document.activeElement === el, from: el.selectionStart, to: el.selectionEnd }));
+        const part = opts.open ? row.querySelector(opts.open.sel) : null;
+        const open = !!(part && opts.open.isOpen(part));
+        if (fields.length || open) kept.push({ key, sig: sigOf(row), fields, open });
+      });
+      return function putBack(){
+        let lost = 0;
+        if (!host) return 0;
+        kept.forEach(k => {
+          const row = Array.from(host.querySelectorAll(rowSel)).find(r => keyOf(r) === k.key);
+          if (!row || sigOf(row) !== k.sig) { lost += k.fields.length; return; }   // gone or changed elsewhere: shown as it is now
+          if (k.open && opts.open) opts.open.reopen(row);
+          k.fields.forEach(f => {
+            const el = fieldsOf(row).find(x => nameOf(x) === f.name);
+            if (!el || savedOf(el) !== f.saved) { lost++; return; }
+            el.value = f.value;
+            if (el.value !== f.value) { lost++; return; }                          // a choice that no longer exists
+            if (f.focused) { el.focus(); try { el.setSelectionRange(f.from, f.to); } catch (e) { /* not a text box */ } }
+          });
+        });
+        return lost;   // not announced: after your own save the row changes too, and then nothing was lost
+      };
+    }
     function typingInField(e){
       const t = e.target;
       if (!t || !t.tagName) return false;
@@ -293,5 +342,5 @@ window.HE.modules.define('he-ui', { api: 1, needs: ['EMPTY_ICONS','HELP','ICON_P
     // ---- iPhone: pull down to refresh, swipe to change page ----
     const ptr = document.createElement('div');
 
-  return { toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, focusDialog, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, pageIconSvg, h, pageIconNode };
+  return { keepTyped, toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, focusDialog, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, pageIconSvg, h, pageIconNode };
 });

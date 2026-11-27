@@ -198,6 +198,7 @@ const ADDED = ['focusDialog', 'inspectLabel', 'keyLink', 'setReportHistoryView',
   // Nov 24: Reviews page (behind he_review_inbox)
   'saveInquiryDraft', // Nov 26: an edited customer reply survives a redraw; the save checks against the draft it was based on
   'wireCalEvents', // Nov 26: the editor of your own event keeps its edits across a redraw
+  'keepTyped', // Nov 26: what is being typed in Returns, Recalls, Quality Checks and Inventory survives a redraw
   'icBase', 'icDropForm', 'icKeep', 'icRestore', 'loadIncidents', // Nov 26: an incident note being typed survives a redraw
   'adminChangesOn', 'backupStatusOn', 'AC_SEEN_KEY', 'acSeq', 'acLast', 'acMod', 'acSeenUpTo', 'loadAdminChanges',
   'peoplePageOn', 'PP_FN', 'ppRows', 'ppErr', 'ppStep', 'ppSeq', 'ppMsg', 'ppMsgBad', 'ppOpen', 'ppProblems', 'ppBusy', 'ppMe', 'ppMod', 'ppOn', 'ppSay', 'ppHelper', 'loadPeoplePage', 'PP_STATE', 'renderPeoplePage', 'ppAct', 'ROLE_LABELS',
