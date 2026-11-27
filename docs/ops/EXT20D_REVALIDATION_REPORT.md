@@ -30,7 +30,7 @@ Branch `claude/platform-ext20-adversarial-completion-2026-10-13`, head `e775f5c`
 | FIX 3 lifecycle (reproduce hole, apply, verify, rollback, reapply) | 23/23 |
 | FIX 3 edge cases (overload, partial-revoke, interrupted txn, idempotency, no-widening, false-green) | 11/11 |
 | Approval Option B separation-of-duties prototype | 12/12 |
-| profiles 3-trigger ordering/atomicity | 10/10 |
+| profiles 3-trigger ordering/atomicity | 10/10 (the script was never saved; rebuilt Nov 27 as `profiles_trigger_order_test.sh`, 19/19, lock as a stand-in: see the correction in `EXT20B_AUTHORIZATION_MODEL.md` §4) |
 | Drift-check mutation (each single-fact regression detected) | 9/9 |
 | Query D2 interpreter matrix (healthy/gated interpretable; partial/wrong-project refused) | 4/4 |
 
