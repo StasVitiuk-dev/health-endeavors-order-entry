@@ -59,6 +59,7 @@ step "integrity schedule" bash "$LT/integrity_schedule_test.sh" $C
 step "request-key switch" bash "$LT/request_keys_switch_test.sh" $C
 step "nightly check on Home" bash "$LT/integrity_home_test.sh" $C
 step "drift check (Query H)" bash "$LT/drift_check_test.sh" $C
+step "read-only queries C (with and without pg_cron) and D: run, leak nothing, answer as expected" bash "$LT/readonly_queries_test.sh" $C
 step "report totals rollback lifecycle" bash "$LT/report_totals_rollback_test.sh" $C
 step "random interleavings (seed 909, 40 rounds)" bash "$LT/random_interleavings.sh" 909 40 current "$C -d he_real"
 # Nov 23: the November drafts' own tests (they were run by hand only; ~50 s together on a clean he_real)
