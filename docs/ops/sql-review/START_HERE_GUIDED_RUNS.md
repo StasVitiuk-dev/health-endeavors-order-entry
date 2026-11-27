@@ -31,15 +31,18 @@ search paths ending in `pg_temp`, and `true | 1 | SELECT | 0` for the backup rep
 **installed and verified by you on Nov 27, 2026** (about 2:15 AM Central, after #137 merged: one
 `pg_advisory_xact_lock` row; the read-only check showed `active_role | false | false` and
 `is_active_staff | false | false`), and step A: **installed and verified by you on Nov 27, 2026** (about
-2:45 AM Central: one `pg_advisory_xact_lock` row; the read-only check showed `true | 0 | 1 | false`). Step A
-cannot save yet: every save was refused by your history recorder (`record "new" has no field "id"`, nothing
-changed), so step **A2** comes next. Nothing else is reviewed, approved, installed or verified.
+2:45 AM Central: one `pg_advisory_xact_lock` row; the read-only check showed `true | 0 | 1 | false`). Step A's
+first save was refused by your history recorder (`record "new" has no field "id"`, nothing changed), so
+step **A2** followed: **installed and verified by you on Nov 27, 2026** (about 4:07 AM Central, after #139:
+one `pg_advisory_xact_lock` row; the read-only check showed `uuid | 0 | 1`); then the first shared save from
+the dashboard worked (one row `feature_switches | staff`, 2 rows in the history log). Nothing else is
+reviewed, approved, installed or verified.
 
 | Order | What it enables | Needs first | File (`docs/ops/sql/drafts/`) | Lines | Fingerprint | Undo file | Before (read-only) | After (read-only check) |
 |---|---|---|---|---|---|---|---|---|
 | 0 | **First, before A and the steps that use it:** the "active staff member" and "role of a switched-on account" checks production does not have (found Nov 27 when step A stopped safely). **Done Nov 27: installed and verified** | nothing | `72_DRAFT_active_staff_helper.sql` | 108 | `da6f7ed3ca5eacc8` | `73_…` | — | Item 18 |
-| A | Settings and switches the same on every phone and computer (your standing rule); the owner or an administrator saves them. **Done Nov 27: installed and verified; saving needs A2** | **0** | `50_DRAFT_shared_settings.sql` | 193 | `0d17fc4e94fbd847` | `51_…` | — | Item 10, "After running" |
-| A2 | **Right after A:** the `id` your history recorder writes for every change (without it every save of a shared setting is refused: found Nov 27) | **A** | `74_DRAFT_shared_settings_audit_id.sql` | 57 | `27550a1b2cda75ef` | `75_…` | — | Item 19, "After running" |
+| A | Settings and switches the same on every phone and computer (your standing rule); the owner or an administrator saves them. **Done Nov 27: installed and verified; saving works since A2** | **0** | `50_DRAFT_shared_settings.sql` | 193 | `0d17fc4e94fbd847` | `51_…` | — | Item 10, "After running" |
+| A2 | **Right after A:** the `id` your history recorder writes for every change (without it every save of a shared setting is refused: found Nov 27). **Done Nov 27: installed and verified; shared saves work** | **A** | `74_DRAFT_shared_settings_audit_id.sql` | 57 | `27550a1b2cda75ef` | `75_…` | — | Item 19, "After running" |
 | 1–8 | as in the table above | as above | (see above) | | | | | |
 | 9 | Parcels and tracking per order, delivery problems watch | nothing | `48_DRAFT_order_parcels.sql` | 392 | `ca25da9142afa5b0` | `49_…` | — | Item 9, "After running" |
 | 10 | Packaging and shipping cost per order (real profit) | nothing | `52_DRAFT_order_costs.sql` | 191 | `10f53b1d7b57a6e1` | `53_…` | — | Item 11, "After running" |

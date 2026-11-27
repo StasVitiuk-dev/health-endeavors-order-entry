@@ -190,11 +190,25 @@ test.describe('the printed-recap note on every device (shared settings in use)',
   });
 });
 
-test('shared settings off (as shipped): printing the recap asks the database nothing about shared settings', async ({ page, backend }) => {
+// Nov 27: the shared settings are in use on every device. On a database WITHOUT that step (a restored
+// older copy, or the table unreadable) printing still works and the note stays in this browser.
+test('on a database without the shared settings: printing the recap works, the note stays in this browser, nothing is saved there', async ({ page, backend }) => {
+  backend.missingTables = ['shared_settings'];
   await open(page, backend);
   await page.locator('#backupsPanel [data-bk="print-latest"]').click();
   await expect(page.locator('#backupsPanel [data-bkmessage]')).toContainText('The Home reminder is cleared for this day.');
   await page.waitForLoadState('networkidle');
   expect(backend.requests.filter(r => r.rpc === 'set_shared_setting')).toEqual([]);
-  expect(backend.requests.filter(r => r.table === 'shared_settings' && !r.params.some(([k, v]) => k === 'limit' && v === '0'))).toEqual([]);
+  expect(await page.evaluate(() => localStorage.getItem('he_recap_printed_upto'))).toBe('2026-11-22');
+  await expect(page.locator('#dashError')).toBeHidden();
+});
+
+test('as shipped now (shared settings in use, no extra switch): printing saves the day for every device once', async ({ page, backend }) => {
+  await open(page, backend);
+  await page.locator('#backupsPanel [data-bk="print-latest"]').click();
+  await expect(page.locator('#backupsPanel [data-bkmessage]')).toContainText('The Home reminder is cleared for this day.');
+  await expect.poll(() => backend.requests.filter(r => r.rpc === 'set_shared_setting').length).toBe(1);
+  const save = backend.requests.find(r => r.rpc === 'set_shared_setting').body;
+  expect(save).toMatchObject({ p_key: 'recap_printed', p_value: { day: '2026-11-22' } });
+  expect(backend.tables.shared_settings.map(r => [r.key, r.value.day])).toEqual([['recap_printed', '2026-11-22']]);
 });
