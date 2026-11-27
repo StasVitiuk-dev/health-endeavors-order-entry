@@ -123,6 +123,8 @@ test('the queries still print the rows the reader counts on', () => {
   for (const k of pad('F', 15)) expect(F, k).toContain("'" + k + ' ');
   for (const k of ['H01', 'H02', 'H08', 'H09', 'H10', 'H11']) expect(H, k).toContain("'" + k + "'");
   for (const k of ['G01', 'G03', 'G08', 'G09']) expect(G, k).toContain("'" + k + ' ');
+  // Query D has no fixed rows; it lists the worst first, so cutting its end can only drop safer rows
+  expect(sql('03_READONLY_D_definer_function_identity_check.sql')).toMatch(/order by classification desc, function_name;\s*$/);
   const e = parseCsv(FIX('E'));                                        // real output: rows per section
   const per = {}; for (const r of e) per[r.section.charAt(0)] = (per[r.section.charAt(0)] || 0) + 1;
   expect(per).toEqual({ 1: 3, 2: 5, 3: 7, 4: 2, 5: 2 });

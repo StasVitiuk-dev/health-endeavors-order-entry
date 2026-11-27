@@ -61,7 +61,9 @@ const COLUMNS = { H: ['id', 'item', 'status'], G: ['check_id', 'level'], F: ['se
 // The rows each query ALWAYS prints, whatever the data (one per check). A file without all of them
 // was cut short (a partial copy from the results grid, a stopped export): UNKNOWN, never PASS.
 // Counts taken from the queries' real output on the local database (tests/fixtures/query-results).
-// Query D lists one row per function, so it has no fixed set; read its total against Query G.
+// Query D lists one row per function, so it has no fixed set; but it sorts the worst first
+// (order by classification desc: E, D, C, B, A), so a file cut short at the end can only lose
+// safer rows, never hide an E (a test keeps that ordering in the query).
 // Added Nov 27, 2026: until then a file with only its first rows read as PASS.
 const pad = (p, n) => Array.from({ length: n }, (_, i) => p + String(i + 1).padStart(2, '0'));
 const ALWAYS = {
