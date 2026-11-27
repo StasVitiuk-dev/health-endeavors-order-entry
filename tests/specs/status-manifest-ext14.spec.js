@@ -14,8 +14,8 @@ test.beforeEach(({}, ti) => { test.skip(ti.project.name !== 'desktop', 'Node-onl
 // Production claims in the checked-in file: only what the owner's dated evidence shows (Nov 27):
 // the merged dashboard is live (PR #36, Nov 23) and database step 18 is installed and checked
 // (drafts/68, Nov 26), and so is step 19, the backup reports table (drafts/70, Nov 26), and step 0,
-// the active staff checks (drafts/72, Nov 27), and step A, shared settings (drafts/50, Nov 27; saving needs drafts/74). Anything else claimed in production fails here until its evidence is added.
-const CLAIMED = { merge: 'DEPLOYED', history_search_path: 'VERIFIED', backup_reports: 'VERIFIED', active_staff_helper: 'VERIFIED', shared_settings: 'VERIFIED' };
+// the active staff checks (drafts/72, Nov 27), and step A, shared settings (drafts/50, Nov 27), and step A2, the id the audit trigger records (drafts/74, Nov 27). Anything else claimed in production fails here until its evidence is added.
+const CLAIMED = { merge: 'DEPLOYED', history_search_path: 'VERIFIED', backup_reports: 'VERIFIED', active_staff_helper: 'VERIFIED', shared_settings: 'VERIFIED', shared_settings_audit_id: 'VERIFIED' };
 test('the checked-in manifest is consistent and claims in production only what has dated owner evidence', () => {
   const m = load();
   expect(validate(m, SQL)).toEqual([]);
