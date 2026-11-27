@@ -21,7 +21,7 @@ Basis: weighted average of the areas that must all exist at launch.
 | Website–platform integration (row 9) | 10% | 5% | 0.5 |
 | **Total** | | | **≈ 41.75% → ≈ 42%** |
 
-The weights are a judgement call: the platform is the largest body of work, and the website is the second largest.
+The weights are a judgement call: the platform is the largest body of work, and the website is the second largest. **Frozen on Nov 27, 2026 (v1):** these weights and the counting rules are fixed in `docs/ops/READINESS_LEDGER.md`, which also gives the dashboard-only (≈59%) and storefront-only (≈21%) figures and R1–R10 item by item; a change of weights is a new version with its reason.
 
 ## Work areas
 
