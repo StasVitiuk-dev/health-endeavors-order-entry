@@ -112,7 +112,9 @@ A deliberate break (the black-ink sheet turned off) makes the black-ink test fai
   default paper US Letter. First test page: printed, black only, but on two sides of one sheet with
   Safari's headers, and the frame's bottom edge on a second page. Settings fixed as above; the test
   page's frame made shorter (9.9 in → 8.75 in; the 4 × 6 one 5.7 in → 5.2 in) because Safari's own
-  margins are larger than the 0.5 in the page asks for. Re-print after that change: pending.
+  margins are larger than the 0.5 in the page asks for. **Re-print after #136 (owner's photo, Nov 26 late
+  night): one sheet, one side, frame on all four sides, no Safari lines, black only. Brother: DONE**
+  (the square's exact inch was not measured on the photo).
 - **Daily print, Nov 26 (owner):** the Shortcuts timer "Print day pack" (12:02 AM, every day)
   opened the day pack's print window on the Brother (3 pages); cancelled, then the timer was
   switched off until launch (`AUTO_PRINT_MAC_SETUP_2026-11-24.md`).

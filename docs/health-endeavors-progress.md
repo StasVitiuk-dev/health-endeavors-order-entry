@@ -44,6 +44,7 @@ The weights are a judgement call: the platform is the largest body of work, and 
 
 ## Change log for this tracker
 
+- Nov 26 (late night): the Brother printer is set up on the owner's Mac and its test page prints correctly on one sheet (after #136); the daily print timer (12:02 AM) is set up and switched off until launch; Supabase plan confirmed Pro with the spend cap on. The Rollo label printer is not bought yet. No percentage moves.
 - Nov 26 (night): row 14: step 18 (drafts/68, history functions' search path) installed by the owner and verified read-only, the first database step in production; it is a small hardening, so no percentage moves. Backups: step 19 (drafts/70, the backup reports table) installed and verified too; Home's backup line waits for the owner's repository step and the switch. Rows 11/12: #130–#134 merged (typed text kept on more lists and Purchase Orders; CI in four groups).
 - Nov 26 (morning): rows 1, 12 and 13 brought up to date. Their "next step" still named merges that happened on Nov 23 (#5/#6 inside #36) and Nov 24 (the #61–#85 chain, `1f86df0`). No percentage changes: nothing new is installed.
 - Nov 26 (night, later): the backup warning on Home prepared (drafts 70/71, step 19; Home line behind "Backup status on Home"; the owner's step in the backups repository written in `RECOVERY_AND_BACKUP_READINESS.md` §3a). Percentages unchanged: nothing installed.
