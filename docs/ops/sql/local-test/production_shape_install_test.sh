@@ -78,8 +78,8 @@ echo "Every waiting draft installs on a copy shaped like production (throwaway d
 ok "set-up: the role is app_role and current_role() answers app_role" "$(q "select pg_get_function_result(to_regprocedure('public.current_role()'))")" "app_role"
 ok "set-up: is_active_staff() is missing, as in production" "$(q "select to_regprocedure('public.is_active_staff()') is null")" "t"
 
-# drafts/72 first (it adds the missing helper), then the rest in their install order
-ORDER="72 32 34 36 38 40 44 46 48 50 52 54 56 58 60 62 64 66 68 70"
+# drafts/72 first (it adds the missing helper), then the rest in their install order (74, step A2, right after 50)
+ORDER="72 32 34 36 38 40 44 46 48 50 74 52 54 56 58 60 62 64 66 68 70"
 for id in $ORDER; do
   f=$(ls "$DIR"/drafts/${id}_DRAFT_*.sql 2>/dev/null | grep -v rollback | head -1)
   [ -n "$f" ] || { ok "drafts/$id exists" "missing" "present"; continue; }
@@ -87,6 +87,11 @@ for id in $ORDER; do
   if [ "$r" != 0 ]; then echo "      $(grep -m1 -i 'error' "$OUTF" | cut -c1-200)"; fi
   ok "drafts/$id installs ($(basename "$f"))" "$r" "0"
 done
+
+# Production's audit_trigger_function() writes new.id / old.id (owner's look, Nov 27): a table it is
+# attached to without an id column refuses every write ('record "new" has no field "id"'), as step A's
+# shared_settings did before step A2. After every waiting draft is installed, no such table may remain.
+ok "every table with production's audit trigger has the id column it records" "$(q "select coalesce(string_agg(distinct c.relname::text, ','), '') from pg_trigger t join pg_class c on c.oid = t.tgrelid join pg_proc p on p.oid = t.tgfoid where not t.tgisinternal and p.oid = (select tgfoid from pg_trigger where tgrelid = 'public.tasks'::regclass and not tgisinternal and lower(tgname) like '%audit%' limit 1) and not exists (select 1 from pg_attribute a where a.attrelid = c.oid and a.attname = 'id' and not a.attisdropped)")" ""
 
 psql "${CONN[@]}" -d postgres -qX -c "drop database if exists $DB with (force)" >/dev/null 2>&1
 rm -f "$OUTF"

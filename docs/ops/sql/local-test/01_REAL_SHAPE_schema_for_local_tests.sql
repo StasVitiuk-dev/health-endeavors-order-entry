@@ -385,14 +385,29 @@ $$ select exists (select 1 from profiles where id = auth.uid() and is_active and
 create or replace function public.active_role() returns text language sql stable security definer set search_path = public as
 $$ select role::text from profiles where id = auth.uid() and is_active and deleted_at is null $$;
 
--- every change is recorded with the acting user (production has an audit trigger on all 18 tables)
+-- every change is recorded with the acting user (production has an audit trigger on all 18 tables).
+-- The body below is production's audit_trigger_function() word for word (owner's read-only look,
+-- Nov 27): it reads old.id / new.id directly, so a table WITHOUT an id column cannot be audited
+-- (every write is refused: record "new" has no field "id"). Until Nov 27 this stand-in fell back
+-- to '?' instead, which hid exactly that failure (step A's shared_settings). Keep it identical.
 create or replace function public.local_audit() returns trigger language plpgsql security definer set search_path = public as $$
 begin
-  insert into audit_log (table_name, record_id, action, old_data, new_data, changed_by)
-  values (tg_table_name, coalesce((case when tg_op = 'DELETE' then to_jsonb(old) else to_jsonb(new) end)->>'id', '?'), tg_op,
-          case when tg_op <> 'INSERT' then to_jsonb(old) end, case when tg_op <> 'DELETE' then to_jsonb(new) end, auth.uid());
-  return coalesce(new, old);
-end $$;
+  if (tg_op = 'DELETE') then
+    insert into public.audit_log (table_name, record_id, action, old_data, changed_by)
+    values (tg_table_name, old.id::text, tg_op, to_jsonb(old), auth.uid());
+    return old;
+  elsif (tg_op = 'UPDATE') then
+    insert into public.audit_log (table_name, record_id, action, old_data, new_data, changed_by)
+    values (tg_table_name, new.id::text, tg_op, to_jsonb(old), to_jsonb(new), auth.uid());
+    return new;
+  elsif (tg_op = 'INSERT') then
+    insert into public.audit_log (table_name, record_id, action, new_data, changed_by)
+    values (tg_table_name, new.id::text, tg_op, to_jsonb(new), auth.uid());
+    return new;
+  end if;
+  return null;
+end;
+$$;
 
 do $$ declare t text; begin
   foreach t in array array['products','inventory','suppliers','purchase_orders','purchase_order_items','inventory_lots',

@@ -77,6 +77,7 @@ create table if not exists public.order_costs (
   postage_source text check (postage_source is null or postage_source in ('shopify_shipping', 'amazon', 'etsy', 'tiktok', 'manual')),
   updated_by     uuid not null default auth.uid(),
   updated_at     timestamptz not null default now(),
+  id             uuid not null default gen_random_uuid() unique,  -- the identifier production's audit trigger records (audit_trigger_function() writes new.id; see drafts/74)
   constraint order_costs_fee_pair check ((fee_cents is null) = (fee_source is null)),
   constraint order_costs_postage_pair check ((postage_cents is null) = (postage_source is null)),
   constraint order_costs_something check (fee_cents is not null or postage_cents is not null)

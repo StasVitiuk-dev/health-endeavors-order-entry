@@ -10,7 +10,7 @@ set -u
 CONN=("$@"); SRC=he_real; DB=he_active_staff_test
 DIR="$(cd "$(dirname "$0")/.." && pwd)"
 INSTALL="$DIR/drafts/72_DRAFT_active_staff_helper.sql"; ROLLBACK="$DIR/drafts/73_DRAFT_rollback_active_staff_helper.sql"
-STEP_A="$DIR/drafts/50_DRAFT_shared_settings.sql"; STEP_A_UNDO="$DIR/drafts/51_DRAFT_rollback_shared_settings.sql"
+STEP_A="$DIR/drafts/50_DRAFT_shared_settings.sql"; STEP_A_UNDO="$DIR/drafts/51_DRAFT_rollback_shared_settings.sql"; STEP_A2="$DIR/drafts/74_DRAFT_shared_settings_audit_id.sql"
 pass=0; fail=0
 ok()   { if [ "$2" = "$3" ]; then pass=$((pass+1)); echo "  ok   $1"; else fail=$((fail+1)); echo "  FAIL $1: expected [$3], got [$2]"; fi; }
 has()  { if echo "$2" | grep -q -- "$3"; then pass=$((pass+1)); echo "  ok   $1"; else fail=$((fail+1)); echo "  FAIL $1: expected to find [$3] in [$(echo "$2" | tr '\n' ' ' | cut -c1-220)]"; fi; }
@@ -79,6 +79,7 @@ q "update profiles set is_active = true where id = '$E'" >/dev/null
 
 echo " step A on top"
 ok  "step A (drafts/50) now installs" "$(run "$STEP_A")" "0"
+ok  "  and step A2 (drafts/74: the id production's audit trigger records)" "$(run "$STEP_A2")" "0"
 ok  "  an employee reads a setting marked for staff, not one for the owner" "$(as "$O" "select public.set_shared_setting('staff_note', '{\"a\":1}', 'staff')" >/dev/null; as "$O" "select public.set_shared_setting('owner_note', '{\"b\":2}', 'owner_admin')" >/dev/null; as "$E" "select string_agg(key, ',' order by key) from shared_settings")" "staff_note"
 ok  "  the owner saved both (the role is compared as text, so production's fixed list works)" "$(as "$O" "select count(*) from shared_settings")" "2"
 q "update profiles set is_active = false where id = '$A'" >/dev/null
