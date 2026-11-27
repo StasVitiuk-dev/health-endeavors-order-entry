@@ -11,21 +11,35 @@ const SQL = JSON.parse(fs.readFileSync(path.join(ROOT, 'docs', 'ops', 'sql', 'MA
 const EV = { date: '2026-10-20', env: 'production', source: 'owner screenshot of Query C' };
 test.beforeEach(({}, ti) => { test.skip(ti.project.name !== 'desktop', 'Node-only; run once'); });
 
-test('the checked-in manifest is consistent and claims nothing in production', () => {
+// Production claims in the checked-in file: only what the owner's dated evidence shows (Nov 27):
+// the merged dashboard is live (PR #36, Nov 23) and database step 18 is installed and checked
+// (drafts/68, Nov 26). Anything else claimed in production fails here until its evidence is added.
+const CLAIMED = { merge: 'DEPLOYED', history_search_path: 'VERIFIED' };
+test('the checked-in manifest is consistent and claims in production only what has dated owner evidence', () => {
   const m = load();
   expect(validate(m, SQL)).toEqual([]);
-  expect(m.units.merge).toMatchObject({ merged: false, deployed: false });
-  for (const u of Object.values(m.units)) expect(u.productionEvidence).toBeNull();
+  expect(m.units.merge).toMatchObject({ merged: true, deployed: true });
+  for (const [k, u] of Object.entries(m.units)) {
+    if (CLAIMED[k]) {
+      expect(u.production, k).toBe(CLAIMED[k]);
+      expect(u.productionEvidence, k).toMatchObject({ env: 'production' });
+      expect(u.productionEvidence.date, k).toMatch(/^2026-11-2[0-9]$/);
+    } else {
+      expect(u.productionEvidence, k).toBeNull();
+      expect(['UNKNOWN', 'NOT DEPLOYED', 'NOT INSTALLED'], k).toContain(u.production);
+    }
+  }
+  for (const [k, s] of Object.entries(m.switches)) expect(s.productionEvidence, k).toBeNull();
   expect(m.scores.productionReadinessPercent).toBe(15);
 });
 
 const cases = [
-  ['deployed but not merged', m => { m.units.merge.deployed = true; }, /deployed but not merged/],
+  ['deployed but not merged', m => { Object.assign(m.units.merge, { merged: false, deployed: true }); }, /deployed but not merged/],
   ['installed with no evidence', m => { m.units.r15.production = 'INSTALLED'; }, /without dated production evidence/],
   ['local evidence used as production', m => { m.units.r15.production = 'INSTALLED'; m.units.r15.productionEvidence = { ...EV, env: 'local' }; }, /without dated production evidence/],
-  ['SQL installed before the merge', m => { m.units.r15.production = 'INSTALLED'; m.units.r15.productionEvidence = EV; }, /before the code was merged/],
+  ['SQL installed before the merge', m => { Object.assign(m.units.merge, { merged: false, deployed: false, production: 'NOT DEPLOYED', productionEvidence: null }); m.units.r15.production = 'INSTALLED'; m.units.r15.productionEvidence = EV; }, /before the code was merged/],
   ['switch ON with its step not installed', m => { m.switches.stock_fn_receive_po = { install: 'switch_rows', production: 'ON', productionEvidence: EV }; }, /is ON but its step switch_rows is not installed/],
-  ['readiness raised for local work', m => { m.scores.productionReadinessPercent = 40; }, /readiness changed to 40%/],
+  ['readiness raised for local work', m => { for (const u of Object.values(m.units)) { u.productionEvidence = null; if (!['UNKNOWN', 'NOT DEPLOYED', 'NOT INSTALLED'].includes(u.production)) u.production = 'UNKNOWN'; } Object.assign(m.units.merge, { merged: false, deployed: false }); m.scores.productionReadinessPercent = 40; }, /readiness changed to 40%/],
   ['a step missing', m => { delete m.units.nightly; }, /step nightly .* missing/],
   ['an unknown switch', m => { m.switches.auto_refunds = { install: 'merge', production: 'OFF', productionEvidence: null }; }, /switch auto_refunds is unknown/],
   ['a draft owned by no step', m => { m.units.report_totals.sql = []; m.units.report_totals.rollback = []; }, /drafts\/13 .* belongs to no step/],

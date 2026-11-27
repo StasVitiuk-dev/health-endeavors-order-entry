@@ -1,11 +1,11 @@
 {
   "about": "EXT14 machine-readable status of every production step and switch. Validated by `npm run status:check` (tests/tools/status-validate.js). Local or staging results NEVER set a production field; only dated owner evidence from production does. Update this file whenever something is merged, installed, switched or verified.",
-  "asOf": "2026-10-12",
-  "main": "d3db7bc",
-  "liveDashboard": "unchanged since d3db7bc",
-  "scores": { "productionReadinessPercent": 15, "basis": "unchanged: no production evidence has arrived" },
+  "asOf": "2026-11-27",
+  "main": "8701d00",
+  "liveDashboard": "main (8701d00), published by GitHub Pages",
+  "scores": { "productionReadinessPercent": 15, "basis": "unchanged: the first production evidence (Nov 26, step 18, a small hardening) does not move it" },
   "units": {
-    "merge":           { "kind": "code", "branch": "IMPLEMENTED IN BRANCH", "local": "TESTED LOCALLY", "merged": false, "deployed": false, "production": "NOT DEPLOYED", "productionEvidence": null },
+    "merge":           { "kind": "code", "branch": "IMPLEMENTED IN BRANCH", "local": "TESTED LOCALLY", "merged": true, "deployed": true, "production": "DEPLOYED", "productionEvidence": { "date": "2026-11-23", "env": "production", "source": "PR #36 merged into main (b4ebb4b); the owner checked the live dashboard on the computer and the iPhone" } },
     "r15":             { "kind": "sql", "sql": ["drafts/10"], "rollback": ["drafts/11"], "local": "TESTED LOCALLY", "production": "UNKNOWN", "productionEvidence": null, "note": "believed not installed; Query C §6 confirms" },
     "switch_rows":     { "kind": "sql", "sql": ["drafts/21"], "rollback": ["drafts/22"], "local": "TESTED LOCALLY", "production": "UNKNOWN", "productionEvidence": null },
     "line_guard":      { "kind": "sql", "sql": ["drafts/17"], "rollback": ["drafts/18"], "local": "TESTED LOCALLY", "production": "UNKNOWN", "productionEvidence": null },
@@ -31,7 +31,7 @@
     "customer_reviews": { "kind": "sql", "optional": true, "sql": ["drafts/60"], "rollback": ["drafts/61"], "local": "TESTED LOCALLY", "production": "UNKNOWN", "productionEvidence": null, "note": "optional; the reviews the owner pastes or types in on the Reviews page are kept in the database, so every device of the owner and the administrators shows the same reviews and the same answered marks (owner rule of Nov 24). Nothing in it posts or sends. Needs the owner's explicit approval like every draft" },
     "people_levels": { "kind": "sql", "optional": true, "sql": ["drafts/62", "drafts/64"], "rollback": ["drafts/63", "drafts/65"], "local": "TESTED LOCALLY", "production": "UNKNOWN", "productionEvidence": null, "note": "optional; four levels of account (owner, administrator, manager, employee): each level sees and looks after the accounts below it, the database part of the New Employee page (owner's decision of Nov 24). Creates no sign-in; the page and the helper program that creates sign-ins come after. Before anyone is made a manager: a read-only look at how the existing rules treat an unknown level" },
     "managers_approve_stock": { "kind": "sql", "optional": true, "sql": ["drafts/66"], "rollback": ["drafts/67"], "local": "TESTED LOCALLY", "production": "UNKNOWN", "productionEvidence": null, "note": "optional, ONLY if the owner chooses A (Nov 25): a manager decides deliveries and returns someone else recorded and changes stock only that way; four decision actions run with raised rights, nothing else. After drafts/40 and drafts/62" },
-    "history_search_path": { "kind": "sql", "optional": true, "sql": ["drafts/68"], "rollback": ["drafts/69"], "local": "TESTED LOCALLY", "production": "UNKNOWN", "productionEvidence": null, "note": "optional hardening from the owner's second read-only look (Nov 25): pg_temp named last in the search path of employee_activity, employee_activity_people and list_my_sessions; their text and results unchanged" },
+    "history_search_path": { "kind": "sql", "optional": true, "sql": ["drafts/68"], "rollback": ["drafts/69"], "local": "TESTED LOCALLY", "production": "VERIFIED", "productionEvidence": { "date": "2026-11-26", "env": "production", "source": "owner's screenshots: the install result (one pg_advisory_xact_lock row, no error) and the read-only check (three rows, each search path ending in pg_temp)" }, "note": "optional hardening from the owner's second read-only look (Nov 25): pg_temp named last in the search path of employee_activity, employee_activity_people and list_my_sessions; their text and results unchanged" },
     "backup_reports": { "kind": "sql", "optional": true, "sql": ["drafts/70"], "rollback": ["drafts/71"], "local": "TESTED LOCALLY", "production": "UNKNOWN", "productionEvidence": null, "note": "owner, Nov 24: a warning on Home when the newest backup is older than a day (design D5): one table the backup job writes (kind, when, ok, size) and the owner and administrators read; the job's report step in the private repository is the owner's" }
   },
   "switches": {

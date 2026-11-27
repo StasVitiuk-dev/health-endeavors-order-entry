@@ -25,7 +25,9 @@ list of everything still to install**, in the recommended order, with the true d
 (checked against the files themselves; a test, `review-fingerprints-ext25`, fails if any
 fingerprint on these pages goes out of date). For every row: **Prepared** = written and tested
 on a throwaway copy; **Reviewed / Approved / Installed / Verified** are yours, one at a time.
-Today every row is **Prepared** only: nothing is reviewed by you, approved, installed or verified.
+Today every row is **Prepared** only, except step 18: **installed and verified by you on Nov 26, 2026**
+(evening, Central: one `pg_advisory_xact_lock` row, then the read-only check showed all three search
+paths ending in `pg_temp`). Nothing else is reviewed, approved, installed or verified.
 
 | Order | What it enables | Needs first | File (`docs/ops/sql/drafts/`) | Lines | Fingerprint | Undo file | Before (read-only) | After (read-only check) |
 |---|---|---|---|---|---|---|---|---|
@@ -125,6 +127,7 @@ Same routine as above. Both are small and can be run in any order, on any day.
   `employee_activity_people | search_path=public, pg_temp` ·
   `list_my_sessions | search_path=auth, public, pg_temp`.
 - **Undo:** `69_…` (puts the three settings back exactly as your look of Nov 25 showed them).
+- **Done (owner, Nov 26, evening, Central):** installed; the check showed the three expected rows.
 
 **Step 19: backup status on Home** (`70_DRAFT_backup_reports.sql`).
 - **What it adds:** one empty table the backup jobs will write to (which job, when, worked or not,

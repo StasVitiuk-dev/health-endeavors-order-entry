@@ -1,6 +1,6 @@
 # Health Endeavors — current state (cross-project summary)
 
-**Last updated:** November 26, 2026 (§1, §4, §5, §8, §9: #112–#115 and #117–#119 merged on the evening of Nov 25 and just after midnight; the owner's Nov 25 answers; nothing installed). Before that: November 25, 2026 (§1, §4, §5, §8: #110 merged in the afternoon with #102–#109 inside it; nothing installed). Before that: November 24, 2026 (§1, §4, §5, §8, §9: PR #85 merged in the evening with #56–#84 inside it; live check by the owner still to come; the owner's open decisions). Before that: November 23, 2026, evening (§1, §4, §5: PR #36 merged and checked live). Earlier Nov 23: §5, §8, §9 (PR #36 carries everything; Nov 23 decisions). Before that: November 15, 2026 (Nov 7 build). Internal-platform entry point: `docs/ops/START_HERE_EXT14.md`. **Keep this short.** Details live in the linked documents; update this file whenever the verified state changes materially.
+**Last updated:** November 26, 2026, night (§1: #130–#134 merged; step 18 installed and verified, the first database step in production). Before that: November 26, 2026 (§1, §4, §5, §8, §9: #112–#115 and #117–#119 merged on the evening of Nov 25 and just after midnight; the owner's Nov 25 answers; nothing installed). Before that: November 25, 2026 (§1, §4, §5, §8: #110 merged in the afternoon with #102–#109 inside it; nothing installed). Before that: November 24, 2026 (§1, §4, §5, §8, §9: PR #85 merged in the evening with #56–#84 inside it; live check by the owner still to come; the owner's open decisions). Before that: November 23, 2026, evening (§1, §4, §5: PR #36 merged and checked live). Earlier Nov 23: §5, §8, §9 (PR #36 carries everything; Nov 23 decisions). Before that: November 15, 2026 (Nov 7 build). Internal-platform entry point: `docs/ops/START_HERE_EXT14.md`. **Keep this short.** Details live in the linked documents; update this file whenever the verified state changes materially.
 
 Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (from the owner's earlier chats, not re-checked) · **PROPOSED** · **OWNER DECISION REQUIRED** · **DEPRECATED**.
 
@@ -13,7 +13,13 @@ Labels: **CURRENT** (verified in a repository or workspace) · **REPORTED** (fro
 
 ## 1. Internal platform (the dashboard)
 
-- **CURRENT (Nov 26, 2026, late evening), read this first:** `main` is at `a8b2517` and is the
+- **CURRENT (Nov 26, 2026, night, Central), read this first:** `main` is at `8701d00` and is the
+  live dashboard. Since the late evening the owner merged #130 (four lists keep what is being typed),
+  #131 and #133 (CI in four even groups), #132 (notes) and #134 (Purchase Orders keep what is being
+  typed). **First database step installed in production: step 18** (drafts/68, the history
+  functions' search path), run by the owner and verified read-only on Nov 26. Every other draft is
+  still not installed. Step 19 (backup status on Home) is with the owner.
+- **Nov 26, 2026, late evening:** `main` was at `a8b2517` and is the
   live dashboard. Since the evening: #127, #128, #126 (Incidents and the redraw correction) and #129
   (Business Rules). Open: #130 (four lists keep what is being typed) and #131 (tests: even CI
   groups); Purchase Orders follow #130. Eighth full run on `19a4bc5`: 3951 passed, only the local guard
