@@ -61,3 +61,14 @@ nothing else and can go at any point.
 - The screenshot check had been red for days because the pictures were made with a newer Chrome than CI
   uses: cause shown, fix in #144.
 - #141 and #142 would have conflicted: combined.
+- With the shared settings always read, the side menu was briefly **empty after signing in** (about
+  8 s with no connection) while they loaded; it now appears at once (#145). Found because four tests
+  failed about once in 75 runs (`main`: 150 of 150 pass).
+- A new error-text trim was slow on very long text (the regex audit caught it): capped (#145).
+
+## The final test run (Nov 27, morning, Central)
+
+- On `c4cc136` (#146, which contains #141, #142 and #145): **4,024 passed, 0 failed, 901 skipped** (the
+  usual ones: desktop-only tests at iPhone size and the other way round), desktop and iPhone, one run,
+  nothing else running. The throwaway-database suite on the same commit: **61 of 61 steps passed**.
+- GitHub's checks passed on every pull request; only "Screenshots (informational)" is red, as explained.
