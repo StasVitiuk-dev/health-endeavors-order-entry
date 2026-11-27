@@ -35,7 +35,7 @@ manager accounts, email campaigns, customer reviews store, extra agents, phone e
 | Day | Claude (no waiting needed) | Stas (time) |
 |---|---|---|
 | **1 · Fri Nov 27** | Shared settings for every device (PR); this plan; audit every launch-critical database step against your real database's shape (as tonight's history-recorder check), fix any mismatch | Merge the PRs I mark ready (5 min) |
-| **2 · Sat Nov 28** | Guides for steps R1–R5 (stock) in tonight's format: exact SQL, what it does in 3 lines, the read-only check | Database evening 1: Query I (reads only) + steps 2–3 (30 min) |
+| **2 · Sat Nov 28** | Guides for steps R1–R5 (stock) in tonight's format: exact SQL, what it does in 3 lines, the read-only check (**done Nov 27**: item 20) | Database evening 1: Query I (reads only) + steps 2–3 (30 min) |
 | **3 · Sun Nov 29** | Product import ready for your list (template + checker already built) | **Send the product list** (the earlier the better); database evening 2: stock functions R1 + R4 (30 min) |
 | **4 · Mon Nov 30** | Import your products into a checked file for Shopify; flag anything missing | Database evening 3: R2, R3, R5 + request keys (30 min) |
 | **5 · Tue Dec 1** | Tax rate screen ready; invoice numbering ready | Tax answers (registration, rate); database evening 4: tax rates + invoices (30 min) |
@@ -51,7 +51,8 @@ manager accounts, email campaigns, customer reviews store, extra agents, phone e
 
 ## Launch-critical database steps (in order)
 
-From `START_HERE_GUIDED_RUNS.md`. Done already: 0, 18, 19, A, A2.
+From `START_HERE_GUIDED_RUNS.md` and, for the stock steps, `sql-review/ITEM_20_STOCK_STEPS_R1_R5.md` (written Nov 27;
+the index had listed drafts 10–29 as a separate decision). Done already: 0, 18, 19, A, A2.
 
 1. Query I (reads only: the day counted in Central time)
 2. Stock functions **R1–R5** (drafts 10, 21, then 17; one at a time, each with its switch) — stock never doubles or goes wrong
