@@ -232,6 +232,9 @@ class FakeSupabase {
       this.requests.push(entry);
       // A test may give a function to answer like the real function would
       // (e.g. honouring p_limit / p_offset); otherwise a fixed reply.
+      // Nov 27: the shared settings are installed in production (drafts/50 + 74), so the mock answers
+      // set_shared_setting like the real function unless a test gives its own answer.
+      if (entry.rpc === 'set_shared_setting' && !Object.prototype.hasOwnProperty.call(this.rpc, entry.rpc)) this.rpc[entry.rpc] = (b) => this.defaultSetSharedSetting(b);
       const v = Object.prototype.hasOwnProperty.call(this.rpc, entry.rpc) ? this.rpc[entry.rpc] : [];
       const result = typeof v === 'function' ? v(entry.body || {}) : v;
       // A function may answer like PostgREST does when the database raises an
@@ -307,16 +310,37 @@ class FakeSupabase {
     return json(200, {});
   }
 
+  // Like drafts/50's set_shared_setting (with drafts/74's id): the owner or an administrator saves;
+  // p_expect_new / p_expected_updated_at make it refuse with a conflict when someone saved in between.
+  defaultSetSharedSetting(b) {
+    if (Array.isArray(this.missingTables) && this.missingTables.includes('shared_settings')) {
+      return { __error: { status: 404, code: 'PGRST202', message: 'Could not find the function public.set_shared_setting in the schema cache' } };
+    }
+    const me = (this.tables.profiles || [])[0] || {};
+    if (!(me.is_active !== false && (me.role === 'owner' || me.role === 'administrator'))) {
+      return { __error: { status: 403, code: '42501', message: 'Only the owner or an administrator can change a shared setting.' } };
+    }
+    const rows = this.tables.shared_settings = Array.isArray(this.tables.shared_settings) ? this.tables.shared_settings : [];
+    const key = String(b.p_key || '').trim();
+    const cur = rows.find(r => r.key === key);
+    this.sharedClock = (this.sharedClock || 0) + 1;
+    const at = new Date(Date.UTC(2026, 10, 27, 12, 0, this.sharedClock)).toISOString();
+    if (b.p_expect_new && cur) return { ok: false, conflict: true, key, updated_at: cur.updated_at };
+    if (b.p_expected_updated_at && (!cur || cur.updated_at !== b.p_expected_updated_at)) return { ok: false, conflict: true, key, updated_at: cur ? cur.updated_at : null };
+    if (cur) Object.assign(cur, { value: b.p_value, audience: b.p_audience || 'owner_admin', updated_at: at, updated_by: me.id || null });
+    else rows.push({ id: 'shared-' + this.sharedClock, key, value: b.p_value, audience: b.p_audience || 'owner_admin', updated_at: at, updated_by: me.id || null });
+    return { ok: true, key, updated_at: at };
+  }
+
   handleRest(route, entry) {
     const { method, table, headers } = entry;
     const params = entry.params;
     const search = new URLSearchParams(entry.query);
-    // Nov 27: the shared settings (drafts/50) are read at every sign-in now. A test that does
-    // not set backend.tables.shared_settings gets the answer of a database without that step
-    // (PGRST205), so each browser keeps its own switches, as before the step was installed.
-    if (table === 'shared_settings' && !Object.prototype.hasOwnProperty.call(this.tables, 'shared_settings')) {
+    // Nov 27: tables a test declares missing answer like a database without that step (PGRST205),
+    // e.g. backend.missingTables = ['shared_settings'] for "before drafts/50 is installed".
+    if (Array.isArray(this.missingTables) && this.missingTables.includes(table)) {
       return route.fulfill({ status: 404, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' },
-        body: JSON.stringify({ code: 'PGRST205', message: "Could not find the table 'public.shared_settings' in the schema cache" }) });
+        body: JSON.stringify({ code: 'PGRST205', message: "Could not find the table 'public." + table + "' in the schema cache" }) });
     }
     const rows = this.tables[table] || [];
     const prefer = headers['prefer'] || '';

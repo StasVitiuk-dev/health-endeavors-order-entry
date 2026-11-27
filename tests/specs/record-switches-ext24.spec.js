@@ -49,7 +49,7 @@ test.describe('on Feature Flags', () => {
     await login(page); await gotoPage(page, 'flagsPanel');
     const host = page.locator('#recordSwitchesHost');
     await expect(host.locator('h3')).toHaveText('Features that save real records (owner and administrators)');
-    await expect(host.locator('tr[data-record-key]')).toHaveCount(14);
+    await expect(host.locator('tr[data-record-key]')).toHaveCount(13);   // Nov 27: the shared settings are no longer a switch (in use on every device)
     const tax = host.locator('tr[data-record-key="he_tax_rates"]');
     await expect(tax.locator('[data-record-status]')).toHaveText('Installed');
     const drop = host.locator('tr[data-record-key="he_dropoff"]');

@@ -577,8 +577,10 @@ test.describe('agent hand-offs: on Home', () => {
     expect(saves(backend)).toEqual([]);
   });
 
-  test('switched on: the one waiting over a day is urgent and says so; Handled takes it off the list and it stays off after a reload; no record is changed', async ({ page, backend, pageErrors }) => {
-    seed(backend); agents(backend); await on(page); await handledOn(page, false);
+  // Nov 27: the shared settings are in use on every device; this is the case of a database WITHOUT that
+  // step (a restored older copy, or the table unreadable): the mark stays in this browser, as before.
+  test('switched on, on a database without the shared settings: the one waiting over a day is urgent and says so; Handled takes it off the list and it stays off after a reload; no record is changed', async ({ page, backend, pageErrors }) => {
+    seed(backend); agents(backend); backend.missingTables = ['shared_settings']; await on(page); await handledOn(page, false);
     await login(page); await gotoPage(page, 'attentionPanel');
     await expect(item(page, OLD)).toHaveClass(/feed-urgent/);
     await expect(item(page, OLD)).toContainText('SYNTHETIC a payout differs from the bank line. Waiting more than a day.');
@@ -599,10 +601,12 @@ test.describe('agent hand-offs: on Home', () => {
     await expect(item(page, NEW)).toBeVisible();
     await expect(item(page, OLD)).toHaveCount(0);
     await page.waitForTimeout(900);
-    expect(reads(backend)).toEqual([]);                                     // shared settings not in use: nothing asked
+    // the shared settings were asked for and refused as not installed: nothing was saved there
+    expect(reads(backend).length).toBeGreaterThan(0);
     expect(saves(backend)).toEqual([]);
     expect(writes(backend)).toEqual([]);                                    // the agents' own log is never changed
-    expect(pageErrors).toEqual([]);
+    expect(pageErrors.filter(e => !/status of 404/.test(e))).toEqual([]);   // only the refused read of the missing shared settings table (404, as PostgREST answers)
+    expect(pageErrors.length).toBeLessThanOrEqual(reads(backend).length + 1);
   });
 
   test('with the shared settings in use: Handled is saved for every device (ids and times only), and another device shows it handled', async ({ page, backend, pageErrors }) => {

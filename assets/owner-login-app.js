@@ -6263,7 +6263,10 @@
       const everywhere = await menuLayoutShare(c.key);
       mlMessage = everywhere ? 'Saved: every phone and computer shows this menu the next time it opens the dashboard.'
         : (currentUserRole === 'owner' || currentUserRole === 'administrator' ? 'Could not save it for every device; it is kept in this browser.' : 'Kept in this browser. Only the owner and administrators can choose the menu for every device.');
+      // the second redraw (after the save) replaces the buttons again: keep the keyboard on the same button
+      const had = document.activeElement;
       loadPreviewSwitches(); announce(mlMessage);
+      if (had && had !== document.body && !document.contains(had)) refocusLike(had);
     });
     document.addEventListener('click', (e) => {
       const t = e.target.closest('[data-lookpick]'); if (!t) return;

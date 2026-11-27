@@ -11,7 +11,7 @@ const CONFIG = fs.readFileSync(path.join(__dirname, '..', '..', 'assets', 'app',
 // Switches that are deliberately NOT previews and NOT on the Feature Flags page:
 // they read and write real records once their database draft is installed, so
 // the owner turns them on only after approving that draft (Nov 16, later).
-const NOT_PREVIEWS = ['he_supplier_documents_store', 'he_invoice_payments', 'he_money_issues', 'he_receiving_store', 'he_tax_rates', 'he_dropoff', 'he_shared_settings', 'he_order_costs', 'he_incident_close', 'he_order_batches', 'he_email_sending', 'he_my_settings', 'he_review_store', 'he_people_page'];
+const NOT_PREVIEWS = ['he_supplier_documents_store', 'he_invoice_payments', 'he_money_issues', 'he_receiving_store', 'he_tax_rates', 'he_dropoff', 'he_order_costs', 'he_incident_close', 'he_order_batches', 'he_email_sending', 'he_my_settings', 'he_review_store', 'he_people_page'];
 const ALL_KEYS = [...CONFIG.matchAll(/localStorage\.getItem\('(he_[a-z_]+)'\) === 'on'/g)].map(m => m[1]).sort();
 const FLAG_KEYS = ALL_KEYS.filter(k => !NOT_PREVIEWS.includes(k));
 const LISTED = [...CONFIG.matchAll(/\{ key: '(he_[a-z_]+)'/g)].map(m => m[1]).sort();
@@ -59,7 +59,7 @@ test('turning a preview on shows it on its page; turning all off hides it again'
   const row = host.locator('tr[data-preview-key="he_reconcile"]');
   await expect(row).toHaveAttribute('data-preview-on', 'yes');
   await expect(host.locator('[data-preview-msg]')).toContainText('Payment reconciliation is on');
-  await expect(host.locator('[data-preview-rownote="ok"]')).toHaveText('On in this browser. Reload to finish.');   // Nov 27: also in the switch's own row
+  await expect(host.locator('[data-preview-rownote="ok"]')).toHaveText('On for every device. Reload to finish.');   // Nov 27: also in the switch's own row; since Nov 27 night the switches are shared by every device
   await expect(host.locator('[data-preview-count]')).toHaveAttribute('data-preview-count', '1');
   expect(await page.evaluate(() => localStorage.getItem('he_reconcile'))).toBe('on');
   // Only that one key was written.

@@ -287,15 +287,12 @@ window.HE.modules.define('he-config', { api: 1, needs: [] }, function (ctx) {
     //                         installed and the owner's first shared saves worked, so
     //                         every device uses them (owner rule: everything the same
     //                         on every phone and computer). If the table ever cannot
-    //                         be read, each browser keeps its own switches as before;
-    //   he_shared_settings    the owner's old one-browser switch, kept only so an old
-    //                         value in a browser is harmless; no longer offered.
+    //                         be read, each browser keeps its own switches as before.
+    //                         (The owner's old one-browser switch, he_shared_settings, is
+    //                         no longer read: an old value left in a browser does nothing.
+    //                         To go back to one browser each, set this to false.)
     const SHARED_SETTINGS_LIVE = true;
-    function sharedSettingsOn() {
-      if (SHARED_SETTINGS_LIVE) return true;
-      try { return typeof localStorage !== 'undefined' && localStorage.getItem('he_shared_settings') === 'on'; }
-      catch (e) { return false; }
-    }
+    function sharedSettingsOn() { return SHARED_SETTINGS_LIVE; }
     // Real order costs (drafts/52): Real profit uses each order's real fee and
     // postage where they were saved; money per channel can save the real fees.
     // Reads and writes real records once drafts/52 is installed: OFF, and not a
