@@ -7,7 +7,7 @@ Nothing here has been run in production. I never run it myself: you run it, afte
 
 | File | Lines | Fingerprint (SHA-256, first 16) |
 |---|---|---|
-| `docs/ops/sql/drafts/46_DRAFT_tax_rates.sql` (install) | 238 | `1db9b4d27ba4704b` |
+| `docs/ops/sql/drafts/46_DRAFT_tax_rates.sql` (install) | 239 | `186cffd0d6dcfdbc` |
 | `docs/ops/sql/drafts/47_DRAFT_rollback_tax_rates.sql` (undo) | 43 | `d51c92bd167fae34` |
 
 ## Target environment

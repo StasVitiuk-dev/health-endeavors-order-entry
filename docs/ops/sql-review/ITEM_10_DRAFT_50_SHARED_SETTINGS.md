@@ -11,7 +11,7 @@ numbers live in the one browser where you typed them.
 
 | File | Lines | Fingerprint (SHA-256, first 16) |
 |---|---|---|
-| `docs/ops/sql/drafts/50_DRAFT_shared_settings.sql` (install) | 192 | `f01c9760706592e1` |
+| `docs/ops/sql/drafts/50_DRAFT_shared_settings.sql` (install) | 193 | `0d17fc4e94fbd847` |
 | `docs/ops/sql/drafts/51_DRAFT_rollback_shared_settings.sql` (undo) | 47 | `7c666cde0eb7cee1` |
 
 ## Target environment
@@ -46,8 +46,11 @@ the same profit. Another device picks up a change when it next opens or refreshe
   and changes nothing.
 - Depends on no other draft. Can be run at any time; most useful right after the Real profit PR.
 - Safe to run twice.
-- Supabase shows its usual warning about a "destructive operation" for this file: it lists only
-  `drop policy if exists …` and `drop trigger if exists …` on this file's own new table.
+- Supabase shows its usual warning about a "destructive operation" for this file. It lists only
+  this file's own new things: `drop trigger if exists shared_settings_guard`, `drop function if
+  exists public.set_shared_setting(text, jsonb, text)` (an older shape of its own function, never
+  installed), `drop policy if exists shared_settings_…` (three), and `revoke` (taking rights away
+  from visitors). Checked against the file on Nov 27: nothing else is dropped or revoked.
 
 ## Changed before install (Nov 25): two devices never erase each other's additions
 

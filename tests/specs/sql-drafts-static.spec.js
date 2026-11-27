@@ -8,7 +8,7 @@ const path = require('path');
 const { test, expect } = require('@playwright/test');
 
 const DIR = path.resolve(__dirname, '..', '..', 'docs', 'ops', 'sql', 'drafts');
-const INSTALLS = ['10_DRAFT_stock_functions.sql', '13_DRAFT_report_totals.sql', '17_DRAFT_po_line_delete_guard.sql', '19_DRAFT_request_keys.sql', '21_DRAFT_stock_function_switches.sql', '23_DRAFT_integrity_constraints.sql', '25_DRAFT_integrity_check_schedule.sql', '27_DRAFT_request_keys_switch.sql', '29_DRAFT_integrity_results_on_home.sql', '32_DRAFT_invoices.sql', '34_DRAFT_stock_count_adjustments.sql', '36_DRAFT_supplier_documents.sql', '38_DRAFT_supplier_document_files.sql', '40_DRAFT_partial_receiving_returns.sql', '42_DRAFT_shopify_payouts_money_issues.sql', '44_DRAFT_staff_read_purchase_orders.sql', '46_DRAFT_tax_rates.sql', '48_DRAFT_order_parcels.sql', '50_DRAFT_shared_settings.sql', '52_DRAFT_order_costs.sql', '54_DRAFT_order_batches.sql', '56_DRAFT_email_sending.sql', '58_DRAFT_my_settings.sql', '60_DRAFT_customer_reviews.sql', '62_DRAFT_manager_role.sql', '64_DRAFT_people_levels.sql', '66_DRAFT_managers_approve_stock.sql', '68_DRAFT_history_functions_search_path.sql', '70_DRAFT_backup_reports.sql'];
+const INSTALLS = ['10_DRAFT_stock_functions.sql', '13_DRAFT_report_totals.sql', '17_DRAFT_po_line_delete_guard.sql', '19_DRAFT_request_keys.sql', '21_DRAFT_stock_function_switches.sql', '23_DRAFT_integrity_constraints.sql', '25_DRAFT_integrity_check_schedule.sql', '27_DRAFT_request_keys_switch.sql', '29_DRAFT_integrity_results_on_home.sql', '32_DRAFT_invoices.sql', '34_DRAFT_stock_count_adjustments.sql', '36_DRAFT_supplier_documents.sql', '38_DRAFT_supplier_document_files.sql', '40_DRAFT_partial_receiving_returns.sql', '42_DRAFT_shopify_payouts_money_issues.sql', '44_DRAFT_staff_read_purchase_orders.sql', '46_DRAFT_tax_rates.sql', '48_DRAFT_order_parcels.sql', '50_DRAFT_shared_settings.sql', '52_DRAFT_order_costs.sql', '54_DRAFT_order_batches.sql', '56_DRAFT_email_sending.sql', '58_DRAFT_my_settings.sql', '60_DRAFT_customer_reviews.sql', '62_DRAFT_manager_role.sql', '64_DRAFT_people_levels.sql', '66_DRAFT_managers_approve_stock.sql', '68_DRAFT_history_functions_search_path.sql', '70_DRAFT_backup_reports.sql', '72_DRAFT_active_staff_helper.sql'];
 const ROLLBACKS = { '10_DRAFT_stock_functions.sql': '11_DRAFT_rollback_stock_functions.sql',
   '17_DRAFT_po_line_delete_guard.sql': '18_DRAFT_rollback_po_line_delete_guard.sql',
   '19_DRAFT_request_keys.sql': '20_DRAFT_rollback_request_keys.sql',
@@ -37,7 +37,8 @@ const ROLLBACKS = { '10_DRAFT_stock_functions.sql': '11_DRAFT_rollback_stock_fun
   '64_DRAFT_people_levels.sql': '65_DRAFT_rollback_people_levels.sql',
   '66_DRAFT_managers_approve_stock.sql': '67_DRAFT_rollback_managers_approve_stock.sql',
   '68_DRAFT_history_functions_search_path.sql': '69_DRAFT_rollback_history_functions_search_path.sql',
-  '70_DRAFT_backup_reports.sql': '71_DRAFT_rollback_backup_reports.sql' };   // Nov 26: backup reports for Home (design D5)   // Nov 25: four levels of account   // Nov 24: reviews the owner typed in   // Nov 24: one person's settings on every device   // Nov 24: email sending records (nothing in it sends)   // Nov 24: which batch went into which order     // Nov 24: the real fee and postage of each order   // Nov 24: settings shared by every device   // Nov 24: parcels and drop-off receipts   // Nov 22: owner decision, staff read purchase orders   // Nov 22: Shopify payout copy and money differences   // Nov 22: partial receiving and returns (D-ops-5), owner approves stock changes   // Nov 21: private files, owner-only reading   // Nov 16, later: supplier document storage, owner-only review
+  '70_DRAFT_backup_reports.sql': '71_DRAFT_rollback_backup_reports.sql',
+  '72_DRAFT_active_staff_helper.sql': '73_DRAFT_rollback_active_staff_helper.sql' };   // Nov 26: backup reports for Home (design D5)   // Nov 25: four levels of account   // Nov 24: reviews the owner typed in   // Nov 24: one person's settings on every device   // Nov 24: email sending records (nothing in it sends)   // Nov 24: which batch went into which order     // Nov 24: the real fee and postage of each order   // Nov 24: settings shared by every device   // Nov 24: parcels and drop-off receipts   // Nov 22: owner decision, staff read purchase orders   // Nov 22: Shopify payout copy and money differences   // Nov 22: partial receiving and returns (D-ops-5), owner approves stock changes   // Nov 21: private files, owner-only reading   // Nov 16, later: supplier document storage, owner-only review
 const ALL = fs.readdirSync(DIR).filter(f => /^\d\d_DRAFT_.*\.sql$/.test(f) && !/_tests?_/.test(f));
 
 // Remove comments and quoted text so words inside them are not mistaken for SQL.
@@ -77,6 +78,25 @@ test('raised rights appear only in drafts/66, only for the four decision actions
     }
     expect(sql, f + ' uses raised rights').not.toMatch(/security\s+definer/);
   }
+});
+
+// Nov 27: production's current_role() answers the fixed list app_role, and answers for a
+// switched-off account too. Comparing it to '' or to 'manager' stops an install on that list, and
+// comparing it at all would let a switched-off administrator through. Drafts compare
+// active_role() (drafts/72: the role as text, only for a switched-on account). drafts/64 keeps
+// current_role() inside people_actor_role(), which checks "switched on" itself first.
+test('drafts compare active_role(), never current_role() (production answers a fixed list, also for switched-off accounts)', () => {
+  const bad = [];
+  for (const f of ALL) {
+    if (f.startsWith('64_DRAFT_')) continue;
+    const lines = code(fs.readFileSync(path.join(DIR, f), 'utf8')).split('\n');
+    lines.forEach((l, i) => { if (/public\.current_role\(\)/.test(l) && !/to_regprocedure/.test(l)) bad.push(f + ':' + (i + 1)); });
+  }
+  expect(bad).toEqual([]);
+  const d64 = code(fs.readFileSync(path.join(DIR, '64_DRAFT_people_levels.sql'), 'utf8'));
+  const uses64 = d64.split('\n').filter(l => /public\.current_role\(\)/.test(l) && !/to_regprocedure/.test(l));
+  expect(uses64).toEqual(["              then coalesce(public.current_role()::text, '') else '' end"]);
+  expect(d64).toMatch(/case when auth\.uid\(\) is not null and \(public\.is_active_staff\(\) or public\.is_owner_or_admin\(\)\)\s+then coalesce\(public\.current_role\(\)::text/);
 });
 
 test('EXT14: drafts/ holds only install and rollback files; local tests live in local-test/', () => {
@@ -133,21 +153,21 @@ for (const f of ALL) {
       'drop policy if exists supplier_document_types_staff_read on public.supplier_document_types;',
       'create policy supplier_document_types_staff_read on public.supplier_document_types for select to authenticated using (public.is_active_staff());',
       'drop policy if exists supplier_document_types_owner_write on public.supplier_document_types;',
-      "create policy supplier_document_types_owner_write on public.supplier_document_types for all to authenticated using (public.current_role() in ('owner', 'administrator')) with check (public.current_role() in ('owner', 'administrator'));",
+      "create policy supplier_document_types_owner_write on public.supplier_document_types for all to authenticated using (public.active_role() in ('owner', 'administrator')) with check (public.active_role() in ('owner', 'administrator'));",
       'drop policy if exists supplier_type_document_profiles_staff_read on public.supplier_type_document_profiles;',
       'create policy supplier_type_document_profiles_staff_read on public.supplier_type_document_profiles for select to authenticated using (public.is_active_staff());',
       'drop policy if exists supplier_type_document_profiles_owner_write on public.supplier_type_document_profiles;',
-      "create policy supplier_type_document_profiles_owner_write on public.supplier_type_document_profiles for all to authenticated using (public.current_role() in ('owner', 'administrator')) with check (public.current_role() in ('owner', 'administrator'));",
+      "create policy supplier_type_document_profiles_owner_write on public.supplier_type_document_profiles for all to authenticated using (public.active_role() in ('owner', 'administrator')) with check (public.active_role() in ('owner', 'administrator'));",
       'drop policy if exists supplier_document_supplier_profiles_staff_read on public.supplier_document_supplier_profiles;',
       'create policy supplier_document_supplier_profiles_staff_read on public.supplier_document_supplier_profiles for select to authenticated using (public.is_active_staff());',
       'drop policy if exists supplier_document_supplier_profiles_owner_write on public.supplier_document_supplier_profiles;',
-      "create policy supplier_document_supplier_profiles_owner_write on public.supplier_document_supplier_profiles for all to authenticated using (public.current_role() in ('owner', 'administrator')) with check (public.current_role() in ('owner', 'administrator'));",
+      "create policy supplier_document_supplier_profiles_owner_write on public.supplier_document_supplier_profiles for all to authenticated using (public.active_role() in ('owner', 'administrator')) with check (public.active_role() in ('owner', 'administrator'));",
       'drop policy if exists supplier_document_subjects_staff_read on public.supplier_document_subjects;',
       'create policy supplier_document_subjects_staff_read on public.supplier_document_subjects for select to authenticated using (public.is_active_staff());',
       'drop policy if exists supplier_document_subjects_staff_add on public.supplier_document_subjects;',
       'create policy supplier_document_subjects_staff_add on public.supplier_document_subjects for insert to authenticated with check (public.is_active_staff() and is_active);',
       'drop policy if exists supplier_document_subjects_owner_update on public.supplier_document_subjects;',
-      "create policy supplier_document_subjects_owner_update on public.supplier_document_subjects for update to authenticated using (public.current_role() in ('owner', 'administrator')) with check (public.current_role() in ('owner', 'administrator'));",
+      "create policy supplier_document_subjects_owner_update on public.supplier_document_subjects for update to authenticated using (public.active_role() in ('owner', 'administrator')) with check (public.active_role() in ('owner', 'administrator'));",
       'drop policy if exists supplier_documents_staff_read on public.supplier_documents;',
       'create policy supplier_documents_staff_read on public.supplier_documents for select to authenticated using (public.is_active_staff());',
       'drop policy if exists supplier_documents_staff_record on public.supplier_documents;',
@@ -161,7 +181,7 @@ for (const f of ALL) {
       'drop policy if exists supplier_document_handoffs_staff_add on public.supplier_document_handoffs;',
       "create policy supplier_document_handoffs_staff_add on public.supplier_document_handoffs for insert to authenticated with check (public.is_active_staff() and status = 'waiting');",
       'drop policy if exists supplier_document_handoffs_owner_resolve on public.supplier_document_handoffs;',
-      "create policy supplier_document_handoffs_owner_resolve on public.supplier_document_handoffs for update to authenticated using (public.current_role() in ('owner', 'administrator')) with check (public.current_role() in ('owner', 'administrator'));",
+      "create policy supplier_document_handoffs_owner_resolve on public.supplier_document_handoffs for update to authenticated using (public.active_role() in ('owner', 'administrator')) with check (public.active_role() in ('owner', 'administrator'));",
       'drop policy if exists supplier_document_events_trigger_insert on public.supplier_document_events;',
       'create policy supplier_document_events_trigger_insert on public.supplier_document_events for insert to authenticated with check (public.is_active_staff());'];
     // The fifth allowed set (Nov 21, drafts/38 + 39): the two rules on Supabase's
@@ -170,7 +190,7 @@ for (const f of ALL) {
     const SUPPLIER_FILE_RULES = [
       'drop policy if exists supplier_document_files_owner_read on storage.objects;',
       // owner decision of Nov 25: a manager opens files too (to approve them); nothing else changed
-      "create policy supplier_document_files_owner_read on storage.objects for select to authenticated using (bucket_id = 'supplier-documents' and coalesce(public.supplier_documents_is_owner() or public.current_role() = 'manager', false));",
+      "create policy supplier_document_files_owner_read on storage.objects for select to authenticated using (bucket_id = 'supplier-documents' and coalesce(public.supplier_documents_is_owner() or public.active_role() = 'manager', false));",
       'drop policy if exists supplier_document_files_upload on storage.objects;',
       "create policy supplier_document_files_upload on storage.objects for insert to authenticated with check (bucket_id = 'supplier-documents' and public.supplier_document_file_upload_allowed(name));"];
     // The sixth allowed set (Nov 22, drafts/40): row rules on that draft's OWN new
@@ -241,13 +261,13 @@ for (const f of ALL) {
       'drop policy if exists email_campaigns_read on public.email_campaigns;',
       'create policy email_campaigns_read on public.email_campaigns for select to authenticated using (public.is_owner_or_admin());',
       'drop policy if exists email_campaigns_owner_add on public.email_campaigns;',
-      "create policy email_campaigns_owner_add on public.email_campaigns for insert to authenticated with check (coalesce(public.current_role(), '') in ('owner', 'administrator'));",
+      "create policy email_campaigns_owner_add on public.email_campaigns for insert to authenticated with check (coalesce(public.active_role(), '') in ('owner', 'administrator'));",
       'drop policy if exists email_campaigns_owner_change on public.email_campaigns;',
-      "create policy email_campaigns_owner_change on public.email_campaigns for update to authenticated\n  using (coalesce(public.current_role(), '') in ('owner', 'administrator')) with check (coalesce(public.current_role(), '') in ('owner', 'administrator'));",
+      "create policy email_campaigns_owner_change on public.email_campaigns for update to authenticated\n  using (coalesce(public.active_role(), '') in ('owner', 'administrator')) with check (coalesce(public.active_role(), '') in ('owner', 'administrator'));",
       'drop policy if exists email_outbox_read on public.email_outbox;',
       'create policy email_outbox_read on public.email_outbox for select to authenticated using (public.is_owner_or_admin());',
       'drop policy if exists email_outbox_owner_add on public.email_outbox;',
-      "create policy email_outbox_owner_add on public.email_outbox for insert to authenticated with check (coalesce(public.current_role(), '') in ('owner', 'administrator'));",
+      "create policy email_outbox_owner_add on public.email_outbox for insert to authenticated with check (coalesce(public.active_role(), '') in ('owner', 'administrator'));",
       'drop policy if exists email_outbox_skip on public.email_outbox;',
       'create policy email_outbox_skip on public.email_outbox for update to authenticated\n  using (public.is_owner_or_admin()) with check (public.is_owner_or_admin());'];
     // The fourteenth allowed set (Nov 24, drafts/58): row rules on that draft's OWN new table
@@ -300,18 +320,18 @@ for (const f of ALL) {
       'drop policy if exists shared_settings_read on public.shared_settings;',
       "create policy shared_settings_read on public.shared_settings for select to authenticated\n  using (public.is_owner_or_admin() or (audience = 'staff' and public.is_active_staff()));",
       'drop policy if exists shared_settings_owner_add on public.shared_settings;',
-      "create policy shared_settings_owner_add on public.shared_settings for insert to authenticated with check (coalesce(public.current_role(), '') in ('owner', 'administrator'));",
+      "create policy shared_settings_owner_add on public.shared_settings for insert to authenticated with check (coalesce(public.active_role(), '') in ('owner', 'administrator'));",
       'drop policy if exists shared_settings_owner_change on public.shared_settings;',
-      "create policy shared_settings_owner_change on public.shared_settings for update to authenticated\n  using (coalesce(public.current_role(), '') in ('owner', 'administrator')) with check (coalesce(public.current_role(), '') in ('owner', 'administrator'));"];   // owner and administrators (owner decision, Nov 24)
+      "create policy shared_settings_owner_change on public.shared_settings for update to authenticated\n  using (coalesce(public.active_role(), '') in ('owner', 'administrator')) with check (coalesce(public.active_role(), '') in ('owner', 'administrator'));"];   // owner and administrators (owner decision, Nov 24)
     // The eighth allowed set (Nov 23, drafts/46): row rules on that draft's OWN new
     // table (confirmed tax rates): active staff read; only the owner adds or changes.
     const TAX_RATE_RULES = [
       'drop policy if exists tax_rates_read on public.tax_rates;',
       'create policy tax_rates_read on public.tax_rates for select to authenticated using (public.is_active_staff() or public.is_owner_or_admin());',
       'drop policy if exists tax_rates_owner_add on public.tax_rates;',
-      "create policy tax_rates_owner_add on public.tax_rates for insert to authenticated with check (coalesce(public.current_role(), '') in ('owner', 'administrator'));",
+      "create policy tax_rates_owner_add on public.tax_rates for insert to authenticated with check (coalesce(public.active_role(), '') in ('owner', 'administrator'));",
       'drop policy if exists tax_rates_owner_change on public.tax_rates;',
-      "create policy tax_rates_owner_change on public.tax_rates for update to authenticated\n  using (coalesce(public.current_role(), '') in ('owner', 'administrator')) with check (coalesce(public.current_role(), '') in ('owner', 'administrator'));"];
+      "create policy tax_rates_owner_change on public.tax_rates for update to authenticated\n  using (coalesce(public.active_role(), '') in ('owner', 'administrator')) with check (coalesce(public.active_role(), '') in ('owner', 'administrator'));"];
     // The seventh allowed set (Nov 22, drafts/42): row rules on that draft's OWN
     // new tables (Shopify payout copy, money differences); owner/admin only.
     const MONEY_RULES = [
@@ -336,9 +356,9 @@ for (const f of ALL) {
     // returns to the supplier waiting for a decision; drafts/67 puts drafts/40's own two rules back.
     const MANAGER_STOCK_RULES = [
       'drop policy if exists receiving_records_read on public.receiving_records;',
-      "create policy receiving_records_read on public.receiving_records for select to authenticated using (submitted_by = auth.uid() or public.is_owner_or_admin() or public.current_role() = 'manager');",
+      "create policy receiving_records_read on public.receiving_records for select to authenticated using (submitted_by = auth.uid() or public.is_owner_or_admin() or public.active_role() = 'manager');",
       'drop policy if exists supplier_returns_read on public.supplier_returns;',
-      "create policy supplier_returns_read on public.supplier_returns for select to authenticated using (submitted_by = auth.uid() or public.is_owner_or_admin() or public.current_role() = 'manager');"];
+      "create policy supplier_returns_read on public.supplier_returns for select to authenticated using (submitted_by = auth.uid() or public.is_owner_or_admin() or public.active_role() = 'manager');"];
     const MANAGER_STOCK_UNDO = [
       'drop policy if exists receiving_records_read on public.receiving_records;',
       'create policy receiving_records_read on public.receiving_records for select to authenticated using (submitted_by = auth.uid() or public.is_owner_or_admin());',
@@ -376,9 +396,9 @@ for (const f of ALL) {
       'drop policy if exists stock_count_approvers_read on public.stock_count_approvers;',
       'create policy stock_count_approvers_read on public.stock_count_approvers for select to authenticated using (user_id = auth.uid() or public.is_owner_or_admin());',
       'drop policy if exists stock_count_approvers_owner_insert on public.stock_count_approvers;',
-      "create policy stock_count_approvers_owner_insert on public.stock_count_approvers for insert to authenticated with check (public.current_role() = 'owner');",
+      "create policy stock_count_approvers_owner_insert on public.stock_count_approvers for insert to authenticated with check (public.active_role() = 'owner');",
       'drop policy if exists stock_count_approvers_owner_delete on public.stock_count_approvers;',
-      "create policy stock_count_approvers_owner_delete on public.stock_count_approvers for delete to authenticated using (public.current_role() = 'owner');"];
+      "create policy stock_count_approvers_owner_delete on public.stock_count_approvers for delete to authenticated using (public.active_role() = 'owner');"];
     if (f === '34_DRAFT_stock_count_adjustments.sql') {
       for (const r of STOCK_COUNT_RULES) expect(sql.split(r).length - 1, 'pinned rule present exactly once: ' + r.slice(0, 60)).toBe(1);
       // No delete is granted on the adjustments table at all, and the guard refuses one anyway.

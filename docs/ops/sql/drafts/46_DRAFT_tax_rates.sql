@@ -53,6 +53,7 @@ declare
 begin
   if to_regprocedure('auth.uid()') is null then missing := missing || 'function auth.uid()'::text; end if;
   if to_regprocedure('public.current_role()') is null then missing := missing || 'function public.current_role()'::text; end if;
+  if to_regprocedure('public.active_role()') is null then missing := missing || 'function public.active_role() (install step 0, drafts/72, first)'::text; end if;
   if to_regprocedure('public.is_active_staff()') is null then missing := missing || 'function public.is_active_staff()'::text; end if;
   if to_regprocedure('public.is_owner_or_admin()') is null then missing := missing || 'function public.is_owner_or_admin()'::text; end if;
   if to_regclass('public.tasks') is null then missing := missing || 'table public.tasks (its audit trigger is reused)'::text; end if;
@@ -100,7 +101,7 @@ begin
   if tg_op = 'DELETE' then
     raise exception 'A confirmed tax rate stays on the record; end it instead.' using errcode = '42501';
   end if;
-  if coalesce(public.current_role(), '') not in ('owner', 'administrator') then
+  if coalesce(public.active_role(), '') not in ('owner', 'administrator') then
     raise exception 'Only the owner or an administrator can confirm, end or re-check a tax rate.' using errcode = '42501';
   end if;
   if tg_op = 'INSERT' then
@@ -157,7 +158,7 @@ declare
   v_old public.tax_rates%rowtype;
   v_new public.tax_rates%rowtype;
 begin
-  if coalesce(public.current_role(), '') not in ('owner', 'administrator') then
+  if coalesce(public.active_role(), '') not in ('owner', 'administrator') then
     raise exception 'Only the owner or an administrator can confirm a tax rate.' using errcode = '42501';
   end if;
   if p_from is null then raise exception 'Say from which day the rate applies.' using errcode = '22023'; end if;
@@ -189,7 +190,7 @@ set search_path = public, pg_temp
 as $fn$
 declare v public.tax_rates%rowtype;
 begin
-  if coalesce(public.current_role(), '') not in ('owner', 'administrator') then
+  if coalesce(public.active_role(), '') not in ('owner', 'administrator') then
     raise exception 'Only the owner or an administrator can re-check a tax rate.' using errcode = '42501';
   end if;
   select * into v from public.tax_rates where id = p_id;
@@ -224,10 +225,10 @@ grant select, insert, update on public.tax_rates to authenticated;
 drop policy if exists tax_rates_read on public.tax_rates;
 create policy tax_rates_read on public.tax_rates for select to authenticated using (public.is_active_staff() or public.is_owner_or_admin());
 drop policy if exists tax_rates_owner_add on public.tax_rates;
-create policy tax_rates_owner_add on public.tax_rates for insert to authenticated with check (coalesce(public.current_role(), '') in ('owner', 'administrator'));
+create policy tax_rates_owner_add on public.tax_rates for insert to authenticated with check (coalesce(public.active_role(), '') in ('owner', 'administrator'));
 drop policy if exists tax_rates_owner_change on public.tax_rates;
 create policy tax_rates_owner_change on public.tax_rates for update to authenticated
-  using (coalesce(public.current_role(), '') in ('owner', 'administrator')) with check (coalesce(public.current_role(), '') in ('owner', 'administrator'));
+  using (coalesce(public.active_role(), '') in ('owner', 'administrator')) with check (coalesce(public.active_role(), '') in ('owner', 'administrator'));
 
 revoke all on function public.set_tax_rate(text, numeric, date, text, text) from public, anon;
 revoke all on function public.recheck_tax_rate(uuid) from public, anon;

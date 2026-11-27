@@ -76,6 +76,20 @@ The design D5 above, prepared so it is ready when the owner approves it:
   Order: install step 19 first, then add this step, then switch "Backup status on Home" on. To undo:
   remove this step first, then run `71_…`.
 
+  **How the owner checks it worked, without showing Claude anything from that repository:**
+  1. After saving the change, the repository's Actions tab shows no "Invalid workflow file" message
+     for the nightly backup (GitHub checks the file's layout by itself).
+  2. The morning after the next nightly run, in Supabase SQL Editor (read-only):
+
+     ```sql
+     select kind, finished_at, ok from public.backup_reports order by finished_at desc limit 3;
+     ```
+
+     One line `nightly_backup | <last night> | true` means the report arrived. The owner sends that
+     result (it holds no secret and no file name). No line: the step did not run or could not
+     reach the database; the backup itself is unaffected.
+  3. Then Feature Flags → "Backup status on Home" → On; Home says "last night's backup succeeded".
+
 ## 4. Safe restore drill for production (owner, when approved)
 
 1. Create a **separate, throwaway Supabase project** (never the production one).
@@ -129,7 +143,7 @@ date"; never logs, file names or contents).
 | # | What must be true | Evidence that proves it | Status (Nov 26) | Who |
 |---|---|---|---|---|
 | E1 | The newest nightly backup succeeded | its date and green/red | **REPORTED** green, Nov 26 (11:56); before that green Nov 24 | owner |
-| E2 | The newest monthly restore test succeeded | its date and green/red | **missing** (exists, result not seen) | owner |
+| E2 | The newest monthly restore test succeeded | its date and green/red | **REPORTED** green, Nov 1 (the two before it green too, Oct 1 and Sep 6); next due about Dec 1 | owner |
 | E3 | GitHub Actions minutes are not running out | "minutes: OK/out" | **REPORTED** OK, Nov 26: billing shows $0 billed and every GitHub budget at $0 with usage blocked. With a $0 budget, running out of free minutes would **stop** the backups rather than charge, so this stays a monthly look (`docs/ops/MONTHLY_RUNNING_COSTS.md`) | owner |
 | E4 | A production backup really restores, and how long it takes | one drill into a throwaway project (§4): start and end time, row counts of five main tables match | **missing** (proven only locally on synthetic data, §1) | owner, guided |
 | E5 | Uploaded files are covered, not only database rows | a list of the storage buckets in the nightly job; one file restored from it | **missing**: the platform's backups exclude files (its own page says so); no file feature is installed yet, so nothing is lost today | owner (backups repository) |

@@ -13,7 +13,7 @@ actual sending of each one"), and your question about staying out of spam.
 
 | File | Lines | Fingerprint (SHA-256, first 16) |
 |---|---|---|
-| `docs/ops/sql/drafts/56_DRAFT_email_sending.sql` (install) | 565 | `bce831127168a975` |
+| `docs/ops/sql/drafts/56_DRAFT_email_sending.sql` (install) | 566 | `8d101087cd892784` |
 | `docs/ops/sql/drafts/57_DRAFT_rollback_email_sending.sql` (undo) | 63 | `118416d2a4452354` |
 
 ## Target environment

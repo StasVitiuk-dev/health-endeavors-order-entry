@@ -75,6 +75,7 @@ declare missing text[] := '{}';
 begin
   if to_regprocedure('auth.uid()') is null then missing := missing || 'function auth.uid()'::text; end if;
   if to_regprocedure('public.current_role()') is null then missing := missing || 'function public.current_role()'::text; end if;
+  if to_regprocedure('public.active_role()') is null then missing := missing || 'function public.active_role() (install step 0, drafts/72, first)'::text; end if;
   if to_regprocedure('public.is_owner_or_admin()') is null then missing := missing || 'function public.is_owner_or_admin()'::text; end if;
   if to_regprocedure('public.is_active_staff()') is null then missing := missing || 'function public.is_active_staff()'::text; end if;
   if to_regclass('public.products') is null then missing := missing || 'table public.products'::text; end if;
@@ -135,7 +136,7 @@ stable
 security invoker
 set search_path = public, pg_temp
 as $fn$
-  select coalesce(public.current_role() in ('owner', 'administrator'), false)
+  select coalesce(public.active_role() in ('owner', 'administrator'), false)
 $fn$;
 
 -- The guard: runs for every insert, update and delete, whoever makes it.
@@ -186,7 +187,7 @@ begin
     if not public.can_approve_stock_count() then
       raise exception 'Only the owner or an administrator can approve or reject a stock-count adjustment.' using errcode = '42501';
     end if;
-    if old.submitted_by = auth.uid() and coalesce(public.current_role() not in ('owner', 'administrator'), true) then
+    if old.submitted_by = auth.uid() and coalesce(public.active_role() not in ('owner', 'administrator'), true) then
       raise exception 'You cannot decide your own proposal. The owner or an administrator must.' using errcode = '42501';
     end if;
   elsif new.status = 'cancelled' then
@@ -356,7 +357,7 @@ as $fn$
 declare
   v_role text;
 begin
-  if coalesce(public.current_role() <> 'owner', true) then
+  if coalesce(public.active_role() <> 'owner', true) then
     raise exception 'Only the owner can grant stock-count approval.' using errcode = '42501';
   end if;
   if p_note is null or length(btrim(p_note)) < 5 then
@@ -383,7 +384,7 @@ as $fn$
 declare
   v_n integer;
 begin
-  if coalesce(public.current_role() <> 'owner', true) then
+  if coalesce(public.active_role() <> 'owner', true) then
     raise exception 'Only the owner can revoke stock-count approval.' using errcode = '42501';
   end if;
   delete from public.stock_count_approvers where user_id = p_user_id;
@@ -430,9 +431,9 @@ create policy stock_count_adjustments_staff_update on public.stock_count_adjustm
 drop policy if exists stock_count_approvers_read on public.stock_count_approvers;
 create policy stock_count_approvers_read on public.stock_count_approvers for select to authenticated using (user_id = auth.uid() or public.is_owner_or_admin());
 drop policy if exists stock_count_approvers_owner_insert on public.stock_count_approvers;
-create policy stock_count_approvers_owner_insert on public.stock_count_approvers for insert to authenticated with check (public.current_role() = 'owner');
+create policy stock_count_approvers_owner_insert on public.stock_count_approvers for insert to authenticated with check (public.active_role() = 'owner');
 drop policy if exists stock_count_approvers_owner_delete on public.stock_count_approvers;
-create policy stock_count_approvers_owner_delete on public.stock_count_approvers for delete to authenticated using (public.current_role() = 'owner');
+create policy stock_count_approvers_owner_delete on public.stock_count_approvers for delete to authenticated using (public.active_role() = 'owner');
 
 revoke all on function public.can_approve_stock_count() from public, anon;
 revoke all on function public.stock_count_current(uuid, text) from public, anon;

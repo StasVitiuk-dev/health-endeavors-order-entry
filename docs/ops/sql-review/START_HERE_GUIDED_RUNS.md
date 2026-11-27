@@ -32,18 +32,19 @@ is reviewed, approved, installed or verified.
 
 | Order | What it enables | Needs first | File (`docs/ops/sql/drafts/`) | Lines | Fingerprint | Undo file | Before (read-only) | After (read-only check) |
 |---|---|---|---|---|---|---|---|---|
-| A | Settings and switches the same on every phone and computer (your standing rule); the owner or an administrator saves them | nothing | `50_DRAFT_shared_settings.sql` | 192 | `f01c9760706592e1` | `51_…` | — | Item 10, "After running" |
+| 0 | **First, before A and the steps that use it:** the "active staff member" and "role of a switched-on account" checks production does not have (found Nov 27 when step A stopped safely) | nothing | `72_DRAFT_active_staff_helper.sql` | 108 | `da6f7ed3ca5eacc8` | `73_…` | — | Item 18 |
+| A | Settings and switches the same on every phone and computer (your standing rule); the owner or an administrator saves them | **0** | `50_DRAFT_shared_settings.sql` | 193 | `0d17fc4e94fbd847` | `51_…` | — | Item 10, "After running" |
 | 1–8 | as in the table above | as above | (see above) | | | | | |
 | 9 | Parcels and tracking per order, delivery problems watch | nothing | `48_DRAFT_order_parcels.sql` | 392 | `ca25da9142afa5b0` | `49_…` | — | Item 9, "After running" |
 | 10 | Packaging and shipping cost per order (real profit) | nothing | `52_DRAFT_order_costs.sql` | 190 | `2be65c5c4b234315` | `53_…` | — | Item 11, "After running" |
 | 11 | Batch (lot) on each order line, for recalls | nothing | `54_DRAFT_order_batches.sql` | 299 | `a19bbc8a6e156aee` | `55_…` | Item 12, "Open question" | Item 12, "After running" |
-| 12 | Saved email campaigns approved by you or an administrator (**still sends nothing**; real sending is a separate decision) | nothing | `56_DRAFT_email_sending.sql` | 565 | `bce831127168a975` | `57_…` | — | Item 13, "After running" |
+| 12 | Saved email campaigns approved by you or an administrator (**still sends nothing**; real sending is a separate decision) | nothing | `56_DRAFT_email_sending.sql` | 566 | `8d101087cd892784` | `57_…` | — | Item 13, "After running" |
 | 13 | "My settings" kept per person on every device | nothing | `58_DRAFT_my_settings.sql` | 176 | `35ce08fdd4e4caea` | `59_…` | — | Item 14, "After running" |
 | 14 | Customer reviews stored | nothing | `60_DRAFT_customer_reviews.sql` | 262 | `096167f3c7cf7581` | `61_…` | — | Item 15, "After running" |
 | 15a | The word "manager" | nothing | `62_DRAFT_manager_role.sql` | 48 | `c78870424a9e247f` | `63_…` | Item 16, "Before you run it" | Item 16 |
 | 15b | Four levels; each looks after the levels below (owner accounts untouchable) | **15a** | `64_DRAFT_people_levels.sql` | 389 | `275cdc3123fd520e` | `65_…` | (same look) | Item 16 |
 | 16 | The sign-in helper for the New Employee page (a deploy at Supabase, not SQL) | **15b** | `docs/ops/edge-drafts/people-accounts/` (2 files) | | Item 17 table | delete the function | Item 17, "Before you deploy" | one made-up employee, Item 17 |
-| 17 | Managers decide deliveries and returns someone else recorded (your choice A, Nov 25) | **4** and **15a** (best after 15b) | `66_DRAFT_managers_approve_stock.sql` | 118 | `db24e1757c2a6d63` | `67_…` | — | Item 5, "Prepared for A" |
+| 17 | Managers decide deliveries and returns someone else recorded (your choice A, Nov 25) | **4** and **15a** (best after 15b) | `66_DRAFT_managers_approve_stock.sql` | 119 | `d00d38b72d87af87` | `67_…` | — | Item 5, "Prepared for A" |
 | 18 | Small hardening of three existing history and sign-in functions (pg_temp named last; nothing else changes) | nothing | `68_DRAFT_history_functions_search_path.sql` | 52 | `5a842bd5b4bb92c4` | `69_…` | — | `docs/ops/OWNER_PROTECTION_AND_PRIVATE_HISTORY.md`, "Second look" |
 | 19 | Backup status on Home: a small table the backup job writes after each run, read by you and administrators (then one step in the backups repository) | nothing | `70_DRAFT_backup_reports.sql` | 73 | `fef6f3402edfcbf6` | `71_…` | — | `docs/ops/RECOVERY_AND_BACKUP_READINESS.md` §3a |
 | — | Your private history hidden from administrators | — | **not needed**: already true in production (your second read-only look, Nov 25) | | | | | |
@@ -168,14 +169,14 @@ the query anyway. If it mentions anything else (for example `drop table` on a ta
 
 | Step | File to paste (all in `docs/ops/sql/drafts/`) | Lines | Fingerprint | Check afterwards (read-only, in the item's page) | Expected | Undo file |
 |---|---|---|---|---|---|---|
-| 2 | `34_DRAFT_stock_count_adjustments.sql` | 455 | `ad1b9fff06fccdfa` | Item 2, "After running" | `true \| 0 \| 0 \| false` | `35_…` |
+| 2 | `34_DRAFT_stock_count_adjustments.sql` | 456 | `c94c2174afba71d0` | Item 2, "After running" | `true \| 0 \| 0 \| false` | `35_…` |
 | 3 | `44_DRAFT_staff_read_purchase_orders.sql` | 55 | `c87c37c54901a648` | Item 7, "After running" | two rows, both `SELECT` | `45_…` |
-| 4 | `40_DRAFT_partial_receiving_returns.sql` | 1031 | `365d5690d36c92d7` | Item 5, "After running" | `true \| true \| 0 \| 0 \| false` | `41_…` |
-| 5a | `36_DRAFT_supplier_documents.sql` | 1033 | `1e9bd730e671c867` | Item 4, "After draft 36" | `9 \| 0 \| 0 \| false` | `37_…` |
-| 5b | `38_DRAFT_supplier_document_files.sql` (only after 5a) | 97 | `97b7a419b8a78b2a` | Item 4, "After draft 38" | `false \| 10485760 \| {application/pdf,image/jpeg,image/png} \| 2` | `39_…` |
+| 4 | `40_DRAFT_partial_receiving_returns.sql` | 1032 | `c9f81f40f95a58c1` | Item 5, "After running" | `true \| true \| 0 \| 0 \| false` | `41_…` |
+| 5a | `36_DRAFT_supplier_documents.sql` | 1034 | `54e3c73d8186273c` | Item 4, "After draft 36" | `9 \| 0 \| 0 \| false` | `37_…` |
+| 5b | `38_DRAFT_supplier_document_files.sql` (only after 5a) | 97 | `4f260ac2f075a5df` | Item 4, "After draft 38" | `false \| 10485760 \| {application/pdf,image/jpeg,image/png} \| 2` | `39_…` |
 | 6 | `32_DRAFT_invoices.sql` | 950 | `7569c1ca765cc175` | Item 1, "After running" | `true \| true \| true \| 0 \| 1 \| false` | `33_…` |
 | 7 | `42_DRAFT_shopify_payouts_money_issues.sql` (the daily Shopify program is a separate step after it) | 242 | `dfbcaa89a6112c17` | Item 6, "After running file 42" | `true \| true \| 0 \| false` | `43_…` |
-| 8 | `46_DRAFT_tax_rates.sql` (after PR #42 is merged) | 238 | `1db9b4d27ba4704b` | Item 8, "After running" | `true \| 0 \| 1 \| false` | `47_…` |
+| 8 | `46_DRAFT_tax_rates.sql` (after PR #42 is merged) | 239 | `186cffd0d6dcfdbc` | Item 8, "After running" | `true \| 0 \| 1 \| false` | `47_…` |
 
 Fingerprints checked against the files on Nov 23, 2026 (all match the item pages). Each step takes
 about 10–20 minutes with Claude; do one per sitting if you prefer. After each step: nothing visible

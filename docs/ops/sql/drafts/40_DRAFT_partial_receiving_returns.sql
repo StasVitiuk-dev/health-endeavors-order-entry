@@ -66,6 +66,7 @@ declare missing text[] := '{}';
 begin
   if to_regprocedure('auth.uid()') is null then missing := missing || 'function auth.uid()'::text; end if;
   if to_regprocedure('public.current_role()') is null then missing := missing || 'function public.current_role()'::text; end if;
+  if to_regprocedure('public.active_role()') is null then missing := missing || 'function public.active_role() (install step 0, drafts/72, first)'::text; end if;
   if to_regprocedure('public.is_active_staff()') is null then missing := missing || 'function public.is_active_staff()'::text; end if;
   if to_regprocedure('public.is_owner_or_admin()') is null then missing := missing || 'function public.is_owner_or_admin()'::text; end if;
   if to_regclass('public.purchase_orders') is null then missing := missing || 'table public.purchase_orders'::text; end if;
@@ -189,7 +190,7 @@ stable
 security invoker
 set search_path = public, pg_temp
 as $fn$
-  select coalesce(public.current_role() in ('owner', 'administrator'), false)
+  select coalesce(public.active_role() in ('owner', 'administrator'), false)
 $fn$;
 
 -- Who may approve or reject a delivery or a return to the supplier, and decide a customer

@@ -71,6 +71,7 @@ declare
 begin
   if to_regprocedure('auth.uid()') is null then missing := missing || 'function auth.uid()'::text; end if;
   if to_regprocedure('public.current_role()') is null then missing := missing || 'function public.current_role()'::text; end if;
+  if to_regprocedure('public.active_role()') is null then missing := missing || 'function public.active_role() (install step 0, drafts/72, first)'::text; end if;
   if to_regprocedure('public.is_owner_or_admin()') is null then missing := missing || 'function public.is_owner_or_admin()'::text; end if;
   if to_regprocedure('gen_random_uuid()') is null then missing := missing || 'function gen_random_uuid()'::text; end if;
   if to_regclass('public.tasks') is null then missing := missing || 'table public.tasks (its audit trigger is reused)'::text; end if;
@@ -175,7 +176,7 @@ begin
     raise exception 'A campaign stays on the record; stop it instead.' using errcode = '42501';
   end if;
   if tg_op = 'INSERT' then
-    if coalesce(public.current_role(), '') not in ('owner', 'administrator') then
+    if coalesce(public.active_role(), '') not in ('owner', 'administrator') then
       raise exception 'Only the owner or an administrator approves an email campaign.' using errcode = '42501';
     end if;
     if (new.subject || ' ' || new.body) ~* '\m(cures?|cured|curing|treats?|treated|treating|treatment|heals?|healed|healing|prevents?|prevented|diagnos[a-z]*)\M' then
@@ -196,7 +197,7 @@ begin
       raise exception 'This campaign is %; it cannot be started again.', old.status using errcode = '42501';
     end if;
     -- a person may pause, resume or stop: the owner or an administrator. The sending program (no person) may stop or finish it.
-    if auth.uid() is not null and coalesce(public.current_role(), '') not in ('owner', 'administrator') then
+    if auth.uid() is not null and coalesce(public.active_role(), '') not in ('owner', 'administrator') then
       raise exception 'Only the owner or an administrator can pause or stop a campaign.' using errcode = '42501';
     end if;
     if auth.uid() is null and new.status not in ('stopped', 'done') then
@@ -223,7 +224,7 @@ begin
     raise exception 'An email stays on the record; skip it instead.' using errcode = '42501';
   end if;
   if tg_op = 'INSERT' then
-    if coalesce(public.current_role(), '') not in ('owner', 'administrator') then
+    if coalesce(public.active_role(), '') not in ('owner', 'administrator') then
       raise exception 'Only the owner or an administrator queues the emails of a campaign.' using errcode = '42501';
     end if;
     new.status := 'queued'; new.skip_reason := null; new.provider_id := null; new.error := null; new.sent_at := null;
@@ -325,7 +326,7 @@ set search_path = public, pg_temp
 as $fn$
 declare v public.email_campaigns%rowtype;
 begin
-  if coalesce(public.current_role(), '') not in ('owner', 'administrator') then
+  if coalesce(public.active_role(), '') not in ('owner', 'administrator') then
     raise exception 'Only the owner or an administrator approves an email campaign.' using errcode = '42501';
   end if;
   insert into public.email_campaigns (kind, name, subject, body, postal_address)
@@ -348,7 +349,7 @@ declare
   v_r jsonb; v_email text; v_day date; v_used integer; v_tries integer;
   v_queued integer := 0; v_skipped jsonb := '[]'::jsonb; v_first date; v_last date;
 begin
-  if coalesce(public.current_role(), '') not in ('owner', 'administrator') then
+  if coalesce(public.active_role(), '') not in ('owner', 'administrator') then
     raise exception 'Only the owner or an administrator queues the emails of a campaign.' using errcode = '42501';
   end if;
   perform pg_advisory_xact_lock(hashtext('health_endeavors_email_queue'));   -- two queues at once would both count the same room
@@ -407,14 +408,14 @@ set search_path = public, pg_temp
 as $fn$
 declare v public.email_campaigns%rowtype; v_skipped bigint := 0;
 begin
-  if coalesce(public.current_role(), '') not in ('owner', 'administrator') then
+  if coalesce(public.active_role(), '') not in ('owner', 'administrator') then
     raise exception 'Only the owner or an administrator can pause or stop a campaign.' using errcode = '42501';
   end if;
   if p_status is null or p_status not in ('approved', 'paused', 'stopped') then
     raise exception 'A campaign can be paused, resumed or stopped.' using errcode = '22023';
   end if;
   update public.email_campaigns set status = p_status,
-         stop_reason = case when p_status = 'stopped' then 'Stopped by ' || case when coalesce(public.current_role(), '') = 'owner' then 'the owner' else 'an administrator' end || coalesce(': ' || nullif(left(btrim(p_reason), 400), ''), '.') else null end
+         stop_reason = case when p_status = 'stopped' then 'Stopped by ' || case when coalesce(public.active_role(), '') = 'owner' then 'the owner' else 'an administrator' end || coalesce(': ' || nullif(left(btrim(p_reason), 400), ''), '.') else null end
    where id = p_campaign returning * into v;
   if not found then raise exception 'This campaign was not found.' using errcode = 'P0002'; end if;
   if p_status = 'stopped' then
@@ -532,15 +533,15 @@ create policy email_suppressions_add on public.email_suppressions for insert to 
 drop policy if exists email_campaigns_read on public.email_campaigns;
 create policy email_campaigns_read on public.email_campaigns for select to authenticated using (public.is_owner_or_admin());
 drop policy if exists email_campaigns_owner_add on public.email_campaigns;
-create policy email_campaigns_owner_add on public.email_campaigns for insert to authenticated with check (coalesce(public.current_role(), '') in ('owner', 'administrator'));
+create policy email_campaigns_owner_add on public.email_campaigns for insert to authenticated with check (coalesce(public.active_role(), '') in ('owner', 'administrator'));
 drop policy if exists email_campaigns_owner_change on public.email_campaigns;
 create policy email_campaigns_owner_change on public.email_campaigns for update to authenticated
-  using (coalesce(public.current_role(), '') in ('owner', 'administrator')) with check (coalesce(public.current_role(), '') in ('owner', 'administrator'));
+  using (coalesce(public.active_role(), '') in ('owner', 'administrator')) with check (coalesce(public.active_role(), '') in ('owner', 'administrator'));
 
 drop policy if exists email_outbox_read on public.email_outbox;
 create policy email_outbox_read on public.email_outbox for select to authenticated using (public.is_owner_or_admin());
 drop policy if exists email_outbox_owner_add on public.email_outbox;
-create policy email_outbox_owner_add on public.email_outbox for insert to authenticated with check (coalesce(public.current_role(), '') in ('owner', 'administrator'));
+create policy email_outbox_owner_add on public.email_outbox for insert to authenticated with check (coalesce(public.active_role(), '') in ('owner', 'administrator'));
 drop policy if exists email_outbox_skip on public.email_outbox;
 create policy email_outbox_skip on public.email_outbox for update to authenticated
   using (public.is_owner_or_admin()) with check (public.is_owner_or_admin());

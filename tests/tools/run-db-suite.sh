@@ -71,6 +71,8 @@ step "partial receiving and returns (drafts/40)" bash "$LT/partial_receiving_tes
 step "managers decide deliveries and returns, option A (drafts/66 on drafts/40)" bash "$LT/managers_approve_stock_test.sh" $C
 step "search path of three history functions (drafts/68)" bash "$LT/history_search_path_test.sh" $C
 step "backup reports for Home (drafts/70)" bash "$LT/backup_reports_test.sh" $C
+step "the active staff check production lacked (drafts/72, then step A on top)" bash "$LT/active_staff_helper_test.sh" $C
+step "every waiting draft installs on a copy shaped like production (role as a fixed list, no is_active_staff)" bash "$LT/production_shape_install_test.sh" $C
 step "Shopify payouts and money differences (drafts/42)" bash "$LT/shopify_payouts_test.sh" $C
 step "staff read purchase orders (drafts/44)" bash "$LT/staff_read_purchase_orders_test.sh" $C
 step "confirmed tax rates (drafts/46)" bash "$LT/tax_rates_test.sh" $C

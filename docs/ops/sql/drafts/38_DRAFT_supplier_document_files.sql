@@ -90,7 +90,7 @@ revoke all on function public.supplier_document_file_upload_allowed(text) from p
 grant execute on function public.supplier_document_file_upload_allowed(text) to authenticated;
 
 drop policy if exists supplier_document_files_owner_read on storage.objects;
-create policy supplier_document_files_owner_read on storage.objects for select to authenticated using (bucket_id = 'supplier-documents' and coalesce(public.supplier_documents_is_owner() or public.current_role() = 'manager', false));
+create policy supplier_document_files_owner_read on storage.objects for select to authenticated using (bucket_id = 'supplier-documents' and coalesce(public.supplier_documents_is_owner() or public.active_role() = 'manager', false));
 drop policy if exists supplier_document_files_upload on storage.objects;
 create policy supplier_document_files_upload on storage.objects for insert to authenticated with check (bucket_id = 'supplier-documents' and public.supplier_document_file_upload_allowed(name));
 
