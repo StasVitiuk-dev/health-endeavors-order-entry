@@ -32,7 +32,8 @@ is reviewed, approved, installed or verified.
 
 | Order | What it enables | Needs first | File (`docs/ops/sql/drafts/`) | Lines | Fingerprint | Undo file | Before (read-only) | After (read-only check) |
 |---|---|---|---|---|---|---|---|---|
-| A | Settings and switches the same on every phone and computer (your standing rule); the owner or an administrator saves them | nothing | `50_DRAFT_shared_settings.sql` | 192 | `f01c9760706592e1` | `51_…` | — | Item 10, "After running" |
+| 0 | **First, before A and the steps that use it:** the "active staff member" check production does not have (found Nov 27 when step A stopped safely) | nothing | `72_DRAFT_active_staff_helper.sql` | 82 | `0f4d13ac1f07b0cc` | `73_…` | — | Item 18 |
+| A | Settings and switches the same on every phone and computer (your standing rule); the owner or an administrator saves them | **0** | `50_DRAFT_shared_settings.sql` | 192 | `f01c9760706592e1` | `51_…` | — | Item 10, "After running" |
 | 1–8 | as in the table above | as above | (see above) | | | | | |
 | 9 | Parcels and tracking per order, delivery problems watch | nothing | `48_DRAFT_order_parcels.sql` | 392 | `ca25da9142afa5b0` | `49_…` | — | Item 9, "After running" |
 | 10 | Packaging and shipping cost per order (real profit) | nothing | `52_DRAFT_order_costs.sql` | 190 | `2be65c5c4b234315` | `53_…` | — | Item 11, "After running" |

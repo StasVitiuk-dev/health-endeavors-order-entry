@@ -143,7 +143,7 @@ date"; never logs, file names or contents).
 | # | What must be true | Evidence that proves it | Status (Nov 26) | Who |
 |---|---|---|---|---|
 | E1 | The newest nightly backup succeeded | its date and green/red | **REPORTED** green, Nov 26 (11:56); before that green Nov 24 | owner |
-| E2 | The newest monthly restore test succeeded | its date and green/red | **missing** (exists, result not seen) | owner |
+| E2 | The newest monthly restore test succeeded | its date and green/red | **REPORTED** green, Nov 1 (the two before it green too, Oct 1 and Sep 6); next due about Dec 1 | owner |
 | E3 | GitHub Actions minutes are not running out | "minutes: OK/out" | **REPORTED** OK, Nov 26: billing shows $0 billed and every GitHub budget at $0 with usage blocked. With a $0 budget, running out of free minutes would **stop** the backups rather than charge, so this stays a monthly look (`docs/ops/MONTHLY_RUNNING_COSTS.md`) | owner |
 | E4 | A production backup really restores, and how long it takes | one drill into a throwaway project (§4): start and end time, row counts of five main tables match | **missing** (proven only locally on synthetic data, §1) | owner, guided |
 | E5 | Uploaded files are covered, not only database rows | a list of the storage buckets in the nightly job; one file restored from it | **missing**: the platform's backups exclude files (its own page says so); no file feature is installed yet, so nothing is lost today | owner (backups repository) |

@@ -869,6 +869,29 @@
       "precheck": "stops, changing nothing, if backup_reports is not there",
       "effect": "removes backup_reports again (it only held 'this job finished, ok or not' lines; the backups themselves are not touched); turn the backup job's report step off first",
       "postcheck": "backup_reports is gone; Home says 'Backups: not verified here' again"
+    },
+    {
+      "file": "drafts/72_DRAFT_active_staff_helper.sql",
+      "id": "72",
+      "class": "PRODUCTION-CHANGE-DRAFT",
+      "step": "0 (before step A and every draft that uses is_active_staff(); found missing in production on Nov 27)",
+      "dependsOn": [],
+      "risk": "LOW",
+      "rollback": "73",
+      "precheck": "stops, changing nothing, if auth.uid() or profiles (id, role, is_active, deleted_at) is missing, if no rule lets a signed-in person read their own account row, or if an is_active_staff() exists that this file did not create",
+      "effect": "adds one function, is_active_staff(): true when the signed-in person's account is active, not removed, and owner, administrator, manager or employee (an AI agent account is not staff); runs with the caller's rights and reads only their own account row; no table, rule, account or existing function changes",
+      "postcheck": "the function exists, runs with the caller's rights, visitors cannot run it; local-test/active_staff_helper_test.sh passes on a throwaway copy"
+    },
+    {
+      "file": "drafts/73_DRAFT_rollback_active_staff_helper.sql",
+      "id": "73",
+      "class": "ROLLBACK",
+      "rollbackOf": "72",
+      "dependsOn": [],
+      "risk": "LOW",
+      "precheck": "stops, changing nothing, if the function was not created by drafts/72 or a rule still uses it",
+      "effect": "removes is_active_staff() again; nothing else changes",
+      "postcheck": "the function is gone"
     }
   ],
   "local": [
