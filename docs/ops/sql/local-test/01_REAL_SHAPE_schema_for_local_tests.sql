@@ -375,15 +375,23 @@ CREATE INDEX audit_log_table_changed_at_idx ON audit_log USING btree (table_name
 -- ---------------------------------------------------------------------------
 -- LOCAL stand-ins (written for testing, not copied from production)
 -- ---------------------------------------------------------------------------
+-- Nov 27: the two production helpers below are word for word production's (owner's read-only look of
+-- Nov 27), except that production's role column is the fixed list app_role (here text). Note what they
+-- do NOT check: current_role() answers for a switched-off account (no is_active), and is_owner_or_admin()
+-- answers for a removed account that is still switched on (no deleted_at). Keep them identical.
 create or replace function public.current_role() returns text language sql stable security definer set search_path = public as
-$$ select role from profiles where id = auth.uid() and is_active and deleted_at is null $$;
+$$ select role from public.profiles where id = auth.uid() and deleted_at is null; $$;
 create or replace function public.is_owner_or_admin() returns boolean language sql stable security definer set search_path = public as
-$$ select coalesce((select role in ('owner','administrator') from profiles where id = auth.uid() and is_active and deleted_at is null), false) $$;
-create or replace function public.is_active_staff() returns boolean language sql stable security definer set search_path = public as
-$$ select exists (select 1 from profiles where id = auth.uid() and is_active and deleted_at is null) $$;
--- Nov 27: production has neither of these two; drafts/72 adds them there (see production_shape_install_test.sh)
-create or replace function public.active_role() returns text language sql stable security definer set search_path = public as
-$$ select role::text from profiles where id = auth.uid() and is_active and deleted_at is null $$;
+$$ select exists (select 1 from profiles where profiles.id = auth.uid() and profiles.role in ('owner', 'administrator') and profiles.is_active = true); $$;
+-- Production has neither of these two until step 0 (drafts/72, installed Nov 27); these are drafts/72's
+-- bodies word for word (the caller's rights; the signed-in person reads their own account row).
+create or replace function public.is_active_staff() returns boolean language sql stable security invoker set search_path = public, pg_temp as
+$$ select exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_active = true and p.deleted_at is null
+     and p.role::text in ('owner', 'administrator', 'manager', 'employee')); $$;
+create or replace function public.active_role() returns text language sql stable security invoker set search_path = public, pg_temp as
+$$ select p.role::text from public.profiles p where p.id = auth.uid() and p.is_active = true and p.deleted_at is null; $$;
+comment on function public.is_active_staff() is 'Health Endeavors drafts/72: an active staff member is signed in';
+comment on function public.active_role() is 'Health Endeavors drafts/72: the role of a switched-on account';
 
 -- every change is recorded with the acting user (production has an audit trigger on all 18 tables).
 -- The body below is production's audit_trigger_function() word for word (owner's read-only look,
