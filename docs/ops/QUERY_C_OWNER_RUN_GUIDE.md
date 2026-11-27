@@ -100,6 +100,15 @@ Export → **Download CSV**. Before sending it, scroll through and check:
 ## What happens after you send it
 
 1. A session analyses the CSV (read-only) and writes the general findings into `docs/ops/` without business details.
+   The first pass is automatic (added Nov 27, 2026): `node tests/tools/query-c-reader.js <file.csv>` answers
+   the stock question with one verdict. **STOP**: something already changes stock (an active timer job that
+   reaches stock, an enabled trigger that writes stock, a stock writer signed-out visitors can call, a stock
+   table with row rules off). **REVIEW**: a person reads an item first. **CLEAR**: nothing else writes stock.
+   **UNKNOWN**: the file is incomplete, which is never treated as clear. It also points out personal data
+   before the file is shared. The reviewed stock functions themselves (drafts 10 and 21) are recognised as
+   the intended path. Tested on Query C's real output from the local copy
+   (`tests/specs/query-c-reader-ext27.spec.js`). The broader evidence check (agents, history coverage) stays
+   in `tests/tools/evidence.js`.
 2. Value rules from section 9 go into the test mock, so the tests enforce them.
 3. Any stock writer found gets its own plan (pause, rewrite, or route through R1–R5), each needing your approval.
 4. Only then is the R1–R5 install runbook (`docs/ops/R1-R5-INSTALL-RUNBOOK.md`) ready for you to use.
