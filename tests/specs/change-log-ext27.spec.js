@@ -42,6 +42,16 @@ test('the log has an entry for every step the records say was installed', () => 
   expect(dates).toEqual([...dates].sort().reverse());                  // newest first
 });
 
+test('every database step the status file marks VERIFIED in production has its change-log entry', () => {
+  // the gap of Nov 27: five steps were VERIFIED in the status file but missing from the log
+  const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'docs', 'ops', 'STATUS_MANIFEST_EXT14.json'), 'utf8'));
+  const verified = Object.entries(manifest.units).filter(([, u]) => u.kind === 'sql' && u.production === 'VERIFIED');
+  expect(verified.length).toBeGreaterThanOrEqual(5);
+  for (const [name, u] of verified) {
+    for (const d of u.sql) expect(text, name + ' (' + d + ')').toMatch(new RegExp('^## \\d{4}-\\d{2}-\\d{2} · [^\\n]*\\(' + d.replace('/', '\\/') + '\\)', 'm'));
+  }
+});
+
 test('each draft the log says was run is still that exact file (fingerprint and line count)', () => {
   const cited = [...text.matchAll(/(docs\/ops\/sql\/drafts\/[\w.-]+\.sql)\s+\((\d+) lines, fingerprint ([0-9a-f]{16})\)/g)];
   expect(cited.length).toBe(5);
