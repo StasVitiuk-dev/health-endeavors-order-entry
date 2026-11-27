@@ -53,12 +53,18 @@ for (const [what, tool, args, plant, expected] of TRAPS) {
   });
 }
 
-test('balanced shards: every spec file is in exactly one of the 3 CI shards, and a new file without a duration is not dropped', () => {
+test('balanced shards: every spec file is in exactly one of the CI shards (4 on GitHub since Nov 26; 3 checked too), and a new file without a duration is not dropped', () => {
   const dir = sandbox(d => fs.writeFileSync(path.join(d, 'tests/specs/zz-new-trap.spec.js'), '// new\n'));
   const all = fs.readdirSync(path.join(dir, 'tests/specs')).filter(f => f.endsWith('.spec.js')).map(f => 'tests/specs/' + f).sort();
-  const got = [1, 2, 3].flatMap(i => run(dir, 'ci-shards.js', ['--list', `${i}/3`]).stdout.trim().split(/\s+/));
-  expect(got.slice().sort()).toEqual(all);
-  expect(new Set(got).size).toBe(got.length);
-  expect(got).toContain('tests/specs/zz-new-trap.spec.js');
+  for (const n of [3, 4]) {
+    const got = Array.from({ length: n }, (_, k) => k + 1).flatMap(i => run(dir, 'ci-shards.js', ['--list', `${i}/${n}`]).stdout.trim().split(/\s+/));
+    expect(got.slice().sort()).toEqual(all);
+    expect(new Set(got).size).toBe(got.length);
+    expect(got).toContain('tests/specs/zz-new-trap.spec.js');
+  }
+  // the workflow asks for exactly as many shards as its matrix runs
+  const wf = fs.readFileSync(path.join(__dirname, '..', '..', '.github', 'workflows', 'ci.yml'), 'utf8');
+  expect(wf).toContain('shard: [1, 2, 3, 4]');
+  expect(wf).toContain('--list ${{ matrix.shard }}/4');
   fs.rmSync(dir, { recursive: true, force: true });
 });
