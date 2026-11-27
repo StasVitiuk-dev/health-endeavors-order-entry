@@ -172,10 +172,13 @@
       const whoName = String(profile.display_name || user.email || '');
       whoAmI.textContent = `${whoName.length > 80 ? whoName.slice(0, 79) + '\u2026' : whoName} — role: ${profile.role}`;
       whoAmI.title = whoAmI.textContent;
-      if (await syncSharedSwitches()) return;                // this browser was brought in line: the page reloads once
-      await syncMenuLayout();                                // the menu chosen for every device, when settings are shared
+      // Nov 27: the menu and the page appear at once, from this browser's choices. The shared
+      // settings are read after that, so the menu is never empty while they load; it is drawn
+      // again only if the menu chosen for every device is a different one.
       renderSidebar('');
       showPage(getLastPage());
+      if (await syncSharedSwitches()) return;                // this browser was brought in line: the page reloads once
+      if (await syncMenuLayout()) renderSidebar(document.getElementById('sidebarSearch').value);
       loadDashboard();
       autoPrintCheck(false);                                 // opened by the daily print link: yesterday's day pack, once
       const expDateInput = document.getElementById('expDate');
@@ -645,10 +648,12 @@
     // At sign-in, with the shared settings in use: the menu the owner chose for every device.
     async function syncMenuLayout() {
       const M = mlMod(), S = rpSettings(), store = rpStore();
-      if (!M || !S || !store || !sharedSettingsOn()) return;
+      if (!M || !S || !store || !sharedSettingsOn()) return false;
       const r = await store.get(S.KEYS.menuLayout);
       const want = r.state === 'installed' ? M.fromShared(r.value) : null;   // null: the owner has not chosen for everyone
-      if (want !== null && want !== mlKey) mlRemember(want);
+      if (want === null || want === mlKey) return false;
+      mlRemember(want);
+      return true;                                                             // the menu changed: draw it again
     }
     // Saves the choice for every device. true = saved for everyone; false = this browser only.
     async function menuLayoutShare(key) {

@@ -206,7 +206,9 @@ test('on a database without the shared settings: printing the recap works, the n
 test('as shipped now (shared settings in use, no extra switch): printing saves the day for every device once', async ({ page, backend }) => {
   await open(page, backend);
   await page.locator('#backupsPanel [data-bk="print-latest"]').click();
-  await expect(page.locator('#backupsPanel [data-bkmessage]')).toContainText('The Home reminder is cleared for this day.');
+  // The note first says "...for this day." and, once the save for every device has worked, "...on every
+  // device." Check the final words: a fast save can replace the first before it is seen (CI, iPhone size).
+  await expect(page.locator('#backupsPanel [data-bkmessage]')).toHaveText('Opened the recap for 2026-11-22 for printing. The Home reminder is cleared for this day on every device.');
   await expect.poll(() => backend.requests.filter(r => r.rpc === 'set_shared_setting').length).toBe(1);
   const save = backend.requests.find(r => r.rpc === 'set_shared_setting').body;
   expect(save).toMatchObject({ p_key: 'recap_printed', p_value: { day: '2026-11-22' } });

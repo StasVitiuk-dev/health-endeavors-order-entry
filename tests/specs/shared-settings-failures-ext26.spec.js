@@ -31,12 +31,16 @@ async function flags(page) {
 test.describe('reading the shared settings fails', () => {
   test('no connection at sign-in: the page says the switches are this browser\'s only, and a switch turned on stays here', async ({ page, backend, pageErrors }, ti) => {
     once(ti);
+    test.setTimeout(60000);                                   // the client's own retries take about 8 s
     backend.tables.shared_settings = SWITCHES({ he_real_profit: true });
     await page.route(u => isSharedRead(String(u)), route => route.abort('failed'));
     await login(page);
     const host = await flags(page);
     const note = host.locator('[data-preview-shared]');
-    await expect(note).toHaveAttribute('data-preview-shared', 'unknown');
+    // The menu and the page open at once; the switches are drawn only once the read has given up
+    // (the client tries again for about 8 s with no connection), never as "could not be read"
+    // while it is still trying.
+    await expect(note).toHaveAttribute('data-preview-shared', 'unknown', { timeout: 25000 });
     await expect(note).toContainText('could not be read just now');
     await expect(note).toContainText('this browser on this device only');
     await expect(host).not.toContainText('Switches are shared');
