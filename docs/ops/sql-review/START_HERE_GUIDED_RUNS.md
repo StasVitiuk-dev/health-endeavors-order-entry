@@ -27,12 +27,14 @@ fingerprint on these pages goes out of date). For every row: **Prepared** = writ
 on a throwaway copy; **Reviewed / Approved / Installed / Verified** are yours, one at a time.
 Today every row is **Prepared** only, except steps 18 and 19: **installed and verified by you on Nov 26,
 2026** (evening, Central: each gave one `pg_advisory_xact_lock` row; the read-only checks showed all three
-search paths ending in `pg_temp`, and `true | 1 | SELECT | 0` for the backup reports table). Nothing else
-is reviewed, approved, installed or verified.
+search paths ending in `pg_temp`, and `true | 1 | SELECT | 0` for the backup reports table), and step 0:
+**installed and verified by you on Nov 27, 2026** (about 2:15 AM Central, after #137 merged: one
+`pg_advisory_xact_lock` row; the read-only check showed `active_role | false | false` and
+`is_active_staff | false | false`). Nothing else is reviewed, approved, installed or verified.
 
 | Order | What it enables | Needs first | File (`docs/ops/sql/drafts/`) | Lines | Fingerprint | Undo file | Before (read-only) | After (read-only check) |
 |---|---|---|---|---|---|---|---|---|
-| 0 | **First, before A and the steps that use it:** the "active staff member" and "role of a switched-on account" checks production does not have (found Nov 27 when step A stopped safely) | nothing | `72_DRAFT_active_staff_helper.sql` | 108 | `da6f7ed3ca5eacc8` | `73_…` | — | Item 18 |
+| 0 | **First, before A and the steps that use it:** the "active staff member" and "role of a switched-on account" checks production does not have (found Nov 27 when step A stopped safely). **Done Nov 27: installed and verified** | nothing | `72_DRAFT_active_staff_helper.sql` | 108 | `da6f7ed3ca5eacc8` | `73_…` | — | Item 18 |
 | A | Settings and switches the same on every phone and computer (your standing rule); the owner or an administrator saves them | **0** | `50_DRAFT_shared_settings.sql` | 193 | `0d17fc4e94fbd847` | `51_…` | — | Item 10, "After running" |
 | 1–8 | as in the table above | as above | (see above) | | | | | |
 | 9 | Parcels and tracking per order, delivery problems watch | nothing | `48_DRAFT_order_parcels.sql` | 392 | `ca25da9142afa5b0` | `49_…` | — | Item 9, "After running" |

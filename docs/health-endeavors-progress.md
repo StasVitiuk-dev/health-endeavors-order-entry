@@ -44,6 +44,7 @@ The weights are a judgement call: the platform is the largest body of work, and 
 
 ## Change log for this tracker
 
+- Nov 27 (early morning): row 14: step 0 (drafts/72, the "active staff member" and "role of a switched-on account" checks the real database lacked) installed by the owner and verified read-only; nothing uses them until step A, so no percentage moves. #137 (step 0, eight waiting drafts fitted to the real database) and #138 (CI fix) merged.
 - Nov 26 (late night): the Brother printer is set up on the owner's Mac and its test page prints correctly on one sheet (after #136); the daily print timer (12:02 AM) is set up and switched off until launch; Supabase plan confirmed Pro with the spend cap on. The Rollo label printer is not bought yet. No percentage moves.
 - Nov 26 (night): row 14: step 18 (drafts/68, history functions' search path) installed by the owner and verified read-only, the first database step in production; it is a small hardening, so no percentage moves. Backups: step 19 (drafts/70, the backup reports table) installed and verified too; Home's backup line waits for the owner's repository step and the switch. Rows 11/12: #130–#134 merged (typed text kept on more lists and Purchase Orders; CI in four groups).
 - Nov 26 (morning): rows 1, 12 and 13 brought up to date. Their "next step" still named merges that happened on Nov 23 (#5/#6 inside #36) and Nov 24 (the #61–#85 chain, `1f86df0`). No percentage changes: nothing new is installed.

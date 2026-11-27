@@ -1,7 +1,9 @@
 # Review item 18 — SQL draft 72: the "active staff member" check
 
-Status: OWNER DECISION REQUIRED · production run PENDING your separate approval · written 2026-11-27
-Nothing here has been run in production. I never run it myself: you run it, after approving it.
+Status: CURRENT · **installed and verified in production by the owner on Nov 27, 2026** (about 2:15 AM
+Central, after #137 merged as `c0143f6`): the install gave one `pg_advisory_xact_lock` row and no error;
+the read-only check below showed exactly `active_role | false | false` and `is_active_staff | false | false`.
+Written 2026-11-27. I never run it myself: you ran it.
 
 ## Why
 
