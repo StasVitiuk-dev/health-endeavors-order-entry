@@ -606,7 +606,8 @@ test.describe('agent hand-offs: on Home', () => {
     expect(saves(backend)).toEqual([]);
     expect(writes(backend)).toEqual([]);                                    // the agents' own log is never changed
     expect(pageErrors.filter(e => !/status of 404/.test(e))).toEqual([]);   // only the refused read of the missing shared settings table (404, as PostgREST answers)
-    expect(pageErrors.length).toBeLessThanOrEqual(reads(backend).length + 1);
+    // at most one such 404 per request to the missing table (since Nov 27 the switches and the menu are read there too)
+    expect(pageErrors.length).toBeLessThanOrEqual(backend.requests.filter(r => r.table === 'shared_settings').length + 1);
   });
 
   test('with the shared settings in use: Handled is saved for every device (ids and times only), and another device shows it handled', async ({ page, backend, pageErrors }) => {
