@@ -11,6 +11,9 @@ used if you keep path A. Related: `ONE_STOCK_COUNT_DECISION_2026-11-24.md` (whic
 - **Orders today:** an order import runs in the **private backups repository**, which Claude never opens.
   Whether it is switched on and still works is **unknown here** (the dashboard showed 0 orders on Nov 23,
   which fits "no store sales yet" and also "the import is off").
+- **The dashboard's "Shopify Order Sync" switch** (Feature Flags; System mode → Emergency turns it off) is
+  **off on purpose before launch** (`OPERATIONS_RUNBOOK_INDEX_EXT9.md`). If today's import obeys that switch,
+  it is not bringing orders in now, which would also explain the 0 orders. Path B obeys the same switch.
 - **The Shopify program draft** in this repository (`edge-drafts/shopify-payouts-sync`, with drafts/42) reads
   **payouts only**; it never touches orders.
 - **Stock:** drafts/76 lets an order take its stock exactly once (and give it back once). Today a person
