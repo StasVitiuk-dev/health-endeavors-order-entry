@@ -10,7 +10,7 @@ test('every checked call from the dashboard matches its draft', () => {
   const r = C.run();
   expect(r.problems).toEqual([]);
   // the tool really reads the calls (it can never pass by finding nothing)
-  expect(r.checked).toBeGreaterThanOrEqual(31);
+  expect(r.checked).toBeGreaterThanOrEqual(36);   // 31 calls + the 5 stock-step install probes
   // production's own functions are listed, not judged; a new name here means a call with no draft
   expect(r.notDraft).toEqual(['employee_activity', 'global_search', 'log_customer_data_access', 'revoke_my_session']);
 });

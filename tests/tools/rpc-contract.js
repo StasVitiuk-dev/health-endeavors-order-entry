@@ -59,6 +59,11 @@ function calls(jsByFile) {
       for (const k of body.matchAll(/(?:^|,)\s*(p_\w+)\s*(?=,|$)/g)) keys.add(k[1]);   // shorthand { p_x }
       out.push({ file, line: s.slice(0, m.index).split('\n').length, name, keys: [...keys] });
     }
+    // install probes written as ['fn', { p_... }] pairs (he-data.js: the stock steps' switches)
+    for (const p of s.matchAll(/\[\s*'(\w+)'\s*,\s*\{([^{}]*)\}\s*\]/g)) {
+      const keys = [...new Set([...p[2].matchAll(/\b(p_\w+)\s*:/g)].map(k => k[1]))];
+      if (keys.length) out.push({ file, line: s.slice(0, p.index).split('\n').length, name: p[1], keys });
+    }
   }
   return out;
 }
