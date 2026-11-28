@@ -115,7 +115,7 @@ Already installed and verified: 0 (`72`), A (`50`), A2 (`74`), 18 (`68`), 19 (`7
 |---|---|---|
 | S1 | Merge the open pull requests (morning list) | — |
 | S2 | Query C and the `feature_flags` look (both only read) | — |
-| S3 | Steps 1, 2, 3 (stock) | S2 shows no other stock writer |
+| S3 | Steps 1, 2, 3 (stock), then 3b (stock per order, item 23) | S2 shows no other stock writer |
 | S4 | Steps 4, 5 (request keys); turn **Receive** on and receive one real delivery | S3 |
 | S5 | Steps 6, 7, 8 (approvals, staff see POs, partial receiving) | — |
 | S6 | Step 9, then 10 (tax, invoices) | your tax answers |
