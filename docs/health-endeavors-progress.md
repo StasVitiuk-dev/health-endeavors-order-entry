@@ -44,6 +44,7 @@ The weights are a judgement call: the platform is the largest body of work, and 
 
 ## Change log for this tracker
 
+- Nov 27 (night): row 14: settings shared by every device merged (#145, `2d4ba6c`) and checked live by the owner on the computer (phone not yet). No percentage moved tonight: percentages are re-scored only under the frozen rules in `docs/ops/READINESS_LEDGER.md`.
 - Nov 27 (morning, owner asleep): no percentage moves (readiness ledger v1 rules: no R item reached production; the night's pull requests are records, tests and one display fix). Row 14: shared settings on every device prepared as a pull request (not merged). The totals and weights are now frozen in `docs/ops/READINESS_LEDGER.md`.
 - Nov 27 (night): the weighted total used an old 10% for row 2 (launch-required fixes) while the row itself says ≈30% (3 of 10 on `main`, checked Nov 25); corrected, so the total is ≈42% (was ≈39%). Nothing else changed. A two-week launch plan is proposed in `docs/ops/LAUNCH_PLAN_2_WEEKS.md` (owner decision required).
 - Nov 27 (after 4 AM): row 14: step A2 (drafts/74) installed and verified; settings shared by every device work in production (first shared save recorded in the history log). Owner rule "everything updated everywhere" is now possible for switches; the phone and the make-it-the-rule update are next. No percentage moves.

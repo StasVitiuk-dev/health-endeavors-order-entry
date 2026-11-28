@@ -43,6 +43,16 @@ One item deserves an owner decision:
 
 So the three triggers compose correctly: no partial write, no audit inconsistency.
 
+**Correction (Nov 27, 2026).** `trigger_order_test.sh` was never saved in the repository, so the
+"10/10" above (and in `EXT20D_REVALIDATION_REPORT.md`) could not be re-run. It was rebuilt as
+`docs/ops/sql/local-test/profiles_trigger_order_test.sh` (19 checks, part of the local database
+suite) and every claim above held. What it uses: the guard is the exact FIX 2 SQL from
+`PRODUCTION_CHANGE_LOG.md`; the history recorder is production's body word for word; the
+account-number lock is a **stand-in written from its description**, because its production text
+is not in this repository. So the lock line proves how the triggers combine, not production's
+exact lock. The rebuild also checks that the test can fail: with the guard switched off, an
+employee can promote themselves again.
+
 ## 5. SECURITY DEFINER / FIX 3 status
 
 Carried from the Query D review and its hardening (see `QUERY_D_FUNCTION_SECURITY_REVIEW.md`): 32 owner-rights functions; 9 trigger-only ones are unreachable; 10 are callable by visitors with no caller check. FIX 3 (revoke from public+anon, keep signed-in/service/owner) is prepared and tested — 23/23 main plus 11/11 edge cases (overload targeting, partial-revoke start, interrupted-transaction atomicity, repeat apply/rollback, no-widening rollback, false-green guard). Not applied. The next owner step is the read-only Query D2.

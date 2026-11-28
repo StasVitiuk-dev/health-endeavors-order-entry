@@ -53,6 +53,7 @@ step "permissions inventory (Query G)" bash "$LT/permissions_inventory_test.sh" 
 step "views and profile role guard (Query G2)" bash "$LT/views_profile_guard_test.sh" $C
 step "timeline view and profile triggers (Query G3)" bash "$LT/timeline_profile_triggers_test.sh" $C
 step "drift check for the applied security fixes (query 11): every drift a FAIL, a removed view included" bash "$LT/security_fix_drift_check_test.sh" $C
+step "profiles: three triggers together (guard, lock, audit)" bash "$LT/profiles_trigger_order_test.sh" $C
 step "schema drift (Query A + A2 export vs page and local schema)" bash "$LT/schema_drift_test.sh" $C
 step "RLS contract + audit immutability (local model, 6 callers)" bash "$LT/rls_contract_test.sh" $C
 step "integrity constraints" bash "$LT/integrity_constraints_test.sh" $C
