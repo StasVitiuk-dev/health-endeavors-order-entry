@@ -7365,7 +7365,7 @@
     // them back, once. The rules are in the database (all or nothing, by SKU, owner or active
     // administrator); assets/inventory/he-order-stock.js asks and words the answers. Each
     // change asks for a second press.
-    const osState = { order: null, view: null, message: '', confirm: '', busy: '', waiting: null };   // busy: '' or 'take' / 'back' while it is being sent; waiting: recent orders not yet taken (null = not read)
+    const osState = { order: null, view: null, message: '', confirm: '', busy: '', waiting: null, waitingMore: false };   // busy: '' or 'take' / 'back' while it is being sent; waiting: recent orders not yet taken (null = not read)
     const osMod = () => (window.HE && window.HE.inventory && window.HE.inventory['he-order-stock']) || null;
     let osStoreObj = null;   // one store, so its "already being sent" guard holds across presses
     function osStore() { const M = osMod(); if (!M || !orderStockOn()) return null; return osStoreObj || (osStoreObj = M.createStore({ client: supabase, enabled: true })); }
@@ -7382,6 +7382,7 @@
       const r = await store.waiting(14);
       if (r.busy) return;
       osState.waiting = r.ok ? r.orders : null;
+      osState.waitingMore = !!(r.ok && r.more);
       renderOrderStock();
     }
     function osSay(text) { osState.message = text; renderOrderStock(); announce(text); }
@@ -7407,10 +7408,12 @@
             h('button', { type: 'submit', class: 'small secondary' }, 'Find the order')),
           Array.isArray(osState.waiting) ? (osState.waiting.length
             ? h('div', { class: 'u-mt-8', 'data-oswaiting': String(osState.waiting.length) },
-                h('p', { class: 'u-fs-12 u-m-0' }, 'Not taken off stock yet (orders of the last 14 days, cancelled and refunded ones left out):'),
+                h('p', { class: 'u-fs-12 u-m-0' }, 'Not taken off stock yet (' + (osState.waitingMore ? 'the newest 50 orders of the last 14 days' : 'orders of the last 14 days') + '; cancelled, refunded and voided ones left out):'),
                 h('div', { class: 'scanToggleRow u-mt-4' }, osState.waiting.slice(0, 8).map(w => h('button', { type: 'button', class: 'small secondary', 'data-oswait': w.order_number }, w.order_number)),
                   osState.waiting.length > 8 ? h('span', { class: 'u-fs-12' }, '+' + (osState.waiting.length - 8) + ' more') : null))
-            : h('p', { class: 'u-fs-12 u-mt-8', 'data-oswaiting': '0' }, 'Every order of the last 14 days has taken its stock.')) : null,
+            : h('p', { class: 'u-fs-12 u-mt-8', 'data-oswaiting': '0' }, osState.waitingMore
+                ? 'The newest 50 orders of the last 14 days have all taken their stock. Older ones are not checked here: find them by number.'
+                : 'Every order of the last 14 days has taken its stock.')) : null,
           o && v ? h('div', { 'data-osorder': String(o.id), 'data-osstate': v.state },
             h('p', { class: 'u-fs-13 u-mt-8' }, 'Order ' + o.order_number + (o.deleted ? ' (deleted)' : '') + (o.customer_name ? ' · ' + o.customer_name : '') + ' · ' + STATE[v.state] + ' · ' + v.bottles + (v.bottles === 1 ? ' bottle' : ' bottles')),
             o.deleted ? h('p', { class: 'hint u-m-0', 'data-osdeleted': '1' }, 'This order was deleted. It can never take bottles off stock; if it took some before it was deleted, give them back here.') : null,

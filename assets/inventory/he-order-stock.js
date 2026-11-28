@@ -14,7 +14,8 @@
 //     'none' | 'taken' | 'given_back' | 'partly' (some lines taken, some not)
 //   waiting(orders, moves)   the recent orders that have not taken their stock yet (Nov 28), leaving out
 //     cancelled, fully refunded, voided and expired ones, newest first
-//     store.waiting(days)    the same, read from the database (orders of the last `days` days, at most 50)
+//     store.waiting(days)    the same, read from the database (orders of the last `days` days, the newest 50;
+//                            `more` says when there may be older ones it did not check)
 //
 // A second press while one is on its way is refused here ("already being sent"); the
 // database refuses a second take anyway. Dual-mode (Node require + HE.inventory).
@@ -30,6 +31,7 @@
   const str = (v) => (typeof v === 'string' ? v : (typeof v === 'number' && isFinite(v) ? String(v) : ''));
   const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
   const MAX_LINES = 200;
+  const WAITING_MAX = 50;   // orders read for the waiting list
 
   function friendlyError(err) {
     const code = err && err.code != null ? String(err.code) : '';
@@ -125,14 +127,15 @@
       const d = Number.isInteger(days) && days > 0 && days <= 60 ? days : 14;
       const since = new Date(Date.now() - d * 86400000).toISOString();
       return once('waiting', async function () {
-        const o = await client.from('orders').select('id, order_number, status, placed_at, deleted_at').gte('placed_at', since).is('deleted_at', null).order('placed_at', { ascending: false }).limit(50);
+        const o = await client.from('orders').select('id, order_number, status, placed_at, deleted_at').gte('placed_at', since).is('deleted_at', null).order('placed_at', { ascending: false }).limit(WAITING_MAX);
         if (o && o.error) return refuse(friendlyError(o.error));
         const rows = (Array.isArray(o && o.data) ? o.data : []).filter(isObj);
         const ids = rows.map(x => str(x.id)).filter(x => UUID.test(x));
         if (!ids.length) return { ok: true, orders: [] };
         const m = await client.from('order_stock_moves').select('order_id, kind').in('order_id', ids).eq('kind', 'take').limit(MAX_LINES * 4);
         if (m && m.error) return refuse(friendlyError(m.error));
-        return { ok: true, orders: waiting(rows, m && m.data) };
+        // more: the newest WAITING_MAX orders were read, so older ones of the period were not checked here
+        return { ok: true, orders: waiting(rows, m && m.data), more: rows.length >= WAITING_MAX };
       });
     }
     return { findOrder, forOrder, waiting: recentWaiting, take: (id) => call('take_order_stock', id), giveBack: (id) => call('give_back_order_stock', id) };

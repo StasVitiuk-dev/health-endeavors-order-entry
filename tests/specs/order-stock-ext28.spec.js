@@ -279,6 +279,21 @@ test.describe('on the Orders page', () => {
     expect(backend.tableWrites()).toEqual([]);
   });
 
+  test('with more than 50 recent orders, the card never says "every order" when it checked only the newest 50', async ({ page, backend }) => {
+    install(backend);
+    const day = (n) => new Date(Date.now() - n * 86400000).toISOString();
+    backend.tables.orders[0].placed_at = day(10); backend.tables.orders[1].placed_at = day(11);   // older, not taken
+    for (let n = 0; n < 50; n++) {
+      backend.tables.orders.push({ id: id(100 + n), order_number: '#2' + String(n).padStart(3, '0'), customer_name: 'SYNTHETIC', placed_at: day(1), status: 'paid', channel: 'shopify', total: 10, deleted_at: null });
+      backend.tables.order_stock_moves.push({ order_id: id(100 + n), order_item_id: id(11), kind: 'take', quantity: 1 });
+    }
+    await on(page);
+    await login(page);
+    await gotoPage(page, 'ordersPanel');
+    await expect(page.locator('#orderStockHost [data-oswaiting="0"]')).toHaveText('The newest 50 orders of the last 14 days have all taken their stock. Older ones are not checked here: find them by number.');
+    expect(backend.tableWrites()).toEqual([]);
+  });
+
   test('when every recent order has taken its stock, the card says so', async ({ page, backend }) => {
     install(backend);
     backend.tables.orders.forEach(o => { o.placed_at = new Date(Date.now() - 86400000).toISOString(); });
