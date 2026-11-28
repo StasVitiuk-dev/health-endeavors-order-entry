@@ -128,7 +128,7 @@ test.describe('the diary and "Handled"', () => {
     await expect(page.locator('#agentDiaryHost [data-diaryhandledon]')).toHaveCount(0);
   });
 
-  test('switched on: only the step passed to a person has the button; pressing it marks it here and takes it off Home; nothing is written to the database', async ({ page, backend, pageErrors }) => {
+  test('switched on: only the step passed to a person has the button; pressing it marks it here and takes it off Home; no business record is written (the mark is a shared setting)', async ({ page, backend, pageErrors }) => {
     backend.tables.ai_decision_log = ROWS;
     await flags(page, ['he_agent_diary', 'he_attention_feed', 'he_handoff_handled']);
     await login(page); await gotoPage(page, 'aiPanel');
@@ -136,9 +136,13 @@ test.describe('the diary and "Handled"', () => {
     await expect(d.locator('[data-diaryhandled]')).toHaveCount(1);
     const btn = entry.locator('[data-diaryhandled]');
     await expect(btn).toHaveAccessibleName(/^Handled: #7 Customer Service Agent, /);
+    const beforeClick = backend.requests.length;
     await btn.click();
     await expect(entry.locator('[data-diaryhandledon]')).toHaveText('Handled Nov 24');
     await expect(d.locator('[data-diaryhandled]')).toHaveCount(0);
+    await expect.poll(() => backend.requests.slice(beforeClick).filter(r => r.rpc === 'set_shared_setting').length).toBeGreaterThan(0);
+    // pressing Handled called no function other than the shared-settings save (reads at sign-in also use functions)
+    expect([...new Set(backend.requests.slice(beforeClick).filter(r => r.rpc).map(r => r.rpc))]).toEqual(['set_shared_setting']);
     expect(await page.evaluate(() => document.activeElement && document.activeElement.getAttribute('data-diaryentry'))).toBe(HANDOFF);
     expect(Object.keys(JSON.parse(await page.evaluate(() => localStorage.getItem('he_handoffs_handled'))))).toEqual([HANDOFF]);
     // Home agrees: the hand-off is no longer in the list
@@ -148,8 +152,13 @@ test.describe('the diary and "Handled"', () => {
     // and it stays marked after a reload
     await page.reload(); await expect(page.locator('#dash')).toBeVisible(); await gotoPage(page, 'aiPanel');
     await expect(entry.locator('[data-diaryhandledon]')).toHaveText('Handled Nov 24');
-    expect(backend.requests.filter(r => r.method && r.method !== 'GET' && r.method !== 'HEAD' && String(r.path || '').startsWith('/rest/v1/') && !r.rpc)).toEqual([]);   // no table was written; nothing was saved by a function either
-    expect(backend.requests.filter(r => r.rpc === 'set_shared_setting')).toEqual([]);
+    expect(backend.requests.filter(r => r.method && r.method !== 'GET' && r.method !== 'HEAD' && String(r.path || '').startsWith('/rest/v1/') && !r.rpc)).toEqual([]);   // no table was written
+    // Nov 27: the shared settings are in use on every device, so the mark is saved there (and only there):
+    // one setting, handoffs_handled, holding this hand-off
+    const shared = backend.requests.filter(r => r.rpc === 'set_shared_setting').map(r => r.body);
+    expect(shared.length).toBeGreaterThan(0);
+    expect(shared.every(b => b.p_key === 'handoffs_handled' && Object.keys(b.p_value.items).join() === HANDOFF)).toBe(true);
+    expect(backend.tables.shared_settings.map(r => r.key)).toEqual(['handoffs_handled']);
     expect(pageErrors).toEqual([]);
   });
 

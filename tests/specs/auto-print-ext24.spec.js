@@ -33,6 +33,21 @@ test.describe('the rules (no browser)', () => {
     for (const junk of [null, undefined, 'yesterday', 20261123, {}, '2026-11-23T08:00']) expect(A.due(junk, now)).toMatchObject({ due: true, last: '' });
   });
 
+  // Nov 27 night: the Mac can be asleep or off at 12:02 AM and the timer does not run late; the days the
+  // link did not open for are named (and the page never says a day was "printed": it only opened the window)
+  test('the days the link did not open for are named, oldest first, at most 14; none before the first opening', () => {
+    const now = new Date(2026, 10, 27, 0, 2).getTime();                                     // Fri Nov 27, 12:02 AM
+    expect(A.missed('2026-11-23', now)).toEqual(['2026-11-24', '2026-11-25']);              // yesterday (26th) is printed now
+    expect(A.missed('2026-11-25', now)).toEqual([]);                                         // nothing in between
+    expect(A.missed('2026-11-26', now)).toEqual([]);
+    expect(A.missed('', now)).toEqual([]);                                                   // never opened this way: nothing to name
+    expect(A.missed('2026-10-01', now)).toHaveLength(14);
+    expect(A.missed('2026-10-01', now)[0]).toBe('2026-10-02');
+    expect(A.missed('2026-02-27', new Date(2026, 2, 2, 0, 2).getTime())).toEqual(['2026-02-28']);   // across the end of February
+    expect(A.missed('2026-12-30', new Date(2027, 0, 2, 0, 2).getTime())).toEqual(['2026-12-31']);   // across a new year
+    for (const junk of [null, undefined, 'x', 20261123]) expect(A.missed(junk, now)).toEqual([]);
+  });
+
   test('the link is made from the page\'s own address and nothing else', () => {
     expect(A.link('https://shop.example.test/app/owner-login.html')).toBe('https://shop.example.test/app/owner-login.html?print=daypack');
     expect(A.link('https://shop.example.test/owner-login.html?x=1&print=daypack#top')).toBe('https://shop.example.test/owner-login.html?print=daypack');
@@ -74,12 +89,12 @@ test.describe('the daily print link', () => {
     await expect(page.locator('[data-printdayorders]')).toHaveAttribute('data-printdayorders', '2');
     await expect(page.locator('[data-printdaypack]')).toContainText('The saved nightly recap of this day');
     await expect(page.locator('#bkDay')).toHaveValue('2026-11-23');
-    await expect(page.locator('[data-bkautolast]')).toHaveText('Last printed this way in this browser: the day pack for 2026-11-23.');
+    await expect(page.locator('[data-bkautolast]')).toHaveText('Last opened for printing this way in this browser: the day pack for 2026-11-23. Whether it came out of the printer is not known here: check the paper.');
     expect(await page.evaluate(() => localStorage.getItem('he_auto_print_day'))).toBe('2026-11-23');
     // the same link again that morning (the reminder fired twice, or the page was refreshed)
     await page.reload();
     await expect(page.locator('#dash')).toBeVisible();
-    await expect(page.locator('#backupsPanel [data-bkmessage]')).toHaveText('The day pack for 2026-11-23 was already printed from this link in this browser. Nothing was printed again.');
+    await expect(page.locator('#backupsPanel [data-bkmessage]')).toHaveText('The day pack for 2026-11-23 was already opened for printing from this link in this browser. Nothing was opened again.');
     expect(await printed(page)).toBe(0);
     // the next morning it prints the next day
     await page.clock.setFixedTime(new Date('2026-11-25T14:00:00Z'));
@@ -100,14 +115,14 @@ test.describe('the daily print link', () => {
     await expect(S.locator('h3')).toHaveText('Automatic daily printing');
     await expect(S).toContainText('A web page cannot wake up on its own');
     await expect(page.locator('#bkAutoLink')).toHaveValue(/\/owner-login\.html\?print=daypack$/);
-    await expect(S.locator('[data-bkautolast]')).toHaveText('Not printed this way in this browser yet.');
+    await expect(S.locator('[data-bkautolast]')).toHaveText('Not opened for printing this way in this browser yet.');
     expect(await printed(page)).toBe(0);
     await S.locator('[data-bk="auto-copy"]').click();
     expect(await page.evaluate(() => window.__copied)).toEqual([await page.inputValue('#bkAutoLink')]);
     await S.locator('[data-bk="auto-try"]').click();
     await expect.poll(() => printed(page)).toBe(1);
     await expect(page.locator('[data-printdaypack]')).toHaveAttribute('data-printdaypack', '2026-11-23');
-    await expect(page.locator('[data-bkautolast]')).toHaveText('Last printed this way in this browser: the day pack for 2026-11-23.');
+    await expect(page.locator('[data-bkautolast]')).toHaveText('Last opened for printing this way in this browser: the day pack for 2026-11-23. Whether it came out of the printer is not known here: check the paper.');
     // trying again prints again: the button is for testing the printer
     await page.locator('[data-bkauto] [data-bk="auto-try"]').click();
     await expect.poll(() => printed(page)).toBe(2);
