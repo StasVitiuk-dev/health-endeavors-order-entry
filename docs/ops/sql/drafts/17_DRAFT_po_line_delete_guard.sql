@@ -135,5 +135,5 @@ create trigger he_po_line_delete_guard
   before insert or update or delete on public.purchase_order_items
   for each row execute function public._he_po_line_delete_guard();
 
-revoke all on function public._he_po_line_delete_guard() from public;
+revoke all on function public._he_po_line_delete_guard() from public, anon, authenticated;  -- a trigger function: nobody calls it directly (FIX 3 rule: visitors are named, not only "public")
 commit;
