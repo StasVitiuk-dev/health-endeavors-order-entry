@@ -56,6 +56,7 @@ reviewed, approved, installed or verified.
 | 17 | Managers decide deliveries and returns someone else recorded (your choice A, Nov 25) | **4** and **15a** (best after 15b) | `66_DRAFT_managers_approve_stock.sql` | 119 | `d00d38b72d87af87` | `67_…` | — | Item 5, "Prepared for A" |
 | 18 | Small hardening of three existing history and sign-in functions (pg_temp named last; nothing else changes) | nothing | `68_DRAFT_history_functions_search_path.sql` | 52 | `5a842bd5b4bb92c4` | `69_…` | — | `docs/ops/OWNER_PROTECTION_AND_PRIVATE_HISTORY.md`, "Second look" |
 | 19 | Backup status on Home: a small table the backup job writes after each run, read by you and administrators (then one step in the backups repository) | nothing | `70_DRAFT_backup_reports.sql` | 73 | `fef6f3402edfcbf6` | `71_…` | — | `docs/ops/RECOVERY_AND_BACKUP_READINESS.md` §3a |
+| 20 | Stock per order (Nov 28): an order takes its bottles off the stock count once, all or nothing, and gives them back once if cancelled (launch promise 2; the Orders button waits for it) | nothing | `76_DRAFT_order_stock_moves.sql` | 299 | `eee361fb68818a31` | `77_…` | [Item 23](ITEM_23_STOCK_PER_ORDER.md), "Before running" | [Item 23](ITEM_23_STOCK_PER_ORDER.md), "After running" |
 | — | Your private history hidden from administrators | — | **not needed**: already true in production (your second read-only look, Nov 25) | | | | | |
 
 Real dependencies (all others are independent): 38 needs 36 · 64 needs 62 · 66 needs 40 and 62 · the helper needs 64 ·
@@ -184,7 +185,7 @@ the query anyway. If it mentions anything else (for example `drop table` on a ta
 |---|---|---|---|---|---|---|
 | 2 | `34_DRAFT_stock_count_adjustments.sql` | 456 | `c94c2174afba71d0` | Item 2, "After running" | `true \| 0 \| 0 \| false` | `35_…` |
 | 3 | `44_DRAFT_staff_read_purchase_orders.sql` | 55 | `c87c37c54901a648` | Item 7, "After running" | two rows, both `SELECT` | `45_…` |
-| 4 | `40_DRAFT_partial_receiving_returns.sql` | 1032 | `c9f81f40f95a58c1` | Item 5, "After running" | `true \| true \| 0 \| 0 \| false` | `41_…` |
+| 4 | `40_DRAFT_partial_receiving_returns.sql` | 1041 | `670cbb65ca91f4b7` | Item 5, "After running" | `true \| true \| 0 \| 0 \| false` | `41_…` |
 | 5a | `36_DRAFT_supplier_documents.sql` | 1034 | `54e3c73d8186273c` | Item 4, "After draft 36" | `9 \| 0 \| 0 \| false` | `37_…` |
 | 5b | `38_DRAFT_supplier_document_files.sql` (only after 5a) | 97 | `4f260ac2f075a5df` | Item 4, "After draft 38" | `false \| 10485760 \| {application/pdf,image/jpeg,image/png} \| 2` | `39_…` |
 | 6 | `32_DRAFT_invoices.sql` | 951 | `0de2357179e1c90d` | Item 1, "After running" | `true \| true \| true \| 0 \| 1 \| false` | `33_…` |

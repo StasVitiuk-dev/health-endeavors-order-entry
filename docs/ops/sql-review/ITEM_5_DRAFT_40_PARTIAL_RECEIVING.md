@@ -107,7 +107,7 @@ an employee can; before that, the page would have refused a manager outright.)
 
 | File | Lines | Fingerprint (SHA-256, first 16) |
 |---|---|---|
-| `docs/ops/sql/drafts/40_DRAFT_partial_receiving_returns.sql` (install) | 1032 | `c9f81f40f95a58c1` |
+| `docs/ops/sql/drafts/40_DRAFT_partial_receiving_returns.sql` (install) | 1041 | `670cbb65ca91f4b7` |
 | `docs/ops/sql/drafts/41_DRAFT_rollback_partial_receiving_returns.sql` (undo) | 79 | `922a93cc5e6d5f24` |
 
 Before running, the file you paste must show the same fingerprint
@@ -132,6 +132,10 @@ you. Tested only on throwaway local copies with made-up data.
 
 Also in every case:
 - **Retries and double clicks:** each submission carries a request key, so sending it again records once.
+- **One way back only (added Nov 28, with item 23):** if stock per order (drafts/76) is installed, a
+  return cannot be decided for an order line already given back as a cancelled order (and that
+  order cannot be given back once a return is recorded), so the same bottles never come back twice.
+  Tested in `order_stock_moves_test.sh` with both drafts installed.
 - **Two approvals at the same moment:** approvals lock the rows they change, so the same units are never counted twice, and nothing beyond what is still to come is received.
 - **History:** every change is a stock movement (bucket, change, who asked, who approved, why, where it came from), copied into `inventory_adjustments` so today's history screen shows it. Nobody can write, change or delete a movement by hand, the owner included.
 

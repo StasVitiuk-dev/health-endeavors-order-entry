@@ -25,8 +25,8 @@ manager accounts, email campaigns, customer reviews store, extra agents, phone e
 | 1 | **Product list from the lab**: name, size, flavour, exact code (SKU), price, cost, photos | **Stas** | **Day 3 (Mon Nov 30)** | No products, no store, no stock counts (R8) |
 | 2 | Launch-critical database steps (below), 2–4 per evening | Stas runs, Claude prepares | Days 2–7 | Stock must be right from the first order (R1–R5) |
 | 3 | Sales tax: your Illinois registration and the rate(s) you charge | **Stas** (or accountant) | Day 5 | Invoices and tax records (steps 6 and 8) |
-| 4 | Store settings in Shopify: payments, shipping rates, policies | **Stas**, Claude writes the texts | Day 8 | Checkout |
-| 5 | Legal pages: privacy, terms, refund/return, shipping | Claude drafts, **Stas approves** | Day 8 | Required by Shopify and payment providers |
+| 4 | Store settings in Shopify: payments, shipping rates, policies (**click-by-click steps written Nov 28: `SHOPIFY_STORE_SETUP_GUIDE.md`**) | **Stas**, Claude writes the texts | Day 8 | Checkout |
+| 5 | Legal pages: privacy, terms, refund/return, shipping (**drafted Nov 28** with 9 choices and 3 lawyer questions; sent to the owner as a file, kept out of this repository until the owner decides where store texts live) | Claude drafts, **Stas approves** | Day 8 | Required by Shopify and payment providers |
 | 6 | Rollback practice (one time, 15 minutes) | **Stas**, Claude guides | Day 10 | Safety on launch day |
 | 7 | Test orders end to end (fake card, then one real small order refunded) | both | Days 11–12 | Proof everything is connected |
 
@@ -37,7 +37,7 @@ manager accounts, email campaigns, customer reviews store, extra agents, phone e
 | **1 · Fri Nov 27** | Shared settings for every device (PR); this plan; audit every launch-critical database step against your real database's shape (as tonight's history-recorder check), fix any mismatch | Merge the PRs I mark ready (5 min) |
 | **2 · Sat Nov 28** | Guides for steps R1–R5 (stock) in tonight's format: exact SQL, what it does in 3 lines, the read-only check (**done Nov 27**: item 20) | Database evening 1: Query I (reads only) + steps 2–3 (30 min) |
 | **3 · Sun Nov 29** | Product import ready for your list (template + checker already built) | **Send the product list** (the earlier the better); database evening 2: stock functions R1 + R4 (30 min) |
-| **4 · Mon Nov 30** | Import your products into a checked file for Shopify; flag anything missing | Database evening 3: R2, R3, R5 + request keys (30 min) |
+| **4 · Mon Nov 30** | Import your products into a checked file for Shopify; flag anything missing (**the Shopify file button is built, Nov 28**) | Database evening 3: R2, R3, R5 + request keys (30 min) |
 | **5 · Tue Dec 1** | Tax rate screen ready; invoice numbering ready | Tax answers (registration, rate); database evening 4: tax rates + invoices (30 min) |
 | **6 · Wed Dec 2** | Simple-theme setup written as click-by-click steps (your logo, colours, products). Shopify stays off-limits to me unless you approve that specific task | Set up the theme with the steps, or approve me doing it in Shopify (20–40 min) |
 | **7 · Thu Dec 3** | Legal page drafts; shipping and returns texts | Read and approve the texts (30 min) |
@@ -56,6 +56,7 @@ the index had listed drafts 10–29 as a separate decision). Done already: 0, 18
 
 1. Query I (reads only: the day counted in Central time)
 2. Stock functions **R1–R5** (drafts 10, 21, then 17; one at a time, each with its switch) — stock never doubles or goes wrong
+   - **Added Nov 28: stock per order (draft 76)**, so a sale takes its bottles off the count exactly once and a cancellation gives them back once (launch promise 2). Needs your answer on **when** an order takes its stock (paid or shipped) before anything calls it
 3. Request keys (drafts 19, 27) — no double order or double save after a dropped connection
 4. Step 2 (stock-count approval, draft 34), step 3 (staff see purchase orders, 44), step 4 (partial receiving, 40)
 5. Step 8 (tax rates, 46) then step 6 (invoices, 32)
@@ -93,11 +94,12 @@ if a page shows an old one). The pages named give the read-only check to run aft
 | 1 | Stock functions R1–R5 | `10_DRAFT_stock_functions.sql` | 618 | `7fd83dde8009f018` | a table, column, helper or index is missing | item 20 (6 rows; md5 `f6d9c2c8…`) | `11_…` |
 | 2 | The five stock switches, off | `21_DRAFT_stock_function_switches.sql` | 79 | `c0d789cc056b7f27` | no drafts/10, or `feature_flags` cannot fill its own id | 5 rows, all off | `22_…` |
 | 3 | PO line guard (optional) | `17_DRAFT_po_line_delete_guard.sql` | 139 | `3c09d100648ba588` | the purchase-order tables are missing | the guard is there | `18_…` |
+| 3b | Stock per order (Nov 28) | `76_DRAFT_order_stock_moves.sql` | 299 | `eee361fb68818a31` | orders, order lines, products or stock differ from Query A, or a needed index or helper is missing | [Item 23](sql-review/ITEM_23_STOCK_PER_ORDER.md) | `77_…` |
 | 4 | Request keys | `19_DRAFT_request_keys.sql` | 88 | `dd917fab8111e5b1` | the dashboard could not write the new column (a missing table is skipped and named) | item 21 | `20_…` |
 | 5 | Request-keys switch, off | `27_DRAFT_request_keys_switch.sql` | 51 | `0447f2ae7d10c478` | no drafts/19, or `feature_flags` | 1 row, off | `28_…` |
 | 6 | Stock-count approval | `34_DRAFT_stock_count_adjustments.sql` | 456 | `c94c2174afba71d0` | a helper or the products table is missing | item 2 | `35_…` |
 | 7 | Staff see purchase orders | `44_DRAFT_staff_read_purchase_orders.sql` | 55 | `c87c37c54901a648` | the helper or the tables are missing, or row rules are off | item 7 | `45_…` |
-| 8 | Partial receiving and returns | `40_DRAFT_partial_receiving_returns.sql` | 1032 | `c9f81f40f95a58c1` | a helper or the purchase-order tables are missing | item 5 | `41_…` |
+| 8 | Partial receiving and returns | `40_DRAFT_partial_receiving_returns.sql` | 1041 | `670cbb65ca91f4b7` | a helper or the purchase-order tables are missing | item 5 | `41_…` |
 | 9 | Tax rates | `46_DRAFT_tax_rates.sql` | 239 | `186cffd0d6dcfdbc` | a helper or the tasks / history tables are missing | item 8 | `47_…` |
 | 10 | Invoices (after the tax answers) | `32_DRAFT_invoices.sql` | 951 | `0de2357179e1c90d` | a helper or the orders / tasks / history tables are missing | item 1 | `33_…` |
 | 11 | Shopify payouts and money differences | `42_DRAFT_shopify_payouts_money_issues.sql` | 242 | `dfbcaa89a6112c17` | a helper is missing | item 6 | `43_…` |
@@ -113,7 +115,7 @@ Already installed and verified: 0 (`72`), A (`50`), A2 (`74`), 18 (`68`), 19 (`7
 |---|---|---|
 | S1 | Merge the open pull requests (morning list) | — |
 | S2 | Query C and the `feature_flags` look (both only read) | — |
-| S3 | Steps 1, 2, 3 (stock) | S2 shows no other stock writer |
+| S3 | Steps 1, 2, 3 (stock), then 3b (stock per order, item 23) | S2 shows no other stock writer |
 | S4 | Steps 4, 5 (request keys); turn **Receive** on and receive one real delivery | S3 |
 | S5 | Steps 6, 7, 8 (approvals, staff see POs, partial receiving) | — |
 | S6 | Step 9, then 10 (tax, invoices) | your tax answers |

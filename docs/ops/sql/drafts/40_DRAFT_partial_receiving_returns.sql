@@ -610,6 +610,15 @@ declare
   v_sku text;
 begin
   if not (old.status = 'awaiting_inspection' and new.status = 'decided') then return null; end if;
+  -- drafts/76 (if installed): a line already given back as a cancelled order cannot also come
+  -- back as a return, or its bottles would be counted twice. The same per-order lock as drafts/76,
+  -- so a give-back and this decision never pass each other unseen.
+  if to_regclass('public.order_stock_moves') is not null then
+    perform pg_advisory_xact_lock(hashtext('health_endeavors_order_stock:' || (select oi.order_id::text from public.order_items oi where oi.id = new.order_item_id)));
+    if exists (select 1 from public.order_stock_moves m where m.order_item_id = new.order_item_id and m.kind = 'give_back') then
+      raise exception 'That order line was already given back to stock when its order was cancelled; nothing was changed. Cancel this return instead.' using errcode = '23514';
+    end if;
+  end if;
   select oi.sku into v_sku from public.order_items oi where oi.id = new.order_item_id;
   select p.id into v_product from public.products p where lower(p.sku) = lower(v_sku);
   if v_product is null and new.restock + new.damaged + new.unsuitable > 0 then

@@ -43,13 +43,15 @@ approved it.
 | A purchase-order line changed while that order is being received | refused | drafts/17 |
 | A new record saved twice after a dropped connection | refused by the request key | drafts/19, 27; `request_keys_test.sh`, `request_key_scale_test.sh` |
 | Stock-count corrections need the owner's or an administrator's approval, applied once | yes | drafts/34; `stock_count_adjustments_test.sh`, `stock_count_apply_once_test.sh` |
+| An order takes its bottles off stock once, all or nothing; gives them back once when cancelled (a deleted order: give back only) | yes (Nov 28, not installed) | drafts/76; `order_stock_moves_test.sh` |
+| **One way back only:** a sold line comes back to the shelf as a cancelled order **or** as a return (Returns page "Mark Received" with a restock, R3, or a drafts/40 inspection), never both, also at the same moment | refused the second way (Nov 28) | drafts/76 + 40; `order_stock_moves_test.sh` "with drafts/40 too" and "with the Returns page" |
 
 ## Not built, and what each waits for
 
 | Case | State | Waits for |
 |---|---|---|
 | An order reserves stock when it is placed; a cancellation releases it | **not built**: the `reserved` bucket exists, nothing fills it automatically; orders change stock only through a person's adjustment | the owner's decision on one stock count for every channel (task "One stock count for all channels") and R9 |
-| A Shopify order message arriving twice, or an older one after a newer one | **UNKNOWN for today's order import**: it runs in the private backups repository, which Claude does not open. Nothing in this repository lowers stock from a Shopify order | R9 (when built: one record per Shopify order id; a message older than the stored one is ignored; replaying a message changes nothing) |
+| A Shopify order message arriving twice, or an older one after a newer one | **UNKNOWN for today's order import**: it runs in the private backups repository, which Claude does not open. **Nov 28: drafts/76 (not installed)** lets any order take its stock exactly once and give it back once (`order_stock_moves_test.sh`, 62 checks); nothing calls it yet | R9 (when built: one record per Shopify order id; a message older than the stored one is ignored; replaying a message changes nothing) |
 | The money side of Shopify payouts arriving twice | each difference is recorded once (`issue_key` unique, `on conflict do nothing`) | drafts/42 (not installed) |
 
 No live stock write is switched on by any of this; each stock button keeps today's behaviour until its own

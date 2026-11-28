@@ -13,3 +13,5 @@ staging-build.zip
 *.key
 .npmrc
 .pgpass
+__pycache__/
+*.pyc

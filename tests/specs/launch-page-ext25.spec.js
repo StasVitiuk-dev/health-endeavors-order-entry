@@ -133,10 +133,10 @@ test('the page shows what is ready and what is not, in words, and where to go; n
   await expect(line(page, 'shopify').locator('[data-lpdetail]')).toContainText('The Shopify order switch is off.');
   await expect(line(page, 'questions').locator('[data-lpdetail]')).toHaveText('1 customer is waiting for an answer.');
   await expect(line(page, 'questions').locator('[data-lpbadge]')).toHaveText('To do');
-  // the database steps: two of the twelve are not installed here, and they are named (Nov 27: twelve, since the
-  // shared settings are in use on every device and no longer a switch of their own)
+  // the database steps: two of the thirteen are not installed here, and they are named (Nov 27: twelve, since the
+  // shared settings are in use on every device and no longer a switch of their own; Nov 28: thirteen, with stock per order)
   await expect(line(page, 'steps')).toHaveAttribute('data-lpstate', 'todo');
-  await expect(line(page, 'steps').locator('[data-lpdetail]')).toHaveText('10 of 12 installed. Still to install: Confirmed tax rates; Real fees and postage per order.');
+  await expect(line(page, 'steps').locator('[data-lpdetail]')).toHaveText('11 of 13 installed. Still to install: Confirmed tax rates; Real fees and postage per order.');
   await expect(line(page, 'tax').locator('[data-lpdetail]')).toHaveText('Its database step is not installed yet (Feature Flags shows which).');
   await expect(host.locator('[data-lptotal]')).toHaveAttribute('data-lptotal', '0/15');
   await expect(host.locator('progress')).toHaveAttribute('value', '0');
@@ -149,7 +149,7 @@ test('the page shows what is ready and what is not, in words, and where to go; n
 test('with the records in order the checked lines are ready', async ({ page, backend }) => {
   await open(page, backend, { ready: true });
   for (const key of ['steps', 'products', 'stock', 'shopify', 'questions']) await expect(line(page, key)).toHaveAttribute('data-lpstate', 'ready');
-  await expect(line(page, 'steps').locator('[data-lpdetail]')).toHaveText('All 12 are installed.');
+  await expect(line(page, 'steps').locator('[data-lpdetail]')).toHaveText('All 13 are installed.');
   // the tax step is installed but its switch is off in this browser: the line says what to do next
   await expect(line(page, 'tax').locator('[data-lpdetail]')).toHaveText('The step is installed. Turn on "Confirmed tax rates" on Feature Flags, then confirm your rate on Tax Records.');
   await expect(line(page, 'shopify').locator('[data-lpdetail]')).toHaveText('The switch is on; 1 order has come from Shopify in the last 30 days.');

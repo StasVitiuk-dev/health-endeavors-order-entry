@@ -1,76 +1,90 @@
-# Morning list for Stas (Nov 28, 2026)
+# Morning list for Stas (Saturday, Nov 28, 2026)
 
-Status: CURRENT · written overnight Nov 27–28 while you slept · short on purpose. Each item says what to
-click and how long it takes. Nothing here has been merged, installed or switched on by Claude.
+Status: CURRENT · rewritten overnight (Nov 28, from about 1 AM Central) while Claude worked alone. It
+replaces the earlier list of the same name (Nov 27–28); that list's merges are all done, and its open
+decisions are carried over below. Nothing here was merged, installed, switched on or sent by Claude.
 
-## Sitting 1 — merge, in this order (about 10 minutes)
+**Where things stand:** every pull request up to #162 is merged. FIX 3 is installed and checked. The launch
+target is about **Dec 10** (13 days), and it depends on the answers below, above all the product list.
 
-Each one: open the pull request → **Merge pull request** → **Confirm merge**. I write "Ready" on each one
-first, only once its checks have finished. "Screenshots (informational)" is red on all of them for the
-reason fixed in #144; it never blocks.
+## 1. Merge (1 minute)
 
-| Order | Pull request | What it is |
+- The day's single pull request (opened overnight; Claude writes "Ready" on it when its checks pass). Tick
+  the bypass box (GitHub lists you as the author, see #160), then **Merge pull request** → **Confirm merge**.
+
+## 2. Answers that decide the launch date (most important first)
+
+| # | Question | Unblocks | Effort |
+|---|---|---|---|
+| 1 | **Which day does the lab send the product list?** (name, size, SKU exactly as on the label, price, cost, photos) | everything for the store (R8); the plan assumed Nov 30 | a text to the lab |
+| 2 | **How do Shopify orders reach the dashboard at launch?** (two paths prepared: `R9_SHOPIFY_ORDERS_DESIGN.md`) Today the order import runs in the private backups repository, which Claude never opens. Is it switched on and working? If you don't know, the alternative is the daily Shopify program (database step 7, draft 42) | "every order lands on the dashboard" (launch promise 2); the test order | tell Claude what you know, or a screenshot of the backups repository's Actions page |
+| 3 | **Stock steps in the launch: yes / not yet?** (`sql-review/ITEM_20_STOCK_STEPS_R1_R5.md`; recommendation: yes) | the database evenings | one word |
+| 4 | **Tax answers:** your Illinois sales tax registration (done or not) and the rate you charge, or your accountant's answer | Shopify taxes (setup guide F), invoices | accountant |
+| 5 | **Email provider** (`BUSINESS_EMAIL_PLAN.md`; recommendation Google Workspace, about $21/month for 3 mailboxes) | `support@` / `admin@`, the store's contact email, TikTok sign-up | one word |
+| 6b | **When should an order take its bottles off the stock count: when it is paid, or when it ships?** (the new stock-per-order step, draft 76, built overnight; recommendation: when paid, as Shopify does) | the stock-per-order step being used | one word |
+| 6 | **Returns / ship-from address: home or a private mailbox?** (home = printed on every package and return label) | shipping setup (guide E), return policy, TikTok | one word |
+
+**For question 2 (optional, 1 minute, reads only):** this shows where orders came from and when the last one
+arrived. Counts and dates only, no customer details. Supabase → SQL Editor → New query → paste → Run →
+screenshot. If nothing arrived lately, the import is probably not running. A second read-only look, whether that
+import also changes stock by itself (it matters for stock per order), is in `R9_SHOPIFY_ORDERS_DESIGN.md`, question 4.
+
+```sql
+select coalesce(source, '(none)') as source, coalesce(channel::text, '(none)') as channel,
+       count(*) as orders, max(created_at)::date as newest_arrived,
+       count(*) filter (where created_at > now() - interval '7 days') as last_7_days
+  from public.orders where deleted_at is null group by 1, 2 order by 3 desc;
+```
+
+## 3. The store texts (sent to you as a file this morning)
+
+Claude drafted the store's legal pages overnight: return and refund, shipping, contact, privacy, a
+**consumer health data privacy policy**, and the product-use part of the terms. They are **not** in this
+public repository, because where store texts live is still your decision (question 7).
+
+| # | Question | Recommendation |
 |---|---|---|
-| 1 | #141 | Records: step A2 installed (notes only) — **merged Nov 27, afternoon** |
-| 2 | #142 | The launch plan (a target that depends on your inputs, not a promise) with the database steps in exact order; every waiting draft checked on your database's shape; the frozen readiness yardstick; the catch-up since Nov 24 |
-| 3 | #145 | Settings shared by every device, with no switch to turn on; honest wording when they cannot be read (**dashboard change**: check the live page afterwards, steps in the pull request) |
-| 4 | #146 | Daily print says "opened for printing"; daylight-saving tests; the spend-cap note corrected; email/tracking/Shopify readiness (**small dashboard change**) |
-| 5 | #143 | One page each for the stock steps, request keys and the nightly check; the 20 → 8 → 12 → 3 example; who may do what (notes and tests) |
-| 6 | #144 | Why the screenshot check is always red, and the fix (test machinery only) |
-| 7 | #147 | Query C reader: an instant answer to "does anything else already change stock?" (tool and tests only) |
-| 8 | #148 | Test-order and launch-day checklists (notes only) |
+| 7 | Where should store texts live? Straight into Shopify (with your approval), or a new private repository for the website project? | straight into Shopify for launch |
+| 8 | The 9 choices at the top of the drafts (return window, opened products, who pays return postage, refund timing, US only, processing time, free-shipping threshold, returns address, which state's law) | recommended answers are written in; say "all as recommended" or change any |
+| 9 | **Ask a lawyer 3 questions** (in the drafts): mainly whether Washington's My Health My Data Act applies because the business is registered there and keeps product reaction reports. If it does, the store needs that separate privacy page **linked on the home page** | a short paid consult before launch |
+| 10 | **Ask the lab:** who is the "responsible person" for FDA cosmetics rules, and is a U.S. contact for reaction reports on every label? (federal law requires it) | a text to the lab |
 
-#142 contains #141; #145 contains both; #146 contains #145; #143 contains #141 and an early part of #142.
-Merge 1–4 in this order; #143 any time after #142 (then its page shows only its own files). #144 contains
-nothing else and can go at any point; so can #147 and #148.
+## 4. Read-only database looks (15 minutes, change nothing; whenever you have time)
 
-## Sitting 2 — two read-only looks in Supabase (about 15 minutes; they change nothing)
+1. The `feature_flags` columns (needed before drafts 21, 27 and 29): the query is in `LAUNCH_PLAN_2_WEEKS.md`.
+2. Query C: does anything else change stock? Guide: `QUERY_C_OWNER_RUN_GUIDE.md`. Say "ready for Query C"
+   and Claude sends it one step at a time.
 
-1. The `feature_flags` columns (needed before drafts 21, 27 and 29): the query is in
-   `docs/ops/LAUNCH_PLAN_2_WEEKS.md`.
-2. Query C: does anything else change stock (an agent, a timer, a trigger)? Guide:
-   `docs/ops/QUERY_C_OWNER_RUN_GUIDE.md`. I send each one in the chat, one at a time.
+## 5. Still open from the earlier list (skip any you already answered)
 
-## Decisions (one word each is enough)
+- The two-week plan: **go**, or what to change.
+- The nightly check: should Home warn after one missed night? (decision X8-D4)
+- Customer email at launch: **none** (drafts to copy only) or **real sending**? (launch fix R10)
+- The mail details from your partner (the Washington address): you said it may take a few days. Fine.
+- Connect Claude as `stasvitiuk-reos` (claude.ai → Settings → Connectors → GitHub), so you can approve
+  normally instead of using the bypass box (`docs/security/GITHUB_CREDENTIAL_ADMIN_FINDING_2026-10-07.md`, section 7).
 
-1. The two-week plan: **go**, or what to change (`docs/ops/LAUNCH_PLAN_2_WEEKS.md`).
-2. Stock steps, request keys and the nightly check in the launch: **yes / not yet** (items 20–22). My
-   recommendation: yes.
-3. The nightly check: should Home warn after one missed night? (decision X8-D4)
-4. Customer email at launch: **none** (only drafts to copy) or **real sending**? (decides whether launch fix
-   R10 counts as done; `docs/ops/READINESS_LEDGER.md`)
-5. The product list from the lab: which day can you send it? (the plan's deciding item)
-6. Store texts (privacy, terms, returns, shipping) belong to the store, not to this repository: a new
-   private repository for the website (needs your approval), or written straight into Shopify with you?
+## 6. Tonight (about 6:20 PM Central)
 
-## Small things only you can do
+The 24-hour check after FIX 3: Claude sends one read-only query in the chat; you run it and paste the result.
+It confirms the midnight, 3 AM and 6:05 PM jobs ran without errors.
 
-- **Screenshots, once #144 is merged (10 minutes):** GitHub → Actions → Dashboard CI → Run workflow → tick
-  *update_screenshots* → when it finishes, download the `screenshots-…` file and send it in the chat.
-- **Products typed once, not twice (proposal):** Shopify → Products → Import → "Download a sample CSV" →
-  send it in the chat. Then I can add a "Save for Shopify" file to the product import. I do not touch Shopify.
-- **After the shared-settings pull request is live:** on your iPhone, open the dashboard and sign in;
-  Feature Flags should show Real profit and Backups & Printouts on. Send a screenshot.
+## Done overnight (details in `docs/PROJECT_RECORD.md`)
 
-## Found and fixed overnight (details in `docs/PROJECT_RECORD.md`, history, Nov 27)
-
-- After choosing a menu, the keyboard lost its place when "Saved for every device" appeared: fixed.
-- Feature Flags said every switch was "this browser only", even with shared switches; and said nothing
-  when they could not be read: both fixed, with the reason shown.
-- The Launch page pointed to the removed switch: fixed.
-- The list of database steps called the stock steps "a separate decision" while the plan needs them:
-  items 20–22 written.
-- The screenshot check had been red for days because the pictures were made with a newer Chrome than CI
-  uses: cause shown, fix in #144.
-- #141 and #142 would have conflicted: combined.
-- With the shared settings always read, the side menu was briefly **empty after signing in** (about
-  8 s with no connection) while they loaded; it now appears at once (#145). Found because four tests
-  failed about once in 75 runs (`main`: 150 of 150 pass).
-- A new error-text trim was slow on very long text (the regex audit caught it): capped (#145).
-
-## The final test run (Nov 27, morning, Central)
-
-- On `c4cc136` (#146, which contains #141, #142 and #145): **4,024 passed, 0 failed, 901 skipped** (the
-  usual ones: desktop-only tests at iPhone size and the other way round), desktop and iPhone, one run,
-  nothing else running. The throwaway-database suite on the same commit: **61 of 61 steps passed**.
-- GitHub's checks passed on every pull request; only "Screenshots (informational)" is red, as explained.
+- **Stock per order (draft 76, not installed):** an order now can take its bottles off the stock count exactly once
+  (all or nothing; refused if a SKU is unknown or stock would go below zero) and give them back once when
+  cancelled. 103 local checks, including "one way back only": a cancelled order and a return (today's Returns page, or the inspected returns of step 8) can never both put the same bottles back. It closes the launch gap "stock goes down by exactly the amount sold" on the
+  database side; it becomes step 3b of the launch plan's database list. **And the button for it:** Orders →
+  **Stock per order** (switch off; works once draft 76 is installed): find an order, press **Take these bottles
+  off stock** twice; a cancelled order gives them back. Details: `ONE_STOCK_COUNT_DECISION_2026-11-24.md`.
+- `SHOPIFY_STORE_SETUP_GUIDE.md`: the store setup click by click (store details, simple theme, products,
+  payments, shipping, taxes, policies, checkout, before opening), launch-plan days 6 and 8.
+- The store texts (section 3), sent as a file.
+- The question about how orders reach the dashboard (2.2) found while writing the guide: the test-order
+  checklist had marked it UNKNOWN; it is now a question for you instead of a surprise on test day.
+- **Products typed once:** the product import now has **Save for Shopify (CSV)**, the same checked list as
+  Shopify's import file (behind the Product list import switch, off). Small favour when you are in Shopify:
+  Products → Import → "Download a sample CSV" and send it, so the columns can be matched exactly to your
+  store's version (Shopify's import preview would show a mismatch anyway, before anything is created).
+- A stray Python cache file removed from the repository, and such files are now ignored.
+- The full test run on the latest code: results in the day's pull request.

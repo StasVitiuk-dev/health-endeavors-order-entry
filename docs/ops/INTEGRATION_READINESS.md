@@ -33,7 +33,7 @@ separate owner decisions (decision D1: approve first).
 | Rule | Proven by | State |
 |---|---|---|
 | Payout differences recorded once each (`issue_key` unique; a repeat changes nothing) | drafts/42 (`on conflict do nothing`); `money-issues-storage-ext22`; the daily program `edge-drafts/shopify-payouts-sync/` against made-up Shopify replies: `shopify_sync_core_test.mjs`, 17 of 17 (read-only queries, pages, the rate-limit pause, running twice changes nothing, a wrong key or Shopify error writes nothing). It existed but no suite ran it; since Nov 27 the database suite does, and it fails when the program's amount check is removed | drafts not installed; the daily program not deployed |
-| A Shopify order lowers stock once, ignores an older message, and a replay changes nothing | **not built** (R9; the stock-safety table in the stock-steps pull request) | waits on R8, R1–R4 |
+| A Shopify order lowers stock once, ignores an older message, and a replay changes nothing | **the stock part drafted Nov 28** (drafts/76: once per order line, a replay changes nothing); the Shopify trigger itself is not built (R9) | waits on R8, R1–R4 |
 | Today's order import | runs in the private backups repository (off-limits to Claude): **UNKNOWN** here | — |
 
 Nothing in this page is switched on; each line says what it waits for.

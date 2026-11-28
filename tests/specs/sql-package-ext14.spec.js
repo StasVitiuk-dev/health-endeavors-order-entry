@@ -76,13 +76,13 @@ test('catches: missing rollback, cycle, unknown dependency, unjustified dynamic 
     const byId = id => m.changes.find(c => c.id === id);
     byId('17').rollback = '99';
     byId('10').dependsOn = ['21'];
-    byId('23').dependsOn = ['77'];
+    byId('23').dependsOn = ['997'];
     delete byId('19').dynamicSql;
     byId('25').risk = 'MEDIUM';  // the file's generated header still says LOW
     const out = lintDir(dir, m);
     expect(out).toMatch(/17_DRAFT.*no rollback draft/);
     expect(out).toMatch(/dependency cycle: (10 → 21 → 10|21 → 10 → 21)/);
-    expect(out).toMatch(/23_DRAFT.*depends on unknown draft 77/);
+    expect(out).toMatch(/23_DRAFT.*depends on unknown draft 997/);
     expect(out).toMatch(/19_DRAFT.*dynamic SQL/);
     expect(out).toMatch(/25_DRAFT.*metadata header missing or out of date/);
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }

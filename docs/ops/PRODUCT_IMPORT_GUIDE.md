@@ -41,6 +41,17 @@ dashboard are never changed by the import. Running the same file twice adds noth
    SKU in Shopify), or type your own SKU in the file.
 7. When the summary says "N products ready to add", press **Add N new products**.
 8. Optional: **Save the checked list (CSV)** keeps a copy of what was checked.
+9. **Save for Shopify (CSV)** (Nov 28; shown only when no line needs fixing): the same list as Shopify's
+   product import file, so you type your products once. In Shopify: **Products → Import** → choose
+   `products-for-shopify.csv` → check the preview → **Import**. Importing the file **again** later (a price
+   changed): tick **"Overwrite products with matching handles"** in Shopify's import window, so Shopify updates
+   the products instead of adding copies (the handles stay the same as long as the names do). One product per row with the same SKU,
+   name and retail price; active products published, drafts not; Shopify tracks the stock and refuses a sale
+   at zero ("deny"). Discontinued products are left out. Stock numbers are **not** in it (Shopify imports
+   those from a separate inventory file; the count comes from your stock count). Nothing is sent to
+   Shopify by the dashboard. The columns are Shopify's long-standing product columns; if Shopify's preview
+   complains about one, send a screenshot (or Shopify's own sample file: Products → Import → "Download a
+   sample CSV") and the file is adjusted.
 
 ## What it checks
 
@@ -56,4 +67,4 @@ dashboard are never changed by the import. Running the same file twice adds noth
 - Owner and administrators only. Up to 500 products and 1 MB per file.
 - The list is read in your browser; only the new products are sent, the same way as **Add a product**.
 - Shopify is not changed by this: products still have to be in Shopify with the **same SKUs**
-  (launch item R8). A later step can compare the two lists.
+  (launch item R8); step 9 makes the file for that, so the list is typed once.

@@ -19,7 +19,7 @@ with your reason, so the choice is on record.
 | 2 | Did the test order pass every check? | `TEST_ORDER_CHECKLIST.md` | All checks passed, order number and date in the chat |
 | 3 | Is there a recent backup that was restored once? | Backups & Printouts | The nightly backup is green within the last 7 days; one restore test done |
 | 4 | Did you practise going back once? | `LAUNCH_DAY_ROLLBACK_PRACTICE.md` | The practice log has your times |
-| 5 | Are the stock steps installed (R1–R5), and the request keys? | Feature Flags → "Features that save real records" | Installed and switched on as planned |
+| 5 | Are the stock steps installed (R1–R5), stock per order (drafts/76, item 23) and the request keys? | Feature Flags → "Features that save real records" | Installed and switched on as planned; **Stock per order** on, and you know when you press it (paid or shipped) |
 | 6 | Is the sales tax rate confirmed? | Tax Records | A rate you confirmed yourself |
 | 7 | Are the store's own pages live (privacy, terms, returns, shipping)? | The store | All four open |
 | 8 | Have you chosen which agents run on day one? | AI Agent Activity | Few, and you know which |
