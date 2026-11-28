@@ -42,6 +42,20 @@ Since then the suite has grown to about 40 spec files (724 tests on the overnigh
 
 A test that seeds impossible data on purpose (only the XSS test) sets `backend.allowImpossibleData = true`. When the real rules change, update `db-constraints.js` first.
 
+## The pages and the database drafts agree (Nov 28)
+
+The browser tests run against a stand-in database, so they cannot see a page sending an argument a draft
+does not have. Two checks close that gap:
+- `tools/rpc-contract.js` (run by `specs/rpc-contract-ext28.spec.js`): every call to a database function
+  in `assets/` is compared with the function its SQL draft defines (the name, every argument name sent,
+  every required argument present). A planted mistake must be caught, so it can never pass by reading
+  nothing. Production's own functions (no draft) are listed, not judged.
+- The `*_store_adapter_test.js` files in `docs/ops/sql/local-test/` (in the database suite, so GitHub runs
+  them): each page's own storage code against its real draft on PostgreSQL, through a small supabase-js
+  stand-in: invoices, supplier documents, stock per order, deliveries and returns, tax rates, money
+  differences. The real-database browser tests (`helpers/pg-bridge.js`) skip on GitHub, which has no
+  database in the browser jobs.
+
 ## How to run (for Claude or a developer)
 
 You need Node.js 18 or newer.
