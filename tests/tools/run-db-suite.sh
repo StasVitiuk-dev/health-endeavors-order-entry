@@ -66,9 +66,11 @@ step "report totals rollback lifecycle" bash "$LT/report_totals_rollback_test.sh
 step "random interleavings (seed 909, 40 rounds)" bash "$LT/random_interleavings.sh" 909 40 current "$C -d he_real"
 # Nov 23: the November drafts' own tests (they were run by hand only; ~50 s together on a clean he_real)
 step "invoices (drafts/32)" bash "$LT/invoices_test.sh" $C
+step "invoices: the dashboard's storage code against drafts/32" node "$LT/invoice_store_adapter_test.js" $C
 step "stock-count approval (drafts/34)" bash "$LT/stock_count_adjustments_test.sh" $C
 step "stock-count apply once" bash "$LT/stock_count_apply_once_test.sh" $C
 step "supplier documents (drafts/36)" bash "$LT/supplier_documents_test.sh" $C
+step "supplier documents: the dashboard's storage code against drafts/36" node "$LT/supplier_docs_store_adapter_test.js" $C
 step "supplier document files (drafts/38)" bash "$LT/supplier_document_files_test.sh" $C
 step "partial receiving and returns (drafts/40)" bash "$LT/partial_receiving_test.sh" $C
 step "the worked example 20 -> 8 -> 12 -> 3 (every quantity)" bash "$LT/stock_example_20_8_12_3_test.sh" $C
