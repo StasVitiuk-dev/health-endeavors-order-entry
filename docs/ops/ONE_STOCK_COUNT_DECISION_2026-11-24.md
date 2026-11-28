@@ -111,7 +111,13 @@ order by 1, 2, 3;
   `inventory_adjustments` ("Order #… taken off stock").
 - Owner or active administrator only; visitors and staff are refused. Two devices pressing at once: the
   stock moves once.
-- Nothing calls it yet. **OWNER DECISIONS before it is used:** which count is the selling count (option 1 or
+- **Dashboard side (also Nov 28):** Orders → **Stock per order** (switch "Stock per order" under the
+  features that save real records, OFF; it can be turned on only once drafts/76 is installed): find an
+  order, see each line and whether it took stock, then **Take these bottles off stock** or **Order
+  cancelled: give them back**, each with a second press. Owner and administrators only. Tests:
+  `tests/specs/order-stock-ext28.spec.js` (13 at both sizes). This is the manual way for every channel
+  (Shopify, Etsy, Amazon, TikTok files); the automatic Shopify way is R9, later.
+- Until a page or the Shopify step calls it, nothing changes by itself. **OWNER DECISIONS before it is used:** which count is the selling count (option 1 or
   2 above), and **when** an order takes its stock: when it is paid (recommended; Shopify lowers its own count
   at checkout), or when it ships.
 

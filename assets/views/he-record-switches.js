@@ -35,6 +35,8 @@
       what: 'Real profit uses each order\'s real fee and postage where they are saved, instead of your estimates; Money per channel can save the real fees from a channel\'s report.' },
     { key: 'he_order_batches', name: 'Batch on each order', where: 'Orders', draft: 'drafts/54 (review item 12)', probe: 'order_batches',
       what: 'When packing, scan the batch sticker onto the order. "Who got a batch" then lists every order that received it. A wrong scan is voided with a reason, never deleted.' },
+    { key: 'he_order_stock', name: 'Stock per order', where: 'Orders', draft: 'drafts/76', probe: 'order_stock_moves',
+      what: 'Find an order and take its bottles off the stock count, once (all or nothing; refused if a SKU is unknown or stock would go below zero). A cancelled order gives them back, once. Every move is recorded.' },
     { key: 'he_incident_close', name: 'Close an incident with a note', where: 'Incidents', draft: 'No database step needed', probe: 'incidents',
       what: 'The owner and administrators get a "Record what was done" button on each open incident: write what was done, then keep it open or close it. Nothing is deleted; closed incidents stay listed with their note.' },
     { key: 'he_email_sending', name: 'Saved email campaigns', where: 'Store Campaigns and Customer Emails', draft: 'drafts/56', probe: 'email_campaigns',

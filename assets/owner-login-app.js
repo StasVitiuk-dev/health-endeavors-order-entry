@@ -84,7 +84,7 @@
       nightlyOverall,
     } = window.HE.helpers;
     // @@ EXT15 modules: created in dependency order (assets/app/*.js; see docs/ops/APPLICATION_MODULE_MAP_EXT15.md)
-    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, agentDiaryOn, realProfitOn, channelMoneyOn, SWITCH_EVERYONE, sharedSettingsOn, orderCostsOn, incidentCloseOn, batchLabelsOn, orderBatchesOn, orderChannelsOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn, storeCampaignsOn, receiptReaderOn, contentHelperOn, customerEmailsOn, emailSendingOn, mySettingsOn, handoffHandledOn, reviewInboxOn, reviewStoreOn, customersFirstOn, launchPageOn, askBoxOn, peoplePageOn, adminChangesOn, backupStatusOn } = HE.modules.create('he-config', {  });
+    const { RET_ORDER_CAP, ROW_CAP, STOCK_FN_FLAGS, FLAG_DEPENDS, THEME_ORDER, THEME_FACE, THEME_NAME, EMPTY_ICONS, SIDEBAR_GROUPS, ICON_PATHS, SEARCH_INDEX, BUSINESS_RULE_CONFIG_KEY, BUSINESS_RULE_UNIT_LABELS, INVENTORY_BUCKET_LABELS, RETURN_STATUS_LABELS, RETURN_REASON_LABELS, RETURN_CONDITION_LABELS, RETURN_DISPOSITION_LABELS, EXPENSE_CATEGORY_LABELS, HELP, GO_TO, ACTIVITY_PAGE_SIZE, RECORD_TITLE_KEYS, ROLE_LABELS, ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, ITEM_TYPE_LABELS, NIGHTLY_PAGES, DB_STEPS, APPLE_CAL_HINT, CAL_COLORS, SUPPLIER_TYPE_LABELS, PO_STATUS_LABELS, PAYMENT_LABELS, PO_ALLOWED_FROM, PO_EDITABLE, QC_TYPE_LABELS, QC_RESULT_LABELS, QC_SEVERITY_LABELS, RECALL_STATUS_LABELS, TASK_STATUS_LABELS, TASK_NEXT_ACTIONS, TASK_ALLOWED_FROM, AGENT_REGISTRY, AGENT_STALE_AFTER_HOURS, INQ_STATUS_LABELS, INQ_ANSWERED_CAP, LAUNCH_BLOCKED_FLAGS, SYSTEM_MODE_LABELS, FR_STATUS_LABELS, FR_NEXT_STATUS, FR_NEXT_LABEL, DOCUMENT_LINK_TYPES, DOCUMENT_CATEGORY_LABELS, salesGrowthOn, scanShipmentOn, reorderPlanningOn, reportExportOn, invoicePreviewOn, recoveryDrillOn, savedViewsOn, cycleCountOn, partialReceivingOn, supplierScorecardOn, supplierDocsOn, supplierDocsStoreOn, invoicePaymentsOn, moneyMatchOn, productImportOn, attentionFeedOn, dropoffOn, agentDiaryOn, realProfitOn, channelMoneyOn, SWITCH_EVERYONE, sharedSettingsOn, orderCostsOn, incidentCloseOn, batchLabelsOn, orderBatchesOn, orderStockOn, orderChannelsOn, moneyIssuesOn, taxRatesOn, receivingStoreOn, orderSlipsOn, backupsPageOn, LOOK_CHOICES, reconcileOn, opsWatchOn, PREVIEW_SWITCHES, reportVersionsOn, storeCampaignsOn, receiptReaderOn, contentHelperOn, customerEmailsOn, emailSendingOn, mySettingsOn, handoffHandledOn, reviewInboxOn, reviewStoreOn, customersFirstOn, launchPageOn, askBoxOn, peoplePageOn, adminChangesOn, backupStatusOn } = HE.modules.create('he-config', {  });
     const { keepTyped, toastHost, toast, paintSkeletons, reduceMotion, animateNumber, labelPhoneCards, safeRun, rememberFocus, restoreFocus, focusDialog, decorateEmptyStates, getTheme, applyTheme, isSafeLink, fmtDate, helpMatches, helpOverlay, closeHelp, paletteOverlay, closePalette, shortcutOverlay, openShortcuts, closeShortcuts, typingInField, anyOverlayOpen, quickAdd, openQuickAdd, closeQuickAdd, offlineBar, ptr, closeMobileSidebar, h, pageIconNode } = HE.modules.create('he-ui', { EMPTY_ICONS, HELP, ICON_PATHS, THEME_FACE, THEME_NAME, THEME_ORDER });
     const { writesInFlight, newLoadToken, LIST_LIMITS, listLimit, appendMore, supabase, verifyOnly, updateIfUnchanged, claimOutcomeAfterDrop, changeStock, stockFunctionOn, callStockFunction, STOCK_FN_PROBES, stockFunctionInstalled, requestKeysOn, formRequestKey, clearRequestKey, insertOnce, withRequestKey, isRequestKeyRepeat, REPEAT_NOTE, stockFunctionError, fetchAllRows, fetchAllRowsIn, uploadThenSave, currentUserId, logCustomerAccess, poStatusNow, ACCOUNTING_REFUND_POLICY, returnRefundsIn, manualOrdersWithoutItems, errorKind } = HE.modules.create('he-data', { INVENTORY_BUCKET_LABELS, ROW_CAP, STOCK_FN_FLAGS, SUPABASE_ANON_KEY, SUPABASE_URL, classifyOrderStatus, explainDbError, isNetworkError, keyFingerprint, newRequestKey, toast });
     const { recordTitle, describeChange, hlValue, codeDiff, plainChange, resolveInspectTarget, activityFromDate, fetchAllActivity, loadActivityAreas, loadActivityDigest } = HE.modules.create('he-audit', { ACTIVITY_AREA_LABELS, PANEL_RECORD_TABLE, RECORD_ID_ATTRS, RECORD_TITLE_KEYS, h, supabase });
@@ -7360,6 +7360,86 @@
       try { window.print(); } catch (e) {}
     }
 
+    // ---------- Stock per order (Nov 28; behind orderStockOn, drafts/76) ----------
+    // Find an order and take its bottles off the stock count, once; a cancelled order gives
+    // them back, once. The rules are in the database (all or nothing, by SKU, owner or active
+    // administrator); assets/inventory/he-order-stock.js asks and words the answers. Each
+    // change asks for a second press.
+    const osState = { order: null, view: null, message: '', confirm: '' };
+    const osMod = () => (window.HE && window.HE.inventory && window.HE.inventory['he-order-stock']) || null;
+    function osStore() { const M = osMod(); return M && orderStockOn() ? M.createStore({ client: supabase, enabled: true }) : null; }
+    function osHost(on) {
+      let el = document.getElementById('orderStockHost');
+      if (!on) { if (el) el.remove(); return null; }
+      if (!el) { const after = document.getElementById('orderSlipsHost'); if (!after || !after.parentNode) return null; el = h('div', { id: 'orderStockHost' }); after.after(el); }
+      return el;
+    }
+    function loadOrderStock() { if (osHost(orderStockOn() && !!osMod())) renderOrderStock(); }
+    function osSay(text) { osState.message = text; renderOrderStock(); announce(text); }
+    function renderOrderStock() {
+      const host = document.getElementById('orderStockHost'); if (!host) return;
+      const may = currentUserRole === 'owner' || currentUserRole === 'administrator';
+      const o = osState.order, v = osState.view;
+      const STATE = { none: 'Not taken off stock yet', taken: 'Taken off stock', given_back: 'Given back to stock (cancelled)', partly: 'Partly taken off stock' };
+      const line = (r) => h('tr', { 'data-osline': r.id },
+        h('td', null, r.sku || '(no SKU)'), h('td', { 'data-label': 'Product' }, r.name || '—'),
+        h('td', { class: 'num-cell', 'data-label': 'Bottles' }, String(r.quantity)),
+        h('td', { 'data-label': 'Stock' }, r.givenBack ? 'Given back' : r.taken ? 'Taken' : 'Not yet'));
+      const take = v && v.canTake ? h('button', { type: 'button', class: 'small', 'data-os': 'take' },
+        osState.confirm === 'take' ? 'Press again to take them off stock' : 'Take these bottles off stock') : null;
+      const back = v && v.canGiveBack ? h('button', { type: 'button', class: 'small secondary', 'data-os': 'back' },
+        osState.confirm === 'back' ? 'Press again to give them back' : 'Order cancelled: give them back') : null;
+      host.replaceChildren(h('div', { class: 'scanCard u-mb-10', 'data-oscard': '1' },
+        h('div', { class: 'scanCardHead' }, 'Stock per order'),
+        !may ? h('p', { class: 'hint u-m-0' }, 'Only the owner or an administrator can change stock.') : h('div', null,
+          h('p', { class: 'hint u-m-0' }, 'Find an order to take its bottles off the stock count, once. If it is cancelled, give them back, once. Nothing changes until you press twice; if a SKU is unknown or the stock is too low, nothing changes and you are told which line.'),
+          h('form', { class: 'obForm u-mt-8', 'data-osform': 'find' },
+            h('label', null, 'Order number', h('input', { type: 'text', id: 'osOrder', maxlength: '60', autocomplete: 'off', value: o ? o.order_number : '' })),
+            h('button', { type: 'submit', class: 'small secondary' }, 'Find the order')),
+          o && v ? h('div', { 'data-osorder': String(o.id), 'data-osstate': v.state },
+            h('p', { class: 'u-fs-13 u-mt-8' }, 'Order ' + o.order_number + (o.customer_name ? ' · ' + o.customer_name : '') + ' · ' + STATE[v.state] + ' · ' + v.bottles + (v.bottles === 1 ? ' bottle' : ' bottles')),
+            v.rows.length ? h('table', { class: 'phoneCards' },
+              h('thead', null, h('tr', null, h('th', null, 'SKU'), h('th', null, 'Product'), h('th', { class: 'num-cell' }, 'Bottles'), h('th', null, 'Stock'))),
+              h('tbody', null, v.rows.map(line))) : h('p', { class: 'hint' }, 'This order has no lines with bottles.'),
+            take || back ? h('div', { class: 'scanToggleRow u-mt-8' }, take, back) : null) : null),
+        h('p', { class: 'u-fs-12 u-mt-4', role: 'status', 'data-osmessage': '1' }, osState.message)));
+    }
+    async function osReload() {
+      const store = osStore(), o = osState.order; if (!store || !o) return false;
+      const r = await store.forOrder(o.id);
+      if (!osState.order || osState.order.id !== o.id) return false;
+      if (!r.ok) { osState.view = null; if (!r.busy) osState.message = r.message; return false; }
+      osState.view = r; return true;
+    }
+    document.addEventListener('submit', async function (e) {
+      const form = e.target instanceof Element ? e.target.closest('#orderStockHost form[data-osform="find"]') : null; if (!form) return;
+      e.preventDefault();
+      const store = osStore(); if (!store) return;
+      const r = await store.findOrder(document.getElementById('osOrder').value);
+      if (r.busy) return;
+      osState.confirm = '';
+      if (!r.ok) { osState.order = null; osState.view = null; osSay(r.message); return; }
+      osState.order = r.order; osState.view = null; osState.message = '';
+      await osReload();
+      renderOrderStock();
+      const first = document.querySelector('#orderStockHost button[data-os]') || document.getElementById('osOrder'); if (first) first.focus();
+    });
+    document.addEventListener('click', async function (e) {
+      const t = e.target instanceof Element ? e.target.closest('#orderStockHost button[data-os]') : null; if (!t) return;
+      const what = t.getAttribute('data-os'); const store = osStore(); const o = osState.order; if (!store || !o) return;
+      if (osState.confirm !== what) { osState.confirm = what; renderOrderStock(); const again = document.querySelector('#orderStockHost button[data-os="' + what + '"]'); if (again) again.focus(); return; }
+      osState.confirm = '';
+      const r = what === 'take' ? await store.take(o.id) : await store.giveBack(o.id);
+      if (r.busy) return;
+      await osReload();
+      if (!r.ok) { osSay(r.message); return; }
+      const lines = (n) => n + (n === 1 ? ' line' : ' lines');
+      osSay(what === 'take'
+        ? (r.changed ? 'Taken off stock: ' + lines(r.changed) + ' of order ' + o.order_number + '. Recorded in the stock history.' : 'Nothing changed: order ' + o.order_number + ' was already taken off stock.')
+        : (r.changed ? 'Given back to stock: ' + lines(r.changed) + ' of order ' + o.order_number + '. Recorded in the stock history.' : 'Nothing changed: there was nothing to give back.'));
+      const next = document.querySelector('#orderStockHost button[data-os]') || document.getElementById('osOrder'); if (next) next.focus();
+    });
+
     // ---------- Batch on each order (Nov 24; behind orderBatchesOn, drafts/54) ----------
     // When packing, the batch sticker (see Batch stickers below) is scanned onto the
     // order; "Who got a batch" lists every order that received one. The rules are in
@@ -7806,7 +7886,7 @@
       calendarPanel: [loadCalendarMonth],
       dailySummaryPanel: [loadDailySummary],
       reportHistoryPanel: [loadReportHistoryThenExport, loadRecoveryDrill, loadInvoicePreview, loadReportVersions],
-      ordersPanel: [loadOrders, paintScanEntry, loadSavedViews, loadOrderSlipsHost, loadDropoff, loadOrderBatches],
+      ordersPanel: [loadOrders, paintScanEntry, loadSavedViews, loadOrderSlipsHost, loadDropoff, loadOrderBatches, loadOrderStock],
       inventoryPanel: [loadInventory, loadInventoryAdjustments, loadReorderPlanning, loadSavedViews, loadCycleCount, loadPartialReceiving, loadProductImport, loadBatchLabels],
       returnsPanel: [loadReturns, loadStockReturns],
       suppliersPanel: [loadSuppliers, loadSupplierScorecard, loadSupplierDocs],
