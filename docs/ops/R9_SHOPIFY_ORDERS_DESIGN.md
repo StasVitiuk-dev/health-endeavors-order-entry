@@ -43,6 +43,28 @@ first (in the backups repository, by the owner), because order lines would be wr
 ## Questions for the owner
 
 1. Is the order import in the backups repository switched on? When did it last run? (morning list 2.2)
+   **One read-only look answers most of path A** (added Nov 28, morning; counts only, no customer details,
+   the last 60 days; checked on a throwaway copy with made-up orders):
+
+```sql
+select o.channel::text as channel, count(distinct o.id) as orders,
+       count(distinct o.id) filter (where coalesce(o.external_order_id, '') <> '') as with_outside_number,
+       count(oi.id) as lines,
+       count(oi.id) filter (where coalesce(oi.sku, '') <> '') as lines_with_sku,
+       count(oi.id) filter (where p.id is not null) as lines_matching_a_product,
+       max(o.created_at)::date as newest
+  from public.orders o
+  left join public.order_items oi on oi.order_id = o.id
+  left join public.products p on lower(p.sku) = lower(oi.sku)
+ where o.deleted_at is null and o.created_at > now() - interval '60 days'
+ group by 1 order by 2 desc;
+```
+
+   What it means: a `shopify` row with `orders` = `with_outside_number` and `lines` = `lines_with_sku` says
+   the import writes what stock per order needs (path A works). `lines_matching_a_product` lower than
+   `lines_with_sku` only means those products are not in the dashboard yet (the product list, R8). No
+   `shopify` row at all, or an old `newest`, means no Shopify order arrived lately (no sales yet, or the
+   import is off).
 2. When should an order take its stock: when paid, or when shipped? (morning list 6b)
 3. Path A or path B, once 1 is answered.
 4. **Does the existing import change stock by itself?** If it does, an order would lose its bottles

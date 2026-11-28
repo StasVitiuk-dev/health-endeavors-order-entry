@@ -28,6 +28,8 @@ target is about **Dec 10** (13 days), and it depends on the answers below, above
 arrived. Counts and dates only, no customer details. Supabase → SQL Editor → New query → paste → Run →
 screenshot. If nothing arrived lately, the import is probably not running. A second read-only look, whether that
 import also changes stock by itself (it matters for stock per order), is in `R9_SHOPIFY_ORDERS_DESIGN.md`, question 4.
+A third (Nov 28, morning), whether the orders that arrive carry the Shopify order number and a SKU on every
+line, is in the same page, question 1.
 
 ```sql
 select coalesce(source, '(none)') as source, coalesce(channel::text, '(none)') as channel,
