@@ -75,6 +75,13 @@
     if (cell !== '' || row.length) { row.push(cell); out.push(row); }
     return out;
   }
+  // Shopify reads every value literally, so its file carries names and SKUs exactly as typed: the
+  // spreadsheet guard above would put a stray apostrophe into the store's title and break the SKU match
+  // with the dashboard. That file is for Shopify's import, not for opening in a spreadsheet.
+  function rawCell(v) {
+    const s = v == null ? '' : String(v);
+    return /[",\r\n]/.test(s) || /^[=+\-@\t]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }
   function csvCell(v) {
     let s = v == null ? '' : String(v);
     // a cell starting with = + - @ would run as a formula when opened in a spreadsheet
@@ -317,7 +324,7 @@
     }
     if (!lines.length) return { ok: false, reason: 'No product in this list can go to Shopify (each needs a SKU, and discontinued ones are left out).', csv: '', count: 0, left_out: leftOut };
     return { ok: true, reason: null, count: lines.length, left_out: leftOut,
-      csv: '﻿' + [SHOPIFY_HEAD].concat(lines).map(r => r.map(csvCell).join(',')).join('\r\n') + '\r\n' };
+      csv: '﻿' + [SHOPIFY_HEAD].concat(lines).map(r => r.map(rawCell).join(',')).join('\r\n') + '\r\n' };
   }
 
   return { VERSION, MAX_BYTES, MAX_ROWS, FIELDS, STATUSES, SHOPIFY_HEAD, templateCsv, checkFile, toCsv, toShopifyCsv, suggestSku, money, status, csvRows };

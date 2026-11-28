@@ -195,9 +195,16 @@ test.describe('the checker', () => {
     expect(P.toShopifyCsv(bad)).toMatchObject({ ok: false, count: 0 });
     expect(P.toShopifyCsv(bad).reason).toMatch(/Fix the lines marked in red first/);
     expect(P.toShopifyCsv(null).ok).toBe(false);
-    const f = P.toShopifyCsv(P.checkFile(HEAD + '@SUM(A1) Cream,,SYN-F,1,1,1,active,\n'));
+    // Shopify reads values literally: the title arrives exactly as typed (quoted, never with a stray
+    // apostrophe, which would show in the store); the dashboard's own spreadsheet copy keeps its formula guard
+    const checked = P.checkFile(HEAD + '@SUM(A1) Cream,,SYN-F,1,1,1,active,\n-Sale Cream,,SYN-G,2,1,1,active,\n');
+    const f = P.toShopifyCsv(checked);
     expect(f.ok).toBe(true);
-    expect(f.csv).toContain(",'@SUM(A1) Cream,");
+    expect(f.csv).toContain(',"@SUM(A1) Cream",');
+    expect(f.csv).toContain(',"-Sale Cream",');
+    expect(f.csv).not.toContain("'@SUM");
+    expect(f.csv).not.toContain("'-Sale");
+    expect(P.toCsv(checked)).toContain("'@SUM(A1) Cream");
   });
 });
 
