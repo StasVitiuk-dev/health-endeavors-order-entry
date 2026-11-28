@@ -58,6 +58,34 @@ const RULES = {
   },
 };
 const COLUMNS = { H: ['id', 'item', 'status'], G: ['check_id', 'level'], F: ['section', 'check_name', 'findings'], E: ['section', 'check_name', 'result'], D: ['function_name', 'classification'] };
+// The rows each query ALWAYS prints, whatever the data (one per check). A file without all of them
+// was cut short (a partial copy from the results grid, a stopped export): UNKNOWN, never PASS.
+// Counts taken from the queries' real output on the local database (tests/fixtures/query-results).
+// Query D lists one row per function, so it has no fixed set; but it sorts the worst first
+// (order by classification desc: E, D, C, B, A), so a file cut short at the end can only lose
+// safer rows, never hide an E (a test keeps that ordering in the query).
+// Added Nov 27, 2026: until then a file with only its first rows read as PASS.
+const pad = (p, n) => Array.from({ length: n }, (_, i) => p + String(i + 1).padStart(2, '0'));
+const ALWAYS = {
+  F: { key: r => String(r.section || '').slice(0, 3), want: pad('F', 15) },
+  H: { key: r => String(r.id || '').trim(), want: pad('H', 11) },
+  G: { key: r => String(r.check_id || '').slice(0, 3), want: ['G01', 'G03', 'G08', 'G09'] },
+  // Query E: rows per section ("1 stock vs history" ... "5 orders")
+  E: { count: r => String(r.section || '').charAt(0), want: { 1: 3, 2: 5, 3: 7, 4: 2, 5: 2 } },
+};
+function cutShort(L, parsed) {
+  const a = ALWAYS[L];
+  if (!a) return '';
+  if (a.count) {
+    const got = {};
+    for (const r of parsed) { const k = a.count(r); got[k] = (got[k] || 0) + 1; }
+    const short = Object.keys(a.want).filter(k => (got[k] || 0) < a.want[k]);
+    return short.length ? 'the file seems cut short: section ' + short.map(k => k + ' has ' + (got[k] || 0) + ' of ' + a.want[k] + ' rows').join(', ') + '. Download the whole result again.' : '';
+  }
+  const seen = new Set(parsed.map(a.key));
+  const missing = a.want.filter(k => !seen.has(k));
+  return missing.length ? 'the file seems cut short: missing ' + missing.join(', ') + '. Download the whole result again.' : '';
+}
 function interpret(letter, text) {
   const L = String(letter).toUpperCase();
   const rule = RULES[L];
@@ -67,9 +95,13 @@ function interpret(letter, text) {
   const missing = COLUMNS[L].filter(c => !head.includes(c));
   if (missing.length) throw new Error('This file does not look like a Query ' + L + ' result (missing columns: ' + missing.join(', ') + '). If the query stopped with an error, send a screenshot of the error instead.');
   const rows = parsed.map(rule);
+  const gap = cutShort(L, parsed);
+  if (gap) rows.push({ name: '(whole file)', status: 'UNKNOWN', note: gap });
   const worst = rows.reduce((w, r) => (RANK[r.status] === undefined ? 'UNKNOWN' : RANK[r.status] > RANK[w] ? r.status : w), rows.length ? 'PASS' : 'UNKNOWN');
   const privacy = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/.test(text) ? 'WARNING: this file contains an e-mail address. Do not commit it; send only the summary.' : 'No e-mail addresses found.';
-  return { rows, overall: rows.length ? worst : 'UNKNOWN', privacy };
+  // a cut-short file is never PASS or WARN: the missing rows could hold a FAIL. A FAIL it shows stays FAIL.
+  const overall = !rows.length ? 'UNKNOWN' : gap ? (worst === 'FAIL' ? 'FAIL' : 'UNKNOWN') : worst;
+  return { rows, overall, privacy };
 }
 // EXT11: backup answer intake (V1). Thresholds from PRODUCTION_READONLY_VERIFICATION_EXT10 §1:
 // nightly backup <= 2 days old, restore test <= 35 days old, Actions minutes left.

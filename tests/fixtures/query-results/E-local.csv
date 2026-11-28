@@ -1,0 +1,20 @@
+section,check_name,result
+1 stock vs history,product buckets whose stock differs from the sum of their history,0
+1 stock vs history,first 25 differences (SKU bucket: stock / history),none
+1 stock vs history,any bucket below zero,0
+2 history,history rows for a product that no longer exists,0
+2 history,history rows with an unknown bucket name,0
+2 history,history rows that change nothing (0),0
+2 history,history rows pointing at a lot that no longer exists,0
+2 history,products with stock but no history at all (opening balance?),0
+3 deliveries,received orders (not deleted),0
+3 deliveries,received orders: a line not fully received,0
+3 deliveries,received orders: units stocked differ from units received (PO numbers),none
+3 deliveries,received orders with NO delivery expense (PO numbers),none
+3 deliveries,received orders with MORE THAN ONE delivery expense — possible duplicate (PO numbers),none
+3 deliveries,received orders whose expense differs from lines + shipping + tax (PO numbers),none
+3 deliveries,delivery history rows for an order that is not received,0
+4 lots,lots with remaining below zero or above received,0
+4 lots,products whose lots hold more than available + recalled (information),0
+5 orders,orders with no items (not deleted) — counted in Accounting revenue,0
+5 orders,"first 25 orders with no items (order number, total)",none

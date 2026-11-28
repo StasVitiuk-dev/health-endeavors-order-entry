@@ -67,6 +67,12 @@ test('Query D / E / F / G / H libraries', () => {
     .toEqual(['PASS', 'PASS', 'FAIL', 'FAIL', 'FAIL', 'WARN', 'UNKNOWN', 'UNKNOWN']);
 });
 
+test('the samples as they were (most checks missing) never read PASS or WARN: cut short is UNKNOWN, a FAIL stays FAIL', () => {
+  for (const L of ['E', 'G', 'H']) for (const [k, v] of Object.entries(S.SHORT[L])) {
+    expect(['UNKNOWN', 'FAIL', 'MALFORMED'], L + ' ' + k).toContain(st('QUERY_' + L, v));
+  }
+});
+
 test('re-entry: each finding routes to a prepared next step, never a production action', () => {
   const steps = (t, x) => E.nextSteps(t, E.interpret(t, x, P)).join('\n');
   expect(steps('QUERY_G', S.G.taskUpdateBroad)).toMatch(/task-update fix draft.*rollback.*local roles/);
