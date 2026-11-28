@@ -45,6 +45,15 @@ Then, in the dashboard, one check at a time. Write the time next to each.
 
 A fake-card order has no real payout, so the money side (check 8) waits for Part 2.
 
+**After Part 1: put things back (5 minutes).** The fake-card order is not a sale, but after check 5 its
+bottles are off the count and it would sit in the sales numbers:
+1. In Shopify, **cancel** the test order (no restock needed in Shopify unless you track stock there too).
+2. When the dashboard shows it as **cancelled** (refresh Orders): Orders → Stock per order → find it →
+   **Order cancelled: give them back** (press twice). Inventory → Available is back to what it was before the
+   test. Reports leave cancelled orders out.
+3. Do not delete it on the dashboard: it stays as the record that the test passed (with path B, an order
+   deleted on the dashboard is never brought back, so its later cancellation would not arrive).
+
 ## Part 2 — one real small order, then refund it (about 20 minutes)
 
 Same checks 1–7, then:
