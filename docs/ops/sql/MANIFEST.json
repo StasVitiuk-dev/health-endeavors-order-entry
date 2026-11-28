@@ -954,6 +954,29 @@
       "precheck": "stops, changing nothing, if drafts/76 is not installed",
       "effect": "removes the three functions and the check on returns; keeps order_stock_moves if it holds any move (history), drops it if empty; no stock number changes",
       "postcheck": "the functions are gone"
+    },
+    {
+      "file": "drafts/78_DRAFT_shopify_orders.sql",
+      "id": "78",
+      "class": "PRODUCTION-CHANGE-DRAFT",
+      "step": "Shopify orders saved once (R9 path B only: a new read-only order program; not used if today's import is kept)",
+      "dependsOn": [],
+      "risk": "MEDIUM",
+      "rollback": "79",
+      "precheck": "stops, changing nothing, if orders or order_items differ from the shape Query A reported, if the unique rule on orders(channel, external_order_id) is missing, if the service key may not read, add and change orders and order lines, or if an order_items.external_line_id column exists that this file did not create",
+      "effect": "adds order_items.external_line_id (Shopify's line id) with a unique rule per order, and save_shopify_order(order) for the program only (the service key): writes each order once by Shopify's order id and each line once by Shopify's line id; never rewrites a line whose stock was taken; never brings back a deleted order; no customer details",
+      "postcheck": "local-test/shopify_orders_test.mjs passes on a throwaway copy; in production: the function exists, visitors and signed-in people cannot run it"
+    },
+    {
+      "file": "drafts/79_DRAFT_rollback_shopify_orders.sql",
+      "id": "79",
+      "class": "ROLLBACK",
+      "rollbackOf": "78",
+      "dependsOn": [],
+      "risk": "LOW",
+      "precheck": "stops, changing nothing, if drafts/78 is not installed",
+      "effect": "removes save_shopify_order(); keeps the Shopify line ids and their unique rule if any line has one, removes them if none; no order or line is deleted",
+      "postcheck": "the function is gone"
     }
   ],
   "local": [

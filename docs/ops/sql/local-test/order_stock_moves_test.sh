@@ -102,6 +102,8 @@ has "the owner cannot change a move" "$(as "$O" "update order_stock_moves set qu
 has "the owner cannot delete a move" "$(as "$O" "delete from order_stock_moves")" "permission denied"
 has "an employee cannot write a move by hand" "$(as "$E" "insert into order_stock_moves (order_id, order_item_id, product_id, quantity, kind, moved_by) values ('$O5', gen_random_uuid(), '$P1', 1, 'take', '$E')")" "row-level security"
 has "the owner cannot write a move in someone else's name" "$(as "$O" "insert into order_stock_moves (order_id, order_item_id, product_id, quantity, kind, moved_by) values ('$O5', gen_random_uuid(), '$P1', 1, 'take', '$A')")" "row-level security"
+SVC=service_role
+ok  "the database's own service key may read the moves, nothing more" "$(q "select has_table_privilege('$SVC','public.order_stock_moves','SELECT')::text || has_table_privilege('$SVC','public.order_stock_moves','INSERT')::text || has_table_privilege('$SVC','public.order_stock_moves','UPDATE')::text || has_table_privilege('$SVC','public.order_stock_moves','DELETE')::text")" "truefalsefalsefalse"
 
 echo " giving back (a cancelled order)"
 has "the owner gives back #T1001" "$(back "$O" "$O1")" '"lines_changed": 3'

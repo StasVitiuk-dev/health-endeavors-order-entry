@@ -112,6 +112,15 @@ create index if not exists order_stock_moves_order_idx on public.order_stock_mov
 alter table public.order_stock_moves enable row level security;
 revoke all on public.order_stock_moves from public, anon, authenticated;
 grant select, insert on public.order_stock_moves to authenticated;   -- never update or delete: the record stays
+-- The database's own service key gets every right on a new table in Supabase by default; here it may only
+-- read the record (the Shopify order program, drafts/78, checks it), so nobody can change or delete a move.
+do $svc$
+begin
+  if exists (select 1 from pg_roles where rolname = 'service_role') then
+    revoke all on public.order_stock_moves from service_role;
+    grant select on public.order_stock_moves to service_role;
+  end if;
+end $svc$;
 drop policy if exists order_stock_moves_read on public.order_stock_moves;
 create policy order_stock_moves_read on public.order_stock_moves for select to authenticated using (public.is_owner_or_admin());
 drop policy if exists order_stock_moves_write on public.order_stock_moves;

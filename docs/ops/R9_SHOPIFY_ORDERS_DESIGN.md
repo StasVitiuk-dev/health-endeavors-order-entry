@@ -1,7 +1,9 @@
 # R9 — Shopify orders into the dashboard, and their stock (design, Nov 28)
 
-Status: **PROPOSED · OWNER DECISION REQUIRED** (morning list question 2). Nothing here is built, deployed
-or switched on. Related: `ONE_STOCK_COUNT_DECISION_2026-11-24.md` (which count sells), `sql-review/ITEM_23_STOCK_PER_ORDER.md`
+Status: **PROPOSED · OWNER DECISION REQUIRED** (morning list question 2). Nothing here is deployed or
+switched on. **Nov 28 (morning): path B is prepared** as drafts only (draft 78, the program
+`docs/ops/edge-drafts/shopify-orders-sync`, review item 24), so choosing it costs no launch days; it is never
+used if you keep path A. Related: `ONE_STOCK_COUNT_DECISION_2026-11-24.md` (which count sells), `sql-review/ITEM_23_STOCK_PER_ORDER.md`
 (the stock step, draft 76), `TEST_ORDER_CHECKLIST.md`, `INTEGRATION_READINESS.md`.
 
 ## Where things stand (checked Nov 28)
@@ -34,8 +36,10 @@ A new program in this repository, written like the payouts draft: read-only acce
 `read_orders` only), every few minutes or on Shopify's order webhook, writes each order **once** (by
 channel + order id) and its lines **once** (a new unique rule on order line + Shopify line id, added by
 its own database step), never a customer's card or more than the order needs. Then the same automatic
-stock step as in path A. About one to two evenings of work for Claude, tested against made-up Shopify
-replies, then one owner sitting to install and one to set the key.
+stock step as in path A. **Prepared Nov 28** (not deployed): draft 78 and the program, 43 checks against
+made-up Shopify replies (`docs/ops/sql/local-test/shopify_orders_test.mjs`); what is left is one owner sitting to
+install the database step and one to create the read-only key and switch the program on
+(`sql-review/ITEM_24_SHOPIFY_ORDERS_PATH_B.md`). It keeps no customer details (no name, email or address).
 
 **Never both at once:** if path B is chosen while the old import still runs, the old one is switched off
 first (in the backups repository, by the owner), because order lines would be written twice.

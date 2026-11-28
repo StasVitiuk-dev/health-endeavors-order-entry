@@ -94,7 +94,8 @@ if a page shows an old one). The pages named give the read-only check to run aft
 | 1 | Stock functions R1–R5 | `10_DRAFT_stock_functions.sql` | 618 | `7fd83dde8009f018` | a table, column, helper or index is missing | item 20 (6 rows; md5 `f6d9c2c8…`) | `11_…` |
 | 2 | The five stock switches, off | `21_DRAFT_stock_function_switches.sql` | 79 | `c0d789cc056b7f27` | no drafts/10, or `feature_flags` cannot fill its own id | 5 rows, all off | `22_…` |
 | 3 | PO line guard (optional) | `17_DRAFT_po_line_delete_guard.sql` | 139 | `3c09d100648ba588` | the purchase-order tables are missing | the guard is there | `18_…` |
-| 3b | Stock per order (Nov 28) | `76_DRAFT_order_stock_moves.sql` | 299 | `eee361fb68818a31` | orders, order lines, products or stock differ from Query A, or a needed index or helper is missing | [Item 23](sql-review/ITEM_23_STOCK_PER_ORDER.md) | `77_…` |
+| 3b | Stock per order (Nov 28) | `76_DRAFT_order_stock_moves.sql` | 308 | `ec4bbe2de2f13853` | orders, order lines, products or stock differ from Query A, or a needed index or helper is missing | [Item 23](sql-review/ITEM_23_STOCK_PER_ORDER.md) | `77_…` |
+| 3c | Shopify orders saved once (**R9 path B only**) | `78_DRAFT_shopify_orders.sql` | 200 | `5dd78c5a78d3dfc7` | orders or order lines differ from Query A, the one-order-per-Shopify-id rule is missing, or the service key may not write orders or run the function | [Item 24](sql-review/ITEM_24_SHOPIFY_ORDERS_PATH_B.md) | `79_…` |
 | 4 | Request keys | `19_DRAFT_request_keys.sql` | 88 | `dd917fab8111e5b1` | the dashboard could not write the new column (a missing table is skipped and named) | item 21 | `20_…` |
 | 5 | Request-keys switch, off | `27_DRAFT_request_keys_switch.sql` | 51 | `0447f2ae7d10c478` | no drafts/19, or `feature_flags` | 1 row, off | `28_…` |
 | 6 | Stock-count approval | `34_DRAFT_stock_count_adjustments.sql` | 456 | `c94c2174afba71d0` | a helper or the products table is missing | item 2 | `35_…` |

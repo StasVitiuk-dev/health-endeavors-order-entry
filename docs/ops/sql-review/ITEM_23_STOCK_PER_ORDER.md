@@ -23,7 +23,9 @@ After this step:
 4. **A deleted order** (for example a duplicate import removed after its stock was taken) can still
    give back what it took, and can never take. On the dashboard it shows "(deleted)" with only the
    give-back button.
-5. Every move is recorded (who, when, which order line) and can never be changed or deleted, and the
+5. Every move is recorded, and nobody can change or delete it: not you, not an administrator, and not the
+   database's own service key either (Supabase would give it every right on a new table; here it may only read,
+   added Nov 28 morning) (who, when, which order line) and can never be changed or deleted, and the
    stock history shows "Order #… taken off stock".
 
 Nothing happens by itself: the button is on Orders → **Stock per order** (switch off until you turn it
@@ -58,13 +60,13 @@ new orders should have `lines_without_a_product` = 0.
 
 | File | Lines | Fingerprint (SHA-256, first 16) |
 |---|---|---|
-| `docs/ops/sql/drafts/76_DRAFT_order_stock_moves.sql` (stock per order) | 299 | `eee361fb68818a31` |
+| `docs/ops/sql/drafts/76_DRAFT_order_stock_moves.sql` (stock per order) | 308 | `ec4bbe2de2f13853` |
 | `docs/ops/sql/drafts/77_DRAFT_rollback_order_stock_moves.sql` (undo of 76) | 51 | `f72332a5dd33f643` |
 
 It stops by itself, changing nothing, if your orders, order lines, products or stock tables differ from
 the shape your Query A showed, if a needed index or `is_owner_or_admin()` is missing, or if a table of the
 same name exists that it did not create. The functions run with the caller's own rights (security
-invoker); visitors are refused by name (the FIX 3 rule). Tested on a throwaway copy: 103 of 103 checks
+invoker); visitors are refused by name (the FIX 3 rule). Tested on a throwaway copy: 104 of 104 checks
 (`docs/ops/sql/local-test/order_stock_moves_test.sh`), and it installs in its place on a copy shaped like
 your real database (`production_shape_install_test.sh`, 34 of 34).
 

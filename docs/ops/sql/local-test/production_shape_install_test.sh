@@ -81,6 +81,15 @@ q "create schema if not exists storage;
    create function public.list_my_sessions() returns table(n integer)
      language sql security definer set search_path to 'auth', 'public' as \$f\$ select 1 \$f\$;" >"$OUTF" 2>&1
 grep -q ERROR "$OUTF" && { echo "stand-ins failed:"; cat "$OUTF"; }
+# STAND-IN for Supabase's standard rights of its own service key (it reads and writes every table in public
+# and runs every new function there; the local copy has none). drafts/78 checks these itself before and
+# after it installs, so a production without them would stop it, changing nothing.
+q "do \$\$ begin if not exists (select 1 from pg_roles where rolname = 'service_role') then create role service_role nologin bypassrls; end if; end \$\$;
+   grant usage on schema public to service_role;
+   grant select, insert, update, delete on all tables in schema public to service_role;
+   alter default privileges in schema public grant select, insert, update, delete on tables to service_role;
+   alter default privileges in schema public grant execute on functions to service_role;" >"$OUTF" 2>&1
+grep -q ERROR "$OUTF" && { echo "service key stand-in failed:"; cat "$OUTF"; }
 echo "Every waiting draft installs on a copy shaped like production (throwaway database $DB)"
 ok "set-up: the role is app_role and current_role() answers app_role" "$(q "select pg_get_function_result(to_regprocedure('public.current_role()'))")" "app_role"
 ok "set-up: is_active_staff() is missing, as in production" "$(q "select to_regprocedure('public.is_active_staff()') is null")" "t"
@@ -96,7 +105,7 @@ grep -q ERROR "$OUTF" && { echo "feature_flags stand-in failed:"; cat "$OUTF"; }
 # The order production will see: first the five already installed there (Nov 26-27: 72, 50, 74, 68, 70),
 # then the launch-critical reliability drafts in their install order (10, 21, 17, 76, 23, 19, 27, 25, 29, 13),
 # then every other waiting draft.
-ORDER="${HE_PS_ORDER-72 50 74 68 70 10 21 17 76 23 19 27 25 29 13 32 34 36 38 40 44 46 48 52 54 56 58 60 62 64 66}"
+ORDER="${HE_PS_ORDER-72 50 74 68 70 10 21 17 76 78 23 19 27 25 29 13 32 34 36 38 40 44 46 48 52 54 56 58 60 62 64 66}"
 for id in $ORDER; do
   f=$(ls "$DIR"/drafts/${id}_DRAFT_*.sql 2>/dev/null | grep -v rollback | head -1)
   [ -n "$f" ] || { ok "drafts/$id exists" "missing" "present"; continue; }
