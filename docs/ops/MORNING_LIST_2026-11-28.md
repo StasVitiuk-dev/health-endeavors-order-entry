@@ -26,7 +26,8 @@ target is about **Dec 10** (13 days), and it depends on the answers below, above
 
 **For question 2 (optional, 1 minute, reads only):** this shows where orders came from and when the last one
 arrived. Counts and dates only, no customer details. Supabase → SQL Editor → New query → paste → Run →
-screenshot. If nothing arrived lately, the import is probably not running.
+screenshot. If nothing arrived lately, the import is probably not running. A second read-only look, whether that
+import also changes stock by itself (it matters for stock per order), is in `R9_SHOPIFY_ORDERS_DESIGN.md`, question 4.
 
 ```sql
 select coalesce(source, '(none)') as source, coalesce(channel::text, '(none)') as channel,

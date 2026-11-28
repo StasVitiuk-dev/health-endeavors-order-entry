@@ -45,3 +45,18 @@ first (in the backups repository, by the owner), because order lines would be wr
 1. Is the order import in the backups repository switched on? When did it last run? (morning list 2.2)
 2. When should an order take its stock: when paid, or when shipped? (morning list 6b)
 3. Path A or path B, once 1 is answered.
+4. **Does the existing import change stock by itself?** If it does, an order would lose its bottles
+   twice (once by the import, once by stock per order), so stock per order must not be used for those
+   orders until this is known. Nothing in this repository lowers stock for an order today (checked Nov
+   28: no page, no draft). A read-only look settles it (no customer fields; only the start of each stock
+   history reason, whether a person made it, and how many):
+
+```sql
+select coalesce(left(reason, 40), '(no reason)') as reason_starts_with, (adjusted_by is null) as no_person, count(*) as changes, max(adjusted_at)::date as newest
+  from public.inventory_adjustments
+ group by 1, 2 order by 3 desc limit 15;
+```
+
+   Rows with `no_person = true` and a reason naming an order would mean the import changes stock. An import
+   that changes stock without writing history would not show here; the test order settles that too
+   (`TEST_ORDER_CHECKLIST.md`, check 5: note the stock **before** pressing the button).
