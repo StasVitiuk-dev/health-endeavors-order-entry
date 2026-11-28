@@ -12,7 +12,7 @@ const { test, expect } = require('@playwright/test');
 
 const ROOT = path.resolve(__dirname, '..', '..');
 const DIR = path.join(ROOT, 'docs', 'ops', 'sql');
-const FILES = fs.readdirSync(DIR).filter(f => /^(0\d|12)_READONLY_.*\.sql$/.test(f));
+const FILES = fs.readdirSync(DIR).filter(f => /^(0\d|1\d)_READONLY_.*\.sql$/.test(f));   // Nov 27: 10, 11, 13, 14 included too
 
 test.beforeEach(({}, testInfo) => { test.skip(testInfo.project.name !== 'desktop', 'Node-only; run once'); });
 

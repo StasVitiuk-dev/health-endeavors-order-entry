@@ -122,6 +122,22 @@
       "env": "production",
       "schema": "item,reported,central_day,utc_day,verdict,action",
       "interpret": "row I00 is the conclusion: PASS = already Central; ACTION = uses UTC, a change is needed; UNCLEAR / NOT ENOUGH DATA / NO DATA = show the result. Counts only, no customer data."
+    },
+    {
+      "file": "13_READONLY_D2_function_rights.sql",
+      "id": "D2",
+      "purpose": "the ten FIX 3 functions: who may run them, caller check (yes/no), fixed schema path, scheduled jobs using them; no code, no rows",
+      "env": "production",
+      "schema": "check_id,object,detail",
+      "interpret": "node tests/tools/query-d2-interpret.js <answer>: every function OK since FIX 3 (2026-11-27)"
+    },
+    {
+      "file": "14_READONLY_D3_function_uses.sql",
+      "id": "D3",
+      "purpose": "where the ten FIX 3 functions are used inside the database (defaults, triggers, other functions, views, row rules), what they return, which login roles can run them",
+      "env": "production",
+      "schema": "check_id,object,detail",
+      "interpret": "read by Claude before any change to these functions' rights"
     }
   ],
   "changes": [
