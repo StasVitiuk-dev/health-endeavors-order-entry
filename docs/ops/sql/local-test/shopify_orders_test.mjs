@@ -119,6 +119,11 @@ const sync = (shop, db, now) => C.runSync({ fetchJson: shop.fn, db: db || servic
   ok('3 orders seen and created, 4 lines, 1 of them a test order, nothing refused', [r1.orders_seen, r1.created, r1.lines_added, r1.test_orders, r1.refused, r1.problems], [3, 3, 4, 1, 0, []]);
   ok('  it paused once for the rate limit', waits, [1000]);
   ok('  it asked for orders changed in the last 3 days', S1.calls[1].variables.query, "updated_at:>='2026-11-25T12:00:00.000Z'");
+  ok('a catch-up run after a pause: {"days": 10} looks 10 days back; anything else is the normal 3',
+     [C.daysFrom({ days: 10 }), C.daysFrom({ days: 0 }), C.daysFrom({ days: 61 }), C.daysFrom({ days: '10' }), C.daysFrom(null), C.daysFrom([10])], [10, undefined, undefined, undefined, undefined, undefined]);
+  const S10 = fakeShopify({ orders: [] });
+  await C.runSync({ fetchJson: S10.fn, db: serviceDb(), sleep: async () => {}, now: '2026-11-28T12:00:00Z', sinceDays: C.daysFrom({ days: 10 }) });
+  ok('  and asks Shopify for the orders changed since then', S10.calls[0].variables.query, "updated_at:>='2026-11-18T12:00:00.000Z'");
   ok('  the database holds them as Shopify said (channel shopify, Shopify ids, SKUs, totals)',
      q("select string_agg(order_number||':'||status||':'||total, ' ' order by order_number) from orders where channel = 'shopify'") + ' | ' + q("select count(*) from order_items where external_line_id is not null"),
      '#1001:paid:68.90 #1002:paid:32.90 #1003:paid:20.90 | 4');

@@ -50,7 +50,7 @@ It stops by itself, changing nothing, if your orders or order lines differ from 
 showed, if the rule "one order per Shopify order id" is missing, if the database's service key may not read
 and write orders (Supabase gives it that by default), or if the service key would not be allowed to run the
 new function. Only the program can run it: visitors and signed-in people (you included) are refused by
-name. Tested on a throwaway copy with made-up Shopify answers: 50 of 50 checks
+name. Tested on a throwaway copy with made-up Shopify answers: 52 of 52 checks
 (`docs/ops/sql/local-test/shopify_orders_test.mjs`); it installs in its place on a copy shaped like your
 real database (`production_shape_install_test.sh`, 35 of 35).
 
@@ -88,6 +88,13 @@ Expected: `true | true | false | false | true`.
   Attention is a small follow-up once path B is chosen.
 - An order with more than 100 lines is refused whole and named in the report (look at it in Shopify).
 - Shopify's API version is pinned (`2026-10`); Shopify supports each version for about a year.
+
+## After a pause longer than 3 days
+
+Each run looks 3 days back. If the program was paused longer (the switch off, Emergency, the schedule
+stopped), the orders of the pause would not come in by themselves. Once the switch is back on, start the
+program **once by hand** with `{"days": N}` as its body, N = the days of the pause plus one (at most 60);
+Claude gives the exact click steps then. Orders already saved are not written again, so a longer N is safe.
 
 ## If something is wrong: undo
 

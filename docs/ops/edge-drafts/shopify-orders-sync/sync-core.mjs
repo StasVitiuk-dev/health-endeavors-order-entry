@@ -86,6 +86,14 @@ export function mapOrder(n) {
     currency: n.currencyCode, lines }, totals), test: n.test === true };
 }
 
+// How far back a run looks: 3 days normally. After a pause longer than that (the switch off, Emergency, the
+// schedule stopped), a run started by hand with {"days": N} in its body looks N days back instead (1 to 60),
+// so the orders of the pause come in. Anything else in the body is ignored: the normal 3 days.
+export function daysFrom(body) {
+  const d = isObj(body) ? body.days : undefined;
+  return Number.isInteger(d) && d >= 1 && d <= 60 ? d : undefined;
+}
+
 // One GraphQL call, with retries for Shopify's rate limit (HTTP 429 or THROTTLED): wait, at most 4 times.
 async function ask(fetchJson, sleep, query, variables) {
   if (/^\s*mutation\b/i.test(query) || /\bmutation\s*[({]/i.test(query)) throw new Error('refused: the sync only reads');

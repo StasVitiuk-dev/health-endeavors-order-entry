@@ -8,7 +8,7 @@
 //   SHOPIFY_ORDERS_TOKEN   the access key of a custom app with ONLY the read_orders scope
 //   SYNC_TRIGGER_SECRET    a long random string; the schedule sends it, so nobody else can start the sync
 // Provided by Supabase automatically: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY.
-import { runSync, API_VERSION } from './sync-core.mjs';
+import { runSync, daysFrom, API_VERSION } from './sync-core.mjs';
 
 const env = (k: string) => Deno.env.get(k) ?? '';
 
@@ -53,8 +53,10 @@ Deno.serve(async (req: Request) => {
       return body;
     },
   };
+  // optional {"days": N} (1 to 60): a catch-up run after a pause longer than 3 days
+  let reqBody: unknown = null; try { reqBody = await req.json(); } catch { reqBody = null; }
   try {
-    return Response.json(await runSync({ fetchJson, db }));
+    return Response.json(await runSync({ fetchJson, db, sinceDays: daysFrom(reqBody) }));
   } catch (e) {
     // the message never contains the access key: only status codes and Shopify's own words
     return Response.json({ ok: false, error: String((e as Error).message).slice(0, 300) }, { status: 502 });

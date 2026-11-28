@@ -56,7 +56,8 @@ If any answer is no and you don't waive it: **no-go**, and the plan moves by the
 **What to do:** Feature Flags → System mode → **Emergency** (under a minute). It pauses the AI agents
 and turns Shopify order sync off; the rule-based agents (#1 invoices, #4, #5, #6) keep running, and
 nobody is signed out. Then a screenshot to Claude. The store can stay open; orders wait in
-Shopify and are brought in once the cause is found. Going back to the previous version:
+Shopify and are brought in once the cause is found (with path B, a pause longer than 3 days needs one
+catch-up run: review item 24, "After a pause"). Going back to the previous version:
 `LAUNCH_DAY_ROLLBACK_PRACTICE.md`.
 
 ## End of the day (5 minutes)
