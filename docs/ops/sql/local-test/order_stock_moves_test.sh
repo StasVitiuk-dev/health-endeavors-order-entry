@@ -175,8 +175,33 @@ wait
 has "a return decided while the order is being given back waits, then is refused" "$R" "already given back"
 ok  "  the bottle came back once: body 6 + 1 = 7" "$(avail)" "7,4,-"
 rm -f "$OUTF.race"
+echo " with the Returns page: a sold line comes back one way only"
+OR1=00000000-0000-4000-8000-0000000076e1; OR2=00000000-0000-4000-8000-0000000076e2
+q "insert into orders (id, channel, external_order_id, order_number, status) values ('$OR1','shopify','T-20','#T1020','paid'), ('$OR2','shopify','T-21','#T1021','paid');
+   insert into order_items (id, order_id, sku, product_name, quantity) values ('$(K 21)','$OR1','HE-BODY-200','Body cream',1), ('$(K 22)','$OR2','HE-BODY-200','Body cream',1);" >/dev/null
+take "$O" "$OR1" >/dev/null; take "$O" "$OR2" >/dev/null
+ok  "  two orders taken: body 7 - 2 = 5" "$(avail)" "5,4,-"
+RT1=00000000-0000-4000-8000-0000000076f1; RT2=00000000-0000-4000-8000-0000000076f2; RT3=00000000-0000-4000-8000-0000000076f3
+q "insert into returns (id, order_id, order_item_id, reason, status) values ('$RT1','$OR1','$(K 21)','changed_mind','requested')" >/dev/null
+has "a return asked for on #T1020: giving the order back is refused" "$(back "$O" "$OR1")" "a return is open or done for HE-BODY-200"
+ok  "  nothing changed" "$(avail)|$(moves "$OR1" give_back)" "5,4,-|0"
+q "update returns set status = 'rejected' where id = '$RT1'" >/dev/null
+has "  once that return is rejected, the order gives back" "$(back "$O" "$OR1")" '"lines_changed": 1'
+ok  "  body 5 + 1 = 6" "$(avail)" "6,4,-"
+q "insert into returns (id, order_id, order_item_id, reason, status) values ('$RT2','$OR1','$(K 21)','changed_mind','approved')" >/dev/null
+has "then marking a return Received with a restock (the page's own way) is refused" "$(as "$O" "update returns set status = 'received', disposition = 'restock_available', received_at = now() where id = '$RT2'")" "already given back to stock when its order was cancelled"
+ok  "  the return stays approved, stock unchanged" "$(q "select status from returns where id = '$RT2'")|$(avail)" "approved|6,4,-"
+has "  so is the database's receive_return (drafts/10, R3), and its restock is undone with it" "$(as "$O" "select public.receive_return('$RT2', 'restock_available')")" "already given back"
+ok  "  stock unchanged, still approved" "$(avail)|$(q "select status from returns where id = '$RT2'")" "6,4,-|approved"
+has "  Received with Discard is allowed (no bottles come back)" "$(as "$O" "select public.receive_return('$RT2', 'discard')")" '"restocked": false'
+ok  "  stock unchanged" "$(avail)" "6,4,-"
+q "insert into returns (id, order_id, order_item_id, reason, status) values ('$RT3','$OR2','$(K 22)','changed_mind','approved')" >/dev/null
+has "a returned order that was never given back restocks normally (R3)" "$(as "$O" "select public.receive_return('$RT3', 'restock_available')")" '"restocked": true'
+ok  "  body 6 + 1 = 7" "$(avail)" "7,4,-"
+has "  and that order can no longer be given back as cancelled" "$(back "$O" "$OR2")" "a return is open or done"
+ok  "  stock unchanged" "$(avail)" "7,4,-"
 psql "${CONN[@]}" -d "$DB" -qX -v ON_ERROR_STOP=1 -f "$DIR/drafts/41_DRAFT_rollback_partial_receiving_returns.sql" >"$OUTF" 2>&1
-ok  "  drafts/41 (undo of 40) leaves the stock-per-order record alone" "$(q "select count(*) from order_stock_moves where kind = 'take'")" "10"
+ok  "  drafts/41 (undo of 40) leaves the stock-per-order record alone" "$(q "select count(*) from order_stock_moves where kind = 'take'")" "12"
 
 echo " rollback (drafts/77)"
 ok  "rollback succeeds" "$(run "$ROLLBACK")" "0"
@@ -184,7 +209,7 @@ has "  says the record is kept because it holds moves" "$(cat "$OUTF")" "order_s
 ok  "  the functions are gone" "$(q "select count(*) from pg_proc where proname in ('take_order_stock','give_back_order_stock','_he_order_stock')")" "0"
 ok  "  stock numbers unchanged" "$(avail)" "7,4,-"
 ok  "  the record table is kept" "$(q "select count(*) > 0 from order_stock_moves")" "t"
-ok  "  install works again afterwards and keeps the record" "$(run "$INSTALL")|$(q "select count(*) from order_stock_moves where kind = 'take'")" "0|10"
+ok  "  install works again afterwards and keeps the record" "$(run "$INSTALL")|$(q "select count(*) from order_stock_moves where kind = 'take'")" "0|12"
 fresh
 ok  "on an empty record, install then rollback removes the table too" "$(run "$INSTALL")|$(run "$ROLLBACK")|$(q "select to_regclass('public.order_stock_moves') is null")" "0|0|t"
 ok  "  a second rollback stops: nothing to undo" "$(run "$ROLLBACK")" "3"

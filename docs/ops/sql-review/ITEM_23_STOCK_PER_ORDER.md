@@ -14,10 +14,12 @@ After this step:
    would go below zero, nothing changes and the message names the line.
 2. A cancelled order gives its bottles back **once**.
 3. **One way back only (added Nov 28, morning):** a sold bottle comes back to the shelf either as a
-   cancelled order here, or as a customer return inspected under item 5 (drafts/40), never both. Giving
-   an order back is refused once a return is recorded for one of its lines, and a return can no longer
-   be decided for a line already given back (both checked on a throwaway copy, also when the two happen
-   at the same moment). Without this, 4 test bottles were counted twice.
+   cancelled order here, or as a return: today's **Returns** page ("Mark Received" with a restock, both
+   its own way and the database's `receive_return`), or a return inspected under item 5 (drafts/40).
+   Never both. Giving an order back is refused while one of its lines has a return that was not
+   rejected; and a return can no longer restock a line its order already gave back ("Discard" still
+   works). Checked on a throwaway copy, also when both happen at the same moment. Without this, test
+   bottles were counted twice (11 and 13 checks failed with the rule removed).
 4. **A deleted order** (for example a duplicate import removed after its stock was taken) can still
    give back what it took, and can never take. On the dashboard it shows "(deleted)" with only the
    give-back button.
@@ -56,13 +58,13 @@ new orders should have `lines_without_a_product` = 0.
 
 | File | Lines | Fingerprint (SHA-256, first 16) |
 |---|---|---|
-| `docs/ops/sql/drafts/76_DRAFT_order_stock_moves.sql` (stock per order) | 258 | `2cd58c5dd14da464` |
-| `docs/ops/sql/drafts/77_DRAFT_rollback_order_stock_moves.sql` (undo of 76) | 48 | `bbcd05fc33ede704` |
+| `docs/ops/sql/drafts/76_DRAFT_order_stock_moves.sql` (stock per order) | 299 | `eee361fb68818a31` |
+| `docs/ops/sql/drafts/77_DRAFT_rollback_order_stock_moves.sql` (undo of 76) | 51 | `f72332a5dd33f643` |
 
 It stops by itself, changing nothing, if your orders, order lines, products or stock tables differ from
 the shape your Query A showed, if a needed index or `is_owner_or_admin()` is missing, or if a table of the
 same name exists that it did not create. The functions run with the caller's own rights (security
-invoker); visitors are refused by name (the FIX 3 rule). Tested on a throwaway copy: 88 of 88 checks
+invoker); visitors are refused by name (the FIX 3 rule). Tested on a throwaway copy: 103 of 103 checks
 (`docs/ops/sql/local-test/order_stock_moves_test.sh`), and it installs in its place on a copy shaped like
 your real database (`production_shape_install_test.sh`, 34 of 34).
 
@@ -81,17 +83,18 @@ select (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronames
        to_regclass('public.order_stock_moves') is not null as record_table,
        has_function_privilege('anon', 'public.take_order_stock(uuid)', 'execute') as visitors_can_run,
        has_function_privilege('authenticated', 'public.take_order_stock(uuid)', 'execute') as staff_can_call,
-       (select count(*) from public.order_stock_moves) as moves;
+       (select count(*) from public.order_stock_moves) as moves,
+       exists (select 1 from pg_trigger where tgname = 'returns_not_given_back' and tgrelid = 'public.returns'::regclass) as returns_check;
 ```
 
-Expected: `3 | true | false | true | 0` (checked on a throwaway copy, Nov 28). Then, on the dashboard:
+Expected: `3 | true | false | true | 0 | true` (checked on a throwaway copy, Nov 28). Then, on the dashboard:
 Feature Flags → **Stock per order** says **Installed** → Turn on → Orders → Stock per order → try it on
 the **test order** first (`docs/ops/TEST_ORDER_CHECKLIST.md`).
 
 ## If something is wrong: undo
 
-Paste `77_DRAFT_rollback_order_stock_moves.sql` and run it. It removes the three functions, so no order
-can take or give back stock any more. It **does not change any stock number**: bottles already taken off
+Paste `77_DRAFT_rollback_order_stock_moves.sql` and run it. It removes the three functions and the check on
+Returns, so no order can take or give back stock any more. It **does not change any stock number**: bottles already taken off
 stay taken off (correct them by hand if needed). The record table is kept if it holds any move, and
 removed if empty.
 

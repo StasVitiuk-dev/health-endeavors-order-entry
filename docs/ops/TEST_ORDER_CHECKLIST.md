@@ -53,7 +53,7 @@ Same checks 1–7, then:
 |---|---|---|---|
 | 8 | Shopify's fee and the payout | Accounting (once drafts/42 is installed) | The payout equals the order minus the fee; no open difference |
 | 9 | The refund | Shopify, then Returns / Accounting | The refund shows once; the money matches |
-| 10 | Stock after the refund | Inventory | Back only through a return you approved (inspection first: sellable, damaged or opened; drafts/40). **Never by itself** |
+| 10 | Stock after the refund | Inventory | Back only through a return you approved (inspection first: sellable, damaged or opened; drafts/40). **Never by itself.** A refunded order that was never shipped is instead *given back* on Orders → Stock per order; the two never both happen (drafts/76 refuses the second way, also against the Returns page's Mark Received) |
 
 ## When something does not match
 

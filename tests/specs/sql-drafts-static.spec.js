@@ -382,6 +382,11 @@ for (const f of ALL) {
       for (const r of ORDER_STOCK_RULES) expect(sql.split(r).length - 1, 'pinned rule present exactly once: ' + r.slice(0, 60)).toBe(1);
       expect(sql, 'signed-in people may only read and add').toContain('grant select, insert on public.order_stock_moves to authenticated;');
       expect(sql, 'no update or delete for anyone').not.toMatch(/grant[^;]*\b(update|delete|all)\b[^;]*order_stock_moves/);
+      // one way back only: a line its order gave back is never restocked again by a return (Nov 28)
+      expect(sql).toContain('create trigger returns_not_given_back before insert or update on public.returns');
+      expect(fs.readFileSync(path.join(DIR, f), 'utf8'), 'a return that was not rejected blocks giving the order back').toContain("where oi.order_id = p_order_id and rt.status <> 'rejected';");
+      expect(fs.readFileSync(path.join(DIR, '77_DRAFT_rollback_order_stock_moves.sql'), 'utf8'), 'the undo removes the check on returns too')
+        .toContain('drop trigger if exists returns_not_given_back on public.returns;');
     }
     if (f === '70_DRAFT_backup_reports.sql') {
       for (const r of BACKUP_REPORT_RULES) expect(sql.split(r).length - 1, 'pinned rule present exactly once: ' + r.slice(0, 60)).toBe(1);

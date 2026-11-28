@@ -5,14 +5,15 @@
 -- @depends-on:  none
 -- @risk:        LOW
 -- @precheck:    stops, changing nothing, if drafts/76 is not installed
--- @effect:      removes the three functions; keeps order_stock_moves if it holds any move (history), drops it if empty; no stock number changes
+-- @effect:      removes the three functions and the check on returns; keeps order_stock_moves if it holds any move (history), drops it if empty; no stock number changes
 -- @postcheck:   the functions are gone
 -- @rollback:    (this file is the rollback of drafts/76)
 -- @@ end metadata @@
 -- Needs the owner's written approval. DO NOT RUN until then.
 -- Tested only on the local throwaway database (local-test/order_stock_moves_test.sh).
 --
--- Removes the three functions of drafts/76, so no order can take or give back stock any more.
+-- Removes the three functions of drafts/76, so no order can take or give back stock any more, and
+-- its check on Returns (a line given back cannot also be restocked as a return).
 -- It does NOT change any stock number: bottles already taken off by an order stay taken off,
 -- and the history rows in inventory_adjustments stay. The record table order_stock_moves is
 -- removed only when it is empty; if it holds moves, it is kept (read-only history) and the
@@ -30,6 +31,8 @@ begin
   end if;
 end $pre$;
 
+drop trigger if exists returns_not_given_back on public.returns;
+drop function if exists public._he_returns_not_given_back();
 drop function if exists public.take_order_stock(uuid);
 drop function if exists public.give_back_order_stock(uuid);
 drop function if exists public._he_order_stock(uuid, text);

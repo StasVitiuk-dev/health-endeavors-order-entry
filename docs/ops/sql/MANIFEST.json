@@ -940,8 +940,8 @@
       "dependsOn": [],
       "risk": "MEDIUM",
       "rollback": "77",
-      "precheck": "stops, changing nothing, if orders, order_items, products, inventory or inventory_adjustments differ from the shape Query A reported, if is_owner_or_admin() or the unique indexes on inventory(product_id) and products(lower(sku)) are missing, or if an order_stock_moves table exists that this file did not create",
-      "effect": "adds the record table order_stock_moves (one row per order line and kind, never updated or deleted) and take_order_stock / give_back_order_stock (owner or active administrator; all or nothing; lines matched to products by SKU); nothing calls them yet, so no stock changes until a page or the Shopify step does",
+      "precheck": "stops, changing nothing, if orders, order_items, products, inventory, inventory_adjustments or returns differ from the shape Query A reported, if is_owner_or_admin() or the unique indexes on inventory(product_id) and products(lower(sku)) are missing, or if an order_stock_moves table exists that this file did not create",
+      "effect": "adds the record table order_stock_moves (one row per order line and kind, never updated or deleted) and take_order_stock / give_back_order_stock (owner or active administrator; all or nothing; lines matched to products by SKU; a sold line comes back to the shelf one way only), and a check on returns that refuses restocking a line its order already gave back; nothing calls the functions yet, so no stock changes until a page or the Shopify step does",
       "postcheck": "local-test/order_stock_moves_test.sh passes on a throwaway copy; in production: the table and the three functions exist, visitors cannot run them"
     },
     {
@@ -952,7 +952,7 @@
       "dependsOn": [],
       "risk": "LOW",
       "precheck": "stops, changing nothing, if drafts/76 is not installed",
-      "effect": "removes the three functions; keeps order_stock_moves if it holds any move (history), drops it if empty; no stock number changes",
+      "effect": "removes the three functions and the check on returns; keeps order_stock_moves if it holds any move (history), drops it if empty; no stock number changes",
       "postcheck": "the functions are gone"
     }
   ],

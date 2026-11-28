@@ -4,8 +4,8 @@
 -- @environment: production only after the owner's written approval; tested on the local throwaway database
 -- @depends-on:  none
 -- @risk:        MEDIUM
--- @precheck:    stops, changing nothing, if orders, order_items, products, inventory or inventory_adjustments differ from the shape Query A reported, if is_owner_or_admin() or the unique indexes on inventory(product_id) and products(lower(sku)) are missing, or if an order_stock_moves table exists that this file did not create
--- @effect:      adds the record table order_stock_moves (one row per order line and kind, never updated or deleted) and take_order_stock / give_back_order_stock (owner or active administrator; all or nothing; lines matched to products by SKU); nothing calls them yet, so no stock changes until a page or the Shopify step does
+-- @precheck:    stops, changing nothing, if orders, order_items, products, inventory, inventory_adjustments or returns differ from the shape Query A reported, if is_owner_or_admin() or the unique indexes on inventory(product_id) and products(lower(sku)) are missing, or if an order_stock_moves table exists that this file did not create
+-- @effect:      adds the record table order_stock_moves (one row per order line and kind, never updated or deleted) and take_order_stock / give_back_order_stock (owner or active administrator; all or nothing; lines matched to products by SKU; a sold line comes back to the shelf one way only), and a check on returns that refuses restocking a line its order already gave back; nothing calls the functions yet, so no stock changes until a page or the Shopify step does
 -- @postcheck:   local-test/order_stock_moves_test.sh passes on a throwaway copy; in production: the table and the three functions exist, visitors cannot run them
 -- @rollback:    drafts/77
 -- @@ end metadata @@
@@ -52,7 +52,8 @@ begin
       ('order_items', array['id','order_id','sku','product_name','quantity']),
       ('products', array['id','sku']),
       ('inventory', array['product_id','available','updated_at','updated_by']),
-      ('inventory_adjustments', array['product_id','bucket','change_amount','reason','adjusted_by'])
+      ('inventory_adjustments', array['product_id','bucket','change_amount','reason','adjusted_by']),
+      ('returns', array['id','order_item_id','status','disposition'])
     ) as t(tbl, cols)
   loop
     if to_regclass('public.' || req.tbl) is null then
@@ -163,9 +164,19 @@ begin
         using errcode = '22023', hint = 'unmatched_sku';
     end if;
   else
-    -- A line can come back to the shelf only one way: as a cancelled order here, or as a customer
-    -- return inspected under drafts/40. If any line of this order already has a return recorded,
-    -- giving the order back would count those bottles twice, so nothing happens.
+    -- A line can come back to the shelf only one way: as a cancelled order here, or as a return
+    -- (the Returns page's "Mark Received" with a restock, or a return inspected under drafts/40).
+    -- If any line of this order has a return that was not rejected, giving the order back could
+    -- count those bottles twice, so nothing happens.
+    select string_agg(distinct coalesce(nullif(oi.sku, ''), '(no SKU)'), ', ')
+      into v_unmatched
+      from returns rt
+      join order_items oi on oi.id = rt.order_item_id
+     where oi.order_id = p_order_id and rt.status <> 'rejected';
+    if v_unmatched is not null then
+      raise exception 'Order %: a return is open or done for %. Nothing was changed. Returned bottles come back through the return (Returns → Mark Received); if the order was cancelled instead, reject that return first.', v_number, v_unmatched
+        using errcode = '23514', hint = 'already_returned';
+    end if;
     if to_regclass('public.customer_return_inspections') is not null then
       select string_agg(distinct coalesce(nullif(oi.sku, ''), '(no SKU)'), ', ')
         into v_unmatched
@@ -247,10 +258,40 @@ security invoker
 set search_path = public, pg_temp
 as $$ select public._he_order_stock(p_order_id, 'give_back') $$;
 
+-- The other way round: the Returns page's "Mark Received" with a restock (the page's own path and
+-- drafts/10's receive_return both mark the return Received in the same step as, or before, the
+-- restock) is refused for a line this order already gave back, so its bottles never come back
+-- twice. Same per-order lock as _he_order_stock, so the two never pass each other unseen.
+create or replace function public._he_returns_not_given_back() returns trigger
+language plpgsql
+security invoker
+set search_path = public, pg_temp
+as $$
+declare
+  v_order uuid;
+begin
+  if new.status = 'received' and new.disposition in ('restock_available', 'restock_damaged')
+     and (tg_op = 'INSERT' or old.status is distinct from 'received' or old.disposition is distinct from new.disposition) then
+    select oi.order_id into v_order from order_items oi where oi.id = new.order_item_id;
+    if v_order is not null then
+      perform pg_advisory_xact_lock(hashtext('health_endeavors_order_stock:' || v_order::text));
+    end if;
+    if exists (select 1 from order_stock_moves m where m.order_item_id = new.order_item_id and m.kind = 'give_back') then
+      raise exception 'That order line was already given back to stock when its order was cancelled (Orders → Stock per order). Nothing was changed. Mark the return Received with "Discard", or correct the stock by hand.'
+        using errcode = '23514', hint = 'already_given_back';
+    end if;
+  end if;
+  return new;
+end $$;
+drop trigger if exists returns_not_given_back on public.returns;
+create trigger returns_not_given_back before insert or update on public.returns
+  for each row execute function public._he_returns_not_given_back();
+
 -- The owner check is inside _he_order_stock; visitors are named, not only "public" (FIX 3 rule).
 revoke all on function public._he_order_stock(uuid, text) from public, anon;
 revoke all on function public.take_order_stock(uuid) from public, anon;
 revoke all on function public.give_back_order_stock(uuid) from public, anon;
+revoke all on function public._he_returns_not_given_back() from public, anon, authenticated;   -- a trigger only, never called
 grant execute on function public._he_order_stock(uuid, text) to authenticated;
 grant execute on function public.take_order_stock(uuid) to authenticated;
 grant execute on function public.give_back_order_stock(uuid) to authenticated;

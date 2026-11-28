@@ -72,7 +72,7 @@ It confirms the midnight, 3 AM and 6:05 PM jobs ran without errors.
 
 - **Stock per order (draft 76, not installed):** an order now can take its bottles off the stock count exactly once
   (all or nothing; refused if a SKU is unknown or stock would go below zero) and give them back once when
-  cancelled. 88 local checks, including "one way back only": a cancelled order and a customer return can never both put the same bottles back. It closes the launch gap "stock goes down by exactly the amount sold" on the
+  cancelled. 103 local checks, including "one way back only": a cancelled order and a return (today's Returns page, or the inspected returns of step 8) can never both put the same bottles back. It closes the launch gap "stock goes down by exactly the amount sold" on the
   database side; it becomes step 3b of the launch plan's database list. **And the button for it:** Orders →
   **Stock per order** (switch off; works once draft 76 is installed): find an order, press **Take these bottles
   off stock** twice; a cancelled order gives them back. Details: `ONE_STOCK_COUNT_DECISION_2026-11-24.md`.
