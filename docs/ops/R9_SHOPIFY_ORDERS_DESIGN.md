@@ -11,6 +11,12 @@ used if you keep path A. Related: `ONE_STOCK_COUNT_DECISION_2026-11-24.md` (whic
 - **Orders today:** an order import runs in the **private backups repository**, which Claude never opens.
   Whether it is switched on and still works is **unknown here** (the dashboard showed 0 orders on Nov 23,
   which fits "no store sales yet" and also "the import is off").
+- **What is known about today's import (REPORTED, Sept 2026; found Nov 28 in a renewal reminder Claude
+  scheduled when it was set up, not re-checked):** it is a scheduled GitHub workflow in the backups
+  repository, using a Shopify custom app named "Health Endeavors Order Sync" whose access key may **read
+  orders and products** only. That key lasts at most 6 months and **expires around March 6, 2027**; a reminder
+  to renew it fires Feb 20, 2027. So path A's key is still good on launch day (Dec 10), and **the import
+  existed and was set up**; whether it is switched on and writes the SKU is still the open question.
 - **The dashboard's "Shopify Order Sync" switch** (Feature Flags; System mode → Emergency turns it off) is
   **off on purpose before launch** (`OPERATIONS_RUNBOOK_INDEX_EXT9.md`). If today's import obeys that switch,
   it is not bringing orders in now, which would also explain the 0 orders. Path B obeys the same switch.
