@@ -56,6 +56,7 @@ reviewed, approved, installed or verified.
 | 17 | Managers decide deliveries and returns someone else recorded (your choice A, Nov 25) | **4** and **15a** (best after 15b) | `66_DRAFT_managers_approve_stock.sql` | 119 | `d00d38b72d87af87` | `67_…` | — | Item 5, "Prepared for A" |
 | 18 | Small hardening of three existing history and sign-in functions (pg_temp named last; nothing else changes) | nothing | `68_DRAFT_history_functions_search_path.sql` | 52 | `5a842bd5b4bb92c4` | `69_…` | — | `docs/ops/OWNER_PROTECTION_AND_PRIVATE_HISTORY.md`, "Second look" |
 | 19 | Backup status on Home: a small table the backup job writes after each run, read by you and administrators (then one step in the backups repository) | nothing | `70_DRAFT_backup_reports.sql` | 73 | `fef6f3402edfcbf6` | `71_…` | — | `docs/ops/RECOVERY_AND_BACKUP_READINESS.md` §3a |
+| 20 | Stock per order (Nov 28): an order takes its bottles off the stock count once, all or nothing, and gives them back once if cancelled (launch promise 2; the Orders button waits for it) | nothing | `76_DRAFT_order_stock_moves.sql` | 241 | `e6836e56ff32cb68` | `77_…` | [Item 23](ITEM_23_STOCK_PER_ORDER.md), "Before running" | [Item 23](ITEM_23_STOCK_PER_ORDER.md), "After running" |
 | — | Your private history hidden from administrators | — | **not needed**: already true in production (your second read-only look, Nov 25) | | | | | |
 
 Real dependencies (all others are independent): 38 needs 36 · 64 needs 62 · 66 needs 40 and 62 · the helper needs 64 ·
