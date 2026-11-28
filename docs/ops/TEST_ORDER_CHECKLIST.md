@@ -39,7 +39,7 @@ Then, in the dashboard, one check at a time. Write the time next to each.
 | 2 | The amounts match Shopify | Orders → the order | Items, quantities, total and tax equal Shopify's order page |
 | 3 | The packing slip prints | Orders → Packing slips (switch `he_order_slips` on) | One page on the Brother (or 4×6 on the Rollo), the right items |
 | 4 | The shipping label prints | Shopify's own label, on the Rollo (4 × 6, margins None, scale 100%) | Readable barcode; nothing cut off |
-| 5 | Stock went down by exactly the quantity | Inventory | Available = before − quantity; **never twice** (refresh, wait a minute, refresh) |
+| 5 | Stock went down by exactly the quantity | Orders → **Stock per order** (Nov 28; drafts/76 installed, switch on): find the order → **Take these bottles off stock** (press twice), then Inventory | The message says each line was taken; Available = before − quantity; **never twice** (press Take again: "Nothing changed"; refresh, wait a minute, refresh) |
 | 6 | Nothing unexpected asks for attention | Home / Needs Your Attention | No new warning, or one you understand |
 | 7 | The next morning: the order is in the daily recap | Report History | One order, the right total |
 
