@@ -24,6 +24,17 @@ target is about **Dec 10** (13 days), and it depends on the answers below, above
 | 6b | **When should an order take its bottles off the stock count: when it is paid, or when it ships?** (the new stock-per-order step, draft 76, built overnight; recommendation: when paid, as Shopify does) | the stock-per-order step being used | one word |
 | 6 | **Returns / ship-from address: home or a private mailbox?** (home = printed on every package and return label) | shipping setup (guide E), return policy, TikTok | one word |
 
+**For question 2 (optional, 1 minute, reads only):** this shows where orders came from and when the last one
+arrived. Counts and dates only, no customer details. Supabase → SQL Editor → New query → paste → Run →
+screenshot. If nothing arrived lately, the import is probably not running.
+
+```sql
+select coalesce(source, '(none)') as source, coalesce(channel::text, '(none)') as channel,
+       count(*) as orders, max(created_at)::date as newest_arrived,
+       count(*) filter (where created_at > now() - interval '7 days') as last_7_days
+  from public.orders where deleted_at is null group by 1, 2 order by 3 desc;
+```
+
 ## 3. The store texts (sent to you as a file this morning)
 
 Claude drafted the store's legal pages overnight: return and refund, shipping, contact, privacy, a
