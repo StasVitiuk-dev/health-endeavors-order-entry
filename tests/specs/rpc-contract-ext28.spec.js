@@ -24,3 +24,24 @@ test('the check catches a misspelt argument, a missing required one and an unkno
   expect(C.check(defs, js("const RPC = 'save_x';\nclient.rpc(RPC, { p_note: n })")).problems).toHaveLength(1);   // p_id has no default
   expect(C.check(defs, js("supabase.rpc('who_knows', { p_a: 1 })")).notDraft).toEqual(['who_knows']);
 });
+
+// Feature Flags says "Installed" for a database step when the table or function it looks for exists.
+// After each evening the guides tell the owner to look for that word, so each one must look for
+// something its own draft creates.
+test('every Feature Flags install check looks for a table or function its own draft creates', () => {
+  const fs = require('fs'), path = require('path');
+  const ROOT = path.resolve(__dirname, '..', '..');
+  const src = fs.readFileSync(path.join(ROOT, 'assets', 'views', 'he-record-switches.js'), 'utf8');
+  const D = path.join(ROOT, 'docs', 'ops', 'sql', 'drafts'), files = fs.readdirSync(D);
+  const seen = [];
+  for (const m of src.matchAll(/\{ key: '(\w+)'[^}]*?draft: '([^']*)'[^}]*?(?:probe: '(\w+)'|rpc: '(\w+)')/g)) {
+    const nums = [...new Set([...m[2].matchAll(/(?:drafts\/|\band )(\d{2})\b/g)].map(x => x[1]))];
+    if (!nums.length) { expect(m[2]).toMatch(/No database step/); continue; }
+    const text = nums.map(n => files.find(f => f.startsWith(n + '_DRAFT_') && !/rollback/i.test(f))).filter(Boolean)
+      .map(f => fs.readFileSync(path.join(D, f), 'utf8')).join('\n');
+    const re = m[3] ? new RegExp('create table (if not exists )?public\\.' + m[3] + '\\b', 'i') : new RegExp('function public\\.' + m[4] + '\\b', 'i');
+    expect(re.test(text), m[1] + ' looks for ' + (m[3] || m[4]) + ' in drafts ' + nums.join(', ')).toBe(true);
+    seen.push(m[1]);
+  }
+  expect(seen.length).toBeGreaterThanOrEqual(13);
+});
