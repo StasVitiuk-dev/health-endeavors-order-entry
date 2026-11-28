@@ -45,7 +45,7 @@ Then, in the dashboard, one check at a time. Write the time next to each.
 
 A fake-card order has no real payout, so the money side (check 8) waits for Part 2.
 
-**After Part 1: put things back (5 minutes).** The fake-card order is not a sale, but after check 5 its
+**After Part 1, once check 7 has passed (the next morning): put things back (5 minutes).** The fake-card order is not a sale, but after check 5 its
 bottles are off the count and it would sit in the sales numbers:
 1. In Shopify, **cancel** the test order (no restock needed in Shopify unless you track stock there too).
 2. When the dashboard shows it as **cancelled** (refresh Orders): Orders → Stock per order → find it →
