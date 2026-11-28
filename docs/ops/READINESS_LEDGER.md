@@ -64,7 +64,7 @@ Columns: 1 built · 2 verified locally (tests on throwaway copies) · 3 verified
 | R6 | Database text shown as plain text everywhere | yes | yes | yes (`dom-sinks` gate) | yes (#36) | n/a | live | REPORTED (live check after #36, Nov 23) | — |
 | R7 | Supabase library pinned with an integrity hash | yes | yes | yes | yes (#36) | n/a | live | REPORTED (as R6) | — |
 | R8 | Real products entered (exact codes) | import tool yes | yes | yes | tool yes | n/a | tool off | no | **the product list from the lab** |
-| R9 | Shopify order sync | design and drafts (42) only | drafts yes | yes | drafts yes | **no** | off (on purpose) | no | R8, R1–R4, payments decision |
+| R9 | Shopify order sync | today's import exists (backups repository, REPORTED Sept 2026; on or off unknown); path B as drafts (78 and a read-only order program; Nov 28). Draft 42 is payouts only, never orders | drafts yes | yes | drafts yes | **no** | off (on purpose) | no | the owner's A-or-B answer; R8; R1–R4 |
 | R10 | Customer email | no send path; tripwires | yes | yes | yes | n/a | nothing sends | — | counted complete for launch **only** while no customer email is sent at launch (**OWNER DECISION**: if real email is wanted at launch, R10 is 0: R1–R10 = 20%, weighted 3.0, and A = 40.25 → ≈ 40%) |
 
 Count under rule 3: **3 of 10** (R6, R7, R10 as above) = 30%.
