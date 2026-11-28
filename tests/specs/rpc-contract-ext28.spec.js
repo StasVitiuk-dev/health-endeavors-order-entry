@@ -12,7 +12,7 @@ test('every checked call from the dashboard matches its draft', () => {
   // the tool really reads the calls (it can never pass by finding nothing)
   expect(r.checked).toBeGreaterThanOrEqual(36);   // 31 calls + the 5 stock-step install probes
   // production's own functions are listed, not judged; a new name here means a call with no draft
-  expect(r.notDraft).toEqual(['employee_activity', 'global_search', 'log_customer_data_access', 'revoke_my_session']);
+  expect(r.notDraft).toEqual(['employee_activity', 'employee_activity_areas', 'employee_activity_people', 'get_agent_cron_status', 'global_search', 'list_my_sessions', 'log_customer_data_access', 'revoke_my_session']);
 });
 
 test('the check catches a misspelt argument, a missing required one and an unknown function (planted)', () => {
@@ -23,6 +23,9 @@ test('the check catches a misspelt argument, a missing required one and an unkno
   expect(C.check(defs, js("const RPC = { save: 'save_x' };\nclient.rpc(RPC.save, { p_id: id, p_lnes: l })")).problems[0]).toContain('save_x(p_id, p_lnes) but drafts/99_X.sql defines (p_id, p_lines (optional), p_note (optional))');
   expect(C.check(defs, js("const RPC = 'save_x';\nclient.rpc(RPC, { p_note: n })")).problems).toHaveLength(1);   // p_id has no default
   expect(C.check(defs, js("supabase.rpc('who_knows', { p_a: 1 })")).notDraft).toEqual(['who_knows']);
+  expect(C.check(defs, js("supabase.rpc('save_x')")).problems).toHaveLength(1);   // sent with no values, but p_id has no default
+  const optional = C.definitions({ 'drafts/98_Y.sql': 'create or replace function public.who_am_i(p_limit int default 10) returns int as $$ select 1 $$;' });
+  expect(C.check(optional, js("supabase.rpc('who_am_i')")).problems).toEqual([]);
 });
 
 // Feature Flags says "Installed" for a database step when the table or function it looks for exists.

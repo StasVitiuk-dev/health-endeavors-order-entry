@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // The dashboard's calls to database functions, checked against the functions the SQL drafts define
-// (Nov 28). For every call written as rpc('name', { p_... }), callStockFunction('name', { p_... }),
+// (Nov 28). For every call written as rpc('name', { p_... }), rpc('name') with no values, callStockFunction('name', { p_... }),
 // or through a constant (RPC.x, or const NAME = 'fn'), the function must exist in a draft with every
 // argument name the page sends, and the page must send every argument that has no default. A draft
 // that renames an argument, or a page that misspells one, fails here before anything is installed.
@@ -59,6 +59,8 @@ function calls(jsByFile) {
       for (const k of body.matchAll(/(?:^|,)\s*(p_\w+)\s*(?=,|$)/g)) keys.add(k[1]);   // shorthand { p_x }
       out.push({ file, line: s.slice(0, m.index).split('\n').length, name, keys: [...keys] });
     }
+    // calls that send no values at all: rpc('fn') (every argument of its draft must then have a default)
+    for (const c of s.matchAll(/\.rpc\(\s*'(\w+)'\s*\)/g)) out.push({ file, line: s.slice(0, c.index).split('\n').length, name: c[1], keys: [] });
     // install probes written as ['fn', { p_... }] pairs (he-data.js: the stock steps' switches)
     for (const p of s.matchAll(/\[\s*'(\w+)'\s*,\s*\{([^{}]*)\}\s*\]/g)) {
       const keys = [...new Set([...p[2].matchAll(/\b(p_\w+)\s*:/g)].map(k => k[1]))];

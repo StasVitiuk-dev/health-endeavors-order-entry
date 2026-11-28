@@ -47,7 +47,7 @@ A test that seeds impossible data on purpose (only the XSS test) sets `backend.a
 The browser tests run against a stand-in database, so they cannot see a page sending an argument a draft
 does not have. Two checks close that gap:
 - `tools/rpc-contract.js` (run by `specs/rpc-contract-ext28.spec.js`): every call to a database function
-  in `assets/` is compared with the function its SQL draft defines (the name, every argument name sent,
+  in `assets/` (also one sending no values) is compared with the function its SQL draft defines (the name, every argument name sent,
   every required argument present). A planted mistake must be caught, so it can never pass by reading
   nothing. Production's own functions (no draft) are listed, not judged.
 - The `*_store_adapter_test.js` files in `docs/ops/sql/local-test/` (in the database suite, so GitHub runs
