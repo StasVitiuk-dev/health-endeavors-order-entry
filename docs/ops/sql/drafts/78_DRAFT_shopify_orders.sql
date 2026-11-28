@@ -123,6 +123,16 @@ begin
   if v_id is not null and v_deleted is not null then
     return jsonb_build_object('order', p_order ->> 'order_number', 'skipped', 'deleted_on_the_dashboard');
   end if;
+  -- Another import (path A) may have saved this order already, under Shopify's plain number or the order
+  -- name instead of the long id. Never write it a second time (its lines too), even if it was deleted:
+  -- that row stays as the other import left it, and the run report names it.
+  if v_id is null and exists (
+       select 1 from orders o
+        where o.channel = 'shopify' and coalesce(o.external_order_id, '') !~ '^gid://'
+          and (o.external_order_id = substring(v_ext from '([0-9]+)$')
+               or o.order_number = left(p_order ->> 'order_number', 40))) then
+    return jsonb_build_object('order', p_order ->> 'order_number', 'skipped', 'saved_by_another_import');
+  end if;
   if v_id is null then
     insert into orders (channel, external_order_id, order_number, status, currency, subtotal, shipping_total, tax_total, total, placed_at, source)
     values ('shopify', v_ext, left(p_order ->> 'order_number', 40), v_status, coalesce(p_order ->> 'currency', 'USD'),

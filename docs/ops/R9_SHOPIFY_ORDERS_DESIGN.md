@@ -80,6 +80,7 @@ How the automatic step would work, so the answer turns into about an hour of wor
 ```sql
 select o.channel::text as channel, count(distinct o.id) as orders,
        count(distinct o.id) filter (where coalesce(o.external_order_id, '') <> '') as with_outside_number,
+       count(distinct o.id) filter (where o.external_order_id like 'gid://shopify/Order/%') as with_shopify_long_id,
        count(oi.id) as lines,
        count(oi.id) filter (where coalesce(oi.sku, '') <> '') as lines_with_sku,
        count(oi.id) filter (where p.id is not null) as lines_matching_a_product,
@@ -95,7 +96,10 @@ select o.channel::text as channel, count(distinct o.id) as orders,
    the import writes what stock per order needs (path A works). `lines_matching_a_product` lower than
    `lines_with_sku` only means those products are not in the dashboard yet (the product list, R8). No
    `shopify` row at all, or an old `newest`, means no Shopify order arrived lately (no sales yet, or the
-   import is off).
+   import is off). `with_shopify_long_id` says which form of Shopify's order id today's import keeps (path B
+   keeps the long form, `gid://shopify/Order/…`); if it is 0 while `with_outside_number` is not, path B
+   would see those orders as new, so drafts/78 never writes an order a second time when an order with the
+   same plain number or name is already there (it leaves it and names it in the run report).
 2. When should an order take its stock: when paid, or when shipped? (morning list 6b)
 3. Path A or path B, once 1 is answered.
 4. **Does the existing import change stock by itself?** If it does, an order would lose its bottles

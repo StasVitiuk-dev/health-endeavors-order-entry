@@ -150,6 +150,20 @@ const sync = (shop, db, now) => C.runSync({ fetchJson: shop.fn, db: db || servic
   const r4 = await sync(fakeShopify());
   ok('an order deleted on the dashboard is never brought back', [r4.skipped_deleted, q("select count(*) from orders where external_order_id = 'gid://shopify/Order/5003' and deleted_at is null")], [1, '0']);
 
+  // another import (path A) saved two orders its own way: Shopify's plain number, or only the order name
+  q("insert into orders (channel, external_order_id, order_number, status, source) values ('shopify', '5050', '#1050', 'paid', 'shopify'), ('shopify', null, '#1051', 'paid', 'shopify')");
+  q("insert into order_items (order_id, sku, product_name, quantity) select id, 'SYN-LAV-8OZ', 'SYNTHETIC Lavender Lotion 8 oz', 1 from orders where order_number in ('#1050', '#1051') and channel = 'shopify'");
+  const linesBefore = q('select count(*) from order_items');
+  const rA = await sync(fakeShopify({ orders: [order(5050, '#1050', [line(96, 'SYN-LAV-8OZ', 'SYNTHETIC Lavender Lotion 8 oz', 1, '24.0')]),
+    order(5051, '#1051', [line(97, 'SYN-LAV-8OZ', 'SYNTHETIC Lavender Lotion 8 oz', 1, '24.0')]), order(5052, '#1052', [line(98, 'SYN-LAV-8OZ', 'SYNTHETIC Lavender Lotion 8 oz', 1, '24.0')])] }));
+  ok('orders another import already saved (plain number, or the order name only) are never written twice; a new one is',
+     [rA.other_import, rA.created, q("select count(*) from orders where order_number in ('#1050', '#1051')"), q('select count(*) from order_items'), String(Number(linesBefore) + 1)],
+     [['#1050', '#1051'], 1, '2', String(Number(linesBefore) + 1), String(Number(linesBefore) + 1)]);
+  has('  and the run says to switch one import off', rA.problems.join(' '), '2 order(s) were already saved by another import (#1050, #1051); left as they were. Two imports must never run at once');
+  q("update orders set deleted_at = now() where order_number = '#1050' and channel = 'shopify'");
+  const rB = await sync(fakeShopify({ orders: [order(5050, '#1050', [line(96, 'SYN-LAV-8OZ', 'SYNTHETIC Lavender Lotion 8 oz', 1, '24.0')])] }));
+  ok('  even after the other import\'s copy was deleted on the dashboard, it is not brought back', [rB.other_import, rB.created, q("select count(*) from orders where order_number = '#1050'")], [['#1050'], 0, '1']);
+
   q("update public.feature_flags set enabled = false where flag_key = 'shopify_order_sync'");
   const emergency = fakeShopify({ orders: [order(5040, '#1040', [line(95, 'SYN-LAV-8OZ', 'SYNTHETIC Lavender Lotion 8 oz', 1, '24.0')])] });
   const rE = await sync(emergency);
@@ -176,8 +190,8 @@ const sync = (shop, db, now) => C.runSync({ fetchJson: shop.fn, db: db || servic
   ok('drafts/79 runs', file(D('79_DRAFT_rollback_shopify_orders.sql')), 0);
   ok('  the function is gone; no order or line was removed; the Shopify line ids are kept (they are in use)',
      q("select count(*) from pg_proc where proname = 'save_shopify_order'") + '/' + q("select count(*) from orders where channel = 'shopify'") + '/' + q('select count(*) from order_items where external_line_id is not null'),
-     '0/5/6');
-  ok('  installing again works and keeps everything', file(D('78_DRAFT_shopify_orders.sql')) + '/' + q("select count(*) from order_items where external_line_id is not null"), '0/6');
+     '0/8/7');
+  ok('  installing again works and keeps everything', file(D('78_DRAFT_shopify_orders.sql')) + '/' + q("select count(*) from order_items where external_line_id is not null"), '0/7');
   run('postgres', 'drop database if exists ' + DB + ' with (force)');
   run('postgres', 'create database ' + DB + ' template ' + SRC);
   ok('without the service key\'s right to write orders, drafts/78 stops', file(D('78_DRAFT_shopify_orders.sql')), 3);

@@ -17,7 +17,10 @@ repository) is off or broken, this is the replacement, prepared in advance so it
 3. When Shopify changes an order (a quantity, a refund, a cancellation), the dashboard copy follows. Two
    exceptions:
    - a line whose bottles were already taken off stock (item 23) is **left as it was**, and the run says so;
-   - an order you deleted on the dashboard is **never brought back**.
+   - an order you deleted on the dashboard is **never brought back**;
+   - an order **today's import already saved** its own way (Shopify's plain order number, or only the
+     order name) is never written a second time, deleted or not; the run report names it and says to
+     switch one import off (added Nov 28 after review: the two imports may not use the same id).
 4. **No customer details** are asked for or kept: no name, email, address or card. The order shows its
    number, date, status, lines and totals.
 5. It obeys the dashboard's own **Shopify Order Sync** switch (Feature Flags): while that is off it asks
@@ -38,7 +41,7 @@ repository) is off or broken, this is the replacement, prepared in advance so it
 
 | File | Lines | Fingerprint (SHA-256, first 16) |
 |---|---|---|
-| `docs/ops/sql/drafts/78_DRAFT_shopify_orders.sql` (Shopify orders saved once) | 200 | `5dd78c5a78d3dfc7` |
+| `docs/ops/sql/drafts/78_DRAFT_shopify_orders.sql` (Shopify orders saved once) | 210 | `3738c0142c925194` |
 | `docs/ops/sql/drafts/79_DRAFT_rollback_shopify_orders.sql` (undo of 78) | 46 | `1194a52d0bab5470` |
 
 The program: `docs/ops/edge-drafts/shopify-orders-sync/` (`index.ts`, `sync-core.mjs`).
@@ -47,7 +50,7 @@ It stops by itself, changing nothing, if your orders or order lines differ from 
 showed, if the rule "one order per Shopify order id" is missing, if the database's service key may not read
 and write orders (Supabase gives it that by default), or if the service key would not be allowed to run the
 new function. Only the program can run it: visitors and signed-in people (you included) are refused by
-name. Tested on a throwaway copy with made-up Shopify answers: 47 of 47 checks
+name. Tested on a throwaway copy with made-up Shopify answers: 50 of 50 checks
 (`docs/ops/sql/local-test/shopify_orders_test.mjs`); it installs in its place on a copy shaped like your
 real database (`production_shape_install_test.sh`, 35 of 35).
 

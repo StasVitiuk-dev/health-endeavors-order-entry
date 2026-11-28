@@ -113,7 +113,7 @@ export async function runSync(opts) {
   const since = new Date(now.getTime() - days * 86400000).toISOString();
   const sleep = o.sleep || ((ms) => new Promise(r => setTimeout(r, ms)));
   const problems = [];
-  const out = { ok: true, since, orders_seen: 0, created: 0, lines_added: 0, lines_changed: 0, held: [], test_orders: 0, skipped_deleted: 0, refused: 0, problems };
+  const out = { ok: true, since, orders_seen: 0, created: 0, lines_added: 0, lines_changed: 0, held: [], other_import: [], test_orders: 0, skipped_deleted: 0, refused: 0, problems };
   let after = null, complete = false;
   for (let page = 0; page < MAX_PAGES; page++) {
     const conn = await ask(o.fetchJson, sleep, ORDERS_QUERY, { first: PAGE_SIZE, after, query: "updated_at:>='" + since + "'" });
@@ -126,6 +126,7 @@ export async function runSync(opts) {
       try { res = await o.db.rpc('save_shopify_order', { p_order: m.row }); }
       catch (e) { problems.push('order ' + m.row.order_number + ' was not saved: ' + String(e && e.message || e).slice(0, 200)); out.refused++; continue; }
       if (res && res.skipped === 'deleted_on_the_dashboard') { out.skipped_deleted++; continue; }
+      if (res && res.skipped === 'saved_by_another_import') { out.other_import.push(m.row.order_number); continue; }
       if (res && res.created) out.created++;
       out.lines_added += Number(res && res.lines_added) || 0;
       out.lines_changed += Number(res && res.lines_changed) || 0;
@@ -136,6 +137,7 @@ export async function runSync(opts) {
   }
   if (!complete) problems.push('more than ' + (MAX_PAGES * PAGE_SIZE) + ' orders changed since ' + since + '; the rest comes on the next run');
   if (out.held.length) problems.push('Shopify changed ' + out.held.length + ' order line(s) whose stock was already taken; they were left as they were (look at them on Orders)');
+  if (out.other_import.length) problems.push(out.other_import.length + ' order(s) were already saved by another import (' + out.other_import.slice(0, 5).join(', ') + (out.other_import.length > 5 ? ', …' : '') + '); left as they were. Two imports must never run at once: switch one off');
   out.problems = problems.slice(0, 20);
   return out;
 }
