@@ -7365,7 +7365,7 @@
     // them back, once. The rules are in the database (all or nothing, by SKU, owner or active
     // administrator); assets/inventory/he-order-stock.js asks and words the answers. Each
     // change asks for a second press.
-    const osState = { order: null, view: null, message: '', confirm: '', busy: '', waiting: null, waitingMore: false };   // busy: '' or 'take' / 'back' while it is being sent; waiting: recent orders not yet taken (null = not read)
+    const osState = { order: null, view: null, message: '', confirm: '', busy: '', waiting: null, waitingMore: false, choices: [] };   // busy: '' or 'take' / 'back' while it is being sent; waiting: recent orders not yet taken (null = not read)
     const osMod = () => (window.HE && window.HE.inventory && window.HE.inventory['he-order-stock']) || null;
     let osStoreObj = null;   // one store, so its "already being sent" guard holds across presses
     function osStore() { const M = osMod(); if (!M || !orderStockOn()) return null; return osStoreObj || (osStoreObj = M.createStore({ client: supabase, enabled: true })); }
@@ -7409,7 +7409,7 @@
           Array.isArray(osState.waiting) ? (osState.waiting.length
             ? h('div', { class: 'u-mt-8', 'data-oswaiting': String(osState.waiting.length) },
                 h('p', { class: 'u-fs-12 u-m-0' }, 'Not taken off stock yet (' + (osState.waitingMore ? 'the newest 50 orders of the last 14 days' : 'orders of the last 14 days') + '; cancelled, refunded and voided ones left out):'),
-                h('div', { class: 'scanToggleRow u-mt-4' }, osState.waiting.slice(0, 8).map(w => h('button', { type: 'button', class: 'small secondary', 'data-oswait': w.order_number }, w.order_number)),
+                h('div', { class: 'scanToggleRow u-mt-4' }, osState.waiting.slice(0, 8).map(w => h('button', { type: 'button', class: 'small secondary', 'data-oswait': w.id }, w.order_number)),
                   osState.waiting.length > 8 ? h('span', { class: 'u-fs-12' }, '+' + (osState.waiting.length - 8) + ' more') : null))
             : h('p', { class: 'u-fs-12 u-mt-8', 'data-oswaiting': '0' }, osState.waitingMore
                 ? 'The newest 50 orders of the last 14 days have all taken their stock. Older ones are not checked here: find them by number.'
@@ -7421,7 +7421,21 @@
               h('thead', null, h('tr', null, h('th', null, 'SKU'), h('th', null, 'Product'), h('th', { class: 'num-cell' }, 'Bottles'), h('th', null, 'Stock'))),
               h('tbody', null, v.rows.map(line))) : h('p', { class: 'hint' }, 'This order has no lines with bottles.'),
             take || back ? h('div', { class: 'scanToggleRow u-mt-8' }, take, back) : null) : null),
-        h('p', { class: 'u-fs-12 u-mt-4', role: 'status', 'data-osmessage': '1' }, osState.message)));
+        h('p', { class: 'u-fs-12 u-mt-4', role: 'status', 'data-osmessage': '1' }, osState.message),
+        osState.choices.length ? h('div', { class: 'scanToggleRow u-mt-4', 'data-oschoices': String(osState.choices.length) },
+          osState.choices.map(c => h('button', { type: 'button', class: 'small secondary', 'data-oschoose': c.id },
+            c.order_number + ' · ' + (c.channel || 'no channel') + ' · ' + (c.placed_at ? c.placed_at.slice(0, 10) : 'no date') + (c.deleted ? ' · deleted' : '')))) : null));
+    }
+    // Nov 28: open one order by its id (waiting list, or the choice when two orders share a number)
+    async function osOpen(r) {
+      if (r.busy) return;
+      osState.confirm = ''; osState.choices = [];
+      if (!r.ok) { osState.order = null; osState.view = null; osState.choices = Array.isArray(r.choices) ? r.choices : []; osSay(r.message); return; }
+      osState.order = r.order; osState.view = null; osState.message = '';
+      const box = document.getElementById('osOrder'); if (box) box.value = r.order.order_number || '';
+      await osReload();
+      renderOrderStock();
+      const first = document.querySelector('#orderStockHost button[data-os]') || document.getElementById('osOrder'); if (first) first.focus();
     }
     async function osReload() {
       const store = osStore(), o = osState.order; if (!store || !o) return false;
@@ -7434,19 +7448,11 @@
       const form = e.target instanceof Element ? e.target.closest('#orderStockHost form[data-osform="find"]') : null; if (!form) return;
       e.preventDefault();
       const store = osStore(); if (!store) return;
-      const r = await store.findOrder(document.getElementById('osOrder').value);
-      if (r.busy) return;
-      osState.confirm = '';
-      if (!r.ok) { osState.order = null; osState.view = null; osSay(r.message); return; }
-      osState.order = r.order; osState.view = null; osState.message = '';
-      await osReload();
-      renderOrderStock();
-      const first = document.querySelector('#orderStockHost button[data-os]') || document.getElementById('osOrder'); if (first) first.focus();
+      await osOpen(await store.findOrder(document.getElementById('osOrder').value));
     });
     document.addEventListener('click', async function (e) {
-      const w = e.target instanceof Element ? e.target.closest('#orderStockHost button[data-oswait]') : null;
-      if (w) { const box = document.getElementById('osOrder'); const form = document.querySelector('#orderStockHost form[data-osform="find"]');
-        if (box && form) { box.value = w.getAttribute('data-oswait') || ''; form.requestSubmit(); } return; }
+      const w = e.target instanceof Element ? e.target.closest('#orderStockHost button[data-oswait], #orderStockHost button[data-oschoose]') : null;
+      if (w) { const store = osStore(); if (store) await osOpen(await store.openOrder(w.getAttribute('data-oswait') || w.getAttribute('data-oschoose') || '')); return; }
       const t = e.target instanceof Element ? e.target.closest('#orderStockHost button[data-os]') : null; if (!t) return;
       const what = t.getAttribute('data-os'); const store = osStore(); const o = osState.order; if (!store || !o || osState.busy) return;
       if (osState.confirm !== what) { osState.confirm = what; renderOrderStock(); const again = document.querySelector('#orderStockHost button[data-os="' + what + '"]'); if (again) again.focus(); return; }

@@ -14,6 +14,7 @@
 //     'none' | 'taken' | 'given_back' | 'partly' (some lines taken, some not)
 //   waiting(orders, moves)   the recent orders that have not taken their stock yet (Nov 28), leaving out
 //     cancelled, fully refunded, voided and expired ones, newest first
+//     store.openOrder(id)    one order by its id (the waiting list, and the choice when two orders share a number)
 //     store.waiting(days)    the same, read from the database (orders of the last `days` days, the newest 50;
 //                            `more` says when there may be older ones it did not check)
 //
@@ -97,8 +98,22 @@
         // a deleted order is found only when no live order has the number: it can give back, never take
         const rows = live.length ? live : all;
         if (!rows.length) return refuse('No order has that number.');
-        if (rows.length > 1) return refuse('More than one order has that number. Type it exactly as the order shows it.');
+        // two channels can use the same number: list them, so the person chooses (never a guess)
+        if (rows.length > 1) return refuse('More than one order has that number. Choose the one you mean:', {
+          choices: rows.map(o => ({ id: str(o.id), order_number: str(o.order_number), channel: str(o.channel), placed_at: str(o.placed_at), deleted: o.deleted_at != null })) });
         return { ok: true, order: Object.assign({}, rows[0], { deleted: !live.length }) };
+      });
+    }
+    // one order by its id (the waiting list and the choice above open orders this way, never by number)
+    async function openOrder(orderId) {
+      const r = ready('from'); if (r) return r;
+      if (!UUID.test(str(orderId))) return refuse('Choose the order first.');
+      return once('open:' + orderId, async function () {
+        const res = await client.from('orders').select('id, order_number, customer_name, placed_at, status, channel, deleted_at').eq('id', orderId).limit(1);
+        if (res && res.error) return refuse(friendlyError(res.error));
+        const row = (Array.isArray(res && res.data) ? res.data : []).filter(isObj)[0];
+        if (!row) return refuse('That order is no longer there.');
+        return { ok: true, order: Object.assign({}, row, { deleted: row.deleted_at != null }) };
       });
     }
     async function forOrder(orderId) {
@@ -138,7 +153,7 @@
         return { ok: true, orders: waiting(rows, m && m.data), more: rows.length >= WAITING_MAX };
       });
     }
-    return { findOrder, forOrder, waiting: recentWaiting, take: (id) => call('take_order_stock', id), giveBack: (id) => call('give_back_order_stock', id) };
+    return { findOrder, openOrder, forOrder, waiting: recentWaiting, take: (id) => call('take_order_stock', id), giveBack: (id) => call('give_back_order_stock', id) };
   }
 
   return { friendlyError, summarize, waiting, createStore, MAX_LINES };

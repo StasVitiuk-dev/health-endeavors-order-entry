@@ -29,7 +29,7 @@ After this step:
    stock history shows "Order #… taken off stock".
 
 Nothing happens by itself: the button is on Orders → **Stock per order**, which also lists the orders of the
-last 14 days that have not taken their stock yet (cancelled, refunded, voided and expired ones left out; the newest 50, and it says so when there may be older ones; one press opens one),
+last 14 days that have not taken their stock yet (cancelled, refunded, voided and expired ones left out; the newest 50, and it says so when there may be older ones; one press opens exactly that order, even when another channel uses the same number; a typed number that two orders share lists both to choose from),
 so none is forgotten. The card stays switched off until you turn it on, after this step. The automatic Shopify way comes later (R9).
 
 ## Before you decide

@@ -56,8 +56,16 @@ test.describe('the rules on the dashboard side (no browser)', () => {
     expect(await M.createStore({ client: client([gone]) }).findOrder('#1001')).toEqual({ ok: true, order: Object.assign({}, gone, { deleted: true }) });
     expect(await M.createStore({ client: client([live, Object.assign({}, live, { id: id(2) })]) }).findOrder('1001')).toMatchObject({ ok: false, message: expect.stringContaining('More than one order') });
     expect(await M.createStore({ client: client([gone, Object.assign({}, gone, { id: id(8) })]) }).findOrder('1001')).toMatchObject({ ok: false, message: expect.stringContaining('More than one order') });
+    expect((await M.createStore({ client: client([live, Object.assign({}, live, { id: id(2), channel: 'etsy' })]) }).findOrder('1001')).choices.map(c => [c.id, c.channel]))
+      .toEqual([[id(1), ''], [id(2), 'etsy']]);   // the person chooses; nothing is guessed
     expect(await M.createStore({ client: client([]) }).findOrder('1001')).toMatchObject({ ok: false, message: 'No order has that number.' });
     expect(asked[0]).toMatchObject({ t: 'orders', f: [['in', 'order_number', ['1001', '#1001']]] });
+    // one order by its id (the waiting list and the choice): never by number
+    const byId = (rows) => ({ from: () => { const chain = { select: () => chain, eq: (k, v) => { chain.eqd = [k, v]; return chain; }, limit: async () => ({ data: rows }) }; return chain; } });
+    expect(await M.createStore({ client: byId([live]) }).openOrder(id(1))).toEqual({ ok: true, order: Object.assign({}, live, { deleted: false }) });
+    expect(await M.createStore({ client: byId([gone]) }).openOrder(id(9))).toMatchObject({ ok: true, order: { deleted: true } });
+    expect(await M.createStore({ client: byId([]) }).openOrder(id(1))).toMatchObject({ ok: false, message: 'That order is no longer there.' });
+    expect(await M.createStore({ client: byId([live]) }).openOrder('1001')).toMatchObject({ ok: false, message: 'Choose the order first.' });
     expect(asked[0].cols).toContain('deleted_at');
   });
 
@@ -253,12 +261,38 @@ test.describe('on the Orders page', () => {
     const list = host.locator('[data-oswaiting]');
     // the cancelled order and the one older than 14 days are left out; newest first
     await expect(list.locator('button[data-oswait]')).toHaveText(['#1001', '#1002']);
-    await list.locator('button[data-oswait="#1001"]').click();
+    await list.locator('button[data-oswait]', { hasText: '#1001' }).click();
     await expect(host.locator('[data-osorder]')).toContainText('Order #1001');
+    await expect(host.locator('[data-osorder]')).toHaveAttribute('data-osorder', id(1));   // opened by its id
     const take = host.locator('button[data-os="take"]');
     await take.click(); await take.click();
     await expect(host.locator('[data-osmessage]')).toContainText('Taken off stock');
     await expect(list.locator('button[data-oswait]')).toHaveText(['#1002']);
+    expect(backend.tableWrites()).toEqual([]);
+    expect(await host.evaluate(unnamedControls)).toEqual([]);
+  });
+
+  test('two orders with the same number (two channels): the person chooses; the waiting list opens the exact one', async ({ page, backend }) => {
+    install(backend);
+    const day = (n) => new Date(Date.now() - n * 86400000).toISOString();
+    backend.tables.orders[0].placed_at = day(1); backend.tables.orders[1].placed_at = day(2);
+    backend.tables.orders.push({ id: id(9), order_number: '1001', customer_name: 'SYNTHETIC Etsy', placed_at: day(3), status: 'paid', channel: 'etsy', total: 10, deleted_at: null });
+    await on(page);
+    await login(page);
+    await gotoPage(page, 'ordersPanel');
+    const host = page.locator('#orderStockHost');
+    await host.locator('#osOrder').fill('1001');
+    await host.locator('#osOrder').press('Enter');
+    await expect(host.locator('[data-osmessage]')).toHaveText('More than one order has that number. Choose the one you mean:');
+    const choices = host.locator('[data-oschoices] button[data-oschoose]');
+    await expect(choices).toHaveCount(2);
+    await expect(choices.nth(1)).toContainText('etsy');
+    await choices.nth(1).click();
+    await expect(host.locator('[data-osorder]')).toHaveAttribute('data-osorder', id(9));
+    await expect(host.locator('[data-oschoices]')).toHaveCount(0);
+    // the waiting list never asks: each button opens its own order
+    await host.locator('[data-oswaiting] button[data-oswait]', { hasText: '#1001' }).click();
+    await expect(host.locator('[data-osorder]')).toHaveAttribute('data-osorder', id(1));
     expect(backend.tableWrites()).toEqual([]);
     expect(await host.evaluate(unnamedControls)).toEqual([]);
   });
