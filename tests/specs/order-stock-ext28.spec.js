@@ -4,7 +4,7 @@
 // that saves real records, OFF), assets/inventory/he-order-stock.js. Every value is made up.
 const M = require('../../assets/inventory/he-order-stock.js');
 const { test, expect, login, gotoPage } = require('../helpers/dashboard');
-const { unnamedControls } = require('../helpers/a11y-audit');
+const { unnamedControls, contrastFailures } = require('../helpers/a11y-audit');
 
 const node = (ti) => test.skip(ti.project.name !== 'desktop', 'Node-only; run once');
 const id = (n) => '00000000-0000-4000-8000-0000000' + String(n).padStart(5, '0');
@@ -217,6 +217,27 @@ test.describe('on the Orders page', () => {
     expect(rpcCalls(backend, 'take_order_stock')).toEqual([]);
     expect(rpcCalls(backend, 'give_back_order_stock')).toHaveLength(1);
   });
+
+  for (const scheme of ['light', 'dark']) {
+    test(`controls are named and text meets AA contrast (${scheme}), before and after taking stock`, async ({ page, backend }, ti) => {
+      test.skip(ti.project.name !== 'desktop', 'colours; run once');
+      install(backend);
+      await page.emulateMedia({ colorScheme: scheme });
+      await on(page);
+      await login(page);
+      await gotoPage(page, 'ordersPanel');
+      const host = page.locator('#orderStockHost');
+      await host.locator('#osOrder').fill('1001');
+      await host.locator('#osOrder').press('Enter');
+      await expect(host.locator('tr[data-osline]')).toHaveCount(2);
+      expect(await host.evaluate(unnamedControls)).toEqual([]);
+      expect(await host.evaluate(contrastFailures)).toEqual([]);
+      const take = host.locator('button[data-os="take"]');
+      await take.click(); await take.click();
+      await expect(host.locator('[data-osmessage]')).toContainText('Taken off stock');
+      expect(await host.evaluate(contrastFailures)).toEqual([]);
+    });
+  }
 
   test('an employee sees the card but cannot change stock', async ({ page, backend }) => {
     install(backend);
