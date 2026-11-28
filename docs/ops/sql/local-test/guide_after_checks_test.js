@@ -14,8 +14,24 @@ const { execFileSync } = require('child_process');
 
 const CONN = process.argv.slice(2);
 const R = path.join(__dirname, '..', '..', 'sql-review'), D = path.join(__dirname, '..', 'drafts');
-// launch steps (docs/ops/LAUNCH_PLAN_2_WEEKS.md) whose guide has a one-line Expected answer -> the draft(s) the guide installs
-const ITEMS = { 1: ['32'], 2: ['34'], 5: ['40'], 6: ['42'], 7: ['44'], 8: ['46'], 23: ['76'], 24: ['76', '78'] };
+// steps whose guide has a one-line Expected answer -> the draft(s) the guide installs; first the launch steps
+// (docs/ops/LAUNCH_PLAN_2_WEEKS.md)
+const ITEMS = { 1: ['32'], 2: ['34'], 5: ['40'], 6: ['42'], 7: ['44'], 8: ['46'], 23: ['76'], 24: ['76', '78'],
+  // and the steps the plan leaves for after launch (Nov 28, afternoon)
+  9: ['48'], 11: ['52'], 12: ['54'], 13: ['56'], 14: ['58'], 15: ['60'] };
+// STAND-INS for what production has and the local copy lacks (as in production_shape_install_test.sh and
+// order_parcels_test.sh): the Shipping/Tracking agent's own table, with its one audit trigger (item 9's
+// check counts it: there before and after), and Supabase's storage schema (item 4, draft 38).
+const SHIPMENTS = "create table public.shipments (id uuid primary key default gen_random_uuid(), order_id uuid not null references public.orders(id)," +
+  " external_fulfillment_id text, carrier text, tracking_number text, tracking_url text, shipment_status text not null default 'pending'," +
+  " shipped_at timestamptz, delivered_at timestamptz, last_status_at timestamptz, created_at timestamptz not null default now(), updated_at timestamptz not null default now()," +
+  " unique (order_id, external_fulfillment_id)); alter table public.shipments enable row level security;" +
+  " create function public.standin_shipments_audit() returns trigger language plpgsql as $f$ begin return new; end $f$;" +
+  " create trigger shipments_audit after insert or update on public.shipments for each row execute function public.standin_shipments_audit();";
+const STORAGE = "create schema if not exists storage; create table storage.buckets (id text primary key, name text not null, public boolean not null default false, file_size_limit bigint, allowed_mime_types text[]);" +
+  " create table storage.objects (id uuid primary key default gen_random_uuid(), bucket_id text references storage.buckets(id), name text not null, owner uuid, created_at timestamptz default now(), updated_at timestamptz default now(), metadata jsonb);" +
+  " alter table storage.objects enable row level security; grant usage on schema storage to authenticated, anon; grant select, insert, update, delete on storage.objects to authenticated, anon; grant select on storage.buckets to authenticated, anon;";
+const SETUP = { 9: SHIPMENTS };
 // item 7's Expected is in words ("two rows, both SELECT")
 const WORDS = { 7: 'staff_read_purchase_order_items | SELECT / staff_read_purchase_orders | SELECT' };
 const SERVICE = 'service' + '_role';
@@ -24,13 +40,15 @@ const psql = (db, args, input) => execFileSync('psql', CONN.concat(['-d', db, '-
 const draft = (n) => path.join(D, fs.readdirSync(D).find(f => f.startsWith(n + '_DRAFT_') && !/rollback/i.test(f)));
 const tf = (v) => v.split(' | ').map(x => x === 't' ? 'true' : x === 'f' ? 'false' : x).join(' | ');
 
-console.log('Review guides: each launch step\'s after-check gives the answer its guide promises');
+console.log('Review guides: each step\'s after-check gives the answer its guide promises');
 for (const [item, drafts] of Object.entries(ITEMS)) {
   const f = fs.readdirSync(R).find(x => x.startsWith('ITEM_' + item + '_'));
   const t = fs.readFileSync(path.join(R, f), 'utf8');
   const sec = t.slice(Math.max(0, t.search(/^## After running/m)));
   const sql = (sec.match(/```sql\n([\s\S]*?)```/) || [])[1];
-  const exp = WORDS[item] || (sec.match(/^Expected: `([^`]+)`/m) || [])[1];
+  let exp = WORDS[item] || (sec.match(/^Expected: `([^`]+)`/m) || [])[1];
+  // item 13: "(the last number is `0` if you run it on a Saturday or Sunday)": the daily email allowance
+  if (exp && /the last number is `0` if you run it on a\s+Saturday or Sunday/.test(sec) && psql('postgres', ['-c', 'select extract(isodow from current_date) >= 6']).trim() === 't') exp = exp.replace(/\d+$/, '0');
   if (!sql || !exp) { fail++; console.log('  FAIL ' + f + ': no "After running" SQL block or Expected line found'); continue; }
   const DB = 'he_guide_check_' + item;
   psql('postgres', ['-c', 'drop database if exists ' + DB + ' with (force)']);
@@ -40,6 +58,7 @@ for (const [item, drafts] of Object.entries(ITEMS)) {
     '; alter default privileges in schema public grant select, insert, update, delete on tables to ' + SERVICE + '; alter default privileges in schema public grant execute on functions to ' + SERVICE + ';']);
   let got;
   try {
+    if (SETUP[item]) psql(DB, ['-c', SETUP[item]]);
     for (const n of drafts) psql(DB, ['-f', draft(n)]);
     got = psql(DB, [], sql).trim().split('\n').filter(Boolean).map(l => tf(l.replace(/\|/g, ' | '))).join(' / ');
   } catch (e) { got = 'ERROR ' + String(e.stderr || e.message).split('\n')[0]; }
@@ -94,5 +113,14 @@ function runCase(name, setup, drafts, checks) {
     ['tables with a request key, at most ' + most, 'select (' + q1 + ') between 1 and ' + most, 'true'],
     ['the switch', q2, row]]);
 }
+{
+  // item 4: two checks, one after draft 36 and one after draft 38 (a later step, not needed for launch)
+  const t = fs.readFileSync(path.join(R, fs.readdirSync(R).find(x => x.startsWith('ITEM_4_'))), 'utf8');
+  const sec = t.slice(t.search(/^## After running/m)); const b = sqlBlocks(sec);
+  const ex = [...sec.matchAll(/^Expected: `([^`]+)`/gm)].map(m => tf(m[1]));
+  runCase('item 4 (drafts/36, then 38)', STORAGE, ['36', '38'], [['after draft 36', b[0], ex[0]], ['after draft 38', b[1], ex[1]]]);
+}
+// Not here: item 16 (drafts 62 and 64) needs production's own account-level type, which the local copy
+// lacks; production_shape_install_test.sh sets that up and people_levels_test.sh checks those steps.
 console.log('guide after-checks: ' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);
