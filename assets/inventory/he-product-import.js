@@ -281,5 +281,44 @@
     return '﻿' + [head].concat(lines).map(r => r.map(csvCell).join(',')).join('\r\n') + '\r\n';
   }
 
-  return { VERSION, MAX_BYTES, MAX_ROWS, FIELDS, STATUSES, templateCsv, checkFile, toCsv, suggestSku, money, status, csvRows };
+  // Nov 28 (launch plan day 4): the same checked list as a Shopify product import file, so the lab's list
+  // is typed once. Shopify's long-standing product CSV columns; Shopify's own import shows a preview before
+  // it creates anything, which is where a renamed column would show up. One row per product (one variant).
+  // Stock quantities are not in it: Shopify imports those from a separate inventory file, and the count
+  // comes from the stock count. Discontinued products are left out. Only a list with no line to fix.
+  const SHOPIFY_HEAD = ['Handle', 'Title', 'Body (HTML)', 'Vendor', 'Type', 'Tags', 'Published', 'Option1 Name', 'Option1 Value',
+    'Variant SKU', 'Variant Grams', 'Variant Inventory Tracker', 'Variant Inventory Policy', 'Variant Fulfillment Service',
+    'Variant Price', 'Variant Requires Shipping', 'Variant Taxable', 'Cost per item', 'Status'];
+  function shopifyHandle(name, used) {
+    // capped first, and dashes trimmed with a loop: a pathological name stays fast (regex audit)
+    let s = text(name).slice(0, 200).toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-');
+    let a = 0, b = s.length;
+    while (a < b && s[a] === '-') a++;
+    while (b > a && s[b - 1] === '-') b--;
+    s = s.slice(a, b).slice(0, 80);
+    while (s.endsWith('-')) s = s.slice(0, -1);
+    const base = s || 'product';
+    let h = base, n = 2;
+    while (used.has(h)) h = base + '-' + (n++);
+    used.add(h);
+    return h;
+  }
+  function toShopifyCsv(result) {
+    if (!result || !result.ok) return { ok: false, reason: 'Choose a product list first.', csv: '', count: 0, left_out: 0 };
+    if (result.counts && result.counts.error) return { ok: false, reason: 'Fix the lines marked in red first: Shopify gets the same checked list as the dashboard.', csv: '', count: 0, left_out: 0 };
+    const used = new Set(); const lines = []; let leftOut = 0;
+    const money2 = (v) => (v == null ? '' : Number(v).toFixed(2));
+    for (const x of result.rows) {
+      const p = x.product;
+      if (!p || !p.sku || p.status === 'discontinued') { leftOut++; continue; }
+      lines.push([shopifyHandle(p.name, used), p.name, '', '', '', '', p.status === 'active' ? 'TRUE' : 'FALSE', 'Title', 'Default Title',
+        p.sku, '0', 'shopify', 'deny', 'manual', money2(p.retail_price), 'TRUE', 'TRUE', p.cost == null ? '' : String(p.cost),
+        p.status === 'active' ? 'active' : 'draft']);
+    }
+    if (!lines.length) return { ok: false, reason: 'No product in this list can go to Shopify (each needs a SKU, and discontinued ones are left out).', csv: '', count: 0, left_out: leftOut };
+    return { ok: true, reason: null, count: lines.length, left_out: leftOut,
+      csv: '﻿' + [SHOPIFY_HEAD].concat(lines).map(r => r.map(csvCell).join(',')).join('\r\n') + '\r\n' };
+  }
+
+  return { VERSION, MAX_BYTES, MAX_ROWS, FIELDS, STATUSES, SHOPIFY_HEAD, templateCsv, checkFile, toCsv, toShopifyCsv, suggestSku, money, status, csvRows };
 }));

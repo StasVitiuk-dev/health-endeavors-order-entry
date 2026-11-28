@@ -2385,7 +2385,8 @@
         table,
         r && r.ok ? h('div', { class: 'scanToggleRow u-mt-10' },
           h('button', { type: 'button', class: 'small', 'data-pi': 'add', disabled: !canAdd }, piState.busy ? 'Adding…' : (r.ready.length ? 'Add ' + r.ready.length + ' new product' + (r.ready.length === 1 ? '' : 's') : 'Nothing new to add')),
-          h('button', { type: 'button', class: 'small secondary', 'data-pi': 'save' }, 'Save the checked list (CSV)')) : null));
+          h('button', { type: 'button', class: 'small secondary', 'data-pi': 'save' }, 'Save the checked list (CSV)'),
+          !r.counts.error && typeof eng.toShopifyCsv === 'function' ? h('button', { type: 'button', class: 'small secondary', 'data-pi': 'shopify' }, 'Save for Shopify (CSV)') : null) : null));
     }
     document.addEventListener('change', async (e) => {
       const inp = e.target.closest('#productImportHost input[data-pifile]');
@@ -2420,6 +2421,14 @@
       const act = t.getAttribute('data-pi'); const eng = piMod(); if (!eng) return;
       if (act === 'template') { piSay(piSaveText('product-list-template.csv', eng.templateCsv()) ? 'Saved product-list-template.csv.' : 'The template could not be saved in this browser.'); return; }
       if (act === 'save') { if (piState.result) piSay(piSaveText('product-list-checked.csv', eng.toCsv(piState.result)) ? 'Saved product-list-checked.csv.' : 'The file could not be saved in this browser.'); return; }
+      if (act === 'shopify') {   // Nov 28: the same checked list as Shopify's product import file (nothing is sent to Shopify)
+        const s = piState.result ? eng.toShopifyCsv(piState.result) : null;
+        if (!s || !s.ok) { piSay(s ? s.reason : 'Choose a product list first.'); return; }
+        piSay(piSaveText('products-for-shopify.csv', s.csv)
+          ? 'Saved products-for-shopify.csv with ' + s.count + ' product' + (s.count === 1 ? '' : 's') + (s.left_out ? ' (' + s.left_out + ' left out: discontinued or without a SKU)' : '') + '. In Shopify: Products → Import → choose this file → check the preview. Nothing was sent to Shopify.'
+          : 'The file could not be saved in this browser.');
+        return;
+      }
       if (act === 'clear') { piSeq++; piState = { result: null, fileName: '', text: '', useSuggested: false, message: 'The file was forgotten. Nothing was added.', busy: false, existing: null }; loadProductImport(); announce(piState.message); refocusLike(t, 'productImportHost'); return; }
       if (act !== 'add' || piState.busy) return;
       const r = piState.result; if (!r || !r.ok || r.counts.error || !r.ready.length) return;

@@ -164,6 +164,41 @@ test.describe('the checker', () => {
     expect(out).toContain("'@SUM(A1)");
     expect(out.split('\r\n')[0]).toBe('﻿line,outcome,name,sku,status,retail_price,wholesale_price,cost,packaging,problems,warnings');
   });
+
+  // Nov 28 (launch plan day 4): the same checked list as Shopify's product import file, typed once.
+  test('Save for Shopify: one row per product with the same SKU and price; drafts unpublished; discontinued left out', ({}, ti) => {
+    node(ti);
+    const r = P.checkFile(GOOD + 'SYNTHETIC Lavender Body Lotion,8 oz,SYN-LAV-8OZ-B,24,12,4.5,draft,\nSYNTHETIC Old,,SYN-OLD,5,,,discontinued,\n');
+    const s = P.toShopifyCsv(r);
+    expect(s).toMatchObject({ ok: true, count: 3, left_out: 1 });
+    const lines = s.csv.replace(/^﻿/, '').split('\r\n').filter(Boolean).map(l => l.split(','));
+    expect(lines[0]).toEqual(P.SHOPIFY_HEAD);
+    const col = (row, name) => row[P.SHOPIFY_HEAD.indexOf(name)];
+    const lav = lines[1], honey = lines[2], lav2 = lines[3];
+    expect([col(lav, 'Handle'), col(lav, 'Title'), col(lav, 'Variant SKU'), col(lav, 'Variant Price'), col(lav, 'Cost per item'), col(lav, 'Published'), col(lav, 'Status')])
+      .toEqual(['synthetic-lavender-body-lotion-8-oz', 'SYNTHETIC Lavender Body Lotion 8 oz', 'SYN-LAV-8OZ', '24.00', '4.5', 'TRUE', 'active']);
+    // "later" is read as draft by the checker: in Shopify it stays unpublished
+    expect([col(honey, 'Variant SKU'), col(honey, 'Variant Price'), col(honey, 'Published'), col(honey, 'Status')]).toEqual(['SYN-HONEY-4OZ', '18.50', 'FALSE', 'draft']);
+    // two products with the same name get different handles, never one product with two SKUs
+    expect(col(lav2, 'Handle')).toBe('synthetic-lavender-body-lotion-8-oz-2');
+    // Shopify refuses a sale when its own count is zero, tracks stock, and the product ships
+    for (const row of lines.slice(1)) {
+      expect([col(row, 'Variant Inventory Tracker'), col(row, 'Variant Inventory Policy'), col(row, 'Variant Requires Shipping'), col(row, 'Option1 Value')])
+        .toEqual(['shopify', 'deny', 'TRUE', 'Default Title']);
+    }
+    expect(s.csv).not.toContain('SYN-OLD');
+  });
+
+  test('Save for Shopify refuses a list with any line to fix, and never writes a formula', ({}, ti) => {
+    node(ti);
+    const bad = P.checkFile(HEAD + 'SYNTHETIC Rose,8 oz,,10,15,1,active,\n');
+    expect(P.toShopifyCsv(bad)).toMatchObject({ ok: false, count: 0 });
+    expect(P.toShopifyCsv(bad).reason).toMatch(/Fix the lines marked in red first/);
+    expect(P.toShopifyCsv(null).ok).toBe(false);
+    const f = P.toShopifyCsv(P.checkFile(HEAD + '@SUM(A1) Cream,,SYN-F,1,1,1,active,\n'));
+    expect(f.ok).toBe(true);
+    expect(f.csv).toContain(",'@SUM(A1) Cream,");
+  });
 });
 
 // ---- the Inventory screen ----------------------------------------------------------
@@ -257,6 +292,14 @@ test.describe('the Inventory screen', () => {
     await host.locator('#piFile').setInputFiles(file('products.csv', GOOD));
     const [dl2] = await Promise.all([page.waitForEvent('download'), host.locator('button[data-pi="save"]').click()]);
     expect(dl2.suggestedFilename()).toBe('product-list-checked.csv');
+    // Nov 28: the same checked list saved as Shopify's import file; nothing is sent anywhere
+    const [dl3] = await Promise.all([page.waitForEvent('download'), host.locator('button[data-pi="shopify"]').click()]);
+    expect(dl3.suggestedFilename()).toBe('products-for-shopify.csv');
+    expect(require('fs').readFileSync(await dl3.path(), 'utf8')).toBe(P.toShopifyCsv(P.checkFile(GOOD)).csv);
+    await expect(host.locator('[data-pimessage]')).toContainText('Saved products-for-shopify.csv with 2 products. In Shopify: Products → Import');
+    await expect(host.locator('[data-pimessage]')).toContainText('Nothing was sent to Shopify.');
+    await host.locator('#piFile').setInputFiles(file('bad.csv', HEAD + 'SYNTHETIC Rose,8 oz,,10,15,1,active,\n'));
+    await expect(host.locator('button[data-pi="shopify"]')).toHaveCount(0);   // not offered while a line needs fixing
     await host.locator('button[data-pi="clear"]').click();
     await expect(host.locator('[data-pimessage]')).toHaveText('The file was forgotten. Nothing was added.');
     await expect(host.locator('table')).toHaveCount(0);

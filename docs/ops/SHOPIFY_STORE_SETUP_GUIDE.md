@@ -54,8 +54,10 @@ Words on the pages: no medical claims ("treats", "cures", "heals"), same rule as
 
 ## C. Products (with the lab's list)
 
-1. Claude turns the lab's list into a checked import file (template and checker already built; plan day 4).
-2. **Products → Import** → choose the file → **Upload and preview** → check one product → **Import**.
+1. The lab's list goes into the dashboard's product import (Inventory → Import a product list, switch
+   **Product list import**; `PRODUCT_IMPORT_GUIDE.md`). When every line is right, **Save for Shopify (CSV)**
+   saves the same list as Shopify's import file (built Nov 28), so the products are typed once.
+2. **Products → Import** → choose `products-for-shopify.csv` → **Upload and preview** → check one product → **Import**.
 3. For each product, open it and check: photos, price, **SKU exactly as on the label**, weight (for
    shipping), "Track quantity" **on**, and "Continue selling when out of stock" **off**.
 4. Send Claude a screenshot of the product list. Claude compares SKUs with the dashboard's product list.

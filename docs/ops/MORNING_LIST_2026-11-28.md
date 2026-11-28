@@ -68,5 +68,9 @@ It confirms the midnight, 3 AM and 6:05 PM jobs ran without errors.
 - The store texts (section 3), sent as a file.
 - The question about how orders reach the dashboard (2.2) found while writing the guide: the test-order
   checklist had marked it UNKNOWN; it is now a question for you instead of a surprise on test day.
+- **Products typed once:** the product import now has **Save for Shopify (CSV)**, the same checked list as
+  Shopify's import file (behind the Product list import switch, off). Small favour when you are in Shopify:
+  Products → Import → "Download a sample CSV" and send it, so the columns can be matched exactly to your
+  store's version (Shopify's import preview would show a mismatch anyway, before anything is created).
 - A stray Python cache file removed from the repository, and such files are now ignored.
 - The full test run on the latest code: results in the day's pull request.
