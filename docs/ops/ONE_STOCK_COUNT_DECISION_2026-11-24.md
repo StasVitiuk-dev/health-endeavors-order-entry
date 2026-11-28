@@ -43,7 +43,12 @@ channels, keeping a safety buffer.
 A database step so that **every order takes its bottles off the dashboard's book count exactly once**
 (and gives them back when an order is cancelled), with a record of each move. Under option 1 it keeps
 the book count honest for comparing with Shopify; under option 2 it is the count itself.
-BLOCKED on one read-only check first: the real columns of `order_items` in production are not on
+**Correction (Nov 28):** the real columns of `order_items` **are** on record: the owner's Query A of Oct 5
+included `orders` and `order_items` (`sql-review/PRODUCTION_SHAPE_AUDIT_2026-11-27.md`, E1). They are order,
+SKU, product name, quantity, prices, and **no link to the product**, so lines match products by SKU. The
+sentence that follows (written Nov 24) said they were only guessed; it is kept for the record. **Built Nov 28
+as a draft: `sql/drafts/76_DRAFT_order_stock_moves.sql`** (undo 77; `local-test/order_stock_moves_test.sh`,
+62 checks), see "Built Nov 28" below. Original text: BLOCKED on one read-only check first: the real columns of `order_items` in production are not on
 record (the local test schema only guesses them: order, product name, SKU, quantity; no link to the
 product). The step must not be written against a guess. NEXT: the owner runs a read-only shape check of
 `orders`, `order_items` and `inventory` (given in chat), as was done for `shipments`; then the database
@@ -91,3 +96,22 @@ select '4 rls', cl.relname, 'row level security ' || case when cl.relrowsecurity
  where cl.relkind in ('r', 'p')
 order by 1, 2, 3;
 ```
+
+## Built Nov 28 (draft, NOT installed)
+
+`sql/drafts/76_DRAFT_order_stock_moves.sql` (undo `77_…`), tested by `local-test/order_stock_moves_test.sh`
+(62 checks; three deliberate breakages each caught) and by the production-shape install test (34 of 34):
+
+- `take_order_stock(order)`: every line of the order takes its quantity off "available", matched to the
+  product by SKU (capital letters ignored). **All or nothing**: an unknown SKU, or a product that would go
+  below zero, refuses the whole order and names the lines. Taking the same order again changes nothing.
+- `give_back_order_stock(order)`: puts back exactly what that order took, once (for a cancelled order),
+  using the product recorded at the time, even if the SKU was renamed since.
+- Every move is a row in `order_stock_moves` (never changed or deleted) and a history row in
+  `inventory_adjustments` ("Order #… taken off stock").
+- Owner or active administrator only; visitors and staff are refused. Two devices pressing at once: the
+  stock moves once.
+- Nothing calls it yet. **OWNER DECISIONS before it is used:** which count is the selling count (option 1 or
+  2 above), and **when** an order takes its stock: when it is paid (recommended; Shopify lowers its own count
+  at checkout), or when it ships.
+

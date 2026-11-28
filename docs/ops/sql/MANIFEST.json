@@ -931,6 +931,29 @@
       "precheck": "stops, changing nothing, if the id column was not added by drafts/74",
       "effect": "removes shared_settings.id again; saves are refused by the audit trigger again; saved settings stay",
       "postcheck": "the column is gone"
+    },
+    {
+      "file": "drafts/76_DRAFT_order_stock_moves.sql",
+      "id": "76",
+      "class": "PRODUCTION-CHANGE-DRAFT",
+      "step": "order stock (launch promise 2: an order takes its bottles off the stock count exactly once, and gives them back once when cancelled; needed under both options of the one-stock-count decision)",
+      "dependsOn": [],
+      "risk": "MEDIUM",
+      "rollback": "77",
+      "precheck": "stops, changing nothing, if orders, order_items, products, inventory or inventory_adjustments differ from the shape Query A reported, if is_owner_or_admin() or the unique indexes on inventory(product_id) and products(lower(sku)) are missing, or if an order_stock_moves table exists that this file did not create",
+      "effect": "adds the record table order_stock_moves (one row per order line and kind, never updated or deleted) and take_order_stock / give_back_order_stock (owner or active administrator; all or nothing; lines matched to products by SKU); nothing calls them yet, so no stock changes until a page or the Shopify step does",
+      "postcheck": "local-test/order_stock_moves_test.sh passes on a throwaway copy; in production: the table and the three functions exist, visitors cannot run them"
+    },
+    {
+      "file": "drafts/77_DRAFT_rollback_order_stock_moves.sql",
+      "id": "77",
+      "class": "ROLLBACK",
+      "rollbackOf": "76",
+      "dependsOn": [],
+      "risk": "LOW",
+      "precheck": "stops, changing nothing, if drafts/76 is not installed",
+      "effect": "removes the three functions; keeps order_stock_moves if it holds any move (history), drops it if empty; no stock number changes",
+      "postcheck": "the functions are gone"
     }
   ],
   "local": [

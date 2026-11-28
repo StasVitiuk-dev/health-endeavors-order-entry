@@ -49,7 +49,7 @@ approved it.
 | Case | State | Waits for |
 |---|---|---|
 | An order reserves stock when it is placed; a cancellation releases it | **not built**: the `reserved` bucket exists, nothing fills it automatically; orders change stock only through a person's adjustment | the owner's decision on one stock count for every channel (task "One stock count for all channels") and R9 |
-| A Shopify order message arriving twice, or an older one after a newer one | **UNKNOWN for today's order import**: it runs in the private backups repository, which Claude does not open. Nothing in this repository lowers stock from a Shopify order | R9 (when built: one record per Shopify order id; a message older than the stored one is ignored; replaying a message changes nothing) |
+| A Shopify order message arriving twice, or an older one after a newer one | **UNKNOWN for today's order import**: it runs in the private backups repository, which Claude does not open. **Nov 28: drafts/76 (not installed)** lets any order take its stock exactly once and give it back once (`order_stock_moves_test.sh`, 62 checks); nothing calls it yet | R9 (when built: one record per Shopify order id; a message older than the stored one is ignored; replaying a message changes nothing) |
 | The money side of Shopify payouts arriving twice | each difference is recorded once (`issue_key` unique, `on conflict do nothing`) | drafts/42 (not installed) |
 
 No live stock write is switched on by any of this; each stock button keeps today's behaviour until its own
