@@ -1,6 +1,15 @@
 # Query D function security review
 
-Status: **CURRENT** (2026-10-18). A read-only analysis plus local testing. Nothing in production was changed or run. The specific function names and the exact weakness are deliberately withheld from this public repository until the fix is applied, the same rule used for earlier production fixes. The full detail, the prepared fix and the local tests are kept privately and shared with the owner directly.
+Status: **CURRENT** (updated 2026-11-27, night). **FIX 3 is applied and verified in production** (owner, about 8:34 PM Central): visitors who are not signed in can no longer run any of the ten functions. The full entry, with the exact SQL, the rollback and the checks, is in `PRODUCTION_CHANGE_LOG.md` ("2026-11-27 · FIX 3"). Now that the fix is applied, the function names are given there; the rule of withholding them until then is met. The sections below are the Oct 18 analysis, kept as it was; where the Nov 27 evidence changed the picture, it says so in "What Query D2 and D3 showed".
+
+
+## What Query D2 and D3 showed (2026-11-27, read-only, owner)
+
+- **Query D2** (who may run each function, whether its code checks the caller, its schema path, the scheduled jobs that use it): all ten could be run by everyone, signed in or not, with the owner's rights; nine had no caller check (`log_customer_data_access` checks `auth.uid()`); four had no fixed schema path; six are run by scheduled jobs (as `postgres`).
+- **Query D3** (where each is used *inside* the database, what it returns, which login roles can run it): `generate_account_number` fills `profiles.account_number` for every new account; `record_alert` is called by `apply_inventory_adjustment`, which runs with the person's own rights, and by `escalate_overdue_tasks`; `raise_activity_alert` is called only by `detect_unusual_activity`. No trigger, view or row rule uses any of them. None returns customer data: they return nothing, a number, yes/no or one account number. So the risk was that a visitor could *trigger* them, not read data through them.
+- **Consequence for the fix:** the Oct 18 plan kept signed-in staff on all ten. The applied fix is narrower. Staff keep only the three they need (the privacy log, `record_alert` for stock adjustments, and the account number for new accounts), and the sign-up service is given the account-number function by name. Removing it from everyone would otherwise have broken sign-up. A local test showed that taking all ten away from staff breaks the privacy log, stock adjustments and new accounts.
+- **After the fix**, Query D2 reads "all expected functions already safe", and the scheduled jobs that ran that evening all succeeded. Still to confirm: the three jobs that were not due that evening, and the privacy log the first time the dashboard shows a real order.
+- Queries D2 and D3 themselves, and the local test of the fix (50 of 50 checks), were kept out of this repository until the fix was applied. Adding them as regression checks is a separate pull request.
 
 ## What Query D is
 
@@ -46,7 +55,7 @@ The owner-controlled steps (Query D2, then the fix) have been made as safe as po
 ## Fix status
 
 - A fix ("FIX 3") is **prepared and tested locally** (23/23 checks): it reproduces the issue, proves the PUBLIC-right trap, applies the fix (visitors refused, while the dashboard's signed-in path, nested calls, the background-job role and the database owner all still work, and no function body is changed), rolls back exactly, re-applies, and stops safely if a function is missing.
-- The fix is **not applied**, not in this public repository, and waits for the owner's separate approval after the confirmation step below.
+- *(Oct 18 text; superseded)* The fix is **not applied** and waits for the owner's separate approval. **Update 2026-11-27:** applied and verified; see the top of this file and `PRODUCTION_CHANGE_LOG.md`.
 - Rights only: no function code, table, row or schedule is touched.
 
 ## Next step (read-only)

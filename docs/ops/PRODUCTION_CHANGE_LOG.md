@@ -6,6 +6,133 @@ Only changes that are already applied are recorded here. Fixes that are still wa
 
 Fingerprints are the first 16 characters of the file's SHA-256 (`sha256sum <file> | cut -c1-16`), as in `sql-review/START_HERE_GUIDED_RUNS.md`. The five entries of Nov 26–27 were added on Nov 27 (evening) from the evidence already in `PROJECT_RECORD.md` and the review items; until then this log held only the Oct 18 round.
 
+## 2026-11-27 · FIX 3: visitors who are not signed in can no longer run ten owner-rights functions
+
+| | |
+|---|---|
+| Found by | read-only Query D (2026-10-18; review in `QUERY_D_FUNCTION_SECURITY_REVIEW.md`), confirmed on production by read-only Queries D2 and D3 (owner, 2026-11-27, about 8:10 and 8:21 PM Central). All ten functions ran with the owner's rights and could be run by anyone, signed in or not (`{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}`); nine had no check on the caller (`log_customer_data_access` checks `auth.uid()`); four had no fixed schema path. None returns customer data (they return nothing, a number, yes/no, or one account number); the risk was that a visitor could *trigger* them (alerts, reports, escalations, account numbers). No sign of misuse was looked for or found; this is a closed door, not an incident report |
+| What the fix does | rights only; no function code, table, row or schedule changes. (A) the six functions only scheduled jobs use (`check_adverse_event_deadlines`, `check_break_glass_usage`, `check_stale_privacy_deletion_requests`, `detect_unusual_activity`, `escalate_overdue_tasks`, `generate_daily_report`) and (B) `raise_activity_alert` (used only inside `detect_unusual_activity`, which runs as the owner): taken away from everyone, visitors and signed-in staff. (C) `log_customer_data_access` (the dashboard's privacy log), `record_alert` (used by stock adjustments with the person's own rights) and `generate_account_number` (fills `profiles.account_number` for every new account): taken away from everyone and visitors, kept for signed-in staff, and given by name to the sign-up service (`supabase_auth_admin`, which had it only through "everyone"). (D) the four with no fixed schema path get `search_path = public, extensions, pg_temp` (what they used before). The database owner (`postgres`, who runs the scheduled jobs) and the service key keep all ten |
+| Approved and run by | Stas (owner), in the Supabase SQL Editor of the production project, about 8:34 PM Central |
+| Tested before | a throwaway local copy whose Query D2 answer matched production's 27 rows exactly (same rights text, settings and scheduled jobs; stand-in function bodies, since the real code is not in this repository), shaped by Query D3 (the column default, the caller-rights stock function, the nested calls): 50 of 50 checks — visitors refused on all ten; the six jobs and their nested calls still run as the owner; the privacy log, stock adjustment and new-account number still work for staff; staff refused on the seven job-only functions; sign-up still fills the account number; settings pinned; Query D2 afterwards reads "all safe"; running it twice is harmless; the rollback restores the same rights; its three self-checks stop it with nothing changed. Two plausible wrong fixes were tried and caught: taking the ten away from staff too breaks the privacy log, stock adjustments and new accounts (4 checks fail); forgetting the sign-up service breaks sign-up (1 fails). The Oct 18 local plan (23/23) kept staff on all ten; this fix is narrower because D2 and D3 showed who really calls what |
+| Downtime | none |
+| Dashboard change | none visible. The dashboard calls only `log_customer_data_access` (after sign-in), which staff keep |
+| Result: **checked** | the fix's own check (8:34 PM): visitors `false` on all ten; staff `true` only on the three in C; scheduled jobs `true` on all ten; the four settings pinned, the other six unchanged. Query D2 again (about 8:37 PM), read by `tests/tools/query-d2-interpret.js`: "Overall: all expected functions already safe", ten OK, exit 0. Scheduled jobs (about 10:00 PM, last 3 hours): `check-break-glass-usage` succeeded 12 times (last 9:45 PM), `escalate-overdue-tasks-hourly` succeeded (9:00 PM), `detect-unusual-activity` succeeded (9:07 PM), no failed run. Still to confirm: the three jobs not due that evening (midnight, 3 AM, 6:05 PM Central), and the privacy log the first time the dashboard shows a real order (the Orders page had 0 orders, as Query I found on Nov 23) |
+
+SQL that was run:
+
+```sql
+-- Health Endeavors: FIX 3. Visitors (not signed in) can no longer run the ten functions.
+-- One transaction: all or nothing. It stops BEFORE changing anything if the database is not what D2/D3 showed.
+begin;
+
+do $pre$
+declare missing text; bad_jobs text;
+begin
+  -- 1. the ten functions exist with exactly the versions D3 listed
+  select string_agg(s, ', ') into missing from unnest(array[
+    'public.check_adverse_event_deadlines()', 'public.check_break_glass_usage()',
+    'public.check_stale_privacy_deletion_requests()', 'public.detect_unusual_activity()',
+    'public.escalate_overdue_tasks()', 'public.generate_account_number()', 'public.generate_daily_report()',
+    'public.log_customer_data_access(text,text)', 'public.raise_activity_alert(text,text,text,text)',
+    'public.record_alert(text,text,text,text,text,text,integer)']) s
+  where to_regprocedure(s) is null;
+  if missing is not null then raise exception 'FIX 3 stopped, nothing changed: not found: %', missing; end if;
+  -- 2. every scheduled job that uses them runs as the owner (postgres) or a superuser, so it keeps working
+  if to_regclass('cron.job') is null then raise exception 'FIX 3 stopped, nothing changed: scheduled-job table not found'; end if;
+  execute $q$
+    select string_agg(j.jobname || ' runs as ' || j.username, ', ')
+    from cron.job j
+    where j.command ~* '\m(check_adverse_event_deadlines|check_break_glass_usage|check_stale_privacy_deletion_requests|detect_unusual_activity|escalate_overdue_tasks|generate_daily_report|raise_activity_alert|record_alert|generate_account_number|log_customer_data_access)\M'
+      and j.username <> 'postgres'
+      and not exists (select 1 from pg_roles r where r.rolname = j.username and r.rolsuper)$q$ into bad_jobs;
+  if bad_jobs is not null then raise exception 'FIX 3 stopped, nothing changed: these jobs would lose access: %', bad_jobs; end if;
+end $pre$;
+
+-- A. Run only by scheduled jobs (as postgres): nobody else needs them.
+revoke execute on function public.check_adverse_event_deadlines()          from public, anon, authenticated;
+revoke execute on function public.check_break_glass_usage()                from public, anon, authenticated;
+revoke execute on function public.check_stale_privacy_deletion_requests()  from public, anon, authenticated;
+revoke execute on function public.detect_unusual_activity()                from public, anon, authenticated;
+revoke execute on function public.escalate_overdue_tasks()                 from public, anon, authenticated;
+revoke execute on function public.generate_daily_report()                  from public, anon, authenticated;
+-- B. Used only inside detect_unusual_activity, which runs as postgres.
+revoke execute on function public.raise_activity_alert(text,text,text,text) from public, anon, authenticated;
+-- C. Needed by signed-in staff: the dashboard's privacy log; stock adjustments (record_alert);
+--    the account number filled in for every new account. Visitors lose them; staff keep them.
+revoke execute on function public.log_customer_data_access(text,text)                      from public, anon;
+revoke execute on function public.record_alert(text,text,text,text,text,text,integer)      from public, anon;
+revoke execute on function public.generate_account_number()                                from public, anon;
+grant  execute on function public.log_customer_data_access(text,text)                      to authenticated;
+grant  execute on function public.record_alert(text,text,text,text,text,text,integer)      to authenticated;
+grant  execute on function public.generate_account_number()                                to authenticated;
+-- Sign-up: the sign-up service fills in profiles.account_number through this default. It had access only
+-- through "everyone" (PUBLIC); give it the right by name so new accounts keep working.
+do $g$ begin
+  if exists (select 1 from pg_roles where rolname = 'supabase_auth_admin') then
+    execute 'grant execute on function public.generate_account_number() to supabase_auth_admin';
+  end if;
+end $g$;
+-- D. Lock the settings of the four that were unlocked, to what they see today (public, extensions).
+alter function public.check_stale_privacy_deletion_requests()              set search_path = public, extensions, pg_temp;
+alter function public.escalate_overdue_tasks()                             set search_path = public, extensions, pg_temp;
+alter function public.log_customer_data_access(text,text)                  set search_path = public, extensions, pg_temp;
+alter function public.record_alert(text,text,text,text,text,text,integer)  set search_path = public, extensions, pg_temp;
+
+commit;
+
+-- Check (read-only): visitors can run none; staff only the three in C; the scheduled jobs' owner all ten.
+select p.oid::regprocedure as function,
+       has_function_privilege('anon', p.oid, 'EXECUTE')          as visitors,
+       has_function_privilege('authenticated', p.oid, 'EXECUTE') as staff,
+       has_function_privilege('postgres', p.oid, 'EXECUTE')      as scheduled_jobs,
+       coalesce(array_to_string(p.proconfig, ','), 'NOT pinned') as settings
+from pg_proc p join pg_namespace n on n.oid = p.pronamespace and n.nspname = 'public'
+where p.proname in ('check_adverse_event_deadlines','check_break_glass_usage','check_stale_privacy_deletion_requests',
+  'escalate_overdue_tasks','generate_daily_report','log_customer_data_access','raise_activity_alert',
+  'record_alert','detect_unusual_activity','generate_account_number')
+order by 1;
+```
+
+Rollback, only if something goes wrong (puts back exactly the rights of 2026-11-27 before the fix; Postgres may list them in another order afterwards, which reads the same):
+
+```sql
+-- FIX 3 rollback: puts back exactly the rights Query D2 showed on 2026-11-27 (everyone, visitors, staff and the service key on all ten; four settings unlocked again).
+begin;
+grant execute on function public.check_adverse_event_deadlines()                       to public, anon, authenticated, service_role;
+grant execute on function public.check_break_glass_usage()                             to public, anon, authenticated, service_role;
+grant execute on function public.check_stale_privacy_deletion_requests()               to public, anon, authenticated, service_role;
+grant execute on function public.detect_unusual_activity()                             to public, anon, authenticated, service_role;
+grant execute on function public.escalate_overdue_tasks()                              to public, anon, authenticated, service_role;
+grant execute on function public.generate_daily_report()                               to public, anon, authenticated, service_role;
+grant execute on function public.raise_activity_alert(text,text,text,text)             to public, anon, authenticated, service_role;
+grant execute on function public.log_customer_data_access(text,text)                   to public, anon, authenticated, service_role;
+grant execute on function public.record_alert(text,text,text,text,text,text,integer)   to public, anon, authenticated, service_role;
+grant execute on function public.generate_account_number()                             to public, anon, authenticated, service_role;
+do $g$ begin
+  if exists (select 1 from pg_roles where rolname = 'supabase_auth_admin') then
+    execute 'revoke execute on function public.generate_account_number() from supabase_auth_admin';
+  end if;
+end $g$;
+alter function public.check_stale_privacy_deletion_requests()              reset search_path;
+alter function public.escalate_overdue_tasks()                             reset search_path;
+alter function public.log_customer_data_access(text,text)                  reset search_path;
+alter function public.record_alert(text,text,text,text,text,text,integer)  reset search_path;
+commit;
+```
+
+Check of the scheduled jobs afterwards (read-only):
+
+```sql
+-- READ-ONLY, after FIX 3: did the six scheduled jobs keep running? (last 3 hours)
+select j.jobname, d.status, count(*) as runs, max(d.start_time) as last_run,
+       max(d.return_message) filter (where d.status <> 'succeeded') as last_problem
+from cron.job j
+left join cron.job_run_details d on d.jobid = j.jobid and d.start_time > now() - interval '3 hours'
+where j.command ~* '\m(check_adverse_event_deadlines|check_break_glass_usage|check_stale_privacy_deletion_requests|detect_unusual_activity|escalate_overdue_tasks|generate_daily_report)\M'
+group by j.jobname, d.status
+order by j.jobname, d.status;
+```
+
 ## 2026-11-27 · Step A2 (drafts/74): `shared_settings` gets the `id` the history recorder writes
 
 | | |
