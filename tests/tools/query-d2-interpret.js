@@ -38,7 +38,9 @@ for (const f of EXPECTED) {
   if (!present.has(f)) { out.push(`  MISSING  ${f}  -> cannot confirm; treat as UNKNOWN, never PASS`); bump('INCOMPLETE'); continue; }
   const rr = rightsRows.find(r => nameOf(r[1]) === f);
   const detail = (rr[2] || '') + ' ' + (codeRows.find(c => nameOf(c[1]) === f)?.[2] || '');
-  const anon = /anon=|default: everyone|\{=/.test(rr[2] || '');   // anon or PUBLIC execute present
+  // anon, or PUBLIC (the entry with nothing before "="): PUBLIC is not always first in the list;
+  // after a revoke and a re-grant Postgres prints it last, e.g. {postgres=X/postgres,=X/postgres}
+  const anon = /anon=|default: everyone|(^|[{,\s])=X/.test(rr[2] || '');
   const usedByCron = jobRows.some(j => nameOf(j[1]) === f);
   const gated = /auth\.uid\(\)|current_role\(\)|is_owner_or_admin\(\)|request\.jwt/.test(detail);
   const unpinned = /search_path/i.test(detail) ? '' : ' [search_path: confirm pinned]';
