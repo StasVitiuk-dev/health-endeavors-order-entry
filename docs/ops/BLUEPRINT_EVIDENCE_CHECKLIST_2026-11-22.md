@@ -128,7 +128,7 @@ data. Nothing in this section is Running unless it says so.
 | Agent | What exists in this repository | State | Remaining | Owner action |
 |---|---|---|---|---|
 | #1 Invoice | invoice engine, desk, storage draft 32, payments | built, tested; draft not installed | sitting 6 | tax answers, sitting |
-| #2 Order Intake | order checks, channel import from files | built for files; automatic intake not built | Shopify feed (draft 42 + daily program) | sitting 7 |
+| #2 Order Intake | order checks, channel import from files | built for files; automatic intake not built | R9 (corrected Nov 28: draft 42 is the payouts feed and never reads orders): today's import (path A) or the read-only order program, draft 78 (path B, review item 24) | owner's A-or-B answer |
 | #3 Order Monitoring | attention feed rules for unpaid/unpacked orders | built (page side) | runs when the feed is on | switch on |
 | #4 Retail/Wholesale | Store Campaigns, store finder, outreach drafts | built; sends nothing | real sending | business email, approval |
 | #5 Shipping/Tracking | delivery watch, parcels (draft 48) | page side built; "live in Supabase" is **REPORTED** for an earlier version, not re-verified here | sitting 9 | — |
