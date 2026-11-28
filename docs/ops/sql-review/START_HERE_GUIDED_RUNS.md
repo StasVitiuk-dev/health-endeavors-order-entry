@@ -5,7 +5,7 @@ run each item yourself, after approving it, with Claude guiding you step by step
 
 Each launch step's "After running" check is tested (Nov 28): on a throwaway copy, its draft is installed
 and the check, exactly as written in its guide, gives the guide's Expected answer (items 1, 2, 5, 6, 7, 8,
-23, 24; `local-test/guide_after_checks_test.js`). If your answer differs, stop and send a screenshot.
+20, 21, 23, 24, including draft 10's fingerprint; `local-test/guide_after_checks_test.js`). If your answer differs, stop and send a screenshot.
 
 ## The order I recommend
 
