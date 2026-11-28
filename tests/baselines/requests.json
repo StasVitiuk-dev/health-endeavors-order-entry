@@ -58,6 +58,7 @@
   "GET order_costs?limit=0&select=*",
   "GET order_items?limit=1000&offset=0&order=id.asc&order_id=in.(o1,o3)&select=id,order_id,sku,product_name,quantity",
   "GET order_parcels?limit=0&select=*",
+  "GET order_stock_moves?limit=0&select=*",
   "GET orders?deleted_at=is.null&limit=1000&offset=0&order=id.asc&placed_at=gte.2026-01-01T06:00:00.000Z&select=id,order_number,total,tax_total,currency,status,placed_at,deleted_at,source,raw_data",
   "GET orders?deleted_at=is.null&limit=1000&offset=0&order=id.asc&placed_at=gte.2026-06-15T05:00:00.000Z&select=id,order_number,total,currency,status,placed_at,deleted_at,source",
   "GET orders?deleted_at=is.null&limit=1000&offset=0&order=id.asc&select=id,order_number,total,currency,status,placed_at,source&source=eq.manual",
