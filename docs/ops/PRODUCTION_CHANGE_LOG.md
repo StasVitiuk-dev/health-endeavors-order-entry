@@ -133,6 +133,21 @@ group by j.jobname, d.status
 order by j.jobname, d.status;
 ```
 
+The 24-hour check (due Nov 28, about 6:20 PM Central; read-only): the same, over the last 26 hours, so the
+three jobs that were not due on Nov 27 (midnight, 3 AM, 6:05 PM) have run at least once. Expected: every job
+has a `succeeded` row and no other status; `last_problem` empty.
+
+```sql
+-- READ-ONLY, 24 hours after FIX 3: every scheduled job ran, and none failed (last 26 hours)
+select j.jobname, d.status, count(*) as runs, max(d.start_time) as last_run,
+       max(d.return_message) filter (where d.status <> 'succeeded') as last_problem
+from cron.job j
+left join cron.job_run_details d on d.jobid = j.jobid and d.start_time > now() - interval '26 hours'
+where j.command ~* '\m(check_adverse_event_deadlines|check_break_glass_usage|check_stale_privacy_deletion_requests|detect_unusual_activity|escalate_overdue_tasks|generate_daily_report)\M'
+group by j.jobname, d.status
+order by j.jobname, d.status;
+```
+
 ## 2026-11-27 · Step A2 (drafts/74): `shared_settings` gets the `id` the history recorder writes
 
 | | |
