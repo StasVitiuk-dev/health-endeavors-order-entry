@@ -20,7 +20,7 @@
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | 1 | owner-login:3575 | changeStock | inventory | insert | — | ✓ | — | DB (Query A): owner/administrator only | — | SAFE ALREADY | no (single write) | add-forms-recovery-ext21, adjust-ops-ext17, chaos-long-ext17, failure-recovery +16 |
 | 2 | owner-login:3581 | changeStock | inventory | update | — | ✓ | — | DB (Query A): owner/administrator only | — | SAFE ALREADY | no (single write) | add-forms-recovery-ext21, adjust-ops-ext17, chaos-long-ext17, failure-recovery +16 |
-| 3 | owner-login:3823 | logCustomerAccess | rpc:log_customer_data_access | rpc | — | — | — | sign-in system / storage / function rules | — | SAFE ALREADY | no (single write) | hard-walls, pages-data |
+| 3 | owner-login:3823 | logCustomerAccess | rpc:log_customer_data_access | rpc | — | — | — | sign-in system / storage / function rules | — | SAFE ALREADY | no (single write) | fix3-dashboard-calls, hard-walls, pages-data |
 | 4 | owner-login:4558 | changeTaskStatus | tasks | update | — | — | — | DB (Query A): any active staff | — | SAFE ALREADY | no (single write) | activity-page, admin-changes-ext25, agent-safety-ext20, concurrent-operators +13 |
 | 5 | owner-login:4717 | decideApproval | approval_requests | updateIfUnchanged | — | — | — | DB (Query A): any active staff | — | SAFE ALREADY | no (single write) | admin-pages, attention-checks, failure-recovery, malformed-data-ext15 +4 |
 | 6 | owner-login:4752 | escalateToIncidentOnce | incidents | insert | — | — | — | UNKNOWN until Query D (table outside the export) | — | REQUEST KEY IN PAGE | no (single write) | general, incident-close-ext24, incident-drafts-ext26, malformed-data-ext15 +1 |

@@ -53,7 +53,9 @@ step "permissions inventory (Query G)" bash "$LT/permissions_inventory_test.sh" 
 step "RLS analyzer on real Query G + Query A output" bash "$LT/rls_analyzer_test.sh" $C
 step "views and profile role guard (Query G2)" bash "$LT/views_profile_guard_test.sh" $C
 step "timeline view and profile triggers (Query G3)" bash "$LT/timeline_profile_triggers_test.sh" $C
-step "drift check for the applied security fixes (query 11): every drift a FAIL, a removed view included" bash "$LT/security_fix_drift_check_test.sh" $C
+step "drift check for the applied security fixes (query 11): every drift a FAIL, a removed view included; FIX 3 rows" bash "$LT/security_fix_drift_check_test.sh" $C
+step "Queries D2 and D3 (FIX 3 functions): read-only, answers read right, an incomplete answer never a pass" bash "$LT/query_d2_d3_test.sh" $C
+step "FIX 3 as recorded in the change log: visitors refused, jobs/staff/sign-up keep working, rollback exact" bash "$LT/fix3_test.sh" $C
 step "profiles: three triggers together (guard, lock, audit)" bash "$LT/profiles_trigger_order_test.sh" $C
 step "schema drift (Query A + A2 export vs page and local schema)" bash "$LT/schema_drift_test.sh" $C
 step "RLS contract + audit immutability (local model, 6 callers)" bash "$LT/rls_contract_test.sh" $C
