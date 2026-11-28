@@ -45,8 +45,14 @@ button back to today's way at once (no update needed).
 | `docs/ops/sql/drafts/11_DRAFT_rollback_stock_functions.sql` (undo of 10) | 42 | `3d8a80cc600fca5a` |
 | `docs/ops/sql/drafts/21_DRAFT_stock_function_switches.sql` (the switches, all off) | 79 | `c0d789cc056b7f27` |
 | `docs/ops/sql/drafts/22_DRAFT_rollback_stock_function_switches.sql` (undo of 21) | 33 | `9269b4cc5a98d18c` |
-| `docs/ops/sql/drafts/17_DRAFT_po_line_delete_guard.sql` (optional guard) | 139 | `a023bf98b4f940e0` |
+| `docs/ops/sql/drafts/17_DRAFT_po_line_delete_guard.sql` (optional guard) | 139 | `3c09d100648ba588` |
 | `docs/ops/sql/drafts/18_DRAFT_rollback_po_line_delete_guard.sql` (undo of 17) | 18 | `e0f8ff9c6e6c53b8` |
+
+**Changed Nov 28 (after FIX 3), draft 17 only:** its last line now takes the guard function away from
+visitors and signed-in staff **by name** (`from public, anon, authenticated`; before: `from public` only).
+Nothing else changed. It is a trigger function, so nobody can call it directly anyway, and the guard still
+fires for staff (checked on a throwaway database). New fingerprint above (was `a023bf98b4f940e0`).
+The draft check now refuses any draft that does not name the visitor role.
 
 ## Is it safe? What was checked (all on throwaway copies, synthetic data)
 

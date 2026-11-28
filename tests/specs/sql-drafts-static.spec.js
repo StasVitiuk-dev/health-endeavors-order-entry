@@ -663,6 +663,10 @@ test('every function a draft creates is revoked from everyone and granted only t
     for (const fn of functions(sql)) {
       const name = fn.name.replace(/^public\./, '');
       expect(sql, `${f}: ${name} revoked from public`).toMatch(new RegExp(`revoke\\s+all\\s+on\\s+function\\s+public\\.${name}\\b[^;]*from\\s+public`));
+      // Nov 28 (after FIX 3): Supabase also grants new functions to the visitor role directly, so
+      // "from public" alone leaves visitors able to run it. The visitor role must be named too.
+      const revokes = sql.match(new RegExp(`revoke\\s+all\\s+on\\s+function\\s+public\\.${name}\\b[^;]*;`, 'g')) || [];
+      expect(revokes.some(r => /\bfrom\b[^;]*\banon\b/.test(r)), `${f}: ${name} revoked from the visitor role (anon) by name`).toBe(true);
       const grants = sql.match(new RegExp(`grant\\s+execute\\s+on\\s+function\\s+public\\.${name}\\b[^;]*;`, 'g')) || [];
       for (const g of grants) expect(g, `${f}: ${name} granted to authenticated only`).toMatch(/to\s+authenticated\s*;$/);
     }
