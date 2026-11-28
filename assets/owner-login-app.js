@@ -7365,7 +7365,7 @@
     // them back, once. The rules are in the database (all or nothing, by SKU, owner or active
     // administrator); assets/inventory/he-order-stock.js asks and words the answers. Each
     // change asks for a second press.
-    const osState = { order: null, view: null, message: '', confirm: '', busy: '', waiting: null, waitingMore: false, choices: [] };   // busy: '' or 'take' / 'back' while it is being sent; waiting: recent orders not yet taken (null = not read)
+    const osState = { order: null, view: null, message: '', confirm: '', busy: '', waiting: null, waitingMore: false, choices: [], typed: '' };   // busy: '' or 'take' / 'back' while it is being sent; waiting: recent orders not yet taken (null = not read)
     const osMod = () => (window.HE && window.HE.inventory && window.HE.inventory['he-order-stock']) || null;
     let osStoreObj = null;   // one store, so its "already being sent" guard holds across presses
     function osStore() { const M = osMod(); if (!M || !orderStockOn()) return null; return osStoreObj || (osStoreObj = M.createStore({ client: supabase, enabled: true })); }
@@ -7404,7 +7404,7 @@
         !may ? h('p', { class: 'hint u-m-0' }, 'Only the owner or an administrator can change stock.') : h('div', null,
           h('p', { class: 'hint u-m-0' }, 'Find an order to take its bottles off the stock count, once. If it is cancelled, give them back, once. Nothing changes until you press twice; if a SKU is unknown or the stock is too low, nothing changes and you are told which line.'),
           h('form', { class: 'obForm u-mt-8', 'data-osform': 'find' },
-            h('label', null, 'Order number', h('input', { type: 'text', id: 'osOrder', maxlength: '60', autocomplete: 'off', value: o ? o.order_number : '' })),
+            h('label', null, 'Order number', h('input', { type: 'text', id: 'osOrder', maxlength: '60', autocomplete: 'off', value: o ? o.order_number : osState.typed })),
             h('button', { type: 'submit', class: 'small secondary' }, 'Find the order')),
           Array.isArray(osState.waiting) ? (osState.waiting.length
             ? h('div', { class: 'u-mt-8', 'data-oswaiting': String(osState.waiting.length) },
@@ -7430,7 +7430,8 @@
     async function osOpen(r) {
       if (r.busy) return;
       osState.confirm = ''; osState.choices = [];
-      if (!r.ok) { osState.order = null; osState.view = null; osState.choices = Array.isArray(r.choices) ? r.choices : []; osSay(r.message); return; }
+      if (!r.ok) { const box = document.getElementById('osOrder'); osState.typed = box ? box.value : '';   // what was typed stays in the box
+        osState.order = null; osState.view = null; osState.choices = Array.isArray(r.choices) ? r.choices : []; osSay(r.message); return; }
       osState.order = r.order; osState.view = null; osState.message = '';
       const box = document.getElementById('osOrder'); if (box) box.value = r.order.order_number || '';
       await osReload();

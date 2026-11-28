@@ -191,6 +191,7 @@ test.describe('on the Orders page', () => {
     await host.locator('#osOrder').fill('9999');
     await host.locator('#osOrder').press('Enter');
     await expect(host.locator('[data-osmessage]')).toHaveText('No order has that number.');
+    await expect(host.locator('#osOrder')).toHaveValue('9999');   // kept, to correct rather than retype
     await host.locator('#osOrder').fill('#1002');
     await host.locator('#osOrder').press('Enter');
     await host.locator('button[data-os="take"]').click();
@@ -284,6 +285,7 @@ test.describe('on the Orders page', () => {
     await host.locator('#osOrder').fill('1001');
     await host.locator('#osOrder').press('Enter');
     await expect(host.locator('[data-osmessage]')).toHaveText('More than one order has that number. Choose the one you mean:');
+    await expect(host.locator('#osOrder')).toHaveValue('1001');   // what was typed stays in the box
     const choices = host.locator('[data-oschoices] button[data-oschoose]');
     await expect(choices).toHaveCount(2);
     await expect(choices.nth(1)).toContainText('etsy');
