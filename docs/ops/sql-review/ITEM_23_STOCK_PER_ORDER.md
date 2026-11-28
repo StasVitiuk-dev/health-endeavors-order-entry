@@ -37,6 +37,11 @@ on, after this step). The automatic Shopify way comes later (R9).
   (Shopify lowers its own count at checkout). The button works either way: you press it at the moment you
   choose.
 - Only you and active administrators can use it (the same rule as every stock change today).
+- **Orders typed on the manual order page** (phone, wholesale, in person): since Nov 28 the product box
+  suggests your product names, and a line whose name matches exactly one product is saved with its SKU, so
+  those orders can take their stock too. A line typed freely (or matching two products with the same name)
+  is saved without a SKU, as before, and that order is refused with the line named; earlier manual orders
+  have no SKU.
 - Order lines find their product **by SKU** (order lines have no link to the product in your database), so
   the SKUs on Shopify and on the dashboard's products must be the same (launch item R8; the product
   import's **Save for Shopify** makes them the same).

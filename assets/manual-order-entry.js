@@ -115,7 +115,7 @@ if (window.__sbLoadFailed || !window.supabase) {
     const row = document.createElement('div');
     row.className = 'item-row';
     row.innerHTML = `
-      <div><label>Product</label><input type="text" class="item-name" required placeholder="e.g. Lavender Body Lotion 8oz" /></div>
+      <div><label>Product</label><input type="text" class="item-name" list="productNames" autocomplete="off" required placeholder="e.g. Lavender Body Lotion 8oz" /></div>
       <div><label>Qty</label><input type="number" class="item-qty" min="1" max="100000" step="1" value="1" required /></div>
       <div><label>Unit price</label><input type="number" class="item-price" min="0" max="1000000" step="0.01" value="0.00" required /></div>
       <button type="button" class="btn-remove" title="Remove item">&times;</button>
@@ -190,12 +190,35 @@ if (window.__sbLoadFailed || !window.supabase) {
     return `M-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
   }
 
+  // Nov 28: the products for sale, so each line can carry its product's SKU. The product box offers
+  // their names (the browser's own suggestion list); a line whose name matches exactly one product is
+  // saved with that product's SKU, which is what lets "Stock per order" take its bottles off stock.
+  // Free text still works (saved without a SKU, as before). If the list cannot be read, nothing changes.
+  let products = [];
+  async function loadProducts(){
+    try {
+      const { data, error } = await sb.from('products').select('name, sku, status').limit(1000);
+      if (error || !Array.isArray(data)) return;
+      products = data.filter(p => p && typeof p.name === 'string' && p.name.trim() && typeof p.sku === 'string' && p.sku.trim() && p.status !== 'discontinued');
+      let list = document.getElementById('productNames');
+      if (!list) { list = document.createElement('datalist'); list.id = 'productNames'; document.body.appendChild(list); }
+      list.replaceChildren(...products.map(p => { const o = document.createElement('option'); o.value = p.name.trim(); return o; }));
+    } catch (e) { /* suggestions are a convenience; the form works without them */ }
+  }
+  function skuFor(name){
+    const n = String(name || '').trim().toLowerCase();
+    if (!n) return null;
+    const hits = products.filter(p => p.name.trim().toLowerCase() === n);
+    return hits.length === 1 ? hits[0].sku.trim() : null;   // two products with the same name: no guess
+  }
+
   async function showApp(user){
     shownUserId = user && user.id;
     loginView.hidden = true;
     appView.hidden = false;
     whoEmail.textContent = user.email;
     resetForm();
+    loadProducts();
     if (pending) {
       showError(formMsg, 'An earlier save (order ' + pending.orderNumber + ', ' + money(pending.total) + ') may not have finished before this page was reloaded. Check the Orders page in the dashboard before entering it again. Entering exactly the same order again is safe: the page will not create a second copy.');
     }
@@ -398,6 +421,7 @@ if (window.__sbLoadFailed || !window.supabase) {
       const itemsPayload = items.map(i => ({
         order_id: newOrder.id,
         product_name: i.product_name,
+        sku: skuFor(i.product_name),
         quantity: i.quantity,
         unit_price: i.unit_price,
         line_total: i.line_total
