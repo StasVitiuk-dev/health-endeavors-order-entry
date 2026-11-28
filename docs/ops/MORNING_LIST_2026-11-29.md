@@ -66,3 +66,7 @@ ran without errors.
   record; manual-order lines now carry their product's SKU (so phone and wholesale orders can take stock), and a line that will be saved without one says so before saving;
   the Stock per order card lists the recent orders that have not taken their stock (none forgotten; cancelled, refunded, voided and expired ones left out); four
   documents corrected (the payouts program was named as a way orders arrive; it never reads orders).
+- **Next bundle (`claude/daily-2026-11-30`, no pull request yet):** the Ready to launch page now counts only the
+  5 database steps your launch plan needs (tax rates, invoices, money differences, deliveries and returns, stock per order).
+  Before, it counted all 13, so it could never say ready unless you installed the 8 the plan leaves for after launch
+  (supplier documents, costs, batches, email, my settings, reviews, people, drop-off). Tell me if you want any of those counted.

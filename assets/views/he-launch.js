@@ -27,7 +27,7 @@
 
   const LINES = Object.freeze([
     { key: 'steps', kind: 'auto', title: 'The database steps are installed', page: 'flagsPanel', pageName: 'Feature Flags',
-      why: 'Each feature that saves real records needs its step in the database. You run each one after approving it.' },
+      why: 'Each feature the launch needs that saves real records needs its step in the database. You run each one after approving it.' },
     { key: 'products', kind: 'auto', title: 'Your products are in, each with a price', page: 'inventoryPanel', pageName: 'Inventory',
       why: 'An order can only be read correctly for a product the dashboard knows.' },
     { key: 'stock', kind: 'auto', title: 'Stock is counted, and every product has an alert level', page: 'inventoryPanel', pageName: 'Inventory',
@@ -89,13 +89,17 @@
     steps(i) {
       const s = i.steps;
       if (!Array.isArray(s) || !s.length) return unknown();
-      const need = s.filter(x => isObj(x) && x.needsStep !== false);
+      const withStep = s.filter(x => isObj(x) && x.needsStep !== false);
+      const need = withStep.filter(x => x.forLaunch !== false);   // steps the launch plan does not need are not counted
+      const later = withStep.length - need.length;
+      const tail = later ? (later === 1 ? ' The other step is not needed for launch.' : ' The other ' + later + ' steps are not needed for launch.') : '';
+      if (!need.length) return { state: 'ready', detail: 'None is needed for launch.' };
       const missing = need.filter(x => x.state === 'not_installed'), unsure = need.filter(x => x.state !== 'installed' && x.state !== 'not_installed');
       const done = need.length - missing.length - unsure.length;
-      if (unsure.length && !missing.length) return unknown(done + ' of ' + need.length + ' installed; ' + count(unsure.length, 'step', 'steps') + ' could not be checked.');
-      if (!missing.length) return { state: 'ready', detail: 'All ' + need.length + ' are installed.' };
+      if (unsure.length && !missing.length) return unknown(done + ' of ' + need.length + ' installed; ' + count(unsure.length, 'step', 'steps') + ' could not be checked.' + tail);
+      if (!missing.length) return { state: 'ready', detail: 'All ' + need.length + ' are installed.' + tail };
       return { state: 'todo', detail: done + ' of ' + need.length + ' installed. Still to install: ' + missing.slice(0, 12).map(x => text(x.name, 60)).join('; ') + '.'
-        + (unsure.length ? ' ' + count(unsure.length, 'step', 'steps') + ' could not be checked.' : '') };
+        + (unsure.length ? ' ' + count(unsure.length, 'step', 'steps') + ' could not be checked.' : '') + tail };
     },
     products(i) {
       if (!Array.isArray(i.products)) return unknown();

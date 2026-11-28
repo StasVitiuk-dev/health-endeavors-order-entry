@@ -16,16 +16,18 @@
 }(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
 
+  // launch: true = the two-week launch plan needs this step (LAUNCH_PLAN_2_WEEKS.md, "Launch-critical database
+  // steps"); the Launch page counts only these. A test keeps the two lists the same.
   // probe: a table only that database step creates (read with limit 0: no rows read),
   // or rpc: a function only that step creates, that changes nothing (asked with no values)
   const RECORD_SWITCHES = Object.freeze([
-    { key: 'he_tax_rates', name: 'Confirmed tax rates', where: 'Tax Records (and a Home notice)', draft: 'drafts/46 (review item 8)', probe: 'tax_rates',
+    { key: 'he_tax_rates', launch: true, name: 'Confirmed tax rates', where: 'Tax Records (and a Home notice)', draft: 'drafts/46 (review item 8)', probe: 'tax_rates',
       what: 'You confirm your sales tax rate with its start day and source; invoices use only a rate you confirmed.' },
-    { key: 'he_invoice_payments', name: 'Invoice payments', where: 'Accounting', draft: 'drafts/32 (review item 1)', probe: 'invoice_payments',
+    { key: 'he_invoice_payments', launch: true, name: 'Invoice payments', where: 'Accounting', draft: 'drafts/32 (review item 1)', probe: 'invoice_payments',
       what: 'Record payments against issued wholesale invoices (part payments, reversals).' },
-    { key: 'he_money_issues', name: 'Saved money differences', where: 'Home and Accounting', draft: 'drafts/42', probe: 'money_match_issues',
+    { key: 'he_money_issues', launch: true, name: 'Saved money differences', where: 'Home and Accounting', draft: 'drafts/42', probe: 'money_match_issues',
       what: 'Keeps the money differences found by money matching until someone checks them.' },
-    { key: 'he_receiving_store', name: 'Deliveries and returns to suppliers', where: 'Inventory', draft: 'drafts/40 (staff also need drafts/44)', probe: 'receiving_records',
+    { key: 'he_receiving_store', launch: true, name: 'Deliveries and returns to suppliers', where: 'Inventory', draft: 'drafts/40 (staff also need drafts/44)', probe: 'receiving_records',
       what: 'Records deliveries received in parts and units sent back; stock changes only when you approve.' },
     { key: 'he_supplier_documents_store', name: 'Supplier documents (saved)', where: 'Suppliers', draft: 'drafts/36 and 38', probe: 'supplier_documents', needs: 'he_supplier_documents',
       what: 'Saves supplier documents and their review; needs the Supplier documents preview on too.' },
@@ -35,7 +37,7 @@
       what: 'Real profit uses each order\'s real fee and postage where they are saved, instead of your estimates; Money per channel can save the real fees from a channel\'s report.' },
     { key: 'he_order_batches', name: 'Batch on each order', where: 'Orders', draft: 'drafts/54 (review item 12)', probe: 'order_batches',
       what: 'When packing, scan the batch sticker onto the order. "Who got a batch" then lists every order that received it. A wrong scan is voided with a reason, never deleted.' },
-    { key: 'he_order_stock', name: 'Stock per order', where: 'Orders', draft: 'drafts/76', probe: 'order_stock_moves',
+    { key: 'he_order_stock', launch: true, name: 'Stock per order', where: 'Orders', draft: 'drafts/76', probe: 'order_stock_moves',
       what: 'Find an order and take its bottles off the stock count, once (all or nothing; refused if a SKU is unknown or stock would go below zero). A cancelled order gives them back, once. Every move is recorded.' },
     { key: 'he_incident_close', name: 'Close an incident with a note', where: 'Incidents', draft: 'No database step needed', probe: 'incidents',
       what: 'The owner and administrators get a "Record what was done" button on each open incident: write what was done, then keep it open or close it. Nothing is deleted; closed incidents stay listed with their note.' },

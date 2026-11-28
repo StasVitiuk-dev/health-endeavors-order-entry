@@ -5488,7 +5488,7 @@
       const settle = (p) => Promise.resolve(p).then(v => v, () => null);
       const RS = rsMod(), since = new Date(Date.now() - 30 * 86400000).toISOString();
       const [steps, products, stock, flag, recent, questions] = await Promise.all([
-        RS ? settle(Promise.all(RS.RECORD_SWITCHES.map(async sw => ({ key: sw.key, name: sw.name, needsStep: !/^No database step/.test(sw.draft), state: await RS.probe(supabase, sw) })))) : Promise.resolve(null),
+        RS ? settle(Promise.all(RS.RECORD_SWITCHES.map(async sw => ({ key: sw.key, name: sw.name, needsStep: !/^No database step/.test(sw.draft), forLaunch: sw.launch === true, state: await RS.probe(supabase, sw) })))) : Promise.resolve(null),
         settle(fetchAllRows('products', 'id, sku, name, is_active, status, retail_price', q => q)),
         settle(fetchAllRows('inventory', 'id, product_id, available, low_stock_threshold', q => q)),
         settle(supabase.from('feature_flags').select('flag_key, enabled').eq('flag_key', 'shopify_order_sync')),

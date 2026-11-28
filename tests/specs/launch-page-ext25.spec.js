@@ -37,6 +37,37 @@ test.describe('the rules (no browser)', () => {
     expect(all.lines.find(l => l.key === 'steps').detail).toBe('All 2 are installed.');           // the one that needs no step is not counted
   });
 
+  test('the steps line counts only what the launch plan needs; a missing later step never holds the launch back', ({}, ti) => {
+    node(ti);
+    const later = (key, state) => step(key, state, { forLaunch: false });
+    const d = (steps) => { const l = L.build({ steps: steps }).lines.find(x => x.key === 'steps'); return [l.state, l.detail]; };
+    expect(d([step('a', 'installed'), later('b', 'not_installed'), later('c', 'not_installed')])).toEqual(['ready', 'All 1 are installed. The other 2 steps are not needed for launch.']);
+    expect(d([step('a', 'not_installed'), later('b', 'installed')])).toEqual(['todo', '0 of 1 installed. Still to install: SYNTHETIC a. The other step is not needed for launch.']);
+    expect(d([step('a', 'unknown'), later('b', 'not_installed')])).toEqual(['unknown', '0 of 1 installed; 1 step could not be checked. The other step is not needed for launch.']);
+    expect(d([later('a', 'not_installed')])).toEqual(['ready', 'None is needed for launch.']);
+  });
+
+  // The switches marked launch: true are exactly the ones whose step the plan lists as launch-critical,
+  // so the Launch page and LAUNCH_PLAN_2_WEEKS.md can never disagree about what the launch needs.
+  test('the steps the Launch page counts are the launch plan\'s list', ({}, ti) => {
+    node(ti);
+    const fs = require('fs'), path = require('path');
+    const RS = require('../../assets/views/he-record-switches.js');
+    const plan = fs.readFileSync(path.resolve(__dirname, '..', '..', 'docs', 'ops', 'LAUNCH_PLAN_2_WEEKS.md'), 'utf8');
+    const part = plan.split('## Launch-critical database steps')[1].split('Not needed for launch')[0];
+    const listed = new Set(part.split('\n').filter(l => /^\s*(\d+\.|-) /.test(l)).flatMap(l => [...l.matchAll(/(?<!Nov )\b(\d{2})\b/g)].map(m => m[1])));
+    expect([...listed].sort()).toEqual(['10', '13', '17', '19', '21', '23', '25', '27', '29', '32', '34', '40', '42', '44', '46', '76']);
+    const marked = [], unmarked = [];
+    for (const sw of RS.RECORD_SWITCHES) {
+      const n = (String(sw.draft).match(/drafts\/(\d{2})/) || [])[1];
+      if (!n) { expect(sw.launch).toBeUndefined(); continue; }
+      expect(sw.launch === true, sw.key + ' (drafts/' + n + ')').toBe(listed.has(n));
+      (sw.launch ? marked : unmarked).push(sw.key);
+    }
+    expect(marked).toEqual(['he_tax_rates', 'he_invoice_payments', 'he_money_issues', 'he_receiving_store', 'he_order_stock']);
+    expect(unmarked).toHaveLength(8);
+  });
+
   test('each checked line says what is missing, in words', ({}, ti) => {
     node(ti);
     const r = L.build({ steps: [step('a', 'installed'), step('b', 'not_installed'), step('c', 'unknown')],
@@ -136,7 +167,8 @@ test('the page shows what is ready and what is not, in words, and where to go; n
   // the database steps: two of the thirteen are not installed here, and they are named (Nov 27: twelve, since the
   // shared settings are in use on every device and no longer a switch of their own; Nov 28: thirteen, with stock per order)
   await expect(line(page, 'steps')).toHaveAttribute('data-lpstate', 'todo');
-  await expect(line(page, 'steps').locator('[data-lpdetail]')).toHaveText('11 of 13 installed. Still to install: Confirmed tax rates; Real fees and postage per order.');
+  // Nov 28 (afternoon): only the five steps the launch plan needs are counted; the order costs step is one of the eight it does not need
+  await expect(line(page, 'steps').locator('[data-lpdetail]')).toHaveText('4 of 5 installed. Still to install: Confirmed tax rates. The other 8 steps are not needed for launch.');
   await expect(line(page, 'tax').locator('[data-lpdetail]')).toHaveText('Its database step is not installed yet (Feature Flags shows which).');
   await expect(host.locator('[data-lptotal]')).toHaveAttribute('data-lptotal', '0/15');
   await expect(host.locator('progress')).toHaveAttribute('value', '0');
@@ -149,7 +181,7 @@ test('the page shows what is ready and what is not, in words, and where to go; n
 test('with the records in order the checked lines are ready', async ({ page, backend }) => {
   await open(page, backend, { ready: true });
   for (const key of ['steps', 'products', 'stock', 'shopify', 'questions']) await expect(line(page, key)).toHaveAttribute('data-lpstate', 'ready');
-  await expect(line(page, 'steps').locator('[data-lpdetail]')).toHaveText('All 13 are installed.');
+  await expect(line(page, 'steps').locator('[data-lpdetail]')).toHaveText('All 5 are installed. The other 8 steps are not needed for launch.');
   // the tax step is installed but its switch is off in this browser: the line says what to do next
   await expect(line(page, 'tax').locator('[data-lpdetail]')).toHaveText('The step is installed. Turn on "Confirmed tax rates" on Feature Flags, then confirm your rate on Tax Records.');
   await expect(line(page, 'shopify').locator('[data-lpdetail]')).toHaveText('The switch is on; 1 order has come from Shopify in the last 30 days.');
