@@ -54,6 +54,12 @@ the one in force, an overlapping insert, editing the rate or start day, deleting
 ending the old rate on December 31; a second place; re-check (today's date in Central time, typed
 dates ignored, staff refused, an ended rate refused); the audit log; rollback (stops while rates
 exist, removes everything with written authorization, harmless twice, reinstall works).
+
+`docs/ops/sql/local-test/tax_rate_store_adapter_test.js` (Nov 28): the dashboard's own tax-rate code against
+this draft, in the database suite, so it also runs on GitHub (the real-database browser test skips there):
+**13 of 13**. The rate the page sends (8.75 becomes 0.0875) is stored exactly; a repeat is recognised;
+staff are refused even when the page's check is bypassed; a street address never leaves the page; the
+stored rows become the settings the tax rules use.
 Dashboard tests against the same database: `tests/specs/tax-rates-ext23.spec.js`.
 
 ## After running: check (read-only, paste into the SQL editor)

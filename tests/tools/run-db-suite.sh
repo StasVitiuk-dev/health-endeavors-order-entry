@@ -79,6 +79,7 @@ step "supplier documents (drafts/36)" bash "$LT/supplier_documents_test.sh" $C
 step "supplier documents: the dashboard's storage code against drafts/36" node "$LT/supplier_docs_store_adapter_test.js" $C
 step "supplier document files (drafts/38)" bash "$LT/supplier_document_files_test.sh" $C
 step "partial receiving and returns (drafts/40)" bash "$LT/partial_receiving_test.sh" $C
+step "deliveries and returns: the dashboard's code against drafts/40 and 44" node "$LT/receiving_store_adapter_test.js" $C
 step "the worked example 20 -> 8 -> 12 -> 3 (every quantity)" bash "$LT/stock_example_20_8_12_3_test.sh" $C
 step "managers decide deliveries and returns, option A (drafts/66 on drafts/40)" bash "$LT/managers_approve_stock_test.sh" $C
 step "search path of three history functions (drafts/68)" bash "$LT/history_search_path_test.sh" $C
@@ -87,9 +88,11 @@ step "the active staff check production lacked (drafts/72, then step A on top)" 
 step "every waiting draft installs on a copy shaped like production (role as a fixed list, no is_active_staff)" bash "$LT/production_shape_install_test.sh" $C
 step "the four production-shape problems of Nov 27, each caught again when its fix is removed" bash "$LT/production_shape_mutation_test.sh" $C
 step "Shopify payouts and money differences (drafts/42)" bash "$LT/shopify_payouts_test.sh" $C
+step "money differences: the dashboard's code against drafts/42" node "$LT/money_issues_store_adapter_test.js" $C
 step "the daily Shopify payout program against made-up Shopify replies (edge draft + drafts/42)" node "$LT/shopify_sync_core_test.mjs" $C
 step "staff read purchase orders (drafts/44)" bash "$LT/staff_read_purchase_orders_test.sh" $C
 step "confirmed tax rates (drafts/46)" bash "$LT/tax_rates_test.sh" $C
+step "confirmed tax rates: the dashboard's code against drafts/46" node "$LT/tax_rate_store_adapter_test.js" $C
 step "parcels and drop-off receipts (drafts/48)" bash "$LT/order_parcels_test.sh" $C
 step "settings shared by every device (drafts/50)" bash "$LT/shared_settings_test.sh" $C
 step "the id production's history recorder writes: step A2 (drafts/74 on drafts/50)" bash "$LT/shared_settings_audit_id_test.sh" $C
