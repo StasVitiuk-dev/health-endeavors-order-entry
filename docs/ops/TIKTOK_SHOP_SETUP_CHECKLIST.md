@@ -44,7 +44,17 @@ or verification fails.
 7. The signed letter of authorization.
 
 **Contact and shipping**
-8. A business email and phone for the account: `support@` from `BUSINESS_EMAIL_PLAN.md`, not a personal address.
+8. Email and phone, never a personal email (owner question, Nov 28). From `BUSINESS_EMAIL_PLAN.md`:
+   - **Login email: `admin@`**: the address that owns the seller account, with the strongest 2-step login,
+     never used for sending. If the shop is opened before the business email exists, use one new address made
+     only for the business, then change it later in Seller Center.
+   - **Customer contact: `support@`**, wherever the form asks how buyers reach the shop. Order and shipping
+     notices go to `orders@` (an alias of the same mailbox).
+   - **Phone:** the representative's own mobile is the practical choice for the sign-up and login codes; buyers
+     are given the `support@` email, not this number. Some platforms refuse internet phone numbers (for
+     example Google Voice) for codes; a real mobile line avoids that.
+   - Why not a personal email: the shop belongs to the business. A personal inbox that is locked, closed or
+     changed would lock the shop too, and the partner could not be given the account.
 9. Ship-from and returns address: where the products physically leave from (it can differ from the official
    business address). **Privacy:** this address is printed on every package and on every customer's return
    label, so every buyer sees it. The owner will ship from home at first and wants returns at home (Nov 27).
