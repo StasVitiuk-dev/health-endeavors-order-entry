@@ -131,6 +131,7 @@
    "serverRule": "sign-in system / storage / function rules",
    "pageRoleCheck": false,
    "testFiles": [
+    "fix3-dashboard-calls",
     "hard-walls",
     "pages-data"
    ]
