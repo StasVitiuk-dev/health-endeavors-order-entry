@@ -31,7 +31,9 @@ If any answer is no and you don't waive it: **no-go**, and the plan moves by the
 
 1. Feature Flags → System mode: **Normal**.
 2. The switches you chose are on; everything else stays off.
-3. Shopify order sync on, **only** if R9 exists (otherwise orders are entered as before).
+3. Shopify order sync on, through the **one** order path you chose (R9: today's import, path A, or the new
+   program, path B; never both at once, or order lines are written twice). With neither, orders are entered
+   as before.
 4. You publish the store in Shopify.
 5. Send Claude one screenshot of Home and one of Feature Flags. Claude confirms what it sees.
 
@@ -41,7 +43,7 @@ If any answer is no and you don't waive it: **no-go**, and the plan moves by the
 |---|---|---|
 | Home / Needs Your Attention | Nothing new, or something you understand | Screenshot to Claude |
 | Orders | Each Shopify order appears **once**, with the right items | Stop: Emergency (below) |
-| Inventory | Stock went down by exactly what was sold | Stop: Emergency |
+| Inventory | Stock went down by exactly what was sold (once you pressed **Take** on Orders → Stock per order, or, later, by itself when paid or shipped) | Stop: Emergency |
 | Customer Inquiries | Answered, or on your list | Answer, or ask Claude for a draft |
 
 ## Stop rules (any one is enough)
