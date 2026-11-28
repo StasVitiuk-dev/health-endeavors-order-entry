@@ -51,6 +51,10 @@ ran without errors.
 ## 6. Still open from earlier (skip any you already answered)
 
 - The two-week plan: **go**, or what to change.
+- **New, small (Nov 28 afternoon):** should the Ready to launch line "The database steps are installed" also check the
+  stock steps R1–R5, the request keys and the nightly check? Today it checks the 5 record-saving steps only; those seven
+  are on your launch-day list (question 5) and you look at them by hand. The dashboard can already tell whether they are
+  installed (System status shows it), so it would read only. Recommendation: **yes**. One word.
 - The nightly check: should Home warn after one missed night? (X8-D4)
 - Customer email at launch: **none** (drafts to copy) or **real sending**? (R10)
 - The Washington mail details from your partner (a few days; fine).
