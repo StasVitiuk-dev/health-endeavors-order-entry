@@ -53,3 +53,22 @@ Nothing here needs a secret to be shared with Claude. Never paste tokens or reco
 
 - `docs/security/claude-access-verification.md` (the first access record, which found `stasvitiuk-reos` with push only; it has not been edited)
 - `docs/ops/OWNER_DECISIONS_NEXT.md` (X6-17 row), `docs/ops/PRODUCTION_READINESS_MATRIX.md`, `docs/ops/READINESS_GATE.md`
+
+## 7. Re-check, Nov 28, 2026 (still OPEN)
+
+Read-only re-check in a cloud session: the GitHub connection still acts as **`StasVitiuk-dev`** (the owner's
+own account), not `stasvitiuk-reos`. Commits are authored "Claude", but every pull request the session opens
+shows the owner as its author.
+
+**What this means in practice (seen Nov 27–28):** GitHub never lets the author of a pull request approve it,
+so the owner cannot give the one approval `protect-main` requires on Claude's pull requests. The merge page
+shows "Merging is blocked", and the only way through is the admin box "Merge without waiting for requirements
+to be met (bypass rules)". #157 was merged that way, with no review recorded. The safeguard "the last push
+must be approved by someone else" therefore does nothing for Claude's work today.
+
+**What Claude does meanwhile:** unchanged from section 1. It merges nothing, approves nothing and never uses
+the bypass. It posts "Ready" only once every check has passed, so the owner knows when a bypass merge is
+reasonable.
+
+**The fix is still remediation 1 in section 4:** connect Claude with `stasvitiuk-reos`. After that the
+owner's own **Approve** button works on Claude's pull requests, and the bypass is no longer needed.
