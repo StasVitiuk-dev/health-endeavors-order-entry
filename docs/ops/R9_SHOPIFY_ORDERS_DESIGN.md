@@ -47,6 +47,24 @@ install the database step and one to create the read-only key and switch the pro
 **Never both at once:** if path B is chosen while the old import still runs, the old one is switched off
 first (in the backups repository, by the owner), because order lines would be written twice.
 
+## The automatic stock step (PROPOSED; built only after your "when paid / when shipped" answer)
+
+Until then the button on Orders → Stock per order does it, and its list shows every recent order still waiting.
+How the automatic step would work, so the answer turns into about an hour of work, not a design:
+
+- **When paid (recommended):** the moment an order is saved with status `paid` (or `partially_paid`, if you
+  want), the database takes its stock, using the same rules as the button: once per line, all or nothing, the
+  same per-order lock. It is one small database step: a trigger on `orders` (path A) or a call at the end of
+  `save_shopify_order` (path B).
+- **When shipped:** the same, when Shopify reports the order fulfilled (path B would then also ask Shopify for
+  the fulfillment status; path A depends on what today's import writes).
+- **It never blocks an order from arriving.** If the stock step refuses (an unknown SKU, or stock would go
+  below zero), the order is still saved; the refusal is recorded and shows on the Stock per order card and in
+  Needs Your Attention, for a person to fix and press.
+- **Who it runs as:** the step itself runs inside the database with the order program's rights, so the
+  "owner or administrator only" rule of the button does not apply to it; the record still says it was automatic.
+- Cancellations stay manual (give back on the card, or a return), because of the one-way-back rule.
+
 ## Questions for the owner
 
 1. Is the order import in the backups repository switched on? When did it last run? (morning list 2.2)
