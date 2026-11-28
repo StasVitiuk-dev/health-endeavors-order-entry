@@ -119,8 +119,12 @@ if (window.__sbLoadFailed || !window.supabase) {
       <div><label>Qty</label><input type="number" class="item-qty" min="1" max="100000" step="1" value="1" required /></div>
       <div><label>Unit price</label><input type="number" class="item-price" min="0" max="1000000" step="0.01" value="0.00" required /></div>
       <button type="button" class="btn-remove" title="Remove item">&times;</button>
+      <p class="item-note" hidden></p>
     `;
     row.querySelector('.btn-remove').addEventListener('click', () => { row.remove(); recalcTotals(); });
+    const nameInput = row.querySelector('.item-name');
+    nameInput.addEventListener('change', () => noteSku(row));
+    nameInput.addEventListener('blur', () => noteSku(row));
     row.querySelector('.item-qty').addEventListener('input', recalcTotals);
     row.querySelector('.item-price').addEventListener('input', recalcTotals);
     itemsContainer.appendChild(row);
@@ -204,6 +208,16 @@ if (window.__sbLoadFailed || !window.supabase) {
       if (!list) { list = document.createElement('datalist'); list.id = 'productNames'; document.body.appendChild(list); }
       list.replaceChildren(...products.map(p => { const o = document.createElement('option'); o.value = p.name.trim(); return o; }));
     } catch (e) { /* suggestions are a convenience; the form works without them */ }
+  }
+  // A line that matches no product is still saved (free text works), but without a SKU, so Stock per
+  // order can never take it off stock, and no page can add the SKU later. Say so next to the line (a
+  // warning only; nothing is blocked). Silent while the product list could not be read.
+  function noteSku(row){
+    const note = row && row.querySelector('.item-note'); if (!note) return;
+    const name = row.querySelector('.item-name').value.trim();
+    const miss = products.length > 0 && name !== '' && skuFor(name) === null;
+    note.textContent = miss ? 'This name does not match exactly one of your products: the line is saved without a SKU, so its stock cannot be taken automatically. Pick the name from the suggestions if it is one of your products.' : '';
+    note.hidden = !miss;
   }
   function skuFor(name){
     const n = String(name || '').trim().toLowerCase();

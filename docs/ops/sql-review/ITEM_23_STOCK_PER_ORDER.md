@@ -41,8 +41,9 @@ so none is forgotten. The card stays switched off until you turn it on, after th
 - **Orders typed on the manual order page** (phone, wholesale, in person): since Nov 28 the product box
   suggests your product names, and a line whose name matches exactly one product is saved with its SKU, so
   those orders can take their stock too. A line typed freely (or matching two products with the same name)
-  is saved without a SKU, as before, and that order is refused with the line named; earlier manual orders
-  have no SKU.
+  is saved without a SKU, as before (the page warns next to that line before you save), and that order is
+  refused with the line named. No page can add a SKU to a saved line, so for such an order correct the
+  count with a stock count instead; earlier manual orders have no SKU.
 - Order lines find their product **by SKU** (order lines have no link to the product in your database), so
   the SKUs on Shopify and on the dashboard's products must be the same (launch item R8; the product
   import's **Save for Shopify** makes them the same).

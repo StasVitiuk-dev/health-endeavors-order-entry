@@ -74,6 +74,16 @@ test('a line whose name matches one product is saved with its SKU; free text and
     await row.locator('.item-qty').fill(lines[i][1]);
     await row.locator('.item-price').fill('10');
   }
+  // a line that will be saved without a SKU says so next to it (a warning only; saving still works)
+  const notes = page.locator('.item-row .item-note');
+  await expect(notes.nth(0)).toBeHidden();
+  for (const i of [1, 2, 3]) await expect(notes.nth(i)).toContainText('saved without a SKU, so its stock cannot be taken automatically');
+  await page.locator('.item-row').nth(2).locator('.item-name').fill('SYNTHETIC Lavender Lotion 8 oz');
+  await page.locator('.item-row').nth(2).locator('.item-name').blur();
+  await expect(notes.nth(2)).toBeHidden();
+  await page.locator('.item-row').nth(2).locator('.item-name').fill('Something typed freely');
+  await page.locator('.item-row').nth(2).locator('.item-name').blur();
+  await expect(notes.nth(2)).toBeVisible();
   await save(page);
   await expect(page.locator('#successMsg')).toContainText('Saved — order M-');
   expect(backend.tables.order_items.map(i => [i.product_name, i.sku])).toEqual([
@@ -92,6 +102,7 @@ test('if the product list cannot be read, the form works as before (no suggestio
   await expect(page.locator('#successMsg')).toContainText('Saved — order M-');
   expect(backend.tables.order_items.map(i => i.sku == null)).toEqual([true]);
   await expect(page.locator('datalist#productNames option')).toHaveCount(0);
+  await expect(page.locator('.item-row .item-note')).toBeHidden();   // no list, no warning
 });
 
 test('items refused after the order was saved: a second press adds the items to the SAME order', async ({ page, backend }) => {
