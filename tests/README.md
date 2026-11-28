@@ -90,6 +90,8 @@ When only a few specs are run locally instead of the whole suite, always include
 
 When in doubt, run the whole suite once (`npm test`, one heavy run at a time) before asking for review.
 
+The database suite (`tests/tools/run-db-suite.sh`) must pass on a **new, empty** PostgreSQL, as GitHub starts one for every run. A local server that ran earlier tests keeps roles they created (roles belong to the whole server, not one database), which can hide a missing set-up step: on Nov 28 two steps passed locally and failed on GitHub because the service-key role existed only on the local server. Before pushing a database test change, run the suite once on a fresh server (`initdb` into a new folder, another port).
+
 Do not regenerate the request baseline in a run that may be cut short or that runs beside other tests: on Nov 24 that dropped six unrelated entries. Change the one line by hand when only one request changed.
 
 ## Which menu the tests see

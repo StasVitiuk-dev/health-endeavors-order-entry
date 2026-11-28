@@ -31,7 +31,9 @@ If any answer is no and you don't waive it: **no-go**, and the plan moves by the
 
 1. Feature Flags → System mode: **Normal**.
 2. The switches you chose are on; everything else stays off.
-3. Shopify order sync on, **only** if R9 exists (otherwise orders are entered as before).
+3. Shopify order sync on, through the **one** order path you chose (R9: today's import, path A, or the new
+   program, path B; never both at once, or order lines are written twice). With neither, orders are entered
+   as before.
 4. You publish the store in Shopify.
 5. Send Claude one screenshot of Home and one of Feature Flags. Claude confirms what it sees.
 
@@ -41,7 +43,7 @@ If any answer is no and you don't waive it: **no-go**, and the plan moves by the
 |---|---|---|
 | Home / Needs Your Attention | Nothing new, or something you understand | Screenshot to Claude |
 | Orders | Each Shopify order appears **once**, with the right items | Stop: Emergency (below) |
-| Inventory | Stock went down by exactly what was sold | Stop: Emergency |
+| Inventory | Stock went down by exactly what was sold (once you pressed **Take** on Orders → Stock per order, or, later, by itself when paid or shipped) | Stop: Emergency |
 | Customer Inquiries | Answered, or on your list | Answer, or ask Claude for a draft |
 
 ## Stop rules (any one is enough)
@@ -54,12 +56,15 @@ If any answer is no and you don't waive it: **no-go**, and the plan moves by the
 **What to do:** Feature Flags → System mode → **Emergency** (under a minute). It pauses the AI agents
 and turns Shopify order sync off; the rule-based agents (#1 invoices, #4, #5, #6) keep running, and
 nobody is signed out. Then a screenshot to Claude. The store can stay open; orders wait in
-Shopify and are brought in once the cause is found. Going back to the previous version:
+Shopify and are brought in once the cause is found (with path B, a pause longer than 3 days needs one
+catch-up run: review item 24, "After a pause"). Going back to the previous version:
 `LAUNCH_DAY_ROLLBACK_PRACTICE.md`.
 
 ## End of the day (5 minutes)
 
 1. Report History: today's recap has the day's orders and revenue.
-2. The daily print at 12:02 AM opens the day pack; check the paper the next morning (it says "opened
+2. Orders → **Stock per order**: the list of orders not taken off stock yet is empty (or holds only orders
+   you are waiting to see paid or shipped, as you chose). Press any that are due.
+3. The daily print at 12:02 AM opens the day pack; check the paper the next morning (it says "opened
    for printing", never "printed").
-3. Tell Claude: number of orders, anything odd. Claude writes the day into `docs/PROJECT_RECORD.md`.
+4. Tell Claude: number of orders, anything odd. Claude writes the day into `docs/PROJECT_RECORD.md`.

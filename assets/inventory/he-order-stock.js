@@ -12,6 +12,11 @@
 //     giveBack(id)      give_back_order_stock(id)
 //   summarize(lines, moves)  per line: taken, given back; and the order's state:
 //     'none' | 'taken' | 'given_back' | 'partly' (some lines taken, some not)
+//   waiting(orders, moves)   the recent orders that have not taken their stock yet (Nov 28), leaving out
+//     cancelled, fully refunded, voided and expired ones, newest first
+//     store.openOrder(id)    one order by its id (the waiting list, and the choice when two orders share a number)
+//     store.waiting(days)    the same, read from the database (orders of the last `days` days, the newest 50;
+//                            `more` says when there may be older ones it did not check)
 //
 // A second press while one is on its way is refused here ("already being sent"); the
 // database refuses a second take anyway. Dual-mode (Node require + HE.inventory).
@@ -27,6 +32,7 @@
   const str = (v) => (typeof v === 'string' ? v : (typeof v === 'number' && isFinite(v) ? String(v) : ''));
   const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
   const MAX_LINES = 200;
+  const WAITING_MAX = 50;   // orders read for the waiting list
 
   function friendlyError(err) {
     const code = err && err.code != null ? String(err.code) : '';
@@ -52,6 +58,15 @@
     const state = !rows.length || !nTaken ? 'none' : nBack === nTaken && nTaken === rows.length ? 'given_back' : nTaken === rows.length && !nBack ? 'taken' : 'partly';
     const bottles = rows.reduce((t, r) => t + (Number.isFinite(r.quantity) ? r.quantity : 0), 0);
     return { rows, state, bottles, canTake: rows.length > 0 && rows.some(r => !r.taken), canGiveBack: rows.some(r => r.taken && !r.givenBack) };
+  }
+
+  // cancelled, fully refunded, or a payment Shopify voided or let expire (no money taken, nothing ships)
+  const notForSale = (status) => { const s = str(status).toLowerCase(); return s.includes('cancel') || (s.includes('refund') && !s.includes('partial')) || s.includes('void') || s.includes('expired'); };
+  function waiting(orders, moves) {
+    const took = new Set((Array.isArray(moves) ? moves : []).filter(isObj).filter(m => m.kind === 'take').map(m => str(m.order_id)));
+    return (Array.isArray(orders) ? orders : []).filter(isObj)
+      .filter(o => UUID.test(str(o.id)) && str(o.order_number) && !o.deleted_at && !notForSale(o.status) && !took.has(str(o.id)))
+      .sort((a, b) => str(b.placed_at).localeCompare(str(a.placed_at)));
   }
 
   function createStore(deps) {
@@ -83,8 +98,22 @@
         // a deleted order is found only when no live order has the number: it can give back, never take
         const rows = live.length ? live : all;
         if (!rows.length) return refuse('No order has that number.');
-        if (rows.length > 1) return refuse('More than one order has that number. Type it exactly as the order shows it.');
+        // two channels can use the same number: list them, so the person chooses (never a guess)
+        if (rows.length > 1) return refuse('More than one order has that number. Choose the one you mean:', {
+          choices: rows.map(o => ({ id: str(o.id), order_number: str(o.order_number), channel: str(o.channel), placed_at: str(o.placed_at), deleted: o.deleted_at != null })) });
         return { ok: true, order: Object.assign({}, rows[0], { deleted: !live.length }) };
+      });
+    }
+    // one order by its id (the waiting list and the choice above open orders this way, never by number)
+    async function openOrder(orderId) {
+      const r = ready('from'); if (r) return r;
+      if (!UUID.test(str(orderId))) return refuse('Choose the order first.');
+      return once('open:' + orderId, async function () {
+        const res = await client.from('orders').select('id, order_number, customer_name, placed_at, status, channel, deleted_at').eq('id', orderId).limit(1);
+        if (res && res.error) return refuse(friendlyError(res.error));
+        const row = (Array.isArray(res && res.data) ? res.data : []).filter(isObj)[0];
+        if (!row) return refuse('That order is no longer there.');
+        return { ok: true, order: Object.assign({}, row, { deleted: row.deleted_at != null }) };
       });
     }
     async function forOrder(orderId) {
@@ -108,8 +137,24 @@
         return { ok: true, changed: Number(out.lines_changed) || 0, already: Number(out.lines_already_done) || 0, order: str(out.order) };
       });
     }
-    return { findOrder, forOrder, take: (id) => call('take_order_stock', id), giveBack: (id) => call('give_back_order_stock', id) };
+    async function recentWaiting(days) {
+      const r = ready('from'); if (r) return r;
+      const d = Number.isInteger(days) && days > 0 && days <= 60 ? days : 14;
+      const since = new Date(Date.now() - d * 86400000).toISOString();
+      return once('waiting', async function () {
+        const o = await client.from('orders').select('id, order_number, status, placed_at, deleted_at').gte('placed_at', since).is('deleted_at', null).order('placed_at', { ascending: false }).limit(WAITING_MAX);
+        if (o && o.error) return refuse(friendlyError(o.error));
+        const rows = (Array.isArray(o && o.data) ? o.data : []).filter(isObj);
+        const ids = rows.map(x => str(x.id)).filter(x => UUID.test(x));
+        if (!ids.length) return { ok: true, orders: [] };
+        const m = await client.from('order_stock_moves').select('order_id, kind').in('order_id', ids).eq('kind', 'take').limit(MAX_LINES * 4);
+        if (m && m.error) return refuse(friendlyError(m.error));
+        // more: the newest WAITING_MAX orders were read, so older ones of the period were not checked here
+        return { ok: true, orders: waiting(rows, m && m.data), more: rows.length >= WAITING_MAX };
+      });
+    }
+    return { findOrder, openOrder, forOrder, waiting: recentWaiting, take: (id) => call('take_order_stock', id), giveBack: (id) => call('give_back_order_stock', id) };
   }
 
-  return { friendlyError, summarize, createStore, MAX_LINES };
+  return { friendlyError, summarize, waiting, createStore, MAX_LINES };
 }));

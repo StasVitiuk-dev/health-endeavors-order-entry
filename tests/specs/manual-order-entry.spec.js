@@ -51,6 +51,62 @@ for (const file of ['manual-order-entry.html', 'index.html']) {
   });
 }
 
+// Nov 28: each line carries its product's SKU when the typed name matches exactly one product, so
+// "Stock per order" can take the bottles of a phone or wholesale order off stock (it matches by SKU).
+test('a line whose name matches one product is saved with its SKU; free text and look-alikes are saved without one', async ({ page, backend }) => {
+  setup(backend);
+  backend.tables.products = [
+    { id: 'p-1', name: 'SYNTHETIC Lavender Lotion 8 oz', sku: 'SYN-LAV-8OZ', status: 'active' },
+    { id: 'p-2', name: 'SYNTHETIC Twin Name', sku: 'SYN-T1', status: 'active' },
+    { id: 'p-3', name: 'SYNTHETIC Twin Name', sku: 'SYN-T2', status: 'active' },
+    { id: 'p-4', name: 'SYNTHETIC Old Cream', sku: 'SYN-OLD', status: 'discontinued' }];
+  await signIn(page);
+  // the product box suggests the names of the products for sale (not the discontinued one)
+  await expect(page.locator('datalist#productNames option')).toHaveCount(3);
+  await expect(page.locator('.item-row .item-name')).toHaveAttribute('list', 'productNames');
+  await page.selectOption('#channel', { index: 1 });
+  await page.fill('#customerName', 'SYNTHETIC Walk-in');
+  const lines = [['synthetic lavender lotion 8 OZ', '2'], ['SYNTHETIC Twin Name', '1'], ['Something typed freely', '1'], ['SYNTHETIC Old Cream', '1']];
+  for (let i = 0; i < lines.length; i++) {
+    if (i > 0) await page.click('#addItemBtn');
+    const row = page.locator('.item-row').nth(i);
+    await row.locator('.item-name').fill(lines[i][0]);
+    await row.locator('.item-qty').fill(lines[i][1]);
+    await row.locator('.item-price').fill('10');
+  }
+  // a line that will be saved without a SKU says so next to it (a warning only; saving still works)
+  const notes = page.locator('.item-row .item-note');
+  await expect(notes.nth(0)).toBeHidden();
+  const described = await page.locator('.item-row').nth(1).evaluate(r => document.getElementById(r.querySelector('.item-name').getAttribute('aria-describedby')) === r.querySelector('.item-note'));
+  expect(described).toBe(true);   // the note is the product box's description, so a screen reader reads it
+  for (const i of [1, 2, 3]) await expect(notes.nth(i)).toContainText('saved without a SKU, so its stock cannot be taken automatically');
+  await page.locator('.item-row').nth(2).locator('.item-name').fill('SYNTHETIC Lavender Lotion 8 oz');
+  await page.locator('.item-row').nth(2).locator('.item-name').blur();
+  await expect(notes.nth(2)).toBeHidden();
+  await page.locator('.item-row').nth(2).locator('.item-name').fill('Something typed freely');
+  await page.locator('.item-row').nth(2).locator('.item-name').blur();
+  await expect(notes.nth(2)).toBeVisible();
+  await save(page);
+  await expect(page.locator('#successMsg')).toContainText('Saved — order M-');
+  expect(backend.tables.order_items.map(i => [i.product_name, i.sku])).toEqual([
+    ['synthetic lavender lotion 8 OZ', 'SYN-LAV-8OZ'],   // capital letters ignored
+    ['SYNTHETIC Twin Name', null],                       // two products share the name: no guess
+    ['Something typed freely', null],                    // free text works as before
+    ['SYNTHETIC Old Cream', null]]);                     // discontinued products are not offered
+});
+
+test('if the product list cannot be read, the form works as before (no suggestions, no SKU)', async ({ page, backend }) => {
+  setup(backend);
+  await page.route('**/rest/v1/products?*', route => route.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"Synthetic error"}' }));
+  await signIn(page);
+  await fillOrder(page);
+  await save(page);
+  await expect(page.locator('#successMsg')).toContainText('Saved — order M-');
+  expect(backend.tables.order_items.map(i => i.sku == null)).toEqual([true]);
+  await expect(page.locator('datalist#productNames option')).toHaveCount(0);
+  await expect(page.locator('.item-row .item-note')).toBeHidden();   // no list, no warning
+});
+
 test('items refused after the order was saved: a second press adds the items to the SAME order', async ({ page, backend }) => {
   setup(backend);
   await signIn(page);

@@ -1,7 +1,9 @@
 # R9 — Shopify orders into the dashboard, and their stock (design, Nov 28)
 
-Status: **PROPOSED · OWNER DECISION REQUIRED** (morning list question 2). Nothing here is built, deployed
-or switched on. Related: `ONE_STOCK_COUNT_DECISION_2026-11-24.md` (which count sells), `sql-review/ITEM_23_STOCK_PER_ORDER.md`
+Status: **PROPOSED · OWNER DECISION REQUIRED** (morning list question 2). Nothing here is deployed or
+switched on. **Nov 28 (morning): path B is prepared** as drafts only (draft 78, the program
+`docs/ops/edge-drafts/shopify-orders-sync`, review item 24), so choosing it costs no launch days; it is never
+used if you keep path A. Related: `ONE_STOCK_COUNT_DECISION_2026-11-24.md` (which count sells), `sql-review/ITEM_23_STOCK_PER_ORDER.md`
 (the stock step, draft 76), `TEST_ORDER_CHECKLIST.md`, `INTEGRATION_READINESS.md`.
 
 ## Where things stand (checked Nov 28)
@@ -9,6 +11,15 @@ or switched on. Related: `ONE_STOCK_COUNT_DECISION_2026-11-24.md` (which count s
 - **Orders today:** an order import runs in the **private backups repository**, which Claude never opens.
   Whether it is switched on and still works is **unknown here** (the dashboard showed 0 orders on Nov 23,
   which fits "no store sales yet" and also "the import is off").
+- **What is known about today's import (REPORTED, Sept 2026; found Nov 28 in a renewal reminder Claude
+  scheduled when it was set up, not re-checked):** it is a scheduled GitHub workflow in the backups
+  repository, using a Shopify custom app named "Health Endeavors Order Sync" whose access key may **read
+  orders and products** only. That key lasts at most 6 months and **expires around March 6, 2027**; a reminder
+  to renew it fires Feb 20, 2027. So path A's key is still good on launch day (Dec 10), and **the import
+  existed and was set up**; whether it is switched on and writes the SKU is still the open question.
+- **The dashboard's "Shopify Order Sync" switch** (Feature Flags; System mode → Emergency turns it off) is
+  **off on purpose before launch** (`OPERATIONS_RUNBOOK_INDEX_EXT9.md`). If today's import obeys that switch,
+  it is not bringing orders in now, which would also explain the 0 orders. Path B obeys the same switch.
 - **The Shopify program draft** in this repository (`edge-drafts/shopify-payouts-sync`, with drafts/42) reads
   **payouts only**; it never touches orders.
 - **Stock:** drafts/76 lets an order take its stock exactly once (and give it back once). Today a person
@@ -34,15 +45,64 @@ A new program in this repository, written like the payouts draft: read-only acce
 `read_orders` only), every few minutes or on Shopify's order webhook, writes each order **once** (by
 channel + order id) and its lines **once** (a new unique rule on order line + Shopify line id, added by
 its own database step), never a customer's card or more than the order needs. Then the same automatic
-stock step as in path A. About one to two evenings of work for Claude, tested against made-up Shopify
-replies, then one owner sitting to install and one to set the key.
+stock step as in path A. **Prepared Nov 28** (not deployed): draft 78 and the program, 47 checks against
+made-up Shopify replies (`docs/ops/sql/local-test/shopify_orders_test.mjs`); what is left is one owner sitting to
+install the database step and one to create the read-only key and switch the program on
+(`sql-review/ITEM_24_SHOPIFY_ORDERS_PATH_B.md`). It keeps no customer details (no name, email or address).
 
 **Never both at once:** if path B is chosen while the old import still runs, the old one is switched off
 first (in the backups repository, by the owner), because order lines would be written twice.
 
+## The automatic stock step (PROPOSED; built only after your "when paid / when shipped" answer)
+
+Until then the button on Orders → Stock per order does it, and its list shows every recent order still waiting.
+How the automatic step would work, so the answer turns into about an hour of work, not a design:
+
+- **When paid (recommended):** the moment an order is saved with status `paid` (or `partially_paid`, if you
+  want), the database takes its stock, using the same rules as the button: once per line, all or nothing, the
+  same per-order lock. It is one small database step: a trigger on `orders` (path A) or a call at the end of
+  `save_shopify_order` (path B).
+- **When shipped:** the same, when Shopify reports the order fulfilled (path B would then also ask Shopify for
+  the fulfillment status; path A depends on what today's import writes).
+- **It never blocks an order from arriving.** If the stock step refuses (an unknown SKU, or stock would go
+  below zero), the order is still saved; the refusal is recorded and shows on the Stock per order card and in
+  Needs Your Attention, for a person to fix and press.
+- **Who it runs as:** the step itself runs inside the database with the order program's rights, so the
+  "owner or administrator only" rule of the button does not apply to it; the record still says it was automatic.
+- Cancellations stay manual (give back on the card, or a return), because of the one-way-back rule.
+
 ## Questions for the owner
 
 1. Is the order import in the backups repository switched on? When did it last run? (morning list 2.2)
+   **One read-only look answers most of path A** (added Nov 28, morning; counts only, no customer details,
+   the last 60 days; checked on a throwaway copy with made-up orders):
+
+```sql
+select o.channel::text as channel, count(distinct o.id) as orders,
+       count(distinct o.id) filter (where coalesce(o.external_order_id, '') <> '') as with_outside_number,
+       count(distinct o.id) filter (where o.external_order_id like 'gid://shopify/Order/%') as with_shopify_long_id,
+       count(distinct o.id) filter (where o.placed_at is null) as without_order_date,
+       count(oi.id) as lines,
+       count(oi.id) filter (where coalesce(oi.sku, '') <> '') as lines_with_sku,
+       count(oi.id) filter (where p.id is not null) as lines_matching_a_product,
+       max(o.created_at)::date as newest
+  from public.orders o
+  left join public.order_items oi on oi.order_id = o.id
+  left join public.products p on lower(p.sku) = lower(oi.sku)
+ where o.deleted_at is null and o.created_at > now() - interval '60 days'
+ group by 1 order by 2 desc;
+```
+
+   What it means: a `shopify` row with `orders` = `with_outside_number` and `lines` = `lines_with_sku` says
+   the import writes what stock per order needs (path A works). `lines_matching_a_product` lower than
+   `lines_with_sku` only means those products are not in the dashboard yet (the product list, R8). No
+   `shopify` row at all, or an old `newest`, means no Shopify order arrived lately (no sales yet, or the
+   import is off). `with_shopify_long_id` says which form of Shopify's order id today's import keeps (path B
+   keeps the long form, `gid://shopify/Order/…`); if it is 0 while `with_outside_number` is not, path B
+   would see those orders as new, so drafts/78 never writes an order a second time when an order with the
+   same plain number or name is already there (it leaves it and names it in the run report).
+   `without_order_date` should be 0: the dashboard's order lists, recaps and the Stock per order waiting list
+   all go by the order date, so an order saved without one would be missing from them.
 2. When should an order take its stock: when paid, or when shipped? (morning list 6b)
 3. Path A or path B, once 1 is answered.
 4. **Does the existing import change stock by itself?** If it does, an order would lose its bottles

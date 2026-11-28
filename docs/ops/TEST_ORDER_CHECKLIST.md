@@ -39,11 +39,20 @@ Then, in the dashboard, one check at a time. Write the time next to each.
 | 2 | The amounts match Shopify | Orders → the order | Items, quantities, total and tax equal Shopify's order page |
 | 3 | The packing slip prints | Orders → Packing slips (switch `he_order_slips` on) | One page on the Brother (or 4×6 on the Rollo), the right items |
 | 4 | The shipping label prints | Shopify's own label, on the Rollo (4 × 6, margins None, scale 100%) | Readable barcode; nothing cut off |
-| 5 | Stock went down by exactly the quantity | Orders → **Stock per order** (Nov 28; drafts/76 installed, switch on): find the order → **Take these bottles off stock** (press twice), then Inventory | The message says each line was taken; Available = before − quantity; **never twice** (press Take again: "Nothing changed"; refresh, wait a minute, refresh) |
+| 5 | Stock went down by exactly the quantity | Orders → **Stock per order** (Nov 28; drafts/76 installed, switch on): the test order is in the card's list of orders **not yet taken** (press it, or find the order) → **Take these bottles off stock** (press twice), then Inventory | The message says each line was taken; Available = before − quantity; **never twice** (press Take again: "Nothing changed"; refresh, wait a minute, refresh); the order has left the "not yet taken" list |
 | 6 | Nothing unexpected asks for attention | Home / Needs Your Attention | No new warning, or one you understand |
 | 7 | The next morning: the order is in the daily recap | Report History | One order, the right total |
 
 A fake-card order has no real payout, so the money side (check 8) waits for Part 2.
+
+**After Part 1, once check 7 has passed (the next morning): put things back (5 minutes).** The fake-card order is not a sale, but after check 5 its
+bottles are off the count and it would sit in the sales numbers:
+1. In Shopify, **cancel** the test order (no restock needed in Shopify unless you track stock there too).
+2. When the dashboard shows it as **cancelled** (refresh Orders): Orders → Stock per order → find it →
+   **Order cancelled: give them back** (press twice). Inventory → Available is back to what it was before the
+   test. Reports leave cancelled orders out.
+3. Do not delete it on the dashboard: it stays as the record that the test passed (with path B, an order
+   deleted on the dashboard is never brought back, so its later cancellation would not arrive).
 
 ## Part 2 — one real small order, then refund it (about 20 minutes)
 

@@ -1,10 +1,10 @@
 # Morning list for Stas (Saturday, Nov 28, 2026)
 
-Status: CURRENT · rewritten overnight (Nov 28, from about 1 AM Central) while Claude worked alone. It
+Status: SUPERSEDED by `MORNING_LIST_2026-11-29.md` (Nov 28, daytime; every open item carried over) · rewritten overnight (Nov 28, from about 1 AM Central) while Claude worked alone. It
 replaces the earlier list of the same name (Nov 27–28); that list's merges are all done, and its open
 decisions are carried over below. Nothing here was merged, installed, switched on or sent by Claude.
 
-**Where things stand:** every pull request up to #162 is merged. FIX 3 is installed and checked. The launch
+**Where things stand:** every pull request up to #162 is merged; #163 (overnight) is **Ready** (all checks green). FIX 3 is installed and checked. The launch
 target is about **Dec 10** (13 days), and it depends on the answers below, above all the product list.
 
 ## 1. Merge (1 minute)
@@ -17,7 +17,7 @@ target is about **Dec 10** (13 days), and it depends on the answers below, above
 | # | Question | Unblocks | Effort |
 |---|---|---|---|
 | 1 | **Which day does the lab send the product list?** (name, size, SKU exactly as on the label, price, cost, photos) | everything for the store (R8); the plan assumed Nov 30 | a text to the lab |
-| 2 | **How do Shopify orders reach the dashboard at launch?** (two paths prepared: `R9_SHOPIFY_ORDERS_DESIGN.md`) Today the order import runs in the private backups repository, which Claude never opens. Is it switched on and working? If you don't know, the alternative is the daily Shopify program (database step 7, draft 42) | "every order lands on the dashboard" (launch promise 2); the test order | tell Claude what you know, or a screenshot of the backups repository's Actions page |
+| 2 | **How do Shopify orders reach the dashboard at launch?** (two paths prepared: `R9_SHOPIFY_ORDERS_DESIGN.md`) Today the order import runs in the private backups repository, which Claude never opens. Is it switched on and working? If it is not, the alternative is path B, now prepared (a read-only order program, review item 24; draft 42 is the payouts program and never reads orders) | "every order lands on the dashboard" (launch promise 2); the test order | tell Claude what you know, or a screenshot of the backups repository's Actions page |
 | 3 | **Stock steps in the launch: yes / not yet?** (`sql-review/ITEM_20_STOCK_STEPS_R1_R5.md`; recommendation: yes) | the database evenings | one word |
 | 4 | **Tax answers:** your Illinois sales tax registration (done or not) and the rate you charge, or your accountant's answer | Shopify taxes (setup guide F), invoices | accountant |
 | 5 | **Email provider** (`BUSINESS_EMAIL_PLAN.md`; recommendation Google Workspace, about $21/month for 3 mailboxes) | `support@` / `admin@`, the store's contact email, TikTok sign-up | one word |
@@ -28,6 +28,10 @@ target is about **Dec 10** (13 days), and it depends on the answers below, above
 arrived. Counts and dates only, no customer details. Supabase → SQL Editor → New query → paste → Run →
 screenshot. If nothing arrived lately, the import is probably not running. A second read-only look, whether that
 import also changes stock by itself (it matters for stock per order), is in `R9_SHOPIFY_ORDERS_DESIGN.md`, question 4.
+A third (Nov 28, morning), whether the orders that arrive carry the Shopify order number and a SKU on every
+line, is in the same page, question 1. **Path B is now prepared** (drafts only, review item 24), so whichever
+you choose costs no launch days. If path B: should orders keep the customer's name (for packing slips)? Today
+it keeps none; a name needs one more Shopify permission and your privacy text to mention it.
 
 ```sql
 select coalesce(source, '(none)') as source, coalesce(channel::text, '(none)') as channel,

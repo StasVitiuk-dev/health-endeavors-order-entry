@@ -4,7 +4,7 @@
 // that saves real records, OFF), assets/inventory/he-order-stock.js. Every value is made up.
 const M = require('../../assets/inventory/he-order-stock.js');
 const { test, expect, login, gotoPage } = require('../helpers/dashboard');
-const { unnamedControls } = require('../helpers/a11y-audit');
+const { unnamedControls, contrastFailures } = require('../helpers/a11y-audit');
 
 const node = (ti) => test.skip(ti.project.name !== 'desktop', 'Node-only; run once');
 const id = (n) => '00000000-0000-4000-8000-0000000' + String(n).padStart(5, '0');
@@ -56,8 +56,16 @@ test.describe('the rules on the dashboard side (no browser)', () => {
     expect(await M.createStore({ client: client([gone]) }).findOrder('#1001')).toEqual({ ok: true, order: Object.assign({}, gone, { deleted: true }) });
     expect(await M.createStore({ client: client([live, Object.assign({}, live, { id: id(2) })]) }).findOrder('1001')).toMatchObject({ ok: false, message: expect.stringContaining('More than one order') });
     expect(await M.createStore({ client: client([gone, Object.assign({}, gone, { id: id(8) })]) }).findOrder('1001')).toMatchObject({ ok: false, message: expect.stringContaining('More than one order') });
+    expect((await M.createStore({ client: client([live, Object.assign({}, live, { id: id(2), channel: 'etsy' })]) }).findOrder('1001')).choices.map(c => [c.id, c.channel]))
+      .toEqual([[id(1), ''], [id(2), 'etsy']]);   // the person chooses; nothing is guessed
     expect(await M.createStore({ client: client([]) }).findOrder('1001')).toMatchObject({ ok: false, message: 'No order has that number.' });
     expect(asked[0]).toMatchObject({ t: 'orders', f: [['in', 'order_number', ['1001', '#1001']]] });
+    // one order by its id (the waiting list and the choice): never by number
+    const byId = (rows) => ({ from: () => { const chain = { select: () => chain, eq: (k, v) => { chain.eqd = [k, v]; return chain; }, limit: async () => ({ data: rows }) }; return chain; } });
+    expect(await M.createStore({ client: byId([live]) }).openOrder(id(1))).toEqual({ ok: true, order: Object.assign({}, live, { deleted: false }) });
+    expect(await M.createStore({ client: byId([gone]) }).openOrder(id(9))).toMatchObject({ ok: true, order: { deleted: true } });
+    expect(await M.createStore({ client: byId([]) }).openOrder(id(1))).toMatchObject({ ok: false, message: 'That order is no longer there.' });
+    expect(await M.createStore({ client: byId([live]) }).openOrder('1001')).toMatchObject({ ok: false, message: 'Choose the order first.' });
     expect(asked[0].cols).toContain('deleted_at');
   });
 
@@ -216,6 +224,118 @@ test.describe('on the Orders page', () => {
     await expect(host.locator('button[data-os]')).toHaveCount(0);
     expect(rpcCalls(backend, 'take_order_stock')).toEqual([]);
     expect(rpcCalls(backend, 'give_back_order_stock')).toHaveLength(1);
+  });
+
+  for (const scheme of ['light', 'dark']) {
+    test(`controls are named and text meets AA contrast (${scheme}), before and after taking stock`, async ({ page, backend }, ti) => {
+      test.skip(ti.project.name !== 'desktop', 'colours; run once');
+      install(backend);
+      await page.emulateMedia({ colorScheme: scheme });
+      await on(page);
+      await login(page);
+      await gotoPage(page, 'ordersPanel');
+      const host = page.locator('#orderStockHost');
+      await host.locator('#osOrder').fill('1001');
+      await host.locator('#osOrder').press('Enter');
+      await expect(host.locator('tr[data-osline]')).toHaveCount(2);
+      expect(await host.evaluate(unnamedControls)).toEqual([]);
+      expect(await host.evaluate(contrastFailures)).toEqual([]);
+      const take = host.locator('button[data-os="take"]');
+      await take.click(); await take.click();
+      await expect(host.locator('[data-osmessage]')).toContainText('Taken off stock');
+      expect(await host.evaluate(contrastFailures)).toEqual([]);
+    });
+  }
+
+  test('the recent orders that have not taken their stock are listed; one press opens one; taking it removes it from the list', async ({ page, backend }) => {
+    install(backend);
+    const day = (n) => new Date(Date.now() - n * 86400000).toISOString();
+    backend.tables.orders[0].placed_at = day(1); backend.tables.orders[1].placed_at = day(2);
+    backend.tables.orders.push(
+      { id: id(3), order_number: '#1003', customer_name: 'SYNTHETIC Cy', placed_at: day(1), status: 'cancelled', channel: 'shopify', total: 10, deleted_at: null },
+      { id: id(4), order_number: '#1004', customer_name: 'SYNTHETIC Di', placed_at: day(40), status: 'paid', channel: 'shopify', total: 10, deleted_at: null });
+    await on(page);
+    await login(page);
+    await gotoPage(page, 'ordersPanel');
+    const host = page.locator('#orderStockHost');
+    const list = host.locator('[data-oswaiting]');
+    // the cancelled order and the one older than 14 days are left out; newest first
+    await expect(list.locator('button[data-oswait]')).toHaveText(['#1001', '#1002']);
+    await list.locator('button[data-oswait]', { hasText: '#1001' }).click();
+    await expect(host.locator('[data-osorder]')).toContainText('Order #1001');
+    await expect(host.locator('[data-osorder]')).toHaveAttribute('data-osorder', id(1));   // opened by its id
+    const take = host.locator('button[data-os="take"]');
+    await take.click(); await take.click();
+    await expect(host.locator('[data-osmessage]')).toContainText('Taken off stock');
+    await expect(list.locator('button[data-oswait]')).toHaveText(['#1002']);
+    expect(backend.tableWrites()).toEqual([]);
+    expect(await host.evaluate(unnamedControls)).toEqual([]);
+  });
+
+  test('two orders with the same number (two channels): the person chooses; the waiting list opens the exact one', async ({ page, backend }) => {
+    install(backend);
+    const day = (n) => new Date(Date.now() - n * 86400000).toISOString();
+    backend.tables.orders[0].placed_at = day(1); backend.tables.orders[1].placed_at = day(2);
+    backend.tables.orders.push({ id: id(9), order_number: '1001', customer_name: 'SYNTHETIC Etsy', placed_at: day(3), status: 'paid', channel: 'etsy', total: 10, deleted_at: null });
+    await on(page);
+    await login(page);
+    await gotoPage(page, 'ordersPanel');
+    const host = page.locator('#orderStockHost');
+    await host.locator('#osOrder').fill('1001');
+    await host.locator('#osOrder').press('Enter');
+    await expect(host.locator('[data-osmessage]')).toHaveText('More than one order has that number. Choose the one you mean:');
+    const choices = host.locator('[data-oschoices] button[data-oschoose]');
+    await expect(choices).toHaveCount(2);
+    await expect(choices.nth(1)).toContainText('etsy');
+    await choices.nth(1).click();
+    await expect(host.locator('[data-osorder]')).toHaveAttribute('data-osorder', id(9));
+    await expect(host.locator('[data-oschoices]')).toHaveCount(0);
+    // the waiting list never asks: each button opens its own order
+    await host.locator('[data-oswaiting] button[data-oswait]', { hasText: '#1001' }).click();
+    await expect(host.locator('[data-osorder]')).toHaveAttribute('data-osorder', id(1));
+    expect(backend.tableWrites()).toEqual([]);
+    expect(await host.evaluate(unnamedControls)).toEqual([]);
+  });
+
+  test('orders whose payment was voided or expired are not listed as waiting; a partly refunded one still is', async ({ page, backend }) => {
+    install(backend);
+    const day = (n) => new Date(Date.now() - n * 86400000).toISOString();
+    backend.tables.orders[0].placed_at = day(1); backend.tables.orders[1].placed_at = day(2);
+    backend.tables.orders.push(
+      { id: id(5), order_number: '#1005', customer_name: 'SYNTHETIC Ed', placed_at: day(1), status: 'voided', channel: 'shopify', total: 10, deleted_at: null },
+      { id: id(6), order_number: '#1006', customer_name: 'SYNTHETIC Fy', placed_at: day(1), status: 'expired', channel: 'shopify', total: 10, deleted_at: null },
+      { id: id(7), order_number: '#1007', customer_name: 'SYNTHETIC Gi', placed_at: day(3), status: 'partially_refunded', channel: 'shopify', total: 10, deleted_at: null },
+      { id: id(8), order_number: '#1008', customer_name: 'SYNTHETIC Ho', placed_at: day(3), status: 'refunded', channel: 'shopify', total: 10, deleted_at: null });
+    await on(page);
+    await login(page);
+    await gotoPage(page, 'ordersPanel');
+    await expect(page.locator('#orderStockHost [data-oswaiting] button[data-oswait]')).toHaveText(['#1001', '#1002', '#1007']);
+    expect(backend.tableWrites()).toEqual([]);
+  });
+
+  test('with more than 50 recent orders, the card never says "every order" when it checked only the newest 50', async ({ page, backend }) => {
+    install(backend);
+    const day = (n) => new Date(Date.now() - n * 86400000).toISOString();
+    backend.tables.orders[0].placed_at = day(10); backend.tables.orders[1].placed_at = day(11);   // older, not taken
+    for (let n = 0; n < 50; n++) {
+      backend.tables.orders.push({ id: id(100 + n), order_number: '#2' + String(n).padStart(3, '0'), customer_name: 'SYNTHETIC', placed_at: day(1), status: 'paid', channel: 'shopify', total: 10, deleted_at: null });
+      backend.tables.order_stock_moves.push({ order_id: id(100 + n), order_item_id: id(11), kind: 'take', quantity: 1 });
+    }
+    await on(page);
+    await login(page);
+    await gotoPage(page, 'ordersPanel');
+    await expect(page.locator('#orderStockHost [data-oswaiting="0"]')).toHaveText('The newest 50 orders of the last 14 days have all taken their stock. Older ones are not checked here: find them by number.');
+    expect(backend.tableWrites()).toEqual([]);
+  });
+
+  test('when every recent order has taken its stock, the card says so', async ({ page, backend }) => {
+    install(backend);
+    backend.tables.orders.forEach(o => { o.placed_at = new Date(Date.now() - 86400000).toISOString(); });
+    backend.tables.order_stock_moves.push({ order_id: id(1), order_item_id: id(11), kind: 'take', quantity: 2 }, { order_id: id(2), order_item_id: id(13), kind: 'take', quantity: 1 });
+    await on(page);
+    await login(page);
+    await gotoPage(page, 'ordersPanel');
+    await expect(page.locator('#orderStockHost [data-oswaiting="0"]')).toHaveText('Every order of the last 14 days has taken its stock.');
   });
 
   test('an employee sees the card but cannot change stock', async ({ page, backend }) => {

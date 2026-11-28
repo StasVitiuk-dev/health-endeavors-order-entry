@@ -58,8 +58,10 @@ Words on the pages: no medical claims ("treats", "cures", "heals"), same rule as
    **Product list import**; `PRODUCT_IMPORT_GUIDE.md`). When every line is right, **Save for Shopify (CSV)**
    saves the same list as Shopify's import file (built Nov 28), so the products are typed once.
 2. **Products → Import** → choose `products-for-shopify.csv` → **Upload and preview** → check one product → **Import**.
-3. For each product, open it and check: photos, price, **SKU exactly as on the label**, weight (for
-   shipping), "Track quantity" **on**, and "Continue selling when out of stock" **off**.
+3. For each product, open it and check: photos, price, **SKU exactly as on the label**, weight (the file
+   brings every product in with weight **0**, because the product list has no weights: type the packed
+   weight of one bottle, so labels bought in Shopify are priced right; the flat shipping rate below does not
+   use it), "Track quantity" **on**, and "Continue selling when out of stock" **off**.
 4. Send Claude a screenshot of the product list. Claude compares SKUs with the dashboard's product list.
 
 ## D. Payments (10 minutes plus Shopify's checks)
@@ -134,8 +136,9 @@ Decide P5–P7 in the store policy drafts first.
 
 - How Shopify orders reach the dashboard at launch (R9). Today the order import runs in the private backups
   repository, which Claude does not open (`TEST_ORDER_CHECKLIST.md`, first table). **OWNER DECISION
-  REQUIRED:** confirm that import is on and still working, or choose the daily Shopify program (database step
-  7 and draft 42) as the way orders arrive. See `MORNING_LIST_2026-11-28.md`.
+  REQUIRED:** confirm that import is on and still working (path A), or choose path B, the read-only order
+  program prepared Nov 28 (`sql-review/ITEM_24_SHOPIFY_ORDERS_PATH_B.md`; draft 42 is the payouts program and
+  never reads orders). Design: `R9_SHOPIFY_ORDERS_DESIGN.md`. See `MORNING_LIST_2026-11-28.md`.
 - The email provider (for `support@`), the returns address, the tax answers and the product list.
 
 ## Sources
