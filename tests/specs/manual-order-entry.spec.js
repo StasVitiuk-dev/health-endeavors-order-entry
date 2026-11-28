@@ -77,6 +77,8 @@ test('a line whose name matches one product is saved with its SKU; free text and
   // a line that will be saved without a SKU says so next to it (a warning only; saving still works)
   const notes = page.locator('.item-row .item-note');
   await expect(notes.nth(0)).toBeHidden();
+  const described = await page.locator('.item-row').nth(1).evaluate(r => document.getElementById(r.querySelector('.item-name').getAttribute('aria-describedby')) === r.querySelector('.item-note'));
+  expect(described).toBe(true);   // the note is the product box's description, so a screen reader reads it
   for (const i of [1, 2, 3]) await expect(notes.nth(i)).toContainText('saved without a SKU, so its stock cannot be taken automatically');
   await page.locator('.item-row').nth(2).locator('.item-name').fill('SYNTHETIC Lavender Lotion 8 oz');
   await page.locator('.item-row').nth(2).locator('.item-name').blur();

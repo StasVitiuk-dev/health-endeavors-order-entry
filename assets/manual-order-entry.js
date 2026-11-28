@@ -111,6 +111,7 @@ if (window.__sbLoadFailed || !window.supabase) {
   function hideError(el){ el.hidden = true; }
   function money(n){ return '$' + (Math.round(n * 100) / 100).toFixed(2); }
 
+  let itemNoteSeq = 0;
   function makeItemRow(){
     const row = document.createElement('div');
     row.className = 'item-row';
@@ -123,6 +124,9 @@ if (window.__sbLoadFailed || !window.supabase) {
     `;
     row.querySelector('.btn-remove').addEventListener('click', () => { row.remove(); recalcTotals(); });
     const nameInput = row.querySelector('.item-name');
+    const note = row.querySelector('.item-note');
+    note.id = 'itemNote' + (++itemNoteSeq);
+    nameInput.setAttribute('aria-describedby', note.id);   // a screen reader reads the note with the box
     nameInput.addEventListener('change', () => noteSku(row));
     nameInput.addEventListener('blur', () => noteSku(row));
     row.querySelector('.item-qty').addEventListener('input', recalcTotals);
