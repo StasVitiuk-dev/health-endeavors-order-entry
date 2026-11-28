@@ -43,6 +43,8 @@ approved it.
 | A purchase-order line changed while that order is being received | refused | drafts/17 |
 | A new record saved twice after a dropped connection | refused by the request key | drafts/19, 27; `request_keys_test.sh`, `request_key_scale_test.sh` |
 | Stock-count corrections need the owner's or an administrator's approval, applied once | yes | drafts/34; `stock_count_adjustments_test.sh`, `stock_count_apply_once_test.sh` |
+| An order takes its bottles off stock once, all or nothing; gives them back once when cancelled (a deleted order: give back only) | yes (Nov 28, not installed) | drafts/76; `order_stock_moves_test.sh` |
+| **One way back only:** a sold line comes back to the shelf as a cancelled order **or** as a return (Returns page "Mark Received" with a restock, R3, or a drafts/40 inspection), never both, also at the same moment | refused the second way (Nov 28) | drafts/76 + 40; `order_stock_moves_test.sh` "with drafts/40 too" and "with the Returns page" |
 
 ## Not built, and what each waits for
 
