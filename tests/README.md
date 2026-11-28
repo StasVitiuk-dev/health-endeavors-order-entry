@@ -86,6 +86,9 @@ When only a few specs are run locally instead of the whole suite, always include
 - `specs/request-baseline.spec.js`: the list of database requests every page makes with all switches off. If a change is intended, regenerate with `UPDATE_BASELINES=1` and say so in the PR.
 - `specs/write-path-inventory.spec.js`: every save in the dashboard must be listed in `docs/ops/write-paths.classification.json`. A new save without its entry was the one red check on PR #55 (Nov 24).
 - `specs/modules-ext15.spec.js`: new names and listeners in the program file must be registered there.
+- `specs/launch-page-ext25.spec.js`, `specs/record-switches-ext24.spec.js` and `specs/preview-switches-ext21.spec.js` (Nov 28): a new switch that saves real records changes the count of database steps the Launch page shows and the switch lists. On #163 (Nov 28) the request baseline, the module check and the Launch page spec were not run locally, and all three failed on GitHub.
+
+When in doubt, run the whole suite once (`npm test`, one heavy run at a time) before asking for review.
 
 Do not regenerate the request baseline in a run that may be cut short or that runs beside other tests: on Nov 24 that dropped six unrelated entries. Change the one line by hand when only one request changed.
 
