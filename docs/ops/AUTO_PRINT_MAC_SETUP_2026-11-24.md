@@ -20,6 +20,24 @@ Written November 24, 2026. **Status (Nov 26, night): DONE and SWITCHED OFF until
   orders are always complete. Asked and declined for now: skipping days with no orders (owner
   chose to switch the timer off instead).
 
+## What 12:02 AM does and does not do (Nov 27, night) — CURRENT
+
+- It is **not unattended printing**. At 12:02 AM the Mac opens the link and the browser shows its print
+  window; **a person presses Print**. If nobody does, nothing is printed. Unattended printing stays off
+  until it is tested and you approve it.
+- It runs only if the Mac is awake, you are logged in, the dashboard sign-in is still valid and the timer
+  is on. A missed 12:02 is **not run later**.
+- The dashboard therefore says **"opened for printing"**, never "printed": it cannot know whether Print
+  was pressed or the printer had paper. Check the paper.
+- When the link opens after missed days, the dashboard names the days it did not open for, so they can be
+  printed from **Day pack** one by one (`auto-print-ext24`).
+- Yesterday's nightly recap is usually not saved yet at 12:02 AM; the pack says so. Orders that reach the
+  dashboard after the pack was made are not in it; the pack says that too.
+- The same day is never opened twice by the link in one browser (a second opening says so).
+- The timer stays **off** until your launch decision. The print preset stays **"One-sided"**.
+- To check on the real Mac and printer (only you can): one test at launch with Automation on, the pack
+  coming out of the Brother, and the iPhone and VoiceOver checks in `DEVICE_CHECKLIST_2026-11-16.md`.
+
 ## The original plan (Nov 24, kept for reference)
 
 The owner decided on Nov 24: every day at 8:00 AM, yesterday's day pack, on the Mac next to the printer.
