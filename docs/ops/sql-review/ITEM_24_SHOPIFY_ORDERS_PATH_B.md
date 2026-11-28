@@ -75,6 +75,14 @@ select to_regprocedure('public.save_shopify_order(jsonb)') is not null as save_f
 
 Expected: `true | true | false | false | true`.
 
+## Honest limits
+
+- A line Shopify changed after its stock was taken is left as it was and named in the program's run
+  report (Supabase → Edge Functions → its logs), **not yet on the dashboard**. Showing it in Needs Your
+  Attention is a small follow-up once path B is chosen.
+- An order with more than 100 lines is refused whole and named in the report (look at it in Shopify).
+- Shopify's API version is pinned (`2026-10`); Shopify supports each version for about a year.
+
 ## If something is wrong: undo
 
 Paste `79_DRAFT_rollback_shopify_orders.sql` and run it, and stop the program's schedule. It removes the
