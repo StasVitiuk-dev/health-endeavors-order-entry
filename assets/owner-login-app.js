@@ -5605,7 +5605,7 @@
             line('Clients', String(t.clients)),
             t.notCounted ? line('Cancelled or refunded (listed, not in the totals)', String(t.notCounted)) : null,
             t.noAmount ? line('Orders with no amount saved (not in the totals)', String(t.noAmount)) : null)),
-          h('p', { class: 'u-fs-12' }, 'Exact figures, added up from the orders listed in this pack. Nothing is estimated.'),
+          h('p', { class: 'u-fs-12' }, 'Exact figures, added up from the orders listed in this pack. Nothing is estimated. Orders that reach the dashboard after this pack was made are not in it.'),
           recap ? h('div', null, h('div', { class: 'printLabel u-mt-8' }, 'The saved nightly recap of this day'),
             h('table', null, h('tbody', null, line('Orders', bkNum(recap.orders_count)), line('Revenue', recap.revenue == null ? '—' : fmtMoney(recap.revenue, recap.currency || 'USD')),
               line('New customer questions', bkNum(recap.new_inquiries_count)), line('Tasks opened', bkNum(recap.tasks_opened_count)), line('Incidents opened', bkNum(recap.incidents_opened_count)))))
@@ -5633,6 +5633,7 @@
     // "Try it now" button. Reads only; the day it last printed is noted in this browser.
     const AP_KEY = 'he_auto_print_day';
     const apMod = () => (window.HE && window.HE.reports && window.HE.reports['he-auto-print']) || null;
+    const apLastText = (day) => day ? 'Last opened for printing this way in this browser: the day pack for ' + day + '. Whether it came out of the printer is not known here: check the paper.' : 'Not opened for printing this way in this browser yet.';
     function apLast() { try { const v = localStorage.getItem(AP_KEY) || ''; return /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : ''; } catch (e) { return ''; } }
     async function autoPrintCheck(force) {
       const A = apMod(); if (!A) return;
@@ -5641,12 +5642,16 @@
       const d = A.due(apLast(), Date.now());
       showPage('backupsPanel');
       await loadBackupsPage();                             // the saved recap of the day belongs in the pack
-      if (!force && !d.due) { bkSay('The day pack for ' + d.day + ' was already printed from this link in this browser. Nothing was printed again.'); return; }
+      // Nov 27: the dashboard only opens the print window; whether Print was pressed (and the printer had
+      // paper) it cannot know, so it never says "printed" for the daily link.
+      if (!force && !d.due) { bkSay('The day pack for ' + d.day + ' was already opened for printing from this link in this browser. Nothing was opened again.'); return; }
+      const skipped = A.missed ? A.missed(apLast(), Date.now()) : [];
       const ok = await printDayPack(d.day);
       if (!ok) return;
-      try { localStorage.setItem(AP_KEY, d.day); } catch (e) { /* it would print again at the next opening */ }
+      try { localStorage.setItem(AP_KEY, d.day); } catch (e) { /* it would open again at the next opening */ }
       const last = document.querySelector('#backupsPanel [data-bkautolast]');
-      if (last) { last.setAttribute('data-bkautolast', d.day); last.textContent = 'Last printed this way in this browser: the day pack for ' + d.day + '.'; }
+      if (last) { last.setAttribute('data-bkautolast', d.day); last.textContent = apLastText(d.day); }
+      if (skipped.length) bkSay(bkMessage + ' The daily link did not open for ' + skipped.join(', ') + ' (the Mac was asleep or off, or the timer was off): to print one of those days, choose it under Day pack and press "Print the day pack".');
     }
     // ---- Weekly owner report (owner, Nov 24; the arithmetic: assets/reports/he-week-report.js) ----
     // One finished week on one page, for the owner and administrators. Read when "Show the
@@ -5890,7 +5895,7 @@
           h('div', { class: 'scanToggleRow u-mt-6' },
             h('button', { type: 'button', class: 'small secondary', 'data-bk': 'auto-copy' }, 'Copy the link'),
             h('button', { type: 'button', class: 'small', 'data-bk': 'auto-try' }, 'Try it now')),
-          h('p', { class: 'u-fs-12p5 u-mt-6', 'data-bkautolast': apLast() }, apLast() ? 'Last printed this way in this browser: the day pack for ' + apLast() + '.' : 'Not printed this way in this browser yet.'),
+          h('p', { class: 'u-fs-12p5 u-mt-6', 'data-bkautolast': apLast() }, apLastText(apLast())),
           h('p', { class: 'hint' }, 'The print window asks for one click on Print. Printing with no click at all needs the browser on that Mac started in its automatic printing mode; that is part of the same set-up. The pages hold customer names and emails, so use this only on a computer in your own office.')) : null,
         h('h3', null, 'Manuals to print'),
         h('ul', null,

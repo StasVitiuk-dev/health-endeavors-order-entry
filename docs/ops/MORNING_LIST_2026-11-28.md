@@ -11,16 +11,18 @@ reason fixed in #144; it never blocks.
 
 | Order | Pull request | What it is |
 |---|---|---|
-| 1 | #141 | Records: step A2 installed (notes only) |
+| 1 | #141 | Records: step A2 installed (notes only) — **merged Nov 27, afternoon** |
 | 2 | #142 | The launch plan (a target that depends on your inputs, not a promise) with the database steps in exact order; every waiting draft checked on your database's shape; the frozen readiness yardstick; the catch-up since Nov 24 |
 | 3 | #145 | Settings shared by every device, with no switch to turn on; honest wording when they cannot be read (**dashboard change**: check the live page afterwards, steps in the pull request) |
 | 4 | #146 | Daily print says "opened for printing"; daylight-saving tests; the spend-cap note corrected; email/tracking/Shopify readiness (**small dashboard change**) |
 | 5 | #143 | One page each for the stock steps, request keys and the nightly check; the 20 → 8 → 12 → 3 example; who may do what (notes and tests) |
 | 6 | #144 | Why the screenshot check is always red, and the fix (test machinery only) |
+| 7 | #147 | Query C reader: an instant answer to "does anything else already change stock?" (tool and tests only) |
+| 8 | #148 | Test-order and launch-day checklists (notes only) |
 
 #142 contains #141; #145 contains both; #146 contains #145; #143 contains #141 and an early part of #142.
 Merge 1–4 in this order; #143 any time after #142 (then its page shows only its own files). #144 contains
-nothing else and can go at any point.
+nothing else and can go at any point; so can #147 and #148.
 
 ## Sitting 2 — two read-only looks in Supabase (about 15 minutes; they change nothing)
 
@@ -61,3 +63,14 @@ nothing else and can go at any point.
 - The screenshot check had been red for days because the pictures were made with a newer Chrome than CI
   uses: cause shown, fix in #144.
 - #141 and #142 would have conflicted: combined.
+- With the shared settings always read, the side menu was briefly **empty after signing in** (about
+  8 s with no connection) while they loaded; it now appears at once (#145). Found because four tests
+  failed about once in 75 runs (`main`: 150 of 150 pass).
+- A new error-text trim was slow on very long text (the regex audit caught it): capped (#145).
+
+## The final test run (Nov 27, morning, Central)
+
+- On `c4cc136` (#146, which contains #141, #142 and #145): **4,024 passed, 0 failed, 901 skipped** (the
+  usual ones: desktop-only tests at iPhone size and the other way round), desktop and iPhone, one run,
+  nothing else running. The throwaway-database suite on the same commit: **61 of 61 steps passed**.
+- GitHub's checks passed on every pull request; only "Screenshots (informational)" is red, as explained.
