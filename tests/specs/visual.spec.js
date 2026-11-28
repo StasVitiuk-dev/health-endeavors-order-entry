@@ -2,10 +2,12 @@
 // synthetic data and a frozen clock. They catch layout and style changes, for
 // example when the CSS is moved into its own file.
 //
-// Screenshots depend on the operating system's fonts, so the saved images are
-// for Linux (the environment Claude runs tests in). If a change is meant to
-// alter how a page looks, regenerate and review the images in the PR:
-//   npx playwright test --config tests/playwright.config.js visual --update-snapshots
+// Screenshots depend on the fonts AND on the browser build. Nov 27 (night): the saved images
+// were made with a newer Chrome on a developer machine, while CI uses the Chromium that
+// package-lock's Playwright pins (ubuntu-24.04), so every comparison differed by a few pixels
+// of text. The reference images must be made in CI: Actions → "Dashboard CI" → Run workflow
+// with "update_screenshots" → download the "screenshots-<commit>" file → look at every
+// picture → commit them in a pull request. Never enlarge the tolerance to hide a difference.
 
 const { test, expect, login, gotoPage } = require('../helpers/dashboard');
 const { NOW, seedBusiness } = require('../fixtures/business-data');
@@ -16,6 +18,7 @@ const PAGES = ['attentionPanel', 'ordersPanel', 'inventoryPanel', 'returnsPanel'
 
 async function settle(page) {
   await page.waitForLoadState('networkidle');
+  await page.evaluate(() => document.fonts.ready);
   // Let number animations and toasts finish.
   await page.waitForTimeout(1500);
   await page.mouse.move(0, 0);
