@@ -22,7 +22,7 @@ Related: email prices in `docs/ops/EMAIL_SERVICE_COMPARISON_2026-11-24.md`; the 
 | Service | What it does | Estimate per month |
 |---|---|---|
 | GitHub | the dashboard, its tests, the backups | **$0** (public repository; backups within the free minutes) |
-| Supabase (database) | orders, stock, accounting | **Pro, about $25** (owner's screenshot, Nov 26: "Pro Plan", **spend cap enabled**, so nothing beyond the plan price can be charged) |
+| Supabase (database) | orders, stock, accounting | **Pro, about $25** base plan (owner's screenshot, Nov 26: "Pro Plan", **spend cap enabled**). The spend cap limits **usage** beyond the plan's included amounts; it does **not** cover compute, point-in-time recovery or certain items you switch on yourself (see below) |
 | Shopify Basic | the online store | about **$39**, or about **$29 when paid yearly** |
 | Google Workspace (proposed) | business email | about **$7–8.40 per mailbox** (`EMAIL_SERVICE_COMPARISON_2026-11-24.md`) |
 | Domain name | the business's web address | about **$1–2** |
@@ -31,10 +31,23 @@ Related: email prices in `docs/ops/EMAIL_SERVICE_COMPARISON_2026-11-24.md`; the 
 **Total: about $75–80 a month** with Supabase Pro (the owner's plan, confirmed Nov 26), one mailbox
 and Shopify paid yearly.
 
-**Spend cap (Supabase, Nov 26):** on. It means no charge beyond the plan, ever; the trade-off is that
-if the business ever used more than Pro includes, the database could slow down or go read-only until
-the next month. At today's size that is very unlikely. Recommendation: keep it on; look again once
-real orders run at volume.
+**Spend cap (Supabase, Nov 26):** on. **Corrected Nov 27:** an earlier note here said the spend cap means
+"no charge beyond the plan, ever". That was too broad. Supabase's cost-control page
+(https://supabase.com/docs/guides/platform/cost-control) says the spend cap applies to **usage** and that
+**compute, point-in-time recovery (PITR) and certain opt-in items are excluded** (as relayed by the owner
+on Nov 27; the page could not be opened from Claude's session to re-read the full list, so check it there
+before relying on a specific item). In short, the bill has three parts:
+
+| Part | What it is | Limited by the spend cap? |
+|---|---|---|
+| Base plan | Pro, about $25 a month | — (the fixed price) |
+| Add-ons you switch on | for example a bigger compute size, PITR, and other opt-in items named on that page | **no**: each is charged while it is on |
+| Usage beyond what Pro includes | for example database size, file storage, data transfer, monthly users | **yes**: with the cap on, usage stops at the included amount instead of being charged (the trade-off: the project can be limited until the next month) |
+
+Today nothing is switched on beyond the base plan (as far as the owner's Nov 26 screenshot shows), so the
+expected bill is the base plan. Before switching on any add-on, read its price on Supabase's page.
+Recommendation unchanged: keep the cap on; look again once real orders run at volume. Billing and
+spend-cap settings are the owner's; Claude never changes them.
 
 ## Costs that come only with sales
 
@@ -52,7 +65,7 @@ real orders run at volume.
    (`BUSINESS_EMAIL_PLAN.md`).
 3. Keep the **$0 GitHub budgets** as they are, and keep reporting "minutes: OK/out".
 4. Supabase: the owner is already on **Pro** (its own daily backups, the database never pauses), with
-   the spend cap on.
+   the spend cap on (it limits usage, not add-ons such as compute or PITR: see above).
 5. Use **Shopify's own email** for customer messages instead of a paid sending service.
 6. Avoid **paid Shopify apps** unless one clearly pays for itself; most of what they offer is built
    into the dashboard.

@@ -21,23 +21,35 @@ const PAGES = [['storeCampaignsPanel', 'store'], ['customerEmailsPanel', 'custom
 test.describe('drafts on every device', () => {
   test.beforeEach(({}, ti) => { test.skip(ti.project.name !== 'desktop', 'run once'); });
 
-  test('shared settings not in use (as shipped): each page says it is kept in this browser; nothing is asked of the database for it', async ({ page, backend }) => {
+  // Nov 27: the shared settings are in use on every device (no extra switch). On a database WITHOUT that
+  // step (a restored older copy, or the table unreadable) a draft is never shown as saved for every
+  // device: the save is refused, the page says so, and the draft stays in this browser.
+  test('on a database without the shared settings: a draft is kept in this browser and the page says it could not be saved for every device', async ({ page, backend }) => {
+    backend.missingTables = ['shared_settings'];
+    await on(page, false);
+    await login(page);
+    await gotoPage(page, 'storeCampaignsPanel');
+    const line = page.locator('[data-draftshare="store"]');
+    await page.fill('#scSubject', TEXT.subject);
+    await expect(line).toHaveAttribute('data-draftstate', 'failed');
+    await expect(line).toContainText('Could not save for every device (Settings for every device are not installed in the database yet');
+    await expect(line).toContainText('Kept in this browser.');
+    await expect(line).not.toContainText('Saved for every phone and computer.');
+    expect(backend.tables.shared_settings || []).toEqual([]);
+    // the time of the change is still noted, so the draft can go up later
+    expect(JSON.parse(await page.evaluate(() => localStorage.getItem('he_store_campaign_v1'))).savedAt).toMatch(/^20\d\d-/);
+  });
+
+  test('as shipped now: every page says its wording is saved for every phone and computer as you type', async ({ page, backend }) => {
     await on(page, false);
     await login(page);
     for (const [panel, name] of PAGES) {
       await gotoPage(page, panel);
       const line = page.locator(`[data-draftshare="${name}"]`);
-      await expect(line).toHaveAttribute('data-draftstate', 'off');
-      await expect(line).toContainText('Kept in this browser on this device for now. Once the shared settings database step (drafts/50) is installed, it follows you to every phone and computer.');
+      await expect(line).toHaveAttribute('data-draftstate', 'idle');
+      await expect(line).toContainText('Saved for every phone and computer as you type.');
     }
-    await page.fill('#chProduct', 'SYNTHETIC Lotion');
-    await gotoPage(page, 'storeCampaignsPanel');
-    await page.fill('#scSubject', TEXT.subject);
-    await page.waitForTimeout(1300);
-    expect(reads(backend)).toEqual([]);
-    expect(saves(backend)).toEqual([]);
-    // the time of the change is still noted, so the draft can go up later
-    expect(JSON.parse(await page.evaluate(() => localStorage.getItem('he_store_campaign_v1'))).savedAt).toMatch(/^20\d\d-/);
+    expect(saves(backend)).toEqual([]);   // nothing typed yet: nothing saved
   });
 
   test('the owner types: the wording, its approval and the choices are saved for every device a moment later; the lists of stores never', async ({ page, backend, pageErrors }) => {
