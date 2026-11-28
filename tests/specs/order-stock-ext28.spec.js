@@ -239,6 +239,40 @@ test.describe('on the Orders page', () => {
     });
   }
 
+  test('the recent orders that have not taken their stock are listed; one press opens one; taking it removes it from the list', async ({ page, backend }) => {
+    install(backend);
+    const day = (n) => new Date(Date.now() - n * 86400000).toISOString();
+    backend.tables.orders[0].placed_at = day(1); backend.tables.orders[1].placed_at = day(2);
+    backend.tables.orders.push(
+      { id: id(3), order_number: '#1003', customer_name: 'SYNTHETIC Cy', placed_at: day(1), status: 'cancelled', channel: 'shopify', total: 10, deleted_at: null },
+      { id: id(4), order_number: '#1004', customer_name: 'SYNTHETIC Di', placed_at: day(40), status: 'paid', channel: 'shopify', total: 10, deleted_at: null });
+    await on(page);
+    await login(page);
+    await gotoPage(page, 'ordersPanel');
+    const host = page.locator('#orderStockHost');
+    const list = host.locator('[data-oswaiting]');
+    // the cancelled order and the one older than 14 days are left out; newest first
+    await expect(list.locator('button[data-oswait]')).toHaveText(['#1001', '#1002']);
+    await list.locator('button[data-oswait="#1001"]').click();
+    await expect(host.locator('[data-osorder]')).toContainText('Order #1001');
+    const take = host.locator('button[data-os="take"]');
+    await take.click(); await take.click();
+    await expect(host.locator('[data-osmessage]')).toContainText('Taken off stock');
+    await expect(list.locator('button[data-oswait]')).toHaveText(['#1002']);
+    expect(backend.tableWrites()).toEqual([]);
+    expect(await host.evaluate(unnamedControls)).toEqual([]);
+  });
+
+  test('when every recent order has taken its stock, the card says so', async ({ page, backend }) => {
+    install(backend);
+    backend.tables.orders.forEach(o => { o.placed_at = new Date(Date.now() - 86400000).toISOString(); });
+    backend.tables.order_stock_moves.push({ order_id: id(1), order_item_id: id(11), kind: 'take', quantity: 2 }, { order_id: id(2), order_item_id: id(13), kind: 'take', quantity: 1 });
+    await on(page);
+    await login(page);
+    await gotoPage(page, 'ordersPanel');
+    await expect(page.locator('#orderStockHost [data-oswaiting="0"]')).toHaveText('Every order of the last 14 days has taken its stock.');
+  });
+
   test('an employee sees the card but cannot change stock', async ({ page, backend }) => {
     install(backend);
     backend.tables.profiles[0].role = 'employee';

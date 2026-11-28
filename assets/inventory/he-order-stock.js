@@ -12,6 +12,9 @@
 //     giveBack(id)      give_back_order_stock(id)
 //   summarize(lines, moves)  per line: taken, given back; and the order's state:
 //     'none' | 'taken' | 'given_back' | 'partly' (some lines taken, some not)
+//   waiting(orders, moves)   the recent orders that have not taken their stock yet (Nov 28), leaving out
+//     cancelled and fully refunded ones, newest first
+//     store.waiting(days)    the same, read from the database (orders of the last `days` days, at most 50)
 //
 // A second press while one is on its way is refused here ("already being sent"); the
 // database refuses a second take anyway. Dual-mode (Node require + HE.inventory).
@@ -52,6 +55,14 @@
     const state = !rows.length || !nTaken ? 'none' : nBack === nTaken && nTaken === rows.length ? 'given_back' : nTaken === rows.length && !nBack ? 'taken' : 'partly';
     const bottles = rows.reduce((t, r) => t + (Number.isFinite(r.quantity) ? r.quantity : 0), 0);
     return { rows, state, bottles, canTake: rows.length > 0 && rows.some(r => !r.taken), canGiveBack: rows.some(r => r.taken && !r.givenBack) };
+  }
+
+  const notForSale = (status) => { const s = str(status).toLowerCase(); return s.includes('cancel') || (s.includes('refund') && !s.includes('partial')); };
+  function waiting(orders, moves) {
+    const took = new Set((Array.isArray(moves) ? moves : []).filter(isObj).filter(m => m.kind === 'take').map(m => str(m.order_id)));
+    return (Array.isArray(orders) ? orders : []).filter(isObj)
+      .filter(o => UUID.test(str(o.id)) && str(o.order_number) && !o.deleted_at && !notForSale(o.status) && !took.has(str(o.id)))
+      .sort((a, b) => str(b.placed_at).localeCompare(str(a.placed_at)));
   }
 
   function createStore(deps) {
@@ -108,8 +119,23 @@
         return { ok: true, changed: Number(out.lines_changed) || 0, already: Number(out.lines_already_done) || 0, order: str(out.order) };
       });
     }
-    return { findOrder, forOrder, take: (id) => call('take_order_stock', id), giveBack: (id) => call('give_back_order_stock', id) };
+    async function recentWaiting(days) {
+      const r = ready('from'); if (r) return r;
+      const d = Number.isInteger(days) && days > 0 && days <= 60 ? days : 14;
+      const since = new Date(Date.now() - d * 86400000).toISOString();
+      return once('waiting', async function () {
+        const o = await client.from('orders').select('id, order_number, status, placed_at, deleted_at').gte('placed_at', since).is('deleted_at', null).order('placed_at', { ascending: false }).limit(50);
+        if (o && o.error) return refuse(friendlyError(o.error));
+        const rows = (Array.isArray(o && o.data) ? o.data : []).filter(isObj);
+        const ids = rows.map(x => str(x.id)).filter(x => UUID.test(x));
+        if (!ids.length) return { ok: true, orders: [] };
+        const m = await client.from('order_stock_moves').select('order_id, kind').in('order_id', ids).eq('kind', 'take').limit(MAX_LINES * 4);
+        if (m && m.error) return refuse(friendlyError(m.error));
+        return { ok: true, orders: waiting(rows, m && m.data) };
+      });
+    }
+    return { findOrder, forOrder, waiting: recentWaiting, take: (id) => call('take_order_stock', id), giveBack: (id) => call('give_back_order_stock', id) };
   }
 
-  return { friendlyError, summarize, createStore, MAX_LINES };
+  return { friendlyError, summarize, waiting, createStore, MAX_LINES };
 }));

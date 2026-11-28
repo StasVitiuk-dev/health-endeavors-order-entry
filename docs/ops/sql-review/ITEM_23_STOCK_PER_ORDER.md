@@ -28,8 +28,9 @@ After this step:
    added Nov 28 morning) (who, when, which order line) and can never be changed or deleted, and the
    stock history shows "Order #… taken off stock".
 
-Nothing happens by itself: the button is on Orders → **Stock per order** (switch off until you turn it
-on, after this step). The automatic Shopify way comes later (R9).
+Nothing happens by itself: the button is on Orders → **Stock per order**, which also lists the orders of the
+last 14 days that have not taken their stock yet (cancelled and refunded ones left out; one press opens one),
+so none is forgotten. The card stays switched off until you turn it on, after this step. The automatic Shopify way comes later (R9).
 
 ## Before you decide
 

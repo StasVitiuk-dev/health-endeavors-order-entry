@@ -7365,7 +7365,7 @@
     // them back, once. The rules are in the database (all or nothing, by SKU, owner or active
     // administrator); assets/inventory/he-order-stock.js asks and words the answers. Each
     // change asks for a second press.
-    const osState = { order: null, view: null, message: '', confirm: '', busy: '' };   // busy: '' or 'take' / 'back' while it is being sent
+    const osState = { order: null, view: null, message: '', confirm: '', busy: '', waiting: null };   // busy: '' or 'take' / 'back' while it is being sent; waiting: recent orders not yet taken (null = not read)
     const osMod = () => (window.HE && window.HE.inventory && window.HE.inventory['he-order-stock']) || null;
     let osStoreObj = null;   // one store, so its "already being sent" guard holds across presses
     function osStore() { const M = osMod(); if (!M || !orderStockOn()) return null; return osStoreObj || (osStoreObj = M.createStore({ client: supabase, enabled: true })); }
@@ -7375,7 +7375,15 @@
       if (!el) { const after = document.getElementById('orderSlipsHost'); if (!after || !after.parentNode) return null; el = h('div', { id: 'orderStockHost' }); after.after(el); }
       return el;
     }
-    function loadOrderStock() { if (osHost(orderStockOn() && !!osMod())) renderOrderStock(); }
+    function loadOrderStock() { if (osHost(orderStockOn() && !!osMod())) { renderOrderStock(); osLoadWaiting(); } }
+    // Nov 28: the recent orders (last 14 days) that have not taken their stock yet, so none is forgotten
+    async function osLoadWaiting() {
+      const store = osStore(); if (!store || !(currentUserRole === 'owner' || currentUserRole === 'administrator')) return;
+      const r = await store.waiting(14);
+      if (r.busy) return;
+      osState.waiting = r.ok ? r.orders : null;
+      renderOrderStock();
+    }
     function osSay(text) { osState.message = text; renderOrderStock(); announce(text); }
     function renderOrderStock() {
       const host = document.getElementById('orderStockHost'); if (!host) return;
@@ -7397,6 +7405,12 @@
           h('form', { class: 'obForm u-mt-8', 'data-osform': 'find' },
             h('label', null, 'Order number', h('input', { type: 'text', id: 'osOrder', maxlength: '60', autocomplete: 'off', value: o ? o.order_number : '' })),
             h('button', { type: 'submit', class: 'small secondary' }, 'Find the order')),
+          Array.isArray(osState.waiting) ? (osState.waiting.length
+            ? h('div', { class: 'u-mt-8', 'data-oswaiting': String(osState.waiting.length) },
+                h('p', { class: 'u-fs-12 u-m-0' }, 'Not taken off stock yet (orders of the last 14 days, cancelled and refunded ones left out):'),
+                h('div', { class: 'scanToggleRow u-mt-4' }, osState.waiting.slice(0, 8).map(w => h('button', { type: 'button', class: 'small secondary', 'data-oswait': w.order_number }, w.order_number)),
+                  osState.waiting.length > 8 ? h('span', { class: 'u-fs-12' }, '+' + (osState.waiting.length - 8) + ' more') : null))
+            : h('p', { class: 'u-fs-12 u-mt-8', 'data-oswaiting': '0' }, 'Every order of the last 14 days has taken its stock.')) : null,
           o && v ? h('div', { 'data-osorder': String(o.id), 'data-osstate': v.state },
             h('p', { class: 'u-fs-13 u-mt-8' }, 'Order ' + o.order_number + (o.deleted ? ' (deleted)' : '') + (o.customer_name ? ' · ' + o.customer_name : '') + ' · ' + STATE[v.state] + ' · ' + v.bottles + (v.bottles === 1 ? ' bottle' : ' bottles')),
             o.deleted ? h('p', { class: 'hint u-m-0', 'data-osdeleted': '1' }, 'This order was deleted. It can never take bottles off stock; if it took some before it was deleted, give them back here.') : null,
@@ -7427,6 +7441,9 @@
       const first = document.querySelector('#orderStockHost button[data-os]') || document.getElementById('osOrder'); if (first) first.focus();
     });
     document.addEventListener('click', async function (e) {
+      const w = e.target instanceof Element ? e.target.closest('#orderStockHost button[data-oswait]') : null;
+      if (w) { const box = document.getElementById('osOrder'); const form = document.querySelector('#orderStockHost form[data-osform="find"]');
+        if (box && form) { box.value = w.getAttribute('data-oswait') || ''; form.requestSubmit(); } return; }
       const t = e.target instanceof Element ? e.target.closest('#orderStockHost button[data-os]') : null; if (!t) return;
       const what = t.getAttribute('data-os'); const store = osStore(); const o = osState.order; if (!store || !o || osState.busy) return;
       if (osState.confirm !== what) { osState.confirm = what; renderOrderStock(); const again = document.querySelector('#orderStockHost button[data-os="' + what + '"]'); if (again) again.focus(); return; }
@@ -7436,6 +7453,7 @@
       if (r.busy) { renderOrderStock(); return; }
       await osReload();
       if (!r.ok) { osSay(r.message); return; }
+      osLoadWaiting();
       const lines = (n) => n + (n === 1 ? ' line' : ' lines');
       osSay(what === 'take'
         ? (r.changed ? 'Taken off stock: ' + lines(r.changed) + ' of order ' + o.order_number + '. Recorded in the stock history.' : 'Nothing changed: order ' + o.order_number + ' was already taken off stock.')
