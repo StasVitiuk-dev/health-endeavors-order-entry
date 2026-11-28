@@ -1,6 +1,6 @@
 // Stock per order (Nov 28, launch promise 2: "stock goes down by exactly the amount sold").
 // docs/ops/sql/drafts/76 holds the rules (local test: docs/ops/sql/local-test/order_stock_moves_test.sh,
-// 62 checks against a real PostgreSQL); this is the dashboard side, behind he_order_stock (a switch
+// 88 checks against a real PostgreSQL); this is the dashboard side, behind he_order_stock (a switch
 // that saves real records, OFF), assets/inventory/he-order-stock.js. Every value is made up.
 const M = require('../../assets/inventory/he-order-stock.js');
 const { test, expect, login, gotoPage } = require('../helpers/dashboard');
@@ -44,6 +44,23 @@ test.describe('the rules on the dashboard side (no browser)', () => {
     expect(await M.createStore({ client: client({}), enabled: false }).take(id(1))).toMatchObject({ ok: false, off: true });
   });
 
+  test('finding an order: a live one first; a deleted one only when it is the only one, marked deleted', async ({}, ti) => {
+    node(ti);
+    const asked = [];
+    const client = (rows) => ({ from: (t) => { const q = { t, f: [] };
+      const chain = { select: (c) => { q.cols = c; return chain; }, in: (k, v) => { q.f.push(['in', k, v]); return chain; },
+        is: (k, v) => { q.f.push(['is', k, v]); return chain; }, limit: async () => { asked.push(q); return { data: rows }; } };
+      return chain; } });
+    const live = { id: id(1), order_number: '#1001', deleted_at: null }, gone = { id: id(9), order_number: '#1001', deleted_at: '2026-11-28T08:00:00Z' };
+    expect(await M.createStore({ client: client([gone, live]) }).findOrder('1001')).toEqual({ ok: true, order: Object.assign({}, live, { deleted: false }) });
+    expect(await M.createStore({ client: client([gone]) }).findOrder('#1001')).toEqual({ ok: true, order: Object.assign({}, gone, { deleted: true }) });
+    expect(await M.createStore({ client: client([live, Object.assign({}, live, { id: id(2) })]) }).findOrder('1001')).toMatchObject({ ok: false, message: expect.stringContaining('More than one order') });
+    expect(await M.createStore({ client: client([gone, Object.assign({}, gone, { id: id(8) })]) }).findOrder('1001')).toMatchObject({ ok: false, message: expect.stringContaining('More than one order') });
+    expect(await M.createStore({ client: client([]) }).findOrder('1001')).toMatchObject({ ok: false, message: 'No order has that number.' });
+    expect(asked[0]).toMatchObject({ t: 'orders', f: [['in', 'order_number', ['1001', '#1001']]] });
+    expect(asked[0].cols).toContain('deleted_at');
+  });
+
   test('a second press while the first is on its way is not sent', async ({}, ti) => {
     node(ti);
     let release; const calls = [];
@@ -70,6 +87,8 @@ function install(backend, opts) {
   backend.tables.order_stock_moves = [];
   const run = (kind) => (b) => {
     if (o.refuse) return { __error: o.refuse };
+    const ord = backend.tables.orders.find(x => x.id === b.p_order_id);
+    if (ord && ord.deleted_at && kind === 'take') return { __error: { status: 404, code: 'P0002', message: 'That order does not exist or was deleted. Nothing was changed.' } };
     if (b.p_order_id === id(2) && kind === 'take') return { __error: { status: 400, code: '22023', message: 'Order #1002: no product has the SKU of these lines: SYN-GHOST — SYNTHETIC Unknown. Nothing was changed. Add the SKU to the product (or correct the order line) and try again.' } };
     let changed = 0, already = 0;
     for (const l of backend.tables.order_items.filter(x => x.order_id === b.p_order_id)) {
@@ -175,6 +194,28 @@ test.describe('on the Orders page', () => {
     await host.locator('button[data-os="take"]').click();
     await host.locator('button[data-os="take"]').click();
     await expect(host.locator('[data-osmessage]')).toContainText('Stock per order is not installed in the database yet');
+  });
+
+  test('a deleted order that took bottles can give them back, and is never offered to take', async ({ page, backend }) => {
+    install(backend);
+    backend.tables.orders[0].deleted_at = '2026-11-28T08:00:00Z';                     // a duplicate import, removed
+    backend.tables.order_stock_moves.push({ order_id: id(1), order_item_id: id(11), kind: 'take', quantity: 2, moved_at: '2026-11-28T07:00:00Z' });
+    await on(page);
+    await login(page);
+    await gotoPage(page, 'ordersPanel');
+    const host = page.locator('#orderStockHost');
+    await host.locator('#osOrder').fill('1001');
+    await host.locator('#osOrder').press('Enter');
+    const order = host.locator('[data-osorder]');
+    await expect(order).toContainText('Order #1001 (deleted) · SYNTHETIC Ada · Partly taken off stock');
+    await expect(host.locator('[data-osdeleted]')).toContainText('It can never take bottles off stock');
+    await expect(host.locator('button[data-os="take"]')).toHaveCount(0);              // one line is still "not yet", but a deleted order never takes
+    const back = host.locator('button[data-os="back"]');
+    await back.click(); await back.click();
+    await expect(host.locator('[data-osmessage]')).toContainText('Given back to stock: 1 line');
+    await expect(host.locator('button[data-os]')).toHaveCount(0);
+    expect(rpcCalls(backend, 'take_order_stock')).toEqual([]);
+    expect(rpcCalls(backend, 'give_back_order_stock')).toHaveLength(1);
   });
 
   test('an employee sees the card but cannot change stock', async ({ page, backend }) => {

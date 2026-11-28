@@ -143,8 +143,10 @@ begin
   -- One order at a time: a second press, or a second device, waits here and then finds the lines done.
   perform pg_advisory_xact_lock(hashtext('health_endeavors_order_stock:' || p_order_id::text));
 
+  -- A deleted order never takes stock, but can still give back what it took (a duplicate removed
+  -- after its stock was taken must not keep those bottles off the count for good).
   select coalesce(o.order_number, o.id::text) into v_number
-    from orders o where o.id = p_order_id and o.deleted_at is null;
+    from orders o where o.id = p_order_id and (o.deleted_at is null or p_kind = 'give_back');
   if not found then
     raise exception 'That order does not exist or was deleted. Nothing was changed.' using errcode = 'P0002';
   end if;

@@ -112,6 +112,15 @@ ok  "  stock unchanged" "$(avail)" "9,4,-"
 has "taking a given-back order again changes nothing (correct it by hand)" "$(take "$O" "$O1")" '"lines_changed": 0'
 ok  "  stock unchanged" "$(avail)" "9,4,-"
 has "giving back an order that took nothing does nothing" "$(back "$O" "$O5")" '"lines_changed": 0'
+q "insert into orders (id, channel, external_order_id, order_number, status) values ('00000000-0000-4000-8000-0000000076d1','shopify','T-D','#T1099','paid');
+   insert into order_items (order_id, sku, product_name, quantity) values ('00000000-0000-4000-8000-0000000076d1','HE-BODY-200','Body cream (a duplicate import)',1);" >/dev/null
+take "$O" 00000000-0000-4000-8000-0000000076d1 >/dev/null
+ok  "a duplicate order takes 1: body 9 - 1 = 8" "$(avail)" "8,4,-"
+q "update orders set deleted_at = now() where id = '00000000-0000-4000-8000-0000000076d1'" >/dev/null
+has "  once deleted, it cannot take again" "$(take "$O" 00000000-0000-4000-8000-0000000076d1)" "does not exist or was deleted"
+has "  but it gives back what it took" "$(back "$O" 00000000-0000-4000-8000-0000000076d1)" '"lines_changed": 1'
+ok  "  body 8 + 1 = 9" "$(avail)" "9,4,-"
+has "  and only once" "$(back "$O" 00000000-0000-4000-8000-0000000076d1)" '"lines_already_done": 1'
 q "update products set sku = 'HE-BODY-200-RENAMED' where id = '$P1'" >/dev/null
 has "after a SKU is renamed, giving back still finds the product it was taken from" "$(back "$O" "$O4")" '"lines_changed": 1'
 ok  "  body 9 + 1 = 10" "$(avail)" "10,4,-"
@@ -167,7 +176,7 @@ has "a return decided while the order is being given back waits, then is refused
 ok  "  the bottle came back once: body 6 + 1 = 7" "$(avail)" "7,4,-"
 rm -f "$OUTF.race"
 psql "${CONN[@]}" -d "$DB" -qX -v ON_ERROR_STOP=1 -f "$DIR/drafts/41_DRAFT_rollback_partial_receiving_returns.sql" >"$OUTF" 2>&1
-ok  "  drafts/41 (undo of 40) leaves the stock-per-order record alone" "$(q "select count(*) from order_stock_moves where kind = 'take'")" "9"
+ok  "  drafts/41 (undo of 40) leaves the stock-per-order record alone" "$(q "select count(*) from order_stock_moves where kind = 'take'")" "10"
 
 echo " rollback (drafts/77)"
 ok  "rollback succeeds" "$(run "$ROLLBACK")" "0"
@@ -175,7 +184,7 @@ has "  says the record is kept because it holds moves" "$(cat "$OUTF")" "order_s
 ok  "  the functions are gone" "$(q "select count(*) from pg_proc where proname in ('take_order_stock','give_back_order_stock','_he_order_stock')")" "0"
 ok  "  stock numbers unchanged" "$(avail)" "7,4,-"
 ok  "  the record table is kept" "$(q "select count(*) > 0 from order_stock_moves")" "t"
-ok  "  install works again afterwards and keeps the record" "$(run "$INSTALL")|$(q "select count(*) from order_stock_moves where kind = 'take'")" "0|9"
+ok  "  install works again afterwards and keeps the record" "$(run "$INSTALL")|$(q "select count(*) from order_stock_moves where kind = 'take'")" "0|10"
 fresh
 ok  "on an empty record, install then rollback removes the table too" "$(run "$INSTALL")|$(run "$ROLLBACK")|$(q "select to_regclass('public.order_stock_moves') is null")" "0|0|t"
 ok  "  a second rollback stops: nothing to undo" "$(run "$ROLLBACK")" "3"

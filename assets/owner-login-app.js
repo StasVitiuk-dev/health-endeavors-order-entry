@@ -7386,7 +7386,7 @@
         h('td', null, r.sku || '(no SKU)'), h('td', { 'data-label': 'Product' }, r.name || '—'),
         h('td', { class: 'num-cell', 'data-label': 'Bottles' }, String(r.quantity)),
         h('td', { 'data-label': 'Stock' }, r.givenBack ? 'Given back' : r.taken ? 'Taken' : 'Not yet'));
-      const take = v && v.canTake ? h('button', { type: 'button', class: 'small', 'data-os': 'take', disabled: !!osState.busy },
+      const take = v && v.canTake && !(o && o.deleted) ? h('button', { type: 'button', class: 'small', 'data-os': 'take', disabled: !!osState.busy },
         osState.busy === 'take' ? 'Taking them off stock…' : osState.confirm === 'take' ? 'Press again to take them off stock' : 'Take these bottles off stock') : null;
       const back = v && v.canGiveBack ? h('button', { type: 'button', class: 'small secondary', 'data-os': 'back', disabled: !!osState.busy },
         osState.busy === 'back' ? 'Giving them back…' : osState.confirm === 'back' ? 'Press again to give them back' : 'Order cancelled: give them back') : null;
@@ -7398,7 +7398,8 @@
             h('label', null, 'Order number', h('input', { type: 'text', id: 'osOrder', maxlength: '60', autocomplete: 'off', value: o ? o.order_number : '' })),
             h('button', { type: 'submit', class: 'small secondary' }, 'Find the order')),
           o && v ? h('div', { 'data-osorder': String(o.id), 'data-osstate': v.state },
-            h('p', { class: 'u-fs-13 u-mt-8' }, 'Order ' + o.order_number + (o.customer_name ? ' · ' + o.customer_name : '') + ' · ' + STATE[v.state] + ' · ' + v.bottles + (v.bottles === 1 ? ' bottle' : ' bottles')),
+            h('p', { class: 'u-fs-13 u-mt-8' }, 'Order ' + o.order_number + (o.deleted ? ' (deleted)' : '') + (o.customer_name ? ' · ' + o.customer_name : '') + ' · ' + STATE[v.state] + ' · ' + v.bottles + (v.bottles === 1 ? ' bottle' : ' bottles')),
+            o.deleted ? h('p', { class: 'hint u-m-0', 'data-osdeleted': '1' }, 'This order was deleted. It can never take bottles off stock; if it took some before it was deleted, give them back here.') : null,
             v.rows.length ? h('table', { class: 'phoneCards' },
               h('thead', null, h('tr', null, h('th', null, 'SKU'), h('th', null, 'Product'), h('th', { class: 'num-cell' }, 'Bottles'), h('th', null, 'Stock'))),
               h('tbody', null, v.rows.map(line))) : h('p', { class: 'hint' }, 'This order has no lines with bottles.'),

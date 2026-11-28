@@ -18,7 +18,10 @@ After this step:
    an order back is refused once a return is recorded for one of its lines, and a return can no longer
    be decided for a line already given back (both checked on a throwaway copy, also when the two happen
    at the same moment). Without this, 4 test bottles were counted twice.
-4. Every move is recorded (who, when, which order line) and can never be changed or deleted, and the
+4. **A deleted order** (for example a duplicate import removed after its stock was taken) can still
+   give back what it took, and can never take. On the dashboard it shows "(deleted)" with only the
+   give-back button.
+5. Every move is recorded (who, when, which order line) and can never be changed or deleted, and the
    stock history shows "Order #… taken off stock".
 
 Nothing happens by itself: the button is on Orders → **Stock per order** (switch off until you turn it
@@ -53,13 +56,13 @@ new orders should have `lines_without_a_product` = 0.
 
 | File | Lines | Fingerprint (SHA-256, first 16) |
 |---|---|---|
-| `docs/ops/sql/drafts/76_DRAFT_order_stock_moves.sql` (stock per order) | 256 | `fc91d28decf94e78` |
+| `docs/ops/sql/drafts/76_DRAFT_order_stock_moves.sql` (stock per order) | 258 | `2cd58c5dd14da464` |
 | `docs/ops/sql/drafts/77_DRAFT_rollback_order_stock_moves.sql` (undo of 76) | 48 | `bbcd05fc33ede704` |
 
 It stops by itself, changing nothing, if your orders, order lines, products or stock tables differ from
 the shape your Query A showed, if a needed index or `is_owner_or_admin()` is missing, or if a table of the
 same name exists that it did not create. The functions run with the caller's own rights (security
-invoker); visitors are refused by name (the FIX 3 rule). Tested on a throwaway copy: 83 of 83 checks
+invoker); visitors are refused by name (the FIX 3 rule). Tested on a throwaway copy: 88 of 88 checks
 (`docs/ops/sql/local-test/order_stock_moves_test.sh`), and it installs in its place on a copy shaped like
 your real database (`production_shape_install_test.sh`, 34 of 34).
 

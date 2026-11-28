@@ -5,7 +5,8 @@
 // this module only asks, reads, and puts the answers into plain words.
 //
 //   createStore({ client, enabled })
-//     findOrder(text)   one order by its number (exactly one, not deleted)
+//     findOrder(text)   one order by its number (exactly one; a deleted one only if no live
+//                       order has it, marked deleted: it may give back, never take)
 //     forOrder(id)      its lines, and what each line has taken / given back
 //     take(id)          take_order_stock(id)
 //     giveBack(id)      give_back_order_stock(id)
@@ -75,12 +76,15 @@
       if (!n) return refuse('Type the order number first.');
       const wanted = n.startsWith('#') ? [n, n.slice(1)] : [n, '#' + n];
       return once('find:' + n.toLowerCase(), async function () {
-        const res = await client.from('orders').select('id, order_number, customer_name, placed_at, status, channel').in('order_number', wanted).is('deleted_at', null).limit(5);
+        const res = await client.from('orders').select('id, order_number, customer_name, placed_at, status, channel, deleted_at').in('order_number', wanted).limit(5);
         if (res && res.error) return refuse(friendlyError(res.error));
-        const rows = (Array.isArray(res && res.data) ? res.data : []).filter(isObj);
+        const all = (Array.isArray(res && res.data) ? res.data : []).filter(isObj);
+        const live = all.filter(o => o.deleted_at == null);
+        // a deleted order is found only when no live order has the number: it can give back, never take
+        const rows = live.length ? live : all;
         if (!rows.length) return refuse('No order has that number.');
         if (rows.length > 1) return refuse('More than one order has that number. Type it exactly as the order shows it.');
-        return { ok: true, order: rows[0] };
+        return { ok: true, order: Object.assign({}, rows[0], { deleted: !live.length }) };
       });
     }
     async function forOrder(orderId) {
