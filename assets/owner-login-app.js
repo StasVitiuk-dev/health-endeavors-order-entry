@@ -7365,9 +7365,10 @@
     // them back, once. The rules are in the database (all or nothing, by SKU, owner or active
     // administrator); assets/inventory/he-order-stock.js asks and words the answers. Each
     // change asks for a second press.
-    const osState = { order: null, view: null, message: '', confirm: '' };
+    const osState = { order: null, view: null, message: '', confirm: '', busy: false };
     const osMod = () => (window.HE && window.HE.inventory && window.HE.inventory['he-order-stock']) || null;
-    function osStore() { const M = osMod(); return M && orderStockOn() ? M.createStore({ client: supabase, enabled: true }) : null; }
+    let osStoreObj = null;   // one store, so its "already being sent" guard holds across presses
+    function osStore() { const M = osMod(); if (!M || !orderStockOn()) return null; return osStoreObj || (osStoreObj = M.createStore({ client: supabase, enabled: true })); }
     function osHost(on) {
       let el = document.getElementById('orderStockHost');
       if (!on) { if (el) el.remove(); return null; }
@@ -7385,10 +7386,10 @@
         h('td', null, r.sku || '(no SKU)'), h('td', { 'data-label': 'Product' }, r.name || '—'),
         h('td', { class: 'num-cell', 'data-label': 'Bottles' }, String(r.quantity)),
         h('td', { 'data-label': 'Stock' }, r.givenBack ? 'Given back' : r.taken ? 'Taken' : 'Not yet'));
-      const take = v && v.canTake ? h('button', { type: 'button', class: 'small', 'data-os': 'take' },
-        osState.confirm === 'take' ? 'Press again to take them off stock' : 'Take these bottles off stock') : null;
-      const back = v && v.canGiveBack ? h('button', { type: 'button', class: 'small secondary', 'data-os': 'back' },
-        osState.confirm === 'back' ? 'Press again to give them back' : 'Order cancelled: give them back') : null;
+      const take = v && v.canTake ? h('button', { type: 'button', class: 'small', 'data-os': 'take', disabled: osState.busy },
+        osState.busy === 'take' ? 'Taking them off stock…' : osState.confirm === 'take' ? 'Press again to take them off stock' : 'Take these bottles off stock') : null;
+      const back = v && v.canGiveBack ? h('button', { type: 'button', class: 'small secondary', 'data-os': 'back', disabled: osState.busy },
+        osState.busy === 'back' ? 'Giving them back…' : osState.confirm === 'back' ? 'Press again to give them back' : 'Order cancelled: give them back') : null;
       host.replaceChildren(h('div', { class: 'scanCard u-mb-10', 'data-oscard': '1' },
         h('div', { class: 'scanCardHead' }, 'Stock per order'),
         !may ? h('p', { class: 'hint u-m-0' }, 'Only the owner or an administrator can change stock.') : h('div', null,
@@ -7426,11 +7427,12 @@
     });
     document.addEventListener('click', async function (e) {
       const t = e.target instanceof Element ? e.target.closest('#orderStockHost button[data-os]') : null; if (!t) return;
-      const what = t.getAttribute('data-os'); const store = osStore(); const o = osState.order; if (!store || !o) return;
+      const what = t.getAttribute('data-os'); const store = osStore(); const o = osState.order; if (!store || !o || osState.busy) return;
       if (osState.confirm !== what) { osState.confirm = what; renderOrderStock(); const again = document.querySelector('#orderStockHost button[data-os="' + what + '"]'); if (again) again.focus(); return; }
-      osState.confirm = '';
-      const r = what === 'take' ? await store.take(o.id) : await store.giveBack(o.id);
-      if (r.busy) return;
+      osState.confirm = ''; osState.busy = what; renderOrderStock();
+      let r;
+      try { r = what === 'take' ? await store.take(o.id) : await store.giveBack(o.id); } finally { osState.busy = false; }
+      if (r.busy) { renderOrderStock(); return; }
       await osReload();
       if (!r.ok) { osSay(r.message); return; }
       const lines = (n) => n + (n === 1 ? ' line' : ' lines');

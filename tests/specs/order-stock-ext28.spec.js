@@ -131,6 +131,28 @@ test.describe('on the Orders page', () => {
     expect(await host.evaluate(unnamedControls)).toEqual([]);
   });
 
+  test('while the database answers slowly, the button says so, is disabled, and more presses send nothing', async ({ page, backend }) => {
+    install(backend);
+    await on(page);
+    await login(page);
+    await gotoPage(page, 'ordersPanel');
+    let release;
+    const gate = new Promise(r => { release = r; });
+    await page.route('**/rest/v1/rpc/take_order_stock', async (route) => { await gate; await route.fallback(); });
+    const host = page.locator('#orderStockHost');
+    await host.locator('#osOrder').fill('1001');
+    await host.locator('#osOrder').press('Enter');
+    const take = host.locator('button[data-os="take"]');
+    await take.click();                                                              // arms
+    await take.click();                                                              // sends
+    await expect(take).toHaveText('Taking them off stock…');
+    await expect(take).toBeDisabled();
+    await take.click({ force: true }); await take.click({ force: true });            // impatient presses
+    release();
+    await expect(host.locator('[data-osmessage]')).toHaveText('Taken off stock: 2 lines of order #1001. Recorded in the stock history.');
+    expect(rpcCalls(backend, 'take_order_stock')).toHaveLength(1);
+  });
+
   test('an unknown SKU, an unknown order and "not installed" are said in plain words', async ({ page, backend }) => {
     install(backend);
     await on(page);
