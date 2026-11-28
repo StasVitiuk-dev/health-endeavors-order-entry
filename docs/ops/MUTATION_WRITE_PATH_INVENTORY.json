@@ -133,7 +133,8 @@
    "testFiles": [
     "fix3-dashboard-calls",
     "hard-walls",
-    "pages-data"
+    "pages-data",
+    "rpc-contract-ext28"
    ]
   },
   {
@@ -644,7 +645,8 @@
    "pageRoleCheck": false,
    "testFiles": [
     "hard-walls",
-    "operations-pages"
+    "operations-pages",
+    "rpc-contract-ext28"
    ]
   },
   {
