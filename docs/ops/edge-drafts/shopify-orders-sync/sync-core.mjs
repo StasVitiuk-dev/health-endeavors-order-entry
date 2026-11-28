@@ -10,6 +10,9 @@
 //     Shopify's order id, each line by Shopify's line id; running twice changes nothing
 // It never sends a mutation, never changes stock (that is the stock-per-order step, drafts/76) and
 // never logs the access key. Access scope needed: read_orders, nothing else.
+// It obeys the dashboard's own "Shopify Order Sync" switch (feature_flags.shopify_order_sync): while that
+// is off, or missing, or cannot be read, it asks Shopify nothing and writes nothing. System mode
+// "Emergency" turns that switch off, so Emergency stops this program too.
 //
 // Pure apart from what it is given: fetchJson (to Shopify), db.rpc (to Supabase), sleep and now.
 // Works in Deno (the Edge Function) and in Node (the test).
@@ -98,9 +101,12 @@ async function ask(fetchJson, sleep, query, variables) {
   }
 }
 
-// opts: { fetchJson, db: { rpc(name, args) }, sleep, now, sinceDays }
+// opts: { fetchJson, db: { rpc(name, args), syncSwitchOn() }, sleep, now, sinceDays }
 export async function runSync(opts) {
   const o = opts || {};
+  let on = false;
+  try { on = (await o.db.syncSwitchOn()) === true; } catch (e) { on = false; }
+  if (!on) return { ok: true, skipped: 'The Shopify Order Sync switch is off (or could not be read): nothing was asked or written.' };
   const now = o.now ? new Date(o.now) : new Date();
   const days = Number.isInteger(o.sinceDays) && o.sinceDays > 0 && o.sinceDays <= 60 ? o.sinceDays : 3;
   const since = new Date(now.getTime() - days * 86400000).toISOString();

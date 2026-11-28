@@ -32,7 +32,11 @@ const OWNER = '00000000-0000-4000-8000-0000000078a1';
 // the database side the program talks to: save_shopify_order() as the service role
 function serviceDb() {
   const calls = [];
-  return { calls, async rpc(name, args) {
+  return { calls, async syncSwitchOn() {
+    const v = as(SERVICE, "select enabled from public.feature_flags where flag_key = 'shopify_order_sync'");
+    if (v.startsWith('ERROR')) throw new Error(v);
+    return v === 't';
+  }, async rpc(name, args) {
     calls.push(name);
     const out = as(SERVICE, 'select public.' + name + '(' + lit(JSON.stringify(args.p_order)) + '::jsonb)');
     if (out.startsWith('ERROR')) throw new Error(out.replace(/^ERROR\s+(ERROR:\s+)?/, '').split('\n')[0]);
@@ -88,6 +92,10 @@ const sync = (shop, db, now) => C.runSync({ fetchJson: shop.fn, db: db || servic
     " insert into products (id, sku, name, status) values (gen_random_uuid(),'SYN-LAV-8OZ','SYNTHETIC Lavender','active'), (gen_random_uuid(),'SYN-HONEY-4OZ','SYNTHETIC Honey','active');" +
     " insert into inventory (product_id, available) select id, 20 from products where sku like 'SYN-%';" +
     " insert into orders (channel, external_order_id, order_number, status, source) values ('manual', null, '#1001', 'paid', 'manual')");
+  // STAND-IN for production's switches table (as in production_shape_install_test.sh), switch OFF
+  q("create table if not exists public.feature_flags (id uuid primary key default gen_random_uuid(), flag_key text not null, label text, description text, enabled boolean not null default false);" +
+    " insert into public.feature_flags (flag_key, label, enabled) values ('shopify_order_sync', 'Shopify order sync', false);" +
+    ' grant select on public.feature_flags to ' + SERVICE);
   ok('drafts/76 (stock per order) installs', file(D('76_DRAFT_order_stock_moves.sql')), 0);
   ok('drafts/78 installs', file(D('78_DRAFT_shopify_orders.sql')), 0);
   ok('  and again: nothing changes', file(D('78_DRAFT_shopify_orders.sql')), 0);
@@ -96,7 +104,14 @@ const sync = (shop, db, now) => C.runSync({ fetchJson: shop.fn, db: db || servic
   has('a visitor cannot', as('anon', "select public.save_shopify_order('{}'::jsonb)"), 'permission denied');
   has('the owner signed in on the dashboard cannot either (only the program)', as('authenticated', "select public.save_shopify_order('{}'::jsonb)", OWNER), 'permission denied');
 
-  console.log(' 3. a first run: two pages, one rate-limit pause');
+  console.log(' 3. the dashboard\'s Shopify Order Sync switch decides');
+  const off = fakeShopify(); const r0 = await sync(off);
+  ok('switch OFF (as before launch): it asks Shopify nothing and writes nothing', [r0.skipped ? 'skipped' : 'ran', off.calls.length, q("select count(*) from orders where channel = 'shopify'")], ['skipped', 0, '0']);
+  const noSwitch = fakeShopify();
+  const rMissing = await C.runSync({ fetchJson: noSwitch.fn, db: { syncSwitchOn: async () => { throw new Error('no table'); }, rpc: async () => { throw new Error('must not be called'); } }, sleep: async () => {} });
+  ok('  a switch that cannot be read counts as off', [rMissing.skipped ? 'skipped' : 'ran', noSwitch.calls.length], ['skipped', 0]);
+  q("update public.feature_flags set enabled = true where flag_key = 'shopify_order_sync'");
+  console.log(' 4. a first run (switch ON): two pages, one rate-limit pause');
   const S1 = fakeShopify({ throttle: 1 }); const waits = [];
   const r1 = await C.runSync({ fetchJson: S1.fn, db: serviceDb(), sleep: async (ms) => { waits.push(ms); }, now: '2026-11-28T12:00:00Z' });
   ok('3 orders seen and created, 4 lines, 1 of them a test order, nothing refused', [r1.orders_seen, r1.created, r1.lines_added, r1.test_orders, r1.refused, r1.problems], [3, 3, 4, 1, 0, []]);
@@ -108,7 +123,7 @@ const sync = (shop, db, now) => C.runSync({ fetchJson: shop.fn, db: db || servic
   ok('  the manual order with the same number is untouched', q("select count(*) from orders where channel = 'manual' and order_number = '#1001'"), '1');
   ok('  no customer detail was written', q("select count(*) from orders where channel = 'shopify' and (customer_name is not null or customer_email is not null or raw_data is not null)"), '0');
 
-  console.log(' 4. running again changes nothing; two runs at the same moment write once');
+  console.log(' 5. running again changes nothing; two runs at the same moment write once');
   const r2 = await sync(fakeShopify());
   ok('a second run creates nothing and changes nothing', [r2.created, r2.lines_added, r2.lines_changed], [0, 0, 0]);
   ok('  still 3 orders and 4 lines', q("select count(*) from orders where channel = 'shopify'") + '/' + q('select count(*) from order_items where external_line_id is not null'), '3/4');
@@ -116,7 +131,7 @@ const sync = (shop, db, now) => C.runSync({ fetchJson: shop.fn, db: db || servic
   await Promise.all([sync(fakeShopify({ orders: fresh })), sync(fakeShopify({ orders: fresh }))]);
   ok('  a new order sent by two runs at once is written once, with one line', q("select count(*) from orders where external_order_id = 'gid://shopify/Order/5010'") + '/' + q("select count(*) from order_items oi join orders o on o.id = oi.order_id where o.external_order_id = 'gid://shopify/Order/5010'"), '1/1');
 
-  console.log(' 5. Shopify edits and cancellations');
+  console.log(' 6. Shopify edits and cancellations');
   const O1 = q("select id from orders where external_order_id = 'gid://shopify/Order/5001'");
   ok('the owner takes order #1001 off stock (drafts/76)', JSON.parse(as('authenticated', "select public.take_order_stock('" + O1 + "')", OWNER)).lines_changed, 2);
   const edited = [order(5001, '#1001', [line(71, 'SYN-LAV-8OZ', 'SYNTHETIC Lavender Lotion 8 oz', 3, '24.0'), line(72, 'SYN-HONEY-4OZ', 'SYNTHETIC Honey Cream 4 oz', 1, '12.0')], { totalPriceSet: money('92.9') }),
@@ -133,7 +148,12 @@ const sync = (shop, db, now) => C.runSync({ fetchJson: shop.fn, db: db || servic
   const r4 = await sync(fakeShopify());
   ok('an order deleted on the dashboard is never brought back', [r4.skipped_deleted, q("select count(*) from orders where external_order_id = 'gid://shopify/Order/5003' and deleted_at is null")], [1, '0']);
 
-  console.log(' 6. what goes wrong is said plainly, and nothing is half-written');
+  q("update public.feature_flags set enabled = false where flag_key = 'shopify_order_sync'");
+  const emergency = fakeShopify({ orders: [order(5040, '#1040', [line(95, 'SYN-LAV-8OZ', 'SYNTHETIC Lavender Lotion 8 oz', 1, '24.0')])] });
+  const rE = await sync(emergency);
+  ok('Emergency (the switch turned off again): the next run asks and writes nothing', [rE.skipped ? 'skipped' : 'ran', emergency.calls.length, q("select count(*) from orders where external_order_id = 'gid://shopify/Order/5040'")], ['skipped', 0, '0']);
+  q("update public.feature_flags set enabled = true where flag_key = 'shopify_order_sync'");
+  console.log(' 7. what goes wrong is said plainly, and nothing is half-written');
   const before = q('select count(*) from order_items');
   const tryRun = async (shop) => { try { await sync(shop); return 'no error'; } catch (e) { return e.message; } };
   ok('a wrong or revoked key', await tryRun(fakeShopify({ status: 401 })), 'Shopify refused the access key (401). Check that the app has the read_orders scope.');
@@ -150,7 +170,7 @@ const sync = (shop, db, now) => C.runSync({ fetchJson: shop.fn, db: db || servic
   has('a second line with the same Shopify line id on one order is impossible',
       q("insert into order_items (order_id, external_line_id, sku, quantity) values ('" + O1 + "', 'gid://shopify/LineItem/71', 'SYN-LAV-8OZ', 1)"), 'duplicate key');
 
-  console.log(' 7. undo (drafts/79)');
+  console.log(' 8. undo (drafts/79)');
   ok('drafts/79 runs', file(D('79_DRAFT_rollback_shopify_orders.sql')), 0);
   ok('  the function is gone; no order or line was removed; the Shopify line ids are kept (they are in use)',
      q("select count(*) from pg_proc where proname = 'save_shopify_order'") + '/' + q("select count(*) from orders where channel = 'shopify'") + '/' + q('select count(*) from order_items where external_line_id is not null'),

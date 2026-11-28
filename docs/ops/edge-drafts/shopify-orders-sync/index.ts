@@ -35,6 +35,15 @@ Deno.serve(async (req: Request) => {
     return { status: r.status, body };
   };
   const db = {
+    // the dashboard's own switch (Feature Flags; Emergency turns it off): off, missing or unreadable = do nothing
+    async syncSwitchOn() {
+      const r = await fetch(`${base}/rest/v1/feature_flags?flag_key=eq.shopify_order_sync&select=enabled`, {
+        headers: { apikey: service, authorization: `Bearer ${service}` },
+      });
+      if (!r.ok) return false;
+      const rows = await r.json();
+      return Array.isArray(rows) && rows.length === 1 && rows[0] && rows[0].enabled === true;
+    },
     async rpc(name: string, args: unknown) {
       const r = await fetch(`${base}/rest/v1/rpc/${name}`, {
         method: 'POST', headers: { apikey: service, authorization: `Bearer ${service}`, 'content-type': 'application/json' }, body: JSON.stringify(args),
