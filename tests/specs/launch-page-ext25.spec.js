@@ -133,9 +133,10 @@ test('the page shows what is ready and what is not, in words, and where to go; n
   await expect(line(page, 'shopify').locator('[data-lpdetail]')).toContainText('The Shopify order switch is off.');
   await expect(line(page, 'questions').locator('[data-lpdetail]')).toHaveText('1 customer is waiting for an answer.');
   await expect(line(page, 'questions').locator('[data-lpbadge]')).toHaveText('To do');
-  // the database steps: two of the thirteen are not installed here, and they are named
+  // the database steps: two of the twelve are not installed here, and they are named (Nov 27: twelve, since the
+  // shared settings are in use on every device and no longer a switch of their own)
   await expect(line(page, 'steps')).toHaveAttribute('data-lpstate', 'todo');
-  await expect(line(page, 'steps').locator('[data-lpdetail]')).toHaveText('11 of 13 installed. Still to install: Confirmed tax rates; Real fees and postage per order.');
+  await expect(line(page, 'steps').locator('[data-lpdetail]')).toHaveText('10 of 12 installed. Still to install: Confirmed tax rates; Real fees and postage per order.');
   await expect(line(page, 'tax').locator('[data-lpdetail]')).toHaveText('Its database step is not installed yet (Feature Flags shows which).');
   await expect(host.locator('[data-lptotal]')).toHaveAttribute('data-lptotal', '0/15');
   await expect(host.locator('progress')).toHaveAttribute('value', '0');
@@ -148,7 +149,7 @@ test('the page shows what is ready and what is not, in words, and where to go; n
 test('with the records in order the checked lines are ready', async ({ page, backend }) => {
   await open(page, backend, { ready: true });
   for (const key of ['steps', 'products', 'stock', 'shopify', 'questions']) await expect(line(page, key)).toHaveAttribute('data-lpstate', 'ready');
-  await expect(line(page, 'steps').locator('[data-lpdetail]')).toHaveText('All 13 are installed.');
+  await expect(line(page, 'steps').locator('[data-lpdetail]')).toHaveText('All 12 are installed.');
   // the tax step is installed but its switch is off in this browser: the line says what to do next
   await expect(line(page, 'tax').locator('[data-lpdetail]')).toHaveText('The step is installed. Turn on "Confirmed tax rates" on Feature Flags, then confirm your rate on Tax Records.');
   await expect(line(page, 'shopify').locator('[data-lpdetail]')).toHaveText('The switch is on; 1 order has come from Shopify in the last 30 days.');
@@ -172,7 +173,9 @@ test('a line the database would not give says "Could not check"; "Check again" r
   await expect(page.locator('#launchPanel [data-lpagain]')).toBeFocused();
 });
 
-test('"Mark as done" is kept with the day and the name, survives a reload, and can be taken back; nothing is written to the database', async ({ page, backend }) => {
+// Nov 27: the shared settings are in use on every device; on a database WITHOUT that step the marks stay in this browser.
+test('"Mark as done" is kept with the day and the name, survives a reload, and can be taken back; on a database without the shared settings nothing is written to the database', async ({ page, backend }) => {
+  backend.missingTables = ['shared_settings'];
   await open(page, backend, { missing: ['tax_rates'] });
   const printers = line(page, 'printers');
   await expect(printers).toHaveAttribute('data-lpstate', 'todo');
@@ -191,6 +194,20 @@ test('"Mark as done" is kept with the day and the name, survives a reload, and c
   await expect(page.locator('#launchPanel')).toContainText('Your marks are kept in this browser.');
   expect(backend.requests.filter(r => r.rpc === 'set_shared_setting')).toEqual([]);
   expect(writes(backend)).toEqual([]);
+});
+
+// Nov 27 night: the shared settings could not be read (no connection): the page says why the marks stay here,
+// and no longer points to the old "Settings shared by every device" switch (gone since SHARED_SETTINGS_LIVE)
+test('the shared settings cannot be read: the marks stay in this browser and the page says why', async ({ page, backend }, ti) => {
+  test.skip(ti.project.name !== 'desktop', 'one size is enough');
+  await page.route(u => /\/rest\/v1\/shared_settings\?/.test(String(u)) && /launch_list/.test(String(u)), route => route.abort('failed'));
+  await open(page, backend);
+  // the database library tries a failed read again a few times before giving up (about 8 s here): "Checking…" until then
+  await expect(page.locator('#launchPanel')).toContainText('Your marks are kept in this browser. The settings every device shares could not be read just now; press Check again to try once more.', { timeout: 25000 });
+  await expect(page.locator('#launchPanel')).not.toContainText('"Settings shared by every device"');
+  await line(page, 'backups').locator('[data-lptick]').click();
+  await expect(line(page, 'backups')).toHaveAttribute('data-lpstate', 'ready');            // kept here
+  expect(backend.requests.filter(r => r.rpc === 'set_shared_setting')).toEqual([]);        // and not sent as "for every device"
 });
 
 test('with the shared settings in use a mark is saved for every device, and a mark made on another device shows here', async ({ page, backend }, ti) => {

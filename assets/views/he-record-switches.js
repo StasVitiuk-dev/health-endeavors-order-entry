@@ -29,8 +29,8 @@
       what: 'Records deliveries received in parts and units sent back; stock changes only when you approve.' },
     { key: 'he_supplier_documents_store', name: 'Supplier documents (saved)', where: 'Suppliers', draft: 'drafts/36 and 38', probe: 'supplier_documents', needs: 'he_supplier_documents',
       what: 'Saves supplier documents and their review; needs the Supplier documents preview on too.' },
-    { key: 'he_shared_settings', name: 'Settings shared by every device', where: 'Feature Flags and Accounting', draft: 'drafts/50 (review item 10)', probe: 'shared_settings',
-      what: 'Your switches and your Real profit numbers are kept in the database, the same on every phone and computer. Turn it on here to start in this browser; it becomes the rule for every device with a small update after the step is installed.' },
+    // he_shared_settings (drafts/50) is no longer a switch: since Nov 27, 2026 every device uses the
+    // shared settings (SHARED_SETTINGS_LIVE in assets/app/he-config.js).
     { key: 'he_order_costs', name: 'Real fees and postage per order', where: 'Accounting', draft: 'drafts/52 (review item 11)', probe: 'order_costs',
       what: 'Real profit uses each order\'s real fee and postage where they are saved, instead of your estimates; Money per channel can save the real fees from a channel\'s report.' },
     { key: 'he_order_batches', name: 'Batch on each order', where: 'Orders', draft: 'drafts/54 (review item 12)', probe: 'order_batches',

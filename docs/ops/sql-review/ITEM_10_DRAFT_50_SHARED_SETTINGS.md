@@ -1,7 +1,9 @@
 # Review item 10 — SQL draft 50: settings shared by every device
 
-Status: OWNER DECISION REQUIRED · production run PENDING your separate approval · written 2026-11-24
-Nothing here has been run in production. I never run it myself: you run it, after approving it.
+Status: CURRENT · **installed and verified in production by the owner on Nov 27, 2026** (about 2:45 AM
+Central: `true | 0 | 1 | false`); saving works since step A2 (drafts/74, item 19, about 4:07 AM). Since the
+pull request `SHARED_SETTINGS_LIVE` (step 5 below) the shared settings are the rule on every device, with no
+switch to turn on. Written 2026-11-24. I never run SQL myself: you ran it.
 
 Why: your rule of Nov 24, "I need everything to be updated everywhere right away": a number you
 type once must be the same on every phone and on the computer. Until this step is installed, such
@@ -111,6 +113,15 @@ Then on the dashboard:
 
 Why the switch in step 1: until this step is installed the dashboard must not ask the database for
 shared settings at all (a failed request at every sign-in), so it asks only where you turned it on.
+
+**Done (Nov 27):** steps 1–3 worked after step A2 (Real profit saved for every device; the estimates
+"saved for every phone and computer"). Step 5 is the pull request `SHARED_SETTINGS_LIVE`: once merged, every
+phone and computer, employees included, reads the shared switches, menu and settings at sign-in, and the
+"Settings shared by every device" switch is gone from Feature Flags (an old "on" left in a browser does
+nothing). Step 4 (the phone) is then automatic: open the dashboard on the phone, sign in, and the
+switches you turned on are there. If the settings table ever cannot be read, each browser keeps its own
+switches as before and nothing breaks. To go back to one browser each: put the previous version back (the
+pull request's rollback steps); the saved settings stay in the database.
 
 ## Undo
 

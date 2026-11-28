@@ -19,13 +19,15 @@ as()   { local who="$1" sql="$2" pre
          psql "${CONN[@]}" -d "$DB" -qtAX -c "begin; $pre $sql; commit;" 2>&1 | grep -v '^\(BEGIN\|COMMIT\|SET\|ROLLBACK\)$'; }
 OUTF=$(mktemp)
 O=00000000-0000-4000-8000-0000000008a1; A=00000000-0000-4000-8000-0000000008a2; E=00000000-0000-4000-8000-0000000008a3; X=00000000-0000-4000-8000-0000000008a4
+M=00000000-0000-4000-8000-0000000008a5; G=00000000-0000-4000-8000-0000000008a6   # Nov 27: a manager (drafts/62) and an AI agent account
 V1='{"postage": 4, "packaging": 1, "fees": {"etsy": {"percent": 9.5, "perOrder": 0.45}}}'
 V2='{"postage": 5, "packaging": 1}'
 psql "${CONN[@]}" -d postgres -qX -c "drop database if exists $DB with (force)" >/dev/null 2>&1
 psql "${CONN[@]}" -d postgres -qX -v ON_ERROR_STOP=1 -c "create database $DB template $SRC" >/dev/null || { echo "cannot copy $SRC"; exit 2; }
-q "delete from profiles where id in ('$O','$A','$E','$X');
+q "delete from profiles where id in ('$O','$A','$E','$X','$M','$G');
    insert into profiles (id, email, role, is_active, account_number) values ('$O','owner@example.test','owner',true,'800000001'),
-     ('$A','admin@example.test','administrator',true,'800000002'), ('$E','staff@example.test','employee',true,'800000003'), ('$X','gone@example.test','employee',false,'800000004');" >/dev/null
+     ('$A','admin@example.test','administrator',true,'800000002'), ('$E','staff@example.test','employee',true,'800000003'), ('$X','gone@example.test','employee',false,'800000004'),
+     ('$M','manager@example.test','manager',true,'800000005'), ('$G','agent@example.test','ai_agent',true,'800000006');" >/dev/null
 echo "Shared settings (throwaway database $DB)"
 
 echo " 1. install"
@@ -43,6 +45,8 @@ ok  "an administrator saves too (the same value)" "$(as $A "select (set_shared_s
 ok  "  recorded under the administrator, still one row" "$(q "select count(*)||'|'||bool_and(updated_by = '$A') from shared_settings")" "1|true"
 has "staff cannot" "$(as $E "select set_shared_setting('profit_estimates', '$V1')")" "Only the owner or an administrator"
 has "a switched-off account cannot" "$(as $X "select set_shared_setting('profit_estimates', '$V1')")" "Only the owner or an administrator"
+has "a manager cannot (owner decision: the owner and administrators only)" "$(as $M "select set_shared_setting('profit_estimates', '$V1')")" "Only the owner or an administrator"
+has "an AI agent account cannot" "$(as $G "select set_shared_setting('profit_estimates', '$V1')")" "Only the owner or an administrator"
 has "staff cannot insert directly either" "$(as $E "insert into shared_settings (key, value) values ('sneaky', '{}')")" "Only the owner\|row-level security"
 has "staff cannot update directly either" "$(as $E "update shared_settings set value = '{}' returning key")" "^$\|Only the owner\|row-level security"
 has "a visitor cannot run it" "$(as anon "select set_shared_setting('profit_estimates', '$V1')")" "permission denied"
@@ -53,6 +57,8 @@ ok  "the owner and an administrator read it; staff do not (owner_admin)" "$(as $
 ok  "a setting marked for staff" "$(as $O "select (set_shared_setting('team_notice', '{\"text\": \"SYNTHETIC\"}', 'staff'))->>'ok'")" "true"
 ok  "  staff read only that one" "$(as $E "select string_agg(key, ',') from shared_settings")" "team_notice"
 ok  "a deactivated account reads nothing" "$(as $X "select count(*) from shared_settings")" "0"
+ok  "a manager reads only the staff setting (never the owner-and-administrator ones)" "$(as $M "select string_agg(key, ',') from shared_settings")" "team_notice"
+ok  "an AI agent account reads nothing (not staff, drafts/72)" "$(as $G "select count(*) from shared_settings")" "0"
 has "a visitor reads nothing" "$(as anon "select count(*) from shared_settings")" "permission denied"
 
 echo " 4. what is refused"
