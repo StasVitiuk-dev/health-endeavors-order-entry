@@ -13,7 +13,7 @@
 //   summarize(lines, moves)  per line: taken, given back; and the order's state:
 //     'none' | 'taken' | 'given_back' | 'partly' (some lines taken, some not)
 //   waiting(orders, moves)   the recent orders that have not taken their stock yet (Nov 28), leaving out
-//     cancelled and fully refunded ones, newest first
+//     cancelled, fully refunded, voided and expired ones, newest first
 //     store.waiting(days)    the same, read from the database (orders of the last `days` days, at most 50)
 //
 // A second press while one is on its way is refused here ("already being sent"); the
@@ -57,7 +57,8 @@
     return { rows, state, bottles, canTake: rows.length > 0 && rows.some(r => !r.taken), canGiveBack: rows.some(r => r.taken && !r.givenBack) };
   }
 
-  const notForSale = (status) => { const s = str(status).toLowerCase(); return s.includes('cancel') || (s.includes('refund') && !s.includes('partial')); };
+  // cancelled, fully refunded, or a payment Shopify voided or let expire (no money taken, nothing ships)
+  const notForSale = (status) => { const s = str(status).toLowerCase(); return s.includes('cancel') || (s.includes('refund') && !s.includes('partial')) || s.includes('void') || s.includes('expired'); };
   function waiting(orders, moves) {
     const took = new Set((Array.isArray(moves) ? moves : []).filter(isObj).filter(m => m.kind === 'take').map(m => str(m.order_id)));
     return (Array.isArray(orders) ? orders : []).filter(isObj)

@@ -263,6 +263,22 @@ test.describe('on the Orders page', () => {
     expect(await host.evaluate(unnamedControls)).toEqual([]);
   });
 
+  test('orders whose payment was voided or expired are not listed as waiting; a partly refunded one still is', async ({ page, backend }) => {
+    install(backend);
+    const day = (n) => new Date(Date.now() - n * 86400000).toISOString();
+    backend.tables.orders[0].placed_at = day(1); backend.tables.orders[1].placed_at = day(2);
+    backend.tables.orders.push(
+      { id: id(5), order_number: '#1005', customer_name: 'SYNTHETIC Ed', placed_at: day(1), status: 'voided', channel: 'shopify', total: 10, deleted_at: null },
+      { id: id(6), order_number: '#1006', customer_name: 'SYNTHETIC Fy', placed_at: day(1), status: 'expired', channel: 'shopify', total: 10, deleted_at: null },
+      { id: id(7), order_number: '#1007', customer_name: 'SYNTHETIC Gi', placed_at: day(3), status: 'partially_refunded', channel: 'shopify', total: 10, deleted_at: null },
+      { id: id(8), order_number: '#1008', customer_name: 'SYNTHETIC Ho', placed_at: day(3), status: 'refunded', channel: 'shopify', total: 10, deleted_at: null });
+    await on(page);
+    await login(page);
+    await gotoPage(page, 'ordersPanel');
+    await expect(page.locator('#orderStockHost [data-oswaiting] button[data-oswait]')).toHaveText(['#1001', '#1002', '#1007']);
+    expect(backend.tableWrites()).toEqual([]);
+  });
+
   test('when every recent order has taken its stock, the card says so', async ({ page, backend }) => {
     install(backend);
     backend.tables.orders.forEach(o => { o.placed_at = new Date(Date.now() - 86400000).toISOString(); });

@@ -64,5 +64,5 @@ ran without errors.
 - **#164 (in progress):** R9 path B prepared as drafts (draft 78 and a read-only order program, review item 24;
   obeys the Shopify Order Sync switch, so Emergency stops it); the service key may only read the stock-per-order
   record; manual-order lines now carry their product's SKU (so phone and wholesale orders can take stock);
-  the Stock per order card lists the recent orders that have not taken their stock (none forgotten); four
+  the Stock per order card lists the recent orders that have not taken their stock (none forgotten; cancelled, refunded, voided and expired ones left out); four
   documents corrected (the payouts program was named as a way orders arrive; it never reads orders).
