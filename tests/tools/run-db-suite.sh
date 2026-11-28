@@ -73,6 +73,7 @@ step "invoices: the dashboard's storage code against drafts/32" node "$LT/invoic
 step "stock-count approval (drafts/34)" bash "$LT/stock_count_adjustments_test.sh" $C
 step "stock-count apply once" bash "$LT/stock_count_apply_once_test.sh" $C
 step "stock per order: taken once, given back once (drafts/76)" bash "$LT/order_stock_moves_test.sh" $C
+step "stock per order: the dashboard's code against drafts/76" node "$LT/order_stock_store_adapter_test.js" $C
 step "Shopify orders saved once, R9 path B (drafts/78)" node "$LT/shopify_orders_test.mjs" $C
 step "supplier documents (drafts/36)" bash "$LT/supplier_documents_test.sh" $C
 step "supplier documents: the dashboard's storage code against drafts/36" node "$LT/supplier_docs_store_adapter_test.js" $C

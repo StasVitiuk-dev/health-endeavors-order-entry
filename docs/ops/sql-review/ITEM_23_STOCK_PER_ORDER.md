@@ -75,7 +75,9 @@ the shape your Query A showed, if a needed index or `is_owner_or_admin()` is mis
 same name exists that it did not create. The functions run with the caller's own rights (security
 invoker); visitors are refused by name (the FIX 3 rule). Tested on a throwaway copy: 104 of 104 checks
 (`docs/ops/sql/local-test/order_stock_moves_test.sh`), and it installs in its place on a copy shaped like
-your real database (`production_shape_install_test.sh`, 34 of 34).
+your real database (`production_shape_install_test.sh`, 35 of 35). The dashboard's own code for the Orders
+card (find, open, the waiting list, take, give back) also runs against this draft on a real database, not
+only against the browser tests' stand-in: 22 of 22 (`order_stock_store_adapter_test.js`, Nov 28).
 
 ## How to run (one sitting, about 10 minutes)
 
