@@ -204,7 +204,7 @@ The owner answered the same day (section 3 there): no texting at the start, emai
 Decided Nov 23 (evening): **feature switches are shared by every device**; work features are for every employee; money, revenue and sensitive documents are for the owner and administrators only. NEXT: switches with an audience, stored in shared settings (draft 50).
 
 1. Merge **one** PR: the highest green one contains all earlier ones (#55 merged Nov 23 evening, which also brought in #46–#54; live check by the owner passed the same evening: Feature Flags rows fit a narrow window, and INC-20260917-0001 was closed with a note through the new button. #85 merged Nov 24 at about 6:03 PM Central, merge commit `1f86df0`, bringing in #56–#84; live check still to come).
-2. Business address (virtual mailbox) before the seller accounts; then Etsy, TikTok Shop, Amazon.
+2. Business address (virtual mailbox) before the seller accounts; then Etsy, TikTok Shop, Amazon. TikTok Shop: what to have ready and how long, `TIKTOK_SHOP_SETUP_CHECKLIST.md` (Nov 27).
 3. Business email addresses (planned for tomorrow).
 4. The database steps in `docs/ops/sql-review/START_HERE_GUIDED_RUNS.md`, then review item 9 (draft 48).
 5. ~~Shopify as the hub~~ DECIDED Nov 24: yes.
