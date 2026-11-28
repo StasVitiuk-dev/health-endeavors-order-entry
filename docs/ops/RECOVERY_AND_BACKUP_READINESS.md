@@ -36,6 +36,12 @@ Today: only by the owner looking (§2), or a GitHub e-mail if notifications are 
 
 ## 3a. Backup status on Home: step 19 installed (Nov 26) — CURRENT; the repository step and the switch still to do
 
+**In one line (Nov 27):** the table is installed, but **nothing writes to it yet** (the report step in the
+private backups repository is the owner's and is not done), so Home would say "no backup has reported
+yet" if switched on, never "all good". The latest monthly restore test is **REPORTED** green (Nov 1). That
+proves the **database** can be restored; it says nothing about **uploaded files** (E5, missing). A printout
+is never a backup (end of §8).
+
 The design D5 above, prepared so it is ready when the owner approves it:
 
 - **Database step 19** (`docs/ops/sql/drafts/70_DRAFT_backup_reports.sql`, undo `71_…`): one small

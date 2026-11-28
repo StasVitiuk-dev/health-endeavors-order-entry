@@ -172,10 +172,13 @@
       const whoName = String(profile.display_name || user.email || '');
       whoAmI.textContent = `${whoName.length > 80 ? whoName.slice(0, 79) + '\u2026' : whoName} — role: ${profile.role}`;
       whoAmI.title = whoAmI.textContent;
-      if (await syncSharedSwitches()) return;                // this browser was brought in line: the page reloads once
-      await syncMenuLayout();                                // the menu chosen for every device, when settings are shared
+      // Nov 27: the menu and the page appear at once, from this browser's choices. The shared
+      // settings are read after that, so the menu is never empty while they load; it is drawn
+      // again only if the menu chosen for every device is a different one.
       renderSidebar('');
       showPage(getLastPage());
+      if (await syncSharedSwitches()) return;                // this browser was brought in line: the page reloads once
+      if (await syncMenuLayout()) renderSidebar(document.getElementById('sidebarSearch').value);
       loadDashboard();
       autoPrintCheck(false);                                 // opened by the daily print link: yesterday's day pack, once
       const expDateInput = document.getElementById('expDate');
@@ -645,10 +648,12 @@
     // At sign-in, with the shared settings in use: the menu the owner chose for every device.
     async function syncMenuLayout() {
       const M = mlMod(), S = rpSettings(), store = rpStore();
-      if (!M || !S || !store || !sharedSettingsOn()) return;
+      if (!M || !S || !store || !sharedSettingsOn()) return false;
       const r = await store.get(S.KEYS.menuLayout);
       const want = r.state === 'installed' ? M.fromShared(r.value) : null;   // null: the owner has not chosen for everyone
-      if (want !== null && want !== mlKey) mlRemember(want);
+      if (want === null || want === mlKey) return false;
+      mlRemember(want);
+      return true;                                                             // the menu changed: draw it again
     }
     // Saves the choice for every device. true = saved for everyone; false = this browser only.
     async function menuLayoutShare(key) {
@@ -5432,6 +5437,7 @@
     // The marks are kept in this browser, and for every device once the shared settings are in use.
     const LP_KEY = 'he_launch_ticks';
     let lpTicks = null, lpInput = null, lpSeq = 0, lpMessage = '', lpShared = false;
+    let lpWhy = '';   // why the marks are this browser's only: 'not_installed', 'unknown' (could not read) or 'refused' (the save failed)
     const lpMod = () => (window.HE && window.HE.views && window.HE.views['he-launch']) || null;
     const lpAllowed = () => currentUserRole === 'owner' || currentUserRole === 'administrator';
     function lpRead() { const M = lpMod(); try { return M.clean(JSON.parse(localStorage.getItem(LP_KEY) || 'null')); } catch (e) { return {}; } }
@@ -5439,9 +5445,9 @@
     // read what every device shares, join it with this browser's marks, and (after a change here) save
     async function lpSync(save) {
       const M = lpMod(), S = rpSettings(), store = rpStore();
-      if (!M || !S || !store || !sharedSettingsOn()) { lpShared = false; return false; }
+      if (!M || !S || !store || !sharedSettingsOn()) { lpShared = false; lpWhy = 'not_installed'; return false; }
       const now = await store.get(S.KEYS.launchList);
-      if (now.state !== 'installed') { lpShared = false; return false; }
+      if (now.state !== 'installed') { lpShared = false; lpWhy = now.state === 'not_installed' ? 'not_installed' : 'unknown'; return false; }
       const theirs = M.clean(now.value), joined = M.merge(lpTicks, theirs);
       if (JSON.stringify(joined) !== JSON.stringify(lpTicks)) { lpTicks = joined; lpKeep(); }
       lpShared = true;
@@ -5449,7 +5455,7 @@
         // saved only on top of the version read; a save from another device in between is joined in, not erased (drafts/50)
         const r = await store.mergeSave(S.KEYS.launchList, (cur) => { const t = M.clean(cur), j = M.merge(lpTicks, t); return JSON.stringify(j) === JSON.stringify(t) ? null : { ticks: j }; }, 'owner_admin');
         if (r.ok && r.value) { const j = M.merge(lpTicks, M.clean(r.value)); if (JSON.stringify(j) !== JSON.stringify(lpTicks)) { lpTicks = j; lpKeep(); } }
-        lpShared = !!r.ok;
+        lpShared = !!r.ok; lpWhy = r.ok ? '' : 'refused';
       }
       return lpShared;
     }
@@ -5526,7 +5532,10 @@
         h('ul', { class: 'lpList' }, auto.map(row)),
         h('div', { class: 'u-mt-8' }, h('button', { type: 'button', class: 'small secondary', 'data-lpagain': '1' }, 'Check again')),
         h('h3', null, 'Confirmed by you'),
-        h('p', { class: 'hint u-mt-n2' }, lpShared ? 'Your marks are the same on every device, for you and the administrators.' : 'Your marks are kept in this browser. They will be the same on every device once "Settings shared by every device" is installed and on.'),
+        h('p', { class: 'hint u-mt-n2' }, lpShared ? 'Your marks are the same on every device, for you and the administrators.'
+          : lpWhy === 'refused' ? 'Your marks are kept in this browser. The last one could not be saved for every device; press Check again to try once more.'
+            : lpWhy === 'unknown' ? 'Your marks are kept in this browser. The settings every device shares could not be read just now; press Check again to try once more.'
+              : 'Your marks are kept in this browser. They will be the same on every device once the shared settings database step (drafts/50) is installed.'),
         h('ul', { class: 'lpList' }, yours.map(row)));
     }
     document.addEventListener('click', (e) => {
@@ -5596,7 +5605,7 @@
             line('Clients', String(t.clients)),
             t.notCounted ? line('Cancelled or refunded (listed, not in the totals)', String(t.notCounted)) : null,
             t.noAmount ? line('Orders with no amount saved (not in the totals)', String(t.noAmount)) : null)),
-          h('p', { class: 'u-fs-12' }, 'Exact figures, added up from the orders listed in this pack. Nothing is estimated.'),
+          h('p', { class: 'u-fs-12' }, 'Exact figures, added up from the orders listed in this pack. Nothing is estimated. Orders that reach the dashboard after this pack was made are not in it.'),
           recap ? h('div', null, h('div', { class: 'printLabel u-mt-8' }, 'The saved nightly recap of this day'),
             h('table', null, h('tbody', null, line('Orders', bkNum(recap.orders_count)), line('Revenue', recap.revenue == null ? '—' : fmtMoney(recap.revenue, recap.currency || 'USD')),
               line('New customer questions', bkNum(recap.new_inquiries_count)), line('Tasks opened', bkNum(recap.tasks_opened_count)), line('Incidents opened', bkNum(recap.incidents_opened_count)))))
@@ -5624,6 +5633,7 @@
     // "Try it now" button. Reads only; the day it last printed is noted in this browser.
     const AP_KEY = 'he_auto_print_day';
     const apMod = () => (window.HE && window.HE.reports && window.HE.reports['he-auto-print']) || null;
+    const apLastText = (day) => day ? 'Last opened for printing this way in this browser: the day pack for ' + day + '. Whether it came out of the printer is not known here: check the paper.' : 'Not opened for printing this way in this browser yet.';
     function apLast() { try { const v = localStorage.getItem(AP_KEY) || ''; return /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : ''; } catch (e) { return ''; } }
     async function autoPrintCheck(force) {
       const A = apMod(); if (!A) return;
@@ -5632,12 +5642,16 @@
       const d = A.due(apLast(), Date.now());
       showPage('backupsPanel');
       await loadBackupsPage();                             // the saved recap of the day belongs in the pack
-      if (!force && !d.due) { bkSay('The day pack for ' + d.day + ' was already printed from this link in this browser. Nothing was printed again.'); return; }
+      // Nov 27: the dashboard only opens the print window; whether Print was pressed (and the printer had
+      // paper) it cannot know, so it never says "printed" for the daily link.
+      if (!force && !d.due) { bkSay('The day pack for ' + d.day + ' was already opened for printing from this link in this browser. Nothing was opened again.'); return; }
+      const skipped = A.missed ? A.missed(apLast(), Date.now()) : [];
       const ok = await printDayPack(d.day);
       if (!ok) return;
-      try { localStorage.setItem(AP_KEY, d.day); } catch (e) { /* it would print again at the next opening */ }
+      try { localStorage.setItem(AP_KEY, d.day); } catch (e) { /* it would open again at the next opening */ }
       const last = document.querySelector('#backupsPanel [data-bkautolast]');
-      if (last) { last.setAttribute('data-bkautolast', d.day); last.textContent = 'Last printed this way in this browser: the day pack for ' + d.day + '.'; }
+      if (last) { last.setAttribute('data-bkautolast', d.day); last.textContent = apLastText(d.day); }
+      if (skipped.length) bkSay(bkMessage + ' The daily link did not open for ' + skipped.join(', ') + ' (the Mac was asleep or off, or the timer was off): to print one of those days, choose it under Day pack and press "Print the day pack".');
     }
     // ---- Weekly owner report (owner, Nov 24; the arithmetic: assets/reports/he-week-report.js) ----
     // One finished week on one page, for the owner and administrators. Read when "Show the
@@ -5881,7 +5895,7 @@
           h('div', { class: 'scanToggleRow u-mt-6' },
             h('button', { type: 'button', class: 'small secondary', 'data-bk': 'auto-copy' }, 'Copy the link'),
             h('button', { type: 'button', class: 'small', 'data-bk': 'auto-try' }, 'Try it now')),
-          h('p', { class: 'u-fs-12p5 u-mt-6', 'data-bkautolast': apLast() }, apLast() ? 'Last printed this way in this browser: the day pack for ' + apLast() + '.' : 'Not printed this way in this browser yet.'),
+          h('p', { class: 'u-fs-12p5 u-mt-6', 'data-bkautolast': apLast() }, apLastText(apLast())),
           h('p', { class: 'hint' }, 'The print window asks for one click on Print. Printing with no click at all needs the browser on that Mac started in its automatic printing mode; that is part of the same set-up. The pages hold customer names and emails, so use this only on a computer in your own office.')) : null,
         h('h3', null, 'Manuals to print'),
         h('ul', null,
@@ -6135,10 +6149,12 @@
       });
       host.replaceChildren(h('div', { class: 'previewSwitches u-mt-18' },
         h('h3', { class: 'u-m-18-0-6 u-fs-15' }, 'Preview features'),
-        h('p', { class: 'hint u-mt-0' }, 'For looking at features that are built but not switched on. A switch here applies to this browser on this device only — it is not saved to the database and nobody else sees a change. Every preview uses example data or is read-only: nothing is sent, issued, charged or written to stock. All are off unless you turn them on.'),
+        h('p', { class: 'hint u-mt-0' }, 'For looking at features that are built but not switched on. Every preview uses example data or is read-only: nothing is sent, issued, charged or written to stock. All are off unless you turn them on. Where a switch applies (every device, or this browser only) is said just below.'),
         h('p', { class: 'hint u-mt-6', 'data-preview-shared': ssShared.state }, shared
           ? 'Switches are shared: turning one on here turns it on on every phone and computer' + (ssShared.value ? '' : ' (nothing is shared yet: the first change shares this browser\u2019s switches)') + '. "Every employee" switches are on for everyone; the others only for the owner and administrators. The owner and administrators can change a switch.'
-          : ssShared.state === 'not_installed' ? 'Until the shared settings database step (drafts/50) is installed, a switch applies to this browser only.' : ''),
+          : ssShared.state === 'not_installed' ? 'Until the shared settings database step (drafts/50) is installed, a switch applies to this browser only.'
+            // Nov 27: could not read them (no connection, signed out, refused): never silent, never "shared"
+            : 'The switches every device shares could not be read just now' + (ssShared.message ? ' (' + String(ssShared.message).slice(0, 300).replace(/[.\s]+$/, '') + ')' : '') + '. Until they can, a switch applies to this browser on this device only: nothing is saved to the database and nobody else sees a change. Reload the page to try again.'),
         h('p', { class: 'hint u-mt-6', 'data-preview-count': String(onCount) }, onCount + ' of ' + PREVIEW_SWITCHES.length + ' on in this browser.'),
         previewSwitchMessage ? h('p', { class: 'hint u-mt-6', 'data-preview-msg': '1' }, previewSwitchMessage,
           ' ', h('button', { type: 'button', class: 'small secondary', 'data-previewswitch': 'reload' }, 'Reload now')) : null,
@@ -6263,7 +6279,10 @@
       const everywhere = await menuLayoutShare(c.key);
       mlMessage = everywhere ? 'Saved: every phone and computer shows this menu the next time it opens the dashboard.'
         : (currentUserRole === 'owner' || currentUserRole === 'administrator' ? 'Could not save it for every device; it is kept in this browser.' : 'Kept in this browser. Only the owner and administrators can choose the menu for every device.');
+      // the second redraw (after the save) replaces the buttons again: keep the keyboard on the same button
+      const had = document.activeElement;
       loadPreviewSwitches(); announce(mlMessage);
+      if (had && had !== document.body && !document.contains(had)) refocusLike(had);
     });
     document.addEventListener('click', (e) => {
       const t = e.target.closest('[data-lookpick]'); if (!t) return;

@@ -128,9 +128,12 @@ test.describe('on the dashboard, with the shared settings installed', () => {
   });
 });
 
-test.describe('without the shared settings (today)', () => {
+// Nov 27: the shared settings are installed in production and in use on every device. A database WITHOUT them
+// (an older copy) still works: switches stay in this browser and the page says so.
+test.describe('on a database without the shared settings', () => {
   test('switches stay in this browser, and the page says so', async ({ page, backend }, ti) => {
     test.skip(ti.project.name !== 'desktop', 'run once');
+    backend.missingTables = ['shared_settings'];
     await login(page); await gotoPage(page, 'flagsPanel');
     const host = page.locator('#previewSwitchesHost');
     await expect(host.locator('[data-preview-shared]')).toHaveText('Until the shared settings database step (drafts/50) is installed, a switch applies to this browser only.');
@@ -138,7 +141,8 @@ test.describe('without the shared settings (today)', () => {
     await expect(host.locator('[data-preview-msg]')).toContainText('Packing slips is on. Reload the page, then open Orders.');
     expect(await page.evaluate(() => localStorage.getItem('he_order_slips'))).toBe('on');
     expect(backend.requests.filter(r => r.rpc === 'set_shared_setting')).toEqual([]);
-    // and nothing was asked of the shared settings at sign-in (no failed request before the step is installed)
-    expect(backend.requests.filter(r => r.table === 'shared_settings' && !(r.params || []).some(([k, v]) => k === 'limit' && v === '0')).length).toBe(0);   // (the owner's install check on this page reads no rows: limit 0)
+    // at sign-in the switches were only READ (once each: the switches and the menu); nothing was written
+    const reads = backend.requests.filter(r => r.table === 'shared_settings' && !(r.params || []).some(([k, v]) => k === 'limit' && v === '0'));   // (the owner's install check on this page reads no rows: limit 0)
+    expect(reads.map(r => r.method + ' ' + ((r.params.find(([k]) => k === 'key') || [])[1] || '')).sort()).toEqual(['GET eq.feature_switches', 'GET eq.menu_layout']);
   });
 });

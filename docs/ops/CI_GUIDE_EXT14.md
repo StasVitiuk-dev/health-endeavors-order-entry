@@ -49,6 +49,36 @@ Once the workflow has run green on `main` at least once, Stas may add these to t
 
 Do **not** require `Screenshots (informational)`.
 
+### Why "Screenshots (informational)" is red, and how it gets green (Nov 27, 2026)
+
+Status: CURRENT. The check has failed on every pull request since the reference pictures were retaken on
+Nov 23 (20 of 20 pictures, each 3–4% of its pixels and a few pixels of height). **Cause:** the reference
+pictures were made on a developer machine with Chrome 153; CI uses the Chromium that Playwright 1.56.1
+pins (package-lock), on ubuntu-24.04. Both use the Liberation fonts, but the two browser builds wrap text
+slightly differently, so every page comes out a few pixels taller or shorter. It is an environment
+difference, not a change in the dashboard; it still means the check catches nothing today, and it stays
+red until the pictures are made in CI.
+
+**The fix (pull request "Screenshots: make the reference pictures where CI checks them"):** every run of
+the job now keeps the expected / actual / difference pictures as a downloadable file
+(`screenshots-<commit>`, 7 days); and the workflow can be started by hand with **update_screenshots**,
+which makes new reference pictures in CI's own pinned environment and keeps them in the same file. Nothing
+is committed automatically. Steps once that pull request is merged:
+
+1. GitHub → **Actions** → **Dashboard CI** → **Run workflow** → choose the branch → tick
+   **update_screenshots** → **Run workflow**.
+2. When it finishes: open the run → **Artifacts** → download `screenshots-<commit>`.
+3. Look at every picture (they must show the pages as they are today), then commit the files in
+   `tests/specs/visual.spec.js-snapshots/` in a pull request. The next normal run should then be green.
+
+**Evidence that the red is the environment, not the dashboard (Nov 27, night):** on the same commit
+(`01cc66a`), the 20 comparisons pass with the browser the pictures were made with (local run: 20 passed),
+and fail in CI by 3–4% of pixels each. The hand-started run made new pictures in CI (run 45993796919,
+file `screenshots-01cc66a…`, kept until Dec 4). They could not be downloaded from Claude's session (the
+storage host is not allowed there), so **a person downloads and looks at them** (step 2 above).
+
+Not done, on purpose: no larger tolerance, no skipped test, no picture retaken on a developer machine.
+
 A job skipped by change impact counts as passed for required checks. That is intended: documentation-only changes then do not wait for a 40-minute run.
 
 ## 6. Known limitations

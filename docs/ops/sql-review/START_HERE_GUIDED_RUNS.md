@@ -61,7 +61,11 @@ reviewed, approved, installed or verified.
 Real dependencies (all others are independent): 38 needs 36 · 64 needs 62 · 66 needs 40 and 62 · the helper needs 64 ·
 the daily Shopify program needs 42. The older reliability drafts (10–29: stock functions, request
 keys, integrity checks, report totals) are **not in this plan**; installing them is a separate
-decision, recorded in `docs/PROJECT_RECORD.md`.
+decision, recorded in `docs/PROJECT_RECORD.md`. **Nov 27:** the two-week launch plan (PROPOSED) needs the
+stock steps R1–R5 (drafts 10, 21, then 17): [Item 20](ITEM_20_STOCK_STEPS_R1_R5.md) puts that decision and
+the steps on one page (OWNER DECISION REQUIRED); [Item 21](ITEM_21_REQUEST_KEYS.md) does the same for the
+request keys (drafts 19 and 27), and [Item 22](ITEM_22_NIGHTLY_CHECK.md) for the nightly "everything adds up"
+check (drafts 23, 25, 29).
 
 **Each sitting, in short:** tell Claude "ready for step N" → Claude re-checks the fingerprint →
 open Supabase → SQL Editor → New query → paste the file → check the last line is `commit;` → Run →

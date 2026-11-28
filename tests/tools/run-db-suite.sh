@@ -53,6 +53,7 @@ step "permissions inventory (Query G)" bash "$LT/permissions_inventory_test.sh" 
 step "RLS analyzer on real Query G + Query A output" bash "$LT/rls_analyzer_test.sh" $C
 step "views and profile role guard (Query G2)" bash "$LT/views_profile_guard_test.sh" $C
 step "timeline view and profile triggers (Query G3)" bash "$LT/timeline_profile_triggers_test.sh" $C
+step "drift check for the applied security fixes (query 11): every drift a FAIL, a removed view included" bash "$LT/security_fix_drift_check_test.sh" $C
 step "schema drift (Query A + A2 export vs page and local schema)" bash "$LT/schema_drift_test.sh" $C
 step "RLS contract + audit immutability (local model, 6 callers)" bash "$LT/rls_contract_test.sh" $C
 step "integrity constraints" bash "$LT/integrity_constraints_test.sh" $C
@@ -69,6 +70,7 @@ step "stock-count apply once" bash "$LT/stock_count_apply_once_test.sh" $C
 step "supplier documents (drafts/36)" bash "$LT/supplier_documents_test.sh" $C
 step "supplier document files (drafts/38)" bash "$LT/supplier_document_files_test.sh" $C
 step "partial receiving and returns (drafts/40)" bash "$LT/partial_receiving_test.sh" $C
+step "the worked example 20 -> 8 -> 12 -> 3 (every quantity)" bash "$LT/stock_example_20_8_12_3_test.sh" $C
 step "managers decide deliveries and returns, option A (drafts/66 on drafts/40)" bash "$LT/managers_approve_stock_test.sh" $C
 step "search path of three history functions (drafts/68)" bash "$LT/history_search_path_test.sh" $C
 step "backup reports for Home (drafts/70)" bash "$LT/backup_reports_test.sh" $C
@@ -76,6 +78,7 @@ step "the active staff check production lacked (drafts/72, then step A on top)" 
 step "every waiting draft installs on a copy shaped like production (role as a fixed list, no is_active_staff)" bash "$LT/production_shape_install_test.sh" $C
 step "the four production-shape problems of Nov 27, each caught again when its fix is removed" bash "$LT/production_shape_mutation_test.sh" $C
 step "Shopify payouts and money differences (drafts/42)" bash "$LT/shopify_payouts_test.sh" $C
+step "the daily Shopify payout program against made-up Shopify replies (edge draft + drafts/42)" node "$LT/shopify_sync_core_test.mjs" $C
 step "staff read purchase orders (drafts/44)" bash "$LT/staff_read_purchase_orders_test.sh" $C
 step "confirmed tax rates (drafts/46)" bash "$LT/tax_rates_test.sh" $C
 step "parcels and drop-off receipts (drafts/48)" bash "$LT/order_parcels_test.sh" $C

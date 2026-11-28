@@ -20,7 +20,7 @@ with checks as (
   -- FIX 1B: the view uses the caller's rights (security_invoker = true)
   select 2, 'FIX 1B: activity_timeline uses caller rights (security_invoker)',
          case when to_regclass('public.activity_timeline') is null then 'FAIL: view missing'
-              when coalesce((select c.reloptions::text from pg_class c where c.oid='public.activity_timeline'::regclass), '') ~* 'security_invoker=(true|on|1|yes)'
+              when coalesce((select c.reloptions::text from pg_class c where c.oid = to_regclass('public.activity_timeline')), '') ~* 'security_invoker=(true|on|1|yes)'
                    then 'PASS' else 'FAIL: security_invoker not set' end
   union all
   -- FIX 2: the profiles privileged-column guard trigger exists, is enabled, BEFORE UPDATE, right function
@@ -34,7 +34,7 @@ with checks as (
              when p.proname <> 'guard_profile_privileged_columns' then 'FAIL: wrong function attached (' || p.proname || ')'
              else 'PASS' end
            from pg_trigger t join pg_proc p on p.oid = t.tgfoid
-           where t.tgrelid = 'public.profiles'::regclass and t.tgname = 'profiles_guard_privileged_columns' and not t.tgisinternal
+           where t.tgrelid = to_regclass('public.profiles') and t.tgname = 'profiles_guard_privileged_columns' and not t.tgisinternal
          ), 'FAIL: guard trigger missing')
 )
 select fix as check_name, verdict,
