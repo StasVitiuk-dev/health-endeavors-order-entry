@@ -1,6 +1,6 @@
 # Morning list for Stas (Saturday, Nov 28, 2026)
 
-Status: CURRENT · rewritten overnight (Nov 28, from about 1 AM Central) while Claude worked alone. It
+Status: SUPERSEDED by `MORNING_LIST_2026-11-29.md` (Nov 28, daytime; every open item carried over) · rewritten overnight (Nov 28, from about 1 AM Central) while Claude worked alone. It
 replaces the earlier list of the same name (Nov 27–28); that list's merges are all done, and its open
 decisions are carried over below. Nothing here was merged, installed, switched on or sent by Claude.
 
