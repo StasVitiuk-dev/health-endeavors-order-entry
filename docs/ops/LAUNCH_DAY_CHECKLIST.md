@@ -1,7 +1,8 @@
 # Launch day: the go/no-go list and what to watch
 
 Status: **PROPOSED** · written 2026-11-27 for launch-plan days 13–14 (`LAUNCH_PLAN_2_WEEKS.md`).
-Related: the Launch page in the dashboard (Overview → Ready to launch), `TEST_ORDER_CHECKLIST.md`,
+Related: the Launch page in the dashboard (Overview → Ready to launch; it appears in the menu once the preview
+switch **Ready to launch** is on, on Feature Flags), `TEST_ORDER_CHECKLIST.md`,
 `LAUNCH_DAY_ROLLBACK_PRACTICE.md`, `RECOVERY_AND_BACKUP_READINESS.md`.
 
 **What Claude can and cannot see.** Claude has no access to your live database, store or email. On

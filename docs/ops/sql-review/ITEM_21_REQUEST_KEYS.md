@@ -13,7 +13,7 @@ identical record. That can be a second expense (money), a second stock adjustmen
 After these steps, every new record the dashboard creates carries a one-time "request key". If the
 same attempt is sent again, the database recognises the key and refuses the copy instead of saving
 it twice. The dashboard already sends the key on all 18 places that create records, but only once you
-turn the **request keys** switch on.
+turn on the switch **Request keys on new records**.
 
 ## The order (one evening, about 15 minutes)
 
@@ -22,7 +22,7 @@ turn the **request keys** switch on.
 | 0 | The read-only look at `feature_flags` from the launch plan | no | nothing |
 | 1 | **Draft 19**: one empty column and one index on each table the dashboard creates records in (up to 22) | adds an empty column per table; no row, rule or permission changes | nothing |
 | 2 | **Draft 27**: the `request_keys` switch, **off** | adds 1 switch row | draft 19 |
-| 3 | Next day: Feature Flags → turn **request keys** on; add one test expense and delete it | the dashboard starts sending keys | draft 27 |
+| 3 | Next day: Feature Flags → turn on **Request keys on new records**; add one test expense and delete it | the dashboard starts sending keys | draft 27 |
 
 ## The exact SQL
 

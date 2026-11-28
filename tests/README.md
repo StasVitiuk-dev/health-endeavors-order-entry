@@ -56,6 +56,13 @@ does not have. Two checks close that gap:
   differences. The real-database browser tests (`helpers/pg-bridge.js`) skip on GitHub, which has no
   database in the browser jobs.
 
+The guides agree with the database and the pages too:
+- `guide_after_checks_test.js` (database suite): each review guide's read-only after-check, run as written
+  after its draft, gives the guide's Expected answer (launch steps and the later ones).
+- `specs/guide-switch-names-ext28.spec.js`: every switch a guide tells the owner to turn on (in bold) is a
+  switch the dashboard or a draft really shows by that exact name.
+- `specs/launch-page-ext25.spec.js`: the steps the Ready to launch page counts are the launch plan's list.
+
 ## How to run (for Claude or a developer)
 
 You need Node.js 18 or newer.

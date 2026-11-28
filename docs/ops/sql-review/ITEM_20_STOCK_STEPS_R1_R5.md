@@ -100,7 +100,8 @@ select md5(string_agg(p.proname || ':' || pg_get_function_identity_arguments(p.o
 select flag_key, enabled from public.feature_flags where flag_key like 'stock_fn_%' order by 1;
 ```
 
-Then on the dashboard: Feature Flags shows the five stock switches, all off. Turn on **Receive** only,
+Then on the dashboard: Feature Flags shows the five stock switches, all off (each named "Stock: all-or-nothing …").
+Turn on **Stock: all-or-nothing receive** only,
 receive one real delivery, and check its stock on Inventory. Tell me before the next switch.
 
 ## Undo
