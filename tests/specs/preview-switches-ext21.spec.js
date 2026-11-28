@@ -11,7 +11,7 @@ const CONFIG = fs.readFileSync(path.join(__dirname, '..', '..', 'assets', 'app',
 // Switches that are deliberately NOT previews and NOT on the Feature Flags page:
 // they read and write real records once their database draft is installed, so
 // the owner turns them on only after approving that draft (Nov 16, later).
-const NOT_PREVIEWS = ['he_supplier_documents_store', 'he_invoice_payments', 'he_money_issues', 'he_receiving_store', 'he_tax_rates', 'he_dropoff', 'he_shared_settings', 'he_order_costs', 'he_incident_close', 'he_order_batches', 'he_email_sending', 'he_my_settings', 'he_review_store', 'he_people_page'];
+const NOT_PREVIEWS = ['he_supplier_documents_store', 'he_invoice_payments', 'he_money_issues', 'he_receiving_store', 'he_tax_rates', 'he_dropoff', 'he_order_costs', 'he_incident_close', 'he_order_batches', 'he_email_sending', 'he_my_settings', 'he_review_store', 'he_people_page'];
 const ALL_KEYS = [...CONFIG.matchAll(/localStorage\.getItem\('(he_[a-z_]+)'\) === 'on'/g)].map(m => m[1]).sort();
 const FLAG_KEYS = ALL_KEYS.filter(k => !NOT_PREVIEWS.includes(k));
 const LISTED = [...CONFIG.matchAll(/\{ key: '(he_[a-z_]+)'/g)].map(m => m[1]).sort();
@@ -38,7 +38,11 @@ test('the owner sees every switch, all off by default; nothing is stored until o
   const host = page.locator('#previewSwitchesHost');
   await expect(host.locator('tbody tr')).toHaveCount(FLAG_KEYS.length);
   await expect(host.locator('tr[data-preview-on="yes"]')).toHaveCount(0);
-  await expect(host).toContainText('this browser on this device only');
+  // Nov 27 night: the page no longer says "this browser only" for every switch (wrong since the shared settings are in
+  // use); it says where a switch applies just below: shared here (installed, empty), this browser only when they cannot be read
+  await expect(host).toContainText('Where a switch applies (every device, or this browser only) is said just below.');
+  await expect(host.locator('[data-preview-shared]')).toHaveAttribute('data-preview-shared', 'installed');
+  await expect(host).not.toContainText('this browser on this device only');
   await expect(host).toContainText('nothing is sent, issued, charged or written to stock');
   await expect(host.locator('[data-preview-count]')).toHaveAttribute('data-preview-count', '0');
   expect(await page.evaluate(keys => keys.filter(k => localStorage.getItem(k) !== null), FLAG_KEYS)).toEqual([]);
@@ -59,7 +63,7 @@ test('turning a preview on shows it on its page; turning all off hides it again'
   const row = host.locator('tr[data-preview-key="he_reconcile"]');
   await expect(row).toHaveAttribute('data-preview-on', 'yes');
   await expect(host.locator('[data-preview-msg]')).toContainText('Payment reconciliation is on');
-  await expect(host.locator('[data-preview-rownote="ok"]')).toHaveText('On in this browser. Reload to finish.');   // Nov 27: also in the switch's own row
+  await expect(host.locator('[data-preview-rownote="ok"]')).toHaveText('On for every device. Reload to finish.');   // Nov 27: also in the switch's own row; since Nov 27 night the switches are shared by every device
   await expect(host.locator('[data-preview-count]')).toHaveAttribute('data-preview-count', '1');
   expect(await page.evaluate(() => localStorage.getItem('he_reconcile'))).toBe('on');
   // Only that one key was written.
