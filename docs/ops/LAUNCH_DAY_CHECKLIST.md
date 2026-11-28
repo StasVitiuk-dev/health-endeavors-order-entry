@@ -60,6 +60,8 @@ Shopify and are brought in once the cause is found. Going back to the previous v
 ## End of the day (5 minutes)
 
 1. Report History: today's recap has the day's orders and revenue.
-2. The daily print at 12:02 AM opens the day pack; check the paper the next morning (it says "opened
+2. Orders → **Stock per order**: the list of orders not taken off stock yet is empty (or holds only orders
+   you are waiting to see paid or shipped, as you chose). Press any that are due.
+3. The daily print at 12:02 AM opens the day pack; check the paper the next morning (it says "opened
    for printing", never "printed").
-3. Tell Claude: number of orders, anything odd. Claude writes the day into `docs/PROJECT_RECORD.md`.
+4. Tell Claude: number of orders, anything odd. Claude writes the day into `docs/PROJECT_RECORD.md`.
