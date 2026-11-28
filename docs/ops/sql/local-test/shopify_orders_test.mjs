@@ -79,6 +79,8 @@ const sync = (shop, db, now) => C.runSync({ fetchJson: shop.fn, db: db || servic
   ok('a cancelled order is "cancelled" whatever was paid', [C.statusOf({ cancelledAt: '2026-11-28T00:00:00Z', displayFinancialStatus: 'PAID' }), C.statusOf({ displayFinancialStatus: 'PARTIALLY_REFUNDED' })], ['cancelled', 'partially_refunded']);
   ok('an order without an amount is refused, not saved as 0', C.mapOrder(order(9, '#9', [], { totalPriceSet: money(null) })).error, 'order #9 has an unreadable amount');
   ok('an order with more lines than one page is refused whole', C.mapOrder(order(9, '#9', [], { lineItems: { nodes: [], pageInfo: { hasNextPage: true } } })).error, 'order #9 has more than 100 lines; not saved, look at it in Shopify');
+  ok('the quantity is what will ship (a unit removed or refunded in Shopify is left out)',
+     C.mapOrder(order(9, '#9', [Object.assign(line(1, 'SYN-A', 'A', 3, '1.0'), { currentQuantity: 2 })])).row.lines[0].quantity, 2);
   ok('a line total is the unit price times the quantity, to the cent', C.mapOrder(ORDERS[0]).row.lines.map(l => l.line_total), ['48.00', '12.00']);
 
   run('postgres', 'drop database if exists ' + DB + ' with (force)');
@@ -116,7 +118,7 @@ const sync = (shop, db, now) => C.runSync({ fetchJson: shop.fn, db: db || servic
   const r1 = await C.runSync({ fetchJson: S1.fn, db: serviceDb(), sleep: async (ms) => { waits.push(ms); }, now: '2026-11-28T12:00:00Z' });
   ok('3 orders seen and created, 4 lines, 1 of them a test order, nothing refused', [r1.orders_seen, r1.created, r1.lines_added, r1.test_orders, r1.refused, r1.problems], [3, 3, 4, 1, 0, []]);
   ok('  it paused once for the rate limit', waits, [1000]);
-  ok('  it asked for orders changed in the last 3 days', S1.calls[1].variables.query, 'updated_at:>=2026-11-25T12:00:00.000Z');
+  ok('  it asked for orders changed in the last 3 days', S1.calls[1].variables.query, "updated_at:>='2026-11-25T12:00:00.000Z'");
   ok('  the database holds them as Shopify said (channel shopify, Shopify ids, SKUs, totals)',
      q("select string_agg(order_number||':'||status||':'||total, ' ' order by order_number) from orders where channel = 'shopify'") + ' | ' + q("select count(*) from order_items where external_line_id is not null"),
      '#1001:paid:68.90 #1002:paid:32.90 #1003:paid:20.90 | 4');

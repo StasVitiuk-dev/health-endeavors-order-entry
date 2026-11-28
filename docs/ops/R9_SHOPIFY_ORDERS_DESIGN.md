@@ -39,7 +39,7 @@ A new program in this repository, written like the payouts draft: read-only acce
 `read_orders` only), every few minutes or on Shopify's order webhook, writes each order **once** (by
 channel + order id) and its lines **once** (a new unique rule on order line + Shopify line id, added by
 its own database step), never a customer's card or more than the order needs. Then the same automatic
-stock step as in path A. **Prepared Nov 28** (not deployed): draft 78 and the program, 46 checks against
+stock step as in path A. **Prepared Nov 28** (not deployed): draft 78 and the program, 47 checks against
 made-up Shopify replies (`docs/ops/sql/local-test/shopify_orders_test.mjs`); what is left is one owner sitting to
 install the database step and one to create the read-only key and switch the program on
 (`sql-review/ITEM_24_SHOPIFY_ORDERS_PATH_B.md`). It keeps no customer details (no name, email or address).

@@ -31,7 +31,7 @@ export const ORDERS_QUERY = `query Orders($first: Int!, $after: String, $query: 
       totalTaxSet { shopMoney { amount } }
       totalPriceSet { shopMoney { amount } }
       lineItems(first: ${MAX_LINES}) {
-        nodes { id sku name quantity originalUnitPriceSet { shopMoney { amount } } }
+        nodes { id sku name quantity currentQuantity originalUnitPriceSet { shopMoney { amount } } }
         pageInfo { hasNextPage }
       }
     }
@@ -74,7 +74,8 @@ export function mapOrder(n) {
   const lines = [];
   for (const l of li.nodes) {
     if (!isObj(l) || typeof l.id !== 'string' || !LINE_ID.test(l.id)) return { error: 'order ' + label + ' has a line without a readable id' };
-    const q = l.quantity;
+    // what will ship: Shopify's current quantity leaves out units removed by an edit or refunded
+    const q = Number.isInteger(l.currentQuantity) ? l.currentQuantity : l.quantity;
     const unit = amt(l.originalUnitPriceSet);
     if (!Number.isInteger(q) || q < 0 || q > 100000 || unit == null) return { error: 'order ' + label + ' has a line with an unreadable quantity or price' };
     lines.push({ external_line_id: l.id, sku: typeof l.sku === 'string' ? l.sku.trim().slice(0, 80) : null,
@@ -115,7 +116,7 @@ export async function runSync(opts) {
   const out = { ok: true, since, orders_seen: 0, created: 0, lines_added: 0, lines_changed: 0, held: [], test_orders: 0, skipped_deleted: 0, refused: 0, problems };
   let after = null, complete = false;
   for (let page = 0; page < MAX_PAGES; page++) {
-    const conn = await ask(o.fetchJson, sleep, ORDERS_QUERY, { first: PAGE_SIZE, after, query: 'updated_at:>=' + since });
+    const conn = await ask(o.fetchJson, sleep, ORDERS_QUERY, { first: PAGE_SIZE, after, query: "updated_at:>='" + since + "'" });
     for (const n of conn.nodes) {
       out.orders_seen++;
       const m = mapOrder(n);

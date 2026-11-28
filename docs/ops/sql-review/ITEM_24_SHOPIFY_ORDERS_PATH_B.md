@@ -47,7 +47,7 @@ It stops by itself, changing nothing, if your orders or order lines differ from 
 showed, if the rule "one order per Shopify order id" is missing, if the database's service key may not read
 and write orders (Supabase gives it that by default), or if the service key would not be allowed to run the
 new function. Only the program can run it: visitors and signed-in people (you included) are refused by
-name. Tested on a throwaway copy with made-up Shopify answers: 46 of 46 checks
+name. Tested on a throwaway copy with made-up Shopify answers: 47 of 47 checks
 (`docs/ops/sql/local-test/shopify_orders_test.mjs`); it installs in its place on a copy shaped like your
 real database (`production_shape_install_test.sh`, 35 of 35).
 
