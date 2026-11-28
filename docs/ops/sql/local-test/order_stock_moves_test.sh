@@ -127,13 +127,55 @@ wait
 has "the second device waits, then finds the order done" "$R" '"lines_already_done": 1'
 ok  "  taken once: body 10 - 2 = 8" "$(avail)" "8,4,-"
 
+echo " with drafts/40 too: a sold line comes back to the shelf one way only"
+RET="$DIR/drafts/40_DRAFT_partial_receiving_returns.sql"
+ok  "drafts/40 installs after drafts/76" "$(run "$RET")" "0"
+K() { printf '00000000-0000-4000-8000-0000007600%02d' "$1"; }
+O8=00000000-0000-4000-8000-0000000076c8; O9=00000000-0000-4000-8000-0000000076c9; O10=00000000-0000-4000-8000-0000000076ca
+q "insert into orders (id, channel, external_order_id, order_number, status) values
+     ('$O8','shopify','T-8','#T1008','paid'), ('$O9','shopify','T-9','#T1009','paid'), ('$O10','shopify','T-10','#T1010','paid');
+   insert into order_items (id, order_id, sku, product_name, quantity) values
+     ('$(K 81)','$O8','HE-BODY-200','Body cream',2), ('$(K 91)','$O9','HE-BODY-200','Body cream',1), ('$(K 11)','$O10','HE-BODY-200','Body cream',1);" >/dev/null
+take "$O" "$O8" >/dev/null; take "$O" "$O9" >/dev/null; take "$O" "$O10" >/dev/null
+ok  "  three orders taken: body 8 - 2 - 1 - 1 = 4" "$(avail)" "4,4,-"
+has "staff record a customer return of 1 from #T1008" "$(as "$E" "select public.record_customer_return('$(K 1)', '$(K 81)', 1)")" '"status": "awaiting_inspection"'
+has "then giving #T1008 back as cancelled is refused" "$(back "$O" "$O8")" "customer return is already recorded for HE-BODY-200"
+ok  "  nothing changed" "$(avail)|$(moves "$O8" give_back)" "4,4,-|0"
+has "the owner decides the return: 1 sellable" "$(as "$O" "select public.decide_customer_return((select id from customer_return_inspections where request_key = '$(K 1)'), 1, 0, 0, false, false)")" '"already_decided": false'
+ok  "  body 4 + 1 = 5 (once)" "$(avail)" "5,4,-"
+has "  and giving #T1008 back is still refused" "$(back "$O" "$O8")" "customer return is already recorded"
+has "the owner gives back #T1009 (cancelled)" "$(back "$O" "$O9")" '"lines_changed": 1'
+ok  "  body 5 + 1 = 6" "$(avail)" "6,4,-"
+has "staff may still record a return on that line (the parcel came back anyway)" "$(as "$E" "select public.record_customer_return('$(K 2)', '$(K 91)', 1)")" '"status": "awaiting_inspection"'
+has "  but restocking it is refused: it was already given back" "$(as "$O" "select public.decide_customer_return((select id from customer_return_inspections where request_key = '$(K 2)'), 1, 0, 0, false, false)")" "already given back to stock when its order was cancelled"
+has "  so is recording it as damaged (it would count those bottles again)" "$(as "$O" "select public.decide_customer_return((select id from customer_return_inspections where request_key = '$(K 2)'), 0, 1, 0, false, false)")" "already given back"
+ok  "  stock unchanged, the return still waits" "$(avail)|$(q "select status from customer_return_inspections where request_key = '$(K 2)'")" "6,4,-|awaiting_inspection"
+has "  the staff member cancels it" "$(as "$E" "update customer_return_inspections set status = 'cancelled' where request_key = '$(K 2)' returning status")" "cancelled"
+has "a return recorded and then cancelled does not block giving #T1010 back" "$(as "$E" "select public.record_customer_return('$(K 3)', '$(K 11)', 1)")" '"status": "awaiting_inspection"'
+as "$E" "update customer_return_inspections set status = 'cancelled' where request_key = '$(K 3)'" >/dev/null
+has "  the owner gives back #T1010" "$(back "$O" "$O10")" '"lines_changed": 1'
+ok  "  body 6 + 1 = 7" "$(avail)" "7,4,-"
+q "insert into orders (id, channel, external_order_id, order_number, status) values ('00000000-0000-4000-8000-0000000076cb','shopify','T-11','#T1011','paid');
+   insert into order_items (id, order_id, sku, product_name, quantity) values ('$(K 12)','00000000-0000-4000-8000-0000000076cb','HE-BODY-200','Body cream',1);" >/dev/null
+take "$O" 00000000-0000-4000-8000-0000000076cb >/dev/null
+( psql "${CONN[@]}" -d "$DB" -qtAX -c "begin; set local role authenticated; set local request.jwt.claim.sub = '$O'; select public.give_back_order_stock('00000000-0000-4000-8000-0000000076cb'); select pg_sleep(2); commit;" >"$OUTF.race" 2>&1 ) &
+sleep 0.5
+as "$E" "select public.record_customer_return('$(K 4)', '$(K 12)', 1)" >/dev/null
+R=$(as "$A" "select public.decide_customer_return((select id from customer_return_inspections where request_key = '$(K 4)'), 1, 0, 0, false, false)")
+wait
+has "a return decided while the order is being given back waits, then is refused" "$R" "already given back"
+ok  "  the bottle came back once: body 6 + 1 = 7" "$(avail)" "7,4,-"
+rm -f "$OUTF.race"
+psql "${CONN[@]}" -d "$DB" -qX -v ON_ERROR_STOP=1 -f "$DIR/drafts/41_DRAFT_rollback_partial_receiving_returns.sql" >"$OUTF" 2>&1
+ok  "  drafts/41 (undo of 40) leaves the stock-per-order record alone" "$(q "select count(*) from order_stock_moves where kind = 'take'")" "9"
+
 echo " rollback (drafts/77)"
 ok  "rollback succeeds" "$(run "$ROLLBACK")" "0"
 has "  says the record is kept because it holds moves" "$(cat "$OUTF")" "order_stock_moves kept"
 ok  "  the functions are gone" "$(q "select count(*) from pg_proc where proname in ('take_order_stock','give_back_order_stock','_he_order_stock')")" "0"
-ok  "  stock numbers unchanged" "$(avail)" "8,4,-"
+ok  "  stock numbers unchanged" "$(avail)" "7,4,-"
 ok  "  the record table is kept" "$(q "select count(*) > 0 from order_stock_moves")" "t"
-ok  "  install works again afterwards and keeps the record" "$(run "$INSTALL")|$(q "select count(*) from order_stock_moves where kind = 'take'")" "0|5"
+ok  "  install works again afterwards and keeps the record" "$(run "$INSTALL")|$(q "select count(*) from order_stock_moves where kind = 'take'")" "0|9"
 fresh
 ok  "on an empty record, install then rollback removes the table too" "$(run "$INSTALL")|$(run "$ROLLBACK")|$(q "select to_regclass('public.order_stock_moves') is null")" "0|0|t"
 ok  "  a second rollback stops: nothing to undo" "$(run "$ROLLBACK")" "3"

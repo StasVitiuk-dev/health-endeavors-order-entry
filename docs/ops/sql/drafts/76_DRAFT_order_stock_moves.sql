@@ -160,6 +160,21 @@ begin
       raise exception 'Order %: no product has the SKU of these lines: %. Nothing was changed. Add the SKU to the product (or correct the order line) and try again.', v_number, v_unmatched
         using errcode = '22023', hint = 'unmatched_sku';
     end if;
+  else
+    -- A line can come back to the shelf only one way: as a cancelled order here, or as a customer
+    -- return inspected under drafts/40. If any line of this order already has a return recorded,
+    -- giving the order back would count those bottles twice, so nothing happens.
+    if to_regclass('public.customer_return_inspections') is not null then
+      select string_agg(distinct coalesce(nullif(oi.sku, ''), '(no SKU)'), ', ')
+        into v_unmatched
+        from customer_return_inspections c
+        join order_items oi on oi.id = c.order_item_id
+       where oi.order_id = p_order_id and c.status <> 'cancelled';
+      if v_unmatched is not null then
+        raise exception 'Order %: a customer return is already recorded for %. Nothing was changed. Returned bottles come back through the return inspection, never twice.', v_number, v_unmatched
+          using errcode = '23514', hint = 'already_returned';
+      end if;
+    end if;
   end if;
 
   -- Lines in product order: two orders that share products always lock them in the same order,
