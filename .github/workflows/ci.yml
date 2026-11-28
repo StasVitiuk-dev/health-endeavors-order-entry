@@ -18,6 +18,11 @@ on:
   push:
     branches: ['claude/**']
   workflow_dispatch:
+    inputs:
+      update_screenshots:
+        description: 'Make new reference screenshots in this pinned environment (kept as a downloadable file for review; nothing is committed)'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -151,7 +156,11 @@ jobs:
       - name: Run the database suite
         run: bash tests/tools/run-db-suite.sh -h localhost -p 5432 -U postgres
 
-  # Informational: pixel comparisons can differ on GitHub's fonts. Never blocks.
+  # Informational, never blocks. Nov 27 (night): the reference pictures must be made HERE (ubuntu-24.04,
+  # the Chromium that package-lock's Playwright pins), not on a developer's machine: until then every
+  # comparison differs by a few pixels of text (a different browser build wraps text differently).
+  # Every run keeps the expected / actual / difference pictures as a file to download; a run started by
+  # hand with "update_screenshots" keeps new reference pictures to review and commit in a pull request.
   visual:
     name: Screenshots (informational)
     needs: static
@@ -173,4 +182,15 @@ jobs:
       - name: Skip the Microsoft package source the tests do not use (it has answered 403 and stopped the browser install)
         run: grep -l 'packages.microsoft.com' /etc/apt/sources.list.d/* 2>/dev/null | xargs -r sudo rm -f
       - run: npx playwright install --with-deps chromium
-      - run: npx playwright test --config tests/playwright.config.js tests/specs/visual.spec.js --reporter=list,github
+      - name: Compare the screenshots (or, when started by hand with update_screenshots, make new ones)
+        run: npx playwright test --config tests/playwright.config.js tests/specs/visual.spec.js --reporter=list,github ${{ github.event_name == 'workflow_dispatch' && inputs.update_screenshots && '--update-snapshots' || '' }}
+      - name: Keep the pictures (differences, or the new reference pictures) for review
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2 (v4 tag on 2026-11-27; verified with git ls-remote)
+        with:
+          name: screenshots-${{ github.sha }}
+          path: |
+            test-results/
+            tests/specs/visual.spec.js-snapshots/
+          retention-days: 7
+          if-no-files-found: ignore

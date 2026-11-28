@@ -98,6 +98,8 @@ const choose = (page, key) => page.addInitScript((k) => { try { localStorage.set
 const links = (page) => page.locator('#sidebarGroups .sidebarGroup:not(.u-groupcolor-copper) .sidebarLink');
 const tabs = (page) => page.locator('#menuTabs [data-menutab] .menuTabName');
 const openEntry = async (page, id) => { await openMenuIfMobile(page); await page.locator('#sidebarGroups .sidebarLink[data-page="' + id + '"]').first().click(); };
+const sharedReads = (backend) => backend.requests.filter(r => r.table === 'shared_settings' && !r.params.some(([k, v]) => k === 'limit' && v === '0'))
+  .map(r => r.method + ' ' + ((r.params.find(([k]) => k === 'key') || [])[1] || '').replace(/^eq\./, '')).sort();
 const noSideways = (page) => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1);
 
 test.describe('on the dashboard', () => {
@@ -111,10 +113,12 @@ test.describe('on the dashboard', () => {
     await expect(page.locator('[data-menulayout-lines]')).toHaveAttribute('data-menulayout-lines', '30');
     await openMenuIfMobile(page);
     expect(await page.locator('#sidebarGroups .sidebarLink[data-inside]').count()).toBe(0);
-    expect(backend.requests.filter(r => r.table === 'shared_settings' && !r.params.some(([k, v]) => k === 'limit' && v === '0'))).toEqual([]);
+    // Nov 27: the shared settings are in use on every device. At sign-in the dashboard only READS the switches and
+    // the menu the owner chose for everyone (one row each); nothing is saved until someone chooses.
+    expect(sharedReads(backend)).toEqual(['GET feature_switches', 'GET menu_layout']);
   });
 
-  test('choosing a shorter menu: same-topic pages go inside one another, and "Today\'s menu" puts them back', async ({ page }) => {
+  test('choosing a shorter menu: same-topic pages go inside one another, and "Today\'s menu" puts them back', async ({ page, backend }) => {
     await login(page);
     await gotoPage(page, 'flagsPanel');
     await page.locator('[data-menulayout="b"]').click();
@@ -122,7 +126,10 @@ test.describe('on the dashboard', () => {
     await expect(page.locator('[data-menulayout="b"]')).toHaveAttribute('aria-pressed', 'true');
     await expect(page.locator('[data-menulayout="b"]')).toBeFocused();
     await expect(page.locator('[data-menulayout-lines]')).toHaveAttribute('data-menulayout-lines', '10');
-    await expect(page.locator('[data-menulayout-msg]')).toContainText('Kept in this browser');
+    // Nov 27: the owner's choice is saved for every phone and computer (the shared settings are in use); the keyboard stays on the button
+    await expect(page.locator('[data-menulayout-msg]')).toContainText('Saved: every phone and computer');
+    await expect(page.locator('[data-menulayout="b"]')).toBeFocused();
+    expect(backend.requests.filter(r => r.rpc === 'set_shared_setting').map(r => r.body)).toEqual([{ p_key: 'menu_layout', p_value: { layout: 'b' }, p_audience: 'staff' }]);
     // Feature Flags itself now has two pages inside it
     await expect(tabs(page)).toHaveText(['Feature Flags', 'Business Rules', 'Feature Requests']);
     await openMenuIfMobile(page);
@@ -246,7 +253,7 @@ test.describe('on the dashboard', () => {
 test.describe('as shipped (owner, Nov 24: "let\'s go with A option")', () => {
   test.use({ shippedMenu: true });
 
-  test('a browser that never chose starts with "1. A little shorter": 16 lines, same headings, nothing asked of the database', async ({ page, backend }) => {
+  test('a browser that never chose starts with "1. A little shorter": 16 lines, same headings, only reads from the database', async ({ page, backend }) => {
     await login(page);
     expect(await page.evaluate(() => localStorage.getItem('he_menu_layout'))).toBeNull();
     await openMenuIfMobile(page);
@@ -260,7 +267,9 @@ test.describe('as shipped (owner, Nov 24: "let\'s go with A option")', () => {
     await expect(page.locator('[data-menulayoutpicker]')).toHaveAttribute('data-menulayoutpicker', 'a');
     await expect(page.locator('[data-menulayout="a"]')).toHaveAttribute('aria-pressed', 'true');
     await expect(page.locator('[data-menulayout-lines]')).toHaveAttribute('data-menulayout-lines', '16');
-    expect(backend.requests.filter(r => r.table === 'shared_settings' && !r.params.some(([k, v]) => k === 'limit' && v === '0'))).toEqual([]);
+    // Nov 27: the shared settings are in use on every device. At sign-in the dashboard only READS the switches and
+    // the menu the owner chose for everyone (one row each); nothing is saved until someone chooses.
+    expect(sharedReads(backend)).toEqual(['GET feature_switches', 'GET menu_layout']);
     expect(backend.requests.filter(r => r.rpc === 'set_shared_setting')).toEqual([]);
   });
 
