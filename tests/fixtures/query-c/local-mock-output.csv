@@ -1,0 +1,123 @@
+section,item,result
+0 counts,agent_controls,4
+0 counts,ai_decision_log,3
+0 counts,approval_requests,1
+0 counts,audit_log,586
+0 counts,daily_reports,table not found
+0 counts,documents,0
+0 counts,expenses,0
+0 counts,feature_flags,2
+0 counts,incidents,table not found
+0 counts,inventory,0
+0 counts,inventory_adjustments,0
+0 counts,inventory_lots,0
+0 counts,invoices,table not found
+0 counts,manual_attention_items,table not found
+0 counts,order_items,0
+0 counts,orders,0
+0 counts,products,0
+0 counts,profiles,11
+0 counts,purchase_order_items,0
+0 counts,purchase_orders,0
+0 counts,recalls,0
+0 counts,returns,0
+0 counts,service_status,table not found
+0 counts,suppliers,0
+0 counts,system_mode,1
+0 counts,tasks,1
+1 agents,agent #01,switch=ON; last_run_at=never recorded; last_run_status=none; switch_changed_at=2026-11-27T20:37:37.838966+00:00; last_error=none
+1 agents,agent #04,switch=ON; last_run_at=2026-11-27T19:37:37.838966+00:00; last_run_status=ok; switch_changed_at=2026-11-27T20:37:37.838966+00:00; last_error=none
+1 agents,agent #06,switch=off; last_run_at=2026-11-25T20:37:37.838966+00:00; last_run_status=error; switch_changed_at=2026-11-27T20:37:37.838966+00:00; last_error=failed for [email] while sending a very long message [token]
+1 agents,agent #10,switch=unknown; last_run_at=never recorded; last_run_status=none; switch_changed_at=unknown; last_error=none
+10 audit coverage,agent_controls,"audit_trigger=NONE; who_when_columns=last_run_at, updated_at, updated_by"
+10 audit coverage,ai_decision_log,audit_trigger=NONE; who_when_columns=created_at
+10 audit coverage,approval_requests,"audit_trigger=approval_requests_audit; who_when_columns=created_at, requested_by, reviewed_at, reviewed_by"
+10 audit coverage,documents,"audit_trigger=documents_audit; who_when_columns=created_at, updated_at, uploaded_by"
+10 audit coverage,evidence_locker,"audit_trigger=evidence_locker_audit; who_when_columns=added_by, created_at"
+10 audit coverage,expenses,"audit_trigger=expenses_audit; who_when_columns=created_at, deleted_at"
+10 audit coverage,feature_flags,audit_trigger=NONE; who_when_columns=none
+10 audit coverage,inventory,"audit_trigger=inventory_audit; who_when_columns=updated_at, updated_by"
+10 audit coverage,inventory_adjustments,"audit_trigger=inventory_adjustments_audit; who_when_columns=adjusted_at, adjusted_by"
+10 audit coverage,inventory_lots,"audit_trigger=inventory_lots_audit; who_when_columns=created_at, created_by, expires_at, received_at, updated_at"
+10 audit coverage,order_items,audit_trigger=order_items_audit; who_when_columns=created_at
+10 audit coverage,orders,"audit_trigger=orders_audit; who_when_columns=created_at, deleted_at, entered_by, intake_checked_at, placed_at, updated_at"
+10 audit coverage,products,"audit_trigger=products_audit; who_when_columns=created_at, created_by, updated_at"
+10 audit coverage,profiles,"audit_trigger=profiles_audit; who_when_columns=created_at, deleted_at, updated_at"
+10 audit coverage,purchase_order_items,audit_trigger=purchase_order_items_audit; who_when_columns=created_at
+10 audit coverage,purchase_orders,"audit_trigger=purchase_orders_audit; who_when_columns=created_at, created_by, deleted_at, expected_at, ordered_at, received_at, received_by, updated_at"
+10 audit coverage,recalls,"audit_trigger=recalls_audit; who_when_columns=created_at, created_by, resolved_at, updated_at"
+10 audit coverage,returns,"audit_trigger=returns_audit; who_when_columns=approved_at, approved_by, created_at, created_by, received_at, refunded_at, updated_at"
+10 audit coverage,suppliers,"audit_trigger=suppliers_audit; who_when_columns=created_at, created_by, updated_at"
+10 audit coverage,system_mode,"audit_trigger=NONE; who_when_columns=changed_at, changed_by"
+10 audit coverage,tasks,"audit_trigger=tasks_audit; who_when_columns=created_at, created_by, due_at, escalated_at, updated_at"
+2 switches,flag no_ai_mode,off
+2 switches,flag shopify_order_sync,off
+2 switches,system mode,normal since 2026-11-27T20:37:37.838966+00:00
+3 agent #1 invoices,invoice trigger present,yes (see rows above)
+3 agent #1 invoices,trigger orders.trg_generate_invoice_for_order,state=enabled; function=public.generate_invoice_for_order; checks agent switch=true
+4 shopify sync,ai_decision_log customer_service_agent,rows=2; latest=2026-11-27T20:37:37.838966+00:00
+4 shopify sync,ai_decision_log supervisor,rows=1; latest=2026-11-27T20:37:37.838966+00:00
+4 shopify sync,flag shopify_order_sync,off
+4 shopify sync,orders that came from Shopify (including deleted),0
+4 shopify sync,scheduled jobs named like shopify / order sync,shopify-order-sync (runs ever=0)
+5 scheduled jobs,(pg_cron installed),yes
+5 scheduled jobs,(total),3 job(s)
+5 scheduled jobs,agent4-retail-wholesale,schedule=3 * * * *; active=true; last_run=2026-11-27 19:37:37.838966+00; last_status=succeeded; runs_7d=2; not_succeeded_7d=1; calls=public.agent_wrapper; edge_function=none; uses_http=false; reaches stock=true
+5 scheduled jobs,agent6-notify,schedule=5 * * * *; active=true; last_run=2026-10-28 20:37:37.838966+00; last_status=succeeded; runs_7d=0; not_succeeded_7d=0; calls=no database function found; edge_function=customer-notify; uses_http=true; reaches stock=false
+5 scheduled jobs,shopify-order-sync,schedule=0 3 * * *; active=true; last_run=never; last_status=none; runs_7d=0; not_succeeded_7d=0; calls=public.notify_customers; edge_function=none; uses_http=false; reaches stock=false
+6 stock writers,(functions that call a stock writer),"public._he_apply_stock_change -> delete_unused_product, public.adjust_inventory -> _he_apply_stock_change, public.agent_wrapper -> agent4_run, public.quarantine_recall -> _he_apply_stock_change, public.receive_purchase_order -> _he_apply_stock_change, public.receive_purchase_order -> delete_unused_product, public.receive_return -> _he_apply_stock_change"
+6 stock writers,public._he_apply_stock_change,kind=callable; security_definer=false; anon_can_execute=false; authenticated_can_execute=true; fired_by_triggers=none; called_by_jobs=none; called_via_wrapper_by_jobs=none; checks_caller=true
+6 stock writers,public.agent4_run,kind=callable; security_definer=true; anon_can_execute=true; authenticated_can_execute=true; fired_by_triggers=none; called_by_jobs=none; called_via_wrapper_by_jobs=agent4-retail-wholesale; checks_caller=false
+6 stock writers,public.delete_unused_product,kind=callable; security_definer=false; anon_can_execute=false; authenticated_can_execute=true; fired_by_triggers=none; called_by_jobs=none; called_via_wrapper_by_jobs=none; checks_caller=true
+6 stock writers,public.legacy_restock,kind=trigger function; security_definer=false; anon_can_execute=true; authenticated_can_execute=true; fired_by_triggers=returns.legacy_restock_trg (DISABLED); called_by_jobs=none; called_via_wrapper_by_jobs=none; checks_caller=false
+6 stock writers,public.quarantine_recall,kind=callable; security_definer=false; anon_can_execute=false; authenticated_can_execute=true; fired_by_triggers=none; called_by_jobs=none; called_via_wrapper_by_jobs=none; checks_caller=true
+6 stock writers,public.receive_purchase_order,kind=callable; security_definer=false; anon_can_execute=false; authenticated_can_execute=true; fired_by_triggers=none; called_by_jobs=none; called_via_wrapper_by_jobs=none; checks_caller=true
+7 triggers,expenses.expenses_audit,state=enabled; function=public.local_audit; writes stock=false
+7 triggers,inventory.inventory_audit,state=enabled; function=public.local_audit; writes stock=false
+7 triggers,inventory_adjustments.inventory_adjustments_audit,state=enabled; function=public.local_audit; writes stock=false
+7 triggers,inventory_lots.inventory_lots_audit,state=enabled; function=public.local_audit; writes stock=false
+7 triggers,order_items.order_items_audit,state=enabled; function=public.local_audit; writes stock=false
+7 triggers,orders.orders_audit,state=enabled; function=public.local_audit; writes stock=false
+7 triggers,orders.trg_generate_invoice_for_order,state=enabled; function=public.generate_invoice_for_order; writes stock=false
+7 triggers,products.products_audit,state=enabled; function=public.local_audit; writes stock=false
+7 triggers,purchase_order_items.purchase_order_items_audit,state=enabled; function=public.local_audit; writes stock=false
+7 triggers,purchase_orders.purchase_orders_audit,state=enabled; function=public.local_audit; writes stock=false
+7 triggers,recalls.recalls_audit,state=enabled; function=public.local_audit; writes stock=false
+7 triggers,returns.legacy_restock_trg,state=DISABLED; function=public.legacy_restock; writes stock=true
+7 triggers,returns.returns_audit,state=enabled; function=public.local_audit; writes stock=false
+8 direct writes,anon on inventory,insert=false; update=false; delete=false; row_security=on
+8 direct writes,anon on inventory_adjustments,insert=false; update=false; delete=false; row_security=on
+8 direct writes,anon on inventory_lots,insert=false; update=false; delete=false; row_security=on
+8 direct writes,authenticated on inventory,insert=true; update=true; delete=true; row_security=on
+8 direct writes,authenticated on inventory_adjustments,insert=true; update=true; delete=true; row_security=on
+8 direct writes,authenticated on inventory_lots,insert=true; update=true; delete=true; row_security=on
+9 value rules,approval_requests · approval_requests_status_check,"CHECK ((status = ANY (ARRAY['pending'::text, 'approved'::text, 'rejected'::text])))"
+9 value rules,audit_log · audit_log_action_check,"CHECK ((action = ANY (ARRAY['INSERT'::text, 'UPDATE'::text, 'DELETE'::text])))"
+9 value rules,documents · documents_category_check,"CHECK ((category = ANY (ARRAY['contract'::text, 'insurance'::text, 'certification'::text, 'license'::text, 'tax'::text, 'manufacturing_agreement'::text, 'other'::text])))"
+9 value rules,documents · documents_related_type_check,"CHECK ((related_type = ANY (ARRAY['supplier'::text, 'general'::text])))"
+9 value rules,expenses · expenses_amount_check,CHECK ((amount > (0)::numeric))
+9 value rules,expenses · expenses_category_check,"CHECK ((category = ANY (ARRAY['packaging'::text, 'ingredients'::text, 'shipping_supplies'::text, 'advertising'::text, 'software'::text, 'manufacturing'::text, 'other'::text])))"
+9 value rules,inventory · inventory_available_check,CHECK ((available >= 0))
+9 value rules,inventory · inventory_damaged_check,CHECK ((damaged >= 0))
+9 value rules,inventory · inventory_promotional_check,CHECK ((promotional >= 0))
+9 value rules,inventory · inventory_reserved_check,CHECK ((reserved >= 0))
+9 value rules,inventory · inventory_returned_check,CHECK ((returned >= 0))
+9 value rules,inventory · inventory_sample_check,CHECK ((sample >= 0))
+9 value rules,inventory · inventory_wholesale_check,CHECK ((wholesale >= 0))
+9 value rules,inventory_adjustments · inventory_adjustments_bucket_check,"CHECK ((bucket = ANY (ARRAY['available'::text, 'reserved'::text, 'damaged'::text, 'sample'::text, 'wholesale'::text, 'promotional'::text, 'returned'::text, 'recalled'::text])))"
+9 value rules,inventory_lots · inventory_lots_quantity_received_check,CHECK ((quantity_received > (0)::numeric))
+9 value rules,products · products_status_check,"CHECK ((status = ANY (ARRAY['draft'::text, 'active'::text, 'discontinued'::text])))"
+9 value rules,profiles · profiles_account_number_format,CHECK ((account_number ~ '^[0-9]{9}$'::text))
+9 value rules,purchase_order_items · purchase_order_items_quantity_check,CHECK ((quantity > (0)::numeric))
+9 value rules,purchase_orders · purchase_orders_expense_category_check,"CHECK ((expense_category = ANY (ARRAY['packaging'::text, 'ingredients'::text, 'shipping_supplies'::text, 'advertising'::text, 'software'::text, 'manufacturing'::text, 'other'::text])))"
+9 value rules,purchase_orders · purchase_orders_payment_status_check,"CHECK ((payment_status = ANY (ARRAY['unpaid'::text, 'partial'::text, 'paid'::text])))"
+9 value rules,purchase_orders · purchase_orders_status_check,"CHECK ((status = ANY (ARRAY['draft'::text, 'ordered'::text, 'shipped'::text, 'received'::text, 'cancelled'::text])))"
+9 value rules,recalls · recalls_severity_check,"CHECK ((severity = ANY (ARRAY['low'::text, 'normal'::text, 'high'::text, 'critical'::text])))"
+9 value rules,recalls · recalls_status_check,"CHECK ((status = ANY (ARRAY['initiated'::text, 'quarantined'::text, 'resolved'::text])))"
+9 value rules,returns · returns_disposition_check,"CHECK ((disposition = ANY (ARRAY['restock_available'::text, 'restock_damaged'::text, 'discard'::text])))"
+9 value rules,returns · returns_product_condition_check,"CHECK ((product_condition = ANY (ARRAY['resalable'::text, 'damaged'::text, 'used'::text, 'unknown'::text])))"
+9 value rules,returns · returns_status_check,"CHECK ((status = ANY (ARRAY['requested'::text, 'approved'::text, 'rejected'::text, 'received'::text, 'refunded'::text, 'closed'::text])))"
+9 value rules,suppliers · suppliers_supplier_type_check,"CHECK ((supplier_type = ANY (ARRAY['supplier'::text, 'manufacturer'::text, 'lab'::text, 'packaging'::text, 'freight'::text, 'other'::text])))"
+9 value rules,system_mode.mode2 (enum sysmode),"NORMAL, NO_AI"
+9 value rules,tasks · tasks_priority_check,"CHECK ((priority = ANY (ARRAY['low'::text, 'normal'::text, 'high'::text, 'urgent'::text])))"
+9 value rules,tasks · tasks_status_check,"CHECK ((status = ANY (ARRAY['open'::text, 'in_progress'::text, 'done'::text, 'cancelled'::text])))"
