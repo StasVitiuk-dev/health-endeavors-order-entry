@@ -3,6 +3,10 @@
 Status: CURRENT · written Nov 23, 2026 · for Stas. Claude never runs anything in production: you
 run each item yourself, after approving it, with Claude guiding you step by step in the chat.
 
+Each launch step's "After running" check is tested (Nov 28): on a throwaway copy, its draft is installed
+and the check, exactly as written in its guide, gives the guide's Expected answer (items 1, 2, 5, 6, 7, 8,
+23, 24; `local-test/guide_after_checks_test.js`). If your answer differs, stop and send a screenshot.
+
 ## The order I recommend
 
 | Step | Item | What it does, in one line | Risk | When |

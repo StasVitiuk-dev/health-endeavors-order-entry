@@ -105,6 +105,7 @@ step "four levels of account: who may see and change which account (drafts/62, 6
 step "the New Employee helper program: create, password, block (drafts/64 + edge draft)" node "$LT/people_accounts_core_test.mjs" $C
 step "report day cutoff (Query I)" bash "$LT/report_day_cutoff_test.sh" $C
 step "restore with the November drafts" bash "$LT/restore_with_drafts_test.sh" $C
+step "review guides: every launch step's after-check gives the answer its guide promises" node "$LT/guide_after_checks_test.js" $C
 step "stress (5 runs)" bash "$LT/stress_test.sh" 5 $C -d he_real
 step "S29 lock cycle, forced order (INT-4; must not deadlock)" bash "$LT/s29_lock_cycle_repro.sh" $C -d he_real
 step "inventory property model (30 seeds x 60 operations vs reference model)" node "$ROOT/tests/db/inventory-model.js" $C --seeds 1-30 --ops 60 --quiet
